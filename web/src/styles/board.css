@@ -207,6 +207,118 @@
 .evrow u{font:400 .72rem var(--mono);color:var(--info);text-decoration:none;white-space:nowrap;padding-top:2px;cursor:pointer}
 @media(max-width:620px){.evrow{grid-template-columns:30px 1fr}.evrow u{grid-column:2}}
 
+/* ── Blogs: the essay layout from the standalone HTML drafts ────────────────
+   Scoped under .essay with its own --es-* palette: the HTML drafts named their
+   colours --bg/--text/--accent, which are app tokens here, so the names are
+   prefixed rather than redefined. */
+.essay{
+  --es-bg:#0a0c10; --es-panel:#10141b; --es-panel2:#151a23; --es-line:#222a36; --es-line2:#2c3544;
+  --es-text:#e8edf5; --es-body:#c9d2df; --es-muted:#95a1b4; --es-dim:#667286;
+  --es-accent:#7aa2ff; --es-accent2:#a78bfa; --es-good:#3ecf8e; --es-warn:#e3b341;
+  --es-sans:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  --es-mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --es-radius:14px;
+  background:
+    radial-gradient(900px 480px at 12% -8%,rgba(122,162,255,.09),transparent 60%),
+    radial-gradient(760px 420px at 100% 0%,rgba(167,139,250,.07),transparent 60%),var(--es-bg);
+  color:var(--es-text);font:17.5px/1.75 var(--es-sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+.essay *{box-sizing:border-box}
+.essay a{color:var(--es-accent);text-decoration:none;cursor:pointer}
+.essay a:hover{text-decoration:underline}
+.es-wrap{max-width:1200px;margin:0 auto;padding:2.2rem 1.2rem 5rem}
+.es-crumb{font:400 .78rem var(--es-mono);margin-bottom:1.4rem}
+.es-hero{max-width:880px;margin-bottom:2.4rem}
+.es-hub{max-width:840px;margin-bottom:2rem}
+.es-kicker{font-family:var(--es-mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--es-accent)}
+.essay h1{font-size:clamp(2rem,4.4vw,3.2rem);line-height:1.08;letter-spacing:-.025em;margin:.55rem 0 .9rem;font-weight:700;color:var(--es-text)}
+.es-dek{font-size:1.22rem;line-height:1.6;color:var(--es-muted);max-width:62ch;margin:0}
+.es-byline{margin-top:1.1rem;font-family:var(--es-mono);font-size:.78rem;color:var(--es-dim);display:flex;gap:1.1rem;flex-wrap:wrap}
+.es-tags{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.9rem}
+.es-tag{font-family:var(--es-mono);font-size:.7rem;padding:.18rem .6rem;border:1px solid var(--es-line2);border-radius:999px;color:var(--es-muted)}
+.es-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:3.2rem;align-items:start}
+@media(max-width:1000px){.es-layout{grid-template-columns:1fr}.es-side{order:-1}}
+.es-article{min-width:0;max-width:770px}
+.es-article p{color:var(--es-body);margin:1.1rem 0}
+.es-article h2{font-size:1.66rem;letter-spacing:-.015em;line-height:1.25;margin:3.4rem 0 .5rem;padding-top:.4rem;
+  color:var(--es-text);scroll-margin-top:5rem}
+.es-article h2 .num{font-family:var(--es-mono);font-size:.78rem;color:var(--es-accent);display:block;letter-spacing:.14em;margin-bottom:.35rem}
+.es-article h3{font-size:1.14rem;margin:2.1rem 0 .2rem;color:var(--es-text)}
+.es-article b{color:var(--es-text)}
+.essay code{font-family:var(--es-mono);font-size:.86em;background:var(--es-panel2);border:1px solid var(--es-line);
+  border-radius:6px;padding:.08rem .36rem;color:#dbe4ff}
+.essay q.es-iq{quotes:"\201C" "\201D";color:#e9eef8;font-style:italic}
+.es-tldr{background:linear-gradient(180deg,var(--es-panel2),var(--es-panel));border:1px solid var(--es-line2);
+  border-left:3px solid var(--es-accent);border-radius:var(--es-radius);padding:1.35rem 1.55rem;margin:0 0 2.2rem}
+.es-tldr .lbl{font-family:var(--es-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent)}
+.es-tldr p{margin:.55rem 0 0;color:#dde4ef;font-size:1.06rem}
+.es-pq{margin:1.6rem 0;padding:1.1rem 1.35rem;background:var(--es-panel);border:1px solid var(--es-line);
+  border-left:3px solid var(--es-accent2);border-radius:0 12px 12px 0}
+.es-pq blockquote{margin:0;font-size:1.05rem;line-height:1.62;color:#e9eef7}
+.es-pq blockquote::before{content:"\201C";color:var(--es-dim);margin-right:.1rem}
+.es-pq figcaption{margin-top:.55rem;font-family:var(--es-mono);font-size:.72rem;color:var(--es-dim);letter-spacing:.04em}
+.es-tbl{border:1px solid var(--es-line);border-radius:12px;overflow:hidden;overflow-x:auto;margin:1.4rem 0 1.2rem}
+.es-tbl table{width:100%;border-collapse:collapse;font-size:.9rem;margin:0}
+.es-tbl th,.es-tbl td{padding:.66rem .85rem;border-bottom:1px solid var(--es-line);text-align:left;vertical-align:top;line-height:1.55}
+.es-tbl th{font-family:var(--es-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--es-dim);background:var(--es-panel2);font-weight:500}
+.es-tbl td{color:var(--es-body)}
+.es-tbl tr:last-child td{border-bottom:0}
+.es-tbl td.n{font-family:var(--es-mono);text-align:right;white-space:nowrap;color:var(--es-text)}
+.es-tbl td.route{min-width:9rem;max-width:14rem}
+.es-note{font-size:.85rem !important;color:var(--es-dim) !important;margin:0 0 1.7rem !important}
+.es-bdg{font-family:var(--es-mono);font-size:.68rem;line-height:1.45;padding:.16rem .6rem;border-radius:999px;border:1px solid;
+  white-space:nowrap;display:inline-block;max-width:100%;vertical-align:top}
+/* A long route ("Opus 5, bounded by validation and human oversight") wraps
+   inside its card or cell instead of running past the edge. */
+.es-dtree .es-bdg,.es-tbl td.route .es-bdg{white-space:normal;overflow-wrap:anywhere;border-radius:10px}
+.es-bdg.t-g{color:var(--es-good);border-color:rgba(62,207,142,.4)}
+.es-bdg.t-y{color:var(--es-warn);border-color:rgba(227,179,65,.4)}
+.es-bdg.t-b{color:var(--es-accent);border-color:rgba(122,162,255,.4)}
+.es-bdg.t-p{color:var(--es-accent2);border-color:rgba(167,139,250,.4)}
+.es-codehead{font-family:var(--es-mono);font-size:.72rem;color:var(--es-dim);margin:1.8rem 0 .5rem;letter-spacing:.06em}
+.es-illus{font-family:var(--es-mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--es-accent2);margin-right:.5rem}
+.es-pre{background:#0d1117;border:1px solid var(--es-line);border-radius:12px;padding:1rem 1.15rem;overflow-x:auto;
+  font-family:var(--es-mono);font-size:.8rem;line-height:1.65;color:#c9d6ea;margin:0 0 1.6rem;white-space:pre}
+.es-pre .c{color:#6f7f96}
+.es-dtree{margin:1.6rem 0 2.2rem}
+.es-dtree .q{background:var(--es-panel2);border:1px solid var(--es-accent);border-radius:12px;padding:.9rem 1.15rem;
+  font-weight:600;color:var(--es-text);text-align:center;max-width:560px;margin:0 auto;position:relative}
+.es-dtree .q::after{content:"";position:absolute;left:50%;bottom:-1.3rem;height:1.3rem;border-left:1px solid var(--es-line2)}
+.es-dtree .br{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:1.3rem;
+  padding-top:1.3rem;border-top:1px solid var(--es-line2)}
+.es-dtree .b{background:var(--es-panel);border:1px solid var(--es-line);border-radius:12px;padding:1rem 1.05rem;position:relative;
+  display:flex;flex-direction:column;gap:.55rem;min-width:0}
+.es-dtree .b::before{content:"";position:absolute;left:50%;top:-1.3rem;height:1.3rem;border-left:1px solid var(--es-line2)}
+.es-dtree .cond{font-family:var(--es-mono);font-size:.74rem;color:var(--es-warn);letter-spacing:.02em;line-height:1.5}
+.es-dtree .out{color:var(--es-body);font-size:.92rem;margin:0;line-height:1.55;flex:1}
+.es-dtree .b > .es-bdg{align-self:flex-start}
+.es-side{position:sticky;top:4.4rem}
+@media(max-width:1000px){.es-side{position:static}}
+.es-scard{background:var(--es-panel);border:1px solid var(--es-line);border-radius:var(--es-radius);padding:1.1rem 1.2rem}
+.es-scard + .es-scard{margin-top:1rem}
+.es-scard .lbl{font-family:var(--es-mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--es-accent)}
+.es-scard ol{margin:.6rem 0 0;padding-left:1.15rem;font-size:.88rem;line-height:1.5}
+.es-scard ol li{margin:.32rem 0;color:var(--es-muted)}
+.es-scard ol li a{color:var(--es-muted)}
+.es-scard ol li a:hover{color:var(--es-text)}
+.es-scard ul.dec{list-style:none;margin:.6rem 0 0;padding:0;font-size:.88rem}
+.es-scard ul.dec li{position:relative;padding-left:1.15rem;margin:.55rem 0;color:var(--es-body);line-height:1.5}
+.es-scard ul.dec li::before{content:"\2192";position:absolute;left:0;color:var(--es-accent);font-family:var(--es-mono)}
+.es-rel{display:block;padding:.55rem .7rem;border:1px solid var(--es-line);border-radius:10px;margin-top:.5rem;font-size:.86rem;line-height:1.45}
+.es-foot{margin-top:3rem;border-top:1px solid var(--es-line);padding-top:1.4rem;color:var(--es-dim);font-size:.82rem}
+.es-foot p{color:var(--es-dim) !important;margin:.5rem 0 !important}
+.es-draft{max-width:840px;margin:0 0 1.6rem;padding:.9rem 1.15rem;border:1px solid var(--es-line2);border-left:3px solid var(--es-warn);
+  border-radius:0 12px 12px 0;background:var(--es-panel2);color:var(--es-body);font-size:.92rem;line-height:1.55}
+.es-draft b{color:var(--es-text)}
+.es-empty{color:var(--es-muted);font-size:.95rem;margin:.5rem 0}
+.es-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:1.2rem}
+.es-card{display:block;background:linear-gradient(180deg,var(--es-panel2),var(--es-panel));border:1px solid var(--es-line);
+  border-radius:var(--es-radius);padding:1.45rem 1.45rem 1.2rem;color:var(--es-text) !important;transition:border-color .15s,transform .15s}
+.es-card:hover{border-color:var(--es-line2);transform:translateY(-2px);text-decoration:none !important}
+.es-card h3{font-size:1.3rem;line-height:1.3;margin:.55rem 0 .5rem;letter-spacing:-.01em;color:var(--es-text)}
+.es-card p{color:var(--es-muted);font-size:.93rem;margin:.4rem 0;line-height:1.6}
+.es-card .es-sum{border-top:1px solid var(--es-line);margin-top:.9rem;padding-top:.8rem;font-size:.88rem;color:var(--es-body);line-height:1.6}
+.es-card .es-meta{display:flex;justify-content:space-between;font-family:var(--es-mono);font-size:.72rem;color:var(--es-dim);margin-top:1rem}
+
 /* ── the three additions for the metrics rework ──────────────────────────────
  *
  * ⚠ THE FIRST VERSION OF ALL THREE WAS INVISIBLE, and it is worth recording
@@ -388,3 +500,85 @@
   border-bottom:1px solid transparent;
 }
 .bv .figsrc .srclink:hover{ color:var(--text-2); border-bottom-color:var(--border-strong) }
+
+/* ── Blogs: the "Generate 3 more posts" control (routes/Blogs.jsx GenBar) ── */
+.es-strip{min-height:0;background:var(--es-bg);border-bottom:1px solid var(--es-line)}
+.es-strip-in{max-width:1200px;margin:0 auto;padding:.55rem 1.2rem}
+.es-gen{font-family:var(--es-sans)}
+.es-gen-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:.5rem 1rem}
+.es-gen-btn{font:600 .8rem var(--es-sans);color:var(--es-bg);background:var(--es-accent);border:1px solid var(--es-accent);
+  border-radius:999px;padding:.42rem .95rem;cursor:pointer;transition:filter .15s,opacity .15s}
+.es-gen-btn:hover{filter:brightness(1.08)}
+.es-gen-btn:disabled{opacity:.6;cursor:progress;filter:none}
+.es-gen-note{font:400 .76rem var(--es-mono);color:var(--es-dim);line-height:1.5}
+.es-gen-note.warn{color:var(--es-warn)}
+
+/* ── Blogs: per-format layouts (views.js LAYOUTS) ────────────────────────────
+   Each layout re-points the essay accent and styles its own signature block,
+   so a batch of posts does not share one look. */
+.essay.layout-report{--es-accent:#e3b341;--es-accent2:#f2a65a}
+.essay.layout-versus{--es-accent:#7aa2ff;--es-accent2:#f0719b}
+.essay.layout-ledger{--es-accent:#3ecf8e;--es-accent2:#9be29b}
+.essay.layout-runbook{--es-accent:#38bdf8;--es-accent2:#7dd3fc}
+.essay.layout-blueprint{--es-accent:#a78bfa;--es-accent2:#c4b5fd}
+.essay.layout-brief{--es-accent:#fb7185;--es-accent2:#fda4af}
+.essay.layout-critique{--es-accent:#f59e0b;--es-accent2:#fcd34d}
+.es-sp{margin:0 0 2.2rem;padding:1.15rem 1.3rem;background:var(--es-panel);border:1px solid var(--es-line);border-radius:var(--es-radius)}
+.es-sp .lbl{font-family:var(--es-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent);margin-bottom:.8rem}
+.es-sp h4{font-size:1rem;margin:0 0 .45rem;color:var(--es-text)}
+.es-sp ul,.es-sp ol{margin:0;padding:0;list-style:none}
+.es-sp p{margin:.35rem 0 !important;font-size:.92rem;line-height:1.55}
+.es-sp .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+/* report: established vs not established */
+.es-findings li{position:relative;padding:.45rem 0 .45rem 1.3rem;border-top:1px solid var(--es-line);font-size:.92rem;color:var(--es-body);line-height:1.5}
+.es-findings li::before{content:"";position:absolute;left:0;top:.95rem;width:.55rem;height:.55rem;border-radius:50%}
+.es-findings li.ok::before{background:var(--es-good)}
+.es-findings li.open::before{border:1px solid var(--es-dim)}
+.es-findings li.none{color:var(--es-dim)}
+.layout-report .es-article h2 .num{color:var(--es-accent)}
+.layout-report .es-article h2{font-size:1.4rem;border-left:3px solid var(--es-accent);padding-left:.8rem}
+/* versus: nameplates and one card per side */
+.es-vs{display:flex;align-items:center;gap:.8rem;margin:.6rem 0 .2rem;font-family:var(--es-mono);font-size:.82rem}
+.es-vs span{padding:.25rem .7rem;border:1px solid var(--es-accent);border-radius:999px;color:var(--es-text)}
+.es-vs span + i + span{border-color:var(--es-accent2)}
+.es-vs i{color:var(--es-dim);font-style:normal}
+.es-picks .pick{padding:.9rem 1rem;border-radius:12px;background:var(--es-panel2);border-top:3px solid var(--es-accent)}
+.es-picks .pick.p1{border-top-color:var(--es-accent2)}
+.es-picks li{padding:.4rem 0;border-top:1px solid var(--es-line);font-size:.92rem;color:var(--es-body);line-height:1.5}
+.layout-versus .es-article h2 .num{display:table;margin-bottom:.4rem;padding:.1rem .5rem;border-radius:6px;background:rgba(122,162,255,.14)}
+/* ledger: rate card first, drivers as cards */
+.es-rate .es-tbl{margin:0}
+.es-drivers .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem}
+.es-drivers .drv{padding:.9rem 1rem;border-radius:12px;background:var(--es-panel2);border:1px solid var(--es-line)}
+.es-drivers .n{font-family:var(--es-mono);font-size:.7rem;color:var(--es-accent)}
+.es-drivers .lever{color:var(--es-text) !important}
+.es-drivers .lever b{font-family:var(--es-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--es-accent);margin-right:.35rem}
+.layout-ledger .es-article h2{font-family:var(--es-mono);font-size:1.25rem;letter-spacing:-.01em}
+/* runbook: numbered stepper with checks */
+.es-steps li{display:grid;grid-template-columns:2.1rem 1fr;gap:.8rem;padding:.7rem 0;border-top:1px solid var(--es-line)}
+.es-steps li:first-child{border-top:0}
+.es-steps .dot{width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;font:600 .82rem var(--es-mono);color:var(--es-bg);background:var(--es-accent)}
+.es-steps .check{display:flex;gap:.5rem;align-items:flex-start;color:var(--es-muted) !important;font-size:.86rem !important}
+.es-steps .body{min-width:0}
+.es-steps .box{flex:0 0 .8rem;height:.8rem;margin-top:.3rem;border:1px solid var(--es-accent);border-radius:3px}
+.layout-runbook .es-pre{border-left:3px solid var(--es-accent)}
+.layout-runbook .es-article h2{font-size:1.35rem}
+/* blueprint: layers as a stacked diagram, outside in */
+.es-layers .stack{display:grid;gap:.45rem}
+.es-layers .band{padding:.75rem 1rem;border-radius:10px;border:1px solid var(--es-accent);background:var(--es-panel2)}
+.es-layers .name{font:600 .95rem var(--es-sans);color:var(--es-text)}
+.es-layers .role{font-size:.88rem;color:var(--es-body);margin:.2rem 0}
+.es-layers .fail{font-size:.84rem;color:var(--es-muted)}
+.es-layers .fail b{font-family:var(--es-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--es-accent);margin-right:.35rem}
+.layout-blueprint .es-article h2 .num{font-family:var(--es-mono)}
+/* brief: claims with status chips */
+.es-claims .chip{font:500 .7rem var(--es-mono);padding:.15rem .55rem;border-radius:999px;border:1px solid;white-space:nowrap}
+.es-claims .chip.ok{color:var(--es-good);border-color:var(--es-good)}
+.es-claims .chip.part{color:var(--es-warn);border-color:var(--es-warn)}
+.es-claims .chip.none{color:var(--es-dim);border-color:var(--es-line2)}
+.layout-brief .es-article h2{font-size:1.3rem}
+.layout-brief .es-article p{font-size:1.02rem}
+/* critique: what is measured vs missed */
+.es-probes td.miss{color:var(--es-text)}
+.layout-critique .es-article h2{font-size:1.5rem;font-style:italic;letter-spacing:-.01em}
+.layout-critique .es-article p:first-of-type::first-letter{font-size:2.4em;float:left;line-height:.9;margin:.08em .1em 0 0;color:var(--es-accent)}

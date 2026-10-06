@@ -1,0 +1,397 @@
+{
+ "slug": "anthropic-claude-opus-5-report",
+ "status": "draft",
+ "tag": "Model deep dive",
+ "feat": true,
+ "title": "Claude Opus 5 in Production: Buy Judgment, Not a Default",
+ "dek": "Opus 5 can be a strong planner, tool user and architectural reviewer, but its value depends on task difficulty, output contracts and the cost of retries—not its place in a model lineup.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Claude Opus 5 earns its premium when a task requires consequential judgment, difficult tool use or synthesis across a large context; it is wasteful as the default for predictable extraction, routine transformations and bulk triage. Production success depends on explicit output validation, narrow tool surfaces, task-specific evaluation and routing that accounts for cache reuse, retry costs and migration work—not just nominal token prices.",
+ "kicker": "Model deep dive",
+ "tags": [
+  "Claude Opus 5",
+  "Agents",
+  "Migration",
+  "Cost"
+ ],
+ "read": 13,
+ "decisions": [
+  "Whether Opus 5 should be a default, planner or exception handler.",
+  "How to migrate without silently breaking schemas, parameters or tool loops.",
+  "How to route work across Opus, Sonnet and Haiku using task difficulty and failure cost.",
+  "How to control agent permissions, tool breadth, context size, caching and retries.",
+  "How to evaluate model behavior against real production outcomes rather than a general reputation."
+ ],
+ "meta": [
+  "01 October 2026",
+  "~13 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "The migration is a contract change, not a model-name change",
+    "num": "01",
+    "id": "the-migration-is-a-contract-change-not-a-model-name-change"
+   }
+  ],
+  [
+   "p",
+   "The tempting upgrade path is to replace a model identifier and assume the rest of the system remains stable. That assumption fails because a model is part of an application contract: prompts encode behavioral expectations, parsers depend on serialization details, and agent loops rely on the model returning usable tool calls. A new model may preserve broad capability while changing the conversational style or the exact shape of an output. Compatibility at the endpoint level is not behavioral compatibility."
+  ],
+  [
+   "p",
+   "The sharpest operational risk appears in systems that treat generated text as structured data without enforcing a schema. A router that expects a status field cannot safely consume an explanation that happens to resemble JSON, or a value whose capitalization differs from the accepted enum. Prompt instructions are not a validation boundary. Use server-enforced structured output where available, or validate locally before allowing a result to trigger downstream actions. Parse serialized arguments as JSON rather than matching their raw characters; escaping differences can make string-level checks fail silently."
+  ],
+  [
+   "quote",
+   "The old fixed thinking budget is gone and returns an error on the current generation."
+  ],
+  [
+   "p",
+   "Migration also invalidates assumptions embedded in old reasoning controls. A team describing the change as «The old fixed thinking budget is gone and returns an error on the current generation» highlights a concrete failure mode: an upgrade can turn a formerly accepted request into an error before inference begins. Treat request construction as versioned integration code. Run contract tests over parameters, tool arguments, refusals, malformed responses and retries, then compare the new model on representative production records before moving live traffic."
+  ],
+  [
+   "p",
+   "The right migration unit is therefore a workflow, not a model call. Preserve the old route until evaluation demonstrates a task-specific improvement; review prompts for instructions tuned to earlier behavior; and instrument validation failures, retries and human corrections. A model that improves reasoning but increases repair work may be a regression for the system. Conversely, when the failure is genuinely format reliability or difficult long-document handling, the cost of migration can be justified. If the root problem is vague requirements, changing vendors or model generations merely relocates the ambiguity."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative routing and validation boundary",
+    "language": "python",
+    "source": "def run_task(task, models, validate, evaluate):\n    candidate = models.route(task)\n    result = candidate.generate(task.prompt)\n\n    if not validate(result, task.schema):\n        result = models.repair_route(task).generate(task.prompt, prior=result)\n\n    if not evaluate(result, task.acceptance_check):\n        raise RuntimeError(\"Result requires review\")\n\n    return result"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Agent performance depends on the tool surface",
+    "num": "02",
+    "id": "agent-performance-depends-on-the-tool-surface"
+   }
+  ],
+  [
+   "p",
+   "Opus 5 is most compelling when an agent must connect evidence, choose among actions and maintain a plan across multiple steps. The distinction matters: a lookup with one obvious tool is not the same workload as diagnosing a code change, reconciling conflicting records or deciding which system to inspect next. The latter exposes judgment; the former mostly tests whether the agent can follow a narrow instruction. A capable model cannot compensate for an incoherent tool catalog or an unsafe permission model."
+  ],
+  [
+   "p",
+   "Tool volume itself becomes an architectural constraint. Each server can contribute schemas to the model’s working context, and similar descriptions make selection harder. The operational recommendation «three-server rule» is best understood as a design warning, not a universal law: connect only the system of record, a needed context source and a destination, then measure tool-selection errors as the surface grows. Large catalogs should be split by role or exposed selectively rather than attached wholesale to every request."
+  ],
+  [
+   "quote",
+   "Three servers is the ceiling"
+  ],
+  [
+   "p",
+   "Agent competence also does not imply authorization competence. A model may correctly identify a refund, database update or repository change as a plausible next step while still lacking the context to execute it safely. Keep read and write capabilities separate, require explicit approval for consequential writes, and validate every action at the server boundary. Untrusted ticket text, retrieved documents and code comments should not be able to expand the agent’s authority. A strong model can make a more persuasive mistake, so least privilege remains essential even when tool use improves."
+  ],
+  [
+   "p",
+   "Long chains expose compounded failure. A single missed block, rejected move or malformed call can invalidate the downstream plan, and the cause may sit in the model, the harness, the tool response or the clock. One competitive game ended when Opus failed to block a winning threat; that outcome shows why a successful sequence of earlier tool interactions is not proof of reliable end-to-end judgment. Treat each step as a decision with observable inputs, enforce tool preconditions, and provide a stop condition when uncertainty or time pressure makes action unsafe."
+  ],
+  [
+   "h2",
+   {
+    "text": "Judgment has value—and a communication tax",
+    "num": "03",
+    "id": "judgment-has-value-and-a-communication-tax"
+   }
+  ],
+  [
+   "p",
+   "The case for Opus 5 is not that it should handle every request. Its economic value arises when a better decision prevents expensive downstream work: choosing an architecture that avoids a costly rewrite, finding the missing condition in a code review, or orchestrating an investigation across tools. In a software build, Opus 5 planned a set of interconnected business features and a cheaper model carried out the implementation. The first pass missed requirements and had framework integration problems, but iterative testing and correction brought the commissioned functions into place. The lesson is leverage through decomposition and review, not autonomous delivery without verification."
+  ],
+  [
+   "p",
+   "This distinction explains why model quality must be assessed against the task’s actual failure cost. A planning model can be worth paying for when a bad plan contaminates many implementation steps; a routine field extraction rarely earns the same premium. Teams should measure correctness, human review time, repair prompts and operational consequences on their own records. Benchmarks may test categories unlike the application’s real bottleneck, while polished prose can disguise a weak decision. Use an eval set with known outcomes and make the acceptance criteria reflect what production actually needs."
+  ],
+  [
+   "quote",
+   "It has dragged me into so many unnecessary rabbit holes"
+  ],
+  [
+   "p",
+   "The interaction style can add a cost. Opus 5 has been described as over-explanatory, argumentative or prone to opening tangents, while other users value its reasoning and tool use enough to tolerate that friction. One complaint captures the operational symptom as «It has dragged me into so many unnecessary rabbit holes». This is not merely a matter of taste in an interactive product: verbosity consumes output tokens, distracts human operators and can obscure the action an agent should take. Scoped prompts should state the requested artifact, prohibit unsolicited alternatives where appropriate, and ask for a concise decision with evidence."
+  ],
+  [
+   "p",
+   "Style is not consistent across every workload, and model preference can vary by task. A creative-writing user described Opus 5 as «a good balance between 4.7 and 4.8», while also observing that it tends to rush scenes. That is a useful caution against turning anecdotal preference into a universal quality ranking. Define separate evaluations for conversational helpfulness, task completion and tool correctness. If a model’s tone impairs operator comprehension, route that user-facing interaction elsewhere while retaining Opus 5 for the judgment step where its capability pays for itself."
+  ],
+  [
+   "h2",
+   {
+    "text": "The economics favor selective escalation",
+    "num": "04",
+    "id": "the-economics-favor-selective-escalation"
+   }
+  ],
+  [
+   "p",
+   "At the supplied registry list prices, Opus 5 costs $5.00 per million input tokens and $25.00 per million output tokens, with cached input at $0.50. Sonnet 5 is $2.00 input and $10.00 output, with cached input at $0.20; Haiku 4.5 is $1.00 and $5.00, with cached input at $0.10. These rates put the design question in plain view: the highest-priced route should handle work whose judgment can change the outcome, rather than become the unexamined default for every request."
+  ],
+  [
+   "p",
+   "The context window is advertised at 1,000,000 tokens for Opus 5 and Sonnet 5. That capacity is useful when the task genuinely needs broad context, but it is not a reason to send an entire document collection on every call. Stable prefixes can be reused through caching, while timestamps, reordered tool definitions or unstable serialized data can defeat reuse. Cache design therefore belongs in application architecture: normalize prompts, keep volatile request details out of stable prefixes, and track cached versus uncached input in cost records."
+  ],
+  [
+   "quote",
+   "Plan with a strong model, execute with a cheaper one."
+  ],
+  [
+   "p",
+   "Retries are a second hidden multiplier of system cost, and they also add latency. A malformed result that is blindly retried can consume more tokens without addressing the underlying failure. Validate once, distinguish transient transport failures from semantic invalidity, and use bounded repair behavior rather than replaying the entire task by default. Batch processing can help asynchronous workloads where supported, but route selection should still account for cache scope: separate model routes do not automatically share model-specific cache state."
+  ],
+  [
+   "p",
+   "A practical stack escalates by uncertainty and consequence. Haiku can handle clear routing or predictable triage; Sonnet can serve as a general reasoning path; Opus can plan, adjudicate ambiguity or review work whose failure is costly. The pattern «Plan with a strong model, execute with a cheaper one» captures the core economics. Keep the handoff explicit: pass a bounded plan, let the execution model report evidence and unresolved items, then reserve Opus or a human for exceptions instead of repeating expensive reasoning over routine steps."
+  ],
+  [
+   "h2",
+   {
+    "text": "Context and orchestration need operational limits",
+    "num": "05",
+    "id": "context-and-orchestration-need-operational-limits"
+   }
+  ],
+  [
+   "p",
+   "A million-token context window does not remove the need for retrieval and scope control. It changes the feasible size of an individual request, but oversized context still carries cost, can bury relevant evidence and may include instructions that should not govern the current task. For agents, tool schemas and retrieved content compete with the actual objective. Send context because it is relevant, not because the model can accept it; summarize or retrieve selectively when the task does not require exhaustive inspection."
+  ],
+  [
+   "p",
+   "Long-running orchestration should be decomposed around durable checkpoints. Ask the planner for a bounded sequence of steps, persist state outside the conversation, and make each tool invocation independently observable. A session reset that forces the model to reread an entire history wastes tokens and risks losing the operative state among old discussion. Store authoritative facts and decisions in application state, then provide only the subset needed for the next transition. This also makes recovery possible when a tool fails or an agent exceeds its time budget."
+  ],
+  [
+   "quote",
+   "The server can identify the harness — `initialize` carries `clientInfo`"
+  ],
+  [
+   "p",
+   "The same control principle applies to execution clocks. A heavy reasoning model may need more time than a lightweight response, but production systems cannot let a tool loop wait indefinitely. Define per-step deadlines, cancellation behavior and a safe fallback. In a timed game, the server started the clock when the player first read the board; that small boundary decision avoided charging time before the agent could observe its state. Real services need the equivalent: start latency accounting at a clearly defined point and distinguish model wait, tool wait and queue time."
+  ],
+  [
+   "p",
+   "Finally, verify what the runtime actually exposes. An MCP client may reveal its harness but not reliably identify the underlying model, leaving model and effort self-reported. Do not build observability around labels that are not authoritative. Record the route selected by your own application, the request configuration you sent, tool inputs and outputs, validation outcomes, latency and token accounting. That information is what makes routing policy testable rather than aspirational."
+  ],
+  [
+   "h2",
+   {
+    "text": "Migration strategy: retain options, measure the bottleneck",
+    "num": "06",
+    "id": "migration-strategy-retain-options-measure-the-bottleneck"
+   }
+  ],
+  [
+   "p",
+   "A robust architecture treats model choice as a replaceable policy decision, but it does not pretend that migration is free. Existing SDK assumptions, prompts, parsers, cache behavior and operator habits all create switching costs. A change should begin with a baseline of real traffic and known expected results. Evaluate the candidate on the same tasks, then include the cost of failures, retries and human review—not only the model’s nominal token rate."
+  ],
+  [
+   "p",
+   "Keep an incumbent route when it is working and the proposed migration has no demonstrated advantage. When output reliability, long-document handling or difficult tool use is the actual constraint, test a targeted migration for that workflow rather than moving the whole estate. Use shadow traffic or a controlled canary where feasible, and retain a rollback path. This avoids turning an uncertain model improvement into a system-wide regression."
+  ],
+  [
+   "p",
+   "Do not infer that Opus 5 is uniquely suited to every agentic workload. When failure is primarily tool configuration, poor server descriptions, excessive permissions or missing tests, those are engineering defects that a model switch will not solve. Reduce the tool surface, enforce schemas, scope access and construct evaluation cases first. If the model still fails on the hard judgment step after those controls are in place, escalation is evidence-based."
+  ],
+  [
+   "p",
+   "The architectural conclusion is selective commitment: use Opus 5 where the value of a correct judgment exceeds its direct and indirect costs, and make the rest of the system cheap, constrained and inspectable. Its most defensible role is often planner, reviewer or exception handler—not universal worker. That role preserves the benefits of deep reasoning while containing the downsides of verbosity, variable latency, retry cost and migration churn."
+  ],
+  [
+   "h2",
+   {
+    "text": "Where Opus 5 fits",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Architecture planning for a multi-part build",
+      "Higher-cost judgment can expose dependencies, but a strong plan does not guarantee implementation correctness.",
+      "Have Opus produce bounded milestones and acceptance tests; execute routine work on Sonnet and verify in the target environment.",
+      "Opus 5 for planning; Sonnet 5 for implementation."
+     ],
+     [
+      "Hard code review or incident analysis",
+      "Cross-step reasoning and tool use can be valuable, while verbosity and occasional wrong decisions remain operational risks.",
+      "Limit tools to relevant repositories and system observations; require evidence for conclusions and human approval for writes.",
+      "Opus 5 for complex review; keep changes read-only until approved."
+     ],
+     [
+      "Bulk extraction and predictable classification",
+      "Opus pricing buys judgment that the task may not need; retries for invalid output can erase savings.",
+      "Enforce a schema, monitor invalid results and escalate only uncertain or consequential cases.",
+      "Haiku 4.5 for clear cases; Sonnet 5 or Opus 5 for exceptions."
+     ],
+     [
+      "Long-document synthesis",
+      "The advertised 1,000,000-token context can avoid brittle fragmentation, but indiscriminate context increases cost and can obscure relevant evidence.",
+      "Use caching for stable prefixes and retrieve or summarize irrelevant sections rather than supplying everything by default.",
+      "Opus 5 when judgment across the full document set matters; Sonnet 5 for routine synthesis."
+     ],
+     [
+      "MCP agent with many connected services",
+      "Opus may improve tool reasoning, but crowded schemas and excessive permissions create selection and safety failures.",
+      "Expose a small, role-specific tool set; start read-only and add approved writes only after evaluation.",
+      "Opus 5 for difficult tool chains; use fewer tools before upgrading."
+     ],
+     [
+      "User-facing conversation or creative work",
+      "Opus 5 has been described as overlong, argumentative or rushed for some tasks, while others prefer its style.",
+      "Evaluate tone and task completion separately; specify concise output and route style-sensitive work by observed preference.",
+      "Use Opus 5 only where its task-specific strengths win; compare Opus 4.6, 4.8 or another route on local evaluations."
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Does this task need Opus 5’s judgment enough to justify its cost and operational overhead?",
+    "num": "Decision tree",
+    "id": "decision"
+   }
+  ],
+  [
+   "tree",
+   {
+    "question": "Does this task need Opus 5’s judgment enough to justify its cost and operational overhead?",
+    "branches": [
+     {
+      "condition": "The task is predictable, high-volume and has a narrow output contract.",
+      "outcome": "Use a less expensive route and enforce validation; escalate only invalid or ambiguous cases.",
+      "route": "Haiku 4.5, with Sonnet 5 as an escalation path."
+     },
+     {
+      "condition": "The task needs synthesis or reasoning, but failure is recoverable and volume matters.",
+      "outcome": "Benchmark Sonnet first, with caching and retry behavior included in the cost test.",
+      "route": "Sonnet 5."
+     },
+     {
+      "condition": "A wrong plan or decision is expensive, or the task requires difficult multi-step tool orchestration.",
+      "outcome": "Use Opus for planning, review or exception handling; constrain tools and require evidence or approval for consequential actions.",
+      "route": "Opus 5, bounded by validation and human oversight."
+     },
+     {
+      "condition": "The current model’s failures stem from unclear requirements, excessive tools, weak permissions or missing tests.",
+      "outcome": "Fix the system boundary before switching models; rerun task-specific evaluations afterward.",
+      "route": "Retain the current route until a model-specific bottleneck is demonstrated."
+     }
+    ]
+   }
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ],
+     [
+      "Claude Opus 4.6",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Opus 4.7",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "GPT-5.6 Sol",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Claude Sonnet 4.6",
+      "$3.00",
+      "$15.00",
+      "$0.30"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "rel": [
+  [
+   "post:anthropic-claude-sonnet-5-vs-anthropic-claude-opus-5",
+   "Claude Sonnet 5 vs Opus 5: A Production Routing Guide"
+  ],
+  [
+   "post:capability-reasoning",
+   "Reasoning Effort Is a Production Policy, Not a Model Setting"
+  ]
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "generated_at": "2026-10-01T06:39:45+00:00",
+  "rechecked_from": "2026-10-01T062222+0000.json",
+  "documents": [
+   "thread_context_39422c06a3b460b7",
+   "thread_context_8408cf1bdeda25f7",
+   "thread_context_5b76134b1c757861",
+   "thread_context_f0c75bdb2098e7f6",
+   "thread_context_92da9cb3baee8550",
+   "thread_context_db4c685f5b5b2c2b",
+   "thread_context_086546419fdb8581",
+   "thread_context_e2b31946ae0e0ff6",
+   "thread_context_a759cfe278dc6e60",
+   "thread_context_04913d2bf7d75438"
+  ],
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "reviewed_by": null
+ }
+}

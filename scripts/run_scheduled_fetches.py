@@ -34,6 +34,7 @@ import argparse
 import os
 import subprocess
 import sys
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -101,13 +102,21 @@ def run_one(due, *, sources: str | None, development_write: bool) -> dict:
     from judge import scheduler
 
     env = dict(os.environ, FETCH_MAX_THREADS=str(due.thread_cap), FETCH_QUIET="1")
-    cmd = [sys.executable, "-m", "scripts.fetch_model", due.model_version_id]
+    # THE RUNNER NAMES THE RUN, THE SAME WAY THE ADMIN BUTTON DOES (#494 fix,
+    # 2026-10-05). This read the id back from the child's first stdout line,
+    # and `fetch_model` stopped printing it (its own comment says nothing else
+    # invoked the script - this did). The read then took whatever the child
+    # printed first, `_end_record` found no such log, and EVERY model reported
+    # "no end record" in the public summary while its fetch ran normally.
+    # Minting the id here leaves nothing to parse.
+    run_id = f"{due.model_version_id}-{uuid.uuid4().hex[:8]}"
+    cmd = [sys.executable, "-m", "scripts.fetch_model", due.model_version_id,
+           "--run-id", run_id]
     if sources:
         cmd += ["--sources", sources]
     if development_write:
         cmd += ["--development-write"]
     proc = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True)
-    run_id = (proc.stdout or "").splitlines()[0].strip() if proc.stdout else ""
     return {"model_version_id": due.model_version_id, "display_name": due.display_name,
             "run_id": run_id, "returncode": proc.returncode,
             "_end": _end_record(run_id), "_scheduler": scheduler}
@@ -176,8 +185,33 @@ def main(argv: list[str] | None = None) -> int:
     if not due:
         return 0
 
+    # THE DAILY BUDGET IS ONE TEAM-WIDE FIGURE, so the runner checks it before
+    # each model rather than letting fetch_model find out at E5. Once spent,
+    # a further model would still HARVEST - using platform quota - and then
+    # extract nothing, and the summary would show it as an ordinary run with
+    # zero quotes. So the runner stops launching and names every model it did
+    # not run, with the reason (rule 4: an absence we caused says so).
+    # An unset budget refuses (rule 6): fetch_model would run uncapped-by-cap.
+    from judge import spend_ledger
+
+    raw_cap = os.getenv("EXTRACTION_DAILY_BUDGET_USD")
+    if raw_cap is None or not raw_cap.strip():
+        raise SystemExit(
+            "EXTRACTION_DAILY_BUDGET_USD is not set; refusing to run a batch whose "
+            "spend nothing caps (docs/ops-scheduled-fetches.md, step 2)"
+        )
+    cap = float(raw_cap)
+
     records = []
-    for d in due:
+    for i, d in enumerate(due):
+        spent = spend_ledger.spent_today()
+        if spent >= cap:
+            for rest in due[i:]:
+                records.append({"model": rest.display_name,
+                                "status": "not run: daily budget spent"})
+            print(f"daily budget spent (${spent:.4f} of ${cap:.2f}); "
+                  f"{len(due) - i} model(s) not run")
+            break
         result = run_one(d, sources=args.sources, development_write=args.development_write)
         end = result["_end"]
         rec = scheduler.safe_record(end) if end else {"status": "no end record"}

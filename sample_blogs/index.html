@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Notes — Model Information Board</title>
+<meta name="description" content="Long-form engineering essays on AI models in production.">
+<meta property="og:title" content="Field Notes — Model Information Board">
+<meta property="og:description" content="Long-form engineering essays on AI models in production.">
+<meta name="robots" content="noindex,nofollow">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "CollectionPage", "name": "Field Notes — Model Information Board", "hasPart": [{"@type": "Article", "headline": "Claude Opus 5 in Production: Buy Judgment, Not a Default", "url": "anthropic-claude-opus-5-report.html"}, {"@type": "Article", "headline": "Claude Sonnet 5 vs Opus 5: A Production Routing Guide", "url": "anthropic-claude-sonnet-5-vs-anthropic-claude-opus-5.html"}, {"@type": "Article", "headline": "Reasoning Effort Is a Production Policy, Not a Model Setting", "url": "capability-reasoning.html"}]}</script>
+<style>
+:root{
+  --bg:#0a0c10; --panel:#10141b; --panel2:#151a23; --line:#222a36; --line2:#2c3544;
+  --text:#e8edf5; --body:#c9d2df; --muted:#95a1b4; --dim:#667286;
+  --accent:#7aa2ff; --accent2:#a78bfa; --good:#3ecf8e; --bad:#f2716b; --neu:#8492a8; --warn:#e3b341;
+  --sans:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:
+  radial-gradient(900px 480px at 12% -8%,rgba(122,162,255,.09),transparent 60%),
+  radial-gradient(760px 420px at 100% 0%,rgba(167,139,250,.07),transparent 60%),var(--bg);
+  color:var(--text);font:17.5px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.topbar{border-bottom:1px solid var(--line);background:rgba(10,12,16,.72);backdrop-filter:blur(8px);
+  position:sticky;top:0;z-index:5}
+.topbar .in{max-width:1200px;margin:0 auto;padding:.7rem 1.2rem;display:flex;gap:1rem;align-items:center;
+  font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.topbar b{color:var(--text);letter-spacing:.06em}
+.wrap{max-width:1200px;margin:0 auto;padding:2.8rem 1.2rem 5rem}
+.hero{max-width:880px;margin-bottom:2.4rem}
+.kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(2rem,4.4vw,3.2rem);line-height:1.08;letter-spacing:-.025em;margin:.55rem 0 .9rem;font-weight:700}
+.dek{font-size:1.22rem;line-height:1.6;color:var(--muted);max-width:62ch;margin:0}
+.byline{margin-top:1.1rem;font-family:var(--mono);font-size:.78rem;color:var(--dim);display:flex;gap:1.1rem;flex-wrap:wrap}
+.tags{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.9rem}
+.tag{font-family:var(--mono);font-size:.7rem;padding:.18rem .6rem;border:1px solid var(--line2);border-radius:999px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:3.2rem;align-items:start}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}.side{order:-1}}
+article{min-width:0;max-width:770px}
+article p{color:var(--body);margin:1.1rem 0}
+article h2{font-size:1.66rem;letter-spacing:-.015em;line-height:1.25;margin:3.4rem 0 .5rem;padding-top:.4rem}
+article h2 .num{font-family:var(--mono);font-size:.78rem;color:var(--accent);display:block;letter-spacing:.14em;margin-bottom:.35rem}
+article h3{font-size:1.14rem;margin:2.1rem 0 .2rem;color:var(--text)}
+.thesis{font-size:1.08rem;color:#dde4ef !important;border-left:2px solid var(--line2);padding-left:1rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel2);border:1px solid var(--line);
+  border-radius:6px;padding:.08rem .36rem;color:#dbe4ff}
+q.iq{quotes:"\201C" "\201D";color:#e9eef8;font-style:italic}
+.takeaway{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);
+  border-left:3px solid var(--accent);border-radius:var(--radius);padding:1.35rem 1.55rem;margin:0 0 2.2rem}
+.takeaway .lbl{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.takeaway p{margin:.55rem 0 0;color:#dde4ef;font-size:1.06rem}
+figure.pq{margin:1.6rem 0;padding:1.1rem 1.35rem;background:var(--panel);border:1px solid var(--line);
+  border-left:3px solid var(--accent2);border-radius:0 12px 12px 0}
+figure.pq blockquote{margin:0;font-size:1.05rem;line-height:1.62;color:#e9eef7}
+figure.pq blockquote::before{content:"\201C";color:var(--dim);margin-right:.1rem}
+figure.pq blockquote::after{content:"\201D";color:var(--dim)}
+figure.pq figcaption{margin-top:.55rem;font-family:var(--mono);font-size:.72rem;color:var(--dim);letter-spacing:.04em}
+.chart{margin:1.7rem 0 2rem;padding:1.15rem 1.15rem .75rem;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.chart .cap{font-family:var(--mono);font-size:.74rem;color:var(--dim);margin:.45rem .2rem 0;line-height:1.55}
+.chart .ttl{font-weight:600;font-size:.96rem;margin:0 .2rem .6rem;color:var(--text)}
+svg{display:block;width:100%;height:auto}
+.svt{font-family:var(--mono);font-size:12px;fill:var(--muted)}
+.svs{font-family:var(--mono);font-size:11px;fill:var(--dim)}
+.svb{font-family:var(--sans);font-size:13px;fill:var(--text);font-weight:600}
+.svh{font-family:var(--mono);font-size:11px;fill:var(--accent);letter-spacing:.12em}
+.good{fill:var(--good)} .bad{fill:var(--bad)} .neu{fill:var(--neu)} .acc{fill:var(--accent)} .acc2{fill:var(--accent2)}
+.gridl{stroke:var(--line);stroke-width:1} .axis{stroke:var(--line2);stroke-width:1}
+.tbl{border:1px solid var(--line);border-radius:12px;overflow:hidden;overflow-x:auto;margin:1.4rem 0 1.7rem}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:0}
+th,td{padding:.66rem .85rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:var(--panel2);font-weight:500}
+td{color:var(--body)} tr:last-child td{border-bottom:0}
+td.n{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--text)}
+td b{color:var(--text)}
+.bdg{font-family:var(--mono);font-size:.68rem;padding:.14rem .52rem;border-radius:999px;border:1px solid;white-space:nowrap}
+.bdg.g{color:var(--good);border-color:rgba(62,207,142,.4)} .bdg.r{color:var(--bad);border-color:rgba(242,113,107,.4)}
+.bdg.y{color:var(--warn);border-color:rgba(227,179,65,.4)} .bdg.b{color:var(--accent);border-color:rgba(122,162,255,.4)}
+.bdg.p{color:var(--accent2);border-color:rgba(167,139,250,.4)} .bdg.m{color:var(--muted);border-color:var(--line2)}
+.ratios{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1.3rem 0}
+@media(max-width:640px){.ratios{grid-template-columns:1fr}}
+.ratio{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.ratio .v{font-family:var(--mono);font-size:1.7rem;font-weight:600;color:var(--text);line-height:1}
+.ratio .k{font-size:.82rem;color:var(--muted);margin-top:.4rem;line-height:1.45}
+.callout{border:1px solid var(--line2);background:var(--panel2);border-radius:12px;padding:1rem 1.25rem;margin:1.5rem 0}
+.callout .lbl{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--warn)}
+.callout p{margin:.45rem 0 0;font-size:.95rem}
+.codehead{font-family:var(--mono);font-size:.72rem;color:var(--dim);margin:1.6rem 0 -.9rem;letter-spacing:.06em}
+pre{background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:1rem 1.15rem;overflow-x:auto;
+  font-family:var(--mono);font-size:.8rem;line-height:1.65;color:#c9d6ea;margin:1.3rem 0}
+pre .c{color:#6f7f96} pre .s{color:#8fd6a6} pre .k{color:#c4a5ff}
+.side{position:sticky;top:4.4rem}
+@media(max-width:1000px){.side{position:static}}
+.scard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1.1rem 1.2rem}
+.scard + .scard{margin-top:1rem}
+.scard .lbl{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.scard ol{margin:.6rem 0 0;padding-left:1.15rem;font-size:.88rem}
+.scard ol li{margin:.32rem 0;color:var(--muted)}
+.scard ol li a{color:var(--muted)} .scard ol li a:hover{color:var(--text)}
+.scard ul.dec{list-style:none;margin:.6rem 0 0;padding:0;font-size:.88rem}
+.scard ul.dec li{position:relative;padding-left:1.15rem;margin:.55rem 0;color:var(--body);line-height:1.5}
+.scard ul.dec li::before{content:"\2192";position:absolute;left:0;color:var(--accent);font-family:var(--mono)}
+.scard a.rel{display:block;padding:.55rem .7rem;border:1px solid var(--line);border-radius:10px;margin-top:.5rem;font-size:.86rem}
+footer{margin-top:4rem;border-top:1px solid var(--line);padding-top:1.4rem;color:var(--dim);font-size:.82rem;max-width:770px}
+.hub-h{max-width:840px;margin-bottom:2.4rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:1.2rem}
+.card{display:block;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+  border-radius:var(--radius);padding:1.45rem 1.45rem 1.2rem;color:var(--text);transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--line2);transform:translateY(-2px);text-decoration:none}
+.card h3{font-size:1.3rem;line-height:1.3;margin:.55rem 0 .5rem;letter-spacing:-.01em}
+.card p{color:var(--muted);font-size:.93rem;margin:.4rem 0}
+.card .meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.72rem;color:var(--dim);margin-top:1rem}
+.card .sum{border-top:1px solid var(--line);margin-top:.9rem;padding-top:.8rem;font-size:.88rem;color:var(--body)}
+
+.tldr{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);
+  border-left:3px solid var(--accent);border-radius:var(--radius);padding:1.35rem 1.55rem;margin:0 0 2.2rem}
+.tldr .lbl{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.tldr p{margin:.55rem 0 0;color:#dde4ef;font-size:1.06rem}
+.mx td.route{white-space:nowrap}
+.dtree{margin:1.6rem 0 2.2rem}
+.dtree .q{background:var(--panel2);border:1px solid var(--accent);border-radius:12px;padding:.9rem 1.15rem;
+  font-weight:600;color:var(--text);text-align:center;max-width:560px;margin:0 auto;position:relative}
+.dtree .q::after{content:"";position:absolute;left:50%;bottom:-1.3rem;height:1.3rem;border-left:1px solid var(--line2)}
+.dtree .br{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.9rem;margin-top:1.3rem;
+  padding-top:1.3rem;border-top:1px solid var(--line2)}
+.dtree .b{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;position:relative}
+.dtree .b::before{content:"";position:absolute;left:50%;top:-1.3rem;height:1.3rem;border-left:1px solid var(--line2)}
+.dtree .cond{font-family:var(--mono);font-size:.74rem;color:var(--warn);letter-spacing:.02em}
+.dtree .out{color:var(--body);font-size:.92rem;margin:.45rem 0 .6rem;line-height:1.5}
+.illus{font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);margin-right:.5rem}
+</style></head><body>
+<div class="topbar"><div class="in"><b>FIELD NOTES</b><span>Model Information Board</span></div></div>
+<div class="wrap"><header class="hub-h"><div class="kicker">Field notes · Model Information Board</div>
+<h1>How AI models behave in production</h1><p class="dek">Long-form engineering essays on running frontier
+models in real systems — the failure modes, the architecture that contains them, and the economics that decide
+what is worth building.</p></header><div class="cards"><a class="card" href="./anthropic-claude-opus-5-report.html"><div class="kicker">Model deep dive</div><h3>Claude Opus 5 in Production: Buy Judgment, Not a Default</h3><p>Opus 5 can be a strong planner, tool user and architectural reviewer, but its value depends on task difficulty, output contracts and the cost of retries—not its place in a model lineup.</p><div class="tags"><span class="tag">Claude Opus 5</span><span class="tag">Agents</span><span class="tag">Migration</span><span class="tag">Cost</span></div><div class="sum">Claude Opus 5 earns its premium when a task requires consequential judgment, difficult tool use or synthesis across a large context; it is wasteful as the default for predictable extraction, routine transformations and bulk triage. Production success depends on explicit output validation, narrow tool surfaces, task-specific evaluation and routing that accounts for cache reuse, retry costs and migration work—not just nominal token prices.</div><div class="meta"><span>13 min read</span><span>01 Oct 2026</span></div></a><a class="card" href="./anthropic-claude-sonnet-5-vs-anthropic-claude-opus-5.html"><div class="kicker">Routing guide</div><h3>Claude Sonnet 5 vs Opus 5: A Production Routing Guide</h3><p>Sonnet 5 is the economical default when task boundaries are clear; Opus 5 earns its higher price on consequential judgment and long, coupled work. A reliable router needs escalation, shared-contract safeguards, and evaluation—not model-name heuristics alone.</p><div class="tags"><span class="tag">Claude Sonnet 5</span><span class="tag">Claude Opus 5</span><span class="tag">Routing</span><span class="tag">Cost</span></div><div class="sum">Use Sonnet 5 for bounded implementation, summarization, and routine synthesis when outputs can be checked cheaply. Route architecture, ambiguous specifications, difficult code review, and high-cost-to-reverse decisions to Opus 5, then escalate Sonnet outputs when validation exposes uncertainty or failure. Both models share important integration constraints, including rejected sampling settings and the same advertised context size; changing tiers does not repair those problems.</div><div class="meta"><span>14 min read</span><span>01 Oct 2026</span></div></a><a class="card" href="./capability-reasoning.html"><div class="kicker">Capability analysis</div><h3>Reasoning Effort Is a Production Policy, Not a Model Setting</h3><p>More inference can rescue hard, multi-step work, but it can also inflate latency, distort scope, and reduce accuracy. Treat effort as a per-task budget governed by evidence and escalation.</p><div class="tags"><span class="tag">Reasoning</span><span class="tag">Effort settings</span><span class="tag">Latency</span><span class="tag">Cost</span></div><div class="sum">Reasoning effort is not a universal quality dial: deeper inference can improve difficult algorithms, code fixes, and tool-mediated investigation, while simple requests may become slower, longer, or less faithful. Set a low default, measure task-specific quality and completion time, and escalate only when the task’s uncertainty or failure cost justifies the added generation.</div><div class="meta"><span>12 min read</span><span>01 Oct 2026</span></div></a></div>
+<footer><p>Draft — not for external publication.</p></footer></div></body></html>

@@ -1187,19 +1187,28 @@ def compare_page(ids: str = "") -> dict:
         #   the board and counting them would put them back in through an
         #   arithmetic side door.
         polarity = {}
+        # WITHHELD SOURCES ARE NOT COUNTED on a public view
+        # (contract/publication.yaml): a count that includes them is data from
+        # them, and the platform split below would name them outright.
+        from judge import publication
+
+        pub_sql, pub_args = publication.sql_public_document("board_entry.document_id")
+        pub_sql_b, pub_args_b = publication.sql_public_document("b.document_id")
         for m in found:
             rows = conn.execute(
                 "SELECT polarity, count(*), count(DISTINCT document_id) "
                 "FROM board_entry "
                 "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined' "
+                + pub_sql +
                 "GROUP BY polarity",
-                (m["model_version_id"],),
+                (m["model_version_id"], *pub_args),
             ).fetchall()
             counts = {p: n for p, n, _ in rows if p}
             docs = conn.execute(
                 "SELECT count(DISTINCT document_id) FROM board_entry "
-                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'",
-                (m["model_version_id"],),
+                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'"
+                + pub_sql,
+                (m["model_version_id"], *pub_args),
             ).fetchone()[0]
             # ⚠ WHERE IT WAS SAID, AND WHAT KIND OF THING IT WAS. A
             #   "document" here is a Reddit post, a Hacker News COMMENT, a
@@ -1217,16 +1226,18 @@ def compare_page(ids: str = "") -> dict:
                 "JOIN document d ON d.id = b.document_id "
                 "WHERE b.model_version_id = %s "
                 "  AND b.ruling IS DISTINCT FROM 'declined' "
+                + pub_sql_b +
                 "GROUP BY d.source ORDER BY 2 DESC",
-                (m["model_version_id"],),
+                (m["model_version_id"], *pub_args_b),
             ).fetchall()
             replies = conn.execute(
                 "SELECT count(DISTINCT d.id) FROM board_entry b "
                 "JOIN document d ON d.id = b.document_id "
                 "WHERE b.model_version_id = %s "
                 "  AND b.ruling IS DISTINCT FROM 'declined' "
-                "  AND d.parent_id IS NOT NULL",
-                (m["model_version_id"],),
+                "  AND d.parent_id IS NOT NULL"
+                + pub_sql_b,
+                (m["model_version_id"], *pub_args_b),
             ).fetchone()[0]
             # ⚠ THE PER-AXIS POLARITY QUERY IS GONE WITH ITS ONLY READER.
             #   It grouped `board_entry` by (section, slug, polarity) so the
@@ -1436,6 +1447,21 @@ def document_source(document_id: str) -> dict:
             ),
         )
     source, url, text_ref = ref_row
+
+    # A WITHHELD SOURCE IS NOT SERVED HERE AT ALL on a public view
+    # (contract/publication.yaml): this route returns the full passage and the
+    # permalink, which is the most a page can publish from one document. The
+    # refusal names no platform, for the same reason `publication.notice` does.
+    from judge import publication
+
+    if publication.withheld(source):
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{document_id!r} comes from a source this deployment does not "
+                f"publish, so its text and link are not served here."
+            ),
+        )
 
     base = {"document_id": document_id, "source": source, "url": url}
     if not text_ref:
@@ -1822,8 +1848,26 @@ def start_fetch(req: FetchRequest) -> dict:
     #   it was given, which is the right answer there too: the same place its
     #   own logs go. `FETCH_QUIET=1` turns the rendering off without changing
     #   how the process is spawned.
+    # THE NAMED WRITE ROUTE, ONLY WHERE IT IS NEEDED.
+    #
+    # Against a SHARED/remote target, ENVIRONMENT=development would make the
+    # writeguard refuse the write, so `--development-write` is the honest way past
+    # it: it replaces the ENVIRONMENT proxy with the real seeded-model fixture
+    # check, which still fires and refuses if THIS model_version is
+    # provenance='seed' (scripts/fetch_model.py:3442). ⚠ #328 SCOPE: that check is
+    # MODEL-SCOPED, not per-thread — a backlog thread read in E5 that names
+    # ANOTHER seeded model is NOT checked here.
+    #
+    # ⚠ AGAINST A LOCAL TARGET THE FLAG IS OMITTED, DELIBERATELY. is_local() means
+    # the writeguard already permits with no flag, and local is where build
+    # fixtures legitimately live — forcing the flag there turns the seeded-model
+    # gate on and would wrongly REFUSE a local seed model (e.g. a load-seed'd
+    # deepseek/deepseek-v4-flash on modelboard_local). So the route is added only
+    # for a non-local target. The Fetch button cannot type a flag, so it lives here.
+    from judge.writeguard import is_local as _is_local
+    write_route = [] if _is_local(os.environ.get("DATABASE_URL")) else ["--development-write"]
     subprocess.Popen(
-        [sys.executable, str(script), mv, "--run-id", run_id],
+        [sys.executable, str(script), mv, "--run-id", run_id, *write_route],
         cwd=str(_REPO_ROOT),
         env=os.environ.copy(),
     )
@@ -2352,6 +2396,10 @@ def board_page() -> dict:
         # these models. Counted by reason so a reader can tell a prompt
         # problem from a labelling one.
         "metrics_withheld": sections.get("_withheld", {}),
+        # WITHHELD BY SOURCE (contract/publication.yaml), every section, on a
+        # public view. Declared unconsumed until the page renders it (rule 9):
+        # intended reader web/src/board/views.js, beside withheldNote().
+        "sources_withheld": sections.get("_withheld_sources", {}),
         "report_counts_are_a_floor": True,
         # The same sections under their headings. `best_for` is deliberately
         # unmapped (#412), so its rows come back as leaves and render as now.
@@ -2398,6 +2446,50 @@ def coverage_page() -> dict:
             for k in report.kinds
         ],
     }
+
+
+@app.get("/blog-posts")
+def blog_posts_page() -> dict:
+    """Blog drafts for the Blogs section, read from BLOG_POSTS_DIR.
+
+    Read-only and no database: drafts are files until a `blog_post` table is
+    agreed (see `judge/blog_posts.py` for why). Token-gated like every route.
+    `reason` distinguishes "not configured" from "no drafts yet"; `skipped`
+    names any file that could not be read rather than dropping it.
+    """
+    from judge import blog_posts
+
+    return blog_posts.load()
+
+
+class BlogGenerateRequest(BaseModel):
+    count: int = 3
+
+
+@app.post("/blog-posts/generate")
+def blog_posts_generate(req: BlogGenerateRequest) -> dict:
+    """Start a background run that plans and writes `count` NEW drafts.
+
+    Local development only (it calls a paid model and writes files), one run
+    at a time. Returns at once; poll GET /blog-posts/generate for progress.
+    The run is `generate_sample_blogs.py --plan N --status` - see
+    `judge/blog_posts.py` for why it is a subprocess.
+    """
+    from judge import blog_posts
+
+    try:
+        return blog_posts.start_generation(req.count)
+    except blog_posts.GenerationRefused as e:
+        raise HTTPException(status_code=e.status, detail=e.detail) from None
+
+
+@app.get("/blog-posts/generate")
+def blog_posts_generate_status() -> dict:
+    """Progress of the latest generation run: state, the planned posts and
+    their states, and the OpenRouter-reported cost so far."""
+    from judge import blog_posts
+
+    return blog_posts.generation_status()
 
 
 @app.get("/changelog")
@@ -3895,6 +3987,9 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
          "a runaway guard, not a budget — the GitHub API is free"),
         ("FETCH_X_PAGES", "3",
          "X pages per model; its quota is a tenth of Reddit's"),
+        ("FETCH_REDDIT_THREADS", "5",
+         "Reddit threads per fetch whose comments are fetched — one thread "
+         "arrives as hundreds of documents and is read as one"),
         ("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash",
          "which model reads the evidence"),
         ("ENVIRONMENT", "development",

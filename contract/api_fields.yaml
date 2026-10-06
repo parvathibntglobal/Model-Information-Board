@@ -637,6 +637,15 @@ fields:
     routes:
     - /admin/sources
     state: consumed
+  # Added 2026-10-05 with contract/publication.yaml (proposed). Produced by
+  # board_sections; intended reader web/src/board/views.js beside
+  # withheldNote(), not yet built - the page must say some sources are not
+  # shown before the board is public (rule 4, rule 9).
+  sources_withheld:
+    reviewed: false
+    routes:
+    - /board
+    state: no_consumer
   stages:
     reviewed: false
     routes:

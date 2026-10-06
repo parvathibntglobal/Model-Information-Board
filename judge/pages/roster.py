@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
+from judge import publication
 from judge.store.claims import PIPELINE_VERSION
 
 # Ordered by display_name rather than by price. A default sort by cost would
@@ -122,14 +123,26 @@ SQL = """
            -- query for the whole registry; carrying every entry's quote would
            -- put the board's full text in a list view. `/board` is where an
            -- entry is read.
+           -- WITHHELD SOURCES ARE NOT COUNTED on a public view
+           -- (contract/publication.yaml, judge/publication.py): a count that
+           -- includes them is data from them. `hidden` is empty when internal.
            (SELECT count(*) FROM board_entry b
-             WHERE b.model_version_id = mv.id)                      AS board_entries,
+             WHERE b.model_version_id = mv.id
+               AND (cardinality(%(hidden)s::text[]) = 0 OR EXISTS (
+                     SELECT 1 FROM document pub_d WHERE pub_d.id = b.document_id
+                       AND pub_d.source IS NOT NULL
+                       AND NOT pub_d.source = ANY(%(hidden)s::text[])))
+           )                                                         AS board_entries,
            -- COUNTS PER SECTION, not just which sections. "23 reports" does
            -- not tell a reader where they are, and "12 capability, 8 metric,
            -- 3 best-for" is the sentence the row actually needs.
            (SELECT jsonb_object_agg(s, n)
               FROM (SELECT b.section AS s, count(*) AS n FROM board_entry b
                      WHERE b.model_version_id = mv.id
+                AND (cardinality(%(hidden)s::text[]) = 0 OR EXISTS (
+                     SELECT 1 FROM document pub_d WHERE pub_d.id = b.document_id
+                       AND pub_d.source IS NOT NULL
+                       AND NOT pub_d.source = ANY(%(hidden)s::text[])))
                      GROUP BY b.section) q)                         AS board_sections
       FROM model_version mv
      ORDER BY mv.display_name
@@ -244,7 +257,8 @@ class RosterReader:
         from judge.legacy import legacy_cells_enabled
 
         rows = self._conn.execute(
-            SQL, {"pipeline_version": self._pipeline_version}
+            SQL, {"pipeline_version": self._pipeline_version,
+                  "hidden": list(publication.hidden_here())}
         ).fetchall()
         # NULL, NOT "unreported", WITH THE LEGACY CARDS OFF. Cells stop being
         # rebuilt, so the rows still in `cell` are a frozen verdict; and a model

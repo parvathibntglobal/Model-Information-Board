@@ -298,6 +298,22 @@ export const boardPage = () => request('/board')
 export const coveragePage = () => request('/coverage')
 
 /**
+ * Blog drafts for the Blogs section — `{posts, skipped, reason}`.
+ *
+ * `reason` is set when the backend is not configured to serve drafts, and is
+ * null when it is configured and simply has none: the page must show those
+ * differently. `skipped` names any draft file the backend could not read.
+ */
+export const blogPosts = () => request('/blog-posts')
+
+/** Start a background run that plans and writes `count` new drafts (local only). */
+export const startBlogGeneration = (count = 3) =>
+  request('/blog-posts/generate', { method: 'POST', body: { count } })
+
+/** `{state, items:[{key, format, subject, state, attempt}], message, cost_usd, alive}` */
+export const blogGenerationStatus = () => request('/blog-posts/generate')
+
+/**
  * The landing page's FAQ, from `contract/faq.yaml`.
  *
  * NEEDS NO DATABASE, which is why the FAQ renders even when the board cannot

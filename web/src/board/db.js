@@ -19,7 +19,7 @@
 // When an editor writes them, they get a home; until then the page shows what
 // the evidence actually says and no more.
 export const DB = {
-  jobs: [], caps: [], mets: [], posts: [], metsWithheld: {},
+  jobs: [], caps: [], mets: [], posts: [], postsMeta: { reason: null, skipped: [] }, metsWithheld: {},
   // PARENT HEADINGS, AS A RENDER ORDER OVER THE SAME OBJECTS.
   //
   // `caps` and `mets` stay FLAT and are not replaced. Every lookup on this
@@ -616,7 +616,9 @@ export function setBoardData(payload) {
   DB.parentCoverage = d.parent_coverage || {}
 
   DB.metsWithheld = d.metrics_withheld || {}
-  DB.posts = d.posts || []
+  // NOT `DB.posts`: the board payload carries no posts, and assigning
+  // `d.posts || []` here wiped the Blogs drafts whenever the board loaded.
+  // `routes/Blogs.jsx` fills them from GET /blog-posts.
   boardLoaded = true
   return DB
 }

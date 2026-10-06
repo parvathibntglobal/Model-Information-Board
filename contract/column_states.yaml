@@ -958,8 +958,9 @@ columns:
       reviewed: false
       state: reserved
     family:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: read by collect/assemble/ranking.py load_lexicon (the relevance tier of child ranking); was write_only before that reader landed. Reviewed 2026-10-05, #503
     id:
       reviewed: false
       state: read
@@ -1527,8 +1528,9 @@ columns:
         than one I had mislabelled. Promoted to reviewed because a snapshot that flips does not record
         why it flipped, and that reason is the whole point of this file.'
     child_count:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: read by scripts/show_thread.py show_selected, which prints a thread's selected children; reviewed 2026-10-05, #503
     coverage_ratio:
       reviewed: true
       state: generated

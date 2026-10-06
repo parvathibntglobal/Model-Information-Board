@@ -1,0 +1,271 @@
+{
+ "slug": "field-report-anthropic-claude-sonnet-5",
+ "status": "draft",
+ "tag": "Field report",
+ "feat": false,
+ "title": "Claude Sonnet 5 in Production: Behavior Is an Integration Property",
+ "dek": "Sonnet 5 can deepen repository investigations and support autonomous tool use, but migrations expose sharp edges in request construction, token budgeting, and task-specific reliability.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Claude Sonnet 5 is not a drop-in replacement: Bedrock clients that send sampling parameters can fail with 400 responses, while omitted thinking settings can consume the output budget and truncate structured responses. Reported results range from unusually deep codebase investigation to document-boundary failures and a single-run audit where a faster, cheaper competitor scored higher; production decisions therefore need task-specific tests and explicit request, billing, and parsing safeguards.",
+ "kicker": "Field report",
+ "tags": [
+  "Claude Sonnet 5",
+  "Field report"
+ ],
+ "read": 8,
+ "decisions": [
+  "Verify the effective production model and provider route before estimating migration impact.",
+  "Strip unsupported sampling settings in every adapter path and test the emitted request.",
+  "Choose thinking behavior explicitly and protect structured output from shared token-budget exhaustion.",
+  "Evaluate real task quality with claim-level verification, including false positives and boundary errors.",
+  "Tie pricing metadata to model rollout and fail loudly when an active model is unpriced."
+ ],
+ "meta": [
+  "01 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "What happens in practice",
+    "num": "01",
+    "id": "what-happens-in-practice"
+   }
+  ],
+  [
+   "p",
+   "The first production symptom is often not a subtle quality shift but a request that never reaches generation. A review pipeline that unconditionally sent `temperature: 0` saw Sonnet 5 reject every call with a 400; an add-on similarly failed when users supplied non-default sampling settings. In a separate Bedrock client, `temperature`, `top_p` and `top_k` were forwarded despite a model-profile flag identifying them as disallowed. The common mechanism is straightforward: configuration inherited from a previous model generation survives in the adapter, while the target model rejects it. Changing a model identifier without changing request construction is therefore a production outage waiting to happen."
+  ],
+  [
+   "p",
+   "A second behavior is less visible because the request succeeds. When `thinking` is omitted, Sonnet 5 runs adaptive thinking by default, unlike the reported earlier-model behavior where omission meant thinking off. That reasoning shares the `max_tokens` ceiling with the user-facing response. In one review system, agents needed parseable JSON and the configured ceiling was 4096 tokens; a thinking-heavy turn could consume the available budget and leave incomplete JSON. In an editing add-on, a zero thinking budget omitted the field and therefore failed to disable thinking, spending time and tokens on short rewriting tasks. The failure emerges downstream as truncation or latency, not necessarily as an obvious model error."
+  ],
+  [
+   "quote",
+   "The practical effect is that short editing prompts (proofread, rewrite, clarify) now spend significant time and tokens reasoning before answering, with no way to switch it off from the options page."
+  ],
+  [
+   "p",
+   "Task behavior is not uniform. In a document pipeline, page classification produced the correct class but an incorrect `document_boundary`, splitting pages that belonged together. Investigation established that each page was classified independently with no prior page at the default context setting, even though the prompt asked whether it continued the previous document. The question lacked the evidence needed to answer it. Conversely, a private-repository audit found Sonnet 5 traced a state pipeline across layers and surfaced a deep issue missed by another model, while also making a material false conclusion after missing an alternative implementation. The operational picture is capability paired with failure modes, not a single quality label."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative request-builder guard",
+    "language": "javascript",
+    "source": "// Illustrative adapter pattern; not an official vendor API.\nfunction prepareRequest(settings, profile) {\n  const prepared = { ...settings };\n  if (profile.disallowsSamplingSettings) {\n    delete prepared.temperature;\n    delete prepared.top_p;\n    delete prepared.top_k;\n  }\n  return prepared;\n}"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "What the evidence establishes",
+    "num": "02",
+    "id": "what-the-evidence-establishes"
+   }
+  ],
+  [
+   "p",
+   "The sampling-parameter incompatibility is the clearest integration fact. In a Bedrock migration, a service sent temperature on every request, including its default value of zero, and Sonnet 5 returned a hard 400. A separate live probe reported 400 responses for temperature and top_p on Sonnet 5 and Opus 5 through Bedrock; top_k was not probed for Sonnet 5 in that matrix. Another client-library investigation found that the direct Anthropic adapter honored a disallow-sampling profile but the Bedrock Converse adapter did not. This locates the failure in the adapter path rather than establishing that every client behaves identically."
+  ],
+  [
+   "p",
+   "The boundary-classification case demonstrates why prompt semantics and request context must be inspected together. The reproducer reported that Sonnet 5 grouped a two-page form correctly 6/24 times under the original setup, while the class itself was correct in all 24 runs. The request contained only the page being classified, yet the prompt asked whether it continued the previous document. The question lacked the evidence needed to answer it. Adding context alone fixed the two-page example in 10 of 10 trials but caused two back-to-back copies of the same form to merge in 0/5 trials. Rewriting the prompt to use page evidence and explicitly distinguish a new instance from a continuation yielded 10 of 10 and 5/5 on the respective test cases. Those results establish behavior in those test fixtures, not universal reliability."
+  ],
+  [
+   "quote",
+   "The practical lesson for me is that AI-generated code audits should themselves be audited."
+  ],
+  [
+   "p",
+   "The repository audit comparison is useful precisely because it records both a strength and its cost. On one large private codebase, Sonnet 5 took 28 minutes and received corrected scores of 79 and 81 from the two evaluators; DeepSeek V4 Pro took 12 minutes and received 83 and 85. Sonnet found the strongest unique architectural issue, but one finding overstated the conclusion because an alternative implementation was missed. These are results from one non-standardized audit, not a general ranking. They support using Sonnet as a strong investigator while requiring independent verification of claims before acting on them."
+  ],
+  [
+   "p",
+   "Model migration also changes accounting assumptions. The registry list prices supplied for Sonnet 5 are $2 input and $10 output per million tokens, with cached input at $0.20 and an advertised context of 1,000,000 tokens. Sonnet 4.6 is listed at $3 input and $15 output, with cached input at $0.30 and the same advertised context. A migration discussion warned that the newer tokenizer can produce roughly 1 to 1.35 as many tokens for the same text, so token rates alone do not predict per-review savings. It also recorded a production configuration mismatch: the deployed service was pinned to Sonnet 4 rather than the repository's stated Opus default. Before arguing about savings, operators need to verify the effective deployed model, billing path, tokenizer behavior, and usage distribution."
+  ],
+  [
+   "h2",
+   {
+    "text": "What the evidence does not establish",
+    "num": "03",
+    "id": "what-the-evidence-does-not-establish"
+   }
+  ],
+  [
+   "p",
+   "The available cases do not establish a universal coding ranking, a general speed profile, or that Sonnet 5 is reliably better or worse than any predecessor. The audit comparison was one repository, one prompt, and a non-standardized judging process; even the evaluators revised scores after checking claims. The classifier results came from a narrow set of forms and layouts. They show how an underspecified boundary question can fail and how explicit rules helped those fixtures, but they do not establish a general success rate across document types."
+  ],
+  [
+   "p",
+   "Nor does the evidence establish that all observed failures are intrinsic model defects. The boundary issue had a demonstrated prompt-and-context cause: the page was evaluated without the preceding page, and the prompt implicitly presumed access to it. The sampling failure was in request construction or the client adapter. The concern about adversarial or contradictory conversational style is a subjective report, and the supplied examples do not provide a controlled comparison. Treat those observations as evaluation targets for the product's own interaction style, not as a universal behavioral law."
+  ],
+  [
+   "quote",
+   "This is not a standardized benchmark, and the results should not be generalized to every programming task."
+  ],
+  [
+   "p",
+   "The stated context window is not proof that an application can use that entire window effectively, affordably, or with stable accuracy. One MCP guide warns that every connected server injects tool schemas into context and that a large GitHub server can consume roughly 18,000 tokens; this is a general tool-context warning, not a Sonnet 5 benchmark. Similarly, a long context allowance does not remove the need to bound outputs, measure tokenization, or test tool selection under the actual schemas and prompts used in production."
+  ],
+  [
+   "p",
+   "Finally, the evidence does not justify treating advertised reasoning controls as interchangeable. One integration discussion describes effort levels, while another reports that a nonzero legacy thinking budget fails on Sonnet 5. These are distinct request shapes in distinct integrations. The exact supported configuration and behavior must be verified for the deployed provider path rather than inferred from a similarly named option, a direct API adapter, or a different model family."
+  ],
+  [
+   "h2",
+   {
+    "text": "Why the system boundary matters",
+    "num": "04",
+    "id": "why-the-system-boundary-matters"
+   }
+  ],
+  [
+   "p",
+   "Sonnet 5 behavior is shaped by the entire request pipeline: model identifier, provider adapter, inference profile, request defaults, prompt, available context, output cap, parser, and billing logic. A correct model capability can be neutralized by an adapter that forwards forbidden fields; a good classification capability cannot answer a question whose evidence is absent; and a valid response can still be unusable if thinking and JSON output compete for one token ceiling. These are architectural interactions, not merely prompt-engineering details."
+  ],
+  [
+   "p",
+   "The migration failures also expose a dangerous difference between an error and a silent failure. Unsupported sampling settings produce an explicit 400, making the failure visible. Missing pricing metadata can be worse: one review system returned `null` cost for an unrecognized model and gated SaaS accounting on that value, so review recording and balance deduction were skipped without an error or log. Pricing rows and model changes therefore belong in the same release, with a fail-loudly invariant for any active model that lacks a price."
+  ],
+  [
+   "p",
+   "Configuration drift deserves equal attention. A repository default, an infrastructure template default, and a deployed stack parameter can disagree; a declared code change may not change the running model. Operators should inspect the effective runtime setting and deployment parameter before attributing cost, quality, or failure to a migration. This is especially important when retained infrastructure parameters override new template defaults."
+  ],
+  [
+   "p",
+   "The broader architectural implication is that model choice belongs inside a controlled application contract. Provider adapters should normalize model-specific settings, prompts should state what evidence is available, output schemas should tolerate or detect truncation, and evaluators should distinguish discovery from confirmed findings. Human review is not a generic disclaimer here: the audit example shows that a convincing falsification section can still miss an alternate implementation, so verification must inspect the cited code path and plausible competing paths."
+  ],
+  [
+   "h2",
+   {
+    "text": "What engineering teams should change",
+    "num": "05",
+    "id": "what-engineering-teams-should-change"
+   }
+  ],
+  [
+   "p",
+   "Start with a preflight against the actual deployed route. Resolve the effective model ID and inference profile, then exercise every request-construction path with the settings production really sends. For Sonnet 5, remove temperature, top_p and top_k where the selected profile disallows them, including secondary construction sites and Bedrock-specific mappings. Do not rely on a direct Anthropic adapter's filtering behavior to imply that Bedrock Converse filters the same fields. Add tests that assert both the outgoing request and the resulting provider behavior."
+  ],
+  [
+   "p",
+   "Make thinking and output capacity an explicit product decision. If preserving the earlier no-thinking behavior is important, send an explicit disable where the provider supports it; if adaptive thinking is desired, budget the combined reasoning and response ceiling deliberately. For structured agents, test parseability on representative real inputs and record truncation separately from model errors. Test the effort control on the precise provider route rather than translating a legacy budget setting by assumption."
+  ],
+  [
+   "p",
+   "Repair prompts where the model is asked to infer unavailable state. In page-level classification, define boundary using evidence on the current page, explain how pagination and opening headers affect the decision, and explicitly handle adjacent documents of the same type. Add adversarial fixtures for both splitting and merging, including pages out of order where page-only evidence cannot resolve position. Where that evidence is essential, pass context or escalate for review rather than pretending the prompt can recover information it never received."
+  ],
+  [
+   "p",
+   "Finally, make migration acceptance operational rather than aspirational. Measure token counts on representative prompts, compute actual per-task cost from provider usage and registry rates, verify pricing rows for every accepted model identifier, and make unknown pricing fail loudly. Compare quality on real tasks with claim-level verification, measuring false positives and missed issues as well as completion time. Roll out behind a reversible configuration change, monitor 400s, parse failures, boundary errors, and accounting events, and retain a tested fallback. Sonnet 5 can be valuable in production, but only a system that validates its interface and evidence can turn that capability into dependable behavior."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "DeepSeek V4 Pro 0423",
+      "$0.96",
+      "$1.91",
+      "$0.08"
+     ],
+     [
+      "Claude Opus 4.6",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Gemini 3.7 Flash",
+      "$0.75",
+      "$3.75",
+      "$0.07"
+     ],
+     [
+      "Claude Sonnet 4.6",
+      "$3.00",
+      "$15.00",
+      "$0.30"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "rel": [
+  [
+   "post:anthropic-claude-opus-5-report",
+   "Claude Opus 5 in Production: Buy Judgment, Not a Default"
+  ],
+  [
+   "post:anthropic-claude-sonnet-5-vs-anthropic-claude-opus-5",
+   "Claude Sonnet 5 vs Opus 5: A Production Routing Guide"
+  ],
+  [
+   "post:capability-reasoning",
+   "Reasoning Effort Is a Production Policy, Not a Model Setting"
+  ]
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "generated_at": "2026-10-01T09:19:21+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_656e3fcf1bc18ecb",
+   "thread_context_e2b31946ae0e0ff6",
+   "thread_context_ed5b967100abdccd",
+   "thread_context_9712a568ec86b5e8",
+   "thread_context_8a6d559fb507097b",
+   "thread_context_5b76134b1c757861",
+   "thread_context_a759cfe278dc6e60",
+   "thread_context_cbfa7f47b43c51d2",
+   "thread_context_088a5bf46cecafad",
+   "thread_context_35a9b6071dfc039b"
+  ],
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "plan_key": "field-report:anthropic/claude-sonnet-5",
+  "format": "field-report",
+  "reviewed_by": null
+ }
+}
