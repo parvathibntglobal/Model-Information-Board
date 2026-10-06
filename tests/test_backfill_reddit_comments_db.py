@@ -158,6 +158,10 @@ def test_no_comments_and_a_failed_fetch_touch_nothing(conn, store, body_only):
     failed = backfill.backfill_one(conn, Harvester(http_errors=1), store, reader,
                                    tc_id, ROOT_ID, text_ref)
 
+    limited = backfill.backfill_one(conn, Harvester(rate_limited=1), store, reader,
+                                    tc_id, ROOT_ID, text_ref)
+
     assert empty["outcome"] == "platform returned no comments"
     assert failed["outcome"] == "FETCH FAILED"
+    assert limited["outcome"] == "FETCH FAILED", "a 429 read as an absence (review of #503)"
     assert _context(conn) == before

@@ -178,3 +178,42 @@ def test_comment_payloads_are_stored_as_the_platform_sent_them(writes):
     mod.sweep_reddit(Conn(), harvester, contract=Contract())
     # post payload, then the comment's - house spelling, non-ASCII kept.
     assert harvester._store.puts[-1] == '{"body": "café"}'.encode()
+
+
+class TestTheReviewOf503:
+    """Three gaps found in review: a 429 read as "no comments", one exception
+    ending the sweep, and the listing's older quota reading overwriting the
+    comment loop's newer one."""
+
+    def test_a_rate_limited_fetch_is_a_failure_not_an_absence(self, writes):
+        harvester = Harvester([Post("t3_r")], {"t3_r": _fetch(rate_limited=1)})
+        report = mod.sweep_reddit(Conn(), harvester, contract=Contract())
+        assert report.comment_fetch_failures == ["t3_r"]
+        assert report.threads_without_comments == 0
+
+    def test_one_failing_post_does_not_end_the_sweep(self, writes):
+        class Boom(Harvester):
+            def fetch_comments(self, post):
+                if post.external_id == "t3_bad":
+                    raise ValueError("malformed response")
+                return super().fetch_comments(post)
+
+        harvester = Boom([Post("t3_bad"), Post("t3_ok")],
+                         {"t3_ok": _fetch(comments=(Comment("t1_z"),))})
+        report = mod.sweep_reddit(Conn(), harvester, contract=Contract())
+        assert report.comment_fetch_failures == ["t3_bad"]
+        assert report.threads_with_comments == 1
+
+    def test_the_lower_quota_reading_wins(self, writes, monkeypatch):
+        harvester = Harvester([Post("t3_q")],
+                              {"t3_q": _fetch(comments=(Comment("t1_q"),), quota_remaining=900)})
+        original = harvester.list_subreddit
+
+        def listing(name, *, pages, sort):
+            run = original(name, pages=pages, sort=sort)
+            run.quota_remaining = 950          # read BEFORE the comment request
+            return run
+
+        monkeypatch.setattr(harvester, "list_subreddit", listing)
+        report = mod.sweep_reddit(Conn(), harvester, contract=Contract())
+        assert report.quota_remaining == 900

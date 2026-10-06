@@ -121,7 +121,9 @@ def backfill_one(conn, harvester, store, reader, tc_id: str, root: str,
         fetch = harvester.fetch_comments(post)
         if fetch.not_a_thread:
             rec["outcome"] = "not a thread (no permalink)"
-        elif fetch.http_errors and not fetch.comments:
+        # A 429 is counted in `rate_limited`, not `http_errors` (review of
+        # #503): without it a rate-limited root read as "no comments".
+        elif (fetch.http_errors or fetch.rate_limited) and not fetch.comments:
             rec["outcome"] = "FETCH FAILED"
         elif not fetch.comments:
             rec["outcome"] = "platform returned no comments"

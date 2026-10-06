@@ -816,6 +816,15 @@ class Progress:
                     break
                 if attempt < 2:
                     time.sleep(MIRROR_REPLAY_PAUSE_S)
+            if sent < total:
+                # SAID, NOT SILENT (review of #503): the reaper will record this
+                # run `abandoned` in 45 minutes, and this line is what tells a
+                # reader the run finished and the shared log is what fell short.
+                log.warning(
+                    "fetch_log replay incomplete for %s: %d of %d lines; the local "
+                    "file %s holds the whole run - replay it when the database answers",
+                    self.run_id, sent, total, self.path,
+                )
         if self._console:
             self._say([""] + fetch_console.render(
                 record, model_version_id=self.model_version_id))
