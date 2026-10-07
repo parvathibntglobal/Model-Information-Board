@@ -1614,8 +1614,8 @@ def existing_headings() -> set[str]:
 
 def stored_plan_keys(cur) -> set[str]:
     """(format, subject) keys of posts in the shared `blog_post` table - REJECTED
-    ONES INCLUDED. Rejecting deletes a post's content but keeps its key, so the
-    planner never writes it again and pays for it twice (migration
+    ONES INCLUDED. A rejected post is kept, content and all, and its key is what
+    stops the planner writing it again and paying for it twice (migration
     20261006T1500). A database without the table has no rejections to remember,
     so that one case reads as none; any other error stops the run."""
     try:
