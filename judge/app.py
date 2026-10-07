@@ -5963,26 +5963,55 @@ def _rapidapi_series(read_on: str) -> dict | None:
     try:
         with _conn() as conn:
             rows = conn.execute(
-                "select read_at, quota_remaining from rapidapi_quota_reading "
+                "select read_at, quota_remaining, quota_limit from rapidapi_quota_reading "
                 "where meter = %s and quota_remaining is not null "
                 "order by read_at",
                 (read_on,),
             ).fetchall()
     except Exception:
         return None
+    return _quota_consumption(rows)
 
+
+def _quota_consumption(rows: list) -> dict:
+    """Requests used across a meter's readings `(read_at, remaining, limit)`.
+
+    ⚠ NOT FIRST MINUS LAST. That was the formula until 2026-10-07, and the
+      quota RESETS: X's went 98,770 -> 98,946 on 2026-09-18 and 98,890 -> 99,999
+      on 2026-09-29, same key both times, so "first remaining minus last" read
+      -1,018 requests - a negative consumption on the page, flagged by Parvathi.
+
+    So it is summed reading to reading. A drop is requests used. A RISE is a new
+    window: the requests in it before the reading are `limit - remaining`, which
+    is measured, because a window starts at the limit. What is NOT measured is
+    the tail of the old window - requests between the last reading and the
+    reset - so a series with a reset is a FLOOR, and `resets` says how many
+    (rule 7). Reddit, with no reset, reads exactly as before.
+    """
     out = {"readings": len(rows), "per_day": None, "span_days": None,
-           "first_at": None, "last_at": None, "consumed": None}
+           "first_at": None, "last_at": None, "consumed": None,
+           "resets": 0, "consumed_is_a_floor": False}
     if not rows:
         return out
     out["first_at"] = rows[0][0].isoformat()
     out["last_at"] = rows[-1][0].isoformat()
     if len(rows) < 2:
         return out
+    consumed, resets, unknown_new_window = 0, 0, False
+    for (_, before, _lim), (_, after, limit) in zip(rows, rows[1:], strict=False):
+        if after <= before:
+            consumed += before - after
+            continue
+        resets += 1
+        if limit is not None and after <= limit:
+            consumed += limit - after
+        else:
+            unknown_new_window = True  # no limit read: the new window's start is not known
     span = (rows[-1][0] - rows[0][0]).total_seconds()
-    consumed = rows[0][1] - rows[-1][1]
     out["span_days"] = span / 86400
     out["consumed"] = consumed
+    out["resets"] = resets
+    out["consumed_is_a_floor"] = resets > 0 or unknown_new_window
     # A span of zero is real - several readings inside one second - and dividing
     # by it would render inf. Absent rather than infinite (rule 6).
     out["per_day"] = (consumed / (span / 86400)) if span > 0 else None

@@ -1165,15 +1165,29 @@ function QuotaSeries({ s, which }) {
     <div className="stack stack-1">
       <span className="label">Consumption — measured over the recorded series</span>
       <div className="grid g2">
-        <Stat n={`${s.per_day.toFixed(1)}/day`}
+        <Stat n={`${s.consumed_is_a_floor ? '≥ ' : ''}${s.per_day.toFixed(1)}/day`}
               l={`over ${s.span_days.toFixed(1)} days`} />
-        <Stat n={count(s.consumed)} l={`requests across ${s.readings} readings`} />
+        <Stat n={`${s.consumed_is_a_floor ? '≥ ' : ''}${count(s.consumed)}`}
+              l={`requests across ${s.readings} readings`} />
       </div>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
         Measured between {s.first_at} and {s.last_at}. The span is stated because
         this harvest is bursty — a rate without the window it was taken over is a
         figure answering a question nobody asked.
       </span>
+      {/* A RESET IS NOT NEGATIVE CONSUMPTION. Until 2026-10-07 this read first
+          minus last, and X's two resets turned it into -1,018 requests. Summed
+          reading to reading now (judge/app.py _quota_consumption); the part a
+          reset hides is said, not guessed. */}
+      {s.resets > 0 && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+          <strong style={{ color: 'var(--text)' }}>
+            The quota reset {s.resets} time{s.resets === 1 ? '' : 's'} in this span, so these are floors.
+          </strong>{' '}
+          Requests in each new window are counted from the limit; requests made between the last reading
+          and a reset were never read.
+        </span>
+      )}
     </div>
   )
 }

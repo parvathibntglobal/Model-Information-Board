@@ -1387,11 +1387,8 @@ columns:
         new and holds no rows until the first metered call after its migration is applied.'
     quota_limit:
       reviewed: true
-      state: write_only
-      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The denominator as this reading stated it, never
-        inherited from another reading - the arms are separately metered. The intended reader is the usage
-        panel''s quota series, which cannot read it yet because that display is not built - the table is new and
-        holds no rows until the first metered call after its migration is applied.'
+      state: read
+      why: 'Written by collect/usage.py with each reading. Read by judge/app.py _rapidapi_series since 2026-10-07: a reset starts a window at the limit, so the requests used in a new window before its first reading are limit minus remaining (_quota_consumption).'
     quota_remaining:
       reviewed: true
       state: read
