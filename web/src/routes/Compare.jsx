@@ -1102,10 +1102,13 @@ function FaceOff({ models }) {
       <p className="faceoff-basis">
         <span className="faceoff-i" aria-hidden="true">i</span>
         <span>
-          The {rows.length === 1 ? 'section' : `${rows.length} sections`} both models were discussed on most.
-          For each, the first report on the board that says something clearly either way and fits on a
-          card — chosen by wording and length, never by which model it favours. Open a section to read
-          every report.
+          {/* SAYS WHAT THE CODE DOES (review of #508, item 8): sections every
+              model shares, jobs before capabilities, the first FACEOFF_ROWS -
+              not "the ones discussed most", and not "both" when there are three. */}
+          Up to {FACEOFF_ROWS} sections {models.length === 2 ? 'both models' : `all ${models.length} models`} were
+          discussed on — jobs first, then capabilities, in the order the board lists them. For each, the
+          first report on the board that says something clearly either way and fits on a card — chosen by
+          wording and length, never by which model it favours. Open a section to read every report.
         </span>
       </p>
       <div className="faceoff">
