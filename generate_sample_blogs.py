@@ -973,13 +973,25 @@ def ledger_kwargs(record: dict, i: int) -> dict:
 
 
 def record_spend(record: dict, i: int) -> None:
-    """Write attempt `i` to the spend ledger. Never raises: the call is already
-    paid for, and a lost telemetry row must not lose the draft as well
-    (`spend_ledger.record` keeps the local file when the database is down)."""
+    """Write attempt `i` to the spend ledger: the local file, then the shared
+    table. Never raises - the call is already paid for, and a lost telemetry row
+    must not lose the draft as well.
+
+    ⚠ THE DSN IS PASSED, NOT LEFT TO THE ENVIRONMENT. `env()` reads .env into a
+      dict and never sets os.environ, so a run started from a terminal has no
+      DATABASE_URL there, and `spend_ledger.record` alone wrote the local file
+      only - silently (found 2026-10-07, when the backfill did the same thing).
+    """
     try:
         from judge import spend_ledger
 
-        spend_ledger.record(**ledger_kwargs(record, i))
+        call = spend_ledger.record(**ledger_kwargs(record, i), to_database=False)
+        dsn = env().get("DATABASE_URL")
+        if not dsn:
+            print(f"  [{record['post']}] spend kept in the local ledger file only: no "
+                  "DATABASE_URL", flush=True)
+            return
+        spend_ledger.append_to_database([call], dsn=dsn)
     except Exception as e:  # noqa: BLE001
         print(f"  [{record['post']}] spend not recorded: {type(e).__name__}: {e}", flush=True)
 
