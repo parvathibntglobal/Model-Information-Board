@@ -906,6 +906,8 @@ def synthesise(post, docs, facts, key, base) -> dict:
                                        "generation_id": got["generation_id"], "unwrapped": wrapped,
                                        "usage": got["usage"], "violations": violations,
                                        "essay": essay, "raw": None if essay else raw})
+            # EVERY CALL IS SPEND, a refused draft included: into the ledger now.
+            record_spend(record, len(record["attempts"]) - 1)
             print(f"  [{post['key']}] attempt {attempt + 1}: served={got['served']} "
                   f"violations={len(violations)} words={words_in(essay) if essay else '-'}")
             if not violations:
@@ -940,6 +942,46 @@ def synthesise(post, docs, facts, key, base) -> dict:
                          + "; ".join(record['attempts'][-1]['violations'][:8]))
     finally:
         save(record)
+
+
+def ledger_kwargs(record: dict, i: int) -> dict:
+    """The `spend_ledger.record` arguments for attempt `i` of a synthesis record:
+    one model call, stage 'blog', OUTSIDE the daily cap (judge/spend_ledger.py).
+
+    THE SAME FOR A LIVE CALL AND A BACKFILL (scripts/backfill_blog_spend.py), so
+    both produce one ledger id and recording a call twice is a no-op. Hence
+    `at` is the synthesis's start, not the call's moment - a post's attempts
+    fall within its few minutes, and the ledger is read by month - and the
+    attempt number is in `run_id`, which also names the saved record file.
+
+    usd is what OpenRouter REPORTED for the call (`usage.cost`); a call it did
+    not price is `unpriced` (usd 0), never priced here on a guess. A transport
+    error before a response is not a row: no usage was returned for it.
+    """
+    a = record["attempts"][i]
+    u = a.get("usage") or {}
+    return {
+        "stage": "blog",
+        "model": a.get("served") or record.get("requested_model") or GEN_MODEL,
+        "input_tokens": int(u.get("prompt_tokens") or 0),
+        "output_tokens": int(u.get("completion_tokens") or 0),
+        "at": datetime.fromisoformat(record["started"]),
+        "run_id": f"blog:{record['post']}@{record['started']}#{i + 1}",
+        "reported": True,
+        "reported_usd": u.get("cost"),
+    }
+
+
+def record_spend(record: dict, i: int) -> None:
+    """Write attempt `i` to the spend ledger. Never raises: the call is already
+    paid for, and a lost telemetry row must not lose the draft as well
+    (`spend_ledger.record` keeps the local file when the database is down)."""
+    try:
+        from judge import spend_ledger
+
+        spend_ledger.record(**ledger_kwargs(record, i))
+    except Exception as e:  # noqa: BLE001
+        print(f"  [{record['post']}] spend not recorded: {type(e).__name__}: {e}", flush=True)
 
 
 def save(record: dict) -> Path:
@@ -1570,8 +1612,22 @@ def existing_headings() -> set[str]:
     return out
 
 
-def existing_plan_keys() -> set[str]:
-    keys = set()
+def stored_plan_keys(cur) -> set[str]:
+    """(format, subject) keys of posts in the shared `blog_post` table - REJECTED
+    ONES INCLUDED. A rejected post is kept, content and all, and its key is what
+    stops the planner writing it again and paying for it twice (migration
+    20261006T1500). A database without the table has no rejections to remember,
+    so that one case reads as none; any other error stops the run."""
+    try:
+        with cur.connection.transaction():  # a savepoint: the plan's transaction survives
+            cur.execute("SELECT plan_key FROM blog_post WHERE plan_key IS NOT NULL")
+            return {r["plan_key"] for r in cur.fetchall()}
+    except psycopg.errors.UndefinedTable:
+        return set()
+
+
+def existing_plan_keys(cur=None) -> set[str]:
+    keys = stored_plan_keys(cur) if cur is not None else set()
     for f in POSTS_OUT.glob("*.json"):
         try:
             k = (json.loads(f.read_text(encoding="utf-8")).get("provenance") or {}).get("plan_key")
@@ -1644,7 +1700,7 @@ def plan_posts(cur, reader, n: int) -> list[tuple]:
     never a (format, subject) already written, never one subject twice in a
     batch. Each pick must have its documents on this machine."""
     cfg = load_formats()
-    done = existing_plan_keys()
+    done = existing_plan_keys(cur)
     order = sorted(cfg["formats"], key=lambda f: (sum(k.startswith(f["key"] + ":") for k in done),
                                                  cfg["formats"].index(f)))
     pools: dict[str, list] = {}

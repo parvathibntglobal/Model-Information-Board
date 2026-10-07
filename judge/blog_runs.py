@@ -6,17 +6,19 @@ records each run as a `blog_generation_run` row and each decision about a post
 it wrote as a `blog_post_review` row. Migration
 `20261006T1200_blog_generation_history.sql` says why both exist.
 
-`judge/blog_posts.py` is not changed: it still reads drafts from files and
-runs the generator. This module only RECORDS - it reads that module's status
-and log files, and the drafts' own `provenance.generated_at`.
+`judge/blog_posts.py` runs the generator, which writes drafts as files. This
+module RECORDS the run - it reads that module's status and log files, and the
+drafts' own `provenance.generated_at` - and, when the run finishes, stores the
+drafts it wrote in `blog_post` as pending (`judge/blog_store.py`, migration
+20261006T1500). Review and what the Blogs page shows live there now.
 
 WHICH POSTS A RUN WROTE is read off the drafts, not remembered: a draft whose
 `provenance.generated_at` falls inside the run's window belongs to it. So the
 answer survives a backend restart mid-run, which an in-memory "before" list
 would not.
 
-SCOPE: posts the button writes from now on. Drafts that predate the first
-recorded run belong to no run and are not reviewable here.
+Drafts no recorded run wrote (older ones, or a run started from a terminal)
+reach the store through Admin -> Blogs' "store this machine's drafts".
 """
 from __future__ import annotations
 
@@ -26,12 +28,11 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from judge import blog_posts
+from judge import blog_posts, blog_store
 
 #: Terminal states a run reports about itself, plus `stalled` from
 #: `blog_posts.generation_status` when it stopped reporting.
 FINISHED = {"done", "partial", "failed", "stalled"}
-DECISIONS = {"approved", "rejected", "reopened"}
 
 _TOKENS = re.compile(r"tokens ([\d,]+) in / ([\d,]+) out")
 
@@ -100,13 +101,20 @@ def _finish(conn, run_id: str, started: datetime, status: dict, keep_log: bool =
     finished = _parse(status.get("finished_at")) or datetime.now(UTC)
     tin, tout = _tokens(log)
     failed = [i.get("key") for i in status.get("items", []) if i.get("state") == "failed"]
+    written = _written_between(started, finished)
+    # THE RUN'S DRAFTS GO TO THE STORE AS PENDING, in the same transaction that
+    # closes the run. If storing fails (a database without the blog_post
+    # migration), the run stays open and the next poll tries again - its posts
+    # are never silently left out of review.
+    blog_store.store_drafts(
+        conn, [p for p in blog_posts.load().get("posts", []) if p["slug"] in written], run_id)
     conn.execute(
         "UPDATE blog_generation_run SET finished_at = %s, state = %s, model = %s, "
         "cost_usd = %s, tokens_in = %s, tokens_out = %s, posts_written = %s, "
         "posts_failed = %s, message = %s, log = %s WHERE id = %s",
         (finished, status.get("state"), status.get("model"),
          None if status.get("cost_incomplete") else status.get("cost_usd"),
-         tin, tout, _written_between(started, finished), failed,
+         tin, tout, written, failed,
          status.get("message"), mask(log) if log is not None else None, run_id),
     )
 
@@ -179,79 +187,4 @@ def runs(conn, limit: int = 20) -> list[dict]:
             d[k] = d[k].isoformat() if d[k] else None
         d["cost_usd"] = float(d["cost_usd"]) if d["cost_usd"] is not None else None
         out.append(d)
-    return out
-
-
-def latest_reviews(conn) -> dict[str, dict]:
-    """The current state of every reviewed post: its latest decision."""
-    rows = conn.execute(
-        "SELECT DISTINCT ON (slug) id, slug, run_id, decision, reason, decided_at "
-        "FROM blog_post_review ORDER BY slug, decided_at DESC"
-    ).fetchall()
-    return {r[1]: {"id": r[0], "run_id": r[2], "decision": r[3], "reason": r[4],
-                   "decided_at": r[5].isoformat()} for r in rows}
-
-
-def reviewable(conn) -> dict[str, str]:
-    """slug -> the run that wrote it, for every post a recorded run wrote."""
-    rows = conn.execute(
-        "SELECT id, posts_written FROM blog_generation_run ORDER BY started_at"
-    ).fetchall()
-    return {slug: run_id for run_id, slugs in rows for slug in (slugs or [])}
-
-
-class ReviewRefused(Exception):
-    def __init__(self, status: int, detail: str):
-        super().__init__(detail)
-        self.status, self.detail = status, detail
-
-
-def review(conn, slug: str, decision: str, reason: str | None) -> dict:
-    if decision not in DECISIONS:
-        raise ReviewRefused(422, f"decision must be one of {sorted(DECISIONS)}")
-    run_id = reviewable(conn).get(slug)
-    if run_id is None:
-        raise ReviewRefused(
-            404, "only posts written by a recorded generation run can be reviewed here; "
-                 "drafts that predate the history belong to no run")
-    rid = f"bpr_{uuid.uuid4().hex[:16]}"
-    # STRICTLY AFTER the slug's previous decision. Two clicks inside one tick of
-    # the clock (coarse on Windows) would otherwise tie, and "the latest
-    # decision" would be whichever the index happened to return.
-    conn.execute(
-        "INSERT INTO blog_post_review (id, slug, run_id, decision, reason, decided_at) "
-        "VALUES (%s, %s, %s, %s, %s, GREATEST(clock_timestamp(), "
-        "(SELECT max(decided_at) FROM blog_post_review WHERE slug = %s) "
-        "+ interval '1 microsecond'))",
-        (rid, slug, run_id, decision, (reason or "").strip() or None, slug),
-    )
-    return {"id": rid, "slug": slug, "run_id": run_id, "decision": decision}
-
-
-def history_began(conn) -> datetime | None:
-    """When the first generation run was recorded. None if none has been."""
-    row = conn.execute("SELECT min(started_at) FROM blog_generation_run").fetchone()
-    return row[0] if row else None
-
-
-def public_state(conn, posts: list[dict] | None = None) -> dict[str, str]:
-    """slug -> pending | approved | rejected.
-
-    A post a recorded run wrote takes its latest decision (pending until
-    approved). With `posts`, a draft generated AFTER run history began that no
-    run claims is `pending` too - it was written by something the history did
-    not catch, and an unreviewed post must not read as public. Only drafts from
-    before the history began are left without a state.
-    """
-    latest = latest_reviews(conn)
-    out = {}
-    for slug in reviewable(conn):
-        d = (latest.get(slug) or {}).get("decision")
-        out[slug] = d if d in ("approved", "rejected") else "pending"
-    began = history_began(conn) if posts else None
-    if began is not None:
-        for p in posts:
-            at = _parse((p.get("provenance") or {}).get("generated_at"))
-            if p.get("slug") not in out and (at is None or at >= began):
-                out[p["slug"]] = "pending"
     return out

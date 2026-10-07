@@ -139,7 +139,9 @@ class TestBothStagesActuallyRecord:
         )
 
     def test_a_third_stage_is_refused(self):
-        """Rule 2 permits two. A third caller is a violation, not a new series."""
+        """Rule 2 names the callers (extraction, the Ask box and - since
+        2026-10-06 - the blog generator). Any other is a violation, not a new
+        series. The blog stage is tested in test_blog_spend_in_ledger.py."""
         with pytest.raises(ValueError, match="permitted to call a model"):
             spend_ledger.record(stage="curate", **CALL)
 

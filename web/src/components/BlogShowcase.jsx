@@ -214,9 +214,8 @@ export default function BlogShowcase() {
     blogPosts()
       .then((d) => {
         if (!alive) return
-        // Same rule as the Blogs page: a run-written post shows once approved.
-        const shown = (d.posts || []).filter((p) => !p.review || p.review === 'approved')
-        setPosts(pick(shown))
+        // APPROVED POSTS ONLY, filtered on the server (judge/blog_store.py).
+        setPosts(pick(d.posts || []))
       })
       .catch(() => alive && setPosts([]))
     return () => { alive = false }

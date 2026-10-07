@@ -68,8 +68,10 @@ class TestEverySummaryPointIsStillInThePrompt:
 
 class TestTheFactsAreReadNotTyped:
     def test_the_stages_come_from_the_ledger(self):
+        # Every stage the ledger accepts - which stages MAY call a model, the
+        # blog generator included - not `STAGES`, the daily cap's two.
         from judge import spend_ledger
-        assert _app()._where_a_model_is_used()["stages"] == list(spend_ledger.STAGES)
+        assert _app()._where_a_model_is_used()["stages"] == list(spend_ledger.RECORDED_STAGES)
 
     def test_the_prompt_size_is_measured(self):
         from judge.config import capabilities

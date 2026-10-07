@@ -1527,10 +1527,12 @@ CREATE TABLE IF NOT EXISTS spend_ledger (
   run_id         text,
   recorded_at    timestamptz NOT NULL DEFAULT now(),
 
-  -- The same closed set rule 2 permits to call a model. A third value here is
-  -- a rule-2 violation and should be refused by the database rather than
-  -- appear as a new line on a chart nobody questions.
-  CONSTRAINT spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask'))
+  -- The same closed set rule 2 permits to call a model. Any other value is a
+  -- rule-2 violation and should be refused by the database rather than appear
+  -- as a new line on a chart nobody questions. 'blog' is the generator rule 2
+  -- named on 2026-10-06; it is recorded OUTSIDE the daily cap
+  -- (20261007T0900_spend_ledger_blog_stage.sql).
+  CONSTRAINT spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog'))
 );
 
 -- The two questions asked of this table: "what has today cost" (the shared cap)
@@ -1718,13 +1720,33 @@ CREATE TABLE blog_generation_run (
   log              text
 );
 
+-- run_id is NULL for a post stored from files, which no recorded run wrote
+-- (made nullable by 20261006T1500_blog_post_store.sql).
 CREATE TABLE blog_post_review (
   id          text PRIMARY KEY,
   slug        text NOT NULL,
-  run_id      text NOT NULL REFERENCES blog_generation_run(id),
+  run_id      text REFERENCES blog_generation_run(id),
   decision    text NOT NULL CHECK (decision IN ('approved', 'rejected', 'reopened')),
   reason      text,
   decided_at  timestamptz NOT NULL
 );
 
 CREATE INDEX blog_post_review_slug_at ON blog_post_review (slug, decided_at DESC);
+
+-- ============================================================================
+--  BLOG POSTS: pending, approved, or rejected (kept, never shown)
+--  (migration 20261006T1500_blog_post_store.sql - the states, why a rejected
+--   post is kept, and who writes are written there)
+-- ============================================================================
+
+CREATE TABLE blog_post (
+  slug          text PRIMARY KEY,
+  state         text NOT NULL CHECK (state IN ('pending', 'approved', 'rejected')),
+  doc           jsonb NOT NULL,
+  plan_key      text,
+  run_id        text REFERENCES blog_generation_run(id),
+  generated_at  timestamptz,
+  stored_at     timestamptz NOT NULL
+);
+
+CREATE INDEX blog_post_state ON blog_post (state);

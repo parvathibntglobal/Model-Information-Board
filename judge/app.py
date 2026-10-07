@@ -2482,53 +2482,65 @@ def coverage_page() -> dict:
     }
 
 
-def _blog_review_states(posts: list[dict]) -> dict[str, str]:
-    """The review state of each post. Raises when it cannot be read - the
-    caller then withholds rather than publishing on a guess."""
-    from judge import blog_runs
-
-    with _conn() as conn:
-        return blog_runs.public_state(conn, posts)
-
-
 @app.get("/blog-posts")
 def blog_posts_page(include: str = "public") -> dict:
-    """Blog drafts for the Blogs section, read from BLOG_POSTS_DIR.
+    """Blog posts, from the `blog_post` table (judge/blog_store.py).
 
-    Read-only and no database: drafts are files until a `blog_post` table is
-    agreed (see `judge/blog_posts.py` for why). Token-gated like every route.
-    `reason` distinguishes "not configured" from "no drafts yet"; `skipped`
-    names any file that could not be read rather than dropping it.
+    PUBLIC (the default): the APPROVED posts only - the Blogs page.
+    `?include=all` (Admin -> Blogs and its preview): every stored post - pending,
+    approved and rejected - with its `review` state, and the draft files on THIS
+    machine not yet stored, under `unstored`.
+
+    FAILS CLOSED. If the store cannot be read, `posts` is empty and `reason` says
+    why. It never falls back to the draft files: a page that cannot tell what
+    was approved shows nothing rather than everything (#508 review, rule 12).
+    `reason` stays distinct from "nothing approved yet" (rule 4), which is an
+    empty list with no reason.
     """
-    from judge import blog_posts
+    from judge import blog_posts, blog_store
 
-    out = blog_posts.load()
-    # ⚠ FILTERED HERE, AND FAILS CLOSED (review of #508, item 2). `include=all`
-    #   is Admin -> Blogs and its preview: every draft, each with its review
-    #   state. The default is what a reader may see: approved posts, and drafts
-    #   from before run history began. If the review state cannot be read, the
-    #   default view withholds EVERY post and says why - a rejected draft must
-    #   never reach a page because a table was unreachable.
-    if not out.get("posts"):
-        return out  # nothing to annotate, so nothing to read
     try:
-        states = _blog_review_states(out["posts"])
-    except Exception as e:  # noqa: BLE001
-        out["review_unreadable"] = _safe_detail(e)
-        if include != "all":
-            n = len(out["posts"])
-            out["posts"] = []
-            out["reason"] = (
-                f"{n} post(s) withheld: their review state could not be read, and an "
-                "unreviewed post is not shown on a guess. Try again shortly."
-            )
-        return out
-    for p in out["posts"]:
-        if p.get("slug") in states:
-            p["review"] = states[p["slug"]]
-    if include != "all":
-        out["posts"] = [p for p in out["posts"] if p.get("review") in (None, "approved")]
-    return out
+        with _conn() as conn:
+            if include != "all":
+                return {"posts": blog_store.published(conn), "skipped": [], "reason": None}
+            stored = blog_store.for_review(conn)
+            have = blog_store.stored_slugs(conn)
+    except blog_store.StoreUnreadable as e:
+        return {"posts": [], "skipped": [], "reason": f"No posts are shown: {e}."}
+    except Exception as e:  # noqa: BLE001 - a dead pool or database must not publish anything
+        return {"posts": [], "skipped": [], "reason": (
+            f"No posts are shown: the blog store could not be reached. {_safe_detail(e)}")}
+    files = blog_posts.load()
+    return {
+        "posts": stored,
+        # Draft files on this machine the store does not have yet. Their
+        # `reason` (BLOG_POSTS_DIR unset or missing) is passed on, not dropped.
+        "unstored": [{"slug": p["slug"], "title": p.get("title"),
+                      "generated_at": (p.get("provenance") or {}).get("generated_at")}
+                     for p in files.get("posts", []) if p["slug"] not in have],
+        "files_reason": files.get("reason"),
+        "skipped": files.get("skipped", []),
+        "reason": None,
+    }
+
+
+@app.post("/blog-posts/store")
+def blog_posts_store() -> dict:
+    """Store this machine's draft files that the `blog_post` table does not have
+    yet, as pending. Writes the shared database; never overwrites a stored post
+    (ON CONFLICT DO NOTHING), so a slug already approved or rejected is left as
+    it is. How the drafts that predate the store, and a run started from a
+    terminal, reach review."""
+    from judge import blog_posts, blog_store
+
+    files = blog_posts.load()
+    if files.get("reason"):
+        raise HTTPException(status_code=409, detail=files["reason"])
+    try:
+        with _conn() as conn:
+            return blog_store.store_drafts(conn, files.get("posts", []))
+    except blog_store.StoreUnreadable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
 
 
 class BlogReviewRequest(BaseModel):
@@ -2539,18 +2551,14 @@ class BlogReviewRequest(BaseModel):
 
 @app.get("/blog-posts/runs")
 def blog_posts_runs(limit: int = 20) -> dict:
-    """Admin -> Blogs: recorded generation runs (newest first), every post's
-    latest review decision, and which posts are reviewable (written by a run)."""
+    """Admin -> Blogs: recorded generation runs, newest first. Each post's review
+    state travels with the post itself (`GET /blog-posts?include=all`)."""
     from judge import blog_runs
 
     try:
         with _conn() as conn:
             blog_runs.reconcile(conn)
-            return {
-                "runs": blog_runs.runs(conn, max(1, min(int(limit), 100))),
-                "reviews": blog_runs.latest_reviews(conn),
-                "reviewable": blog_runs.reviewable(conn),
-            }
+            return {"runs": blog_runs.runs(conn, max(1, min(int(limit), 100)))}
     except Exception as e:  # noqa: BLE001
         raise HTTPException(
             status_code=503, detail=f"the blog history could not be read. {_safe_detail(e)}"
@@ -2559,15 +2567,18 @@ def blog_posts_runs(limit: int = 20) -> dict:
 
 @app.post("/blog-posts/review")
 def blog_posts_review(req: BlogReviewRequest) -> dict:
-    """Approve, reject or reopen a post a recorded run wrote. Append-only: a new
-    row per decision, the latest one is the post's state."""
-    from judge import blog_runs
+    """Approve, reject or move back a stored post (judge/blog_store.decide).
+    Every decision is a new `blog_post_review` row. Rejecting takes a post off
+    the Blogs page and keeps it, with its reason (migration 20261006T1500)."""
+    from judge import blog_store
 
     try:
         with _conn() as conn:
-            return blog_runs.review(conn, req.slug, req.decision, req.reason)
-    except blog_runs.ReviewRefused as e:
+            return blog_store.decide(conn, req.slug, req.decision, req.reason)
+    except blog_store.DecisionRefused as e:
         raise HTTPException(status_code=e.status, detail=e.detail) from None
+    except blog_store.StoreUnreadable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
 
 
 class BlogGenerateRequest(BaseModel):
@@ -2737,8 +2748,14 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
     # EVERY MACHINE, not this one. `read_all()` is the local file; the all-time
     # per-model figure beside a team total must cover the same population, or
     # the two numbers on one page disagree for a reason nothing states.
-    all_calls, _ = spend_ledger.read_everywhere()
+    all_calls, all_readable = spend_ledger.read_everywhere()
     for call in all_calls:
+        # THE CAPPED STAGES' MODELS ONLY. Blog calls (stage 'blog', outside the
+        # cap) are reported under `blogs` and `monthly`: one model can serve
+        # both - DeepSeek V4 Flash drafted blog posts before GPT-6 Luna - and a
+        # row headed "by extractor model" must not carry blog spend.
+        if call.stage not in spend_ledger.STAGES:
+            continue
         by_model_total[call.model] = by_model_total.get(call.model, 0.0) + call.usd
         by_model_tokens[call.model] = (
             by_model_tokens.get(call.model, 0) + call.input_tokens + call.output_tokens
@@ -2861,51 +2878,80 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
         "rapidapi": _rapidapi_quota("reddit"),
         "rapidapi_x": _rapidapi_quota("x"),
         "everyone": _whole_key_spend(),
-        "blogs": _blog_spend(),
+        "blogs": _blog_spend(all_calls, all_readable),
+        "monthly": _monthly_spend(all_calls, all_readable),
     }
 
 
-def _blog_spend() -> dict:
-    """Blog generation's spend today (UTC), from `blog_generation_run`.
+def _blog_spend(calls: list, complete: bool) -> dict:
+    """Blog generation's spend, from the ledger's 'blog' stage.
 
-    ⚠ OUTSIDE THE CAP ABOVE. The generator calls the model directly, not through
-      `spend_ledger`, so this money is in the key total and NOT in the ledger or
-      its daily cap. Provider-reported per run; a run whose cost was not
-      reported is counted in `runs_unpriced`, never as $0 (rule 6).
+    ⚠ OUTSIDE THE CAP ABOVE. Every generator call is a ledger row since
+      2026-10-07 (`generate_sample_blogs.record_spend`), so terminal runs count
+      as well as Admin ones; earlier calls arrive by
+      `scripts/backfill_blog_spend.py`, per machine. `counting_since` is the
+      earliest blog row: spend before it is in the key total, not itemised.
+      usd is OpenRouter's reported cost per call; a call it did not price is
+      counted in `unpriced_calls`, never as $0 (rule 6).
     """
-    try:
-        with _conn() as conn:
-            rows = conn.execute(
-                "SELECT cost_usd FROM blog_generation_run "
-                "WHERE started_at >= date_trunc('day', now() AT TIME ZONE 'UTC') "
-                "AT TIME ZONE 'UTC'"
-            ).fetchall()
-            # BY MODEL, every recorded run: the generator's model (GPT-6 Luna by
-            # default) appears nowhere in the ledger's per-model rows, because
-            # blog calls do not pass through the ledger.
-            models = conn.execute(
-                "SELECT model, count(*), sum(cost_usd), count(cost_usd), "
-                "sum(tokens_in), sum(tokens_out) FROM blog_generation_run "
-                "WHERE finished_at IS NOT NULL GROUP BY model "
-                "ORDER BY sum(cost_usd) DESC NULLS LAST"
-            ).fetchall()
-    except Exception as exc:  # noqa: BLE001
-        return {"readable": False, "why": _safe_detail(exc)}
-    priced = [float(r[0]) for r in rows if r[0] is not None]
-    current = _blog_gen_model()
+    from judge import spend_ledger
+
+    blog = [c for c in calls if c.stage == spend_ledger.STAGE_BLOG]
+    since = spend_ledger.day_start()
+    today = [c for c in blog if c.at >= since]
+    models: dict[str, list] = {}
+    for c in blog:
+        m = models.setdefault(c.model, [0, 0.0, 0, 0, 0])
+        m[0] += 1
+        m[1] += c.usd
+        m[2] += 1 if c.unpriced else 0
+        m[3] += c.input_tokens
+        m[4] += c.output_tokens
     return {
         "readable": True,
-        "model": current,
-        "runs_today": len(rows),
-        "spent_today_usd": round(sum(priced), 6),
-        "runs_today_unpriced": len(rows) - len(priced),
+        # False: the shared table was unreadable, so these are THIS machine's
+        # rows only - a floor (spend_ledger.read_everywhere).
+        "complete": complete,
+        "model": _blog_gen_model(),
+        "counting_since": min(c.at for c in blog).isoformat() if blog else None,
+        "calls_today": len(today),
+        "spent_today_usd": round(sum(c.usd for c in today), 6),
+        "unpriced_today": sum(1 for c in today if c.unpriced),
+        "total_usd": round(sum(c.usd for c in blog), 6),
         "models": [
-            {"model": m, "runs": n,
-             "spent_usd": round(float(c), 6) if c is not None else None,
-             "runs_unpriced": n - priced_n,
-             "tokens_in": int(ti) if ti is not None else None,
-             "tokens_out": int(to) if to is not None else None}
-            for m, n, c, priced_n, ti, to in models
+            {"model": name, "calls": n, "spent_usd": round(usd, 6), "unpriced_calls": unpriced,
+             "tokens_in": tin, "tokens_out": tout}
+            for name, (n, usd, unpriced, tin, tout)
+            in sorted(models.items(), key=lambda kv: -kv[1][1])
+        ],
+    }
+
+
+def _monthly_spend(calls: list, complete: bool) -> dict:
+    """Spend by calendar month (UTC), stage and model - every stage, the blog
+    stage included (`spend_ledger.monthly`).
+
+    EACH STAGE CARRIES WHEN IT STARTED RECORDING (rule 7): a month before a
+    stage's `counting_since` has no row for that stage because nothing was
+    watching, not because nothing was spent. A row holding an unpriced call is
+    a floor, and says so.
+    """
+    from judge import spend_ledger
+
+    first: dict = {}
+    for c in calls:
+        if c.stage not in first or c.at < first[c.stage]:
+            first[c.stage] = c.at
+    return {
+        "complete": complete,
+        "counting_since": {k: v.isoformat() for k, v in first.items()},
+        "stage_labels": dict(spend_ledger.STAGE_LABELS),
+        "rows": [
+            {"month": r.month, "stage": r.stage, "model": r.model, "calls": r.calls,
+             "tokens_in": r.input_tokens, "tokens_out": r.output_tokens,
+             "usd": round(r.usd, 6), "unpriced_calls": r.unpriced_calls,
+             "unmetered_calls": r.unmetered_calls}
+            for r in spend_ledger.monthly(calls)
         ],
     }
 
@@ -4904,8 +4950,8 @@ def _where_a_model_is_used() -> dict:
     ⚠ NOTHING HERE IS TYPED IN THAT THE CODE CAN SAY FOR ITSELF, because every
       fact on this card is one that changes:
 
-        which stages may call a model   read from `spend_ledger.STAGES`, the
-                                        tuple `record()` refuses anything else by
+        which stages may call a model   read from `spend_ledger.RECORDED_STAGES`,
+                                        the tuple `record()` refuses anything else by
         how long the extraction prompt  measured from the prompt built here
         what each prompt says           each plain point carries its anchor
                                         phrase, looked for in the live prompt
@@ -4925,7 +4971,9 @@ def _where_a_model_is_used() -> dict:
 
     from judge import spend_ledger
 
-    out: dict = {"stages": list(spend_ledger.STAGES)}
+    # Every stage `record()` accepts - the blog generator included since rule 2
+    # named it (2026-10-06). Not `STAGES`, which is the daily cap's two.
+    out: dict = {"stages": list(spend_ledger.RECORDED_STAGES)}
 
     try:
         from judge.extract.prompt import build_system_prompt

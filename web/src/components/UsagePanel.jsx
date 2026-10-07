@@ -169,6 +169,7 @@ export default function UsagePanel() {
               ledger={data.ledger || null}
               byStage={data.by_stage || []}
               blogs={data.blogs}
+              monthly={data.monthly || null}
             />}
       </div>
     </section>
@@ -195,7 +196,7 @@ export default function UsagePanel() {
  *
  * The producer did its half. This is the consumer's.
  */
-function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, ledger, byStage, blogs }) {
+function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, ledger, byStage, blogs, monthly }) {
   const rows = Object.entries(byModel)
     .map(([model, spent]) => {
       const closed = SPEND_BEFORE_THE_LEDGER[model]
@@ -219,7 +220,11 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
   // Both are arithmetic on measured figures, never an estimate. They are shown
   // as one row only when they CORROBORATE each other; if they diverge, the
   // attribution is not safe and the row says so rather than picking one.
-  const ledgerKnown = rows.reduce((sum, [, spent]) => sum + spent, 0)
+  // BLOG SPEND IS LEDGER-KNOWN TOO since 2026-10-07 (stage 'blog'), reported
+  // under `blogs` rather than in these rows - so it is added here, or every blog
+  // dollar would fall into the remainder below and read as unattributed
+  // extractor spend.
+  const ledgerKnown = rows.reduce((sum, [, spent]) => sum + spent, 0) + (blogs?.total_usd || 0)
   const remainder = everyone.available ? (everyone.total_usd ?? 0) - ledgerKnown : null
   const todayOnKey = everyone.today_usd ?? null
   const CENT = 0.005 // half a cent: below this the two figures are the same number
@@ -450,62 +455,71 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         </>
       )}
 
-      {/* BLOG DRAFTS SPEND ON THIS KEY TOO, OUTSIDE THE CAP. The generator
-          calls its model (GPT-6 Luna by default) directly, not through the
-          ledger, so it is in the key total above and in none of the ledger
-          rows. Its own provider-reported cost per run is shown here. */}
+      {/* BLOG DRAFTS, OUTSIDE THE CAP. Every generator call is a ledger row
+          (stage 'blog') since 2026-10-07 - terminal runs as well as Admin ones -
+          and earlier calls arrive per machine by scripts/backfill_blog_spend.py.
+          Dollars are OpenRouter's reported cost per call, not a held rate. */}
       {blogs && (
         <>
-          <span className="label">Blog drafts — outside the cap, from blog run history</span>
-          {!blogs.readable ? (
-            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Blog run history could not be read.</span>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                <span style={{ fontSize: 'var(--fs-sm)' }}>Generate in Admin → Blogs — today</span>
-                <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
-                  <span className="tnum">{usd(blogs.spent_today_usd)}</span>
-                  <span className="dim" style={{ fontSize: 10 }}>
-                    {blogs.runs_today} run{blogs.runs_today === 1 ? '' : 's'} today
-                    {blogs.runs_today_unpriced ? ` · ${blogs.runs_today_unpriced} with no reported cost` : ''}
-                  </span>
+          <span className="label">Blog drafts — outside the daily cap</span>
+          {blogs.complete === false && (
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+              The shared ledger could not be read, so these are this machine&apos;s calls only — a floor.
+            </span>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+            <span style={{ fontSize: 'var(--fs-sm)' }}>Today (UTC)</span>
+            <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
+              <span className="tnum">{usd(blogs.spent_today_usd)}</span>
+              <span className="dim" style={{ fontSize: 10 }}>
+                {blogs.calls_today} call{blogs.calls_today === 1 ? '' : 's'} today
+                {blogs.unpriced_today ? ` · ${blogs.unpriced_today} with no reported cost, so a floor` : ''}
+              </span>
+            </span>
+          </div>
+          {/* THE GENERATOR'S MODEL, NAMED EVEN WITH NO CALL YET - it is what the
+              next Generate will call and pay for. */}
+          {(blogs.models || []).length === 0 ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+              <span>
+                <strong style={{ fontSize: 'var(--fs-sm)' }}>{blogs.model ? prettyModel(blogs.model) : 'generator model'}</strong>{' '}
+                {blogs.model && <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{blogs.model}</span>}
+                <span className="dim" style={{ display: 'block', fontSize: 11 }}>
+                  No blog call recorded yet. Calls made before 2026-10-07 reach the ledger when the machine that
+                  made them runs <span className="mono">scripts/backfill_blog_spend.py</span>.
                 </span>
-              </div>
-              {/* THE GENERATOR'S MODEL, NAMED EVEN WITH NO RUN YET - it is what
-                  the next Generate will call and pay for. */}
-              {(blogs.models || []).length === 0 ? (
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                  <span>
-                    <strong style={{ fontSize: 'var(--fs-sm)' }}>{blogs.model ? prettyModel(blogs.model) : 'generator model'}</strong>{' '}
-                    {blogs.model && <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{blogs.model}</span>}
-                    <span className="dim" style={{ display: 'block', fontSize: 11 }}>
-                      No generation run recorded yet. Drafts written before run history began cost money that is
-                      in the key total but not itemised here.
-                    </span>
-                  </span>
-                  <span className="tnum dim">no recorded runs</span>
-                </div>
-              ) : blogs.models.map((m) => (
-                <div key={m.model || 'none'} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                  <span>
-                    <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(m.model)}</strong>{' '}
-                    <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{m.model}</span>
-                  </span>
-                  <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
-                    <span className="tnum">{m.spent_usd != null ? usd(m.spent_usd) : 'not reported'}</span>
-                    <span className="dim" style={{ fontSize: 10 }}>
-                      {m.runs} run{m.runs === 1 ? '' : 's'}
-                      {/* A RUN WITH NO REPORTED COST IS NAMED, not summed as $0. */}
-                      {m.runs_unpriced ? ` · ${m.runs_unpriced} with no reported cost, so the sum is a floor` : ''}
-                      {m.tokens_in != null ? ` · ${m.tokens_in.toLocaleString()} in${m.tokens_out != null ? ` / ${m.tokens_out.toLocaleString()} out` : ''} tokens` : ''}
-                    </span>
-                  </span>
-                </div>
-              ))}
-            </>
+              </span>
+              <span className="tnum dim">no recorded calls</span>
+            </div>
+          ) : blogs.models.map((m) => (
+            <div key={m.model} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+              <span>
+                <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(m.model)}</strong>{' '}
+                <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{m.model}</span>
+                {m.model === blogs.model && <> <Badge tone="mute">current</Badge></>}
+              </span>
+              <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
+                <span className="tnum">{usd(m.spent_usd)}</span>
+                <span className="dim" style={{ fontSize: 10 }}>
+                  all recorded · {m.calls} call{m.calls === 1 ? '' : 's'}
+                  {` · ${m.tokens_in.toLocaleString()} in / ${m.tokens_out.toLocaleString()} out tokens`}
+                  {/* A CALL WITH NO REPORTED COST IS NAMED, not summed as $0. */}
+                  {m.unpriced_calls ? ` · ${m.unpriced_calls} with no reported cost, so a floor` : ''}
+                </span>
+              </span>
+            </div>
+          ))}
+          {blogs.counting_since && (
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
+              Blog calls recorded since <strong>{new Date(blogs.counting_since).toLocaleDateString()}</strong>. A
+              blog call made earlier, or on a machine that has not run the backfill, is in the key total above but
+              not itemised here.
+            </span>
           )}
         </>
       )}
+
+      <MonthlyLedger monthly={monthly} />
 
       {/* ⚠ THE ROWS ADD UP TO MORE THAN THE KEY HAS EVER BEEN CHARGED. Stated
           before the rows rather than after them, because a reader who has
@@ -656,6 +670,78 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         </span>
       )}
     </div>
+  )
+}
+
+const STAGE_SHORT = { extract: 'Extraction', ask: 'Ask box', blog: 'Blog drafts' }
+
+/**
+ * SPEND BY MONTH — every model call in the ledger, by calendar month (UTC),
+ * stage and model, GPT-6 Luna's blog drafts included (`monthly` in
+ * /admin/usage, judge/spend_ledger.py `monthly`).
+ *
+ * TWO KINDS OF DOLLAR, SAID ON THE PAGE (rule 7): extraction and Ask rows are
+ * tokens x a rate held in `judge/extract/budget.py` (see the note above on how
+ * far that rate is off), blog rows are OpenRouter's reported cost per call. A
+ * month before a stage's first recorded call has no row for it because nothing
+ * was recording, not because nothing was spent — so each stage's start is shown.
+ */
+function MonthlyLedger({ monthly }) {
+  if (!monthly) return null
+  const rows = monthly.rows || []
+  const since = Object.entries(monthly.counting_since || {})
+  return (
+    <>
+      <span className="label">By month — every model call in the ledger (UTC months)</span>
+      {monthly.complete === false && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          The shared ledger could not be read, so these are this machine&apos;s calls only — every row is a floor.
+        </span>
+      )}
+      {rows.length === 0 ? (
+        <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No model calls recorded yet.</span>
+      ) : (
+        <div className="tablewrap"><table>
+          <thead>
+            <tr><th>Month</th><th>Stage</th><th>Model</th><th>Calls</th><th>Tokens in / out</th><th>Spent</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={`${r.month}|${r.stage}|${r.model}`}>
+                <td className="mono">{r.month}</td>
+                <td>
+                  {STAGE_SHORT[r.stage] || r.stage}
+                  {r.stage === 'blog' && <> <Badge tone="mute">outside cap</Badge></>}
+                </td>
+                <td>
+                  <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(r.model)}</strong>
+                  <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--text-3)' }}>{r.model}</span>
+                </td>
+                <td className="tnum">{r.calls.toLocaleString()}</td>
+                <td className="tnum">{r.tokens_in.toLocaleString()} / {r.tokens_out.toLocaleString()}</td>
+                <td className="tnum">
+                  {usd(r.usd)}
+                  {(r.unpriced_calls > 0 || r.unmetered_calls > 0) && (
+                    <span className="dim" style={{ display: 'block', fontSize: 10 }}>
+                      a floor: {[r.unpriced_calls ? `${r.unpriced_calls} unpriced` : null,
+                        r.unmetered_calls ? `${r.unmetered_calls} with no tokens reported` : null]
+                        .filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      )}
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', lineHeight: 1.6 }}>
+        Recording since: {since.length
+          ? since.map(([st, at]) => `${STAGE_SHORT[st] || st} ${new Date(at).toLocaleDateString()}`).join(' · ')
+          : 'nothing recorded'}. A month before that has no row for the stage because nothing was recording.
+        Extraction dollars are tokens multiplied by a held rate; blog dollars are what OpenRouter reported for
+        each call.
+      </span>
+    </>
   )
 }
 

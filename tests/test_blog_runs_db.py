@@ -1,8 +1,9 @@
 """Blog generation history and post review, against a real (disposable) database.
 
-`judge/blog_runs.py` records each Admin -> Blogs generation run and each review
-decision. Nothing here calls a model: a run is simulated by writing the status
-and log files the generator would, and one draft file with its timestamp.
+`judge/blog_runs.py` records each Admin -> Blogs generation run, and stores the
+drafts it wrote in `blog_post` (judge/blog_store.py) for review. Nothing here
+calls a model: a run is simulated by writing the status and log files the
+generator would, and one draft file with its timestamp.
 Requires a database. See docs/dev-database.md.
 """
 from __future__ import annotations
@@ -14,7 +15,7 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from judge import blog_posts, blog_runs
+from judge import blog_posts, blog_runs, blog_store
 
 SCHEMA = Path(__file__).resolve().parents[1] / "contract" / "tables.sql"
 STARTED = "2026-10-06T10:00:00+00:00"
@@ -99,29 +100,37 @@ def test_a_run_still_in_progress_is_left_open(conn, files):
     assert row["finished_at"] is None and row["posts_written"] == []
 
 
-def test_review_is_append_only_and_the_latest_decision_wins(conn, files):
+def test_a_finished_run_stores_its_drafts_as_pending(conn, files):
+    """The run's own draft goes to the store, tied to the run; a draft from
+    before the run's window does not (it is stored from Admin -> Blogs)."""
+    run_id = _run(conn, files)
+    posts = {p["slug"]: p for p in blog_store.for_review(conn)}
+    assert set(posts) == {"new-post"}
+    assert posts["new-post"]["review"] == "pending" and posts["new-post"]["run_id"] == run_id
+    assert blog_store.published(conn) == []  # pending is never on the Blogs page
+
+
+def test_review_keeps_every_decision_and_the_latest_one_is_the_state(conn, files):
     _run(conn, files)
-    assert blog_runs.public_state(conn) == {"new-post": "pending"}
-    blog_runs.review(conn, "new-post", "rejected", "too thin")
-    blog_runs.review(conn, "new-post", "approved", None)
-    assert blog_runs.public_state(conn) == {"new-post": "approved"}
-    blog_runs.review(conn, "new-post", "reopened", None)
-    assert blog_runs.public_state(conn) == {"new-post": "pending"}
+    blog_store.decide(conn, "new-post", "approved", None)
+    assert [p["slug"] for p in blog_store.published(conn)] == ["new-post"]
+    blog_store.decide(conn, "new-post", "reopened", None)
+    assert blog_store.published(conn) == []
     n = conn.execute("SELECT count(*) FROM blog_post_review").fetchone()[0]
-    assert n == 3  # every decision kept
+    assert n == 2  # every decision kept
 
 
-def test_a_draft_no_run_wrote_cannot_be_reviewed(conn, files):
+def test_a_draft_not_stored_cannot_be_reviewed(conn, files):
     _run(conn, files)
-    with pytest.raises(blog_runs.ReviewRefused) as e:
-        blog_runs.review(conn, "old-draft", "approved", None)
+    with pytest.raises(blog_store.DecisionRefused) as e:
+        blog_store.decide(conn, "old-draft", "approved", None)
     assert e.value.status == 404
 
 
 def test_an_unknown_decision_is_refused(conn, files):
     _run(conn, files)
-    with pytest.raises(blog_runs.ReviewRefused) as e:
-        blog_runs.review(conn, "new-post", "published", None)
+    with pytest.raises(blog_store.DecisionRefused) as e:
+        blog_store.decide(conn, "new-post", "published", None)
     assert e.value.status == 422
 
 
@@ -144,13 +153,16 @@ def test_a_run_the_status_file_no_longer_describes_is_still_closed(conn, files):
     assert first["log"] is None  # the log on disk is the newer run's
 
 
-def test_a_recent_post_no_run_claims_is_pending_not_public(conn, files):
+def test_a_draft_no_run_stored_is_not_public(client, conn, files):
+    """Was: a recent draft no run claims is pending, not public. Under the store
+    the guarantee is wider - ANY draft file the store does not hold is off the
+    Blogs page, and Admin lists it as unstored rather than dropping it."""
     _run(conn, files)
-    stray = {"slug": "stray", "provenance": {"generated_at": "2026-10-06T12:00:00+00:00"}}
-    old = {"slug": "old", "provenance": {"generated_at": "2026-09-01T00:00:00+00:00"}}
-    states = blog_runs.public_state(conn, [stray, old])
-    assert states["stray"] == "pending"
-    assert "old" not in states  # predates run history
+    conn.commit()
+    _draft(files / "posts", "stray", "2026-10-06T12:00:00+00:00")
+    assert client.get("/blog-posts").json()["posts"] == []
+    every = client.get("/blog-posts?include=all").json()
+    assert {u["slug"] for u in every["unstored"]} == {"old-draft", "stray"}
 
 
 def test_an_unreported_cost_is_not_recorded_as_zero(conn, files):
@@ -184,11 +196,12 @@ def client(conn, files, monkeypatch, test_dsn):
 def test_the_public_view_withholds_pending_posts_and_admin_sees_all(client, conn, files):
     _run(conn, files)
     conn.commit()
-    public = client.get("/blog-posts").json()
-    assert [p["slug"] for p in public["posts"]] == ["old-draft"]
+    # Nothing is approved: the public page is empty - the old draft too, which
+    # the file gate used to publish because it predated run history.
+    assert client.get("/blog-posts").json()["posts"] == []
     every = client.get("/blog-posts?include=all").json()
-    reviews = {p["slug"]: p.get("review") for p in every["posts"]}
-    assert reviews == {"old-draft": None, "new-post": "pending"}
+    assert {p["slug"]: p["review"] for p in every["posts"]} == {"new-post": "pending"}
+    assert [u["slug"] for u in every["unstored"]] == ["old-draft"]
 
 
 def test_approving_through_the_route_publishes_the_post(client, conn, files):
@@ -196,26 +209,27 @@ def test_approving_through_the_route_publishes_the_post(client, conn, files):
     conn.commit()
     r = client.post("/blog-posts/review", json={"slug": "new-post", "decision": "approved"})
     assert r.status_code == 200, r.text
-    assert "new-post" in [p["slug"] for p in client.get("/blog-posts").json()["posts"]]
+    assert [p["slug"] for p in client.get("/blog-posts").json()["posts"]] == ["new-post"]
+    # A draft the store does not hold cannot be decided on until it is stored.
     old = client.post("/blog-posts/review", json={"slug": "old-draft", "decision": "approved"})
     assert old.status_code == 404
 
 
 def test_the_gate_fails_closed_when_review_state_cannot_be_read(client, files, monkeypatch):
-    """Item 2: an unreadable review table must not publish every draft."""
-    import judge.app as app_mod
+    """Item 2: an unreadable store must not publish every draft - nor, under the
+    store, let Admin act on a list it cannot read."""
+    from judge import blog_store
 
     _draft(files / "posts", "any-post", "2026-10-06T10:05:00+00:00")
 
-    def boom(_posts):
-        raise RuntimeError("relation blog_post_review does not exist")
+    def boom(_conn):
+        raise blog_store.StoreUnreadable("this database has no blog_post table yet")
 
-    monkeypatch.setattr(app_mod, "_blog_review_states", boom)
-    body = client.get("/blog-posts").json()
-    assert body["posts"] == [] and "withheld" in body["reason"]
-    assert body["review_unreadable"]
-    every = client.get("/blog-posts?include=all").json()["posts"]
-    assert [p["slug"] for p in every] == ["any-post"]
+    monkeypatch.setattr(blog_store, "published", boom)
+    monkeypatch.setattr(blog_store, "for_review", boom)
+    for path in ("/blog-posts", "/blog-posts?include=all"):
+        body = client.get(path).json()
+        assert body["posts"] == [] and body["reason"].startswith("No posts are shown"), path
 
 
 def test_the_run_log_route_masks_keys(client, files):
