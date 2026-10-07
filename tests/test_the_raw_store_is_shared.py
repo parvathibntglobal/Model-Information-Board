@@ -108,6 +108,9 @@ class TestConfiguration:
 
     def test_half_configured_refuses(self, monkeypatch):
         monkeypatch.setenv("MODELBOARD_ALLOW_TEST_RAW_REMOTE", "1")
+        # Empty, not deleted: .env is loaded without override, so a deleted
+        # variable would be filled back in from a developer's .env.
+        monkeypatch.setenv(rawstore_remote.REMOTE_ENV, "")
         for k in rawstore_remote.ENV_KEYS:
             monkeypatch.delenv(k, raising=False)
         monkeypatch.setenv("RAW_STORE_S3_BUCKET", "b")
@@ -116,6 +119,7 @@ class TestConfiguration:
 
     def test_none_configured_is_local_only(self, monkeypatch):
         monkeypatch.setenv("MODELBOARD_ALLOW_TEST_RAW_REMOTE", "1")
+        monkeypatch.setenv(rawstore_remote.REMOTE_ENV, "")
         for k in rawstore_remote.ENV_KEYS:
             monkeypatch.setenv(k, "")
         assert rawstore_remote.remote_from_env() is None

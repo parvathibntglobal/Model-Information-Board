@@ -20,10 +20,13 @@
 #      thread commits as it finishes, so a stopped fetch loses one thread at
 #      most and its model stays due; every model not reached is named, and the
 #      next night continues from there.
-#   2. THE RAW STORE IS THE SHARED BUCKET (RAW_STORE_S3_*). A runner starts
-#      empty; without the bucket it can read only what it harvests in the same
+#   2. THE RAW STORE IS THE SHARED DATABASE (RAW_STORE_REMOTE=postgres, the
+#      `raw_blob` table, migration 20261007T1200). A runner starts empty;
+#      without a shared store it can read only what it harvests in the same
 #      job - measured 2026-10-06, the first run read 0 of 2,217 waiting
-#      documents and 0 of 6,087 unread threads. Every machine that has fetched
+#      documents and 0 of 6,087 unread threads. A bucket (RAW_STORE_S3_*) was
+#      planned and needed an external account the team does not have; the
+#      database needs nothing new (2026-10-07). Every machine that has fetched
 #      runs scripts/sync_raw_store.py --apply once. Actions artifacts must NOT
 #      be used instead: in a public repository they would publish Reddit and X
 #      payloads.
@@ -34,8 +37,8 @@
 # SET BEFORE TURNING IT ON (repository settings - names only here):
 #   secrets    STAGING_DATABASE_URL (exists), OPENROUTER_API_KEY,
 #              RAPIDAPI_KEY (Reddit), X_RAPIDAPI_KEY (X) - two keys, two providers
-#   secrets    RAW_STORE_S3_ACCESS_KEY_ID, RAW_STORE_S3_SECRET_ACCESS_KEY
-#   variables  RAW_STORE_S3_ENDPOINT, RAW_STORE_S3_BUCKET
+#   (no raw-store settings: RAW_STORE_REMOTE=postgres is set below and uses
+#    the same STAGING_DATABASE_URL secret)
 #   variables  USER_AGENT (exists), EXTRACTION_DAILY_BUDGET_USD,
 #              REDDIT_PROVIDER (reddit34), SCRAPER_PROVIDER (twitter241),
 #              SCHEDULER_ISSUE (an issue for the nightly summary),
@@ -89,13 +92,12 @@ jobs:
       SCHEDULER_ENABLED: ${{ vars.SCHEDULER_ENABLED }}
       SCHEDULER_ISSUE: ${{ vars.SCHEDULER_ISSUE }}
       RAW_STORE_PATH: raw_store
-      # THE SHARED RAW STORE (collect/rawstore_remote.py). Without it a runner
-      # starts empty and can read only what it harvests itself - the first
-      # scheduled run read 0 of 2,217 waiting documents. All four or none.
-      RAW_STORE_S3_ENDPOINT: ${{ vars.RAW_STORE_S3_ENDPOINT }}
-      RAW_STORE_S3_BUCKET: ${{ vars.RAW_STORE_S3_BUCKET }}
-      RAW_STORE_S3_ACCESS_KEY_ID: ${{ secrets.RAW_STORE_S3_ACCESS_KEY_ID }}
-      RAW_STORE_S3_SECRET_ACCESS_KEY: ${{ secrets.RAW_STORE_S3_SECRET_ACCESS_KEY }}
+      # THE SHARED RAW STORE (collect/rawstore_remote.py): the `raw_blob` table
+      # in the same database. Without it a runner starts empty and can read only
+      # what it harvests itself - the first scheduled run read 0 of 2,217
+      # waiting documents. Fixed here, not a variable: the runner has no other
+      # way to read the team's payloads.
+      RAW_STORE_REMOTE: postgres
       MAX_MODELS: ${{ inputs.max_models }}
       SOURCES: ${{ inputs.sources }}
     steps:
@@ -113,7 +115,6 @@ jobs:
           [ -n "$USER_AGENT" ]                  || missing="$missing USER_AGENT"
           [ -n "$EXTRACTION_DAILY_BUDGET_USD" ] || missing="$missing EXTRACTION_DAILY_BUDGET_USD"
           [ -n "$SCHEDULER_ISSUE" ]             || missing="$missing SCHEDULER_ISSUE"
-          [ -n "$RAW_STORE_S3_BUCKET" ]         || missing="$missing RAW_STORE_S3_BUCKET"
           if [ -n "$missing" ]; then
             echo "::error::scheduler switched on but not configured:$missing"
             exit 1

@@ -115,3 +115,23 @@ def test_the_live_row_and_the_backfill_row_are_one_call(ledger):
     assert first.run_id == "blog:field-report-x@2026-10-05T06:22:22+00:00#1"
     second = next(c for c in calls if c.run_id.endswith("#2"))
     assert second.unpriced  # no cost reported for it
+
+
+def test_a_terminal_run_sends_its_rows_to_the_shared_table(ledger, monkeypatch):
+    """`env()` reads .env into a dict and never sets os.environ, so the shared
+    table must get the generator's own DATABASE_URL explicitly - not rely on an
+    environment a terminal run does not have (found 2026-10-07)."""
+    import generate_sample_blogs as gen
+
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setattr(gen, "env", lambda: {"DATABASE_URL": "postgresql://from-dotenv/db"})
+    sent = []
+    monkeypatch.setattr(spend_ledger, "append_to_database",
+                        lambda calls, dsn=None: sent.append((list(calls), dsn)) or 1)
+    record = {"post": "p", "started": "2026-10-07T01:00:00+00:00", "requested_model": LUNA,
+              "attempts": [{"served": LUNA, "usage": {"prompt_tokens": 5, "completion_tokens": 6,
+                                                     "cost": 0.001}}]}
+    gen.record_spend(record, 0)
+    [(calls, dsn)] = sent
+    assert dsn == "postgresql://from-dotenv/db" and calls[0].stage == "blog"
+    assert len(spend_ledger.read_all()) == 1  # and the local file, once

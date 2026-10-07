@@ -1750,3 +1750,16 @@ CREATE TABLE blog_post (
 );
 
 CREATE INDEX blog_post_state ON blog_post (state);
+
+-- ============================================================================
+--  THE SHARED RAW STORE: one row per raw payload, zlib-compressed
+--  (migration 20261007T1200_raw_blob.sql - why it is a table and not a bucket,
+--   the measured size, and the key format are written there)
+-- ============================================================================
+
+CREATE TABLE raw_blob (
+  key        text PRIMARY KEY,
+  data       bytea NOT NULL,
+  size       bigint NOT NULL,
+  stored_at  timestamptz NOT NULL DEFAULT now()
+);

@@ -1387,11 +1387,8 @@ columns:
         new and holds no rows until the first metered call after its migration is applied.'
     quota_limit:
       reviewed: true
-      state: write_only
-      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The denominator as this reading stated it, never
-        inherited from another reading - the arms are separately metered. The intended reader is the usage
-        panel''s quota series, which cannot read it yet because that display is not built - the table is new and
-        holds no rows until the first metered call after its migration is applied.'
+      state: read
+      why: 'Written by collect/usage.py with each reading. Read by judge/app.py _rapidapi_series since 2026-10-07: a reset starts a window at the limit, so the requests used in a new window before its first reading are limit minus remaining (_quota_consumption).'
     quota_remaining:
       reviewed: true
       state: read
@@ -1436,6 +1433,23 @@ columns:
       why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The run that spent it, where there was one. The
         intended reader is the usage panel''s quota series, which cannot read it yet because that display is not
         built - the table is new and holds no rows until the first metered call after its migration is applied.'
+  raw_blob:
+    data:
+      reviewed: false
+      state: read
+      why: 'The payload, zlib-compressed. Written by collect/rawstore_remote.py PgBlobs.put_if_absent, read by PgBlobs.get (decompressed) - the shared raw store behind RawStore when RAW_STORE_REMOTE=postgres. Migration 20261007T1200.'
+    key:
+      reviewed: false
+      state: read
+      why: 'The payload ref, or ref plus .tombstone. Written by PgBlobs.put_if_absent, read by every PgBlobs lookup. Migration 20261007T1200.'
+    size:
+      reviewed: false
+      state: read
+      why: 'The UNCOMPRESSED length. Written by PgBlobs.put_if_absent, read by PgBlobs.size for RawStore.stat. Migration 20261007T1200.'
+    stored_at:
+      reviewed: false
+      state: defaulted
+      why: 'now() at insert; nothing reads it yet. Kept for an operator asking when a payload reached the shared store. Migration 20261007T1200.'
   reported_context:
     advertised:
       reviewed: false
