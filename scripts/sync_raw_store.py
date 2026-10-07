@@ -1,7 +1,11 @@
 #!/usr/bin/env python
-"""Send this machine's raw store to the shared bucket. Idempotent.
+"""Send this machine's raw store to the shared store. Idempotent.
 
-Payloads written before the bucket existed live only on the machine that
+THE SHARED STORE is whichever RAW_STORE_REMOTE names (collect/rawstore_remote.py):
+the `raw_blob` table in the shared database (`postgres`, chosen 2026-10-07), or
+an S3-compatible bucket (`s3`). "The bucket" below means either.
+
+Payloads written before the shared store existed live only on the machine that
 fetched them - that is why the first scheduled Action could read none of them.
 Every machine that has fetched runs this once; from then on `RawStore.put`
 shares as it writes, and this only re-sends what an upload failure missed.
@@ -64,8 +68,21 @@ def main(argv: list[str] | None = None) -> int:
 
     remote = remote_from_env()
     if remote is None:
-        print("RAW_STORE_S3_* is not configured; nothing to send to.")
+        print("no shared raw store is configured (set RAW_STORE_REMOTE=postgres, or the "
+              "four RAW_STORE_S3_* variables); nothing to send to.")
         return 1
+    # THE WRITE GATE when the target is the shared DATABASE: it refuses
+    # ENVIRONMENT=development pointed at a database that is not this machine
+    # (tests/test_every_write_path_takes_the_gate.py).
+    from collect.rawstore_remote import PgBlobs
+    from judge.writeguard import UnsafeWriteRefused, check
+
+    if isinstance(remote, PgBlobs):
+        try:
+            check(remote.dsn, command="sync_raw_store.py --apply")
+        except UnsafeWriteRefused as error:
+            print(error)
+            return 1
 
     counts = {"uploaded": 0, "already": 0, "failed": 0}
     started = time.monotonic()

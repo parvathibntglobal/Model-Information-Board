@@ -273,6 +273,11 @@ fields:
       rest of the UI''s reads of the closed capability vocabulary, measured that day at 0 of
       196 models carrying a non-empty list. The endpoint still emits the field; no page asks
       for it'
+  files_reason:
+    reviewed: false
+    routes:
+    - /blog-posts
+    state: consumed
   gates_unreadable:
     reviewed: false
     routes:
@@ -384,6 +389,11 @@ fields:
     routes:
     - /admin/settings
     state: consumed
+  monthly:
+    reviewed: false
+    routes:
+    - /admin/usage
+    state: consumed
   no_evidence:
     reviewed: false
     routes:
@@ -430,6 +440,11 @@ fields:
     reviewed: false
     routes:
     - /faq
+    state: consumed
+  posts:
+    reviewed: false
+    routes:
+    - /blog-posts
     state: consumed
   priced_at:
     reviewed: false
@@ -529,16 +544,6 @@ fields:
     routes:
     - /ask/recommend
     state: no_consumer
-  reviewable:
-    reviewed: false
-    routes:
-    - /blog-posts/runs
-    state: consumed
-  reviews:
-    reviewed: false
-    routes:
-    - /blog-posts/runs
-    state: consumed
   rows_cleared:
     reviewed: false
     routes:
@@ -636,6 +641,11 @@ fields:
     routes:
     - /admin/board-entries/rule
     - /admin/board-entries/unrule
+    state: consumed
+  skipped:
+    reviewed: false
+    routes:
+    - /blog-posts
     state: consumed
   slug:
     reviewed: false
@@ -815,6 +825,11 @@ fields:
     routes:
     - /compare
     state: no_consumer
+  unstored:
+    reviewed: false
+    routes:
+    - /blog-posts
+    state: consumed
   updated:
     reviewed: false
     routes:

@@ -371,7 +371,9 @@ class TestTheSchemaSaysWhatItIsFor:
         assert "usd            numeric(16, 10) NOT NULL" in self._tables()
 
     def test_the_stage_set_stays_closed(self):
-        assert "spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask'))" in self._tables()
+        # Closed to the callers rule 2 names: extraction, the Ask box, and the
+        # blog generator (2026-10-06; recorded outside the cap, 20261007T0900).
+        assert "spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog'))" in self._tables()
 
     def test_the_fetch_log_keeps_sequence_not_just_time(self):
         # Timestamps here are second-resolution and several lines share one.
@@ -461,7 +463,7 @@ class TestTheTotalTravelsWithItsPopulation:
         # Two figures on one page drawn from different populations disagree for
         # a reason nothing on the page states.
         src = (ROOT / "judge" / "app.py").read_text(encoding="utf-8")
-        assert "all_calls, _ = spend_ledger.read_everywhere()" in src
+        assert "all_calls, all_readable = spend_ledger.read_everywhere()" in src
 
 
 class TestTheFetchLogEndpointDistinguishesItsSources:

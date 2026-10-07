@@ -1,16 +1,25 @@
-"""GET /blog-posts: drafts for the Blogs section, read from a directory.
+"""Blog draft files (`judge/blog_posts.load`) and the public `GET /blog-posts`.
 
-No database. The assertions are the three states `judge/blog_posts.py`
-promises, because "not configured" and "no drafts yet" rendering the same is
-rule 4's failure on a smaller page.
+No database. The FILE assertions are the three states `load()` promises -
+"not configured" and "no drafts yet" rendering the same is rule 4's failure on a
+smaller page. Files no longer reach the Blogs page directly (2026-10-06): they
+are what Admin -> Blogs offers to store, so the states now matter there.
+
+The ROUTE assertions are that the public page reads the store and FAILS CLOSED:
+a store it cannot read shows no posts and says why, and never falls back to the
+files on disk (#508 review). Store contents are tested against a real database
+in test_blog_store_db.py.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 
 import pytest
 from fastapi.testclient import TestClient
 
+import judge.app as app_module
+from judge import blog_posts, blog_store
 from judge.app import app
 
 client = TestClient(app, raise_server_exceptions=False)
@@ -22,12 +31,6 @@ def _open_api(monkeypatch):
     # API_TOKEN, and these tests are about the payload, not the gate.
     monkeypatch.delenv("API_TOKEN", raising=False)
     monkeypatch.setenv("ENVIRONMENT", "development")
-    # These tests are about reading the draft FILES. The review gate needs the
-    # run history in a database (and fails closed without it - see
-    # tests/test_blog_runs_db.py), so here it reports "nothing reviewed".
-    import judge.app as app_mod
-
-    monkeypatch.setattr(app_mod, "_blog_review_states", lambda _posts: {})
 
 
 def _post(slug="a-post", **over):
@@ -45,27 +48,27 @@ def _post(slug="a-post", **over):
 
 def test_unset_is_a_reason_not_an_empty_list(monkeypatch):
     monkeypatch.delenv("BLOG_POSTS_DIR", raising=False)
-    body = client.get("/blog-posts").json()
+    body = blog_posts.load()
     assert body["posts"] == []
     assert body["reason"] and "BLOG_POSTS_DIR" in body["reason"]
 
 
 def test_missing_directory_is_a_reason(monkeypatch, tmp_path):
     monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path / "nope"))
-    body = client.get("/blog-posts").json()
+    body = blog_posts.load()
     assert body["posts"] == [] and "does not exist" in body["reason"]
 
 
 def test_empty_directory_is_no_drafts_and_no_reason(monkeypatch, tmp_path):
     monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path))
-    body = client.get("/blog-posts").json()
+    body = blog_posts.load()
     assert body == {"posts": [], "skipped": [], "reason": None}
 
 
 def test_a_valid_draft_is_served_whole(monkeypatch, tmp_path):
     (tmp_path / "a-post.json").write_text(json.dumps(_post()), encoding="utf-8")
     monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path))
-    body = client.get("/blog-posts").json()
+    body = blog_posts.load()
     assert [p["slug"] for p in body["posts"]] == ["a-post"]
     assert body["posts"][0]["body"][2][0] == "table"
 
@@ -77,7 +80,7 @@ def test_a_broken_file_is_named_not_dropped(monkeypatch, tmp_path):
     (tmp_path / "odd.json").write_text(json.dumps(_post("odd", body=[["marquee", "x"]])),
                                        encoding="utf-8")
     monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path))
-    body = client.get("/blog-posts").json()
+    body = blog_posts.load()
     assert [p["slug"] for p in body["posts"]] == ["good"]
     why = {s["file"]: s["why"] for s in body["skipped"]}
     assert set(why) == {"bad.json", "short.json", "odd.json"}
@@ -91,7 +94,42 @@ def test_featured_post_comes_first(monkeypatch, tmp_path):
     (tmp_path / "z.json").write_text(json.dumps(_post("z", title="Zulu", feat=True)),
                                      encoding="utf-8")
     monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path))
-    assert [p["slug"] for p in client.get("/blog-posts").json()["posts"]] == ["z", "a"]
+    assert [p["slug"] for p in blog_posts.load()["posts"]] == ["z", "a"]
+
+
+# ── GET /blog-posts: the store, failing closed ───────────────────────────────
+
+def test_the_public_page_shows_what_the_store_approved(monkeypatch, tmp_path):
+    # A draft FILE that was never approved sits on disk: it must not appear.
+    (tmp_path / "unapproved.json").write_text(json.dumps(_post("unapproved")), encoding="utf-8")
+    monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path))
+    monkeypatch.setattr(app_module, "_conn", lambda: contextlib.nullcontext(object()))
+    monkeypatch.setattr(blog_store, "published", lambda conn: [_post("approved-one")])
+    body = client.get("/blog-posts").json()
+    assert [p["slug"] for p in body["posts"]] == ["approved-one"]
+    assert body["reason"] is None
+
+
+@pytest.mark.parametrize("failure", ["unreachable", "unmigrated"])
+def test_a_store_it_cannot_read_shows_nothing_and_says_why(monkeypatch, tmp_path, failure):
+    """FAILS CLOSED. Draft files are on disk and readable; the store is not.
+    The page must show none of them, and say why - not every draft (#508)."""
+    (tmp_path / "a-post.json").write_text(json.dumps(_post()), encoding="utf-8")
+    monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path))
+    if failure == "unreachable":
+        def boom():
+            raise RuntimeError("database unreachable")
+        monkeypatch.setattr(app_module, "_conn", boom)
+    else:
+        monkeypatch.setattr(app_module, "_conn", lambda: contextlib.nullcontext(object()))
+
+        def unmigrated(conn):
+            raise blog_store.StoreUnreadable("this database has no blog_post table yet")
+        monkeypatch.setattr(blog_store, "published", unmigrated)
+    for path in ("/blog-posts", "/blog-posts?include=all"):
+        body = client.get(path).json()
+        assert body["posts"] == [], path
+        assert body["reason"] and body["reason"].startswith("No posts are shown"), path
 
 
 # ── POST/GET /blog-posts/generate ────────────────────────────────────────────

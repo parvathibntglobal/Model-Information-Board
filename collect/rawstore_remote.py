@@ -1,4 +1,4 @@
-"""The shared half of the raw store: an S3-compatible bucket behind the local one.
+"""The shared half of the raw store, behind the local one: a table or a bucket.
 
 WHY IT EXISTS (2026-10-06). The raw store was a folder on whichever machine ran
 a fetch. Rows reached the shared database; the bytes they point at did not. The
@@ -19,15 +19,21 @@ Keys are refs verbatim (`raw/sha256/ab/cd/<hash>`), so a bucket listing reads
 like the folder it mirrors, and content addressing makes every upload
 idempotent.
 
-CONFIGURED BY FOUR VARIABLES, ALL OR NONE (rule 12):
+WHICH SHARED STORE - `RAW_STORE_REMOTE`, said explicitly (rule 12):
 
-    RAW_STORE_S3_ENDPOINT          e.g. https://<account>.r2.cloudflarestorage.com
-    RAW_STORE_S3_BUCKET
-    RAW_STORE_S3_ACCESS_KEY_ID
-    RAW_STORE_S3_SECRET_ACCESS_KEY
+    postgres   the `raw_blob` table in the database DATABASE_URL names (PgBlobs).
+               No new service: every machine and the scheduled runner already
+               reach that database. Chosen 2026-10-07 - the team has no
+               external storage account (migration 20261007T1200).
+    s3         an S3-compatible bucket (S3Blobs), from four variables, all
+               required: RAW_STORE_S3_ENDPOINT, _BUCKET, _ACCESS_KEY_ID,
+               _SECRET_ACCESS_KEY.
+    unset      local only - unless all four S3 variables are set, which is how
+               the bucket was configured before this variable existed.
 
-None set: local only, exactly as before. Some set: refuse - a half-configured
-remote would write locally and look shared.
+A half-configured bucket refuses, and so does `postgres` with no DATABASE_URL
+or `postgres` beside S3 variables: a store that writes locally while looking
+shared, or that picks one of two named stores, is the defect, not a fallback.
 """
 from __future__ import annotations
 
@@ -41,8 +47,81 @@ ENV_KEYS = (
 )
 
 
+REMOTE_ENV = "RAW_STORE_REMOTE"
+REMOTES = ("postgres", "s3")
+
+
 class RemoteConfigError(RuntimeError):
-    """Some, not all, of the RAW_STORE_S3_* variables are set."""
+    """The shared raw store is half-configured or named ambiguously."""
+
+
+class PgBlobs:
+    """The `raw_blob` table as a blob store. Same methods and keys as S3Blobs.
+
+    Payloads are stored zlib-compressed (4.2x on this corpus, measured
+    2026-10-07); `size` is the uncompressed length, which is what callers mean.
+    One connection, opened on first use and reused - a fetch reads thousands of
+    payloads - in autocommit, so each write stands alone and a failed one cannot
+    poison the next. A lock makes it safe across the fetch's threads.
+    """
+
+    def __init__(self, dsn: str, *, connect=None) -> None:
+        import threading
+
+        self.dsn = dsn
+        self._connect = connect
+        self._conn = None
+        self._lock = threading.Lock()
+
+    def _run(self, sql: str, params: tuple):
+        import psycopg
+
+        with self._lock:
+            for attempt in (1, 2):
+                if self._conn is None or self._conn.closed:
+                    connect = self._connect or (lambda d: psycopg.connect(d, connect_timeout=15))
+                    self._conn = connect(self.dsn)
+                    self._conn.autocommit = True
+                try:
+                    cur = self._conn.execute(sql, params)
+                    return cur.fetchone() if cur.description else None
+                except psycopg.OperationalError:
+                    # A dropped connection: one reconnect, then the error stands.
+                    self._conn = None
+                    if attempt == 2:
+                        raise
+
+    def exists(self, key: str) -> bool:
+        return self._run("SELECT 1 FROM raw_blob WHERE key = %s", (key,)) is not None
+
+    def size(self, key: str) -> int | None:
+        row = self._run("SELECT size FROM raw_blob WHERE key = %s", (key,))
+        return int(row[0]) if row else None
+
+    def get(self, key: str) -> bytes | None:
+        """The bytes, or None when the key is not stored. Other errors raise."""
+        import zlib
+
+        row = self._run("SELECT data FROM raw_blob WHERE key = %s", (key,))
+        return zlib.decompress(bytes(row[0])) if row else None
+
+    def upload(self, key: str, data: bytes) -> None:
+        self.put_if_absent(key, data)
+
+    def put_if_absent(self, key: str, data: bytes) -> bool:
+        """Store unless present. True when it stored. Content-addressed keys make
+        "present" mean "identical", so the conflict is the compare."""
+        import zlib
+
+        row = self._run(
+            "INSERT INTO raw_blob (key, data, size) VALUES (%s, %s, %s) "
+            "ON CONFLICT (key) DO NOTHING RETURNING key",
+            (key, zlib.compress(data, 6), len(data)),
+        )
+        return row is not None
+
+    def delete(self, key: str) -> None:
+        self._run("DELETE FROM raw_blob WHERE key = %s", (key,))
 
 
 class S3Blobs:
@@ -116,8 +195,9 @@ class S3Blobs:
         self._s3.delete_object(Bucket=self.bucket, Key=key)
 
 
-def remote_from_env() -> S3Blobs | None:
-    """The configured bucket, None when none is configured. Partial config raises."""
+def remote_from_env() -> S3Blobs | PgBlobs | None:
+    """The configured shared store, None when none is. Ambiguity or partial
+    config raises (see the module docstring)."""
     import sys
 
     from collect.config import settings
@@ -133,7 +213,23 @@ def remote_from_env() -> S3Blobs | None:
     settings()  # loads .env into the environment, as every other setting does
     values = {k: (os.getenv(k) or "").strip() for k in ENV_KEYS}
     present = [k for k, v in values.items() if v]
+    chosen = (os.getenv(REMOTE_ENV) or "").strip().lower()
+    if chosen and chosen not in REMOTES:
+        raise RemoteConfigError(f"{REMOTE_ENV}={chosen!r} is not one of {REMOTES}")
+    if chosen == "postgres":
+        if present:
+            raise RemoteConfigError(
+                f"{REMOTE_ENV}=postgres and RAW_STORE_S3_* are both set; name one store, "
+                "not two")
+        dsn = (os.getenv("DATABASE_URL") or "").strip()
+        if not dsn:
+            raise RemoteConfigError(
+                f"{REMOTE_ENV}=postgres but DATABASE_URL is not set; refusing rather "
+                "than writing locally while looking shared")
+        return PgBlobs(dsn)
     if not present:
+        if chosen == "s3":
+            raise RemoteConfigError(f"{REMOTE_ENV}=s3 but no RAW_STORE_S3_* variable is set")
         return None
     if len(present) != len(ENV_KEYS):
         missing = [k for k in ENV_KEYS if k not in present]

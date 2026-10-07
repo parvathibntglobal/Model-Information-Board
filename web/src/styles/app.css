@@ -615,6 +615,7 @@ button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--t
    (--w), centred, narrowing downwards. Full width on a phone, where narrowing
    would only force the names to wrap. */
 .vs-pyramid{align-items:center;margin-top:10px}
+.vs-pyramid .vs{--w:100%}
 .vs-pyramid .vs{width:var(--w,100%)}
 @media (max-width:520px){.vs-pyramid .vs{width:100%}}
 /* A three-way row: three EQUAL columns, every name centred, so both trios line

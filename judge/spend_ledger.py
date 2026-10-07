@@ -73,15 +73,27 @@ from judge.extract.budget import DEFAULT_PRICING
 LEDGER_PATH_ENV = "SPEND_LEDGER_PATH"
 DEFAULT_LEDGER_PATH = Path("var") / "spend-ledger.jsonl"
 
-#: A CLOSED set: a third caller here is a rule-2 violation, and it should
+#: A CLOSED set: a caller not named here is a rule-2 violation, and it should
 #: surface as a rejected row rather than a new line on a chart nobody questions.
 STAGE_EXTRACT = "extract"
 STAGE_ASK = "ask"
+#: THE STAGES THE DAILY CAP COVERS. Everything about "today" - the cap, the
+#: hourly and daily series, today's per-stage and per-model figures - reads
+#: these and only these.
 STAGES = (STAGE_EXTRACT, STAGE_ASK)
+
+#: THE BLOG GENERATOR, rule 2's third caller (CLAUDE.md, agreed 2026-10-06).
+#: RECORDED HERE, OUTSIDE THE CAP: a blog run must never spend the extraction
+#: budget, and its spend must still be visible beside it - all-time and by
+#: month (`monthly`). Its usd is what OpenRouter REPORTED for the call, not a
+#: rate multiplied out here; a call with no reported cost is `unpriced`.
+STAGE_BLOG = "blog"
+RECORDED_STAGES = (*STAGES, STAGE_BLOG)
 
 STAGE_LABELS = {
     STAGE_EXTRACT: "Extraction (E5) — one call per thread, nightly batch",
     STAGE_ASK: "Ask box (Q1) — one call per submission, user-driven",
+    STAGE_BLOG: "Blog drafts (generate_sample_blogs.py) — outside the daily cap",
 }
 
 
@@ -212,6 +224,8 @@ def record(
     path: Path | None = None,
     run_id: str | None = None,
     to_database: bool = True,
+    reported_usd: float | None = None,
+    reported: bool = False,
 ) -> Call:
     """Append one call. A write failure is swallowed: telemetry that kills the
     process when its disk fills is worse than a lost row.
@@ -223,26 +237,34 @@ def record(
     records its tokens with `usd: 0.0` and `unpriced: True` - the tokens are
     measured, the product is not available, and pretending otherwise puts an
     unauditable total on the page (rule 3).
+
+    `reported=True` takes the PROVIDER'S figure, `reported_usd`, instead of a
+    rate held here - the blog stage, which OpenRouter bills per call and whose
+    model has no entry in `MODEL_PRICING`. A reported call with no figure is
+    `unpriced` with usd 0.0: never priced on a guess, never read as free.
     """
     from judge.extract.budget import pricing_for
 
-    if stage not in STAGES:
-        raise ValueError(f"{stage!r} is not one of the two stages permitted to call a model")
+    if stage not in RECORDED_STAGES:
+        raise ValueError(f"{stage!r} is not one of the stages permitted to call a model")
 
-    rate = pricing if pricing is not None else pricing_for(model)
+    if reported:
+        rate, usd = None, float(reported_usd) if reported_usd is not None else 0.0
+        unpriced = reported_usd is None
+    else:
+        rate = pricing if pricing is not None else pricing_for(model)
+        usd = (cost_of(input_tokens, output_tokens, rate, cached_input_tokens)
+               if rate is not None else 0.0)
+        unpriced = rate is None
     call = Call(
         at=at or datetime.now(UTC),
         stage=stage,
         model=model,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        usd=(
-            cost_of(input_tokens, output_tokens, rate, cached_input_tokens)
-            if rate is not None
-            else 0.0
-        ),
+        usd=usd,
         unmetered=input_tokens == 0 and output_tokens == 0,
-        unpriced=rate is None,
+        unpriced=unpriced,
         machine=machine(),
         run_id=run_id,
         cached_input_tokens=cached_input_tokens,
@@ -496,7 +518,9 @@ def spent_today(path: Path | None = None, now: datetime | None = None) -> float:
     """
     since = day_start(now)
     calls, _ = read_everywhere(path)
-    return sum(c.usd for c in calls if c.at >= since)
+    # THE CAPPED STAGES ONLY: a blog run is recorded here and must not spend
+    # the extraction budget (STAGE_BLOG).
+    return sum(c.usd for c in calls if c.at >= since and c.stage in STAGES)
 
 
 # ── the shape the admin page needs ────────────────────────────────────────
@@ -648,7 +672,11 @@ def report(
 ) -> Report:
     """Aggregate the ledger into what one page needs, in a single read."""
     moment = (now or datetime.now(UTC)).astimezone(UTC)
-    calls, db_readable = read_everywhere(path)
+    everything, db_readable = read_everywhere(path)
+    # THE CAP'S POPULATION: every figure in this report is about the daily cap,
+    # so a blog call (STAGE_BLOG, outside it) is not in any of them. `monthly`
+    # is where blog spend is reported.
+    calls = [c for c in everything if c.stage in STAGES]
     today = [c for c in calls if c.at >= day_start(moment)]
 
     by_stage_usd: dict[str, float] = {}
@@ -680,6 +708,44 @@ def report(
         total_rows=len(calls),
         day_starts_at=day_start(moment),
         db_readable=db_readable,
-        machines=tuple(sorted({c.machine for c in calls if c.machine})),
+        machines=tuple(sorted({c.machine for c in everything if c.machine})),
         unpriced_today=sum(1 for c in today if c.unpriced),
     )
+
+
+@dataclass(frozen=True)
+class MonthRow:
+    month: str          # "YYYY-MM", UTC
+    stage: str
+    model: str
+    calls: int
+    input_tokens: int
+    output_tokens: int
+    usd: float          # a FLOOR when unpriced_calls > 0
+    unpriced_calls: int
+    unmetered_calls: int
+
+
+def monthly(calls: Iterable[Call]) -> list[MonthRow]:
+    """Spend by calendar month (UTC), stage and model - every stage, the blog
+    stage included. Newest month first, then stage, then most spent.
+
+    A ROW IS A FLOOR when it holds an unpriced or unmetered call; the counts are
+    on the row so the page can say so (rule 7). A month with no calls has no
+    row - that is "nothing recorded", which the page states with the ledger's
+    `counting_since`, never a $0.00 row.
+    """
+    acc: dict[tuple[str, str, str], list] = {}
+    for c in calls:
+        key = (c.at.astimezone(UTC).strftime("%Y-%m"), c.stage, c.model)
+        a = acc.setdefault(key, [0, 0, 0, 0.0, 0, 0])
+        a[0] += 1
+        a[1] += c.input_tokens
+        a[2] += c.output_tokens
+        a[3] += c.usd
+        a[4] += 1 if c.unpriced else 0
+        a[5] += 1 if c.unmetered else 0
+    rows = [MonthRow(m, st, mo, *a) for (m, st, mo), a in acc.items()]
+    order = {s: i for i, s in enumerate(RECORDED_STAGES)}
+    rows.sort(key=lambda r: (-int(r.month.replace("-", "")), order.get(r.stage, 99), -r.usd))
+    return rows
