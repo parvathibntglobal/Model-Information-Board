@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { boardPage, blogPosts } from '../api'
 import Hero from '../components/Hero'
@@ -51,11 +51,13 @@ const MODELS = [
   { name: 'Kimi K2.5', provider: 'Moonshot AI', id: 'moonshotai/kimi-k2.5', label: 'MoonshotAI: Kimi K2.5' },
   { name: 'Qwen3.8 27B', provider: 'Qwen', id: 'qwen/qwen3.8-27b', label: 'Qwen: Qwen3.8 27B' },
 ]
-const PAIRS = [
-  [{ name: 'Claude Sonnet 5', id: 'anthropic/claude-sonnet-5' }, { name: 'Claude Opus 4.8', id: 'anthropic/claude-opus-4.8' }],
-  [{ name: 'Claude Haiku 4.5', id: 'anthropic/claude-haiku-4.5' }, { name: 'Gemini 3.7 Flash', id: 'google/gemini-3.7-flash' }],
+// THE COMPARE ROWS: pairs are the common case, and two rows are three-way so
+// the box shows the feature rather than only naming it - Compare takes up to
+// three models. Every id links to a real compare.
+const COMPARES = [
+  [{ name: 'Claude Sonnet 5', id: 'anthropic/claude-sonnet-5' }, { name: 'Claude Opus 4.8', id: 'anthropic/claude-opus-4.8' }, { name: 'Claude Haiku 4.5', id: 'anthropic/claude-haiku-4.5' }],
+  [{ name: 'Gemini 3.7 Flash', id: 'google/gemini-3.7-flash' }, { name: 'Kimi K3', id: 'moonshotai/kimi-k3' }, { name: 'Qwen3.6 27B', id: 'qwen/qwen3.6-27b' }],
   [{ name: 'GPT-5.6 Sol', id: 'openai/gpt-5.6-sol' }, { name: 'DeepSeek V4 Pro', id: 'deepseek/deepseek-v4-pro' }],
-  [{ name: 'Kimi K3', id: 'moonshotai/kimi-k3' }, { name: 'Qwen3.6 27B', id: 'qwen/qwen3.6-27b' }],
   [{ name: 'Grok 4.7', id: 'x-ai/grok-4.7' }, { name: 'GPT-5.6 Luna', id: 'openai/gpt-5.6-luna' }],
   [{ name: 'GLM 5', id: 'z-ai/glm-5' }, { name: 'MiniMax M3', id: 'minimax/minimax-m3' }],
 ]
@@ -346,7 +348,7 @@ export default function Landing() {
         <div className="section-head section-head-row">
           <div>
             <span className="eyebrow">Models and comparisons</span>
-            <h2>AI models and side-by-side comparisons</h2>
+            <h2>Every AI model, compared on the evidence</h2>
           </div>
           <Link to="/models" className="go-badge go-models" aria-label="Open all models">Models <span aria-hidden="true">→</span></Link>
         </div>
@@ -374,14 +376,22 @@ export default function Landing() {
           <Reveal delay={110}>
             <div className="mc-box mc-compare">
               <span className="eyebrow">AI model comparison</span>
-              <h2>Compare two AI models</h2>
-              <p className="muted">Opus vs Sonnet, Haiku vs Gemini Flash, GPT vs DeepSeek — every job and capability both have reports on, side by side.</p>
-              <div className="vs-list">
-                {PAIRS.map(([a, b], i) => (
-                  <Link key={a.id + b.id} to={`/compare?ids=${a.id},${b.id}`} className="vs" style={{ '--i': i }}>
-                    <span className="vs-a">{a.name}</span>
-                    <span className="vs-x">vs</span>
-                    <span className="vs-b">{b.name}</span>
+              <h2>Compare up to three AI models</h2>
+              <p className="muted">Opus vs Sonnet vs Gemini Flash and more — every job and capability they have reports on, side by side.</p>
+              {/* AN INVERTED PYRAMID: rows ordered longest names first, each a
+                  little narrower than the one above and centred. The two
+                  three-way rows lead, then the pairs. */}
+              <div className="vs-list vs-pyramid">
+                {COMPARES.map((ms, i) => (
+                  <Link key={ms.map((m) => m.id).join()} to={`/compare?ids=${ms.map((m) => m.id).join(',')}`}
+                        className={`vs${ms.length === 3 ? ' vs3' : ''}`}
+                        style={{ '--i': i, '--w': `${100 - i * 9}%` }}>
+                    {ms.map((m, k) => (
+                      <Fragment key={m.id}>
+                        {k > 0 && <span className="vs-x">vs</span>}
+                        <span className={k === 0 ? 'vs-a' : k === ms.length - 1 ? 'vs-b' : 'vs-m'}>{m.name}</span>
+                      </Fragment>
+                    ))}
                   </Link>
                 ))}
               </div>
@@ -396,7 +406,7 @@ export default function Landing() {
         <div className="section-head section-head-row">
           <div>
             <span className="eyebrow">From the evidence · blogs</span>
-            <h2>AI model insights</h2>
+            <h2>AI model insights from engineer reports</h2>
           </div>
           <Link to="/blogs" className="go-badge go-blogs" aria-label="Open the blogs">Blogs <span aria-hidden="true">→</span></Link>
         </div>
