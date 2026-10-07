@@ -1433,6 +1433,23 @@ columns:
       why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The run that spent it, where there was one. The
         intended reader is the usage panel''s quota series, which cannot read it yet because that display is not
         built - the table is new and holds no rows until the first metered call after its migration is applied.'
+  raw_blob:
+    data:
+      reviewed: false
+      state: read
+      why: 'The payload, zlib-compressed. Written by collect/rawstore_remote.py PgBlobs.put_if_absent, read by PgBlobs.get (decompressed) - the shared raw store behind RawStore when RAW_STORE_REMOTE=postgres. Migration 20261007T1200.'
+    key:
+      reviewed: false
+      state: read
+      why: 'The payload ref, or ref plus .tombstone. Written by PgBlobs.put_if_absent, read by every PgBlobs lookup. Migration 20261007T1200.'
+    size:
+      reviewed: false
+      state: read
+      why: 'The UNCOMPRESSED length. Written by PgBlobs.put_if_absent, read by PgBlobs.size for RawStore.stat. Migration 20261007T1200.'
+    stored_at:
+      reviewed: false
+      state: defaulted
+      why: 'now() at insert; nothing reads it yet. Kept for an operator asking when a payload reached the shared store. Migration 20261007T1200.'
   reported_context:
     advertised:
       reviewed: false
