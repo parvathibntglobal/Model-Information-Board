@@ -51,15 +51,16 @@ const MODELS = [
   { name: 'Kimi K2.5', provider: 'Moonshot AI', id: 'moonshotai/kimi-k2.5', label: 'MoonshotAI: Kimi K2.5' },
   { name: 'Qwen3.8 27B', provider: 'Qwen', id: 'qwen/qwen3.8-27b', label: 'Qwen: Qwen3.8 27B' },
 ]
-// THE COMPARE ROWS: pairs are the common case, and two rows are three-way so
-// the box shows the feature rather than only naming it - Compare takes up to
-// three models. Every id links to a real compare.
+// THE COMPARE ROWS, an inverted triangle: three three-way rows lead (Compare
+// takes up to three models), then two pairs. The pairs were chosen by
+// rendered width, so the text's left and right edges step inward evenly with
+// the narrowing pills - measured, not guessed. Every id links to a real compare.
 const COMPARES = [
   [{ name: 'Claude Sonnet 5', id: 'anthropic/claude-sonnet-5' }, { name: 'Claude Opus 4.8', id: 'anthropic/claude-opus-4.8' }, { name: 'Claude Haiku 4.5', id: 'anthropic/claude-haiku-4.5' }],
-  [{ name: 'Gemini 3.7 Flash', id: 'google/gemini-3.7-flash' }, { name: 'Kimi K3', id: 'moonshotai/kimi-k3' }, { name: 'Qwen3.6 27B', id: 'qwen/qwen3.6-27b' }],
-  [{ name: 'GPT-5.6 Sol', id: 'openai/gpt-5.6-sol' }, { name: 'DeepSeek V4 Pro', id: 'deepseek/deepseek-v4-pro' }],
-  [{ name: 'Grok 4.7', id: 'x-ai/grok-4.7' }, { name: 'GPT-5.6 Luna', id: 'openai/gpt-5.6-luna' }],
-  [{ name: 'GLM 5', id: 'z-ai/glm-5' }, { name: 'MiniMax M3', id: 'minimax/minimax-m3' }],
+  [{ name: 'Gemini 3.7 Flash', id: 'google/gemini-3.7-flash' }, { name: 'DeepSeek V4 Pro', id: 'deepseek/deepseek-v4-pro' }, { name: 'Qwen3.6 27B', id: 'qwen/qwen3.6-27b' }],
+  [{ name: 'GPT-5.6 Luna', id: 'openai/gpt-5.6-luna' }, { name: 'MiniMax M3', id: 'minimax/minimax-m3' }, { name: 'GPT-5.6 Sol', id: 'openai/gpt-5.6-sol' }],
+  [{ name: 'Claude Opus 5.5', id: 'anthropic/claude-opus-5.5' }, { name: 'Claude Opus 4.6', id: 'anthropic/claude-opus-4.6' }],
+  [{ name: 'Grok 4.6', id: 'x-ai/grok-4.6' }, { name: 'GPT-6 Sol', id: 'openai/gpt-6-sol' }],
 ]
 
 // Board entries naming a model, across every section; null while loading.
@@ -90,7 +91,9 @@ const ENTRY = {
   sectionTo: '/board/jobs/coding-agent',
   polarity: 'positive',
   quote: 'DeepSeek V4 Flash for 70% of traffic. Best cost-to-quality ratio in this group, period.',
-  model: 'DeepSeek V4 Flash 0423',
+  // the snapshot date means nothing to a visitor: shown short, full on hover
+  model: 'DeepSeek V4 Flash',
+  modelFull: 'DeepSeek V4 Flash 0423',
   source: 'dev.to',
   url: 'https://dev.to/rileykim/i-benchmarked-chinas-top-4-llms-the-numbers-dont-lie-40d2',
 }
@@ -290,8 +293,9 @@ export default function Landing() {
         <div className="trust">
           <Reveal>
             <div className="trust-panel">
+              {/* one line across the whole box: it introduces the list AND the entry */}
+              <span className="gives-h">The Model Information Board gives you</span>
               <div className="gives">
-                <span className="gives-h">The Model Information Board gives you</span>
                 <ul>
                   {GIVES.map((g) => <li key={g}>{g}</li>)}
                 </ul>
@@ -302,11 +306,11 @@ export default function Landing() {
                   <dt>Section</dt>
                   <dd><Link to={ENTRY.sectionTo}>{ENTRY.section}</Link></dd>
                   <dt>Verdict</dt>
-                  <dd><Badge tone="pass">{ENTRY.polarity}</Badge> <span className="dim">never a score</span></dd>
+                  <dd><Badge tone="pass">{ENTRY.polarity}</Badge> <span className="dim">a verdict, not a score</span></dd>
                   <dt>Quote</dt>
                   <dd><blockquote>“{ENTRY.quote}”</blockquote><span className="dim">found word for word in the source</span></dd>
                   <dt>Model</dt>
-                  <dd>{ENTRY.model} <span className="dim">named in the quote itself</span></dd>
+                  <dd><span title={ENTRY.modelFull}>{ENTRY.model}</span> <span className="dim">named in the quote itself</span></dd>
                   <dt>Source</dt>
                   <dd><a href={ENTRY.url} target="_blank" rel="nofollow noopener noreferrer">{ENTRY.source} ↗</a></dd>
                   <dt>Counted</dt>

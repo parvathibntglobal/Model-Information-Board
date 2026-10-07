@@ -16,7 +16,7 @@ import FetchPanel from '../components/FetchPanel'
 import ModelProposal from '../components/ModelProposal'
 import SchedulerPanel from '../components/SchedulerPanel'
 import BlogsPanel from '../components/BlogsPanel'
-import { IconAlert, IconGrid, IconHeart } from '../components/Icons'
+import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart } from '../components/Icons'
 
 /**
  * Operations. `/health` needs nothing; the database-backed surfaces are each
@@ -186,6 +186,9 @@ function CollectEvidence() {
  * somebody can send. Renaming one silently breaks saved links, which is why
  * these are short slugs and not the titles.
  */
+// ONE ICON PER GROUP, the same ones the section headers use.
+const GROUP_ICONS = { Health: IconHeart, Evidence: IconFilter, 'Board & content': IconGrid, Operations: IconClock }
+
 const SECTIONS = [
   // THE ORDER IS THE ONE ASKED FOR, top to bottom, ruled 2026-10-05 by
   // @parvathibntglobal. `group` labels the run of sections that starts there;
@@ -398,29 +401,46 @@ export default function Admin() {
             are on. A div with an onClick would look identical and be none of
             those things. */}
         <nav className="adm-nav" aria-label="Operations sections" ref={nav}>
-          {SECTIONS.map((sec) => [
-            // A GROUP LABEL OPENS EACH RUN OF SECTIONS. It only names the
-            // order above - it never moves a section.
-            sec.group && <span key={`g-${sec.group}`} className="adm-nav-group" aria-hidden="true">{sec.group}</span>,
-            <button
-              key={sec.id}
-              type="button"
-              aria-current={sec.id === active.id ? 'page' : undefined}
-              onClick={() => setParams(
-                sec.id === SECTIONS[0].id ? {} : { s: sec.id },
-                // REPLACE, NOT PUSH. Switching panels is not navigation a
-                // reader wants to walk back through — Back should leave the
-                // admin page, not step through four tabs they clicked.
-                { replace: true },
-              )}
-            >
-              <span className="t">
-                {sec.title}
-                {sec.wired === false && <span className="adm-nav-tag">not wired</span>}
-              </span>
-              <span className="d">{sec.blurb}</span>
-            </button>,
-          ])}
+          {/* EACH GROUP IS ONE BLOCK: a labelled header with its icon, and its
+              sections under it on a guide line, so what belongs to what is
+              visible. A group label opens each run of SECTIONS - it only names
+              the order there, it never moves a section. */}
+          {SECTIONS.reduce((runs, sec) => {
+            if (sec.group || !runs.length) runs.push({ group: sec.group, items: [] })
+            runs[runs.length - 1].items.push(sec)
+            return runs
+          }, []).map(({ group, items }) => {
+            const Icon = GROUP_ICONS[group]
+            return (
+              <div key={group} className="adm-nav-g" role="group" aria-label={group}>
+                <span className="adm-nav-group" aria-hidden="true">
+                  {Icon && <Icon width={13} height={13} />}
+                  {group}
+                  <span className="n">{items.length}</span>
+                </span>
+                {items.map((sec) => (
+                <button
+                  key={sec.id}
+                  type="button"
+                  aria-current={sec.id === active.id ? 'page' : undefined}
+                  onClick={() => setParams(
+                    sec.id === SECTIONS[0].id ? {} : { s: sec.id },
+                    // REPLACE, NOT PUSH. Switching panels is not navigation a
+                    // reader wants to walk back through — Back should leave the
+                    // admin page, not step through four tabs they clicked.
+                    { replace: true },
+                  )}
+                >
+                  <span className="t">
+                    {sec.title}
+                    {sec.wired === false && <span className="adm-nav-tag">not wired</span>}
+                  </span>
+                  <span className="d">{sec.blurb}</span>
+                </button>
+                ))}
+              </div>
+            )
+          })}
         </nav>
 
         {/* ONE SECTION MOUNTED AT A TIME, which is the point and also the cost.
