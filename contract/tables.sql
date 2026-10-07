@@ -1527,10 +1527,12 @@ CREATE TABLE IF NOT EXISTS spend_ledger (
   run_id         text,
   recorded_at    timestamptz NOT NULL DEFAULT now(),
 
-  -- The same closed set rule 2 permits to call a model. A third value here is
-  -- a rule-2 violation and should be refused by the database rather than
-  -- appear as a new line on a chart nobody questions.
-  CONSTRAINT spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask'))
+  -- The same closed set rule 2 permits to call a model. Any other value is a
+  -- rule-2 violation and should be refused by the database rather than appear
+  -- as a new line on a chart nobody questions. 'blog' is the generator rule 2
+  -- named on 2026-10-06; it is recorded OUTSIDE the daily cap
+  -- (20261007T0900_spend_ledger_blog_stage.sql).
+  CONSTRAINT spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog'))
 );
 
 -- The two questions asked of this table: "what has today cost" (the shared cap)

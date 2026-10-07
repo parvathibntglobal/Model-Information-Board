@@ -46,13 +46,16 @@ These are the rules a helpful refactor will otherwise quietly violate.
    `judge/ask/` (task understanding only). No model participates in counting,
    weighting, gating, ranking, filtering or phrase assembly.
 
-   **A third caller, recorded 2026-10-06 (#508, Parvathi; to be agreed with
-   Anooj):** the blog generator, `generate_sample_blogs.py`, writes DRAFTS a
+   **A third caller, recorded 2026-10-06 (#508, Parvathi; agreed by Anooj the
+   same day):** the blog generator, `generate_sample_blogs.py`, writes DRAFTS a
    person must approve in Admin -> Blogs before any reader sees them. It
    proposes prose only; code checks every quote and figure against its sources
    and refuses the draft otherwise, and it decides nothing the board computes.
-   It runs outside `spend_ledger` and its daily cap; its cost is recorded per
-   run in `blog_generation_run`.
+   Every call it makes is a `spend_ledger` row with stage `blog` (since
+   2026-10-07), at OpenRouter's reported cost, and it is OUTSIDE the daily cap:
+   `EXTRACTION_DAILY_BUDGET_USD` covers extraction and the Ask box only, so a
+   blog run never spends the extraction budget. Admin -> API usage shows it by
+   month; each Admin-started run is also summarised in `blog_generation_run`.
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 

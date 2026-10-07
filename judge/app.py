@@ -2748,8 +2748,14 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
     # EVERY MACHINE, not this one. `read_all()` is the local file; the all-time
     # per-model figure beside a team total must cover the same population, or
     # the two numbers on one page disagree for a reason nothing states.
-    all_calls, _ = spend_ledger.read_everywhere()
+    all_calls, all_readable = spend_ledger.read_everywhere()
     for call in all_calls:
+        # THE CAPPED STAGES' MODELS ONLY. Blog calls (stage 'blog', outside the
+        # cap) are reported under `blogs` and `monthly`: one model can serve
+        # both - DeepSeek V4 Flash drafted blog posts before GPT-6 Luna - and a
+        # row headed "by extractor model" must not carry blog spend.
+        if call.stage not in spend_ledger.STAGES:
+            continue
         by_model_total[call.model] = by_model_total.get(call.model, 0.0) + call.usd
         by_model_tokens[call.model] = (
             by_model_tokens.get(call.model, 0) + call.input_tokens + call.output_tokens
@@ -2872,51 +2878,80 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
         "rapidapi": _rapidapi_quota("reddit"),
         "rapidapi_x": _rapidapi_quota("x"),
         "everyone": _whole_key_spend(),
-        "blogs": _blog_spend(),
+        "blogs": _blog_spend(all_calls, all_readable),
+        "monthly": _monthly_spend(all_calls, all_readable),
     }
 
 
-def _blog_spend() -> dict:
-    """Blog generation's spend today (UTC), from `blog_generation_run`.
+def _blog_spend(calls: list, complete: bool) -> dict:
+    """Blog generation's spend, from the ledger's 'blog' stage.
 
-    ⚠ OUTSIDE THE CAP ABOVE. The generator calls the model directly, not through
-      `spend_ledger`, so this money is in the key total and NOT in the ledger or
-      its daily cap. Provider-reported per run; a run whose cost was not
-      reported is counted in `runs_unpriced`, never as $0 (rule 6).
+    ⚠ OUTSIDE THE CAP ABOVE. Every generator call is a ledger row since
+      2026-10-07 (`generate_sample_blogs.record_spend`), so terminal runs count
+      as well as Admin ones; earlier calls arrive by
+      `scripts/backfill_blog_spend.py`, per machine. `counting_since` is the
+      earliest blog row: spend before it is in the key total, not itemised.
+      usd is OpenRouter's reported cost per call; a call it did not price is
+      counted in `unpriced_calls`, never as $0 (rule 6).
     """
-    try:
-        with _conn() as conn:
-            rows = conn.execute(
-                "SELECT cost_usd FROM blog_generation_run "
-                "WHERE started_at >= date_trunc('day', now() AT TIME ZONE 'UTC') "
-                "AT TIME ZONE 'UTC'"
-            ).fetchall()
-            # BY MODEL, every recorded run: the generator's model (GPT-6 Luna by
-            # default) appears nowhere in the ledger's per-model rows, because
-            # blog calls do not pass through the ledger.
-            models = conn.execute(
-                "SELECT model, count(*), sum(cost_usd), count(cost_usd), "
-                "sum(tokens_in), sum(tokens_out) FROM blog_generation_run "
-                "WHERE finished_at IS NOT NULL GROUP BY model "
-                "ORDER BY sum(cost_usd) DESC NULLS LAST"
-            ).fetchall()
-    except Exception as exc:  # noqa: BLE001
-        return {"readable": False, "why": _safe_detail(exc)}
-    priced = [float(r[0]) for r in rows if r[0] is not None]
-    current = _blog_gen_model()
+    from judge import spend_ledger
+
+    blog = [c for c in calls if c.stage == spend_ledger.STAGE_BLOG]
+    since = spend_ledger.day_start()
+    today = [c for c in blog if c.at >= since]
+    models: dict[str, list] = {}
+    for c in blog:
+        m = models.setdefault(c.model, [0, 0.0, 0, 0, 0])
+        m[0] += 1
+        m[1] += c.usd
+        m[2] += 1 if c.unpriced else 0
+        m[3] += c.input_tokens
+        m[4] += c.output_tokens
     return {
         "readable": True,
-        "model": current,
-        "runs_today": len(rows),
-        "spent_today_usd": round(sum(priced), 6),
-        "runs_today_unpriced": len(rows) - len(priced),
+        # False: the shared table was unreadable, so these are THIS machine's
+        # rows only - a floor (spend_ledger.read_everywhere).
+        "complete": complete,
+        "model": _blog_gen_model(),
+        "counting_since": min(c.at for c in blog).isoformat() if blog else None,
+        "calls_today": len(today),
+        "spent_today_usd": round(sum(c.usd for c in today), 6),
+        "unpriced_today": sum(1 for c in today if c.unpriced),
+        "total_usd": round(sum(c.usd for c in blog), 6),
         "models": [
-            {"model": m, "runs": n,
-             "spent_usd": round(float(c), 6) if c is not None else None,
-             "runs_unpriced": n - priced_n,
-             "tokens_in": int(ti) if ti is not None else None,
-             "tokens_out": int(to) if to is not None else None}
-            for m, n, c, priced_n, ti, to in models
+            {"model": name, "calls": n, "spent_usd": round(usd, 6), "unpriced_calls": unpriced,
+             "tokens_in": tin, "tokens_out": tout}
+            for name, (n, usd, unpriced, tin, tout)
+            in sorted(models.items(), key=lambda kv: -kv[1][1])
+        ],
+    }
+
+
+def _monthly_spend(calls: list, complete: bool) -> dict:
+    """Spend by calendar month (UTC), stage and model - every stage, the blog
+    stage included (`spend_ledger.monthly`).
+
+    EACH STAGE CARRIES WHEN IT STARTED RECORDING (rule 7): a month before a
+    stage's `counting_since` has no row for that stage because nothing was
+    watching, not because nothing was spent. A row holding an unpriced call is
+    a floor, and says so.
+    """
+    from judge import spend_ledger
+
+    first: dict = {}
+    for c in calls:
+        if c.stage not in first or c.at < first[c.stage]:
+            first[c.stage] = c.at
+    return {
+        "complete": complete,
+        "counting_since": {k: v.isoformat() for k, v in first.items()},
+        "stage_labels": dict(spend_ledger.STAGE_LABELS),
+        "rows": [
+            {"month": r.month, "stage": r.stage, "model": r.model, "calls": r.calls,
+             "tokens_in": r.input_tokens, "tokens_out": r.output_tokens,
+             "usd": round(r.usd, 6), "unpriced_calls": r.unpriced_calls,
+             "unmetered_calls": r.unmetered_calls}
+            for r in spend_ledger.monthly(calls)
         ],
     }
 
@@ -4915,8 +4950,8 @@ def _where_a_model_is_used() -> dict:
     ⚠ NOTHING HERE IS TYPED IN THAT THE CODE CAN SAY FOR ITSELF, because every
       fact on this card is one that changes:
 
-        which stages may call a model   read from `spend_ledger.STAGES`, the
-                                        tuple `record()` refuses anything else by
+        which stages may call a model   read from `spend_ledger.RECORDED_STAGES`,
+                                        the tuple `record()` refuses anything else by
         how long the extraction prompt  measured from the prompt built here
         what each prompt says           each plain point carries its anchor
                                         phrase, looked for in the live prompt
@@ -4936,7 +4971,9 @@ def _where_a_model_is_used() -> dict:
 
     from judge import spend_ledger
 
-    out: dict = {"stages": list(spend_ledger.STAGES)}
+    # Every stage `record()` accepts - the blog generator included since rule 2
+    # named it (2026-10-06). Not `STAGES`, which is the daily cap's two.
+    out: dict = {"stages": list(spend_ledger.RECORDED_STAGES)}
 
     try:
         from judge.extract.prompt import build_system_prompt

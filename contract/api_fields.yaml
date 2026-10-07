@@ -389,6 +389,11 @@ fields:
     routes:
     - /admin/settings
     state: consumed
+  monthly:
+    reviewed: false
+    routes:
+    - /admin/usage
+    state: consumed
   no_evidence:
     reviewed: false
     routes:
