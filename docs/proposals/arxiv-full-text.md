@@ -101,17 +101,19 @@ below checks.
 1. **Fetch:** for each paper `harvest()` keeps, one more request for
    `https://export.arxiv.org/pdf/<versioned id>`, through the same cross-machine
    limiter.
-2. **Store:** the PDF bytes go into the raw store under `raw/`,
-   content-addressed like every payload, so reprocessing never refetches (NFR-6).
-   They travel to the shared raw store like any other payload (`raw_blob`,
-   #510). Storing is allowed; serving is not.
+2. **Store: the text is shared, the PDF stays local.** See *Storage* below.
+   The extracted text goes to the shared raw store (`raw_blob`, #510), because
+   it is the only thing the extractor reads. The PDF is written only to the
+   fetching machine's own raw store. The document records the PDF's SHA-256,
+   its size and its versioned URL, so any machine can download the identical
+   file again and prove it is identical. Storing is allowed; serving is not.
 3. **Never serve:** `/documents/{id}/source` and every other route return
    nothing for an arXiv full text, and a test pins that. The link shown is
    `arxiv.org/abs/<id>`.
 4. **Text:** PDF to text with a permissively licensed library. The candidates
    are `pypdf` (BSD) and `pdfminer.six` (MIT); not PyMuPDF, which is AGPL. The
-   extracted text is stored as a derived payload, so the quote check runs
-   against exactly what the extractor saw.
+   extracted text is stored as a derived payload, the shared one, so the quote
+   check runs against exactly what the extractor saw, on any machine.
 5. **Read in sections.** A paper is 50,000 to 80,000 characters. The extractor
    already hits its 16,384-token output limit on a 10,859-character post
    (`judge/extract/client.py`), so one call per paper would truncate. Split at
@@ -144,6 +146,44 @@ Nothing here is measured yet, so these figures are arithmetic on stated inputs:
   **$0.04**.
 - **Time:** one extra request per paper, at 3 seconds each.
 
+## Storage: share the text, keep the PDF local (decided by Anooj, 2026-10-08)
+
+The requirement was the least storage without losing any data. Storing the PDF
+in the shared database meets the second part and fails the first:
+
+| | Per paper | ~220 papers (10 a model, 22 models) |
+|---|---|---|
+| PDF in the shared database | 1-3 MB. PDFs are already compressed, so zlib saves almost nothing | **~200-600 MB**, more than the whole raw store (~175 MB) |
+| Extracted text in the shared database | 50-80k characters, ~12-20 KB compressed | **~3-4 MB** |
+
+These sizes are estimates. The PDF size is typical of arXiv papers and is not
+yet measured on our harvest. The text figure assumes the ~4x zlib ratio
+measured on the raw store (2026-10-07). The measurement step below records both.
+
+**Why nothing is lost:**
+- **The extractor reads the extracted text, never the PDF.** The text is the
+  input every claim and every verbatim quote is checked against, and it is the
+  part that is shared.
+- **arXiv keeps every version permanently under its versioned id**
+  (`2610.04658v1`). Any machine can download the identical PDF again. The stored
+  SHA-256 and size prove it is the same bytes, or that it is not, which is then
+  named as a failure, never silently accepted.
+- **The fetching machine keeps the PDF** in its local raw store, as every raw
+  payload was kept before the shared store existed. That covers the rare case
+  of arXiv removing a version.
+- **Re-extracting with a better PDF library later** reads the local copy, or
+  re-downloads one checked against the hash.
+
+**What this costs in engineering:** `RawStore` today shares every payload it
+writes. PDFs need a namespace, or a put option, that stays local, with a test
+that a PDF never reaches `raw_blob`.
+
+**Where it departs from a convention, said plainly:** CLAUDE.md's *"Raw
+payloads are immutable and content-hash addressed. Reprocess from there rather
+than re-fetching"* holds on the fetching machine. Another machine that needs
+the PDF re-fetches it once, verified against the hash. That trade is 3 MB
+against several hundred, and the reviewer should agree to it explicitly.
+
 ## Measure before turning it on
 
 On the 5 papers already harvested, plus 15 more across 3 models:
@@ -155,6 +195,8 @@ On the 5 papers already harvested, plus 15 more across 3 models:
 3. **What the full text adds.** Claims per paper from the full text against the
    abstract alone, and in which sections they come from.
 4. **Real cost per paper**, from the spend ledger, against the estimate above.
+5. **Real sizes:** each PDF, and each extracted text after compression, against
+   the storage estimate above.
 
 ## The ruling text, as it would read
 
