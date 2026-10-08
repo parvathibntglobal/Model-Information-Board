@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams, useLocation } from 'react-router-dom'
-import { modelPage, listModels, fetchAll, BoardUnreadable } from '../api'
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom'
+import { modelPage, modelUrl, listModels, fetchAll, BoardUnreadable } from '../api'
 import ModelEvidence from '../components/ModelEvidence'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
@@ -76,7 +76,18 @@ export default function ModelDetail() {
   // PER-PAGE <head> (seo/pages.js) once a real name is known; the raw id in
   // a title would be worse than the site default for the moment it shows.
   const knownName = spec?.display_name || state?.name || page?.display_name
-  useHead(knownName ? modelHead(id, knownName) : null)
+  useHead(knownName ? modelHead(page?.canonical_id || id, knownName) : null)
+
+  // ONE URL PER MODEL (SEO item 2). A page reached by its internal `mv_…` id,
+  // or by an older spelling, is replaced by `/models/<canonical id>` once the
+  // page says what that is - `replace`, so Back does not bounce through the
+  // old address. Links that know the canonical id go straight there.
+  const nav = useNavigate()
+  useEffect(() => {
+    if (page?.canonical_id && page.canonical_id !== id) {
+      nav(modelUrl(page.canonical_id), { replace: true, state })
+    }
+  }, [page?.canonical_id, id, nav, state])
 
   useEffect(() => {
     setPage(null); setErr(null); setUnreadable(null)
@@ -91,7 +102,8 @@ export default function ModelDetail() {
     fetchAll((l, o) => listModels(l, o))
       .then((list) => {
         if (!live) return
-        setSpec(list.models.find((m) => m.model_version_id === id) || null)
+        // Either id: the URL now carries the canonical one (SEO item 2).
+        setSpec(list.models.find((m) => m.model_version_id === id || m.canonical_id === id) || null)
       })
       .catch(() => {})   // additive: a missing provider must not blank the page
     return () => { live = false }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { listModels, fetchAll, fmtTokens, BoardUnreadable } from '../api'
+import { listModels, fetchAll, fmtTokens, modelUrl, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 import { useHead } from '../seo/head'
@@ -465,7 +465,7 @@ function ModelRow({ m, picked, onPick, atCap }) {
       </div>
     ) : (
       <Link
-        to={`/models/${m.model_version_id}`}
+        to={modelUrl(m)}
         // `focus` carries which capability to open the model page on. It used to
         // prefer whichever one the reader had filtered by; the "Discussed under"
         // filter is gone, so the first capability this model has evidence for is

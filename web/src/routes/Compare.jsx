@@ -963,7 +963,7 @@ function Table({ models, rows }) {
             {models.map((m) => (
               <th key={m.model_version_id}>
                 <Link
-                  to={`/models/${m.model_version_id}`}
+                  to={modelLink(m)}
                   state={{ from: '/compare', name: m.display_name }}
                   className="mb-link"
                   style={{ color: 'inherit' }}

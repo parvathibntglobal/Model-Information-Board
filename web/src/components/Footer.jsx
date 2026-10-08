@@ -33,7 +33,7 @@ const SITE = [
 ]
 
 const MODELS = [
-  { t: 'Claude Fable 5.1', id: 'anthropic/claude-fable-5-1' },
+  { t: 'Claude Fable 5.1', id: 'anthropic/claude-fable-5.1' },
   { t: 'Claude Opus 5.5', id: 'anthropic/claude-opus-5.5' },
   { t: 'Claude Opus 4.6', id: 'anthropic/claude-opus-4.6' },
   { t: 'GPT-5.5 Codex', id: 'openai/gpt-5.5' },

@@ -146,6 +146,15 @@ export const health = () => request('/health')
  * an `mv_…` hash with no slash in it, but the helper handles both.
  */
 export const modelPath = (id) => String(id).split('/').map(encodeURIComponent).join('/')
+/**
+ * THE MODEL'S READABLE URL (SEO item 2, 2026-10-08): `/models/<canonical id>`,
+ * e.g. `/models/anthropic/claude-opus-4.6` - the registry's own id, unique
+ * across all 247 models and URL-safe, rather than a second slug that could
+ * drift from it (rule 10). The internal `mv_…` id is used only where a row
+ * carries no canonical id, and ModelDetail redirects those to the readable form.
+ */
+export const modelUrl = (m) => `/models/${modelPath(
+  typeof m === 'string' ? m : (m.canonical_id || m.model_version_id))}`
 export const modelPage = (id) => request(`/models/${modelPath(id)}`)
 
 /**
