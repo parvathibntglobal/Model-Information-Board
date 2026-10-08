@@ -865,16 +865,10 @@ _CONTENT_WORD = re.compile(r"[A-Za-z][A-Za-z0-9\-.]{4,}")
 
 def _lively(paras: list[str], lens: list[int], prose: dict) -> list[str]:
     """LIVELIER AND LESS ALIKE (blog_formats.yaml `prose`, measured 2026-10-08):
-    sentence rhythm, a short sentence in most long paragraphs, stock words
-    capped, set phrases refused, and prices left to the rate card."""
-    import statistics
-
+    a short sentence in most long paragraphs, stock words capped, set phrases
+    refused, and prices left to the rate card. Rhythm is NOT here: it is a
+    recorded reading (`rhythm_cv`), not a gate - see blog_formats.yaml."""
     v: list[str] = []
-    if len(lens) >= 4 and statistics.mean(lens) > 0:
-        cv = statistics.pstdev(lens) / statistics.mean(lens)
-        if cv < prose["rhythm_cv_min"]:
-            v.append(f"rhythm: sentence lengths are too even (spread/mean {cv:.2f}, want at least "
-                     f"{prose['rhythm_cv_min']}); mix short, punchy sentences with longer ones")
     multi = [p for p in paras if len(sentences(p)) >= 3]
     if multi:
         short_n = prose["short_sentence_words"]
@@ -898,6 +892,21 @@ def _lively(paras: list[str], lens: list[int], prose: dict) -> list[str]:
         v.append(f"prices recited {n_price} times in prose ('per million'); the rate card shows them - "
                  f"keep at most {prose['price_recital_max']}")
     return v
+
+
+def rhythm_cv(essay: dict | None) -> float | None:
+    """Sentence-length spread / mean over the essay's paragraphs, RECORDED on
+    each attempt beside `prose.rhythm_cv_target` (rule 8: unmeasured, so not a
+    gate). Read by the attempt line below and kept in the run record, which is
+    where a later calibration reads it. None when there are too few sentences
+    to say - not 0, which would read as perfectly even."""
+    import statistics
+
+    paras = [p for s in (essay or {}).get("sections") or [] for p in s.get("paragraphs") or []]
+    lens = [len(GUILLEMET.sub(r"\1", s).split()) for p in paras for s in sentences(p)]
+    if len(lens) < 4 or statistics.mean(lens) == 0:
+        return None
+    return round(statistics.pstdev(lens) / statistics.mean(lens), 3)
 
 
 def _skim_lines(secs: list[dict], prose: dict) -> list[str]:
@@ -984,11 +993,14 @@ def synthesise(post, docs, facts, key, base) -> dict:
             record["attempts"].append({"served": got["served"], "provider": got["provider"],
                                        "generation_id": got["generation_id"], "unwrapped": wrapped,
                                        "usage": got["usage"], "violations": violations,
+                                       "rhythm_cv": rhythm_cv(essay),
                                        "essay": essay, "raw": None if essay else raw})
             # EVERY CALL IS SPEND, a refused draft included: into the ledger now.
             record_spend(record, len(record["attempts"]) - 1)
             print(f"  [{post['key']}] attempt {attempt + 1}: served={got['served']} "
-                  f"violations={len(violations)} words={words_in(essay) if essay else '-'}")
+                  f"violations={len(violations)} words={words_in(essay) if essay else '-'} "
+                  f"rhythm={record['attempts'][-1]['rhythm_cv']} "
+                  f"(target {((post.get('rules') or {}).get('prose') or {}).get('rhythm_cv_target', 'n/a')}, recorded)")
             if not violations:
                 record["passed"], record["essay"] = True, essay
                 return record
@@ -1612,7 +1624,7 @@ def load_formats() -> dict:
     need = {"key", "name", "subject", "shape", "layout", "voice", "paragraphs", "heading_rules",
             "special", "sections", "words", "blocks", "opening", "closing"}
     prose = cfg.get("prose") or {}
-    lacking = {"sentence_median_max", "sentence_max", "lead_words_max", "skim_words", "rhythm_cv_min",
+    lacking = {"sentence_median_max", "sentence_max", "lead_words_max", "skim_words", "rhythm_cv_target",
                "short_sentence_words", "short_sentence_paragraph_share_min", "word_caps", "avoid_phrases",
                "price_recital_max"} - set(prose)
     if lacking:  # rule 12: no limit in code stands in for one the file forgot

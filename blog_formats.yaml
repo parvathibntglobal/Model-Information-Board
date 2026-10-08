@@ -56,7 +56,15 @@ prose:
   #   price recital 'per million' up to 5 a post, though the rate card shows it
   #   set phrases   'does not establish' and 'not proof that' in 6 of 12 posts,
   #                 'is listed at' in 7
-  rhythm_cv_min: 0.45
+  # RHYTHM IS RECORDED, NOT GATED (rule 8). It gated until the first draft
+  # written under it (2026-10-08, migration guide Opus 4.8 -> Opus 5): GPT-6
+  # Luna fixed 15 of 16 violations in one repair and then held at 0.43 for four
+  # attempts, and the build stopped. The model can act on a named sentence or a
+  # counted word; it cannot steer a spread it cannot measure. 0.45 was set from
+  # the 12 drafts it would have judged, so it is unmeasured on any other
+  # population. Each attempt now records `rhythm_cv` beside this target, and the
+  # short-sentence share below - concrete, per paragraph - is the gate.
+  rhythm_cv_target: 0.45
   short_sentence_words: 8
   short_sentence_paragraph_share_min: 0.4
   word_caps: {rather: 2, while: 2, whether: 2, however: 1, ultimately: 0, notably: 0, crucially: 0, moreover: 0}

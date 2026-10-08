@@ -73,12 +73,20 @@ def test_lively_prose_passes():
     assert g._lively(paras, lens, PROSE) == []
 
 
-def test_an_even_rhythm_is_refused():
-    paras = ["The model reads the whole file first. The team checks every changed line next. "
-             "The harness runs the whole test suite after."] * 2
+def test_an_even_rhythm_is_recorded_not_refused():
+    """Rule 8: the 0.45 target was set from the drafts it judged, and the first
+    draft under it held at 0.43 for four repairs. Recorded, never a gate."""
+    para = ("The model reads the whole file first. The team checks every changed line next. "
+            "The harness runs the whole test suite after.")
+    paras = [para] * 2
     lens = [len(s.split()) for p in paras for s in g.sentences(p)]
-    out = g._lively(paras, lens, PROSE)
-    assert any(v.startswith("rhythm: sentence lengths are too even") for v in out)
+    assert not any("spread/mean" in v for v in g._lively(paras, lens, PROSE))
+    cv = g.rhythm_cv({"sections": [{"paragraphs": paras}]})
+    assert cv is not None and cv < PROSE["rhythm_cv_target"]
+
+
+def test_too_few_sentences_have_no_rhythm_reading():
+    assert g.rhythm_cv({"sections": [{"paragraphs": ["One. Two words."]}]}) is None
 
 
 def test_a_stock_word_over_its_cap_is_refused():
@@ -102,13 +110,13 @@ def test_prices_belong_to_the_rate_card():
 
 def test_the_limits_are_configuration_not_defaults(tmp_path, monkeypatch):
     """Rule 12: the formats file must name every limit; none is assumed."""
-    src = g.FORMATS_FILE.read_text(encoding="utf-8").replace("  rhythm_cv_min: 0.45\n", "")
+    src = g.FORMATS_FILE.read_text(encoding="utf-8").replace("  rhythm_cv_target: 0.45\n", "")
     bad = tmp_path / "blog_formats.yaml"
     bad.write_text(src, encoding="utf-8")
     monkeypatch.setattr(g, "FORMATS_FILE", bad)
     try:
         g.load_formats()
     except g.BuildError as e:
-        assert "rhythm_cv_min" in str(e)
+        assert "rhythm_cv_target" in str(e)
     else:
-        raise AssertionError("a formats file without rhythm_cv_min loaded")
+        raise AssertionError("a formats file without rhythm_cv_target loaded")
