@@ -1444,6 +1444,12 @@ def _harvest_verdict(errors: int, produced: int) -> str:
     return "error" if errors and not produced else "ok"
 
 
+#: Papers fetched per arXiv query, newest first - five, as before 2026-10-07.
+#: Each costs one request at arXiv's one-per-three-seconds rate, so two queries
+#: of five is about thirty seconds a model.
+ARXIV_PAPERS_PER_QUERY = 5
+
+
 def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
     """E2 harvest — arXiv search for this model, appended to `document`.
 
@@ -1465,15 +1471,24 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
         prog.stage("E2A", "Harvest · arXiv", "skipped", detail=why)
         return 0
 
+    from collect.adapters.queries.arxiv import arxiv_query
+
     queries = variants[:max_queries]
     prog.stage("E2A", "Harvest · arXiv", "running", queries=len(queries),
                detail=f"arXiv search for {len(queries)} name variant(s)")
     inserted = papers = errors = found = 0
     for variant in queries:
-        run = harvester.search(variant)
+        # ⚠ TWO DEFECTS, FIXED 2026-10-07, that made every arXiv run store 0.
+        #   1. The bare name went in as the search_query, which arXiv reads as
+        #      separate words: 10,275 hits for "DeepSeek V4" against 169 for the
+        #      phrase. `arxiv_query` searches the phrase in title or abstract.
+        #   2. Papers were fetched with `fetch_paper` and its return value was
+        #      dropped. Only `harvest()` adds a fetched paper to `run.stored`,
+        #      and `write_documents` writes `run.stored` - so 57 runs fetched
+        #      papers and wrote none. `harvest()` is the one path that keeps them.
+        run = harvester.harvest(arxiv_query(variant), terms=None,
+                                max_fetch=ARXIV_PAPERS_PER_QUERY)
         found += len(getattr(run, "papers", []) or [])
-        for paper in list(getattr(run, "papers", []) or [])[:5]:
-            harvester.fetch_paper(paper, run)
         papers += len(getattr(run, "stored", []) or [])
         errors += int(getattr(run, "http_errors", 0) or 0)
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
