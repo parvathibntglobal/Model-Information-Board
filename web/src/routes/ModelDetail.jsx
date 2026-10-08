@@ -4,6 +4,8 @@ import { modelPage, listModels, fetchAll, BoardUnreadable } from '../api'
 import ModelEvidence from '../components/ModelEvidence'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
+import { useHead } from '../seo/head'
+import { modelPage as modelHead } from '../seo/pages'
 
 /** "Last fetched N days ago", from the shared fetch log (judge/fetch_history.py).
  *
@@ -71,6 +73,10 @@ export default function ModelDetail() {
   // ever joins the model payload, this effect and `fetchAll` go with it.
   const [spec, setSpec] = useState(null)
   const name = spec?.display_name || state?.name || id
+  // PER-PAGE <head> (seo/pages.js) once a real name is known; the raw id in
+  // a title would be worse than the site default for the moment it shows.
+  const knownName = spec?.display_name || state?.name || page?.display_name
+  useHead(knownName ? modelHead(id, knownName) : null)
 
   useEffect(() => {
     setPage(null); setErr(null); setUnreadable(null)

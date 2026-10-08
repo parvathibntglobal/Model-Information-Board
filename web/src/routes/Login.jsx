@@ -4,8 +4,11 @@ import AuraField from '../components/AuraField'
 import OrbitHub from '../components/OrbitHub'
 import { signIn } from '../auth'
 import { IconArrow, IconAlert } from '../components/Icons'
+import { useHead } from '../seo/head'
+import { PRIVATE } from '../seo/pages'
 
 export default function Login({ onSignedIn }) {
+  useHead(PRIVATE.login)
   const nav = useNavigate()
   const loc = useLocation()
   const from = loc.state?.from || '/'   // land on the landing page; Ask is a click away

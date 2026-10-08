@@ -5,6 +5,8 @@ import {
 } from '../api'
 import { Badge, Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconSearch } from '../components/Icons'
+import { useHead } from '../seo/head'
+import { comparePage as compareHead } from '../seo/pages'
 
 //: The endpoint's own cap (`COMPARE_MAX` in judge/app.py). Repeated here rather
 //: than fetched because the picker has to refuse BEFORE the request: a reader
@@ -42,6 +44,8 @@ export default function Compare() {
   //: the picker never pays for it, and a comparison that renders is more
   //: urgent than a list nobody has asked for yet.
   const [roster, setRoster] = useState(null)
+  // PER-PAGE <head> (seo/pages.js): names once the comparison has loaded.
+  useHead(compareHead(ids, (state.data?.models || []).map((m) => m.display_name)))
 
   useEffect(() => {
     if (ids.length < 2) { setState({ data: null, err: null, unreadable: null }); return }

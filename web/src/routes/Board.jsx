@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { boardPage, BoardUnreadable } from '../api'
-import { setBoardData } from '../board/db'
+import { DB, setBoardData } from '../board/db'
+import { useHead } from '../seo/head'
+import { boardHub, boardModelInSection, boardSection } from '../seo/pages'
 import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel } from '../board/views'
 import BoardView from '../board/BoardView'
 
@@ -67,6 +69,12 @@ export default function Board() {
     return () => { alive = false }
   }, [])
 
+  // PER-PAGE <head> (seo/pages.js), from the section the board actually
+  // loaded - null while loading, so the site defaults stand until it has.
+  // A slug the board does not hold gets the hub's head, which is also what
+  // the views render for it.
+  useHead(state.ready ? headFor(seg, slug, modelKey, sp.get('tab')) : null)
+
   if (!state.ready) {
     return (
       <div className="shell section-tight">
@@ -93,4 +101,15 @@ export default function Board() {
       <BoardView html={html} key={rest + '?' + (sp.get('tab') || '')} />
     </>
   )
+}
+
+const SECTION_LIST = { jobs: 'jobs', capabilities: 'caps', metrics: 'mets' }
+
+function headFor(seg, slug, modelKey, tab) {
+  const list = DB[SECTION_LIST[seg]]
+  const item = list ? list.find((x) => x.slug === slug) : null
+  if (!item) return boardHub(seg ? 'best' : tab || 'best')
+  if (!modelKey) return boardSection(seg, item)
+  const row = (item.rows || []).find((r) => r.key === modelKey)
+  return row ? boardModelInSection(seg, item, modelKey, row.m) : boardSection(seg, item)
 }

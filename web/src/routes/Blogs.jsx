@@ -4,6 +4,8 @@ import { blogPosts, listModels } from '../api'
 import { DB } from '../board/db'
 import { vBlogs, vPost } from '../board/views'
 import BoardView from '../board/BoardView'
+import { useHead } from '../seo/head'
+import { blogIndex, blogPost } from '../seo/pages'
 
 /**
  * Blogs: posts the team examines before anything is published.
@@ -61,6 +63,12 @@ export default function Blogs() {
   }, [loadPosts])
 
   const html = !state.ready ? '' : rest ? vPost(rest) : vBlogs()
+
+  // PER-PAGE <head> (seo/pages.js). A preview opened from Admin may be a post
+  // still awaiting review, so it is never indexable, whatever index.html says.
+  const head = !state.ready ? null
+    : rest ? blogPost((DB.posts || []).find((p) => p.slug === rest)) : blogIndex()
+  useHead(head && fromAdmin ? { ...head, noindex: true } : head)
 
   if (!state.ready) {
     return (

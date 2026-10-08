@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { listModels, fetchAll, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
+import { useHead } from '../seo/head'
+import { modelsIndex } from '../seo/pages'
 
 /**
  * The registry: what each provider advertises, and what engineers have found.
@@ -123,6 +125,7 @@ function matches(models, query) {
 }
 
 export default function Models() {
+  useHead(modelsIndex())
   const [roster, setRoster] = useState(null)
   // ⚠ THERE IS NO CAPABILITY SWEEP HERE ANY MORE (#438). This page used to
   //   loop the twelve ratified `capability_key`s and call `capabilityPage`

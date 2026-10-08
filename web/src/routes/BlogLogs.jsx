@@ -4,6 +4,8 @@ import { blogGenerationStatus, blogRuns } from '../api'
 import { Notice } from '../components/ui'
 import { IconAlert } from '../components/Icons'
 import { RunHistory, RunLog, RunStatus, RUNNING } from '../components/BlogsPanel'
+import { useHead } from '../seo/head'
+import { PRIVATE } from '../seo/pages'
 
 /**
  * Blog generation logs: the current run's live log and every recorded run.
@@ -14,6 +16,7 @@ import { RunHistory, RunLog, RunStatus, RUNNING } from '../components/BlogsPanel
  * masked) and /blog-posts/runs (history in the shared database).
  */
 export default function BlogLogs() {
+  useHead(PRIVATE.blogLogs)
   const [gen, setGen] = useState(null)
   const [tick, setTick] = useState(0)
   const [hist, setHist] = useState({ data: null, err: null })

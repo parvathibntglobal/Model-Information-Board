@@ -17,6 +17,8 @@ import ModelProposal from '../components/ModelProposal'
 import SchedulerPanel from '../components/SchedulerPanel'
 import BlogsPanel from '../components/BlogsPanel'
 import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart } from '../components/Icons'
+import { useHead } from '../seo/head'
+import { PRIVATE } from '../seo/pages'
 
 /**
  * Operations. `/health` needs nothing; the database-backed surfaces are each
@@ -367,6 +369,7 @@ function ServicePanel({ hp, cov }) {
 }
 
 export default function Admin() {
+  useHead(PRIVATE.admin)
   const hp = useSurface(health)
   const cov = useSurface(coveragePage)
 
