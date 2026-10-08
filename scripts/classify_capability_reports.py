@@ -275,6 +275,7 @@ def survivors(conn, reader):
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cap-usd", type=float, default=1.00)
+    # Gitignored and local only since 2026-10-08 (it holds Reddit quotes).
     parser.add_argument("--out", default="classification.jsonl")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument(

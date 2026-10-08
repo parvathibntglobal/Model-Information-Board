@@ -1,5 +1,7 @@
 # For Engineer 2 — `contract/bots.yaml`, and the 7 accounts neither signal catches
 
+> **Removed 2026-10-08:** `_github_comments.json` (in history at `3e78e52`) was removed from the repository because it holds harvested platform content or personal data. The figures below are unchanged; to re-run them, regenerate the file locally (it is gitignored) or read it from that commit.
+
 **Proposal, 2026-09-07. `contract/` has not been touched.**
 
 The detector is built and wired: `collect/triage/bots.py` loads the list,

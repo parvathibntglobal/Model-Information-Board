@@ -65,6 +65,12 @@ than enforced here:
   contact details, so removing the directory would not have removed them.
   The correction is @anoojntglobal-sudo's, and it is the reason an exclusion
   list has to be measured rather than assumed from directory names.
+
+REMOVED 2026-10-08. `_github_comments.json` (the 1,073 handles) and
+`_github_shape_experiment.json` (the 39 emails) were removed from the current
+tree, with the four Reddit data files beside them. They remain in git history
+(at 3e78e52): the team decided on 2026-10-08 not to rewrite it and to keep the
+repository public. The figures above describe the tree before that removal.
 """
 
 from __future__ import annotations
