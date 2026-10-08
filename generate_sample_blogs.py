@@ -332,6 +332,8 @@ You are given full engineering discussions — issue threads, forum threads, blo
 
 VOICE
 - Write fast and plain, like a sharp engineer briefing a colleague. Short sentences: most under 15 words, none over 30. One idea per sentence. Concrete nouns and verbs. No throat-clearing ("It is worth noting", "In practice", "Ultimately", "When it comes to"), and never restate the heading. No bullet points inside paragraphs.
+- Make every paragraph lively. Open many of them on a concrete moment - what a team ran, what broke, what they changed - rather than on a general claim. Vary the rhythm: put a short, punchy sentence of eight words or fewer beside the longer ones. Use active verbs and named actors (the model, the team, the harness). Prefer a fresh, exact word over the stock one; do not lean on "rather", "while" or "whether".
+- Do not recite list prices in prose: the page shows them in a rate card. Mention a price only where the argument turns on it, once.
 - Never refer to your inputs. Do not write "according to the sources", "the documents", "the threads", "the posts", "the material", "I read", "I reviewed", or anything that reveals a reading list. You may refer to practitioners generically ("teams migrating from earlier Claude models", "one engineer running a document pipeline").
 - Never count people, reports, posts, threads or quotes ("72 developers", "a dozen reports", "most users"). No scores or ratings out of 10 or 100. No sentiment percentages.
 
@@ -369,11 +371,13 @@ TOOL = {
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "required": ["heading", "paragraphs"],
+                        "required": ["heading", "paragraphs", "skim"],
                         "properties": {
                             "heading": {"type": "string"},
                             "paragraphs": {"type": "array", "items": {"type": "string"},
                                            "description": "Plain text. `backticks` for code, **bold** sparingly, «…» for verbatim fragments."},
+                            "skim": {"type": "array", "items": {"type": "string"},
+                                     "description": "ONE sentence per paragraph, same order and same count: a complete, polished sentence that states that paragraph's point with its key terms - the model, the mechanism, the figure. It must stand alone: no «quotes», and it must not open with This, That, It, These, Those or Such."},
                             "pull_quote": {"type": "string", "description": "Optional. One verbatim passage, copied exactly."},
                             "code": {
                                 "type": "object",
@@ -624,6 +628,8 @@ def prose_fields(essay: dict):
         yield f"sections[{i}].heading", s.get("heading", "")
         for j, p in enumerate(s.get("paragraphs", [])):
             yield f"sections[{i}].paragraphs[{j}]", p
+        for j, k in enumerate(s.get("skim") or []):
+            yield f"sections[{i}].skim[{j}]", k
         if has_code(s):
             yield f"sections[{i}].code.label", s["code"].get("label", "")
     m = essay.get("scenario_matrix", {})
@@ -848,6 +854,88 @@ def _pace(essay: dict, heads: list[str], paras: list[str], prose: dict | None) -
     if heads and CHOICE_HEADING.search(heads[-1]):
         v.append(f"sections[{len(heads) - 1}].heading: the last section is this format's closing, "
                  f"not a choice between options: {heads[-1]!r}")
+    v += _lively(paras, lens, prose)
+    v += _skim_lines(essay.get("sections") or [], prose)
+    return v
+
+
+_LEANS_BACK = re.compile(r"^\s*(this|that|it|these|those|such)\b", re.I)
+_CONTENT_WORD = re.compile(r"[A-Za-z][A-Za-z0-9\-.]{4,}")
+
+
+def _lively(paras: list[str], lens: list[int], prose: dict) -> list[str]:
+    """LIVELIER AND LESS ALIKE (blog_formats.yaml `prose`, measured 2026-10-08):
+    a short sentence in most long paragraphs, stock words capped, set phrases
+    refused, and prices left to the rate card. Rhythm is NOT here: it is a
+    recorded reading (`rhythm_cv`), not a gate - see blog_formats.yaml."""
+    v: list[str] = []
+    multi = [p for p in paras if len(sentences(p)) >= 3]
+    if multi:
+        short_n = prose["short_sentence_words"]
+        with_short = sum(1 for p in multi
+                         if any(len(GUILLEMET.sub(r"\1", s).split()) <= short_n for s in sentences(p)))
+        share = with_short / len(multi)
+        if share < prose["short_sentence_paragraph_share_min"]:
+            v.append(f"rhythm: {with_short} of {len(multi)} longer paragraphs have a sentence of {short_n} "
+                     f"words or fewer; want at least {int(prose['short_sentence_paragraph_share_min'] * 100)}%")
+    body = GUILLEMET.sub(" ", " ".join(paras)).lower()
+    words = re.findall(r"[a-z]+", body)
+    for w, cap in prose["word_caps"].items():
+        n = words.count(w)
+        if n > cap:
+            v.append(f"vocabulary: '{w}' used {n} times (at most {cap}); find a fresher word")
+    for phrase in prose["avoid_phrases"]:
+        if phrase.lower() in body:
+            v.append(f"vocabulary: the stock phrase '{phrase}' is refused; say it another way")
+    n_price = body.count("per million")
+    if n_price > prose["price_recital_max"]:
+        v.append(f"prices recited {n_price} times in prose ('per million'); the rate card shows them - "
+                 f"keep at most {prose['price_recital_max']}")
+    return v
+
+
+def rhythm_cv(essay: dict | None) -> float | None:
+    """Sentence-length spread / mean over the essay's paragraphs, RECORDED on
+    each attempt beside `prose.rhythm_cv_target` (rule 8: unmeasured, so not a
+    gate). Read by the attempt line below and kept in the run record, which is
+    where a later calibration reads it. None when there are too few sentences
+    to say - not 0, which would read as perfectly even."""
+    import statistics
+
+    paras = [p for s in (essay or {}).get("sections") or [] for p in s.get("paragraphs") or []]
+    lens = [len(GUILLEMET.sub(r"\1", s).split()) for p in paras for s in sentences(p)]
+    if len(lens) < 4 or statistics.mean(lens) == 0:
+        return None
+    return round(statistics.pstdev(lens) / statistics.mean(lens), 3)
+
+
+def _skim_lines(secs: list[dict], prose: dict) -> list[str]:
+    """One stand-alone, polished sentence per paragraph (blog_formats.yaml
+    `prose.skim_words`). The skim view shows these instead of each paragraph's
+    first sentence, which was a fragment or a quote one time in five."""
+    lo, hi = prose["skim_words"]
+    v: list[str] = []
+    for i, s in enumerate(secs):
+        paras, skim = s.get("paragraphs") or [], s.get("skim") or []
+        if len(skim) != len(paras):
+            v.append(f"sections[{i}].skim: {len(skim)} line(s) for {len(paras)} paragraph(s); one each")
+            continue
+        for j, (line, para) in enumerate(zip(skim, paras, strict=True)):
+            where = f"sections[{i}].skim[{j}]"
+            n = len(line.split())
+            if not lo <= n <= hi:
+                v.append(f"{where}: {n} words; a skim line is one sentence of {lo} to {hi} words")
+            if "\u00ab" in line or "\u00bb" in line:
+                v.append(f"{where}: no «quotes» in a skim line - state the point in your own words")
+            if _LEANS_BACK.match(line):
+                v.append(f"{where}: opens on '{line.split()[0]}', which leans on a sentence the reader "
+                         "has not seen; name the subject")
+            if not line.rstrip().endswith((".", "!", "?")):
+                v.append(f"{where}: not a finished sentence - end it")
+            ours = {w.lower() for w in _CONTENT_WORD.findall(line)}
+            theirs = {w.lower() for w in _CONTENT_WORD.findall(GUILLEMET.sub(r"\1", para))}
+            if not ours & theirs:
+                v.append(f"{where}: shares no key term with its paragraph; summarise THAT paragraph")
     return v
 
 
@@ -905,11 +993,14 @@ def synthesise(post, docs, facts, key, base) -> dict:
             record["attempts"].append({"served": got["served"], "provider": got["provider"],
                                        "generation_id": got["generation_id"], "unwrapped": wrapped,
                                        "usage": got["usage"], "violations": violations,
+                                       "rhythm_cv": rhythm_cv(essay),
                                        "essay": essay, "raw": None if essay else raw})
             # EVERY CALL IS SPEND, a refused draft included: into the ledger now.
             record_spend(record, len(record["attempts"]) - 1)
             print(f"  [{post['key']}] attempt {attempt + 1}: served={got['served']} "
-                  f"violations={len(violations)} words={words_in(essay) if essay else '-'}")
+                  f"violations={len(violations)} words={words_in(essay) if essay else '-'} "
+                  f"rhythm={record['attempts'][-1]['rhythm_cv']} "
+                  f"(target {((post.get('rules') or {}).get('prose') or {}).get('rhythm_cv_target', 'n/a')}, recorded)")
             if not violations:
                 record["passed"], record["essay"] = True, essay
                 return record
@@ -1332,6 +1423,23 @@ def _export_special(post, essay, text):
                        for f in sp["fields"]} for it in essay[key]]}
 
 
+def _arrangement_for(fmt_key: str | None, slug: str) -> str | None:
+    """'a' or 'b': alternate by how many OTHER drafts of this format exist on
+    this machine. None for a post with no format (the first three), which
+    views.js then alternates by order."""
+    if not fmt_key:
+        return None
+    same = 0
+    for f in POSTS_OUT.glob("*.json"):
+        try:
+            doc = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if doc.get("slug") != slug and (doc.get("provenance") or {}).get("format") == fmt_key:
+            same += 1
+    return "ab"[same % 2]
+
+
 def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
     """Write one post in the shape `web/src/board/views.js` `vPost` renders.
 
@@ -1354,7 +1462,11 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
     body: list[list] = []
     for n, s in enumerate(essay["sections"], 1):
         body.append(["h2", {"text": s["heading"], "num": f"{n:02d}", "id": slug(s["heading"])}])
-        paras = [["p", text(p)] for p in s["paragraphs"]]
+        # A paragraph with a skim line travels as {text, skim}; views.js shows
+        # the skim line in skim mode and the paragraph in full mode.
+        skims = s.get("skim") or []
+        paras = [["p", {"text": text(p), "skim": skims[j]}] if j < len(skims) and skims[j] else ["p", text(p)]
+                 for j, p in enumerate(s["paragraphs"])]
         if s.get("pull_quote"):
             paras.insert(min(2, len(paras)), ["quote", verified(s["pull_quote"])])
         body += paras
@@ -1401,6 +1513,11 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         # The page structure this format renders with (views.js); absent on the
         # first three posts, which keep the original essay layout.
         "layout": (post.get("format_cfg") or {}).get("layout"),
+        # WHICH OF THE FORMAT'S TWO ARRANGEMENTS (views.js arrangementOf). Two
+        # head-to-heads shared one page (2026-10-08), so posts of a format
+        # alternate a, b, a ... by how many of that format exist here already.
+        # Recorded on the post, so a preview and the published page agree.
+        "arrangement": _arrangement_for((post.get("plan") or {}).get("format"), post_slug(post)),
         "special": _export_special(post, essay, text),
         "meta": [TODAY.strftime("%d %B %Y"), f"~{mins} min read", "Draft — not reviewed"],
         "body": body,
@@ -1507,7 +1624,9 @@ def load_formats() -> dict:
     need = {"key", "name", "subject", "shape", "layout", "voice", "paragraphs", "heading_rules",
             "special", "sections", "words", "blocks", "opening", "closing"}
     prose = cfg.get("prose") or {}
-    lacking = {"sentence_median_max", "sentence_max", "lead_words_max"} - set(prose)
+    lacking = {"sentence_median_max", "sentence_max", "lead_words_max", "skim_words", "rhythm_cv_target",
+               "short_sentence_words", "short_sentence_paragraph_share_min", "word_caps", "avoid_phrases",
+               "price_recital_max"} - set(prose)
     if lacking:  # rule 12: no limit in code stands in for one the file forgot
         raise BuildError(f"blog_formats.yaml: prose is missing {sorted(lacking)}")
     for f in cfg["formats"]:
@@ -1553,6 +1672,15 @@ def system_for(fmt: dict) -> str:
              f"- The tldr is one line of at most {fmt['prose']['lead_words_max']} words. Sentences have a median "
              f"of at most {fmt['prose']['sentence_median_max']} words, and none runs over "
              f"{fmt['prose']['sentence_max']}.",
+             f"- SKIM: every section carries `skim`, one sentence per paragraph, {fmt['prose']['skim_words'][0]} "
+             f"to {fmt['prose']['skim_words'][1]} words, a complete and polished sentence rich in that paragraph's "
+             "key terms. A reader who sees only the skim lines must still get the whole argument.",
+             "- RHYTHM: in at least " + f"{int(fmt['prose']['short_sentence_paragraph_share_min'] * 100)}% of "
+             f"paragraphs of three or more sentences, include one of {fmt['prose']['short_sentence_words']} words "
+             "or fewer.",
+             "- NEVER USE these phrases: " + "; ".join(f'"{p}"' for p in fmt['prose']['avoid_phrases']) + ". "
+             "Use each of these words at most as often as shown: "
+             + ", ".join(f"{w} {n}" for w, n in fmt['prose']['word_caps'].items()) + ".",
              "- At most one pull quote per section, verbatim as above."]
     lines.append(f"- {clo} to {chi} code or configuration examples, attached to the section they belong to."
                  if chi else "- No code examples.")
