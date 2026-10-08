@@ -339,10 +339,11 @@ export default function StagesPanel() {
             figure — 16,010 "not recorded" — had nothing on the page saying
             what it meant.
 
-            `/admin/pipeline` still answers, and `items_in` / `items_out` are
-            null on every stage, so the funnel that WOULD make these rows
-            comparable is pipeline work rather than a display change. Removed
-            2026-09-25 rather than left rendering something misread. */}
+            `items_in` / `items_out` were null on every stage, so the funnel
+            that WOULD make these rows comparable is pipeline work rather than
+            a display change. Removed 2026-09-25 rather than left rendering
+            something misread; the `/admin/pipeline` route behind it was
+            removed 2026-10-08. */}
 
       </div>
     </section>

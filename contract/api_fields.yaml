@@ -147,11 +147,6 @@ fields:
     - /admin/settings
     - /board
     state: consumed
-  caveats:
-    reviewed: false
-    routes:
-    - /admin/pipeline
-    state: no_consumer
   characters:
     reviewed: false
     routes:
@@ -228,11 +223,6 @@ fields:
     - /ask/recommend
     - /models/{model_version_id:path}
     state: consumed
-  documents:
-    reviewed: false
-    routes:
-    - /filtered
-    state: consumed
   done:
     reviewed: false
     routes:
@@ -263,16 +253,6 @@ fields:
     routes:
     - /blog-posts/generate/log
     state: consumed
-  failure_mode:
-    reviewed: true
-    routes:
-    - /capabilities/{capability_key}
-    state: no_consumer
-    why: 'its only reader was `capabilityPage` in web/src/api/index.js, a local stub that
-      resolved with an empty list and never called the endpoint. Removed 2026-09-24 with the
-      rest of the UI''s reads of the closed capability vocabulary, measured that day at 0 of
-      196 models carrying a non-empty list. The endpoint still emits the field; no page asks
-      for it'
   files_reason:
     reviewed: false
     routes:
@@ -313,11 +293,6 @@ fields:
     reviewed: false
     routes:
     - /board
-    state: consumed
-  key:
-    reviewed: false
-    routes:
-    - /capabilities/{capability_key}
     state: consumed
   kinds:
     reviewed: false
@@ -380,7 +355,6 @@ fields:
   models:
     reviewed: false
     routes:
-    - /capabilities/{capability_key}
     - /compare
     - /models
     state: consumed
@@ -416,7 +390,6 @@ fields:
   page:
     reviewed: false
     routes:
-    - /capabilities/{capability_key}
     - /models
     state: consumed
   parent_coverage:
@@ -428,7 +401,6 @@ fields:
   pipeline_version:
     reviewed: true
     routes:
-    - /admin/pipeline
     - /coverage
     state: no_consumer
     why: 'its only reader was `PipelinePanel.jsx`, the per-stage counts panel on the admin
@@ -456,13 +428,6 @@ fields:
     routes:
     - /admin/prompts
     state: consumed
-  proposed_key:
-    reviewed: false
-    routes:
-    - /admin/capability-candidates/delete
-    - /admin/capability-candidates/edit
-    - /admin/capability-candidates/rule
-    state: no_consumer
   qualified:
     reviewed: false
     routes:
@@ -549,21 +514,10 @@ fields:
     routes:
     - /admin/board-entries/unrule
     state: no_consumer
-  rows_deleted:
-    reviewed: false
-    routes:
-    - /admin/capability-candidates/delete
-    state: no_consumer
-  rows_edited:
-    reviewed: false
-    routes:
-    - /admin/capability-candidates/edit
-    state: no_consumer
   rows_ruled:
     reviewed: false
     routes:
     - /admin/board-entries/rule
-    - /admin/capability-candidates/rule
     state: no_consumer
   rules:
     reviewed: false
@@ -579,7 +533,6 @@ fields:
     reviewed: false
     routes:
     - /admin/board-entries/rule
-    - /admin/capability-candidates/rule
     state: consumed
   ruling_target:
     reviewed: false
@@ -601,7 +554,6 @@ fields:
   runs:
     reviewed: false
     routes:
-    - /admin/pipeline
     - /admin/runs
     - /blog-posts/runs
     - /fetch/runs
@@ -611,11 +563,6 @@ fields:
     routes:
     - /admin/runs
     state: consumed
-  runs_measured:
-    reviewed: false
-    routes:
-    - /admin/pipeline
-    state: no_consumer
   runtime:
     reviewed: false
     routes:
@@ -690,7 +637,6 @@ fields:
   stages:
     reviewed: false
     routes:
-    - /admin/pipeline
     - /admin/stages
     state: consumed
   started:
@@ -718,15 +664,12 @@ fields:
     routes:
     - /admin/board-entries
     - /admin/capability-candidates
-    - /admin/pipeline
     - /admin/usage
     - /board
-    - /capabilities/{capability_key}
     - /changelog
     - /compare
     - /coverage
     - /faq
-    - /filtered
     - /models
     - /models/{model_version_id:path}
     state: consumed
@@ -749,16 +692,6 @@ fields:
     reviewed: false
     routes:
     - /admin/usage
-    state: no_consumer
-  total_documents:
-    reviewed: false
-    routes:
-    - /filtered
-    state: no_consumer
-  total_filtered:
-    reviewed: false
-    routes:
-    - /filtered
     state: no_consumer
   total_labels:
     reviewed: false
@@ -795,11 +728,6 @@ fields:
     routes:
     - /admin/runs
     state: no_consumer
-  truncated:
-    reviewed: false
-    routes:
-    - /filtered
-    state: consumed
   unbound_phrases:
     reviewed: false
     routes:

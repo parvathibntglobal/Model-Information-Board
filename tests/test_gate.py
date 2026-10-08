@@ -29,6 +29,11 @@ def _clean(monkeypatch):
     gate._reset_for_tests()
 
 
+#: Any route behind the gate that answers without a database. `/capabilities`
+#: played this part until it was removed 2026-10-08 (no page called it).
+GATED = "/faq"
+
+
 def _client() -> TestClient:
     return TestClient(app)
 
@@ -38,26 +43,26 @@ def _client() -> TestClient:
 
 def test_development_without_a_token_stays_open():
     """Otherwise a fresh clone cannot be run, and this file gets deleted."""
-    assert _client().get("/capabilities").status_code == 200
+    assert _client().get(GATED).status_code == 200
 
 
 def test_a_set_token_is_required_everywhere():
     with pytest.MonkeyPatch.context() as m:
         m.setenv("API_TOKEN", "s3cret")
-        assert _client().get("/capabilities").status_code == 401
+        assert _client().get(GATED).status_code == 401
 
 
 def test_a_set_token_admits_the_right_bearer():
     with pytest.MonkeyPatch.context() as m:
         m.setenv("API_TOKEN", "s3cret")
-        r = _client().get("/capabilities", headers={"Authorization": "Bearer s3cret"})
+        r = _client().get(GATED, headers={"Authorization": "Bearer s3cret"})
         assert r.status_code == 200
 
 
 def test_a_wrong_token_is_401_not_403():
     with pytest.MonkeyPatch.context() as m:
         m.setenv("API_TOKEN", "s3cret")
-        r = _client().get("/capabilities", headers={"Authorization": "Bearer nope"})
+        r = _client().get(GATED, headers={"Authorization": "Bearer nope"})
         assert r.status_code == 401
         assert r.headers.get("WWW-Authenticate") == "Bearer"
 
@@ -69,7 +74,7 @@ def test_no_token_outside_development_refuses_rather_than_serving():
     """
     with pytest.MonkeyPatch.context() as m:
         m.setenv("ENVIRONMENT", "staging")
-        r = _client().get("/capabilities")
+        r = _client().get(GATED)
         assert r.status_code == 503
         assert "missing decision" in r.json()["detail"]
 

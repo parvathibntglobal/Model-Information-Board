@@ -9,7 +9,8 @@ TWO COMPLETE SURFACES WERE IN THE TREE AND COULD NOT BE REACHED, found by
                                    proposals had accumulated, all unruled.
 
     /admin/pipeline                a finished `PipelinePanel.jsx` that nothing
-                                   imported, over live counts: 348 models,
+                                   imported (route removed 2026-10-08),
+                                   over live counts: 348 models,
                                    18,241 documents, 6,244 threads.
 
 ⚠ NEITHER FAILED. No error, no empty page, no broken link — the code was
