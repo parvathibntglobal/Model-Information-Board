@@ -1617,7 +1617,7 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
     detail += f" — up to {X_PAGES_PER_MODEL} page(s) of 20"
     prog.stage("E2X", "Harvest · X", "running", queries=1, detail=detail)
     inserted = posts = errors = 0
-    survived = pages = 0
+    survived = pages = undated = 0
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     from collect.adapters.queries.sieve import sieve as sieve_post
 
@@ -1649,6 +1649,7 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
+        undated += int(getattr(wrote, "without_created_at", 0) or 0)
     _write_rapidapi_quota(q_remaining, q_limit, prog.run_id, read_on="x")
     # THE DENOMINATOR IS IN THE SENTENCE. "0 appended" out of 60 retrieved and
     # "0 appended" out of 0 retrieved are different failures, and they used to
@@ -1658,6 +1659,11 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
               f"dropped {dropped}; {inserted} document(s) appended")
     if survived and not inserted:
         detail += " — every survivor was already stored (append-only)"
+    if undated:
+        # Said on the harvest line because this is where it starts: an undated
+        # document's claims are skipped at E5 (2026-09-08 to 10-08, every one).
+        detail += (f" — {undated} written with NO DATE (the platform date did not "
+                   f"parse); their claims cannot reach the board")
     if errors:
         # THE ONE THE LOG GOT WRONG. `_get` catches every `httpx.HTTPError`,
         # DNS failures included, and returns None - so two searches that never
@@ -1666,7 +1672,8 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         detail += f" — {errors} request(s) failed before returning anything"
     prog.stage("E2X", "Harvest · X", _harvest_verdict(errors, posts),
                posts=posts, pages=pages, sieve_kept=survived, sieve_dropped=dropped,
-               documents_inserted=inserted, http_errors=errors,
+               documents_inserted=inserted, documents_undated=undated or None,
+               http_errors=errors,
                quota_remaining=q_remaining, quota_limit=q_limit,
                detail=detail)
     return inserted
@@ -2866,7 +2873,13 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     if budget is not None:
         budget.spent_usd = spend_ledger.spent_today()
         spent_before = budget.spent_usd
-    facts, _ = _document_facts(conn, doc_ids)
+    # `undatable` WAS DISCARDED HERE (`facts, _ = ...`). A document with no
+    # `created_at` has no facts, so the pipeline skips every claim from it with
+    # one log line each - and every X document was undated from 2026-09-08 to
+    # 2026-10-08 (X's date format was never parsed), so X produced 0 board
+    # entries from 233 threads read while this stage said nothing. Kept now and
+    # counted on the E5 line below (rule 4: an absence this run caused).
+    facts, undatable = _document_facts(conn, doc_ids)
     mvo = _model_version_map(conn)
     resolver = RegistrySurfaceResolver.from_connection(conn)
 
@@ -3158,6 +3171,19 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         detached = sum(r.board_entries_detached_on_merge for r in results)
         detail += (f", {merged} merged ({dup} duplicate, {dis} distinct and not "
                    f"written; {detached} board entr(ies) detached)")
+    # VERIFIED CLAIMS DROPPED FOR A MISSING DATE, said only when it happened.
+    # Their quotes passed; the pipeline skipped them because the document has
+    # no `created_at` (see `undatable` above), so the board never saw them.
+    undated_docs = {q.document_id for r in results for _c, q in r.extraction.verified
+                    if q.document_id in undatable}
+    if undated_docs:
+        undated_claims = sum(1 for r in results for _c, q in r.extraction.verified
+                             if q.document_id in undated_docs)
+        detail += (
+            f"; {undated_claims} VERIFIED CLAIM(S) DROPPED from {len(undated_docs)} "
+            f"document(s) with no created_at - the platform date did not parse, "
+            f"so these never reached the board"
+        )
     if truncated:
         detail += (
             f"; {len(truncated)} of {len(results)} thread(s) STOPPED AT THE "
@@ -3183,6 +3209,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                truncated_threads=truncated[:10],
                retried_threads=retried or None,
                unread_threads=len(unread) or None,
+               undated_documents=len(undated_docs) or None,
                detail=detail)
 
     # ── WHAT THE RUN AMOUNTED TO, for the closing box ────────────────────
