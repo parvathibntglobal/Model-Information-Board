@@ -1,5 +1,7 @@
 # Signal demoted from a gate to a weight — the measurement, and what it costs
 
+> **Removed 2026-10-08:** `model_only_sweep_corrected.jsonl` (in history at `e9192c8`) was removed from the repository because it holds harvested platform content or personal data. The figures below are unchanged; to re-run them, regenerate the file locally (it is gitignored) or read it from that commit.
+
 *2026-09-11 · `collect/adapters/queries/sieve.py:GATING_GROUPS`. The vocabulary
 is untouched: 198 terms, none added, none removed.*
 

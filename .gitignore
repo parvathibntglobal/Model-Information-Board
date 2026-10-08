@@ -119,3 +119,15 @@ _before_rollup.json
 # JSON at the root is the #428 shape.
 column-audit.json
 api-fields.json
+
+# REMOVED FROM THE REPOSITORY 2026-10-08: harvested platform content and
+# personal data (Reddit quotes/titles/links, GitHub handles, email addresses).
+# The scripts that write them still default to these names, so they are
+# ignored here to stop a re-run committing them again. Old copies remain in
+# git history (team decision 2026-10-08: no rewrite, repository stays public).
+/_github_comments.json
+/_github_shape_experiment.json
+/classification.jsonl
+/classification_withheld.jsonl
+/model_only_sweep.jsonl
+/model_only_sweep_corrected.jsonl
