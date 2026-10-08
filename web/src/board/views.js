@@ -1039,7 +1039,13 @@ function essayBlock([t,v]){
   if(t==='tree') return `<div class="es-dtree"><div class="q">${essayText(v.question)}</div>
     <div class="br">${(v.branches||[]).map(b=>`<div class="b"><div class="cond">${essayText(b.condition)}</div>
       <div class="out">${essayText(b.outcome)}</div>${routeBadge(b.route)}</div>`).join('')}</div></div>`;
-  // Skim mode folds everything after a paragraph's first sentence (vPost).
+  // A PARAGRAPH WITH ITS OWN SKIM LINE (generator, 2026-10-08): skim mode
+  // shows that polished sentence, full mode the paragraph. Older posts carry a
+  // plain string, and skim mode folds everything after its first sentence.
+  if(v && typeof v === 'object'){
+    return `<p class="es-para es-sk"><span class="sk">${essayText(v.skim)}</span>`
+      + `<span class="full">${essayText(v.text)}</span></p>`;
+  }
   const [first, rest] = splitFirst(v);
   return rest ? `<p class="es-para"><span class="s1">${essayText(first)}</span><span class="rest">${essayText(rest)}</span></p>`
     : `<p class="es-para">${essayText(first)}</p>`;
@@ -1121,7 +1127,17 @@ function sheetRows(prices){
   return prices ? (prices.rows || []).map(r => ({ name: String(r[0] || ''), pin: r[1], pout: r[2], cached: r[3] })) : [];
 }
 const nameRx = n => new RegExp(`(?<![\\w.\\-])${rxEsc(n)}(?![\\w\\-]|\\.\\d)`, 'i');
-const rowFor = (rows, name) => rows.find(r => r.name.toLowerCase() === String(name || '').toLowerCase().trim()) || null;
+// EXACT NAME FIRST; else the ONE row whose name contains it as a whole phrase -
+// a title's "Opus 5" is the sheet's "Claude Opus 5" (2026-10-08). nameRx will
+// not match "Opus 5" inside "Opus 5.5", and two candidate rows match nothing:
+// a price shown against the wrong model is worse than none.
+const rowFor = (rows, name) => {
+  const n = String(name || '').trim();
+  const exact = rows.find(r => r.name.toLowerCase() === n.toLowerCase());
+  if(exact || !n) return exact || null;
+  const within = rows.filter(r => nameRx(n).test(r.name));
+  return within.length === 1 ? within[0] : null;
+};
 const rowsIn = (rows, text) => rows.filter(r => r.name && nameRx(r.name).test(String(text || '')));
 const perM = (v, side) => String(v || '').startsWith('$') ? `${esc(v)} ${side}` : `${side}put not published`;
 function vsNames(p){
@@ -1352,11 +1368,34 @@ function interactivize(html, p, rows = []){
   }).join('');
 }
 
+/* TWO ARRANGEMENTS PER FORMAT (2026-10-08): two head-to-heads had one page.
+ * A post generated from now on records its own (`arrangement`, alternated per
+ * format by the generator), so a reviewer's preview and the published page
+ * agree. An older post alternates by its order among posts of its format. */
+function arrangementOf(p, L){
+  if(p.arrangement === 'a' || p.arrangement === 'b') return p.arrangement;
+  if(!L) return 'a';
+  const when = q => String((q.provenance || {}).generated_at || '');
+  const same = (DB.posts || []).filter(q => layoutOf(q) === L)
+    .sort((x, y) => when(x).localeCompare(when(y)) || String(x.slug).localeCompare(String(y.slug)));
+  return same.findIndex(q => q.slug === p.slug) % 2 === 1 ? 'b' : 'a';
+}
+/** Both models' list prices on one line - the head-to-head B opening. */
+function priceStrip(names, rows, asOf){
+  if(names.length !== 2) return '';
+  const cell = n => { const r = rowFor(rows, n);
+    return `<div class="side"><b>${esc(n)}</b>${r ? `<span>${perM(r.pin, 'in')}</span><span>${perM(r.pout, 'out')}</span>`
+      : '<span class="dim">no price in this post</span>'}</div>`; };
+  return `<div class="es-pstrip">${cell(names[0])}<i>vs</i>${cell(names[1])}`
+    + `<span class="unit">list price per 1M tokens${asOf ? ` · ${esc(asOf)}` : ''}</span></div>`;
+}
+
 function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
   const L = layoutOf(p);
   const conf = L ? LAYOUTS[L] : { label: null, lead: 'In brief', tools: 'end' };
   const parts = splitPost(p.body || []), secs = parts.sections, sp = p.special;
+  const V = arrangementOf(p, L);
   const rows = sheetRows(parts.prices);
   const pv = p.provenance || {};
   const asOf = String(pv.generated_at || '').slice(0, 10);
@@ -1370,7 +1409,14 @@ function vPost(slug){
     L === 'runbook' ? 'Does this move apply to you?' : L === 'brief' ? 'Adopt it now?' : 'Find your case')}</div>`);
 
   let secHtml;
-  if(L === 'versus'){
+  if(L === 'versus' && V === 'b'){
+    // ARRANGEMENT B: every question on screen at once, each opening in place -
+    // the reader picks the question they came for instead of scrolling cards.
+    secHtml = [`<div class="es-qgrid">${secs.map((s, i) =>
+      `<details class="es-qtile"${s.head.id ? ` id="es-${esc(s.head.id)}"` : ''}${i === 0 ? ' open' : ''}>`
+      + `<summary><span class="n">${pad2(i + 1)}</span><span>${essayText(s.head.text)}</span></summary>`
+      + `${s.blocks.map(essayBlock).join('')}</details>`).join('')}</div>`];
+  } else if(L === 'versus'){
     // A question card: the answer paragraph shows, the reasoning folds.
     secHtml = secs.map((s, i) => {
       const k = s.blocks.findIndex(b => b[0] === 'p');
@@ -1384,22 +1430,36 @@ function vPost(slug){
     secHtml = secs.map((s, i) => `<section class="es-step">${sectionHtml(s, conf.label, i + 1,
       '<label class="es-tick"><input type="checkbox" class="es-done">Mark this step done</label>')}</section>`);
   } else {
-    secHtml = secs.map((s, i) => `<section class="es-sec">${sectionHtml(s, conf.label, i + 1)}</section>`);
+    // Arrangement B sets each section as a spread: its heading in a left
+    // column beside the text, on a wide screen.
+    secHtml = secs.map((s, i) => `<section class="es-sec${V === 'b' ? ' es-spread' : ''}">${sectionHtml(s, conf.label, i + 1)}</section>`);
   }
   const toolHtml = tools.join(''), half = Math.ceil(secHtml.length / 2);
-  let middle = conf.tools === 'top' ? toolHtml + secHtml.join('')
-    : conf.tools === 'mid' ? secHtml.slice(0, half).join('') + toolHtml + secHtml.slice(half).join('')
+  // Arrangement B moves the tools: top -> end, mid -> top, end -> top.
+  const toolsAt = V === 'b' ? ({ top: 'end', mid: 'top', end: 'top' })[conf.tools] : conf.tools;
+  let middle = toolsAt === 'top' ? toolHtml + secHtml.join('')
+    : toolsAt === 'mid' ? secHtml.slice(0, half).join('') + toolHtml + secHtml.slice(half).join('')
     : secHtml.join('') + toolHtml;
   middle = parts.pre.map(essayBlock).join('') + middle;
   if(L === 'runbook') middle = `<div class="es-run">${middle}<div class="es-prog">Steps done: <span class="ct"></span> of ${secs.length}<span class="all"> · every step ticked</span></div></div>`;
 
   // OPENINGS AND ENDINGS. One pair per format; none of them is the old box.
   let open, end = '';
-  if(L === 'report'){
+  if(L === 'report' && V === 'b'){
+    // ARRANGEMENT B: a scoreboard - what holds beside what is still open.
+    open = leadBox(conf, p, 'strip') + (sp && sp.type === 'findings'
+      ? `<div class="es-score">${findingsCol(sp, 'established', 'What holds', 'ok')}`
+        + `${findingsCol(sp, 'not established', 'Still open', 'open')}</div>`
+      : `<nav class="es-log"><div class="lbl">Observations</div>${tocList(secs, '', n => `OBS-${pad2(n)}`)}</nav>`);
+  } else if(L === 'report'){
     open = leadBox(conf, p, 'strip')
       + `<nav class="es-log"><div class="lbl">Observations</div>${tocList(secs, '', n => `OBS-${pad2(n)}`)}</nav>`
       + findingsCol(sp, 'established', 'What holds', 'ok');
     end = findingsCol(sp, 'not established', 'Still open', 'open');
+  } else if(L === 'versus' && V === 'b'){
+    // ARRANGEMENT B: the split first, as a statement; prices in a strip; the
+    // "pick it when" lists move to the sidebar.
+    open = leadBox(conf, p, 'verdict') + priceStrip(vsNames(p), rows, asOf);
   } else if(L === 'versus'){
     open = faceoff(p, rows, asOf) + leadBox(conf, p, 'split');
   } else if(L === 'ledger'){
@@ -1429,15 +1489,25 @@ function vPost(slug){
 
   // READING TIME, COUNTED: words on the page, and the same less every
   // paragraph after its first sentence - the part skim mode folds.
-  const full = wordsIn(main);
-  const folded = (p.body || []).reduce((n, [t, v]) => n + (t === 'p' ? wordsIn(splitFirst(v)[1]) : 0), 0);
+  // A paragraph with a skim line holds both spans: full mode hides the line,
+  // skim mode hides the paragraph.
+  let skimOnly = 0, fullOnly = 0;
+  for(const [t, v] of (p.body || [])){
+    if(t !== 'p') continue;
+    if(v && typeof v === 'object'){ skimOnly += wordsIn(v.skim); fullOnly += wordsIn(v.text); }
+    else fullOnly += wordsIn(splitFirst(v)[1]);
+  }
+  const hasSkim = (p.body || []).some(([t, v]) => t === 'p' && v && typeof v === 'object');
+  const shown = wordsIn(main);
+  const full = shown - skimOnly;
+  const folded = fullOnly;
   const mins = w => Math.max(1, Math.round(w / 230));
   // INTERACTIVE BY DEFAULT since 2026-10-06; a post can still opt out.
   if(p.interactive !== false) main = interactivize(main, p, rows);
   const mode = `<div class="es-mode"><div class="seg" role="radiogroup" aria-label="Reading mode">
       <label><input type="radio" name="es-mode" class="m-skim" checked>Skim · ${mins(full - folded)} min</label>
       <label><input type="radio" name="es-mode">Full · ${mins(full)} min</label></div>
-    <p>Skim shows the first sentence of each paragraph, plus every card, table and quote.
+    <p>${hasSkim ? 'Skim shows each paragraph’s point in one sentence' : 'Skim shows the first sentence of each paragraph'}, plus every card, table and quote.
       Dotted names open a model card. <q class="es-iq">Quoted</q> words are an engineer's, copied exactly.</p></div>`;
 
   const toc = [...secs.filter(s => s.head.id).map(s => [`es-${s.head.id}`, s.head.text]),
@@ -1445,12 +1515,15 @@ function vPost(slug){
     .map(([id, t]) => `<li><a data-toc="${esc(id)}">${essayText(t)}</a></li>`).join('');
   const tags = (p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('');
   const dec = (p.decisions||[]).map(d=>`<li>${essayText(d)}</li>`).join('');
+  const picksSide = L === 'versus' && V === 'b' && sp && sp.type === 'picks'
+    ? `<div class="es-scard">${vsNames(p).map(n => `<div class="lbl">Pick ${esc(n)} when</div><ul class="dec">${
+        sp.items.filter(x => x.pick === n).map(x => `<li>${essayText(x.when)}</li>`).join('')}</ul>`).join('')}</div>` : '';
   const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel" data-go="${esc(h)}">${esc(t)}</a>`).join('');
   const sheet = rows.length ? `<div class="es-scard es-sheet"><div class="lbl">Price sheet${asOf ? ` · ${esc(asOf)}` : ''}</div>
     <table><thead><tr><th></th><th>In</th><th>Out</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${esc(r.name)}</td><td>${esc(r.pin)}</td><td>${esc(r.pout)}</td></tr>`).join('')}</tbody></table>
     <p>Registry list prices per 1M tokens when the post was written. A price the provider does not publish says so; it is never zero.</p></div>` : '';
-  return `<div class="essay${L?' layout-'+L:''}"><div class="es-wrap">
+  return `<div class="essay${L?' layout-'+L:''} arr-${V}"><div class="es-wrap">
     <div class="es-crumb"><a data-go="blogs">All essays</a></div>
     <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div><h1>${esc(p.title)}</h1>
       <p class="es-dek">${esc(p.dek)}</p>
@@ -1469,6 +1542,7 @@ function vPost(slug){
       </article>
       <aside class="es-side">
         ${toc?`<div class="es-scard"><div class="lbl">On this page</div><ol>${toc}</ol></div>`:''}
+        ${picksSide}
         ${sheet}
         ${dec?`<div class="es-scard"><div class="lbl">Decisions it supports</div><ul class="dec">${dec}</ul></div>`:''}
         ${rel?`<div class="es-scard"><div class="lbl">Continue reading</div>${rel}</div>`:''}

@@ -43,6 +43,25 @@ prose:
   sentence_median_max: 15
   sentence_max: 30
   lead_words_max: 40
+  # SKIM LINES (2026-10-08). The skim view showed each paragraph's first
+  # sentence, and of 224 paragraphs 27 opened on fewer than 8 words, 13 on a
+  # sentence leaning on the one before ("That...", "This..."), and 3 on a quote.
+  # Each paragraph now carries its own skim sentence, written to stand alone.
+  skim_words: [12, 28]
+  # LIVELIER AND LESS ALIKE (2026-10-08), measured over the same 12 posts:
+  #   rhythm        sentence-length spread / mean was 0.32-0.43 - an even beat
+  #   short         1 of 12 to 10 of 24 paragraphs (of 3+ sentences) per post
+  #                 held any sentence of 8 words or fewer
+  #   tics          'rather' up to 10 a post, 'while' 8, 'whether' 10
+  #   price recital 'per million' up to 5 a post, though the rate card shows it
+  #   set phrases   'does not establish' and 'not proof that' in 6 of 12 posts,
+  #                 'is listed at' in 7
+  rhythm_cv_min: 0.45
+  short_sentence_words: 8
+  short_sentence_paragraph_share_min: 0.4
+  word_caps: {rather: 2, while: 2, whether: 2, however: 1, ultimately: 0, notably: 0, crucially: 0, moreover: 0}
+  avoid_phrases: ["does not establish", "not proof that", "is listed at", "it is worth noting", "when it comes to", "in practice,"]
+  price_recital_max: 1
 
 planner:
   # A subject is a candidate only with this much evidence on staging

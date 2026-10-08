@@ -818,3 +818,37 @@
 .es-card.lay-blueprint{border-top:3px solid #a78bfa}
 .es-card.lay-brief{border-top:3px solid #fb7185}
 .es-card.lay-critique{border-top:3px solid #f59e0b}
+
+/* ── Blogs: skim lines and the second arrangement (views.js, 2026-10-08) ────── */
+
+/* A paragraph with its own skim line: skim mode shows the line, full mode the
+   paragraph. Never both - the line is the paragraph's point, not a preface. */
+.essay .es-para.es-sk .sk{display:none}
+.essay:has(.m-skim:checked) .es-para.es-sk .sk{display:inline;color:var(--es-text)}
+.essay:has(.m-skim:checked) .es-para.es-sk .full{display:none}
+
+/* Which arrangement a post uses; arr-b carries the rules below. */
+.essay.arr-a,.essay.arr-b{isolation:auto}
+
+/* Head-to-head B: every question at once, each opening in place. */
+.es-qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.8rem;margin:1.6rem 0;align-items:start}
+.es-qtile{border:1px solid var(--es-line);border-radius:14px;background:var(--es-panel);padding:.2rem 1.1rem}
+.es-qtile[open]{grid-column:1 / -1;border-color:var(--es-accent)}
+.es-qtile > summary{display:flex;gap:.7rem;align-items:baseline;cursor:pointer;padding:.85rem 0;font-weight:600;color:var(--es-text);line-height:1.4}
+.es-qtile > summary .n{font:700 .8rem var(--es-mono);color:var(--es-accent);flex:none}
+.es-pstrip{display:flex;flex-wrap:wrap;align-items:baseline;gap:.6rem 1.2rem;margin:0 0 1.8rem;padding:.7rem 1rem;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel);font-family:var(--es-mono);font-size:.86rem}
+.es-pstrip .side{display:flex;gap:.6rem;align-items:baseline;color:var(--es-body)}
+.es-pstrip .side b{color:var(--es-text);font-family:var(--es-sans)}
+.es-pstrip i{color:var(--es-dim);font-style:normal}
+.es-pstrip .unit,.es-pstrip .dim{color:var(--es-dim);font-size:.72rem}
+
+/* Field report B: what holds beside what is still open. */
+.es-score{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:0 0 1rem}
+.es-score .es-fcol{margin:0}
+
+/* Arrangement B elsewhere: a section as a spread, heading left of the text. */
+@media(min-width:900px){
+  .es-sec.es-spread{display:grid;grid-template-columns:200px minmax(0,1fr);column-gap:1.6rem;align-items:start}
+  .es-sec.es-spread > h2{grid-column:1;grid-row:1 / span 20;position:sticky;top:5rem;font-size:1.1rem !important;margin-top:2rem}
+  .es-sec.es-spread > :not(h2){grid-column:2}
+}

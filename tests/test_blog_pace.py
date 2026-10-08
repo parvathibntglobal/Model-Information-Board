@@ -9,8 +9,11 @@ from __future__ import annotations
 
 import generate_sample_blogs as g
 
-PROSE = {"sentence_median_max": 15, "sentence_max": 30, "lead_words_max": 40}
-FAST = "Flash is cheap on input. It keeps context warm. Cache hits cut the bill."
+# The real limits (blog_formats.yaml `prose`), so this file cannot pass against
+# a config the generator no longer reads.
+PROSE = g.load_formats()["prose"]
+# Varied rhythm (3 words, then 11), as the rhythm rule now asks.
+FAST = "Flash is cheap. It keeps repeated context warm, so cache hits cut the bill."
 
 
 def _pace(paras, tldr="A short lead.", heads=("Cache warmth decides the bill",)):
