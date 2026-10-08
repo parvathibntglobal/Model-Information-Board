@@ -1,7 +1,6 @@
-"""The admin review surface for proposed capabilities — rule / edit / delete.
+"""The store behind proposed capabilities — rule / edit / delete.
 
-The endpoint tests cover validation without a database (a bad request must fail
-fast). The store tests use a fake connection to pin the SQL the ruling
+The store tests use a fake connection to pin the SQL the ruling
 constraints require: adopted/merged carry a target, declined forbids one, delete
 is a hard delete.
 """
@@ -9,7 +8,6 @@ is a hard delete.
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
 
 from judge.app import app
 from judge.store.capability_candidates import (
@@ -18,38 +16,17 @@ from judge.store.capability_candidates import (
     rule_candidates,
 )
 
-client = TestClient(app, raise_server_exceptions=False)
 
-
-class TestRoutesAndValidation:
-    def test_the_four_routes_exist(self):
+class TestRoutes:
+    def test_only_the_read_route_remains(self):
+        """The rule / edit / delete ROUTES were removed 2026-10-08: nothing
+        called them after the review panel went (#434). The store functions
+        below stay, because `test_the_removed_queue_stopped_filling.py` keeps
+        the 223 proposed rows readable and rulable from a shell."""
         paths = {getattr(r, "path", "") for r in app.routes}
         assert "/admin/capability-candidates" in paths
-        assert "/admin/capability-candidates/rule" in paths
-        assert "/admin/capability-candidates/edit" in paths
-        assert "/admin/capability-candidates/delete" in paths
-
-    def test_rule_rejects_an_empty_key(self):
-        r = client.post(
-            "/admin/capability-candidates/rule",
-            json={"proposed_key": "   ", "ruling": "declined"},
-        )
-        assert r.status_code == 422
-
-    def test_rule_rejects_an_unknown_ruling(self):
-        r = client.post(
-            "/admin/capability-candidates/rule",
-            json={"proposed_key": "output.verbosity", "ruling": "maybe"},
-        )
-        assert r.status_code == 422
-
-    def test_adopt_requires_a_target(self):
-        r = client.post(
-            "/admin/capability-candidates/rule",
-            json={"proposed_key": "output.verbosity", "ruling": "adopted"},
-        )
-        assert r.status_code == 422
-        assert "ruling_target" in r.json()["detail"]
+        for gone in ("rule", "edit", "delete"):
+            assert f"/admin/capability-candidates/{gone}" not in paths
 
 
 class _Cur:

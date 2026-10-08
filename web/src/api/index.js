@@ -7,10 +7,11 @@
  * Endpoints, as they actually exist in judge/app.py:
  *
  *   GET  /health                     no database needed
- *   GET  /capabilities               no database needed
  *   GET  /models/{id}                needs the database
- *   GET  /capabilities/{key}         needs the database
- *   GET  /filtered  /coverage  /changelog    need the database
+ *   GET  /coverage  /changelog       need the database
+ *
+ * (`/capabilities`, `/capabilities/{key}` and `/filtered` were removed
+ * 2026-10-08: no page called them.)
  *
  * The database-backed reads answer 503 when DATABASE_URL is unset, and the
  * backend is explicit that this is not the same as a board with nothing on it.
@@ -268,7 +269,6 @@ export const fetchLog = (runId) =>
 export const fetchRuns = (modelVersionId) =>
   request(`/fetch/runs?model_version_id=${encodeURIComponent(modelVersionId)}`)
 
-export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 /**
  * The board's three sections, DISCOVERED by the classifier rather than chosen
  * from a list. Returns { jobs, caps, mets, counts, report_counts_are_a_floor,
@@ -511,15 +511,11 @@ export const unruleBoardEntry = (section, slug, entry_ids = null) =>
 //   and discovery moved to `board_entries`, whose vocabulary is open. Board
 //   sections is the review surface; capabilities get no separate one.
 //
-//   The endpoint still answers and the extractor still proposes into it, so
-//   this is a client that declines to call a live route rather than a route
-//   that went away. The upstream half — the prompt field and the endpoint —
-//   is #434, not deleted from this side.
+//   The read endpoint still answers and the extractor still proposes into
+//   it. The rule / edit / delete endpoints were removed 2026-10-08, since
+//   nothing called them; the prompt field upstream is #434's open half.
 
 /* ------------------------------------------------------------------ display */
-
-export const fmtInt = (n) =>
-  n == null ? '—' : new Intl.NumberFormat('en-US').format(n)
 
 export const fmtTokens = (n) => {
   if (n == null) return '—'
@@ -552,17 +548,3 @@ export const fmtPrice = (n) => {
   return `$${n % 1 === 0 ? n : n.toFixed(2)}`
 }
 
-export const TIER = {
-  1: { label: 'Trivial', note: 'almost anything qualifies — pick on price' },
-  2: { label: 'Small', note: 'many cheap models qualify' },
-  3: { label: 'Moderate', note: 'mid-tier and up' },
-  4: { label: 'Hard', note: 'few models; cost is secondary' },
-  5: { label: 'Frontier', note: 'one or two, or nothing does this reliably yet' },
-}
-
-export const ERROR_COST = {
-  experimental: { tone: 'mute', note: 'a wrong answer costs a rerun' },
-  internal: { tone: 'info', note: 'errors get noticed internally' },
-  'customer-facing': { tone: 'warn', note: 'requires praised, not merely uncriticised' },
-  irreversible: { tone: 'fail', note: 'writes, sends, payments — unevidenced picks are suppressed' },
-}

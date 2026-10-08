@@ -997,17 +997,26 @@ columns:
       reviewed: false
       state: read
     items_in:
-      reviewed: false
-      state: read
+      reviewed: true
+      state: write_only
+      why: 'Read only by judge/pages/pipeline_status.py (/admin/pipeline), which was removed
+        2026-10-08 because no page called it. collect/ops/ledger.py still writes it; it has no
+        reader until a stage funnel is built (see the StagesPanel note on items_in / items_out).'
     items_out:
-      reviewed: false
-      state: read
+      reviewed: true
+      state: write_only
+      why: 'Read only by judge/pages/pipeline_status.py (/admin/pipeline), which was removed
+        2026-10-08 because no page called it. collect/ops/ledger.py still writes it; it has no
+        reader until a stage funnel is built (see the StagesPanel note on items_in / items_out).'
     outcome:
       reviewed: false
       state: read
     pipeline_version:
-      reviewed: false
-      state: read
+      reviewed: true
+      state: write_only
+      why: 'Read only by judge/pages/pipeline_status.py (/admin/pipeline), which was removed
+        2026-10-08 because no page called it. collect/ops/ledger.py still writes it; it has no
+        reader until a stage funnel is built (see the StagesPanel note on items_in / items_out).'
     stage:
       reviewed: false
       state: read

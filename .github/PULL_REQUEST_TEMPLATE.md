@@ -22,7 +22,8 @@ ones that do and answer them. An unchecked box is a fine answer if you say why.
       by the other person, never taken solo.
 - [ ] **Numbers carry their denominator and where it came from** (rules 6, 7).
 - [ ] **A caused absence is not a found one** (rule 4): anything dropped is
-      recorded and shown (`/filtered`), not silently removed.
+      recorded and shown, not silently removed - today as per-trigger counts
+      in the fetch log and Admin → Evidence stages.
 - [ ] **Staging writes coordinated** if this touches the shared DB: append-only,
       no global rebuild, migrations applied once/in-order/announced same day.
 

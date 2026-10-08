@@ -356,24 +356,6 @@ def sign_in(req: LoginRequest) -> LoginResponse:
     return LoginResponse(token=token, expires_at=expires_at, email=email)
 
 
-@app.get("/capabilities")
-def list_capabilities() -> list[dict[str, object]]:
-    """The vocabulary, with the field that drives everything downstream.
-
-    `silent` capabilities require positive consensus — absence of criticism is
-    not evidence, because you would not find out you were wrong.
-    """
-    return [
-        {
-            "key": c.key,
-            "failure_mode": c.failure_mode,
-            "requires_positive_consensus": c.fails_silently,
-            "sounds_like": list(c.sounds_like),
-        }
-        for c in capabilities().values()
-    ]
-
-
 @app.post("/ask/requirements", response_model=AskResponse)
 def infer_requirements(req: AskRequest) -> AskResponse:
     """Q3 — turn a task description into a checkable requirement profile.
@@ -2282,87 +2264,6 @@ def _fetch_runs_from_db(flat: str, hex_chars: set[str]) -> list[tuple[str, str, 
     return [(rid, mach, recs) for rid, (mach, recs) in grouped.items()]
 
 
-@app.get("/capabilities/{capability_key}")
-def capability_page(capability_key: str, limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
-    """FR-25. Every model in the registry, not every model with a cell.
-
-    PAGED, and the summary is deliberately NOT recomputed for the page. It says
-    "0 of 342 models in the registry have any reports on this capability", and
-    that sentence is about the registry - rewriting it per page would turn a
-    statement about coverage into a statement about pagination, which is exactly
-    the substitution rule 7 exists to catch.
-    """
-    from judge.config import capabilities
-    from judge.pages.capability import CapabilityPageReader
-
-    # Checked BEFORE connecting. An unknown key is a fact about the request,
-    # establishable without a database - and answering 503 for it would tell
-    # the caller the board is down when their key is simply wrong.
-    if capability_key not in capabilities():
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"{capability_key!r} is not a tracked capability. Refused rather "
-                f"than rendered empty: an unknown key would read 'nobody has "
-                f"reported on this', which is indistinguishable from a real "
-                f"capability nobody has discussed."
-            ),
-        )
-
-    with _conn() as conn:
-        page = CapabilityPageReader(conn).build(capability_key)
-
-    rows = [
-        {
-            "model_version_id": m.model_version_id,
-            "display_name": m.display_name,
-            "state": "unreported" if m.unreported else "reported",
-            "conditional": m.conditional,
-            "buckets": [{"bucket": b, "status": s} for b, s in m.buckets],
-            "phrases": list(m.phrases),
-            "voices": m.voices,
-        }
-        for m in page.models
-    ]
-    window = _page(rows, limit=limit, offset=offset)
-
-    return {
-        "key": page.key,
-        "failure_mode": page.failure_mode,
-        "summary": page.summary,
-        "page": window.meta,
-        "models": window.items,
-    }
-
-
-@app.get("/filtered")
-def filtered_page(limit: int = 200) -> dict:
-    """FR-18. What we threw away, and the rule that threw it."""
-    from judge.pages.filtered import FilteredPage
-
-    with _conn() as conn:
-        report = FilteredPage(conn).report(limit=limit)
-
-    return {
-        "summary": report.summary,
-        "truncated": report.truncated,
-        "total_filtered": report.total_filtered,
-        "total_documents": report.total_documents,
-        "documents": [
-            {
-                "document_id": d.document_id,
-                "url": d.url,
-                "source": d.source,
-                "status": d.status,
-                "explained": d.explained,
-                "headline": d.headline,
-                "triggers": [{"rule": r, "explanation": e} for r, e in d.triggers],
-            }
-            for d in report.documents
-        ],
-    }
-
-
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.
@@ -2956,85 +2857,16 @@ def _monthly_spend(calls: list, complete: bool) -> dict:
     }
 
 
-# ── the admin pipeline page: what is in each stage, and what the last run did ─
-
-
-@app.get("/admin/pipeline")
-def admin_pipeline() -> dict:
-    """The evidence pipeline, stage by stage — counts now, ledger for last run.
-
-    Distinct from `/admin/usage`, which is money. This is EVIDENCE: how many
-    rows sit in each stage, grouped by the status column that partitions it, and
-    what the `job_run` ledger recorded on the last pass. Every number is
-    COUNTED (rule 3), carries its population (rule 7), and a stage with no rows
-    reports as NOT-YET-RUN rather than a clean zero (rule 4). Where a stage's
-    discards are logged and never stored (a failed quote check, a sarcastic or
-    promotional drop), it shows survivors and NAMES what it cannot count instead
-    of implying none were dropped.
-    """
-    from judge.pages.pipeline_status import PipelineStatus
-
-    with _conn() as conn:
-        report = PipelineStatus(conn).report()
-
-    return {
-        "summary": report.summary,
-        "pipeline_version": report.pipeline_version,
-        "caveats": list(report.caveats),
-        "stages": [
-            {
-                "id": s.id,
-                "name": s.name,
-                "lane": s.lane,
-                "flow": s.flow,
-                "unit": s.unit,
-                "total": s.total,
-                "measured": s.measured,
-                "unreadable": s.unreadable,
-                "caveat": s.caveat,
-                "buckets": [
-                    {"key": b.key, "label": b.label, "n": b.n, "tone": b.tone}
-                    for b in s.buckets
-                ],
-            }
-            for s in report.stages
-        ],
-        "runs_measured": report.runs_measured,
-        "runs": [
-            {
-                "stage": r.stage,
-                "started_at": r.started_at,
-                "finished_at": r.finished_at,
-                "outcome": r.outcome,
-                "running": r.running,
-                "items_in": r.items_in,
-                "items_out": r.items_out,
-            }
-            for r in report.runs
-        ],
-    }
-
-
 # ── capability discovery review: the extractor proposes, an admin rules ───────
-
-
-class CandidateRuleRequest(BaseModel):
-    proposed_key: str
-    ruling: str = Field(description="adopted | declined | merged")
-    ruling_target: str | None = Field(
-        default=None, description="the key it became; required for adopted/merged"
-    )
 
 
 class BoardEntryRuleRequest(BaseModel):
     """Rule every discovered entry under one slug.
 
-    Deliberately NOT the same shape as CandidateRuleRequest, because the two
-    rulings mean opposite things. A capability ruling ADMITS a key to the
-    vocabulary; a board ruling CONSOLIDATES a section that is already showing.
-    So `ruling_target` is required only for `merged` here, where
-    CandidateRuleRequest also demands it for `adopted` - an adopted board
-    section became nothing, it simply stays.
+    `ruling_target` is required only for `merged`: an adopted board section
+    became nothing, it simply stays. (The capability-candidate ruling routes,
+    which also demanded it for `adopted`, were removed 2026-10-08 - nothing
+    called them after the panel went in #434.)
     """
 
     section: str = Field(description="best_for | capability | metric")
@@ -3054,16 +2886,6 @@ class BoardEntryRuleRequest(BaseModel):
         default=None,
         description="board_entry ids to rule; omit to rule the whole slug",
     )
-
-
-class CandidateEditRequest(BaseModel):
-    proposed_key: str
-    new_key: str | None = None
-    new_definition: str | None = None
-
-
-class CandidateKeyRequest(BaseModel):
-    proposed_key: str
 
 
 @app.get("/admin/capability-candidates")
@@ -5586,60 +5408,6 @@ def admin_unrule_board_entry(req: BoardEntryRuleRequest) -> dict:
         conn.commit()
     return {"section": req.section, "slug": req.slug, "rows_cleared": cleared,
             "scope": "entries" if req.entry_ids else "section"}
-
-
-@app.post("/admin/capability-candidates/rule")
-def admin_rule_candidate(req: CandidateRuleRequest) -> dict:
-    """Adopt / decline / merge every proposal for one key."""
-    from judge.store.capability_candidates import RULINGS, rule_candidates
-
-    # Validate BEFORE opening a connection, so a bad request fails fast and
-    # without a database (and the constraints are stated once, here and in the
-    # store, so neither is the only guard).
-    if not req.proposed_key.strip():
-        raise HTTPException(status_code=422, detail="proposed_key is required")
-    if req.ruling not in RULINGS:
-        raise HTTPException(status_code=422, detail=f"ruling must be one of {RULINGS}")
-    if req.ruling in ("adopted", "merged") and not (req.ruling_target or "").strip():
-        raise HTTPException(
-            status_code=422, detail=f"{req.ruling} requires a ruling_target (what it became)"
-        )
-    with _conn() as conn:
-        ruled = rule_candidates(
-            conn, proposed_key=req.proposed_key, ruling=req.ruling,
-            ruling_target=req.ruling_target,
-        )
-        conn.commit()
-    return {"proposed_key": req.proposed_key, "ruling": req.ruling, "rows_ruled": ruled}
-
-
-@app.post("/admin/capability-candidates/edit")
-def admin_edit_candidate(req: CandidateEditRequest) -> dict:
-    """Fix a proposed key's name and/or definition."""
-    from judge.store.capability_candidates import edit_candidates
-
-    if not req.proposed_key.strip():
-        raise HTTPException(status_code=422, detail="proposed_key is required")
-    with _conn() as conn:
-        edited = edit_candidates(
-            conn, proposed_key=req.proposed_key,
-            new_key=req.new_key, new_definition=req.new_definition,
-        )
-        conn.commit()
-    return {"proposed_key": req.new_key or req.proposed_key, "rows_edited": edited}
-
-
-@app.post("/admin/capability-candidates/delete")
-def admin_delete_candidate(req: CandidateKeyRequest) -> dict:
-    """Discard a proposal that is noise (hard delete; declining keeps evidence)."""
-    from judge.store.capability_candidates import delete_candidates
-
-    if not req.proposed_key.strip():
-        raise HTTPException(status_code=422, detail="proposed_key is required")
-    with _conn() as conn:
-        deleted = delete_candidates(conn, proposed_key=req.proposed_key)
-        conn.commit()
-    return {"proposed_key": req.proposed_key, "rows_deleted": deleted}
 
 
 def _whole_key_spend() -> dict:
