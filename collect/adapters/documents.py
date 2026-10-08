@@ -83,6 +83,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -195,15 +196,28 @@ def document_id(source: str, external_id: str) -> str:
     return f"{source}:{external_id}"
 
 
+#: X's legacy timestamp, exactly: `Sat May 16 07:41:54 +0000 2026`.
+_X_LEGACY_DATE = re.compile(r"[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} [+-]\d{4} \d{4}")
+
+
 def _as_timestamp(value: Any) -> datetime | None:
     """A platform's own date, or None. NEVER the fetch time (rule 6).
 
     Accepts what these five platforms actually send: an ISO-8601 string
-    (arXiv, dev.to, Hugging Face, X), an epoch integer (Hacker News's
-    `created_at_i`), or a `datetime`. Anything else returns None and is counted
-    by the caller - a document with no date sends its claim down the "no
-    document facts" path rather than being dated from a default, which is what
-    `weight.recency_factor` reading a fetch time would do.
+    (arXiv, dev.to, Hugging Face), an epoch integer (Hacker News's
+    `created_at_i`), X's legacy timestamp (below), or a `datetime`. Anything
+    else returns None and is counted by the caller - a document with no date
+    sends its claim down the "no document facts" path rather than being dated
+    from a default, which is what `weight.recency_factor` reading a fetch time
+    would do.
+
+    ⚠ X IS NOT ISO-8601, AND THIS DOCSTRING SAID IT WAS (2026-09-08 to
+      2026-10-08). X sends `Sat May 16 07:41:54 +0000 2026`. `fromisoformat`
+      refused it, every X document was written with no date, and the facts
+      loader then skipped every X claim: 344 of 344 X documents undated and 0
+      board entries from 233 X threads read, in the 2026-10-07 backup. The
+      format is matched exactly, with its own offset, rather than by a lenient
+      parser that would also accept something that is not a date.
     """
     if value is None or isinstance(value, datetime):
         return value
@@ -211,6 +225,11 @@ def _as_timestamp(value: Any) -> datetime | None:
         return datetime.fromtimestamp(float(value), tz=UTC)
     if isinstance(value, str) and value.strip():
         text = value.strip()
+        if _X_LEGACY_DATE.fullmatch(text):
+            try:
+                return datetime.strptime(text, "%a %b %d %H:%M:%S %z %Y")
+            except ValueError:
+                return None
         # `2026-09-07T03:13:15Z` and `2026-09-06T22:49:59.000Z` both appear.
         if text.endswith("Z"):
             text = f"{text[:-1]}+00:00"
