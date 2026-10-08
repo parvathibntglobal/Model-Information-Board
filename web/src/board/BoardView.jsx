@@ -1,33 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { goPath } from './links'
 
-// The ported views emit demo-style links: data-go="kind:slug", data-tab="best",
-// and .bm evidence bookmarks. This maps them onto the app's real routes and
-// keeps the in-page evidence scroll working.
-function goPath(go) {
-  const i = go.indexOf(':')
-  const kind = i === -1 ? go : go.slice(0, i)
-  const arg = i === -1 ? '' : go.slice(i + 1)
-  if (kind === 'board') return arg ? `/board?tab=${arg}` : '/board'
-  if (kind === 'job') return `/board/jobs/${arg}`
-  if (kind === 'cap') return `/board/capabilities/${arg}`
-  if (kind === 'metric') return `/board/metrics/${arg}`
-  // THE DRILL-DOWN, and the arg is two things: `slug:modelKey`. Split on the
-  // FIRST colon only, because a model key can contain one - and it can contain
-  // a slash too (`model_version.id` is canonical for 166 of 1,249 board rows),
-  // which is why it goes last in the path and `Board.jsx` rejoins the tail.
-  if (kind === 'jobmodel' || kind === 'capmodel' || kind === 'metmodel') {
-    const j = arg.indexOf(':')
-    const seg = kind === 'jobmodel' ? 'jobs' : kind === 'capmodel' ? 'capabilities' : 'metrics'
-    return j === -1 ? `/board/${seg}` : `/board/${seg}/${arg.slice(0, j)}/${arg.slice(j + 1)}`
-  }
-  // Out to the model's own page, which holds every section rather than one.
-  // `state.from` is what sends its back-link here instead of to /models.
-  if (kind === 'model') return `/models/${arg}`
-  if (kind === 'blogs') return '/blogs'
-  if (kind === 'post') return `/blogs/${arg}`
-  return '/board'
-}
+// The ported views emit `data-go="kind:arg"` links, `data-tab` tabs and `.bm`
+// evidence bookmarks. The route a link means lives in ./links.js, shared with
+// the views that write its `href` (SEO item 3), and this keeps the in-page
+// evidence scroll working.
 
 export default function BoardView({ html }) {
   const ref = useRef(null)
@@ -88,6 +66,11 @@ export default function BoardView({ html }) {
       return
     }
     const go = e.target.closest && e.target.closest('[data-go]')
+    // A MODIFIED CLICK IS THE BROWSER'S (SEO item 3). Every link now has a real
+    // href, so Ctrl/Cmd/Shift/Alt-click opens it in a new tab or window the
+    // way any link does; only a plain click becomes in-app navigation.
+    // (Middle-click never reaches here - it fires `auxclick`, not `click`.)
+    if (go && (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0)) return
     if (go) {
       e.preventDefault()
       const path = goPath(go.getAttribute('data-go'))

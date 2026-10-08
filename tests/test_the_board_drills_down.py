@@ -69,7 +69,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORE = ROOT / "judge" / "store" / "board_entries.py"
 DB = ROOT / "web" / "src" / "board" / "db.js"
 VIEWS = ROOT / "web" / "src" / "board" / "views.js"
-BOARDVIEW = ROOT / "web" / "src" / "board" / "BoardView.jsx"
+#: The route mapping (`goPath`) moved here from BoardView.jsx on 2026-10-08 (SEO
+#: item 3), so the views can write each link's `href` from the same function.
+LINKS = ROOT / "web" / "src" / "board" / "links.js"
 ROUTE = ROOT / "web" / "src" / "routes" / "Board.jsx"
 
 
@@ -386,7 +388,7 @@ class TestTheDrillDownExistsAndIsReachable:
         assert "${go?' open':''}" in js
 
     def test_the_router_understands_both_drill_down_kinds(self):
-        js = BOARDVIEW.read_text(encoding="utf-8")
+        js = LINKS.read_text(encoding="utf-8")
         assert "kind === 'jobmodel' || kind === 'capmodel'" in js
         assert "kind === 'model'" in js
 
@@ -398,7 +400,7 @@ class TestTheDrillDownExistsAndIsReachable:
         # discussed rather than a broken link.
         js = ROUTE.read_text(encoding="utf-8")
         assert "parts.slice(2).join('/')" in js
-        js2 = BOARDVIEW.read_text(encoding="utf-8")
+        js2 = LINKS.read_text(encoding="utf-8")
         assert "arg.indexOf(':')" in js2
         assert "arg.slice(j + 1)" in js2
 
@@ -755,7 +757,7 @@ class TestTheMetricAxisListsModelsAndDrillsDown:
         )
 
     def test_the_route_reaches_the_leaf(self):
-        assert "kind === 'metmodel'" in BOARDVIEW.read_text(encoding="utf-8")
+        assert "kind === 'metmodel'" in LINKS.read_text(encoding="utf-8")
         route = ROUTE.read_text(encoding="utf-8")
         assert "modelKey ? vMetModel(slug, modelKey) : vMet(slug)" in route
 

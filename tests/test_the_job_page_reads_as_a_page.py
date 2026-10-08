@@ -135,8 +135,10 @@ class TestThePageKeepsTheThreeKindsApart:
         vjob = js[js.index("function vJob(slug)"):js.index("function vCap(slug)")]
         assert "orderLine('best')" in vjob and "jobRule(j)" in vjob
         line = js[js.index("function orderLine(tab)"):js.index("function jobRule(j)")]
+        # The link to the full statement: `goAttrs` writes its href and data-go
+        # together since SEO item 3 (2026-10-08); it was a bare `data-go` before.
         for clause in ("more consistently say it worked", "No score is shown.",
-                       'data-go="board:${tab}"'):
+                       "goAttrs(`board:${tab}`)"):
             assert clause in " ".join(line.split()), clause
 
 
