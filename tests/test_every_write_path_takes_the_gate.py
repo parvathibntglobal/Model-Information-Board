@@ -63,6 +63,9 @@ READ_ONLY: dict[str, str] = {
     "_six_host_probe.py": "measurement only; no write verb",
     "corpus_inventory.py": "counts the corpus; no write verb",
     "dump_keywords.py": "prints what each platform is sent; no write verb",
+    "export_indexable_paths.py": ("writes the indexable paths to a FILE for the sitemap (SEO "
+                                  "item 8); SELECTs only, over a default_transaction_read_only "
+                                  "connection; no write verb"),
     "measure_key_constraint.py": "measurement only; no write verb",
     "measure_signal_demotion_platforms.py": "measurement only; no write verb",
     "promotion_report.py": ("ranks untracked models by the claims already held; one SELECT, "

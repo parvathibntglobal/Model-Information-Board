@@ -16,12 +16,17 @@ import { noindexFor } from './pages'
  * search engines is one deliberate edit to index.html, not something any page
  * can do by accident.
  *
- * NO CANONICAL WITHOUT `VITE_SITE_URL`, and no guess in its place. Falling back
- * to `window.location.origin` would produce a canonical on every build -
- * pointing at staging or localhost wherever the build ran, which tells a
- * search engine the real page is somewhere it must not be (rule 12: a fallback
- * that succeeds on a wrong input). Unset, the tag is left out and the console
- * says so once.
+ * NO CANONICAL UNTIL THE SITE IS OPEN, and no guess in its place. The address
+ * comes from the build (vite.config.js injects `VITE_SITE_URL` only when
+ * `SITE_URL` is set AND `PUBLIC_SITE=1` - the same switch as robots.txt and
+ * the sitemap). Falling back to `window.location.origin` would produce a
+ * canonical on every build, pointing at staging or localhost wherever it ran
+ * (rule 12: a fallback that succeeds on a wrong input). Closed, the tag is left
+ * out and the console says so once.
+ *
+ * LEAVING A PAGE RESTORES index.html'S OWN CANONICAL, if the build wrote one
+ * (it does when the site is open: the landing's). The first version removed it,
+ * so the landing would have lost its canonical after any visit elsewhere.
  */
 
 // `?.`: Vite always defines `import.meta.env`; plain node (the head test) does not.
@@ -48,6 +53,8 @@ function readDefaults() {
     robots: get('meta[name="robots"]'),
     ogTitle: get('meta[property="og:title"]'),
     ogDescription: get('meta[property="og:description"]'),
+    canonical: document.head.querySelector('link[rel="canonical"]')?.getAttribute('href') ?? null,
+    ogUrl: get('meta[property="og:url"]'),
   }
   return defaults
 }
@@ -60,20 +67,27 @@ function setContent(selector, attr, name, value) {
   meta(selector, attr, name).setAttribute('content', value)
 }
 
-function setCanonical(path) {
+function writeCanonical(href) {
   const existing = document.head.querySelector('link[rel="canonical"]')
-  if (!path || !SITE_URL) {
-    existing?.remove()
-    if (path && !SITE_URL && !warnedNoSiteUrl) {
-      warnedNoSiteUrl = true
-      console.warn('seo: VITE_SITE_URL is not set, so no canonical link is written (no host is guessed).')
-    }
-    return null
-  }
-  const href = `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
+  if (!href) { existing?.remove(); return }
   const link = existing || Object.assign(document.createElement('link'), { rel: 'canonical' })
   link.setAttribute('href', href)
   if (!existing) document.head.appendChild(link)
+}
+
+/** The page's canonical when the site is open; otherwise index.html's own (or none). */
+function setCanonical(path, d) {
+  if (!path || !SITE_URL) {
+    if (path && !SITE_URL && !warnedNoSiteUrl) {
+      warnedNoSiteUrl = true
+      console.warn('seo: the site is not open (SITE_URL and PUBLIC_SITE=1 at build), '
+        + 'so no page canonical is written (no host is guessed).')
+    }
+    writeCanonical(d.canonical)
+    return d.ogUrl
+  }
+  const href = `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
+  writeCanonical(href)
   return href
 }
 
@@ -92,7 +106,7 @@ export function applyHead(head) {
   setContent('meta[name="robots"]', 'name', 'robots', robotsFor(d.robots, h.noindex))
   setContent('meta[property="og:title"]', 'property', 'og:title', h.title || d.ogTitle)
   setContent('meta[property="og:description"]', 'property', 'og:description', h.description || d.ogDescription)
-  const url = setCanonical(h.canonical)
+  const url = setCanonical(h.canonical, d)
   setContent('meta[property="og:url"]', 'property', 'og:url', url)
 }
 
