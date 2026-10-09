@@ -6,6 +6,7 @@ import { useHead } from '../seo/head'
 import { boardHub, boardModelInSection, boardSection } from '../seo/pages'
 import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel } from '../board/views'
 import BoardView from '../board/BoardView'
+import NotFound from '../components/NotFound'
 
 /**
  * The board: three ways into the same evidence — Jobs (key `best_for`), Capabilities,
@@ -73,7 +74,11 @@ export default function Board() {
   // loaded - null while loading, so the site defaults stand until it has.
   // A slug the board does not hold gets the hub's head, which is also what
   // the views render for it.
-  useHead(state.ready ? headFor(seg, slug, modelKey, sp.get('tab')) : null)
+  // A SECTION THAT IS NOT ON THE BOARD IS NOT FOUND (SEO item 7), where the
+  // views used to render the hub at its address. `/board/jobs` with no slug is
+  // still the tab: a list page links use. NotFound owns the head then (`false`).
+  const missing = state.ready && sectionMissing(seg, slug)
+  useHead(!state.ready ? null : missing ? false : headFor(seg, slug, modelKey, sp.get('tab')))
 
   if (!state.ready) {
     return (
@@ -81,6 +86,11 @@ export default function Board() {
         <div className="skel" style={{ height: 220 }} />
       </div>
     )
+  }
+
+  if (missing) {
+    const what = { jobs: 'job', capabilities: 'capability', metrics: 'metric' }[seg]
+    return <NotFound what={what} back={{ to: '/board', label: 'Browse the board' }} />
   }
 
   let html
@@ -104,6 +114,14 @@ export default function Board() {
 }
 
 const SECTION_LIST = { jobs: 'jobs', capabilities: 'caps', metrics: 'mets' }
+
+/** An unknown segment (`/board/foo`), or a slug the board does not hold. */
+function sectionMissing(seg, slug) {
+  if (!seg) return false
+  const list = DB[SECTION_LIST[seg]]
+  if (!list) return true
+  return Boolean(slug) && !list.some((x) => x.slug === slug)
+}
 
 function headFor(seg, slug, modelKey, tab) {
   const list = DB[SECTION_LIST[seg]]

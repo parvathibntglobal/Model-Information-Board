@@ -102,6 +102,8 @@ def test_a_post_reads_its_own_title_and_dek(out):
 
 def test_private_pages_are_noindex(out):
     assert out["login"]["noindex"] is True
+    assert out["notFound"]["noindex"] is True
+    assert out["notFound"]["title"].startswith("Page not found")
 
 
 def test_a_page_is_noindex_unless_its_canonical_is_listed(out):

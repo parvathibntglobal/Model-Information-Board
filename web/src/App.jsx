@@ -12,6 +12,7 @@ import Admin from './routes/Admin'
 import BlogLogs from './routes/BlogLogs'
 import Login from './routes/Login'
 import { getSession, signOut } from './auth'
+import NotFound from './components/NotFound'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -78,7 +79,8 @@ export default function App() {
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* NOT A REDIRECT (SEO item 7): an unknown address says so, at that address. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 

@@ -27,6 +27,7 @@ const out = {
   postNoDek: pages.blogPost({ slug: 's', title: 'T' }),
   postMissing: pages.blogPost(undefined),
   login: pages.PRIVATE.login,
+  notFound: pages.PRIVATE.notFound,
   longTitle: pages.fullTitle('A model name long enough that the site name cannot also fit'),
   noindex: {
     unknownList: pages.noindexFor({ canonical: '/board' }, null),

@@ -4,6 +4,7 @@ import { blogPosts, listModels } from '../api'
 import { DB } from '../board/db'
 import { vBlogs, vPost } from '../board/views'
 import BoardView from '../board/BoardView'
+import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { blogIndex, blogPost } from '../seo/pages'
 
@@ -66,8 +67,12 @@ export default function Blogs() {
 
   // PER-PAGE <head> (seo/pages.js). A preview opened from Admin may be a post
   // still awaiting review, so it is never indexable, whatever index.html says.
-  const head = !state.ready ? null
-    : rest ? blogPost((DB.posts || []).find((p) => p.slug === rest)) : blogIndex()
+  // A POST THAT IS NOT HERE IS NOT FOUND (SEO item 7) - unknown, or not
+  // approved for this reader - where vPost used to render the index at its
+  // address. NotFound owns the head then (`false`).
+  const post = rest ? (DB.posts || []).find((p) => p.slug === rest) : null
+  const missing = state.ready && !state.err && Boolean(rest) && !post
+  const head = !state.ready ? null : missing ? false : rest ? blogPost(post) : blogIndex()
   useHead(head && fromAdmin ? { ...head, noindex: true } : head)
 
   if (!state.ready) {
@@ -77,6 +82,8 @@ export default function Blogs() {
       </div>
     )
   }
+
+  if (missing) return <NotFound what="post" back={{ to: '/blogs', label: 'All posts' }} />
 
   return (
     <>

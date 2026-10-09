@@ -118,13 +118,17 @@ export function resetHead() {
 /**
  * `useHead(head)` - apply on mount and whenever `head` or the indexable list
  * changes; reset on leave. `head` null means "not known yet" (data still
- * loading): the defaults stay.
+ * loading): the defaults stay. `false` means a child component owns the head.
  */
 export function useHead(head) {
   const indexable = useIndexable()
   const effective = head ? { ...head, noindex: noindexFor(head, indexable) } : null
-  const key = effective ? JSON.stringify(effective) : ''
+  const key = head === false ? 'skip' : effective ? JSON.stringify(effective) : ''
   useEffect(() => {
+    // `false`: a child owns the head (NotFound inside Board, Blogs or
+    // ModelDetail). A child's effect runs before its parent's, so applying or
+    // resetting here would overwrite what the child just set.
+    if (head === false) return undefined
     applyHead(effective)
     return resetHead
     // `key` stands for `effective`: a fresh object with the same content must not re-apply.
