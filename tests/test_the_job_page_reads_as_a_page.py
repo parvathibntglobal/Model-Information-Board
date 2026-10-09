@@ -101,7 +101,9 @@ class TestThePageKeepsTheThreeKindsApart:
 
     def test_the_extractor_text_is_labelled_as_a_counting_rule(self):
         js = _js()
-        assert "<h3>What counts here</h3>" in js
+        # An <h2> since SEO item 4 (2026-10-09): its own section after the list,
+        # not an <h3> straight under the page's <h1>.
+        assert "<h2>What counts here</h2>" in js
         assert "It is not a description of the job." in js
         db = DB.read_text(encoding="utf-8")
         assert "rule: j.definition || ''" in db

@@ -73,6 +73,8 @@ READ_ONLY: dict[str, str] = {
                                  "default_transaction_read_only connection; the WRITES are "
                                  "fetch_model's subprocess, which carries the fixture gate; "
                                  "no write verb here"),
+    "seo_about_gaps.py": ("lists indexable pages with no about-text (SEO item 4); SELECTs "
+                          "only, over a default_transaction_read_only connection; no write verb"),
     "show_thread.py": ("prints one harvested Reddit thread from `document` and the raw "
                        "store; SELECTs only, no write verb"),
     "triage_stored_corpus.py": "re-triages in memory and reports; no write verb",

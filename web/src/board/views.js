@@ -60,7 +60,7 @@ const stOf = (k) => ST[k] || ST.n;
 function crumb(parts){
   return '<p class="crumb">'+parts.map(([t,h])=>h?`<a${goAttrs(h)}>${esc(t)}</a>`:t).join('<i>/</i>')+'</p>';
 }
-function ranked(rows, route){
+function ranked(rows, route, level){
   if(!rows || !rows.length) return '';
   // NO RANK NUMERAL. This printed 01, 02, 03 from the array index, and the
   // heading above it said "the quotes behind the ranking" — so a list ordered
@@ -99,7 +99,7 @@ function ranked(rows, route){
     // `white-space:nowrap` - a fourth clause in it would push the row wider
     // than a phone. Empty on metric, where there is no split.
     const sp = r.sp ? `<span class="split">${esc(r.sp)}</span>` : '';
-    const head = r.g && r.g !== open ? groupHead(r.g, counts[r.g]) : '';
+    const head = r.g && r.g !== open ? groupHead(r.g, counts[r.g], level) : '';
     open = r.g || open;
     return `${head}<${tag} class="rank${r.dim?' dim':''}${go?' open':''}"${go}><span class="n">${go?'›':'·'}</span>
       <div><b>${esc(r.m)}</b><span class="vend">${esc(r.v)}</span><p>${esc(r.d)}</p></div>
@@ -117,10 +117,17 @@ const GROUPS = {
   neutral: ['Only neutral reports', 'nobody reported it working or failing'],
   problems: ['Reported problems', 'reports of it failing, none of it working'],
 };
-function groupHead(g, n){
+// A REAL HEADING (SEO item 4, 2026-10-09). This was `<p role="heading"
+// aria-level="3">`: a screen reader heard a heading and nothing that reads the
+// tag tree did, so the page's main structure was invisible to it. `level` is
+// the page's outline, passed by each caller and never defaulted: 2 where the
+// list sits straight under the page's <h1> (jobs, capabilities), 3 where it
+// sits inside a section that already has an <h2> (metrics). The look is
+// unchanged - `.rank-group` neutralises the global heading styles.
+function groupHead(g, n, level){
   const [title, gloss] = GROUPS[g] || [g, ''];
-  return `<p class="rank-group" role="heading" aria-level="3"><b>${esc(title)}</b>
-    <span>${n} model${n===1?'':'s'}${gloss ? ` · ${esc(gloss)}` : ''}</span></p>`;
+  return `<h${level} class="rank-group"><b>${esc(title)}</b>
+    <span>${n} model${n===1?'':'s'}${gloss ? ` · ${esc(gloss)}` : ''}</span></h${level}>`;
 }
 
 /** The line above a model list, carrying what the list was drawn from.
@@ -631,7 +638,7 @@ function orderLine(tab){
  *  because it is the fine print of how rows got onto it. */
 function jobRule(j){
   if(!j.rule) return '';
-  return `<div class="shell jobrule"><h3>What counts here</h3><p>${esc(j.rule)}</p>
+  return `<div class="shell jobrule"><h2>What counts here</h2><p>${esc(j.rule)}</p>
     <p class="fine">The extractor’s counting rule: the test a report had to meet to be filed
     under this job. It is not a description of the job.</p></div>`;
 }
@@ -667,7 +674,7 @@ function vJob(slug){
     ${j.rows && j.rows.length ? orderLine('best') : ''}</div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    <div class="shell">${ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j)}</div>
+    <div class="shell">${ranked(j.rows,'jobmodel:'+j.slug, 2) + orphanNote(j)}</div>
     ${jobRule(j)}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
@@ -699,7 +706,7 @@ function vCap(slug){
     ${c.rows && c.rows.length ? orderLine('cap') + splitNote(c) : ''}</div>
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
-    <div class="shell">${ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c)}</div>
+    <div class="shell">${ranked(c.rows,'capmodel:'+c.slug, 2) + orphanNote(c)}</div>
     ${sec('Related','','',related(c.rel))}`;
 }
 
@@ -879,7 +886,7 @@ function vMet(slug){
   // use and it already allows for this one - "Empty on best-for and metric,
   // where there is no split".
   const list = rows.length
-    ? ranked(rows, 'metmodel:' + m.slug)
+    ? ranked(rows, 'metmodel:' + m.slug, 3)
     : `<p class="muted" style="padding:8px 0">The board holds no published figure on this axis.
        That is what the board has, not a page that failed to load.</p>`;
   // A COMPARISON IS ONLY CLAIMED WHERE ONE EXISTS. 62 of 84 axes hold a single

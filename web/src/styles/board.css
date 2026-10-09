@@ -77,7 +77,10 @@
    row a verdict, and the two numbers are evidence of the same standing. */
 .rank .split{display:block;margin-top:3px;font:400 .7rem var(--mono);color:var(--text-3)}
 /* The three-group boundary: where board_sections' ordering rule acts. */
-.rank-group{margin:22px 0 6px;padding-top:14px;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2)}
+/* An <h2>/<h3> since SEO item 4: weight, tracking and leading set back to the
+   paragraph it used to be, so the global h1-h4 rule changes nothing here. */
+.rank-group{margin:22px 0 6px;padding-top:14px;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2);
+  font-weight:400;letter-spacing:normal;line-height:inherit;text-wrap:wrap}
 .rank-group:first-child{margin-top:0;padding-top:0;border-top:0}
 .rank-group b{color:var(--text);font-weight:600;margin-right:8px}
 .rank-group span{font:400 .72rem var(--mono);color:var(--text-3)}
@@ -106,7 +109,7 @@
 .orderline a:hover{text-decoration:underline}
 /* "What counts here", below the list: the fine print of how a row got onto it. */
 .jobrule{padding:6px 0 30px;font-size:.84rem;line-height:1.55;color:var(--text-2)}
-.jobrule h3{font:600 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
+.jobrule h2{font:600 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
 .jobrule p{margin:0 0 6px;max-width:110ch}
 .jobrule .fine{font-size:.78rem;color:var(--text-3)}
 /* Narrow screens: the ordering panel drops below the Jobs cards, still visible. */

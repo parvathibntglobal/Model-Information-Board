@@ -377,8 +377,9 @@ class TestTheDrillDownExistsAndIsReachable:
 
     def test_both_category_pages_link_their_rows_to_a_model_page(self):
         js = _views()
-        assert "ranked(c.rows,'capmodel:'+c.slug)" in js
-        assert "ranked(j.rows,'jobmodel:'+j.slug)" in js
+        # `, 2` since SEO item 4: the heading level of the groups on that page.
+        assert "ranked(c.rows,'capmodel:'+c.slug, 2)" in js
+        assert "ranked(j.rows,'jobmodel:'+j.slug, 2)" in js
 
     def test_a_list_with_no_route_stays_inert(self):
         # A pointer over something that does nothing is the worse half of the
@@ -603,7 +604,8 @@ class TestTheOrderingIsThreeGroups:
 
     def test_the_boundary_is_drawn_on_the_page(self):
         js = _views()
-        assert "function groupHead(g, n)" in js
+        # `level` since SEO item 4: groups are real <h2>/<h3> headings now.
+        assert "function groupHead(g, n, level)" in js
         for title in ("Reported working", "Only neutral reports", "Reported problems"):
             assert title in js
         css = (ROOT / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
@@ -734,7 +736,8 @@ class TestTheMetricAxisListsModelsAndDrillsDown:
     def test_the_axis_page_lists_models_rather_than_figures(self):
         js = _views()
         met = js[js.index("function vMet(slug){"):js.index("function vMetModel(")]
-        assert "ranked(rows, 'metmodel:' + m.slug)" in met, (
+        # `, 3` since SEO item 4: on the axis page the groups sit under an <h2>.
+        assert "ranked(rows, 'metmodel:' + m.slug, 3)" in met, (
             "the axis page must list each model once and link to its own page; "
             "a flat figure table repeats the model name once per figure"
         )
