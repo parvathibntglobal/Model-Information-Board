@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { useIndexable } from './indexable'
+import { noindexFor } from './pages'
 
 /**
  * Apply a page's <head> - title, description, canonical, robots, og - and put
@@ -100,15 +102,18 @@ export function resetHead() {
 }
 
 /**
- * `useHead(head)` - apply on mount and whenever `head` changes; reset on leave.
- * `head` null means "not known yet" (data still loading): the defaults stay.
+ * `useHead(head)` - apply on mount and whenever `head` or the indexable list
+ * changes; reset on leave. `head` null means "not known yet" (data still
+ * loading): the defaults stay.
  */
 export function useHead(head) {
-  const key = head ? JSON.stringify(head) : ''
+  const indexable = useIndexable()
+  const effective = head ? { ...head, noindex: noindexFor(head, indexable) } : null
+  const key = effective ? JSON.stringify(effective) : ''
   useEffect(() => {
-    applyHead(head)
+    applyHead(effective)
     return resetHead
-    // `key` stands for `head`: a fresh object with the same content must not re-apply.
+    // `key` stands for `effective`: a fresh object with the same content must not re-apply.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 }

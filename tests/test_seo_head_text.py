@@ -36,7 +36,8 @@ def out() -> dict:
 
 
 def _heads(out):
-    return {k: v for k, v in out.items() if isinstance(v, dict)}
+    # `noindex` holds the noindexFor cases, not a page head.
+    return {k: v for k, v in out.items() if isinstance(v, dict) and k != "noindex"}
 
 
 def test_every_page_has_its_own_title(out):
@@ -101,3 +102,13 @@ def test_a_post_reads_its_own_title_and_dek(out):
 
 def test_private_pages_are_noindex(out):
     assert out["login"]["noindex"] is True
+
+
+def test_a_page_is_noindex_unless_its_canonical_is_listed(out):
+    n = out["noindex"]
+    assert n["unknownList"] is True      # list not loaded / failed: never "index" (rule 6)
+    assert n["onList"] is False
+    assert n["offList"] is True
+    assert n["askedFor"] is True         # a page's own noindex always wins
+    assert n["noCanonical"] is False     # nothing to look up: index.html's robots stand
+    assert n["noHead"] is False

@@ -152,3 +152,17 @@ export const PRIVATE = {
   admin: { title: fullTitle('Admin'), noindex: true },
   blogLogs: { title: fullTitle('Blog run logs'), noindex: true },
 }
+
+/**
+ * Whether a page is `noindex`: it asked to be, or its canonical path is not on
+ * the indexable list (SEO item 5, `contract/indexing.yaml`). An unknown list
+ * (`null`: loading, or the request failed) counts as "not on it" - a page that
+ * cannot ask is never indexed by default. A page with no canonical has nothing
+ * to look up and keeps index.html's robots.
+ */
+export function noindexFor(head, indexable) {
+  if (!head) return false
+  if (head.noindex) return true
+  if (!head.canonical) return false
+  return !(indexable && indexable.has(head.canonical))
+}

@@ -2264,6 +2264,27 @@ def _fetch_runs_from_db(flat: str, hex_chars: set[str]) -> list[tuple[str, str, 
     return [(rid, mach, recs) for rid, (mach, recs) in grouped.items()]
 
 
+@app.get("/seo/indexable")
+def seo_indexable() -> dict:
+    """The paths worth indexing, by `contract/indexing.yaml` (SEO item 5, proposed).
+
+    Read by `web/src/seo/indexable.js`: a page whose canonical path is not in
+    this list is marked `noindex`, and so is every page until the list arrives.
+    Nothing here makes the site indexable - `web/index.html`'s `noindex`
+    governs every page today.
+
+    PATHS ONLY. `judge/seo.py` also computes per-kind tallies and the rules it
+    applied; they stay in Python until something reads them (an Admin panel, the
+    sitemap generator), because an emitted field with no reader is rule 9's
+    defect. Counted on the PUBLIC view whatever view this server runs.
+    """
+    from judge import seo
+
+    with _conn() as conn:
+        result = seo.indexable_pages(conn)
+    return {"paths": [p["path"] for p in result["paths"]]}
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.

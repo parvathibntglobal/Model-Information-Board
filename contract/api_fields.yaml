@@ -398,6 +398,11 @@ fields:
     - /admin/board-entries
     - /board
     state: consumed
+  paths:
+    reviewed: true
+    routes:
+    - /seo/indexable
+    state: consumed
   pipeline_version:
     reviewed: true
     routes:

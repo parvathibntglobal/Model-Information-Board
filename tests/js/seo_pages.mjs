@@ -28,6 +28,14 @@ const out = {
   postMissing: pages.blogPost(undefined),
   login: pages.PRIVATE.login,
   longTitle: pages.fullTitle('A model name long enough that the site name cannot also fit'),
+  noindex: {
+    unknownList: pages.noindexFor({ canonical: '/board' }, null),
+    onList: pages.noindexFor({ canonical: '/board' }, new Set(['/board'])),
+    offList: pages.noindexFor({ canonical: '/board/jobs/x' }, new Set(['/board'])),
+    askedFor: pages.noindexFor({ canonical: '/board', noindex: true }, new Set(['/board'])),
+    noCanonical: pages.noindexFor({ title: 't' }, null),
+    noHead: pages.noindexFor(null, null),
+  },
   TITLE_MAX: pages.TITLE_MAX,
   DESCRIPTION_MAX: pages.DESCRIPTION_MAX,
 }

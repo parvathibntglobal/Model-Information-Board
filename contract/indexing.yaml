@@ -1,0 +1,79 @@
+# ============================================================================
+# WHICH PAGES ARE WORTH INDEXING (SEO item 5) - PROPOSED 2026-10-09, NOT RATIFIED
+# ============================================================================
+#
+# ⚠ A CONTRACT CHANGE, AND IT IS PROPOSED, NOT TAKEN. `contract/` gets two
+#   eyes (CLAUDE.md). It ships on branch anooj_002seo for review and reaches
+#   main only when a second person has read it.
+#
+# ⚠ NOTHING HERE MAKES THE SITE INDEXABLE. web/index.html carries
+#   `noindex, nofollow` and governs every page; a page can only make that
+#   stricter (web/src/seo/head.js). This decides which pages STAY out of search
+#   engines once that tag is lifted - so the board does not launch two thousand
+#   pages that each rest on one person's comment.
+#
+# READ BY judge/seo.py, ONLY. Every key below is required; a missing or
+# malformed one raises rather than defaulting (rules 5 and 12).
+#
+# WHY "DISTINCT VOICES", COUNTED ON THE PUBLIC VIEW. A page's evidence is what
+# a public visitor would see, so withheld sources (contract/publication.yaml)
+# are not counted even when the server runs the internal view. Voices, not
+# reports: one person posting five times is one voice (the board counts people
+# the same way). Two voices is the smallest number that is not one person's
+# opinion.
+#
+# MEASURED 2026-10-09 on the local restore of the 2026-10-07 shared-database
+# backup, public view (reddit, arxiv, x withheld; 606 board entries withheld):
+#
+#   page kind                         pages   1 voice    >=2 voices
+#   job page (/board/jobs/:slug)        178   154 (87%)      22
+#   capability page                     401   334 (83%)      60
+#   metric page                         237   188 (79%)      41
+#   model in a section (drill-down)   1,640   ~84%          224
+#   model page (/models/:id)            247   157 have no public entry;
+#                                              of the 90 that do, 70 have >=2
+#
+# So `min_voices: 2` keeps about 417 of about 2,700 evidence pages. Re-measure
+# before launch: the corpus will be larger, and these counts are a record of
+# 2026-10-09, not a description of today (rule 11).
+#
+# RULE 8, ANSWERED. This is not a filter on evidence: every page still renders
+# for every visitor and every link to it still works. It decides only what a
+# search engine is invited to list. A wrong `noindex` costs a page its search
+# listing (recoverable, visible in /seo/indexable); a wrong `index` puts a
+# one-comment page in front of searchers as if it were a finding.
+# ============================================================================
+
+version: 1
+
+pages:
+  # /board/{jobs|capabilities|metrics}/:slug
+  section:
+    min_voices: 2
+  # /board/{jobs|capabilities|metrics}/:slug/:model
+  model_in_section:
+    min_voices: 2
+  # /models/:canonical_id
+  model:
+    min_voices: 2
+
+# Structural pages with no evidence threshold: they list or explain, and every
+# visitor needs them to find the pages above.
+always:
+  - /
+  - /board
+  - /board?tab=cap
+  - /board?tab=met
+  - /models
+  - /blogs
+
+# Blog posts: approved posts only (judge/blog_store.py). A pending or rejected
+# post is never indexable, whatever this file says elsewhere.
+blog_posts: approved_only
+
+# Never indexable, at any evidence level. /compare is combinatorial (every pair
+# and triple of models) and would multiply thin pages; the others are private.
+never:
+  - /compare
+  - /login
+  - /admin

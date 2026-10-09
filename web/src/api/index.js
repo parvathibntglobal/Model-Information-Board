@@ -358,6 +358,8 @@ export const reviewBlogPost = (slug, decision, reason) =>
  */
 // Cached: the landing's FAQ and the footer both read it on every visit.
 export const faqPage = () => cached('faq', () => request('/faq'))
+/** Paths worth indexing, by contract/indexing.yaml (SEO item 5). Read by seo/indexable.js. */
+export const seoIndexable = () => cached('seo-indexable', () => request('/seo/indexable'))
 
 /**
  * Two or three models side by side. `ids` is an array of model_version_ids.
