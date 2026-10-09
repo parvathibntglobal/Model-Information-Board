@@ -36,8 +36,9 @@ def out() -> dict:
 
 
 def _heads(out):
-    # `noindex` holds the noindexFor cases, not a page head.
-    return {k: v for k, v in out.items() if isinstance(v, dict) and k != "noindex"}
+    # `noindex` and `structured` hold other cases, not page heads.
+    return {k: v for k, v in out.items()
+            if isinstance(v, dict) and k not in ("noindex", "structured")}
 
 
 def test_every_page_has_its_own_title(out):
@@ -114,3 +115,43 @@ def test_a_page_is_noindex_unless_its_canonical_is_listed(out):
     assert n["askedFor"] is True         # a page's own noindex always wins
     assert n["noCanonical"] is False     # nothing to look up: index.html's robots stand
     assert n["noHead"] is False
+
+
+# ── structured data (SEO items 6 and 11) ──────────────────────────────────
+
+
+def test_breadcrumbs_are_absolute_and_ordered(out):
+    c = out["structured"]["crumbs"]
+    assert c["@type"] == "BreadcrumbList"
+    items = c["itemListElement"]
+    assert [i["position"] for i in items] == [1, 2, 3, 4]
+    assert [i["name"] for i in items] == ["Board", "Jobs", "Code review", "Claude Opus 5"]
+    assert items[-1]["item"] == "https://board.example/board/jobs/code-review/anthropic/claude-opus-5"
+
+
+def test_no_structured_data_without_a_site(out):
+    s = out["structured"]
+    assert s["crumbsClosed"] is None
+    assert s["closedAll"] == []
+    assert s["crumbsTooShort"] is None   # one level is not a trail
+
+
+def test_the_article_carries_only_what_the_post_has(out):
+    a = out["structured"]["article"]
+    assert len(a["headline"]) == 110
+    assert a["datePublished"] == "2026-10-07T12:34:23+05:30"   # approval, not generation
+    assert a["dateCreated"] == "2026-10-01T06:39:45+00:00"
+    assert a["author"]["@type"] == "Organization"
+    bare = out["structured"]["articleBare"]
+    assert "datePublished" not in bare and "description" not in bare and "image" not in bare
+
+
+def test_an_open_post_page_carries_breadcrumbs_and_an_article(out):
+    assert out["structured"]["openPost"] == ["BreadcrumbList", "Article"]
+
+
+def test_section_and_model_pages_carry_their_trail(out):
+    s = out["structured"]
+    assert [c["name"] for c in s["sectionCrumbs"]] == ["Board", "Capabilities", "Code review"]
+    assert s["sectionCrumbs"][1]["path"] == "/board?tab=cap"
+    assert [c["path"] for c in s["modelCrumbs"]] == ["/models", "/models/anthropic/claude-opus-5"]

@@ -70,20 +70,25 @@ export function boardHub(tab) {
   return { title: fullTitle(title), description, canonical: tab && tab !== 'best' ? `/board?tab=${tab}` : '/board' }
 }
 
+// Breadcrumbs (SEO item 6): the board, then the tab a section lives on.
+const BOARD_CRUMB = { name: 'Board', path: '/board' }
+
 const SECTION = {
-  jobs: { path: 'jobs', title: (n) => `Best AI models for ${n}`, lead: (n) => `Which AI models engineers report working for ${n}.` },
-  capabilities: { path: 'capabilities', title: (n) => `${n}: how AI models compare`, lead: (n) => `How AI models handle ${n}, as engineers report it.` },
-  metrics: { path: 'metrics', title: (n) => `${n} by AI model`, lead: (n) => `${n} figures engineers report for AI models, each with its quote.` },
+  jobs: { path: 'jobs', tab: { name: 'Jobs', path: '/board' }, title: (n) => `Best AI models for ${n}`, lead: (n) => `Which AI models engineers report working for ${n}.` },
+  capabilities: { path: 'capabilities', tab: { name: 'Capabilities', path: '/board?tab=cap' }, title: (n) => `${n}: how AI models compare`, lead: (n) => `How AI models handle ${n}, as engineers report it.` },
+  metrics: { path: 'metrics', tab: { name: 'Metrics', path: '/board?tab=met' }, title: (n) => `${n} by AI model`, lead: (n) => `${n} figures engineers report for AI models, each with its quote.` },
 }
 
 /** `/board/{jobs|capabilities|metrics}/:slug`, from the section's own row. */
 export function boardSection(seg, item) {
   const s = SECTION[seg]
   if (!s || !item) return null
+  const canonical = `/board/${s.path}/${item.slug}`
   return {
     title: fullTitle(s.title(item.name)),
     description: withDefinition(s.lead(item.name), item.card),
-    canonical: `/board/${s.path}/${item.slug}`,
+    canonical,
+    breadcrumbs: [BOARD_CRUMB, s.tab, { name: squash(item.name), path: canonical }],
   }
 }
 
@@ -93,10 +98,13 @@ export function boardModelInSection(seg, item, modelKey, modelName) {
   if (!s || !item || !modelKey) return null
   const m = squash(modelName || modelKey)
   const title = seg === 'jobs' ? `${m} for ${item.name}` : `${m}: ${item.name}`
+  const section = `/board/${s.path}/${item.slug}`
+  const canonical = `${section}/${modelKey}`
   return {
     title: fullTitle(title),
     description: clip(`What engineers report about ${m} on ${item.name}, quoted exactly as they wrote it.`),
-    canonical: `/board/${s.path}/${item.slug}/${modelKey}`,
+    canonical,
+    breadcrumbs: [BOARD_CRUMB, s.tab, { name: squash(item.name), path: section }, { name: m, path: canonical }],
   }
 }
 
@@ -115,6 +123,7 @@ export function modelPage(id, name) {
     title: fullTitle(`${m}: what engineers report`),
     description: clip(`What engineers report about ${m} in production: the jobs it works for, its capabilities and the figures they measured, in their own words.`),
     canonical: `/models/${id}`,
+    breadcrumbs: [{ name: 'Models', path: '/models' }, { name: m, path: `/models/${id}` }],
   }
 }
 
@@ -143,7 +152,22 @@ export function blogIndex() {
 export function blogPost(post) {
   if (!post) return blogIndex()
   const text = usable(post.dek) || usable(post.lead) || 'A note on AI models, written from what engineers report in production.'
-  return { title: fullTitle(post.title), description: clip(text), canonical: `/blogs/${post.slug}` }
+  const canonical = `/blogs/${post.slug}`
+  return {
+    title: fullTitle(post.title),
+    description: clip(text),
+    canonical,
+    breadcrumbs: [{ name: 'Blogs', path: '/blogs' }, { name: squash(post.title), path: canonical }],
+    // Article markup (SEO item 11): only what the post carries; structured.js
+    // leaves out any field that is missing rather than filling it.
+    article: {
+      slug: post.slug,
+      title: post.title,
+      dek: usable(post.dek) || null,
+      published_at: post.published_at || null,
+      provenance: { generated_at: (post.provenance && post.provenance.generated_at) || null },
+    },
+  }
 }
 
 /** Never indexed, whatever index.html says later. */

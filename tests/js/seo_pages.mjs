@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 
 const pages = await import(pathToFileURL(resolve('web/src/seo/pages.js')).href)
+const sd = await import(pathToFileURL(resolve('web/src/seo/structured.js')).href)
 
 const job = { slug: 'code-review', name: 'Code review', card: 'Reviewing diffs for bugs, style and risk before merge.' }
 const leaky = { slug: 'x', name: 'Agents', card: 'Threads on Reddit and arXiv about agent loops.' }
@@ -37,6 +38,24 @@ const out = {
     noCanonical: pages.noindexFor({ title: 't' }, null),
     noHead: pages.noindexFor(null, null),
   },
+  structured: (() => {
+    const site = 'https://board.example'
+    const head = pages.boardModelInSection('jobs', job, 'anthropic/claude-opus-5', 'Claude Opus 5')
+    const full = { slug: 's', title: 'T'.repeat(130), dek: 'A dek.', published_at: '2026-10-07T12:34:23+05:30',
+      provenance: { generated_at: '2026-10-01T06:39:45+00:00' } }
+    return {
+      crumbs: sd.breadcrumbList(site, head.breadcrumbs),
+      crumbsClosed: sd.breadcrumbList('', head.breadcrumbs),
+      crumbsTooShort: sd.breadcrumbList(site, [{ name: 'Only', path: '/' }]),
+      article: sd.article(site, full),
+      articleBare: sd.article(site, { slug: 's', title: 'T' }),
+      closedAll: sd.structuredFor('', pages.blogPost(full)),
+      openPost: sd.structuredFor(site, pages.blogPost(full)).map((x) => x['@type']),
+      postArticle: pages.blogPost(full).article,
+      sectionCrumbs: pages.boardSection('capabilities', job).breadcrumbs,
+      modelCrumbs: pages.modelPage('anthropic/claude-opus-5', 'Claude Opus 5').breadcrumbs,
+    }
+  })(),
   TITLE_MAX: pages.TITLE_MAX,
   DESCRIPTION_MAX: pages.DESCRIPTION_MAX,
 }

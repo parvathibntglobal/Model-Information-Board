@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useIndexable } from './indexable'
 import { noindexFor } from './pages'
+import { structuredFor } from './structured'
 
 /**
  * Apply a page's <head> - title, description, canonical, robots, og - and put
@@ -91,6 +92,24 @@ function setCanonical(path, d) {
   return href
 }
 
+/**
+ * The page's JSON-LD (SEO items 6 and 11): replaces the previous page's, and is
+ * removed on leaving. Only scripts carrying `data-seo-ld` are touched, so the
+ * FAQ's own FAQPage script (components/Faq.jsx) is never removed here. Nothing
+ * is written while the site is closed: structured data needs absolute URLs,
+ * and no host is guessed.
+ */
+function setStructured(head) {
+  document.head.querySelectorAll('script[data-seo-ld]').forEach((el) => el.remove())
+  for (const data of structuredFor(SITE_URL, head)) {
+    const el = document.createElement('script')
+    el.type = 'application/ld+json'
+    el.setAttribute('data-seo-ld', '')
+    el.textContent = JSON.stringify(data)
+    document.head.appendChild(el)
+  }
+}
+
 /** `noindex, nofollow` when the page or index.html asks for it; otherwise index.html's value. */
 function robotsFor(base, noindex) {
   if (!noindex) return base
@@ -108,6 +127,7 @@ export function applyHead(head) {
   setContent('meta[property="og:description"]', 'property', 'og:description', h.description || d.ogDescription)
   const url = setCanonical(h.canonical, d)
   setContent('meta[property="og:url"]', 'property', 'og:url', url)
+  setStructured(head)
 }
 
 /** Restore exactly what index.html shipped. */
