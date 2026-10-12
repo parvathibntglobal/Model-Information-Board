@@ -246,6 +246,9 @@ class DocumentFacts:
 class SurfaceFinder(Protocol):
     """Text -> every model surface that appears in it. For inheritance only.
 
+    Each surface is returned AS THE TEXT SPELLS IT, not as the registry does
+    (#365), so a `SurfaceResolver` must normalise what it is handed.
+
     WHY THIS IS A SECOND PROTOCOL AND NOT A METHOD ON `SurfaceResolver`.
     `SurfaceResolver` answers "what model is this string?" and is asked about a
     surface. This answers "does this text name any model?" and is asked about a

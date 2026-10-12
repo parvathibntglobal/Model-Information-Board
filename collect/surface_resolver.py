@@ -99,6 +99,7 @@ from collect.triage.entity import (
     normalize,
     resolve,
     resolve_with_near_misses,
+    spans_of,
 )
 
 
@@ -301,6 +302,22 @@ class RegistrySurfaceResolver:
         return model_version_id
 
 
+@dataclass(frozen=True)
+class FoundSurface:
+    """One mention: what the DOCUMENT wrote, and the registry surface it matched.
+
+    #365's ruling: the finder reports the document's spelling, because every
+    other rule here defers to the writer's words (rule 1's verbatim quote, rule
+    10's copy-never-name). `surface` is kept beside it so mapping to a registry
+    id stays a separate, visible step rather than something the spelling hides.
+    """
+
+    #: Sliced from the text the finder was given, byte for byte.
+    spelling: str
+    #: The population member it matched - the registry's spelling.
+    surface: str
+
+
 class RegistrySurfaceFinder:
     """Satisfies `judge.pipeline.SurfaceFinder`. Every surface in a text.
 
@@ -364,5 +381,22 @@ class RegistrySurfaceFinder:
         `.hits` rather than the whole `Resolution`: callers of this finder ask
         "what does this text name", and the near misses are the answer to a
         different question that E4's gate is the one to act on.
+
+        ⚠ RETURNS THE DOCUMENT'S SPELLING, NOT THE REGISTRY'S (#365). This
+          returned `qwen3.8 27b` for a text saying `Qwen 3.8 27B`, and
+          `sieve.matches` - which keeps spacing and punctuation - refused it
+          against the very text it came from. Distinct spellings, in `.hits`
+          order (longest surface first), then text order. Every caller hands
+          the result to `RegistrySurfaceResolver`, which normalises its input,
+          so the id lookup is unchanged; `found` keeps both spellings.
         """
-        return resolve_with_near_misses(text or "", self._population).hits
+        return tuple(dict.fromkeys(f.spelling for f in self.found(text)))
+
+    def found(self, text: str) -> tuple[FoundSurface, ...]:
+        """Every mention as (document spelling, registry surface). See `__call__`."""
+        text = text or ""
+        return tuple(
+            FoundSurface(spelling=text[start:end], surface=surface)
+            for surface in resolve_with_near_misses(text, self._population).hits
+            for start, end in spans_of(text, surface)
+        )
