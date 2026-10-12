@@ -411,12 +411,16 @@ def main() -> int:
         print(json.dumps({"error": "DATABASE_URL is not set in this process."}))
         return 1
 
-    # THE WRITEGUARD, BEFORE THE CONNECTION (#328). This writes registry rows
-    # to whatever DATABASE_URL names, and the guard lived only in
-    # `judge/cli.py`'s connection helper, which a script never passes through.
-    from judge.writeguard import check as writeguard_check
-    writeguard_check(url, command="propose_model.py")
-
+    # NO WRITEGUARD, AND A READ-ONLY CONNECTION INSTEAD (#459). This script
+    # writes nothing - SELECTs only, which the write-path test checks - so the
+    # guard refused it for no reason against staging under
+    # ENVIRONMENT=development, which is where every dev machine runs it and
+    # where the live aliases its collision check reads are. Declared in
+    # tests/test_every_write_path_takes_the_gate.py READ_ONLY; the session is
+    # `default_transaction_read_only`, so a write added later fails in Postgres
+    # rather than reaching the database.
+    sep = "&" if "?" in url else "?"
+    url += sep + "options=-c%20default_transaction_read_only%3Don"
     with psycopg.connect(url, connect_timeout=15) as conn:
         if args.recallable:
             out = _recallable(conn)
