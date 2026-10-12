@@ -35,7 +35,8 @@ import re
 from dataclasses import dataclass, field, replace
 from datetime import date
 
-from collect.ids import model_alias_id, model_version_id
+from collect.ids import model_alias_id
+from collect.ids import model_version_id as computed_model_version_id
 from collect.registry.models import SeedModel
 from collect.registry.policy import DEFAULT_POLICY, AliasSearchPolicy
 
@@ -173,7 +174,12 @@ class AliasRow:
         )
 
 
-def alias_rows(model: SeedModel, policy: AliasSearchPolicy | None = None) -> list[AliasRow]:
+def alias_rows(
+    model: SeedModel,
+    policy: AliasSearchPolicy | None = None,
+    *,
+    model_version_id: str | None = None,
+) -> list[AliasRow]:
     """Every alias for one seeded model, deduplicated by normalised form.
 
     The canonical id and its local part are always added, so an exact mention
@@ -181,9 +187,23 @@ def alias_rows(model: SeedModel, policy: AliasSearchPolicy | None = None) -> lis
     omits it. Neither earns a search query: `anthropic/claude-opus-5` and
     `claude-haiku-4-5-20251001` are strings that appear in configs and API
     logs, not in the prose this lane harvests.
+
+    ⚠ `model_version_id` IS THE ROW'S OWN ID WHEN A WRITER HAS ONE (#457). The
+      computed `stable_id("mv", canonical_id)` is only what a NEW row would be
+      keyed on. A row that already exists keeps the id it was written with, and
+      two did not match the computation (2 of 242 on 2026-09-24:
+      `anthropic/claude-fable-5-1`, `openai/gpt-6-astra`), so an alias keyed on
+      the computed id points at no row - #454's foreign-key failure, one table
+      over. Every caller that WRITES passes the id its registry read or upsert
+      returned; the computed default is for callers that only build query
+      strings and never reach `model_alias`.
     """
     policy = policy or DEFAULT_POLICY.alias_search
-    mv_id = model_version_id(model.canonical_id)
+    mv_id = (
+        computed_model_version_id(model.canonical_id)
+        if model_version_id is None
+        else model_version_id
+    )
     valid_from = model.release_date
 
     #: An alias stops being CURRENT when its model retires, which is exactly
@@ -247,9 +267,23 @@ def alias_rows(model: SeedModel, policy: AliasSearchPolicy | None = None) -> lis
 
 
 def all_alias_rows(
-    models: list[SeedModel], policy: AliasSearchPolicy | None = None
+    models: list[SeedModel],
+    policy: AliasSearchPolicy | None = None,
+    *,
+    model_version_ids: dict[str, str] | None = None,
 ) -> list[AliasRow]:
-    return [row for model in models for row in alias_rows(model, policy)]
+    """`alias_rows` for each model. `model_version_ids` maps canonical id to the
+    row's own id (#457); a model it does not name is KeyError, never the
+    computed id, because a writer that passed the map meant every row in it."""
+    if model_version_ids is None:
+        return [row for model in models for row in alias_rows(model, policy)]
+    return [
+        row
+        for model in models
+        for row in alias_rows(
+            model, policy, model_version_id=model_version_ids[model.canonical_id]
+        )
+    ]
 
 
 def search_queries(rows: list[AliasRow]) -> list[str]:

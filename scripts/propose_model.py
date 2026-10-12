@@ -109,19 +109,23 @@ def _attestation(conn, variants: list[str]) -> dict[str, object]:
     }
 
 
-def _collisions(conn, variants: list[str], mv_id: str) -> list[dict]:
+def _collisions(conn, variants: list[str], own_ids: list[str]) -> list[dict]:
     """Spellings already live for a DIFFERENT model.
 
     The one hard failure in adding a model: an alias that resolves to somebody
     else's row does not add evidence, it MISFILES it, and `model_alias` is
     append-only under FR-4 so there is no undo.
+
+    `own_ids` is every id this model's rows may carry - the computed one AND
+    the registry row's own (#457). Excluding only the computed id reported a
+    hand-entered model's aliases as held by somebody else: its own.
     """
     found = []
     for variant in variants:
         rows = conn.execute(
             "SELECT model_version_id, surface FROM model_alias "
-            "WHERE normalized = %s AND model_version_id <> %s",
-            (normalize(variant), mv_id),
+            "WHERE normalized = %s AND model_version_id <> ALL(%s)",
+            (normalize(variant), own_ids),
         ).fetchall()
         for owner, surface in rows:
             found.append({"variant": variant, "held_by": owner, "as": surface})
@@ -145,14 +149,23 @@ def _contract_entry(name: str, registry: str, kind: str) -> str:
 def _add(conn, name: str, registry: str, kind: str) -> dict:
     surface = name.strip()
     variants = query_variants(surface)
-    mv_id = model_version_id(registry)
+    computed = model_version_id(registry)
     tracked = _tracked_entries()
 
+    # ⚠ BY CANONICAL ID OR BY THE REGISTRY STRING AS AN ID (#457). A
+    #   hand-entered row may carry an id a person typed - `openai/gpt-6-astra`,
+    #   `anthropic/claude-fable-5-1` - that is not `stable_id("mv", ...)`, so
+    #   matching `id` on the computed value found no row for it. A canonical
+    #   match wins over an id match when both exist.
     row = conn.execute(
         "SELECT id, canonical_id, display_name, provenance FROM model_version "
-        "WHERE canonical_id = %s OR id = %s",
-        (registry, mv_id),
+        "WHERE canonical_id = %s OR id = ANY(%s) "
+        "ORDER BY (canonical_id = %s) DESC LIMIT 1",
+        (registry, [registry, computed], registry),
     ).fetchone()
+    # The id rows are keyed on: the row's own when it exists, else what a new
+    # row would get.
+    mv_id = row[0] if row else computed
 
     return {
         "action": "add",
@@ -167,7 +180,7 @@ def _add(conn, name: str, registry: str, kind: str) -> dict:
         # one judgement that exists (is this what people call it) is left to the
         # person reading the attestation counts.
         "attestation": _attestation(conn, variants),
-        "collisions": _collisions(conn, variants, mv_id),
+        "collisions": _collisions(conn, variants, sorted({mv_id, computed})),
         "already_tracked": any(
             (e.get("registry") or "") == registry for e in tracked
         ),

@@ -146,6 +146,8 @@ class _Seatable:
     """
 
     canonical_id: str
+    #: The registry row's OWN id, read rather than computed (#457).
+    model_version_id: str
     provider: str
     family: str | None
     release_date: date | None
@@ -207,8 +209,11 @@ def check_against_table(conn, rows: list[AliasRow]) -> None:
 
 def rows_for(conn, entry: ReviewedEntry) -> list[AliasRow]:
     """Build the alias rows. Facts from `model_version`, surfaces from the artifact."""
+    # `id` IS READ, NOT DERIVED (#457). The row is found by `canonical_id`, and
+    # a row hand-entered under another spelling keeps its own id - so keying
+    # the aliases on `stable_id("mv", canonical_id)` pointed them at no row.
     row = conn.execute(
-        "SELECT provider, family, release_date, retirement_date "
+        "SELECT id, provider, family, release_date, retirement_date "
         "FROM model_version WHERE canonical_id = %s",
         (entry.canonical_id,),
     ).fetchone()
@@ -218,16 +223,19 @@ def rows_for(conn, entry: ReviewedEntry) -> list[AliasRow]:
             f"at no model version is a foreign key waiting to happen — poll "
             f"first, or the id is wrong."
         )
-    provider, family, release_date, retirement_date = row
+    row_id, provider, family, release_date, retirement_date = row
     seatable = _Seatable(
         canonical_id=entry.canonical_id,
+        model_version_id=row_id,
         provider=provider,
         family=family,
         release_date=release_date,
         retirement_date=retirement_date,
         aliases=_Aliases(surface=entry.surface, variants=list(entry.variants)),
     )
-    return alias_rows(seatable)  # type: ignore[arg-type]
+    return alias_rows(  # type: ignore[arg-type]
+        seatable, model_version_id=seatable.model_version_id
+    )
 
 
 def seat(conn, canonical_id: str, *, path: Path | None = None) -> dict[str, object]:

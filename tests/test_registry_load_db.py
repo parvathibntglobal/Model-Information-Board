@@ -584,7 +584,7 @@ def test_promotion_from_seed_to_polled_is_allowed(conn):
     model = next(
         m for m in load_seed_file().models if m.canonical_id == "anthropic/claude-opus-5"
     )
-    verdict, _ = _upsert_model(conn, model_row(model, provenance="polled", as_of=AS_OF))
+    verdict, _, _ = _upsert_model(conn, model_row(model, provenance="polled", as_of=AS_OF))
     conn.commit()
 
     assert verdict == "updated"
