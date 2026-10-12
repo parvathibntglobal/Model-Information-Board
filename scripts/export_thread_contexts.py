@@ -155,7 +155,7 @@ from collect.assemble.article import (  # noqa: E402
 from collect.assemble.article import document_row as blog_document_row  # noqa: E402
 from collect.assemble.thread import assemble  # noqa: E402
 from collect.ids import content_hash  # noqa: E402
-from collect.rawstore import RawStore
+from collect.rawstore import FLATTENED, RAW, Namespace, RawStore, parse_ref  # noqa: E402
 from collect.registry.seed import seed_models  # noqa: E402
 from collect.triage.specificity import alias_match_count  # noqa: E402
 
@@ -460,6 +460,26 @@ def build_blogs(store: RawStore, limit: int) -> list[tuple[dict, list[dict], str
     return out
 
 
+def _store_ref(ref: str, namespace: Namespace, what: str) -> str:
+    """`ref`, if it is a real ref in `namespace`; otherwise refuse, loudly (#303).
+
+    `flattened_text_ref` used to be the literal `flattened/inline-see-json`.
+    That is no store ref - `parse_ref` raises `ValueError` on it - so a reader
+    got a crash where the four read outcomes should have answered, and one such
+    row reached the shared database (`thread_context_d166d88fbb7b3c70`). A
+    `load.sql` carrying anything but a content address is refused rather than
+    written."""
+    try:
+        parsed, _hash = parse_ref(ref)
+    except ValueError as error:
+        raise SystemExit(f"refusing to write load.sql: {what} {ref!r} is not a "
+                         f"raw-store ref ({error})") from error
+    if parsed is not namespace:
+        raise SystemExit(f"refusing to write load.sql: {what} {ref!r} is in "
+                         f"{parsed.prefix}/, expected {namespace.prefix}/")
+    return ref
+
+
 def main(out_dir: Path, *, limit: int | None = DEFAULT_THREADS) -> int:
     store = RawStore(Path(tempfile.mkdtemp()))
     (out_dir / "threads").mkdir(parents=True, exist_ok=True)
@@ -495,12 +515,22 @@ def main(out_dir: Path, *, limit: int | None = DEFAULT_THREADS) -> int:
         )
         written.append(name)
         for document in documents:
+            _store_ref(document["text_ref"], RAW, f"document {document['id']} text_ref")
             statements.append(_insert("document", document))
+        # THE REAL CONTENT ADDRESS of the flattened text, stored the way every
+        # assembler stores it (`store.put(..., namespace=FLATTENED)`) - the same
+        # bytes, so the same ref the assembler already produced. The bytes
+        # themselves travel inline in threads/*.json; a loader whose store
+        # lacks them reads MISSING, which is true, instead of a ValueError.
+        flattened_ref = _store_ref(
+            store.put(export["flattened_text"], namespace=FLATTENED).ref,
+            FLATTENED, f"thread_context {export['thread_context_id']} flattened_text_ref",
+        )
         statements.append(_insert("thread_context", {
             "id": export["thread_context_id"],
             "thread_root_id": export["thread_root_id"],
             "member_document_ids": export["member_document_ids"],
-            "flattened_text_ref": "flattened/inline-see-json",
+            "flattened_text_ref": flattened_ref,
             "offset_map": json.dumps(export["offset_map"]),
             "child_count": len(export["member_document_ids"]) - 1,
             "selection_method": export["provenance"].get(
@@ -527,10 +557,10 @@ def main(out_dir: Path, *, limit: int | None = DEFAULT_THREADS) -> int:
         "-- thread_context is not an FK requirement (there is none between them)\n"
         "-- but claim references both, so load this whole file.\n"
         "--\n"
-        "-- flattened_text_ref is a PLACEHOLDER. The real flattened text is\n"
-        "-- inline in threads/*.json, because the object store it would point\n"
-        "-- into is gitignored and machine-local. Nothing in judge/extract\n"
-        "-- reads the column; ThreadInput takes the text directly.\n\n"
+        "-- flattened_text_ref is the content address of the flattened text,\n"
+        "-- which travels inline in threads/*.json: the object store it points\n"
+        "-- into is machine-local, so a store without those bytes reads the\n"
+        "-- ref as MISSING. ThreadInput takes the text directly.\n\n"
     )
     (out_dir / "load.sql").write_text(header + "\n\n".join(statements) + "\n",
                                      encoding="utf-8")
