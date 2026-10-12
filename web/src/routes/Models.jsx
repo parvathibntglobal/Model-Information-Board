@@ -216,6 +216,18 @@ export default function Models() {
             does not explain itself. Disabled with a reason is the right shape:
             it tells the reader the feature is there and what it needs, which is
             the opposite of the usual objection to a disabled control. */}
+        <div className="row" style={{ gap: 8, flexShrink: 0 }}>
+        {/* BESIDE COMPARE, two more tools over the same roster: count a text's
+            tokens and price it (routes/TokenCounter.jsx), and filter models on
+            advertised specs (routes/ModelFinder.jsx). */}
+        <Link to="/token-counter" className="btn btn-ghost" style={{ whiteSpace: 'nowrap' }}
+              title="Count the tokens in a text and see what it costs on each model">
+          Token counter
+        </Link>
+        <Link to="/model-finder" className="btn btn-ghost" style={{ whiteSpace: 'nowrap' }}
+              title="Filter models by tool calling, vision, context window and price">
+          Spec finder
+        </Link>
         <button
           type="button"
           className="btn btn-primary"
@@ -236,6 +248,7 @@ export default function Models() {
         >
           {picked.length === 0 ? 'Compare models' : `Compare (${picked.length}) →`}
         </button>
+        </div>
       </div>
 
       {unreadable && <Unreadable detail={unreadable} />}
