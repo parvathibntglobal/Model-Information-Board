@@ -48,6 +48,8 @@ class _Entry:
     entry_id: str
     url: str | None
     published_at: datetime | None = None
+    #: The entry's own byline, which `from_blog` reads for an `entry` feed.
+    author: str | None = None
 
 
 @dataclass
@@ -248,3 +250,88 @@ def test_a_run_id_writes_run_recorded_and_the_link(conn, store):
     ).fetchone()
     assert provenance == "run_recorded"
     assert run_id == "hr_test_blog"
+
+
+# ── #373: an `entry`-byline feed attributes each article to ITS entry ──────
+
+_ENTRY_FEED = {"id": "blog:t.example", "measured": {"byline_source": "entry"}}
+
+
+def _entries_run(store: RawStore, bylines):
+    """One article per byline, each with its own entry and its own body."""
+    articles = []
+    for n, byline in enumerate(bylines):
+        entry_id = f"https://t.example/post-{n}"
+        stored = store.put(ARTICLE.replace(b"<title>T</title>", f"<title>{n}</title>".encode()))
+        articles.append(_ArticleFetch(
+            _Entry(entry_id, entry_id, author=byline),
+            _Artifact(stored.ref, stored.content_hash),
+        ))
+    return _FeedRun(articles=articles)
+
+
+def _authors_by_url(conn) -> dict[str, str | None]:
+    return {
+        url: external_id
+        for url, external_id in conn.execute(
+            "SELECT d.url, a.external_id FROM document d "
+            "LEFT JOIN author a ON a.id = d.author_id"
+        ).fetchall()
+    }
+
+
+def test_two_bylines_in_one_run_each_get_their_own_author(conn, store):
+    """The `> 1` branch wrote both author rows and linked neither (#373)."""
+    report = write_blog_run(
+        conn, _entries_run(store, ["A Dev", "B Dev"]), store=store, feed=_ENTRY_FEED,
+    )
+    conn.commit()
+
+    assert _authors_by_url(conn) == {
+        "https://t.example/post-0": "blog:t.example#A Dev",
+        "https://t.example/post-1": "blog:t.example#B Dev",
+    }
+    assert report.author_rows == 2
+    assert report.entries_without_byline == 0
+    orphans = conn.execute(
+        "SELECT count(*) FROM author a WHERE NOT EXISTS "
+        "(SELECT 1 FROM document d WHERE d.author_id = a.id)"
+    ).fetchone()[0]
+    assert orphans == 0, "every author row written is one a document links"
+
+
+def test_an_unbylined_entry_stays_null_in_a_one_byline_run(conn, store):
+    """The `== 1` branch gave the run's one byline to EVERY article, including
+    the entry that named nobody. The domain being someone's is not evidence
+    that they wrote the post (#373, hamel.dev's own contract row)."""
+    report = write_blog_run(
+        conn, _entries_run(store, ["A Dev", None]), store=store, feed=_ENTRY_FEED,
+    )
+    conn.commit()
+
+    assert _authors_by_url(conn) == {
+        "https://t.example/post-0": "blog:t.example#A Dev",
+        "https://t.example/post-1": None,
+    }
+    assert report.entries_without_byline == 1, "counted, not silently NULL"
+
+
+def test_an_already_present_document_gets_its_own_entrys_author(conn, store):
+    """The backfill was guarded on the run-level id, which was None for
+    exactly the feeds that needed it. Written first with no `feed` (the old
+    default), then re-run with it: each row gets its own byline."""
+    write_blog_run(conn, _entries_run(store, ["A Dev", "B Dev"]), store=store)
+    conn.commit()
+    assert set(_authors_by_url(conn).values()) == {None}
+
+    again = write_blog_run(
+        conn, _entries_run(store, ["A Dev", "B Dev"]), store=store, feed=_ENTRY_FEED,
+    )
+    conn.commit()
+
+    assert again.already_present == 2
+    assert again.authors_attached_to_existing == 2
+    assert _authors_by_url(conn) == {
+        "https://t.example/post-0": "blog:t.example#A Dev",
+        "https://t.example/post-1": "blog:t.example#B Dev",
+    }
