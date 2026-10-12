@@ -3508,6 +3508,28 @@ def admin_models_propose(
     return payload
 
 
+@app.get("/admin/usage/billed")
+def admin_usage_billed() -> dict:
+    """Billed against estimated cost, per recent run (Admin -> API usage).
+
+    Read-only, from the thread records each fetch writes. See
+    `judge/admin_extras.py` for what is and is not recorded.
+    """
+    from judge import admin_extras
+
+    with _conn() as conn:
+        return admin_extras.billed_cost(conn)
+
+
+@app.get("/admin/runs/lost-claims")
+def admin_runs_lost_claims() -> dict:
+    """Claims each recent run lost to validation, by error (Admin -> Runs)."""
+    from judge import admin_extras
+
+    with _conn() as conn:
+        return admin_extras.lost_claims(conn)
+
+
 @app.get("/admin/runs")
 def admin_runs(limit: int = 60) -> dict:
     """Every fetch run this database has seen, newest first.

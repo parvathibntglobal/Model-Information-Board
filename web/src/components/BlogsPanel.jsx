@@ -184,6 +184,8 @@ export default function BlogsPanel() {
   const [tab, setTab] = useState('drafts')
   const [busy, setBusy] = useState(null)
   const [reviewErr, setReviewErr] = useState(null)
+  // WHAT THE LAST CLICK DID, said once, so a saved decision is visible.
+  const [reviewDone, setReviewDone] = useState(null)
   const [storeMsg, setStoreMsg] = useState(null)
   const timer = useRef(null)
 
@@ -241,8 +243,14 @@ export default function BlogsPanel() {
     }
     setBusy(slug)
     setReviewErr(null)
+    setReviewDone(null)
     reviewBlogPost(slug, decision, reason)
-      .then(() => { loadHist(); load() })
+      .then(() => {
+        loadHist(); load()
+        setReviewDone(`${slug}: ${decision === 'approved' ? 'approved' : decision === 'rejected' ? 'rejected' : 'moved back to drafts'}.`)
+        // The Admin nav's "to review" count re-reads on this.
+        window.dispatchEvent(new Event('admin:blogs-changed'))
+      })
       .catch((e) => setReviewErr(`${slug}: ${e.message}`))
       .finally(() => setBusy(null))
   }
@@ -257,6 +265,7 @@ export default function BlogsPanel() {
         if (r.refused.length) parts.push(`${r.refused.length} refused: ${r.refused.map((x) => `${x.slug} (${x.why})`).join('; ')}`)
         setStoreMsg(parts.join(' · '))
         load()
+        window.dispatchEvent(new Event('admin:blogs-changed'))
       })
       .catch((e) => setStoreMsg(`Could not store the drafts: ${e.message}`))
       .finally(() => setBusy(null))
@@ -323,6 +332,9 @@ export default function BlogsPanel() {
 
         {posts.err && <Notice icon={<IconAlert />}>The posts could not be read: {posts.err}</Notice>}
         {reviewErr && <Notice icon={<IconAlert />}>Could not record the decision for {reviewErr}</Notice>}
+        {reviewDone && !reviewErr && (
+          <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}><Badge tone="pass">saved</Badge> {reviewDone}</span>
+        )}
         {!data && !posts.err && <div className="skel" style={{ height: 160 }} />}
 
         {/* RULE 4: "the store could not be read" and "nothing stored yet" are different facts. */}
