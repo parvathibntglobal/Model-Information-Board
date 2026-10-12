@@ -140,7 +140,7 @@ def lost_claims(conn: Any, *, runs: int = RUNS) -> dict:
             "started_at": started.isoformat() if started else None,
             "threads": threads,
             "verified": verified,
-            "rejected": rejected,
+            "failed_quote_check": rejected,
             "lost": lost,
             "reasons_recorded": bool(has_shapes) or lost == 0,
             "by_error": dict(by_error.most_common()),

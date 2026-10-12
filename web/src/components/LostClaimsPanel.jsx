@@ -66,7 +66,7 @@ export default function LostClaimsPanel() {
                   <th>{r.model}<div className="dim" style={{ fontSize: 11 }}>{day(r.started_at)}</div></th>
                   <td className="tnum">{r.threads}</td>
                   <td className="tnum">{r.verified}</td>
-                  <td className="tnum">{r.rejected}</td>
+                  <td className="tnum">{r.failed_quote_check}</td>
                   <td className="tnum">
                     {r.lost > 0 ? <Badge tone="warn">{r.lost}</Badge> : r.lost}
                     {!r.reasons_recorded && <div className="dim" style={{ fontSize: 11 }}>reasons not recorded</div>}
