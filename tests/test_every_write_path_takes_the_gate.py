@@ -67,6 +67,9 @@ READ_ONLY: dict[str, str] = {
     "measure_signal_demotion_platforms.py": "measurement only; no write verb",
     "promotion_report.py": ("ranks untracked models by the claims already held; one SELECT, "
                             "over a default_transaction_read_only connection; no write verb"),
+    "raw_store_census.py": ("#321's census: counts where each payload is, over a "
+                            "default_transaction_read_only connection; stats the raw "
+                            "store, never RawStore.get (which caches); no write verb"),
     "registry_diff.py": ("diffs the catalogue against model_version for #450; one SELECT, "
                          "over a default_transaction_read_only connection; no write verb"),
     "run_scheduled_fetches.py": ("plans which models are due over a "
