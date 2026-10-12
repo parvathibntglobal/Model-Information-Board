@@ -4,9 +4,11 @@ The artifact had no consumer: the only writer of `model_alias` was `load_seed`
 over `contract/seed_models.yaml`, a build fixture `assert_no_fixtures` refuses
 outside development. So the reviewed list had no path into the database.
 
-No database here — what is under test is which entries the loader ACCEPTS and
+Mostly no database — what is under test is which entries the loader ACCEPTS and
 which of five reasons it refuses on. `tests/test_registry_load_db.py` covers the
-alias write path against a real Postgres.
+alias write path against a real Postgres. The exception is the last section
+(#460): whether `seat-alias` reports what was WRITTEN needs a second seat
+against a real table, on TEST_DATABASE_URL only.
 """
 
 from __future__ import annotations
@@ -158,3 +160,92 @@ def test_a_model_absent_from_the_registry_refuses_before_writing(tmp_path):
 
     with pytest.raises(SeatRefused, match="not in `model_version`"):
         seat(Conn(), "x/y", path=artifact)
+
+
+# ── #460: seat-alias reports verdicts, not rows built ───────────────────────
+
+
+def _report(verdicts):
+    return {"canonical_id": "x/y", "surface": "why 5", "rows": len(verdicts),
+            "searchable": len(verdicts), "verdicts": verdicts}
+
+
+def test_all_unchanged_says_nothing_written_and_fails(capsys):
+    from collect.cli import _report_seat
+
+    assert _report_seat(_report(["unchanged", "unchanged"])) == 1
+    out = capsys.readouterr().out
+    assert "nothing written" in out
+    assert "seated" not in out
+
+
+def test_a_write_is_counted_per_verdict(capsys):
+    from collect.cli import _report_seat
+
+    assert _report_seat(_report(["inserted", "replaced", "unchanged"])) == 0
+    out = capsys.readouterr().out
+    assert "1 inserted, 1 replaced, 1 unchanged of 3" in out
+
+
+def test_an_unknown_verdict_is_a_defect_not_a_count():
+    from collect.cli import _report_seat
+
+    with pytest.raises(RuntimeError, match="unknown verdict"):
+        _report_seat(_report(["inserted", "skipped"]))
+
+
+@pytest.fixture
+def conn(test_dsn):
+    from collect.db import apply_schema, connect
+    from tests.conftest import assert_disposable, assert_safe_target
+
+    assert_safe_target(test_dsn)
+    connection = connect(test_dsn)
+    try:
+        assert_disposable(connection, test_dsn)
+        connection.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        apply_schema(connection)
+        connection.commit()
+        yield connection
+    finally:
+        connection.rollback()
+        connection.close()
+
+
+def test_a_second_seat_reports_nothing_written(conn, tmp_path, capsys):
+    """GLM-5.3's shape: re-seating an already-seated model writes nothing, and
+    the CLI said `seated ... 2 alias row(s)`."""
+    from pathlib import Path
+
+    from collect.cli import _report_seat
+    from collect.ids import model_version_id
+    from collect.registry.seat import seat
+
+    conn.execute(
+        "INSERT INTO model_version (id, canonical_id, provider, sources, provenance) "
+        "VALUES (%s, 'x/why-5', 'x', '{}', 'polled')",
+        (model_version_id("x/why-5"),),
+    )
+    conn.commit()
+    artifact = Path(tmp_path / "a.yaml")
+    artifact.write_text(
+        "proposals:\n"
+        "  - canonical_id: x/why-5\n"
+        "    surface: why 5\n"
+        "    variants:\n"
+        "      - why-5\n"
+        "      - why5\n"
+        "    incomplete: [family_surface]\n",
+        encoding="utf-8",
+    )
+
+    first = seat(conn, "x/why-5", path=artifact)
+    conn.commit()
+    assert _report_seat(first) == 0
+    assert "seated x/why-5" in capsys.readouterr().out
+
+    second = seat(conn, "x/why-5", path=artifact)
+    conn.commit()
+    assert set(second["verdicts"]) == {"unchanged"}
+    assert _report_seat(second) == 1
+    assert "nothing written" in capsys.readouterr().out

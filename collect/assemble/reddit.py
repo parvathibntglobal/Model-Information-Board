@@ -61,7 +61,7 @@ from dataclasses import dataclass, field
 from collect.adapters.reddit import reddit_document_id
 from collect.assemble.flatten import flatten
 from collect.assemble.prose import reddit_prose
-from collect.assemble.ranking import select_children
+from collect.assemble.ranking import select_children, version_surfaces
 from collect.assemble.thread import MAX_CHILDREN, SELECTION_METHOD, AssembledThread
 from collect.config import settings
 from collect.ids import stable_id
@@ -368,7 +368,7 @@ def assemble_reddit_documents(
     # The version's aliases are what `rank_children` scores specificity against —
     # a version token in a comment is the specificity signal. Read once, not
     # per thread.
-    version_aliases = _version_aliases(conn)
+    version_aliases = version_surfaces(conn)
     # Every current alias, for the relevance term. Also read once.
     from collect.assemble.ranking import load_lexicon
 
@@ -495,20 +495,3 @@ def assemble_reddit_documents(
             report.comments_inherited_subject += assembled.subject_inherited_children
 
     return report
-
-
-def _version_aliases(conn):
-    """The registry's VERSION and SNAPSHOT surfaces, which `names_version` counts.
-
-    Filtered on `model_alias.specificity`, not all aliases: `names_version` asks
-    whether a comment names a specific version (`sonnet 4`, `opus 4.6`), and a
-    family bare (`sonnet`) is precisely what it must NOT count — a comment saying
-    only `sonnet` is the low-specificity case ranking exists to sink. Reading all
-    aliases would score every family mention as version-specific, the same
-    over-broadening `specificity.py`'s own comment records costing weeks.
-    """
-    rows = conn.execute(
-        "SELECT DISTINCT normalized FROM model_alias "
-        "WHERE normalized IS NOT NULL AND specificity IN ('version', 'snapshot')"
-    ).fetchall()
-    return {r[0] for r in rows if r[0]}
