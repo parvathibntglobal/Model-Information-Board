@@ -697,6 +697,42 @@ def resolve_with_near_misses(
     )
 
 
+def spans_of(text: str, surface: str) -> tuple[tuple[int, int], ...]:
+    """Where `surface` occurs in `text`, as `[start, end)` spans of the ORIGINAL.
+
+    #365. `resolve` answers in the registry's spelling - `qwen3.8 27b` - and
+    the document wrote `Qwen 3.8 27B`. A caller that substitutes the found
+    surface into a phrase matcher (`sieve.matches`, which keeps punctuation and
+    spacing) is then asked about a string the document does not contain, and
+    refuses. Slicing these spans out of `text` gives the writer's own words.
+
+    The SAME predicates as `resolve_with_near_misses`: an occurrence counts when
+    it begins and ends on a word boundary and the text does not continue it as
+    a version. So a surface that survived near-miss subtraction has at least
+    one span here, and a continued occurrence (`fable 5` inside `Fable 5.1`)
+    contributes none.
+
+    `sources` indexes the CASEFOLDED text; `origin` maps that back to `text`,
+    because `casefold()` can lengthen a string (`ß` -> `ss`) and a slice taken
+    with the wrong index would be a plausible wrong spelling (rule 12).
+    """
+    needle = normalize(surface)
+    if not needle:
+        return ()
+    folded = text.casefold()
+    key, starts, ends, sources = normalize_with_offsets(text)
+    origin = [index for index, char in enumerate(text) for _ in char.casefold()]
+    spans: list[tuple[int, int]] = []
+    at = key.find(needle)
+    while at >= 0:
+        last = at + len(needle) - 1
+        if (starts[at] and ends[last]
+                and not _version_continues(folded, sources[last])):
+            spans.append((origin[sources[at]], origin[sources[last]] + 1))
+        at = key.find(needle, at + 1)
+    return tuple(spans)
+
+
 def names_a_model(text: str, population: SurfacePopulation) -> bool:
     """The gate itself. True keeps the document."""
     return bool(resolve(text, population))
