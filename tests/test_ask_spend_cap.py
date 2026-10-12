@@ -188,20 +188,26 @@ class TestTheCapIsReadOnFirstUseNotAtImport:
     for a false reason is still a defect.
     """
 
-    def test_an_env_var_set_after_import_is_still_seen(self, monkeypatch):
-        import importlib
+    # NO RELOAD (#436). The module reads the cap once, on FIRST USE, and keeps
+    # it. A reload used to stand in for "not read yet", but it also replaced
+    # the module's objects under every other test file. Resetting the two
+    # module-level slots to unread says exactly that, and monkeypatch puts them
+    # back after the test.
+    @staticmethod
+    def _unread(monkeypatch):
+        monkeypatch.setattr(spend, "_BUDGET", spend._Unset)
+        monkeypatch.setattr(spend, "_CONFIGURED", None)
 
+    def test_an_env_var_set_after_import_is_still_seen(self, monkeypatch):
         monkeypatch.delenv("EXTRACTION_DAILY_BUDGET_USD", raising=False)
-        module = importlib.reload(spend)          # imported with NO cap present
+        self._unread(monkeypatch)                 # imported, cap not yet read
         monkeypatch.setenv("EXTRACTION_DAILY_BUDGET_USD", "2.50")
 
-        assert module.is_configured() is True, "the cap was read at import, not on use"
+        assert spend.is_configured() is True, "the cap was read at import, not on use"
 
     def test_an_absent_env_var_still_reads_as_unconfigured(self, monkeypatch):
-        import importlib
-
         monkeypatch.delenv("EXTRACTION_DAILY_BUDGET_USD", raising=False)
-        module = importlib.reload(spend)
+        self._unread(monkeypatch)
 
-        assert module.is_configured() is False
-        assert module.spent_usd() is None
+        assert spend.is_configured() is False
+        assert spend.spent_usd() is None
