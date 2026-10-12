@@ -25,7 +25,12 @@ from collect.config import SEED_MODELS_YAML
 from collect.ids import model_alias_id
 from collect.registry.aliases import AliasRow, intervals_overlap
 from collect.registry.assertions import FixtureLeakError, assert_no_fixtures
-from collect.registry.load import ProvenanceDowngradeError, _sync_alias, recompute_window
+from collect.registry.load import (
+    ProvenanceDowngradeError,
+    UnmatchableAliasError,
+    _sync_alias,
+    recompute_window,
+)
 from collect.registry.seed import load_seed_file
 from tests.conftest import assert_disposable, assert_safe_target
 
@@ -189,6 +194,30 @@ def test_a_changed_alias_closes_the_old_row_and_appends(conn):
         "SELECT valid_until FROM model_alias WHERE id = %s", (old_id,)
     ).fetchone()
     assert closed[0] == date(2026, 8, 1)  # closed exactly where the new one opens
+
+
+@pytest.mark.parametrize("normalized", ["gpt 6 astra", "claude fable 51", "GPT6Astra", ""])
+def test_an_alias_no_mention_can_match_is_refused_before_writing(conn, normalized):
+    """#458: `normalize()` strips every separator, so a spaced key matches no
+    mention ever. Two such rows reached staging through the hand-entry path."""
+    _load(conn, as_of=AS_OF)
+    mv_id = conn.execute("SELECT id FROM model_version LIMIT 1").fetchone()[0]
+    before = conn.execute("SELECT count(*) FROM model_alias").fetchone()[0]
+    bad = AliasRow(
+        id="ma_unmatchable",
+        surface="GPT 6 Astra",
+        normalized=normalized,
+        variants=["gpt 6 astra"],
+        provider_hint="openai",
+        model_version_id=mv_id,
+        family=None,
+        specificity="version",
+        valid_from=None,
+    )
+
+    with pytest.raises(UnmatchableAliasError, match="no mention can match"):
+        _sync_alias(conn, bad)
+    assert conn.execute("SELECT count(*) FROM model_alias").fetchone()[0] == before
 
 
 def test_the_handover_is_half_open_so_it_is_not_a_collision(conn):

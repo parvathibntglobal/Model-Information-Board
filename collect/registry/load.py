@@ -29,6 +29,7 @@ from collect.registry.aliases import (
     all_alias_rows,
     check_no_collisions,
     check_spelling_coverage,
+    normalize,
     spelling_gaps,
 )
 from collect.registry.models import SeedModel
@@ -631,6 +632,19 @@ def _close_at(existing_from: date | None, incoming_from: date | None) -> date:
     return max(existing_from, incoming_from)
 
 
+class UnmatchableAliasError(ValueError):
+    """An alias whose `normalized` no mention can ever produce (#458)."""
+
+    def __init__(self, alias: AliasRow) -> None:
+        self.alias = alias
+        super().__init__(
+            f"refusing alias {alias.surface!r} for {alias.model_version_id}: "
+            f"normalized {alias.normalized!r} is not its own normalize() "
+            f"({normalize(alias.normalized)!r}), so no mention can match it. "
+            "Build the row through `alias_rows`, which normalises."
+        )
+
+
 def _sync_alias(conn: psycopg.Connection[Any], alias: AliasRow) -> str:
     """Append one alias, closing any live row it supersedes (FR-4).
 
@@ -645,8 +659,20 @@ def _sync_alias(conn: psycopg.Connection[Any], alias: AliasRow) -> str:
     ever updated and nothing is ever deleted.
 
     Returns ``inserted``, ``unchanged`` or ``replaced``.
+
+    Raises `UnmatchableAliasError` on a `normalized` that is empty or is not
+    its own `normalize()` (#458).
     """
     from psycopg.rows import dict_row
+
+    # ⚠ A KEY NO MENTION CAN PRODUCE IS REFUSED, NOT WRITTEN (#458). Resolution
+    #   matches `normalize(mention)` against `normalized`, and `normalize`
+    #   strips every separator - so `'gpt 6 astra'` and `'claude fable 51'`,
+    #   both live on staging (2 of 106 live rows, counted 2026-09-28), match nothing
+    #   while still carrying search variants. Append-only (FR-4) means a bad
+    #   row cannot be fixed in place, only closed, so the check is here.
+    if not alias.normalized or alias.normalized != normalize(alias.normalized):
+        raise UnmatchableAliasError(alias)
 
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
