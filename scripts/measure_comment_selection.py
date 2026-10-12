@@ -51,11 +51,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from collect.adapters.reddit import reddit_document_id  # noqa: E402
 from collect.assemble.prose import reddit_prose  # noqa: E402
-from collect.assemble.ranking import load_lexicon  # noqa: E402
+from collect.assemble.ranking import load_lexicon, version_surfaces  # noqa: E402
 from collect.assemble.reddit import (  # noqa: E402
     StoredComment,
     _score_of,
-    _version_aliases,
     assemble_reddit_thread,
 )
 from collect.assemble.thread import MAX_CHILDREN  # noqa: E402
@@ -238,7 +237,7 @@ def main(argv: list[str] | None = None) -> int:
     store = RawStore(Path(settings().raw_store_path))
     reader = RawStoreReader(store)
     with connect() as conn:
-        aliases = _version_aliases(conn)
+        aliases = version_surfaces(conn)
         lexicon = load_lexicon(conn)
         threads = load_threads(conn, reader, args.min_comments)
     threads.sort(key=lambda t: (-len(t["comments"]), t["root"]))

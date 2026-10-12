@@ -8,6 +8,10 @@ import Blogs from './routes/Blogs'
 import ModelDetail from './routes/ModelDetail'
 import Models from './routes/Models'
 import Compare from './routes/Compare'
+// The counter's tokenizer is a dynamic import inside tokens/tokenizer.js, so
+// importing the page eagerly does not put the 2 MB rank table in the bundle.
+import TokenCounter from './routes/TokenCounter'
+import ModelFinder from './routes/ModelFinder'
 import Admin from './routes/Admin'
 import BlogLogs from './routes/BlogLogs'
 import Login from './routes/Login'
@@ -74,6 +78,10 @@ export default function App() {
               could not carry two of them, and the SEO plan's comparison
               keywords all target /compare. */}
           <Route path="/compare"    element={<Require session={session}><Compare /></Require>} />
+          {/* Entered from the models list, beside Compare; top-level paths for the
+              same reason as /compare - `/models/*` is a model id. */}
+          <Route path="/token-counter" element={<Require session={session}><TokenCounter /></Require>} />
+          <Route path="/model-finder"  element={<Require session={session}><ModelFinder /></Require>} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />

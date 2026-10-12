@@ -422,7 +422,7 @@ fields:
     reviewed: false
     routes:
     - /models
-    state: no_consumer
+    state: consumed
   prompts:
     reviewed: false
     routes:

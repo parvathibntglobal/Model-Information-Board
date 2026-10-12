@@ -1163,9 +1163,40 @@ def _cmd_registry_seat_alias(args: argparse.Namespace) -> int:
         except SeatRefused as refusal:
             print(str(refusal))
             return 1
+    return _report_seat(report)
+
+
+#: Every verdict `_sync_alias` returns. Anything else is a defect, not a count.
+_SEAT_VERDICTS = ("inserted", "replaced", "unchanged")
+
+
+def _report_seat(report: dict) -> int:
+    """Print what the seat WROTE, from `_sync_alias`'s verdicts (#460).
+
+    This printed `seated <id>: N alias row(s)` from the rows BUILT, so a seat
+    that wrote nothing - GLM-5.3 on 2026-09-24, every verdict `unchanged`
+    because the alias id excludes the window - read as a success. Same class
+    as #444's "stored" count: a figure reported from the intention.
+
+    All `unchanged` prints "nothing written" and returns 1: a person who ran a
+    seat expecting a change needs the absence said, not inferred.
+    """
+    from collections import Counter
+
+    verdicts = Counter(report["verdicts"])
+    unknown = sorted(set(verdicts) - set(_SEAT_VERDICTS))
+    if unknown:
+        raise RuntimeError(f"_sync_alias returned unknown verdict(s) {unknown}")
+    counts = ", ".join(f"{verdicts[v]} {v}" for v in _SEAT_VERDICTS)
+    if not (verdicts["inserted"] or verdicts["replaced"]):
+        print(
+            f"nothing written for {report['canonical_id']}: {report['rows']} alias "
+            f"row(s) built, {counts} - every one is already in the table"
+        )
+        return 1
     print(
-        f"seated {report['canonical_id']}: {report['rows']} alias row(s), "
-        f"{report['searchable']} search-eligible, primary {report['surface']!r}"
+        f"seated {report['canonical_id']}: {counts} of {report['rows']} alias "
+        f"row(s), {report['searchable']} search-eligible, primary {report['surface']!r}"
     )
     return 0
 

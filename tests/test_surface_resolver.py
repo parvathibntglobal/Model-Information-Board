@@ -318,3 +318,87 @@ def test_the_seated_longer_version_wins_over_the_shorter_one():
     r = _seated({"claude sonnet 4": "mv_sonnet4",
                    "claude sonnet 4.5": "mv_sonnet45"})
     assert r("Claude Sonnet 4.5") == "mv_sonnet45"
+
+
+# ── #365: the finder reports the DOCUMENT's spelling ─────────────────────────
+#
+# It returned the registry's (`qwen3.8 27b`) for a text saying `Qwen 3.8 27B`,
+# and `sieve.matches` - which keeps spacing and punctuation - then refused the
+# finder's own answer against the text it came from. Ruling on #365: report the
+# writer's words; mapping to an id stays a separate step.
+
+_QWEN = [("qwen/qwen3.8-27b", "Qwen: Qwen3.8 27B")]
+_QWEN_TEXT = "Qwen 3.8 27B is excellent, but it defaults to"
+
+
+class TestFinderReportsTheDocumentsSpelling:
+    def test_the_issue_s_own_sentence(self):
+        from collect.adapters.queries.sieve import matches, normalize
+        from collect.surface_resolver import RegistrySurfaceFinder
+
+        finder = RegistrySurfaceFinder(build_population(_QWEN))
+        found = finder(_QWEN_TEXT)
+
+        assert found == ("Qwen 3.8 27B",), (
+            "three registry spellings, one span: reported once, as written"
+        )
+        assert matches(found[0], normalize(_QWEN_TEXT)), (
+            "the phrase matcher accepts the finder's answer against the same text"
+        )
+
+    def test_every_spelling_is_a_verbatim_slice_of_the_text(self):
+        from collect.surface_resolver import RegistrySurfaceFinder
+
+        text = "Tried claude-fable-5, then CLAUDE FABLE 5 again, and Gemini 2.5 Flash."
+        found = RegistrySurfaceFinder(build_population(REGISTRY))(text)
+
+        assert found and all(spelling in text for spelling in found)
+        # `fable 5` is a registry surface too and matches inside the longer
+        # mention, as it did before; it is reported in the document's casing.
+        assert set(found) == {
+            "claude-fable-5", "fable-5", "CLAUDE FABLE 5", "FABLE 5", "Gemini 2.5 Flash",
+        }
+        assert found.index("claude-fable-5") < found.index("fable-5"), (
+            "`.hits` order is kept: the longer surface's spellings come first"
+        )
+
+    def test_found_keeps_the_registry_surface_beside_the_spelling(self):
+        """The id lookup stays a visible step: `surface` is still there."""
+        from collect.surface_resolver import RegistrySurfaceFinder
+
+        found = RegistrySurfaceFinder(build_population(_QWEN)).found(_QWEN_TEXT)
+        assert {f.spelling for f in found} == {"Qwen 3.8 27B"}
+        assert {f.surface for f in found} == {"qwen3.8 27b", "qwen3.8-27b", "qwen3.827b"}
+
+    def test_a_document_spelling_still_resolves_to_the_same_id(self):
+        """`judge/pipeline.quote_subject_verdict` hands the finder's output to
+        `RegistrySurfaceResolver`, which normalises its input."""
+        from collect.surface_resolver import RegistrySurfaceFinder
+        from judge.pipeline import QUOTE_NAMES_THE_MODEL, quote_subject_verdict
+
+        resolver = _resolver(_QWEN, {"qwen/qwen3.8-27b": "mv_qwen"})
+        finder = RegistrySurfaceFinder(build_population(_QWEN))
+        assert {resolver(s) for s in finder(_QWEN_TEXT)} == {"mv_qwen"}
+        assert quote_subject_verdict(
+            _QWEN_TEXT, model_version_id="mv_qwen",
+            find_surfaces=finder, resolve_surface=resolver,
+        ) == QUOTE_NAMES_THE_MODEL
+
+    def test_a_version_continued_occurrence_contributes_no_spelling(self):
+        """Same predicate as near-miss subtraction: `Fable 5` inside
+        `Fable 5.1` is not a mention, the bare one later is."""
+        from collect.surface_resolver import RegistrySurfaceFinder
+
+        finder = RegistrySurfaceFinder(build_population(REGISTRY))
+        assert finder("Fable 5.1 broke it; Fable-5 did not.") == ("Fable-5",)
+        assert finder("Fable 5.1 broke it.") == ()
+
+    def test_casefold_that_lengthens_the_text_does_not_shift_the_slice(self):
+        """`ß` casefolds to `ss`, so an index into the folded text is not an
+        index into the original. A wrong slice would still look like a name."""
+        from collect.surface_resolver import RegistrySurfaceFinder
+
+        text = "Straße notes: Gemini 2.5 Flash held up."
+        assert RegistrySurfaceFinder(build_population(REGISTRY))(text) == (
+            "Gemini 2.5 Flash",
+        )
