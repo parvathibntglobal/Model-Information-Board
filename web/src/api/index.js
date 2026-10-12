@@ -469,6 +469,10 @@ export const proposeModel = ({ action, registry = '', name = '', kind = 'text' }
 // a corpse, since a killed process writes nothing, and the missed heartbeats
 // beside it are the evidence for that reading.
 export const adminRuns = (limit) => request(`/admin/runs${limit ? `?limit=${limit}` : ''}`)
+// Admin -> API usage: billed against estimated cost per run.
+export const adminUsageBilled = () => request('/admin/usage/billed')
+// Admin -> Runs: claims each run lost to validation, by error.
+export const adminLostClaims = () => request('/admin/runs/lost-claims')
 
 // Admin -> Scheduler: workflow setup, policy, due queue, switch and GitHub runs. Read-only.
 export const adminScheduler = () => request('/admin/scheduler')
