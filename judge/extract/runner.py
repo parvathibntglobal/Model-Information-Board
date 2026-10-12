@@ -46,7 +46,12 @@ from judge.extract.prompt import (
     schema_violation_correction,
     wrap_untrusted,
 )
-from judge.extract.schema import MAX_QUOTE_CHARS, ExtractedClaim, ExtractionResult
+from judge.extract.schema import (
+    MAX_QUOTE_CHARS,
+    BoardEntry,
+    ExtractedClaim,
+    ExtractionResult,
+)
 from judge.extract.verify import (
     OffsetMapping,
     Rejection,
@@ -102,6 +107,26 @@ class Unsalvaged:
     index: int
     errors: tuple[str, ...]
     raw: dict
+
+
+@dataclass
+class DroppedEntry:
+    """One board entry that failed validation and was dropped from its claim (#411).
+
+    THE CLAIM SURVIVES IT. A claim carries a list of board entries - the same
+    quote filed under a job, a capability and a metric - and a schema check on
+    ONE element used to reject the whole claim, so one metric missing `basis`
+    took every valid entry beside it with it. Ruled on #411: drop the entry,
+    keep the claim, and COUNT what was dropped (rule 4) rather than letting it
+    vanish.
+
+    No raw text is kept: an entry's fields are ours to report by shape, and the
+    claim's quote stays in memory only, as for `Unsalvaged`.
+    """
+
+    claim_index: int
+    entry_index: int
+    errors: tuple[str, ...]
 
 
 #: How many distinct shapes a thread record carries before the rest become a
@@ -235,6 +260,9 @@ class ExtractionRun:
     proposed_capabilities: list[ProposedCapability] = field(default_factory=list)
     #: Claims the model proposed that could not be built. See `Unsalvaged`.
     unsalvaged: list[Unsalvaged] = field(default_factory=list)
+    #: Board entries dropped from a claim that was otherwise kept. See
+    #: `DroppedEntry`.
+    dropped_entries: list[DroppedEntry] = field(default_factory=list)
     no_claim_reason: str | None = None
     #: `ZERO_SILENT` or `ZERO_UNSALVAGED`, set only when nothing was verified.
     #: A validation zero and a real zero are different findings and the first
@@ -412,7 +440,7 @@ def extract(
         # first answer that had eleven good claims in it.
         attempts = [salvage_claims(c.raw_arguments) for c in completions]
         best = max(range(len(attempts)), key=lambda i: len(attempts[i][0]))
-        built, lost, envelope_error = attempts[best]
+        built, lost, envelope_error, dropped = attempts[best]
         if len(completions) > 1 and best != len(completions) - 1:
             log.info(
                 "thread %s: salvaging from attempt %d of %d - a later retry "
@@ -422,6 +450,7 @@ def extract(
                 len(completions),
             )
         run.unsalvaged = lost
+        run.dropped_entries = dropped
         if envelope_error is not None:
             # TRUNCATION IS CHECKED FIRST, because it EXPLAINS the envelope
             # error rather than being a second one. Cut-off JSON does not parse,
@@ -594,7 +623,48 @@ def extract_all(
     return runs
 
 
-def salvage_claims(raw_arguments: str) -> tuple[list[ExtractedClaim], list[Unsalvaged], str | None]:
+def _drop_invalid_entries(item: dict, index: int) -> tuple[dict, list[DroppedEntry]]:
+    """`item` with each board entry that fails on its OWN removed (#411).
+
+    Only when at least one entry survives: a claim with no valid entry left is
+    not a partial claim, it is a lost one, and it goes through the claim-level
+    validation below and into `Unsalvaged` exactly as before - so nothing is
+    counted twice and no claim is kept with an empty list.
+    """
+    entries = item.get("board_entries")
+    if not isinstance(entries, list) or not entries:
+        return item, []
+    kept, dropped = [], []
+    for e_index, entry in enumerate(entries):
+        try:
+            BoardEntry.model_validate(entry)
+        except ValidationError as exc:
+            dropped.append(DroppedEntry(
+                claim_index=index,
+                entry_index=e_index,
+                errors=tuple(
+                    f"board_entries.{'.'.join(str(p) for p in e.get('loc') or ())}: {e.get('msg')}"
+                    for e in exc.errors()
+                ),
+            ))
+        else:
+            kept.append(entry)
+    if not dropped or not kept:
+        return item, []
+    return {**item, "board_entries": kept}, dropped
+
+
+def dropped_entry_shapes(dropped: list[DroppedEntry]) -> tuple[dict[str, int], int]:
+    """`({shape: count}, overflow)` for dropped entries - the same folding and
+    the same cap as `unsalvaged_shapes`, so the two read alike."""
+    return unsalvaged_shapes(
+        [Unsalvaged(index=d.claim_index, errors=d.errors, raw={}) for d in dropped]
+    )
+
+
+def salvage_claims(
+    raw_arguments: str,
+) -> tuple[list[ExtractedClaim], list[Unsalvaged], str | None, list[DroppedEntry]]:
     """Build each claim on its own. Keep what validates, record what does not.
 
     WHY THIS AND NOT A HIGHER RETRY CEILING. A ceiling trades one all-or-nothing
@@ -616,31 +686,39 @@ def salvage_claims(raw_arguments: str) -> tuple[list[ExtractedClaim], list[Unsal
     claim, and guessing at one from the other is how a partial read becomes a
     silent one.
 
-    Returns `(built, unsalvaged, envelope_error)`. `envelope_error` is set when
-    the JSON or the outer shape is unusable, in which case both lists are empty
-    and nothing can be said about what the model proposed.
+    ONE BAD BOARD ENTRY NO LONGER COSTS ITS CLAIM (#411). Each entry is checked
+    on its own first; the invalid ones are dropped and recorded as
+    `DroppedEntry`, and the claim is built from the rest.
+
+    Returns `(built, unsalvaged, envelope_error, dropped_entries)`.
+    `envelope_error` is set when the JSON or the outer shape is unusable, in
+    which case every list is empty and nothing can be said about what the model
+    proposed.
     """
     try:
         payload = json.loads(raw_arguments)
     except json.JSONDecodeError as exc:
-        return [], [], f"arguments were not JSON: {exc}"
+        return [], [], f"arguments were not JSON: {exc}", []
     if not isinstance(payload, dict):
-        return [], [], f"arguments were {type(payload).__name__}, not an object"
+        return [], [], f"arguments were {type(payload).__name__}, not an object", []
 
     raw_claims = payload.get("claims")
     if raw_claims is None:
-        return [], [], "no `claims` key in the arguments"
+        return [], [], "no `claims` key in the arguments", []
     if not isinstance(raw_claims, list):
-        return [], [], f"`claims` was {type(raw_claims).__name__}, not a list"
+        return [], [], f"`claims` was {type(raw_claims).__name__}, not a list", []
 
     built: list[ExtractedClaim] = []
     lost: list[Unsalvaged] = []
+    dropped_all: list[DroppedEntry] = []
     for index, item in enumerate(raw_claims):
         if not isinstance(item, dict):
             lost.append(Unsalvaged(index=index, errors=("claim was not an object",), raw={}))
             continue
+        trimmed, dropped = _drop_invalid_entries(item, index)
         try:
-            built.append(ExtractedClaim.model_validate(item))
+            built.append(ExtractedClaim.model_validate(trimmed))
+            dropped_all.extend(dropped)
         except ValidationError as exc:
             lost.append(
                 Unsalvaged(
@@ -652,7 +730,7 @@ def salvage_claims(raw_arguments: str) -> tuple[list[ExtractedClaim], list[Unsal
                     raw=item,
                 )
             )
-    return built, lost, None
+    return built, lost, None, dropped_all
 
 
 def _quote_length_correction(exc: ValidationError, raw: str) -> str | None:

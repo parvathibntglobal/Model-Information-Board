@@ -3030,6 +3030,23 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             out["unsalvaged_other"] = overflow
         return out
 
+    def _dropped_entries(dropped) -> dict:
+        """Board entries dropped from claims that were kept (#411). Absent when
+        none were, for the same reason as `_unsalvaged_shapes`.
+
+        COUNTED, NOT SILENT (rule 4): "3 entries stored" and "3 stored, 1
+        dropped for a missing basis" are different facts.
+        """
+        if not dropped:
+            return {}
+        from judge.extract.runner import dropped_entry_shapes
+
+        shapes, overflow = dropped_entry_shapes(dropped)
+        out = {"entries_dropped": len(dropped), "dropped_entries_by_error": shapes}
+        if overflow:
+            out["dropped_entries_other"] = overflow
+        return out
+
     def _on_result(result, *, tokens_in, tokens_out, usd, posts, index, total):
         """What came back from one thread, as it lands.
 
@@ -3060,6 +3077,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             #   want opposite fixes - one defect repeated, or twenty different
             #   ones - were indistinguishable afterwards.
             **_unsalvaged_shapes(run.unsalvaged),
+            **_dropped_entries(getattr(run, "dropped_entries", None)),
             unclassified=len(run.unclassified),
             proposed=len(run.proposed_capabilities),
             keys=keys or None,
