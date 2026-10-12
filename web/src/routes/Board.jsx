@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { boardPage, BoardUnreadable } from '../api'
-import { setBoardData } from '../board/db'
+import { boardPage, freshness, BoardUnreadable } from '../api'
+import { DB, setBoardData } from '../board/db'
 import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel } from '../board/views'
 import BoardView from '../board/BoardView'
 
@@ -48,10 +48,13 @@ export default function Board() {
 
   useEffect(() => {
     let alive = true
-    boardPage()
-      .then((d) => {
+    // THE FRESHNESS DATES ride along; if they cannot be read the line is left
+    // out, and the board still renders.
+    Promise.all([boardPage(), freshness().catch(() => null)])
+      .then(([d, f]) => {
         if (!alive) return
         setBoardData(d)
+        DB.freshness = f
         setState({ ready: true, err: null, unreadable: null })
       })
       .catch((e) => {

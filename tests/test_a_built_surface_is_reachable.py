@@ -68,7 +68,7 @@ COMPONENTS = ROOT / "web" / "src" / "components"
 #: a rule like "anything ending in Panel" would have missed `ModelProposal`
 #: and silently excused the next orphan with a different suffix.
 NOT_ADMIN_PANELS = {
-    "AuraField", "BlogShowcase", "Faq", "FluidCanvas", "Footer", "Hero",
+    "AuraField", "BlogShowcase", "Faq", "FluidCanvas", "Footer", "Freshness", "Hero",
     "ModelEvidence", "Nav", "OrbitHub", "SiteSearch", "Icons", "ui",
 }
 
