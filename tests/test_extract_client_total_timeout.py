@@ -160,17 +160,12 @@ class TestANormalCallIsUntouched:
         assert completion.input_tokens == 10
 
     def test_the_cap_is_configurable(self, monkeypatch):
+        # Read when the client is built, so no reload is needed (#436): a
+        # reload replaced this module's classes and broke other files' tests.
         monkeypatch.setenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "42")
-        import importlib
-
-        from judge.extract import client as module
-
-        importlib.reload(module)
-        try:
-            assert module.OpenRouterClient(api_key="k").total_timeout_seconds == 42
-        finally:
-            monkeypatch.delenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", raising=False)
-            importlib.reload(module)
+        assert OpenRouterClient(api_key="k").total_timeout_seconds == 42
+        monkeypatch.delenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", raising=False)
+        assert OpenRouterClient(api_key="k").total_timeout_seconds == 1200
 
 
 class TestAStopReachesInsideTheCall:

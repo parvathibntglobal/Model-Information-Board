@@ -283,7 +283,7 @@ class TestPerClaimSalvage:
         from judge.extract.runner import salvage_claims
 
         payload = {"claims": [self._claim(), self._claim()], "no_claim_reason": None}
-        built, lost, err = salvage_claims(json.dumps(payload))
+        built, lost, err, _dropped = salvage_claims(json.dumps(payload))
         assert err is None
         assert len(built) == 2
         assert lost == []
@@ -295,7 +295,7 @@ class TestPerClaimSalvage:
         good = [self._claim() for _ in range(11)]
         bad = self._claim()
         bad["quote"] = "x" * 400
-        built, lost, err = salvage_claims(json.dumps({"claims": [*good, bad]}))
+        built, lost, err, _dropped = salvage_claims(json.dumps({"claims": [*good, bad]}))
         assert err is None
         assert len(built) == 11
         assert len(lost) == 1
@@ -307,7 +307,7 @@ class TestPerClaimSalvage:
 
         bad = self._claim()
         bad["quote"] = "y" * 400
-        _, lost, _ = salvage_claims(json.dumps({"claims": [bad]}))
+        _, lost, _, _ = salvage_claims(json.dumps({"claims": [bad]}))
         assert lost[0].raw["quote"] == "y" * 400
         assert any("quote" in e for e in lost[0].errors)
 
@@ -316,7 +316,7 @@ class TestPerClaimSalvage:
         from judge.extract.runner import salvage_claims
 
         for payload in ("not json", "[]", '{"no_claims_key": 1}', '{"claims": 3}'):
-            built, lost, err = salvage_claims(payload)
+            built, lost, err, _dropped = salvage_claims(payload)
             assert err is not None, payload
             assert built == [] and lost == []
 
