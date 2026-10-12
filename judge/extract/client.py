@@ -504,8 +504,14 @@ class OpenRouterClient:
     #: person watching a run does not wait for this at all. The cap is the
     #: backstop for a run nobody is watching, and a backstop that fires on 2.5%
     #: of healthy calls is worse than one that fires late.
-    total_timeout_seconds: float = float(
-        os.getenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200")
+    #:
+    #: READ WHEN THE CLIENT IS BUILT, not when this module is imported (#436).
+    #: An import-time default froze whatever the environment held at the first
+    #: import, so the only way to test a different value was to reload this
+    #: module - which replaced its classes and broke `except` clauses holding
+    #: the old ones in other test files, depending on the order they ran in.
+    total_timeout_seconds: float = field(
+        default_factory=lambda: float(os.getenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200"))
     )
     #: A CEILING ON OUTPUT, which is the thing that actually costs time.
     #:

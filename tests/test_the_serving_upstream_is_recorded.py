@@ -29,11 +29,12 @@ from judge import fetch_console
 def _client():
     """Resolved when a test RUNS, not when the file is collected.
 
-    ⚠ `tests/test_extract_client_total_timeout.py` calls `importlib.reload` on
-      this module, which replaces `ExtractorUnavailable` with a new class. A
-      name imported at collection time then no longer matches what the client
-      raises, and `pytest.raises` misses it - but only when that file happens to
-      run first. Looking the classes up at call time is immune to that.
+    ⚠ `tests/test_extract_client_total_timeout.py` used to call
+      `importlib.reload` on this module, which replaced `ExtractorUnavailable`
+      with a new class, so a name imported at collection time stopped matching
+      what the client raised. That reload is gone (#436) and
+      `test_no_test_replaces_a_project_module.py` keeps it gone; looking the
+      classes up at call time stays harmless either way.
     """
     import importlib
 
