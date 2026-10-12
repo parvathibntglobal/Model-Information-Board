@@ -3047,6 +3047,19 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             out["dropped_entries_other"] = overflow
         return out
 
+    def _retried_on(errors) -> dict:
+        """What attempt 1 failed on when a retry ran (#411 b). Absent when no
+        retry ran, for the same reason as `_unsalvaged_shapes`."""
+        if not errors:
+            return {}
+        from judge.extract.runner import error_shapes
+
+        shapes, overflow = error_shapes(errors)
+        out = {"retried_on_by_error": shapes}
+        if overflow:
+            out["retried_on_other"] = overflow
+        return out
+
     def _on_result(result, *, tokens_in, tokens_out, usd, posts, index, total):
         """What came back from one thread, as it lands.
 
@@ -3078,6 +3091,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             #   ones - were indistinguishable afterwards.
             **_unsalvaged_shapes(run.unsalvaged),
             **_dropped_entries(getattr(run, "dropped_entries", None)),
+            # ⚠ WHAT THE RETRY WAS ASKED TO FIX (#411 b). `unsalvaged_by_error`
+            #   is the answer salvaged from, so a retry that rescued a thread
+            #   left no record of what it rescued it from.
+            **_retried_on(getattr(run, "first_attempt_errors", ())),
             unclassified=len(run.unclassified),
             proposed=len(run.proposed_capabilities),
             keys=keys or None,

@@ -179,11 +179,16 @@ def unsalvaged_shapes(lost: list[Unsalvaged]) -> tuple[dict[str, int], int]:
       was truncated reads as a complete one (rule 4), so the overflow is
       returned rather than dropped - a long tail has to look like a long tail.
     """
+    return error_shapes(e for item in lost for e in item.errors or ("no error recorded",))
+
+
+def error_shapes(errors: Iterable[str]) -> tuple[dict[str, int], int]:
+    """`unsalvaged_shapes` over bare `loc: msg` strings - the same reduction
+    and the same cap. Read for `ExtractionRun.first_attempt_errors` (#411 b)."""
     counts: dict[str, int] = {}
-    for item in lost:
-        for error in item.errors or ("no error recorded",):
-            shape = _shape_of(error)
-            counts[shape] = counts.get(shape, 0) + 1
+    for error in errors:
+        shape = _shape_of(error)
+        counts[shape] = counts.get(shape, 0) + 1
     if len(counts) <= UNSALVAGED_SHAPES_SHOWN:
         return counts, 0
     ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
@@ -263,6 +268,12 @@ class ExtractionRun:
     #: Board entries dropped from a claim that was otherwise kept. See
     #: `DroppedEntry`.
     dropped_entries: list[DroppedEntry] = field(default_factory=list)
+    #: The schema errors attempt 1 failed on, when there was a retry (#411 b).
+    #: `unsalvaged` describes the answer salvaged FROM, so a retry that rescued
+    #: a thread left no record of what it rescued it from. Same `loc: msg` form
+    #: as `Unsalvaged.errors`, so the shapes compare. Consumer named (rule 9):
+    #: the thread record's `retried_on_by_error` in scripts/fetch_model.py.
+    first_attempt_errors: tuple[str, ...] = ()
     no_claim_reason: str | None = None
     #: `ZERO_SILENT` or `ZERO_UNSALVAGED`, set only when nothing was verified.
     #: A validation zero and a real zero are different findings and the first
@@ -430,6 +441,10 @@ def extract(
     run.upstreams = [c.provider for c in completions]
     run.generation_ids = [c.generation_id for c in completions]
     run.reported_costs = [c.reported_cost_usd for c in completions]
+    if len(completions) > 1:
+        # WHAT THE RETRY WAS ASKED TO FIX (#411 b), recorded whether or not it
+        # did. Re-parsed, not re-called: the same strict parse the loop ran.
+        run.first_attempt_errors = _attempt_errors(completions[0])
 
     if result is None:
         # SALVAGE. The envelope did not validate, which until 2026-08-21 ended the
@@ -879,6 +894,29 @@ def _call_with_one_retry(
             completions.append(completion)
 
     return None, completions, retries
+
+
+def _attempt_errors(completion: Completion) -> tuple[str, ...]:
+    """The errors one completion fails the STRICT parse on, `loc: msg` each.
+
+    The parse the retry loop ran, so this is what the retry was asked to fix.
+    A claim's `claims.<n>.` prefix is stripped so the shapes read like
+    `Unsalvaged.errors` and the two attempts compare; an envelope-level error
+    keeps its own location.
+    """
+    try:
+        _parse(completion)
+    except ValidationError as exc:
+        out = []
+        for e in exc.errors():
+            loc = tuple(e.get("loc") or ())
+            if len(loc) >= 2 and loc[0] == "claims" and isinstance(loc[1], int):
+                loc = loc[2:]
+            out.append(f"{'.'.join(str(p) for p in loc)}: {e.get('msg')}")
+        return tuple(out)
+    except json.JSONDecodeError as exc:
+        return (f"arguments were not JSON: {exc}",)
+    return ()
 
 
 def _parse(completion: Completion) -> ExtractionResult:
