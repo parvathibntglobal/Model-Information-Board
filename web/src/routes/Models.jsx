@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { listModels, fetchAll, fmtTokens, modelUrl, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
+import Freshness from '../components/Freshness'
 import { useHead } from '../seo/head'
 import { modelsIndex } from '../seo/pages'
 
@@ -211,6 +212,7 @@ export default function Models() {
               what the page is in the words people search for (2026-10-05). */}
           <span className="go-badge go-models page-tag" style={{ alignSelf: 'flex-start' }}>Models</span>
           <h1 style={{ fontSize: 'var(--fs-display)' }}>AI models: Claude, GPT, Gemini, DeepSeek and more</h1>
+          <Freshness />
         </div>
 
         {/* TOP RIGHT, AND ALWAYS PRESENT. The sticky bar at the foot of the

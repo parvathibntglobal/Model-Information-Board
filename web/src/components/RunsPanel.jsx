@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { adminRuns } from '../api'
 import { Badge, Notice } from './ui'
 import { IconAlert, IconClock } from './Icons'
+import LostClaimsPanel from './LostClaimsPanel'
 
 /**
  * Every fetch run this database has seen, newest first.
@@ -67,6 +68,8 @@ function when(iso) {
 
 export default function RunsPanel() {
   const [state, setState] = useState({ data: null, err: null })
+  // TWO TABS: the runs themselves, and the claims those runs lost to validation.
+  const [tab, setTab] = useState('runs')
 
   useEffect(() => {
     let alive = true
@@ -99,6 +102,7 @@ export default function RunsPanel() {
         )}
       </div>
 
+      {tab === 'runs' && (
       <div className="card-intro">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           {data?.denominator
@@ -116,8 +120,19 @@ export default function RunsPanel() {
           {data?.unmatchable_note && <> {data.unmatchable_note}</>}
         </p>
       </div>
+      )}
 
       <div className="card-body stack stack-3">
+        <div className="row" style={{ gap: 6 }} role="tablist" aria-label="Runs views">
+          {[['runs', 'Runs'], ['lost', 'Lost claims']].map(([key, text]) => (
+            <button key={key} type="button" role="tab" aria-selected={tab === key}
+                    className={`chip${tab === key ? ' chip-on' : ''}`} onClick={() => setTab(key)}>
+              {text}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'lost' ? <LostClaimsPanel /> : (<>
         {err && <Notice icon={<IconAlert />}>{err}</Notice>}
         {!data && !err && <div className="skel" style={{ height: 200 }} />}
 
@@ -233,6 +248,7 @@ export default function RunsPanel() {
             </div>
           </details>
         ))}
+        </>)}
       </div>
     </section>
   )

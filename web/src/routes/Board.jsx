@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { boardPage, BoardUnreadable } from '../api'
+import { boardPage, freshness, BoardUnreadable } from '../api'
 import { DB, setBoardData } from '../board/db'
 import { useHead } from '../seo/head'
 import { boardHub, boardModelInSection, boardSection } from '../seo/pages'
@@ -51,10 +51,13 @@ export default function Board() {
 
   useEffect(() => {
     let alive = true
-    boardPage()
-      .then((d) => {
+    // THE FRESHNESS DATES ride along; if they cannot be read the line is left
+    // out, and the board still renders.
+    Promise.all([boardPage(), freshness().catch(() => null)])
+      .then(([d, f]) => {
         if (!alive) return
         setBoardData(d)
+        DB.freshness = f
         setState({ ready: true, err: null, unreadable: null })
       })
       .catch((e) => {

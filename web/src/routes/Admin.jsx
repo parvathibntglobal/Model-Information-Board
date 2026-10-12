@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { health, coveragePage, listModels, adminRuns, BoardUnreadable } from '../api'
+import { health, coveragePage, listModels, adminRuns, blogPosts, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
 import BoardReview from '../components/BoardReview'
@@ -390,6 +390,28 @@ export default function Admin() {
     nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
   }, [active.id])
 
+  // BLOG DRAFTS WAITING FOR A DECISION, counted beside "Blogs" in the nav so
+  // they do not sit unnoticed. Stored drafts still pending review, plus draft
+  // files on that machine not yet stored. Re-read whenever the section changes,
+  // so approving in Admin -> Blogs and moving on updates the count. Unknown
+  // (null) when the store cannot be read - shown as nothing, never as 0.
+  // Also re-read the moment Admin -> Blogs saves a decision or stores drafts
+  // (it fires `admin:blogs-changed`), so the count never lags the list.
+  const [blogWaiting, setBlogWaiting] = useState(null)
+  useEffect(() => {
+    let alive = true
+    const read = () => blogPosts('all')
+      .then((d) => {
+        if (!alive || d?.reason) return
+        const pending = (d?.posts || []).filter((p) => p.review === 'pending').length
+        setBlogWaiting({ pending, unstored: (d?.unstored || []).length })
+      })
+      .catch(() => {})
+    read()
+    window.addEventListener('admin:blogs-changed', read)
+    return () => { alive = false; window.removeEventListener('admin:blogs-changed', read) }
+  }, [active.id])
+
   return (
     <div className="shell section-tight stack stack-4 adm-page">
       <div className="stack stack-1">
@@ -437,6 +459,12 @@ export default function Admin() {
                   <span className="t">
                     {sec.title}
                     {sec.wired === false && <span className="adm-nav-tag">not wired</span>}
+                    {sec.id === 'blogs' && blogWaiting && blogWaiting.pending + blogWaiting.unstored > 0 && (
+                      <span className="adm-nav-count"
+                            title={`${blogWaiting.pending} stored draft(s) pending review, ${blogWaiting.unstored} draft file(s) not yet stored`}>
+                        {blogWaiting.pending + blogWaiting.unstored} to review
+                      </span>
+                    )}
                   </span>
                   <span className="d">{sec.blurb}</span>
                 </button>

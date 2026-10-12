@@ -2285,6 +2285,16 @@ def seo_indexable() -> dict:
     return {"paths": [p["path"] for p in result["paths"]]}
 
 
+@app.get("/freshness")
+def freshness_page() -> dict:
+    """When the board last changed, and how new its evidence is - overall and
+    per model, over the entries the board shows. See `judge/freshness.py`."""
+    from judge.freshness import board_freshness
+
+    with _conn() as conn:
+        return board_freshness(conn)
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.
@@ -3527,6 +3537,28 @@ def admin_models_propose(
             detail=f"the proposal script exited {done.returncode}",
         )
     return payload
+
+
+@app.get("/admin/usage/billed")
+def admin_usage_billed() -> dict:
+    """Billed against estimated cost, per recent run (Admin -> API usage).
+
+    Read-only, from the thread records each fetch writes. See
+    `judge/admin_extras.py` for what is and is not recorded.
+    """
+    from judge import admin_extras
+
+    with _conn() as conn:
+        return admin_extras.billed_cost(conn)
+
+
+@app.get("/admin/runs/lost-claims")
+def admin_runs_lost_claims() -> dict:
+    """Claims each recent run lost to validation, by error (Admin -> Runs)."""
+    from judge import admin_extras
+
+    with _conn() as conn:
+        return admin_extras.lost_claims(conn)
 
 
 @app.get("/admin/runs")

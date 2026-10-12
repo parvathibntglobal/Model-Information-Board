@@ -5,6 +5,7 @@ import {
 } from '../api'
 import { Badge, Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconSearch } from '../components/Icons'
+import Freshness from '../components/Freshness'
 import { useHead } from '../seo/head'
 import { comparePage as compareHead } from '../seo/pages'
 
@@ -153,6 +154,7 @@ export default function Compare() {
             "Claude Opus 5"): shorter, and the form people search ("claude vs
             gpt"). The full name is still on each card below. */}
         <h1>{models.map((m) => shortName(m.display_name)).join('  vs  ')}</h1>
+        <Freshness modelIds={models.map((m) => m.model_version_id)} />
         {/* ONE LINE, 2026-10-01. The page opened with four blocks of method -
             the backend's summary and three paragraphs - before a single figure.
             What they said is kept, once: counted, never scored, no winner, and

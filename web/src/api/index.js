@@ -305,6 +305,8 @@ export const fetchRuns = (modelVersionId) =>
 // it again. A ruling clears the copy (below), so a decision still shows at once.
 const BOARD_TTL_MS = 2 * 60 * 1000
 export const boardPage = () => cached('board', () => request('/board'), { ttl: BOARD_TTL_MS })
+// When the board last changed and how new its evidence is (components/Freshness.jsx).
+export const freshness = () => cached('freshness', () => request('/freshness'), { ttl: BOARD_TTL_MS })
 
 export const coveragePage = () => request('/coverage')
 
@@ -480,6 +482,10 @@ export const proposeModel = ({ action, registry = '', name = '', kind = 'text' }
 // a corpse, since a killed process writes nothing, and the missed heartbeats
 // beside it are the evidence for that reading.
 export const adminRuns = (limit) => request(`/admin/runs${limit ? `?limit=${limit}` : ''}`)
+// Admin -> API usage: billed against estimated cost per run.
+export const adminUsageBilled = () => request('/admin/usage/billed')
+// Admin -> Runs: claims each run lost to validation, by error.
+export const adminLostClaims = () => request('/admin/runs/lost-claims')
 
 // Admin -> Scheduler: workflow setup, policy, due queue, switch and GitHub runs. Read-only.
 export const adminScheduler = () => request('/admin/scheduler')

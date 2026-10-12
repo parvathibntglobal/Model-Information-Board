@@ -5,6 +5,7 @@ import NotFound from '../components/NotFound'
 import ModelEvidence from '../components/ModelEvidence'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
+import Freshness from '../components/Freshness'
 import { useHead } from '../seo/head'
 import { modelPage as modelHead } from '../seo/pages'
 
@@ -142,6 +143,7 @@ export default function ModelDetail() {
           {String(name).includes(': ') ? String(name).split(': ').slice(1).join(': ') : name}
         </h1>
         {spec?.provider && <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>{spec.provider}</span>}
+        <Freshness modelIds={[id]} />
       </div>
 
       {/* NOT RENDERED FOR A MODEL THE REGISTRY DOES NOT HOLD. `in_registry`
