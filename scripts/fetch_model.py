@@ -2870,6 +2870,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     #   `spent_usd` as the run's cost would charge this run for every fetch
     #   since midnight.
     spent_before = 0.0
+    # This process's spend rows the shared table did not get, before the stage
+    # runs - the stage line reports the delta (#393).
+    unmirrored_before = spend_ledger.unmirrored_count()
     if budget is not None:
         budget.spent_usd = spend_ledger.spent_today()
         spent_before = budget.spent_usd
@@ -3204,6 +3207,16 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             f"; {len(unread)} thread(s) COULD NOT BE READ - the provider did "
             f"not answer for them after {EXTRACT_ATTEMPTS} attempt(s). They are "
             f"not recorded as read, so the next run tries them again"
+        )
+    # SPEND THE SHARED TABLE NEVER GOT (#393), said only when it happened. The
+    # rows are in this machine's ledger file; every OTHER machine's cap is
+    # short by them until the backfill runs.
+    unmirrored = spend_ledger.unmirrored_count() - unmirrored_before
+    if unmirrored:
+        detail += (
+            f"; {unmirrored} spend row(s) DID NOT REACH THE SHARED LEDGER - they "
+            f"are in {spend_ledger.ledger_path()}, and `python "
+            f"scripts/backfill_telemetry.py --apply` sends them"
         )
     prog.stage("E5", "Extract", "ok", truncated=len(truncated),
                truncated_threads=truncated[:10],

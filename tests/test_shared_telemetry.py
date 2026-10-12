@@ -143,7 +143,10 @@ class TestTheFileRemainsTheSurvivor:
 
     def test_append_to_database_never_raises(self, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", "postgresql://nobody@127.0.0.1:1/none")
-        assert spend_ledger.append_to_database([_call()]) == 0
+        # Never raises - and no longer answers a bare 0 (#393): nothing was
+        # written, and the status says why.
+        result = spend_ledger.append_to_database([_call()])
+        assert result.written == 0 and result.status != spend_ledger.MIRROR_WRITTEN
 
     def test_the_progress_mirror_never_raises(self):
         # A mirror that can raise turns "the database is down" into "the run

@@ -2712,6 +2712,13 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
                      "missing from it, not absent from the world."
             ),
             "unpriced_calls_today": report.unpriced_today,
+            # THIS MACHINE'S ROWS THE SHARED TABLE LACKS (#393), with its
+            # denominator. None when the table was unreadable - `complete`
+            # already says so, and None is not 0. Counted where shown, from the
+            # file and the table, so it cannot go stale (rule 11).
+            # Rendered by web/src/components/UsagePanel.jsx.
+            "unmirrored_rows": report.unmirrored_rows,
+            "local_rows": report.local_rows,
         },
         "cap": {
             "daily_usd": report.daily_cap_usd,
