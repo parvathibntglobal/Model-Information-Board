@@ -343,7 +343,7 @@ def append_to_database(calls: Iterable[Call], *, dsn: str | None = None) -> Mirr
     table.
 
     ⚠ BUT NOT RAISING USED TO MEAN NOT SAYING (#393). Three `return 0`s, and 61
-      of one run's 203 file rows (ANOOJ, e5.5 run 1, 2026-09-21) never reached
+      of one run's 203 file rows (one machine, e5.5 run 1, 2026-09-21) never reached
       the table with nothing in the log. Every other machine's cap reads the
       table, so a silent miss gives them headroom they do not have. A configured
       table that did not get its rows is now logged with the reason and counted

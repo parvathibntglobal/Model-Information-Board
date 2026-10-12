@@ -18,7 +18,7 @@ by source, it counts refs whose payload is
 so that readable + missing + tombstoned + malformed = rows, on every line.
 
 WHY IT EXISTS. Every reading of #321 so far was a hand-run scan pasted into a
-comment - 30.8% missing on ANOOJ and 76.2% on LenovoPB, both 2026-09-16, over
+comment - 30.8% missing on one machine and 76.2% on another, both 2026-09-16, over
 denominators that had already moved by the time they were compared. Reading 1
 (the gap widens against a growing denominator) and reading 2 (blobs counted
 present go missing) only separate across repeated, comparable runs, and this

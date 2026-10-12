@@ -2,7 +2,7 @@
 
 `append_to_database` had three silent `return 0` paths and the connection
 helper a fourth (the 30s backoff). On 2026-09-21, 61 of one run's 203 file rows
-(ANOOJ, e5.5 run 1) never reached `spend_ledger` and nothing in the log said
+(one machine, e5.5 run 1) never reached `spend_ledger` and nothing in the log said
 so - and every other machine's cap reads the table. These pin the split:
 
     not configured / test guard / nothing to send   not a loss, not counted
