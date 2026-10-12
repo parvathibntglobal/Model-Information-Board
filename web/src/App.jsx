@@ -40,6 +40,8 @@ const Blogs = page(() => import('./routes/Blogs'))
 const ModelDetail = page(() => import('./routes/ModelDetail'))
 const Models = page(() => import('./routes/Models'))
 const Compare = page(() => import('./routes/Compare'))
+const TokenCounter = page(() => import('./routes/TokenCounter'))
+const ModelFinder = page(() => import('./routes/ModelFinder'))
 const Admin = page(() => import('./routes/Admin'))
 const BlogLogs = page(() => import('./routes/BlogLogs'))
 
@@ -112,6 +114,10 @@ export default function App() {
               could not carry two of them, and the SEO plan's comparison
               keywords all target /compare. */}
           <Route path="/compare"    element={<Require session={session}><Compare /></Require>} />
+          {/* Entered from the models list, beside Compare; top-level paths for the
+              same reason as /compare - `/models/*` is a model id. */}
+          <Route path="/token-counter" element={<Require session={session}><TokenCounter /></Require>} />
+          <Route path="/model-finder"  element={<Require session={session}><ModelFinder /></Require>} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />

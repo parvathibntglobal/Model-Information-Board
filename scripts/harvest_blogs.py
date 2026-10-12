@@ -191,6 +191,7 @@ def main(argv: list[str] | None = None) -> int:
               "contexts": 0, "nothing_extracted": 0, "already_present": 0,
               "members_unresolved": 0, "unreadable_after_write": 0,
               "author_rows": 0, "authors_attached_to_existing": 0,
+              "entries_without_byline": 0,
               "harvest_runs_opened": 0, "harvest_runs_closed": 0}
 
     try:
@@ -273,6 +274,9 @@ def main(argv: list[str] | None = None) -> int:
                 totals["authors_attached_to_existing"] += (
                     report.authors_attached_to_existing
                 )
+                # #373: an `entry` feed's unbylined documents, NULL by
+                # measurement. Summed so "no author" reads as counted here.
+                totals["entries_without_byline"] += report.entries_without_byline
                 print(f"  {feed_id:38s} {report.summary()}")
     finally:
         if conn is not None:

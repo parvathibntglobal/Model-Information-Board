@@ -224,6 +224,15 @@ export const listModels = async (limit = 100, offset = 0) => {
 }
 
 /**
+ * THE WHOLE REGISTRY, not the tracked set: the token counter and the spec
+ * finder read every model. Plain `/models` (no `tracked`), paged like any list;
+ * `priced_at` is the newest price CHANGE recorded (pricing_history is written
+ * on change only), not the last poll.
+ */
+export const listRegistry = (limit = 100, offset = 0) =>
+  request(`/models?limit=${limit}&offset=${offset}`)
+
+/**
  * Every page of a list endpoint, followed to the end.
  *
  * `/models` and `/capabilities/{key}` now page at 100 by default. A client that

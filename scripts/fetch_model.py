@@ -85,9 +85,10 @@ FETCH_DIR = ROOT / "var" / "fetch"
 
 #: An on-demand fetch must stay responsive, and extraction is one LLM call per
 #: thread whose latency scales with the prompt. A 45-comment thread produced a
-#: ~13-minute E5 with no visible progress. Threads larger than this are DEFERRED
-#: to the nightly batch (which is uncapped) rather than read on a click; the cap
-#: is generous, so only pathologically large threads are held back.
+#: ~13-minute E5 with no visible progress. Threads larger than this are HELD
+#: BACK rather than read on a click; the cap is generous, so only
+#: pathologically large threads are. Said to wait for "the nightly batch" until
+#: #304: there is none, so nothing scheduled reads them (`NO_SCHEDULED_READER`).
 MAX_FETCH_THREAD_CHARS = 30_000
 
 #: Sources dedupe runs over. Every one has a prose extractor; a source
@@ -150,10 +151,24 @@ MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "50"))
 #: document this run harvested. Filling the cap from it spent the 2026-09-24
 #: GPT-5.5 fetch on 22 of 24 threads about other models - 27 minutes of LLM calls
 #: for a button that says "fetch GPT-5.5". Off, the fetch reads this model's
-#: threads only and the backlog waits for the nightly batch, which reads the
-#: whole unread pool. Deferred, not dropped (rule 8): nothing is marked read.
-#: `FETCH_BACKLOG=on` restores the old fill.
+#: threads only and the backlog stays unread. Not dropped: nothing is marked
+#: read. `FETCH_BACKLOG=on` restores the old fill.
+#:
+#: ⚠ THIS SAID THE BACKLOG "WAITS FOR THE NIGHTLY BATCH, WHICH READS THE WHOLE
+#:   UNREAD POOL". THERE IS NO SUCH BATCH (#304). `collect/ops/chain.py` has no
+#:   extract stage and `scripts/run_scheduled_fetches.py` never sets this, so a
+#:   fetch run with it on is the ONLY reader. "Deferred" with no reader reads as
+#:   a decision about the threads when it is an absence we caused (rule 4).
+#:   Turning it on is a spend decision, so the wording changed and the default
+#:   did not.
 FETCH_BACKLOG = os.getenv("FETCH_BACKLOG", "").strip().lower() in {"1", "on", "true", "yes"}
+
+#: Said on every stage line that leaves threads unread. One string, so the
+#: claim is made once and tested once (`tests/test_fetch_model.py`).
+NO_SCHEDULED_READER = (
+    "no scheduled path reads them today - the nightly chain has no extract "
+    "stage and scheduled fetches leave FETCH_BACKLOG off"
+)
 
 #: How far `len(prose(payload))` may differ from what `thread_context.offset_map`
 #: says that member was, before the member is dropped rather than sliced.
@@ -2279,8 +2294,8 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
     inputs = []
     doc_ids: set[str] = set()
     #: Threads skipped for size. Returned rather than counted, so the caller can
-    #: name them - "deferred to the nightly batch" is only honest if somebody
-    #: can see WHICH threads are waiting.
+    #: name them - "held back" is only honest if somebody can see WHICH
+    #: threads are waiting, and nothing scheduled reads them (#304).
     oversized: list[str] = []
     naming_set = set(naming)
     #: Threads whose flattened payload this machine could not read (#303).
@@ -2770,8 +2785,8 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                    detail=f"backlog NOT read by this fetch: of {unread_total:,} unread "
                           f"thread(s) scanned, {scan_unreadable:,} could not be read on "
                           f"this machine and {len(naming)} of the rest name this model; "
-                          f"the others are left unread for the nightly batch "
-                          f"(FETCH_BACKLOG=on reads them here)")
+                          f"the others stay unread: {NO_SCHEDULED_READER}, so "
+                          f"FETCH_BACKLOG=on is the only reader (#304)")
     if not naming:
         # Rule 4: an empty scan is a finding, not a fallback to be silent about -
         # and it is only a finding about the threads this machine could READ.
@@ -2804,8 +2819,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # a cap of 25 deliver 6.
     if oversized:
         prog.stage("E5", "Extract", "running",
-                   detail=f"{len(oversized)} oversized thread(s) deferred to the nightly "
-                          f"batch (> {MAX_FETCH_THREAD_CHARS:,} chars, too slow on demand)")
+                   detail=f"{len(oversized)} oversized thread(s) held back "
+                          f"(> {MAX_FETCH_THREAD_CHARS:,} chars, too slow on demand); "
+                          f"{NO_SCHEDULED_READER} (#304)")
 
     # PRE-LLM HARD GATES. The model reads only what survives them, so a
     # promotional/placeholder/too-short thread never costs a token. Reuses the

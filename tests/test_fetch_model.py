@@ -253,7 +253,8 @@ def test_backlog_off_reads_only_threads_naming_the_model(monkeypatch):
     """The 2026-09-24 GPT-5.5 fetch read 22 of 24 threads about other models.
 
     With the backlog off, a thread that neither names the model nor came from
-    this run's harvest is not selected - left unread for the nightly batch.
+    this run's harvest is not selected - left unread, and no scheduled path
+    reads it (#304).
     """
     inputs, _d, _g, _o, _u, (named, _own) = fetch_model.build_thread_inputs(
         _two_readable_threads(monkeypatch), seen=set(), limit=25,
@@ -275,6 +276,37 @@ def test_backlog_is_off_unless_asked_for():
     if os.getenv("FETCH_BACKLOG"):
         pytest.skip("FETCH_BACKLOG is set in this environment")
     assert fetch_model.FETCH_BACKLOG is False
+
+
+class TestNoNightlyBatchIsClaimed:
+    """#304. The stage line said unread threads waited "for the nightly batch,
+    which reads the whole unread pool". No such batch exists, so a reader took
+    an absence the fetch CAUSED as one somebody would fill (rule 4)."""
+
+    def test_the_stage_lines_say_nothing_scheduled_reads_them(self):
+        src = inspect.getsource(fetch_model)
+        assert "left unread for the nightly batch" not in src
+        assert "deferred to the nightly" not in src
+        assert "no scheduled path reads them today" in fetch_model.NO_SCHEDULED_READER
+        assert src.count("{NO_SCHEDULED_READER}") == 2, (
+            "the backlog line and the oversized line both carry it"
+        )
+        assert "FETCH_BACKLOG=on is the only reader" in src
+
+    def test_the_sentence_is_still_true(self):
+        """The wording is a claim about two other files. Pinned here so it fails
+        when somebody adds the reader, rather than going stale silently."""
+        from pathlib import Path
+
+        from collect.ops.chain import default_stages
+
+        assert not [s.name for s in default_stages() if "extract" in s.name], (
+            "the nightly chain gained an extract stage: NO_SCHEDULED_READER is now false"
+        )
+        scheduler = Path(fetch_model.__file__).with_name("run_scheduled_fetches.py")
+        assert "FETCH_BACKLOG" not in scheduler.read_text(encoding="utf-8"), (
+            "scheduled fetches now read the backlog: NO_SCHEDULED_READER is now false"
+        )
 
 
 class TestTheArtifactGuard:

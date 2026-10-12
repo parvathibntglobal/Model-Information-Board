@@ -183,15 +183,25 @@ def lexicon_from_rows(rows: Iterable[tuple[Any, Any, Any]], *, normalize=None) -
 
 
 def version_surfaces(conn) -> set[str]:
-    """VERSION and SNAPSHOT surfaces, the input `names_version` expects.
+    """CURRENT VERSION and SNAPSHOT surfaces, the input `names_version` expects.
 
     Family surfaces are excluded because `names_version` asks whether a SPECIFIC
-    version is named; a bare `sonnet` is the case ranking exists to sink. The
-    same query `collect/assemble/reddit.py:_version_aliases` runs.
+    version is named; a bare `sonnet` is the case ranking exists to sink.
+
+    ⚠ THE ONE READER, FOR BOTH ASSEMBLERS (#460). `reddit.py` ran its own copy
+      of this query with no `valid_until` filter, so CLOSED aliases still counted
+      as naming a version - `astra`, an ordinary word, among them - while this
+      copy, used for Hacker News, Hugging Face and X, carried the same omission.
+
+    CURRENT is `valid_until IS NULL OR valid_until > now()`: a window closing in
+    the future has not closed (`scripts/fetch_model.py` `_variants_for` reads it
+    the same way). `collect/ops/sweep.py` reads `IS NULL` only - a disagreement
+    left for the team, not resolved here.
     """
     rows = conn.execute(
         "SELECT DISTINCT normalized FROM model_alias "
-        "WHERE normalized IS NOT NULL AND specificity IN ('version', 'snapshot')"
+        "WHERE normalized IS NOT NULL AND specificity IN ('version', 'snapshot') "
+        "AND (valid_until IS NULL OR valid_until > now())"
     ).fetchall()
     return {r[0] for r in rows if r[0]}
 
