@@ -296,6 +296,8 @@ export const fetchRuns = (modelVersionId) =>
 // it again. A ruling clears the copy (below), so a decision still shows at once.
 const BOARD_TTL_MS = 2 * 60 * 1000
 export const boardPage = () => cached('board', () => request('/board'), { ttl: BOARD_TTL_MS })
+// When the board last changed and how new its evidence is (components/Freshness.jsx).
+export const freshness = () => cached('freshness', () => request('/freshness'), { ttl: BOARD_TTL_MS })
 
 export const coveragePage = () => request('/coverage')
 

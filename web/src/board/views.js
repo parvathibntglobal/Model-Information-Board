@@ -22,6 +22,17 @@ import { sourceName } from '../sourceName.js'
 // `String(x ?? '')` rather than `x.replace(...)`: a null definition or a numeric
 // count would throw, and a board that crashes on a missing value is worse than
 // one that renders an empty cell.
+// THE BOARD'S FRESHNESS LINE: two dates, never merged (see components/Freshness.jsx).
+function freshLine() {
+  const f = DB.freshness
+  if (!f || !f.updated_at) return ''
+  const day = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  const newest = f.newest_report_at
+    ? ` · newest report written <time datetime="${f.newest_report_at}">${day(f.newest_report_at)}</time>`
+    : ''
+  return `<p class="freshness dim">Updated <time datetime="${f.updated_at}">${day(f.updated_at)}</time>${newest}</p>`
+}
+
 const esc = (x) => String(x ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -544,7 +555,7 @@ function vBoard(tab){
   //   landing page's Board badge so the two read as one place.
   return `<div class="shell phead">${crumb([['Board',null]])}
     <span class="go-badge go-board page-tag">Board</span>
-    <h1>AI models compared by job, capability and metric</h1>
+    <h1>AI models compared by job, capability and metric</h1>${freshLine()}
     <p class="sub">Three ways into the same evidence. <b>Jobs</b> lists what was reported on a job.
     <b>Capabilities</b> defines what a claim means, so a claim on one model page can be compared with a
     claim on another. <b>Metrics</b> are the axes, and what each one refuses to average.</p></div>

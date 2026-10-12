@@ -2264,6 +2264,16 @@ def _fetch_runs_from_db(flat: str, hex_chars: set[str]) -> list[tuple[str, str, 
     return [(rid, mach, recs) for rid, (mach, recs) in grouped.items()]
 
 
+@app.get("/freshness")
+def freshness_page() -> dict:
+    """When the board last changed, and how new its evidence is - overall and
+    per model, over the entries the board shows. See `judge/freshness.py`."""
+    from judge.freshness import board_freshness
+
+    with _conn() as conn:
+        return board_freshness(conn)
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.

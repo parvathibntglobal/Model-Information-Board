@@ -35,6 +35,9 @@ export const DB = {
   // 19 in the proposal, 20 in review and 21 by the time the page was written -
   // three answers in one day. Anything that states it reads this.
   parentCoverage: {},
+  // WHEN THE BOARD LAST CHANGED AND HOW NEW ITS EVIDENCE IS, from
+  // GET /freshness. Null until read, and the line is then simply not drawn.
+  freshness: null,
 }
 
 /** Was the board read at all? Distinguishes "nothing found" from "never asked". */

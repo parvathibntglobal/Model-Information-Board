@@ -1768,3 +1768,7 @@ th.r,td.r{text-align:right}
 .q-text{font-size:var(--fs-sm);color:var(--text);line-height:1.55}
 .q-src{align-self:flex-start;font-family:var(--font-mono);font-size:11px;color:var(--text-3);text-decoration:none;white-space:nowrap}
 a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:2px}
+
+/* components/Freshness.jsx: when the page's evidence last changed. */
+.freshness{margin:4px 0 0;font-size:var(--fs-xs)}
+.freshness time{color:var(--text-2)}
