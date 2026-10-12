@@ -27,6 +27,8 @@ const out = {
   post: pages.blogPost({ slug: 's', title: 'Moving to a new model', dek: 'A short dek.' }),
   postNoDek: pages.blogPost({ slug: 's', title: 'T' }),
   postMissing: pages.blogPost(undefined),
+  tokenCounter: pages.tokenCounter(),
+  modelFinder: pages.modelFinder(),
   login: pages.PRIVATE.login,
   notFound: pages.PRIVATE.notFound,
   longTitle: pages.fullTitle('A model name long enough that the site name cannot also fit'),

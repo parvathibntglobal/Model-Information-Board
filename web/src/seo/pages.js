@@ -140,6 +140,32 @@ export function comparePage(ids, names) {
   }
 }
 
+/**
+ * `/token-counter` and `/model-finder` (#520). Neither is on
+ * contract/indexing.yaml's `always` list, so both are noindex like every
+ * unlisted page until somebody adds them there. A HEAD OF THEIR OWN MATTERS
+ * EVEN SO: a page with no head keeps index.html's robots, which the open build
+ * flips to `index, follow`, so a headless page would be the one route the
+ * indexing rule could not reach.
+ */
+export function tokenCounter() {
+  return {
+    title: fullTitle('LLM token counter and cost calculator'),
+    description: 'Count the tokens in a prompt or an answer in your browser, then see what that text costs to send or generate on each AI model at its list price.',
+    canonical: '/token-counter',
+    breadcrumbs: [{ name: 'Models', path: '/models' }, { name: 'Token counter', path: '/token-counter' }],
+  }
+}
+
+export function modelFinder() {
+  return {
+    title: fullTitle('Find an AI model by spec'),
+    description: 'Filter AI models by what each provider advertises: tool calling, vision, structured output, prompt caching, context window and price per token.',
+    canonical: '/model-finder',
+    breadcrumbs: [{ name: 'Models', path: '/models' }, { name: 'Spec finder', path: '/model-finder' }],
+  }
+}
+
 export function blogIndex() {
   return {
     title: fullTitle('Notes on AI models'),

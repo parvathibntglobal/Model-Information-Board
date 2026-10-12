@@ -7,6 +7,8 @@ import { countLines, countWords, priceRows } from '../tokens/cost'
 import { Cost, Fit } from '../tokens/cells'
 import Workload from '../tokens/Workload'
 import { modelHref } from '../tokens/links'
+import { useHead } from '../seo/head'
+import { tokenCounter } from '../seo/pages'
 import { ENCODING, loadTokenizer, pieces } from '../tokens/tokenizer'
 
 /**
@@ -36,6 +38,7 @@ const SAMPLE =
 const fmtInt = (n) => (n == null ? '—' : n.toLocaleString('en-US'))
 
 export default function TokenCounter() {
+  useHead(tokenCounter())
   const [text, setText] = useState('')
   const deferred = useDeferredValue(text)
   const [tok, setTok] = useState(null)

@@ -5,6 +5,8 @@ import { Badge, Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconSearch } from '../components/Icons'
 import { CONTEXT_STEPS, FLAGS, findModels } from '../finder/finder'
 import { modelHref } from '../tokens/links'
+import { useHead } from '../seo/head'
+import { modelFinder } from '../seo/pages'
 
 /**
  * THE SPEC FINDER (2026-10-12): which models advertise what you need.
@@ -22,6 +24,7 @@ const FIRST_ROWS = 40
 const ctxLabel = (n) => (n === 0 ? 'Any' : `${fmtTokens(n)}+`)
 
 export default function ModelFinder() {
+  useHead(modelFinder())
   const [models, setModels] = useState(null)
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
