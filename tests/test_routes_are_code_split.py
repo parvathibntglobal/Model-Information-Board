@@ -20,7 +20,8 @@ APP = (Path(__file__).resolve().parents[1] / "web" / "src" / "App.jsx").read_tex
 #: The front door: what a visitor sees first, kept in the first download.
 EAGER = ("Landing", "Login")
 #: Every other page: fetched on first visit. Admin carries the big panels.
-LAZY = ("Board", "Blogs", "ModelDetail", "Models", "Compare", "TokenCounter", "ModelFinder", "Admin", "BlogLogs")
+LAZY = ("Board", "Blogs", "ModelDetail", "Models", "Compare",
+        "TokenCounter", "ModelFinder", "Admin", "BlogLogs")
 
 
 def test_the_front_door_is_in_the_first_download():
