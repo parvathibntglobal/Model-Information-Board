@@ -63,6 +63,7 @@ sys.path.insert(0, str(ROOT))
 from collect.rawstore import RawStore  # noqa: E402
 from collect.rawstore_reader import RawStoreReader  # noqa: E402
 from judge.publication import (  # noqa: E402
+    derived_posts_embed_only,
     derived_posts_may_draw_on_withheld,
     withheld_sources,
 )
@@ -185,6 +186,42 @@ def esc(x) -> str:
     return html.escape("" if x is None else str(x))
 
 
+#: How a post names each platform (re-reviewed 2026-10-13: posts name their
+#: sources). `document.source` -> words a reader knows.
+PLATFORM = {"reddit": "Reddit", "x": "X", "devto": "dev.to", "github": "GitHub", "hackernews": "Hacker News",
+            "blog": "an engineering blog", "huggingface": "Hugging Face", "arxiv": "arXiv", "medium": "Medium"}
+
+
+def platform_name(source: str | None) -> str:
+    """The platform as a reader knows it. An unknown source raises: a post must
+    never credit a platform it cannot name (rule 12)."""
+    if source not in PLATFORM:
+        raise BuildError(f"no public name for source {source!r}; add it to PLATFORM")
+    return PLATFORM[source]
+
+
+def credit_of(source: str, url: str) -> dict:
+    """Who and what a quote is credited to, from its URL alone - the schema keeps
+    no author name in plain text. `who` may be empty; `what` never is."""
+    from urllib.parse import urlparse
+    u = urlparse(url or "")
+    parts = [p for p in u.path.split("/") if p]
+    who, what = "", ""
+    if source == "devto" and len(parts) >= 2:
+        who = parts[0]
+        what = re.sub(r"-[a-z0-9]{3,6}$", "", parts[1]).replace("-", " ")
+    elif source == "github" and len(parts) >= 4:
+        who, what = f"{parts[0]}/{parts[1]}", f"{parts[2].rstrip('s')} #{parts[3]}"
+    elif source == "hackernews":
+        what = "discussion"
+    elif source == "huggingface" and parts:
+        what = " ".join(parts[:3])
+    else:
+        who, what = u.netloc.removeprefix("www."), (parts[-1].replace("-", " ") if parts else u.netloc)
+    what = (what or u.netloc or "post").strip()
+    return {"platform": platform_name(source), "who": who, "what": what[:1].upper() + what[1:], "url": url}
+
+
 def clean(name: str) -> str:
     return name.split(": ", 1)[1] if ": " in (name or "") else (name or "")
 
@@ -238,6 +275,23 @@ def _public_thread_sql(thread_col: str) -> str:
             f"WHERE ptc.id = {thread_col} AND (pd.source IS NULL OR pd.source IN ({listed})))")
 
 
+#: EVERY BOARD ENTRY -> ITS THREAD, through the entry's OWN document.
+#:
+#: The generator used to go board_entry -> claim -> thread_context. But
+#: `board_entry.claim_id` is nullable by design (judge/pipeline.py: "A CLAIM
+#: FAILING MUST NOT COST THE BOARD"), and e5.5 claims are mostly refused, so
+#: that join saw almost none of the current evidence. Measured on the local
+#: backup, 2026-10-13: all 525 X entries, 1,215 of 1,244 e5.5 Reddit entries and
+#: 1,516 of 1,761 e5.5 dev.to entries had no claim_id - a post on a model read
+#: as if nobody on X had discussed it (rule 4: an absence we caused). A root can
+#: have more than one thread_context (7,521 rows over 6,937 roots); the newest
+#: assembly is used.
+ENTRY_THREAD = """
+  JOIN document d ON d.id = be.document_id
+  JOIN LATERAL (SELECT t.id, t.flattened_text_ref FROM thread_context t
+                 WHERE t.thread_root_id = coalesce(d.thread_root_id, d.id)
+                 ORDER BY t.assembled_at DESC NULLS LAST, t.id LIMIT 1) tc ON TRUE"""
+
 SELECT_THREADS = """
 SELECT tc.id, tc.flattened_text_ref, max(d.source) AS source,
        count(DISTINCT be.model_version_id) AS models,
@@ -246,10 +300,7 @@ SELECT tc.id, tc.flattened_text_ref, max(d.source) AS source,
        count(DISTINCT be.id) FILTER (WHERE be.polarity = 'negative') AS negatives,
        count(DISTINCT be.id) FILTER (WHERE be.polarity = 'positive') AS positives,
        max(d.created_at) AS newest
-  FROM board_entry be
-  JOIN claim c          ON c.id = be.claim_id
-  JOIN thread_context tc ON tc.id = c.thread_context_id
-  JOIN document d       ON d.id = c.document_id
+  FROM board_entry be""" + ENTRY_THREAD + """
   JOIN model_version mv ON mv.id = be.model_version_id
  WHERE be.quote_verified AND coalesce(be.ruling,'') <> 'declined' AND {where}
    AND {public}
@@ -259,9 +310,9 @@ SELECT tc.id, tc.flattened_text_ref, max(d.source) AS source,
 
 FACT_MODELS = """
 SELECT mv.canonical_id
-  FROM board_entry be JOIN claim c ON c.id = be.claim_id
+  FROM board_entry be""" + ENTRY_THREAD + """
   JOIN model_version mv ON mv.id = be.model_version_id
- WHERE c.thread_context_id = ANY(%s) AND be.quote_verified
+ WHERE tc.id = ANY(%s) AND be.quote_verified
    AND coalesce(be.ruling,'') <> 'declined'
  GROUP BY mv.canonical_id ORDER BY count(*) DESC, mv.canonical_id LIMIT 8"""
 
@@ -307,7 +358,14 @@ def select_documents(cur, post, reader) -> tuple[list[dict], list[dict]]:
                 {"subject": post.get("subject"), **post.get("params", {})})
     ranked, summary = rank_threads(cur.fetchall(), sel)
     per_post, need_neg = int(sel["per_post"]), int(sel["disagreement_threads"])
-    chosen, skipped, spare_neg = [], [], []
+    # PLATFORM DIVERSITY (2026-10-13, team ask: "posts should hold data from
+    # every platform if possible"). At most `max_per_source` threads from one
+    # platform, and at most `embed_max` from the embed-only platforms together
+    # (a post can embed only that many). A thread over a cap waits as a spare
+    # and fills a slot only if the other platforms run out.
+    cap_src, cap_embed = int(sel["max_per_source"]), int(sel["embed_max"])
+    embed_only = set(post.get("embed_only") or ())
+    chosen, skipped, spare_neg, spare_cap = [], [], [], []
 
     def take(r):
         got = reader.resolve(r["flattened_text_ref"])
@@ -319,12 +377,26 @@ def select_documents(cur, post, reader) -> tuple[list[dict], list[dict]]:
                 "truncated": len(text) > MAX_DOC_CHARS, "text": text[:MAX_DOC_CHARS],
                 "why": {k: r[k] for k in ("models", "entries", "themes", "negatives", "positives")}}
 
+    def over_cap(r) -> bool:
+        if sum(d["source"] == r["source"] for d in chosen) >= cap_src:
+            return True
+        return r["source"] in embed_only and sum(d["source"] in embed_only for d in chosen) >= cap_embed
+
     for r in ranked:
         if len(chosen) == per_post:
-            if r["negatives"]:
+            if r["negatives"] and not over_cap(r):
                 spare_neg.append(r)
             continue
+        if over_cap(r):
+            spare_cap.append(r)
+            continue
         if (d := take(r)):
+            chosen.append(d)
+    for r in spare_cap:
+        if len(chosen) == per_post:
+            break
+        embed_full = r["source"] in embed_only and sum(d["source"] in embed_only for d in chosen) >= cap_embed
+        if not embed_full and (d := take(r)):
             chosen.append(d)
     # BOTH SIDES. Disagreement needs a thread where somebody reported a
     # problem; if too few chosen threads carry one, the lowest-ranked chosen
@@ -338,11 +410,59 @@ def select_documents(cur, post, reader) -> tuple[list[dict], list[dict]]:
             continue
         chosen[drop] = d
         have += 1
+    # EACH THREAD'S OWN ADDRESS: the root post a quote is credited to, or the
+    # post an embed shows. A thread with no URL cannot be credited or embedded.
+    cur.execute("""SELECT tc.id, d.source, d.url, d.created_at, d.text_ref FROM thread_context tc
+                     JOIN document d ON d.id = tc.thread_root_id WHERE tc.id = ANY(%s)""",
+                ([d["thread_context_id"] for d in chosen],))
+    roots = {r["id"]: r for r in cur.fetchall()}
+    for d in chosen:
+        r = roots.get(d["thread_context_id"]) or {}
+        d["url"], d["posted"] = r.get("url"), r.get("created_at")
+        d["source"] = r.get("source") or d["source"]
+        if d["source"] in embed_only:
+            d["url"] = embed_url(d["source"], d["url"], r.get("text_ref"), reader)
+    # A THREAD THAT CANNOT BE EMBEDDED IS NOT CHOSEN (2026-10-13). Its words may
+    # not be quoted, so without an embed it could only be described with nothing
+    # beside it; the first embed-mode build stopped on a `v.redd.it` video URL.
+    for d in [d for d in chosen if d["source"] in embed_only and not d["url"]]:
+        chosen.remove(d)
+        skipped.append({"thread_context_id": d["thread_context_id"], "outcome": "no post address to embed"})
     if len(chosen) < 5:
         raise BuildError(f"{post['key']}: only {len(chosen)} documents resolved locally; "
                          f"skipped {len(skipped)}. Refusing to synthesise from so little.")
     post["_selection"] = summary | {"chosen": len(chosen), "with_negatives": have}
     return chosen, skipped
+
+REDDIT_POST = re.compile(r"^https://www\.reddit\.com/r/\w+/comments/\w+")
+X_POST = re.compile(r"^https://(x|twitter)\.com/\w+/status/\d+")
+
+
+def embed_url(source: str, url: str | None, raw_ref: str | None, reader) -> str | None:
+    """The address of the POST itself, which is what an official embed needs.
+
+    `document.url` for a Reddit link post is the LINKED CONTENT - a v.redd.it
+    video, an image, an article - not the thread (834 of 1,825 Reddit thread
+    roots on the local backup, 2026-10-13; `reddit_comments.permalink_of` says
+    the same). The raw payload's `permalink` is the thread path on every post.
+    None when no post address can be found: never a guess (rule 12).
+    """
+    if source == "x":
+        return url if url and X_POST.match(url) else None
+    if source == "reddit":
+        if url and REDDIT_POST.match(url):
+            return url
+        if not raw_ref:
+            return None
+        got = reader.resolve(raw_ref)
+        try:
+            path = (json.loads(got.text) or {}).get("permalink") if got.text else None
+        except (json.JSONDecodeError, AttributeError):
+            path = None
+        full = f"https://www.reddit.com{path}" if isinstance(path, str) else None
+        return full if full and REDDIT_POST.match(full) else None
+    return url
+
 
 def agreement_map(cur, post, docs) -> str:
     """Where engineers agree and where they split, per theme and model, from our
@@ -351,10 +471,10 @@ def agreement_map(cur, post, docs) -> str:
     ids = [d["thread_context_id"] for d in docs]
     cur.execute(
         "SELECT coalesce(nullif(be.ruling_target,''), be.slug) AS theme, max(be.name) AS name, "
-        "       mv.display_name AS model, be.polarity, count(DISTINCT c.document_id) AS n "
-        "  FROM board_entry be JOIN claim c ON c.id = be.claim_id "
+        "       mv.display_name AS model, be.polarity, count(DISTINCT be.document_id) AS n "
+        "  FROM board_entry be" + ENTRY_THREAD +
         "  JOIN model_version mv ON mv.id = be.model_version_id "
-        " WHERE c.thread_context_id = ANY(%(ids)s) AND be.quote_verified "
+        " WHERE tc.id = ANY(%(ids)s) AND be.quote_verified "
         "   AND coalesce(be.ruling,'') <> 'declined' AND " + post["where"] + " "
         " GROUP BY 1, 3, 4", {"ids": ids, "subject": post.get("subject"), **post.get("params", {})})
     themes: dict[str, dict] = {}
@@ -445,6 +565,13 @@ RETRACING AN ENGINEER'S TEST OR OPINION - our first-hand voice
 - The test and its result BELONG TO THE ENGINEER. Every paragraph that retraces their work quotes them - their «exact words» - so the reader sees whose test it was. Then give our take: do we agree with their reading of it, or not, and why.
 - Never write that we ran, tested, measured or got a result ourselves unless a WHAT WE TRIED note says so. "We went through their test" is true; "we ran the test" is not.
 
+SOURCES AND PLATFORMS - a post names where its evidence was posted
+- Each discussion's header says where it was posted. Name the platform where it helps the reader: "a developer on Reddit", "one engineer on X", "a dev.to write-up", "a GitHub issue", "a Hacker News thread".
+- Discussions marked EMBED ONLY are NEVER quoted - not in «», not as a pull quote. Say what the poster reported in your own words, name the platform, and list the discussion in `embeds` with the section that discusses it: the reader sees the original post, with its author, right there. You may come back to an embedded post in other sections, always in your own words.
+- An embedded post IS that engineer's own words on the page. A sentence crediting them, or a paragraph retracing their test, needs no «» when their post is embedded in the essay.
+- Every other discussion is quoted exactly in «», as before; the page credits each quote with its platform and a link.
+- Never write a username, handle, subreddit name or URL, and never mention these rules - just describe the post.
+
 FIRST PERSON
 - Opinions in the first person are welcome: "we think", "we would", "we disagree", "in our view".
 - First-person EXPERIENCE - "we tried", "we ran", "we tested", "we measured", "we switched", "we saw" - is allowed ONLY to retell a WHAT WE TRIED note in the brief, and the sentence must carry a figure or the wording of that note. Retell a note in plain words, never inside «». Then set an engineer's words beside it: "An engineer running a document pipeline saw the same thing: «...»." If the brief has no WHAT WE TRIED notes, write no first-person experience at all. Never invent something we did.
@@ -479,7 +606,7 @@ TOOL = {
         "parameters": {
             "type": "object",
             "required": ["title", "dek", "description", "keywords", "tldr", "sections",
-                         "scenario_matrix", "decision_tree", "decisions", "faq"],
+                         "scenario_matrix", "decision_tree", "decisions", "faq", "embeds"],
             "properties": {
                 "title": {"type": "string", "description": "Headline, at most 80 characters."},
                 "dek": {"type": "string", "description": "One or two sentences under the headline."},
@@ -563,6 +690,12 @@ TOOL = {
                                   "scene": {"type": "string", "description": "What the picture shows, 15 to 80 words: a concrete scene or visual metaphor. No text, numbers, logos, brands, product names, real people, screenshots or charts."},
                                   "alt": {"type": "string", "description": "Alt text, at most 125 characters, describing the picture."},
                                   "caption": {"type": "string", "description": "One short sentence tying the picture to the section."}}}},
+                "embeds": {"type": "array",
+                           "description": "The EMBED ONLY discussions shown as the original post, 1 to 4 when any exist, else empty.",
+                           "items": {"type": "object", "required": ["discussion", "section", "caption"], "properties": {
+                               "discussion": {"type": "integer", "description": "The DISCUSSION number from its header (1-based); must be marked EMBED ONLY."},
+                               "section": {"type": "integer", "description": "Index (0-based) of the section that discusses this post."},
+                               "caption": {"type": "string", "description": "One sentence in your own words: what this post reports and why it is here. No «quotes», no names."}}}},
                 "faq": {"type": "array", "description": "Exactly 3 questions people type into Google about this subject, each answered directly.",
                         "items": {"type": "object", "required": ["question", "answer"],
                                   "properties": {"question": {"type": "string", "description": "As a searcher would type it, ending with '?'."},
@@ -576,11 +709,14 @@ TOOL = {
 def user_message(post, docs, facts) -> str:
     parts = [post["brief"], "", "FACT SHEET (registry list prices, as last polled from OpenRouter):",
              fact_lines(facts) or "- none", "", "DISCUSSIONS:"]
+    embed_only = set(post.get("embed_only") or ())
     for i, d in enumerate(docs, 1):
-        # NO PLATFORM LABEL: the board names no source platform, so the model
-        # is not told one to name. (A platform can still appear inside a
-        # discussion's own text; the banned-phrase check refuses it in prose.)
-        parts += [f"\n<<<DISCUSSION {i}>>>", d["text"],
+        # WHERE IT WAS POSTED (re-reviewed 2026-10-13): a post names its
+        # sources, and an embed-only platform is never quoted - so the writer
+        # must know which is which before it writes a word.
+        how = ("EMBED ONLY - never quote; describe it and list it in `embeds`" if d["source"] in embed_only
+               else "quote exactly in «»; the page credits it")
+        parts += [f"\n<<<DISCUSSION {i} - posted on {platform_name(d['source'])} - {how}>>>", d["text"],
                   f"<<<END DISCUSSION {i}>>>"]
     parts.append("\nWrite the essay now by calling publish_essay.")
     return "\n".join(parts)
@@ -700,11 +836,15 @@ BANNED = [
     # that refuses correct text cannot be satisfied - the model had nothing to
     # fix. It now fires only when the object is an input or a reporter.
     (r"\baccording to (the |these |those |our |some |many |most )?(sources?|documents?|threads?|"
-     r"discussions?|posts?|reports?|material|data|practitioners|engineers|developers|users|teams|"
+     r"discussions?|posts|reports?|material|data|practitioners|engineers|developers|users|teams|"
      r"commenters|benchmarks?)\b", "refers to its inputs ('according to …')"),
     # "(?! of)" added 2026-10-01: "obscure the source of failure" failed five
     # rounds running. An input is referred to as a thing, not "the source of X".
-    (r"\b(the|these|those|our|this) (sources?|documents?|threads?|discussions?|posts?|material|excerpts?)\b"
+    # "THE POST" IS LEGAL (2026-10-13): it is how prose names one embedded post,
+    # and "this post" names our own article. Plural "the posts" still reads as a
+    # reading list. Six embed-mode runs failed on the singular.
+    (r"\b(the|these|those|our) (sources?|documents?|threads?|discussions?|posts|material|excerpts?)\b"
+     r"|\bthis (source|document|thread|discussion|material|excerpt)s?\b"
      r"(?! of\b)", "refers to its inputs"),
     # "WE READ" IS ALLOWED NOW, as retracing (2026-10-13): see RETRACE and
     # retrace_violations. What stays refused is naming the reading list itself
@@ -731,14 +871,16 @@ BANNED = [
     (r"\b(corpus|dataset|polarity|sentiment|telemetry|board entr)", "internal telemetry vocabulary"),
     (r"\b\d+(\.\d+)?\s*(/|out of)\s*(10|100)\b", "a score out of 10 or 100"),
     (r"\bdiscussion \d+\b", "names a discussion by number"),
-    # NO PLATFORM NAMES ON THE BOARD (team decision, terms position). A source
-    # platform named in prose is a citation the page is not allowed to make.
-    # "GitHub" alone is a product the essays discuss (MCP servers, Copilot), so
-    # only its use AS A SOURCE is refused; "Medium" is an effort level.
-    (r"\b(reddit|r/\w+|subreddit|hacker news|dev\.to|dev community|arxiv|hugging ?face|twitter|x\.com|"
-     r"tweets?|discord|linkedin|youtube|stack overflow|substack|lobste\.rs)\b"
-     r"|\b(on|from|in) github\b|\bgithub (issue|thread|discussion|comment)s?\b|\bmedium (post|article)s?\b",
-     "names a source platform - the board shows none"),
+    # PLATFORM NAMES ARE ALLOWED IN POSTS (re-reviewed 2026-10-13, approved by
+    # the MD; contract/publication.yaml `derived_posts.embed_only`). What stays
+    # refused is what the embed and the source list show instead: handles,
+    # subreddits and links.
+    (r"\bu/\w+|\br/\w+|(?<![\w.])@\w{2,}|https?://|\bx\.com/|\breddit\.com/",
+     "writes a handle, subreddit or link - the embed and the source list show those"),
+    # The writer narrating the page's own rules (embed-mode trial, 2026-10-13:
+    # "We cannot quote that embed-only discussion").
+    (r"\bembed[- ]only\b|\b(cannot|can't|not allowed to|not permitted to) quote\b",
+     "talks about the page's quoting rules - just describe the post and name the platform"),
     # FIGURES IN WORDS BYPASS THE NUMBER CHECK. The first passing Opus draft
     # (2026-10-01) wrote "eleven percent", "forty-three percent" and "tripling
     # the effective cost" - the last one invented. Digits only, so every figure
@@ -843,8 +985,19 @@ LEGACY_RULES = {"sections": (5, 7), "matrix": True, "tree": True, "code": (1, 99
 
 
 def check(essay: dict, context: str, rules: dict | None = None, experiences: str = "",
-          seo: dict | None = None, doc_texts: list[str] | None = None) -> list[str]:
+          seo: dict | None = None, doc_texts: list[str] | None = None,
+          doc_sources: list[str] | None = None, embed_only: tuple[str, ...] = ()) -> list[str]:
     rules = rules or LEGACY_RULES
+    # EMBEDDED POSTS ARE THEIR AUTHORS' WORDS ON THE PAGE. Which platforms are
+    # embedded decides which credits need no «» (the credit rule and the embed
+    # rule fought for nine repairs running until this, 2026-10-13).
+    embeds = essay.get("embeds") or []
+    embedded_platforms = set()
+    if doc_sources:
+        for e in embeds:
+            n = e.get("discussion") if isinstance(e, dict) else None
+            if isinstance(n, int) and 1 <= n <= len(doc_sources) and doc_sources[n - 1] in embed_only:
+                embedded_platforms.add(platform_name(doc_sources[n - 1]).lower())
     ctx = norm(context)
     # FIGURES MAY COME FROM OUR OWN NOTES; QUOTES MAY NOT. A WHAT WE TRIED note is
     # our record, not an engineer's words, so it joins the number check and never
@@ -908,6 +1061,9 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
                 v.append(f"{path}: {why}: {m.group(0)!r}")
         for sent in re.split(r"(?<=[.!?])\s+", GUILLEMET.sub(_QMARK, text)):
             m = ATTRIBUTION.search(sent)
+            if m and embedded_platforms and any(
+                    re.search(rf"\b(on|from|in) {re.escape(p)}\b", sent, re.I) for p in embedded_platforms):
+                m = None
             if m and _QMARK not in sent:
                 v.append(f"{path}: credits practitioners ({m.group(0)!r}) without a «verbatim» fragment "
                          f"in the same sentence: {sent[:110]!r}")
@@ -953,16 +1109,85 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
     if seo:
         v += seo_violations(essay, seo)
     if doc_texts:
-        v += voices_violations(essay, doc_texts)
-        v += retrace_violations(essay)
+        embedded = set()
+        if doc_sources:
+            v += embed_violations(essay, doc_texts, doc_sources, embed_only)
+            embedded = {e["discussion"] - 1 for e in embeds
+                        if isinstance(e, dict) and isinstance(e.get("discussion"), int)}
+        v += voices_violations(essay, doc_texts, embedded=embedded)
+        v += retrace_violations(essay, exempt_sections={e.get("section") for e in embeds if isinstance(e, dict)})
     return v
 
 
-def voices_violations(essay: dict, doc_texts: list[str], need: int = 3) -> list[str]:
+#: How many posts one essay may embed. Configuration beside the prompt that
+#: names it, like ILLUSTRATIONS_PER_POST.
+EMBEDS_PER_POST = (1, 4)
+
+
+def embed_violations(essay: dict, doc_texts: list[str], doc_sources: list[str],
+                     embed_only: tuple[str, ...]) -> list[str]:
+    """Embed-only platforms are never quoted, and only they are embedded.
+
+    Re-reviewed 2026-10-13 (contract/publication.yaml `derived_posts.embed_only`).
+    A quote that appears ONLY in embed-only discussions is refused, with the
+    section that already embeds the post named so the writer knows the fix.
+    """
+    texts = [norm(t) for t in doc_texts]
+    embeds = [e for e in essay.get("embeds") or [] if isinstance(e, dict)]
+    v: list[str] = []
+
+    def place(path, frag):
+        f = norm(frag)
+        hit = [i for i, t in enumerate(texts) if f in t]
+        if hit and all(doc_sources[i] in embed_only for i in hit):
+            n = hit[0] + 1
+            plat = platform_name(doc_sources[n - 1])
+            at = [e.get("section") for e in embeds if e.get("discussion") == n]
+            fix = (f"it is embedded in section {at[0]}, so here remove the «» and say what that {plat} "
+                   "poster reported in your own words" if at else
+                   f"say what the poster reported in your own words and add discussion {n} to embeds")
+            v.append(f"{path}: «{frag[:70]}» copies the words of a {plat} post (discussion {n}). "
+                     f"{plat} posts are never quoted: {fix}")
+
+    for path, t in prose_fields(essay):
+        for frag in GUILLEMET.findall(t):
+            place(path, frag)
+    for i, s in enumerate(essay.get("sections") or []):
+        if s.get("pull_quote"):
+            place(f"sections[{i}].pull_quote", s["pull_quote"])
+    n_sec = len(essay.get("sections") or [])
+    lo, hi = EMBEDS_PER_POST
+    eligible = [str(i + 1) for i, src in enumerate(doc_sources) if src in embed_only]
+    if eligible and not lo <= len(embeds) <= hi:
+        v.append(f"embeds: {len(embeds)}; embed {lo} to {hi} of the EMBED ONLY discussions ({', '.join(eligible)})")
+    if not eligible and embeds:
+        v.append("embeds: no discussion here is EMBED ONLY, so embeds must be empty")
+    seen = set()
+    for k, e in enumerate(embeds):
+        n, sec, cap = e.get("discussion"), e.get("section"), e.get("caption") or ""
+        if not isinstance(n, int) or not 1 <= n <= len(doc_sources):
+            v.append(f"embeds[{k}].discussion: {n!r} is not a discussion number")
+            continue
+        if doc_sources[n - 1] not in embed_only:
+            v.append(f"embeds[{k}]: discussion {n} is from {platform_name(doc_sources[n - 1])}, which is quoted, "
+                     "not embedded")
+        if n in seen:
+            v.append(f"embeds[{k}]: discussion {n} is embedded twice")
+        seen.add(n)
+        if not isinstance(sec, int) or not 0 <= sec < n_sec:
+            v.append(f"embeds[{k}].section: {sec!r} is not a section index (0 to {n_sec - 1})")
+        if "«" in cap or not cap.strip() or len(cap.split()) > 35:
+            v.append(f"embeds[{k}].caption: one sentence in your own words, at most 35, no «quotes»")
+    return v
+
+
+def voices_violations(essay: dict, doc_texts: list[str], need: int = 3,
+                     embedded: set[int] | None = None) -> list[str]:
     """Engineers' «words» from at least `need` different discussions - so
-    agreement and disagreement come from more than one voice."""
+    agreement and disagreement come from more than one voice. An embedded post
+    counts: it is that engineer's own words, on the page."""
     docs = [norm(t) for t in doc_texts]
-    found = set()
+    found = set(embedded or ())
     for _p, t in prose_fields(essay):
         for frag in GUILLEMET.findall(t):
             f = norm(frag)
@@ -1185,15 +1410,19 @@ RETRACE = re.compile(
     r"retraced|retrace|dug into|looked closely at|followed|traced|stepped through|reviewed)\b", re.I)
 
 
-def retrace_violations(essay: dict, min_count: int = 1) -> list[str]:
+def retrace_violations(essay: dict, min_count: int = 1, exempt_sections: set | None = None) -> list[str]:
     """Each paragraph that retraces an engineer's work quotes them; and the
-    post retraces at least `min_count` piece of work."""
+    post retraces at least `min_count` piece of work. A paragraph in a section
+    that embeds the engineer's post needs no «»: their words are beside it."""
     v: list[str] = []
     n = 0
     for path, text in prose_fields(essay):
         if not RETRACE.search(text):
             continue
         n += 1
+        m = re.match(r"sections\[(\d+)\]", path)
+        if m and int(m.group(1)) in (exempt_sections or set()):
+            continue
         if not GUILLEMET.search(text):
             v.append(f"{path}: retraces an engineer's work ({RETRACE.search(text).group(0)!r}) without "
                      "quoting them - add their «exact words» in the same paragraph, so it is clear the "
@@ -1544,7 +1773,9 @@ def synthesise(post, docs, facts, key, base) -> dict:
                     raise json.JSONDecodeError("not an object", raw, 0)
                 violations = check(essay, context, post.get("rules"),
                                    post.get("experience_text", ""), post.get("seo"),
-                                   [d["text"] for d in docs] if post.get("names") else None)
+                                   [d["text"] for d in docs] if post.get("names") else None,
+                                   [d["source"] for d in docs] if post.get("names") else None,
+                                   tuple(post.get("embed_only") or ()))
             except json.JSONDecodeError as e:
                 essay, violations = None, [f"arguments are not valid JSON: {e}"]
             record["attempts"].append({"served": got["served"], "provider": got["provider"],
@@ -1808,6 +2039,37 @@ def code_block(src: str, label: str) -> str:
             "<pre>" + "\n".join(out) + "</pre>")
 
 
+def official_embed(source: str, url: str) -> dict:
+    """What the page needs to draw the platform's OWN embed of a post.
+
+    Reddit: its oEmbed endpoint, so the title, author and community are what
+    Reddit returns - the hand-written blockquote did not render (2026-10-13).
+    Only those fields travel, never Reddit's HTML: views.js rebuilds the
+    documented markup from them. X: the post URL alone; X renders the rest.
+    A post that cannot be fetched (deleted, removed) fails the export rather
+    than shipping an embed of nothing (rule 12).
+    """
+    if source == "x":
+        if not re.match(r"^https://(x|twitter)\.com/\w+/status/\d+", url or ""):
+            raise BuildError(f"not an X post URL: {url!r}")
+        return {"platform": "x", "url": url}
+    if source == "reddit":
+        if not re.match(r"^https://www\.reddit\.com/r/\w+/comments/\w+", url or ""):
+            raise BuildError(f"not a Reddit post URL: {url!r}")
+        ua = env().get("USER_AGENT")
+        if not ua:
+            raise BuildError("USER_AGENT is not set; the oEmbed request needs an identifying User-Agent (NFR-5)")
+        r = httpx.get("https://www.reddit.com/oembed", params={"url": url}, timeout=20,
+                      headers={"User-Agent": ua}, follow_redirects=True)
+        if r.status_code != 200:
+            raise BuildError(f"Reddit oEmbed {r.status_code} for a chosen post; it may be deleted")
+        o = r.json()
+        community = re.match(r"^https://www\.reddit\.com/r/(\w+)/", url).group(1)
+        return {"platform": "reddit", "url": url, "title": o.get("title") or "",
+                "author": o.get("author_name") or "", "community": community}
+    raise BuildError(f"no official embed for source {source!r}")
+
+
 def source_of(passage: str, docs) -> dict:
     """The document a verbatim passage came from. Raises if none holds it: the
     check already proved it is there, so a miss here is a defect, not absence."""
@@ -2000,15 +2262,39 @@ def _arrangement_for(fmt_key: str | None, slug: str) -> str | None:
 def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
     """Write one post in the shape `web/src/board/views.js` `vPost` renders.
 
-    NO EVIDENCE PANEL OR BOOKMARKS (team decision, 2026-10-01): the post shows
-    quotes as quotes and nothing else. The verbatim check still runs - here, on
-    every fragment, at export - it is just not displayed. Attribution is
-    "Engineer report": NO platform name, and no document source is exported.
+    QUOTE + ATTRIBUTION + LINK (re-reviewed 2026-10-13, approved by the MD).
+    Every quote is matched to its document here, in code, and numbered into
+    `sources` (platform, who, what, link) through `cite`. An embed-only source
+    (`derived_posts.embed_only`) is never quoted - export refuses one that is -
+    and appears only as an `embed` block: the platform's own rendering of the
+    post. Was "Engineer report", no platform name and no link (2026-10-01).
     """
+    embed_only = set(post.get("embed_only") or ())
+    sources: list[dict] = []
+    cite: dict[str, int] = {}
 
     def verified(frag: str) -> str:
-        source_of(frag, docs)  # proves it is still in the text; raises otherwise
+        d = source_of(frag, docs)  # proves it is still in the text; raises otherwise
+        if d["source"] in embed_only:
+            raise BuildError(f"export: «{frag[:60]}» quotes an embed-only source ({d['source']}); "
+                             "the check should have refused this draft")
+        if not d.get("url"):
+            raise BuildError(f"export: «{frag[:60]}» has no source URL to credit (rule 12)")
+        n = next((s["n"] for s in sources if s["url"] == d["url"]), None)
+        if n is None:
+            n = len(sources) + 1
+            sources.append({"n": n, **credit_of(d["source"], d["url"]),
+                            "posted": d["posted"].date().isoformat() if d.get("posted") else None})
+        cite.setdefault(frag, n)
         return frag
+
+    embed_blocks = {}
+    for e in essay.get("embeds") or []:
+        d = docs[e["discussion"] - 1]
+        if d["source"] not in embed_only:
+            raise BuildError(f"export: discussion {e['discussion']} ({d['source']}) is not embed-only")
+        embed_blocks.setdefault(e["section"], []).append(
+            ["embed", {**official_embed(d["source"], d["url"]), "caption": GUILLEMET.sub(r"\1", e["caption"])}])
 
     def text(t: str) -> str:
         # «fragment» stays marked so the page can style it as a quotation.
@@ -2047,6 +2333,8 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
             else:
                 out |= {"steps": [text(x) for x in vis.get("steps") or []]}
             body.append(["visual", out])
+        # THE PLATFORM'S OWN POST, after the section that discusses it.
+        body += embed_blocks.get(n - 1, [])
     # A format may carry no matrix, no tree, or no price table; the three
     # original posts carry all three.
     m, t = essay.get("scenario_matrix"), essay.get("decision_tree")
@@ -2108,6 +2396,10 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         "special": _export_special(post, essay, text),
         "meta": [TODAY.strftime("%d %B %Y"), f"~{mins} min read", "Draft — not reviewed"],
         "body": body,
+        # QUOTE CREDITS (views.js): `cite` maps each quoted fragment to its
+        # number in `sources`. Embedded posts credit themselves.
+        "sources": sources,
+        "cite": cite,
         "rel": [[f"post:{slug}", title] for slug, title in rel_posts],
         # READ BY vPost's "How this draft was made" block (rule 9). No platform
         # and no per-document source field: thread ids only.
@@ -2115,6 +2407,11 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
             "model": rec["requested_model"], "served_as": served,
             "generated_at": rec["started"], "rechecked_from": rec.get("rechecked_from"),
             "documents": [d["thread_context_id"] for d in docs],
+            # Counted, for "How this post was made": where its discussions were
+            # posted, and how many are shown as the platform's own embed.
+            "platforms": {platform_name(k): sum(d["source"] == k for d in docs)
+                          for k in dict.fromkeys(d["source"] for d in docs)},
+            "embedded": sum(len(b) for b in embed_blocks.values()),
             "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
             # The planner reads plan_key so it never writes the same
             # (format, subject) twice; legacy posts carry theirs from LEGACY_PLAN_KEYS.
@@ -2490,18 +2787,18 @@ def candidates(cur, kind: str, cfg: dict) -> list[dict]:
     lim = cfg["candidates_per_kind"]
     # Counted over the threads a draft MAY use (`_public_thread_sql`), so a
     # subject qualifies on evidence the selector will not then refuse.
-    ok = f"{VERIFIED} AND {_public_thread_sql('c.thread_context_id')}"
+    ok = f"{VERIFIED} AND {_public_thread_sql('tc.id')}"
     if kind == "model":
         cur.execute(f"""SELECT mv.canonical_id AS id, max(mv.display_name) AS name
-            FROM board_entry be JOIN claim c ON c.id = be.claim_id JOIN model_version mv ON mv.id = be.model_version_id
+            FROM board_entry be{ENTRY_THREAD} JOIN model_version mv ON mv.id = be.model_version_id
             WHERE {ok} GROUP BY mv.canonical_id
-            HAVING count(DISTINCT c.thread_context_id) >= %s
-            ORDER BY count(DISTINCT c.thread_context_id) DESC, mv.canonical_id LIMIT %s""",
+            HAVING count(DISTINCT tc.id) >= %s
+            ORDER BY count(DISTINCT tc.id) DESC, mv.canonical_id LIMIT %s""",
                     (cfg["min_threads_model"], lim))
         return [{"ids": [r["id"]], "label": clean(r["name"]), "a": clean(r["name"]), "b": ""} for r in cur.fetchall()]
     if kind == "pair":
-        cur.execute(f"""WITH t AS (SELECT DISTINCT c.thread_context_id AS tc, mv.canonical_id AS m, mv.display_name AS n
-                FROM board_entry be JOIN claim c ON c.id = be.claim_id JOIN model_version mv ON mv.id = be.model_version_id
+        cur.execute(f"""WITH t AS (SELECT DISTINCT tc.id AS tc, mv.canonical_id AS m, mv.display_name AS n
+                FROM board_entry be{ENTRY_THREAD} JOIN model_version mv ON mv.id = be.model_version_id
                 WHERE {ok})
             SELECT a.m AS m1, max(a.n) AS n1, b.m AS m2, max(b.n) AS n2 FROM t a JOIN t b ON a.tc = b.tc AND a.m < b.m
             GROUP BY a.m, b.m HAVING count(*) >= %s ORDER BY count(*) DESC, a.m, b.m LIMIT %s""",
@@ -2510,11 +2807,11 @@ def candidates(cur, kind: str, cfg: dict) -> list[dict]:
                  "a": clean(r["n1"]), "b": clean(r["n2"])} for r in cur.fetchall()]
     if kind == "topic":
         cur.execute(f"""SELECT be.section, coalesce(nullif(be.ruling_target,''), be.slug) AS key, max(be.name) AS name
-            FROM board_entry be JOIN claim c ON c.id = be.claim_id
+            FROM board_entry be{ENTRY_THREAD}
             WHERE {ok} AND be.section IN ('capability', 'best_for')
             GROUP BY be.section, coalesce(nullif(be.ruling_target,''), be.slug)
-            HAVING count(DISTINCT c.thread_context_id) >= %s AND count(DISTINCT be.model_version_id) >= %s
-            ORDER BY count(DISTINCT c.thread_context_id) DESC, 2 LIMIT %s""",
+            HAVING count(DISTINCT tc.id) >= %s AND count(DISTINCT be.model_version_id) >= %s
+            ORDER BY count(DISTINCT tc.id) DESC, 2 LIMIT %s""",
                     (cfg["min_threads_topic"], cfg["min_models_topic"], lim))
         return [{"section": r["section"], "topic": r["key"], "label": r["name"], "a": r["name"], "b": ""}
                 for r in cur.fetchall()]
@@ -2542,6 +2839,8 @@ def planned_post(fmt: dict, cand: dict) -> dict:
             "plan": {"plan_key": plan_key, "format": fmt["key"], "subject": cand["label"]},
             "names": {"kind": "topic" if "section" in cand else ("pair" if cand.get("b") else "model"),
                       "a": cand.get("a") or "", "b": cand.get("b") or "", "label": cand["label"]},
+            # Read from the contract on every plan; absent raises (rule 6).
+            "embed_only": derived_posts_embed_only(),
             **extra}
 
 
@@ -2694,7 +2993,18 @@ def run_plan(args, dsn, key, base, reader) -> None:
         # draft passed the 8-minute floor and was listed as "7 min read".
         mins = max(1, math.ceil(reading_words(essay) / 230))
         rel = existing[-3:]  # the most recent other drafts, for "Continue reading"
-        out = export_post(post, essay, docs, facts, rec, mins, rel)
+        # ONE POST'S EXPORT MUST NOT STOP THE BATCH (2026-10-13): an embed that
+        # could not be built ended a 3-post run after post 1, so posts 2 and 3
+        # never started. The post is FAILED, loudly, with its reason; its passed
+        # draft stays in the run record for --reuse.
+        try:
+            out = export_post(post, essay, docs, facts, rec, mins, rel)
+        except BuildError as e:
+            failed[post["key"]] = f"export: {e}"
+            ui_status(item=post["key"], item_state="failed", cost_usd=round(total_cost, 4),
+                      cost_incomplete=cost_incomplete)
+            print(f"  [{post['key']}] FAILED at export: {e}", flush=True)
+            continue
         written.append(post["key"])
         existing.append((post["key"], essay["title"]))
         taken |= {norm_heading(s.get("heading", "")) for s in essay.get("sections", [])}

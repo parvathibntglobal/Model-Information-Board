@@ -1007,12 +1007,58 @@ function vBlogs(){
 // and «verbatim fragment». Nothing else is markup. Posts show NO evidence
 // bookmarks (team decision, 2026-10-01); an {En} left in an older draft file is
 // dropped rather than printed.
+// QUOTE CREDITS (re-reviewed 2026-10-13): a post carries `cite` (fragment ->
+// number) and `sources` (platform, who, what, link). Set by vPost while it
+// renders, keyed by the ESCAPED fragment because essayText matches after esc().
+let CITE = null, SRC = null;
+function citeMark(q){
+  const n = CITE && CITE[q];
+  return n ? `<sup class="es-cite"><a href="#es-src-${n}" aria-label="Source ${n}">${n}</a></sup>` : '';
+}
 function essayText(v){
   return esc(v)
     .replace(/`([^`]+)`/g,'<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
-    .replace(/«([^»]+)»/g,'<q class="es-iq">$1</q>')
+    .replace(/«([^»]+)»/g,(m,q)=>`<q class="es-iq">${q}</q>${citeMark(q)}`)
     .replace(/\{E\d+\}/g,'');
+}
+
+// THE PLATFORM'S OWN POST (re-reviewed 2026-10-13). Rebuilt here from the
+// fields the generator fetched, never from HTML a file supplied, and only for
+// URLs of the expected shape - anything else draws nothing. The platform's
+// script turns the blockquote into the post, with its author and date; a
+// deleted post disappears from the page with it. (embeds.js loads the scripts.)
+function embedBlock(v){
+  if(!v) return '';
+  const cap = `<figcaption>${v.caption ? `<span class="cap">${essayText(v.caption)}</span>` : ''}
+    <span class="prov">Embedded from ${v.platform === 'x' ? 'X' : 'Reddit'}. The author, text and date are shown by
+    ${v.platform === 'x' ? 'X' : 'Reddit'}; if the post is deleted it disappears here too.</span></figcaption>`;
+  if(v.platform === 'reddit'){
+    const u = String(v.url || ''), m = u.match(/^https:\/\/www\.reddit\.com\/r\/(\w+)\/comments\/\w+/);
+    const author = /^[\w-]{1,40}$/.test(v.author || '') ? v.author : '';
+    if(!m) return '';
+    return `<figure class="es-embed es-embed-reddit"><blockquote class="reddit-embed-bq" style="height:316px">
+      <a href="${esc(u)}">${esc(v.title || 'View this post on Reddit')}</a><br> by
+      ${author ? `<a href="https://www.reddit.com/user/${esc(author)}/">u/${esc(author)}</a>` : 'a Reddit user'} in
+      <a href="https://www.reddit.com/r/${esc(m[1])}/">${esc(m[1])}</a></blockquote>${cap}</figure>`;
+  }
+  if(v.platform === 'x'){
+    const m = String(v.url || '').match(/^https:\/\/(?:x|twitter)\.com\/(\w+)\/status\/(\d+)/);
+    if(!m) return '';
+    return `<figure class="es-embed es-embed-x"><blockquote class="twitter-tweet" data-theme="dark" data-dnt="true">
+      <a href="https://twitter.com/${esc(m[1])}/status/${esc(m[2])}">View this post on X</a></blockquote>${cap}</figure>`;
+  }
+  return '';
+}
+
+// THE SOURCE LIST: one numbered line per quoted post, as cited in the text.
+function sourcesBlock(p){
+  const s = (p.sources || []).filter(x => /^https:\/\//.test(x.url || ''));
+  if(!s.length) return '';
+  return `<section class="es-sources"><h2>Sources</h2><ol>${s.map(x =>
+    `<li id="es-src-${esc(x.n)}"><span class="plat">${esc(x.platform)}</span>
+      <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.what)}</a>${x.who ? ` by ${esc(x.who)}` : ''}${x.posted ? ` · ${esc(x.posted)}` : ''}</li>`).join('')}</ol>
+    <p class="es-note">Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.</p></section>`;
 }
 
 function routeBadge(r){
@@ -1042,9 +1088,14 @@ function essayBlock([t,v]){
   if(t==='ul') return '<ul>'+v.map(li=>`<li>${essayText(li)}</li>`).join('')+'</ul>';
   // THE QUOTE BOX SAID ONLY "Engineer report", and a reader could not tell
   // whose words they were or why they were boxed (2026-10-06). It now says.
-  if(t==='quote') return `<figure class="es-voice"><figcaption class="who">An engineer, in their own words</figcaption>
-    <blockquote>${essayText(v)}</blockquote>
-    <div class="src">Copied exactly from a public engineering discussion this post was written from. Not the writer's words.</div></figure>`;
+  if(t==='quote'){
+    const n = CITE && CITE[esc(v)], src = n && SRC ? SRC[n] : null;
+    return `<figure class="es-voice"><figcaption class="who">${src ? `${esc(src.platform)}${src.who ? ` · ${esc(src.who)}` : ''}` : 'An engineer, in their own words'}</figcaption>
+    <blockquote>${esc(v)}</blockquote>
+    <div class="src">${src ? `Copied exactly from <a href="${esc(src.url)}" rel="nofollow noopener" target="_blank">${esc(src.what)}</a>. Not the writer's words.`
+      : "Copied exactly from a public engineering discussion this post was written from. Not the writer's words."}</div></figure>`;
+  }
+  if(t==='embed') return embedBlock(v);
   // The tag already says "Illustrative"; a label that opens with it would read twice.
   if(t==='code') return `<div class="es-codehead"><span class="es-illus">Illustrative</span>${esc(String(v.label||'').replace(/^\s*illustrative[\s:·-]*/i,'').replace(/^./,c=>c.toUpperCase()))}</div>
     <pre class="es-pre">${essayCode(v.source)}</pre>`;
@@ -1444,6 +1495,8 @@ function vPost(slug){
   const pv = p.provenance || {};
   const asOf = String(pv.generated_at || '').slice(0, 10);
   _mx = 0;
+  CITE = Object.fromEntries(Object.entries(p.cite || {}).map(([k, n]) => [esc(k), n]));
+  SRC = Object.fromEntries((p.sources || []).map(s => [s.n, s]));
 
   // THE TOOLS - the matrix and the tree - go where the format puts them, and
   // never close the page: "which one to pick" ended 10 of 12 drafts.
@@ -1552,7 +1605,7 @@ function vPost(slug){
     <table><thead><tr><th></th><th>In</th><th>Out</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${esc(r.name)}</td><td>${esc(r.pin)}</td><td>${esc(r.pout)}</td></tr>`).join('')}</tbody></table>
     <p>Registry list prices per 1M tokens when the post was written. A price the provider does not publish says so; it is never zero.</p></div>` : '';
-  return `<div class="essay${L?' layout-'+L:''} arr-${V}"><div class="es-wrap">
+  const page = `<div class="essay${L?' layout-'+L:''} arr-${V}"><div class="es-wrap">
     <div class="es-crumb"><a${goAttrs('blogs')}>All essays</a></div>
     <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div><h1>${esc(p.title)}</h1>
       <p class="es-dek">${esc(p.dek)}</p>
@@ -1561,6 +1614,7 @@ function vPost(slug){
     <div class="es-layout">
       <article class="es-article">
         ${mode}${main}
+        ${sourcesBlock(p)}
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
           from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.
@@ -1578,5 +1632,7 @@ function vPost(slug){
       </aside>
     </div>
   </div></div>`;
+  CITE = null; SRC = null;
+  return page;
 }
 export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel, vBlogs, vPost }

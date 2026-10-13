@@ -648,6 +648,25 @@
 .es-voice blockquote::before{content:"\201C"}
 .es-voice blockquote::after{content:"\201D"}
 .es-voice .src{margin-top:.5rem;font-size:.74rem;color:var(--es-dim);line-height:1.45}
+.es-voice .src a{color:var(--es-accent2)}
+/* Quote credits and the platforms' own embeds (2026-10-13). */
+.es-cite{font:600 .66rem var(--es-mono);margin-left:2px}
+.es-cite a{color:var(--es-accent2);text-decoration:none;padding:0 3px;border:1px solid var(--es-line);border-radius:4px}
+.es-embed{margin:1.6rem 0;padding:.9rem;background:var(--es-panel);border:1px solid var(--es-line);border-radius:12px}
+.es-embed-reddit{border-top:3px solid #FF8B5E}
+.es-embed-x{border-top:3px solid #E7E9EA}
+/* The platform's blockquote BEFORE its script replaces it - or for good, if the
+   script is blocked: a link card the reader can still follow. */
+.reddit-embed-bq,.twitter-tweet{margin:0 auto;max-width:550px;padding:.9rem 1rem;border:1px dashed var(--es-line);border-radius:10px;font-size:.9rem;color:var(--es-dim)}
+.reddit-embed-bq a,.twitter-tweet a{color:var(--es-accent2)}
+.es-embed figcaption{margin-top:.6rem}
+.es-embed .cap{display:block;font-size:.9rem;color:var(--es-text)}
+.es-embed .prov{display:block;margin-top:.25rem;font:.7rem var(--es-mono);color:var(--es-dim)}
+.es-sources{margin-top:2rem}
+.es-sources ol{padding-left:1.3rem;font-size:.9rem;color:var(--es-dim)}
+.es-sources li{margin:.35rem 0;scroll-margin-top:80px}
+.es-sources a{color:var(--es-accent2)}
+.es-sources .plat{font:600 .64rem var(--es-mono);text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border:1px solid var(--es-line);border-radius:4px;color:var(--es-text)}
 
 /* The lead, styled per format rather than one box for all. */
 .es-open{margin:0 0 1.8rem}

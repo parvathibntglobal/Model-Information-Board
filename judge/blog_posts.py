@@ -40,7 +40,7 @@ REQUIRED = ("slug", "title", "dek", "tag", "by", "lead", "meta", "body", "proven
 #: as nothing, which reads as a shorter post rather than a broken one.
 #: `visual` (a table, chart or diagram) and `image` (an AI-generated picture)
 #: joined on 2026-10-13 with the generator that writes them.
-BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree", "visual", "image"}
+BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree", "visual", "image", "embed"}
 
 
 def posts_dir() -> Path | None:
