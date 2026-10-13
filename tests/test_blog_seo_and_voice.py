@@ -120,7 +120,7 @@ def test_the_keyword_is_listed_first():
 def test_the_faq_answers_questions_people_type():
     short = _seo_essay(faq=[{"question": "A statement.", "answer": "Too short."}])
     v = g.seo_violations(short, SEO)
-    assert any("needs 3 to 5 questions" in x for x in v)
+    assert any("needs exactly 3 questions" in x for x in v)
     assert any("ending with '?'" in x for x in v)
     assert any("answer in 40 to 90" in x for x in v)
 
@@ -232,3 +232,90 @@ def test_the_description_and_keywords_reach_the_page():
     assert '"description": GUILLEMET.sub' in src and '"keywords": [k for k in' in src
     pages = (g.ROOT / "web" / "src" / "seo" / "pages.js").read_text(encoding="utf-8")
     assert "usable(post.description) || usable(post.dek)" in pages
+
+
+# ── which discussions a post is written from ──────────────────────────────────
+
+def _row(i, models, entries, themes, neg=0, days_ago=1):
+    from datetime import datetime, timedelta
+    return {"id": f"t{i}", "models": models, "entries": entries, "themes": themes,
+            "negatives": neg, "positives": entries - neg,
+            "newest": datetime(2026, 10, 1) - timedelta(days=days_ago),
+            "flattened_text_ref": f"r{i}", "source": "devto"}
+
+
+SEL = {"per_post": 10, "min_entries": 3, "min_threads": 5, "disagreement_threads": 2}
+
+
+def test_depth_about_the_subject_outranks_breadth():
+    passing = _row(1, 2, 2, 9)            # names both models, 2 entries: a passing mention
+    deep = _row(2, 1, 14, 3)              # one model, 14 entries
+    both = _row(3, 2, 6, 2)
+    rows = [passing, deep, both] + [_row(10 + i, 1, 4, 1) for i in range(4)]
+    ranked, summary = g.rank_threads(rows, SEL)
+    ids = [r["id"] for r in ranked]
+    assert ids[0] == "t3" and ids[1] == "t2"          # both models first, then depth
+    assert "t1" not in ids and summary["passing_mentions_set_aside"] == 1
+
+
+def test_the_floor_relaxes_when_too_few_threads_and_says_so():
+    ranked, summary = g.rank_threads([_row(1, 2, 2, 1), _row(2, 1, 1, 1)], SEL)
+    assert len(ranked) == 2 and summary["floor_relaxed"] is True
+
+
+def test_recency_breaks_ties_not_an_internal_id():
+    old, new = _row(1, 1, 5, 2, days_ago=30), _row(2, 1, 5, 2, days_ago=1)
+    ranked, _ = g.rank_threads([old, new] + [_row(9 + i, 1, 3, 1) for i in range(4)], SEL)
+    assert [r["id"] for r in ranked][:2] == ["t2", "t1"]
+
+
+def test_the_agreement_map_marks_splits_and_agreement():
+    class Cur:
+        def execute(self, sql, params):
+            self.sql = sql
+
+        def fetchall(self):
+            def r(theme, name, model, polarity, n):
+                return {"theme": theme, "name": name, "model": model, "polarity": polarity, "n": n}
+            return [r("tool-use", "Tool use", "Alpha", "positive", 3),
+                    r("tool-use", "Tool use", "Alpha", "negative", 2),
+                    r("cost", "Cost", "Alpha", "positive", 2),
+                    r("cost", "Cost", "Beta", "positive", 1)]
+
+    post = {"where": "mv.canonical_id = ANY(%(subject)s)", "subject": ["a"]}
+    out = g.agreement_map(Cur(), post, [{"thread_context_id": "t1"}])
+    assert "Tool use - SPLIT - Alpha: 3 positive, 2 negative, 0 neutral" in out
+    assert "Cost - AGREE" in out
+
+
+def test_neutral_only_is_not_agreement():
+    class Cur:
+        def execute(self, sql, params):
+            pass
+
+        def fetchall(self):
+            return [{"theme": "x", "name": "Exam", "model": "Alpha", "polarity": "neutral", "n": 3}]
+
+    out = g.agreement_map(Cur(), {"where": "true", "subject": []}, [{"thread_context_id": "t"}])
+    assert "Exam - NEUTRAL" in out
+
+
+def test_engineers_are_quoted_from_three_discussions():
+    docs = ["alpha said it never broke", "beta said it broke twice", "gamma liked the price"]
+    two = {"sections": [{"heading": "h", "paragraphs": ["«it never broke» but «it broke twice»."]}]}
+    assert g.voices_violations(two, docs)
+    three = {"sections": [{"heading": "h", "paragraphs": [
+        "«it never broke» but «it broke twice», and «liked the price»."]}]}
+    assert g.voices_violations(three, docs) == []
+
+
+def test_discussions_are_not_counted_in_prose():
+    import re
+    assert any(why == "counts people or reports"
+               and re.search(pat, "across 4 discussions", re.I) for pat, why in g.BANNED)
+
+
+def test_head_to_head_headings_are_statements_now():
+    fmt = next(f for f in g.load_formats()["formats"] if f["key"] == "head-to-head")
+    assert not fmt.get("headings_end_with_question")
+    assert g.rules_for(fmt)["heading_no_wh"] is True

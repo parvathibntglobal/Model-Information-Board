@@ -77,6 +77,14 @@ planner:
   # How many candidates per subject kind the planner considers, most-evidenced
   # first. An internal ordering; nothing about it reaches a page.
   candidates_per_kind: 25
+  # WHICH DISCUSSIONS A POST IS WRITTEN FROM (2026-10-13). Ranked by relevance
+  # (generate_sample_blogs.rank_threads): naming more of the subject's models,
+  # then more entries about them, then themes, then recency. A thread with
+  # fewer than `min_entries` entries about the subject is a passing mention and
+  # is set aside, unless that leaves fewer than `min_threads`. At least
+  # `disagreement_threads` chosen threads carry a negative report where any
+  # exist, so a post has two sides to weigh.
+  doc_selection: {per_post: 10, min_entries: 3, min_threads: 5, disagreement_threads: 2}
 
 # LONGER POSTS, WITH VISUALS, NO SKIM LINES (2026-10-13). Team ask: an 8 to 15
 # minute read, with tables, charts and diagrams used where a topic needs them.
@@ -120,17 +128,17 @@ formats:
     layout: versus
     derived_from: "What do the release benchmarks say? / Does the cheaper claim hold? / What happens in a tool loop?"
     shape: >-
-      A head-to-head between the two models, organised as the questions an engineer would
-      actually ask before choosing, each answered from what practitioners measured or hit.
+      A head-to-head between the two models, organised around the points an engineer weighs
+      before choosing, each settled from what practitioners measured or hit.
     voice: >-
-      Each section opens with a one-paragraph direct answer to its question, naming which
-      model wins that question and under what condition, then gives the reasoning. Medium
-      paragraphs; contrast the two models explicitly in every section.
+      Each section opens with a one-paragraph verdict on its point, naming which model comes
+      out ahead and under what condition, then gives the reasoning. Medium paragraphs;
+      contrast the two models explicitly in every section.
     paragraphs: {per_section: [3, 5], words: [45, 85]}
     heading_rules: >-
-      Every heading is a specific question ending with "?", naming a concrete workload,
-      failure or cost, never a generic one such as "Which is better?".
-    headings_end_with_question: true
+      Each heading states one specific point of comparison as a short statement, naming a
+      concrete workload, failure or cost - never a question, and never a generic label such
+      as "Performance". (Questions live in the FAQ only, 2026-10-13.)
     opening: >-
       the sharpest difference between the two models, with the figure or the words that show it
     closing: >-

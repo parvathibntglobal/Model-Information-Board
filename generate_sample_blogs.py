@@ -242,7 +242,10 @@ SELECT_THREADS = """
 SELECT tc.id, tc.flattened_text_ref, max(d.source) AS source,
        count(DISTINCT be.model_version_id) AS models,
        count(DISTINCT coalesce(nullif(be.ruling_target,''), be.slug)) AS themes,
-       count(DISTINCT be.id) AS entries
+       count(DISTINCT be.id) AS entries,
+       count(DISTINCT be.id) FILTER (WHERE be.polarity = 'negative') AS negatives,
+       count(DISTINCT be.id) FILTER (WHERE be.polarity = 'positive') AS positives,
+       max(d.created_at) AS newest
   FROM board_entry be
   JOIN claim c          ON c.id = be.claim_id
   JOIN thread_context tc ON tc.id = c.thread_context_id
@@ -251,8 +254,8 @@ SELECT tc.id, tc.flattened_text_ref, max(d.source) AS source,
  WHERE be.quote_verified AND coalesce(be.ruling,'') <> 'declined' AND {where}
    AND {public}
  GROUP BY tc.id, tc.flattened_text_ref
- ORDER BY models DESC, themes DESC, entries DESC, tc.id
- LIMIT 60"""
+ ORDER BY models DESC, entries DESC, themes DESC, newest DESC NULLS LAST, tc.id
+ LIMIT 500"""
 
 FACT_MODELS = """
 SELECT mv.canonical_id
@@ -263,26 +266,122 @@ SELECT mv.canonical_id
  GROUP BY mv.canonical_id ORDER BY count(*) DESC, mv.canonical_id LIMIT 8"""
 
 
+def _selection_cfg() -> dict:
+    sel = load_formats()["planner"].get("doc_selection")
+    if not sel:
+        raise BuildError("blog_formats.yaml planner.doc_selection is missing")
+    return sel
+
+
+def rank_threads(rows: list[dict], sel: dict) -> tuple[list[dict], dict]:
+    """Candidate threads in relevance order, and what was set aside.
+
+    RELEVANCE, NOT BREADTH (2026-10-13). The order used to put a thread's
+    count of distinct THEMES ahead of its count of entries about the subject,
+    so two Hacker News threads with 2 entries each - passing mentions - beat
+    single-model articles with 8 to 14. Now: threads naming more of the
+    subject's models first (both, for a head-to-head), then the most entries
+    about the subject, then themes, then the most recent. A thread with fewer
+    than `min_entries` is a passing mention and is set aside - unless that
+    leaves fewer than `min_threads`, which relaxes the floor and says so.
+    """
+    floor = int(sel["min_entries"])
+    strong = [r for r in rows if r["entries"] >= floor]
+    relaxed = len(strong) < int(sel["min_threads"])
+    pool = rows if relaxed else strong
+
+    def key(r):
+        newest = r.get("newest")
+        return (-r["models"], -r["entries"], -r["themes"],
+                -(newest.timestamp() if newest else 0), r["id"])
+
+    return sorted(pool, key=key), {"candidates": len(rows), "passing_mentions_set_aside":
+                                   0 if relaxed else len(rows) - len(strong),
+                                   "min_entries": floor, "floor_relaxed": relaxed}
+
+
 def select_documents(cur, post, reader) -> tuple[list[dict], list[dict]]:
+    sel = _selection_cfg()
     cur.execute(SELECT_THREADS.format(where=post["where"],
                                       public=_public_thread_sql("tc.id")),
                 {"subject": post.get("subject"), **post.get("params", {})})
-    chosen, skipped = [], []
-    for r in cur.fetchall():
-        if len(chosen) == MAX_DOCS:
-            break
+    ranked, summary = rank_threads(cur.fetchall(), sel)
+    per_post, need_neg = int(sel["per_post"]), int(sel["disagreement_threads"])
+    chosen, skipped, spare_neg = [], [], []
+
+    def take(r):
         got = reader.resolve(r["flattened_text_ref"])
         if not got.text:
             skipped.append({"thread_context_id": r["id"], "outcome": str(got.outcome)})
-            continue
+            return None
         text = got.text
-        chosen.append({"thread_context_id": r["id"], "source": r["source"],
-                       "chars": len(text), "truncated": len(text) > MAX_DOC_CHARS,
-                       "text": text[:MAX_DOC_CHARS]})
+        return {"thread_context_id": r["id"], "source": r["source"], "chars": len(text),
+                "truncated": len(text) > MAX_DOC_CHARS, "text": text[:MAX_DOC_CHARS],
+                "why": {k: r[k] for k in ("models", "entries", "themes", "negatives", "positives")}}
+
+    for r in ranked:
+        if len(chosen) == per_post:
+            if r["negatives"]:
+                spare_neg.append(r)
+            continue
+        if (d := take(r)):
+            chosen.append(d)
+    # BOTH SIDES. Disagreement needs a thread where somebody reported a
+    # problem; if too few chosen threads carry one, the lowest-ranked chosen
+    # thread with none gives way to the best-ranked spare that has one.
+    have = sum(1 for d in chosen if d["why"]["negatives"])
+    for r in spare_neg:
+        if have >= need_neg:
+            break
+        drop = next((k for k in range(len(chosen) - 1, -1, -1) if not chosen[k]["why"]["negatives"]), None)
+        if drop is None or not (d := take(r)):
+            continue
+        chosen[drop] = d
+        have += 1
     if len(chosen) < 5:
         raise BuildError(f"{post['key']}: only {len(chosen)} documents resolved locally; "
                          f"skipped {len(skipped)}. Refusing to synthesise from so little.")
+    post["_selection"] = summary | {"chosen": len(chosen), "with_negatives": have}
     return chosen, skipped
+
+def agreement_map(cur, post, docs) -> str:
+    """Where engineers agree and where they split, per theme and model, from our
+    own board entries for the chosen threads. Counts DISTINCT discussions by
+    polarity. For the writer's planning only: prose never counts people."""
+    ids = [d["thread_context_id"] for d in docs]
+    cur.execute(
+        "SELECT coalesce(nullif(be.ruling_target,''), be.slug) AS theme, max(be.name) AS name, "
+        "       mv.display_name AS model, be.polarity, count(DISTINCT c.document_id) AS n "
+        "  FROM board_entry be JOIN claim c ON c.id = be.claim_id "
+        "  JOIN model_version mv ON mv.id = be.model_version_id "
+        " WHERE c.thread_context_id = ANY(%(ids)s) AND be.quote_verified "
+        "   AND coalesce(be.ruling,'') <> 'declined' AND " + post["where"] + " "
+        " GROUP BY 1, 3, 4", {"ids": ids, "subject": post.get("subject"), **post.get("params", {})})
+    themes: dict[str, dict] = {}
+    for r in cur.fetchall():
+        t = themes.setdefault(r["theme"], {"name": r["name"], "models": {}, "total": 0})
+        m = t["models"].setdefault(clean(r["model"]), {"positive": 0, "negative": 0, "neutral": 0})
+        m[r["polarity"] if r["polarity"] in m else "neutral"] += r["n"]
+        t["total"] += r["n"]
+    lines = []
+    for _theme, t in sorted(themes.items(), key=lambda kv: -kv[1]["total"])[:8]:
+        if t["total"] < 2:
+            continue
+        # NEUTRAL IS ITS OWN STATE (2026-10-13): a theme with only neutral
+        # reports read "AGREE - 0 positive, 0 negative", a missing signal shown
+        # as a definite one (rule 6).
+        signs = {(m["positive"] > 0, m["negative"] > 0) for m in t["models"].values()}
+        polar = signs - {(False, False)}
+        if not polar:
+            label = "NEUTRAL"
+        elif any(p and n for p, n in polar) or {(True, False), (False, True)} <= polar:
+            label = "SPLIT"
+        else:
+            label = "AGREE"
+        parts = "; ".join(f"{name}: {m['positive']} positive, {m['negative']} negative, "
+                          f"{m['neutral']} neutral" for name, m in t["models"].items())
+        lines.append(f"- {t['name']} - {label} - {parts}")
+    return "\n".join(lines)
 
 
 def fact_sheet(cur, post, docs) -> list[dict]:
@@ -338,6 +437,9 @@ VOICE
 - Never refer to your inputs. Do not write "according to the sources", "the documents", "the threads", "the posts", "the material", "I read", "we read", "we reviewed", or anything that reveals a reading list. You may refer to practitioners generically ("teams migrating from earlier Claude models", "one engineer running a document pipeline").
 - Never count people, reports, posts, threads or quotes ("72 developers", "a dozen reports", "most users"). No scores or ratings out of 10 or 100. No sentiment percentages.
 
+ENGINEERS AGREE AND DISAGREE
+- Use the WHERE ENGINEERS AGREE AND SPLIT map in the brief. Give at least one section to a SPLIT: set engineers' «words» from different discussions against each other, say which side the evidence favours, and where we stand. Where they AGREE, say so and whether we agree too. Quote engineers from at least 3 different discussions across the post.
+
 FIRST PERSON
 - Opinions in the first person are welcome: "we think", "we would", "we disagree", "in our view".
 - First-person EXPERIENCE - "we tried", "we ran", "we tested", "we measured", "we switched", "we saw" - is allowed ONLY to retell a WHAT WE TRIED note in the brief, and the sentence must carry a figure or the wording of that note. Retell a note in plain words, never inside «». Then set an engineer's words beside it: "An engineer running a document pipeline saw the same thing: «...»." If the brief has no WHAT WE TRIED notes, write no first-person experience at all. Never invent something we did.
@@ -345,7 +447,7 @@ FIRST PERSON
 SEARCH - write to be found and to answer
 - The brief names a PRIMARY KEYWORD. Use it naturally in the title, in the description, and in the tldr or the first paragraph, and list it first in `keywords`. Use the SECONDARY KEYWORDS where they genuinely fit. Never stuff keywords.
 - The tldr is a direct answer a searcher would want quoted.
-- The `faq` answers 3 to 5 questions people actually type into Google about this subject, phrased as they would type them; at least one names the subject (the model or the topic). Each answer opens with a one-sentence direct answer, then 1 to 3 sentences of support: 40 to 90 words in all, held to the same grounding rules as the essay.
+- The `faq` answers EXACTLY 3 questions people actually type into Google about this subject, phrased as they would type them; at least one names the subject (the model or the topic). The FAQ is one section at the end - the rest of the post is not written as questions and answers. Each answer opens with a one-sentence direct answer, then 1 to 3 sentences of support: 40 to 90 words in all, held to the same grounding rules as the essay.
 - If the brief lists TRENDING IN RECENT REPORTS, mention the ones that genuinely belong in this post; skip the rest.
 
 GROUNDING — checked by code; a violation rejects the essay
@@ -362,7 +464,7 @@ STRUCTURE (call publish_essay exactly once)
 - At most one pull quote per section, verbatim as above.
 - 1 to 3 code or configuration examples, attached to the section they belong to.
 - One scenario matrix (5 to 8 rows) and one decision tree (3 to 5 branches), as the brief describes.
-- A `faq` of 3 to 5 questions, as SEARCH describes."""
+- A `faq` of exactly 3 questions, as SEARCH describes."""
 
 TOOL = {
     "type": "function",
@@ -456,7 +558,7 @@ TOOL = {
                                   "scene": {"type": "string", "description": "What the picture shows, 15 to 80 words: a concrete scene or visual metaphor. No text, numbers, logos, brands, product names, real people, screenshots or charts."},
                                   "alt": {"type": "string", "description": "Alt text, at most 125 characters, describing the picture."},
                                   "caption": {"type": "string", "description": "One short sentence tying the picture to the section."}}}},
-                "faq": {"type": "array", "description": "3 to 5 questions people type into Google about this subject, each answered directly.",
+                "faq": {"type": "array", "description": "Exactly 3 questions people type into Google about this subject, each answered directly.",
                         "items": {"type": "object", "required": ["question", "answer"],
                                   "properties": {"question": {"type": "string", "description": "As a searcher would type it, ending with '?'."},
                                                  "answer": {"type": "string", "description": "40 to 90 words: a one-sentence direct answer, then support."}}}},
@@ -616,7 +718,8 @@ BANNED = [
     (r"\bthe supplied \w+|\b(prices|figures|examples|values|rates|numbers|data) supplied\b"
      r"|\b(are|were) supplied\s*[.;,]", "refers to its inputs ('supplied')"),
     (r"\b(\d+|several|dozens of|a dozen|hundreds of|many|most|few) "
-     r"(developers|engineers|users|people|reports|quotes|posts|threads|respondents|teams)\b",
+     r"(developers|engineers|users|people|reports|quotes|posts|threads|respondents|teams|discussions|"
+     r"articles|comments)\b",
      "counts people or reports"),
     (r"\b(corpus|dataset|polarity|sentiment|telemetry|board entr)", "internal telemetry vocabulary"),
     (r"\b\d+(\.\d+)?\s*(/|out of)\s*(10|100)\b", "a score out of 10 or 100"),
@@ -733,7 +836,7 @@ LEGACY_RULES = {"sections": (5, 7), "matrix": True, "tree": True, "code": (1, 99
 
 
 def check(essay: dict, context: str, rules: dict | None = None, experiences: str = "",
-          seo: dict | None = None) -> list[str]:
+          seo: dict | None = None, doc_texts: list[str] | None = None) -> list[str]:
     rules = rules or LEGACY_RULES
     ctx = norm(context)
     # FIGURES MAY COME FROM OUR OWN NOTES; QUOTES MAY NOT. A WHAT WE TRIED note is
@@ -842,7 +945,28 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
         v += illustration_violations(essay, len(essay.get("sections") or []))
     if seo:
         v += seo_violations(essay, seo)
+    if doc_texts:
+        v += voices_violations(essay, doc_texts)
     return v
+
+
+def voices_violations(essay: dict, doc_texts: list[str], need: int = 3) -> list[str]:
+    """Engineers' «words» from at least `need` different discussions - so
+    agreement and disagreement come from more than one voice."""
+    docs = [norm(t) for t in doc_texts]
+    found = set()
+    for _p, t in prose_fields(essay):
+        for frag in GUILLEMET.findall(t):
+            f = norm(frag)
+            found |= {i for i, d in enumerate(docs) if f in d}
+    for s in essay.get("sections") or []:
+        if s.get("pull_quote"):
+            f = norm(s["pull_quote"])
+            found |= {i for i, d in enumerate(docs) if f in d}
+    if len(found) < need:
+        return [f"voices: engineers are quoted from {len(found)} discussion(s); quote «exact words» from at "
+                f"least {need} different discussions, setting agreeing and disagreeing voices side by side"]
+    return []
 
 
 #: How many generated illustrations a planned post carries, and how they are
@@ -1106,8 +1230,8 @@ def seo_violations(essay: dict, seo: dict) -> list[str]:
         if not kws or not _kw_in(kws[0], kw):
             v.append(f"keywords: list the primary keyword {kw!r} first")
     faq = essay.get("faq") or []
-    if not 3 <= len(faq) <= 5:
-        v.append(f"faq: needs 3 to 5 questions, has {len(faq)}")
+    if len(faq) != 3:
+        v.append(f"faq: needs exactly 3 questions, has {len(faq)}")
     for i, qa in enumerate(faq):
         q, a = (qa or {}).get("question", ""), (qa or {}).get("answer", "")
         if not q.strip().endswith("?"):
@@ -1331,7 +1455,8 @@ def synthesise(post, docs, facts, key, base) -> dict:
     best = None
     record = post["_record"] = {"post": post["key"], "requested_model": GEN_MODEL,
               "started": datetime.now(UTC).isoformat(timespec="seconds"),
-              "documents": [{k: d[k] for k in ("thread_context_id", "source", "chars", "truncated")}
+              "selection": post.get("_selection"),
+              "documents": [{k: d[k] for k in ("thread_context_id", "source", "chars", "truncated", "why") if k in d}
                             for d in docs],
               "facts": [f["canonical_id"] for f in facts], "attempts": [], "passed": False,
               "plan": post.get("plan")}
@@ -1354,7 +1479,8 @@ def synthesise(post, docs, facts, key, base) -> dict:
                 if not isinstance(essay, dict):
                     raise json.JSONDecodeError("not an object", raw, 0)
                 violations = check(essay, context, post.get("rules"),
-                                   post.get("experience_text", ""), post.get("seo"))
+                                   post.get("experience_text", ""), post.get("seo"),
+                                   [d["text"] for d in docs] if post.get("names") else None)
             except json.JSONDecodeError as e:
                 essay, violations = None, [f"arguments are not valid JSON: {e}"]
             record["attempts"].append({"served": got["served"], "provider": got["provider"],
@@ -2088,7 +2214,8 @@ def system_for(fmt: dict) -> str:
              "the topic calls for; you need not use all three. Every number in a table or chart must appear in "
              "the discussions, the FACT SHEET or a WHAT WE TRIED note; a chart never plots counts of people, "
              "scores or ratings.",
-             "- A `faq` of 3 to 5 questions, as SEARCH describes.",
+             "- A `faq` of exactly 3 questions, as SEARCH describes - one section at the end, not the shape "
+             "of the whole post.",
              f"- ILLUSTRATIONS: {ILLUSTRATIONS_PER_POST[0]} to {ILLUSTRATIONS_PER_POST[1]} AI-generated pictures. "
              "For each, pick the section whose situation is easiest to picture and describe the scene: a "
              "concrete moment or a clear visual metaphor (a queue of requests stalling at one gate, a "
@@ -2245,6 +2372,10 @@ def add_search_and_experience(post: dict, trending: list[str] | None = None) -> 
             f"\n- ({e['date']}) {' '.join(str(e['said']).split())}" for e in notes)
     if trending:
         post["brief"] += "\nTRENDING IN RECENT REPORTS: " + "; ".join(trending)
+    if post.get("agreement"):
+        post["brief"] += ("\nWHERE ENGINEERS AGREE AND SPLIT (our board entries for the discussions below, "
+                          "counted by discussion - for planning only, never quote these counts):\n"
+                          + post["agreement"])
 
 
 def existing_headings() -> set[str]:
@@ -2377,6 +2508,7 @@ def plan_posts(cur, reader, n: int) -> list[tuple]:
                 continue
             try:
                 docs, skipped = select_documents(cur, post, reader)
+                post["agreement"] = agreement_map(cur, post, docs)
             except BuildError:
                 continue  # not enough of its evidence on this machine - next candidate
             picked.append((post, docs, skipped, fact_sheet(cur, post, docs)))
