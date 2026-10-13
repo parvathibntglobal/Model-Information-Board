@@ -85,3 +85,15 @@ def test_a_malformed_paths_file_raises(out):
     r = out["readPaths"]
     assert r["good"] == "ok"
     assert r["noDate"] != "ok" and r["noPaths"] != "ok" and r["notJson"] != "ok"
+
+
+def test_a_real_date_becomes_lastmod_and_nothing_else_does(out):
+    """`lastmod` from judge/seo.py's dates, as a plain day - and only for a path
+    that has one. A malformed value and an undated path get none (no build
+    time standing in for a date nobody recorded)."""
+    xml = out["sitemapDated"]
+    dated = "<loc>https://board.example/board/jobs/code-review</loc><lastmod>2026-10-06</lastmod>"
+    assert dated in xml
+    assert "<loc>https://board.example/models/acme/model-t</loc></url>" in xml
+    assert "<loc>https://board.example/board</loc></url>" in xml
+    assert xml.count("<lastmod>") == 1

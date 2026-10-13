@@ -155,3 +155,15 @@ def test_section_and_model_pages_carry_their_trail(out):
     assert [c["name"] for c in s["sectionCrumbs"]] == ["Board", "Capabilities", "Code review"]
     assert s["sectionCrumbs"][1]["path"] == "/board?tab=cap"
     assert [c["path"] for c in s["modelCrumbs"]] == ["/models", "/models/anthropic/claude-opus-5"]
+
+
+def test_a_dated_page_says_when_it_last_changed(out):
+    """dateModified from the freshness dates, on board and model pages - and only
+    when the date exists, never the render time standing in for it."""
+    s = out["structured"]
+    assert s["pageDated"]["@type"] == "WebPage"
+    assert s["pageDated"]["dateModified"] == "2026-10-06T13:00:39+05:30"
+    assert s["pageDated"]["url"] == "https://board.example/board/jobs/code-review"
+    assert s["pageUndated"] is None
+    assert s["modelDated"]["dateModified"] == "2026-10-05T12:00:00+00:00"
+    assert "WebPage" in s["inSectionDated"]

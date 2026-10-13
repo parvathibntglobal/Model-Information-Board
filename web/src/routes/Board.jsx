@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { boardPage, freshness, BoardUnreadable } from '../api'
-import { DB, setBoardData } from '../board/db'
+import { DB, modelKeyFor, setBoardData } from '../board/db'
 import { useHead } from '../seo/head'
 import { boardHub, boardModelInSection, boardSection } from '../seo/pages'
 import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel } from '../board/views'
@@ -46,8 +46,12 @@ export default function Board() {
   const [sp] = useSearchParams()
   const parts = rest.split('/')
   const [seg, slug] = parts
-  const modelKey = parts.length > 2 ? parts.slice(2).join('/') : null
+  // THE ADDRESS NAMES THE MODEL READABLY (`anthropic/claude-opus-4.6`); the
+  // views look rows up by their grouping key, so it is translated here. An
+  // old `mv_…` link is its own key and still works.
+  const modelParam = parts.length > 2 ? parts.slice(2).join('/') : null
   const [state, setState] = useState({ ready: false, err: null, unreadable: null })
+  const modelKey = state.ready ? modelKeyFor(modelParam) : modelParam
 
   useEffect(() => {
     let alive = true
@@ -132,5 +136,5 @@ function headFor(seg, slug, modelKey, tab) {
   if (!item) return boardHub(seg ? 'best' : tab || 'best')
   if (!modelKey) return boardSection(seg, item)
   const row = (item.rows || []).find((r) => r.key === modelKey)
-  return row ? boardModelInSection(seg, item, modelKey, row.m) : boardSection(seg, item)
+  return row ? boardModelInSection(seg, item, row.slug || modelKey, row.m, row.freshUpdated) : boardSection(seg, item)
 }

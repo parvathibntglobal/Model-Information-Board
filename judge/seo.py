@@ -82,23 +82,34 @@ def indexable_pages(conn: Any) -> dict:
     tallies = {k: {"pages": 0, "indexable": 0} for k in PAGE_KINDS}
 
     sections = board_sections(conn, hide_source=publication.withheld_publicly)
+    mkey_lastmod: dict[str, str] = {}
     for key, seg in SEGMENT.items():
         for item in sections.get(key) or []:
             v = int(item.get("voices") or 0)
             tallies["section"]["pages"] += 1
             if v >= need["section"]:
                 tallies["section"]["indexable"] += 1
-                out.append({"path": f"/board/{seg}/{item['slug']}", "kind": "section", "voices": v})
+                # LASTMOD: when the newest entry on the page was added, over the
+                # same public rows the page shows. Absent rather than invented.
+                out.append({"path": f"/board/{seg}/{item['slug']}", "kind": "section", "voices": v,
+                            "lastmod": item.get("updated_at")})
             for m in item.get("models") or []:
-                mkey = m.get("model_key") or m.get("model_version_id")
+                # THE READABLE ID IN THE ADDRESS (`anthropic/claude-opus-4.6`), the
+                # same one the board links use; the internal key only as a fallback.
+                mkey = m.get("model_canonical") or m.get("model_key") or m.get("model_version_id")
                 if not mkey:
                     continue
                 mv = int(m.get("voices") or 0)
+                # The model's newest entry across every section, for its own page.
+                when = m.get("updated_at")
+                if when and (mkey_lastmod.get(m.get("model_key")) or "") < when:
+                    mkey_lastmod[m.get("model_key")] = when
                 tallies["model_in_section"]["pages"] += 1
                 if mv >= need["model_in_section"]:
                     tallies["model_in_section"]["indexable"] += 1
                     out.append({"path": f"/board/{seg}/{item['slug']}/{mkey}",
-                                "kind": "model_in_section", "voices": mv})
+                                "kind": "model_in_section", "voices": mv,
+                                "lastmod": m.get("updated_at")})
 
     # MODEL PAGES, by canonical id (SEO item 2: one URL per model). Only models
     # with any board entry can reach the threshold; the rest count as pages
@@ -116,13 +127,15 @@ def indexable_pages(conn: Any) -> dict:
         v = evidence_for_model(conn, mv_id, hidden=hidden, with_voices=True)["voices"]
         if v >= need["model"]:
             tallies["model"]["indexable"] += 1
-            out.append({"path": f"/models/{canonical}", "kind": "model", "voices": v})
+            out.append({"path": f"/models/{canonical}", "kind": "model", "voices": v,
+                        "lastmod": mkey_lastmod.get(mv_id)})
 
     # Approved posts only. A store that cannot be read raises
     # (`blog_store.StoreUnreadable`), so a failure is not read as "no posts".
     for post in blog_store.published(conn):
         if post.get("slug"):
-            out.append({"path": f"/blogs/{post['slug']}", "kind": "blog_post", "voices": None})
+            out.append({"path": f"/blogs/{post['slug']}", "kind": "blog_post", "voices": None,
+                        "lastmod": post.get("published_at")})
 
     never = set(r["never"])
     paths = sorted((p for p in out if p["path"] not in never), key=lambda p: p["path"])

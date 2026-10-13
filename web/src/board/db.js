@@ -35,6 +35,9 @@ export const DB = {
   // 19 in the proposal, 20 in review and 21 by the time the page was written -
   // three answers in one day. Anything that states it reads this.
   parentCoverage: {},
+  // Readable model id -> grouping key, so `/board/jobs/x/anthropic/claude-opus-4.6`
+  // finds the row keyed `mv_…`. Rebuilt on every board load.
+  keyBySlug: new Map(),
   // WHEN THE BOARD LAST CHANGED AND HOW NEW ITS EVIDENCE IS, from
   // GET /freshness. Null until read, and the line is then simply not drawn.
   freshness: null,
@@ -197,6 +200,10 @@ function commonFields(item) {
   return {
     slug: item.slug,
     name: item.name,
+    // THIS SECTION'S FRESHNESS: when its newest entry was added, and when the
+    // newest source post behind it was written (null when unknown).
+    freshUpdated: item.updated_at || null,
+    freshNewest: item.newest_report_at || null,
     card: item.definition,
     ev: evidenceLabel(item),
     st,
@@ -214,8 +221,17 @@ function commonFields(item) {
     // description and a price are facts from the registry, not from this quote.
     rows: (item.models || []).map((m) => {
       const key = m.model_key || m.model_version_id
+      // THE READABLE ID FOR THE ADDRESS (`anthropic/claude-opus-4.6`), so a
+      // drill-down URL names the model instead of `mv_6d0d…`. `key` stays the
+      // grouping key; `modelKeyFor` turns the readable form back into it.
+      const slug = m.model_canonical || key
+      if (slug !== key) DB.keyBySlug.set(slug, key)
       return {
         m: modelName(m),
+        slug,
+        // This model's freshness WITHIN this section, for its drill-down page.
+        freshUpdated: m.updated_at || null,
+        freshNewest: m.newest_report_at || null,
         // THE DRILL-DOWN KEY. It can contain a slash — `model_version.id`
         // holds canonical ids for 166 of 1,249 rows — so every reader of it
         // must treat it as the rest of a path, never as one segment.
@@ -475,6 +491,7 @@ function groupFigures(m) {
 /** Populate `DB` from the `/board` payload. Called once, before the views render. */
 export function setBoardData(payload) {
   const d = payload || {}
+  DB.keyBySlug = new Map()
 
   DB.jobs = (d.jobs || []).map((j) => ({
     ...commonFields(j),
@@ -624,4 +641,13 @@ export function setBoardData(payload) {
   // `routes/Blogs.jsx` fills them from GET /blog-posts.
   boardLoaded = true
   return DB
+}
+
+/** The grouping key for a model as written in an address: the readable id
+ *  (`anthropic/claude-opus-4.6`) or, for old links, the internal `mv_…` key
+ *  itself. Unknown values come back unchanged, so a bad link still says
+ *  "not found" rather than guessing. */
+export function modelKeyFor(param) {
+  if (!param) return param
+  return DB.keyBySlug.get(param) || param
 }

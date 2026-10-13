@@ -16,6 +16,10 @@ process.stdout.write(JSON.stringify({
   robotsOpen: robotsTxt({ site, open: true }),
   sitemap: sitemapXml(site, ['/board/jobs/code-review', '/board', '/compare', '/admin', '/login',
     '/models/anthropic/claude-opus-4.6', '/board?tab=cap&x=1', 'not-a-path']),
+  sitemapDated: sitemapXml(site, ['/board/jobs/code-review', '/models/acme/model-t', '/board'], {
+    '/board/jobs/code-review': '2026-10-06T13:00:39+05:30',
+    '/models/acme/model-t': 'not a date',
+  }),
   structural: STRUCTURAL_PATHS,
   readPaths: {
     good: tryRead(JSON.stringify({ generated_at: '2026-10-09T00:00:00Z', paths: ['/'] })),
