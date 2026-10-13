@@ -4,6 +4,39 @@ The exact prompt `generate_sample_blogs.py` sends to the generation model, copie
 It isn't retyped, so every string below is byte-for-byte what is sent. 
 Generated from the working tree on 2026-10-01.
 
+## What changed on 2026-10-13: voice, first person and search
+
+**Sections 1 to 3 below are the 2026-10-01 text and are now out of date in these respects.** The current strings are in `generate_sample_blogs.py` (`SYSTEM`, `TOOL`, `system_for`); regenerate this document from the code to refresh sections 1 to 3.
+
+- **Voice.** A technical blogger writing as "we" for the Model Information Board and talking to the reader as "you", not an analyst briefing. It takes positions: it says where it agrees and disagrees with what engineers report, gives the reason, and disagrees with claims, never people.
+- **First person.**
+  - Opinions ("we think", "we disagree") need no record.
+  - A first-person **experience** ("we tried", "we ran", "we measured") may only retell a note in `blog_experiences.yaml` that matches the post's models or topics. Code refuses the sentence unless it carries that note's figure or four words of its wording, and refuses any first-person experience in a post that has no matching note.
+  - A note is our record, not an engineer's words: its figures pass the number check, but it can never be quoted in «».
+- **Search.**
+  - Each planned post gets a **primary keyword** and secondary keywords from `blog_keywords.yaml`'s templates. Code requires the primary in the title, the description, the short answer or opening paragraph, first in `keywords`, and in at least one FAQ question.
+  - A new **`faq`** block holds 3 to 5 questions as searchers type them. Each answer is 40 to 90 words and opens on a direct answer of 30 words or fewer. It is exported as its own section ("Questions people ask").
+  - **Trending terms** are the sections engineers reported on most in the last 14 days, from the board's own entries. They are offered in the brief, never required. They measure what engineers discuss, not search volume.
+- **Unchanged:** «verbatim» quotes checked against the discussions, every figure grounded, no counts of people, no platform names.
+
+### Later the same day: length, visuals, illustrations, no skim lines
+
+- **No skim lines.** The team read the skim view as an incomplete post.
+  - The generator no longer asks for a `skim` line per paragraph, and its checker is gone.
+  - The page shows every paragraph in full under a single "N min read".
+  - Older posts still carry skim lines in their data; the page ignores them.
+- **An 8 to 15 minute read.** Every format runs 7 to 10 sections of 3 to 5 paragraphs. The check counts what the reader reads (`reading_words`): body, short answer, FAQ, and the text in tables, charts and diagrams, as the page's reading time does. The target is 1,850 to 3,450 words.
+- **Visuals.** One post-level `visuals` list holds 2 to 5 tables, charts or diagrams, at most one per section, chosen by need.
+  - A chart's bar values must appear in the discussions, the fact sheet or a WHAT WE TRIED note.
+  - The page draws all three from the post's own data (`views.js` `visualBlock`).
+- **AI-generated illustrations.**
+  - The essay proposes 1 or 2 scenes, each with alt text and a caption. Code refuses scenes naming text, numbers, brands, products, real people, screens or charts.
+  - An image model draws each one in a fixed house style (`IMAGE_STYLE`; default `google/gemini-2.5-flash-image`, `BLOG_IMAGE_MODEL` to change it). Measured 2026-10-13: about $0.039 per picture.
+  - Each is stored as an inline JPEG and labelled "AI-generated illustration" on the page.
+  - Each call is recorded in the spend ledger. A picture that fails to render is left out and named in the run log.
+  - Pictures sit inside the post's data for now; before launch they should move to their own storage so the blog list stays light.
+- **Repair messages name the exact sentences or items.** Word caps, sentence length, short-sentence rhythm, too many visuals, and our own notes quoted as an engineer's words all used to report a count only, and held drafts for several repairs.
+
 ## Which drafts this describes
 
 The three drafts in `blog_posts/` (shown in the Blogs section) were generated on 2026-10-01 with `openai/gpt-6-luna` using this prompt, **with one difference**: each discussion header then carried its platform name (`<<<DISCUSSION 3 · Reddit>>>`). The label was removed later the same day so the model is never given a platform to name. The system prompt, briefs, tool and repair message are unchanged since those drafts.
@@ -310,6 +343,7 @@ The prompt states the rules, and these checks are what enforce them. The model p
 - A sentence that credits practitioners must contain a «verbatim» fragment.
 - Banned: references to the inputs, counting people or reports, scores out of 10/100, internal telemetry vocabulary, vendor intent, source-platform names.
 - Structure: 5–7 sections of 3+ paragraphs, a 5–8 row matrix, a 3–5 branch tree, at least one labelled code example, and the minimum length.
+- (2026-10-13) A first-person experience sentence must retell a `blog_experiences.yaml` note (`experience_unanchored`). The primary keyword must be in the title, description, lead and an FAQ question, with 3 to 5 FAQ answers of 40 to 90 words (`seo_violations`).
 
 The full list is `BANNED`, `ATTRIBUTION` and `check()` in `generate_sample_blogs.py`. Each rule's comment records the draft that prompted it.
 

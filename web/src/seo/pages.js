@@ -177,7 +177,9 @@ export function blogIndex() {
 /** `/blogs/:slug`, from the post itself. A post the reader may not see gets the index's head. */
 export function blogPost(post) {
   if (!post) return blogIndex()
-  const text = usable(post.dek) || usable(post.lead) || 'A note on AI models, written from what engineers report in production.'
+  // The post's own meta description first (written for search since
+  // 2026-10-13); posts from before that carry none and fall back to the dek.
+  const text = usable(post.description) || usable(post.dek) || usable(post.lead) || 'A note on AI models, written from what engineers report in production.'
   const canonical = `/blogs/${post.slug}`
   return {
     title: fullTitle(post.title),
@@ -190,6 +192,8 @@ export function blogPost(post) {
       slug: post.slug,
       title: post.title,
       dek: usable(post.dek) || null,
+      description: usable(post.description) || null,
+      keywords: Array.isArray(post.keywords) ? post.keywords.filter((k) => usable(k)) : [],
       published_at: post.published_at || null,
       provenance: { generated_at: (post.provenance && post.provenance.generated_at) || null },
     },

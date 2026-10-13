@@ -56,7 +56,8 @@ export function article(site, post) {
     publisher: { '@type': 'Organization', name: ORG, url: abs(site, '/') },
     isAccessibleForFree: true,
   }
-  if (post.dek) out.description = String(post.dek)
+  if (post.description || post.dek) out.description = String(post.description || post.dek)
+  if (Array.isArray(post.keywords) && post.keywords.length) out.keywords = post.keywords.join(', ')
   if (post.published_at) out.datePublished = post.published_at
   const created = post.provenance && post.provenance.generated_at
   if (created) out.dateCreated = created

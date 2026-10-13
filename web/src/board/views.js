@@ -1062,16 +1062,54 @@ function essayBlock([t,v]){
   if(t==='tree') return `<div class="es-dtree"><div class="q">${essayText(v.question)}</div>
     <div class="br">${(v.branches||[]).map(b=>`<div class="b"><div class="cond">${essayText(b.condition)}</div>
       <div class="out">${essayText(b.outcome)}</div>${routeBadge(b.route)}</div>`).join('')}</div></div>`;
-  // A PARAGRAPH WITH ITS OWN SKIM LINE (generator, 2026-10-08): skim mode
-  // shows that polished sentence, full mode the paragraph. Older posts carry a
-  // plain string, and skim mode folds everything after its first sentence.
-  if(v && typeof v === 'object'){
-    return `<p class="es-para es-sk"><span class="sk">${essayText(v.skim)}</span>`
-      + `<span class="full">${essayText(v.text)}</span></p>`;
+  // A TABLE, CHART OR DIAGRAM (generator, 2026-10-13), one per section at most.
+  if(t==='visual') return visualBlock(v);
+  // A GENERATED PICTURE (generator, 2026-10-13): always labelled as AI-made,
+  // and only ever an inline JPEG/PNG/WebP - any other src is not drawn.
+  if(t==='image'){
+    const src = String((v && v.src) || '');
+    if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src)) return '';
+    return `<figure class="es-fig es-fig-image"><img src="${src}" alt="${esc(v.alt || '')}" loading="lazy" decoding="async">
+      <figcaption>${v.caption ? `${essayText(v.caption)} ` : ''}<span class="es-ai">AI-generated illustration</span></figcaption></figure>`;
   }
-  const [first, rest] = splitFirst(v);
-  return rest ? `<p class="es-para"><span class="s1">${essayText(first)}</span><span class="rest">${essayText(rest)}</span></p>`
-    : `<p class="es-para">${essayText(first)}</p>`;
+  // EVERY PARAGRAPH IN FULL (2026-10-13). Skim mode showed one line per
+  // paragraph by default and read as an incomplete post, so it is gone. Posts
+  // written before carry {text, skim}: the paragraph is shown, the line is not.
+  const text = v && typeof v === 'object' ? v.text : v;
+  return `<p class="es-para">${essayText(text)}</p>`;
+}
+
+// THE THREE VISUALS. Drawn as HTML and inline SVG from the post's own data:
+// no image files, nothing fetched, and every chart value was checked against
+// the sources by the generator before the post was written.
+function visualBlock(v){
+  if(!v || !v.kind) return '';
+  const cap = v.caption ? `<figcaption>${essayText(v.caption)}</figcaption>` : '';
+  if(v.kind === 'table'){
+    return `<figure class="es-fig es-fig-table"><div class="es-tbl"><table><thead><tr>${(v.columns||[]).map(c=>`<th>${essayText(c)}</th>`).join('')}</tr></thead>
+      <tbody>${(v.rows||[]).map(r=>`<tr>${r.map((c,k)=>`<td>${k===0?`<b>${essayText(c)}</b>`:essayText(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${cap}</figure>`;
+  }
+  if(v.kind === 'chart'){
+    const bars = (v.bars||[]).filter(b => Number.isFinite(Number(b.value)));
+    if(!bars.length) return '';
+    const max = Math.max(...bars.map(b => Number(b.value))) || 1;
+    const row = 30, labelW = 38, h = bars.length * row + 8;
+    const fmt = n => { const x = Number(n); return Number.isInteger(x) ? x.toLocaleString('en-US') : String(x); };
+    const svg = bars.map((b, i) => {
+      const w = Math.max(0.5, (Number(b.value) / max) * (96 - labelW - 14));
+      const y = i * row + 6;
+      return `<text x="0" y="${y + 15}" class="lbl">${esc(String(b.label).replace(/[«»]/g,''))}</text>`
+        + `<rect x="${labelW}%" y="${y + 3}" width="${w}%" height="18" rx="4" class="bar"/>`
+        + `<text x="${labelW + w + 1}%" y="${y + 16}" class="val">${esc(fmt(b.value))}</text>`;
+    }).join('');
+    return `<figure class="es-fig es-fig-chart"><div class="unit">${esc(v.unit || '')}</div>
+      <svg viewBox="0 0 100 ${h}" preserveAspectRatio="none" width="100%" height="${h}" role="img" aria-label="${esc(String(v.caption||'Chart').replace(/[«»]/g,''))}">${svg}</svg>${cap}</figure>`;
+  }
+  if(v.kind === 'diagram'){
+    const steps = (v.steps||[]).map((st, i) => `<li><span class="n">${i + 1}</span><span>${essayText(st)}</span></li>`).join('');
+    return `<figure class="es-fig es-fig-flow"><ol>${steps}</ol>${cap}</figure>`;
+  }
+  return '';
 }
 
 // ── per-format layouts (reworked 2026-10-06) ──────────────────────────────
@@ -1123,24 +1161,6 @@ function splitPost(body){
   return out;
 }
 
-// A paragraph's first sentence, for skim mode. Never splits inside a «quote»,
-// a `code` span or a **bold** run, or after an abbreviation.
-function splitFirst(raw){
-  const s = String(raw || '');
-  let q = 0, c = 0, bold = 0;
-  for(let i = 0; i < s.length; i++){
-    const ch = s[i];
-    if(ch === '«') q++;
-    else if(ch === '»') q = Math.max(0, q - 1);
-    else if(ch === '`') c ^= 1;
-    else if(ch === '*' && s[i + 1] === '*'){ bold ^= 1; i++; }
-    else if(!q && !c && !bold && '.!?'.includes(ch) && s[i + 1] === ' ' && /[A-Z0-9«`*(]/.test(s[i + 2] || '')){
-      if(/\b(e\.g|i\.e|vs|etc|approx|cf)\.$/i.test(s.slice(Math.max(0, i - 6), i + 1))) continue;
-      return [s.slice(0, i + 1), s.slice(i + 1)];
-    }
-  }
-  return [s, ''];
-}
 const wordsIn = s => (String(s || '').replace(/<[^>]+>/g, ' ').match(/\S+/g) || []).length;
 const pad2 = n => String(n).padStart(2, '0');
 
@@ -1511,28 +1531,13 @@ function vPost(slug){
   }
   let main = open + middle + end;
 
-  // READING TIME, COUNTED: words on the page, and the same less every
-  // paragraph after its first sentence - the part skim mode folds.
-  // A paragraph with a skim line holds both spans: full mode hides the line,
-  // skim mode hides the paragraph.
-  let skimOnly = 0, fullOnly = 0;
-  for(const [t, v] of (p.body || [])){
-    if(t !== 'p') continue;
-    if(v && typeof v === 'object'){ skimOnly += wordsIn(v.skim); fullOnly += wordsIn(v.text); }
-    else fullOnly += wordsIn(splitFirst(v)[1]);
-  }
-  const hasSkim = (p.body || []).some(([t, v]) => t === 'p' && v && typeof v === 'object');
-  const shown = wordsIn(main);
-  const full = shown - skimOnly;
-  const folded = fullOnly;
-  const mins = w => Math.max(1, Math.round(w / 230));
+  // READING TIME, COUNTED: the words on the page at 230 a minute. One mode
+  // only since 2026-10-13 - the skim/full toggle is gone with the skim lines.
+  const mins = Math.max(1, Math.round(wordsIn(main) / 230));
   // INTERACTIVE BY DEFAULT since 2026-10-06; a post can still opt out.
   if(p.interactive !== false) main = interactivize(main, p, rows);
-  const mode = `<div class="es-mode"><div class="seg" role="radiogroup" aria-label="Reading mode">
-      <label><input type="radio" name="es-mode" class="m-skim" checked>Skim · ${mins(full - folded)} min</label>
-      <label><input type="radio" name="es-mode">Full · ${mins(full)} min</label></div>
-    <p>${hasSkim ? 'Skim shows each paragraph’s point in one sentence' : 'Skim shows the first sentence of each paragraph'}, plus every card, table and quote.
-      Dotted names open a model card. <q class="es-iq">Quoted</q> words are an engineer's, copied exactly.</p></div>`;
+  const mode = `<div class="es-mode"><span class="es-readtime">${mins} min read</span>
+    <p>Dotted names open a model card. <q class="es-iq">Quoted</q> words are an engineer's, copied exactly.</p></div>`;
 
   const toc = [...secs.filter(s => s.head.id).map(s => [`es-${s.head.id}`, s.head.text]),
     ...(parts.matrix ? [['es-matrix', parts.matrix.head.text]] : []), ...(parts.tree ? [['es-decision', 'Decision tree']] : [])]
