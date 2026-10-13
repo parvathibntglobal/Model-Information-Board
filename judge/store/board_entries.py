@@ -921,7 +921,7 @@ def spelling_key(slug: str) -> str:
 _SEPARATORS = re.compile(r"[-_\s]+")
 
 
-def board_sections(conn: Any) -> dict[str, list[dict]]:
+def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict]]:
     """Everything the Board page renders, grouped by section then slug.
 
     Returns {"best_for": [...], "capability": [...], "metric": [...]}, each item
@@ -1073,11 +1073,18 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     # only metrics. Carried under `_withheld_sources` (rule 4).
     from judge import publication
 
+    # `hide_source` is "is this source hidden here?". None means this
+    # deployment's view, which is what every page reads. `judge/seo.py` passes
+    # `publication.withheld_publicly`, because which pages are worth indexing
+    # is a question about the PUBLIC page whatever view this server runs.
+    # (Not named `withheld`: that name is the metric-withholding tally above,
+    # and the first version of this shadowed the parameter with it.)
+    hide = hide_source or publication.withheld
     by_source = 0
     for (section, slug, name, definition, unit, value, basis,
          mv_id, doc_id, quote, polarity, _created_at, url, author_id,
          canonical, display, registry_id, source) in rows:
-        if publication.withheld(source):
+        if hide(source):
             by_source += 1
             continue
         held = metric_withholding({
@@ -1970,7 +1977,8 @@ def unrule_entries(conn, *, section: str, slug: str) -> int:
     return cur.rowcount
 
 
-def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict:
+def evidence_for_model(conn, model_version_id: str, *, limit: int = 200,
+                       hidden: list[str] | None = None, with_voices: bool = False) -> dict:
     """Every discovered section this model was named in, with the quotes.
 
     THE MODEL PAGE'S HALF OF THE SAME CORPUS. The board groups by section and
@@ -1990,7 +1998,11 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
     """
     from judge import publication
 
-    hidden = list(publication.hidden_here())
+    # `hidden` overrides this deployment's view, and `with_voices` adds the
+    # model-wide count of distinct voices - both for `judge/seo.py`, which asks
+    # about the PUBLIC page. The API passes neither, so its payload is unchanged.
+    hidden = list(publication.hidden_here()) if hidden is None else list(hidden)
+    all_voices: set[str] = set()
     rows = conn.execute(
         "SELECT be.section, COALESCE(be.ruling_target, be.slug) AS slug, be.name,"
         "       be.definition, be.unit, be.value_verbatim, be.basis, be.quote,"
@@ -2066,6 +2078,7 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
         bucket["_docs"].add(doc_id)
         if author_id:
             bucket["_voices"].add(author_id)
+            all_voices.add(author_id)
         bucket["quotes"].append(
             {"quote": quote, "polarity": polarity, "document_id": doc_id, "url": url}
         )
@@ -2107,4 +2120,4 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
         },
         "withheld": withheld,
         "withheld_sources": publication.notice(by_source),
-    }
+    } | ({"voices": len(all_voices)} if with_voices else {})

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { listModels, fetchAll, fmtTokens, BoardUnreadable } from '../api'
+import { listModels, fetchAll, fmtTokens, modelUrl, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 import Freshness from '../components/Freshness'
+import { useHead } from '../seo/head'
+import { modelsIndex } from '../seo/pages'
 
 /**
  * The registry: what each provider advertises, and what engineers have found.
@@ -124,6 +126,7 @@ function matches(models, query) {
 }
 
 export default function Models() {
+  useHead(modelsIndex())
   const [roster, setRoster] = useState(null)
   // ⚠ THERE IS NO CAPABILITY SWEEP HERE ANY MORE (#438). This page used to
   //   loop the twelve ratified `capability_key`s and call `capabilityPage`
@@ -477,7 +480,7 @@ function ModelRow({ m, picked, onPick, atCap }) {
       </div>
     ) : (
       <Link
-        to={`/models/${m.model_version_id}`}
+        to={modelUrl(m)}
         // `focus` carries which capability to open the model page on. It used to
         // prefer whichever one the reader had filtered by; the "Discussed under"
         // filter is gone, so the first capability this model has evidence for is

@@ -69,7 +69,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORE = ROOT / "judge" / "store" / "board_entries.py"
 DB = ROOT / "web" / "src" / "board" / "db.js"
 VIEWS = ROOT / "web" / "src" / "board" / "views.js"
-BOARDVIEW = ROOT / "web" / "src" / "board" / "BoardView.jsx"
+#: The route mapping (`goPath`) moved here from BoardView.jsx on 2026-10-08 (SEO
+#: item 3), so the views can write each link's `href` from the same function.
+LINKS = ROOT / "web" / "src" / "board" / "links.js"
 ROUTE = ROOT / "web" / "src" / "routes" / "Board.jsx"
 
 
@@ -375,8 +377,9 @@ class TestTheDrillDownExistsAndIsReachable:
 
     def test_both_category_pages_link_their_rows_to_a_model_page(self):
         js = _views()
-        assert "ranked(c.rows,'capmodel:'+c.slug)" in js
-        assert "ranked(j.rows,'jobmodel:'+j.slug)" in js
+        # `, 2` since SEO item 4: the heading level of the groups on that page.
+        assert "ranked(c.rows,'capmodel:'+c.slug, 2)" in js
+        assert "ranked(j.rows,'jobmodel:'+j.slug, 2)" in js
 
     def test_a_list_with_no_route_stays_inert(self):
         # A pointer over something that does nothing is the worse half of the
@@ -386,7 +389,7 @@ class TestTheDrillDownExistsAndIsReachable:
         assert "${go?' open':''}" in js
 
     def test_the_router_understands_both_drill_down_kinds(self):
-        js = BOARDVIEW.read_text(encoding="utf-8")
+        js = LINKS.read_text(encoding="utf-8")
         assert "kind === 'jobmodel' || kind === 'capmodel'" in js
         assert "kind === 'model'" in js
 
@@ -398,7 +401,7 @@ class TestTheDrillDownExistsAndIsReachable:
         # discussed rather than a broken link.
         js = ROUTE.read_text(encoding="utf-8")
         assert "parts.slice(2).join('/')" in js
-        js2 = BOARDVIEW.read_text(encoding="utf-8")
+        js2 = LINKS.read_text(encoding="utf-8")
         assert "arg.indexOf(':')" in js2
         assert "arg.slice(j + 1)" in js2
 
@@ -601,7 +604,8 @@ class TestTheOrderingIsThreeGroups:
 
     def test_the_boundary_is_drawn_on_the_page(self):
         js = _views()
-        assert "function groupHead(g, n)" in js
+        # `level` since SEO item 4: groups are real <h2>/<h3> headings now.
+        assert "function groupHead(g, n, level)" in js
         for title in ("Reported working", "Only neutral reports", "Reported problems"):
             assert title in js
         css = (ROOT / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
@@ -732,7 +736,8 @@ class TestTheMetricAxisListsModelsAndDrillsDown:
     def test_the_axis_page_lists_models_rather_than_figures(self):
         js = _views()
         met = js[js.index("function vMet(slug){"):js.index("function vMetModel(")]
-        assert "ranked(rows, 'metmodel:' + m.slug)" in met, (
+        # `, 3` since SEO item 4: on the axis page the groups sit under an <h2>.
+        assert "ranked(rows, 'metmodel:' + m.slug, 3)" in met, (
             "the axis page must list each model once and link to its own page; "
             "a flat figure table repeats the model name once per figure"
         )
@@ -755,7 +760,7 @@ class TestTheMetricAxisListsModelsAndDrillsDown:
         )
 
     def test_the_route_reaches_the_leaf(self):
-        assert "kind === 'metmodel'" in BOARDVIEW.read_text(encoding="utf-8")
+        assert "kind === 'metmodel'" in LINKS.read_text(encoding="utf-8")
         route = ROUTE.read_text(encoding="utf-8")
         assert "modelKey ? vMetModel(slug, modelKey) : vMet(slug)" in route
 

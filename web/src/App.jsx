@@ -1,21 +1,56 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import Landing from './routes/Landing'
-import Board from './routes/Board'
-import Blogs from './routes/Blogs'
-import ModelDetail from './routes/ModelDetail'
-import Models from './routes/Models'
-import Compare from './routes/Compare'
-// The counter's tokenizer is a dynamic import inside tokens/tokenizer.js, so
-// importing the page eagerly does not put the 2 MB rank table in the bundle.
-import TokenCounter from './routes/TokenCounter'
-import ModelFinder from './routes/ModelFinder'
-import Admin from './routes/Admin'
-import BlogLogs from './routes/BlogLogs'
 import Login from './routes/Login'
 import { getSession, signOut } from './auth'
+import NotFound from './components/NotFound'
+
+/**
+ * ROUTE-LEVEL CODE SPLITTING (SEO item 10, 2026-10-09). The whole app was one
+ * 544.6 kB script (159.3 kB gzipped) that every visitor downloaded before the
+ * first paint - the admin console included, which a reader never opens. The
+ * front door stays in the first download: the shell, Login and Landing. Every
+ * other page is its own chunk, fetched when it is first visited.
+ *
+ * A DEPLOY REPLACES THE CHUNKS. A tab opened before it still names the old
+ * files, so the import fails; this reloads ONCE to pick up the new build
+ * instead of rendering nothing. The flag stops a loop: if the reload does not
+ * fix it, the error is thrown and shows (rule 12), never swallowed.
+ */
+function page(load) {
+  return lazy(() => load().catch((err) => {
+    let reloaded = false
+    try { reloaded = sessionStorage.getItem('chunk-reload') === '1' } catch { /* storage blocked */ }
+    if (!reloaded) {
+      try { sessionStorage.setItem('chunk-reload', '1') } catch { /* storage blocked */ }
+      window.location.reload()
+      return new Promise(() => {})
+    }
+    throw err
+  }).then((mod) => {
+    try { sessionStorage.removeItem('chunk-reload') } catch { /* storage blocked */ }
+    return mod
+  }))
+}
+
+const Board = page(() => import('./routes/Board'))
+const Blogs = page(() => import('./routes/Blogs'))
+const ModelDetail = page(() => import('./routes/ModelDetail'))
+const Models = page(() => import('./routes/Models'))
+const Compare = page(() => import('./routes/Compare'))
+const TokenCounter = page(() => import('./routes/TokenCounter'))
+const ModelFinder = page(() => import('./routes/ModelFinder'))
+const Admin = page(() => import('./routes/Admin'))
+const BlogLogs = page(() => import('./routes/BlogLogs'))
+
+/** What a page shows while its chunk downloads: the skeleton the pages use for data. */
+const PAGE_LOADING = (
+  <div className="shell section-tight">
+    <div className="skel" style={{ height: 220 }} />
+  </div>
+)
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -61,6 +96,7 @@ export default function App() {
       {!onLogin && <Nav session={session} onSignOut={handleSignOut} />}
 
       <main>
+        <Suspense fallback={PAGE_LOADING}>
         <Routes>
           {/* signing in drops you on the landing page */}
           <Route
@@ -86,8 +122,10 @@ export default function App() {
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* NOT A REDIRECT (SEO item 7): an unknown address says so, at that address. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </main>
 
       {onHome && <Footer />}

@@ -114,9 +114,25 @@ def store_drafts(conn, posts: list[dict], run_id: str | None = None) -> dict[str
 # ── reading ─────────────────────────────────────────────────────────────────
 
 def published(conn) -> list[dict]:
-    """The approved posts, as the Blogs page renders them."""
-    rows = _read(conn, "SELECT doc FROM blog_post WHERE state = 'approved'")
-    return _order([r[0] for r in rows])
+    """The approved posts, as the Blogs page renders them.
+
+    `published_at` is when the post was APPROVED - the latest `approved`
+    decision in `blog_post_review` - and it is what a post's Article markup
+    gives as `datePublished` (SEO item 11, web/src/seo/structured.js). Not the
+    generation date: a draft written on the 1st and approved on the 7th was
+    published on the 7th. None when no approval is recorded, never a
+    substitute date (rule 6).
+    """
+    rows = _read(
+        conn,
+        "SELECT p.doc, a.decided_at FROM blog_post p "
+        "LEFT JOIN LATERAL (SELECT decided_at FROM blog_post_review "
+        "                   WHERE slug = p.slug AND decision = 'approved' "
+        "                   ORDER BY decided_at DESC LIMIT 1) a ON true "
+        "WHERE p.state = 'approved'",
+    )
+    return _order([{**doc, "published_at": at.isoformat() if at else None}
+                   for doc, at in rows])
 
 
 def for_review(conn) -> list[dict]:

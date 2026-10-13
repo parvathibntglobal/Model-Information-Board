@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { boardPage, freshness, BoardUnreadable } from '../api'
 import { DB, setBoardData } from '../board/db'
+import { useHead } from '../seo/head'
+import { boardHub, boardModelInSection, boardSection } from '../seo/pages'
 import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel } from '../board/views'
 import BoardView from '../board/BoardView'
+import NotFound from '../components/NotFound'
 
 /**
  * The board: three ways into the same evidence — Jobs (key `best_for`), Capabilities,
@@ -70,12 +73,27 @@ export default function Board() {
     return () => { alive = false }
   }, [])
 
+  // PER-PAGE <head> (seo/pages.js), from the section the board actually
+  // loaded - null while loading, so the site defaults stand until it has.
+  // A slug the board does not hold gets the hub's head, which is also what
+  // the views render for it.
+  // A SECTION THAT IS NOT ON THE BOARD IS NOT FOUND (SEO item 7), where the
+  // views used to render the hub at its address. `/board/jobs` with no slug is
+  // still the tab: a list page links use. NotFound owns the head then (`false`).
+  const missing = state.ready && sectionMissing(seg, slug)
+  useHead(!state.ready ? null : missing ? false : headFor(seg, slug, modelKey, sp.get('tab')))
+
   if (!state.ready) {
     return (
       <div className="shell section-tight">
         <div className="skel" style={{ height: 220 }} />
       </div>
     )
+  }
+
+  if (missing) {
+    const what = { jobs: 'job', capabilities: 'capability', metrics: 'metric' }[seg]
+    return <NotFound what={what} back={{ to: '/board', label: 'Browse the board' }} />
   }
 
   let html
@@ -96,4 +114,23 @@ export default function Board() {
       <BoardView html={html} key={rest + '?' + (sp.get('tab') || '')} />
     </>
   )
+}
+
+const SECTION_LIST = { jobs: 'jobs', capabilities: 'caps', metrics: 'mets' }
+
+/** An unknown segment (`/board/foo`), or a slug the board does not hold. */
+function sectionMissing(seg, slug) {
+  if (!seg) return false
+  const list = DB[SECTION_LIST[seg]]
+  if (!list) return true
+  return Boolean(slug) && !list.some((x) => x.slug === slug)
+}
+
+function headFor(seg, slug, modelKey, tab) {
+  const list = DB[SECTION_LIST[seg]]
+  const item = list ? list.find((x) => x.slug === slug) : null
+  if (!item) return boardHub(seg ? 'best' : tab || 'best')
+  if (!modelKey) return boardSection(seg, item)
+  const row = (item.rows || []).find((r) => r.key === modelKey)
+  return row ? boardModelInSection(seg, item, modelKey, row.m) : boardSection(seg, item)
 }

@@ -7,6 +7,7 @@
 // reason. A defect in WHERE a card lands is not visible in the source text
 // (#431), so the render has to be executable.
 import { DB } from './db.js'
+import { goAttrs } from './links.js'
 import { sourceName } from '../sourceName.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
@@ -68,9 +69,9 @@ const ST = {v:['ev-v','corroborated'], c:['ev-c','contested'], s:['ev-n','one vo
 const stOf = (k) => ST[k] || ST.n;
 
 function crumb(parts){
-  return '<p class="crumb">'+parts.map(([t,h])=>h?`<a data-go="${esc(h)}">${esc(t)}</a>`:t).join('<i>/</i>')+'</p>';
+  return '<p class="crumb">'+parts.map(([t,h])=>h?`<a${goAttrs(h)}>${esc(t)}</a>`:t).join('<i>/</i>')+'</p>';
 }
-function ranked(rows, route){
+function ranked(rows, route, level){
   if(!rows || !rows.length) return '';
   // NO RANK NUMERAL. This printed 01, 02, 03 from the array index, and the
   // heading above it said "the quotes behind the ranking" — so a list ordered
@@ -99,17 +100,21 @@ function ranked(rows, route){
   let open = null;
   return '<div class="ranked">'+rows.map((r)=>{
     const [cls,lbl]=stOf(r.s);
-    const go = route && r.key ? ` data-go="${esc(route)}:${esc(r.key)}"` : '';
+    // A ROW THAT OPENS SOMEWHERE IS A LINK (SEO item 3): an <a> with a real
+    // href, so a crawler can follow it and Ctrl-click opens it. One that opens
+    // nothing stays a <div> - an <a> with no destination is not a link.
+    const go = route && r.key ? goAttrs(`${route}:${r.key}`) : '';
+    const tag = go ? 'a' : 'div';
     // THE SPLIT IS ITS OWN LINE, not more words inside `.st`. That span
     // already carries two counts and a state label, and `.right` is
     // `white-space:nowrap` - a fourth clause in it would push the row wider
     // than a phone. Empty on metric, where there is no split.
     const sp = r.sp ? `<span class="split">${esc(r.sp)}</span>` : '';
-    const head = r.g && r.g !== open ? groupHead(r.g, counts[r.g]) : '';
+    const head = r.g && r.g !== open ? groupHead(r.g, counts[r.g], level) : '';
     open = r.g || open;
-    return `${head}<div class="rank${r.dim?' dim':''}${go?' open':''}"${go}><span class="n">${go?'›':'·'}</span>
+    return `${head}<${tag} class="rank${r.dim?' dim':''}${go?' open':''}"${go}><span class="n">${go?'›':'·'}</span>
       <div><b>${esc(r.m)}</b><span class="vend">${esc(r.v)}</span><p>${esc(r.d)}</p></div>
-      <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span>${sp}</div></div>`;
+      <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span>${sp}</div></${tag}>`;
   }).join('')+'</div>';
 }
 
@@ -123,10 +128,17 @@ const GROUPS = {
   neutral: ['Only neutral reports', 'nobody reported it working or failing'],
   problems: ['Reported problems', 'reports of it failing, none of it working'],
 };
-function groupHead(g, n){
+// A REAL HEADING (SEO item 4, 2026-10-09). This was `<p role="heading"
+// aria-level="3">`: a screen reader heard a heading and nothing that reads the
+// tag tree did, so the page's main structure was invisible to it. `level` is
+// the page's outline, passed by each caller and never defaulted: 2 where the
+// list sits straight under the page's <h1> (jobs, capabilities), 3 where it
+// sits inside a section that already has an <h2> (metrics). The look is
+// unchanged - `.rank-group` neutralises the global heading styles.
+function groupHead(g, n, level){
   const [title, gloss] = GROUPS[g] || [g, ''];
-  return `<p class="rank-group" role="heading" aria-level="3"><b>${esc(title)}</b>
-    <span>${n} model${n===1?'':'s'}${gloss ? ` · ${esc(gloss)}` : ''}</span></p>`;
+  return `<h${level} class="rank-group"><b>${esc(title)}</b>
+    <span>${n} model${n===1?'':'s'}${gloss ? ` · ${esc(gloss)}` : ''}</span></h${level}>`;
 }
 
 /** The line above a model list, carrying what the list was drawn from.
@@ -292,7 +304,7 @@ function reportsHeading(qs){
 }
 function related(list){
   if(!list || !list.length) return '';
-  return '<div class="related">'+list.map(([h,t])=>`<a data-go="${esc(h)}">${esc(t)}</a>`).join('')+'</div>';
+  return '<div class="related">'+list.map(([h,t])=>`<a${goAttrs(h)}>${esc(t)}</a>`).join('')+'</div>';
 }
 function sec(eyebrow,h2,intro,inner){
   // An empty `inner` means the pipeline produced nothing for this block. Render
@@ -309,8 +321,8 @@ function card(x, route){
   const [cls,lbl]=stOf(x.st);
   // No text, no empty paragraph: a job card is the name and its counts.
   const body = x.card ? `<p>${esc(x.card)}</p>` : '';
-  return `<div class="icard" data-go="${route}:${esc(x.slug)}"><b>${esc(x.name)}</b>${body}
-    <div class="meta"><span class="${cls}">${esc(x.ev)} · ${esc(lbl)}</span><span>${esc(x.vol)}</span></div></div>`;
+  return `<a class="icard"${goAttrs(`${route}:${x.slug}`)}><b>${esc(x.name)}</b>${body}
+    <div class="meta"><span class="${cls}">${esc(x.ev)} · ${esc(lbl)}</span><span>${esc(x.vol)}</span></div></a>`;
 }
 function mcard(x){
   // HOW MANY MODELS, ON THE CARD, BEFORE THE CLICK.
@@ -322,8 +334,8 @@ function mcard(x){
   // the card did not carry.
   const n = (x.mrows || []).length;
   const who = n === 1 ? '1 model' : `${n} models`;
-  return `<div class="icard" data-go="metric:${esc(x.slug)}"><b>${esc(x.name)}</b><p>${esc(x.card)}</p>
-    <div class="meta"><span>unit · ${esc(x.unit)}</span><span>${esc(who)}</span></div></div>`;
+  return `<a class="icard"${goAttrs(`metric:${x.slug}`)}><b>${esc(x.name)}</b><p>${esc(x.card)}</p>
+    <div class="meta"><span>unit · ${esc(x.unit)}</span><span>${esc(who)}</span></div></a>`;
 }
 
 /* ---------- parent headings ---------- */
@@ -628,7 +640,7 @@ function orderPanel(noun){
 function orderLine(tab){
   return `<p class="orderline">Models with a report of it working come first, those whose
     reports more consistently say it worked ahead; then only-neutral, then problems only.
-    No score is shown. <a data-go="board:${tab}">How this list is ordered</a></p>`;
+    No score is shown. <a${goAttrs(`board:${tab}`)}>How this list is ordered</a></p>`;
 }
 
 /** "What counts here" is the extractor's `definition`, LABELLED as its counting
@@ -637,7 +649,7 @@ function orderLine(tab){
  *  because it is the fine print of how rows got onto it. */
 function jobRule(j){
   if(!j.rule) return '';
-  return `<div class="shell jobrule"><h3>What counts here</h3><p>${esc(j.rule)}</p>
+  return `<div class="shell jobrule"><h2>What counts here</h2><p>${esc(j.rule)}</p>
     <p class="fine">The extractor’s counting rule: the test a report had to meet to be filed
     under this job. It is not a description of the job.</p></div>`;
 }
@@ -673,7 +685,7 @@ function vJob(slug){
     ${j.rows && j.rows.length ? orderLine('best') : ''}</div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    <div class="shell">${ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j)}</div>
+    <div class="shell">${ranked(j.rows,'jobmodel:'+j.slug, 2) + orphanNote(j)}</div>
     ${jobRule(j)}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
@@ -705,7 +717,7 @@ function vCap(slug){
     ${c.rows && c.rows.length ? orderLine('cap') + splitNote(c) : ''}</div>
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
-    <div class="shell">${ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c)}</div>
+    <div class="shell">${ranked(c.rows,'capmodel:'+c.slug, 2) + orphanNote(c)}</div>
     ${sec('Related','','',related(c.rel))}`;
 }
 
@@ -764,7 +776,7 @@ function vModelIn(kind, item, key, crumbs){
     ${kind === 'job' ? 'job' : 'capability'}: ${counts}${split}. One report is one source document, so two
     quotes from one comment are one report. The report count is a floor \u2014 an open vocabulary can
     name one section two ways until the duplicates are merged.</p>
-    <p style="margin-top:14px"><a data-go="model:${esc(key)}">Everything said about
+    <p style="margin-top:14px"><a${goAttrs(`model:${key}`)}>Everything said about
     ${esc(row.m)}, across every job, capability and metric \u2192</a></p></div>
     ${qs.length ? sec('Reports',reportsHeading(qs),'',quotes(qs)) : sec('Reports','','',empty)}`;
 }
@@ -885,7 +897,7 @@ function vMet(slug){
   // use and it already allows for this one - "Empty on best-for and metric,
   // where there is no split".
   const list = rows.length
-    ? ranked(rows, 'metmodel:' + m.slug)
+    ? ranked(rows, 'metmodel:' + m.slug, 3)
     : `<p class="muted" style="padding:8px 0">The board holds no published figure on this axis.
        That is what the board has, not a page that failed to load.</p>`;
   // A COMPARISON IS ONLY CLAIMED WHERE ONE EXISTS. 62 of 84 axes hold a single
@@ -946,7 +958,7 @@ function vMetModel(slug, key){
     <p class="sub">Every figure the board publishes for this model on this axis: ${esc(row.e)}. Each is
     copied as the text wrote it, beside the words it came from. A stated figure and a reported one are
     different facts from different sources, so they sit side by side rather than being averaged.</p>
-    <p style="margin-top:14px"><a data-go="model:${esc(key)}">Everything said about
+    <p style="margin-top:14px"><a${goAttrs(`model:${key}`)}>Everything said about
     ${esc(row.m)}, across every job, capability and metric →</a></p></div>
     ${groups.length ? sec('Recorded figures','What was measured, and what it came to',
       'Two figures under one unit are not necessarily two answers to one question. Where the evidence names what it measured, that name is copied here; where it does not, the row says so.',
@@ -971,7 +983,7 @@ function vBlogs(){
   const skipped = (meta.skipped || []).length
     ? `<p class="es-empty">Could not be read: ${
         meta.skipped.map(x=>`${esc(x.file)} (${esc(x.why)})`).join('; ')}</p>` : '';
-  const cards = DB.posts.map(p=>`<a class="es-card${layoutOf(p)?` lay-${layoutOf(p)}`:''}" data-go="post:${esc(p.slug)}">
+  const cards = DB.posts.map(p=>`<a class="es-card${layoutOf(p)?` lay-${layoutOf(p)}`:''}" ${goAttrs(`post:${p.slug}`)}>
       <div class="es-kicker">${esc(p.kicker||p.tag)}${p.status==='draft'?' · draft':''}</div>
       <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p>
       <div class="es-tags">${(p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('')}</div>
@@ -1318,7 +1330,8 @@ function modelCard(m, text){
     ? `${Number(m.advertised_context).toLocaleString('en-US')}-token context` : 'Context window not published';
   const n = m.board && m.board.entries != null ? m.board.entries : null;
   const rep = n == null ? 'Board entries not counted' : `${n} board ${n === 1 ? 'entry' : 'entries'}`;
-  return `<a class="es-ent" tabindex="0" data-go="model:${esc(m.model_version_id)}">${text}`
+  // The canonical id when the row has one, so the link is the readable URL (SEO item 2).
+  return `<a class="es-ent" tabindex="0"${goAttrs(`model:${m.canonical_id || m.model_version_id}`)}>${text}`
     + `<span class="es-pop" role="tooltip"><b>${esc(shortName(m))}</b><span>${esc(price)}</span>`
     + `<span>${esc(ctx)}</span><span>${esc(rep)}</span><span class="go">Open the model page →</span></span></a>`;
 }
@@ -1529,13 +1542,13 @@ function vPost(slug){
   const picksSide = L === 'versus' && V === 'b' && sp && sp.type === 'picks'
     ? `<div class="es-scard">${vsNames(p).map(n => `<div class="lbl">Pick ${esc(n)} when</div><ul class="dec">${
         sp.items.filter(x => x.pick === n).map(x => `<li>${essayText(x.when)}</li>`).join('')}</ul>`).join('')}</div>` : '';
-  const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel" data-go="${esc(h)}">${esc(t)}</a>`).join('');
+  const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel"${goAttrs(h)}>${esc(t)}</a>`).join('');
   const sheet = rows.length ? `<div class="es-scard es-sheet"><div class="lbl">Price sheet${asOf ? ` · ${esc(asOf)}` : ''}</div>
     <table><thead><tr><th></th><th>In</th><th>Out</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${esc(r.name)}</td><td>${esc(r.pin)}</td><td>${esc(r.pout)}</td></tr>`).join('')}</tbody></table>
     <p>Registry list prices per 1M tokens when the post was written. A price the provider does not publish says so; it is never zero.</p></div>` : '';
   return `<div class="essay${L?' layout-'+L:''} arr-${V}"><div class="es-wrap">
-    <div class="es-crumb"><a data-go="blogs">All essays</a></div>
+    <div class="es-crumb"><a${goAttrs('blogs')}>All essays</a></div>
     <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div><h1>${esc(p.title)}</h1>
       <p class="es-dek">${esc(p.dek)}</p>
       <div class="es-byline">${(p.meta||[]).map(m=>`<span>${esc(m)}</span>`).join('')}</div>

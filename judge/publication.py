@@ -99,6 +99,17 @@ def withheld(source: str | None) -> bool:
     return source is None or source in hidden
 
 
+def withheld_publicly(source: str | None) -> bool:
+    """True when a row from `source` would be withheld on the PUBLIC view,
+    whatever view this deployment runs.
+
+    For decisions about public pages made by an internal deployment - which
+    pages are worth indexing (`judge/seo.py`) - where counting with the
+    deployment's own view would count sources the public page never shows.
+    """
+    return source is None or source in withheld_sources()
+
+
 def notice(count: int) -> dict:
     """What a payload carries when rows were withheld by source (rule 4).
 

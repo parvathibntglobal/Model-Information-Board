@@ -53,6 +53,31 @@ def test_only_approved_posts_are_published(conn):
     assert [p["slug"] for p in blog_store.published(conn)] == ["a"]
 
 
+def test_a_published_post_carries_when_it_was_approved(conn):
+    """`published_at` is the APPROVAL time, for the Article markup's datePublished
+    (SEO item 11) - not the generation date, and never a substitute (rule 6)."""
+    blog_store.store_drafts(conn, [_post("a")])
+    blog_store.decide(conn, "a", "approved", None)
+    (post,) = blog_store.published(conn)
+    approved_at = conn.execute(
+        "SELECT max(decided_at) FROM blog_post_review WHERE slug = 'a' AND decision = 'approved'"
+    ).fetchone()[0]
+    assert post["published_at"] == approved_at.isoformat()
+
+
+def test_a_reapproved_post_is_dated_by_its_latest_approval(conn):
+    blog_store.store_drafts(conn, [_post("a")])
+    blog_store.decide(conn, "a", "approved", None)
+    blog_store.decide(conn, "a", "rejected", "too thin")
+    blog_store.decide(conn, "a", "reopened", None)
+    blog_store.decide(conn, "a", "approved", None)
+    (post,) = blog_store.published(conn)
+    latest = conn.execute(
+        "SELECT max(decided_at) FROM blog_post_review WHERE slug = 'a' AND decision = 'approved'"
+    ).fetchone()[0]
+    assert post["published_at"] == latest.isoformat()
+
+
 def test_a_rejected_post_is_kept_with_its_reason_and_never_shown(conn):
     blog_store.store_drafts(conn, [_post("a", plan_key="field-report:anthropic/x")])
     blog_store.decide(conn, "a", "approved", None)

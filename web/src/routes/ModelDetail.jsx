@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams, useLocation } from 'react-router-dom'
-import { modelPage, listModels, fetchAll, BoardUnreadable } from '../api'
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom'
+import { modelPage, modelUrl, listModels, fetchAll, ApiError, BoardUnreadable } from '../api'
+import NotFound from '../components/NotFound'
 import ModelEvidence from '../components/ModelEvidence'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
 import Freshness from '../components/Freshness'
+import { useHead } from '../seo/head'
+import { modelPage as modelHead } from '../seo/pages'
 
 /** "Last fetched N days ago", from the shared fetch log (judge/fetch_history.py).
  *
@@ -59,6 +62,10 @@ export default function ModelDetail() {
   const [page, setPage] = useState(null)
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
+  // A 404 from /models/{id}: no such model. Its own state, apart from `err`,
+  // because "this model does not exist" and "the API failed" need different
+  // pages - only the first is a not-found page (SEO item 7).
+  const [missing, setMissing] = useState(false)
 
   // THE ROSTER ROW, NOW FOR ONE FIELD. This comment used to say "GET
   // /models/{id} still returns no display_name and no price" - half of that is
@@ -72,12 +79,31 @@ export default function ModelDetail() {
   // ever joins the model payload, this effect and `fetchAll` go with it.
   const [spec, setSpec] = useState(null)
   const name = spec?.display_name || state?.name || id
+  // PER-PAGE <head> (seo/pages.js) once a real name is known; the raw id in
+  // a title would be worse than the site default for the moment it shows.
+  const knownName = spec?.display_name || state?.name || page?.display_name
+  useHead(missing ? false : knownName ? modelHead(page?.canonical_id || id, knownName) : null)
+
+  // ONE URL PER MODEL (SEO item 2). A page reached by its internal `mv_…` id,
+  // or by an older spelling, is replaced by `/models/<canonical id>` once the
+  // page says what that is - `replace`, so Back does not bounce through the
+  // old address. Links that know the canonical id go straight there.
+  const nav = useNavigate()
+  useEffect(() => {
+    if (page?.canonical_id && page.canonical_id !== id) {
+      nav(modelUrl(page.canonical_id), { replace: true, state })
+    }
+  }, [page?.canonical_id, id, nav, state])
 
   useEffect(() => {
-    setPage(null); setErr(null); setUnreadable(null)
+    setPage(null); setErr(null); setUnreadable(null); setMissing(false)
     modelPage(id)
       .then(setPage)
-      .catch((e) => (e instanceof BoardUnreadable ? setUnreadable(e.message) : setErr(e.message)))
+      .catch((e) => {
+        if (e instanceof BoardUnreadable) setUnreadable(e.message)
+        else if (e instanceof ApiError && e.status === 404) setMissing(true)
+        else setErr(e.message)
+      })
   }, [id])
 
   useEffect(() => {
@@ -86,10 +112,13 @@ export default function ModelDetail() {
     fetchAll((l, o) => listModels(l, o))
       .then((list) => {
         if (!live) return
-        setSpec(list.models.find((m) => m.model_version_id === id) || null)
+        // Either id: the URL now carries the canonical one (SEO item 2).
+        setSpec(list.models.find((m) => m.model_version_id === id || m.canonical_id === id) || null)
       })
       .catch(() => {})   // additive: a missing provider must not blank the page
-    return () => { live = false }
+    if (missing) return <NotFound what="model" back={{ to: '/models', label: 'All models' }} />
+
+  return () => { live = false }
   }, [id])
 
   // Back goes to the Models page, which is where the roster lives and where
