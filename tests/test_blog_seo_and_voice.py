@@ -66,11 +66,35 @@ def test_a_notes_figure_passes_the_number_check_but_is_not_quotable():
     assert any("not verbatim in any discussion" in v for v in quoted)
 
 
-def test_we_read_still_reveals_a_reading_list():
-    import re
-    assert any(why == "first-person reading" and re.search(pat, "we reviewed the logs", re.I)
-               for pat, why in g.BANNED)
+def _retrace_essay(*paras):
+    return {"sections": [{"heading": "h", "paragraphs": list(paras)}]}
 
+
+def test_retracing_an_engineers_test_with_their_words_passes():
+    para = ("We went through one engineer's arena test move by move. At the key turn Sol "
+            "attacked instead of blocking: «does not block K8, and attacks instead».")
+    assert g.retrace_violations(_retrace_essay(para)) == []
+
+
+def test_retracing_without_quoting_them_is_refused():
+    v = g.retrace_violations(_retrace_essay("We retraced how a team moved their pipeline."))
+    assert any("without quoting them" in x for x in v)
+
+
+def test_a_post_retraces_at_least_one_engineers_work():
+    v = g.retrace_violations(_retrace_essay("We think the cheaper model wins here."))
+    assert any(x.startswith("retracing:") for x in v)
+
+
+def test_retracing_never_licenses_we_ran_it():
+    sent = "We ran the arena test ourselves and Sol lost."
+    assert g.experience_unanchored(sent, "") is not None
+
+
+def test_we_read_is_allowed_but_naming_the_reading_list_is_not():
+    import re
+    assert not any(re.search(pat, "we read one developer's complaint", re.I) for pat, _ in g.BANNED)
+    assert any(re.search(pat, "we read the threads", re.I) for pat, _ in g.BANNED)
 
 # ── search: keyword placement and the FAQ ──────────────────────────────────────
 
@@ -319,3 +343,9 @@ def test_head_to_head_headings_are_statements_now():
     fmt = next(f for f in g.load_formats()["formats"] if f["key"] == "head-to-head")
     assert not fmt.get("headings_end_with_question")
     assert g.rules_for(fmt)["heading_no_wh"] is True
+
+
+def test_the_faq_is_not_also_written_as_a_section():
+    dup = _seo_essay(sections=[{"heading": "FAQ", "paragraphs": [
+        "We agree with the teams that pin a provider. We are not convinced it wins."]}])
+    assert any("belong in `faq` only" in x for x in g.seo_violations(dup, SEO))

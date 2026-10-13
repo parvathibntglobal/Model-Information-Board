@@ -257,3 +257,11 @@ def test_a_draft_with_visuals_and_pictures_loads_and_stores():
                                       ["image", {"src": "data:image/jpeg;base64,AA==",
                                                  "alt": "a"}]]}
     assert blog_posts._problem(doc) is None
+
+
+def test_an_engineers_quote_counts_as_one_word_in_sentence_length():
+    """A quote cannot be split, so the length limits apply to our words only."""
+    quote = " ".join(["word"] * 28)
+    para = f"The engineer described the setup: «{quote}». We agree. It held. Then it failed."
+    out = g._pace({"tldr": ""}, [], [para], g.load_formats()["prose"])
+    assert not [v for v in out if v.startswith("a sentence of")]

@@ -434,11 +434,16 @@ VOICE
 - Take positions. Say where you agree with what engineers report and where you do not, and why: "We agree with the engineer who wrote «...», but only for ...", or "We are not convinced by «...»: the failures point the other way." Every disagreement gives its reason from the evidence. Disagree with claims, never mock people.
 - Make every paragraph lively. Open many of them on a concrete moment - what a team ran, what broke, what they changed - rather than on a general claim. Vary the rhythm: put a short, punchy sentence of eight words or fewer beside the longer ones. Use active verbs and named actors (the model, the team, the harness). Prefer a fresh, exact word over the stock one; do not lean on "rather", "while" or "whether".
 - Do not recite list prices in prose: the page shows them in a rate card. Mention a price only where the argument turns on it, once.
-- Never refer to your inputs. Do not write "according to the sources", "the documents", "the threads", "the posts", "the material", "I read", "we read", "we reviewed", or anything that reveals a reading list. You may refer to practitioners generically ("teams migrating from earlier Claude models", "one engineer running a document pipeline").
+- Never refer to your inputs as a set. Do not write "according to the sources", "the documents", "the threads", "the posts", "the material", or anything that reveals a reading list. Reading ONE engineer's work is different - see RETRACING. You may refer to practitioners generically ("teams migrating from earlier Claude models", "one engineer running a document pipeline").
 - Never count people, reports, posts, threads or quotes ("72 developers", "a dozen reports", "most users"). No scores or ratings out of 10 or 100. No sentiment percentages.
 
 ENGINEERS AGREE AND DISAGREE
 - Use the WHERE ENGINEERS AGREE AND SPLIT map in the brief. Give at least one section to a SPLIT: set engineers' «words» from different discussions against each other, say which side the evidence favours, and where we stand. Where they AGREE, say so and whether we agree too. Quote engineers from at least 3 different discussions across the post.
+
+RETRACING AN ENGINEER'S TEST OR OPINION - our first-hand voice
+- Pick at least one concrete test, experiment, migration or strong opinion an engineer reported, and walk the reader through it in our voice: "We went through one engineer's arena test...", "We retraced how a team moved their pipeline...", "We read one developer's complaint about...". Paraphrase the steps in your own words; never copy their text beyond a short «quote».
+- The test and its result BELONG TO THE ENGINEER. Every paragraph that retraces their work quotes them - their «exact words» - so the reader sees whose test it was. Then give our take: do we agree with their reading of it, or not, and why.
+- Never write that we ran, tested, measured or got a result ourselves unless a WHAT WE TRIED note says so. "We went through their test" is true; "we ran the test" is not.
 
 FIRST PERSON
 - Opinions in the first person are welcome: "we think", "we would", "we disagree", "in our view".
@@ -447,7 +452,7 @@ FIRST PERSON
 SEARCH - write to be found and to answer
 - The brief names a PRIMARY KEYWORD. Use it naturally in the title, in the description, and in the tldr or the first paragraph, and list it first in `keywords`. Use the SECONDARY KEYWORDS where they genuinely fit. Never stuff keywords.
 - The tldr is a direct answer a searcher would want quoted.
-- The `faq` answers EXACTLY 3 questions people actually type into Google about this subject, phrased as they would type them; at least one names the subject (the model or the topic). The FAQ is one section at the end - the rest of the post is not written as questions and answers. Each answer opens with a one-sentence direct answer, then 1 to 3 sentences of support: 40 to 90 words in all, held to the same grounding rules as the essay.
+- The `faq` answers EXACTLY 3 questions people actually type into Google about this subject, phrased as they would type them; at least one names the subject (the model or the topic). The FAQ is one block at the end, written only in `faq` - never also as a section, and the rest of the post is not written as questions and answers. Each answer opens with a one-sentence direct answer, then 1 to 3 sentences of support: 40 to 90 words in all, held to the same grounding rules as the essay.
 - If the brief lists TRENDING IN RECENT REPORTS, mention the ones that genuinely belong in this post; skip the rest.
 
 GROUNDING — checked by code; a violation rejects the essay
@@ -701,7 +706,9 @@ BANNED = [
     # rounds running. An input is referred to as a thing, not "the source of X".
     (r"\b(the|these|those|our|this) (sources?|documents?|threads?|discussions?|posts?|material|excerpts?)\b"
      r"(?! of\b)", "refers to its inputs"),
-    (r"\b(I|we) (read|reviewed|analy[sz]ed|examined)\b", "first-person reading"),
+    # "WE READ" IS ALLOWED NOW, as retracing (2026-10-13): see RETRACE and
+    # retrace_violations. What stays refused is naming the reading list itself
+    # ("the threads", "the sources" - the two rules above) and counting it.
     # Found 2026-10-01 in the first GPT-6 Luna pass: "though the fact sheet
     # gives list rates" - the prompt's own section name, leaked into prose.
     # NOT "the prompt" or "the brief": in an essay about models those mean a
@@ -947,6 +954,7 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
         v += seo_violations(essay, seo)
     if doc_texts:
         v += voices_violations(essay, doc_texts)
+        v += retrace_violations(essay)
     return v
 
 
@@ -1169,6 +1177,33 @@ def visual_violations(essay: dict, span: tuple, ctx_nums: str) -> list[str]:
     return v
 
 
+#: Retracing ONE engineer's work in our voice (2026-10-13): reading it, going
+#: through it, walking through it. Honest first-person framing - the work and
+#: its result stay theirs - so each such paragraph must quote them.
+RETRACE = re.compile(
+    r"\b(?:I|we)(?:'ve| have)? (read|went through|gone through|walked through|walk through|"
+    r"retraced|retrace|dug into|looked closely at|followed|traced|stepped through|reviewed)\b", re.I)
+
+
+def retrace_violations(essay: dict, min_count: int = 1) -> list[str]:
+    """Each paragraph that retraces an engineer's work quotes them; and the
+    post retraces at least `min_count` piece of work."""
+    v: list[str] = []
+    n = 0
+    for path, text in prose_fields(essay):
+        if not RETRACE.search(text):
+            continue
+        n += 1
+        if not GUILLEMET.search(text):
+            v.append(f"{path}: retraces an engineer's work ({RETRACE.search(text).group(0)!r}) without "
+                     "quoting them - add their «exact words» in the same paragraph, so it is clear the "
+                     "test and result are theirs")
+    if n < min_count:
+        v.append("retracing: walk the reader through at least one engineer's test or opinion in our voice "
+                 "(\"we went through one engineer's ...\", \"we retraced ...\") and quote them in that paragraph")
+    return v
+
+
 #: A first-person EXPERIENCE: something this team did or saw. Opinions ("we
 #: think", "we disagree") are not matched - they need no record.
 EXPERIENCE = re.compile(
@@ -1242,6 +1277,13 @@ def seo_violations(essay: dict, seo: dict) -> list[str]:
         first = sentences(a)[:1]
         if first and len(first[0].split()) > 30:
             v.append(f"faq[{i}].answer: open with a direct one-sentence answer of at most 30 words")
+    # THE FAQ LIVES IN `faq` ONLY (2026-10-13). An Opus 5 vs GPT-5.6 Sol draft
+    # also wrote a section headed "FAQ" holding the same three answers, so the
+    # page carried them twice.
+    for i, sec in enumerate(essay.get("sections") or []):
+        if FAQ_HEADING.search(sec.get("heading") or ""):
+            v.append(f"sections[{i}].heading: {sec.get('heading')!r} - the questions belong in `faq` only; "
+                     "remove this section or turn it into a section of the argument")
     names = seo.get("subject") or ([kw] if kw else [])
     if names and faq and not any(_kw_in((qa or {}).get("question", ""), n) for qa in faq for n in names):
         v.append(f"faq: at least one question must name {' or '.join(map(repr, names))}")
@@ -1254,6 +1296,11 @@ def seo_violations(essay: dict, seo: dict) -> list[str]:
         v.append(f"voice: {stances} sentence(s) take a position; write at least 2 where we agree, "
                  "disagree or give our view (\"we agree with ...\", \"we are not convinced ...\", \"in our view ...\")")
     return v
+
+
+#: A section heading that is the FAQ under another name.
+FAQ_HEADING = re.compile(r"\b(faq|frequently asked|questions people ask|common questions|questions and answers|q ?& ?a)\b",
+                         re.I)
 
 
 #: A sentence where WE take a position on a claim or a choice.
@@ -1283,7 +1330,12 @@ def _distinctiveness(essay: dict, rules: dict) -> list[str]:
         firsts = [re.sub(r"[^a-z]", "", (p.split() or [""])[0].lower()) for p in paras]
         top = max(set(firsts), key=firsts.count) if firsts else ""
         if top and firsts.count(top) >= 3 and firsts.count(top) > len(firsts) / 3:
-            v.append(f"paragraphs: {firsts.count(top)} of {len(firsts)} open with '{top}'; vary the openings")
+            # NAMES THEM (2026-10-13): the count alone held a draft for three
+            # repairs. Each paragraph is shown by its opening words.
+            shown = "; ".join(repr(" ".join(p.split()[:6]) + " ...") for p, f in zip(paras, firsts, strict=True)
+                              if f == top)
+            v.append(f"paragraphs: {firsts.count(top)} of {len(firsts)} open with '{top}'; reopen at least "
+                     f"{firsts.count(top) - len(firsts) // 3} of these differently: {shown}")
     heads = [s.get("heading", "") for s in secs]
     taken = rules.get("taken_headings") or set()
     for i, h in enumerate(heads):
@@ -1343,7 +1395,11 @@ def _pace(essay: dict, heads: list[str], paras: list[str], prose: dict | None) -
         return []
     v: list[str] = []
     sents = [s for p in paras for s in sentences(p)]
-    lens = [len(GUILLEMET.sub(r"\1", s).split()) for s in sents]
+    # OUR WORDS ARE COUNTED, AN ENGINEER'S QUOTE IS ONE (2026-10-13). A quote may
+    # run 30 words and cannot be split, so counting it made a sentence carrying
+    # one unfixable: an Opus 5 vs GPT-5.6 Sol draft held at a 43-word sentence
+    # whose length was its quote. The limits are on how WE write.
+    lens = [len(GUILLEMET.sub(" Q ", s).split()) for s in sents]
     if lens:
         med = sorted(lens)[len(lens) // 2]
         if med > prose["sentence_median_max"]:
@@ -1385,7 +1441,7 @@ def _lively(paras: list[str], lens: list[int], prose: dict) -> list[str]:
             # NAMES THE PARAGRAPHS (2026-10-13): the count alone held a draft for
             # two repairs. Each is shown by its opening words.
             lacking = [p for p in multi
-                       if not any(len(GUILLEMET.sub(r"", s).split()) <= short_n for s in sentences(p))]
+                       if not any(len(GUILLEMET.sub(r"\1", s).split()) <= short_n for s in sentences(p))]
             shown = "; ".join(repr(" ".join(p.split()[:8]) + " ...") for p in lacking[:4])
             v.append(f"rhythm: {with_short} of {len(multi)} longer paragraphs have a sentence of {short_n} "
                      f"words or fewer; want at least {int(prose['short_sentence_paragraph_share_min'] * 100)}% - "
@@ -1409,8 +1465,10 @@ def _lively(paras: list[str], lens: list[int], prose: dict) -> list[str]:
             v.append(f"vocabulary: the stock phrase '{phrase}' is refused; say it another way")
     n_price = body.count("per million")
     if n_price > prose["price_recital_max"]:
+        where = [snt for p in paras for snt in sentences(GUILLEMET.sub(" ", p)) if "per million" in snt.lower()]
+        shown = "; ".join(f"{snt[:90]!r}" for snt in where[:6])
         v.append(f"prices recited {n_price} times in prose ('per million'); the rate card shows them - "
-                 f"keep at most {prose['price_recital_max']}")
+                 f"keep at most {prose['price_recital_max']}. Remove the price from these: {shown}")
     return v
 
 
@@ -2481,14 +2539,25 @@ def planned_post(fmt: dict, cand: dict) -> dict:
             **extra}
 
 
-def plan_posts(cur, reader, n: int) -> list[tuple]:
+def plan_posts(cur, reader, n: int, only_format: str | None = None,
+               only_subject: str | None = None) -> list[tuple]:
     """Pick the next `n` posts: distinct formats, least-written formats first,
     never a (format, subject) already written, never one subject twice in a
-    batch. Each pick must have its documents on this machine."""
+    batch. Each pick must have its documents on this machine.
+
+    `only_format` / `only_subject` (--format / --subject, 2026-10-13) write ONE
+    chosen post - to regenerate it on purpose, so the already-written guard is
+    skipped for it. A subject is the plan key's subject: model ids joined by
+    '+' in sorted order, or a topic key."""
     cfg = load_formats()
     done = existing_plan_keys(cur)
     order = sorted(cfg["formats"], key=lambda f: (sum(k.startswith(f["key"] + ":") for k in done),
                                                  cfg["formats"].index(f)))
+    if only_format:
+        order = [f for f in order if f["key"] == only_format]
+        if not order:
+            raise BuildError(f"--format {only_format!r} is not a format in blog_formats.yaml")
+    forced = bool(only_format or only_subject)
     pools: dict[str, list] = {}
     picked, subjects = [], set()
     for fmt in order:
@@ -2504,7 +2573,9 @@ def plan_posts(cur, reader, n: int) -> list[tuple]:
         for cand in pool:
             post = planned_post(fmt, cand)
             subj = post["plan"]["plan_key"].split(":", 1)[1]
-            if post["plan"]["plan_key"] in done or subj in subjects:
+            if only_subject and subj != only_subject:
+                continue
+            if (post["plan"]["plan_key"] in done and not forced) or subj in subjects:
                 continue
             try:
                 docs, skipped = select_documents(cur, post, reader)
@@ -2549,7 +2620,8 @@ def ui_status(**kw) -> None:
 def run_plan(args, dsn, key, base, reader) -> None:
     with psycopg.connect(dsn, row_factory=dict_row, connect_timeout=20) as conn:
         conn.read_only = True
-        inputs = plan_posts(conn.cursor(), reader, args.plan)
+        inputs = plan_posts(conn.cursor(), reader, args.plan,
+                            only_format=args.format, only_subject=args.subject)
         trending = trending_terms(conn.cursor())
     ui_status(state="running", model=GEN_MODEL, items=[
         {"key": p["key"], "format": p["kicker"], "subject": p["plan"]["subject"], "state": "queued"}
@@ -2611,7 +2683,10 @@ def run_plan(args, dsn, key, base, reader) -> None:
                 cost_incomplete = True
             else:
                 total_cost += il["usd"]
-        mins = max(1, math.ceil(words_in(essay) / 230))
+        # THE CARD COUNTS WHAT THE CHECK COUNTS (2026-10-13). It used body words
+        # only while check() enforced reading_words, so an Opus 5 vs GPT-5.6 Sol
+        # draft passed the 8-minute floor and was listed as "7 min read".
+        mins = max(1, math.ceil(reading_words(essay) / 230))
         rel = existing[-3:]  # the most recent other drafts, for "Continue reading"
         out = export_post(post, essay, docs, facts, rec, mins, rel)
         written.append(post["key"])
@@ -2662,6 +2737,9 @@ def main() -> None:
     ap.add_argument("--plan", type=int, metavar="N",
                     help="plan and write N NEW posts from blog_formats.yaml (UI drafts only, no HTML)")
     ap.add_argument("--dry-run", action="store_true", help="with --plan: show the plan, call nothing")
+    ap.add_argument("--format", help="with --plan: only this format key (e.g. head-to-head)")
+    ap.add_argument("--subject", help="with --plan: only this subject, e.g. "
+                                      "anthropic/claude-opus-5+openai/gpt-5.6-sol - regenerates it if written")
     ap.add_argument("--status", action="store_true",
                     help="with --plan: keep _blog_synthesis/_ui_status.json current (the Blogs page polls it)")
     args = ap.parse_args()
