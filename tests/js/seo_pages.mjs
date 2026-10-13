@@ -56,6 +56,10 @@ const out = {
       postArticle: pages.blogPost(full).article,
       sectionCrumbs: pages.boardSection('capabilities', job).breadcrumbs,
       modelCrumbs: pages.modelPage('anthropic/claude-opus-5', 'Claude Opus 5').breadcrumbs,
+      pageDated: sd.webPage(site, pages.boardSection('jobs', { ...job, freshUpdated: '2026-10-06T13:00:39+05:30' })),
+      pageUndated: sd.webPage(site, pages.boardSection('jobs', job)),
+      modelDated: sd.webPage(site, pages.modelPage('acme/model-t', 'Model T', '2026-10-05T12:00:00+00:00')),
+      inSectionDated: sd.structuredFor(site, pages.boardModelInSection('jobs', job, 'acme/model-t', 'Model T', '2026-10-04T00:00:00Z')).map((x) => x['@type']),
     }
   })(),
   TITLE_MAX: pages.TITLE_MAX,

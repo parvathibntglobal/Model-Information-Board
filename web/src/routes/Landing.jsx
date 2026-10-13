@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { boardPage, blogPosts } from '../api'
+import { boardPage, blogPosts, freshness } from '../api'
 import Hero from '../components/Hero'
 import SiteSearch from '../components/SiteSearch'
 import Faq from '../components/Faq'
@@ -247,6 +247,14 @@ export default function Landing() {
   // a run-written post once approved, and drafts from before run history.
   // `null` until read, so the row says "Soon" rather than a guessed 0.
   const [blogCount, setBlogCount] = useState(null)
+  // WHEN THE BOARD LAST CHANGED, beside the live counts (null until read;
+  // nothing is shown rather than a guessed date).
+  const [updated, setUpdated] = useState(null)
+  useEffect(() => {
+    let on = true
+    freshness().then((f) => on && setUpdated(f?.updated_at || null)).catch(() => {})
+    return () => { on = false }
+  }, [])
   const stats = { ...boardCounts(board), blogs: blogCount }
   useEffect(() => {
     let alive = true
@@ -279,7 +287,14 @@ export default function Landing() {
               ? <><b className="tnum">{fmtN(stats.blogs)}</b><span>blogs written from the evidence</span></>
               : <><b className="count-soon">Soon</b><span>blogs written from the evidence</span></>}</div>
           </div>
-          <span className="counts-note">live from the board</span>
+          <span className="counts-note">
+            live from the board
+            {updated && (
+              <> · updated <time dateTime={updated}>
+                {new Date(updated).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+              </time></>
+            )}
+          </span>
         </section>
       )}
 

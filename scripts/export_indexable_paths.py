@@ -46,6 +46,8 @@ def main(argv=None) -> int:
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "rule": "contract/indexing.yaml",
         "paths": [p["path"] for p in result["paths"]],
+        # LASTMOD PER PATH, only where a real date exists (sitemap <lastmod>).
+        "lastmod": {p["path"]: p["lastmod"] for p in result["paths"] if p.get("lastmod")},
         "tallies": result["tallies"],
     }
     out = Path(args.out)

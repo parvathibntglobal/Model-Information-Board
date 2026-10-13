@@ -36,13 +36,16 @@ const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
 function seoFiles(siteUrl, publicSite, pathsFile) {
   const { site, open } = siteOf(siteUrl, publicSite)
   let paths = []
+  let lastmod = {}
   if (open) {
     if (!pathsFile) {
       throw new Error('PUBLIC_SITE=1 needs SEO_PATHS_FILE: run scripts/export_indexable_paths.py '
         + 'and point SEO_PATHS_FILE at its output, or the sitemap would list only the structural pages.')
     }
     const file = resolve(REPO_ROOT, pathsFile)
-    paths = readPaths(readFileSync(file, 'utf8'), file).paths
+    const data = readPaths(readFileSync(file, 'utf8'), file)
+    paths = data.paths
+    lastmod = data.lastmod || {}
   }
   return {
     name: 'seo-files',
@@ -56,7 +59,7 @@ function seoFiles(siteUrl, publicSite, pathsFile) {
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robotsTxt({ site, open }) })
       if (!open) return
-      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemapXml(site, paths) })
+      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemapXml(site, paths, lastmod) })
     },
   }
 }
