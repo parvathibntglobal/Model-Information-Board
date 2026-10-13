@@ -135,3 +135,100 @@ def test_a_terminal_run_sends_its_rows_to_the_shared_table(ledger, monkeypatch):
     [(calls, dsn)] = sent
     assert dsn == "postgresql://from-dotenv/db" and calls[0].stage == "blog"
     assert len(spend_ledger.read_all()) == 1  # and the local file, once
+
+
+# ── a call that was answered and is still unusable is spend too ─────────────
+# 2026-10-13: three Gemma 4 calls failed - one crashed the checker, one made no
+# tool call, one stopped at max_tokens - and none reached the ledger. No model
+# is called here: the HTTP stream is a fake and the post is a stub.
+
+class _Stream:
+    status_code = 200
+    headers = {"X-Generation-Id": "gen-test"}
+
+    def __init__(self, chunks):
+        import json
+        self._lines = [f"data: {json.dumps(c)}" for c in chunks] + ["data: [DONE]"]
+
+    def iter_lines(self):
+        return iter(self._lines)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _served(gen):
+    return next(iter(gen.GEN_MODELS[gen.GEN_MODEL]))
+
+
+def _usage(cost=0.0123):
+    return {"prompt_tokens": 9000, "completion_tokens": 4000, "cost": cost}
+
+
+@pytest.fixture
+def gen(ledger, tmp_path, monkeypatch):
+    import generate_sample_blogs as g
+
+    monkeypatch.setattr(g, "env", lambda: {})          # local ledger file only
+    monkeypatch.setattr(g, "RUNS", tmp_path / "runs")
+    monkeypatch.setattr(g, "user_message", lambda *a: "brief")
+    monkeypatch.setattr(g, "fact_lines", lambda facts: "")
+    return g
+
+
+@pytest.mark.parametrize("why, delta, finish, model", [
+    ("max_tokens", {"tool_calls": [{"function": {"arguments": '{"tit'}}]}, "length", None),
+    ("no tool call", {"content": "I will write it."}, "stop", None),
+    ("wrong model", {"tool_calls": [{"function": {"arguments": "{}"}}]}, "stop", "someone/else"),
+])
+def test_an_answered_unusable_call_carries_its_usage(gen, monkeypatch, why, delta, finish, model):
+    chunks = [{"model": model or _served(gen), "provider": "P",
+               "choices": [{"delta": delta, "finish_reason": finish}]},
+              {"model": model or _served(gen), "usage": _usage()}]
+    monkeypatch.setattr(gen.httpx, "stream", lambda *a, **k: _Stream(chunks))
+    with pytest.raises(gen.CallFailed) as e:
+        gen.call_model("k", "https://router.invalid", [])
+    assert e.value.got["usage"]["cost"] == pytest.approx(0.0123)
+    assert e.value.got["generation_id"] == "gen-test"
+
+
+def test_a_failed_call_reaches_the_ledger_and_still_fails(gen, monkeypatch):
+    def failing(*a, **k):
+        raise gen.CallFailed("no tool call (finish_reason='stop')",
+                             {"served": _served(gen), "provider": "P", "usage": _usage(),
+                              "generation_id": "gen-1"})
+    monkeypatch.setattr(gen, "call_model", failing)
+    with pytest.raises(gen.CallFailed):
+        gen.synthesise({"key": "p"}, [], [], "k", "b")
+    [row] = spend_ledger.read_all()
+    assert row.stage == "blog" and row.usd == pytest.approx(0.0123) and not row.unpriced
+
+
+def test_an_abandoned_call_with_no_usage_is_recorded_unpriced(gen, monkeypatch):
+    def abandoned(*a, **k):
+        raise gen.CallFailed("abandoned", {"served": None, "provider": None, "usage": None,
+                                           "generation_id": "gen-2"})
+    monkeypatch.setattr(gen, "call_model", abandoned)
+    with pytest.raises(gen.CallFailed):
+        gen.synthesise({"key": "p"}, [], [], "k", "b")
+    [row] = spend_ledger.read_all()
+    assert row.unpriced and row.usd == 0.0  # recorded, never read as free
+
+
+def test_a_checker_crash_cannot_lose_the_row(gen, monkeypatch):
+    got = {"message": {"role": "assistant", "content": ""},
+           "call": {"id": "c", "type": "function",
+                    "function": {"name": "publish_essay", "arguments": '{"sections": []}'}},
+           "served": _served(gen), "provider": "P", "usage": _usage(0.02), "generation_id": "g"}
+    monkeypatch.setattr(gen, "call_model", lambda *a, **k: got)
+
+    def crash(*a, **k):
+        raise AttributeError("'list' object has no attribute 'get'")
+    monkeypatch.setattr(gen, "check", crash)
+    with pytest.raises(AttributeError):
+        gen.synthesise({"key": "p"}, [], [], "k", "b")
+    [row] = spend_ledger.read_all()
+    assert row.usd == pytest.approx(0.02)

@@ -747,6 +747,18 @@ terms_rulings:
 
       RE-REVIEW REQUIRED BEFORE: any external publication, any external user,
       any monetization, or a switch to a direct Reddit key.
+
+      RE-REVIEWED 2026-10-13 FOR EXTERNAL PUBLICATION OF BLOG POSTS (anooj;
+      approved by the MD). Posts may be published that show Reddit content
+      ONLY as Reddit's official embed, beside our own-words description.
+      DT 5.2 (attribution) and DAT 2.4 (no modification) are met by the embed;
+      a deleted post leaves the page with its embed.
+      ACCEPTED, NOT RESOLVED: DAT 2.8 (Reddit-issued credentials), DT 4.1
+      ("on behalf of a business"), DAT 3.2 and the Data API Wiki (retention of
+      deleted content) - all are about the collection route and our stored
+      copy, which embeds do not change. No ads on any page carrying a Reddit
+      embed (Reddit "Developer Platform" article). `basis` is unchanged; the
+      next re-review falls due with review_valid_days.
       Escalated to the MD 2026-08-18.
 
       ONE RULING COVERS BOTH AN EVIDENCE SWEEP AND A MEASUREMENT SWEEP.
@@ -811,6 +823,14 @@ terms_rulings:
 #                   NOT an announcement, NOT a domain. A demo to a prospective
 #                   user, a screenshot in a deck, a link to a deployed build,
 #                   a shared PDF of a board page — each one trips this.
+#
+#  AMENDED 2026-10-13 (anooj; approved by the MD). An OFFICIAL PLATFORM EMBED -
+#  rendered by the platform itself from the post's public URL (X for Websites;
+#  Reddit's oEmbed markup) - is not a quote by us. A derived post may show
+#  Reddit and X content only through such embeds (contract/publication.yaml
+#  `derived_posts.embed_only`). Quoting Reddit or X text in our own prose, with
+#  or without a link, still counts as publication under the definition above.
+#  docs/proposals/publish-blogs-with-official-embeds.md.
 #
 #  WHY THE BAR IS ONE READER RATHER THAN A LAUNCH. A launch is an event we
 #  would schedule and therefore remember. Every instance of this trigger that
@@ -1032,6 +1052,15 @@ terms_rulings:
       change of `SCRAPER_PROVIDER`.
       Escalated to the MD WITH Reddit's on 2026-09-08, as one question about
       one gateway.
+
+      RE-REVIEWED 2026-10-13 FOR EXTERNAL PUBLICATION OF BLOG POSTS (anooj;
+      approved by the MD). Posts may be published that show X content ONLY as
+      X's official embed (X for Websites), the display route X's Developer
+      Policy names. The Display Requirements (author, avatar, unmodified text,
+      timestamp, logo) are met by X's own rendering.
+      ACCEPTED, NOT RESOLVED: ToS §4 (the scraper access route) and DA IV.B /
+      Developer Policy "Content compliance" for our stored copy. `basis` is
+      unchanged.
 
     # THE PROVIDER IS A PRECONDITION, NOT A DETAIL. A ruling is a reading of one
     # party's terms, and swapping `SCRAPER_PROVIDER` swaps the party - as well

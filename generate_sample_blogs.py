@@ -190,6 +190,18 @@ class ProviderTransient(BuildError):
     mid-stream and, before this existed, failed a whole post."""
 
 
+class CallFailed(BuildError):
+    """A call that was ANSWERED and is still unusable - truncated at max_tokens,
+    no tool call, the wrong model served, or abandoned at the deadline. It was
+    paid for, so it carries what the response said (`got`: served, provider,
+    usage, generation_id) for the spend ledger. Measured 2026-10-13: three
+    Gemma 4 calls failed this way and none reached the ledger."""
+
+    def __init__(self, message: str, got: dict):
+        super().__init__(message)
+        self.got = got
+
+
 def esc(x) -> str:
     return html.escape("" if x is None else str(x))
 
@@ -198,6 +210,25 @@ def esc(x) -> str:
 #: sources). `document.source` -> words a reader knows.
 PLATFORM = {"reddit": "Reddit", "x": "X", "devto": "dev.to", "github": "GitHub", "hackernews": "Hacker News",
             "blog": "an engineering blog", "huggingface": "Hugging Face", "arxiv": "arXiv", "medium": "Medium"}
+
+
+#: How a sentence NAMES an embedded platform - which is what credits that
+#: platform's poster without «», since the embed shows their words. "Reddit" is
+#: never an ordinary word, so any mention counts; "X" is a letter, a variable
+#: and a multiplier, so only "on X" or "X post / thread / user ..." does. A
+#: platform not listed gets the narrow form, which refuses rather than waves
+#: through (rule 12). Measured 2026-10-13: "a Reddit post calls" and "Astra's
+#: Reddit reports" named the platform and still failed the narrow form.
+PLATFORM_MENTION = {
+    "reddit": re.compile(r"\bReddit\b", re.I),
+    "x": re.compile(r"\b(?:on|from|in) X\b|\bX(?:'s|’s)? (?:posts?|posters?|threads?|users?|repl(?:y|ies)|accounts?)\b"),
+}
+
+
+def names_platform(sentence: str, platform: str) -> bool:
+    """Does `sentence` name `platform` (its lower-case public name)?"""
+    pat = PLATFORM_MENTION.get(platform) or re.compile(rf"\b(?:on|from|in) {re.escape(platform)}\b", re.I)
+    return bool(pat.search(sentence))
 
 
 def platform_name(source: str | None) -> str:
@@ -594,7 +625,7 @@ GROUNDING — checked by code; a violation rejects the essay
 - Verbatim fragments: when you quote a practitioner, wrap their exact words in «guillemets». The text inside «» must be copied character for character from one discussion — a fragment of a sentence is fine, 4 to 30 words. Use no other quotation marks around any phrase of three or more words.
 - Numbers: every number in prose (prices, percentages, token counts, latencies, benchmark results, versions) must appear in the discussions, in the FACT SHEET or in a WHAT WE TRIED note. Do not compute, estimate or round new figures.
 - Write every figure above ten in digits, never in words, and do not compute ratios or multiples ("five times", "tripling") - state the figures a discussion gives.
-- Any sentence that credits practitioners ("one team found", "engineers report", "a postmortem showed") must contain a «verbatim» fragment of what they said. If you cannot quote it, do not attribute it.
+- Any sentence that credits practitioners ("one team found", "engineers report", "a postmortem showed") must contain a «verbatim» fragment of what they said. If you cannot quote it, do not attribute it. The ONE exception is an EMBED ONLY post: never quote it - name its platform in the sentence instead ("a Reddit poster reported ...", "one engineer on X found ..."), and that credits them.
 - Do not attribute intent or strategy to any vendor, and do not state what an API can or cannot do unless a discussion says so.
 - Do not invent behaviour, API parameters, benchmarks, anecdotes or prices the discussions do not contain. Where a failure is recorded but its cause is not, say the cause is not established and present your explanation as analysis.
 - Code examples are illustrative patterns implementing a mitigation the discussions motivate. They must not present invented parameters as a vendor's official API.
@@ -776,8 +807,12 @@ def call_model(key: str, base: str, messages: list[dict], tool: dict | None = No
             raise err(f"OpenRouter HTTP {r.status_code}: {r.text[:300]!r}")
         for line in r.iter_lines():
             if time.monotonic() > deadline:
-                raise BuildError(f"no complete answer within {CALL_DEADLINE_S}s "
-                                 f"(generation {gen_id}); abandoned")
+                # Abandoned, not unanswered: the provider may still bill it, and
+                # no usage has arrived yet - so the row is recorded UNPRICED.
+                raise CallFailed(f"no complete answer within {CALL_DEADLINE_S}s "
+                                 f"(generation {gen_id}); abandoned",
+                                 {"served": served, "provider": provider, "usage": usage,
+                                  "generation_id": gen_id})
             if not line.startswith("data: ") or line == "data: [DONE]":
                 continue
             chunk = json.loads(line[6:])
@@ -808,12 +843,13 @@ def call_model(key: str, base: str, messages: list[dict], tool: dict | None = No
                       f"({provider or 'provider not yet named'})", flush=True)
     # The instruction was "call DeepSeek V4 Flash". A response from anything
     # else is refused rather than rendered.
+    answered = {"served": served, "provider": provider, "usage": usage, "generation_id": gen_id}
     if served not in GEN_MODELS[GEN_MODEL]:
-        raise BuildError(f"asked for {GEN_MODEL}, OpenRouter served {served!r}; refusing the draw")
+        raise CallFailed(f"asked for {GEN_MODEL}, OpenRouter served {served!r}; refusing the draw", answered)
     if finish == "length":
-        raise BuildError("generation stopped at max_tokens; the essay is truncated")
+        raise CallFailed("generation stopped at max_tokens; the essay is truncated", answered)
     if not args:
-        raise BuildError(f"no tool call (finish_reason={finish!r})")
+        raise CallFailed(f"no tool call (finish_reason={finish!r})", answered)
     call = {"id": call_id or "call_0", "type": "function",
             "function": {"name": name or "publish_essay", "arguments": "".join(args)}}
     return {"message": {"role": "assistant", "content": "".join(content)}, "call": call,
@@ -1073,12 +1109,17 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
                 v.append(f"{path}: {why}: {m.group(0)!r}")
         for sent in re.split(r"(?<=[.!?])\s+", GUILLEMET.sub(_QMARK, text)):
             m = ATTRIBUTION.search(sent)
-            if m and embedded_platforms and any(
-                    re.search(rf"\b(on|from|in) {re.escape(p)}\b", sent, re.I) for p in embedded_platforms):
+            if m and embedded_platforms and any(names_platform(sent, p) for p in embedded_platforms):
                 m = None
             if m and _QMARK not in sent:
+                # NAME THE WAY OUT OF THE OTHER RULE TOO. Measured 2026-10-13:
+                # in 10 Luna runs that failed the embed rule, the quote often
+                # arrived as the "fix" for this one - a sentence describing an
+                # embedded post, refused here, quoted, refused there.
+                out = ("; if it describes an EMBED ONLY post, do not quote it - name its platform in this "
+                       "sentence instead ('a Reddit poster', 'one engineer on X')" if embedded_platforms else "")
                 v.append(f"{path}: credits practitioners ({m.group(0)!r}) without a «verbatim» fragment "
-                         f"in the same sentence: {sent[:110]!r}")
+                         f"in the same sentence{out}: {sent[:110]!r}")
             if (e := experience_unanchored(sent, exp)):
                 v.append(f"{path}: {e}: {sent[:110]!r}")
     secs = essay.get("sections", [])
@@ -1161,8 +1202,11 @@ def embed_violations(essay: dict, doc_texts: list[str], doc_sources: list[str],
             fix = (f"it is embedded in section {at[0]}, so here remove the «» and say what that {plat} "
                    "poster reported in your own words" if at else
                    f"say what the poster reported in your own words and add discussion {n} to embeds")
+            # The second half stops the swap back: naming the platform is what
+            # credits an embedded poster, so the credit rule needs no «» here.
             v.append(f"{path}: «{frag[:70]}» copies the words of a {plat} post (discussion {n}). "
-                     f"{plat} posts are never quoted: {fix}")
+                     f"{plat} posts are never quoted: {fix}. Keep '{plat}' in that sentence "
+                     f"(e.g. 'a {plat} poster reported ...') - that credits them, no «» needed")
 
     for path, t in prose_fields(essay):
         for frag in GUILLEMET.findall(t):
@@ -1797,7 +1841,25 @@ def synthesise(post, docs, facts, key, base) -> dict:
               "plan": post.get("plan")}
     try:
         for attempt in range(1 + MAX_REPAIRS):
-            got = call_transient_safe(key, base, messages, post["key"], record, post.get("tool"))
+            try:
+                got = call_transient_safe(key, base, messages, post["key"], record, post.get("tool"))
+            except CallFailed as e:
+                # ANSWERED AND UNUSABLE IS STILL SPEND. Into the ledger, then fail
+                # as before - the failure is the same, only no longer free.
+                record["attempts"].append({**e.got, "unwrapped": False, "violations": None,
+                                           "failed": str(e)[:300], "essay": None, "raw": None})
+                record_spend(record, len(record["attempts"]) - 1)
+                raise
+            # EVERY CALL IS SPEND, a refused draft included: into the ledger
+            # BEFORE the checks run, so a check that crashes cannot lose the row
+            # (2026-10-13: Gemma 4 returned `code` as a list, check() raised, and
+            # the call never reached the ledger). Filled in once checked.
+            attempt_row = {"served": got["served"], "provider": got["provider"],
+                           "generation_id": got["generation_id"], "unwrapped": False,
+                           "usage": got["usage"], "violations": None, "rhythm_cv": None,
+                           "essay": None, "raw": got["call"]["function"]["arguments"]}
+            record["attempts"].append(attempt_row)
+            record_spend(record, len(record["attempts"]) - 1)
             ui_status(item=post["key"], item_state="checking", attempt=attempt + 1)
             raw = got["call"]["function"]["arguments"]
             wrapped = False
@@ -1820,13 +1882,9 @@ def synthesise(post, docs, facts, key, base) -> dict:
                                    tuple(post.get("embed_only") or ()))
             except json.JSONDecodeError as e:
                 essay, violations = None, [f"arguments are not valid JSON: {e}"]
-            record["attempts"].append({"served": got["served"], "provider": got["provider"],
-                                       "generation_id": got["generation_id"], "unwrapped": wrapped,
-                                       "usage": got["usage"], "violations": violations,
-                                       "rhythm_cv": rhythm_cv(essay),
-                                       "essay": essay, "raw": None if essay else raw})
-            # EVERY CALL IS SPEND, a refused draft included: into the ledger now.
-            record_spend(record, len(record["attempts"]) - 1)
+            attempt_row.update({"unwrapped": wrapped, "violations": violations,
+                                "rhythm_cv": rhythm_cv(essay), "essay": essay,
+                                "raw": None if essay else raw})
             print(f"  [{post['key']}] attempt {attempt + 1}: served={got['served']} "
                   f"violations={len(violations)} words={words_in(essay) if essay else '-'} "
                   f"rhythm={record['attempts'][-1]['rhythm_cv']} "

@@ -73,6 +73,55 @@ def test_crediting_an_embedded_poster_needs_no_quote():
     assert not any("credits practitioners" in v for v in with_embed)
 
 
+CHECK_KW = {"doc_texts": DOCS, "doc_sources": SOURCES, "embed_only": EMBED_ONLY}
+BOTH = [{"discussion": 1, "section": 0, "caption": "A Reddit thread."},
+        {"discussion": 3, "section": 0, "caption": "An X post."}]
+
+
+def _credits(sent, embeds=BOTH):
+    e = {"sections": [{"heading": "One", "paragraphs": [sent] * 3}], "embeds": embeds}
+    return [v for v in g.check(e, "\n".join(DOCS), **CHECK_KW) if "credits practitioners" in v]
+
+
+@pytest.mark.parametrize("sent", [
+    # Both shapes failed the narrow "on Reddit" form on 2026-10-13, and Luna's
+    # repair for each was to quote the embedded post.
+    "Developers describe it as fast in a Reddit post, and we agree.",
+    "Astra's Reddit reports include debugging, and one user found it weak on shapes.",
+    "One engineer on X found the window holds on long tasks.",
+    "Several developers in X threads described the same limit.",
+])
+def test_naming_an_embedded_platform_credits_its_poster(sent):
+    assert _credits(sent) == []
+
+
+def test_x_as_a_letter_does_not_name_the_platform():
+    assert _credits("One engineer found it X times better on refactors.")
+
+
+def test_the_credit_message_names_the_way_out_of_the_embed_rule():
+    [v] = _credits("Teams describe Opus as fast and careful.")[:1]
+    assert "name its platform in this sentence" in v and "do not quote it" in v
+
+
+def test_the_credit_message_is_unchanged_when_nothing_is_embedded():
+    e = {"sections": [{"heading": "One", "paragraphs": ["Teams describe Opus as fast."] * 3}]}
+    [v] = [x for x in g.check(e, "\n".join(DOCS)) if "credits practitioners" in x][:1]
+    assert "platform" not in v
+
+
+def test_the_embed_message_says_naming_the_platform_is_the_credit():
+    e = essay(["He said «MiniMax M3 is an incredible architect» and left."], BOTH[:1])
+    [v] = [x for x in violations(e) if "copies the words" in x]
+    assert "Keep 'Reddit' in that sentence" in v and "no «» needed" in v
+
+
+def test_the_prompt_states_the_exception_where_the_credit_rule_is():
+    lines = g.SYSTEM.splitlines()
+    rule = next(line for line in lines if line.startswith("- Any sentence that credits"))
+    assert "EMBED ONLY" in rule and "name its platform" in rule
+
+
 def _banned(text):
     return [why for pat, why in g.BANNED if __import__("re").search(pat, text, __import__("re").I)]
 
