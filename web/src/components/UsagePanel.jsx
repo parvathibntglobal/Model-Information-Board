@@ -345,6 +345,21 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
           <strong>This machine only</strong> — the shared ledger could not be read, so these figures are floors.
         </span>
       )}
+      {/* #393: rows this machine recorded that never reached the shared table.
+          Said only when non-zero (a permanent "0 unmirrored" is furniture). Not
+          a floor HERE - this page reads the file too - but every other
+          machine's cap is short by exactly these rows. */}
+      {basis?.unmirrored_rows > 0 && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          <strong>
+            {basis.unmirrored_rows} of {basis.local_rows} call
+            {basis.local_rows === 1 ? '' : 's'} recorded on this machine
+          </strong>{' '}
+          never reached the shared ledger, so other machines&rsquo; daily cap cannot
+          see that spend. <code>python scripts/backfill_telemetry.py --apply</code>{' '}
+          sends them.
+        </span>
+      )}
 
       {/* 3 · TODAY, BY STAGE: the capped stage and the uncapped blog drafts together */}
       <Block title="Today (UTC)">

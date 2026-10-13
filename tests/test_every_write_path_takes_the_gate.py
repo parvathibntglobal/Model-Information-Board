@@ -70,6 +70,9 @@ READ_ONLY: dict[str, str] = {
     "propose_model.py": ("previews adding or untracking a model for /admin/models/propose; "
                          "SELECTs only, over a default_transaction_read_only connection; "
                          "no write verb (#459)"),
+    "raw_store_census.py": ("#321's census: counts where each payload is, over a "
+                            "default_transaction_read_only connection; stats the raw "
+                            "store, never RawStore.get (which caches); no write verb"),
     "registry_diff.py": ("diffs the catalogue against model_version for #450; one SELECT, "
                          "over a default_transaction_read_only connection; no write verb"),
     "run_scheduled_fetches.py": ("plans which models are due over a "
