@@ -244,6 +244,17 @@ def test_a_word_over_its_cap_is_named_in_its_sentences():
     assert out and "Ask whether the patch passed" in out[0]
 
 
+def test_a_stock_phrase_is_named_in_its_sentence():
+    """The refusal quotes the sentence holding the phrase. A bare 'say it
+    another way' held a draft for four repairs (2026-10-13)."""
+    prose = g.load_formats()["prose"]
+    phrase = prose["avoid_phrases"][0]
+    para = f"The loop is grounded. That run is {phrase} anything else at all. It shipped."
+    lens = [len(s.split()) for s in g.sentences(para)]
+    out = [v for v in g._lively([para], lens, prose) if "stock phrase" in v]
+    assert out and f"That run is {phrase}" in out[0]
+
+
 def test_a_draft_with_visuals_and_pictures_loads_and_stores():
     """The draft loader and the store validate block types. They did not know
     `visual` or `image`, so the first illustrated post was skipped and never

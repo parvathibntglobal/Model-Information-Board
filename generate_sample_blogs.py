@@ -1462,7 +1462,13 @@ def _lively(paras: list[str], lens: list[int], prose: dict) -> list[str]:
                      f"without it: {shown}")
     for phrase in prose["avoid_phrases"]:
         if phrase.lower() in body:
-            v.append(f"vocabulary: the stock phrase '{phrase}' is refused; say it another way")
+            # NAMES THE SENTENCE (2026-10-13): the bare refusal held a MiniMax M3
+            # field report at 'not proof that' for four repairs - the phrase sat
+            # at the end of a long paragraph the model never found.
+            where = [snt for p in paras for snt in sentences(GUILLEMET.sub(" ", p)) if phrase.lower() in snt.lower()]
+            shown = "; ".join(f"{snt[:110]!r}" for snt in where[:3])
+            v.append(f"vocabulary: the stock phrase '{phrase}' is refused; say it another way"
+                     + (f" in: {shown}" if shown else ""))
     n_price = body.count("per million")
     if n_price > prose["price_recital_max"]:
         where = [snt for p in paras for snt in sentences(GUILLEMET.sub(" ", p)) if "per million" in snt.lower()]
