@@ -85,9 +85,17 @@ ORG = "Model Information Board"
 #: gpt-6-luna: the generator since 2026-10-01, after a one-post comparison
 #:   (reasoning post: passed in 2 calls; Flash and Gemini did not pass). Served
 #:   name observed as `openai/gpt-6-luna` on every call that day.
+#: gemma-3-27b-it: ON TRIAL from 2026-10-13 (team ask, testing purpose), for
+#:   posts 2 and 3 of that day's batch. OpenRouter lists tools, tool_choice and
+#:   temperature for it, 131,072 context, max completion 117,964 (read
+#:   2026-10-13). The served name is the bare slug until a call shows otherwise.
 GEN_MODELS = {
     "deepseek/deepseek-v4-flash": {"deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-flash-20260423"},
     "openai/gpt-6-luna": {"openai/gpt-6-luna"},
+    "google/gemma-3-27b-it": {"google/gemma-3-27b-it"},
+    # ON TRIAL 2026-10-13 for post 3 of that batch (team ask). OpenRouter: tools,
+    # tool_choice, temperature; 262,144 context; the paid route, not `:free`.
+    "google/gemma-4-26b-a4b-it": {"google/gemma-4-26b-a4b-it"},
 }
 GEN_MODEL = "openai/gpt-6-luna"
 #: Models that do not accept `temperature` (OpenRouter's supported_parameters,
@@ -972,7 +980,11 @@ def has_code(section: dict) -> bool:
     "Illustrative" boxes each. An empty object is the model saying "no example
     here"; the requirement that SOME section has a real one is still checked.
     """
-    return bool((section.get("code") or {}).get("source", "").strip())
+    # A MALFORMED CODE FIELD IS NOT CODE (2026-10-13): Gemma 4 26B sent a list
+    # here and the check crashed, ending the run on its first draft. The shape
+    # is refused as a violation in check() so the model is asked to repair it.
+    code = section.get("code")
+    return isinstance(code, dict) and bool(str(code.get("source") or "").strip())
 
 
 def words_in(essay: dict) -> int:
@@ -1071,6 +1083,9 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
                 v.append(f"{path}: {e}: {sent[:110]!r}")
     secs = essay.get("sections", [])
     for i, s in enumerate(secs):
+        if "code" in s and s["code"] not in (None, {}) and not isinstance(s["code"], dict):
+            v.append(f"sections[{i}].code: must be one object with `label` and `source`, not a "
+                     f"{type(s['code']).__name__}; give at most one example here")
         if s.get("pull_quote"):
             verbatim(f"sections[{i}].pull_quote", s["pull_quote"])
         plo, phi = rules.get("per_section", (3, 99))
@@ -1740,6 +1755,33 @@ def call_transient_safe(key, base, messages, label, record, tool=None) -> dict:
     raise AssertionError("unreachable")
 
 
+#: How many repair rounds style problems get before they become reviewer notes.
+STYLE_REPAIRS = 1
+
+#: THE STYLE RULES, NAMED - an allowlist on purpose. Anything not listed is an
+#: integrity problem and keeps failing the draft: a new message nobody
+#: classified must never be waved through as style (rule 12). Integrity, never
+#: here: verbatim quotes, figures, embed-only sources, credits, handles and
+#: links, scores, counts of people, visuals' values, pictures, FAQ and keywords.
+STYLE_RULES = (
+    re.compile(r"^paragraphs: \d+ of \d+ open with"),        # repeated paragraph openings
+    re.compile(r"^paragraphs: median length"),
+    re.compile(r"^vocabulary: "),                             # word caps and stock phrases
+    re.compile(r"^rhythm: "),
+    re.compile(r"^sentences: the median"),
+    re.compile(r": a sentence of \d+ words"),
+    re.compile(r"^the post reads as \d+ words"),              # length
+    re.compile(r"^prices recited "),
+    re.compile(r"^sections\[\d+\]: needs \d+ to \d+ paragraphs"),
+    re.compile(r"^headings: "),
+    re.compile(r": refers to its inputs"),
+)
+
+
+def is_style(violation: str) -> bool:
+    return any(p.search(violation) for p in STYLE_RULES)
+
+
 def synthesise(post, docs, facts, key, base) -> dict:
     context = "\n".join(d["text"] for d in docs) + "\n" + fact_lines(facts)
     seed = [{"role": "system", "content": post.get("system", SYSTEM)},
@@ -1789,8 +1831,17 @@ def synthesise(post, docs, facts, key, base) -> dict:
                   f"violations={len(violations)} words={words_in(essay) if essay else '-'} "
                   f"rhythm={record['attempts'][-1]['rhythm_cv']} "
                   f"(target {((post.get('rules') or {}).get('prose') or {}).get('rhythm_cv_target', 'n/a')}, recorded)")
-            if not violations:
+            # STYLE IS ADVISORY AFTER ONE REPAIR (2026-10-13, team decision on
+            # cost). Measured that day over 30 runs: 10 failed with ONLY style
+            # left - every quote and figure correct - and 23% of writing spend
+            # ($0.096 of $0.414) paid for repairs that fixed style alone. Style
+            # gets STYLE_REPAIRS rounds; what remains passes as notes for the
+            # human reviewer. Integrity rules keep every round and still fail.
+            gate = [x for x in violations if not is_style(x)]
+            style = [x for x in violations if is_style(x)]
+            if not gate and (not style or attempt >= STYLE_REPAIRS):
                 record["passed"], record["essay"] = True, essay
+                record["style_notes"] = style
                 return record
             if essay is None or not essay.get("sections"):
                 # NOTHING TO REPAIR IN THIS DRAW. Measured 2026-10-01: feeding a
@@ -2413,6 +2464,9 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
                           for k in dict.fromkeys(d["source"] for d in docs)},
             "embedded": sum(len(b) for b in embed_blocks.values()),
             "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+            # STYLE NOTES LEFT FOR THE REVIEWER (advisory after one repair,
+            # 2026-10-13). Read by Admin -> Blogs' reviewer; never on the page.
+            "style_notes": rec.get("style_notes") or [],
             # The planner reads plan_key so it never writes the same
             # (format, subject) twice; legacy posts carry theirs from LEGACY_PLAN_KEYS.
             "plan_key": (post.get("plan") or {}).get("plan_key") or LEGACY_PLAN_KEYS.get(post["key"]),
