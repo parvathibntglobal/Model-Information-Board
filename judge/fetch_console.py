@@ -261,6 +261,23 @@ def thread(record: dict) -> list[str]:
         # truncation reads as a complete one.
         lines.append(f"        +{record['unsalvaged_other']} more in other shapes")
 
+    # ⚠ AND THE TWO THAT LOOKED LIKE NOTHING (#411): board entries dropped from
+    #   claims that were kept, and what attempt 1 failed on when a retry ran.
+    #   Each headed, so neither reads as part of the unsalvaged list above.
+    for count_key, key, head in (
+        ("entries_dropped", "dropped_entries", "entries dropped from kept claims"),
+        (None, "retried_on", "attempt 1 failed on (then retried)"),
+    ):
+        shapes = record.get(f"{key}_by_error") or {}
+        if not shapes:
+            continue
+        count = record.get(count_key) if count_key else None
+        lines.append(f"        {head}{f': {count}' if count else ''}")
+        for shape, n in sorted(shapes.items(), key=lambda kv: (-kv[1], kv[0])):
+            lines.append(f"          x{n:<3} {' '.join(str(shape).split())[:_WRAP - 16]}")
+        if record.get(f"{key}_other"):
+            lines.append(f"          +{record[f'{key}_other']} more in other shapes")
+
     cost = []
     if record.get("tokens_in") is not None or record.get("tokens_out") is not None:
         cost.append(f"in {record.get('tokens_in') or 0:,} / "

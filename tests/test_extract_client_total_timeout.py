@@ -167,6 +167,18 @@ class TestANormalCallIsUntouched:
         monkeypatch.delenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", raising=False)
         assert OpenRouterClient(api_key="k").total_timeout_seconds == 1200
 
+    def test_the_other_two_settings_are_read_when_built_too(self, monkeypatch):
+        # The output ceiling and reasoning effort had the same import-time
+        # default; set after import, they must still take effect (#436).
+        monkeypatch.setenv("EXTRACT_MAX_OUTPUT_TOKENS", "777")
+        monkeypatch.setenv("EXTRACT_REASONING_EFFORT", "low")
+        client = OpenRouterClient(api_key="k")
+        assert (client.max_output_tokens, client.reasoning_effort) == (777, "low")
+        monkeypatch.delenv("EXTRACT_MAX_OUTPUT_TOKENS", raising=False)
+        monkeypatch.delenv("EXTRACT_REASONING_EFFORT", raising=False)
+        client = OpenRouterClient(api_key="k")
+        assert (client.max_output_tokens, client.reasoning_effort) == (16384, "none")
+
 
 class TestAStopReachesInsideTheCall:
     """The defect Anooj measured: Stop reported success and did nothing.
