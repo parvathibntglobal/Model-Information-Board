@@ -81,10 +81,18 @@ def group_section(items: list[dict], *, section: str) -> list[dict]:
     if not mapping:
         return [_leaf(item) for item in items]
 
+    headings = set(mapping.values())
     out: list[dict] = []
     at: dict[str, int] = {}
     for item in items:
         parent = mapping.get((item.get("slug") or "").strip().lower(), UNGROUPED)
+        # THE EXTRACTOR'S FILING, for a leaf the contract has not filed
+        # (2026-10-14). Only a real heading of this section is accepted, and
+        # the leaf says who filed it (`filed_by`), so the page can mark it as
+        # not yet reviewed. The contract always wins where it has an answer.
+        filed_by = "contract"
+        if parent is UNGROUPED and item.get("parent_proposed") in headings:
+            parent, filed_by = item["parent_proposed"], "extractor"
         if parent is UNGROUPED:
             out.append(_leaf(item))
             continue
@@ -107,7 +115,7 @@ def group_section(items: list[dict], *, section: str) -> list[dict]:
                 }
             )
         row = out[at[parent]]
-        row["children"].append(_leaf(item, parent=parent))
+        row["children"].append({**_leaf(item, parent=parent), "filed_by": filed_by})
         row["leaves"] = len(row["children"])
     return out
 

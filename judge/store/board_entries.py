@@ -584,6 +584,13 @@ def store_entries(
     # prompt; "11 with no quantity, 1 whose figure is not in its quote" sends
     # them to two different places, and only one of them is the prompt.
     refused: dict[str, int] = {}
+    # THE HEADING THE EXTRACTOR FILED A CAPABILITY UNDER, kept only when it is
+    # one of the section's real headings. Anything else is stored as NULL and
+    # COUNTED (rule 4): the row is kept either way, because a missing heading
+    # is a filing gap, not a reason to lose a report (rule 8).
+    from judge.config import section_headings
+
+    unfiled = 0
     with conn.cursor() as cur:
         for e in entries:
             if not e.get("quote_verified"):
@@ -609,12 +616,19 @@ def store_entries(
             if not slug:
                 skipped += 1
                 continue
+            parent = None
+            if section == "capability":
+                proposed_parent = (e.get("parent") or "").strip().lower()
+                if proposed_parent in section_headings(section):
+                    parent = proposed_parent
+                else:
+                    unfiled += 1
             cur.execute(
                 "INSERT INTO board_entry "
                 "(id, section, slug, name, definition, unit, value_verbatim, basis,"
                 " model_version_id, document_id, claim_id, quote, quote_verified,"
-                " polarity, proposer_model, model_scope, pipeline_version) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                " polarity, proposer_model, model_scope, pipeline_version, parent_proposed) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                 "ON CONFLICT (id) DO NOTHING",
                 (
                     entry_id(
@@ -627,6 +641,7 @@ def store_entries(
                     e["quote"], True, e["polarity"], proposer_model,
                     _scope_of(e, searched),
                     pipeline_version,
+                    parent,
                 ),
             )
             stored += cur.rowcount  # 1 on insert, 0 on conflict
@@ -636,6 +651,9 @@ def store_entries(
         "skipped_unverified": skipped,
         "refused_metrics": sum(refused.values()),
         "refused_by": refused,
+        # Capability rows stored with no usable heading - missing, or not one
+        # of the ten. Kept and counted, never dropped.
+        "capability_unfiled": unfiled,
     }
 
 
@@ -1060,7 +1078,7 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
         # no denominator would read as a defect being fixed.
         "       v.canonical_id, v.display_name, v.id, d.source, "
         # WHEN THE SOURCE POST WAS WRITTEN, for each section's freshness line.
-        "       d.created_at "
+        "       d.created_at, be.parent_proposed "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "LEFT JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
@@ -1093,7 +1111,7 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
     by_source = 0
     for (section, slug, name, definition, unit, value, basis,
          mv_id, doc_id, quote, polarity, _created_at, url, author_id,
-         canonical, display, registry_id, source, doc_created) in rows:
+         canonical, display, registry_id, source, doc_created, parent_prop) in rows:
         if hide(source):
             by_source += 1
             continue
@@ -1151,9 +1169,15 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
                 # FRESHNESS, over exactly the rows this section shows: the
                 # newest entry ADDED and the newest source post WRITTEN.
                 "_updated": None, "_newest": None,
+                # THE HEADING THE EXTRACTOR FILED THESE ROWS UNDER, counted, so
+                # a leaf the contract has not filed can still sit in a box -
+                # marked as the extractor's filing (board_grouping).
+                "_parents": {},
             },
         )
         bucket["_spellings"][slug] = bucket["_spellings"].get(slug, 0) + 1
+        if parent_prop:
+            bucket["_parents"][parent_prop] = bucket["_parents"].get(parent_prop, 0) + 1
         if definition:
             seen = bucket["_definitions"].setdefault(definition, [0, _created_at])
             seen[0] += 1
@@ -1324,6 +1348,13 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
                     definitions.items(),
                     key=lambda kv: (-kv[1][0], kv[1][1] is None, kv[1][1] or 0, kv[0]),
                 )[0]
+            # The commonest heading the extractor proposed; ties to the key
+            # that sorts first, so the box a leaf sits in does not flip on an
+            # arbitrary row order. None when no row proposed one (rule 6).
+            parents = item.pop("_parents", {}) or {}
+            item["parent_proposed"] = (
+                min(parents.items(), key=lambda kv: (-kv[1], kv[0]))[0] if parents else None
+            )
             spellings = item.pop("_spellings", {}) or {}
             if spellings:
                 item["slug"] = min(spellings.items(), key=lambda kv: (-kv[1], kv[0]))[0]

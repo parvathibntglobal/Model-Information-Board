@@ -101,6 +101,14 @@ You will be shown EXEMPLARS at the end: real sections from that hand-designed \
 board. They are there to calibrate HOW BROAD a section should be and how a \
 name reads. They are not a closed list, and matching one is not the goal.
 
+CAPABILITIES ARE DIFFERENT IN ONE WAY. For the capability section you are \
+shown THE BOARD'S CAPABILITY VOCABULARY instead of exemplars: every capability \
+it already has, under ten headings. REUSE a listed capability whenever one \
+names the behaviour, even when the writer's words differ - two names for one \
+behaviour split its reports in two. Name a new capability only when none does, \
+and file EVERY capability entry under one of the ten headings in `parent`. \
+Jobs and metrics are discovered exactly as described above.
+
 ASK ALL THREE QUESTIONS OF EVERY QUOTE
 
 Add an entry for each question the quote itself answers. Most quotes answer \
@@ -417,6 +425,7 @@ def build_system_prompt(
     definitions: dict | None = None,
     *,
     legacy: bool | None = None,
+    vocabulary: dict | None = None,
 ) -> str:
     """The classifier prompt: one CLOSED list, three OPEN sections.
 
@@ -471,6 +480,13 @@ def build_system_prompt(
         from judge.config import board_exemplars
 
         exemplars = board_exemplars()
+    # THE CAPABILITY VOCABULARY (2026-10-14), defaulting to the contract file
+    # for the same reason `exemplars` does. Passing `{}` reproduces the
+    # exemplar-only prompt every row before that date was extracted under.
+    if vocabulary is None:
+        from judge.config import board_vocabulary
+
+        vocabulary = board_vocabulary()
 
     def _section(key: str, heading: str) -> str:
         block = exemplars.get(key) or {}
@@ -513,7 +529,13 @@ def build_system_prompt(
           "The\n    nearest wrong section manufactures agreement about something "
           "nobody said."
         + _section("best_for", "SECTION 1 - BEST FOR (jobs somebody runs)")
-        + _section("capabilities", "SECTION 2 - CAPABILITIES (one named behaviour)")
+        + (
+            _vocabulary_section(
+                vocabulary["capability"], (exemplars.get("capabilities") or {}).get("question", "")
+            )
+            if vocabulary.get("capability")
+            else _section("capabilities", "SECTION 2 - CAPABILITIES (one named behaviour)")
+        )
         + _section("metrics", "SECTION 3 - METRICS (a measured axis with a unit)")
     )
     if not legacy:
@@ -541,6 +563,50 @@ def build_system_prompt(
         + _keys_block(capability_keys, definitions)
     )
     return base + open_half + closed_half
+
+
+#: What the extractor is told about the capability vocabulary, beside it.
+CAPABILITY_VOCABULARY_RULES = """\
+  These are the capabilities the board already has, under its ten headings.
+  The key in brackets is what goes in `parent`.
+
+  - REUSE A LISTED SLUG whenever one names the behaviour the quote reports,
+    even when the writer's words differ: "refuses harmless prompts" is
+    `over-refusal`, "keeps giving me broken JSON" is `structured-output`.
+    Copy the slug exactly. Two names for one behaviour split its reports in
+    two, and that is the commonest defect this board has.
+  - DO NOT NARROW A LISTED CAPABILITY by adding where it was seen: "tool calls
+    in long sessions" is `function-calling` or `agentic-tool-use`, not a new
+    slug. Context belongs in `conditions`, never in the slug.
+  - ONLY WHEN NO LISTED SLUG NAMES IT, name a new capability - and file it.
+  - EVERY CAPABILITY ENTRY CARRIES `parent`: for a listed slug, the heading it
+    is listed under; for a new one, the heading it belongs under.
+  - NEVER FORCE A QUOTE INTO A LISTED SLUG THAT DOES NOT NAME WHAT IT REPORTS.
+    A new capability, correctly named and filed, is better than a wrong reuse:
+    a wrong reuse puts a report on a page about something else.
+"""
+
+
+def _vocabulary_section(vocab: dict, question: str) -> str:
+    """SECTION 2 when the board has a capability vocabulary: every heading's key
+    and name, then its slugs. Slugs only - no definitions - because the slug is
+    the name, and 162 definitions would be a second prompt."""
+    from judge.config import parent_heading
+
+    rows = [
+        f"  [{heading}] {parent_heading(heading)}\n      "
+        + ", ".join(item["slug"] for item in items)
+        for heading, items in vocab.items()
+        if items
+    ]
+    return (
+        "\n\nSECTION 2 - CAPABILITIES (one named behaviour) - THE VOCABULARY, REUSE FIRST"
+        + (f'\n  The question it answers: "{question}"' if question else "")
+        + "\n"
+        + CAPABILITY_VOCABULARY_RULES
+        + "\n"
+        + "\n".join(rows)
+    )
 
 
 def wrap_untrusted(flattened_text: str) -> str:

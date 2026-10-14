@@ -624,10 +624,15 @@ export function setBoardData(payload) {
       // cards is a claim that something is there, and a reader who cannot see
       // the leaves under a parent is reading a merge.
       if (!children.length) return []
+      // WHO FILED EACH LEAF HERE (2026-10-14). A leaf the contract has not
+      // filed can sit under the heading the extractor proposed; the page marks
+      // those, so a reader can tell a reviewed filing from a proposed one.
+      const byExtractor = new Set((r.children || [])
+        .filter((c) => c.filed_by === 'extractor').map((c) => c.slug))
       // `leaves` COMES FROM WHAT WE WILL ACTUALLY DRAW, not from the payload's
       // count. If a leaf was dropped above, the heading must not still claim it.
       return [{ kind: 'parent', name: r.name, parent: r.parent, children,
-                leaves: children.length }]
+                leaves: children.length, byExtractor }]
     })
   }
   const grouped = d.grouped || {}

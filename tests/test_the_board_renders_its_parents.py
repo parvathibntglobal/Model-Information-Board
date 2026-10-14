@@ -140,7 +140,7 @@ class TestAParentIsNotARoute:
         """Ruling 3: nothing about a leaf changes because it gained a heading.
         `groupedGrid` is handed the same `draw` the flat list uses."""
         js = _views()
-        assert "draw: (c) => card(c, 'cap')" in js, "a capability in a box is the same card"
+        assert "draw: (c, note) => card(c, 'cap', note)" in js, "same card in a box"
         assert "groupedGrid(DB.metGroups, DB.mets, m=>mcard(m))" in js
 
     def test_a_box_page_says_nothing_under_it_is_merged(self):

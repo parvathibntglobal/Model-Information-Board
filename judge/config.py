@@ -67,6 +67,29 @@ def capabilities() -> dict[str, Capability]:
 
 
 @lru_cache(maxsize=1)
+def board_vocabulary() -> dict[str, dict[str, list[dict[str, str]]]]:
+    """`contract/board_vocabulary.yaml` -> {section: {heading: [{slug, name}]}}.
+
+    THE NAMES THE EXTRACTOR IS ASKED TO REUSE (2026-10-14), capabilities only
+    so far. REUSE-FIRST, NOT CLOSED: nothing in code checks a proposed slug
+    against this, for the reason `board_exemplars` gives below - a membership
+    check forces a quote into the nearest wrong name. A section the file does
+    not carry comes back absent, and the prompt falls back to its exemplars.
+    """
+    raw = _read("board_vocabulary.yaml") or {}
+    return {
+        str(section): {str(h): list(items or ()) for h, items in (headings or {}).items()}
+        for section, headings in raw.items()
+    }
+
+
+def section_headings(section: str) -> frozenset[str]:
+    """The heading keys a leaf of `section` may be filed under: every parent in
+    `contract/slug_parents.yaml` for that section. Empty when it has none."""
+    return frozenset(slug_parents().get(section, {}).values())
+
+
+@lru_cache(maxsize=1)
 def board_exemplars() -> dict:
     """Calibration samples for the board's three sections — NOT a vocabulary.
 

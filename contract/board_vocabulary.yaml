@@ -1,0 +1,351 @@
+# THE CAPABILITY VOCABULARY THE EXTRACTOR IS SHOWN. Generated 2026-10-14 from
+# `docs/proposals/capability_curation_2026_10_14.py` (`--write-vocabulary`):
+# every capability that proposal KEEPS, under the heading it is filed under in
+# `slug_parents.yaml`, with the name the board renders. Names merged into one of
+# these are not listed - offering them would invite the duplicates the merge
+# removes. Edit the proposal and regenerate; do not edit by hand.
+#
+# WHAT THIS IS AND IS NOT. It is a REUSE-FIRST list, not a closed one. The
+# extractor is told to reuse a listed slug whenever one names what the quote
+# reports, and when none does, to name a new capability and file it under one
+# of the headings below (`parent`). Code never refuses a new slug: a membership
+# check here would be the closed vocabulary `judge/config.py:board_exemplars`
+# warns against, which forces a quote into the nearest wrong name.
+#
+# NO COUNTS (rule 11). How many reports each holds is the board's to compute.
+
+capability:
+  software-engineering:
+  - slug: code-generation
+    name: Code generation
+  - slug: coding
+    name: Coding
+  - slug: code-quality
+    name: Code quality
+  - slug: code-review
+    name: Code review
+  - slug: bug-detection
+    name: Bug detection
+  - slug: false-positive-control
+    name: False positive control
+  - slug: debugging
+    name: Debugging
+  - slug: large-scale-refactoring
+    name: Large-scale refactoring
+  - slug: surgical-fixes
+    name: Surgical fixes
+  - slug: regression-avoidance
+    name: Regression avoidance
+  - slug: repository-level-coding
+    name: Repository-level coding
+  - slug: software-architecture
+    name: Software architecture
+  - slug: planning
+    name: Planning
+  - slug: test-generation
+    name: Test generation
+  - slug: performance-optimization
+    name: Performance optimization
+  - slug: sql-generation
+    name: SQL generation
+  - slug: code-translation
+    name: Code translation
+  - slug: assembly-reading
+    name: Assembly reading
+  - slug: haskell-knowledge
+    name: Haskell knowledge
+  - slug: java-knowledge
+    name: Java knowledge
+  - slug: commit-message-generation
+    name: Commit message generation
+  - slug: chip-design
+    name: Chip design
+  - slug: gpu-compiler-writing
+    name: GPU compiler writing
+  - slug: web-design
+    name: Web design
+  - slug: overcomplication
+    name: Overcomplication
+  - slug: api-discovery
+    name: API discovery
+  - slug: no-code-generation
+    name: No-code generation
+  - slug: development-speed
+    name: Development speed
+  - slug: cybersecurity
+    name: Cybersecurity
+  - slug: exploit-development
+    name: Exploit development
+  - slug: vulnerability-discovery
+    name: Vulnerability discovery
+  - slug: vulnerability-detection
+    name: Vulnerability detection
+  - slug: automated-patching
+    name: Automated patching
+  - slug: internet-connected-code-execution
+    name: Internet-connected code execution
+  agentic:
+  - slug: agentic-tool-use
+    name: Agentic tool use
+  - slug: function-calling
+    name: Function calling
+  - slug: agentic-coding
+    name: Agentic coding
+  - slug: computer-use
+    name: Computer use
+  - slug: physical-task-execution
+    name: Physical task execution
+  - slug: long-horizon-tasks
+    name: Long-horizon tasks
+  - slug: orchestration
+    name: Orchestration
+  - slug: task-completion
+    name: Task completion
+  - slug: task-persistence
+    name: Task persistence
+  - slug: premature-completion
+    name: Premature completion
+  - slug: self-verification
+    name: Self-verification
+  - slug: self-correction
+    name: Self-correction
+  - slug: scope-adherence
+    name: Scope adherence
+  - slug: judgment
+    name: Judgment
+  - slug: initiative
+    name: Initiative
+  - slug: search
+    name: Search
+  - slug: triage
+    name: Triage
+  reasoning-and-math:
+  - slug: reasoning
+    name: Reasoning
+  - slug: no-cot-reasoning
+    name: No-CoT reasoning
+  - slug: quality
+    name: Quality
+  - slug: comparative-quality
+    name: Comparative quality
+  - slug: benchmark-performance
+    name: Benchmark performance
+  - slug: mathematical-reasoning
+    name: Mathematical reasoning
+  - slug: proof-writing
+    name: Proof writing
+  - slug: serial-arithmetic
+    name: Serial arithmetic
+  - slug: spatial-reasoning
+    name: Spatial reasoning
+  - slug: temporal-reasoning
+    name: Temporal reasoning
+  - slug: world-knowledge
+    name: World knowledge
+  - slug: hallucination
+    name: Hallucination
+  - slug: abstention
+    name: Abstention
+  - slug: judging-accuracy
+    name: Judging accuracy
+  - slug: classification
+    name: Classification
+  - slug: game-play
+    name: Game play
+  - slug: scientific-discovery
+    name: Scientific discovery
+  - slug: research-taste
+    name: Research taste
+  - slug: research
+    name: Research
+  - slug: learning-from-examples
+    name: Learning from examples
+  - slug: cot-controllability
+    name: CoT controllability
+  instruction-and-reliability:
+  - slug: instruction-following
+    name: Instruction following
+  - slug: structured-output
+    name: Structured output
+  - slug: context-awareness
+    name: Context awareness
+  - slug: consistency
+    name: Consistency
+  - slug: reliability
+    name: Reliability
+  - slug: model-drift
+    name: Model drift
+  - slug: empty-response
+    name: Empty response
+  - slug: thinking-stalling
+    name: Thinking stalling
+  - slug: overthinking
+    name: Overthinking
+  - slug: citation-accuracy
+    name: Citation accuracy
+  writing-language:
+  - slug: communication-clarity
+    name: Communication clarity
+  - slug: writing-quality
+    name: Writing quality
+  - slug: writing-style
+    name: Writing style
+  - slug: style-mimicry
+    name: Style mimicry
+  - slug: communication-style
+    name: Communication style
+  - slug: conversational-quality
+    name: Conversational quality
+  - slug: persona-contrarian
+    name: Contrarian tone
+  - slug: creative-writing
+    name: Creative writing
+  - slug: dialogue
+    name: Dialogue
+  - slug: emotional-intelligence
+    name: Emotional intelligence
+  - slug: roleplay-consistency
+    name: Roleplay consistency
+  - slug: verbosity
+    name: Verbosity
+  - slug: repetitive-output
+    name: Repetitive output
+  - slug: chinese-language
+    name: Chinese language
+  - slug: multilingual
+    name: Multilingual
+  - slug: summarization
+    name: Summarization
+  - slug: email-writing
+    name: Email writing
+  - slug: document-generation
+    name: Document generation
+  - slug: long-form-consistency
+    name: Long-form consistency
+  vision-media:
+  - slug: vision
+    name: Vision
+  - slug: ocr
+    name: OCR
+  - slug: multimodal
+    name: Multimodal
+  - slug: image-generation
+    name: Image generation
+  - slug: image-editing
+    name: Image editing
+  - slug: text-in-image
+    name: Text in image
+  - slug: visual-design
+    name: Visual design
+  - slug: 3d-modeling
+    name: 3D modeling
+  - slug: svg-generation
+    name: SVG generation
+  - slug: text-to-video
+    name: Text-to-video
+  - slug: video-editing
+    name: Video editing
+  - slug: text-to-speech
+    name: Text To Speech
+  - slug: audio-understanding
+    name: Audio understanding
+  - slug: music-generation
+    name: Music generation
+  long-context-and-memory:
+  - slug: long-context
+    name: Long context
+  - slug: context-window
+    name: Context window
+  - slug: coherence
+    name: Coherence
+  - slug: compaction
+    name: Compaction
+  - slug: memory-recall
+    name: Memory recall
+  - slug: document-reasoning
+    name: Document reasoning
+  - slug: sentence-extraction
+    name: Sentence extraction
+  safety-and-honesty:
+  - slug: censorship
+    name: Censorship
+  - slug: over-refusal
+    name: Over-refusal
+  - slug: nsfw-content
+    name: NSFW content
+  - slug: safety
+    name: Safety
+  - slug: jailbreak-resistance
+    name: Jailbreak resistance
+  - slug: injection-resistance
+    name: Injection resistance
+  - slug: reward-hacking
+    name: Reward hacking
+  - slug: sandbagging
+    name: Sandbagging
+  - slug: chain-of-thought-monitorability
+    name: CoT monitorability
+  - slug: situational-awareness
+    name: Situational awareness
+  - slug: sycophancy
+    name: Sycophancy
+  - slug: honesty
+    name: Honesty
+  - slug: safety-boundary-adherence
+    name: Safety boundary adherence
+  performance-cost:
+  - slug: speed
+    name: Speed
+  - slug: throughput
+    name: Throughput
+  - slug: latency
+    name: Latency
+  - slug: time-to-first-token
+    name: Time to first token
+  - slug: prefill-speed
+    name: Prefill speed
+  - slug: local-inference
+    name: Local inference
+  - slug: quantization-quality
+    name: Quantization quality
+  - slug: mtp
+    name: MTP
+  - slug: parameter-activation
+    name: Parameter activation
+  - slug: size-efficiency
+    name: Size efficiency
+  - slug: cost-efficiency
+    name: Cost efficiency
+  - slug: token-efficiency
+    name: Token efficiency
+  - slug: usage-limits
+    name: Usage limits
+  - slug: reasoning-effort
+    name: Reasoning effort
+  api-behaviour:
+  - slug: thinking-mode
+    name: Thinking mode
+  - slug: reasoning-content-passback
+    name: Reasoning content passback
+  - slug: parameter-support
+    name: Parameter support
+  - slug: api-compatibility
+    name: API compatibility
+  - slug: availability
+    name: Availability
+  - slug: model-version-fidelity
+    name: Model version fidelity
+  - slug: prompt-caching
+    name: Prompt caching
+  - slug: streaming
+    name: Streaming
+  - slug: token-counting
+    name: Token counting
+  - slug: license-clarity
+    name: License clarity
+  - slug: watermarking
+    name: Watermarking
+  - slug: fine-tuning
+    name: Fine-tuning
+  - slug: system-configuration
+    name: System configuration

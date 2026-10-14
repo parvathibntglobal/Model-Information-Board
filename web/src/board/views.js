@@ -328,11 +328,14 @@ function sec(eyebrow,h2,intro,inner){
   return `<div class="shell sec"><div class="sec-h">${eyebrow?`<span class="eyebrow">${eyebrow}</span>`:''}
     ${h2?`<h2>${h2}</h2>`:''}${intro?`<p>${intro}</p>`:''}</div>${inner}</div>`;
 }
-function card(x, route){
+function card(x, route, note){
   const [cls,lbl]=stOf(x.st);
   // No text, no empty paragraph: a job card is the name and its counts.
   const body = x.card ? `<p>${esc(x.card)}</p>` : '';
-  return `<a class="icard"${goAttrs(`${route}:${x.slug}`)}><b>${esc(x.name)}</b>${body}
+  // `note` is a short line about where the card was filed, never about the
+  // evidence (heading boxes, 2026-10-14).
+  const filed = note ? `<p class="filed-by">${esc(note)}</p>` : '';
+  return `<a class="icard"${goAttrs(`${route}:${x.slug}`)}><b>${esc(x.name)}</b>${body}${filed}
     <div class="meta"><span class="${cls}">${esc(x.ev)} · ${esc(lbl)}</span><span>${esc(x.vol)}</span></div></a>`;
 }
 function mcard(x){
@@ -497,7 +500,7 @@ function groupedGrid(groups, flat, draw){
  * are not dropped (rule 4: an absence we caused must say so) and they are not
  * filed under a heading invented to hold them (no `other` parent). */
 const BOXED = {
-  cap: { groups: () => DB.capGroups, flat: () => DB.caps, draw: (c) => card(c, 'cap'),
+  cap: { groups: () => DB.capGroups, flat: () => DB.caps, draw: (c, note) => card(c, 'cap', note),
          one: 'capability', many: 'capabilities', tab: 'Capabilities' },
 };
 const UNFILED = 'unfiled';
@@ -552,10 +555,16 @@ function vGroup(tab, key, pane){
        here rather than left out, and each is its own ${B.one}.`
     : `Grouped for reading. Each of these ${n} ${n === 1 ? B.one : B.many} is its own measurement,
        nothing here is merged, and there is no total for the heading.`;
-  const grid = gridBlock(g.children.map(B.draw).join(''));
+  // A LEAF THE EXTRACTOR FILED HERE SAYS SO. The contract's filings were
+  // read by a person; the extractor's are a proposal until somebody does.
+  const byX = g.byExtractor || new Set();
+  const grid = gridBlock(g.children.map(c => byX.has(c.slug)
+    ? B.draw(c, 'Filed here by the extractor, not yet reviewed') : B.draw(c)).join(''));
+  const xNote = byX.size ? `<p class="sub">${byX.size} of these ${byX.size === 1 ? 'was' : 'were'} filed
+    here by the extractor and nobody has reviewed ${byX.size === 1 ? 'it' : 'them'} yet; ${byX.size === 1 ? 'it is' : 'they are'} marked.</p>` : '';
   return `<div class="shell phead">${crumb([['Board','board'],[B.tab,`board:${tab}`],[g.name,null]])}
     <h1>${esc(g.name)}</h1>${freshLine()}
-    <p class="sub">${lead}</p>
+    <p class="sub">${lead}</p>${xNote}
     <p class="backline"><a${goAttrs(`board:${tab}`)}>All ${esc(B.tab.toLowerCase())} headings</a></p></div>
     <div class="shell">${pane.side ? `<div class="jobbody"><div class="joblist">${grid}</div>${pane.side}</div>` : grid}</div>`;
 }

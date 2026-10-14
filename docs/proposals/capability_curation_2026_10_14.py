@@ -14,6 +14,8 @@ CLUSTERS: target -> (parent, [slugs merged into it]). The target is kept.
 DECLINE:  slug -> reason. Rows are kept and ruled `declined` (nothing deleted).
 """
 
+from pathlib import Path
+
 PARENTS = {
     "software-engineering": "Coding and security",
     "agentic": "Agents and tool use",
@@ -873,9 +875,62 @@ def write_parents(path: str = "contract/slug_parents.yaml") -> None:
     p.write_text(text[:start] + "\n".join(lines) + "\n" + text[end:], encoding="utf-8")
 
 
+VOCABULARY_HEADER = """\
+# THE CAPABILITY VOCABULARY THE EXTRACTOR IS SHOWN. Generated 2026-10-14 from
+# `docs/proposals/capability_curation_2026_10_14.py` (`--write-vocabulary`):
+# every capability that proposal KEEPS, under the heading it is filed under in
+# `slug_parents.yaml`, with the name the board renders. Names merged into one of
+# these are not listed - offering them would invite the duplicates the merge
+# removes. Edit the proposal and regenerate; do not edit by hand.
+#
+# WHAT THIS IS AND IS NOT. It is a REUSE-FIRST list, not a closed one. The
+# extractor is told to reuse a listed slug whenever one names what the quote
+# reports, and when none does, to name a new capability and file it under one
+# of the headings below (`parent`). Code never refuses a new slug: a membership
+# check here would be the closed vocabulary `judge/config.py:board_exemplars`
+# warns against, which forces a quote into the nearest wrong name.
+#
+# NO COUNTS (rule 11). How many reports each holds is the board's to compute.
+"""
+
+
+def write_vocabulary(path: str = "contract/board_vocabulary.yaml") -> None:
+    """Every KEPT capability with its display name, under its heading.
+
+    The name is the one the board renders today: the commonest `name` among
+    the slug's rows. A kept slug with no rows (none today) gets its slug
+    title-cased, said so in a comment rather than silently.
+    """
+    import os
+
+    import psycopg
+    import yaml
+
+    with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+        names = dict(conn.execute(
+            "SELECT slug, mode() WITHIN GROUP (ORDER BY name) FROM board_entry "
+            "WHERE section = 'capability' GROUP BY slug").fetchall())
+    body: dict[str, list[dict[str, str]]] = {p: [] for p in PARENTS}
+    unnamed = []
+    for target, (parent, _merged) in CLUSTERS.items():
+        name = names.get(target)
+        if not name:
+            unnamed.append(target)
+            name = target.replace("-", " ").capitalize()
+        body[parent].append({"slug": target, "name": name})
+    text = VOCABULARY_HEADER
+    if unnamed:
+        text += f"# Named from the slug, no rows on the database read: {', '.join(unnamed)}\n"
+    text += "\n" + yaml.safe_dump({"capability": body}, sort_keys=False, allow_unicode=True)
+    Path(path).write_text(text, encoding="utf-8")
+
+
 if __name__ == "__main__":
     import sys
 
     if "--write-parents" in sys.argv:
         write_parents()
         print("wrote the capability block of contract/slug_parents.yaml")
+    if "--write-vocabulary" in sys.argv:
+        write_vocabulary()
+        print("wrote contract/board_vocabulary.yaml")
