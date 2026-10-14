@@ -616,7 +616,8 @@ FIRST PERSON
 - First-person EXPERIENCE - "we tried", "we ran", "we tested", "we measured", "we switched", "we saw" - is allowed ONLY to retell a WHAT WE TRIED note in the brief, and the sentence must carry a figure or the wording of that note. Retell a note in plain words, never inside «». Then set an engineer's words beside it: "An engineer running a document pipeline saw the same thing: «...»." If the brief has no WHAT WE TRIED notes, write no first-person experience at all. Never invent something we did.
 
 SEARCH - write to be found and to answer
-- The brief names a PRIMARY KEYWORD. Use it naturally in the title, in the description, and in the tldr or the first paragraph, and list it first in `keywords`. Use the SECONDARY KEYWORDS where they genuinely fit. Never stuff keywords.
+- The brief names a PRIMARY KEYWORD. Use it naturally in the description, and in the tldr or the first paragraph, and list it first in `keywords`. The TITLE must name the subject (the model or models, or the topic) but need not contain the keyword phrase.
+- TITLES: write a title only this post could have - its sharpest finding, a concrete number or condition from the discussions, or the question this post answers. Never "<Model> review: ...", never "Route/Choose by Workload", never an "X, Not Y" contrast. The brief lists TITLES ALREADY USED: yours must not echo their wording or their shape. Use the SECONDARY KEYWORDS where they genuinely fit. Never stuff keywords.
 - The tldr is a direct answer a searcher would want quoted.
 - The `faq` answers EXACTLY 3 questions people actually type into Google about this subject, phrased as they would type them; at least one names the subject (the model or the topic). The FAQ is one block at the end, written only in `faq` - never also as a section, and the rest of the post is not written as questions and answers. Each answer opens with a one-sentence direct answer, then 1 to 3 sentences of support: 40 to 90 words in all, held to the same grounding rules as the essay.
 - If the brief lists TRENDING IN RECENT REPORTS, mention the ones that genuinely belong in this post; skip the rest.
@@ -722,7 +723,7 @@ TOOL = {
                 },
                 "illustrations": {
                     "type": "array",
-                    "description": "1 or 2 AI-generated illustrations, each picturing the situation one section describes.",
+                    "description": "Exactly 4 AI-generated pictures, drawn together and cut apart. The FIRST opens the article (section 0) and pictures the post's central situation; the other three each picture one section's situation, in three different sections.",
                     "items": {"type": "object", "required": ["section", "scene", "alt", "caption"],
                               "properties": {
                                   "section": {"type": "integer", "description": "Index of the section it illustrates (0-based)."},
@@ -1159,6 +1160,8 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
                  "- mostly by deepening the sections, not by adding visuals")
     if "para_words" in rules:
         v += _distinctiveness(essay, rules)
+    if rules.get("titles"):
+        v += title_violations(essay.get("title", ""), rules)
     if "visuals" in rules:
         v += visual_violations(essay, rules["visuals"], ctx_nums)
         v += illustration_violations(essay, len(essay.get("sections") or []))
@@ -1264,8 +1267,38 @@ def voices_violations(essay: dict, doc_texts: list[str], need: int = 3,
 #: How many generated illustrations a planned post carries, and how they are
 #: drawn. Configuration, kept here beside the prompt that names it until the
 #: blog configuration moves to contract/ (see blog_formats.yaml's header).
-ILLUSTRATIONS_PER_POST = (1, 2)
+#:
+#: FOUR FROM ONE CALL (2026-10-14, team ask: smaller pictures, more of them for
+#: the same cost, and every post opens on one). A picture is billed per call,
+#: not per pixel - 19 calls on 2026-10-13 cost $0.0387 to $0.0390 each, all at
+#: 1024x1024 - so the model draws the four scenes as ONE 16:9 picture laid out
+#: 2x2 and code cuts the panels out. Probe, 2026-10-14, one call at $0.0388:
+#: 1344x768, four separate panels of about 460x260 on a dark ground. The first
+#: picture opens the article; the other three sit in sections.
+ILLUSTRATIONS_PER_POST = (4, 4)
+IMAGE_ASPECT = "16:9"
 IMAGE_MODEL = os.environ.get("BLOG_IMAGE_MODEL", "google/gemini-2.5-flash-image")
+#: How the panels are cut out (split_panels). A pixel is panel when it parts
+#: from the quarter's ground colour by more than PANEL_GROUND_DIFF (greyscale
+#: of the difference, 0-255); a row or column is panel when PANEL_ROW_SHARE of
+#: it is; runs bridge gaps of PANEL_RUN_GAP; the strip of PANEL_GUTTER_SHARE
+#: beside the centre lines is ignored (a thin divider drawn there); and a panel
+#: must fill PANEL_MIN_SHARE of its quarter each way. Set on two real draws of
+#: 2026-10-14 (tests/fixtures/blog_grid_probe*, panels filling 68% and 83% each
+#: way) and synthetic grids - unmeasured on any other draw.
+PANEL_GROUND_DIFF = 12
+PANEL_ROW_SHARE = 0.15
+PANEL_RUN_GAP = 4
+PANEL_GUTTER_SHARE = 0.02
+PANEL_MIN_SHARE = 0.45
+#: The wording of the second probe (2026-10-14). The model still drew margins
+#: round each panel, but on a flat ground (spread 1.0 in the gutters) with crisp
+#: panels filling ~83% of each quarter; the first wording ("panels on one plain
+#: dark ground, divided by gutters") gave a vignetted ground and 68%.
+GRID_LAYOUT = ("LAYOUT: FOUR SEPARATE illustrations in a 2x2 grid. Each fills its quarter of the canvas "
+               "completely, edge to edge, with NO border, margin or background showing around it; the four meet "
+               "along one thin straight dividing line forming a cross at the exact centre. Each panel is its own "
+               "complete composition; nothing crosses the dividing lines. Same style in all four.")
 IMAGE_MAX_WIDTH = 1200
 IMAGE_JPEG_QUALITY = 78
 #: Every picture shares one look, so a post's illustrations read as a set and
@@ -1291,7 +1324,14 @@ def illustration_violations(essay: dict, n_sections: int) -> list[str]:
     ills = essay.get("illustrations") or []
     lo, hi = ILLUSTRATIONS_PER_POST
     if not lo <= len(ills) <= hi:
-        v.append(f"illustrations: {len(ills)}; propose {lo} to {hi}")
+        v.append(f"illustrations: {len(ills)}; propose exactly {lo}" if lo == hi else
+                 f"illustrations: {len(ills)}; propose {lo} to {hi}")
+    if ills and (ills[0] or {}).get("section") != 0:
+        v.append("illustrations[0].section: the first picture opens the article - set its section to 0 and "
+                 "picture the post's central situation")
+    later = [(il or {}).get("section") for il in ills[1:]]
+    if len(later) != len(set(map(str, later))):
+        v.append("illustrations: the second, third and fourth pictures need three different sections")
     for k, il in enumerate(ills):
         p = f"illustrations[{k}]"
         sec = (il or {}).get("section")
@@ -1310,9 +1350,16 @@ def illustration_violations(essay: dict, n_sections: int) -> list[str]:
     return v
 
 
-def render_illustration(scene: str, key: str, base: str) -> tuple[str, dict]:
-    """(data URL, usage) for one picture. RAISES on any failure - the caller
-    decides what an unrendered picture means; this never returns a blank."""
+def grid_prompt(scenes: list[str]) -> str:
+    where = ["top left", "top right", "bottom left", "bottom right"]
+    return (f"{IMAGE_STYLE}\n\n{GRID_LAYOUT}\n"
+            + "\n".join(f"Panel {i + 1} ({where[i]}): {sc}" for i, sc in enumerate(scenes)))
+
+
+def draw_grid(scenes: list[str], key: str, base: str):
+    """(PIL image, usage, body) for ONE call drawing the four scenes as a 2x2
+    grid. RAISES when no picture came back. A picture that came back is paid
+    for, so cutting it up is the caller's job, AFTER the spend is recorded."""
     import base64
     import io
 
@@ -1320,7 +1367,8 @@ def render_illustration(scene: str, key: str, base: str) -> tuple[str, dict]:
 
     r = httpx.post(f"{base}/chat/completions", headers={"Authorization": f"Bearer {key}"},
                    timeout=180, json={"model": IMAGE_MODEL, "modalities": ["image", "text"],
-                                      "messages": [{"role": "user", "content": f"{IMAGE_STYLE}\n\nScene: {scene}"}],
+                                      "image_config": {"aspect_ratio": IMAGE_ASPECT},
+                                      "messages": [{"role": "user", "content": grid_prompt(scenes)}],
                                       "usage": {"include": True}})
     r.raise_for_status()
     body = r.json()
@@ -1331,44 +1379,136 @@ def render_illustration(scene: str, key: str, base: str) -> tuple[str, dict]:
     url = (images[0].get("image_url") or {}).get("url", "")
     if not url.startswith("data:image/") or ";base64," not in url:
         raise BuildError("the image model returned an image that is not an inline base64 picture")
-    raw = base64.b64decode(url.split(";base64,", 1)[1])
-    img = Image.open(io.BytesIO(raw)).convert("RGB")
+    img = Image.open(io.BytesIO(base64.b64decode(url.split(";base64,", 1)[1]))).convert("RGB")
+    return img, body.get("usage") or {}
+
+
+def _longest_run(flags: list[bool], gap: int) -> tuple[int, int] | None:
+    """(first, last) index of the longest run of True, bridging gaps of up to
+    `gap` False entries. A stray line at the canvas edge is a separate short
+    run, so it is never taken for the panel."""
+    best, start, last = None, None, None
+    for i, f in enumerate(flags + [False] * (gap + 1)):
+        if f:
+            if start is None or i - last > gap + 1:
+                if start is not None and (best is None or last - start > best[1] - best[0]):
+                    best = (start, last)
+                start = i
+            last = i
+    if start is not None and (best is None or last - start > best[1] - best[0]):
+        best = (start, last)
+    return best
+
+
+def split_panels(img) -> list:
+    """The four panels of a 2x2 picture, each trimmed to its own content.
+
+    HOW A PANEL IS FOUND. The ground is the median colour of the quarter's
+    outer frame. A row or column is panel when PANEL_ROW_SHARE of it parts
+    from the ground by more than PANEL_GROUND_DIFF, and the panel is the
+    longest unbroken run of such rows and of such columns. Measured on two real
+    draws (tests/fixtures/blog_grid_probe*): on the second, whose wording
+    GRID_LAYOUT now uses, all four panels were found to within ~20 pixels. On
+    the first, a panel whose dark top faded into a vignetted ground was cut
+    tight enough to clip the top of its lighthouse - a cut can be TOO TIGHT,
+    and nothing here detects that. A reviewer sees every picture.
+
+    RAISES rather than cutting blind: a scene drawn across the centre lines, an
+    empty quarter or a panel too small to be one would otherwise become four
+    broken pictures on a page - a fallback that succeeds on a wrong input
+    (rule 12).
+    """
+    from statistics import median_low
+
+    from PIL import Image, ImageChops
+
+    w, h = img.size
+    cx, cy = w // 2, h // 2
+    gx, gy = max(2, round(w * PANEL_GUTTER_SHARE)), max(2, round(h * PANEL_GUTTER_SHARE))
+    out = []
+    for k, (left, top) in enumerate([(True, True), (False, True), (True, False), (False, False)]):
+        # The quarter, minus a strip beside the centre lines (the gutter).
+        x0, x1 = (0, cx - gx) if left else (cx + gx, w)
+        y0, y1 = (0, cy - gy) if top else (cy + gy, h)
+        q = img.crop((x0, y0, x1, y1))
+        qw, qh = q.size
+        px = q.load()
+        frame = [px[x, y] for x in range(qw) for y in (0, 1, qh - 2, qh - 1)] +                 [px[x, y] for y in range(qh) for x in (0, 1, qw - 2, qw - 1)]
+        ground = tuple(int(median_low(c[i] for c in frame)) for i in range(3))
+        mask = ImageChops.difference(q, Image.new("RGB", q.size, ground)).convert("L")             .point(lambda v: 255 if v > PANEL_GROUND_DIFF else 0)
+        mp = mask.load()
+        cols = _longest_run([sum(1 for y in range(qh) if mp[x, y]) >= PANEL_ROW_SHARE * qh
+                             for x in range(qw)], PANEL_RUN_GAP)
+        rows = _longest_run([sum(1 for x in range(qw) if mp[x, y]) >= PANEL_ROW_SHARE * qw
+                             for y in range(qh)], PANEL_RUN_GAP)
+        if cols is None or rows is None:
+            raise BuildError(f"panel {k + 1}: its quarter is empty")
+        bw, bh = cols[1] - cols[0] + 1, rows[1] - rows[0] + 1
+        if bw < PANEL_MIN_SHARE * qw or bh < PANEL_MIN_SHARE * qh:
+            raise BuildError(f"panel {k + 1}: {bw}x{bh} is too small for a quarter of {qw}x{qh}")
+        # A panel that reaches the gutter strip continues past the centre line:
+        # the picture is one scene, not four.
+        if (cols[1] >= qw - 1 if left else cols[0] <= 0) or (rows[1] >= qh - 1 if top else rows[0] <= 0):
+            raise BuildError(f"panel {k + 1} runs into the centre line - the picture is not a 2x2 grid")
+        out.append(q.crop((cols[0], rows[0], cols[1] + 1, rows[1] + 1)))
+    return out
+
+
+def jpeg_data_url(img) -> str:
+    import base64
+    import io
+
     if img.width > IMAGE_MAX_WIDTH:
         img = img.resize((IMAGE_MAX_WIDTH, round(img.height * IMAGE_MAX_WIDTH / img.width)))
     out = io.BytesIO()
     img.save(out, "JPEG", quality=IMAGE_JPEG_QUALITY, optimize=True, progressive=True)
-    return "data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode("ascii"), body.get("usage") or {}
+    return "data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode("ascii")
 
 
-def illustrate(post: dict, essay: dict, key: str, base: str, started: str) -> list[dict]:
-    """Render the essay's proposed pictures. Each paid call is recorded in the
-    spend ledger (stage 'blog'). A picture that fails to render is LEFT OUT AND
-    SAID: the post is still worth reviewing without it, and the run log names it."""
+def illustrate(post: dict, essay: dict, key: str, base: str, started: str) -> tuple[list[dict], list[dict]]:
+    """(pictures, calls): the essay's four scenes drawn in ONE call and cut
+    apart. The first picture is the post's cover.
+
+    The call is recorded in the spend ledger (stage 'blog') as soon as a
+    picture comes back - before the cut, which can still fail. Pictures that
+    fail are LEFT OUT AND SAID: the post is still worth reviewing without
+    them, and the run log names why. `calls` carries the cost ONCE per call,
+    never once per picture, which would count one call four times.
+    """
+    ills = essay.get("illustrations") or []
+    if not ills:
+        return [], []
+    try:
+        img, usage = draw_grid([il["scene"] for il in ills], key, base)
+    except Exception as e:  # noqa: BLE001
+        print(f"  [{post['key']}] pictures not rendered: {type(e).__name__}: {e}", flush=True)
+        return [], []
+    calls = [{"model": IMAGE_MODEL, "usd": usage.get("cost")}]
+    try:
+        from judge import spend_ledger
+
+        call = spend_ledger.record(stage="blog", model=IMAGE_MODEL,
+                                   input_tokens=int(usage.get("prompt_tokens") or 0),
+                                   output_tokens=int(usage.get("completion_tokens") or 0),
+                                   at=datetime.fromisoformat(started),
+                                   run_id=f"blog-image:{post['key']}@{started}#grid",
+                                   reported=True, reported_usd=usage.get("cost"), to_database=False)
+        if (dsn := env().get("DATABASE_URL")):
+            spend_ledger.append_to_database([call], dsn=dsn)
+    except Exception as e:  # noqa: BLE001
+        print(f"  [{post['key']}] picture spend not recorded: {e}", flush=True)
+    try:
+        panels = split_panels(img)
+    except BuildError as e:
+        print(f"  [{post['key']}] pictures LEFT OUT, paid ${usage.get('cost') or 0:.4f}: {e}", flush=True)
+        return [], calls
     out = []
-    for k, il in enumerate(essay.get("illustrations") or []):
-        try:
-            src, usage = render_illustration(il["scene"], key, base)
-        except Exception as e:  # noqa: BLE001
-            print(f"  [{post['key']}] illustration {k + 1} not rendered: {type(e).__name__}: {e}", flush=True)
-            continue
-        try:
-            from judge import spend_ledger
-
-            call = spend_ledger.record(stage="blog", model=IMAGE_MODEL,
-                                       input_tokens=int(usage.get("prompt_tokens") or 0),
-                                       output_tokens=int(usage.get("completion_tokens") or 0),
-                                       at=datetime.fromisoformat(started),
-                                       run_id=f"blog-image:{post['key']}@{started}#{k + 1}",
-                                       reported=True, reported_usd=usage.get("cost"), to_database=False)
-            if (dsn := env().get("DATABASE_URL")):
-                spend_ledger.append_to_database([call], dsn=dsn)
-        except Exception as e:  # noqa: BLE001
-            print(f"  [{post['key']}] illustration {k + 1} spend not recorded: {e}", flush=True)
-        out.append({"section": il["section"], "src": src, "alt": il["alt"], "caption": il["caption"],
-                    "model": IMAGE_MODEL, "usd": usage.get("cost")})
-        print(f"  [{post['key']}] illustration {k + 1} rendered by {IMAGE_MODEL}"
-              f" ({len(src) // 1024} KB, ${usage.get('cost') or 0:.4f})", flush=True)
-    return out
+    for k, (il, panel) in enumerate(zip(ills, panels, strict=False)):
+        out.append({"section": il["section"], "src": jpeg_data_url(panel), "alt": il["alt"],
+                    "caption": il["caption"], "model": IMAGE_MODEL, "cover": k == 0})
+    print(f"  [{post['key']}] {len(out)} pictures from one {IMAGE_MODEL} call "
+          f"({img.width}x{img.height}, ${usage.get('cost') or 0:.4f})", flush=True)
+    return out, calls
 
 
 def reading_words(essay: dict) -> int:
@@ -1541,8 +1681,16 @@ def seo_violations(essay: dict, seo: dict) -> list[str]:
     v: list[str] = []
     kw = seo.get("primary") or ""
     if kw:
-        if not _kw_in(essay.get("title", ""), kw):
-            v.append(f"title: must contain the primary keyword {kw!r}")
+        # THE TITLE NAMES THE SUBJECT; THE KEYWORD PHRASE GOES ELSEWHERE
+        # (2026-10-14). Requiring "{a} review" verbatim in the title gave four
+        # model posts the same opening - "Claude Opus 5.5 review: ...", "Claude
+        # Opus 4.6 review: ...", "Claude Fable 5 review: ...", "MiniMax M3
+        # review: ..." - which is the sameness the team asked to remove. The
+        # phrase is still required in the description, the opening and the
+        # keywords, where a searcher's query is matched as well.
+        for name in seo.get("subject") or [kw]:
+            if not _kw_in(essay.get("title", ""), name):
+                v.append(f"title: must name {name!r}")
         if not _kw_in(essay.get("description", ""), kw):
             v.append(f"description: must contain the primary keyword {kw!r}")
         secs = essay.get("sections") or [{}]
@@ -1597,6 +1745,58 @@ STANCE = re.compile(
     r"prefer|suspect|would not|wouldn't|push back|side with|are not convinced|aren't convinced)\b"
     r"|\bwe(?:'re| are) (not )?(convinced|skeptical|sceptical|wary)\b|\bin our (view|experience|reading)\b"
     r"|\bour (take|view|verdict|advice)\b", re.I)
+
+
+_TITLE_STOP = frozenset({
+    "a", "an", "the", "and", "or", "of", "for", "to", "in", "on", "at", "by", "is", "are", "be",
+    "with", "its", "it", "your", "you", "vs", "versus", "not", "but", "how", "what", "why", "when",
+    "which",
+})
+
+
+def title_words(title: str, names: list[str]) -> set[str]:
+    """A title's own words: lower-case, without the subject's names, numbers
+    and stop words - what is left is how THIS title chose to say it."""
+    drop = {w for n in names for w in re.findall(r"[a-z0-9]+", (n or "").lower())}
+    return {w for w in re.findall(r"[a-z]+", norm(title).lower())
+            if len(w) > 2 and w not in _TITLE_STOP and w not in drop}
+
+
+def title_violations(title: str, rules: dict) -> list[str]:
+    """A TITLE NO OTHER POST HAS ALREADY WRITTEN (2026-10-14, team ask: "the
+    headings of our posts seem very similar").
+
+    Two checks, because one misses what the other catches - measured over the
+    21 titles on disk that day, all 210 pairs:
+      echo     the same own-words as a title in use: at least
+               `echo_shared_words_min` shared, making up `echo_share_min` of
+               the shorter title. Flagged 2 pairs - 'A Safe Migration Guide'
+               twice, and 'review: the (real) cost of ... work' twice - and no
+               other pair.
+      pattern  a shape that is already worn, whatever the words: 'X review:',
+               'Route/Choose by Workload', ', Not Y'. The echo test cannot see
+               these ('Route by Workload' / 'Choose by Workload' share one
+               word). Listed in blog_formats.yaml `titles.refused`, each with
+               the titles that wore it out.
+    """
+    cfg = rules["titles"]
+    names = rules.get("title_names") or rules.get("pick_names") or []
+    v: list[str] = []
+    for r in cfg["refused"]:
+        if re.search(r["pattern"], title, re.I):
+            v.append(f"title: {title!r} uses a worn title shape ({r['why']}); write a title only this post "
+                     "could have")
+    mine = title_words(title, names)
+    for other in rules.get("taken_titles") or []:
+        theirs = title_words(other, names)
+        shared = mine & theirs
+        if not mine or not theirs:
+            continue
+        if len(shared) >= cfg["echo_shared_words_min"] and \
+                len(shared) / min(len(mine), len(theirs)) >= cfg["echo_share_min"]:
+            v.append(f"title: {title!r} echoes another post's title {other!r} (shares "
+                     f"{', '.join(sorted(shared))}); say it in different words")
+    return v
 
 
 def _distinctiveness(essay: dict, rules: dict) -> list[str]:
@@ -2411,6 +2611,11 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
 
     # Headings carry the essay layout's number and anchor, so the page can build
     # its "In this essay" contents from the body rather than from a second list.
+    # THE COVER OPENS THE POST (2026-10-14). Absent when no picture was drawn -
+    # never a placeholder (rule 6); the page then draws none.
+    first = next((c for c in post.get("_illustrations") or [] if c.get("cover")), None)
+    cover = ({"cover": {"src": first["src"], "alt": first["alt"], "caption": first["caption"],
+                        "generated_by": first["model"]}} if first else {})
     body: list[list] = []
     for n, s in enumerate(essay["sections"], 1):
         body.append(["h2", {"text": s["heading"], "num": f"{n:02d}", "id": slug(s["heading"])}])
@@ -2420,7 +2625,7 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         # A GENERATED PICTURE sits after the section's first paragraph, always
         # labelled as AI-generated on the page (views.js).
         for il in post.get("_illustrations") or []:
-            if il["section"] == n - 1:
+            if il["section"] == n - 1 and not il.get("cover"):
                 paras.insert(1, ["image", {"src": il["src"], "alt": il["alt"], "caption": il["caption"],
                                            "generated_by": il["model"]}])
         if s.get("pull_quote"):
@@ -2483,6 +2688,7 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         "dek": GUILLEMET.sub(r"\1", essay["dek"]),
         "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
         "lead": text(essay["tldr"]),
+        **cover,
         # THE META DESCRIPTION AND KEYWORDS TRAVEL WITH THE POST (2026-10-13).
         # The model wrote both on every draft and export dropped them, so the
         # page's meta description fell back to the dek (rule 9: paid for and
@@ -2625,8 +2831,17 @@ def load_formats() -> dict:
                "price_recital_max"} - set(prose)
     if lacking:  # rule 12: no limit in code stands in for one the file forgot
         raise BuildError(f"blog_formats.yaml: prose is missing {sorted(lacking)}")
+    titles = cfg.get("titles") or {}
+    lacking = {"echo_shared_words_min", "echo_share_min", "refused"} - set(titles)
+    if lacking:
+        raise BuildError(f"blog_formats.yaml: titles is missing {sorted(lacking)}")
+    for r in titles["refused"]:
+        if not (r.get("pattern") and r.get("why")):
+            raise BuildError(f"blog_formats.yaml: titles.refused entry needs pattern and why: {r!r}")
+        re.compile(r["pattern"])  # a broken pattern fails here, not mid-run
     for f in cfg["formats"]:
         f["prose"] = prose
+        f["titles"] = titles
         missing = need - set(f)
         if missing:  # rule 12: a half-specified format must not run on defaults
             raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} is missing {sorted(missing)}")
@@ -2689,8 +2904,9 @@ def system_for(fmt: dict) -> str:
              "scores or ratings.",
              "- A `faq` of exactly 3 questions, as SEARCH describes - one section at the end, not the shape "
              "of the whole post.",
-             f"- ILLUSTRATIONS: {ILLUSTRATIONS_PER_POST[0]} to {ILLUSTRATIONS_PER_POST[1]} AI-generated pictures. "
-             "For each, pick the section whose situation is easiest to picture and describe the scene: a "
+             f"- ILLUSTRATIONS: exactly {ILLUSTRATIONS_PER_POST[0]} AI-generated pictures. The FIRST opens the "
+             "article (set its section to 0) and pictures the post's central situation; the other three go to "
+             "three different sections, each the one whose situation is easiest to picture. Describe each scene: a "
              "concrete moment or a clear visual metaphor (a queue of requests stalling at one gate, a "
              "developer comparing two diverging paths). The picture carries NO text, numbers, logos, brand or "
              "product names, real people, screenshots, dashboards or charts - data belongs in the visuals, "
@@ -2734,7 +2950,9 @@ def rules_for(fmt: dict, a: str = "", b: str = "") -> dict:
             "visuals": tuple(fmt["blocks"]["visuals"]),
             "prose": fmt["prose"],
             # Filled per post by run_plan: every heading other posts already use.
-            "taken_headings": set()}
+            "taken_headings": set(),
+            # And every title, with the names a title may share (the subject).
+            "titles": fmt["titles"], "taken_titles": [], "title_names": []}
 
 
 def brief_for(fmt: dict, label: str, a: str, b: str) -> str:
@@ -3071,6 +3289,13 @@ def run_plan(args, dsn, key, base, reader) -> None:
         # brief lists them so the model can avoid them on the first draw.
         post["rules"]["taken_headings"] = set(taken)
         add_search_and_experience(post, trending)
+        # TITLES TOO (2026-10-14): every title on disk except this post's own
+        # (a rewrite replaces it), plus the ones written earlier in this run.
+        others = [t for k, t in existing if k != post["key"]]
+        post["rules"]["taken_titles"] = others
+        post["rules"]["title_names"] = (post.get("seo") or {}).get("subject") or post["rules"].get("pick_names") or []
+        if others:
+            post["brief"] += "\nTITLES ALREADY USED (yours must not echo their wording or shape): " + "; ".join(others)
         if taken:
             post["brief"] += ("\nHEADINGS ALREADY USED (do not reuse any): "
                               + "; ".join(sorted(taken)))
@@ -3094,12 +3319,12 @@ def run_plan(args, dsn, key, base, reader) -> None:
         else:
             total_cost += cost
         essay = rec["essay"]
-        post["_illustrations"] = illustrate(post, essay, key, base, rec["started"])
-        for il in post["_illustrations"]:
-            if il.get("usd") is None:
+        post["_illustrations"], image_calls = illustrate(post, essay, key, base, rec["started"])
+        for c in image_calls:
+            if c.get("usd") is None:
                 cost_incomplete = True
             else:
-                total_cost += il["usd"]
+                total_cost += c["usd"]
         # THE CARD COUNTS WHAT THE CHECK COUNTS (2026-10-13). It used body words
         # only while check() enforced reading_words, so an Opus 5 vs GPT-5.6 Sol
         # draft passed the 8-minute floor and was listed as "7 min read".

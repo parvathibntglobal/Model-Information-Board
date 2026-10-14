@@ -66,6 +66,25 @@ prose:
   avoid_phrases: ["does not establish", "not proof that", "is listed at", "it is worth noting", "when it comes to", "in practice,"]
   price_recital_max: 1
 
+# UNIQUE TITLES (2026-10-14, team ask: post headings read alike). Measured over
+# the 21 titles on disk that day: 4 opened "<Model> review:", 3 of 3
+# head-to-heads closed on "Route/Choose by Work(load)", 2 of 2 migration guides
+# on "A Safe Migration Guide", and 6 used an "X, Not Y" contrast. Checked in
+# code (generate_sample_blogs.title_violations) against every title in use:
+#   echo      own words shared with a title in use - at least the minimum
+#             count, making up at least the share of the shorter title. Over
+#             the 210 pairs that day, 2 / 0.5 flagged exactly the 2 true echoes.
+#   refused   shapes already worn out, each naming the titles that wore it.
+titles:
+  echo_shared_words_min: 2
+  echo_share_min: 0.5
+  refused:
+    - {pattern: '\breview\s*:', why: "'<Model> review:' opened 4 titles (Opus 5.5, Opus 4.6, Fable 5, MiniMax M3)"}
+    - {pattern: '\b(route|choose|pick|decide)\s+by\s+work', why: "'Route/Choose by Work(load)' closed 3 of 3 head-to-heads"}
+    - {pattern: '\bsafe migration guide\b', why: "'A Safe Migration Guide' closed 2 of 2 migration guides"}
+    - {pattern: '\bin production\s*:', why: "'<Model> in Production:' opened 3 titles"}
+    - {pattern: ',\s+not\s+(an?\s+|the\s+)?\w+', why: "an 'X, Not Y' contrast in 6 titles"}
+
 planner:
   # A subject is a candidate only with this much evidence on staging
   # (verified, non-declined board entries). Was measured 2026-10-01: 23

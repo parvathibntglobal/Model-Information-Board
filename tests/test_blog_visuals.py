@@ -151,16 +151,28 @@ SCENE = ("A developer at a desk watches a long queue of glowing request packets 
          "single narrow gate while other gates stand empty, in a dim server room.")
 ILL = {"section": 0, "scene": SCENE, "alt": "Requests stalling at one gate",
        "caption": "One route holds."}
+#: Four pictures from one call since 2026-10-14; the first opens the post.
+ILLS = [ILL] + [dict(ILL, section=n) for n in (1, 2, 3)]
 
 
-def test_a_well_formed_illustration_passes():
-    assert g.illustration_violations({"illustrations": [ILL]}, 6) == []
+def test_four_well_formed_pictures_pass():
+    assert g.illustration_violations({"illustrations": ILLS}, 6) == []
 
 
-def test_a_post_needs_one_or_two_pictures():
-    for ills in ([], [ILL] * 3):
+def test_a_post_needs_exactly_four_pictures():
+    for ills in ([], ILLS[:3], ILLS + [ILL]):
         v = g.illustration_violations({"illustrations": ills}, 6)
-        assert any("propose 1 to 2" in x for x in v)
+        assert any("propose exactly 4" in x for x in v)
+
+
+def test_the_first_picture_opens_the_post():
+    v = g.illustration_violations({"illustrations": [dict(ILL, section=2)] + ILLS[1:]}, 6)
+    assert any(x.startswith("illustrations[0].section: the first picture opens") for x in v)
+
+
+def test_the_other_three_pictures_go_to_three_sections():
+    v = g.illustration_violations({"illustrations": ILLS[:2] + [dict(ILL, section=1)] * 2}, 6)
+    assert any("three different sections" in x for x in v)
 
 
 def test_a_picture_shows_no_data_brand_or_text():
@@ -168,12 +180,12 @@ def test_a_picture_shows_no_data_brand_or_text():
                 "a chart rising sharply", "a sign that reads ERROR 500 on a screen",
                 "Claude and GPT robots shaking hands"):
         scene = f"{bad} in a quiet office at night with soft blue light on the desk and shelves"
-        v = g.illustration_violations({"illustrations": [dict(ILL, scene=scene)]}, 6)
+        v = g.illustration_violations({"illustrations": [dict(ILL, scene=scene)] + ILLS[1:]}, 6)
         assert any(".scene:" in x and "no text, numbers, brands" in x for x in v), bad
 
 
 def test_a_picture_points_at_a_real_section_and_has_alt_text():
-    v = g.illustration_violations({"illustrations": [dict(ILL, section=9, alt="")]}, 6)
+    v = g.illustration_violations({"illustrations": ILLS[:3] + [dict(ILL, section=9, alt="")]}, 6)
     assert any(".section:" in x for x in v) and any(".alt:" in x for x in v)
 
 
@@ -182,7 +194,7 @@ def test_captions_and_alt_text_are_checked_as_prose():
     assert "illustrations[0].caption" in paths and "illustrations[0].alt" in paths
 
 
-def test_a_rendered_picture_is_a_small_inline_jpeg(monkeypatch):
+def test_one_call_asks_for_a_wide_grid_of_four_scenes(monkeypatch):
     import base64
     import io
 
@@ -207,11 +219,15 @@ def test_a_rendered_picture_is_a_small_inline_jpeg(monkeypatch):
         return Resp()
 
     monkeypatch.setattr(g.httpx, "post", fake_post)
-    src, usage = g.render_illustration(SCENE, "k", "https://openrouter.example/api/v1")
-    assert src.startswith("data:image/jpeg;base64,") and usage["cost"] == 0.039
-    img = Image.open(io.BytesIO(base64.b64decode(src.split(",", 1)[1])))
-    assert img.width == g.IMAGE_MAX_WIDTH
-    assert seen["modalities"] == ["image", "text"] and "no text" in seen["messages"][0]["content"]
+    img, usage = g.draw_grid([SCENE] * 4, "k", "https://openrouter.example/api/v1")
+    assert img.size == (2400, 1350) and usage["cost"] == 0.039
+    assert seen["modalities"] == ["image", "text"]
+    assert seen["image_config"] == {"aspect_ratio": "16:9"}
+    prompt = seen["messages"][0]["content"]
+    assert "no text" in prompt and "2x2 grid" in prompt and "Panel 4 (bottom right)" in prompt
+    src = g.jpeg_data_url(img)
+    out = Image.open(io.BytesIO(base64.b64decode(src.split(",", 1)[1])))
+    assert src.startswith("data:image/jpeg;base64,") and out.width == g.IMAGE_MAX_WIDTH
 
 
 def test_a_reply_without_an_image_raises_never_blanks(monkeypatch):
@@ -224,7 +240,7 @@ def test_a_reply_without_an_image_raises_never_blanks(monkeypatch):
 
     monkeypatch.setattr(g.httpx, "post", lambda url, **kw: Resp())
     with pytest.raises(g.BuildError):
-        g.render_illustration(SCENE, "k", "https://openrouter.example/api/v1")
+        g.draw_grid([SCENE] * 4, "k", "https://openrouter.example/api/v1")
 
 
 def test_the_page_labels_a_generated_picture_and_draws_only_inline_ones(page):
@@ -276,3 +292,12 @@ def test_an_engineers_quote_counts_as_one_word_in_sentence_length():
     para = f"The engineer described the setup: «{quote}». We agree. It held. Then it failed."
     out = g._pace({"tldr": ""}, [], [para], g.load_formats()["prose"])
     assert not [v for v in out if v.startswith("a sentence of")]
+
+
+def test_the_post_opens_on_its_picture(page):
+    """Every post opens on a picture (2026-10-14). A post written before covers
+    has its first generated picture lifted to the top; the remote one in the
+    fixture is still never drawn."""
+    html = page["html"]
+    assert 0 <= html.find("es-cover") < html.find("<h2")
+    assert html.count("es-fig-image") == 1 and "REMOTE IMAGE" not in html

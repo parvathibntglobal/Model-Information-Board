@@ -189,6 +189,16 @@ def test_the_page_credits_a_quote_with_platform_and_link(page):
     assert "https://dev.to/someone/a-write-up-1abc" in page and "dev.to" in page
 
 
+def test_a_quoted_article_gets_one_read_the_original_card_after_its_paragraph(page):
+    """Team ask 2026-10-14: let a reader go straight to the dev.to or arXiv
+    article, not only through a footnote at the bottom."""
+    assert page.count('class="es-linkcard"') == 1
+    card = page.index('class="es-linkcard"')
+    assert page.index('href="#es-src-1"') < card < page.index('class="es-sources"')
+    near = page[card - 200:card + 400]
+    assert "Read the article on dev.to" in page and 'rel="nofollow noopener"' in near
+
+
 def test_the_page_draws_the_platforms_own_embeds(page):
     assert 'class="reddit-embed-bq"' in page
     assert "https://www.reddit.com/r/LocalLLaMA/comments/1abcde" in page

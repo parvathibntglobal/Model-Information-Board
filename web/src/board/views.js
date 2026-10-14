@@ -1120,14 +1120,35 @@ function essayBlock([t,v]){
   if(t==='image'){
     const src = String((v && v.src) || '');
     if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src)) return '';
-    return `<figure class="es-fig es-fig-image"><img src="${src}" alt="${esc(v.alt || '')}" loading="lazy" decoding="async">
+    return `<figure class="es-fig es-fig-image${v.cover ? ' es-cover' : ''}"><img src="${src}" alt="${esc(v.alt || '')}" loading="lazy" decoding="async">
       <figcaption>${v.caption ? `${essayText(v.caption)} ` : ''}<span class="es-ai">AI-generated illustration</span></figcaption></figure>`;
   }
   // EVERY PARAGRAPH IN FULL (2026-10-13). Skim mode showed one line per
   // paragraph by default and read as an incomplete post, so it is gone. Posts
   // written before carry {text, skim}: the paragraph is shown, the line is not.
   const text = v && typeof v === 'object' ? v.text : v;
-  return `<p class="es-para">${essayText(text)}</p>`;
+  const para = `<p class="es-para">${essayText(text)}</p>`;
+  return para + linkCards(para);
+}
+
+// "READ THE ORIGINAL" (2026-10-14, team ask: let a reader go straight to the
+// arXiv paper or dev.to article). One card per linked source, after the
+// paragraph that first quotes it. Reddit and X never reach here: they are
+// embedded by their platforms and never quoted, so they have no source line.
+let CARDED = null;
+const READ_AS = { 'arXiv': 'Read the paper on arXiv', 'dev.to': 'Read the article on dev.to',
+  'an engineering blog': 'Read the original post', 'GitHub': 'Read it on GitHub',
+  'Hacker News': 'Read the thread on Hacker News', 'Hugging Face': 'Read it on Hugging Face',
+  'Medium': 'Read the article on Medium' };
+function linkCards(html){
+  if(!SRC || !CARDED) return '';
+  const fresh = [...html.matchAll(/href="#es-src-(\d+)"/g)].map(m => Number(m[1]))
+    .filter(n => { if(CARDED.has(n)) return false; CARDED.add(n); return /^https:\/\//.test((SRC[n] || {}).url || ''); });
+  return fresh.map(n => { const s = SRC[n];
+    const meta = [s.who ? `by ${esc(s.who)}` : '', s.posted ? esc(s.posted) : ''].filter(Boolean).join(' · ');
+    return `<a class="es-linkcard" href="${esc(s.url)}" rel="nofollow noopener" target="_blank">
+      <span class="plat">${esc(s.platform)}</span><span class="what">${esc(s.what)}</span>${meta ? `<span class="meta">${meta}</span>` : ''}
+      <span class="go">${esc(READ_AS[s.platform] || 'Read the original')} →</span></a>`; }).join('');
 }
 
 // THE THREE VISUALS. Drawn as HTML and inline SVG from the post's own data:
@@ -1489,7 +1510,15 @@ function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
   const L = layoutOf(p);
   const conf = L ? LAYOUTS[L] : { label: null, lead: 'In brief', tools: 'end' };
-  const parts = splitPost(p.body || []), secs = parts.sections, sp = p.special;
+  // EVERY POST OPENS ON A PICTURE (2026-10-14): its cover, or - for a post
+  // written before covers - its first generated picture, lifted out of its
+  // section. A post with no picture opens without one; nothing stands in.
+  let body = p.body || [], cover = p.cover || null;
+  if(!cover){
+    const k = body.findIndex(b => b[0] === 'image');
+    if(k >= 0){ cover = body[k][1]; body = body.slice(0, k).concat(body.slice(k + 1)); }
+  }
+  const parts = splitPost(body), secs = parts.sections, sp = p.special;
   const V = arrangementOf(p, L);
   const rows = sheetRows(parts.prices);
   const pv = p.provenance || {};
@@ -1497,6 +1526,7 @@ function vPost(slug){
   _mx = 0;
   CITE = Object.fromEntries(Object.entries(p.cite || {}).map(([k, n]) => [esc(k), n]));
   SRC = Object.fromEntries((p.sources || []).map(s => [s.n, s]));
+  CARDED = new Set();
 
   // THE TOOLS - the matrix and the tree - go where the format puts them, and
   // never close the page: "which one to pick" ended 10 of 12 drafts.
@@ -1613,7 +1643,7 @@ function vPost(slug){
       ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
     <div class="es-layout">
       <article class="es-article">
-        ${mode}${main}
+        ${cover ? essayBlock(['image', { ...cover, cover: true }]) : ''}${mode}${main}
         ${sourcesBlock(p)}
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
@@ -1632,7 +1662,7 @@ function vPost(slug){
       </aside>
     </div>
   </div></div>`;
-  CITE = null; SRC = null;
+  CITE = null; SRC = null; CARDED = null;
   return page;
 }
 export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel, vBlogs, vPost }

@@ -637,7 +637,22 @@
 .essay .es-fig-flow li:not(:last-child)::after{content:"\2193";position:absolute;left:1.15rem;bottom:-1rem;color:var(--es-accent);font-size:.8rem}
 .essay .es-fig-flow .n{flex:none;width:1.5rem;height:1.5rem;border-radius:50%;display:grid;place-items:center;background:var(--es-accent);color:var(--es-bg);font:700 .72rem var(--es-mono)}
 .essay .es-fig-image{padding:0;overflow:hidden}
-.essay .es-fig-image img{display:block;width:100%;height:auto}
+/* SMALL PICTURES (2026-10-14, team ask: "the pictures are very big"). Drawn at
+   their own size, never stretched: a panel is about 460x260 since four come
+   from one call, and an older 1024x1024 square is held to a modest box. */
+.essay .es-fig-image{display:flex;flex-direction:column;align-items:center}
+.essay .es-fig-image img{display:block;width:auto;height:auto;max-width:min(100%,480px);max-height:300px;border-radius:8px}
+.essay .es-fig-image figcaption{align-self:stretch}
+.essay .es-cover{margin-top:0}
+/* READ THE ORIGINAL (2026-10-14): one card per linked source, after the
+   paragraph that first quotes it - the whole card is the link. */
+.essay .es-linkcard{display:grid;grid-template-columns:auto 1fr;gap:.2rem .7rem;align-items:baseline;margin:.2rem 0 1.3rem;padding:.75rem .95rem;border:1px solid var(--es-line);border-left:3px solid var(--es-accent);border-radius:10px;background:var(--es-panel);text-decoration:none;color:var(--es-body)}
+.essay .es-linkcard:hover{border-color:var(--es-accent)}
+.essay .es-linkcard .plat{grid-row:span 2;font:600 .66rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-accent2)}
+.essay .es-linkcard .what{font-weight:600;color:var(--es-text);line-height:1.35}
+.essay .es-linkcard .meta{grid-column:2;font-size:.8rem;color:var(--es-muted)}
+.essay .es-linkcard .go{grid-column:2;font-size:.82rem;color:var(--es-accent)}
+.essay .es-cover img{max-width:min(100%,640px);max-height:360px}
 .essay .es-fig-image figcaption{margin:0;padding:.7rem 1.1rem .8rem}
 .essay .es-ai{display:inline-block;margin-left:.2rem;padding:.05rem .45rem;border:1px solid var(--es-line2);border-radius:999px;font:500 .68rem var(--es-mono);letter-spacing:.04em;color:var(--es-dim)}
 
