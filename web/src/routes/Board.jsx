@@ -26,6 +26,7 @@ import NotFound from '../components/NotFound'
  *
  * Routes handled (via the /board/* splat):
  *   /board                          → hub, tab from ?tab (best|cap|met)
+ *   /board?tab=cap&group=<heading>  → one heading's capabilities (a box opened)
  *   /board/jobs/:slug               → the models reported for that job
  *   /board/jobs/:slug/*             → one model's reports on that job
  *   /board/capabilities/:slug       → the models reported on that capability
@@ -104,7 +105,7 @@ export default function Board() {
   if (seg === 'jobs') html = modelKey ? vJobModel(slug, modelKey) : vJob(slug)
   else if (seg === 'capabilities') html = modelKey ? vCapModel(slug, modelKey) : vCap(slug)
   else if (seg === 'metrics') html = modelKey ? vMetModel(slug, modelKey) : vMet(slug)
-  else html = vBoard(sp.get('tab') || 'best')
+  else html = vBoard(sp.get('tab') || 'best', sp.get('group'))
 
   return (
     <>
@@ -115,7 +116,7 @@ export default function Board() {
           </p>
         </div>
       )}
-      <BoardView html={html} key={rest + '?' + (sp.get('tab') || '')} />
+      <BoardView html={html} key={rest + '?' + (sp.get('tab') || '') + '&' + (sp.get('group') || '')} />
     </>
   )
 }

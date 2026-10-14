@@ -153,15 +153,19 @@ class TestUngroupedIsTheDefault:
     """Absence is not a defect (rule 6), and there is no residual bucket."""
 
     def test_an_unmapped_leaf_renders_at_the_top_level(self):
-        rows = group_section([leaf("instruction-following", 81)], section="capability")
+        rows = group_section([leaf("a-leaf-nobody-has-filed", 81)], section="capability")
         assert rows[0]["kind"] == "leaf"
         assert rows[0]["parent"] is None
 
-    def test_the_two_largest_capability_slugs_are_deliberately_ungrouped(self):
-        """Forcing these under a heading to complete the taxonomy is the
-        forcing defect one layer up."""
-        assert parent_of("instruction-following", section="capability") is None
-        assert parent_of("long-context", section="capability") is None
+    def test_the_two_largest_capability_slugs_sit_under_headings_named_for_them(self):
+        """Until 2026-10-14 these were ungrouped because no heading fitted, and
+        forcing them under one would have been the forcing defect. The ten
+        capability headings now include one named for each - a heading that
+        fits, not one stretched to cover."""
+        assert parent_of("instruction-following", section="capability") == (
+            "instruction-and-reliability"
+        )
+        assert parent_of("long-context", section="capability") == "long-context-and-memory"
 
     def test_there_is_no_other_parent(self):
         for parents in RAW["sections"].values():
@@ -239,7 +243,7 @@ class TestTheMapItself:
 
 class TestCoverageIsComputed:
     def test_it_counts_what_is_there_rather_than_what_was_recorded(self):
-        items = [leaf("code-generation"), leaf("code-review"), leaf("long-context")]
+        items = [leaf("code-generation"), leaf("code-review"), leaf("a-leaf-nobody-has-filed")]
         got = coverage(items, section="capability")
         assert got == {"leaves": 3, "grouped": 2, "ungrouped": 1, "parents": 1}
 
@@ -247,10 +251,10 @@ class TestCoverageIsComputed:
 class TestOrderingIsInherited:
     def test_a_parent_takes_the_position_of_its_highest_ranked_leaf(self):
         rows = group_section(
-            [leaf("instruction-following", 81), leaf("code-generation", 55)],
+            [leaf("a-leaf-nobody-has-filed", 81), leaf("code-generation", 55)],
             section="capability",
         )
-        assert rows[0]["kind"] == "leaf" and rows[0]["slug"] == "instruction-following"
+        assert rows[0]["kind"] == "leaf" and rows[0]["slug"] == "a-leaf-nobody-has-filed"
         assert rows[1]["kind"] == "parent" and rows[1]["parent"] == "software-engineering"
 
     def test_grouping_ranks_nothing_of_its_own(self):
@@ -337,7 +341,7 @@ class TestAParentHasAHeading:
         rows = group_section([leaf("reasoning", 80)], section="capability")
         parent = rows[0]
         assert parent["parent"] == "reasoning-and-math"
-        assert parent["name"] == "Reasoning and maths"
+        assert parent["name"] == "Reasoning, knowledge and accuracy"
 
     def test_the_heading_falls_back_to_the_slug_when_unnamed(self):
         from judge.config import parent_heading, parent_names
@@ -350,3 +354,32 @@ class TestAParentHasAHeading:
         is forbidden from carrying one."""
         for name in RAW["parent_names"].values():
             assert not re.search(r"\d", str(name)), f"{name!r} carries a digit"
+
+
+class TestAtMostTenHeadingsPerSection:
+    """2026-10-14. Each heading renders as a box a reader chooses from; ten is
+    a page of boxes somebody can scan."""
+
+    def test_no_section_has_more_than_ten_parents(self):
+        from judge.config import MAX_PARENTS_PER_SECTION
+        assert MAX_PARENTS_PER_SECTION == 10
+        for section, parents in RAW["sections"].items():
+            assert len(parents) <= 10, f"{section} has {len(parents)} headings"
+
+    def test_the_loader_refuses_an_eleventh(self, monkeypatch):
+        import judge.config as config
+
+        monkeypatch.setattr(
+            config,
+            "_read",
+            lambda _name: {
+                "forbidden_parents": [],
+                "sections": {"metric": {f"p{i}": [f"leaf-{i}"] for i in range(11)}},
+            },
+        )
+        config.slug_parents.cache_clear()
+        try:
+            with pytest.raises(ValueError, match="ceiling is 10"):
+                config.slug_parents()
+        finally:
+            config.slug_parents.cache_clear()

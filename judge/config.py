@@ -430,6 +430,11 @@ def auto_track_rule() -> AutoTrackRule:
     )
 
 
+#: The ceiling on headings per board section (2026-10-14). Kept in code, not the
+#: contract, because it is a limit ON the contract: a file that could raise its
+#: own ceiling would not have one.
+MAX_PARENTS_PER_SECTION = 10
+
 _PARENT_FORBIDDEN_KEYS = ("voices", "n_eff", "weight", "score", "consensus")
 
 
@@ -501,5 +506,12 @@ def slug_parents() -> dict[str, dict[str, str]]:
                         "walks the map."
                     )
                 mapping[leaf] = name
+        if len(set(mapping.values())) > MAX_PARENTS_PER_SECTION:
+            raise ValueError(
+                f"slug_parents.yaml: {section!r} has {len(set(mapping.values()))} "
+                f"parents; the ceiling is {MAX_PARENTS_PER_SECTION}. The Board shows "
+                "each heading as a box to choose from, and a page of boxes a reader "
+                "cannot scan is the long list again."
+            )
         out[str(section)] = mapping
     return out

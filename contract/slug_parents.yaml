@@ -41,12 +41,21 @@
 #                          refuses synonym folds; a parent is not a fold, and
 #                          `merged` COLLAPSES a leaf while a parent does not.
 #
-# A slug absent from this file is UNGROUPED and renders at the top level beside
-# the parents. Absence is the default and is not a defect (rule 6). There is
-# deliberately NO `other` PARENT: 19 capability slugs and 20 metric slugs are
-# ungrouped on purpose, including the two largest capability slugs
-# (`instruction-following`, `long-context`), and forcing them under a heading to
-# complete the taxonomy is the forcing defect this file exists downstream of.
+# A slug absent from this file is UNGROUPED. Absence is the default and is not a
+# defect (rule 6). There is deliberately NO `other` PARENT: a leaf nobody has
+# filed is shown as not yet filed, never under a heading invented to hold it.
+#
+# CAPABILITIES WERE RE-FILED 2026-10-14 (PROPOSED, AWAITING REVIEW). The
+# 2026-09-23 map covered 170 of the 736 capability leaves on the local copy -
+# the rest were extractor-made names, most with one report. Every one of the
+# 736 was read and filed under ten headings, each either KEPT or proposed to
+# MERGE into a kept capability, or proposed for DECLINE.
+# `docs/proposals/capability_curation_2026_10_14.py` holds that proposal and
+# generates the `capability` block below; edit it there and re-run, not here.
+# The merges and declines are RULINGS on `board_entry` that a person applies
+# (rule 10) - this file only says where each name is filed, so a merged name
+# that still has unruled rows groups beside the capability it was meant to
+# join. On the Board the headings render as boxes, and a box opens its leaves.
 #
 # ⚠ `best_for` IS ABSENT ON PURPOSE AND IS NOT AN OVERSIGHT. Parents there are
 #   DEFERRED pending #412: `coding-agent` holds 142 of 282 entries and, read in
@@ -62,7 +71,8 @@
 # `docs/measurements/slug-parent-clustering-2026-09-23.py`.
 #
 # Clustering made 2026-09-23 by anooj. Reviewed by parvathibntglobal on #410,
-# who took the shape and supplied the property above.
+# who took the shape and supplied the property above. Capability block re-filed
+# 2026-10-14 by anooj - awaiting review.
 
 version: 1
 clustered_on: 2026-09-23
@@ -100,14 +110,18 @@ forbidden_parents:
 #: renders rather than crashing. A TEST requires every parent to have one, so a
 #: new parent cannot quietly ship nameless. Permissive code, complete contract.
 parent_names:
-  software-engineering: Software engineering
-  security: Security
-  reasoning-and-math: Reasoning and maths
-  agentic: Agentic and tool use
-  vision-media: Vision and media
-  writing-language: Writing and language
-  reliability-safety: Reliability and safety
-  performance-cost: Performance and cost
+  # Capabilities (2026-10-14)
+  software-engineering: Coding and security
+  agentic: Agents and tool use
+  reasoning-and-math: Reasoning, knowledge and accuracy
+  instruction-and-reliability: Instruction following and reliability
+  writing-language: Writing, tone and language
+  vision-media: Vision, images and media
+  long-context-and-memory: Long context, documents and memory
+  safety-and-honesty: Safety, refusals and honesty
+  performance-cost: Speed, cost and efficiency
+  api-behaviour: API and platform behaviour
+  # Metrics
   price: Price
   speed-latency: Speed and latency
   token-volume: Token volume
@@ -119,192 +133,752 @@ sections:
   capability:
     software-engineering:
       - code-generation
-      - code-review
-      - code-quality
+      - code-implementation
+      - single-shot-code-generation
+      - math-code-generation
+      - game-code-generation
+      - strategy-implementation
+      - plumbing-implementation
+      - nnue-implementation
+      - gui-application-generation
+      - programming
+      - one-shot-generation
       - coding
-      - code-fixing
-      - code-editing-diff-fidelity
-      - frontend-code-generation
-      - debugging
-      - test-generation
-      - code-completeness
+      - coding-evaluation
+      - complex-coding
+      - software-engineering-benchmarks
+      - code-quality
+      - coding-quality
+      - coding-reliability
+      - comparative-coding-quality
+      - concurrency-awareness
+      - data-loading-efficiency
+      - current-api-following
+      - knowledge-vs-generation
+      - code-pattern-reproduction
       - code-convention-adherence
+      - code-completeness
+      - conflict-handling
+      - code-review
+      - code-audit
+      - review-accuracy
+      - cross-agent-critique
+      - design-review
+      - n-plus-one-detection
+      - issue-prioritization
+      - adversarial-review
+      - bug-detection
+      - bug-finding
+      - wrong-reason
+      - memorisation-gap
+      - false-positive-control
+      - falsification
+      - problem-invention
+      - false-alarm-rate
+      - debugging
+      - bug-fixing
+      - code-fixing
+      - fixing-broken-projects
+      - build-troubleshooting
+      - gui-component-repair
+      - cross-layer-awareness
+      - large-scale-refactoring
+      - long-refactors
+      - surgical-fixes
+      - targeted-editing
+      - code-editing-diff-fidelity
+      - regression-avoidance
       - code-regression
       - repository-level-coding
       - repository-level-editing
-      - long-refactors
-      - surgical-fixes
-      - sql-generation
-      - ui-generation
+      - code-navigation
+      - enterprise-code-resolution
+      - integration
+      - investigation-depth
+      - investigation-breadth
       - software-architecture
-      - design-planning
-      - design-review
-      - adversarial-review
-      - no-code-generation
-      - api-migration
-      - automated-patching
-      - n-plus-one-detection
-      - gpu-compiler-writing
-      - development-speed
       - architectural-reasoning
-    security:
-      - cybersecurity
-      - vulnerability-discovery
-      - vulnerability-detection
-      - vulnerability-exploitation
-      - exploit-development
-      - autonomous-exploit-generation
-      - smart-contract-exploitation
-      - jailbreak-resistance
-      - prompt-injection-resistance
-      - prompt-injection-robustness
-      - security-refusal
-      - security-pauses
-      - multi-host-red-team
-      - long-horizon-cyber
-      - cyber-capability
-      - proof-of-concept-generation
-      - reasoning-trace-injection
-      - reasoning-trace-security
-      - sandbox-compliance
-      - internet-connected-code-execution
-    reasoning-and-math:
-      - reasoning
-      - mathematical-reasoning
-      - spatial-reasoning
-      - long-horizon-reasoning
-      - persistent-reasoning
-      - no-cot-reasoning
-      - cot-controllability
-      - reasoning-effort
-      - proof-writing
-      - serial-arithmetic
-      - letter-counting
-      - over-thinking
-      - overthinking
-      - overcomplication
-      - chain-of-thought-monitorability
-      - chain-of-thought-monitoring
-    agentic:
-      - agentic-tool-use
-      - agentic-behavior
-      - agentic-testing
-      - agentic-workflow
-      - agentic-game-play
-      - computer-use
-      - function-calling
-      - tool-calling
-      - tool-use
-      - long-tool-chains
-      - flow-orchestration
-      - loop-until-dry
-      - long-unattended-work
-      - premature-completion
-      - scope-adherence
-      - routing
-      - triage
-    vision-media:
-      - vision
-      - multimodal
-      - image-editing
-      - image-generation
-      - visual-design
-      - visual-quality
-      - visual-coherence
-      - 3d-generation
-      - svg-quality
-      - text-in-image
-      - style-transfer
-      - style-diversity
-      - public-figure-identification
+      - planning
+      - design-planning
+      - code-happiness
+      - stating-the-problem
+      - execution-vs-planning
+      - test-generation
+      - performance-optimization
+      - optimization
+      - code-optimization
+      - sql-generation
+      - code-translation
+      - assembly-reading
+      - haskell-knowledge
+      - template-haskell
+      - java-knowledge
+      - commit-message-generation
+      - chip-design
       - schematic-building
       - schematic-editing
-      - audio-understanding
-      - speech-to-text
-      - text-to-speech-japanese
-    writing-language:
-      - creative-writing
-      - writing
-      - writing-quality
-      - uncensored-writing
-      - communication-clarity
-      - output-clarity
-      - output-verbosity
-      - output-completeness
-      - summarization
-      - dialogue
-      - multi-turn-dialogue
-      - condescending-tone
-      - warmth-and-listening
-      - language-quality
-      - english-language
-      - english-quality
-      - chinese-language
-      - chinese-quality
-      - chinese-language-output
-      - multilingual
-      - multi-lingual-quality
-      - long-form-consistency
-      - detail-retention
-      - document-generation
-      - editorial-craft
-    reliability-safety:
-      - hallucination
-      - abstention
-      - citation-accuracy
-      - false-positive-control
+      - flow-orchestration
+      - gpu-compiler-writing
+      - web-design
+      - frontend
+      - frontend-code-generation
+      - ui-generation
+      - ui-rendering
+      - frontend-motion-design
+      - ui-design
+      - overcomplication
+      - overengineering-restraint
+      - api-discovery
+      - self-directed-learning
+      - no-code-generation
+      - development-speed
+      - cybersecurity
+      - cyber-capability
+      - offensive-security
+      - cybersecurity-reasoning
+      - cyber-defense
+      - penetration-testing
+      - long-horizon-cyber
+      - multi-host-red-team
+      - exploit-development
+      - cyber-exploit-development
+      - cyber-exploitation
+      - exploit-chaining
+      - exploit-reasoning
+      - exploitation
+      - autonomous-exploit-generation
+      - smart-contract-exploitation
+      - exploit-verification
+      - vulnerability-exploitation
+      - proof-of-concept-generation
+      - vulnerability-discovery
+      - vulnerability-detection
+      - security-auditing
+      - security-bug-finding
+      - automated-patching
+      - security-patching
+      - internet-connected-code-execution
+    agentic:
+      - agentic-tool-use
+      - agentic-capabilities
+      - agentic-performance
+      - agentic-workload-performance
+      - agentic-real-world-tasks
+      - autonomous-agent
+      - multi-step-execution
+      - task-automation
+      - tool-use
+      - tool-calling-decision-quality
+      - tool-calling-recognition
+      - tool-selection-accuracy
+      - routing
+      - long-tool-chains
+      - function-calling
+      - tool-calling
+      - agentic-coding
+      - coding-agent
+      - agentic-code-generation
+      - terminal-coding
+      - coding-autonomous-planning
+      - agent-development
+      - voice-driven-development
+      - agentic-workflow
+      - computer-use
+      - agentic-saas
+      - physical-task-execution
+      - real-world-driving
+      - continuous-balance
+      - long-horizon-tasks
+      - long-running-tasks
+      - long-unattended-work
+      - long-horizon-construction
+      - autonomous-execution
+      - autonomous-task-completion
+      - restart-resume
+      - long-horizon-reasoning
+      - orchestration
+      - subagent-orchestration
+      - long-running-orchestration
+      - subagent-polling
+      - task-completion
+      - agentic-testing
+      - task-persistence
+      - persistence
+      - persistent-reasoning
+      - crash-handling
+      - agentic-behaviour
+      - premature-completion
+      - accepting-local-evidence
+      - lazy-convergence
       - self-verification
-      - self-audit
+      - verification
+      - empirical-auditing
       - independent-audit
-      - evidence-quality
+      - self-audit
+      - step-audit
+      - self-correction
+      - local-surgery
+      - scope-adherence
+      - goal-alignment
+      - judgment
+      - cautiousness
+      - asking-clarifications
+      - initiative
+      - creative-autonomy
+      - curiosity
+      - exploration
+      - open-ended-exploration
+      - search
+      - web-search
+      - retrieval
+      - scientific-agentic-search
+      - triage
+    reasoning-and-math:
+      - reasoning
+      - complex-understanding
+      - complex-problem-solving
+      - critical-thinking
+      - inference-quality
+      - difficult-tasks
+      - hard-task-performance
+      - automatic-deduction
+      - problem-solving-efficiency
+      - creative-problem-solving
+      - nuance
+      - common-sense
+      - cipher-solving
+      - prediction-accuracy
+      - letter-counting
+      - no-cot-reasoning
+      - latent-reasoning
+      - quality
+      - overall-quality
+      - overall-capability
+      - overall-performance
+      - general-capability
+      - general-performance
+      - performance
+      - performance-quality
+      - capability
+      - answer-quality
+      - response-quality
+      - generation-quality
+      - real-world-quality
+      - real-world-usability
+      - usability
+      - functional-accuracy
+      - superficial-flash
+      - day-to-day-improvement
+      - frontier
+      - opus-class-performance
+      - intelligence
+      - for-needs
+      - sufficient-for-light-tasks
+      - sufficient-for-most-needs
+      - weird-scenarios
+      - open-weight-performance
+      - first-attempt-accuracy
+      - one-shot-accuracy
+      - comparative-quality
+      - comparison
+      - general-capability-parity
+      - close-to-opus-4-8
+      - sonnet-5-quality
+      - retention
+      - benchmark-performance
+      - benchmark-ranking
+      - scientific-reasoning
+      - pass-rate
+      - pass-at-k
+      - correctness
+      - mathematical-reasoning
+      - mathematical-verification
+      - proof-writing
+      - proof-generation
+      - serial-arithmetic
+      - spatial-reasoning
+      - spatial-index-bias
+      - temporal-reasoning
+      - timezone-reasoning
+      - time-awareness
+      - stale-fact-detection
+      - world-knowledge
+      - factual-recall
+      - medical-knowledge
+      - earnings-memory
+      - knowledge-of-standard-status
+      - accuracy-on-real-standards
+      - incident-recognition
+      - german-domain-terminology
+      - compliance
+      - physical-advice
+      - local-recommendations
+      - current-events-knowledge
+      - carb-overestimation-bias
+      - hallucination
+      - hallucination-rate
+      - hallucination-in-apis
+      - factuality
+      - factual-accuracy
+      - factual-reliability
+      - fact-consistency
+      - mistake-rate
+      - confabulation-reduction
+      - accuracy
+      - abstention
+      - abstention-on-unanswerable
+      - knowing-when-to-say-no
+      - overconfidence-on-unsolvable-items
+      - judging-accuracy
+      - ai-grading
+      - judgment-call-recognition
+      - open-ended-judgment
+      - open-ended-judgment-drop
+      - claim-verification
+      - classification
+      - tag-accuracy
+      - prompt-classification
+      - syntactic-classification
+      - lead-scoring
+      - game-play
+      - chess-play
+      - gameplay-behaviour
+      - strategy
+      - game-economy-management
+      - discovery-in-games
+      - agentic-game-play
+      - adversarial-resilience
+      - scientific-discovery
+      - agentic-discovery
+      - automated-lab-work
+      - scientific-replication
+      - autonomous-problem-selection
+      - research-idea-generation
+      - automated-ai-rd
+      - research-taste
+      - experimental-research-taste
+      - research
+      - complex-research
+      - market-research-analysis
+      - agentic-knowledge-work
+      - learning-from-examples
+      - teaching-efficiency
+      - reading-efficiency
+      - note-conciseness
+      - self-consistency-in-note-writing
+      - cot-controllability
+    instruction-and-reliability:
+      - instruction-following
+      - requirement-following
+      - business-rule-following
+      - task-adherence
+      - constraint-adherence
+      - multi-task-handling
+      - policy-application
+      - default-substitution
+      - dog-petting
+      - controllability
+      - structured-output
+      - format-compliance
+      - output-completeness
+      - context-awareness
+      - contextual-awareness
+      - task-inference
+      - vague-prompt-following
+      - context-sensitivity
       - consistency
+      - output-consistency
+      - paraphrase-stability
+      - within-image-reproducibility
+      - bit-reproducibility
+      - token-predictability
+      - cross-harness-consistency
+      - precision
+      - batch-processing
       - reliability
       - production-reliability
-      - api-reliability
-      - crash-handling
-      - response-emptiness
+      - stability-reliability
       - model-drift
-      - model-downgrade
-      - model-version-fidelity
-      - verification-degradation
+      - performance-over-time
+      - median-thinking
+      - harness-regression
+      - empty-response
+      - empty-responses
+      - response-emptiness
+      - response-completeness
+      - thinking-stalling
+      - thinking-loops
+      - retry-loop
+      - convergence
+      - loop-until-dry
+      - thinking-effort-bug
+      - overthinking
+      - reasoning-verbosity
+      - reasoning-focus
+      - over-thinking
+      - citation-accuracy
+      - evidence-quality
+      - evidence-recording
+    writing-language:
+      - communication-clarity
+      - output-clarity
+      - explainability
+      - jargon-reduction
+      - goal-oriented-output
+      - language-output
+      - writing-quality
+      - writing
+      - language-quality
+      - natural-language
+      - human-like-writing
+      - authenticity
+      - spelling-accuracy
+      - output-quality
+      - claudelish
+      - editorial-craft
+      - writing-style
+      - verbal-style
+      - style-mimicry
+      - voice-matching
+      - writing-style-adaptation
+      - communication-style
+      - tone
+      - tone-and-style
+      - persona-warmth
+      - warmth-and-listening
+      - sarcasm
+      - crudeness
+      - hedging
+      - conversational-quality
+      - chat-quality
+      - enjoyability
+      - personality
+      - voice-personality
+      - text-chat
+      - assistant-behavior
+      - customer-service
+      - multi-turn-dialogue
+      - persona-contrarian
+      - contrarian-behavior
+      - condescending-tone
+      - creative-writing
+      - creativity
+      - story-writing
+      - creative-output
+      - creative-process-support
+      - narrative-coherence
+      - narrative-balance
+      - plot-direction
+      - interiority
+      - over-explaining
+      - dialogue
+      - dialogue-quality
+      - emotional-intelligence
+      - theory-of-mind
+      - roleplay-consistency
+      - roleplay
+      - roleplay-quality
+      - roleplay-writing
+      - roleplaying
+      - character-consistency
+      - verbosity
+      - output-verbosity
+      - conciseness
+      - repetitive-output
+      - repetition-loops
+      - output-pattern-detection
+      - style-diversity
+      - chinese-language
+      - chinese-language-output
+      - chinese-quality
+      - multilingual
+      - multi-lingual-quality
+      - multilingual-translation
+      - english-language
+      - english-quality
+      - summarization
+      - detail-retention
+      - surface-summarization
+      - email-writing
+      - outreach-drafting
+      - document-generation
+      - technical-writing
+      - setup-guidance
+      - information-architecture
+      - long-form-consistency
+    vision-media:
+      - vision
+      - intuitive-visual-reasoning
+      - content-analysis
+      - public-figure-identification
+      - ocr
+      - multimodal
+      - modalities
+      - image-generation
+      - image-quality
+      - image-detail
+      - image-design
+      - visual-quality
+      - image-editing
+      - style-transfer
+      - text-in-image
+      - visual-design
+      - design-quality
+      - copy-fidelity
+      - color-fidelity
+      - typeface-fidelity
+      - layout-consistency
+      - 3d-modeling
+      - 3d-generation
+      - 3d-rendering
+      - 3d-topology
+      - scene-control
+      - svg-generation
+      - svg-quality
+      - svg-animation-generation
+      - visual-coherence
+      - pixel-art-animation
+      - text-to-video
+      - motion-design
+      - animation-quality
+      - video-editing
+      - text-to-speech
+      - text-to-speech-japanese
+      - custom-voice
+      - multi-character-conversation
+      - audio-understanding
+      - speech-to-text
+      - music-generation
+    long-context-and-memory:
+      - long-context
+      - long-context-recall
+      - context-handling
+      - big-messy-context
+      - context-window
+      - coherence
+      - durability
+      - long-session-consistency
+      - context-retention
+      - context-continuity
+      - voice-chat-context
+      - compaction
       - compaction-loss
-      - sandbagging
+      - memory-recall
+      - memory-quality
+      - document-reasoning
+      - long-document-understanding
+      - investigation
+      - information-reconciliation
+      - synthesis
+      - incident-analysis
+      - sentence-extraction
+      - term-extraction
+      - tokenization
+      - reading-from-html
+    safety-and-honesty:
+      - censorship
+      - censorship-transfer
+      - content-filtering
+      - safety-filters
+      - safety-restrictions
+      - uncensored-output
+      - uncensored-writing
+      - moderation
+      - drug-content
+      - over-refusal
+      - safety-guardrails
+      - safety-filtering
+      - security-filters
+      - refusals
+      - refusal
+      - refusal-behavior
+      - biology-classification
+      - biology-discussion
+      - purpose-based-refusal
+      - security-refusal
+      - security-pauses
+      - refusal-configuration
+      - safety-seeking
+      - nsfw-content
+      - nsfw
+      - nsfw-moderation
+      - safety
+      - safety-alignment
+      - alignment-safety
+      - safety-call
+      - analysis-bias
+      - obligation-identification
+      - jailbreak-resistance
+      - jailbreak-susceptibility
+      - injection-resistance
+      - prompt-injection-defense
+      - prompt-injection-resistance
+      - prompt-injection-robustness
+      - authority-following
+      - reasoning-trace-injection
       - reward-hacking
-      - deceptive-behavior
+      - benchmark-cheating
+      - benchmark-gaming
+      - eval-gaming
+      - sandbagging
       - sabotage
-      - shutdown-enforcement
+      - chain-of-thought-monitorability
+      - chain-of-thought-monitoring
+      - reasoning-trace-security
       - situational-awareness
       - self-awareness
-      - alignment-safety
-      - safety-evaluation
-      - over-refusal
-      - refusal-configuration
-      - contrarian-behavior
-      - analysis-bias
+      - self-identification
+      - sycophancy
+      - pressure-susceptibility
+      - pressure-resistance
+      - resistance-to-pushback
+      - reasoning-stability
+      - ego-malleability
+      - honesty-critique
+      - honesty
+      - honesty-truthfulness
+      - verification-honesty
+      - verification-degradation
       - gotcha-question-handling
+      - deceptive-behavior
+      - safety-boundary-adherence
+      - bypass-attempts
+      - mislabeling
+      - split-payment
+      - record-tampering
+      - sandbox-compliance
+      - scope-control
+      - agentic-behavior
     performance-cost:
-      - latency
       - speed
+      - generation-speed
       - execution-speed
+      - inference-speed
+      - fast-execution
       - speed-of-delivery
+      - frames-per-second
+      - host-sensitivity
       - throughput
-      - streaming
-      - token-efficiency
-      - token-counting
-      - tokenizer
-      - cost-efficiency
-      - usage-limits
+      - tokens-per-second
+      - decode-speed
+      - output-speed
+      - moe-decode
+      - latency
+      - responsiveness
+      - task-duration
+      - time-to-first-token
+      - time-to-first-response
+      - prefill-speed
+      - batched-prefill
+      - long-context-speed
+      - long-context-slowness
+      - local-inference
       - local-deployment
+      - local-hardware-compatibility
+      - local-performance
+      - local-inference-speed
+      - resource-requirements
+      - memory-requirement
+      - local-hardware-cost
+      - quantization-quality
+      - quantization-fidelity
+      - precision-accuracy-loss
+      - mtp
+      - multi-token-prediction
+      - speculative-decoding
+      - parameter-activation
+      - size-efficiency
+      - per-size
+      - cost-efficiency
+      - cost-effectiveness
+      - cost-performance
+      - cost-vs-quality
+      - performance-vs-cost
+      - accuracy-vs-cost
+      - value
+      - economical
+      - competitive-pricing
+      - api-rate-viability
+      - cost-level
+      - relative-cost
+      - older-revision-pricing
+      - cost-control
+      - token-efficiency
+      - token-consumption
+      - token-usage
+      - efficiency
+      - task-efficiency
+      - reasoning-efficiency
+      - context-efficiency
+      - consumption-intensity
+      - context-compression
+      - usage-limits
+      - usage-quota
+      - generous-limits
+      - session-token-burn-rate
+      - reasoning-effort
+      - reasoning-effort-auto
+      - adaptive-thinking
+      - reasoning-effort-sensitivity
+      - reasoning-effort-cost-tradeoff
+      - recall-precision-tradeoff
+      - thinking-knob-honesty
+      - non-reasoning-mode
+    api-behaviour:
+      - thinking-mode
+      - thinking
+      - thinking-mode-locked
+      - thinking-parameter
+      - extended-thinking
+      - visible-chain-of-thought
+      - thinking-block-placement
+      - progress-text
+      - reasoning-content-passback
+      - reasoning-content-preservation
+      - reasoning-content-roundtrip
+      - reasoning-content-streaming
+      - thinking-transfer
       - parameter-support
+      - parameter-compatibility
       - parameter-forwarding
+      - temperature-control
       - sampling-parameter-handling
-      - toolchain-assumption-error
+      - tool-choice
+      - message-role-alternation
+      - computer-use-tool
+      - api-compatibility
+      - upgrade-compatibility
+      - breaking-changes
+      - api-migration
+      - cli-tool-compatibility
+      - openclaw-compatibility
+      - ease-of-integration
+      - switching-cost
+      - availability
+      - free-tier-availability
+      - shutdown-notice
+      - shutdown-enforcement
+      - api-reliability
+      - model-version-fidelity
+      - model-downgrade
+      - silent-rerouting
+      - model-selection-adherence
+      - vision-routing
+      - prompt-caching
+      - prefix-cache
+      - prefix-caching
+      - multi-turn-prefix-cache
+      - input-caching
+      - prompt-cache-floor
+      - streaming
+      - token-counting
+      - token-accounting
+      - tokenizer
+      - license-clarity
+      - watermarking
+      - fine-tuning
       - system-configuration
-      - one-shot-accuracy
-      - quality
-      - output-quality
-      - generation-quality
-      - judgment
+      - toolchain-assumption-error
   metric:
     price:
       - cost-per-token
