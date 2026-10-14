@@ -10,8 +10,12 @@
 export function loadEmbeds(root = typeof document === 'undefined' ? null : document) {
   if (!root) return
   if (root.querySelector('blockquote.twitter-tweet')) {
-    if (window.twttr && window.twttr.widgets) window.twttr.widgets.load()
-    else if (!document.getElementById('x-widgets')) addScript('x-widgets', 'https://platform.twitter.com/widgets.js')
+    // X's own queue (its documented loader snippet): a call made while
+    // widgets.js is still loading waits for it, rather than being skipped
+    // because `twttr.widgets` does not exist yet.
+    const t = window.twttr || (window.twttr = { _e: [], ready(f) { this._e.push(f) } })
+    t.ready((tw) => tw.widgets.load())
+    if (!document.getElementById('x-widgets')) addScript('x-widgets', 'https://platform.twitter.com/widgets.js')
   }
   if (root.querySelector('blockquote.reddit-embed-bq')) {
     const old = document.getElementById('reddit-widgets')
