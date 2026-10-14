@@ -37,14 +37,20 @@ const xml = (s) => String(s).replace(/[&<>"']/g, (c) => XML[c])
  * each path once. No <lastmod>: no page has a recorded "last changed" date,
  * and an invented one is worse than none (rule 6).
  */
-export function sitemapXml(site, paths) {
+export function sitemapXml(site, paths, lastmod = {}) {
   const keep = [...new Set([...STRUCTURAL_PATHS, ...paths])]
     .filter((p) => typeof p === 'string' && p.startsWith('/'))
     .filter((p) => !PRIVATE_PATHS.some((q) => p === q || p.startsWith(`${q}/`) || p.startsWith(`${q}?`)))
   if (keep.length > 50000) {
     throw new Error(`sitemap: ${keep.length} URLs is over the protocol's 50,000; split it before launch`)
   }
-  const urls = keep.map((p) => `  <url><loc>${xml(site + p)}</loc></url>`).join('\n')
+  // <lastmod> ONLY FROM A REAL DATE (judge/seo.py's `lastmod`), as a plain
+  // date. A path with no date gets none - never the build time standing in.
+  const day = (iso) => (typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10) : null)
+  const urls = keep.map((p) => {
+    const d = day(lastmod && lastmod[p])
+    return `  <url><loc>${xml(site + p)}</loc>${d ? `<lastmod>${d}</lastmod>` : ''}</url>`
+  }).join('\n')
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls}

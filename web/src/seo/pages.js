@@ -88,12 +88,13 @@ export function boardSection(seg, item) {
     title: fullTitle(s.title(item.name)),
     description: withDefinition(s.lead(item.name), item.card),
     canonical,
+    modified: item.freshUpdated || null,
     breadcrumbs: [BOARD_CRUMB, s.tab, { name: squash(item.name), path: canonical }],
   }
 }
 
 /** `/board/{seg}/:slug/:model` - one model's reports in one section. */
-export function boardModelInSection(seg, item, modelKey, modelName) {
+export function boardModelInSection(seg, item, modelKey, modelName, modified = null) {
   const s = SECTION[seg]
   if (!s || !item || !modelKey) return null
   const m = squash(modelName || modelKey)
@@ -104,6 +105,7 @@ export function boardModelInSection(seg, item, modelKey, modelName) {
     title: fullTitle(title),
     description: clip(`What engineers report about ${m} on ${item.name}, quoted exactly as they wrote it.`),
     canonical,
+    modified,
     breadcrumbs: [BOARD_CRUMB, s.tab, { name: squash(item.name), path: section }, { name: m, path: canonical }],
   }
 }
@@ -117,12 +119,13 @@ export function modelsIndex() {
 }
 
 /** `/models/*`. `id` is the route key as the URL carries it. */
-export function modelPage(id, name) {
+export function modelPage(id, name, modified = null) {
   const m = squash(name || id)
   return {
     title: fullTitle(`${m}: what engineers report`),
     description: clip(`What engineers report about ${m} in production: the jobs it works for, its capabilities and the figures they measured, in their own words.`),
     canonical: `/models/${id}`,
+    modified,
     breadcrumbs: [{ name: 'Models', path: '/models' }, { name: m, path: `/models/${id}` }],
   }
 }

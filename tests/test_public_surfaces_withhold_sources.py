@@ -114,6 +114,32 @@ class TestTheBoard:
         assert "d_red" not in str(quotes) and "d_x" not in str(quotes)
         assert board["_withheld_sources"]["entries"] == 2
 
+    def test_a_withheld_source_never_dates_a_public_section(self, conn, monkeypatch):
+        """Freshness is per section and per model, over the rows the page
+        shows. The withheld posts are made NEWER here, so a public section
+        dated by them would be visibly wrong; internally they do count."""
+        for sql in (
+            "UPDATE document SET created_at = '2026-09-01T00:00:00Z' WHERE id = 'd_dev'",
+            "UPDATE document SET created_at = '2026-10-01T00:00:00Z' WHERE id <> 'd_dev'",
+            "UPDATE board_entry SET created_at = '2026-09-02T00:00:00Z' "
+            "WHERE document_id = 'd_dev'",
+            "UPDATE board_entry SET created_at = '2026-10-02T00:00:00Z' "
+            "WHERE document_id <> 'd_dev'",
+        ):
+            conn.execute(sql)
+        conn.commit()
+
+        item = board_sections(conn)["capability"][0]
+        assert item["newest_report_at"].startswith("2026-09-01")
+        assert item["updated_at"].startswith("2026-09-02")
+        assert item["models"][0]["newest_report_at"].startswith("2026-09-01")
+        assert item["models"][0]["updated_at"].startswith("2026-09-02")
+
+        monkeypatch.setenv("PUBLICATION_VIEW", "internal")
+        item = board_sections(conn)["capability"][0]
+        assert item["newest_report_at"].startswith("2026-10-01")
+        assert item["updated_at"].startswith("2026-10-02")
+
     def test_internal_shows_everything(self, conn, monkeypatch):
         monkeypatch.setenv("PUBLICATION_VIEW", "internal")
         board, quotes = _board_quotes(conn)

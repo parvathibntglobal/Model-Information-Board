@@ -64,8 +64,25 @@ export function article(site, post) {
   return out
 }
 
+/**
+ * A board or model page, with when its newest entry was added (`modified`,
+ * from the freshness dates). Only when that date exists - never the build or
+ * render time standing in for one.
+ */
+export function webPage(site, head) {
+  if (!site || !head || !head.canonical || !head.modified) return null
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    url: abs(site, head.canonical),
+    name: head.title,
+    dateModified: head.modified,
+  }
+}
+
 /** Everything a head asks for, built for `site`; [] when closed or nothing applies. */
 export function structuredFor(site, head) {
   if (!site || !head) return []
-  return [breadcrumbList(site, head.breadcrumbs), article(site, head.article)].filter(Boolean)
+  return [breadcrumbList(site, head.breadcrumbs), article(site, head.article), webPage(site, head)]
+    .filter(Boolean)
 }

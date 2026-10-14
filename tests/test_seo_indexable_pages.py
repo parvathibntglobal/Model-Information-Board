@@ -99,7 +99,17 @@ class TestTheThreshold:
     def test_two_public_voices_is_indexable(self, conn):
         paths = _paths(conn)
         assert paths["/board/capabilities/tool-use"]["voices"] == 2
-        assert "/board/capabilities/tool-use/mv_t" in paths
+        # THE READABLE ID, not the internal key: the drill-down address names
+        # the model the way the board links do (2026-10-13).
+        assert "/board/capabilities/tool-use/acme/model-t" in paths
+        assert "/board/capabilities/tool-use/mv_t" not in paths
+
+    def test_an_indexable_board_page_carries_its_lastmod(self, conn):
+        """Every indexable section and model-in-section path carries when its
+        newest public entry was added, for the sitemap's <lastmod>."""
+        paths = _paths(conn)
+        assert paths["/board/capabilities/tool-use"].get("lastmod")
+        assert paths["/board/capabilities/tool-use/acme/model-t"].get("lastmod")
 
     def test_one_person_twice_is_one_voice(self, conn):
         assert "/board/capabilities/code-review" not in _paths(conn)

@@ -26,12 +26,18 @@ import { sourceName } from '../sourceName.js'
 // THE BOARD'S FRESHNESS LINE: two dates, never merged (see components/Freshness.jsx).
 function freshLine() {
   const f = DB.freshness
-  if (!f || !f.updated_at) return ''
+  return f ? datesLine(f.updated_at, f.newest_report_at) : ''
+}
+
+// THE SAME LINE FOR ONE SECTION, OR ONE MODEL WITHIN IT, from the dates the
+// board payload carries per section and per model. Nothing when undated.
+function datesLine(updated, newest) {
+  if (!updated) return ''
   const day = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-  const newest = f.newest_report_at
-    ? ` · newest report written <time datetime="${f.newest_report_at}">${day(f.newest_report_at)}</time>`
+  const tail = newest
+    ? ` · newest report written <time datetime="${esc(newest)}">${day(newest)}</time>`
     : ''
-  return `<p class="freshness dim">Updated <time datetime="${f.updated_at}">${day(f.updated_at)}</time>${newest}</p>`
+  return `<p class="freshness dim">Updated <time datetime="${esc(updated)}">${day(updated)}</time>${tail}</p>`
 }
 
 const esc = (x) => String(x ?? '')
@@ -103,7 +109,8 @@ function ranked(rows, route, level){
     // A ROW THAT OPENS SOMEWHERE IS A LINK (SEO item 3): an <a> with a real
     // href, so a crawler can follow it and Ctrl-click opens it. One that opens
     // nothing stays a <div> - an <a> with no destination is not a link.
-    const go = route && r.key ? goAttrs(`${route}:${r.key}`) : '';
+    // THE READABLE ID IN THE ADDRESS (`r.slug`), the key only as a fallback.
+    const go = route && r.key ? goAttrs(`${route}:${r.slug || r.key}`) : '';
     const tag = go ? 'a' : 'div';
     // THE SPLIT IS ITS OWN LINE, not more words inside `.st`. That span
     // already carries two counts and a state label, and `.right` is
@@ -287,7 +294,11 @@ function quotes(qs){
       const tag = row[3] ? '<span class="ptag neg">reported as a problem</span>' : '';
       return `<div class="qi">${tag}<q>${esc(row[0])}</q></div>`;
     }).join('');
-    return `<div class="qb${anyNeg?' neg':''}">${many}${body}<cite>${esc(g.who)} · ${esc(g.src)} · ${cite}</cite></div>`;
+    // NO INTERNAL ID IN THE CITATION. `g.src` is our database key
+    // ("devto:4796515") - meaningless to a reader, and the link beside it
+    // already names the platform and opens the post. It still groups quotes
+    // from one post above; it is just not printed.
+    return `<div class="qb${anyNeg?' neg':''}">${many}${body}<cite>${esc(g.who)} · ${cite}</cite></div>`;
   }).join('')+'</div>';
 }
 
@@ -679,7 +690,7 @@ function vJob(slug){
   //   the evidence   the stat line, the group headings, each row's counts
   //   the rules      the order line, and "What counts here" below the list
   return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
-    <h1>${esc(j.h1)}</h1>
+    <h1>${esc(j.h1)}</h1>${datesLine(j.freshUpdated, j.freshNewest)}
     ${j.about ? `<p class="lead">${esc(j.about)}</p>` : ''}
     ${statLine(j)}
     ${j.rows && j.rows.length ? orderLine('best') : ''}</div>
@@ -709,7 +720,7 @@ function vCap(slug){
   // job's counting rule it stays at the top rather than in the fine print. With
   // no `about`, the definition is the lead on its own.
   return `<div class="shell phead jobhead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
-    <h1>${esc(c.name)}</h1>
+    <h1>${esc(c.name)}</h1>${datesLine(c.freshUpdated, c.freshNewest)}
     ${c.about ? `<p class="lead">${esc(c.about)}</p>` : ''}
     ${c.d1 ? `<p class="deflabel">Definition</p><p class="${c.about ? 'defline' : 'lead'}">${esc(c.d1)}</p>` : ''}
     ${c.d2 ? `<p class="lead">${esc(c.d2)}</p>` : ''}
@@ -771,7 +782,7 @@ function vModelIn(kind, item, key, crumbs){
     model under this ${kind === 'job' ? 'job' : 'capability'}. That is what the board has, not a page
     that failed to load.</p>`;
   return `<div class="shell phead">${crumb(crumbs)}
-    <h1>${esc(row.m)} on ${esc(item.name)}</h1>
+    <h1>${esc(row.m)} on ${esc(item.name)}</h1>${datesLine(row.freshUpdated, row.freshNewest)}
     <p class="sub">Every report the board holds for this model under this
     ${kind === 'job' ? 'job' : 'capability'}: ${counts}${split}. One report is one source document, so two
     quotes from one comment are one report. The report count is a floor \u2014 an open vocabulary can
@@ -841,12 +852,11 @@ function figureRows(groups){
     const mixed = new Set(list.flatMap(s => s.bases || [])).size > 1;
     const one = (s) => {
       const href = safeHref(s.url);
-      const ref = s.id ? ` title="${esc(s.id)}"` : '';
       const tag = mixed && (s.bases || []).length
         ? `<span class="qmeta">${esc(s.bases.join(' · '))}</span> `
         : '';
       const link = href
-        ? `<a class="srclink" href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer" aria-label="open the source on ${esc(sourceName(href))}">${esc(sourceName(href))} ↗</a>`
+        ? `<a class="srclink" href="${esc(href)}" target="_blank" rel="noopener noreferrer" aria-label="open the source on ${esc(sourceName(href))}">${esc(sourceName(href))} ↗</a>`
         : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
       // THE QUOTE LEADS AND THE LINK FOLLOWS, and that ordering is the finding
       // rather than a preference. The words are what let a reader decide
@@ -919,7 +929,7 @@ function vMet(slug){
        Those are the same axis and their figures are on this page &mdash; only the spelling differed.</p>`
     : '';
   return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],[m.name,null]])}
-    <h1>${esc(m.name)}</h1>${alsoSpelled}<p class="sub">An axis the board found figures for. Open a model to see every
+    <h1>${esc(m.name)}</h1>${datesLine(m.freshUpdated, m.freshNewest)}${alsoSpelled}<p class="sub">An axis the board found figures for. Open a model to see every
     figure recorded for it here, what each one measured, and the words it came from — an output price
     and a cache-read price can share a unit without being the same measurement.</p></div>
     ${sec('','','',`<div class="defbox"><div class="l">unit · ${esc(m.unit)}</div><p>${esc(m.d1)}</p><p>${esc(m.d2)}</p></div>`)}
@@ -954,7 +964,7 @@ function vMetModel(slug, key){
     model on this axis.</p>`;
   return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],
       [m.name,'metric:'+m.slug],[row.m,null]])}
-    <h1>${esc(row.m)} on ${esc(m.name)}</h1>
+    <h1>${esc(row.m)} on ${esc(m.name)}</h1>${datesLine(row.freshUpdated, row.freshNewest)}
     <p class="sub">Every figure the board publishes for this model on this axis: ${esc(row.e)}. Each is
     copied as the text wrote it, beside the words it came from. A stated figure and a reported one are
     different facts from different sources, so they sit side by side rather than being averaged.</p>

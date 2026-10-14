@@ -48,6 +48,14 @@ _NON_SLUG = re.compile(r"[^a-z0-9]+")
 _PREFIX = re.compile(r"^(job|metric|capability|cap)[._-]")
 
 
+
+def _iso(value):
+    """A timestamp as ISO text, or None - never a placeholder date (rule 6).
+    Already-text values (test fixtures) pass through unchanged."""
+    if value is None:
+        return None
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
 def normalise_slug(raw: str) -> str:
     """Mechanical slug normalisation. NO synonym resolution.
 
@@ -1050,7 +1058,9 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
         # split across both shapes, so this closes a latent split rather than
         # repairing a live one - worth saying, because the same sentence with
         # no denominator would read as a defect being fixed.
-        "       v.canonical_id, v.display_name, v.id, d.source "
+        "       v.canonical_id, v.display_name, v.id, d.source, "
+        # WHEN THE SOURCE POST WAS WRITTEN, for each section's freshness line.
+        "       d.created_at "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "LEFT JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
@@ -1083,7 +1093,7 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
     by_source = 0
     for (section, slug, name, definition, unit, value, basis,
          mv_id, doc_id, quote, polarity, _created_at, url, author_id,
-         canonical, display, registry_id, source) in rows:
+         canonical, display, registry_id, source, doc_created) in rows:
         if hide(source):
             by_source += 1
             continue
@@ -1138,6 +1148,9 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
                 # because it was >= 2. Nothing on this read path had ever
                 # looked at `document_id` or `author_id` at all.
                 "_docs": set(), "_voices": set(), "_models": {},
+                # FRESHNESS, over exactly the rows this section shows: the
+                # newest entry ADDED and the newest source post WRITTEN.
+                "_updated": None, "_newest": None,
             },
         )
         bucket["_spellings"][slug] = bucket["_spellings"].get(slug, 0) + 1
@@ -1185,8 +1198,18 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
             model = bucket["_models"].setdefault(
                 model_key,
                 {"docs": {}, "voices": set(), "polarities": set(),
-                 "raw": mv_id, "label": label},
+                 "raw": mv_id, "label": label, "canonical": canonical,
+                 "updated": None, "newest": None},
             )
+            # THE TWO FRESHNESS DATES, kept apart (judge/freshness.py): when the
+            # entry was added, and when its source post was written. Taken
+            # here, after the withheld-source filter above, so a hidden row
+            # never dates a page that does not show it.
+            for holder, a, b in ((bucket, "_updated", "_newest"), (model, "updated", "newest")):
+                if _created_at is not None and (holder[a] is None or _created_at > holder[a]):
+                    holder[a] = _created_at
+                if doc_created is not None and (holder[b] is None or doc_created > holder[b]):
+                    holder[b] = doc_created
             # `docs` MAPS A DOCUMENT TO ITS POLARITIES rather than being a set
             # of ids, and that is what lets the split be counted in REPORTS.
             # Counting it in quotes would put the inflation this file's
@@ -1345,6 +1368,13 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
             item["models"] = [
                 {"model_key": key, "model_version_id": m["raw"],
                  "model_label": m["label"],
+                 # THE READABLE ID for links (`anthropic/claude-opus-4.6`), so
+                 # a drill-down URL names the model rather than `mv_6d0d…`.
+                 # `model_key` stays the grouping key; this is only its
+                 # spelling in an address. None when the registry has none.
+                 "model_canonical": m.get("canonical"),
+                 "updated_at": _iso(m.get("updated")),
+                 "newest_report_at": _iso(m.get("newest")),
                  "reports": len(m["docs"]), "voices": len(m["voices"]),
                  "polarities": sorted(m["polarities"]),
                  **(
@@ -1364,6 +1394,8 @@ def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict
             if section != "metric":
                 item.pop("figures", None)
                 item.pop("unit", None)
+            item["updated_at"] = _iso(item.pop("_updated", None))
+            item["newest_report_at"] = _iso(item.pop("_newest", None))
             items.append(item)
         # Most-reported first: the ordering is a COUNT, never a score.
         items.sort(key=lambda i: (-i["reports"], i["slug"]))
