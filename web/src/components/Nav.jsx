@@ -15,7 +15,7 @@ const LINKS = [
   ] },
   // AI MODELS, no menu (2026-10-14): the counted reports, read model by model.
   // A model's page still opens its jobs, capabilities and metrics.
-  { to: '/reports', label: 'AI models' },
+  { to: '/reports', label: 'Models' },
   { to: '/discussions', label: 'Discussions' },
   // The FAQ is a SECTION of the landing page, not a route — same as the demo,
   // where the nav links to #faq. Kept as an anchor so the answers are in the

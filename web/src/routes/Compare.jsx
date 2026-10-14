@@ -418,7 +418,7 @@ export default function Compare() {
 
       <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
         Change the selection on {fromReports
-          ? <Link to="/reports" className="mb-link">AI models</Link>
+          ? <Link to="/reports" className="mb-link">Models</Link>
           : <>the <Link to="/models" className="mb-link">models list</Link></>}.
       </p>
     </div>

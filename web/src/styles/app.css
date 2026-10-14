@@ -1165,7 +1165,7 @@ th.r,td.r{text-align:right}
 .cmp-table thead th{background:var(--surface-2);font-size:var(--fs-sm)}
 .cmp-table thead th:first-child{background:transparent;border:0}
 .cmp-table tbody th{
-  background:var(--surface-2);font-weight:600;color:var(--text-1);
+  background:var(--surface-2);font-weight:600;color:var(--text);
   white-space:nowrap;width:1%;
 }
 .cmp-table td .dim{color:var(--text-3)}

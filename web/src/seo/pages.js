@@ -200,7 +200,7 @@ export function toolsIndex() {
 export function reportsIndex(section = null, item = null) {
   if (!section) {
     return {
-      title: fullTitle('AI models: what engineers report about each one'),
+      title: fullTitle('Models: what engineers report about each AI model'),
       description: 'What engineers report about each AI model, by job, capability and metric: counted, and shown only where at least five different people reported.',
       canonical: '/reports',
     }
@@ -215,7 +215,7 @@ export function reportsIndex(section = null, item = null) {
     }
   }
   return {
-    title: fullTitle(section.key === 'models' ? 'AI models: what engineers report about each one' : `${section.title}: what engineers report`),
+    title: fullTitle(section.key === 'models' ? 'Models: what engineers report about each AI model' : `${section.title}: what engineers report`),
     description: clip(section.lede),
     canonical: base,
     breadcrumbs: [{ name: 'AI models', path: '/reports' }, ...(section.key === 'models' ? [] : [{ name: section.title, path: base }])],

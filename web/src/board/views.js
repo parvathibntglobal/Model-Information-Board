@@ -983,6 +983,20 @@ function vMetModel(slug, key){
 // leaking into the rest of the app — the HTML used `--bg`/`--text`/`--accent`,
 // which are app tokens here.
 
+/** WHERE A POST STANDS IN REVIEW, read from the store rather than from the
+ *  file. The generator stamps every post `status: draft`, and these pages used
+ *  to print that - "draft" and "not yet reviewed by a person" - on posts a
+ *  person had approved (found 2026-10-14, 26 approved posts all labelled draft).
+ *  `published_at` is the latest approval (judge/blog_store.py:published), and
+ *  `review` is the state Admin's preview carries. APPROVED IS NOT PUBLISHED:
+ *  nothing derived has gone outside the team (contract/sources.yaml,
+ *  `derived_publication: false`), and the wording keeps saying so. */
+function reviewOf(p){
+  if(p.published_at || p.review === 'approved') return 'approved';
+  return p.review || 'draft';
+}
+const day = (ts) => ts ? String(ts).slice(0, 10) : '';
+
 function vBlogs(){
   const meta = DB.postsMeta || { reason: null, skipped: [] };
   // THREE STATES (rule 4): drafts, a configured backend with none, and a
@@ -994,7 +1008,7 @@ function vBlogs(){
     ? `<p class="es-empty">Could not be read: ${
         meta.skipped.map(x=>`${esc(x.file)} (${esc(x.why)})`).join('; ')}</p>` : '';
   const cards = DB.posts.map(p=>`<a class="es-card${layoutOf(p)?` lay-${layoutOf(p)}`:''}" ${goAttrs(`post:${p.slug}`)}>
-      <div class="es-kicker">${esc(p.kicker||p.tag)}${p.status==='draft'?' · draft':''}</div>
+      <div class="es-kicker">${esc(p.kicker||p.tag)}${reviewOf(p)!=='approved'?' · draft':''}</div>
       <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p>
       <div class="es-tags">${(p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('')}</div>
       <div class="es-sum">${essayText(p.lead)}</div>
@@ -1005,9 +1019,13 @@ function vBlogs(){
       <h1>How AI models behave in production</h1>
       <p class="es-dek">Long-form engineering essays on running frontier models in real systems — the failure
       modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>
-    ${DB.posts.length ? `<div class="es-draft"><b>Drafts for team review.</b> Written by a language model from
+    ${DB.posts.length ? `<div class="es-draft">${DB.posts.every(x=>reviewOf(x)==='approved')
+      ? '<b>Approved by the team, not yet published outside it.</b>'
+      : '<b>Drafts for team review.</b>'} Written by a language model from
       engineers' public reports and checked in code — every quote is matched against its source text and every
-      figure against the source or the price registry. None has been reviewed by a person yet.</div>
+      figure against the source or the price registry.${DB.posts.every(x=>reviewOf(x)==='approved')
+      ? ' A person on the team read each post and approved it before it appeared here.'
+      : ' Posts marked draft have not been approved by a person yet.'}</div>
       <div class="es-cards">${cards}</div>` : empty}
     ${skipped}
   </div></div>`;
@@ -1658,9 +1676,12 @@ function vPost(slug){
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
           from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.
-          ${pv.reviewed_by?`Reviewed by ${esc(pv.reviewed_by)}.`:'<b>Not yet reviewed by a person.</b>'}
+          ${reviewOf(p)==='approved'
+            ? `Read and approved by a person on the team${p.published_at?` on ${esc(day(p.published_at))}`:''}.`
+            : reviewOf(p)==='rejected' ? '<b>Rejected in review.</b>' : '<b>Not yet reviewed by a person.</b>'}
           Code samples are illustrative patterns. Prices are published list prices. No model is scored or ranked.</p>
-          <p>Draft — not for external publication.</p>
+          <p>${reviewOf(p)==='approved' ? 'Approved by the team; not yet published outside it.'
+            : 'Draft — not for external publication.'}</p>
         </footer>
       </article>
       <aside class="es-side">
