@@ -828,8 +828,12 @@ terms_rulings:
 #  rendered by the platform itself from the post's public URL (X for Websites;
 #  Reddit's oEmbed markup) - is not a quote by us. A derived post may show
 #  Reddit and X content only through such embeds (contract/publication.yaml
-#  `derived_posts.embed_only`). Quoting Reddit or X text in our own prose, with
-#  or without a link, still counts as publication under the definition above.
+#  `derived_posts.embed_only`), and never quotes their text in its own prose -
+#  a rule of `embed_only`, not a change to the definition above. The
+#  definition is unchanged: a Reddit or X quote shown WITH A LINK to an
+#  outside reader is publication; one shown without a link is not. (An earlier
+#  draft of this paragraph said "with or without a link", which widened the
+#  definition it cites; corrected 2026-10-14 before review.)
 #  docs/proposals/publish-blogs-with-official-embeds.md.
 #
 #  WHY THE BAR IS ONE READER RATHER THAN A LAUNCH. A launch is an event we
