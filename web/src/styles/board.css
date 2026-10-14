@@ -622,10 +622,39 @@
 .es-mode .seg label:has(input:checked){background:var(--es-accent);color:var(--es-bg)}
 .es-mode .seg label:has(input:focus-visible){outline:2px solid var(--es-accent);outline-offset:-2px}
 .es-mode p{margin:0 !important;font-size:.8rem !important;line-height:1.5;color:var(--es-muted) !important;flex:1 1 260px}
-.es-article .es-para .s1{color:var(--es-text)}
-.essay:has(.m-skim:checked) .es-para .rest{display:none}
-.essay:has(.m-skim:checked) .es-para:has(.rest)::after{content:" \2026";color:var(--es-dim)}
-.essay:has(.m-skim:checked) .es-article p.es-para{margin:.6rem 0}
+.es-readtime{font:600 .78rem var(--es-mono);color:var(--es-accent);flex:none}
+/* TABLES, CHARTS AND DIAGRAMS in a post (generator, 2026-10-13). */
+.essay .es-fig{margin:1.6rem 0;padding:1rem 1.1rem;border:1px solid var(--es-line);border-radius:var(--es-radius);background:var(--es-panel)}
+.essay .es-fig figcaption{margin-top:.7rem;font-size:.82rem;line-height:1.5;color:var(--es-muted)}
+.essay .es-fig-table .es-tbl{margin:0}
+.essay .es-fig-chart .unit{font:500 .72rem var(--es-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--es-dim);margin-bottom:.5rem}
+.essay .es-fig-chart svg{display:block;overflow:visible}
+.essay .es-fig-chart .lbl{font:500 3px var(--es-sans);fill:var(--es-body)}
+.essay .es-fig-chart .val{font:600 3px var(--es-mono);fill:var(--es-text)}
+.essay .es-fig-chart .bar{fill:var(--es-accent);opacity:.85}
+.essay .es-fig-flow ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.55rem}
+.essay .es-fig-flow li{position:relative;display:flex;gap:.7rem;align-items:flex-start;padding:.6rem .8rem;border:1px solid var(--es-line2);border-radius:10px;background:var(--es-panel2);color:var(--es-body);font-size:.92rem;line-height:1.45}
+.essay .es-fig-flow li:not(:last-child)::after{content:"\2193";position:absolute;left:1.15rem;bottom:-1rem;color:var(--es-accent);font-size:.8rem}
+.essay .es-fig-flow .n{flex:none;width:1.5rem;height:1.5rem;border-radius:50%;display:grid;place-items:center;background:var(--es-accent);color:var(--es-bg);font:700 .72rem var(--es-mono)}
+.essay .es-fig-image{padding:0;overflow:hidden}
+/* SMALL PICTURES (2026-10-14, team ask: "the pictures are very big"). Drawn at
+   their own size, never stretched: a panel is about 460x260 since four come
+   from one call, and an older 1024x1024 square is held to a modest box. */
+.essay .es-fig-image{display:flex;flex-direction:column;align-items:center}
+.essay .es-fig-image img{display:block;width:auto;height:auto;max-width:min(100%,480px);max-height:300px;border-radius:8px}
+.essay .es-fig-image figcaption{align-self:stretch}
+.essay .es-cover{margin-top:0}
+/* READ THE ORIGINAL (2026-10-14): one card per linked source, after the
+   paragraph that first quotes it - the whole card is the link. */
+.essay .es-linkcard{display:grid;grid-template-columns:auto 1fr;gap:.2rem .7rem;align-items:baseline;margin:.2rem 0 1.3rem;padding:.75rem .95rem;border:1px solid var(--es-line);border-left:3px solid var(--es-accent);border-radius:10px;background:var(--es-panel);text-decoration:none;color:var(--es-body)}
+.essay .es-linkcard:hover{border-color:var(--es-accent)}
+.essay .es-linkcard .plat{grid-row:span 2;font:600 .66rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-accent2)}
+.essay .es-linkcard .what{font-weight:600;color:var(--es-text);line-height:1.35}
+.essay .es-linkcard .meta{grid-column:2;font-size:.8rem;color:var(--es-muted)}
+.essay .es-linkcard .go{grid-column:2;font-size:.82rem;color:var(--es-accent)}
+.essay .es-cover img{max-width:min(100%,640px);max-height:360px}
+.essay .es-fig-image figcaption{margin:0;padding:.7rem 1.1rem .8rem}
+.essay .es-ai{display:inline-block;margin-left:.2rem;padding:.05rem .45rem;border:1px solid var(--es-line2);border-radius:999px;font:500 .68rem var(--es-mono);letter-spacing:.04em;color:var(--es-dim)}
 
 /* The quote box says whose words it holds. */
 .es-voice{margin:1.6rem 0;padding:1rem 1.25rem 1.05rem;background:var(--es-panel);border:1px solid var(--es-line);border-left:3px solid var(--es-accent2);border-radius:0 12px 12px 0}
@@ -634,6 +663,25 @@
 .es-voice blockquote::before{content:"\201C"}
 .es-voice blockquote::after{content:"\201D"}
 .es-voice .src{margin-top:.5rem;font-size:.74rem;color:var(--es-dim);line-height:1.45}
+.es-voice .src a{color:var(--es-accent2)}
+/* Quote credits and the platforms' own embeds (2026-10-13). */
+.es-cite{font:600 .66rem var(--es-mono);margin-left:2px}
+.es-cite a{color:var(--es-accent2);text-decoration:none;padding:0 3px;border:1px solid var(--es-line);border-radius:4px}
+.es-embed{margin:1.6rem 0;padding:.9rem;background:var(--es-panel);border:1px solid var(--es-line);border-radius:12px}
+.es-embed-reddit{border-top:3px solid #FF8B5E}
+.es-embed-x{border-top:3px solid #E7E9EA}
+/* The platform's blockquote BEFORE its script replaces it - or for good, if the
+   script is blocked: a link card the reader can still follow. */
+.reddit-embed-bq,.twitter-tweet{margin:0 auto;max-width:550px;padding:.9rem 1rem;border:1px dashed var(--es-line);border-radius:10px;font-size:.9rem;color:var(--es-dim)}
+.reddit-embed-bq a,.twitter-tweet a{color:var(--es-accent2)}
+.es-embed figcaption{margin-top:.6rem}
+.es-embed .cap{display:block;font-size:.9rem;color:var(--es-text)}
+.es-embed .prov{display:block;margin-top:.25rem;font:.7rem var(--es-mono);color:var(--es-dim)}
+.es-sources{margin-top:2rem}
+.es-sources ol{padding-left:1.3rem;font-size:.9rem;color:var(--es-dim)}
+.es-sources li{margin:.35rem 0;scroll-margin-top:80px}
+.es-sources a{color:var(--es-accent2)}
+.es-sources .plat{font:600 .64rem var(--es-mono);text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border:1px solid var(--es-line);border-radius:4px;color:var(--es-text)}
 
 /* The lead, styled per format rather than one box for all. */
 .es-open{margin:0 0 1.8rem}
@@ -824,11 +872,6 @@
 
 /* ── Blogs: skim lines and the second arrangement (views.js, 2026-10-08) ────── */
 
-/* A paragraph with its own skim line: skim mode shows the line, full mode the
-   paragraph. Never both - the line is the paragraph's point, not a preface. */
-.essay .es-para.es-sk .sk{display:none}
-.essay:has(.m-skim:checked) .es-para.es-sk .sk{display:inline;color:var(--es-text)}
-.essay:has(.m-skim:checked) .es-para.es-sk .full{display:none}
 
 /* Which arrangement a post uses; arr-b carries the rules below. */
 .essay.arr-a,.essay.arr-b{isolation:auto}

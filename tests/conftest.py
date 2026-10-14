@@ -419,6 +419,37 @@ Three habits that would have caught all three, cheapest first:
      say in the finding which question you answered.** Every wrong claim this
      week was a true answer to a question nobody had asked.
 
+ 12. **Identical content is not shared history.** Habit 11 one layer up, on the
+     repository rather than the schema. Two branches holding the same bytes tells
+     you the bytes match; it does not tell you either branch was rebased, and it
+     does not tell you they were cut from the same commit.
+
+         do these files match          hash the blob — that answers this
+         is this branch up to date     `git merge-base` answers this
+         is that commit in here        `merge-base --is-ancestor` answers this
+
+     Three questions again, and the first one is the one that is easy to reach
+     for. It is the cheapest to produce and — habit 11's point about false
+     positives — the most expensive to distrust, because agreement is exactly
+     what a correct rebase also looks like.
+
+     Measured here rather than asserted, because the shape only shows with a
+     denominator (rule 7). Across the three-branch stack under review, the
+     `tests/conftest.py` blob is `edf14b2d` on **all three** and `d1a40542` on
+     `main`. Content-identity therefore separated *nothing*: it held for all 3 of
+     3 branches whether or not any had been rebased, and every one of the three
+     was in fact 3 commits behind `main`, carrying a base that predated the fix
+     they needed. Same bytes, stale base, and the bytes could not say so.
+
+     **The failure mode this closes is agreement standing in for correctness.**
+     It is the same one `test_migrations.py`'s docstring records about
+     `check_clause` — a comparison that matches nothing AGREES — and the one two
+     pending migrations produced when both happened to be absent. A check that
+     passes because neither side has the thing is not evidence the thing is
+     right.
+
+     Ask which of the three you established, and say so in the finding.
+
 Owned by neither lane, like `test_queries_contract.py` — it describes how both
 lanes write tests, and it breaks for both.
 """

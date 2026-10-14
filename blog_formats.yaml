@@ -43,11 +43,6 @@ prose:
   sentence_median_max: 15
   sentence_max: 30
   lead_words_max: 40
-  # SKIM LINES (2026-10-08). The skim view showed each paragraph's first
-  # sentence, and of 224 paragraphs 27 opened on fewer than 8 words, 13 on a
-  # sentence leaning on the one before ("That...", "This..."), and 3 on a quote.
-  # Each paragraph now carries its own skim sentence, written to stand alone.
-  skim_words: [12, 28]
   # LIVELIER AND LESS ALIKE (2026-10-08), measured over the same 12 posts:
   #   rhythm        sentence-length spread / mean was 0.32-0.43 - an even beat
   #   short         1 of 12 to 10 of 24 paragraphs (of 3+ sentences) per post
@@ -71,6 +66,25 @@ prose:
   avoid_phrases: ["does not establish", "not proof that", "is listed at", "it is worth noting", "when it comes to", "in practice,"]
   price_recital_max: 1
 
+# UNIQUE TITLES (2026-10-14, team ask: post headings read alike). Measured over
+# the 21 titles on disk that day: 4 opened "<Model> review:", 3 of 3
+# head-to-heads closed on "Route/Choose by Work(load)", 2 of 2 migration guides
+# on "A Safe Migration Guide", and 6 used an "X, Not Y" contrast. Checked in
+# code (generate_sample_blogs.title_violations) against every title in use:
+#   echo      own words shared with a title in use - at least the minimum
+#             count, making up at least the share of the shorter title. Over
+#             the 210 pairs that day, 2 / 0.5 flagged exactly the 2 true echoes.
+#   refused   shapes already worn out, each naming the titles that wore it.
+titles:
+  echo_shared_words_min: 2
+  echo_share_min: 0.5
+  refused:
+    - {pattern: '\breview\s*:', why: "'<Model> review:' opened 4 titles (Opus 5.5, Opus 4.6, Fable 5, MiniMax M3)"}
+    - {pattern: '\b(route|choose|pick|decide)\s+by\s+work', why: "'Route/Choose by Work(load)' closed 3 of 3 head-to-heads"}
+    - {pattern: '\bsafe migration guide\b', why: "'A Safe Migration Guide' closed 2 of 2 migration guides"}
+    - {pattern: '\bin production\s*:', why: "'<Model> in Production:' opened 3 titles"}
+    - {pattern: ',\s+not\s+(an?\s+|the\s+)?\w+', why: "an 'X, Not Y' contrast in 6 titles"}
+
 planner:
   # A subject is a candidate only with this much evidence on staging
   # (verified, non-declined board entries). Was measured 2026-10-01: 23
@@ -82,6 +96,26 @@ planner:
   # How many candidates per subject kind the planner considers, most-evidenced
   # first. An internal ordering; nothing about it reaches a page.
   candidates_per_kind: 25
+  # WHICH DISCUSSIONS A POST IS WRITTEN FROM (2026-10-13). Ranked by relevance
+  # (generate_sample_blogs.rank_threads): naming more of the subject's models,
+  # then more entries about them, then themes, then recency. A thread with
+  # fewer than `min_entries` entries about the subject is a passing mention and
+  # is set aside, unless that leaves fewer than `min_threads`. At least
+  # `disagreement_threads` chosen threads carry a negative report where any
+  # exist, so a post has two sides to weigh.
+  # PLATFORM DIVERSITY (2026-10-13): at most `max_per_source` threads from one
+  # platform, and at most `embed_max` from the embed-only platforms together
+  # (contract/publication.yaml), since a post embeds at most 4 posts.
+  doc_selection: {per_post: 10, min_entries: 3, min_threads: 5, disagreement_threads: 2,
+                  max_per_source: 3, embed_max: 4}
+
+# LONGER POSTS, WITH VISUALS, NO SKIM LINES (2026-10-13). Team ask: an 8 to 15
+# minute read, with tables, charts and diagrams used where a topic needs them.
+# At the 230 words a minute views.js counts, that is ~1,850 to 3,450 words, so
+# every format now runs 7 to 10 sections of 3 to 5 paragraphs, and its body is
+# CHECKED against [1850, 3450]. `visuals: [2, 5]` is how many tables, charts or
+# diagrams a post carries, at most one per section, chosen by need. The skim
+# line per paragraph is gone: the skim view read as an incomplete post.
 
 formats:
   - key: field-report
@@ -97,7 +131,7 @@ formats:
       Terse and observational, like an incident write-up. Short paragraphs of two to four
       sentences. Lead each paragraph with the observation itself, then the condition it
       held under. No scene-setting and no rhetorical openings.
-    paragraphs: {per_section: [2, 4], words: [30, 65]}
+    paragraphs: {per_section: [3, 5], words: [40, 75]}
     heading_rules: >-
       Each heading states one specific observation about this model in plain words, as a
       short sentence a reader could quote. Headings must not start with "What", "Why" or
@@ -107,9 +141,9 @@ formats:
     closing: >-
       what is still not established about this model, and what evidence would settle it - never a recommendation
     special: findings
-    sections: [4, 6]
-    words: [550, 1300]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: true}
+    sections: [7, 10]
+    words: [1850, 3450]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
 
   - key: head-to-head
     name: Head-to-head
@@ -117,25 +151,25 @@ formats:
     layout: versus
     derived_from: "What do the release benchmarks say? / Does the cheaper claim hold? / What happens in a tool loop?"
     shape: >-
-      A head-to-head between the two models, organised as the questions an engineer would
-      actually ask before choosing, each answered from what practitioners measured or hit.
+      A head-to-head between the two models, organised around the points an engineer weighs
+      before choosing, each settled from what practitioners measured or hit.
     voice: >-
-      Each section opens with a one-paragraph direct answer to its question, naming which
-      model wins that question and under what condition, then gives the reasoning. Medium
-      paragraphs; contrast the two models explicitly in every section.
-    paragraphs: {per_section: [2, 4], words: [35, 75]}
+      Each section opens with a one-paragraph verdict on its point, naming which model comes
+      out ahead and under what condition, then gives the reasoning. Medium paragraphs;
+      contrast the two models explicitly in every section.
+    paragraphs: {per_section: [3, 5], words: [45, 85]}
     heading_rules: >-
-      Every heading is a specific question ending with "?", naming a concrete workload,
-      failure or cost, never a generic one such as "Which is better?".
-    headings_end_with_question: true
+      Each heading states one specific point of comparison as a short statement, naming a
+      concrete workload, failure or cost - never a question, and never a generic label such
+      as "Performance". (Questions live in the FAQ only, 2026-10-13.)
     opening: >-
       the sharpest difference between the two models, with the figure or the words that show it
     closing: >-
       the question the evidence cannot settle yet, and what a team would have to measure to settle it
     special: picks
-    sections: [5, 7]
-    words: [800, 1700]
-    blocks: {matrix: true, tree: false, code: [0, 1], prices: true}
+    sections: [7, 10]
+    words: [1850, 3450]
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
     matrix_title: "When to use {a} vs {b}"
 
   - key: cost-teardown
@@ -152,7 +186,7 @@ formats:
       Mechanism first and numbers-led: every paragraph names one cost mechanism, the figure
       the discussions or fact sheet give for it, and the lever that changes it. Compact
       paragraphs; no narrative throat-clearing.
-    paragraphs: {per_section: [2, 3], words: [30, 70]}
+    paragraphs: {per_section: [3, 5], words: [40, 80]}
     heading_rules: >-
       Each heading names one cost mechanism as a noun phrase (for example the thing that
       grows the bill), never a question and never starting with "What", "Why" or "How".
@@ -161,9 +195,9 @@ formats:
     closing: >-
       the cost nobody has a figure for yet - a mechanism the discussions name but do not measure
     special: drivers
-    sections: [4, 6]
-    words: [500, 1300]
-    blocks: {matrix: true, tree: false, code: [0, 1], prices: true}
+    sections: [7, 10]
+    words: [1850, 3450]
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
     matrix_title: "What moves the bill"
 
   - key: migration-guide
@@ -177,7 +211,7 @@ formats:
     voice: >-
       Second person and imperative, like a runbook: tell the reader what to do and what to
       check. Short paragraphs; one action per paragraph; put the reason after the action.
-    paragraphs: {per_section: [1, 3], words: [25, 60]}
+    paragraphs: {per_section: [3, 5], words: [35, 75]}
     heading_rules: >-
       Each heading is an instruction starting with a verb (for example "Pin ...",
       "Measure ...", "Roll back ..."), never a question and never starting with "What".
@@ -186,9 +220,9 @@ formats:
     closing: >-
       how to roll back: the signal that says stop, and how traffic returns
     special: steps
-    sections: [5, 7]
-    words: [400, 1300]
-    blocks: {matrix: false, tree: true, code: [1, 2], prices: true}
+    sections: [7, 10]
+    words: [1850, 3450]
+    blocks: {matrix: false, tree: true, code: [1, 2], prices: true, visuals: [2, 5]}
     tree_question: "Should this workload move between {a} and {b}, and in which direction?"
 
   - key: architecture-pattern
@@ -204,7 +238,7 @@ formats:
       Structural and precise, like a design document: describe components, their
       boundaries and the failure each one contains. Medium paragraphs; name the component
       in the first sentence of each.
-    paragraphs: {per_section: [2, 4], words: [35, 75]}
+    paragraphs: {per_section: [3, 5], words: [45, 85]}
     heading_rules: >-
       Each heading names a component or boundary of the architecture as a noun phrase,
       never a question and never starting with "What", "Why" or "How".
@@ -213,9 +247,9 @@ formats:
     closing: >-
       the failure this pattern still does not contain
     special: layers
-    sections: [5, 7]
-    words: [800, 1700]
-    blocks: {matrix: true, tree: false, code: [1, 2], prices: false}
+    sections: [7, 10]
+    words: [1850, 3450]
+    blocks: {matrix: true, tree: false, code: [1, 2], prices: false, visuals: [2, 5]}
     matrix_title: "Pattern versus anti-pattern"
 
   - key: release-analysis
@@ -229,7 +263,7 @@ formats:
     voice: >-
       A news analyst's voice: lead with the finding, then the evidence, then what it means
       for an adopting team. Punchy, varied sentence length; short paragraphs.
-    paragraphs: {per_section: [2, 3], words: [30, 65]}
+    paragraphs: {per_section: [3, 5], words: [40, 75]}
     heading_rules: >-
       Each heading is a short, specific verdict-style statement about one claim or
       consequence (a reader should know the answer from the heading alone), never a
@@ -239,9 +273,9 @@ formats:
     closing: >-
       what to watch next: the claim still open and the evidence that would decide it
     special: claims
-    sections: [4, 6]
-    words: [450, 1300]
-    blocks: {matrix: false, tree: true, code: [0, 1], prices: true}
+    sections: [7, 10]
+    words: [1850, 3450]
+    blocks: {matrix: false, tree: true, code: [0, 1], prices: true, visuals: [2, 5]}
     tree_question: "Should your team adopt {a} now?"
 
   - key: evaluation-critique
@@ -256,7 +290,7 @@ formats:
     voice: >-
       Argumentative: build one argument across sections, each paragraph advancing it by
       one step; concede the strongest counter-point once.
-    paragraphs: {per_section: [2, 4], words: [45, 90]}
+    paragraphs: {per_section: [3, 5], words: [50, 95]}
     heading_rules: >-
       Each heading states a claim of the argument as a full sentence (it may be
       contrarian), never a question and never starting with "What", "Why" or "How".
@@ -265,6 +299,6 @@ formats:
     closing: >-
       the strongest counter-argument, conceded fairly, and what it still does not explain
     special: probes
-    sections: [4, 6]
-    words: [800, 1500]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false}
+    sections: [7, 10]
+    words: [1850, 3450]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 5]}

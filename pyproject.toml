@@ -33,6 +33,11 @@ dependencies = [
   # WHICH version produced a given flattened text, proposed for
   # `thread_context` on issue #5.
   "trafilatura>=2.2,<3",   # blog article text extraction
+  # Blog pictures: resize, JPEG-encode, and cut a 2x2 grid into four panels
+  # (generate_sample_blogs.split_panels). Undeclared until 2026-10-14, when
+  # CI - which installs from scratch - failed to import it on #532; every
+  # laptop that had run the generator already had it installed (12.1.1).
+  "pillow>=10",
 ]
 
 [project.optional-dependencies]
