@@ -44,38 +44,43 @@ def grid(size=(1344, 768), panel=(0.8, 0.8), drop=None):
 @pytest.mark.parametrize("name", ["blog_grid_probe_2026-10-14.jpg",
                                   "blog_grid_probe2_2026-10-14.jpg"])
 def test_both_real_draws_cut_into_four_wide_pictures(name):
-    panels = g.split_panels(Image.open(FIX / name).convert("RGB"))
-    assert len(panels) == 4
-    for p in panels:
+    cut = g.split_panels(Image.open(FIX / name).convert("RGB"))
+    assert [how for _p, how in cut] == ["trimmed"] * 4
+    for p, _how in cut:
         assert 300 <= p.width <= 672 and 180 <= p.height <= 384 and p.width > p.height
 
 
 def test_a_synthetic_grid_is_cut_to_its_panels_not_its_quarters():
-    panels = g.split_panels(grid())
-    assert [abs(p.width - 538) <= 4 and abs(p.height - 307) <= 4 for p in panels] == [True] * 4
+    cut = g.split_panels(grid())
+    assert [abs(p.width - 538) <= 4 and abs(p.height - 307) <= 4 for p, _ in cut] == [True] * 4
 
 
-def test_one_scene_across_the_canvas_is_refused_not_cut_blind():
+# A PAID PICTURE IS NEVER THROWN AWAY (2026-10-14). The cutter used to raise
+# on each of these, and refused 5 of 10 real grids that day. Now each quarter
+# whose edges are not found cleanly is cut whole, and says so.
+
+def test_one_scene_across_the_canvas_is_cut_into_quarters_and_said():
     img = Image.new("RGB", (1344, 768), GROUND)
     ImageDraw.Draw(img).rectangle((60, 40, 1284, 728), fill=(90, 100, 170))
-    with pytest.raises(g.BuildError, match="not a 2x2 grid"):
-        g.split_panels(img)
+    cut = g.split_panels(img)
+    assert [how for _p, how in cut] == ["quarter"] * 4
+    assert all(p.width < 672 and p.height < 384 for p, _ in cut)
 
 
-def test_an_empty_quarter_is_refused():
-    with pytest.raises(g.BuildError, match="panel 3: its quarter is empty"):
-        g.split_panels(grid(drop=2))
+def test_an_empty_quarter_leaves_only_that_picture_out():
+    cut = g.split_panels(grid(drop=2))
+    assert [how for _p, how in cut] == ["trimmed", "trimmed", "empty", "trimmed"]
+    assert cut[2][0] is None
 
 
-def test_a_panel_too_small_is_refused():
-    with pytest.raises(g.BuildError, match="too small"):
-        g.split_panels(grid(panel=(0.3, 0.3)))
+def test_a_panel_too_small_to_trust_is_cut_as_its_quarter():
+    assert [how for _p, how in g.split_panels(grid(panel=(0.3, 0.3)))] == ["quarter"] * 4
 
 
 def test_a_stray_line_at_the_edge_is_not_taken_for_the_panel():
     img = grid()
     ImageDraw.Draw(img).line((0, 1, 1344, 1), fill=(200, 200, 220), width=2)
-    assert all(p.height < 340 for p in g.split_panels(img))
+    assert all(p.height < 340 for p, _ in g.split_panels(img))
 
 
 # ── one call, one ledger row, four pictures, the first a cover ───────────────
@@ -100,7 +105,8 @@ def rows(path):
     return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x.strip()]
 
 
-def test_four_pictures_cost_one_call_recorded_once(ledger, monkeypatch):
+def test_four_pictures_cost_one_call_recorded_once(ledger, monkeypatch, tmp_path):
+    monkeypatch.setattr(g, "RUNS", tmp_path / "runs")
     usage = {"prompt_tokens": 228, "completion_tokens": 1290, "cost": 0.0388}
     monkeypatch.setattr(g, "draw_grid", lambda *a: (grid(), usage))
     pics, calls = g.illustrate(POST, {"illustrations": ILLS}, "k", "b", STARTED)
@@ -112,13 +118,22 @@ def test_four_pictures_cost_one_call_recorded_once(ledger, monkeypatch):
     assert img.width < 700  # small: a panel, not the whole canvas
 
 
-def test_a_draw_that_cannot_be_cut_is_still_paid_for_and_said(ledger, monkeypatch, capsys):
-    one_scene = Image.new("RGB", (1344, 768), (90, 100, 170))
+def test_a_draw_that_is_not_a_clean_grid_still_gives_its_pictures(ledger, monkeypatch, tmp_path):
+    one_scene = Image.new("RGB", (1344, 768), GROUND)
+    ImageDraw.Draw(one_scene).rectangle((60, 40, 1284, 728), fill=(90, 100, 170))
     monkeypatch.setattr(g, "draw_grid", lambda *a: (one_scene, {"cost": 0.0388}))
+    monkeypatch.setattr(g, "RUNS", tmp_path / "runs")
     pics, calls = g.illustrate(POST, {"illustrations": ILLS}, "k", "b", STARTED)
-    assert pics == [] and calls[0]["usd"] == 0.0388
+    assert [p["cut"] for p in pics] == ["quarter"] * 4 and calls[0]["usd"] == 0.0388
     assert len(rows(ledger)) == 1
-    assert "pictures LEFT OUT, paid $0.0388" in capsys.readouterr().out
+
+
+def test_every_paid_grid_is_saved_so_it_can_be_cut_again(ledger, monkeypatch, tmp_path):
+    monkeypatch.setattr(g, "draw_grid", lambda *a: (grid(), {"cost": 0.0388}))
+    monkeypatch.setattr(g, "RUNS", tmp_path / "runs")
+    g.illustrate(POST, {"illustrations": ILLS}, "k", "b", STARTED)
+    [saved] = (tmp_path / "runs" / POST["key"]).glob("grid-*.jpg")
+    assert Image.open(saved).size == (1344, 768)
 
 
 def test_no_picture_back_means_no_row_and_no_cost(ledger, monkeypatch):

@@ -1174,7 +1174,8 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
             embedded = {e["discussion"] - 1 for e in embeds
                         if isinstance(e, dict) and isinstance(e.get("discussion"), int)}
         v += voices_violations(essay, doc_texts, embedded=embedded)
-        v += retrace_violations(essay, exempt_sections={e.get("section") for e in embeds if isinstance(e, dict)})
+        v += retrace_violations(essay, exempt_sections={e.get("section") for e in embeds if isinstance(e, dict)},
+                                embedded_platforms=embedded_platforms)
     return v
 
 
@@ -1310,8 +1311,13 @@ IMAGE_STYLE = ("Editorial illustration for a technical blog about AI models. Fla
 
 #: What a generated picture must not depict - each is either data that belongs
 #: in a checked visual, or something a picture would falsely assert.
+#: "table" and "plot" ONLY IN THEIR DATA SENSE (2026-10-14): a long-context post
+#: failed 4 repairs on "two figures sit at opposite ends of a long table" -
+#: furniture, which a picture may show. A data table or a plotted line may not.
 SCENE_REFUSED = re.compile(
-    r"\d|\b(logo|logos|brand|trademark|screenshot|screen ?shot|dashboard|chart|graph|plot|table|"
+    r"\d|\b(logo|logos|brand|trademark|screenshot|screen ?shot|dashboard|chart|graph|"
+    r"(?:data |pivot |comparison |results? |lookup )table|tables? of|spreadsheet|"
+    r"(?:scatter|line|bar|box) ?plot|plotted|"
     r"text|words|letters|label|caption|headline|sign|signage|watermark|photo of|photograph of|"
     r"anthropic|openai|google|gemini|deepseek|claude|gpt|chatgpt|llama|meta|mistral|qwen|kimi|glm|grok|"
     r"microsoft|nvidia|amazon|apple|openrouter|hugging ?face|github|reddit|twitter)\b", re.I)
@@ -1452,10 +1458,15 @@ def split_panels(img) -> list:
     tight enough to clip the top of its lighthouse - a cut can be TOO TIGHT,
     and nothing here detects that. A reviewer sees every picture.
 
-    RAISES rather than cutting blind: a scene drawn across the centre lines, an
-    empty quarter or a panel too small to be one would otherwise become four
-    broken pictures on a page - a fallback that succeeds on a wrong input
-    (rule 12).
+    RETURNS (picture or None, how) per quarter, and NEVER THROWS A PAID PICTURE
+    AWAY. It used to raise on a panel too small or one reaching the centre
+    line, and on 2026-10-14 that refused 5 of the 10 grids drawn for
+    regenerated posts ($0.19, no pictures kept): thresholds set on two draws,
+    shipped as a gate (rule 8). Now a panel whose edges are not found cleanly
+    is cut as its whole quarter, and `how` says so - "trimmed", "quarter" or
+    "empty" - so the post records it and a reviewer knows which pictures to
+    look at. A quarter cut through a scene that was not really a grid is
+    VISIBLE on review; a refusal was not.
     """
     from statistics import median_low
 
@@ -1465,7 +1476,7 @@ def split_panels(img) -> list:
     cx, cy = w // 2, h // 2
     gx, gy = max(2, round(w * PANEL_GUTTER_SHARE)), max(2, round(h * PANEL_GUTTER_SHARE))
     out = []
-    for k, (left, top) in enumerate([(True, True), (False, True), (True, False), (False, False)]):
+    for left, top in [(True, True), (False, True), (True, False), (False, False)]:
         # The quarter, minus a strip beside the centre lines (the gutter).
         x0, x1 = (0, cx - gx) if left else (cx + gx, w)
         y0, y1 = (0, cy - gy) if top else (cy + gy, h)
@@ -1481,15 +1492,16 @@ def split_panels(img) -> list:
         rows = _longest_run([sum(1 for x in range(qw) if mp[x, y]) >= PANEL_ROW_SHARE * qw
                              for y in range(qh)], PANEL_RUN_GAP)
         if cols is None or rows is None:
-            raise BuildError(f"panel {k + 1}: its quarter is empty")
+            out.append((None, "empty"))  # nothing drawn here: this one picture is left out
+            continue
         bw, bh = cols[1] - cols[0] + 1, rows[1] - rows[0] + 1
-        if bw < PANEL_MIN_SHARE * qw or bh < PANEL_MIN_SHARE * qh:
-            raise BuildError(f"panel {k + 1}: {bw}x{bh} is too small for a quarter of {qw}x{qh}")
-        # A panel that reaches the gutter strip continues past the centre line:
-        # the picture is one scene, not four.
-        if (cols[1] >= qw - 1 if left else cols[0] <= 0) or (rows[1] >= qh - 1 if top else rows[0] <= 0):
-            raise BuildError(f"panel {k + 1} runs into the centre line - the picture is not a 2x2 grid")
-        out.append(q.crop((cols[0], rows[0], cols[1] + 1, rows[1] + 1)))
+        small = bw < PANEL_MIN_SHARE * qw or bh < PANEL_MIN_SHARE * qh
+        # Content reaching the gutter strip may continue past the centre line.
+        reaches = (cols[1] >= qw - 1 if left else cols[0] <= 0) or (rows[1] >= qh - 1 if top else rows[0] <= 0)
+        if small or reaches:
+            out.append((q, "quarter"))  # the edges were not found cleanly: the whole quarter, said
+        else:
+            out.append((q.crop((cols[0], rows[0], cols[1] + 1, rows[1] + 1)), "trimmed"))
     return out
 
 
@@ -1536,17 +1548,24 @@ def illustrate(post: dict, essay: dict, key: str, base: str, started: str) -> tu
             spend_ledger.append_to_database([call], dsn=dsn)
     except Exception as e:  # noqa: BLE001
         print(f"  [{post['key']}] picture spend not recorded: {e}", flush=True)
+    # THE GRID IS KEPT (2026-10-14): five paid grids were refused by the cutter
+    # and never saved, so nothing could re-cut them. Now any grid can be.
     try:
-        panels = split_panels(img)
-    except BuildError as e:
-        print(f"  [{post['key']}] pictures LEFT OUT, paid ${usage.get('cost') or 0:.4f}: {e}", flush=True)
-        return [], calls
+        d = RUNS / post["key"]
+        d.mkdir(parents=True, exist_ok=True)
+        img.save(d / f"grid-{started.replace(':', '')}.jpg", "JPEG", quality=90)
+    except OSError as e:
+        print(f"  [{post['key']}] grid not saved: {e}", flush=True)
     out = []
-    for k, (il, panel) in enumerate(zip(ills, panels, strict=False)):
+    for k, (il, (panel, how)) in enumerate(zip(ills, split_panels(img), strict=False)):
+        if panel is None:
+            print(f"  [{post['key']}] picture {k + 1} LEFT OUT: its quarter of the grid is empty", flush=True)
+            continue
         out.append({"section": il["section"], "src": jpeg_data_url(panel), "alt": il["alt"],
-                    "caption": il["caption"], "model": IMAGE_MODEL, "cover": k == 0})
+                    "caption": il["caption"], "model": IMAGE_MODEL, "cover": k == 0, "cut": how})
+    hows = [o["cut"] for o in out]
     print(f"  [{post['key']}] {len(out)} pictures from one {IMAGE_MODEL} call "
-          f"({img.width}x{img.height}, ${usage.get('cost') or 0:.4f})", flush=True)
+          f"({img.width}x{img.height}, ${usage.get('cost') or 0:.4f}; cut: {', '.join(hows)})", flush=True)
     return out, calls
 
 
@@ -1648,10 +1667,16 @@ RETRACE = re.compile(
     r"retraced|retrace|dug into|looked closely at|followed|traced|stepped through|reviewed)\b", re.I)
 
 
-def retrace_violations(essay: dict, min_count: int = 1, exempt_sections: set | None = None) -> list[str]:
+def retrace_violations(essay: dict, min_count: int = 1, exempt_sections: set | None = None,
+                       embedded_platforms: set | None = None) -> list[str]:
     """Each paragraph that retraces an engineer's work quotes them; and the
     post retraces at least `min_count` piece of work. A paragraph in a section
-    that embeds the engineer's post needs no «»: their words are beside it."""
+    that embeds the engineer's post needs no «»: their words are beside it.
+
+    NOR DOES ONE THAT NAMES AN EMBEDDED PLATFORM (2026-10-14), the credit
+    rule's exemption applied here too. A MiniMax M3 post failed 3 repairs
+    running: the engineer it retraced posted on Reddit, which may not be
+    quoted, so "add their «exact words»" could never be met."""
     v: list[str] = []
     n = 0
     for path, text in prose_fields(essay):
@@ -1661,10 +1686,15 @@ def retrace_violations(essay: dict, min_count: int = 1, exempt_sections: set | N
         m = re.match(r"sections\[(\d+)\]", path)
         if m and int(m.group(1)) in (exempt_sections or set()):
             continue
+        if any(names_platform(text, pl) for pl in embedded_platforms or ()):
+            continue
         if not GUILLEMET.search(text):
+            out = ("; if that engineer posted on an EMBED ONLY platform, do not quote them - name the "
+                   "platform in this paragraph instead ('a Reddit poster', 'one engineer on X')"
+                   if embedded_platforms else "")
             v.append(f"{path}: retraces an engineer's work ({RETRACE.search(text).group(0)!r}) without "
                      "quoting them - add their «exact words» in the same paragraph, so it is clear the "
-                     "test and result are theirs")
+                     f"test and result are theirs{out}")
     if n < min_count:
         v.append("retracing: walk the reader through at least one engineer's test or opinion in our voice "
                  "(\"we went through one engineer's ...\", \"we retraced ...\") and quote them in that paragraph")
@@ -2424,14 +2454,21 @@ def official_embed(source: str, url: str) -> dict:
     raise BuildError(f"no official embed for source {source!r}")
 
 
-def source_of(passage: str, docs) -> dict:
+def source_of(passage: str, docs, avoid: frozenset | set = frozenset()) -> dict:
     """The document a verbatim passage came from. Raises if none holds it: the
-    check already proved it is there, so a miss here is a defect, not absence."""
+    check already proved it is there, so a miss here is a defect, not absence.
+
+    A document whose source is in `avoid` is taken only when no other holds the
+    passage - the same rule `embed_violations` applies (a quote is refused only
+    when it appears in embed-only sources ALONE). Measured 2026-10-14: «100%»
+    sat in a Reddit thread and a quotable source, the check passed it, and this
+    took the Reddit thread because it came first - failing a paid, passing post
+    at export."""
     n = norm(passage)
-    for d in docs:
-        if n in norm(d["text"]):
-            return d
-    raise BuildError(f"quoted passage not found at render time: {passage[:60]!r}")
+    held = [d for d in docs if n in norm(d["text"])]
+    if not held:
+        raise BuildError(f"quoted passage not found at render time: {passage[:60]!r}")
+    return next((d for d in held if d["source"] not in avoid), held[0])
 
 
 def route_badge(route: str) -> str:
@@ -2628,7 +2665,7 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
     cite: dict[str, int] = {}
 
     def verified(frag: str) -> str:
-        d = source_of(frag, docs)  # proves it is still in the text; raises otherwise
+        d = source_of(frag, docs, embed_only)  # proves it is still in the text; raises otherwise
         if d["source"] in embed_only:
             raise BuildError(f"export: «{frag[:60]}» quotes an embed-only source ({d['source']}); "
                              "the check should have refused this draft")
@@ -2660,7 +2697,7 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
     # never a placeholder (rule 6); the page then draws none.
     first = next((c for c in post.get("_illustrations") or [] if c.get("cover")), None)
     cover = ({"cover": {"src": first["src"], "alt": first["alt"], "caption": first["caption"],
-                        "generated_by": first["model"]}} if first else {})
+                        "generated_by": first["model"], "cut": first.get("cut")}} if first else {})
     body: list[list] = []
     for n, s in enumerate(essay["sections"], 1):
         body.append(["h2", {"text": s["heading"], "num": f"{n:02d}", "id": slug(s["heading"])}])
@@ -2672,7 +2709,7 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         for il in post.get("_illustrations") or []:
             if il["section"] == n - 1 and not il.get("cover"):
                 paras.insert(1, ["image", {"src": il["src"], "alt": il["alt"], "caption": il["caption"],
-                                           "generated_by": il["model"]}])
+                                           "generated_by": il["model"], "cut": il.get("cut")}])
         if s.get("pull_quote"):
             paras.insert(min(2, len(paras)), ["quote", verified(s["pull_quote"])])
         body += paras

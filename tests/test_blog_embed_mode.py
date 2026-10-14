@@ -209,3 +209,23 @@ def test_the_page_draws_the_platforms_own_embeds(page):
 
 def test_an_embed_with_a_foreign_url_draws_nothing(page):
     assert "EVIL REDDIT" not in page and "EVIL X" not in page and "javascript:" not in page
+
+
+def test_retracing_an_embedded_poster_names_the_platform_instead_of_quoting():
+    """2026-10-14: a MiniMax M3 post failed 3 repairs - the engineer it retraced
+    posted on Reddit, which may not be quoted, so the rule could not be met."""
+    para = "We retraced a Reddit poster's refactor: the pieces never joined into a working app."
+    e = {"sections": [{"heading": "One", "paragraphs": [para]}], "embeds": []}
+    assert not g.retrace_violations(e, exempt_sections=set(), embedded_platforms={"reddit"})
+    [v] = g.retrace_violations({"sections": [{"heading": "One", "paragraphs": [
+        "We retraced one engineer's refactor and it held."]}]}, embedded_platforms={"reddit"})
+    assert "name the platform in this paragraph instead" in v
+
+
+def test_export_credits_a_quotable_source_when_reddit_also_holds_the_words():
+    """2026-10-14: «100%» was in a Reddit thread and a dev.to post; the check
+    passed it, and export took Reddit because it came first."""
+    docs = [{"source": "reddit", "text": "it hit 100% on my run"},
+            {"source": "devto", "text": "coverage reached 100% in a week"}]
+    assert g.source_of("100%", docs, frozenset({"reddit", "x"}))["source"] == "devto"
+    assert g.source_of("100%", docs[:1], frozenset({"reddit"}))["source"] == "reddit"
