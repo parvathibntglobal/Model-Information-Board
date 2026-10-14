@@ -6,7 +6,7 @@ database.
   * rejecting takes a post off the page and KEEPS it, with its reason;
   * the planner still sees a rejected post's key, so it is not written again;
   * a decision that changes nothing is refused;
-  * storing never overwrites a stored post, whatever its state.
+  * storing never overwrites a REVIEWED post; a newer draft replaces a pending one.
 Requires a database. See docs/dev-database.md.
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ def _post(slug: str, plan_key: str | None = None, **over) -> dict:
 
 def test_stored_drafts_are_pending_and_not_published(conn):
     out = blog_store.store_drafts(conn, [_post("a"), _post("b")])
-    assert out == {"stored": ["a", "b"], "already": [], "refused": []}
+    assert out == {"stored": ["a", "b"], "replaced": [], "already": [], "refused": []}
     assert blog_store.published(conn) == []
     assert {p["review"] for p in blog_store.for_review(conn)} == {"pending"}
 
@@ -123,6 +123,41 @@ def test_storing_never_overwrites_a_stored_post(conn):
     assert out["already"] == ["a"] and out["stored"] == []
     [p] = blog_store.published(conn)
     assert p["title"] == "First"
+
+
+def _dated(slug, when, **over):
+    doc = _post(slug, **over)
+    doc["provenance"] = dict(doc["provenance"], generated_at=when)
+    return doc
+
+
+def test_a_newer_draft_replaces_a_pending_one(conn):
+    """2026-10-14: 15 posts were regenerated under their old slugs and Admin
+    kept showing the old drafts, because storing skipped every known slug."""
+    blog_store.store_drafts(conn, [_dated("a", "2026-10-06T10:00:00+00:00", title="Old")])
+    out = blog_store.store_drafts(conn, [_dated("a", "2026-10-14T08:00:00+00:00", title="New")])
+    assert out["replaced"] == ["a"] and out["stored"] == [] and out["already"] == []
+    [p] = blog_store.for_review(conn)
+    assert p["title"] == "New" and p["review"] == "pending"
+
+
+@pytest.mark.parametrize("when", ["2026-10-06T10:00:00+00:00", "2026-10-01T10:00:00+00:00", None])
+def test_an_older_equal_or_undated_draft_replaces_nothing(conn, when):
+    blog_store.store_drafts(conn, [_dated("a", "2026-10-06T10:00:00+00:00", title="Stored")])
+    out = blog_store.store_drafts(conn, [_dated("a", when, title="Incoming")])
+    assert out["already"] == ["a"] and out["replaced"] == []
+    [p] = blog_store.for_review(conn)
+    assert p["title"] == "Stored"
+
+
+@pytest.mark.parametrize("decision", ["approved", "rejected"])
+def test_a_newer_draft_never_replaces_a_reviewed_post(conn, decision):
+    blog_store.store_drafts(conn, [_dated("a", "2026-10-06T10:00:00+00:00", title="Reviewed")])
+    blog_store.decide(conn, "a", decision, None)
+    out = blog_store.store_drafts(conn, [_dated("a", "2026-10-14T08:00:00+00:00", title="Newer")])
+    assert out["already"] == ["a"] and out["replaced"] == []
+    row = conn.execute("SELECT state, doc->>'title' FROM blog_post WHERE slug = 'a'").fetchone()
+    assert row == (decision, "Reviewed")
 
 
 def test_storing_does_not_bring_a_rejected_post_back(conn):

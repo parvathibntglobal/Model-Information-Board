@@ -15,7 +15,16 @@ runs it (it calls a paid model and is local only). `store_drafts` copies drafts
 into this table: automatically for a run started from Admin -> Blogs
 (`judge/blog_runs._finish`), and from the "store this machine's drafts" action
 for anything else - the drafts that predate this table, or a run started from a
-terminal. Storing never overwrites: a slug already here is left as it is.
+terminal.
+
+STORING NEVER OVERWRITES A REVIEWED POST. An approved or rejected slug is left
+exactly as it is, whatever the file now says. A PENDING slug is replaced when the
+incoming draft is NEWER - both `generated_at` dates known, the incoming one
+later - because nobody has reviewed the old text yet and the rewrite is what they
+should see. Found 2026-10-14: 15 posts were regenerated under the same slugs and
+Admin -> Blogs kept showing the old drafts, because storing skipped every slug it
+already had. A draft with no date, or an older or equal one, never replaces
+anything: an unknown date is not "newer" (rule 6).
 
 FAILS CLOSED. Every reader raises `StoreUnreadable` when the table cannot be
 read, and the routes turn that into "no posts, and here is why" - never into
@@ -91,9 +100,10 @@ def _order(docs: list[dict]) -> list[dict]:
 # ── storing ─────────────────────────────────────────────────────────────────
 
 def store_drafts(conn, posts: list[dict], run_id: str | None = None) -> dict[str, list]:
-    """Store drafts as `pending`. Returns what was stored, what was already
-    here (left untouched, whatever its state), and what was refused and why."""
-    stored, already, refused = [], [], []
+    """Store drafts as `pending`. Returns what was stored, what REPLACED an
+    older pending draft of the same slug, what was already here (left
+    untouched: reviewed, or not newer), and what was refused and why."""
+    stored, replaced, already, refused = [], [], [], []
     for doc in posts:
         slug = doc.get("slug") if isinstance(doc, dict) else None
         why = blog_posts._problem(doc)
@@ -101,14 +111,24 @@ def store_drafts(conn, posts: list[dict], run_id: str | None = None) -> dict[str
             refused.append({"slug": slug, "why": why or "no slug"})
             continue
         prov = doc.get("provenance") or {}
+        # `xmax = 0` is true for a row this statement INSERTED and false for one
+        # it UPDATED - the standard Postgres way to tell the two apart.
         row = conn.execute(
             "INSERT INTO blog_post (slug, state, doc, plan_key, run_id, generated_at, stored_at) "
             "VALUES (%s, 'pending', %s, %s, %s, %s, now()) "
-            "ON CONFLICT (slug) DO NOTHING RETURNING slug",
+            "ON CONFLICT (slug) DO UPDATE SET doc = EXCLUDED.doc, plan_key = EXCLUDED.plan_key, "
+            "run_id = EXCLUDED.run_id, generated_at = EXCLUDED.generated_at, stored_at = now() "
+            "WHERE blog_post.state = 'pending' AND blog_post.generated_at IS NOT NULL "
+            "AND EXCLUDED.generated_at IS NOT NULL "
+            "AND EXCLUDED.generated_at > blog_post.generated_at "
+            "RETURNING (xmax = 0) AS inserted",
             (slug, Jsonb(doc), prov.get("plan_key"), run_id, _when(prov.get("generated_at"))),
         ).fetchone()
-        (stored if row else already).append(slug)
-    return {"stored": stored, "already": already, "refused": refused}
+        if row is None:
+            already.append(slug)
+        else:
+            (stored if row[0] else replaced).append(slug)
+    return {"stored": stored, "replaced": replaced, "already": already, "refused": refused}
 
 
 # ── reading ─────────────────────────────────────────────────────────────────
