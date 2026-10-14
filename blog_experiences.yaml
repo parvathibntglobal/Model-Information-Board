@@ -1,0 +1,73 @@
+# What WE tried: the only source a blog post may narrate in the first person.
+#
+# DRAFT, NOT CONTRACT - same footing as blog_formats.yaml. Read by
+# generate_sample_blogs.py.
+#
+# WHY THIS FILE EXISTS (2026-10-13). Posts now speak as a blog writer:
+# opinions in the first person ("we think", "we disagree with ...") and our
+# own hands-on results ("we tried X and got Y"), set beside what engineers
+# reported. Opinions need no record. A RESULT does: "we tried this" must be
+# something this team actually ran, or the post invents an experience - and a
+# reader, or Google's "experience" signal, cannot tell an invented one from a
+# real one. So a first-person experience sentence ("we tried", "we ran", "we
+# tested", "we measured", "we switched" ...) is CHECKED in code: it must carry
+# a figure or a phrase from an entry below whose `models` or `topics` match
+# the post. No matching entry, no "we tried" - the post states an opinion or
+# quotes an engineer instead.
+#
+# HOW TO ADD ONE. Write down what you ran, the result, and where the record
+# lives (a doc, a run log, a PR). `said` is plain prose the generator may
+# retell; every figure in it becomes a figure the post may use. Keep it true
+# and dated: an entry is a claim this team is putting its name to.
+#
+# DO NOT COUNT THREADS, POSTS OR PEOPLE IN `said` ("on 2 threads"): posts may
+# not, so a faithful retelling would fail the count check every time. Measured
+# on the second sample, 2026-10-13: "2 threads" failed three times in one draft.
+
+experiences:
+  - id: extractor-ab-2026-09-01
+    date: 2026-09-01
+    models: [deepseek/deepseek-v4-flash, google/gemini-2.5-flash]
+    topics: [extraction, structured output, accuracy]
+    source: docs/measurements/extractor-ab-deepseek-v4-flash-vs-gemini.md
+    said: >-
+      We ran DeepSeek V4 Flash and Gemini 2.5 Flash as the claim extractor in our
+      own pipeline on the same pair of discussions. Gemini had produced 12 verified
+      claims; DeepSeek V4 Flash produced 17, every one of its quotes passed our
+      exact-match check, it invented no quotes and needed no schema retries, and
+      the whole run took 73 seconds. It was a small smoke test, not a benchmark.
+
+  - id: provider-routing-2026-10-01
+    date: 2026-10-01
+    models: [deepseek/deepseek-v4-flash]
+    topics: [cost, latency, providers, routing]
+    source: judge/extract/client.py (extractor_provider comment, measured 2026-10-01)
+    said: >-
+      When we let OpenRouter pick the provider for DeepSeek V4 Flash with no
+      preference, one provider spent about 9 minutes per thread, hit the 16,384
+      token output ceiling without returning a single claim, and billed $0.0205
+      against a $0.0064 list-price estimate. Pinning the provider fixed it: the
+      same model behaves very differently depending on who serves it.
+
+  - id: reasoning-default-2026-09-24
+    date: 2026-09-24
+    models: [deepseek/deepseek-v4-flash-0731, deepseek/deepseek-v4-flash]
+    topics: [reasoning, cost, output tokens]
+    source: judge/extract/client.py (reasoning_effort comment)
+    said: >-
+      When we moved our extractor from the undated DeepSeek V4 Flash to the dated
+      0731 build, high-effort reasoning switched on by default without us asking.
+      Reasoning tokens bill as output and count against the output limit, so a
+      10,859-character article hit the 16,384 token ceiling before the model
+      finished its answer. Turning reasoning off explicitly brought it back.
+
+  - id: blog-model-revisions-2026-10-08
+    date: 2026-10-08
+    models: [openai/gpt-6-luna]
+    topics: [writing, instruction following, editing]
+    source: blog_formats.yaml (prose.rhythm_cv_target note, 2026-10-08)
+    said: >-
+      We use GPT-6 Luna to draft these posts. Given 16 named style problems in a
+      draft, it fixed 15 of them in a single revision. What it could not do was
+      hit a target it could not see: asked to make the overall sentence rhythm
+      more varied, it held at the same spread for four attempts in a row.

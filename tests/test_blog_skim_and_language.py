@@ -1,4 +1,5 @@
-"""Blog posts: a polished skim line per paragraph, and livelier, less repetitive prose.
+"""Blog posts: livelier, less repetitive prose. (The skim-line checks were removed
+with the skim lines themselves on 2026-10-13 - see tests/test_blog_visuals.py.)
 
 Measured 2026-10-08 over the 12 drafts: of 224 paragraphs the skim view (each
 paragraph's first sentence) showed 27 openers under 8 words, 13 leaning on the
@@ -16,52 +17,6 @@ PARA = ("Opus cut a refactor short. The team had asked for every caller to move 
         "new client, and the model stopped after the first module. Nobody noticed until CI.")
 GOOD_SKIM = ("Opus stopped a multi-module refactor after the first module, "
              "and the gap surfaced only in CI.")
-
-
-def _section(paras, skim):
-    return {"heading": "h", "paragraphs": paras, "skim": skim}
-
-
-# ── skim lines ──────────────────────────────────────────────────────────────
-
-def test_a_polished_skim_line_passes():
-    assert g._skim_lines([_section([PARA], [GOOD_SKIM])], PROSE) == []
-
-
-def test_one_line_per_paragraph():
-    out = g._skim_lines([_section([PARA, PARA], [GOOD_SKIM])], PROSE)
-    assert any("1 line(s) for 2 paragraph(s)" in v for v in out)
-
-
-def test_a_fragment_is_refused():
-    out = g._skim_lines([_section([PARA], ["Opus stopped short."])], PROSE)
-    assert any("words; a skim line is one sentence" in v for v in out)
-
-
-def test_a_quote_is_refused():
-    line = ("Engineers said «it stopped after the first module» "
-            "during a long multi-module refactor run.")
-    out = g._skim_lines([_section([PARA], [line])], PROSE)
-    assert any("no «quotes»" in v for v in out)
-
-
-def test_a_line_leaning_on_an_unseen_sentence_is_refused():
-    line = "This meant the refactor stopped after the first module and nobody noticed until CI."
-    out = g._skim_lines([_section([PARA], [line])], PROSE)
-    assert any("leans on a sentence" in v for v in out)
-
-
-def test_an_unfinished_line_is_refused():
-    line = ("Opus stopped a multi-module refactor after the first module "
-            "and the gap surfaced only in CI")
-    out = g._skim_lines([_section([PARA], [line])], PROSE)
-    assert any("not a finished sentence" in v for v in out)
-
-
-def test_a_line_about_something_else_is_refused():
-    line = "Gemini handles long video transcripts with ease across a wide range of languages today."
-    out = g._skim_lines([_section([PARA], [line])], PROSE)
-    assert any("shares no key term" in v for v in out)
 
 
 # ── livelier, less repetitive prose ─────────────────────────────────────────
