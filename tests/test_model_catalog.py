@@ -92,12 +92,24 @@ def conn(test_dsn):
                 "VALUES (%s, %s, 'acme', '{}', 'polled')",
                 (mv, cid),
             )
-        for doc, source, mv in (("d1", "devto", "mv_a"), ("d2", "reddit", "mv_r")):
+        # Two people on dev.to (one posting twice, under two capabilities) and
+        # one on Reddit, which the public view withholds.
+        for author, source in (("au1", "devto"), ("au2", "devto"), ("au3", "reddit")):
+            connection.execute(
+                "INSERT INTO author (id, source, external_id) VALUES (%s, %s, %s)",
+                (author, source, author),
+            )
+        for doc, source, mv, author in (
+            ("d1", "devto", "mv_a", "au1"),
+            ("d3", "devto", "mv_a", "au1"),
+            ("d4", "devto", "mv_a", "au2"),
+            ("d2", "reddit", "mv_r", "au3"),
+        ):
             connection.execute(
                 "INSERT INTO document "
-                "(id, source, external_id, url, text_ref, content_hash, status) "
-                "VALUES (%s, %s, %s, %s, %s, %s, 'kept')",
-                (doc, source, doc, f"https://example.test/{doc}", f"r{doc}", f"h{doc}"),
+                "(id, source, external_id, url, text_ref, content_hash, status, author_id) "
+                "VALUES (%s, %s, %s, %s, %s, %s, 'kept', %s)",
+                (doc, source, doc, f"https://example.test/{doc}", f"r{doc}", f"h{doc}", author),
             )
             connection.execute(
                 "INSERT INTO board_entry (id, section, slug, name, definition, model_version_id, "
@@ -227,3 +239,53 @@ def test_the_view_is_json():
     from judge.catalog import _type_price
 
     json.dumps(_type_price({"image_output": "0.0000024"}))
+
+
+class TestVoicesOrderTheList:
+    def test_voices_are_distinct_people_on_the_public_view(self, view):
+        """au1 posted twice: one voice, two reports. au3 is on Reddit only."""
+        m = model(view, "acme/text-a")
+        assert (m["voices"], m["reports"]) == (2, 3)
+        assert model(view, "acme/text-r")["voices"] == 0
+
+    def test_a_type_with_no_voiced_model_stays_empty(self, view):
+        assert view["types_voiced"]["text"] == 1
+        assert view["types_voiced"]["video"] == 0 and view["types"]["video"] == 1
+        assert view["voiced"] == 1
+
+
+class TestOneModelsPage:
+    def test_every_listed_model_has_a_page_voiced_or_not(self, conn):
+        from judge.catalog import catalog_model
+
+        assert catalog_model(conn, "acme/video-v")["voices"] == 0
+        assert catalog_model(conn, "acme/text-a")["voices"] == 2
+
+    def test_a_model_not_listed_has_no_page(self, conn):
+        from judge.catalog import catalog_model
+
+        assert catalog_model(conn, "acme/nothing") is None
+
+    def test_a_feature_the_feed_does_not_list_is_not_stated_not_no(self, conn):
+        """`entry()` lists no supported parameters: tool calling is unknown, not absent."""
+        from judge.catalog import catalog_model
+
+        f = catalog_model(conn, "acme/text-a")["features"]
+        assert f["tools"] is None and f["structured_output"] is None
+        assert f["vision_input"] is False
+
+    def test_registry_facts_come_through_for_a_tracked_model(self, conn):
+        from judge.catalog import catalog_model
+
+        assert catalog_model(conn, "acme/text-a")["in_registry"] is True
+        assert catalog_model(conn, "acme/video-v")["registry"] is None
+
+
+def test_the_personas_say_they_are_illustrative():
+    """Rule 7: numbers nobody measured are shown as starting points, never as
+    what a workload costs."""
+    js = (ROOT / "web" / "src" / "tokens" / "PersonaPicker.jsx").read_text(encoding="utf-8")
+    assert "Illustrative starting points, not measurements" in js
+    personas = (ROOT / "web" / "src" / "tokens" / "personas.js").read_text(encoding="utf-8")
+    names = re.findall(r"name: '([^']+)'", personas)
+    assert len(names) == len(set(names)) >= 5

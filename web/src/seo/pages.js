@@ -198,6 +198,16 @@ export function catalogIndex(type = null) {
   return { title: fullTitle('All AI models by provider and type'), description: 'Every AI model, from every provider: text, image, video, speech, audio, transcription and decision models.', canonical: '/catalog' }
 }
 
+/** One model's page in the catalogue (`/catalog/model/<id>`). */
+export function catalogModelHead(m) {
+  const who = m.provider_name ? `${m.provider_name} ${m.name}` : m.name
+  return {
+    title: fullTitle(`${who}: price, specs and what engineers report`),
+    description: `${who}: list price per million tokens, what a workload would cost, context and features, and what engineers report about it.`,
+    canonical: `/catalog/model/${m.id}`,
+  }
+}
+
 export function toolsIndex() {
   return {
     title: fullTitle('AI model tools: model picker, specs and token counter'),

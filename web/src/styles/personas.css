@@ -1,0 +1,19 @@
+/* WORKLOAD PERSONAS (2026-10-14): the token counter and a model page's cost
+   estimate. Cards, not pills: each shows its numbers and an input/output bar. */
+.ps{display:flex;flex-direction:column;gap:10px}
+.ps-head{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.ps-note{font-size:var(--fs-xs);color:var(--text-3)}
+.ps-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.ps-card{display:flex;flex-direction:column;gap:6px;text-align:left;padding:12px 14px;cursor:pointer;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-control);color:var(--text);
+  font:inherit;transition:border-color .18s var(--ease), background .18s var(--ease)}
+.ps-card:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.ps-card.on{border-color:var(--text);background:var(--surface-2)}
+.ps-card b{font-size:var(--fs-sm);font-weight:600}
+.ps-card small{font-size:var(--fs-xs);color:var(--text-3);line-height:1.4}
+.ps-bar{display:block;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;margin-top:2px}
+.ps-bar i{display:block;height:100%;background:var(--text-2)}
+.ps-card.on .ps-bar i{background:var(--text)}
+.ps-nums{display:flex;flex-wrap:wrap;gap:4px 10px;font:500 .68rem var(--font-mono);color:var(--text-3)}
+.ps-readout{font-size:var(--fs-sm);color:var(--text-2);margin:0}
+.ps-readout b{color:var(--text)}

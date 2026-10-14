@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  comparePage, listModels, fetchAll, fmtPrice, fmtTokens, BoardUnreadable, modelPath,
+  comparePage, listModels, fetchAll, fmtPrice, fmtTokens, BoardUnreadable, modelPath, modelCatalog,
 } from '../api'
 import { Badge, Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconSearch } from '../components/Icons'
@@ -95,16 +95,17 @@ export default function Compare() {
         <span className="eyebrow">AI model comparison</span>
         <h1>Compare models side by side</h1>
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '70ch' }}>
-          Tick two or three models on the{' '}
-          <Link to="/models" className="mb-link">models list</Link> to compare what
-          engineers have actually reported about them — counted, side by side, with no
-          synthesised score and no winner picked for you.
+          Pick two or three models to compare what engineers have actually reported
+          about them — counted, side by side, with no synthesised score and no winner
+          picked for you.
           {/* ⚠ THIS PROMISED "what their providers advertise against what
               engineers have actually reported". The spec sheet came off this
               page on 2026-09-23, so the page's own empty state described a
               comparison it no longer makes - the first thing a reader sees
               before picking anything. */}
         </p>
+        <StartCompare picked={ids}
+                      onCompare={(chosen) => setSp(fromReports ? { ids: chosen.join(','), from: 'reports' } : { ids: chosen.join(',') })} />
       </div>
     )
   }
@@ -119,7 +120,7 @@ export default function Compare() {
         </Notice>
         {!fromReports && (
           <p style={{ marginTop: 'var(--s3)' }}>
-            <Link to="/models" className="mb-link">← All models</Link>
+            <Link to="/catalog" className="mb-link">← All models</Link>
           </p>
         )}
       </div>
@@ -157,7 +158,7 @@ export default function Compare() {
       <div className="stack stack-2">
         {/* NO "← All models" FROM REPORTS: the reader came from Reports → AI
             models, not from the models list. */}
-        {!fromReports && <Link to="/models" className="mb-link" style={{ fontSize: 'var(--fs-xs)' }}>← All models</Link>}
+        {!fromReports && <Link to="/catalog" className="mb-link" style={{ fontSize: 'var(--fs-xs)' }}>← All models</Link>}
         <span className="eyebrow">AI model comparison</span>
         {/* THE NAMES WITHOUT THE VENDOR PREFIX ("Anthropic: Claude Opus 5" ->
             "Claude Opus 5"): shorter, and the form people search ("claude vs
@@ -419,7 +420,7 @@ export default function Compare() {
       <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
         Change the selection on {fromReports
           ? <Link to="/reports" className="mb-link">Models</Link>
-          : <>the <Link to="/models" className="mb-link">models list</Link></>}.
+          : <>the <Link to="/catalog" className="mb-link">models list</Link></>}.
       </p>
     </div>
   )
@@ -534,6 +535,80 @@ function Listed({ items, unit, upTo = 12 }) {
   )
 }
 
+
+/**
+ * PICK THE MODELS, ON THE PAGE (2026-10-14). The page opened from the Models
+ * menu used to say "tick two or three models on the models list" and link to
+ * the roster behind sign-in, so a comparison could not be started from here.
+ * Now it searches the models we collect reports for - a comparison is of what
+ * engineers reported, so a model we do not track would be an empty column -
+ * most engineer voices first. `picked` arrives from the address: a model
+ * page's "Compare with" opens this with its model already chosen.
+ */
+function StartCompare({ picked, onCompare }) {
+  const [chosen, setChosen] = useState(picked)
+  const [query, setQuery] = useState('')
+  const [models, setModels] = useState(null)
+  useEffect(() => {
+    let alive = true
+    modelCatalog()
+      .then((v) => alive && setModels((v.models || []).filter((m) => m.in_registry)
+        .sort((a, b) => b.voices - a.voices || a.name.localeCompare(b.name))))
+      .catch(() => alive && setModels([]))
+    return () => { alive = false }
+  }, [])
+  const byId = useMemo(() => Object.fromEntries((models || []).map((m) => [m.id, m])), [models])
+  const q = query.trim().toLowerCase()
+  const matches = (models || [])
+    .filter((m) => !chosen.includes(m.id))
+    .filter((m) => !q || m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q))
+    .slice(0, 10)
+  const atCap = chosen.length >= COMPARE_MAX
+  return (
+    <div className="card stack stack-3" style={{ maxWidth: 720 }}>
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {chosen.length === 0 && <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No model picked yet.</span>}
+        {chosen.map((id) => (
+          <span key={id} className="chip chip-on" style={{ gap: 6 }}>
+            {byId[id]?.name || id}
+            <button type="button" onClick={() => setChosen(chosen.filter((x) => x !== id))}
+                    aria-label={`Remove ${byId[id]?.name || id}`}
+                    style={{ background: 'none', border: 0, padding: 0, lineHeight: 1, cursor: 'pointer', color: 'inherit' }}>×</button>
+          </span>
+        ))}
+        <button type="button" className="btn btn-primary" disabled={chosen.length < 2}
+                onClick={() => onCompare(chosen)} style={{ marginLeft: 'auto' }}
+                title={chosen.length < 2 ? 'A comparison needs two models' : undefined}>
+          Compare {chosen.length >= 2 ? chosen.length : ''} models
+        </button>
+      </div>
+      {!atCap && (
+        <label className="stack stack-1">
+          <span className="label">Search models · up to {COMPARE_MAX}</span>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+                 placeholder="Type a model, such as Claude Opus 5 or GPT-6 Astra" className="input" />
+        </label>
+      )}
+      {!atCap && (models == null ? <div className="skel" style={{ height: 120 }} /> : (
+        <div className="stack stack-1">
+          {matches.map((m) => (
+            <button key={m.id} type="button" className="row" onClick={() => { setChosen([...chosen, m.id]); setQuery('') }}
+                    style={{ justifyContent: 'space-between', gap: 12, padding: '8px 10px', borderRadius: 8,
+                      background: 'var(--surface)', border: '1px solid var(--border-soft)', color: 'var(--text)',
+                      cursor: 'pointer', font: 'inherit', textAlign: 'left' }}>
+              <span>{m.name} <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{m.id}</span></span>
+              <span className="dim" style={{ fontSize: 'var(--fs-xs)', whiteSpace: 'nowrap' }}>
+                {m.voices ? `${m.voices} ${m.voices === 1 ? 'voice' : 'voices'}` : 'no voices yet'}
+              </span>
+            </button>
+          ))}
+          {matches.length === 0 && <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No tracked model matches “{query}”.</span>}
+        </div>
+      ))}
+      {atCap && <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>{COMPARE_MAX} is the maximum - a comparison of more is a table, not a comparison.</span>}
+    </div>
+  )
+}
 
 function ChangeModels({ ids, models, roster, onLoad, onAdd, onDrop }) {
   const [open, setOpen] = useState(false)

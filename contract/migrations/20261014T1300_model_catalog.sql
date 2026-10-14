@@ -23,8 +23,15 @@
 --                      audio, transcription, decisions, embeddings, rerank
 --   price_in/out       USD per 1M tokens where the feed prices per token;
 --                      NULL means "not priced per token", never free (rule 6)
+--   price_cached_read  USD per 1M input tokens read from a prompt cache; NULL
+--                      where none is published
 --   pricing            the feed's pricing object as published (per image, per
 --                      second, per character ...)
+--   max_output_tokens  the feed's top provider's `max_completion_tokens`
+--   supported_parameters  the request parameters OpenRouter lists for it
+--                      (tools, structured_outputs, reasoning ...); an EMPTY
+--                      list means none listed, and the page says "not stated"
+--                      rather than "no" for a feature it cannot see
 --   last_seen_at       the latest poll that listed it; a model that leaves the
 --                      feed keeps its row with an older stamp
 
@@ -39,7 +46,10 @@ CREATE TABLE model_catalog (
   context_length     int,
   price_in           numeric(12,6),
   price_out          numeric(12,6),
+  price_cached_read  numeric(12,6),
   pricing            jsonb NOT NULL,
+  max_output_tokens  int,
+  supported_parameters text[] NOT NULL DEFAULT '{}',
   first_seen_at      timestamptz NOT NULL DEFAULT now(),
   last_seen_at       timestamptz NOT NULL
 );

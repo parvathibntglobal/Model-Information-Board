@@ -79,8 +79,120 @@ def _provider_names(rows) -> dict[str, str]:
     return {p: c.most_common(1)[0][0] for p, c in seen.items()}
 
 
-def catalog_view(conn) -> dict[str, Any]:
+def _engineer_voices(conn) -> tuple[dict[str, int], dict[str, int]]:
+    """{canonical id: distinct voices}, {canonical id: distinct reports}, over
+    the PUBLIC view - what the reports page a model links to can show.
+
+    DISTINCT ACROSS THE WHOLE MODEL, not summed over its jobs and capabilities:
+    one person posting about a model's coding and its price is one voice. A
+    report whose author is unknown adds a report and no voice (concern 6)."""
     from judge import publication
+
+    rows = conn.execute(
+        "SELECT v.canonical_id, d.source, d.author_id, d.id FROM board_entry be "
+        "JOIN document d ON d.id = be.document_id "
+        "JOIN model_version v "
+        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
+        "WHERE be.ruling IS DISTINCT FROM 'declined'"
+    ).fetchall()
+    voices: dict[str, set] = {}
+    docs: dict[str, set] = {}
+    for cid, source, author, doc in rows:
+        if publication.withheld_publicly(source):
+            continue
+        docs.setdefault(cid, set()).add(doc)
+        if author is not None:
+            voices.setdefault(cid, set()).add(author)
+    return {k: len(v) for k, v in voices.items()}, {k: len(v) for k, v in docs.items()}
+
+
+def _feature(params: list[str], *names: str) -> bool | None:
+    """Whether OpenRouter lists any of `names` for the model. None - not
+    stated - when it lists no parameters at all: an empty list is something
+    the feed did not tell us, not a feature the model lacks (rule 6)."""
+    if not params:
+        return None
+    return any(n in params for n in names)
+
+
+def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
+    """One model's page: the catalogue row, its specs, the registry's own facts
+    where it is tracked, and its engineer voices. None when it is not listed."""
+    row = conn.execute(
+        "SELECT canonical_id, provider, name, description, listed_at, input_modalities, "
+        "       output_modalities, context_length, price_in, price_out, price_cached_read, "
+        "       pricing, max_output_tokens, supported_parameters "
+        "FROM model_catalog WHERE canonical_id = %s",
+        (model_id,),
+    ).fetchone()
+    if row is None:
+        return None
+    (
+        cid,
+        provider,
+        name,
+        desc,
+        listed_at,
+        ins,
+        outs,
+        ctx,
+        p_in,
+        p_out,
+        p_cache,
+        pricing,
+        max_out,
+        params,
+    ) = row
+    registry = conn.execute(
+        "SELECT id, release_date, knowledge_cutoff, lifecycle, deprecation_date "
+        "FROM model_version WHERE canonical_id = %s",
+        (cid,),
+    ).fetchone()
+    voices, reports = _engineer_voices(conn)
+    params = list(params or [])
+    num = lambda v: float(v) if v is not None else None  # noqa: E731
+    provider_name = name.split(":", 1)[0].strip() if ":" in name else provider
+    return {
+        "id": cid,
+        "name": name.split(":", 1)[1].strip() if ":" in name else name,
+        "provider": provider,
+        "provider_name": provider_name,
+        "description": desc,
+        "listed_at": listed_at.date().isoformat() if listed_at else None,
+        "inputs": list(ins or []),
+        "outputs": list(outs or []),
+        "types": [t for t in (outs or []) if t in TYPES],
+        "context": ctx,
+        "max_output_tokens": max_out,
+        "price_in": num(p_in),
+        "price_out": num(p_out),
+        "price_cached_read": num(p_cache),
+        "price_state": _price_state(cid, p_in, p_out, pricing),
+        "type_price": _type_price(pricing),
+        # THREE STATES EACH: true, false, or None for "not stated" (rule 6).
+        "features": {
+            "tools": _feature(params, "tools", "tool_choice"),
+            "structured_output": _feature(params, "structured_outputs", "response_format"),
+            "reasoning": _feature(params, "reasoning", "include_reasoning"),
+            "vision_input": "image" in (ins or []),
+            "prompt_caching": True if p_cache is not None else None,
+        },
+        "in_registry": registry is not None,
+        "registry": None
+        if registry is None
+        else {
+            "release_date": registry[1].isoformat() if registry[1] else None,
+            "knowledge_cutoff": registry[2].isoformat() if registry[2] else None,
+            "lifecycle": registry[3],
+            "deprecation_date": registry[4].isoformat() if registry[4] else None,
+        },
+        "voices": voices.get(cid, 0),
+        "reports": reports.get(cid, 0),
+        "source": f"https://openrouter.ai/{cid.lstrip('~')}",
+    }
+
+
+def catalog_view(conn) -> dict[str, Any]:
 
     try:
         rows = conn.execute(
@@ -110,17 +222,9 @@ def catalog_view(conn) -> dict[str, Any]:
             "`python -m collect.cli registry poll-catalog`",
         }
 
-    # WHICH CATALOGUE MODELS HAVE REPORTS A READER CAN OPEN: rows in our
-    # registry with a board entry from a source the public view shows.
     registry = {r[0] for r in conn.execute("SELECT canonical_id FROM model_version")}
-    reported_rows = conn.execute(
-        "SELECT DISTINCT v.canonical_id, d.source FROM board_entry be "
-        "JOIN document d ON d.id = be.document_id "
-        "JOIN model_version v "
-        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
-        "WHERE be.ruling IS DISTINCT FROM 'declined'"
-    ).fetchall()
-    reported = {cid for cid, source in reported_rows if not publication.withheld_publicly(source)}
+    voices, reports = _engineer_voices(conn)
+    reported = set(reports)
 
     keep = [r for r in rows if not r[0].startswith("~")]
     aliases = len(rows) - len(keep)
@@ -145,6 +249,11 @@ def catalog_view(conn) -> dict[str, Any]:
                 "type_price": _type_price(pricing),
                 "in_registry": cid in registry,
                 "reported": cid in reported,
+                # COUNTED, NOT SCORED (rule 3): distinct people and distinct
+                # posts, over the public view. They ORDER All models - most
+                # voices first - and are shown on the card beside the order.
+                "voices": voices.get(cid, 0),
+                "reports": reports.get(cid, 0),
             }
         )
     models.sort(key=lambda m: (m["provider"], m["name"].lower()))
@@ -167,6 +276,8 @@ def catalog_view(conn) -> dict[str, Any]:
                 "name": name,
                 "ids": ids,
                 "models": sum(by_id[i] for i in ids),
+                # Models with at least one engineer voice - what All models lists.
+                "voiced": sum(1 for m in models if m["provider"] in ids and m["voices"]),
                 "types": sorted(
                     {t for m in models if m["provider"] in ids for t in m["types"]}, key=TYPES.index
                 ),
@@ -174,6 +285,9 @@ def catalog_view(conn) -> dict[str, Any]:
         )
     providers.sort(key=lambda p: (-p["models"], p["name"].lower()))
     types = {t: sum(1 for m in models if t in m["types"]) for t in TYPES}
+    # A TYPE STAYS EMPTY UNTIL ONE OF ITS MODELS HAS A VOICE (2026-10-14): All
+    # models lists voiced models only, so its type chips count those.
+    types_voiced = {t: sum(1 for m in models if t in m["types"] and m["voices"]) for t in TYPES}
     dated = sorted(
         (m for m in models if m["listed_at"]), key=lambda m: m["listed_at"], reverse=True
     )
@@ -181,6 +295,8 @@ def catalog_view(conn) -> dict[str, Any]:
         "models": models,
         "providers": providers,
         "types": types,
+        "types_voiced": types_voiced,
+        "voiced": sum(1 for m in models if m["voices"]),
         "new_releases": [m["id"] for m in dated[:NEW_RELEASES]],
         # The denominators the page states (rule 7).
         "listed": len(models),

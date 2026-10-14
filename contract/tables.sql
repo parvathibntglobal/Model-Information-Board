@@ -212,7 +212,10 @@ CREATE TABLE model_catalog (
   context_length     int,
   price_in           numeric(12,6),      -- USD per 1M tokens; NULL = not priced per token
   price_out          numeric(12,6),
+  price_cached_read  numeric(12,6),      -- USD per 1M cached input tokens; NULL = none published
   pricing            jsonb NOT NULL,     -- as published (per image, per second ...)
+  max_output_tokens  int,
+  supported_parameters text[] NOT NULL DEFAULT '{}',  -- empty = none listed, not "none supported"
   first_seen_at      timestamptz NOT NULL DEFAULT now(),
   last_seen_at       timestamptz NOT NULL
 );

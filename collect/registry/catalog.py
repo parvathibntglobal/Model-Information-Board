@@ -54,6 +54,10 @@ def _listed_at(created: Any) -> datetime | None:
         return None
 
 
+def _int_or_none(v: Any) -> int | None:
+    return v if isinstance(v, int) and not isinstance(v, bool) else None
+
+
 def parse_catalog(payload: Any) -> list[dict[str, Any]]:
     """The feed's entries as catalogue rows. RAISES on a payload it cannot read
     and on one that holds no models: a feed that parses to nothing is a feed we
@@ -86,6 +90,11 @@ def parse_catalog(payload: Any) -> list[dict[str, Any]]:
                 # per-token price", never "free" (rule 6).
                 "price_in": _per_million(pricing.get("prompt")),
                 "price_out": _per_million(pricing.get("completion")),
+                "price_cached_read": _per_million(pricing.get("input_cache_read")),
+                "max_output_tokens": _int_or_none(
+                    (entry.get("top_provider") or {}).get("max_completion_tokens")
+                ),
+                "supported_parameters": [str(x) for x in entry.get("supported_parameters") or []],
                 "pricing": pricing,
             }
         )
@@ -105,15 +114,17 @@ def write_catalog(
     for r in rows:
         cur = conn.execute(
             "INSERT INTO model_catalog (canonical_id, provider, name, description, listed_at, "
-            " input_modalities, output_modalities, context_length, price_in, price_out, pricing, "
-            " last_seen_at) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+            " input_modalities, output_modalities, context_length, price_in, price_out, "
+            " price_cached_read, pricing, max_output_tokens, supported_parameters, last_seen_at) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
             "ON CONFLICT (canonical_id) DO UPDATE SET provider = EXCLUDED.provider, "
             " name = EXCLUDED.name, description = EXCLUDED.description, "
             " listed_at = EXCLUDED.listed_at, input_modalities = EXCLUDED.input_modalities, "
             " output_modalities = EXCLUDED.output_modalities, "
             " context_length = EXCLUDED.context_length, price_in = EXCLUDED.price_in, "
-            " price_out = EXCLUDED.price_out, pricing = EXCLUDED.pricing, "
+            " price_out = EXCLUDED.price_out, price_cached_read = EXCLUDED.price_cached_read, "
+            " pricing = EXCLUDED.pricing, max_output_tokens = EXCLUDED.max_output_tokens, "
+            " supported_parameters = EXCLUDED.supported_parameters, "
             " last_seen_at = EXCLUDED.last_seen_at "
             "RETURNING (xmax = 0)",
             (
@@ -127,7 +138,10 @@ def write_catalog(
                 r["context_length"],
                 r["price_in"],
                 r["price_out"],
+                r["price_cached_read"],
                 Jsonb(r["pricing"]),
+                r["max_output_tokens"],
+                r["supported_parameters"],
                 seen_at,
             ),
         ).fetchone()

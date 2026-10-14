@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { modelCatalog } from '../api'
+import ModelPage from '../catalog/ModelPage'
+import { fmtCtx, fmtDate, fmtUsd, modelPagePath } from '../catalog/format'
 import { MODEL_TYPES, typeLabel } from '../catalog/types'
 import { useHead } from '../seo/head'
 import { catalogIndex } from '../seo/pages'
@@ -9,21 +11,17 @@ import '../styles/catalog.css'
 /**
  * MODELS (2026-10-14): every model OpenRouter lists, by provider and by type.
  *
- *   /catalog                    All models: type chips, then provider bubbles;
- *                               a bubble lists that provider's models below
+ *   /catalog                    All models: the models engineers have reported
+ *                               on, most voices first; type chips above
+ *                               provider bubbles; a bubble lists its models
  *   /catalog?type=image         ... one type (the menu's "Image models")
  *   /catalog?provider=openai    ... one provider
- *   /catalog/new                New releases: the newest listings
+ *   /catalog/new                New releases: the newest listings, voiced or not
+ *   /catalog/model/<id>         ONE model: price, workload cost, specs, voices
  *
  * Read from GET /model-catalog (judge/catalog.py), never from the evidence
- * pipeline. A model with reports links to its reports page (/reports/models/...);
- * one without says so, rather than linking to an empty page (rule 4).
+ * pipeline. Every card opens its model's page.
  */
-
-const fmtUsd = (n) => (n === 0 ? '$0' : n >= 100 ? `$${n.toFixed(0)}` : n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(3)}`)
-const fmtCtx = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n))
-const fmtDate = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
-const reportsPath = (id) => `/reports/models/${id.split('/').map(encodeURIComponent).join('/')}`
 
 /** NO PRICE IS INVENTED (rule 6): an unpublished price says so, a free model says free. */
 function Price({ m, side }) {
@@ -36,7 +34,7 @@ function Price({ m, side }) {
 function ModelCard({ m, providerName, showProvider = true }) {
   const reads = m.inputs.filter((i) => i !== 'text')
   return (
-    <article className="cat-card">
+    <Link to={modelPagePath(m.id)} className="cat-card">
       <div className="cat-card-top">
         {showProvider ? <span className="eyebrow">{providerName}</span> : <span />}
         {m.listed_at && <span className="cat-date">Listed {fmtDate(m.listed_at)}</span>}
@@ -55,12 +53,12 @@ function ModelCard({ m, providerName, showProvider = true }) {
         {reads.length > 0 && <span className="cat-reads">Reads {reads.join(', ')}</span>}
       </div>
       <div className="cat-foot">
-        {m.reported
-          ? <Link to={reportsPath(m.id)}>What engineers report →</Link>
-          : <span className="cat-na">{m.in_registry ? 'No engineer reports yet' : 'Not yet tracked for reports'}</span>}
-        <span className="cat-id">{m.id}</span>
+        {m.voices
+          ? <span className="cat-voices"><b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} {m.reports === 1 ? 'report' : 'reports'}</span>
+          : <span className="cat-na">No engineer voices yet</span>}
+        <span className="cat-open">Open →</span>
       </div>
-    </article>
+    </Link>
   )
 }
 
@@ -92,6 +90,13 @@ function NewReleases({ view, byId, names }) {
   )
 }
 
+/**
+ * ALL MODELS LISTS THE MODELS ENGINEERS HAVE REPORTED ON (2026-10-14), most
+ * distinct voices first - a COUNT, shown on every card beside the order it
+ * makes (rule 3). A type with no voiced model stays empty until one arrives.
+ * Every other listed model is still one click away, in New releases and on its
+ * own page; the page says how many, so the shorter list is not read as all.
+ */
 function AllModels({ view, names }) {
   const [sp, setSp] = useSearchParams()
   const type = sp.get('type') || ''
@@ -101,43 +106,47 @@ function AllModels({ view, names }) {
     if (v) next.set(k, v); else next.delete(k)
     setSp(next, { replace: true })
   }
-  const ofType = useMemo(() => view.models.filter((m) => !type || m.types.includes(type)), [view, type])
+  const voiced = useMemo(() => view.models.filter((m) => m.voices > 0), [view])
+  const ofType = useMemo(() => voiced.filter((m) => !type || m.types.includes(type)), [voiced, type])
   // A bubble may stand for several provider ids (Meta: `meta`, `meta-llama`).
   const providers = useMemo(() => {
     const n = {}
-    for (const m of ofType) n[m.provider] = (n[m.provider] || 0) + 1
+    const v = {}
+    for (const m of ofType) { n[m.provider] = (n[m.provider] || 0) + 1; v[m.provider] = (v[m.provider] || 0) + m.voices }
     return view.providers
       .map((p) => ({ ...p, shown: p.ids.reduce((t, i) => t + (n[i] || 0), 0) }))
       .filter((p) => p.shown)
+      .sort((a, b) => b.shown - a.shown || a.name.localeCompare(b.name))
   }, [view, ofType])
   const chosen = view.providers.find((p) => p.id === provider)
-  const listed = chosen ? ofType.filter((m) => chosen.ids.includes(m.provider)) : type ? ofType : []
-  // PICKING A BUBBLE SCROLLS TO ITS MODELS: with 80 bubbles above them, the
-  // list would otherwise open below the fold and read as nothing happening.
+  const listed = (chosen ? ofType.filter((m) => chosen.ids.includes(m.provider)) : ofType)
+    .slice().sort((a, b) => b.voices - a.voices || b.reports - a.reports || a.name.localeCompare(b.name))
+  // PICKING A BUBBLE SCROLLS TO ITS MODELS, which sit below every bubble.
   const results = useRef(null)
   const picked = useRef(false)
   useEffect(() => {
     if (picked.current && provider && results.current) results.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     picked.current = false
   }, [provider])
-  const sorted = [...listed].sort((a, b) => (b.listed_at || '').localeCompare(a.listed_at || ''))
+  const unvoiced = view.listed - voiced.length
 
   return (
     <div className="stack stack-4">
       <div className="cat-types" role="group" aria-label="Model type">
         <button type="button" className={`chip${!type ? ' chip-on' : ''}`} aria-pressed={!type} onClick={() => set('type', '')}>
-          All types <span className="x">{view.listed}</span>
+          All types <span className="x">{voiced.length}</span>
         </button>
         {MODEL_TYPES.map((t) => (
           <button key={t.key} type="button" className={`chip cat-chip t-${t.key}${type === t.key ? ' chip-on' : ''}`}
-                  aria-pressed={type === t.key} disabled={!view.types[t.key]} onClick={() => set('type', t.key)}>
-            <i aria-hidden="true" />{t.label} <span className="x">{view.types[t.key] || 0}</span>
+                  aria-pressed={type === t.key} disabled={!view.types_voiced[t.key]} onClick={() => set('type', t.key)}
+                  title={view.types_voiced[t.key] ? undefined : `No ${t.label.toLowerCase()} model has an engineer voice yet`}>
+            <i aria-hidden="true" />{t.label} <span className="x">{view.types_voiced[t.key] || 0}</span>
           </button>
         ))}
       </div>
 
       <div className="stack stack-2">
-        <span className="eyebrow">{providers.length} providers{type ? ` with ${typeLabel(type).toLowerCase()} models` : ''}</span>
+        <span className="eyebrow">{providers.length} providers{type ? ` with voiced ${typeLabel(type).toLowerCase()} models` : ' with voiced models'}</span>
         <div className="cat-bubbles">
           {providers.map((p) => (
             <button key={p.id} type="button" className={`cat-bubble${provider === p.id ? ' on' : ''}`}
@@ -149,45 +158,53 @@ function AllModels({ view, names }) {
         </div>
       </div>
 
-      {listed.length ? (
-        <section className="stack stack-2" ref={results} style={{ scrollMarginTop: 90 }}>
-          <h2 className="cat-week">
-            {chosen ? chosen.name : 'All providers'}{type ? ` · ${typeLabel(type)} models` : ''}
-            <span>{listed.length} {listed.length === 1 ? 'model' : 'models'}, newest first</span>
-          </h2>
-          <div className="cat-grid">{sorted.map((m) => <ModelCard key={m.id} m={m} providerName={names[m.provider]} showProvider={!provider} />)}</div>
-        </section>
-      ) : (
-        <p className="cat-hint">Pick a provider to see its models{type ? '' : ', or a type above to see every model of that type'}.</p>
-      )}
+      <section className="stack stack-2" ref={results} style={{ scrollMarginTop: 90 }}>
+        <h2 className="cat-week">
+          {chosen ? chosen.name : 'All providers'}{type ? ` · ${typeLabel(type)} models` : ''}
+          <span>{listed.length} {listed.length === 1 ? 'model' : 'models'}, most engineer voices first</span>
+        </h2>
+        {listed.length
+          ? <div className="cat-grid">{listed.map((m) => <ModelCard key={m.id} m={m} providerName={names[m.provider]} showProvider={!chosen} />)}</div>
+          : <p className="cat-hint">No model here has an engineer voice yet.</p>}
+      </section>
+
+      <p className="cat-hint">
+        These are the {voiced.length} models engineers have reported on. OpenRouter lists {unvoiced} more
+        with no engineer voice yet; they are in <Link to="/catalog/new">New releases</Link> and each has its own page.
+        A voice is one person: someone who posted about a model several times counts once.
+      </p>
     </div>
   )
 }
 
 export default function Catalog() {
   const rest = useParams()['*'] || ''
+  const modelId = rest.startsWith('model/') ? decodeURIComponent(rest.slice('model/'.length)) : null
   const isNew = rest === 'new'
   const [sp] = useSearchParams()
   const [state, setState] = useState({ view: null, err: null })
 
   useEffect(() => {
+    if (modelId) return undefined
     let alive = true
     modelCatalog()
       .then((view) => alive && setState({ view, err: null }))
       .catch((e) => alive && setState({ view: null, err: e.message || 'The models could not be read.' }))
     return () => { alive = false }
-  }, [])
+  }, [modelId])
 
   const type = sp.get('type') || ''
-  useHead(catalogIndex(isNew ? 'new' : type || null))
+  useHead(modelId ? null : catalogIndex(isNew ? 'new' : type || null))
   const view = state.view
   const names = useMemo(() => Object.fromEntries((view?.providers || []).flatMap((p) => p.ids.map((i) => [i, p.name]))), [view])
   const byId = useMemo(() => Object.fromEntries((view?.models || []).map((m) => [m.id, m])), [view])
 
+  if (modelId) return <ModelPage id={modelId} />
+
   const title = isNew ? 'New releases' : type ? `${typeLabel(type)} models` : 'All models'
   const lede = isNew
     ? `The ${view?.new_releases?.length || 40} models OpenRouter listed most recently, newest first.`
-    : 'Every model OpenRouter lists, from every provider. Pick a type, then a provider, to see its models.'
+    : 'The models engineers have reported on, most voices first. Pick a type, then a provider, to narrow the list.'
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -212,7 +229,8 @@ export default function Catalog() {
         <p className="cat-source">
           Listed by <a href="https://openrouter.ai/models" target="_blank" rel="noreferrer">OpenRouter</a>,
           read {fmtDate(view.polled_at.slice(0, 10))}: {view.listed} models from {view.providers.length} providers.
-          A type is the output OpenRouter lists for a model; prices are its list prices.
+          A type is the output OpenRouter lists for a model; prices are its list prices. Voices and reports
+          count what engineers posted publicly, from the sources this site shows.
           {view.aliases_left_out ? ` ${view.aliases_left_out} "latest" aliases are left out, each a pointer to a model listed under its own name.` : ''}
         </p>
       )}

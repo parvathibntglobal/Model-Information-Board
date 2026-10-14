@@ -2318,6 +2318,19 @@ def model_catalog() -> dict:
         return catalog_view(conn)
 
 
+@app.get("/model-catalog/{model_id:path}")
+def model_catalog_entry(model_id: str) -> dict:
+    """One model's page: price, specs, registry facts and engineer voices.
+    404 when the catalogue does not list it."""
+    from judge.catalog import catalog_model
+
+    with _conn() as conn:
+        found = catalog_model(conn, model_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail=f"{model_id} is not in the model catalogue")
+    return found
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.
