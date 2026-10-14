@@ -184,6 +184,20 @@ export function modelPicker() {
   }
 }
 
+/** `/catalog` and `/catalog/new`: every model OpenRouter lists. `type` is a
+ *  model type key (`image`), `'new'` for New releases, or null for All models. */
+const CATALOG_TYPE_NAMES = { text: 'Text', image: 'Image', video: 'Video', speech: 'Speech', audio: 'Audio', transcription: 'Transcription', decisions: 'Decision' }
+export function catalogIndex(type = null) {
+  if (type === 'new') {
+    return { title: fullTitle('New AI model releases'), description: 'The AI models listed most recently, newest first, with their prices, context and type.', canonical: '/catalog/new' }
+  }
+  if (type && CATALOG_TYPE_NAMES[type]) {
+    const n = CATALOG_TYPE_NAMES[type]
+    return { title: fullTitle(`${n} AI models by provider`), description: `Every ${n.toLowerCase()} AI model, by provider, with list prices and context.`, canonical: `/catalog?type=${type}` }
+  }
+  return { title: fullTitle('All AI models by provider and type'), description: 'Every AI model, from every provider: text, image, video, speech, audio, transcription and decision models.', canonical: '/catalog' }
+}
+
 export function toolsIndex() {
   return {
     title: fullTitle('AI model tools: model picker, specs and token counter'),

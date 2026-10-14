@@ -2307,6 +2307,17 @@ def reports_page() -> dict:
         return reports_view(conn)
 
 
+@app.get("/model-catalog")
+def model_catalog() -> dict:
+    """The Models pages: OpenRouter's whole list by provider and by type, the
+    newest listings, and which models have reports to open. See
+    `judge/catalog.py`; never read from the evidence pipeline."""
+    from judge.catalog import catalog_view
+
+    with _conn() as conn:
+        return catalog_view(conn)
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.

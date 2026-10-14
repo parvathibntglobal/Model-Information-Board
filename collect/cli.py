@@ -646,6 +646,26 @@ def _cmd_registry_aliases(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_poll_catalog(args: argparse.Namespace) -> int:
+    """OpenRouter's whole list, every output type, into `model_catalog`.
+
+    For the Models pages only - nothing in the evidence pipeline reads that
+    table (collect/registry/catalog.py says why). No credential: the feed is
+    public. Gated like every write.
+    """
+    from collect.db import transaction
+    from collect.http import build_client
+    from collect.registry.catalog import poll_catalog
+
+    with transaction() as conn:
+        _gate(conn)
+        with build_client() as client:
+            counts = poll_catalog(conn, client)
+    print(f"catalogue: {counts['listed']} listed "
+          f"({counts['added']} new, {counts['updated']} updated)")
+    return 0
+
+
 def _cmd_registry_recompute_window(args: argparse.Namespace) -> int:
     """Nightly. The sole writer of `model_version.in_window`."""
     from collect.db import transaction
@@ -1363,6 +1383,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="refresh model_version.in_window (nightly; sole writer of that column)",
     )
     recompute.set_defaults(func=_cmd_registry_recompute_window)
+
+    catalog = reg_sub.add_parser(
+        "poll-catalog",
+        help="OpenRouter's whole model list, every output type, into model_catalog "
+             "(the Models pages; never read by the evidence pipeline)",
+    )
+    catalog.set_defaults(func=_cmd_registry_poll_catalog)
 
     load = reg_sub.add_parser("load-seed", help="load contract/seed_models.yaml")
     load.add_argument("--dry-run", action="store_true", help="build rows, touch nothing")

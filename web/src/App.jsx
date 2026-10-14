@@ -47,6 +47,7 @@ const Blogs = page(() => import('./routes/Blogs'))
 const Tools = page(() => import('./routes/Tools'))
 const ModelPicker = page(() => import('./routes/ModelPicker'))
 const Reports = page(() => import('./routes/Reports'))
+const Catalog = page(() => import('./routes/Catalog'))
 const Discussions = page(() => import('./routes/Discussions'))
 const ModelDetail = page(() => import('./routes/ModelDetail'))
 const Models = page(() => import('./routes/Models'))
@@ -123,6 +124,7 @@ export default function App() {
           {/* the tool was briefly "AI model finder" here; an old link still opens it */}
           <Route path="/ai-model-finder" element={<MovedTo path="/model-picker" />} />
           <Route path="/reports/*"   element={<Require session={session}><Reports /></Require>} />
+          <Route path="/catalog/*"   element={<Require session={session}><Catalog /></Require>} />
           <Route path="/discussions" element={<Require session={session}><Discussions /></Require>} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           {/* BEFORE `/models/*`, and outside it. The comparison is entered from

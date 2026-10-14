@@ -22,7 +22,7 @@ EAGER = ("Landing", "Login")
 #: Every other page: fetched on first visit. Admin carries the big panels.
 LAZY = ("Board", "Blogs", "ModelDetail", "Models", "Compare",
         "TokenCounter", "ModelFinder", "Admin", "BlogLogs",
-        "Tools", "Reports", "Discussions", "ModelPicker")
+        "Tools", "Reports", "Discussions", "ModelPicker", "Catalog")
 
 
 def test_the_front_door_is_in_the_first_download():

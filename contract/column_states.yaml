@@ -1130,6 +1130,59 @@ columns:
     type:
       reviewed: false
       state: write_only
+  model_catalog:
+    canonical_id:
+      reviewed: true
+      state: read
+      why: "the model's id, shown and linked on the Models pages"
+    context_length:
+      reviewed: true
+      state: read
+      why: 'shown on each model card'
+    description:
+      reviewed: true
+      state: write_only
+      why: "kept as published; the cards do not show it yet - the intended reader is a model's catalogue detail, which does not exist yet"
+    first_seen_at:
+      reviewed: true
+      state: defaulted
+      why: "set by its DEFAULT now() on the insert that first lists a model, never by code - the upsert leaves it alone, so it keeps the first sighting. Nothing reads it yet; the intended reader is a 'new to the board' sort, distinct from listed_at"
+    input_modalities:
+      reviewed: true
+      state: read
+      why: 'shown on each model card'
+    last_seen_at:
+      reviewed: true
+      state: read
+      why: 'the page lists only what the latest poll listed'
+    listed_at:
+      reviewed: true
+      state: read
+      why: 'orders New releases and is shown as the date listed'
+    name:
+      reviewed: true
+      state: read
+      why: "the card's heading"
+    output_modalities:
+      reviewed: true
+      state: read
+      why: "the type filters (Text, Image, ...) and the card's badges"
+    price_in:
+      reviewed: true
+      state: read
+      why: 'shown per 1M input tokens; NULL renders as not priced per token'
+    price_out:
+      reviewed: true
+      state: read
+      why: 'shown per 1M output tokens; NULL renders as not priced per token'
+    pricing:
+      reviewed: true
+      state: read
+      why: 'the published unit price shown when a model is not priced per token'
+    provider:
+      reviewed: true
+      state: read
+      why: 'the provider bubbles'
   model_version:
     advertised_context:
       reviewed: false

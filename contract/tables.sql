@@ -196,6 +196,29 @@ CREATE TABLE pricing_history (
   PRIMARY KEY (model_version_id, observed_at)
 );
 
+-- ── model_catalog - OpenRouter's whole list, every output type (2026-10-14) ──
+-- For the Models pages ONLY; nothing in the evidence pipeline reads it, so a
+-- voice or video model listed here never becomes a search target. Writer:
+-- collect/registry/catalog.py. Reader: judge/catalog.py. Column meanings in
+-- migrations/20261014T1300_model_catalog.sql.
+CREATE TABLE model_catalog (
+  canonical_id       text PRIMARY KEY,   -- OpenRouter's id as listed
+  provider           text NOT NULL,      -- vendor segment, '~' stripped
+  name               text NOT NULL,
+  description        text,
+  listed_at          timestamptz,        -- when OPENROUTER listed it, not a release date
+  input_modalities   text[] NOT NULL,
+  output_modalities  text[] NOT NULL,    -- OpenRouter's types, as published
+  context_length     int,
+  price_in           numeric(12,6),      -- USD per 1M tokens; NULL = not priced per token
+  price_out          numeric(12,6),
+  pricing            jsonb NOT NULL,     -- as published (per image, per second ...)
+  first_seen_at      timestamptz NOT NULL DEFAULT now(),
+  last_seen_at       timestamptz NOT NULL
+);
+
+CREATE INDEX model_catalog_seen_idx ON model_catalog (last_seen_at);
+
 
 -- ============================================================================
 --  THE INTERFACE — collect/ fills these, judge/ reads them.
