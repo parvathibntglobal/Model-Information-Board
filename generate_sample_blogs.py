@@ -1702,8 +1702,14 @@ def experience_unanchored(sentence: str, notes: str) -> str | None:
     low = " ".join(re.findall(r"[a-z0-9.$'-]+", notes.lower()))
     if any(" ".join(words[i:i + 4]) in low for i in range(len(words) - 3)):
         return None
+    # SHOW THE NOTE (2026-10-14). The bare message held a reasoning post for 5
+    # repairs: the writer retold the note in its own words every round and never
+    # saw which figure or wording would anchor it.
+    figs = list(dict.fromkeys(n for n in NUMBER.findall(notes)
+                              if len(n.strip("$%").replace(",", "")) >= 2))[:5]
     return (f"first-person experience ({m.group(0)!r}) that retells no WHAT WE TRIED note - "
-            "carry the note's figure or wording, or make it an opinion")
+            f"carry one of its figures ({', '.join(figs) or 'none'}) or four words in a row from it "
+            f"(it opens: {' '.join(notes.split()[:12])!r} ...), or make it an opinion")
 
 
 def _kw_in(text: str, kw: str) -> bool:
