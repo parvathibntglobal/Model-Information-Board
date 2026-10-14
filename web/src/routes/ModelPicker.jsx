@@ -221,8 +221,8 @@ function GroupChart({ ms, kind, refPrice, priceOf, cmp }) {
               <i className="mp-div-mid" />
               {s.negative > 0 && <i className="mp-div-neg" style={{ width: `${wn}%` }} />}
               {s.positive > 0 && <i className="mp-div-pos" style={{ width: `${wp}%` }} />}
-              <b className="mp-div-l" style={{ right: `calc(50% + ${wn}% + 5px)` }}>{s.negative}</b>
-              <b className="mp-div-r" style={{ left: `calc(50% + ${wp}% + 5px)` }}>{s.positive}</b>
+              <b style={{ right: `calc(50% + ${wn}% + 5px)` }}>{s.negative}</b>
+              <b style={{ left: `calc(50% + ${wp}% + 5px)` }}>{s.positive}</b>
             </span>
             <span className="mp-chart-side">{s.neutral} · {m.voices || '—'}</span>
             <label className="mp-cmp"><input type="checkbox" checked={on} disabled={!on && cmp.size >= COMPARE_MAX} onChange={() => cmp.toggle(id)} aria-label={`Compare ${shortName(m)}`} /></label>
