@@ -21,7 +21,8 @@ APP = (Path(__file__).resolve().parents[1] / "web" / "src" / "App.jsx").read_tex
 EAGER = ("Landing", "Login")
 #: Every other page: fetched on first visit. Admin carries the big panels.
 LAZY = ("Board", "Blogs", "ModelDetail", "Models", "Compare",
-        "TokenCounter", "ModelFinder", "Admin", "BlogLogs")
+        "TokenCounter", "ModelFinder", "Admin", "BlogLogs",
+        "Tools", "Reports", "Discussions", "ModelPicker")
 
 
 def test_the_front_door_is_in_the_first_download():

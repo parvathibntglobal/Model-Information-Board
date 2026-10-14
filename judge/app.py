@@ -2295,6 +2295,18 @@ def freshness_page() -> dict:
         return board_freshness(conn)
 
 
+@app.get("/reports")
+def reports_page() -> dict:
+    """The Reports page: every job, capability and metric with each model's
+    voices, reports, platforms and positive / negative / neutral split -
+    counted, never quoted, and always over the PUBLIC view. See
+    `judge/reports.py`."""
+    from judge.reports import reports_view
+
+    with _conn() as conn:
+        return reports_view(conn)
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.

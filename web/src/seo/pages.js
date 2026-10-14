@@ -169,6 +169,68 @@ export function modelFinder() {
   }
 }
 
+/**
+ * THE DEMO'S SECTIONS (2026-10-14). Tools gathers pages that already exist.
+ * Reports and Discussions are being built: until they hold content they ask
+ * not to be indexed, so an empty page never reaches a search result.
+ */
+/** `/model-picker`: the best model for a job, and cheaper alternatives (2026-10-14). */
+export function modelPicker() {
+  return {
+    title: fullTitle('Best AI model picker: the best model for the job, or a cheaper alternative'),
+    description: 'Find the best AI model for your job, or a cheaper alternative to the one you use, from what engineers reported working - beside what each model costs.',
+    canonical: '/model-picker',
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Best AI model picker', path: '/model-picker' }],
+  }
+}
+
+export function toolsIndex() {
+  return {
+    title: fullTitle('AI model tools: model picker, specs and token counter'),
+    description: 'Find which AI models engineers reported working for your job, what each model advertises, and what your prompt would cost on each one.',
+    canonical: '/tools',
+  }
+}
+
+/**
+ * `/reports` and each of its pages: the hub, a section (`/reports/jobs`) or one
+ * item in it (`/reports/jobs/coding-agent`). `item.name` is null until the data
+ * has loaded, and the title then names the section alone.
+ */
+export function reportsIndex(section = null, item = null) {
+  if (!section) {
+    return {
+      title: fullTitle('AI models: what engineers report about each one'),
+      description: 'What engineers report about each AI model, by job, capability and metric: counted, and shown only where at least five different people reported.',
+      canonical: '/reports',
+    }
+  }
+  const base = `/reports/${section.key}`
+  if (item && item.name) {
+    return {
+      title: fullTitle(`${item.name}: what engineers report`),
+      description: clip(`What engineers report about ${item.name}, counted by positive, negative and neutral reports, never quoted.`),
+      canonical: `${base}/${item.path}`,
+      breadcrumbs: [{ name: 'AI models', path: '/reports' }, { name: item.name, path: `${base}/${item.path}` }],
+    }
+  }
+  return {
+    title: fullTitle(section.key === 'models' ? 'AI models: what engineers report about each one' : `${section.title}: what engineers report`),
+    description: clip(section.lede),
+    canonical: base,
+    breadcrumbs: [{ name: 'AI models', path: '/reports' }, ...(section.key === 'models' ? [] : [{ name: section.title, path: base }])],
+  }
+}
+
+export function discussionsIndex() {
+  return {
+    title: fullTitle("Discussions: readers' experiences with AI models"),
+    description: "Readers' own experiences with AI models, jobs, capabilities and metrics, shown beside the reports and never added to the counts.",
+    canonical: '/discussions',
+    noindex: true,
+  }
+}
+
 export function blogIndex() {
   return {
     title: fullTitle('Notes on AI models'),

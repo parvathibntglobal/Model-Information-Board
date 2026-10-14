@@ -39,6 +39,10 @@ const COMPARE_MAX = 3
  */
 export default function Compare() {
   const [sp, setSp] = useSearchParams()
+  // OPENED FROM REPORTS (`?from=reports`, 2026-10-14). Reports is counts only and
+  // never quotes, so a comparison started there leaves out "In their words".
+  // Opened from the Models list, the page is unchanged.
+  const fromReports = sp.get('from') === 'reports'
   const ids = (sp.get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean)
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
   //: The registry, for the picker. Loaded lazily - a reader who never opens
@@ -78,7 +82,8 @@ export default function Compare() {
   const setIds = (next) => {
     const trimmed = next.slice(0, COMPARE_MAX)
     if (trimmed.length < 2) return   // the endpoint needs two; refuse here
-    setSp({ ids: trimmed.join(',') })
+    // keep `from` so changing the models does not bring the quotes back
+    setSp(fromReports ? { ids: trimmed.join(','), from: 'reports' } : { ids: trimmed.join(',') })
   }
 
   const dropModel = (id) => setIds(ids.filter((x) => x !== id))
@@ -112,9 +117,11 @@ export default function Compare() {
           <strong style={{ color: 'var(--text)' }}>That comparison could not be built.</strong>{' '}
           {state.err}
         </Notice>
-        <p style={{ marginTop: 'var(--s3)' }}>
-          <Link to="/models" className="mb-link">← All models</Link>
-        </p>
+        {!fromReports && (
+          <p style={{ marginTop: 'var(--s3)' }}>
+            <Link to="/models" className="mb-link">← All models</Link>
+          </p>
+        )}
       </div>
     )
   }
@@ -148,7 +155,9 @@ export default function Compare() {
   return (
     <div className="shell section-tight stack stack-4">
       <div className="stack stack-2">
-        <Link to="/models" className="mb-link" style={{ fontSize: 'var(--fs-xs)' }}>← All models</Link>
+        {/* NO "← All models" FROM REPORTS: the reader came from Reports → AI
+            models, not from the models list. */}
+        {!fromReports && <Link to="/models" className="mb-link" style={{ fontSize: 'var(--fs-xs)' }}>← All models</Link>}
         <span className="eyebrow">AI model comparison</span>
         {/* THE NAMES WITHOUT THE VENDOR PREFIX ("Anthropic: Claude Opus 5" ->
             "Claude Opus 5"): shorter, and the form people search ("claude vs
@@ -192,7 +201,7 @@ export default function Compare() {
         <>
           <HeadToHead models={models} />
           <StickyNames models={models} />
-          <FaceOff models={models} />
+          {!fromReports && <FaceOff models={models} />}
         </>
       )}
 
@@ -408,7 +417,9 @@ export default function Compare() {
              never filled, this is where it goes back. */}
 
       <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        Change the selection on the <Link to="/models" className="mb-link">models list</Link>.
+        Change the selection on {fromReports
+          ? <Link to="/reports" className="mb-link">AI models</Link>
+          : <>the <Link to="/models" className="mb-link">models list</Link></>}.
       </p>
     </div>
   )

@@ -19,6 +19,13 @@ import NotFound from './components/NotFound'
  * instead of rendering nothing. The flag stops a loop: if the reload does not
  * fix it, the error is thrown and shows (rule 12), never swallowed.
  */
+/** An address that moved: forwards to the new one, keeping its query, so a
+ *  shared search (`?model=...`) still opens as it was sent. */
+function MovedTo({ path }) {
+  const { search } = useLocation()
+  return <Navigate to={path + search} replace />
+}
+
 function page(load) {
   return lazy(() => load().catch((err) => {
     let reloaded = false
@@ -37,6 +44,10 @@ function page(load) {
 
 const Board = page(() => import('./routes/Board'))
 const Blogs = page(() => import('./routes/Blogs'))
+const Tools = page(() => import('./routes/Tools'))
+const ModelPicker = page(() => import('./routes/ModelPicker'))
+const Reports = page(() => import('./routes/Reports'))
+const Discussions = page(() => import('./routes/Discussions'))
 const ModelDetail = page(() => import('./routes/ModelDetail'))
 const Models = page(() => import('./routes/Models'))
 const Compare = page(() => import('./routes/Compare'))
@@ -107,6 +118,12 @@ export default function App() {
           <Route path="/"        element={<Require session={session}><Landing /></Require>} />
           <Route path="/board/*" element={<Require session={session}><Board /></Require>} />
           <Route path="/blogs/*" element={<Require session={session}><Blogs /></Require>} />
+          <Route path="/tools"       element={<Require session={session}><Tools /></Require>} />
+          <Route path="/model-picker" element={<Require session={session}><ModelPicker /></Require>} />
+          {/* the tool was briefly "AI model finder" here; an old link still opens it */}
+          <Route path="/ai-model-finder" element={<MovedTo path="/model-picker" />} />
+          <Route path="/reports/*"   element={<Require session={session}><Reports /></Require>} />
+          <Route path="/discussions" element={<Require session={session}><Discussions /></Require>} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           {/* BEFORE `/models/*`, and outside it. The comparison is entered from
               the models list, but its own URL is `/compare?ids=…`: a model id

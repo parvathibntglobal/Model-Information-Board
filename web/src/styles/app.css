@@ -63,6 +63,22 @@ main{flex:1}
 .nav-link:hover{color:var(--text);background:var(--surface)}
 .nav-link.on{color:var(--text);background:var(--surface-2)}
 .nav-right{display:flex;align-items:center;gap:var(--s1)}
+.nav-menu{position:relative;display:flex}
+.nav-menu-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:0;cursor:pointer;font-family:inherit;line-height:inherit}
+.nav-menu.on .nav-menu-btn{color:var(--text);background:var(--surface-2)}
+.nav-caret{font-size:.7em;opacity:.7}
+/* padding-top bridges the gap, so moving the pointer down does not close it */
+.nav-menu-pop{position:absolute;top:100%;left:0;padding-top:6px;min-width:180px;
+  display:none;flex-direction:column;z-index:70}
+.nav-menu-pop::before{content:"";position:absolute;inset:6px 0 0;border-radius:var(--r-control);
+  background:var(--bg);border:1px solid var(--border);box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:-1}
+.nav-menu.end .nav-menu-pop{left:auto;right:0}
+.nav-menu:hover .nav-menu-pop,.nav-menu:focus-within .nav-menu-pop{display:flex}
+.nav-menu-item{font-size:var(--fs-sm);color:var(--text-2);padding:9px 14px;margin:2px 4px;border-radius:8px}
+.nav-menu-pop .nav-menu-item:first-child{margin-top:6px}
+.nav-menu-pop .nav-menu-item:last-child{margin-bottom:6px}
+.nav-menu-item:hover,.nav-menu-item:focus-visible{color:var(--text);background:var(--surface)}
+.nav-menu-item.on{color:var(--text);background:var(--surface-2)}
 
 /* ================================================================ buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;

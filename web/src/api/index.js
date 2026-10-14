@@ -316,6 +316,9 @@ const BOARD_TTL_MS = 2 * 60 * 1000
 export const boardPage = () => cached('board', () => request('/board'), { ttl: BOARD_TTL_MS })
 // When the board last changed and how new its evidence is (components/Freshness.jsx).
 export const freshness = () => cached('freshness', () => request('/freshness'), { ttl: BOARD_TTL_MS })
+// THE REPORTS PAGE: the board's counts over the PUBLIC view, never a quote
+// (judge/reports.py). Cached like the board, which it is read from.
+export const reportsPage = () => cached('reports', () => request('/reports'), { ttl: BOARD_TTL_MS })
 
 export const coveragePage = () => request('/coverage')
 
