@@ -30,7 +30,7 @@ export const DB = {
   //
   // Empty when the payload predates grouping, and the views fall back to the
   // flat list - so an older API renders exactly as it did.
-  capGroups: [], metGroups: [],
+  jobGroups: [], capGroups: [], metGroups: [],
   // COMPUTED PER REQUEST, NEVER CARRIED AS A LITERAL. The ungrouped count was
   // 19 in the proposal, 20 in review and 21 by the time the page was written -
   // three answers in one day. Anything that states it reads this.
@@ -636,6 +636,7 @@ export function setBoardData(payload) {
     })
   }
   const grouped = d.grouped || {}
+  DB.jobGroups = regroup(grouped.jobs, DB.jobs)
   DB.capGroups = regroup(grouped.caps, DB.caps)
   DB.metGroups = regroup(grouped.mets, DB.mets)
   DB.parentCoverage = d.parent_coverage || {}

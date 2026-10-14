@@ -500,6 +500,10 @@ function groupedGrid(groups, flat, draw){
  * are not dropped (rule 4: an absence we caused must say so) and they are not
  * filed under a heading invented to hold them (no `other` parent). */
 const BOXED = {
+  // JOBS TOO, the same day: 341 job leaves on the local copy, none under a
+  // heading until then. Metrics keep their in-list headings for now.
+  best: { groups: () => DB.jobGroups, flat: () => DB.jobs, draw: (j, note) => card(j, 'job', note),
+          one: 'job', many: 'jobs', tab: 'Jobs' },
   cap: { groups: () => DB.capGroups, flat: () => DB.caps, draw: (c, note) => card(c, 'cap', note),
          one: 'capability', many: 'capabilities', tab: 'Capabilities' },
 };
@@ -643,7 +647,9 @@ function vBoard(tab, group){
       // The ordering statement sits BESIDE the cards: one rule for every job
       // page, stated once where the pages are chosen (see orderPanel).
       side: orderPanel('job'),
-      grid: DB.jobs.length ? gridBlock(DB.jobs.map(j=>card(j,'job')).join('')) : empty},
+      // BOXES, NOT A LIST (2026-10-14), as on the Capabilities tab.
+      note: boxNote('best'),
+      grid: DB.jobs.length ? boxGrid('best') : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
       // BOXES, NOT A LIST (2026-10-14): the headings first, a box opens one.
       note: boxNote('cap'),
@@ -795,7 +801,9 @@ function vJob(slug){
   //   the job        `about`, hand-written (contract/job_about.yaml), or nothing
   //   the evidence   the stat line, the group headings, each row's counts
   //   the rules      the order line, and "What counts here" below the list
-  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
+  const head = groupOf('best', j.slug);
+  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],
+    ...(head ? [head] : []),[j.name,null]])}
     <h1>${esc(j.h1)}</h1>${datesLine(j.freshUpdated, j.freshNewest)}
     ${j.about ? `<p class="lead">${esc(j.about)}</p>` : ''}
     ${statLine(j)}

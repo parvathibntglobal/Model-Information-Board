@@ -172,15 +172,32 @@ class TestUngroupedIsTheDefault:
             assert "other" not in parents
             assert "misc" not in parents
 
-    def test_best_for_has_no_parents_and_that_is_not_an_oversight(self):
-        """Deferred pending #412: `coding-agent` is 142 of 282 entries and 106
-        of the 142 do not belong under it."""
-        assert "best_for" not in RAW["sections"]
-        assert "best_for" not in slug_parents()
+    def test_best_for_has_parents_and_coding_agent_keeps_its_own_rows(self):
+        """Deferred until 2026-10-14 pending #412, whose remainder is #415 and
+        still open: `coding-agent` holds rows that do not belong under it. A
+        heading neither repairs nor hides that - the leaf renders with every
+        row it has, and #415 is where it is fixed."""
+        assert "best_for" in slug_parents()
+        rows = group_section([leaf("coding-agent", 142)], section="best_for")
+        assert rows[0]["parent"] == "agentic-automation"
+        assert rows[0]["children"][0]["reports"] == 142
+
+    def test_nothing_but_its_twin_is_filed_into_coding_agent(self):
+        """Folding more into a leaf that is already mostly misfiled would bury
+        more misfiled rows; only the identical `coding-agents` is proposed."""
+        import importlib.util
+
+        from judge.config import CONTRACT_DIR
+
+        path = CONTRACT_DIR.parent / "docs" / "proposals" / "job_curation_2026_10_14.py"
+        spec = importlib.util.spec_from_file_location("jobs", path)
+        jobs = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(jobs)
+        assert jobs.CLUSTERS["coding-agent"][1] == ["coding-agents"]
 
     def test_a_section_with_no_map_comes_back_unchanged_in_shape(self):
         items = [leaf("coding-agent", 142), leaf("classification", 10)]
-        rows = group_section(items, section="best_for")
+        rows = group_section(items, section="a-section-with-no-map")
         assert [r["kind"] for r in rows] == ["leaf", "leaf"]
         assert all(r["parent"] is None for r in rows)
         assert [r["slug"] for r in rows] == ["coding-agent", "classification"]
@@ -280,7 +297,7 @@ def test_group_sections_covers_every_section_it_is_given():
     assert set(got) == {"capability", "metric", "best_for"}
     assert got["capability"][0]["parent"] == "software-engineering"
     assert got["metric"][0]["parent"] == "price"
-    assert got["best_for"][0]["parent"] is None
+    assert got["best_for"][0]["parent"] == "agentic-automation"
 
 
 class TestTheRenamedParents:

@@ -27,6 +27,7 @@ import NotFound from '../components/NotFound'
  * Routes handled (via the /board/* splat):
  *   /board                          → hub, tab from ?tab (best|cap|met)
  *   /board?tab=cap&group=<heading>  → one heading's capabilities (a box opened)
+ *   /board?tab=best&group=<heading> → one heading's jobs
  *   /board/jobs/:slug               → the models reported for that job
  *   /board/jobs/:slug/*             → one model's reports on that job
  *   /board/capabilities/:slug       → the models reported on that capability

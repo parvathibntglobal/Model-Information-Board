@@ -584,13 +584,13 @@ def store_entries(
     # prompt; "11 with no quantity, 1 whose figure is not in its quote" sends
     # them to two different places, and only one of them is the prompt.
     refused: dict[str, int] = {}
-    # THE HEADING THE EXTRACTOR FILED A CAPABILITY UNDER, kept only when it is
-    # one of the section's real headings. Anything else is stored as NULL and
-    # COUNTED (rule 4): the row is kept either way, because a missing heading
-    # is a filing gap, not a reason to lose a report (rule 8).
+    # THE HEADING THE EXTRACTOR FILED AN ENTRY UNDER, kept only when it is one
+    # of its section's real headings. Anything else is stored as NULL and
+    # COUNTED per section (rule 4): the row is kept either way, because a
+    # missing heading is a filing gap, not a reason to lose a report (rule 8).
     from judge.config import section_headings
 
-    unfiled = 0
+    unfiled: dict[str, int] = {}
     with conn.cursor() as cur:
         for e in entries:
             if not e.get("quote_verified"):
@@ -617,12 +617,13 @@ def store_entries(
                 skipped += 1
                 continue
             parent = None
-            if section == "capability":
+            headings = section_headings(section)
+            if headings:
                 proposed_parent = (e.get("parent") or "").strip().lower()
-                if proposed_parent in section_headings(section):
+                if proposed_parent in headings:
                     parent = proposed_parent
                 else:
-                    unfiled += 1
+                    unfiled[section] = unfiled.get(section, 0) + 1
             cur.execute(
                 "INSERT INTO board_entry "
                 "(id, section, slug, name, definition, unit, value_verbatim, basis,"
@@ -651,9 +652,9 @@ def store_entries(
         "skipped_unverified": skipped,
         "refused_metrics": sum(refused.values()),
         "refused_by": refused,
-        # Capability rows stored with no usable heading - missing, or not one
-        # of the ten. Kept and counted, never dropped.
-        "capability_unfiled": unfiled,
+        # Rows stored with no usable heading - missing, or not one of their
+        # section's headings - per section. Kept and counted, never dropped.
+        "unfiled_by_section": unfiled,
     }
 
 

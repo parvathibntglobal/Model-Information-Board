@@ -914,11 +914,11 @@ CREATE TABLE board_entry (
   -- guessing from the old shape would bake an accident in as a decision.
   model_scope       text,
 
-  -- ── the heading the extractor filed a capability under (2026-10-14) ─────
-  -- One of the section's headings in contract/slug_parents.yaml, or NULL:
-  -- not a capability, written before this column, or the extractor gave no
-  -- heading or one that is not real (counted in store_entries' outcome as
-  -- `capability_unfiled`). Read by board_sections to place a leaf the
+  -- ── the heading the extractor filed an entry under (2026-10-14) ─────────
+  -- One of its section's headings in contract/slug_parents.yaml, or NULL:
+  -- written before this column, or the extractor gave no heading or one that
+  -- is not real (counted per section in store_entries' outcome as
+  -- `unfiled_by_section`). Read by board_sections to place a leaf the
   -- contract has not filed; the contract wins wherever it has an answer.
   parent_proposed   text,
 

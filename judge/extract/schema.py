@@ -286,7 +286,7 @@ class BoardEntry(BaseModel):
         )
     )
 
-    #: ── capability-only: the heading it is filed under (2026-10-14) ──────
+    #: ── the heading it is filed under (2026-10-14) ───────────────────────
     #: OPTIONAL IN THE SCHEMA ON PURPOSE. Required, a missing heading would fail
     #: validation and drop the entry - real evidence lost for a filing detail,
     #: a gate where a weight belongs (rule 8). Code stores it only when it is
@@ -294,11 +294,11 @@ class BoardEntry(BaseModel):
     parent: str | None = Field(
         default=None,
         description=(
-            "CAPABILITY ENTRIES ONLY. The key of the heading this capability is "
-            "filed under - one of the bracketed keys in the capability "
-            "vocabulary, such as `software-engineering` or `agentic`. For a "
-            "listed slug, the heading it is listed under; for a new one, the "
-            "heading it belongs under. Leave empty on a job or a metric."
+            "The key of the heading this entry is filed under - one of the "
+            "bracketed keys listed for ITS OWN section in the vocabulary, such as "
+            "`software-engineering` for a capability or `price` for a metric. "
+            "For a listed slug, the heading it is listed under; for a new one, "
+            "the heading it belongs under."
         ),
     )
 
