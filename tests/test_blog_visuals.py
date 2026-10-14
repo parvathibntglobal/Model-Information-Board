@@ -301,3 +301,23 @@ def test_the_post_opens_on_its_picture(page):
     html = page["html"]
     assert 0 <= html.find("es-cover") < html.find("<h2")
     assert html.count("es-fig-image") == 1 and "REMOTE IMAGE" not in html
+
+
+@pytest.mark.parametrize("scene, refused", [
+    # 2026-10-14: a field report failed all 5 repairs on this shape - the
+    # writer listed what the picture leaves out, and the list was read as shown.
+    ("A reviewer studies a long scroll of requests, without any numerals, brand marks, or "
+     "recognizable logos, in soft blue light at a quiet desk.", None),
+    ("Two diverging paths in a forest at dusk with no people or text anywhere in the frame, "
+     "only fog and a single lantern.", None),
+    # A negation stops at the first word that is not part of the list.
+    ("A robot without a logo, holding a chart that rises sharply above a quiet city at "
+     "night.", "chart"),
+    ("A quiet desk with no text on the screen while a dashboard glows beside an empty "
+     "chair.", "dashboard"),
+])
+def test_what_a_scene_leaves_out_is_not_what_it_shows(scene, refused):
+    ills = [dict(ILL, scene=scene)] + ILLS[1:]
+    v = [x for x in g.illustration_violations({"illustrations": ills}, 6)
+         if ".scene:" in x and "no text, numbers" in x]
+    assert (v[0].split("'")[1] if v else None) == refused

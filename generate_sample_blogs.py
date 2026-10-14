@@ -727,7 +727,7 @@ TOOL = {
                     "items": {"type": "object", "required": ["section", "scene", "alt", "caption"],
                               "properties": {
                                   "section": {"type": "integer", "description": "Index of the section it illustrates (0-based)."},
-                                  "scene": {"type": "string", "description": "What the picture shows, 15 to 80 words: a concrete scene or visual metaphor. No text, numbers, logos, brands, product names, real people, screenshots or charts."},
+                                  "scene": {"type": "string", "description": "What the picture shows, 15 to 80 words: a concrete scene or visual metaphor. No text, numbers, logos, brands, product names, real people, screenshots or charts - and do not list these exclusions in the scene; the picture style already forbids them."},
                                   "alt": {"type": "string", "description": "Alt text, at most 125 characters, describing the picture."},
                                   "caption": {"type": "string", "description": "One short sentence tying the picture to the section."}}}},
                 "embeds": {"type": "array",
@@ -1317,6 +1317,44 @@ SCENE_REFUSED = re.compile(
     r"microsoft|nvidia|amazon|apple|openrouter|hugging ?face|github|reddit|twitter)\b", re.I)
 
 
+#: Words that continue a list of things a picture leaves out ("without any
+#: numerals, brand marks, or recognisable logos"). A negation consumes only
+#: these, so "a robot without a logo, holding a chart" still shows a chart.
+_NEG_START = re.compile(r"\b(?:without|no|not|never|nor|free of|devoid of|lacking)\b", re.I)
+_NEG_LIST = frozenset({
+    "a", "an", "any", "the", "or", "and", "nor", "other", "visible", "readable", "legible",
+    "recognisable", "recognizable", "identifiable", "real", "actual", "written", "on-screen",
+    "marks", "mark", "names", "name", "numerals", "numeral", "labels", "faces", "face", "people",
+    "person", "persons", "likenesses", "likeness", "screens", "screen", "signs", "symbols",
+    "icons", "writing", "characters", "typography", "lettering", "wordmarks", "trademarks"})
+
+
+def scene_shows(scene: str) -> str:
+    """The scene minus what it says the picture does NOT show.
+
+    Measured 2026-10-14: a field report failed all 5 repairs on one scene
+    because the writer kept listing what the picture leaves out - "without
+    numerals, brand marks, or recognizable logos" - and the word check read
+    "brand", then "text", then "logos" as things shown. The style prompt
+    already forbids all of them, so the list was never needed either.
+    """
+    out, i = [], 0
+    for m in _NEG_START.finditer(scene):
+        if m.start() < i:
+            continue
+        out.append(scene[i:m.start()])
+        j = m.end()
+        for t in re.finditer(r"\s*,?\s*([A-Za-z-]+)", scene[j:]):
+            word = t.group(1).lower()
+            if word in _NEG_LIST or SCENE_REFUSED.fullmatch(word):
+                j = m.end() + t.end()
+                continue
+            break
+        i = j
+    out.append(scene[i:])
+    return " ".join(out)
+
+
 def illustration_violations(essay: dict, n_sections: int) -> list[str]:
     """The pictures the essay proposes: how many, which section, and a scene
     that depicts no data, brand, product, real person or text."""
@@ -1340,9 +1378,10 @@ def illustration_violations(essay: dict, n_sections: int) -> list[str]:
         scene = (il or {}).get("scene", "")
         if not 15 <= len(scene.split()) <= 80:
             v.append(f"{p}.scene: {len(scene.split())} words; describe the picture in 15 to 80")
-        if (m := SCENE_REFUSED.search(scene)):
+        if (m := SCENE_REFUSED.search(scene_shows(scene))):
             v.append(f"{p}.scene: {m.group(0)!r} - a generated picture shows no text, numbers, brands, products, "
-                     "real people, screens or charts; describe the situation as a scene or metaphor")
+                     "real people, screens or charts; describe the situation as a scene or metaphor. Do not "
+                     "list what it leaves out - the picture style already forbids all of these")
         if not (il or {}).get("alt", "").strip() or len(il.get("alt", "")) > 125:
             v.append(f"{p}.alt: alt text of 1 to 125 characters describing the picture")
         if not (il or {}).get("caption", "").strip():
