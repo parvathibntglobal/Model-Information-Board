@@ -225,3 +225,228 @@
 .mp .mp-actions{white-space:nowrap}
 .mp .mp-card .mp-meta{margin-top:2px}
 .mp .mp-card .mp-meta.mp-dim{color:var(--text-3)}
+
+/* ── 2026-10-14 rework: question first, short answer, price vs evidence ── */
+.mp .mp-sentence{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-size:1.12rem;color:var(--text);line-height:1.6}
+.mp .mp-sentence select{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);border-bottom:2px solid var(--mp-good);border-radius:10px;padding:7px 10px;font-size:1rem;font-weight:600;max-width:280px}
+.mp .mp-sentence select:focus{outline:none;border-color:var(--mp-good)}
+.mp .mp-or{display:flex;align-items:center;gap:12px;color:var(--text-3);font:500 .7rem var(--font-mono);text-transform:uppercase;letter-spacing:.1em;margin:4px 0}
+.mp .mp-or::before,.mp .mp-or::after{content:"";flex:1;height:1px;background:var(--border-soft)}
+.mp .mp-active{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.mp .mp-active:empty{display:none}
+.mp .mp-active .mp-tag{font-size:.82rem}
+/* the short answer */
+.mp .mp-picks{margin-top:16px;padding:16px;border:1px solid rgba(34,197,94,.3);border-radius:16px;background:linear-gradient(180deg,rgba(34,197,94,.07),rgba(255,255,255,.01) 70%)}
+.mp .mp-picks-h{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;margin-bottom:12px}
+.mp .mp-picks-h b{font-size:1.05rem}
+.mp .mp-picks-h .mp-dim{font-size:.8rem}
+.mp .mp-picks-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.mp .mp-pick{background:var(--mp-card);border:1px solid #2E2E36;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 22px rgba(0,0,0,.25)}
+.mp .mp-pick-labels{display:flex;flex-wrap:wrap;gap:6px}
+.mp .mp-pick-label{font:600 .64rem var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--bg);background:var(--mp-good-text);border-radius:6px;padding:3px 7px}
+.mp .mp-pick-name{font-weight:700;font-size:1.08rem;display:flex;flex-direction:column}
+.mp .mp-pick-name small{font:500 .62rem var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:500}
+.mp .mp-pick-line{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mp .mp-pick-price{font:600 .86rem var(--font-mono)}
+.mp .mp-pick-price small{font-size:.62rem;color:var(--text-3)}
+.mp .mp-pick-why{font-size:.8rem;color:var(--text-2)}
+.mp .mp-pick-foot{display:flex;justify-content:flex-end;gap:12px;font:.7rem var(--font-mono);margin-top:auto;padding-top:8px;border-top:1px solid var(--border-soft)}
+/* collapsible groups */
+.mp button.mp-group-h{border:0;cursor:pointer;font:600 .72rem var(--font-sans);text-transform:uppercase;letter-spacing:.08em}
+.mp button.mp-group-h:hover{filter:brightness(1.15)}
+.mp .mp-caret-s{margin-left:4px;opacity:.8}
+.mp .mp-group-closed{padding:8px 14px}
+.mp .mp-group-closed .mp-group-h{margin:0}
+/* card: fewer numbers, more reasons */
+.mp .mp-people{font:600 .8rem var(--font-mono);color:var(--text)}
+.mp .mp-stale{font:.7rem var(--font-mono);color:var(--mp-mixed-text)}
+.mp .mp-why{font-size:.78rem;color:var(--text-2);line-height:1.45}
+.mp .mp-why b{color:var(--mp-good-text);font-weight:600}
+.mp .mp-card-facts{gap:6px}
+/* empty results offer the next step */
+.mp .mp-relax{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+/* price vs evidence */
+.mp .mp-scatter{background:var(--mp-card);border:1px solid #2E2E36;border-radius:14px;padding:12px 12px 10px;box-shadow:0 8px 22px rgba(0,0,0,.25)}
+.mp .mp-scatter svg{width:100%;height:auto;display:block}
+.mp .mp-grid{stroke:var(--border-soft);stroke-width:1}
+.mp .mp-tick{font:10px var(--font-mono);fill:var(--text-3)}
+.mp .mp-axis-label{font:500 10.5px var(--font-mono);fill:var(--text-2);letter-spacing:.04em}
+.mp .mp-pt{cursor:pointer}
+.mp .mp-pt:hover circle,.mp .mp-pt:focus circle{stroke:var(--text);stroke-width:2.5}
+.mp .mp-pt:focus{outline:none}
+.mp .mp-pt-label{font:600 10.5px var(--font-sans);fill:var(--text);paint-order:stroke;stroke:var(--mp-card);stroke-width:3px}
+.mp .mp-scatter-foot{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.76rem;color:var(--text-2);padding:8px 4px 0}
+.mp .mp-scatter-foot i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+/* narrow screens: the settings fold into one button */
+.mp .mp-side-toggle{display:none}
+@media (max-width: 900px){
+  .mp .mp-side-toggle{display:inline-flex;align-self:flex-start;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:var(--r-pill);padding:8px 16px;font-size:.88rem}
+  .mp .mp-side{display:none}
+  .mp .mp-side.mp-side-open{display:flex}
+  .mp .mp-sentence{font-size:1rem}
+  .mp .mp-sentence select{max-width:100%}
+}
+
+/* ── LAYOUT (2026-10-14, the agreed design): a sentence band, then the four
+   chips, one search box, an info line and examples; a start box until results. */
+.mp-layout{--mp-accent:#7C6CF6;--mp-accent-2:#6A5AE8}
+.mp-layout .mp-accent-text{color:var(--mp-good-text)}
+.mp-layout .mp-finder{padding:0;gap:0;overflow:visible;border-radius:16px;border-color:#2B2B36;background:var(--mp-card)}
+.mp-layout .mp-sentence{padding:16px 24px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);border-radius:16px 16px 0 0;font-size:1.06rem;gap:10px 14px}
+.mp-layout .mp-sentence select{border:1px solid var(--border-strong);background:var(--bg);font-weight:500;font-size:.95rem;min-width:200px;padding:9px 12px}
+.mp-layout .mp-sentence select:focus{border-color:var(--mp-good)}
+.mp-layout .mp-finder-body{display:flex;flex-direction:column;gap:14px;padding:18px 24px 20px}
+.mp-layout .mp-types{gap:12px}
+.mp-layout .mp-type{display:inline-flex;align-items:center;gap:9px;background:transparent;border:1px solid var(--border-strong);border-radius:999px;padding:9px 18px;font-size:.92rem;font-weight:500;color:var(--mp-text-1)}
+.mp-layout .mp-type svg{opacity:.85}
+.mp-layout .mp-type:hover{border-color:var(--text-3);background:var(--surface)}
+.mp-layout .mp-type.mp-on{background:var(--mp-good-tint);border-color:var(--mp-good);color:var(--text)}
+.mp-layout .mp-type.mp-on svg{color:var(--mp-good-text);opacity:1}
+.mp-layout .mp-type.mp-has:not(.mp-on){border-color:rgba(34,197,94,.45)}
+.mp-layout .mp-type.mp-on .mp-tick{color:var(--mp-good-text)}
+.mp-layout .mp-combo input{background:var(--bg);border-color:var(--border-strong);padding:13px 44px 13px 46px}
+.mp-layout .mp-combo .mp-x{right:10px}
+.mp-layout .mp-find-accent{background:var(--mp-accent);border-color:var(--mp-accent);color:#fff;border-radius:10px;padding:0 24px;display:inline-flex;align-items:center;gap:8px}
+.mp-layout .mp-find-accent:hover:not(:disabled){background:var(--mp-accent-2)}
+.mp-layout .mp-find-accent:disabled{opacity:.55}
+.mp-layout .mp-info{display:flex;align-items:center;gap:8px;margin:0;color:var(--text-2);font-size:.85rem}
+.mp-layout .mp-info svg{opacity:.8}
+.mp-layout .mp-try .mp-chip{background:var(--bg);border-color:var(--border-strong);padding:6px 14px}
+/* the start box, until there are results */
+.mp-layout .mp-start{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:30px 20px 34px;border:1px dashed rgba(34,197,94,.35);border-radius:16px;background:radial-gradient(ellipse at 50% 0%,rgba(124,108,246,.06),transparent 60%)}
+.mp-layout .mp-start-art{margin-bottom:6px}
+.mp-layout .mp-start b{font-size:1.3rem;font-weight:600}
+.mp-layout .mp-start > span{color:var(--text-2);font-size:.95rem}
+/* three plain promises at the foot */
+.mp-layout .mp-features{display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding-top:6px}
+.mp-layout .mp-features > div{display:flex;gap:14px;align-items:flex-start;padding:6px 22px}
+.mp-layout .mp-features > div + div{border-left:1px solid var(--border-soft)}
+.mp-layout .mp-features > div:first-child{padding-left:0}
+.mp-layout .mp-features b{font-size:.95rem;font-weight:600}
+.mp-layout .mp-features p{margin:4px 0 0;color:var(--text-2);font-size:.84rem;line-height:1.5}
+.mp-layout .mp-feat-ic{flex:0 0 44px;height:44px;border-radius:50%;display:grid;place-items:center}
+.mp-layout .mp-feat-green{background:var(--mp-good-tint);color:var(--mp-good-text)}
+.mp-layout .mp-feat-violet{background:rgba(124,108,246,.16);color:#A99BFF}
+@media (max-width: 900px){
+  .mp-layout .mp-features{grid-template-columns:1fr;gap:14px}
+  .mp-layout .mp-features > div{padding:0}
+  .mp-layout .mp-features > div + div{border-left:0}
+  .mp-layout .mp-sentence select{min-width:0;width:100%}
+}
+/* one line on a desktop, as in the design: the three choices share the width */
+@media (min-width: 1100px){
+  .mp-layout .mp-sentence{flex-wrap:nowrap;white-space:nowrap}
+  .mp-layout .mp-sentence select{flex:1 1 0;min-width:0;max-width:300px}
+}
+@media (min-width: 1100px){ .mp-layout .mp-sentence select[aria-label="A model you use"]{flex-grow:1.35;max-width:320px} }
+/* four points at the foot */
+.mp-layout .mp-features{grid-template-columns:repeat(4,1fr)}
+@media (max-width: 1100px){ .mp-layout .mp-features{grid-template-columns:repeat(2,1fr);row-gap:18px} .mp-layout .mp-features > div:nth-child(3){padding-left:0;border-left:0} }
+@media (max-width: 700px){ .mp-layout .mp-features{grid-template-columns:1fr} }
+/* the sentence, now a worked example below the search */
+.mp-layout .mp-sentence-box{display:flex;flex-direction:column;gap:8px;padding:12px 16px;border:1px dashed var(--border-strong);border-radius:12px;background:rgba(255,255,255,.012)}
+.mp-layout .mp-sentence-lab{font:500 .68rem var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)}
+.mp-layout .mp-sentence-box .mp-sentence{padding:0;border:0;background:none;border-radius:0;font-size:.98rem;color:var(--mp-text-1)}
+.mp-layout .mp-finder-body{border-radius:16px}
+/* the worked example: each part in its chip's colour */
+.mp-layout .mp-example{display:flex;flex-direction:column;gap:8px;text-align:left;width:100%;padding:12px 16px;border:1px dashed var(--border-strong);border-radius:12px;background:rgba(255,255,255,.012);color:var(--mp-text-1);cursor:pointer;transition:border-color .15s,background .15s}
+.mp-layout .mp-example:hover{border-color:var(--mp-good);background:var(--mp-good-tint)}
+.mp-layout .mp-example-text{font-size:1rem;line-height:2.1}
+.mp-layout .mp-example-go{margin-left:12px;font-size:.84rem;font-weight:600;color:var(--mp-good-text);white-space:nowrap}
+.mp-layout .mp-tok{display:inline-flex;align-items:center;gap:6px;margin:0 3px;padding:2px 10px 2px 7px;border-radius:999px;font-weight:600;color:var(--text);white-space:nowrap;line-height:1.6;border:1px solid}
+.mp-layout .mp-tok em{font-style:normal;font:600 .58rem var(--font-mono);text-transform:uppercase;letter-spacing:.06em;opacity:.75}
+.mp-layout .mp-tok-ic{display:inline-flex}
+.mp-layout .mp-tok-ic svg{width:14px;height:14px}
+.mp-layout .mp-tok-job{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.45)}.mp-layout .mp-tok-job em,.mp-layout .mp-tok-job .mp-tok-ic{color:var(--mp-good-text)}
+.mp-layout .mp-tok-capability{background:rgba(245,158,11,.13);border-color:rgba(245,158,11,.45)}.mp-layout .mp-tok-capability em,.mp-layout .mp-tok-capability .mp-tok-ic{color:var(--mp-mixed-text)}
+.mp-layout .mp-tok-price{background:rgba(56,189,248,.13);border-color:rgba(56,189,248,.45)}.mp-layout .mp-tok-price em,.mp-layout .mp-tok-price .mp-tok-ic{color:#7DD3FC}
+.mp-layout .mp-tok-model{background:rgba(124,108,246,.16);border-color:rgba(124,108,246,.5)}.mp-layout .mp-tok-model em,.mp-layout .mp-tok-model .mp-tok-ic{color:#A99BFF}
+/* the chips carry the same colours, so the example and the chips read as one */
+.mp-layout .mp-type svg{opacity:1}
+.mp-layout .mp-types .mp-type:nth-child(1) svg{color:#A99BFF}
+.mp-layout .mp-types .mp-type:nth-child(2) svg{color:var(--mp-good-text)}
+.mp-layout .mp-types .mp-type:nth-child(3) svg{color:var(--mp-mixed-text)}
+.mp-layout .mp-types .mp-type:nth-child(4) svg{color:#7DD3FC}
+
+/* ── the example, a size smaller ─────────────────────────────────────────── */
+.mp-layout .mp-example-text{font-size:.9rem;line-height:2}
+.mp-layout .mp-tok{gap:5px;padding:1px 8px 1px 6px;margin:0 2px;font-size:.86rem}
+.mp-layout .mp-tok em{font-size:.54rem}
+.mp-layout .mp-tok-ic svg{width:12px;height:12px}
+.mp-layout .mp-example-go{font-size:.8rem}
+
+/* ── the filter panel ────────────────────────────────────────────────────── */
+.mp-layout .mp-side2{gap:0;padding:0;border-radius:14px;border-color:#2B2B36;overflow:hidden}
+.mp-layout .mp-side-top{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
+.mp-layout .mp-side-top > span{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.98rem}
+.mp-layout .mp-side-top .mp-textbtn{font-size:.8rem}
+.mp-layout .mp-fs{display:flex;flex-direction:column;gap:7px;margin:0;padding:14px 16px;border:0;border-bottom:1px solid var(--border-soft);min-width:0}
+.mp-layout .mp-fs:last-of-type{border-bottom:1px solid var(--border-soft)}
+.mp-layout .mp-fs legend,.mp-layout .mp-fs-l{font-size:.84rem;font-weight:600;color:var(--text);padding:0;margin-bottom:2px}
+.mp-layout .mp-fs legend{float:left;width:100%}
+.mp-layout .mp-fs legend + *{clear:both}
+.mp-layout .mp-fs-select select,.mp-layout .mp-fs-row select{background:var(--bg);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px 10px;font-size:.86rem}
+.mp-layout .mp-fs-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mp-layout .mp-fs-row select{padding:4px 8px}
+.mp-layout .mp-radio{display:flex;align-items:center;gap:9px;font-size:.86rem;color:var(--mp-text-1);cursor:pointer}
+.mp-layout .mp-radio input{accent-color:var(--mp-good);width:15px;height:15px;margin:0}
+.mp-layout .mp-check input{accent-color:var(--mp-good)}
+.mp-layout .mp-range{--pct:50%;-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:999px;background:linear-gradient(90deg,var(--mp-good) var(--pct),var(--surface-3) var(--pct));outline:none;margin-top:4px}
+.mp-layout .mp-range::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid var(--mp-good);cursor:pointer}
+.mp-layout .mp-range::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid var(--mp-good);cursor:pointer}
+.mp-layout .mp-ev-legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:.82rem;color:var(--mp-text-1)}
+.mp-layout .mp-ev-legend li{display:flex;align-items:center;gap:8px}
+.mp-layout .mp-ev-legend i{width:8px;height:8px;border-radius:50%;display:block}
+.mp-layout .mp-fs-note{font-size:.74rem;line-height:1.45}
+.mp-layout .mp-side2 .mp-side-links{padding:12px 16px 14px;border-top:0}
+.mp-layout .mp-side2 .mp-side-links a{display:inline-flex;align-items:center;gap:6px}
+
+/* ── a job or capability as a collapsible panel ──────────────────────────── */
+.mp-layout .mp-panel{margin-top:16px;border:1px solid #2B2B36;border-radius:14px;background:rgba(255,255,255,.012);overflow:hidden}
+.mp-layout .mp-panel-h{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;background:var(--mp-card);border:0;border-bottom:1px solid var(--border);text-align:left;cursor:pointer}
+.mp-layout .mp-panel-closed .mp-panel-h{border-bottom:0}
+.mp-layout .mp-panel-h:hover{background:var(--surface)}
+.mp-layout .mp-panel-ic{flex:0 0 36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);border:1px solid var(--border-strong);color:var(--mp-good-text)}
+.mp-layout .mp-panel-t{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.mp-layout .mp-panel-t b{font-size:1.02rem}
+.mp-layout .mp-panel-t small{font-size:.76rem;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-layout .mp-panel-n{font:500 .78rem var(--font-mono);color:var(--text-2);white-space:nowrap}
+.mp-layout .mp-panel-caret{color:var(--text-2);font-size:.8rem;width:14px;text-align:center}
+.mp-layout .mp-panel-body{padding:12px 14px 14px}
+.mp-layout .mp-panel-body > .mp-pnav{margin-top:0}
+
+/* ── why these results ───────────────────────────────────────────────────── */
+.mp-layout .mp-why-box{margin-top:16px;border:1px solid #2B2B36;border-radius:12px;padding:12px 16px;background:var(--mp-card)}
+.mp-layout .mp-why-box summary{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--mp-mixed-text);list-style:none}
+.mp-layout .mp-why-box summary b{color:var(--text);font-size:.92rem}
+.mp-layout .mp-why-box summary::after{content:"▾";margin-left:auto;color:var(--text-2);font-size:.8rem}
+.mp-layout .mp-why-box[open] summary::after{content:"▴"}
+.mp-layout .mp-why-box p{margin:8px 0 0;color:var(--text-2);font-size:.85rem;line-height:1.55}
+/* a badge never wraps; in a narrow card the price drops below it instead */
+.mp .mp-badge{white-space:nowrap}
+.mp-layout .mp-card-head{flex-wrap:wrap;row-gap:6px}
+/* the example on one line; a narrow screen scrolls it sideways rather than wrapping */
+.mp-layout .mp-example-text{white-space:nowrap;overflow-x:auto;line-height:1.9;scrollbar-width:thin}
+/* the filter panel stays put while the results scroll: it never grows past the
+   screen, scrolling its own contents instead, so a short screen cannot push it */
+@media (min-width: 901px){
+  .mp-layout .mp-side2{position:sticky;top:84px;max-height:calc(100vh - 100px);overflow-y:auto;scrollbar-width:thin}
+}
+/* no visible scrollbar on the filter panel; it still scrolls on a short screen */
+.mp-layout .mp-side2{scrollbar-width:none;-ms-overflow-style:none}
+.mp-layout .mp-side2::-webkit-scrollbar{display:none;width:0;height:0}
+/* "Show all" and the other groups on one line */
+.mp .mp-group-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
+.mp .mp-group-row:empty{display:none}
+.mp .mp-group-row .mp-more{margin-top:0}
+.mp .mp-group-row .mp-group-h{margin:0}
+.mp .mp-group-h.mp-gh-on{outline:1px solid currentColor;outline-offset:-1px}
+.mp .mp-group-more{margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)}
+.mp .mp-group-sub{display:inline-flex;align-items:center;gap:8px;font:600 .72rem var(--font-sans);text-transform:uppercase;letter-spacing:.08em;padding:6px 12px;border-radius:10px;margin-bottom:10px}
+/* badge and price fit side by side on a card */
+.mp-layout .mp-card .mp-badge{padding:3px 8px;font-size:.7rem;gap:5px}
+.mp-layout .mp-card .mp-price{padding:2px 6px;font-size:.8rem}
+.mp-layout .mp-card .mp-price small{font-size:.58rem}
+/* what the chips are for, on their line */
+.mp-layout .mp-types{align-items:center}
+.mp-layout .mp-types-lab{font-size:.88rem;font-weight:600;color:var(--text-2);margin-right:2px}

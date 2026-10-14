@@ -76,8 +76,12 @@ def code() -> str:
 class TestTheComparisonWritesTheUrl:
     def test_the_picker_sets_search_params_rather_than_local_state(self):
         """The URL is the comparison. A link that describes a different page
-        from the one on screen is worse than no picker."""
-        assert "setSp({ ids: trimmed.join(',') })" in code()
+        from the one on screen is worse than no picker.
+
+        Matched as "a setSp that writes `ids`", not one spelling: since
+        2026-10-14 a comparison opened from Reports also keeps `from: 'reports'`
+        (it hides the quotes), and both branches still write the ids."""
+        assert re.search(r"setSp\([^\n]*\{ ids: trimmed\.join\(','\)", code())
 
     def test_it_refuses_above_the_cap_before_the_request(self):
         """The endpoint answers 422 above three. A reader who clicks a fourth
