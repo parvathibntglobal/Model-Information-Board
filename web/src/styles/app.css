@@ -504,7 +504,7 @@ button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--t
    means a rule never falls through to an undefined property if one is missing. */
 .browse-card,.showcase-dots button{--tint:var(--info)}
 .mt,.vs{--i:0}
-.h2h,.faceoff-quotes{--n:2}
+.h2h{--n:2}
 .browse-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--tint)}
 .browse-card::after{content:"";position:absolute;width:260px;height:200px;right:-110px;top:-110px;border-radius:50%;
   background:radial-gradient(closest-side,color-mix(in srgb,var(--tint) 20%,transparent),transparent);pointer-events:none}
@@ -1673,32 +1673,29 @@ th.r,td.r{text-align:right}
 .cmp-sticky-name{font-weight:500}
 .cmp-sticky-vs{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
   color:var(--bg);background:var(--warn);border-radius:var(--r-pill);padding:2px 8px}
-.faceoff-basis{display:flex;gap:10px;align-items:flex-start;margin:0;max-width:80ch;font-size:var(--fs-xs);
+.st-basis{display:flex;gap:10px;align-items:flex-start;margin:0;max-width:80ch;font-size:var(--fs-xs);
   color:var(--text-2);line-height:1.55;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-sm);
   background:color-mix(in srgb,var(--info) 6%,var(--bg-elev))}
-.faceoff-i{flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;
+.st-i{flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;
   background:var(--info);color:var(--bg);font:600 11px/1 var(--font-mono);margin-top:1px}
-.faceoff{display:flex;flex-direction:column;gap:var(--gap)}
-.faceoff-row{display:grid;grid-template-columns:180px minmax(0,1fr);gap:var(--gap);align-items:start;
-  padding-top:var(--gap);border-top:1px solid var(--border-soft)}
-.faceoff-axis{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-sm)}
-.faceoff-k{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
-.faceoff-quotes{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:var(--gap)}
-.faceoff-q{margin:0;background:var(--bg-elev);border:1px solid var(--border);border-left:3px solid var(--text-3);
-  border-radius:var(--r-sm);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-.faceoff-q[data-polarity="positive"]{border-left-color:var(--pass)}
-.faceoff-q[data-polarity="negative"]{border-left-color:var(--fail)}
-.faceoff-model{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-2)}
-.faceoff-q blockquote{margin:0;font-style:italic;font-size:var(--fs-sm);line-height:1.45}
-.faceoff-q figcaption{font-size:var(--fs-xs);color:var(--text-3)}
-.faceoff-q figcaption a{color:var(--text-2)}
-.faceoff-q[data-polarity="positive"] .faceoff-pol{color:var(--pass)}
-.faceoff-q[data-polarity="negative"] .faceoff-pol{color:var(--fail)}
+.st-grid{--n:2}
+.st-tr{display:grid;grid-template-columns:minmax(180px,1.1fr) repeat(var(--n),minmax(0,1fr));gap:12px;
+  align-items:center;padding:10px 0;border-bottom:1px solid var(--border-soft)}
+.st-th{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.st-axis-cell{display:flex;flex-direction:column;gap:2px;font-size:var(--fs-sm)}
+.st-src{font-size:var(--fs-xs);color:var(--text-3)}
+.st-src a{color:var(--text-2)}
+.st-cell{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
+.st-cell-name{display:none}
+.st-fig{font-family:var(--font-mono);font-size:var(--fs-sm);color:var(--text);padding:2px 9px;border:1px solid var(--border);
+  border-radius:var(--r-pill);background:var(--bg-elev)}
+.st-none{font-size:var(--fs-xs);color:var(--text-3);font-style:italic}
 @media (max-width:800px){
   .h2h{grid-template-columns:1fr}
   .h2h-vs + .h2h-card{border-left:0;border-top:1px solid var(--border-soft)}
-  .faceoff-row{grid-template-columns:1fr}
-  .faceoff-quotes{grid-template-columns:1fr}
+  .st-tr{grid-template-columns:1fr;gap:4px}
+  .st-th{display:none}
+  .st-cell-name{display:inline;font-size:var(--fs-xs);color:var(--text-3);min-width:9ch}
 }
 
 /* ================================================================ admin: planned panels
