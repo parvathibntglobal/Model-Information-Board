@@ -624,14 +624,14 @@ export default function ModelPicker() {
   }
 
   function ModelResults({ r, F }) {
-    const mine = priceOf(r), band = bandOf(F), sel = selectedAxes(F)
+    const mine = priceOf(r), priceBand = bandOf(F), sel = selectedAxes(F)
     let rows = sel.length
       ? sel.map(({ a, group }) => ({ a, group, m: a.models.find((x) => x.key === r.key) || null }))
       : r.axes.filter(({ a }) => settings.kind === 'all' || a.kind === settings.kind).map(({ a, m }) => ({ a, m, group: null }))
     rows = rows.filter(({ m }) => sel.length || (m && m.voices >= settings.minV))
       .sort((x, y) => (KIND_ORDER[x.a.kind] - KIND_ORDER[y.a.kind]) || ((y.m ? y.m.voices : 0) - (x.m ? x.m.voices : 0)) || y.a.models.length - x.a.models.length)
     const othersOf = (a) => {
-      let others = a.models.filter((x) => x.key !== r.key && (!band || inBand(band, priceOf(x))))
+      let others = a.models.filter((x) => x.key !== r.key && (!priceBand || inBand(priceBand, priceOf(x))))
       if (settings.cheaper && mine != null) others = others.filter((x) => priceOf(x) != null && priceOf(x) < mine)
       return [...others].sort(sorter)
     }
@@ -643,7 +643,7 @@ export default function ModelPicker() {
       <>
         <div className="mp-res-head">
           <h2>Alternatives to {shortName(r)}</h2>
-          <p>{providerOf(r)} · {rate(mine)} per 1M input · reported on {plural(r.axes.length, 'job or capability', 'jobs and capabilities')}{band ? ` · showing models priced ${band.label} per 1M input` : ''}</p>
+          <p>{providerOf(r)} · {rate(mine)} per 1M input · reported on {plural(r.axes.length, 'job or capability', 'jobs and capabilities')}{priceBand ? ` · showing models priced ${priceBand.label} per 1M input` : ''}</p>
         </div>
         <ActiveChips />
         <TopPicks cands={cands} priceOf={priceOf} cmp={cmp} minV={settings.minV} />
@@ -652,7 +652,7 @@ export default function ModelPicker() {
           const others = othersOf(a)
           const cheap = settings.cheaper ? ', and cheaper' : ''
           const ph = m ? phrase(m.split) : null
-          const empty = <Relax>No {settings.cheaper ? 'cheaper ' : ''}model{band ? ' in this price range' : ''} has reports on this{settings.minV > 0 ? ` from ${settings.minV}+ people` : ''} yet.</Relax>
+          const empty = <Relax>No {settings.cheaper ? 'cheaper ' : ''}model{priceBand ? ' in this price range' : ''} has reports on this{settings.minV > 0 ? ` from ${settings.minV}+ people` : ''} yet.</Relax>
           return panel({ a, group, count: visibleCount(others), children: (
             <>
               {!group && <ParentNav a={a} />}
@@ -682,8 +682,8 @@ export default function ModelPicker() {
   }
 
   function AxisResults({ F }) {
-    const band = bandOf(F), sel = selectedAxes(F)
-    const inB = (m) => !band || inBand(band, priceOf(m))
+    const priceBand = bandOf(F), sel = selectedAxes(F)
+    const inB = (m) => !priceBand || inBand(priceBand, priceOf(m))
     const plain = sel.filter((x) => !x.group)
     const groups = [...new Set(sel.map((x) => x.group).filter(Boolean))]
     // A model qualifies for "all of them" when its reports say it works on EVERY
@@ -702,7 +702,7 @@ export default function ModelPicker() {
       <>
         <div className="mp-res-head">
           <h2>Models for {names.join(' · ')}</h2>
-          <p>{sel.length === 1 ? `One ${sel[0].a.kind}` : `${sel.length} jobs or capabilities`} selected{band ? ` · models priced ${band.label} per 1M input` : ''}</p>
+          <p>{sel.length === 1 ? `One ${sel[0].a.kind}` : `${sel.length} jobs or capabilities`} selected{priceBand ? ` · models priced ${priceBand.label} per 1M input` : ''}</p>
         </div>
         <ActiveChips />
         <TopPicks cands={cands} priceOf={priceOf} cmp={cmp} minV={settings.minV} />
@@ -736,12 +736,12 @@ export default function ModelPicker() {
                   </div>
                 ))}
               </div>
-            ) : <Relax>No model{band ? ' in this price range' : ''} is reported working on all of them by {settings.minV || 1}+ people yet.</Relax>}
+            ) : <Relax>No model{priceBand ? ' in this price range' : ''} is reported working on all of them by {settings.minV || 1}+ people yet.</Relax>}
           </section>
         )}
         {sel.slice(0, axesShown).map(({ a, group }) => {
           const list = a.models.filter(inB).sort(sorter)
-          const empty = <Relax>No model{band ? ' in this price range' : ''} has reports from {settings.minV}+ people here yet.</Relax>
+          const empty = <Relax>No model{priceBand ? ' in this price range' : ''} has reports from {settings.minV}+ people here yet.</Relax>
           return panel({ a, group, count: visibleCount(list), children: (
             <>
               {!group && <ParentNav a={a} />}
@@ -849,11 +849,11 @@ export default function ModelPicker() {
     const cap = idx.axes.filter((a) => a.kind === 'capability' && a.models.some((m) => job.models.some((x) => x.key === m.key)))
       .sort((x, y) => y.voices - x.voices)[0]
     const top = idx.list.find((r) => (priceOf(r) ?? 0) > 0.5) || idx.list[0]
-    const band = BANDS[1]
-    const f = { job: { id: job.slug, label: job.name }, price: { id: band.id, label: `${band.label} per 1M input` } }
+    const priceBand = BANDS[1]
+    const f = { job: { id: job.slug, label: job.name }, price: { id: priceBand.id, label: `${priceBand.label} per 1M input` } }
     if (cap) f.capability = { id: cap.slug, label: cap.name }
     if (top) f.model = { id: modelId(top), label: shortName(top) }
-    return { f, job: job.name, cap: cap?.name, band: band.label, model: top ? shortName(top) : null }
+    return { f, job: job.name, cap: cap?.name, priceBand: priceBand.label, model: top ? shortName(top) : null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, prices])
   const cmpModels = cmpIds.map((id) => idx?.byId.get(id)).filter(Boolean)
@@ -943,7 +943,7 @@ export default function ModelPicker() {
                 <span className="mp-example-text">
                   I need a model for <Token t="job">{exampleQuery.job}</Token>
                   {exampleQuery.cap && <>{' '}good at <Token t="capability">{exampleQuery.cap}</Token></>}
-                  {' '}under <Token t="price">{exampleQuery.band}</Token>
+                  {' '}under <Token t="price">{exampleQuery.priceBand}</Token>
                   {exampleQuery.model && <>,{' '}cheaper than <Token t="model">{exampleQuery.model}</Token></>}
                 </span>
               </button>
