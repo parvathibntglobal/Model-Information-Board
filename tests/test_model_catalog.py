@@ -352,12 +352,19 @@ class TestLifecycle:
         assert newer == ["acme/text-r"]
 
 
-def test_the_cache_drawer_lists_models_without_a_rate_apart_and_says_it_is_an_upper_bound():
-    js = (ROOT / "web" / "src" / "tokens" / "CacheSavings.jsx").read_text(encoding="utf-8")
-    assert "if (m.price_cached_read == null) { noRate.push" in js
-    assert "An upper bound" in js
+def test_caching_savings_are_null_without_a_rate_and_said_to_be_an_upper_bound():
+    """Folded into the workload table (2026-10-15): no cached-read rate is
+    "nothing to compute", never a saving of zero."""
+    cost = (ROOT / "web" / "src" / "tokens" / "cost.js").read_text(encoding="utf-8")
+    assert "savedPerMonth: full ? full.perMonth - cost.perMonth : null" in cost
+    workload = (ROOT / "web" / "src" / "tokens" / "Workload.jsx").read_text(encoding="utf-8")
+    assert "an upper" in workload and "no cache rate" in workload
 
 
-def test_the_modality_finder_lists_unpriced_models_apart():
-    js = (ROOT / "web" / "src" / "finder" / "ModalityFinder.jsx").read_text(encoding="utf-8")
-    assert "unpriced.push(m)" in js and "not priced per token" in js
+def test_the_one_finder_reads_the_catalogue_and_keeps_unpublished_prices_unknown():
+    """One finder since 2026-10-15. A price that is not per token is NULL to a
+    ceiling - "might match", never free and never ruled out."""
+    js = (ROOT / "web" / "src" / "finder" / "finder.js").read_text(encoding="utf-8")
+    assert "price_in: free ? 0 : perToken ? m.price_in : null" in js
+    page = (ROOT / "web" / "src" / "routes" / "ModelFinder.jsx").read_text(encoding="utf-8")
+    assert "modelCatalog()" in page and "ModalityFinder" not in page

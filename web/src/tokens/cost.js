@@ -138,6 +138,12 @@ export function workloadRows(models, { inTok = 0, outTok = 0, callsPerDay = 1, c
   for (const m of models || []) {
     if (q && ![m.display_name, m.provider, m.canonical_id].some((s) => norm(s).includes(q))) continue
     const cost = workloadCost(m, { inTok, outTok, callsPerDay, cachedShare })
+    // WHAT CACHING SAVES (2026-10-15; was a separate drawer): the month at the
+    // full input rate minus the month with the cached share at the published
+    // cached-read rate. Null - not 0 - when no cached-read rate is published,
+    // because "nothing to compute" is not "no saving" (rule 6).
+    const full = cost && cost.cache === 'applied'
+      ? workloadCost(m, { inTok, outTok, callsPerDay, cachedShare: 0 }) : null
     const ctx = fitOf(inTok + outTok, m, 'input')
     const out = fitOf(outTok, m, 'output')
     const fit = ctx.state === 'over' || out.state === 'over' ? 'over'
@@ -150,6 +156,7 @@ export function workloadRows(models, { inTok = 0, outTok = 0, callsPerDay = 1, c
       exactness: exactnessOf(m, encodingNameFor),
       fit,
       ...(cost || { perCall: null, perDay: null, perMonth: null, cache: null }),
+      savedPerMonth: full ? full.perMonth - cost.perMonth : null,
     }
     if (cost == null) unpriced.push(row)
     else priced.push(row)

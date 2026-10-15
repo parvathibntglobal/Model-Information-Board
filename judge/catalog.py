@@ -115,6 +115,17 @@ def _feature(params: list[str], *names: str) -> bool | None:
     return any(n in params for n in names)
 
 
+def _features(params: list[str], ins, p_cache) -> dict[str, bool | None]:
+    """One definition of a model's features, for its page and the spec finder."""
+    return {
+        "tools": _feature(params, "tools", "tool_choice"),
+        "structured_output": _feature(params, "structured_outputs", "response_format"),
+        "reasoning": _feature(params, "reasoning", "include_reasoning"),
+        "vision_input": "image" in (ins or []),
+        "prompt_caching": True if p_cache is not None else None,
+    }
+
+
 def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
     """One model's page: the catalogue row, its specs, the registry's own facts
     where it is tracked, and its engineer voices. None when it is not listed."""
@@ -173,13 +184,7 @@ def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
         "price_state": _price_state(cid, p_in, p_out, pricing),
         "type_price": _type_price(pricing),
         # THREE STATES EACH: true, false, or None for "not stated" (rule 6).
-        "features": {
-            "tools": _feature(params, "tools", "tool_choice"),
-            "structured_output": _feature(params, "structured_outputs", "response_format"),
-            "reasoning": _feature(params, "reasoning", "include_reasoning"),
-            "vision_input": "image" in (ins or []),
-            "prompt_caching": True if p_cache is not None else None,
-        },
+        "features": _features(params, ins, p_cache),
         "in_registry": registry is not None,
         "registry": None
         if registry is None
@@ -265,7 +270,8 @@ def catalog_view(conn) -> dict[str, Any]:
     try:
         rows = conn.execute(
             "SELECT canonical_id, provider, name, listed_at, input_modalities, output_modalities, "
-            "       context_length, price_in, price_out, pricing "
+            "       context_length, price_in, price_out, pricing, price_cached_read, "
+            "       max_output_tokens, supported_parameters "
             "FROM model_catalog "
             "WHERE last_seen_at = (SELECT max(last_seen_at) FROM model_catalog)"
         ).fetchall()
@@ -300,7 +306,8 @@ def catalog_view(conn) -> dict[str, Any]:
     names = _provider_names(as_dicts)
 
     models = []
-    for cid, provider, name, listed_at, ins, outs, ctx, p_in, p_out, pricing in keep:
+    for (cid, provider, name, listed_at, ins, outs, ctx, p_in, p_out, pricing, p_cache, max_out,
+         params) in keep:
         models.append(
             {
                 "id": cid,
@@ -315,6 +322,11 @@ def catalog_view(conn) -> dict[str, Any]:
                 "price_out": float(p_out) if p_out is not None else None,
                 "price_state": _price_state(cid, p_in, p_out, pricing),
                 "type_price": _type_price(pricing),
+                # FOR THE SPEC FINDER (2026-10-15): the same three-state features
+                # a model's page shows - None is "not stated", never "no".
+                "price_cached_read": float(p_cache) if p_cache is not None else None,
+                "max_output_tokens": max_out,
+                "features": _features(list(params or []), ins, p_cache),
                 "in_registry": cid in registry,
                 "reported": cid in reported,
                 # COUNTED, NOT SCORED (rule 3): distinct people and distinct
