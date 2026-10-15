@@ -135,6 +135,18 @@ class TestTheClosingBoxSaysOnlyWhatWasMeasured:
         assert "tokens  in 108,575  out 9,613" in body
         assert "back    11 claim(s) verified, 9 stored, 3 cell(s)" in body
 
+    def test_board_entries_are_said_with_who_they_are_about(self):
+        """Since #502 `claims_stored` is 0 on every run; the rows a model page
+        reads are board entries, and only those about the searched model land
+        on its page (2026-10-15)."""
+        body = chr(10).join(fetch_console.ending({
+            "kind": "end", "status": "ok", "claims_verified": 350, "claims_stored": 0,
+            "entries_stored": 166, "entries_about_model": 8, "entries_about_others": 158,
+        }, model_version_id="mv_x"))
+        assert ("back    350 claim(s) verified, 166 board entr(ies) stored - "
+                "8 about this model, 158 about other models in the same threads") in body
+        assert "0 stored" not in body
+
     def test_the_cost_says_it_is_not_an_invoice(self):
         """#381: the ledger's dollars are tokens times a configured rate, and
         the two rates in this repo disagreed by 2.11x with neither ever

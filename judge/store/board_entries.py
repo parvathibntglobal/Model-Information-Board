@@ -555,7 +555,8 @@ def store_entries(
     searched_model_version_id: str | Iterable[str] | None = None,
     pipeline_version: str = PIPELINE_VERSION,
 ) -> dict[str, int]:
-    """Append discovered entries. Returns {proposed, stored, skipped_unverified}.
+    """Append discovered entries. Returns {proposed, stored, skipped_unverified,
+    stored_by_scope, ...}.
 
     Each dict carries: section, slug, name, definition, document_id, quote,
     quote_verified, polarity, and optionally model_version_id, claim_id, and
@@ -591,6 +592,12 @@ def store_entries(
     from judge.config import section_headings
 
     unfiled: dict[str, int] = {}
+    # WHO THE STORED ROWS ARE ABOUT (2026-10-15). A per-model run reads whole
+    # threads, and a thread about one model names others: on 2026-10-12 a Nano
+    # Banana 2 run stored 151 rows in its window and 8 were about Nano Banana 2.
+    # "166 stored" beside a model page showing 7 quotes read as a lost write.
+    # Counted on insert only, so it adds up to `stored`.
+    stored_by_scope: dict[str, int] = {}
     with conn.cursor() as cur:
         for e in entries:
             if not e.get("quote_verified"):
@@ -646,6 +653,9 @@ def store_entries(
                 ),
             )
             stored += cur.rowcount  # 1 on insert, 0 on conflict
+            if cur.rowcount:
+                scope = _scope_of(e, searched) or "unlabelled"
+                stored_by_scope[scope] = stored_by_scope.get(scope, 0) + 1
     return {
         "proposed": proposed,
         "stored": stored,
@@ -655,6 +665,9 @@ def store_entries(
         # Rows stored with no usable heading - missing, or not one of their
         # section's headings - per section. Kept and counted, never dropped.
         "unfiled_by_section": unfiled,
+        # `searched` / `mentioned` / `unlabelled` (no subject passed - rule 6:
+        # never guessed into either), summing to `stored`.
+        "stored_by_scope": stored_by_scope,
     }
 
 
