@@ -226,6 +226,10 @@ class TestTheEvidencePipelineNeverReadsIt:
             "collect/ops/chain.py",
             "judge/catalog.py",
             "judge/app.py",
+            # The blog's live pages (2026-10-15) read it for "This week in
+            # models" listings and hover previews. A read path for a page, not
+            # the evidence pipeline: nothing there extracts, counts or weights.
+            "judge/blog_live.py",
         }
 
     def test_the_nightly_chain_polls_it_without_depending_on_it(self):

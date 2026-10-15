@@ -2331,6 +2331,63 @@ def model_catalog_entry(model_id: str) -> dict:
     return found
 
 
+# THE BLOG'S LIVE PAGES (2026-10-15): claim walls, where engineers disagree,
+# this week in models, the daily quiz and hover previews. Code over the board,
+# public sources only, no model call - see `judge/blog_live.py`.
+
+
+@app.get("/blog-live/disagree")
+def blog_live_disagree() -> dict:
+    from judge.blog_live import contested
+
+    with _conn() as conn:
+        return contested(conn)
+
+
+@app.get("/blog-live/wall/{section}/{slug}/{model_id:path}")
+def blog_live_wall(section: str, slug: str, model_id: str) -> dict:
+    from judge.blog_live import wall
+
+    with _conn() as conn:
+        found = wall(conn, section, slug, model_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="no public report for this model on this topic")
+    return found
+
+
+@app.get("/blog-live/week")
+def blog_live_week(start: str | None = None) -> dict:
+    from judge.blog_live import week
+
+    with _conn() as conn:
+        found = week(conn, start)
+    if found is None:
+        raise HTTPException(status_code=404, detail="that week is not one this page offers")
+    return found
+
+
+@app.get("/blog-live/quiz")
+def blog_live_quiz(day: str | None = None) -> dict:
+    from judge.blog_live import quiz
+
+    with _conn() as conn:
+        found = quiz(conn, day)
+    if found is None:
+        raise HTTPException(status_code=404, detail="no quiz for that day")
+    return found
+
+
+@app.get("/blog-live/preview/{kind}/{ident:path}")
+def blog_live_preview(kind: str, ident: str) -> dict:
+    from judge.blog_live import preview
+
+    with _conn() as conn:
+        found = preview(conn, kind, ident)
+    if found is None:
+        raise HTTPException(status_code=404, detail="nothing public to preview")
+    return found
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.

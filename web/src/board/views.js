@@ -1113,6 +1113,13 @@ function reviewOf(p){
 }
 const day = (ts) => ts ? String(ts).slice(0, 10) : '';
 
+// THE LIVE PAGES (2026-10-15), offered at the top of the index: built in code
+// from the board, not posts (judge/blog_live.py, web/src/blogs/).
+const LIVE = [
+  ['live:disagree', 'Where engineers disagree', 'Models and topics with reports on both sides, every quote linked.'],
+  ['live:this-week', 'This week in models', 'New listings, what engineers wrote, prices and retirements.'],
+  ['live:quiz', 'Which model was this?', 'Five real quotes a day. Guess the model.'],
+];
 function vBlogs(){
   const meta = DB.postsMeta || { reason: null, skipped: [] };
   // THREE STATES (rule 4): drafts, a configured backend with none, and a
@@ -1135,6 +1142,8 @@ function vBlogs(){
       <h1>How AI models behave in production</h1>
       <p class="es-dek">Long-form engineering essays on running frontier models in real systems — the failure
       modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>
+    <nav class="lv-explore lv-in-essay" aria-label="Live pages">${LIVE.map(([go, t, d]) =>
+      `<a class="lv-tile"${goAttrs(go)}><span class="lv-kicker">Live</span><b>${t}</b><span>${d}</span></a>`).join('')}</nav>
     ${DB.posts.length ? `<div class="es-draft">${DB.posts.every(x=>reviewOf(x)==='approved')
       ? '<b>Approved by the team, not yet published outside it.</b>'
       : '<b>Drafts for team review.</b>'} Written by a language model from
@@ -1774,7 +1783,18 @@ function vPost(slug){
   const picksSide = L === 'versus' && V === 'b' && sp && sp.type === 'picks'
     ? `<div class="es-scard">${vsNames(p).map(n => `<div class="lbl">Pick ${esc(n)} when</div><ul class="dec">${
         sp.items.filter(x => x.pick === n).map(x => `<li>${essayText(x.when)}</li>`).join('')}</ul>`).join('')}</div>` : '';
-  const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel"${goAttrs(h)}>${esc(t)}</a>`).join('');
+  // CONTINUE READING, COMPUTED (2026-10-15). `p.rel` was the same three links
+  // on every post - written by the generator, related to nothing. Now: other
+  // posts sharing a model (its tags other than the format), most shared first,
+  // then posts in the same format. A join, never "you'll like".
+  const own = new Set((p.tags || []).filter(t => t !== p.tag));
+  const rel = (DB.posts || []).filter(q => q.slug !== p.slug)
+    .map(q => ({ q, shared: (q.tags || []).filter(t => own.has(t)).length, same: q.tag === p.tag }))
+    .filter(x => x.shared > 0 || x.same)
+    .sort((a, b) => (b.shared - a.shared) || (b.same - a.same) || a.q.title.localeCompare(b.q.title))
+    .slice(0, 4)
+    .map(({ q, shared }) => `<a class="es-rel"${goAttrs(`post:${q.slug}`)}>${esc(q.title)}${
+      shared ? `<span class="es-rel-why"> · same model</span>` : `<span class="es-rel-why"> · ${esc(q.tag)}</span>`}</a>`).join('');
   const sheet = rows.length ? `<div class="es-scard es-sheet"><div class="lbl">Price sheet${asOf ? ` · ${esc(asOf)}` : ''}</div>
     <table><thead><tr><th></th><th>In</th><th>Out</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${esc(r.name)}</td><td>${esc(r.pin)}</td><td>${esc(r.pout)}</td></tr>`).join('')}</tbody></table>

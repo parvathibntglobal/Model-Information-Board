@@ -73,6 +73,9 @@ NOT_ADMIN_PANELS = {
     # The not-found page (SEO item 7): mounted by App.jsx's catch-all route and
     # by Board, Blogs and ModelDetail for a missing section, post or model.
     "NotFound",
+    # Hover previews (2026-10-15): mounted once by App.jsx for the whole site,
+    # not a panel - it renders a card over any link to a model or a topic.
+    "HoverPreview",
 }
 
 

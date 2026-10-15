@@ -41,6 +41,7 @@ export function goPath(go) {
   if (kind === 'model') return `/models/${arg}`
   if (kind === 'blogs') return '/blogs'
   if (kind === 'post') return `/blogs/${arg}`
+  if (kind === 'live') return `/blogs/${arg}`
   return '/board'
 }
 

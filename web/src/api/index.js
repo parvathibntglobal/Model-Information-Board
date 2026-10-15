@@ -340,6 +340,17 @@ export const coveragePage = () => request('/coverage')
  */
 // `include='all'` is Admin -> Blogs: every draft with its review state. The
 // default is what a reader may see, filtered by the server (fails closed).
+// THE BLOG'S LIVE PAGES (2026-10-15): code over the board, public sources
+// only (judge/blog_live.py). Previews are cached: a hover asks for the same
+// card many times.
+export const liveDisagree = () => cached('live-disagree', () => request('/blog-live/disagree'), { ttl: BOARD_TTL_MS })
+export const liveWall = (section, slug, modelId) =>
+  request(`/blog-live/wall/${encodeURIComponent(section)}/${encodeURIComponent(slug)}/${modelPath(modelId)}`)
+export const liveWeek = (start) => request(`/blog-live/week${start ? `?start=${encodeURIComponent(start)}` : ''}`)
+export const liveQuiz = (day) => request(`/blog-live/quiz${day ? `?day=${encodeURIComponent(day)}` : ''}`)
+export const livePreview = (kind, id) =>
+  cached(`preview:${kind}:${id}`, () => request(`/blog-live/preview/${kind}/${modelPath(id)}`), { ttl: BOARD_TTL_MS })
+
 export const blogPosts = (include) => request(`/blog-posts${include ? `?include=${include}` : ''}`)
 
 /** Store this machine's draft files the database does not have yet, as pending. */

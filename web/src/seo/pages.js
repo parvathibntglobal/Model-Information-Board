@@ -263,6 +263,41 @@ export function blogIndex() {
   }
 }
 
+/** The blog's live pages (2026-10-15), built in code from public reports. */
+export function liveDisagree() {
+  return {
+    title: fullTitle('Where engineers disagree about AI models'),
+    description: 'Every model and topic where some engineers report it working and others report problems, with both counts and every quote.',
+    canonical: '/blogs/disagree',
+  }
+}
+
+export function liveWall(w, path) {
+  if (!w) return liveDisagree()
+  const name = String(w.model.name || '').split(':').slice(-1)[0].trim()
+  return {
+    title: fullTitle(`${name} on ${w.topic}: what engineers report`),
+    description: `${w.working} engineers report ${name} working on ${w.topic.toLowerCase()} and ${w.problems} report problems. Every quote, linked to its source.`,
+    canonical: path,
+  }
+}
+
+export function liveWeek(start) {
+  return {
+    title: fullTitle(start ? `This week in AI models: week of ${start}` : 'This week in AI models'),
+    description: 'New models listed, what engineers wrote, price changes and retirement dates, week by week.',
+    canonical: start ? `/blogs/this-week/${start}` : '/blogs/this-week',
+  }
+}
+
+export function liveQuiz() {
+  return {
+    title: fullTitle('Which model was this? A daily quiz'),
+    description: 'Five real quotes from engineers each day. Guess which AI model each one is about.',
+    canonical: '/blogs/quiz',
+  }
+}
+
 /** `/blogs/:slug`, from the post itself. A post the reader may not see gets the index's head. */
 export function blogPost(post) {
   if (!post) return blogIndex()

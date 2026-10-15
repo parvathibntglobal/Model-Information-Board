@@ -321,6 +321,37 @@ def board_ordering_z() -> float:
     return float(z)
 
 
+@lru_cache(maxsize=1)
+def blog_live_settings() -> dict[str, dict[str, int]]:
+    """`contract/blog_live.yaml`: the numbers the blog's live pages run on.
+
+    NO DEFAULTS. Every key must be present and a positive whole number, or this
+    raises - a quiz that quietly fell back to some length nobody chose would
+    look exactly like one somebody did (rule 12)."""
+    raw = _read("blog_live.yaml")
+    need = {
+        "quiz": ("questions_per_day", "min_chars", "max_chars", "options"),
+        "this_week": ("weeks_shown", "retiring_within_days", "models_listed"),
+    }
+    out: dict[str, dict[str, int]] = {}
+    for part, keys in need.items():
+        block = raw.get(part) if isinstance(raw, dict) else None
+        if not isinstance(block, dict):
+            raise ValueError(f"contract/blog_live.yaml: `{part}` is missing")
+        out[part] = {}
+        for key in keys:
+            v = block.get(key)
+            if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+                raise ValueError(
+                    f"contract/blog_live.yaml: {part}.{key} must be a positive whole "
+                    f"number, got {v!r}"
+                )
+            out[part][key] = v
+    if out["quiz"]["min_chars"] >= out["quiz"]["max_chars"]:
+        raise ValueError("contract/blog_live.yaml: quiz.min_chars must be below quiz.max_chars")
+    return out
+
+
 def _read(name: str) -> dict:
     path = CONTRACT_DIR / name
     if not path.exists():
