@@ -292,8 +292,8 @@ export function liveWeek(start) {
 
 export function liveQuiz() {
   return {
-    title: fullTitle('Which model was this? A daily quiz'),
-    description: 'Five real quotes from engineers each day. Guess which AI model each one is about.',
+    title: fullTitle('Daily AI model quiz'),
+    description: 'Five questions a day about AI model prices, context windows, what models can read and make, and who makes them.',
     canonical: '/blogs/quiz',
   }
 }

@@ -4,7 +4,8 @@
                            working beside the reports of problems
     where they disagree    every (model, topic) pair with engineers on both sides
     this week in models    listings, new reports, prices and retirements, per week
-    the daily quiz         a real quote; which model was it about?
+    the daily quiz         general questions about the models, answered by
+                           figures this site publishes
     hover previews         a small card for a model or a topic
 
 NO MODEL CALL, NO REVIEW PER PAGE. These re-render board rows; nothing here
@@ -456,126 +457,297 @@ def week(conn, start: str | None = None, today: date | None = None) -> dict[str,
 
 
 # ── the daily quiz ──────────────────────────────────────────────────────────
-
-_FOLD = re.compile(r"[^a-z0-9]+")
-_WORD = re.compile(r"[a-z0-9]+")
-_STARTS = re.compile(r"[^\W_]|[\"'“`(]")
-
-#: Words in model names that say nothing about WHICH model: matching them as
-#: tells would drop half the pool and catch nothing. Matched as whole words,
-#: so "pro" is never found inside "problem" either way.
-_GENERIC = frozenset(
-    {
-        "pro",
-        "max",
-        "mini",
-        "flash",
-        "lite",
-        "turbo",
-        "preview",
-        "fast",
-        "ultra",
-        "ultrafast",
-        "plus",
-        "nano",
-        "free",
-        "instruct",
-        "chat",
-        "base",
-        "large",
-        "small",
-        "medium",
-        "thinking",
-        "reasoning",
-        "code",
-        "coder",
-        "vision",
-        "beta",
-        "experimental",
-        "latest",
-        "model",
-        "batch",
-        "voice",
-        "open",
-        "the",
-        "and",
-        "with",
-    }
-)
+#
+# GENERAL QUESTIONS, NOT QUOTES (reworked 2026-10-15). The first version showed
+# an engineer's quote and asked which model it was about - a reader cannot know
+# who wrote it, about what, or where, so it was a guess and not a question. Now
+# every question is about the models themselves and is answered by a figure we
+# PUBLISH: a measured price or context window, a listing or retirement date,
+# what a model reads and writes, a feature it advertises, its maker, or how
+# many engineers wrote about it. Every choice's figure is shown once answered,
+# so the reader learns the answer rather than being told it (rule 3: counts and
+# measurements only; rule 6: a choice whose figure is unknown is never used).
 
 
-def _fold(s: str) -> str:
-    return _FOLD.sub("", (s or "").lower())
+def _short(name: str) -> str:
+    """What a model is called, without the maker: "MoonshotAI: Kimi K2.5" -> "Kimi K2.5"."""
+    return (name or "").split(":", 1)[-1].strip()
 
 
-def _tells(conn) -> dict[str, set[str]]:
-    """Every string that would give a model away, folded: its aliases, its
-    names, its family and its maker. Keyed by `model_version.id`.
+#: A listing that would make a confusing choice beside its own sibling.
+_VARIANT = re.compile(r"\((batch|free|beta|preview|thinking|extended|self-moderated)\)", re.I)
 
-    A quote containing ANY of its model's tells is not used, so the quiz shows
-    quotes UNCHANGED - nothing is blanked out. The list is only as good as the
-    alias table, and the page says so."""
-    tells: dict[str, set[str]] = {}
-    for mv, cid, name, family, provider in conn.execute(
-        "SELECT id, canonical_id, display_name, family, provider FROM model_version"
+_FEATURES = {
+    "tools": "tool calling",
+    "structured_outputs": "structured output",
+    "reasoning": "a reasoning mode",
+}
+_READS = {"image": "images", "audio": "audio", "video": "video", "file": "files such as PDFs"}
+_WRITES = {
+    "image": "images",
+    "speech": "speech",
+    "video": "video",
+    "audio": "audio",
+    "embeddings": "embeddings",
+    "transcription": "transcripts",
+}
+
+
+def _quiz_models(conn, hidden: list[str]) -> list[dict[str, Any]]:
+    """The models a question may draw on: today's catalogue, one listing per
+    model (no `~` aliases, no `:variant` ids, no "(batch)"-style siblings)."""
+    voices = dict(
+        conn.execute(
+            f"SELECT v.canonical_id, count(DISTINCT d.author_id) {_FROM} GROUP BY 1",
+            {"hidden": hidden},
+        ).fetchall()
+    )
+    registry = {r[0] for r in conn.execute("SELECT canonical_id FROM model_version").fetchall()}
+    out = []
+    for cid, name, ins, outs, ctx, pi, po, listed, expires, params in conn.execute(
+        "SELECT canonical_id, name, input_modalities, output_modalities, context_length, "
+        "       price_in, price_out, listed_at, expiration_date, supported_parameters "
+        "FROM model_catalog WHERE last_seen_at = (SELECT max(last_seen_at) FROM model_catalog) "
+        "AND canonical_id NOT LIKE '~%%' AND canonical_id NOT LIKE '%%:%%'",
+        {},
     ).fetchall():
-        t = tells.setdefault(mv, set())
-        short = (name or "").split(":", 1)[-1].strip()
-        tail = (cid or "").rsplit("/", 1)[-1]
-        for s in (
-            name,
-            short,
-            tail,
-            family,
-            provider,
-            short.split(" ")[0] if short else "",
-            tail.split("-")[0],
-        ):
-            if s:
-                t.add(_fold(s))
-    for mv, surface, variants in conn.execute(
-        "SELECT model_version_id, surface, variants FROM model_alias"
-    ).fetchall():
-        t = tells.setdefault(mv, set())
-        for s in [surface, *(variants or [])]:
-            if s:
-                t.add(_fold(s))
-    for t in tells.values():
-        t.discard("")
-    return tells
+        if _VARIANT.search(name or "") or ":" not in (name or ""):
+            continue
+        out.append(
+            {
+                "id": cid,
+                "name": _short(name),
+                "maker": name.split(":", 1)[0].strip(),
+                "ins": list(ins or []),
+                "outs": list(outs or []),
+                "context": ctx,
+                "price_in": _per_token(cid, pi),
+                "price_out": _per_token(cid, po),
+                "listed": listed.date() if listed else None,
+                "expires": expires,
+                "params": list(params) if params else None,
+                "voices": voices.get(cid, 0),
+                "known": cid in registry or voices.get(cid, 0) > 0,
+            }
+        )
+    return out
 
 
-def _name_words(conn) -> dict[str, set[str]]:
-    """The DISTINCTIVE words of each model's name, for whole-word matching:
-    "Sol" in "GPT-6.1 Sol", "Astra", "Opus". The folded tells above catch a
-    full name run together; a single short word needs word boundaries, or
-    "sol" would be found inside "solution". Words with a digit are versions,
-    already covered by the folded tells."""
-    words: dict[str, set[str]] = {}
-    for mv, name in conn.execute("SELECT id, display_name FROM model_version").fetchall():
-        short = (name or "").split(":", 1)[-1]
-        words[mv] = {
-            w
-            for w in _WORD.findall(short.lower())
-            if len(w) >= 3 and not any(ch.isdigit() for ch in w) and w not in _GENERIC
+def _ranked(rng, pool, n, key, *, high: bool, margin: float):
+    """n models whose `key` is known, with ONE clear winner: it beats the
+    runner-up by `margin` (a ratio), so the answer is not a rounding error."""
+    pool = [m for m in pool if key(m) is not None]
+    if len(pool) < n:
+        return None
+    for _ in range(40):
+        opts = rng.sample(pool, n)
+        vals = sorted((key(m) for m in opts), reverse=high)
+        best, second = vals[0], vals[1]
+        clear = best >= second * margin if high else best * margin <= second
+        if best != second and clear:
+            win = max(opts, key=key) if high else min(opts, key=key)
+            return opts, win
+    return None
+
+
+def _odd_one(rng, pool, n, has):
+    """n models where EXACTLY ONE has the property. `has` returns None when
+    the property is not published for a model, which leaves it out (rule 6)."""
+    yes = [m for m in pool if has(m) is True]
+    no = [m for m in pool if has(m) is False]
+    if not yes or len(no) < n - 1:
+        return None
+    win = rng.choice(yes)
+    return [win, *rng.sample(no, n - 1)], win
+
+
+def _opt(m: dict, value: Any, unit: str) -> dict[str, Any]:
+    return {"id": m["id"], "name": m["name"], "value": value, "unit": unit}
+
+
+def _question(kind: str, rng: random.Random, models: list[dict], cfg: dict, today: date):
+    n = cfg["options"]
+    margin = 1 + cfg["margin_percent"] / 100
+    known = [m for m in models if m["known"]]
+    text = [m for m in known if "text" in m["outs"]]
+
+    if kind == "longest_input":
+        got = _ranked(rng, text, n, lambda m: m["context"], high=True, margin=margin)
+        if not got:
+            return None
+        opts, win = got
+        return {
+            "prompt": "Which of these can take the longest input?",
+            "options": [_opt(m, m["context"], "tokens") for m in opts],
+            "answer": win["id"],
+            "explain": "The context window each model advertises, in tokens.",
+            "source": "OpenRouter's catalogue",
+            "links": [["Check what fits in the token counter", "/token-counter"]],
         }
-    return words
+    if kind == "cheapest_input":
+        got = _ranked(rng, text, n, lambda m: m["price_in"], high=False, margin=margin)
+        if not got:
+            return None
+        opts, win = got
+        return {
+            "prompt": "Which of these is cheapest per million input tokens?",
+            "options": [_opt(m, m["price_in"], "usd_per_m") for m in opts],
+            "answer": win["id"],
+            "explain": "List price per million input tokens. A real bill also depends on "
+            "output, caching and volume.",
+            "source": "OpenRouter's catalogue",
+            "links": [["Price a whole workload in the token counter", "/token-counter"]],
+        }
+    if kind == "dearest_output":
+        got = _ranked(rng, text, n, lambda m: m["price_out"], high=True, margin=margin)
+        if not got:
+            return None
+        opts, win = got
+        return {
+            "prompt": "Which of these costs the most per million output tokens?",
+            "options": [_opt(m, m["price_out"], "usd_per_m") for m in opts],
+            "answer": win["id"],
+            "explain": "List price per million output tokens.",
+            "source": "OpenRouter's catalogue",
+            "links": [["Compare models side by side", "/compare"]],
+        }
+    if kind == "newest":
+        got = _ranked(
+            rng,
+            known,
+            n,
+            lambda m: m["listed"].toordinal() if m["listed"] else None,
+            high=True,
+            margin=1,
+        )
+        if not got:
+            return None
+        opts, win = got
+        dates = sorted((m["listed"] for m in opts), reverse=True)
+        if (dates[0] - dates[1]).days < cfg["gap_days"]:
+            return None
+        return {
+            "prompt": "Which of these was listed on OpenRouter most recently?",
+            "options": [_opt(m, m["listed"].isoformat(), "date") for m in opts],
+            "answer": win["id"],
+            "explain": "The date each model first appeared on OpenRouter - not always "
+            "the day it was released.",
+            "source": "OpenRouter's catalogue",
+            "links": [["See every new listing", "/catalog/new"]],
+        }
+    if kind == "reads":
+        what = rng.choice(sorted(_READS))
+        got = _odd_one(rng, known, n, lambda m: (what in m["ins"]) if m["ins"] else None)
+        if not got:
+            return None
+        opts, win = got
+        return {
+            "prompt": f"Which of these can take {_READS[what]} as input?",
+            "options": [_opt(m, m["ins"], "list") for m in opts],
+            "answer": win["id"],
+            "explain": "What each model is listed as reading.",
+            "source": "OpenRouter's catalogue",
+            "links": [["Find models by what they read and write", "/model-finder"]],
+        }
+    if kind == "writes":
+        what = rng.choice(sorted(_WRITES))
+        got = _odd_one(rng, models, n, lambda m: (what in m["outs"]) if m["outs"] else None)
+        if not got:
+            return None
+        opts, win = got
+        return {
+            "prompt": f"Which of these makes {_WRITES[what]}?",
+            "options": [_opt(m, m["outs"], "list") for m in opts],
+            "answer": win["id"],
+            "explain": "What each model is listed as producing.",
+            "source": "OpenRouter's catalogue",
+            "links": [["Find models by what they read and write", "/model-finder"]],
+        }
+    if kind == "missing_feature":
+        key = rng.choice(sorted(_FEATURES))
+        # THE ODD ONE OUT LACKS IT. Only models that publish a parameter list
+        # take part: an unpublished list is unknown, not "does not support".
+        got = _odd_one(rng, text, n, lambda m: (key not in m["params"]) if m["params"] else None)
+        if not got:
+            return None
+        opts, win = got
+        return {
+            "prompt": f"Which of these does not advertise {_FEATURES[key]}?",
+            "options": [_opt(m, key in m["params"], "yesno") for m in opts],
+            "answer": win["id"],
+            "explain": f"Whether each model lists {_FEATURES[key]} among its supported "
+            "parameters. Advertised, not tested.",
+            "source": "OpenRouter's catalogue",
+            "links": [["Filter by feature in the spec finder", "/model-finder"]],
+        }
+    if kind == "retires_first":
+        dated = [m for m in models if m["expires"] and m["expires"] >= today]
+        got = _ranked(rng, dated, n, lambda m: m["expires"].toordinal(), high=False, margin=1)
+        if not got:
+            return None
+        opts, win = got
+        return {
+            "prompt": "Which of these is scheduled to retire first?",
+            "options": [_opt(m, m["expires"].isoformat(), "date") for m in opts],
+            "answer": win["id"],
+            "explain": "The date OpenRouter says it stops serving each model.",
+            "source": "OpenRouter's catalogue",
+            "links": [["See what changed this week", "/blogs/this-week"]],
+        }
+    if kind == "maker":
+        if not known:
+            return None
+        win = rng.choice(known)
+        others = sorted({m["maker"] for m in models if m["maker"] != win["maker"]})
+        if len(others) < n - 1:
+            return None
+        makers = [win["maker"], *rng.sample(others, n - 1)]
+        return {
+            "prompt": f"Who makes {win['name']}?",
+            "options": [{"id": mk, "name": mk, "value": None, "unit": "none"} for mk in makers],
+            "answer": win["maker"],
+            "explain": "The maker as OpenRouter lists it.",
+            "source": "OpenRouter's catalogue",
+            "links": [[f"{win['name']}'s page", f"model:{win['id']}"]],
+        }
+    if kind == "most_discussed":
+        voiced = [m for m in known if m["voices"] > 0]
+        got = _ranked(rng, voiced, n, lambda m: m["voices"], high=True, margin=margin)
+        if not got:
+            return None
+        opts, win = got
+        return {
+            "prompt": "Engineers have written about which of these the most?",
+            "options": [_opt(m, m["voices"], "engineers") for m in opts],
+            "answer": win["id"],
+            "explain": "Distinct engineers whose public posts report on each model. Most "
+            "discussed is not the same as best.",
+            "source": "The board's public reports",
+            "links": [["See where engineers disagree", "/blogs/disagree"]],
+        }
+    return None
 
 
-def _names(quote: str, mv: str, tells: dict[str, set[str]], words: dict[str, set[str]]) -> bool:
-    """Does this quote give model `mv` away?"""
-    folded = _fold(quote)
-    if any(t in folded for t in tells.get(mv, ())):
-        return True
-    return bool(words.get(mv, set()) & set(_WORD.findall(quote.lower())))
+QUESTION_KINDS = (
+    "longest_input",
+    "cheapest_input",
+    "dearest_output",
+    "newest",
+    "reads",
+    "writes",
+    "missing_feature",
+    "retires_first",
+    "maker",
+    "most_discussed",
+)
 
 
 def quiz(conn, day: str | None = None, today: date | None = None) -> dict[str, Any] | None:
     """One day's quiz: the same questions for every reader on that day.
 
-    THE CHOICE IS RANDOM AND SEEDED BY THE DATE. Nothing ranks a quote or a
-    model; code draws from the pool. The pool changes as evidence arrives, so a
-    past day's quiz can differ when reopened later.
+    THE CHOICE IS RANDOM AND SEEDED BY THE DATE. Code draws which kinds of
+    question, and which models, from the catalogue; nothing ranks a model.
+    The catalogue changes, so a past day's quiz can differ when reopened.
 
     None for a day after today, or one that is not a date."""
     cfg = blog_live_settings()["quiz"]
@@ -586,77 +758,24 @@ def quiz(conn, day: str | None = None, today: date | None = None) -> dict[str, A
         return None
     if d > today:
         return None
-    hidden = _hidden()
-    tells = _tells(conn)
-    words = _name_words(conn)
-    listed = _in_catalog(conn)
-    names = _topic_names(conn, hidden)
-    rows = conn.execute(
-        f"SELECT be.id, be.section, {_SLUG}, be.polarity, be.quote, d.url, d.source, d.created_at, "
-        f"       v.id, v.canonical_id, v.display_name "
-        f"{_FROM} AND be.section = ANY(%(sections)s) AND be.polarity IN ('positive', 'negative') "
-        f"AND length(be.quote) BETWEEN %(lo)s AND %(hi)s "
-        f"ORDER BY be.id",
-        {
-            "hidden": hidden,
-            "sections": list(SECTIONS),
-            "lo": cfg["min_chars"],
-            "hi": cfg["max_chars"],
-        },
-    ).fetchall()
-    # A QUOTE CUT MID-SENTENCE reads as noise in a question: one that opens
-    # on punctuation (". On a 4-page file...") is left out. 30 of 1,626
-    # candidates on 2026-10-15. A cut mid-WORD cannot be seen from the text.
-    pool = [r for r in rows if _STARTS.match(r[4]) and not _names(r[4], r[8], tells, words)]
-    by_topic: dict[tuple[str, str], set[str]] = {}
-    model_of: dict[str, tuple[str, str]] = {}
-    for r in pool:
-        by_topic.setdefault((r[1], r[2]), set()).add(r[8])
-        model_of[r[8]] = (r[9], r[10])
-    everyone = sorted(model_of)
-
+    models = _quiz_models(conn, _hidden())
     rng = random.Random(f"mib-quiz:{d.isoformat()}")
-    order = pool[:]
-    rng.shuffle(order)
-    questions, used = [], set()
-    for r in order:
+    kinds = list(QUESTION_KINDS)
+    rng.shuffle(kinds)
+    questions = []
+    for kind in kinds:
         if len(questions) == cfg["questions_per_day"]:
             break
-        eid, section, slug, pol, quote, url, source, written, mv, cid, name = r
-        if mv in used:
-            continue
-        # A DISTRACTOR THE QUOTE NAMES would be a trick, not a guess.
-        ok = [m for m in everyone if m != mv and not _names(quote, m, tells, words)]
-        near = sorted(m for m in by_topic[(section, slug)] if m in ok)
-        rng.shuffle(near)
-        rest = [m for m in ok if m not in near]
-        rng.shuffle(rest)
-        picks = (near + rest)[: cfg["options"] - 1]
-        if len(picks) < cfg["options"] - 1:
-            continue
-        options = [mv, *picks]
-        rng.shuffle(options)
-        used.add(mv)
-        questions.append(
-            {
-                "id": eid,
-                "quote": quote,
-                "url": url,
-                "source": SOURCE_LABEL.get(source, source),
-                "written": _iso(written.date()) if written else None,
-                "section": section,
-                "slug": slug,
-                "topic": names.get((section, slug), slug),
-                "polarity": pol,
-                "options": [{"id": model_of[m][0], "name": model_of[m][1]} for m in options],
-                "answer": _model(cid, name, listed),
-            }
-        )
+        q = _question(kind, rng, models, cfg, today)
+        if q:
+            rng.shuffle(q["options"])
+            questions.append({"id": f"{d.isoformat()}:{kind}", "kind": kind, **q})
+    read = conn.execute("SELECT max(last_seen_at) FROM model_catalog").fetchone()[0]
     return {
         "day": d.isoformat(),
         "latest_day": today.isoformat(),
         "questions": questions,
-        "pool": {"quotes": len(pool), "models": len(everyone), "considered": len(rows)},
+        "catalogue_read": _iso(read.date()) if read else None,
     }
 
 

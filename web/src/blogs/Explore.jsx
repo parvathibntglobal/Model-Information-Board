@@ -14,7 +14,7 @@ import { shortName, wallPath } from './live'
 const CARDS = [
   ['/blogs/disagree', 'Where engineers disagree', 'Models and topics with reports on both sides, every quote linked.'],
   ['/blogs/this-week', 'This week in models', 'New listings, what engineers wrote, prices and retirements.'],
-  ['/blogs/quiz', 'Which model was this?', 'Five real quotes a day. Guess the model.'],
+  ['/blogs/quiz', 'Daily quiz', 'Five questions a day about prices, context windows and what models can do.'],
 ]
 
 export function ReadNext({ post }) {

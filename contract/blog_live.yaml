@@ -1,5 +1,5 @@
 # The blog's live pages: claim walls, "Where engineers disagree", "This week in
-# models" and the daily quote quiz (judge/blog_live.py).
+# models" and the daily quiz (judge/blog_live.py).
 #
 # ⚠ PROPOSED 2026-10-15 BY anooj, ON BRANCH anooj_010newdesign - NOT RATIFIED.
 #   contract/ gets two eyes: this file reaches main only through a reviewed PR.
@@ -19,15 +19,21 @@ proposed_on: 2026-10-15
 proposed_by: anooj
 
 quiz:
-  # How many quotes make one day's quiz. The same day gives every reader the
-  # same questions, so a score can be compared.
+  # GENERAL QUESTIONS (reworked 2026-10-15): each is answered by a figure the
+  # site publishes - a price, a context window, a date, a modality, a feature,
+  # a maker, or a count of engineers. No quotes.
+  #
+  # How many questions make one day's quiz. The same day gives every reader
+  # the same questions, so a score can be compared.
   questions_per_day: 5
-  # Quote length, in characters. Shorter rarely says enough to guess from;
-  # longer is a paragraph, not a quote.
-  min_chars: 60
-  max_chars: 280
   # Choices shown per question, the answer included.
   options: 4
+  # A "which is highest / lowest" question is used only when the answer beats
+  # the runner-up by at least this much, so it is never a rounding error.
+  margin_percent: 25
+  # "Listed most recently" needs at least this many days between the newest
+  # choice and the next.
+  gap_days: 7
 
 this_week:
   # How many past weeks the page offers, the current week included.

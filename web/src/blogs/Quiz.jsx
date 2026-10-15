@@ -1,24 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { liveQuiz } from '../api'
+import { fmtCtx, fmtUsd, modelPagePath } from '../catalog/format'
 import { useHead } from '../seo/head'
 import { liveQuiz as quizHead } from '../seo/pages'
-import { day, modelHref, shortName, wallPath } from './live'
+import { day } from './live'
 
 /**
- * WHICH MODEL WAS THIS? (2026-10-15). A real quote, shown exactly as written;
- * the reader picks the model it is about.
+ * THE DAILY QUIZ (reworked 2026-10-15): general questions about the models,
+ * each answered by a figure this site publishes - a price, a context window,
+ * a date, what a model reads or writes, a feature it advertises, its maker,
+ * or how many engineers wrote about it (judge/blog_live.py `quiz`).
  *
- * NOTHING IS BLANKED OUT. The server only draws quotes whose text names none
- * of the model's names, maker, family or known aliases, so the quote needs no
- * editing to be a question (judge/blog_live.py `quiz`). The same day gives
- * every reader the same questions.
+ * It used to show an engineer's quote and ask which model it was about. A
+ * reader cannot know who wrote a quote or where, so that was a guess, not a
+ * question. Now every choice shows its own figure once answered: the reader
+ * learns why, not only what.
  *
- * A reader's answers are kept in this browser only, so a reload does not lose
- * them. That is a convenience: a blocked storage simply starts fresh.
+ * The same day gives every reader the same questions. A reader's answers are
+ * kept in this browser only - a convenience; blocked storage starts fresh.
  */
 
-const KEY = (d) => `mib-quiz:${d}`
+const KEY = (d) => `mib-quiz-v2:${d}`
 const load = (d) => { try { return JSON.parse(localStorage.getItem(KEY(d)) || '{}') } catch { return {} } }
 const save = (d, v) => { try { localStorage.setItem(KEY(d), JSON.stringify(v)) } catch { /* storage blocked */ } }
 const shift = (iso, n) => {
@@ -27,32 +30,49 @@ const shift = (iso, n) => {
   return t.toISOString().slice(0, 10)
 }
 
+/** A choice's figure, in words. */
+function figure(o) {
+  if (o.unit === 'tokens') return `${fmtCtx(o.value)} tokens`
+  if (o.unit === 'usd_per_m') return `${fmtUsd(o.value)} per 1M`
+  if (o.unit === 'date') return day(o.value)
+  if (o.unit === 'list') return o.value.join(', ')
+  if (o.unit === 'yesno') return o.value ? 'advertises it' : 'does not advertise it'
+  if (o.unit === 'engineers') return `${o.value} ${o.value === 1 ? 'engineer' : 'engineers'}`
+  return null
+}
+
+/** A link target: `model:<id>` is a model's page; anything else is a path. */
+const to = (target) => (target.startsWith('model:') ? modelPagePath(target.slice(6)) : target)
+
 function Question({ q, n, picked, onPick }) {
   const done = picked != null
-  const right = done && picked === q.answer.id
+  const right = done && picked === q.answer
+  const answer = q.options.find((o) => o.id === q.answer)
   return (
     <section className={`lv-q${done ? (right ? ' right' : ' wrong') : ''}`}>
       <div className="lv-q-head">
         <span className="lv-q-n">{n}</span>
-        <span>An engineer {q.polarity === 'positive' ? 'reporting it working' : 'reporting problems'} · {q.topic}</span>
+        <span>{q.source}</span>
       </div>
-      <blockquote className="lv-q-quote">{q.quote}</blockquote>
+      <h2 className="lv-q-prompt">{q.prompt}</h2>
       <div className="lv-opts">
-        {q.options.map((o) => (
-          <button key={o.id} type="button" disabled={done} onClick={() => onPick(o.id)}
-                  className={done && o.id === q.answer.id ? 'is-answer' : done && o.id === picked ? 'is-picked' : ''}>
-            {shortName(o.name)}
-          </button>
-        ))}
+        {q.options.map((o) => {
+          const cls = done && o.id === q.answer ? 'is-answer' : done && o.id === picked ? 'is-picked' : ''
+          const fig = done ? figure(o) : null
+          return (
+            <button key={o.id} type="button" disabled={done} onClick={() => onPick(o.id)} className={cls}>
+              <span>{o.name}</span>
+              {fig && <span className="lv-opt-fig">{fig}</span>}
+            </button>
+          )
+        })}
       </div>
       {done && (
         <div className="lv-reveal">
-          <b>{right ? 'Right.' : `It was ${shortName(q.answer.name)}.`}</b>{' '}
-          <span className="dim">{q.source}{q.written ? `, ${day(q.written)}` : ''}.</span>{' '}
-          {q.url && <a href={q.url} target="_blank" rel="noopener noreferrer">Read the original ↗</a>}
+          <b>{right ? 'Right.' : `It's ${answer?.name}.`}</b>{' '}
+          <span className="dim">{q.explain}</span>
           <div className="lv-links">
-            <Link to={wallPath(q.section, q.slug, q.answer.id)}>Every report on {shortName(q.answer.name)} · {q.topic} →</Link>
-            <Link to={modelHref(q.answer)}>{shortName(q.answer.name)}'s page →</Link>
+            {q.links.map(([label, target]) => <Link key={target} to={to(target)}>{label} →</Link>)}
           </div>
         </div>
       )}
@@ -74,21 +94,24 @@ export default function Quiz() {
   }, [dayIso])
 
   const z = state.z
-  const pick = (qid, mid) => {
-    const next = { ...answers, [qid]: mid }
+  const pick = (qid, choice) => {
+    const next = { ...answers, [qid]: choice }
     setAnswers(next)
     save(z.day, next)
   }
   const answered = z ? z.questions.filter((q) => answers[q.id] != null) : []
-  const right = answered.filter((q) => answers[q.id] === q.answer.id).length
+  const right = answered.filter((q) => answers[q.id] === q.answer).length
 
   return (
     <div className="shell lv-page lv-narrow">
       <div className="lv-crumb"><Link to="/blogs">Blogs</Link><span>/</span><span>Daily quiz</span></div>
       <header className="lv-head">
         <span className="lv-kicker">Daily · new questions every day</span>
-        <h1>Which model was this?</h1>
-        <p className="lv-sub">Real quotes from engineers, exactly as they wrote them. Pick the model each one is about.</p>
+        <h1>How well do you know the models?</h1>
+        <p className="lv-sub">
+          Five questions about prices, context windows, what models can read and make, and who makes
+          them. Answer one to see the figure behind every choice.
+        </p>
         {z && (
           <div className="lv-bar">
             <button type="button" className="btn btn-ghost" onClick={() => setDay(shift(z.day, -1))}>← Previous day</button>
@@ -99,9 +122,9 @@ export default function Quiz() {
       </header>
       {state.err && <p className="lv-note">The quiz could not be read: {state.err}</p>}
       {!z && !state.err && <div className="skel" style={{ height: 320 }} />}
-      {z && z.questions.length === 0 && <p className="lv-empty">There are not enough quotes to make a quiz for this day.</p>}
+      {z && z.questions.length === 0 && <p className="lv-empty">There is not enough data to make a quiz for this day.</p>}
       {z && z.questions.map((q, i) => (
-        <Question key={q.id} q={q} n={i + 1} picked={answers[q.id] ?? null} onPick={(m) => pick(q.id, m)} />
+        <Question key={q.id} q={q} n={i + 1} picked={answers[q.id] ?? null} onPick={(c) => pick(q.id, c)} />
       ))}
       {z && z.questions.length > 0 && (
         <p className="lv-score">
@@ -113,14 +136,14 @@ export default function Quiz() {
       {z && (
         <footer className="lv-foot">
           <p>
-            Drawn at random by code from {z.pool.quotes} quotes about {z.pool.models} models, from public sources.
-            A quote is used only when its text contains none of the model's names, its maker, its family or any
-            spelling in our alias list - so nothing is blanked out. If one gives the answer away, that is a gap in
-            the list, not a trick.
+            Built by code{z.catalogue_read ? ` from OpenRouter's catalogue as read on ${day(z.catalogue_read)}` : ''} and
+            the board's public reports. Every answer is a published figure: a list price, an advertised context
+            window or feature, a listing or retirement date, or a count of engineers.
           </p>
           <p>
-            The answer is the model the extractor attached the quote to, and which side it is on is the extractor's
-            reading of it. Wrong choices are other models with reports, never one the quote names.
+            A "which is highest" question is used only when the answer is clearly ahead, and a model whose figure
+            is not published is never offered as a choice. Advertised features are what a provider lists, not what
+            anyone tested.
           </p>
         </footer>
       )}

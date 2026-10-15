@@ -1118,7 +1118,7 @@ const day = (ts) => ts ? String(ts).slice(0, 10) : '';
 const LIVE = [
   ['live:disagree', 'Where engineers disagree', 'Models and topics with reports on both sides, every quote linked.'],
   ['live:this-week', 'This week in models', 'New listings, what engineers wrote, prices and retirements.'],
-  ['live:quiz', 'Which model was this?', 'Five real quotes a day. Guess the model.'],
+  ['live:quiz', 'Daily quiz', 'Five questions a day about prices, context windows and what models can do.'],
 ];
 function vBlogs(){
   const meta = DB.postsMeta || { reason: null, skipped: [] };

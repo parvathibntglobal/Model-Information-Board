@@ -92,7 +92,8 @@
 .lv-q.wrong{border-color:var(--fail)}
 .lv-q-head{display:flex;align-items:center;gap:10px;font-size:var(--fs-xs);color:var(--text-3)}
 .lv-q-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--surface-3);color:var(--text)}
-.lv-q-quote{margin:12px 0;font-size:1.05rem;line-height:1.55;color:var(--text);border-left:3px solid var(--border-strong);padding-left:14px}
+.lv-q-prompt{font-size:var(--fs-h3);line-height:1.35;margin:10px 0 14px;color:var(--text)}
+.lv-opt-fig{display:block;font-size:var(--fs-xs);color:var(--text-2);margin-top:3px}
 .lv-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .lv-opts button{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:var(--r-control);
   padding:10px 12px;font-size:var(--fs-sm);text-align:left;cursor:pointer}

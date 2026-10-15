@@ -10,8 +10,8 @@ breaks one breaks a sentence a reader was told:
 - the disagreement order is made of the two counts every row shows (rule 3);
 - reports are dated by when the post was WRITTEN, not stored (rule 7);
 - a price change needs a predecessor - a first sighting is not a change;
-- the quiz never uses a quote that names its model, and never offers a model
-  the quote names as a wrong answer.
+- the quiz asks general questions, each answered by a published figure that
+  every choice shows, and an unknown figure never makes a choice (rule 6).
 """
 
 from __future__ import annotations
@@ -42,6 +42,19 @@ def conn(test_dsn, monkeypatch):
         yield c
 
 
+#: Per model: context, price in, price out, listed, reads, supported parameters.
+#: Distinct, so every kind of question can be built; Foxtrot publishes no
+#: context window, so it must never be a choice in a context question (rule 6).
+_SPECS = {
+    "mv_a": (1_000_000, 0.2, 1.0, "2026-10-13", "{text,image}", "{tools,structured_outputs}"),
+    "mv_b": (200_000, 3.0, 15.0, "2026-06-01", "{text}", "{tools}"),
+    "mv_c": (128_000, 1.0, 4.0, "2026-03-01", "{text}", "{tools,structured_outputs}"),
+    "mv_d": (32_000, 0.05, 0.1, "2025-12-01", "{text}", "{tools,structured_outputs}"),
+    "mv_e": (64_000, 8.0, 40.0, "2026-08-01", "{text,audio}", "{structured_outputs}"),
+    "mv_f": (None, 0.5, 2.0, "2026-01-01", "{text}", "{}"),
+}
+
+
 def _model(c, mv, cid, name, family, provider):
     c.execute(
         "INSERT INTO model_version (id, canonical_id, display_name, family, provider, "
@@ -49,12 +62,13 @@ def _model(c, mv, cid, name, family, provider):
         "VALUES (%s, %s, %s, %s, %s, '{}', 'polled')",
         (mv, cid, name, family, provider),
     )
+    ctx, pin, pout, listed, reads, params = _SPECS[mv]
     c.execute(
         "INSERT INTO model_catalog (canonical_id, provider, name, input_modalities, "
-        " output_modalities, "
-        " pricing, last_seen_at, listed_at, price_in, price_out) "
-        "VALUES (%s, %s, %s, '{text}', '{text}', '{}', '2026-10-15', '2026-10-13', 1, 2)",
-        (cid, provider, name),
+        " output_modalities, pricing, last_seen_at, listed_at, price_in, price_out, "
+        " context_length, supported_parameters) "
+        "VALUES (%s, %s, %s, %s, '{text}', '{}', '2026-10-15', %s, %s, %s, %s, %s)",
+        (cid, provider, name, reads, listed, pin, pout, ctx, params),
     )
 
 
@@ -212,7 +226,7 @@ def _seed(c):
 
 def test_settings_have_no_defaults():
     s = blog_live_settings()
-    assert s["quiz"]["min_chars"] < s["quiz"]["max_chars"]
+    assert s["quiz"]["options"] >= 2 and s["quiz"]["margin_percent"] > 0
 
 
 def test_disagreement_is_public_only_ruled_and_ordered_by_its_counts(conn):
@@ -244,7 +258,7 @@ def test_the_week_counts_posts_by_when_they_were_written(conn):
     w = blog_live.week(conn, today=TODAY)
     assert w["week"] == "2026-10-12" and w["in_progress"]
     assert w["reports"]["voices"] == 8  # u1..u6, u9, u10; u8 wrote in September
-    assert len(w["listings"]) == 6
+    assert [m["id"] for m in w["listings"]] == ["acme/alpha-1"]  # the one listed that week
     assert blog_live.week(conn, "2026-10-13", today=TODAY) is None  # not a Monday
     assert blog_live.week(conn, "2025-01-06", today=TODAY) is None  # not offered
 
@@ -257,19 +271,34 @@ def test_a_price_change_needs_a_predecessor(conn):
     assert w["price_history"]["last_change"] == "2026-10-13"
 
 
-def test_the_quiz_never_uses_a_quote_that_names_its_model(conn):
-    q = blog_live.quiz(conn, "2026-10-15", today=TODAY)
-    assert len(q["questions"]) >= 3, "the fixture must actually produce questions"
-    quotes = [x["quote"] for x in q["questions"]]
-    assert all("Alpha 1" not in t for t in quotes)
-    for x in q["questions"]:
-        assert x["answer"]["id"] in {o["id"] for o in x["options"]}
-        assert (
-            len({o["id"] for o in x["options"]})
-            == len(x["options"])
-            == blog_live_settings()["quiz"]["options"]
-        )
-    assert blog_live.quiz(conn, "2026-10-15", today=TODAY) == q  # same day, same quiz
+def test_the_quiz_asks_general_questions_with_a_clear_published_answer(conn):
+    """Reworked 2026-10-15: no quotes. Each answer is a published figure, every
+    choice carries its own, and an unknown figure never makes a choice."""
+    cfg = blog_live_settings()["quiz"]
+    seen = set()
+    for n in range(1, 15):
+        day = f"2026-10-{n:02d}"
+        q = blog_live.quiz(conn, day, today=TODAY)
+        assert q["questions"], f"no questions on {day}"
+        for x in q["questions"]:
+            seen.add(x["kind"])
+            assert "quote" not in x
+            ids = [o["id"] for o in x["options"]]
+            assert x["answer"] in ids and len(set(ids)) == len(ids) == cfg["options"]
+            if x["kind"] == "maker":
+                continue
+            assert all(o["value"] is not None for o in x["options"]), x
+            values = {o["id"]: o["value"] for o in x["options"]}
+            if x["kind"] in ("longest_input", "dearest_output", "most_discussed"):
+                assert values[x["answer"]] == max(values.values())
+            if x["kind"] == "cheapest_input":
+                assert values[x["answer"]] == min(values.values())
+            if x["kind"] == "longest_input":
+                assert "fox/foxtrot-6" not in ids  # no published context window
+    assert {"longest_input", "cheapest_input", "maker"} <= seen
+    assert blog_live.quiz(conn, "2026-10-15", today=TODAY) == blog_live.quiz(
+        conn, "2026-10-15", today=TODAY
+    )  # same day, same quiz
     assert blog_live.quiz(conn, "2026-10-16", today=TODAY) is None  # no peeking ahead
 
 

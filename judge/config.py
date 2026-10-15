@@ -330,7 +330,7 @@ def blog_live_settings() -> dict[str, dict[str, int]]:
     look exactly like one somebody did (rule 12)."""
     raw = _read("blog_live.yaml")
     need = {
-        "quiz": ("questions_per_day", "min_chars", "max_chars", "options"),
+        "quiz": ("questions_per_day", "options", "margin_percent", "gap_days"),
         "this_week": ("weeks_shown", "retiring_within_days", "models_listed"),
     }
     out: dict[str, dict[str, int]] = {}
@@ -347,8 +347,6 @@ def blog_live_settings() -> dict[str, dict[str, int]]:
                     f"number, got {v!r}"
                 )
             out[part][key] = v
-    if out["quiz"]["min_chars"] >= out["quiz"]["max_chars"]:
-        raise ValueError("contract/blog_live.yaml: quiz.min_chars must be below quiz.max_chars")
     return out
 
 
