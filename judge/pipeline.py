@@ -1105,6 +1105,7 @@ class Pipeline:
                     "slug": _entry.slug,
                     "name": _entry.name,
                     "definition": _entry.definition,
+                    "parent": _entry.parent,
                     "unit": _entry.unit,
                     "value_verbatim": _entry.value_verbatim,
                     "basis": _entry.basis,

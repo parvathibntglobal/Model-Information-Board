@@ -30,7 +30,7 @@ export const DB = {
   //
   // Empty when the payload predates grouping, and the views fall back to the
   // flat list - so an older API renders exactly as it did.
-  capGroups: [], metGroups: [],
+  jobGroups: [], capGroups: [], metGroups: [],
   // COMPUTED PER REQUEST, NEVER CARRIED AS A LITERAL. The ungrouped count was
   // 19 in the proposal, 20 in review and 21 by the time the page was written -
   // three answers in one day. Anything that states it reads this.
@@ -624,13 +624,19 @@ export function setBoardData(payload) {
       // cards is a claim that something is there, and a reader who cannot see
       // the leaves under a parent is reading a merge.
       if (!children.length) return []
+      // WHO FILED EACH LEAF HERE (2026-10-14). A leaf the contract has not
+      // filed can sit under the heading the extractor proposed; the page marks
+      // those, so a reader can tell a reviewed filing from a proposed one.
+      const byExtractor = new Set((r.children || [])
+        .filter((c) => c.filed_by === 'extractor').map((c) => c.slug))
       // `leaves` COMES FROM WHAT WE WILL ACTUALLY DRAW, not from the payload's
       // count. If a leaf was dropped above, the heading must not still claim it.
       return [{ kind: 'parent', name: r.name, parent: r.parent, children,
-                leaves: children.length }]
+                leaves: children.length, byExtractor }]
     })
   }
   const grouped = d.grouped || {}
+  DB.jobGroups = regroup(grouped.jobs, DB.jobs)
   DB.capGroups = regroup(grouped.caps, DB.caps)
   DB.metGroups = regroup(grouped.mets, DB.mets)
   DB.parentCoverage = d.parent_coverage || {}

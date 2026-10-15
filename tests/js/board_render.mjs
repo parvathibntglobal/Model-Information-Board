@@ -93,6 +93,28 @@ function render(tab) {
   return { cards, headings, folds }
 }
 
+/** A BOXED tab (2026-10-14): the overview shows one box per heading, and each
+ * box opens a page of that heading's leaves. So the leaves are read off the
+ * page EACH BOX OPENS, tagged with that page's heading - or null for the box
+ * of leaves not yet under a heading, which is no heading at all. */
+function renderBoxed(tab, overview) {
+  const boxes = [...overview.matchAll(/class="hbox[^"]*"[^>]*data-go="group:([^"]*)"/g)]
+    .map((m) => m[1].slice(m[1].indexOf(':') + 1))
+  const cards = []
+  const headings = []
+  for (const key of boxes) {
+    const html = vBoard(tab, key)
+    const name = (html.match(/<h1>([^<]*)<\/h1>/) || [, '(unnamed)'])[1]
+    const under = key === 'unfiled' ? null : name
+    if (under) headings.push(under)
+    for (const node of walk(parse(html))) if (has(node, 'igrid')) cardsIn(node, under, cards)
+  }
+  // A leaf drawn on the OVERVIEW would be a leaf outside every box.
+  const loose = []
+  for (const node of walk(parse(overview))) if (has(node, 'igrid')) cardsIn(node, null, loose)
+  return { cards: [...cards, ...loose], headings, folds: [], boxes, overviewCards: loose.length }
+}
+
 setBoardData(JSON.parse(fs.readFileSync(process.argv[2], 'utf-8')))
 const report = {}
 for (const [tab, flat, groups] of [
@@ -100,8 +122,9 @@ for (const [tab, flat, groups] of [
   ['cap', DB.caps, DB.capGroups],
   ['met', DB.mets, DB.metGroups],
 ]) {
+  const overview = vBoard(tab)
   report[tab] = {
-    ...render(tab),
+    ...(overview.includes('class="hboxes"') ? renderBoxed(tab, overview) : render(tab)),
     flat: flat.map((x) => x.slug),
     ungrouped: (groups || []).filter((g) => g.kind !== 'parent').map((g) => g.leaf.slug),
     grouped: Object.fromEntries(

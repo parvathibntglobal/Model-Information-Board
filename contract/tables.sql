@@ -940,6 +940,14 @@ CREATE TABLE board_entry (
   -- guessing from the old shape would bake an accident in as a decision.
   model_scope       text,
 
+  -- ── the heading the extractor filed an entry under (2026-10-14) ─────────
+  -- One of its section's headings in contract/slug_parents.yaml, or NULL:
+  -- written before this column, or the extractor gave no heading or one that
+  -- is not real (counted per section in store_entries' outcome as
+  -- `unfiled_by_section`). Read by board_sections to place a leaf the
+  -- contract has not filed; the contract wins wherever it has an answer.
+  parent_proposed   text,
+
   -- ── was this row's SLUG backed by its own quote? #368 ────────────────────
   -- `axis_verbatim` and `subject_verbatim` are the words COPIED from the
   -- quote, or NULL when the quote named none. They existed on the extraction

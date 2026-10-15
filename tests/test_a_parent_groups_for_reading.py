@@ -153,30 +153,51 @@ class TestUngroupedIsTheDefault:
     """Absence is not a defect (rule 6), and there is no residual bucket."""
 
     def test_an_unmapped_leaf_renders_at_the_top_level(self):
-        rows = group_section([leaf("instruction-following", 81)], section="capability")
+        rows = group_section([leaf("a-leaf-nobody-has-filed", 81)], section="capability")
         assert rows[0]["kind"] == "leaf"
         assert rows[0]["parent"] is None
 
-    def test_the_two_largest_capability_slugs_are_deliberately_ungrouped(self):
-        """Forcing these under a heading to complete the taxonomy is the
-        forcing defect one layer up."""
-        assert parent_of("instruction-following", section="capability") is None
-        assert parent_of("long-context", section="capability") is None
+    def test_the_two_largest_capability_slugs_sit_under_headings_named_for_them(self):
+        """Until 2026-10-14 these were ungrouped because no heading fitted, and
+        forcing them under one would have been the forcing defect. The ten
+        capability headings now include one named for each - a heading that
+        fits, not one stretched to cover."""
+        assert parent_of("instruction-following", section="capability") == (
+            "instruction-and-reliability"
+        )
+        assert parent_of("long-context", section="capability") == "long-context-and-memory"
 
     def test_there_is_no_other_parent(self):
         for parents in RAW["sections"].values():
             assert "other" not in parents
             assert "misc" not in parents
 
-    def test_best_for_has_no_parents_and_that_is_not_an_oversight(self):
-        """Deferred pending #412: `coding-agent` is 142 of 282 entries and 106
-        of the 142 do not belong under it."""
-        assert "best_for" not in RAW["sections"]
-        assert "best_for" not in slug_parents()
+    def test_best_for_has_parents_and_coding_agent_keeps_its_own_rows(self):
+        """Deferred until 2026-10-14 pending #412, whose remainder is #415 and
+        still open: `coding-agent` holds rows that do not belong under it. A
+        heading neither repairs nor hides that - the leaf renders with every
+        row it has, and #415 is where it is fixed."""
+        assert "best_for" in slug_parents()
+        rows = group_section([leaf("coding-agent", 142)], section="best_for")
+        assert rows[0]["parent"] == "agentic-automation"
+        assert rows[0]["children"][0]["reports"] == 142
+
+    def test_nothing_but_its_twin_is_filed_into_coding_agent(self):
+        """Folding more into a leaf that is already mostly misfiled would bury
+        more misfiled rows; only the identical `coding-agents` is proposed."""
+        import importlib.util
+
+        from judge.config import CONTRACT_DIR
+
+        path = CONTRACT_DIR.parent / "docs" / "proposals" / "job_curation_2026_10_14.py"
+        spec = importlib.util.spec_from_file_location("jobs", path)
+        jobs = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(jobs)
+        assert jobs.CLUSTERS["coding-agent"][1] == ["coding-agents"]
 
     def test_a_section_with_no_map_comes_back_unchanged_in_shape(self):
         items = [leaf("coding-agent", 142), leaf("classification", 10)]
-        rows = group_section(items, section="best_for")
+        rows = group_section(items, section="a-section-with-no-map")
         assert [r["kind"] for r in rows] == ["leaf", "leaf"]
         assert all(r["parent"] is None for r in rows)
         assert [r["slug"] for r in rows] == ["coding-agent", "classification"]
@@ -239,7 +260,7 @@ class TestTheMapItself:
 
 class TestCoverageIsComputed:
     def test_it_counts_what_is_there_rather_than_what_was_recorded(self):
-        items = [leaf("code-generation"), leaf("code-review"), leaf("long-context")]
+        items = [leaf("code-generation"), leaf("code-review"), leaf("a-leaf-nobody-has-filed")]
         got = coverage(items, section="capability")
         assert got == {"leaves": 3, "grouped": 2, "ungrouped": 1, "parents": 1}
 
@@ -247,10 +268,10 @@ class TestCoverageIsComputed:
 class TestOrderingIsInherited:
     def test_a_parent_takes_the_position_of_its_highest_ranked_leaf(self):
         rows = group_section(
-            [leaf("instruction-following", 81), leaf("code-generation", 55)],
+            [leaf("a-leaf-nobody-has-filed", 81), leaf("code-generation", 55)],
             section="capability",
         )
-        assert rows[0]["kind"] == "leaf" and rows[0]["slug"] == "instruction-following"
+        assert rows[0]["kind"] == "leaf" and rows[0]["slug"] == "a-leaf-nobody-has-filed"
         assert rows[1]["kind"] == "parent" and rows[1]["parent"] == "software-engineering"
 
     def test_grouping_ranks_nothing_of_its_own(self):
@@ -276,7 +297,7 @@ def test_group_sections_covers_every_section_it_is_given():
     assert set(got) == {"capability", "metric", "best_for"}
     assert got["capability"][0]["parent"] == "software-engineering"
     assert got["metric"][0]["parent"] == "price"
-    assert got["best_for"][0]["parent"] is None
+    assert got["best_for"][0]["parent"] == "agentic-automation"
 
 
 class TestTheRenamedParents:
@@ -337,7 +358,7 @@ class TestAParentHasAHeading:
         rows = group_section([leaf("reasoning", 80)], section="capability")
         parent = rows[0]
         assert parent["parent"] == "reasoning-and-math"
-        assert parent["name"] == "Reasoning and maths"
+        assert parent["name"] == "Reasoning, knowledge and accuracy"
 
     def test_the_heading_falls_back_to_the_slug_when_unnamed(self):
         from judge.config import parent_heading, parent_names
@@ -350,3 +371,32 @@ class TestAParentHasAHeading:
         is forbidden from carrying one."""
         for name in RAW["parent_names"].values():
             assert not re.search(r"\d", str(name)), f"{name!r} carries a digit"
+
+
+class TestAtMostTenHeadingsPerSection:
+    """2026-10-14. Each heading renders as a box a reader chooses from; ten is
+    a page of boxes somebody can scan."""
+
+    def test_no_section_has_more_than_ten_parents(self):
+        from judge.config import MAX_PARENTS_PER_SECTION
+        assert MAX_PARENTS_PER_SECTION == 10
+        for section, parents in RAW["sections"].items():
+            assert len(parents) <= 10, f"{section} has {len(parents)} headings"
+
+    def test_the_loader_refuses_an_eleventh(self, monkeypatch):
+        import judge.config as config
+
+        monkeypatch.setattr(
+            config,
+            "_read",
+            lambda _name: {
+                "forbidden_parents": [],
+                "sections": {"metric": {f"p{i}": [f"leaf-{i}"] for i in range(11)}},
+            },
+        )
+        config.slug_parents.cache_clear()
+        try:
+            with pytest.raises(ValueError, match="ceiling is 10"):
+                config.slug_parents()
+        finally:
+            config.slug_parents.cache_clear()
