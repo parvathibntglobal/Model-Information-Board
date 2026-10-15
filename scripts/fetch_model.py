@@ -2892,6 +2892,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     if budget is not None:
         budget.spent_usd = spend_ledger.spent_today()
         spent_before = budget.spent_usd
+        # TWO FETCHES AT ONCE (2026-10-15): every cap check re-reads today's
+        # total, so a run started beside this one spends from the same cap.
+        budget.shared_today = spend_ledger.spent_today
     # `undatable` WAS DISCARDED HERE (`facts, _ = ...`). A document with no
     # `created_at` has no facts, so the pipeline skips every claim from it with
     # one log line each - and every X document was undated from 2026-09-08 to

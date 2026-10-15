@@ -228,3 +228,31 @@ class TestTheMeasuredFigures:
         assert abs(ESTIMATED_OUTPUT_TOKENS - old_out) / old_out > 0.25
         # ...and the totals are close, which is the coincidence.
         assert abs(measured - estimated) / estimated < 0.15
+
+
+class TestTwoRunsShareOneDailyCap:
+    """Two fetches started side by side from Admin (2026-10-15). Each seeds its
+    budget once, so without a shared read each believed it had the whole
+    remaining cap - together, up to twice what was left."""
+
+    def test_another_runs_spend_in_the_ledger_stops_this_one(self):
+        budget = Budget(limit_usd=0.05, spent_usd=0.01)
+        budget.check_before_call()  # fine on its own figure
+        budget.shared_today = lambda: 0.0499  # the other run spent the rest
+        with pytest.raises(BudgetExhausted) as e:
+            budget.check_before_call()
+        assert e.value.spent_usd == pytest.approx(0.0499)
+
+    def test_the_runs_own_cost_stays_its_own(self):
+        budget = Budget(limit_usd=1.0, spent_usd=0.10, shared_today=lambda: 0.60)
+        budget.check_before_call()
+        budget.charge(completion())
+        assert budget.spent_usd < 0.11  # never absorbs the other run's 0.50
+
+    def test_an_unreadable_ledger_falls_back_to_this_runs_figure_not_below_it(self):
+        def broken():
+            raise OSError("ledger unreadable")
+
+        budget = Budget(limit_usd=0.02, spent_usd=0.0199, shared_today=broken)
+        with pytest.raises(BudgetExhausted):
+            budget.check_before_call()
