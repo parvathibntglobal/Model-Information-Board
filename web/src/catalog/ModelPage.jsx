@@ -121,9 +121,13 @@ function Voices({ m }) {
               <li key={`${a.kind}:${a.slug}`}>
                 <span className="mp2-kind">{KIND_LABEL[a.kind] || a.kind}</span>
                 <span className="mp2-axis">{a.name}</span>
-                <span className="mp2-split" title="Positive / negative / neutral reports">
-                  <i className="p">{s.positive || 0}</i><i className="n">{s.negative || 0}</i><i className="z">{s.neutral || 0}</i>
-                </span>
+                {/* A METRIC CARRIES NO POLARITY (2026-10-15): a stated figure is
+                    not praised or criticised, so its row shows no split. */}
+                {a.kind === 'metric' ? <span /> : (
+                  <span className="mp2-split" title="Positive / negative / neutral reports">
+                    <i className="p">{s.positive || 0}</i><i className="n">{s.negative || 0}</i><i className="z">{s.neutral || 0}</i>
+                  </span>
+                )}
                 <span className="mp2-v">{row.voices} {row.voices === 1 ? 'voice' : 'voices'}</span>
               </li>
             )

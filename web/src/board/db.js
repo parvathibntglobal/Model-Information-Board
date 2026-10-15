@@ -192,10 +192,16 @@ function quotesByModel(item) {
   return { byKey, orphans: orphans.length }
 }
 
-function commonFields(item) {
+function commonFields(item, { polarity = true } = {}) {
   // VOICES, not reports. An absent `voices` falls back to `reports` so an
   // older payload degrades to the previous behaviour rather than to 'none'.
-  const st = evidenceState(item.voices ?? item.reports, item.quotes)
+  //
+  // ⚠ METRICS CARRY NO POLARITY (2026-10-15). "Contested" is a polarity reading -
+  //   a positive and a negative report side by side - and a figure such as a
+  //   price is not praised or criticised by being stated. So a metric section
+  //   and its model rows are corroborated or single-source by DISTINCT VOICES
+  //   alone; the quotes' polarity is not passed in.
+  const st = evidenceState(item.voices ?? item.reports, polarity ? item.quotes : [])
   const { byKey, orphans } = quotesByModel(item)
   return {
     slug: item.slug,
@@ -268,7 +274,7 @@ function commonFields(item) {
         // must not become a definite claim that nobody discussed this.
         s: evidenceState(
           m.voices ?? m.reports,
-          (m.polarities || []).map((polarity) => ({ polarity })),
+          polarity ? (m.polarities || []).map((p) => ({ polarity: p })) : [],
         ),
         // WHICH OF THE THREE GROUPS THE ROW IS IN, from `board_sections`.
         // `ranked()` opens a heading where it changes. Absent on metric rows
@@ -527,7 +533,7 @@ export function setBoardData(payload) {
   }))
 
   DB.mets = (d.mets || []).map((m) => {
-    const base = commonFields(m)
+    const base = commonFields(m, { polarity: false })
     const groups = groupFigures(m)
     return {
       ...base,
