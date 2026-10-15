@@ -113,9 +113,9 @@ class TestThePageDoesNotPrintADatabaseIdAtTheReader:
         covers less, because it keeps passing either way.
         """
         heads = _theads(jsx(COMPARE))
-        assert len(heads) >= 2, (
-            f"expected a header on both compare tables, found {len(heads)}"
-        )
+        # ONE TABLE SINCE 2026-10-15, when the per-model counted table came off
+        # the page; the check still covers every header there is.
+        assert len(heads) >= 1, f"expected a header on the compare table, found {len(heads)}"
         for i, head in enumerate(heads):
             assert "m.canonical_id &&" in head, (
                 f"table {i} names its models without the provider's id"
@@ -223,37 +223,36 @@ class TestARowWhereEveryCellIsIdenticalIsNotARow:
 
 
 class TestHowAReportWasPhrasedIsCountedSeparately:
-    def test_the_three_counts_are_rendered(self):
+    """Since 2026-10-15 the three counts are on the head-to-head cards and the
+    shared-sections table, not on the counted table that came off the page."""
+
+    def _head_to_head(self):
         src = jsx(COMPARE)
-        assert "How it was phrased" in src
-        for word in ("negative", "positive", "neutral"):
-            assert word in src
+        return src[src.index("function HeadToHead"):src.index("function StickyNames")]
+
+    def test_the_three_counts_are_rendered(self):
+        block = self._head_to_head()
+        assert "positive: pol.positive" in block and "negative: pol.negative" in block
+        assert "neutral: pol.neutral" in block
 
     def test_no_ratio_net_or_score_is_computed(self):
-        """⚠ RULE 3, AND THIS IS EXACTLY WHERE IT WOULD BREAK. A net score, a
-        percentage positive or a "sentiment" figure is the 0-100 capability
-        number this board refuses to compute — and it would pick a winner from
-        a count of sentences."""
-        src = jsx(COMPARE)
-        block = src[src.index("How it was phrased"):src.index("— out of")]
-        # ⚠ ARITHMETIC ON THE COUNTS, NOT RAW CHARACTERS. The first version of
-        #   this test banned "/" and failed on every JSX closing tag, which is
-        #   mention-versus-use in a new costume: it searched for the shape of
-        #   the defect instead of the defect.
+        """⚠ RULE 3. A net score, a percentage positive or a "sentiment" figure
+        is the 0-100 number this board refuses to compute - it would pick a
+        winner from a count of sentences."""
+        block = self._head_to_head()
         for banned in ("Math.round", "toFixed", "* 100", "reduce("):
             assert banned not in block, f"a figure is being derived with {banned!r}"
         for field in ("positive", "negative", "neutral", "entries"):
             for op in ("/", "*", "+", "-"):
-                assert f"p.{field} {op}" not in block, (
-                    f"p.{field} is being combined with {op!r} — that is a score"
+                assert f"pol.{field} {op}" not in block, (
+                    f"pol.{field} is being combined with {op!r} - that is a score"
                 )
 
     def test_the_denominator_travels_with_the_counts(self):
-        """Rule 7. Entries are not people — one document can produce several,
-        so "74 negative" means nothing without both numbers."""
-        src = jsx(COMPARE)
-        assert "entries, from " in src
-        assert "documents}" in src
+        """Rule 7. Entries are not people - one post can produce several - so
+        the card carries the entries and the posts they came from."""
+        block = self._head_to_head()
+        assert "split.total" in block and "pol.documents" in block
 
     def test_declined_entries_are_not_counted(self):
         """A reviewer has ruled them off the board; counting them would put
