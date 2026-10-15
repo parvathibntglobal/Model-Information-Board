@@ -19,21 +19,54 @@ proposed_on: 2026-10-15
 proposed_by: anooj
 
 quiz:
-  # GENERAL QUESTIONS (reworked 2026-10-15): each is answered by a figure the
-  # site publishes - a price, a context window, a date, a modality, a feature,
-  # a maker, or a count of engineers. No quotes.
+  # TWO KINDS OF QUESTION (2026-10-15).
   #
-  # How many questions make one day's quiz. The same day gives every reader
-  # the same questions, so a score can be compared.
-  questions_per_day: 5
-  # Choices shown per question, the answer included.
+  # GENERAL: how language models work - the kind in Google's ML Crash Course
+  # LLM quiz. Drafted by the model below, APPROVED BY A PERSON in Admin ->
+  # Quiz, and only approved questions are ever shown (judge/quiz_bank.py).
+  #
+  # FROM THE BOARD: answered by a figure this site publishes - a price, a
+  # context window, a date, a modality, a feature, a maker, or a count of
+  # engineers (judge/blog_live.py).
+  #
+  # The same day gives every reader the same questions, so a score can be
+  # compared. When fewer approved general questions exist than asked for, the
+  # page says so and fills the gap from the board - never with a draft.
+  general_per_day: 4
+  board_per_day: 1
+  # Choices shown per board question, the answer included. (A general question
+  # always has four: the table's CHECK holds it.)
   options: 4
-  # A "which is highest / lowest" question is used only when the answer beats
-  # the runner-up by at least this much, so it is never a rounding error.
+  # A "which is highest / lowest" board question is used only when the answer
+  # beats the runner-up by at least this much, so it is never a rounding error.
   margin_percent: 25
   # "Listed most recently" needs at least this many days between the newest
   # choice and the next.
   gap_days: 7
+
+quiz_drafter:
+  # The model that drafts general questions, via OpenRouter. Its spend is the
+  # `quiz` stage of spend_ledger, outside the daily extraction cap.
+  model: deepseek/deepseek-v4-flash
+  # Questions asked for per call. One call covers one topic.
+  per_call: 8
+  # The topics questions are drafted on, in the order the Admin list offers.
+  topics:
+    - Tokens and tokenization
+    - Embeddings and vector search
+    - Attention and the transformer
+    - Context windows and long inputs
+    - Sampling - temperature, top-p and decoding
+    - Pre-training, fine-tuning and RLHF
+    - Parameter-efficient fine-tuning (LoRA and adapters)
+    - Inference efficiency - KV cache, quantization, batching
+    - Mixture of experts and model scale
+    - Prompting - few-shot, chain-of-thought, system prompts
+    - Retrieval-augmented generation
+    - Tool calling, structured output and agents
+    - Evaluation and benchmarks
+    - Hallucination, safety and prompt injection
+    - Cost - tokens, pricing and prompt caching
 
 this_week:
   # How many past weeks the page offers, the current week included.

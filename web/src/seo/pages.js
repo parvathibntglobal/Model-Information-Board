@@ -292,8 +292,8 @@ export function liveWeek(start) {
 
 export function liveQuiz() {
   return {
-    title: fullTitle('Daily AI model quiz'),
-    description: 'Five questions a day about AI model prices, context windows, what models can read and make, and who makes them.',
+    title: fullTitle('Daily LLM quiz'),
+    description: 'Five questions a day on how large language models work - tokens, attention, fine-tuning, retrieval and cost.',
     canonical: '/blogs/quiz',
   }
 }

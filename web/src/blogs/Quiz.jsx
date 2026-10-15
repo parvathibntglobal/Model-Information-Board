@@ -21,7 +21,7 @@ import { day } from './live'
  * kept in this browser only - a convenience; blocked storage starts fresh.
  */
 
-const KEY = (d) => `mib-quiz-v2:${d}`
+const KEY = (d) => `mib-quiz-v3:${d}`
 const load = (d) => { try { return JSON.parse(localStorage.getItem(KEY(d)) || '{}') } catch { return {} } }
 const save = (d, v) => { try { localStorage.setItem(KEY(d), JSON.stringify(v)) } catch { /* storage blocked */ } }
 const shift = (iso, n) => {
@@ -107,10 +107,10 @@ export default function Quiz() {
       <div className="lv-crumb"><Link to="/blogs">Blogs</Link><span>/</span><span>Daily quiz</span></div>
       <header className="lv-head">
         <span className="lv-kicker">Daily · new questions every day</span>
-        <h1>How well do you know the models?</h1>
+        <h1>How well do you know language models?</h1>
         <p className="lv-sub">
-          Five questions about prices, context windows, what models can read and make, and who makes
-          them. Answer one to see the figure behind every choice.
+          Five questions a day on how large language models work - tokens, attention, fine-tuning,
+          retrieval, cost - and one from what this board has measured. Answer to see why.
         </p>
         {z && (
           <div className="lv-bar">
@@ -123,6 +123,13 @@ export default function Quiz() {
       {state.err && <p className="lv-note">The quiz could not be read: {state.err}</p>}
       {!z && !state.err && <div className="skel" style={{ height: 320 }} />}
       {z && z.questions.length === 0 && <p className="lv-empty">There is not enough data to make a quiz for this day.</p>}
+      {z && z.general_shortfall > 0 && (
+        <p className="lv-note">
+          {z.approved_in_bank === 0
+            ? 'No general questions have been approved yet, so today is drawn from the board instead.'
+            : `Only ${z.approved_in_bank} general ${z.approved_in_bank === 1 ? 'question has' : 'questions have'} been approved so far, so ${z.general_shortfall} of today's ${z.general_shortfall === 1 ? 'comes' : 'come'} from the board instead.`}
+        </p>
+      )}
       {z && z.questions.map((q, i) => (
         <Question key={q.id} q={q} n={i + 1} picked={answers[q.id] ?? null} onPick={(c) => pick(q.id, c)} />
       ))}
@@ -136,14 +143,13 @@ export default function Quiz() {
       {z && (
         <footer className="lv-foot">
           <p>
-            Built by code{z.catalogue_read ? ` from OpenRouter's catalogue as read on ${day(z.catalogue_read)}` : ''} and
-            the board's public reports. Every answer is a published figure: a list price, an advertised context
-            window or feature, a listing or retirement date, or a count of engineers.
+            General questions are drafted by a language model and each one is read and approved by a person on
+            the team before it can appear here. If you think an answer is wrong, tell us.
           </p>
           <p>
-            A "which is highest" question is used only when the answer is clearly ahead, and a model whose figure
-            is not published is never offered as a choice. Advertised features are what a provider lists, not what
-            anyone tested.
+            Questions from the board are built by code{z.catalogue_read ? ` from OpenRouter's catalogue as read on ${day(z.catalogue_read)}` : ''} and
+            the board's public reports, and every answer is a published figure. A "which is highest" question is
+            used only when the answer is clearly ahead, and a model whose figure is not published is never a choice.
           </p>
         </footer>
       )}

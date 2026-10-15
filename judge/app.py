@@ -2606,6 +2606,59 @@ def blog_posts_review(req: BlogReviewRequest) -> dict:
         raise HTTPException(status_code=503, detail=str(e)) from None
 
 
+# THE QUIZ QUESTION BANK (2026-10-15): a model drafts general questions, a
+# person approves them here, and the daily quiz shows approved ones only.
+# See judge/quiz_bank.py.
+
+
+@app.get("/quiz-bank")
+def quiz_bank_list(state: str = "pending") -> dict:
+    from judge import quiz_bank
+
+    if state not in ("pending", "approved", "rejected"):
+        raise HTTPException(status_code=400, detail="state must be pending, approved or rejected")
+    with _conn() as conn:
+        return {"counts": quiz_bank.counts(conn), "items": quiz_bank.listing(conn, state)}
+
+
+class QuizDraftRequest(BaseModel):
+    topic: str
+
+
+@app.post("/quiz-bank/draft")
+def quiz_bank_draft(req: QuizDraftRequest) -> dict:
+    """One paid call on one topic. What comes back is stored `pending`."""
+    from judge import quiz_bank
+
+    try:
+        with _conn() as conn:
+            return quiz_bank.draft(conn, req.topic)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except quiz_bank.DrafterUnavailable as e:
+        raise HTTPException(status_code=502, detail=str(e)) from None
+
+
+class QuizReviewRequest(BaseModel):
+    id: str
+    decision: str
+    note: str | None = None
+
+
+@app.post("/quiz-bank/review")
+def quiz_bank_review(req: QuizReviewRequest) -> dict:
+    from judge import quiz_bank
+
+    try:
+        with _conn() as conn:
+            found = quiz_bank.review(conn, req.id, req.decision, req.note)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    if found is None:
+        raise HTTPException(status_code=404, detail="no such question")
+    return found
+
+
 class BlogGenerateRequest(BaseModel):
     count: int = 3
 

@@ -302,6 +302,34 @@ def test_the_quiz_asks_general_questions_with_a_clear_published_answer(conn):
     assert blog_live.quiz(conn, "2026-10-16", today=TODAY) is None  # no peeking ahead
 
 
+def test_only_approved_general_questions_reach_the_quiz_and_a_shortfall_is_said(conn):
+    cfg = blog_live_settings()["quiz"]
+    empty = blog_live.quiz(conn, "2026-10-15", today=TODAY)
+    assert empty["approved_in_bank"] == 0
+    assert empty["general_shortfall"] == cfg["general_per_day"]
+    assert all(q["kind"] != "general" for q in empty["questions"])
+
+    from judge.config import quiz_drafter_settings
+
+    topic = quiz_drafter_settings()["topics"][0]
+    for i, state in enumerate(("approved", "approved", "pending", "rejected")):
+        conn.execute(
+            "INSERT INTO quiz_question (id, topic, difficulty, question, options, answer_index, "
+            " explanation, state, proposer_model, run_id, reviewed_at) "
+            'VALUES (%s, %s, \'easy\', %s, \'["a", "b", "c", "d"]\', 1, \'because\', %s, '
+            " 'm', 'r', CASE WHEN %s = 'pending' THEN NULL ELSE now() END)",
+            (f"qq_{i}", topic, f"Question {state} {i}?", state, state),
+        )
+    q = blog_live.quiz(conn, "2026-10-15", today=TODAY)
+    general = [x for x in q["questions"] if x["kind"] == "general"]
+    assert sorted(x["id"] for x in general) == ["qq_0", "qq_1"]  # never a draft
+    assert q["general_shortfall"] == cfg["general_per_day"] - 2
+    for x in general:
+        assert x["answer"] in {o["id"] for o in x["options"]}
+        right = next(o for o in x["options"] if o["id"] == x["answer"])
+        assert right["name"] == "b"  # answer_index 1, whatever the shuffle
+
+
 def test_a_preview_counts_public_reports_only(conn):
     m = blog_live.preview(conn, "model", "acme/alpha-1")
     assert (m["working"], m["problems"]) == (2, 2)

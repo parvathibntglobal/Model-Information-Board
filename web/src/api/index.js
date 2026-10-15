@@ -370,6 +370,12 @@ export const blogGenerationLog = (lines = 400) => request(`/blog-posts/generate/
 export const blogRuns = (limit = 20) => request(`/blog-posts/runs?limit=${limit}`)
 
 // Approve, reject or move back a stored post. A rejected post is kept, never shown.
+// THE QUIZ QUESTION BANK (judge/quiz_bank.py): drafted by a model, approved here.
+export const quizBank = (state = 'pending') => request(`/quiz-bank?state=${encodeURIComponent(state)}`)
+export const draftQuizQuestions = (topic) => request('/quiz-bank/draft', { method: 'POST', body: { topic } })
+export const reviewQuizQuestion = (id, decision, note) =>
+  request('/quiz-bank/review', { method: 'POST', body: { id, decision, note: note || null } })
+
 export const reviewBlogPost = (slug, decision, reason) =>
   request('/blog-posts/review', { method: 'POST', body: { slug, decision, reason: reason || null } })
 

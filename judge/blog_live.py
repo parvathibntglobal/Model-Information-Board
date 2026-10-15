@@ -758,23 +758,64 @@ def quiz(conn, day: str | None = None, today: date | None = None) -> dict[str, A
         return None
     if d > today:
         return None
-    models = _quiz_models(conn, _hidden())
     rng = random.Random(f"mib-quiz:{d.isoformat()}")
+
+    # GENERAL QUESTIONS FIRST: approved ones only, one per topic where the bank
+    # allows, so a day is not five questions on tokenization.
+    from judge import quiz_bank
+
+    bank = quiz_bank.approved(conn)
+    rng.shuffle(bank)
+    general, topics_used = [], set()
+    for pass_ in (0, 1):
+        for g in bank:
+            if len(general) == cfg["general_per_day"]:
+                break
+            if g in general or (pass_ == 0 and g["topic"] in topics_used):
+                continue
+            general.append(g)
+            topics_used.add(g["topic"])
+    questions = [
+        {
+            "id": g["id"],
+            "kind": "general",
+            "prompt": g["question"],
+            "options": [
+                {"id": str(i), "name": text, "value": None, "unit": "none"}
+                for i, text in enumerate(g["options"])
+            ],
+            "answer": str(g["answer_index"]),
+            "explain": g["explanation"],
+            "source": f"{g['topic']} · {g['difficulty']}",
+            "links": [],
+        }
+        for g in general
+    ]
+    for q in questions:
+        rng.shuffle(q["options"])
+
+    # FROM THE BOARD: the rest. A shortfall of approved general questions is
+    # filled here and SAID (rule 4) - never filled with an unapproved draft.
+    shortfall = cfg["general_per_day"] - len(general)
+    models = _quiz_models(conn, _hidden())
     kinds = list(QUESTION_KINDS)
     rng.shuffle(kinds)
-    questions = []
+    board = []
     for kind in kinds:
-        if len(questions) == cfg["questions_per_day"]:
+        if len(board) == cfg["board_per_day"] + shortfall:
             break
         q = _question(kind, rng, models, cfg, today)
         if q:
             rng.shuffle(q["options"])
-            questions.append({"id": f"{d.isoformat()}:{kind}", "kind": kind, **q})
+            board.append({"id": f"{d.isoformat()}:{kind}", "kind": kind, **q})
+    questions += board
     read = conn.execute("SELECT max(last_seen_at) FROM model_catalog").fetchone()[0]
     return {
         "day": d.isoformat(),
         "latest_day": today.isoformat(),
         "questions": questions,
+        "approved_in_bank": len(bank),
+        "general_shortfall": shortfall,
         "catalogue_read": _iso(read.date()) if read else None,
     }
 

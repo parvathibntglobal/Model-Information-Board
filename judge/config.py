@@ -330,7 +330,7 @@ def blog_live_settings() -> dict[str, dict[str, int]]:
     look exactly like one somebody did (rule 12)."""
     raw = _read("blog_live.yaml")
     need = {
-        "quiz": ("questions_per_day", "options", "margin_percent", "gap_days"),
+        "quiz": ("general_per_day", "board_per_day", "options", "margin_percent", "gap_days"),
         "this_week": ("weeks_shown", "retiring_within_days", "models_listed"),
     }
     out: dict[str, dict[str, int]] = {}
@@ -348,6 +348,28 @@ def blog_live_settings() -> dict[str, dict[str, int]]:
                 )
             out[part][key] = v
     return out
+
+
+@lru_cache(maxsize=1)
+def quiz_drafter_settings() -> dict:
+    """`contract/blog_live.yaml` `quiz_drafter`: which model drafts general quiz
+    questions, how many per call, and on which topics. No defaults (rule 12)."""
+    raw = _read("blog_live.yaml")
+    block = raw.get("quiz_drafter") if isinstance(raw, dict) else None
+    if not isinstance(block, dict):
+        raise ValueError("contract/blog_live.yaml: `quiz_drafter` is missing")
+    model, per_call, topics = block.get("model"), block.get("per_call"), block.get("topics")
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.model must name a model")
+    if isinstance(per_call, bool) or not isinstance(per_call, int) or not 1 <= per_call <= 20:
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.per_call must be 1 to 20")
+    if (
+        not isinstance(topics, list)
+        or not topics
+        or not all(isinstance(t, str) and t.strip() for t in topics)
+    ):
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.topics must be a list of topics")
+    return {"model": model.strip(), "per_call": per_call, "topics": [t.strip() for t in topics]}
 
 
 def _read(name: str) -> dict:

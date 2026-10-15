@@ -16,6 +16,7 @@ import FetchPanel from '../components/FetchPanel'
 import ModelProposal from '../components/ModelProposal'
 import SchedulerPanel from '../components/SchedulerPanel'
 import BlogsPanel from '../components/BlogsPanel'
+import QuizPanel from '../components/QuizPanel'
 import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
@@ -290,6 +291,12 @@ const SECTIONS = [
     title: 'Blogs',
     blurb: 'Drafts from the evidence, waiting for approval',
     render: () => <BlogsPanel />,
+  },
+  {
+    id: 'quiz',
+    title: 'Quiz',
+    blurb: 'General questions for the daily quiz, drafted by a model and approved here',
+    render: () => <QuizPanel />,
   },
   {
     id: 'prompts',

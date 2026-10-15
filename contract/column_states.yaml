@@ -1373,6 +1373,59 @@ columns:
     price_out:
       reviewed: false
       state: read
+  quiz_question:
+    answer_index:
+      reviewed: false
+      state: read
+      why: 'Which of the four options is right, as drafted. Written by judge/quiz_bank.py draft(), read by listing()/approved() - Admin -> Quiz marks it, the daily quiz checks answers against it. Migration 20261015T1400.'
+    difficulty:
+      reviewed: false
+      state: read
+      why: 'easy | medium | hard, as drafted. Written by judge/quiz_bank.py draft(), read by listing()/approved(); shown in Admin -> Quiz and in each question''s header. Migration 20261015T1400.'
+    explanation:
+      reviewed: false
+      state: read
+      why: 'Why the answer is right. Written by judge/quiz_bank.py draft(), read by listing()/approved(); the reviewer checks against it and the quiz shows it after answering. Migration 20261015T1400.'
+    generated_at:
+      reviewed: false
+      state: read
+      why: 'When the draft was stored. Defaulted by the database, read by judge/quiz_bank.py listing() for its order and shown in Admin -> Quiz. Migration 20261015T1400.'
+    id:
+      reviewed: false
+      state: read
+      why: 'qq_ + hash of the normalised question, so a re-draft is one row. Written by judge/quiz_bank.py draft(), read by every reader and by review(). Migration 20261015T1400.'
+    options:
+      reviewed: false
+      state: read
+      why: 'The four answer texts. Written by judge/quiz_bank.py draft(), read by listing()/approved(). Migration 20261015T1400.'
+    proposer_model:
+      reviewed: false
+      state: read
+      why: 'The model OpenRouter served for the draft. Written by judge/quiz_bank.py draft(), read by listing() and shown in Admin -> Quiz. Migration 20261015T1400.'
+    question:
+      reviewed: false
+      state: read
+      why: 'The question text. Written by judge/quiz_bank.py draft(), read by listing()/approved() and by draft() itself (the topic''s existing questions, so a new call does not repeat them). Migration 20261015T1400.'
+    review_note:
+      reviewed: false
+      state: read
+      why: 'A reviewer''s optional note. Written by judge/quiz_bank.py review(), read by listing() and shown in Admin -> Quiz. Migration 20261015T1400.'
+    reviewed_at:
+      reviewed: false
+      state: write_only
+      why: 'When a person decided. Written by judge/quiz_bank.py review(); nothing reads it yet. Its intended reader is a ''decided on'' line in Admin -> Quiz; the table''s CHECK already ties it to state. Migration 20261015T1400.'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'The drafting call that produced the row. Written by judge/quiz_bank.py draft(); nothing reads it yet. Its intended reader is a per-call view in Admin -> Quiz, beside the spend_ledger row for the same call. Migration 20261015T1400.'
+    state:
+      reviewed: false
+      state: read
+      why: 'pending | approved | rejected. Written by judge/quiz_bank.py draft() and review(), read by listing(), counts() and approved() - only approved rows reach the daily quiz. Migration 20261015T1400.'
+    topic:
+      reviewed: false
+      state: read
+      why: 'One of contract/blog_live.yaml quiz_drafter.topics. Written by judge/quiz_bank.py draft(), read by counts() (per topic) and approved() (one question per topic a day). Migration 20261015T1400.'
   rapidapi_quota:
     key_fingerprint:
       reviewed: true

@@ -118,6 +118,22 @@
 /* the essay's computed "continue reading" (views.js) */
 .es-rel-why{color:var(--text-3);font-size:.78rem}
 
+/* Admin -> Quiz: the question bank's review list */
+.qb-intro{font-size:var(--fs-sm);max-width:80ch;margin:0}
+.qb-stats{display:flex;flex-wrap:wrap;gap:16px;font-size:var(--fs-sm);align-items:baseline}
+.qb-draft{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:var(--fs-xs)}
+.qb-draft select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--r-control);
+  padding:7px 10px;font-size:var(--fs-sm);max-width:100%}
+.qb-item{padding:14px 16px;border:1px solid var(--border-soft);border-radius:var(--r-control);background:var(--surface)}
+.qb-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:var(--fs-xs);color:var(--text-3)}
+.qb-q{font-size:var(--fs-body);color:var(--text);margin:8px 0}
+.qb-opts{margin:0 0 8px;padding-left:22px;font-size:var(--fs-sm);color:var(--text-2)}
+.qb-opts li{padding:2px 0}
+.qb-right{color:var(--pass)}
+.qb-why{font-size:var(--fs-xs);color:var(--text-2);margin:4px 0;max-width:90ch}
+.qb-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.qb-note{max-width:260px;flex:1 1 160px}
+
 /* hover previews, anywhere on the site */
 .hp-card{position:fixed;z-index:60;width:320px;max-width:calc(100vw - 24px);padding:12px 14px;
   background:var(--bg-elev);border:1px solid var(--border-strong);border-radius:var(--r-control);

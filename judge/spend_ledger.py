@@ -91,12 +91,17 @@ STAGES = (STAGE_EXTRACT, STAGE_ASK)
 #: month (`monthly`). Its usd is what OpenRouter REPORTED for the call, not a
 #: rate multiplied out here; a call with no reported cost is `unpriced`.
 STAGE_BLOG = "blog"
-RECORDED_STAGES = (*STAGES, STAGE_BLOG)
+#: THE QUIZ QUESTION DRAFTER (2026-10-15, judge/quiz_bank.py): the blog's
+#: pattern - a model drafts, a person approves - and recorded the same way,
+#: outside the cap, with the cost OpenRouter reports for each call.
+STAGE_QUIZ = "quiz"
+RECORDED_STAGES = (*STAGES, STAGE_BLOG, STAGE_QUIZ)
 
 STAGE_LABELS = {
     STAGE_EXTRACT: "Extraction (E5) — one call per thread, nightly batch",
     STAGE_ASK: "Ask box (Q1) — one call per submission, user-driven",
     STAGE_BLOG: "Blog drafts (generate_sample_blogs.py) — outside the daily cap",
+    STAGE_QUIZ: "Quiz question drafts (judge/quiz_bank.py) — outside the daily cap",
 }
 
 
