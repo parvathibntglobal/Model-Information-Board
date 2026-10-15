@@ -111,7 +111,7 @@ function VChart({ s }) {
     return (
       <div className="rp-oneline" role="img" aria-label={`All ${v} reports ${word}`}>
         <div className="rp-line" style={{ background: col }} />
-        <div className="rp-cap" style={{ color: c === 'neu' ? 'var(--text-1)' : col }}>All {plural(v, 'report')} {word}</div>
+        <div className="rp-cap" style={{ color: c === 'neu' ? 'var(--rp-text-1)' : col }}>All {plural(v, 'report')} {word}</div>
       </div>
     )
   }

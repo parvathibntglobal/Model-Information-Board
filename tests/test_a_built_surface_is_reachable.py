@@ -70,6 +70,15 @@ COMPONENTS = ROOT / "web" / "src" / "components"
 NOT_ADMIN_PANELS = {
     "AuraField", "BlogShowcase", "Faq", "FluidCanvas", "Footer", "Freshness", "Hero",
     "ModelEvidence", "Nav", "OrbitHub", "SiteSearch", "Icons", "ui",
+    # The landing's three examples from Reports (2026-10-15): mounted by
+    # routes/Landing.jsx in the "LLM leaderboard alternative" panel.
+    "ReportExamples",
+    # The landing's tools as micro-apps (2026-10-15): mounted by
+    # routes/Landing.jsx in place of the Board's "browse by use case".
+    "ToolsShowcase",
+    # The landing's models and comparisons as tabbed decks (2026-10-15):
+    # mounted by routes/Landing.jsx, reading the published Models pages.
+    "ModelsShowcase",
     # The not-found page (SEO item 7): mounted by App.jsx's catch-all route and
     # by Board, Blogs and ModelDetail for a missing section, post or model.
     "NotFound",

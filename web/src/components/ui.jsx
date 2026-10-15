@@ -64,6 +64,28 @@ export function Unreadable({ detail, compact }) {
   )
 }
 
+/* ---------------------------------------------------------------- in view */
+
+/**
+ * WHETHER AN ELEMENT IS ON SCREEN NOW (2026-10-15), for the landing's moving
+ * sections: each turns only while a reader can see it, so the page never has
+ * five things moving at once. Pass the element itself (a `ref={setEl}` state
+ * setter), so a component that renders a placeholder first still observes the
+ * real thing once it mounts. With no observer it reports true - it fails open,
+ * like Reveal below.
+ */
+export function useInView(el, threshold = 0.15) {
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    if (!el) return undefined
+    if (!('IntersectionObserver' in window)) { setInView(true); return undefined }
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { threshold })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [el, threshold])
+  return inView
+}
+
 /* ---------------------------------------------------------------- reveal */
 
 export function Reveal({ children, delay = 0, as: Tag = 'div', className = '', ...rest }) {

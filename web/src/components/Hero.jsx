@@ -18,25 +18,36 @@ import { Reveal } from './ui'
  * not be the one place an unreviewed quote appears. Changing them is an edit
  * here, with the same check.
  *
+ * THE COPY USES MEASURED KEYWORDS ONLY (2026-10-15; Google Keyword Planner
+ * bands in seo/excel files/model-board-seo-category-selection.xlsx, "Planner
+ * volumes (measured)"): best AI model, AI model comparison, coding agent, RAG,
+ * code review AI, LLM leaderboard, open source LLM, local LLM, best LLM for
+ * coding.
+ *
  * THE FLUID SURFACE IS THE OLD HERO'S, kept: it listens on `.hero-frame` and
  * blends over the headline; the quote cards and controls sit above it. Its
  * "move the cursor" hint is gone - the surface answers the cursor anyway.
  *
  * THE CHIPS ARE LINKS, NOT DATA. Each names a search people make and opens
- * the board page that answers it.
+ * the PUBLIC page that answers it (2026-10-15; they opened the Board, which
+ * sits behind the sign-in): the Best AI model picker for a job or capability,
+ * Compare for a versus, the Model specs finder for a spec. Every slug was
+ * checked against `/reports` that day.
  */
 
 // Alphabetical, so the order carries no ranking.
 const CHIPS = [
-  { label: 'AI agents', to: '/board/capabilities/agentic-tool-use' },
-  { label: 'AI summarization', to: '/board/capabilities/summarization' },
-  { label: 'Claude vs GPT', to: '/compare?ids=anthropic/claude-opus-5,openai/gpt-6-astra' },
-  { label: 'Context window', to: '/board/metrics/context-window' },
-  { label: 'Cybersecurity', to: '/board/capabilities/cybersecurity' },
-  { label: 'Instruction following', to: '/board/capabilities/instruction-following' },
-  // A parent heading on the Capabilities tab (contract/slug_parents.yaml), not
-  // one section: the link opens the tab at that group.
-  { label: 'Software engineering', to: '/board?tab=cap#parent-software-engineering' },
+  { label: 'AI agents', to: '/model-picker?capability=agentic-tool-use' },
+  { label: 'AI summarization', to: '/model-picker?job=summarization' },
+  // `from=reports`: the public comparison, counts without the quotes.
+  { label: 'Claude vs GPT', to: '/compare?ids=anthropic/claude-opus-5,openai/gpt-6-astra&from=reports' },
+  // the board's best-supported job; it replaced "Software engineering", a
+  // heading the vocabulary now calls "Coding and security"
+  { label: 'Coding agents', to: '/model-picker?job=coding-agent' },
+  // a context window is an advertised SPEC, and the picker reads no metrics
+  { label: 'Context window', to: '/model-finder' },
+  { label: 'Cybersecurity', to: '/model-picker?capability=cybersecurity' },
+  { label: 'Instruction following', to: '/model-picker?capability=instruction-following' },
 ]
 
 // Verbatim, with the source each came from. Checked 2026-09-29.
@@ -70,14 +81,15 @@ export default function Hero({ children }) {
         <div className="hero-split">
           <div className="hero-copy">
             <span className="hero-kicker">Model Information Board</span>
-            <Reveal as="h1">Find the best AI model for the job — proven by the engineers who use it.</Reveal>
+            <Reveal as="h1">Find the best AI model for the job, counted from the engineers who use it.</Reveal>
             <Reveal delay={120}>
             <p className="hero-sub">
-            An <Link to="/compare"><strong>AI model comparison</strong></Link> built from what engineers report in
-            production. Pick the work — a <Link to="/board/jobs/coding-agent">coding agent</Link>,
-            a <Link to="/board/jobs/rag">RAG pipeline</Link>, <Link to="/board/jobs/code-review">code review</Link> — and
-            read what they said about every model they used for it, failures included. If the <strong>best AI model
-            for coding</strong> is an open-source or local LLM, it says so.
+            An <Link to="/compare"><strong>AI model comparison</strong></Link> built from what engineers publicly report
+            in real work. We check every statement against its source and count how many different people reported a
+            model working, failing or neither for each job: a <Link to="/reports/jobs/coding-agent">coding agent</Link>,
+            a <Link to="/reports/jobs/rag">RAG pipeline</Link>, <Link to="/reports/jobs/code-review">code review</Link>.
+            Not an <strong>LLM leaderboard</strong> score: if the <strong>best LLM for coding</strong> is an open source
+            LLM or a local LLM, the count shows it.
           </p>
             </Reveal>
           </div>
