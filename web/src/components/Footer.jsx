@@ -1,52 +1,62 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { faqPage } from '../api'
+import { faqPage, modelCatalog } from '../api'
+import { fmtDate, modelPagePath } from '../catalog/format'
 
 /**
- * The site footer: what the board is, where to go, and where it reads from.
+ * The site footer: what the site is, where to go, and where it reads from.
  *
- * EVERY LINK OPENS A PAGE THAT EXISTS. The first landing demo's footer also
- * offered "Describe a task" (the Ask flow, since removed) and "Open-source &
- * alternatives" (no such page yet); both are left out until they are real.
+ * REWORKED 2026-10-15 FOR THE PUBLIC PAGES. It linked the Board, its tabs and
+ * /models - none of them published - and said reports were "quoted word for
+ * word", when the public pages publish counts. Every link now opens a page a
+ * visitor can see, in the nav's own words and order: the tools, then the
+ * Models menu's entries.
  *
- * THE MODELS COLUMN names tracked models the landing page does not already
- * show, so the footer adds names rather than repeating them; each is a model
- * page by registry id.
+ * POPULAR MODELS ARE READ, NOT TYPED: the six models with the most engineer
+ * voices in `/model-catalog` (the All models page's own order), each opening
+ * its /catalog page. The hand-typed list went stale as soon as the data moved.
+ * The column is left out if the catalogue cannot be read.
  *
- * THE PLATFORMS ARE READ, NOT TYPED: they come from `/faq`, the same list the
- * FAQ's "Where does the evidence come from?" answer uses, and the column is
- * left out if it cannot be read.
+ * THE PLATFORMS ARE READ TOO: from `/faq`, the same public-view list the FAQ's
+ * "Where do the reports come from?" answer counts, so the two cannot disagree.
  */
 
-const EXPLORE = [
+const TOOLS = [
+  { t: 'Best AI model picker', to: '/model-picker' },
+  { t: 'Model specs finder', to: '/model-finder' },
+  { t: 'Token counter', to: '/token-counter' },
   { t: 'AI model comparison', to: '/compare' },
-  { t: 'Best AI model for the job', to: '/board?tab=best' },
-  { t: 'Capabilities', to: '/board?tab=cap' },
-  { t: 'Metrics & benchmarks', to: '/board?tab=met' },
-]
-
-const SITE = [
-  { t: 'Board', to: '/board' },
-  { t: 'Models', to: '/models' },
-  { t: 'Blogs', to: '/blogs' },
-  { t: 'FAQ', href: '/#faq' },
 ]
 
 const MODELS = [
-  { t: 'Claude Fable 5.1', id: 'anthropic/claude-fable-5.1' },
-  { t: 'Claude Opus 5.5', id: 'anthropic/claude-opus-5.5' },
-  { t: 'Claude Opus 4.6', id: 'anthropic/claude-opus-4.6' },
-  { t: 'GPT-5.5 Codex', id: 'openai/gpt-5.5' },
-  { t: 'Grok 4.6', id: 'x-ai/grok-4.6' },
-  { t: 'GLM 5.3', id: 'z-ai/glm-5.3' },
+  { t: 'All models', to: '/catalog' },
+  { t: 'New releases', to: '/catalog/new' },
+  { t: 'Most reported', to: '/reports/models' },
+  { t: 'By job', to: '/reports/jobs' },
+  { t: 'By capability', to: '/reports/capabilities' },
+]
+
+const SITE = [
+  { t: 'Home', to: '/' },
+  { t: 'Blogs', to: '/blogs' },
+  { t: 'Tools', to: '/tools' },
+  { t: 'Discussions', to: '/discussions' },
+  { t: 'FAQ', href: '/#faq' },
 ]
 
 export default function Footer() {
   const [platforms, setPlatforms] = useState(null)
+  const [popular, setPopular] = useState(null)
 
   useEffect(() => {
     let alive = true
     faqPage().then((f) => alive && setPlatforms(f?.platforms || [])).catch(() => {})
+    modelCatalog().then((c) => {
+      if (!alive || c?.reason) return
+      const top = (c.models || []).filter((m) => m.voices > 0)
+        .sort((a, b) => b.voices - a.voices || a.name.localeCompare(b.name)).slice(0, 6)
+      setPopular({ top, polled: c.polled_at ? c.polled_at.slice(0, 10) : null })
+    }).catch(() => {})
     return () => { alive = false }
   }, [])
 
@@ -60,37 +70,48 @@ export default function Footer() {
               Model Information Board
             </Link>
             <p>
-              What engineers publicly report about AI models — quoted word for word, filed by job,
-              capability and metric, and kept current.
+              Find the best AI model for the job, counted from what engineers reported in real work —
+              working, failing or neither, filed by job, capability and metric.
             </p>
+            <p className="footer-promise">No scores · no paid placement · free to use</p>
           </div>
 
-          <nav className="footer-col" aria-label="Explore">
-            <span className="footer-h">Explore</span>
-            {EXPLORE.map((l) => <Link key={l.t} to={l.to}>{l.t}</Link>)}
+          <nav className="footer-col" aria-label="Tools">
+            <span className="footer-h">Tools</span>
+            {TOOLS.map((l) => <Link key={l.t} to={l.to}>{l.t}</Link>)}
           </nav>
+
+          <nav className="footer-col" aria-label="Models">
+            <span className="footer-h">Models</span>
+            {MODELS.map((l) => <Link key={l.t} to={l.to}>{l.t}</Link>)}
+          </nav>
+
+          {popular?.top?.length > 0 && (
+            <nav className="footer-col" aria-label="Most discussed models">
+              <span className="footer-h">Most discussed</span>
+              {popular.top.map((m) => <Link key={m.id} to={modelPagePath(m.id)}>{m.name}</Link>)}
+            </nav>
+          )}
 
           <nav className="footer-col" aria-label="Site">
             <span className="footer-h">Site</span>
             {SITE.map((l) => (l.href ? <a key={l.t} href={l.href}>{l.t}</a> : <Link key={l.t} to={l.to}>{l.t}</Link>))}
           </nav>
 
-          <nav className="footer-col" aria-label="Models">
-            <span className="footer-h">Models</span>
-            {MODELS.map((m) => <Link key={m.id} to={`/models/${m.id}`}>{m.t}</Link>)}
-          </nav>
-
           {platforms && platforms.length > 0 && (
             <div className="footer-col">
-              <span className="footer-h">Evidence from</span>
+              <span className="footer-h">Reports from</span>
               {platforms.map((p) => <span key={p}>{p}</span>)}
             </div>
           )}
         </div>
 
         <div className="footer-in">
-          <span className="mono">Model Information Board</span>
-          <span>Live backend · nothing on these pages is synthesised by the frontend</span>
+          <span>© {new Date().getFullYear()} Model Information Board</span>
+          <span>
+            Counts from public reports · specs and prices as providers advertise them
+            {popular?.polled && <> · model list read {fmtDate(popular.polled)}</>}
+          </span>
         </div>
       </div>
     </footer>
