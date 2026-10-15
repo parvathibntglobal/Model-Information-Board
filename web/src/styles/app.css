@@ -1938,8 +1938,8 @@ a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:
 .ts-caret-off{opacity:.4}
 @keyframes ts-blink{50%{opacity:0}}
 .ts-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:28px}
-.ts-chip{padding:4px 11px;border-radius:var(--r-pill);border:1px solid var(--border);font-size:var(--fs-xs);color:var(--text-3);
-  opacity:.35;transform:scale(.92);transition:opacity .3s,transform .3s,background .3s,color .3s,border-color .3s}
+.ts-chip{padding:4px 11px;border-radius:var(--r-pill);border:1px solid var(--border);font-size:var(--fs-xs);color:var(--text-2);
+  opacity:.5;transform:scale(.92);transition:opacity .3s,transform .3s,background .3s,color .3s,border-color .3s}
 .ts-chip.ts-in{opacity:1;transform:scale(1)}
 .ts-chip-job.ts-in{background:var(--info-dim);border-color:var(--info);color:var(--text)}
 .ts-chip-spec.ts-in{background:var(--pass-dim);border-color:var(--pass);color:var(--text)}
