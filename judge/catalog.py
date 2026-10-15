@@ -306,8 +306,21 @@ def catalog_view(conn) -> dict[str, Any]:
     names = _provider_names(as_dicts)
 
     models = []
-    for (cid, provider, name, listed_at, ins, outs, ctx, p_in, p_out, pricing, p_cache, max_out,
-         params) in keep:
+    for (
+        cid,
+        provider,
+        name,
+        listed_at,
+        ins,
+        outs,
+        ctx,
+        p_in,
+        p_out,
+        pricing,
+        p_cache,
+        max_out,
+        params,
+    ) in keep:
         models.append(
             {
                 "id": cid,
