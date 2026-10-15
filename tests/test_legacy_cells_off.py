@@ -58,7 +58,9 @@ class TestTheExtractorIsNotAskedForTheTwelve:
                      "stretch a quote to fit a key", "unclassified"):
             assert gone not in prompt, gone
         assert "A claim needs three things" in prompt
-        assert "EXEMPLARS FOR THE THREE BOARD SECTIONS" in prompt, "the board half stays"
+        # THE BOARD HALF STAYS - since 2026-10-14 as the board's vocabulary,
+        # which replaced the exemplars wherever a section has one.
+        assert "THE BOARD'S VOCABULARY, REUSE FIRST" in prompt, "the board half stays"
 
     def test_the_legacy_prompt_is_unchanged_when_on(self):
         prompt = build_system_prompt(["code.generation"], legacy=True)

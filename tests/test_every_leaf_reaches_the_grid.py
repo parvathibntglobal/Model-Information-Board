@@ -57,13 +57,21 @@ PARENTS = {
         "a-5": "alpha", "a-6": "alpha", "a-7": "alpha", "a-8": "alpha",
         "b-1": "beta", "b-2": "beta",
     },
-    "metric": {"m-1": "mu", "m-2": "mu"},
+    # THE FOLD IS EXERCISED ON METRICS since 2026-10-14: capabilities render
+    # as boxes and a box's page shows every leaf, so only the metrics tab still
+    # folds a long heading. `mu` is longer than `LEAF_PREVIEW`; `nu` is not.
+    "metric": {
+        "m-1": "mu", "m-2": "mu", "m-3": "mu", "m-4": "mu",
+        "m-5": "mu", "m-6": "mu", "m-7": "mu", "m-8": "mu",
+        "o-1": "nu", "o-2": "nu",
+    },
 }
-NAMES = {"alpha": "Alpha things", "beta": "Beta things", "mu": "Mu things"}
+NAMES = {"alpha": "Alpha things", "beta": "Beta things", "mu": "Mu things", "nu": "Nu things"}
 
 CAPS = ["free-1", "a-1", "a-2", "a-3", "a-4", "a-5", "a-6", "a-7", "a-8",
         "free-2", "b-1", "b-2", "free-3", "free-4"]
-METS = ["n-1", "m-1", "m-2", "n-2"]
+METS = ["n-1", "m-1", "m-2", "m-3", "m-4", "m-5", "m-6", "m-7", "m-8",
+        "n-2", "o-1", "o-2", "n-3"]
 
 
 def _item(slug: str) -> dict:
@@ -200,10 +208,10 @@ class TestALeafLandsUnderItsOwnHeadingOrNone:
         an ungrouped leaf drawn after the fold button is not, and telling those
         two apart is the whole of this file.
         """
-        pane = rendered["cap"]
-        alpha = pane["grouped"]["Alpha things"]
+        pane = rendered["met"]
+        alpha = pane["grouped"]["Mu things"]
         assert len(alpha) > 6, "the fixture must exceed LEAF_PREVIEW to fold"
-        under = {c["slug"] for c in pane["cards"] if c["under"] == "Alpha things"}
+        under = {c["slug"] for c in pane["cards"] if c["under"] == "Mu things"}
         assert under == set(alpha), (
             f"folding changed what is under the heading: extra={under - set(alpha)}, "
             f"lost={set(alpha) - under}"
@@ -217,11 +225,11 @@ class TestALeafLandsUnderItsOwnHeadingOrNone:
         straddles any preview between 2 and 7, and a test naming the constant
         would only check that the constant equals itself.
         """
-        pane = rendered["cap"]
+        pane = rendered["met"]
         folded = set(pane["folds"])
         long_ones = {p for p, slugs in pane["grouped"].items() if len(slugs) > 6}
-        assert long_ones == {"Alpha things"}, "the fixture changed shape"
-        assert folded == {"alpha"}, (
+        assert long_ones == {"Mu things"}, "the fixture changed shape"
+        assert folded == {"mu"}, (
             f"folded {sorted(folded)}; only headings longer than the preview should"
         )
 
@@ -230,3 +238,25 @@ class TestALeafLandsUnderItsOwnHeadingOrNone:
         pane = rendered["best"]
         assert not pane["headings"], f"best_for grew headings: {pane['headings']}"
         assert all(c["under"] is None for c in pane["cards"])
+
+
+class TestCapabilitiesRenderAsBoxes:
+    """2026-10-14. The Capabilities tab shows its headings as boxes and a box
+    opens its leaves. The classes above already check, through the page each
+    box opens, that every leaf lands once and under its own heading; these
+    check the overview itself."""
+
+    def test_one_box_per_heading_and_one_for_the_unfiled(self, rendered):
+        pane = rendered["cap"]
+        assert pane["boxes"] == ["alpha", "beta", "unfiled"], pane["boxes"]
+
+    def test_the_overview_draws_no_leaf_outside_a_box(self, rendered):
+        """A leaf on the overview would sit outside every box, which is the
+        long list again with boxes above it."""
+        assert rendered["cap"]["overviewCards"] == 0
+
+    def test_a_box_shows_its_whole_heading_without_folding(self, rendered):
+        pane = rendered["cap"]
+        assert not pane["folds"]
+        under = {c["slug"] for c in pane["cards"] if c["under"] == "Alpha things"}
+        assert under == set(pane["grouped"]["Alpha things"])

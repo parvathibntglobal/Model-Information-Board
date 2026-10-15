@@ -303,6 +303,15 @@ columns:
         new generation and break exactly the idempotence this column exists to provide.
 
         '
+    parent_proposed:
+      reviewed: true
+      state: read
+      why: >-
+        The heading the extractor filed an entry under (2026-10-14), NULL when
+        it gave none or one that is not one of its section's headings. Written by
+        judge/store/board_entries.py:store_entries; read by board_sections,
+        which carries the commonest value per leaf to
+        judge/board_grouping.py:group_section.
     polarity:
       reviewed: true
       state: read

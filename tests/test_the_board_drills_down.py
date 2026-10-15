@@ -140,7 +140,7 @@ class FakeConn:
 
 def row(section="capability", slug="reasoning", *, mv="mv_a", doc="d1",
         author="au_1", polarity="positive", quote=None, value=None,
-        registry="mv_a", label="Model A", source="devto", written=None):
+        registry="mv_a", label="Model A", source="devto", written=None, parent=None):
     """One `board_entry` row in the column order `board_sections` selects.
 
     `source` is `document.source`, last in the select since 2026-10-05: the
@@ -163,8 +163,9 @@ def row(section="capability", slug="reasoning", *, mv="mv_a", doc="d1",
     return (section, slug, "Reasoning", "def", None, value, None,
             mv, doc, quote, polarity, "2026-09-18", "https://e.com/1", author,
             "vendor/model-a", label, registry, source,
-            # `document.created_at`, last since 2026-10-13 (per-section freshness).
-            written)
+            # `document.created_at` (per-section freshness, 2026-10-13), then
+            # `board_entry.parent_proposed`, last since 2026-10-14.
+            written, parent)
 
 
 def build(rows, hidden=()):

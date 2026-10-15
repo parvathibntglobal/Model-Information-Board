@@ -328,11 +328,14 @@ function sec(eyebrow,h2,intro,inner){
   return `<div class="shell sec"><div class="sec-h">${eyebrow?`<span class="eyebrow">${eyebrow}</span>`:''}
     ${h2?`<h2>${h2}</h2>`:''}${intro?`<p>${intro}</p>`:''}</div>${inner}</div>`;
 }
-function card(x, route){
+function card(x, route, note){
   const [cls,lbl]=stOf(x.st);
   // No text, no empty paragraph: a job card is the name and its counts.
   const body = x.card ? `<p>${esc(x.card)}</p>` : '';
-  return `<a class="icard"${goAttrs(`${route}:${x.slug}`)}><b>${esc(x.name)}</b>${body}
+  // `note` is a short line about where the card was filed, never about the
+  // evidence (heading boxes, 2026-10-14).
+  const filed = note ? `<p class="filed-by">${esc(note)}</p>` : '';
+  return `<a class="icard"${goAttrs(`${route}:${x.slug}`)}><b>${esc(x.name)}</b>${body}${filed}
     <div class="meta"><span class="${cls}">${esc(x.ev)} · ${esc(lbl)}</span><span>${esc(x.vol)}</span></div></a>`;
 }
 function mcard(x){
@@ -482,6 +485,103 @@ function groupedGrid(groups, flat, draw){
   return out.join('');
 }
 
+/* ---------- heading boxes (2026-10-14) ----------
+ *
+ * A TAB WITH HUNDREDS OF LEAVES SHOWS ITS HEADINGS FIRST, AS BOXES, and a box
+ * opens its leaves. Capabilities had 736 leaves on the local copy that day, and
+ * a list that long is not something a reader chooses from.
+ *
+ * A BOX IS STILL A WAY TO READ THE LIST, NOT A MEASUREMENT. It carries a count
+ * of LEAVES - the only number a parent may carry (contract/slug_parents.yaml) -
+ * and never a sum of reports or voices. The page a box opens says so in words,
+ * because a thing you can click into reads as a category.
+ *
+ * NOT-YET-FILED LEAVES GET A BOX OF THEIR OWN, labelled as exactly that. They
+ * are not dropped (rule 4: an absence we caused must say so) and they are not
+ * filed under a heading invented to hold them (no `other` parent). */
+const BOXED = {
+  // JOBS TOO, the same day: 341 job leaves on the local copy, none under a
+  // heading until then. Metrics keep their in-list headings for now.
+  best: { groups: () => DB.jobGroups, flat: () => DB.jobs, draw: (j, note) => card(j, 'job', note),
+          one: 'job', many: 'jobs', tab: 'Jobs' },
+  cap: { groups: () => DB.capGroups, flat: () => DB.caps, draw: (c, note) => card(c, 'cap', note),
+         one: 'capability', many: 'capabilities', tab: 'Capabilities' },
+};
+const UNFILED = 'unfiled';
+const UNFILED_NAME = 'Not yet under a heading';
+
+function boxParts(tab){
+  const B = BOXED[tab];
+  const groups = B.groups() || [];
+  return { B, parents: groups.filter(g => g.kind === 'parent'),
+           loose: groups.filter(g => g.kind !== 'parent').map(g => g.leaf) };
+}
+
+function hbox(tab, key, name, leaves, B, extra){
+  const n = leaves.length;
+  const shown = leaves.slice(0, 4).map(l => `<li>${esc(l.name)}</li>`).join('');
+  const more = n > 4 ? `<li class="more">and ${n - 4} more</li>` : '';
+  return `<a class="hbox${extra || ''}"${goAttrs(`group:${tab}:${key}`)}>
+    <h3>${esc(name)}</h3><span class="hbox-n">${n} ${n === 1 ? B.one : B.many}</span>
+    <ul>${shown}${more}</ul><span class="hbox-go">Open</span></a>`;
+}
+
+function boxGrid(tab){
+  const { B, parents, loose } = boxParts(tab);
+  // AN OLDER PAYLOAD CARRIES NO HEADINGS: render the flat list it always did,
+  // rather than a page of no boxes.
+  if(!parents.length) return gridBlock(B.flat().map(B.draw).join(''));
+  return `<div class="hboxes">${parents.map(g => hbox(tab, g.parent, g.name, g.children, B)).join('')}
+    ${loose.length ? hbox(tab, UNFILED, UNFILED_NAME, loose, B, ' hbox-unfiled') : ''}</div>`;
+}
+
+/** What the box grid covers, computed from what it will draw. */
+function boxNote(tab){
+  const { B, parents, loose } = boxParts(tab);
+  if(!parents.length) return '';
+  const filed = parents.reduce((t, g) => t + g.children.length, 0);
+  return `<p class="axisdiv"><b>${parents.length} headings over ${filed} of ${filed + loose.length} ${B.many}.</b>
+    Open a heading to see its ${B.many}.${loose.length ? ` The other ${loose.length} are not yet under a
+    heading and have a box of their own.` : ''} A heading is a way to read the list, not a claim
+    that what is under it is one thing.</p>`;
+}
+
+/** One heading's leaves, at full width, every one of them. */
+function vGroup(tab, key, pane){
+  const { B, parents, loose } = boxParts(tab);
+  const g = key === UNFILED
+    ? (loose.length ? { name: UNFILED_NAME, children: loose } : null)
+    : parents.find(p => p.parent === key);
+  if(!g) return null;
+  const n = g.children.length;
+  const lead = key === UNFILED
+    ? `The extractor named these and nobody has filed them under a heading yet. They are shown
+       here rather than left out, and each is its own ${B.one}.`
+    : `Grouped for reading. Each of these ${n} ${n === 1 ? B.one : B.many} is its own measurement,
+       nothing here is merged, and there is no total for the heading.`;
+  // A LEAF THE EXTRACTOR FILED HERE SAYS SO. The contract's filings were
+  // read by a person; the extractor's are a proposal until somebody does.
+  const byX = g.byExtractor || new Set();
+  const grid = gridBlock(g.children.map(c => byX.has(c.slug)
+    ? B.draw(c, 'Filed here by the extractor, not yet reviewed') : B.draw(c)).join(''));
+  const xNote = byX.size ? `<p class="sub">${byX.size} of these ${byX.size === 1 ? 'was' : 'were'} filed
+    here by the extractor and nobody has reviewed ${byX.size === 1 ? 'it' : 'them'} yet; ${byX.size === 1 ? 'it is' : 'they are'} marked.</p>` : '';
+  return `<div class="shell phead">${crumb([['Board','board'],[B.tab,`board:${tab}`],[g.name,null]])}
+    <h1>${esc(g.name)}</h1>${freshLine()}
+    <p class="sub">${lead}</p>${xNote}
+    <p class="backline"><a${goAttrs(`board:${tab}`)}>All ${esc(B.tab.toLowerCase())} headings</a></p></div>
+    <div class="shell">${pane.side ? `<div class="jobbody"><div class="joblist">${grid}</div>${pane.side}</div>` : grid}</div>`;
+}
+
+/** The heading a leaf is filed under on a boxed tab, for its breadcrumb. */
+function groupOf(tab, slug){
+  if(!BOXED[tab]) return null;
+  const { parents, loose } = boxParts(tab);
+  const g = parents.find(p => p.children.some(c => c.slug === slug));
+  if(g) return [g.name, `group:${tab}:${g.parent}`];
+  return loose.some(l => l.slug === slug) ? [UNFILED_NAME, `group:${tab}:${UNFILED}`] : null;
+}
+
 /** How much of a section has a heading. READ, NOT REMEMBERED - the ungrouped
  *  count was 19, 20 and 21 within one day. */
 function parentNote(key){
@@ -530,7 +630,7 @@ export function withheldNote(){
 }
 
 /* ---------- views ---------- */
-function vBoard(tab){
+function vBoard(tab, group){
   tab = tab||'best';
   const empty = '<p class="muted" style="padding:8px 0">Nothing here yet.</p>';
   // ⚠ THE PANE NO LONGER WRAPS `grid` IN AN `.igrid` (#431). Each builder
@@ -547,12 +647,15 @@ function vBoard(tab){
       // The ordering statement sits BESIDE the cards: one rule for every job
       // page, stated once where the pages are chosen (see orderPanel).
       side: orderPanel('job'),
-      grid: DB.jobs.length ? gridBlock(DB.jobs.map(j=>card(j,'job')).join('')) : empty},
+      // BOXES, NOT A LIST (2026-10-14), as on the Capabilities tab.
+      note: boxNote('best'),
+      grid: DB.jobs.length ? boxGrid('best') : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
-      note: parentNote('caps'),
+      // BOXES, NOT A LIST (2026-10-14): the headings first, a box opens one.
+      note: boxNote('cap'),
       // Same rule, same place, as the Jobs tab (2026-09-28).
       side: orderPanel('capability'),
-      grid: DB.caps.length ? groupedGrid(DB.capGroups, DB.caps, c=>card(c,'cap')) : empty},
+      grid: DB.caps.length ? boxGrid('cap') : empty},
     met: {intro:'The axes recorded on every model. Each page states the unit, where the figure came from, and the thing the number cannot tell you — which is usually more useful than the number. '
       // ⚠ THIS SENTENCE CAME OFF `metGrid`'s DIVIDER AND MUST NOT BE LOST.
       // That divider split the grid into comparing axes and single-model ones;
@@ -572,7 +675,16 @@ function vBoard(tab){
       grid: DB.mets.length ? groupedGrid(DB.metGroups, DB.mets, m=>mcard(m)) : empty}
   };
   const p = panes[tab];
-  const note = p.note || '';
+  // ONE HEADING'S PAGE. An unknown heading says so above the boxes rather
+  // than quietly showing the boxes as if the link had worked (rule 12).
+  let missing = '';
+  if(group && BOXED[tab]){
+    const page = vGroup(tab, group, p);
+    if(page) return page;
+    missing = `<p class="withheld">There is no heading called “${esc(group)}” here. These are the
+      headings there are.</p>`;
+  }
+  const note = missing + (p.note || '');
   // THE H1 NAMES WHAT THE PAGE IS, in the words people search for (2026-10-05);
   //   the "Board" tag above it keeps the page's own name, styled like the
   //   landing page's Board badge so the two read as one place.
@@ -689,7 +801,9 @@ function vJob(slug){
   //   the job        `about`, hand-written (contract/job_about.yaml), or nothing
   //   the evidence   the stat line, the group headings, each row's counts
   //   the rules      the order line, and "What counts here" below the list
-  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
+  const head = groupOf('best', j.slug);
+  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],
+    ...(head ? [head] : []),[j.name,null]])}
     <h1>${esc(j.h1)}</h1>${datesLine(j.freshUpdated, j.freshNewest)}
     ${j.about ? `<p class="lead">${esc(j.about)}</p>` : ''}
     ${statLine(j)}
@@ -719,7 +833,9 @@ function vCap(slug){
   // definition is the rule every model page resolves against, so unlike a
   // job's counting rule it stays at the top rather than in the fine print. With
   // no `about`, the definition is the lead on its own.
-  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
+  const head = groupOf('cap', c.slug);
+  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Capabilities','board:cap'],
+    ...(head ? [head] : []),[c.name,null]])}
     <h1>${esc(c.name)}</h1>${datesLine(c.freshUpdated, c.freshNewest)}
     ${c.about ? `<p class="lead">${esc(c.about)}</p>` : ''}
     ${c.d1 ? `<p class="deflabel">Definition</p><p class="${c.about ? 'defline' : 'lead'}">${esc(c.d1)}</p>` : ''}

@@ -116,7 +116,16 @@ class TestTheLeavesAreVisible:
 
 
 class TestAParentIsNotARoute:
-    """Three levels, not four. Anything clickable reads as a category."""
+    """Three levels, not four. Anything clickable reads as a category.
+
+    ⚠ REVERSED FOR CAPABILITIES ON 2026-10-14, AT THE PRODUCT OWNER'S REQUEST.
+    736 capability leaves are not a list a reader chooses from, so that tab
+    shows its headings as boxes and a box opens its leaves - a fourth level.
+    What the ruling protected still holds, and is what these tests keep: the
+    in-list heading (`parentHead`) is still not a link, a leaf keeps its own
+    card and route inside a box, and the page a box opens says in words that
+    nothing under it is merged or totalled (`vGroup`). Metrics are unchanged.
+    """
 
     def test_the_heading_carries_no_navigation(self):
         head = _fn(_views(), "function parentHead(g){")
@@ -131,8 +140,14 @@ class TestAParentIsNotARoute:
         """Ruling 3: nothing about a leaf changes because it gained a heading.
         `groupedGrid` is handed the same `draw` the flat list uses."""
         js = _views()
-        assert "groupedGrid(DB.capGroups, DB.caps, c=>card(c,'cap'))" in js
+        assert "draw: (c, note) => card(c, 'cap', note)" in js, "same card in a box"
         assert "groupedGrid(DB.metGroups, DB.mets, m=>mcard(m))" in js
+
+    def test_a_box_page_says_nothing_under_it_is_merged(self):
+        """The fourth level is allowed on one condition: the page says in
+        words that a heading groups for reading and totals nothing."""
+        page = _fn(_views(), "function vGroup(tab, key, pane){")
+        assert "nothing here is merged, and there is no total for the heading" in page
 
 
 class TestParentsNeverRewriteLeaves:
