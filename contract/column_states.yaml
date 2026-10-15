@@ -1152,6 +1152,10 @@ columns:
       reviewed: true
       state: read
       why: "OpenRouter's description, shown under the heading of a model's page (judge/catalog.py:catalog_model)"
+    expiration_date:
+      reviewed: true
+      state: read
+      why: "when OpenRouter stops serving the model; a model page's Lifecycle shows it as a retirement date (judge/catalog.py:_lifecycle). NULL is none announced"
     first_seen_at:
       reviewed: true
       state: defaulted
@@ -1160,6 +1164,10 @@ columns:
       reviewed: true
       state: read
       why: 'shown on each model card'
+    knowledge_cutoff:
+      reviewed: true
+      state: read
+      why: "the feed's training-data date; a model page shows it where the registry has none (judge/catalog.py:_lifecycle)"
     last_seen_at:
       reviewed: true
       state: read

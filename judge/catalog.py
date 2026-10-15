@@ -121,7 +121,8 @@ def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
     row = conn.execute(
         "SELECT canonical_id, provider, name, description, listed_at, input_modalities, "
         "       output_modalities, context_length, price_in, price_out, price_cached_read, "
-        "       pricing, max_output_tokens, supported_parameters "
+        "       pricing, max_output_tokens, supported_parameters, expiration_date, "
+        "       knowledge_cutoff "
         "FROM model_catalog WHERE canonical_id = %s",
         (model_id,),
     ).fetchone()
@@ -142,9 +143,11 @@ def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
         pricing,
         max_out,
         params,
+        expires,
+        feed_cutoff,
     ) = row
     registry = conn.execute(
-        "SELECT id, release_date, knowledge_cutoff, lifecycle, deprecation_date "
+        "SELECT id, release_date, knowledge_cutoff, lifecycle, deprecation_date, retirement_date "
         "FROM model_version WHERE canonical_id = %s",
         (cid,),
     ).fetchone()
@@ -189,6 +192,71 @@ def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
         "voices": voices.get(cid, 0),
         "reports": reports.get(cid, 0),
         "source": f"https://openrouter.ai/{cid.lstrip('~')}",
+        "lifecycle": _lifecycle(
+            conn, cid, provider, listed_at, outs, expires, feed_cutoff, registry
+        ),
+    }
+
+
+def _iso(d) -> str | None:
+    return d.isoformat() if d else None
+
+
+def _lifecycle(
+    conn, cid, provider, listed_at, outs, expires, feed_cutoff, registry
+) -> dict[str, Any]:
+    """A model's dates, each with WHERE IT CAME FROM - two sources can disagree,
+    and a reader deciding whether to build on a model should see which said what.
+
+    RETIREMENT: OpenRouter's `expiration_date`, read twice - by this catalogue's
+    poll and, earlier, by the registry poller (`openrouter.py`, which stores it
+    as `retirement_date`). ONE SOURCE, NOT TWO: when the readings agree the date
+    is shown once; when they differ both are shown, the registry's marked as an
+    earlier reading. None anywhere means NONE ANNOUNCED, which the page says in
+    those words - never "will not retire" (rule 6).
+
+    `newer_from_provider` lists models the same provider listed later. It is a
+    FACT ABOUT DATES, not a claim that any of them replaces this one: which
+    model succeeds which is the vendor's to say, and no row here says it."""
+    reg_retire = registry[5] if registry is not None else None
+    retirements = []
+    if expires:
+        retirements.append({"date": _iso(expires), "source": "OpenRouter"})
+    if reg_retire and reg_retire != expires:
+        retirements.append({"date": _iso(reg_retire), "source": "OpenRouter, an earlier reading"})
+    newer = []
+    if listed_at is not None and outs:
+        newer = [
+            {
+                "id": r[0],
+                "name": r[1].split(":", 1)[1].strip() if ":" in r[1] else r[1],
+                "listed_at": _iso(r[2].date()),
+            }
+            for r in conn.execute(
+                "SELECT canonical_id, name, listed_at FROM model_catalog "
+                # SAME KIND OF MODEL: sharing an output type, and not a
+                # `:batch` / `:free` variant of another listing.
+                "WHERE provider = %s AND listed_at > %s AND canonical_id NOT LIKE '~%%' "
+                "AND canonical_id NOT LIKE '%%:%%' AND canonical_id <> %s "
+                "AND output_modalities && %s "
+                "AND last_seen_at = (SELECT max(last_seen_at) FROM model_catalog) "
+                "ORDER BY listed_at DESC LIMIT 4",
+                (provider, listed_at, cid, list(outs or [])),
+            ).fetchall()
+        ]
+    reg_cutoff = registry[2] if registry is not None else None
+    return {
+        "released": _iso(registry[1]) if registry is not None else None,
+        "listed": _iso(listed_at.date()) if listed_at else None,
+        "knowledge_cutoff": _iso(reg_cutoff or feed_cutoff),
+        "knowledge_cutoff_source": "registry"
+        if reg_cutoff
+        else "OpenRouter"
+        if feed_cutoff
+        else None,
+        "deprecated": _iso(registry[4]) if registry is not None else None,
+        "retirements": retirements,
+        "newer_from_provider": newer,
     }
 
 

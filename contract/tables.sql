@@ -216,6 +216,8 @@ CREATE TABLE model_catalog (
   pricing            jsonb NOT NULL,     -- as published (per image, per second ...)
   max_output_tokens  int,
   supported_parameters text[] NOT NULL DEFAULT '{}',  -- empty = none listed, not "none supported"
+  expiration_date    date,                -- OpenRouter stops serving it; NULL = none announced
+  knowledge_cutoff   date,                -- as the feed states it; NULL = not stated
   first_seen_at      timestamptz NOT NULL DEFAULT now(),
   last_seen_at       timestamptz NOT NULL
 );

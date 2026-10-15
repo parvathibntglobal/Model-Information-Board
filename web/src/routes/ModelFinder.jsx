@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import ModalityFinder from '../finder/ModalityFinder'
+import '../styles/catalog.css'
 import { listRegistry, fetchAll, fmtPrice, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconSearch } from '../components/Icons'
@@ -25,6 +27,10 @@ const ctxLabel = (n) => (n === 0 ? 'Any' : `${fmtTokens(n)}+`)
 
 export default function ModelFinder() {
   useHead(modelFinder())
+  // TWO WAYS IN (2026-10-15): by advertised feature (the registry, below) or by
+  // what a model reads and writes (the whole catalogue, ModalityFinder).
+  const [sp, setSp] = useSearchParams()
+  const io = sp.get('view') === 'io'
   const [models, setModels] = useState(null)
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
@@ -76,13 +82,19 @@ export default function ModelFinder() {
           Tick what your feature needs. These are what each provider advertises about its own model,
           not what engineers found; each model's page has the reports.
         </p>
+        <nav className="cat-tabs" aria-label="Find by">
+          <button type="button" className={!io ? 'on' : ''} onClick={() => setSp({}, { replace: true })}>By feature</button>
+          <button type="button" className={io ? 'on' : ''} onClick={() => setSp({ view: 'io' }, { replace: true })}>By input and output</button>
+        </nav>
       </div>
 
-      {unreadable && <Unreadable detail={unreadable} />}
-      {err && <Notice icon={<IconAlert />}>{err}</Notice>}
-      {!models && !err && !unreadable && <div className="skel" style={{ height: 260 }} />}
+      {io && <ModalityFinder />}
 
-      {models && (
+      {!io && unreadable && <Unreadable detail={unreadable} />}
+      {!io && err && <Notice icon={<IconAlert />}>{err}</Notice>}
+      {!io && !models && !err && !unreadable && <div className="skel" style={{ height: 260 }} />}
+
+      {!io && models && (
         <div className="mf-work">
           <aside className="card mf-rail" aria-label="Filters">
             <div className="mf-group">

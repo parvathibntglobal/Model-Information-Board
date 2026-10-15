@@ -6,7 +6,7 @@ import { catalogModelHead } from '../seo/pages'
 import { DAYS_PER_MONTH, fmtUsd as fmtCost, workloadCost } from '../tokens/cost'
 import PersonaPicker from '../tokens/PersonaPicker'
 import { PERSONAS } from '../tokens/personas'
-import { fmtCtx, fmtDate, fmtUsd, reportsPath } from './format'
+import { fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
 import { typeLabel } from './types'
 
 /**
@@ -140,6 +140,66 @@ function Voices({ m }) {
   )
 }
 
+/** Days from today (UTC) to an ISO date: negative once it has passed. */
+function daysUntil(iso) {
+  const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
+  return Math.round((new Date(`${iso}T00:00:00Z`) - today) / 86400000)
+}
+
+/**
+ * LIFECYCLE (2026-10-15): the dates a reader needs before building on a model,
+ * each with where it came from. Retirement first, because it is the one that
+ * breaks a build. "No retirement announced" is said in those words: an absent
+ * date is not a promise the model stays (rule 6).
+ */
+function Lifecycle({ m }) {
+  const lc = m.lifecycle || {}
+  const soonest = (lc.retirements || []).slice().sort((a, b) => a.date.localeCompare(b.date))[0]
+  const d = soonest ? daysUntil(soonest.date) : null
+  const rows = [
+    ['Released', lc.released, 'registry'],
+    ['Listed on OpenRouter', lc.listed, null],
+    ['Knowledge cutoff', lc.knowledge_cutoff, lc.knowledge_cutoff_source],
+    ['Deprecated', lc.deprecated, 'registry'],
+  ].filter(([, v]) => v)
+  return (
+    <section className="card stack stack-2">
+      <h2 className="mp2-h">Lifecycle</h2>
+      <div className={`mp2-retire${soonest ? (d < 0 ? ' gone' : d <= 30 ? ' soon' : '') : ''}`}>
+        {soonest ? (
+          <>
+            <b>{d < 0 ? `Retired ${fmtDate(soonest.date)}` : `Retires ${fmtDate(soonest.date)}`}</b>
+            <span>{d < 0 ? `${-d} days ago` : d === 0 ? 'today' : `in ${d} ${d === 1 ? 'day' : 'days'}`}</span>
+            <small>
+              {lc.retirements.map((r) => `${fmtDate(r.date)} (${r.source})`).join(' · ')}: the date OpenRouter stops serving it
+            </small>
+          </>
+        ) : (
+          <><b>No retirement announced</b><small>Neither OpenRouter nor our registry lists a date. That is not a promise it stays.</small></>
+        )}
+      </div>
+      {rows.length > 0 && (
+        <dl className="mp2-dl">
+          {rows.map(([label, v, src]) => (
+            <div key={label}><dt>{label}{src && <span className="mp2-src"> · {src === 'registry' ? 'registry' : src}</span>}</dt><dd>{fmtDate(v)}</dd></div>
+          ))}
+        </dl>
+      )}
+      {(lc.newer_from_provider || []).length > 0 && (
+        <div className="stack stack-1">
+          <span className="label">Listed more recently by {m.provider_name}</span>
+          <div className="mp2-newer">
+            {lc.newer_from_provider.map((n) => (
+              <Link key={n.id} to={modelPagePath(n.id)}>{n.name} <span>{fmtDate(n.listed_at)}</span></Link>
+            ))}
+          </div>
+          <p className="mp2-note">Newer listings of the same kind from the same provider - not a statement that any of them replaces this one.</p>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function ModelPage({ id }) {
   const [state, setState] = useState({ m: null, err: null })
   useEffect(() => {
@@ -163,7 +223,6 @@ export default function ModelPage({ id }) {
   }
   if (!m) return <div className="shell section-tight"><div className="skel" style={{ height: 320 }} /></div>
 
-  const reg = m.registry || {}
   return (
     <div className="shell section-tight stack stack-4 mp2">
       <div className="stack stack-1">
@@ -207,13 +266,12 @@ export default function ModelPage({ id }) {
             <div><dt>Reads</dt><dd>{m.inputs.join(', ') || '—'}</dd></div>
             <div><dt>Writes</dt><dd>{m.outputs.join(', ') || '—'}</dd></div>
             {FEATURES.map(([k, label]) => <div key={k}><dt>{label}</dt><dd><Feature v={m.features[k]} /></dd></div>)}
-            {reg.release_date && <div><dt>Released</dt><dd>{fmtDate(reg.release_date)}</dd></div>}
-            {reg.knowledge_cutoff && <div><dt>Knowledge cutoff</dt><dd>{fmtDate(reg.knowledge_cutoff)}</dd></div>}
-            {reg.deprecation_date && <div><dt>Deprecated</dt><dd>{fmtDate(reg.deprecation_date)}</dd></div>}
           </dl>
           <p className="mp2-note">"Not stated" means OpenRouter does not say - not that the model lacks it.</p>
         </section>
       </div>
+
+      <Lifecycle m={m} />
 
       <Workload m={m} />
       <Voices m={m} />

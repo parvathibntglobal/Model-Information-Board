@@ -114,3 +114,24 @@ a.cat-card:hover .cat-open{color:var(--text)}
   .mp2-axes li{grid-template-columns:1fr auto}
   .mp2-kind,.mp2-v{display:none}
 }
+
+/* LIFECYCLE on a model's page (2026-10-15). Retirement first. */
+.mp2-retire{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:12px 14px;
+  border:1px solid var(--border-soft);border-radius:var(--r-control);background:var(--bg)}
+.mp2-retire b{font-size:1rem}
+.mp2-retire span{font-size:var(--fs-sm);color:var(--text-2)}
+.mp2-retire small{flex-basis:100%;font-size:var(--fs-xs);color:var(--text-3)}
+.mp2-retire.soon{border-color:var(--warn);background:var(--warn-dim)}
+.mp2-retire.soon span{color:var(--warn)}
+.mp2-retire.gone{border-color:var(--fail);background:var(--fail-dim)}
+.mp2-retire.gone span{color:var(--fail)}
+.mp2-src{font-size:var(--fs-xs);color:var(--text-3)}
+.mp2-newer{display:flex;flex-wrap:wrap;gap:8px}
+.mp2-newer a{font-size:var(--fs-sm);color:var(--text);padding:6px 12px;border:1px solid var(--border);
+  border-radius:var(--r-pill);background:var(--surface)}
+.mp2-newer a:hover{border-color:var(--border-strong)}
+.mp2-newer a span{color:var(--text-3);font-size:var(--fs-xs);margin-left:4px}
+
+.cat-tabs button{font:inherit;font-size:var(--fs-sm);color:var(--text-2);padding:7px 16px;border-radius:var(--r-pill);background:none;border:0;cursor:pointer}
+.cat-tabs button:hover{color:var(--text)}
+.cat-tabs button.on{color:var(--bg);background:var(--text);font-weight:600}

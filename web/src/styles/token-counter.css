@@ -121,3 +121,20 @@
   .mf-row{grid-template-columns:1fr;grid-template-areas:"name" "specs" "flags" "ev"}
   .mf-specs{grid-template-columns:1fr 1fr}
 }
+
+/* PROMPT-CACHE SAVINGS DRAWER (2026-10-15), from the count panel. */
+.cs-open{margin-top:var(--s2);width:100%;justify-content:center}
+.cs-scrim{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.45);display:flex;justify-content:flex-end}
+.cs-drawer{width:min(620px,100vw);height:100%;overflow-y:auto;background:var(--bg-elev);border-left:1px solid var(--border);
+  padding:var(--s4);display:flex;flex-direction:column;gap:var(--s2);box-shadow:-20px 0 40px rgba(0,0,0,.35)}
+.cs-form{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
+.cs-form label{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cs-form input[type=number]{width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);
+  border:1px solid var(--border);border-radius:var(--r-control);padding:9px 12px;font:inherit}
+.cs-wide{grid-column:1 / -1}
+.cs-table{display:flex;flex-direction:column;border:1px solid var(--border-soft);border-radius:var(--r-control);overflow:hidden}
+.cs-tr{display:grid;grid-template-columns:minmax(0,2fr) 1fr 1fr 1.3fr;gap:10px;padding:9px 12px;
+  border-top:1px solid var(--border-soft);font-size:var(--fs-sm);align-items:baseline}
+.cs-tr:first-child{border-top:0}
+.cs-th{font:600 var(--fs-label) var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);background:var(--surface)}
+.cs-tr span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

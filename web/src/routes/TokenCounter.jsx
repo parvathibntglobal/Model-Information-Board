@@ -6,6 +6,7 @@ import { IconAlert, IconSearch } from '../components/Icons'
 import { countLines, countWords, priceRows } from '../tokens/cost'
 import { Cost, Fit } from '../tokens/cells'
 import Workload from '../tokens/Workload'
+import CacheSavings from '../tokens/CacheSavings'
 import { modelHref } from '../tokens/links'
 import { useHead } from '../seo/head'
 import { tokenCounter } from '../seo/pages'
@@ -56,6 +57,8 @@ export default function TokenCounter() {
   const [showAll, setShowAll] = useState(false)
   const [showPieces, setShowPieces] = useState(false)
   const [mode, setMode] = useState('text')
+  // THE PROMPT-CACHE SAVINGS DRAWER (2026-10-15), opened from the count panel.
+  const [cacheOpen, setCacheOpen] = useState(false)
   const [fitsOnly, setFitsOnly] = useState(false)
 
   useEffect(() => {
@@ -195,7 +198,12 @@ export default function TokenCounter() {
                      onChange={(e) => setCalls(Math.max(1, Math.floor(Number(e.target.value) || 1)))} />
             </label>
           </div>
+          <button type="button" className="btn btn-ghost cs-open" onClick={() => setCacheOpen(true)}
+                  disabled={!models} aria-haspopup="dialog">
+            Prompt-cache savings →
+          </button>
         </aside>
+        {cacheOpen && <CacheSavings models={models} tokens={tok ? tokens : 0} onClose={() => setCacheOpen(false)} />}
       </div>
 
       <section className="stack stack-2" aria-labelledby="tc-costs">
