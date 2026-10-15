@@ -77,3 +77,38 @@ this_week:
   retiring_within_days: 56
   # The busiest models of the week, by engineers who wrote about them that week.
   models_listed: 10
+
+known_issues:
+  # A problem appears on a model's known-issues page once at least this many
+  # distinct engineers report it (public sources). One report is a report,
+  # not yet an issue; the claim wall still shows it.
+  min_engineers: 2
+
+answers:
+  # THE Q&A PAGES: "Does <model> support <feature>?", answered from what the
+  # catalogue ADVERTISES and what engineers REPORT, side by side.
+  #
+  # ⚠ WHICH BOARD TOPICS COUNT AS "THE SAME THING" AS A FEATURE IS A RULING
+  #   ABOUT MEANING (rule 10), so it is written here by a person and never
+  #   computed. PROPOSED 2026-10-15 by anooj; the slugs are the board's own.
+  #   A feature with no topics listed shows the advertised half only, and
+  #   says that no board topic is mapped to it.
+  features:
+    - key: tools
+      label: tool calling
+      board_slugs: [function-calling, tool-calling, tool-use]
+    - key: structured_output
+      label: structured output
+      board_slugs: [structured-output]
+    - key: vision_input
+      label: image input
+      board_slugs: [vision]
+    - key: prompt_caching
+      label: prompt caching
+      board_slugs: [prompt-caching, input-caching]
+    - key: reasoning
+      label: a reasoning mode
+      # `reasoning` on the board is reasoning QUALITY, not the mode a provider
+      # switches on, so it is deliberately not mapped here.
+      board_slugs: []
+

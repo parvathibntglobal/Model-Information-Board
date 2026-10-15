@@ -5,7 +5,7 @@ import { fmtCtx, fmtUsd, modelPagePath } from '../catalog/format'
 import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { liveWeek as weekHead } from '../seo/pages'
-import { day, engineers, modelHref, shortName, topicHref } from './live'
+import { day, engineers, modelHref, shortName, topicHref, problems as problemsOf } from './live'
 
 /**
  * THIS WEEK IN MODELS (2026-10-15). One week, Monday to Sunday (UTC), built
@@ -92,7 +92,7 @@ export default function ThisWeek({ start }) {
                       <Link to={modelHref(r.model)}><b>{shortName(r.model.name)}</b></Link>
                       <span className="lv-meta">
                         {engineers(r.voices)} · <span className="lv-pos">{r.working} working</span> ·{' '}
-                        <span className="lv-neg">{r.problems} problems</span>{r.neutral ? ` · ${r.neutral} neutral` : ''}
+                        <span className="lv-neg">{problemsOf(r.problems)}</span>{r.neutral ? ` · ${r.neutral} neutral` : ''}
                       </span>
                     </li>
                   ))}

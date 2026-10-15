@@ -372,6 +372,32 @@ def quiz_drafter_settings() -> dict:
     return {"model": model.strip(), "per_call": per_call, "topics": [t.strip() for t in topics]}
 
 
+@lru_cache(maxsize=1)
+def blog_reference_settings() -> dict:
+    """`contract/blog_live.yaml` `known_issues` and `answers`: the known-issues
+    threshold and the person-ruled pairing of advertised features with board
+    topics (rule 10). No defaults (rule 12)."""
+    raw = _read("blog_live.yaml")
+    issues = (raw or {}).get("known_issues") or {}
+    n = issues.get("min_engineers")
+    if isinstance(n, bool) or not isinstance(n, int) or n < 1:
+        raise ValueError("contract/blog_live.yaml: known_issues.min_engineers must be 1 or more")
+    feats = ((raw or {}).get("answers") or {}).get("features")
+    if not isinstance(feats, list) or not feats:
+        raise ValueError("contract/blog_live.yaml: answers.features must be a list")
+    out = []
+    for f in feats:
+        key, label, slugs = f.get("key"), f.get("label"), f.get("board_slugs")
+        if key not in ("tools", "structured_output", "reasoning", "vision_input", "prompt_caching"):
+            raise ValueError(f"contract/blog_live.yaml: unknown feature {key!r}")
+        if not isinstance(label, str) or not isinstance(slugs, list):
+            raise ValueError(
+                f"contract/blog_live.yaml: feature {key} needs a label and board_slugs"
+            )
+        out.append({"key": key, "label": label, "board_slugs": [str(x) for x in slugs]})
+    return {"min_engineers": n, "features": out}
+
+
 def _read(name: str) -> dict:
     path = CONTRACT_DIR / name
     if not path.exists():

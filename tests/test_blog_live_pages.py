@@ -337,3 +337,51 @@ def test_a_preview_counts_public_reports_only(conn):
     assert t["models"] == 3 and t["sample_problems"] is not None
     assert blog_live.preview(conn, "cap", "no-such-slug") is None
     assert blog_live.preview(conn, "metric", "tool-use") is None
+
+
+# ── the reference formats (judge/blog_reference.py) ─────────────────────────
+
+
+def test_the_glossary_is_every_written_description_with_public_counts(conn):
+    from judge import blog_reference
+    from judge.config import capability_about, job_about
+
+    entries = blog_reference.glossary_index(conn)["entries"]
+    assert len(entries) == len(capability_about()) + len(job_about())
+    tool = next(e for e in entries if e["section"] == "capability" and e["slug"] == "tool-use")
+    assert (tool["models"], tool["engineers"]) == (3, 7)  # merged row in, reddit and declined out
+    e = blog_reference.glossary_entry(conn, "capability", "tool-use")
+    assert e["about"] == capability_about()["tool-use"]
+    assert [m["model"]["id"] for m in e["models"]][0] == "acme/alpha-1"
+    assert e["withheld_entries"] == 1
+    assert blog_reference.glossary_entry(conn, "capability", "summaries") is None  # no description
+
+
+def test_an_issue_needs_enough_engineers_and_says_when_it_was_last_reported(conn):
+    from judge import blog_reference
+
+    idx = blog_reference.issues_index(conn)
+    assert [(m["model"]["id"], m["issues"]) for m in idx["models"]] == [("acme/alpha-1", 1)]
+    a = blog_reference.issues_for(conn, "acme/alpha-1")
+    [issue] = a["issues"]
+    assert (issue["slug"], issue["problems"], issue["working"]) == ("tool-use", 2, 2)
+    assert issue["latest"] == "2026-10-13" and "fixed" not in issue
+    assert all("withheld" not in q["quote"] for q in issue["quotes"])
+    # reports, but none reaching the threshold: an empty list, said in words
+    assert blog_reference.issues_for(conn, "beta/bravo-2")["issues"] == []
+    assert blog_reference.issues_for(conn, "nobody/none") is None
+
+
+def test_an_answer_keeps_not_published_apart_from_no(conn):
+    from judge import blog_reference
+
+    a = {x["key"]: x for x in blog_reference.answers_for(conn, "acme/alpha-1")["answers"]}
+    assert a["tools"]["advertised"] is True
+    assert (a["tools"]["working"], a["tools"]["problems"]) == (2, 2)
+    assert a["vision_input"]["advertised"] is True
+    assert a["prompt_caching"]["advertised"] is None  # no cached-read price published
+    assert a["reasoning"]["mapped"] is False  # no board topic ruled to mean it
+    b = {x["key"]: x for x in blog_reference.answers_for(conn, "beta/bravo-2")["answers"]}
+    assert b["structured_output"]["advertised"] is False  # it lists params, not this one
+    f = {x["key"]: x for x in blog_reference.answers_for(conn, "fox/foxtrot-6")["answers"]}
+    assert f["tools"]["advertised"] is None  # it lists no params at all: unknown, not "no"

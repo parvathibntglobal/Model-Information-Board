@@ -24,8 +24,18 @@ export const topicHref = (section, slug) =>
 export const shortName = (n) => String(n || '').split(':').slice(-1)[0].trim()
 
 export const engineers = (n) => `${n} ${n === 1 ? 'engineer' : 'engineers'}`
+/** "1 problem", "2 problems" - a count chip reads as a phrase. */
+export const problems = (n) => `${n} ${n === 1 ? 'problem' : 'problems'}`
+/** The verb after a count of engineers: "1 engineer reports", "2 report". */
+export const reports = (n) => (n === 1 ? 'reports' : 'report')
 
 /** "12 Oct 2026" from an ISO date. */
 export const day = (iso) => (iso
   ? new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
   : '')
+
+/** The reference formats (judge/blog_reference.py). */
+export const glossaryPath = (section, slug) =>
+  `/blogs/glossary/${SECTION_PATH[section]}/${encodeURIComponent(slug)}`
+export const issuesPath = (modelId) => `/blogs/issues/${seg(modelId)}`
+export const answersPath = (modelId) => `/blogs/answers/${seg(modelId)}`

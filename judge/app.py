@@ -2388,6 +2388,65 @@ def blog_live_preview(kind: str, ident: str) -> dict:
     return found
 
 
+# THE BLOG'S REFERENCE FORMATS (2026-10-15): a glossary, known issues per
+# model, and "does X support Y" answers. Not articles - see
+# judge/blog_reference.py.
+
+
+def _or_404(found, what: str):
+    if found is None:
+        raise HTTPException(status_code=404, detail=what)
+    return found
+
+
+@app.get("/blog-ref/glossary")
+def blog_ref_glossary() -> dict:
+    from judge.blog_reference import glossary_index
+
+    with _conn() as conn:
+        return glossary_index(conn)
+
+
+@app.get("/blog-ref/glossary/{section}/{slug}")
+def blog_ref_glossary_entry(section: str, slug: str) -> dict:
+    from judge.blog_reference import glossary_entry
+
+    with _conn() as conn:
+        return _or_404(glossary_entry(conn, section, slug), "no description for that topic")
+
+
+@app.get("/blog-ref/issues")
+def blog_ref_issues() -> dict:
+    from judge.blog_reference import issues_index
+
+    with _conn() as conn:
+        return issues_index(conn)
+
+
+@app.get("/blog-ref/issues/{model_id:path}")
+def blog_ref_issues_for(model_id: str) -> dict:
+    from judge.blog_reference import issues_for
+
+    with _conn() as conn:
+        return _or_404(issues_for(conn, model_id), "no public report for that model")
+
+
+@app.get("/blog-ref/answers")
+def blog_ref_answers() -> dict:
+    from judge.blog_reference import answers_index
+
+    with _conn() as conn:
+        return answers_index(conn)
+
+
+@app.get("/blog-ref/answers/{model_id:path}")
+def blog_ref_answers_for(model_id: str) -> dict:
+    from judge.blog_reference import answers_for
+
+    with _conn() as conn:
+        return _or_404(answers_for(conn, model_id), "no such model")
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.

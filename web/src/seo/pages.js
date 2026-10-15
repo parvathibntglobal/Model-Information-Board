@@ -298,6 +298,56 @@ export function liveQuiz() {
   }
 }
 
+/** The blog's reference formats (2026-10-15): glossary, known issues, answers. */
+const shortOf = (n) => String(n || '').split(':').slice(-1)[0].trim()
+export function glossaryHead() {
+  return {
+    title: fullTitle('Glossary of AI model capabilities and jobs'),
+    description: 'What each AI model capability and job means, in plain words, with how many engineers have reported on it.',
+    canonical: '/blogs/glossary',
+  }
+}
+export function glossaryEntryHead(e, path) {
+  if (!e) return glossaryHead()
+  return {
+    title: fullTitle(`What is ${e.name.toLowerCase()}?`),
+    description: e.about.length > 155 ? `${e.about.slice(0, 152).trimEnd()}…` : e.about,
+    canonical: path,
+  }
+}
+export function issuesHead() {
+  return {
+    title: fullTitle('Known issues in AI models, as engineers report them'),
+    description: 'Problems engineers report with each AI model, each with its quotes and when it was last reported.',
+    canonical: '/blogs/issues',
+  }
+}
+export function issuesForHead(d, path) {
+  if (!d) return issuesHead()
+  const n = shortOf(d.model.name)
+  return {
+    title: fullTitle(`${n} known issues`),
+    description: `${d.issues.length} problems engineers report with ${n}, each with the quotes behind it and when it was last reported.`,
+    canonical: path,
+  }
+}
+export function answersHead() {
+  return {
+    title: fullTitle('What does each AI model support?'),
+    description: 'Tool calling, structured output, image input and prompt caching: what each model advertises, beside what engineers report.',
+    canonical: '/blogs/answers',
+  }
+}
+export function answersForHead(d, path) {
+  if (!d) return answersHead()
+  const n = shortOf(d.model.name)
+  return {
+    title: fullTitle(`Does ${n} support tool calling, structured output and image input?`),
+    description: `What ${n} advertises, beside what engineers report: tool calling, structured output, image input, prompt caching.`,
+    canonical: path,
+  }
+}
+
 /** `/blogs/:slug`, from the post itself. A post the reader may not see gets the index's head. */
 export function blogPost(post) {
   if (!post) return blogIndex()

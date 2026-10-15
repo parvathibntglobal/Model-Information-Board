@@ -12,6 +12,9 @@ import { DisagreeIndex, Wall } from '../blogs/Disagree'
 import { ReadNext } from '../blogs/Explore'
 import Quiz from '../blogs/Quiz'
 import ThisWeek from '../blogs/ThisWeek'
+import { GlossaryEntry, GlossaryIndex } from '../blogs/Glossary'
+import { IssuesFor, IssuesIndex } from '../blogs/Issues'
+import { AnswersFor, AnswersIndex } from '../blogs/Answers'
 import '../styles/blog-live.css'
 
 /**
@@ -35,7 +38,10 @@ import '../styles/blog-live.css'
  *   /blogs/disagree                          where engineers disagree
  *   /blogs/disagree/<jobs|capabilities>/<slug>/<model id>   one claim wall
  *   /blogs/this-week[/<monday>]              this week in models
- *   /blogs/quiz                              which model was this?
+ *   /blogs/quiz                              the daily quiz
+ *   /blogs/glossary[/<jobs|capabilities>/<slug>]   what a topic is
+ *   /blogs/issues[/<model id>]               known issues per model
+ *   /blogs/answers[/<model id>]              what a model supports
  */
 export default function Blogs() {
   const rest = useParams()['*'] || ''
@@ -44,6 +50,13 @@ export default function Blogs() {
   if (rest === 'this-week') return <ThisWeek />
   if (rest.startsWith('this-week/')) return <ThisWeek start={rest.slice('this-week/'.length)} />
   if (rest === 'quiz') return <Quiz />
+  // THE REFERENCE FORMATS (judge/blog_reference.py), not articles either.
+  if (rest === 'glossary') return <GlossaryIndex />
+  if (rest.startsWith('glossary/')) return <GlossaryEntry key={rest} rest={rest} />
+  if (rest === 'issues') return <IssuesIndex />
+  if (rest.startsWith('issues/')) return <IssuesFor key={rest} rest={rest} />
+  if (rest === 'answers') return <AnswersIndex />
+  if (rest.startsWith('answers/')) return <AnswersFor key={rest} rest={rest} />
   return <BlogPosts rest={rest} />
 }
 

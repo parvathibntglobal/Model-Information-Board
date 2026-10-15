@@ -4,7 +4,7 @@ import { liveDisagree, liveWall } from '../api'
 import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { liveDisagree as disagreeHead, liveWall as wallHead } from '../seo/pages'
-import { SECTION_OF, day, engineers, modelHref, shortName, topicHref, wallPath } from './live'
+import { SECTION_OF, day, engineers, glossaryPath, modelHref, shortName, topicHref, wallPath, problems as problemsOf, reports } from './live'
 
 /**
  * WHERE ENGINEERS DISAGREE, AND ONE CLAIM WALL (2026-10-15).
@@ -18,7 +18,7 @@ function Counts({ working, problems, neutral }) {
   return (
     <span className="lv-counts">
       <span className="lv-pos">{working} working</span>
-      <span className="lv-neg">{problems} problems</span>
+      <span className="lv-neg">{problemsOf(problems)}</span>
       {neutral > 0 && <span className="lv-neu">{neutral} neutral</span>}
     </span>
   )
@@ -192,14 +192,15 @@ export function Wall({ rest }) {
             <span className="lv-kicker">{w.section === 'best_for' ? 'Job' : 'Capability'} · claim and counter-claim</span>
             <h1>{name} on {w.topic}</h1>
             <p className="lv-sub">
-              <b className="lv-pos">{engineers(w.working)}</b> report it working ·{' '}
-              <b className="lv-neg">{engineers(w.problems)}</b> report problems
+              <b className="lv-pos">{engineers(w.working)}</b> {reports(w.working)} it working ·{' '}
+              <b className="lv-neg">{engineers(w.problems)}</b> {reports(w.problems)} problems
               {w.neutral > 0 && <> · {engineers(w.neutral)} neutral</>}
             </p>
             {w.about && <p className="lv-about">{w.about}</p>}
             <p className="lv-links">
               <Link to={modelHref(w.model)}>{name}'s page →</Link>
               <Link to={topicHref(w.section, w.slug)}>{w.topic} on the board →</Link>
+              {w.about && <Link to={glossaryPath(w.section, w.slug)}>What is {w.topic.toLowerCase()}? →</Link>}
             </p>
           </header>
           <div className="lv-wall">

@@ -118,6 +118,40 @@
 /* the essay's computed "continue reading" (views.js) */
 .es-rel-why{color:var(--text-3);font-size:.78rem}
 
+/* reference formats: glossary, known issues, answers */
+.gl-letter{margin-top:var(--s3)}
+.gl-letter h2{font-size:var(--fs-h3);color:var(--text-3);border-bottom:1px solid var(--border-soft);padding-bottom:4px;margin-bottom:10px}
+.gl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.gl-card{display:flex;flex-direction:column;gap:4px;padding:12px 14px;background:var(--surface);
+  border:1px solid var(--border-soft);border-radius:var(--r-control);color:var(--text)}
+.gl-card:hover{border-color:var(--border-strong)}
+.gl-sum{font-size:var(--fs-xs);color:var(--text-2);line-height:1.45}
+.gl-about{font-size:var(--fs-body);line-height:1.6;color:var(--text);max-width:70ch}
+.gl-related{margin-top:var(--s3)}
+.gl-related h3{font-size:var(--fs-sm);color:var(--text-2);margin-bottom:8px}
+.gl-chips{display:flex;flex-wrap:wrap;gap:8px}
+.gl-chips a{font-size:var(--fs-sm);color:var(--text);padding:5px 12px;border:1px solid var(--border);border-radius:var(--r-pill);background:var(--surface)}
+.gl-chips a:hover{border-color:var(--border-strong)}
+.is-table{border-top:1px solid var(--border-soft)}
+.is-tr{display:grid;grid-template-columns:minmax(0,2fr) 1.2fr 1.2fr 1fr 1fr;gap:10px;align-items:baseline;
+  padding:10px 4px;font-size:var(--fs-sm)}
+.is-th{font-size:var(--fs-xs);color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border-soft)}
+.is-row{border-bottom:1px solid var(--border-soft)}
+.is-row summary{cursor:pointer;list-style:none}
+.is-row summary::-webkit-details-marker{display:none}
+.is-row summary:hover{background:var(--surface)}
+.is-row[open] summary{background:var(--surface)}
+.is-body{padding:4px 4px 14px}
+.qa{padding:var(--s2) 0;border-bottom:1px solid var(--border-soft)}
+.qa h2{font-size:var(--fs-h3);margin-bottom:8px}
+.qa-ad{font-size:var(--fs-sm);padding:8px 12px;border-radius:var(--r-control);border:1px solid var(--border-soft);margin:6px 0}
+.qa-yes{border-color:var(--pass);background:var(--pass-dim)}
+.qa-no{border-color:var(--border-strong);background:var(--surface)}
+.qa-unknown{border-style:dashed;color:var(--text-2)}
+.qa-rep{font-size:var(--fs-sm);margin:8px 0}
+.qa-q-positive{border-left:3px solid var(--pass)}
+.qa-q-negative{border-left:3px solid var(--fail)}
+
 /* Admin -> Quiz: the question bank's review list */
 .qb-intro{font-size:var(--fs-sm);max-width:80ch;margin:0}
 .qb-stats{display:flex;flex-wrap:wrap;gap:16px;font-size:var(--fs-sm);align-items:baseline}
@@ -150,6 +184,8 @@
 .hp-q-neg{border-color:var(--fail)}
 
 @media (max-width: 760px){
+  .is-tr{grid-template-columns:1fr 1fr}
+  .is-th{display:none}
   .lv-wall,.lv-rails,.lv-week-grid,.lv-explore{grid-template-columns:1fr}
   .lv-opts{grid-template-columns:1fr}
   .lv-row{flex-direction:column;align-items:flex-start}

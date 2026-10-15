@@ -1116,9 +1116,12 @@ const day = (ts) => ts ? String(ts).slice(0, 10) : '';
 // THE LIVE PAGES (2026-10-15), offered at the top of the index: built in code
 // from the board, not posts (judge/blog_live.py, web/src/blogs/).
 const LIVE = [
-  ['live:disagree', 'Where engineers disagree', 'Models and topics with reports on both sides, every quote linked.'],
-  ['live:this-week', 'This week in models', 'New listings, what engineers wrote, prices and retirements.'],
-  ['live:quiz', 'Daily quiz', 'Five questions a day on how language models work.'],
+  ['live:disagree', 'Where engineers disagree', 'Models and topics with reports on both sides, every quote linked.', 'Live'],
+  ['live:this-week', 'This week in models', 'New listings, what engineers wrote, prices and retirements.', 'Live'],
+  ['live:quiz', 'Daily quiz', 'Five questions a day on how language models work.', 'Live'],
+  ['live:issues', 'Known issues', 'Problems engineers report with each model, with the quotes.', 'Reference'],
+  ['live:answers', 'What each model supports', 'Advertised features beside what engineers report.', 'Reference'],
+  ['live:glossary', 'Glossary', 'What each capability and job means, in plain words.', 'Reference'],
 ];
 function vBlogs(){
   const meta = DB.postsMeta || { reason: null, skipped: [] };
@@ -1142,8 +1145,8 @@ function vBlogs(){
       <h1>How AI models behave in production</h1>
       <p class="es-dek">Long-form engineering essays on running frontier models in real systems — the failure
       modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>
-    <nav class="lv-explore lv-in-essay" aria-label="Live pages">${LIVE.map(([go, t, d]) =>
-      `<a class="lv-tile"${goAttrs(go)}><span class="lv-kicker">Live</span><b>${t}</b><span>${d}</span></a>`).join('')}</nav>
+    <nav class="lv-explore lv-in-essay" aria-label="Live pages">${LIVE.map(([go, t, d, k]) =>
+      `<a class="lv-tile"${goAttrs(go)}><span class="lv-kicker">${k}</span><b>${t}</b><span>${d}</span></a>`).join('')}</nav>
     ${DB.posts.length ? `<div class="es-draft">${DB.posts.every(x=>reviewOf(x)==='approved')
       ? '<b>Approved by the team, not yet published outside it.</b>'
       : '<b>Drafts for team review.</b>'} Written by a language model from

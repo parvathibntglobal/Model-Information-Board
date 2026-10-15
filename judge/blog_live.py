@@ -131,6 +131,25 @@ def _pair_rows(conn, hidden: list[str], where: str = "", params: dict | None = N
     ).fetchall()
 
 
+def catalog_entry(conn, cid: str) -> dict[str, Any] | None:
+    """One model as today's catalogue lists it, with its advertised features
+    as the catalogue module derives them (True / False / None = not published).
+    For the Q&A pages (judge/blog_reference.py), which must not read the
+    catalogue table themselves (tests/test_model_catalog.py)."""
+    from judge.catalog import _features
+
+    row = conn.execute(
+        "SELECT name, input_modalities, supported_parameters, price_cached_read "
+        "FROM model_catalog WHERE canonical_id = %s "
+        "AND last_seen_at = (SELECT max(last_seen_at) FROM model_catalog)",
+        (cid,),
+    ).fetchone()
+    if row is None:
+        return None
+    name, ins, params, p_cache = row
+    return {"name": name, "features": _features(list(params or []), ins, p_cache)}
+
+
 # ── where engineers disagree ────────────────────────────────────────────────
 
 

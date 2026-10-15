@@ -370,6 +370,16 @@ export const blogGenerationLog = (lines = 400) => request(`/blog-posts/generate/
 export const blogRuns = (limit = 20) => request(`/blog-posts/runs?limit=${limit}`)
 
 // Approve, reject or move back a stored post. A rejected post is kept, never shown.
+// THE BLOG'S REFERENCE FORMATS (judge/blog_reference.py): glossary, known
+// issues, answers. Code over the board and the catalogue, public sources only.
+export const refGlossary = () => cached('ref-glossary', () => request('/blog-ref/glossary'), { ttl: BOARD_TTL_MS })
+export const refGlossaryEntry = (section, slug) =>
+  request(`/blog-ref/glossary/${encodeURIComponent(section)}/${encodeURIComponent(slug)}`)
+export const refIssues = () => cached('ref-issues', () => request('/blog-ref/issues'), { ttl: BOARD_TTL_MS })
+export const refIssuesFor = (id) => request(`/blog-ref/issues/${modelPath(id)}`)
+export const refAnswers = () => cached('ref-answers', () => request('/blog-ref/answers'), { ttl: BOARD_TTL_MS })
+export const refAnswersFor = (id) => request(`/blog-ref/answers/${modelPath(id)}`)
+
 // THE QUIZ QUESTION BANK (judge/quiz_bank.py): drafted by a model, approved here.
 export const quizBank = (state = 'pending') => request(`/quiz-bank?state=${encodeURIComponent(state)}`)
 export const draftQuizQuestions = (topic) => request('/quiz-bank/draft', { method: 'POST', body: { topic } })

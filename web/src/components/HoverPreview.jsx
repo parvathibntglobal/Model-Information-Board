@@ -46,7 +46,7 @@ function Body({ d }) {
     : (
       <p className="hp-counts">
         <span className="lv-pos">{d.working} working</span>
-        <span className="lv-neg">{d.problems} problems</span>
+        <span className="lv-neg">{d.problems} {d.problems === 1 ? 'problem' : 'problems'}</span>
         {d.neutral > 0 && <span className="lv-neu">{d.neutral} neutral</span>}
         <span className="hp-unit">engineers, public sources</span>
       </p>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { liveDisagree } from '../api'
-import { shortName, wallPath } from './live'
+import { shortName, wallPath, problems as problemsOf } from './live'
 
 /**
  * THE LIVE PAGES, OFFERED WHERE A READER ALREADY IS (2026-10-15).
@@ -30,7 +30,7 @@ export function ReadNext({ post }) {
           {walls.map((r) => (
             <Link key={`${r.section}:${r.slug}:${r.model.id}`} className="lv-rail" to={wallPath(r.section, r.slug, r.model.id)}>
               <span>{shortName(r.model.name)} on {r.topic}</span>
-              <span className="lv-counts"><span className="lv-pos">{r.working} working</span><span className="lv-neg">{r.problems} problems</span></span>
+              <span className="lv-counts"><span className="lv-pos">{r.working} working</span><span className="lv-neg">{problemsOf(r.problems)}</span></span>
             </Link>
           ))}
         </section>
