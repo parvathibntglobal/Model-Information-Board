@@ -2041,7 +2041,7 @@ def unrule_entries(conn, *, section: str, slug: str) -> int:
     return cur.rowcount
 
 
-def evidence_for_model(conn, model_version_id: str, *, limit: int = 200,
+def evidence_for_model(conn, model_version_id: str, *, limit: int | None = None,
                        hidden: list[str] | None = None, with_voices: bool = False) -> dict:
     """Every discovered section this model was named in, with the quotes.
 
@@ -2099,9 +2099,18 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200,
         # Unknown provenance is withheld with them (`publication.withheld`).
         "  AND (cardinality(%s::text[]) = 0 "
         "       OR (d.source IS NOT NULL AND NOT d.source = ANY(%s::text[]))) "
-        "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC "
-        "LIMIT %s",
-        (model_version_id, model_version_id, model_version_id, hidden, hidden, limit),
+        "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC"
+        # ⚠ NO DEFAULT CAP (2026-10-13). This read `LIMIT 200`, and the rows are
+        #   ordered by SECTION, so the cap cut whole sections from the end of
+        #   the alphabet rather than trimming evenly: GLM 5.3 had 242 entries
+        #   (51 best_for, 137 capability, 54 metric), the page got 188 + 12, and
+        #   showed "200 quotes" as if that were all of them - 42 metric entries
+        #   from a fetch gone with nothing saying so (rule 4). judge/seo.py and
+        #   the compare page read the same rows, so voices and counts were short
+        #   too. A caller that wants a cap passes one; none does today.
+        + (" LIMIT %s" if limit is not None else ""),
+        (model_version_id, model_version_id, model_version_id, hidden, hidden)
+        + ((limit,) if limit is not None else ()),
     ).fetchall()
     by_source = conn.execute(
         "SELECT count(*) FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "

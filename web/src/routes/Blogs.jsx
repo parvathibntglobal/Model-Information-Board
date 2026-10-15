@@ -4,6 +4,7 @@ import { blogPosts, listModels } from '../api'
 import { DB } from '../board/db'
 import { vBlogs, vPost } from '../board/views'
 import BoardView from '../board/BoardView'
+import { loadEmbeds } from '../board/embeds'
 import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { blogIndex, blogPost } from '../seo/pages'
@@ -74,6 +75,8 @@ export default function Blogs() {
   const missing = state.ready && !state.err && Boolean(rest) && !post
   const head = !state.ready ? null : missing ? false : rest ? blogPost(post) : blogIndex()
   useHead(head && fromAdmin ? { ...head, noindex: true } : head)
+  // OFFICIAL EMBEDS draw after the post is in the page (board/embeds.js).
+  useEffect(() => { if (rest && html) loadEmbeds() }, [rest, html])
 
   if (!state.ready) {
     return (

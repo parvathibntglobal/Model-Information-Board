@@ -261,6 +261,7 @@ export default function BlogsPanel() {
     storeBlogDrafts()
       .then((r) => {
         const parts = [`${r.stored.length} stored`]
+        if (r.replaced.length) parts.push(`${r.replaced.length} newer draft${r.replaced.length === 1 ? '' : 's'} replaced the pending one`)
         if (r.already.length) parts.push(`${r.already.length} already stored, left as they were`)
         if (r.refused.length) parts.push(`${r.refused.length} refused: ${r.refused.map((x) => `${x.slug} (${x.why})`).join('; ')}`)
         setStoreMsg(parts.join(' · '))

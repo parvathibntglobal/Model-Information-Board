@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { goPath } from './links'
 
@@ -102,7 +102,14 @@ export default function BoardView({ html }) {
     }
   }
 
+  // ONE OBJECT PER STRING. Measured 2026-10-14 on React 19.2: a re-render with
+  // the SAME html and a fresh `{ __html }` object rewrote the DOM anyway, which
+  // wiped the Reddit and X embeds their scripts had already drawn - and nothing
+  // redrew them, because nothing had changed. A post opened directly lost every
+  // embed ~8 s in, when a slow /seo/indexable answer re-rendered the page.
+  const inner = useMemo(() => ({ __html: html }), [html])
+
   return (
-    <div className="bv" ref={ref} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
+    <div className="bv" ref={ref} onClick={onClick} dangerouslySetInnerHTML={inner} />
   )
 }

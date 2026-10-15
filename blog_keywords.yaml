@@ -1,0 +1,42 @@
+# Search keywords for blog posts (2026-10-13).
+#
+# DRAFT, NOT CONTRACT - same footing as blog_formats.yaml. Read by
+# generate_sample_blogs.py.
+#
+# EACH POST GETS ONE PRIMARY KEYWORD and a few secondary ones, built from the
+# subject by the templates below. The primary is CHECKED in code: it must
+# appear in the title, in the meta description, in the short answer or the
+# opening paragraph, and in at least one FAQ question. Secondary keywords and
+# trending terms are asked for, not checked - forcing every one in reads as
+# keyword stuffing, which Google treats as spam.
+#
+# VOLUMES ARE NOT INVENTED. `band` is filled only where a Keyword Planner
+# reading exists (dated, with where it was recorded); every other term says
+# `unmeasured`. Check a term in Keyword Planner or Google Trends before
+# treating it as high-traffic.
+
+head_terms:
+  - {term: "best AI model", band: "10K-100K", measured: "Keyword Planner, recorded in web/index.html, 2026-10-01"}
+  - {term: "AI model comparison", band: "1K-10K", measured: "Keyword Planner, recorded in web/index.html, 2026-10-01"}
+  - {term: "LLM leaderboard", band: "10K-100K", measured: "Keyword Planner, recorded in contract/faq.yaml, 2026-10-01"}
+  - {term: "LLM rankings", band: "10K-100K", measured: "Keyword Planner, recorded in contract/faq.yaml, 2026-10-01"}
+
+# {a} and {b} are the subject's model names; {label} is a job or capability name.
+templates:
+  model:
+    primary: "{a} review"
+    secondary: ["{a} pricing", "is {a} good for coding", "{a} in production", "{a} alternatives"]
+  pair:
+    primary: "{a} vs {b}"
+    secondary: ["{a} or {b}", "{a} vs {b} for coding", "{a} vs {b} pricing", "AI model comparison"]
+  topic:
+    primary: "best AI model for {label}"
+    secondary: ["best LLM for {label}", "AI models for {label} compared", "best AI model"]
+
+# TRENDING: what engineers reported on most in the last N days, read from the
+# board's own entries at plan time (not search volume - we have no live trend
+# feed). The planner names the top few in the brief so a post can mention the
+# ones that genuinely fit; it is never required to use them.
+trending:
+  window_days: 14
+  top: 6

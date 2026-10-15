@@ -1133,12 +1133,58 @@ function vBlogs(){
 // and «verbatim fragment». Nothing else is markup. Posts show NO evidence
 // bookmarks (team decision, 2026-10-01); an {En} left in an older draft file is
 // dropped rather than printed.
+// QUOTE CREDITS (re-reviewed 2026-10-13): a post carries `cite` (fragment ->
+// number) and `sources` (platform, who, what, link). Set by vPost while it
+// renders, keyed by the ESCAPED fragment because essayText matches after esc().
+let CITE = null, SRC = null;
+function citeMark(q){
+  const n = CITE && CITE[q];
+  return n ? `<sup class="es-cite"><a href="#es-src-${n}" aria-label="Source ${n}">${n}</a></sup>` : '';
+}
 function essayText(v){
   return esc(v)
     .replace(/`([^`]+)`/g,'<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
-    .replace(/«([^»]+)»/g,'<q class="es-iq">$1</q>')
+    .replace(/«([^»]+)»/g,(m,q)=>`<q class="es-iq">${q}</q>${citeMark(q)}`)
     .replace(/\{E\d+\}/g,'');
+}
+
+// THE PLATFORM'S OWN POST (re-reviewed 2026-10-13). Rebuilt here from the
+// fields the generator fetched, never from HTML a file supplied, and only for
+// URLs of the expected shape - anything else draws nothing. The platform's
+// script turns the blockquote into the post, with its author and date; a
+// deleted post disappears from the page with it. (embeds.js loads the scripts.)
+function embedBlock(v){
+  if(!v) return '';
+  const cap = `<figcaption>${v.caption ? `<span class="cap">${essayText(v.caption)}</span>` : ''}
+    <span class="prov">Embedded from ${v.platform === 'x' ? 'X' : 'Reddit'}. The author, text and date are shown by
+    ${v.platform === 'x' ? 'X' : 'Reddit'}; if the post is deleted it disappears here too.</span></figcaption>`;
+  if(v.platform === 'reddit'){
+    const u = String(v.url || ''), m = u.match(/^https:\/\/www\.reddit\.com\/r\/(\w+)\/comments\/\w+/);
+    const author = /^[\w-]{1,40}$/.test(v.author || '') ? v.author : '';
+    if(!m) return '';
+    return `<figure class="es-embed es-embed-reddit"><blockquote class="reddit-embed-bq" style="height:316px">
+      <a href="${esc(u)}">${esc(v.title || 'View this post on Reddit')}</a><br> by
+      ${author ? `<a href="https://www.reddit.com/user/${esc(author)}/">u/${esc(author)}</a>` : 'a Reddit user'} in
+      <a href="https://www.reddit.com/r/${esc(m[1])}/">${esc(m[1])}</a></blockquote>${cap}</figure>`;
+  }
+  if(v.platform === 'x'){
+    const m = String(v.url || '').match(/^https:\/\/(?:x|twitter)\.com\/(\w+)\/status\/(\d+)/);
+    if(!m) return '';
+    return `<figure class="es-embed es-embed-x"><blockquote class="twitter-tweet" data-theme="dark" data-dnt="true">
+      <a href="https://twitter.com/${esc(m[1])}/status/${esc(m[2])}">View this post on X</a></blockquote>${cap}</figure>`;
+  }
+  return '';
+}
+
+// THE SOURCE LIST: one numbered line per quoted post, as cited in the text.
+function sourcesBlock(p){
+  const s = (p.sources || []).filter(x => /^https:\/\//.test(x.url || ''));
+  if(!s.length) return '';
+  return `<section class="es-sources"><h2>Sources</h2><ol>${s.map(x =>
+    `<li id="es-src-${esc(x.n)}"><span class="plat">${esc(x.platform)}</span>
+      <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.what)}</a>${x.who ? ` by ${esc(x.who)}` : ''}${x.posted ? ` · ${esc(x.posted)}` : ''}</li>`).join('')}</ol>
+    <p class="es-note">Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.</p></section>`;
 }
 
 function routeBadge(r){
@@ -1168,9 +1214,14 @@ function essayBlock([t,v]){
   if(t==='ul') return '<ul>'+v.map(li=>`<li>${essayText(li)}</li>`).join('')+'</ul>';
   // THE QUOTE BOX SAID ONLY "Engineer report", and a reader could not tell
   // whose words they were or why they were boxed (2026-10-06). It now says.
-  if(t==='quote') return `<figure class="es-voice"><figcaption class="who">An engineer, in their own words</figcaption>
-    <blockquote>${essayText(v)}</blockquote>
-    <div class="src">Copied exactly from a public engineering discussion this post was written from. Not the writer's words.</div></figure>`;
+  if(t==='quote'){
+    const n = CITE && CITE[esc(v)], src = n && SRC ? SRC[n] : null;
+    return `<figure class="es-voice"><figcaption class="who">${src ? `${esc(src.platform)}${src.who ? ` · ${esc(src.who)}` : ''}` : 'An engineer, in their own words'}</figcaption>
+    <blockquote>${esc(v)}</blockquote>
+    <div class="src">${src ? `Copied exactly from <a href="${esc(src.url)}" rel="nofollow noopener" target="_blank">${esc(src.what)}</a>. Not the writer's words.`
+      : "Copied exactly from a public engineering discussion this post was written from. Not the writer's words."}</div></figure>`;
+  }
+  if(t==='embed') return embedBlock(v);
   // The tag already says "Illustrative"; a label that opens with it would read twice.
   if(t==='code') return `<div class="es-codehead"><span class="es-illus">Illustrative</span>${esc(String(v.label||'').replace(/^\s*illustrative[\s:·-]*/i,'').replace(/^./,c=>c.toUpperCase()))}</div>
     <pre class="es-pre">${essayCode(v.source)}</pre>`;
@@ -1188,16 +1239,75 @@ function essayBlock([t,v]){
   if(t==='tree') return `<div class="es-dtree"><div class="q">${essayText(v.question)}</div>
     <div class="br">${(v.branches||[]).map(b=>`<div class="b"><div class="cond">${essayText(b.condition)}</div>
       <div class="out">${essayText(b.outcome)}</div>${routeBadge(b.route)}</div>`).join('')}</div></div>`;
-  // A PARAGRAPH WITH ITS OWN SKIM LINE (generator, 2026-10-08): skim mode
-  // shows that polished sentence, full mode the paragraph. Older posts carry a
-  // plain string, and skim mode folds everything after its first sentence.
-  if(v && typeof v === 'object'){
-    return `<p class="es-para es-sk"><span class="sk">${essayText(v.skim)}</span>`
-      + `<span class="full">${essayText(v.text)}</span></p>`;
+  // A TABLE, CHART OR DIAGRAM (generator, 2026-10-13), one per section at most.
+  if(t==='visual') return visualBlock(v);
+  // A GENERATED PICTURE (generator, 2026-10-13): always labelled as AI-made,
+  // and only ever an inline JPEG/PNG/WebP - any other src is not drawn.
+  if(t==='image'){
+    const src = String((v && v.src) || '');
+    if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src)) return '';
+    return `<figure class="es-fig es-fig-image${v.cover ? ' es-cover' : ''}"><img src="${src}" alt="${esc(v.alt || '')}" loading="lazy" decoding="async">
+      <figcaption>${v.caption ? `${essayText(v.caption)} ` : ''}<span class="es-ai">AI-generated illustration</span></figcaption></figure>`;
   }
-  const [first, rest] = splitFirst(v);
-  return rest ? `<p class="es-para"><span class="s1">${essayText(first)}</span><span class="rest">${essayText(rest)}</span></p>`
-    : `<p class="es-para">${essayText(first)}</p>`;
+  // EVERY PARAGRAPH IN FULL (2026-10-13). Skim mode showed one line per
+  // paragraph by default and read as an incomplete post, so it is gone. Posts
+  // written before carry {text, skim}: the paragraph is shown, the line is not.
+  const text = v && typeof v === 'object' ? v.text : v;
+  const para = `<p class="es-para">${essayText(text)}</p>`;
+  return para + linkCards(para);
+}
+
+// "READ THE ORIGINAL" (2026-10-14, team ask: let a reader go straight to the
+// arXiv paper or dev.to article). One card per linked source, after the
+// paragraph that first quotes it. Reddit and X never reach here: they are
+// embedded by their platforms and never quoted, so they have no source line.
+let CARDED = null;
+const READ_AS = { 'arXiv': 'Read the paper on arXiv', 'dev.to': 'Read the article on dev.to',
+  'an engineering blog': 'Read the original post', 'GitHub': 'Read it on GitHub',
+  'Hacker News': 'Read the thread on Hacker News', 'Hugging Face': 'Read it on Hugging Face',
+  'Medium': 'Read the article on Medium' };
+function linkCards(html){
+  if(!SRC || !CARDED) return '';
+  const fresh = [...html.matchAll(/href="#es-src-(\d+)"/g)].map(m => Number(m[1]))
+    .filter(n => { if(CARDED.has(n)) return false; CARDED.add(n); return /^https:\/\//.test((SRC[n] || {}).url || ''); });
+  return fresh.map(n => { const s = SRC[n];
+    const meta = [s.who ? `by ${esc(s.who)}` : '', s.posted ? esc(s.posted) : ''].filter(Boolean).join(' · ');
+    return `<a class="es-linkcard" href="${esc(s.url)}" rel="nofollow noopener" target="_blank">
+      <span class="plat">${esc(s.platform)}</span><span class="what">${esc(s.what)}</span>${meta ? `<span class="meta">${meta}</span>` : ''}
+      <span class="go">${esc(READ_AS[s.platform] || 'Read the original')} →</span></a>`; }).join('');
+}
+
+// THE THREE VISUALS. Drawn as HTML and inline SVG from the post's own data:
+// no image files, nothing fetched, and every chart value was checked against
+// the sources by the generator before the post was written.
+function visualBlock(v){
+  if(!v || !v.kind) return '';
+  const cap = v.caption ? `<figcaption>${essayText(v.caption)}</figcaption>` : '';
+  if(v.kind === 'table'){
+    return `<figure class="es-fig es-fig-table"><div class="es-tbl"><table><thead><tr>${(v.columns||[]).map(c=>`<th>${essayText(c)}</th>`).join('')}</tr></thead>
+      <tbody>${(v.rows||[]).map(r=>`<tr>${r.map((c,k)=>`<td>${k===0?`<b>${essayText(c)}</b>`:essayText(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${cap}</figure>`;
+  }
+  if(v.kind === 'chart'){
+    const bars = (v.bars||[]).filter(b => Number.isFinite(Number(b.value)));
+    if(!bars.length) return '';
+    const max = Math.max(...bars.map(b => Number(b.value))) || 1;
+    const row = 30, labelW = 38, h = bars.length * row + 8;
+    const fmt = n => { const x = Number(n); return Number.isInteger(x) ? x.toLocaleString('en-US') : String(x); };
+    const svg = bars.map((b, i) => {
+      const w = Math.max(0.5, (Number(b.value) / max) * (96 - labelW - 14));
+      const y = i * row + 6;
+      return `<text x="0" y="${y + 15}" class="lbl">${esc(String(b.label).replace(/[«»]/g,''))}</text>`
+        + `<rect x="${labelW}%" y="${y + 3}" width="${w}%" height="18" rx="4" class="bar"/>`
+        + `<text x="${labelW + w + 1}%" y="${y + 16}" class="val">${esc(fmt(b.value))}</text>`;
+    }).join('');
+    return `<figure class="es-fig es-fig-chart"><div class="unit">${esc(v.unit || '')}</div>
+      <svg viewBox="0 0 100 ${h}" preserveAspectRatio="none" width="100%" height="${h}" role="img" aria-label="${esc(String(v.caption||'Chart').replace(/[«»]/g,''))}">${svg}</svg>${cap}</figure>`;
+  }
+  if(v.kind === 'diagram'){
+    const steps = (v.steps||[]).map((st, i) => `<li><span class="n">${i + 1}</span><span>${essayText(st)}</span></li>`).join('');
+    return `<figure class="es-fig es-fig-flow"><ol>${steps}</ol>${cap}</figure>`;
+  }
+  return '';
 }
 
 // ── per-format layouts (reworked 2026-10-06) ──────────────────────────────
@@ -1249,24 +1359,6 @@ function splitPost(body){
   return out;
 }
 
-// A paragraph's first sentence, for skim mode. Never splits inside a «quote»,
-// a `code` span or a **bold** run, or after an abbreviation.
-function splitFirst(raw){
-  const s = String(raw || '');
-  let q = 0, c = 0, bold = 0;
-  for(let i = 0; i < s.length; i++){
-    const ch = s[i];
-    if(ch === '«') q++;
-    else if(ch === '»') q = Math.max(0, q - 1);
-    else if(ch === '`') c ^= 1;
-    else if(ch === '*' && s[i + 1] === '*'){ bold ^= 1; i++; }
-    else if(!q && !c && !bold && '.!?'.includes(ch) && s[i + 1] === ' ' && /[A-Z0-9«`*(]/.test(s[i + 2] || '')){
-      if(/\b(e\.g|i\.e|vs|etc|approx|cf)\.$/i.test(s.slice(Math.max(0, i - 6), i + 1))) continue;
-      return [s.slice(0, i + 1), s.slice(i + 1)];
-    }
-  }
-  return [s, ''];
-}
 const wordsIn = s => (String(s || '').replace(/<[^>]+>/g, ' ').match(/\S+/g) || []).length;
 const pad2 = n => String(n).padStart(2, '0');
 
@@ -1544,12 +1636,23 @@ function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
   const L = layoutOf(p);
   const conf = L ? LAYOUTS[L] : { label: null, lead: 'In brief', tools: 'end' };
-  const parts = splitPost(p.body || []), secs = parts.sections, sp = p.special;
+  // EVERY POST OPENS ON A PICTURE (2026-10-14): its cover, or - for a post
+  // written before covers - its first generated picture, lifted out of its
+  // section. A post with no picture opens without one; nothing stands in.
+  let body = p.body || [], cover = p.cover || null;
+  if(!cover){
+    const k = body.findIndex(b => b[0] === 'image');
+    if(k >= 0){ cover = body[k][1]; body = body.slice(0, k).concat(body.slice(k + 1)); }
+  }
+  const parts = splitPost(body), secs = parts.sections, sp = p.special;
   const V = arrangementOf(p, L);
   const rows = sheetRows(parts.prices);
   const pv = p.provenance || {};
   const asOf = String(pv.generated_at || '').slice(0, 10);
   _mx = 0;
+  CITE = Object.fromEntries(Object.entries(p.cite || {}).map(([k, n]) => [esc(k), n]));
+  SRC = Object.fromEntries((p.sources || []).map(s => [s.n, s]));
+  CARDED = new Set();
 
   // THE TOOLS - the matrix and the tree - go where the format puts them, and
   // never close the page: "which one to pick" ended 10 of 12 drafts.
@@ -1637,28 +1740,13 @@ function vPost(slug){
   }
   let main = open + middle + end;
 
-  // READING TIME, COUNTED: words on the page, and the same less every
-  // paragraph after its first sentence - the part skim mode folds.
-  // A paragraph with a skim line holds both spans: full mode hides the line,
-  // skim mode hides the paragraph.
-  let skimOnly = 0, fullOnly = 0;
-  for(const [t, v] of (p.body || [])){
-    if(t !== 'p') continue;
-    if(v && typeof v === 'object'){ skimOnly += wordsIn(v.skim); fullOnly += wordsIn(v.text); }
-    else fullOnly += wordsIn(splitFirst(v)[1]);
-  }
-  const hasSkim = (p.body || []).some(([t, v]) => t === 'p' && v && typeof v === 'object');
-  const shown = wordsIn(main);
-  const full = shown - skimOnly;
-  const folded = fullOnly;
-  const mins = w => Math.max(1, Math.round(w / 230));
+  // READING TIME, COUNTED: the words on the page at 230 a minute. One mode
+  // only since 2026-10-13 - the skim/full toggle is gone with the skim lines.
+  const mins = Math.max(1, Math.round(wordsIn(main) / 230));
   // INTERACTIVE BY DEFAULT since 2026-10-06; a post can still opt out.
   if(p.interactive !== false) main = interactivize(main, p, rows);
-  const mode = `<div class="es-mode"><div class="seg" role="radiogroup" aria-label="Reading mode">
-      <label><input type="radio" name="es-mode" class="m-skim" checked>Skim · ${mins(full - folded)} min</label>
-      <label><input type="radio" name="es-mode">Full · ${mins(full)} min</label></div>
-    <p>${hasSkim ? 'Skim shows each paragraph’s point in one sentence' : 'Skim shows the first sentence of each paragraph'}, plus every card, table and quote.
-      Dotted names open a model card. <q class="es-iq">Quoted</q> words are an engineer's, copied exactly.</p></div>`;
+  const mode = `<div class="es-mode"><span class="es-readtime">${mins} min read</span>
+    <p>Dotted names open a model card. <q class="es-iq">Quoted</q> words are an engineer's, copied exactly.</p></div>`;
 
   const toc = [...secs.filter(s => s.head.id).map(s => [`es-${s.head.id}`, s.head.text]),
     ...(parts.matrix ? [['es-matrix', parts.matrix.head.text]] : []), ...(parts.tree ? [['es-decision', 'Decision tree']] : [])]
@@ -1673,7 +1761,7 @@ function vPost(slug){
     <table><thead><tr><th></th><th>In</th><th>Out</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${esc(r.name)}</td><td>${esc(r.pin)}</td><td>${esc(r.pout)}</td></tr>`).join('')}</tbody></table>
     <p>Registry list prices per 1M tokens when the post was written. A price the provider does not publish says so; it is never zero.</p></div>` : '';
-  return `<div class="essay${L?' layout-'+L:''} arr-${V}"><div class="es-wrap">
+  const page = `<div class="essay${L?' layout-'+L:''} arr-${V}"><div class="es-wrap">
     <div class="es-crumb"><a${goAttrs('blogs')}>All essays</a></div>
     <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div><h1>${esc(p.title)}</h1>
       <p class="es-dek">${esc(p.dek)}</p>
@@ -1681,7 +1769,8 @@ function vPost(slug){
       ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
     <div class="es-layout">
       <article class="es-article">
-        ${mode}${main}
+        ${cover ? essayBlock(['image', { ...cover, cover: true }]) : ''}${mode}${main}
+        ${sourcesBlock(p)}
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
           from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.
@@ -1699,5 +1788,7 @@ function vPost(slug){
       </aside>
     </div>
   </div></div>`;
+  CITE = null; SRC = null; CARDED = null;
+  return page;
 }
 export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel, vBlogs, vPost }

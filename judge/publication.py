@@ -64,6 +64,26 @@ def derived_posts_may_draw_on_withheld() -> bool:
     return value
 
 
+@lru_cache(maxsize=1)
+def derived_posts_embed_only() -> tuple[str, ...]:
+    """Sources a published post may show ONLY as the platform's official embed.
+
+    `contract/publication.yaml` `derived_posts.embed_only` (re-reviewed
+    2026-10-13). Must be a list; absent raises (rule 6). An empty list is a
+    definite "quote every source", so it is accepted - but only when written.
+    """
+    from judge.config import _read
+
+    raw = (_read("publication.yaml") or {}).get("derived_posts") or {}
+    if "embed_only" not in raw or not isinstance(raw["embed_only"], list):
+        raise PublicationConfigError(
+            "contract/publication.yaml `derived_posts.embed_only` must be a list of "
+            f"sources, not {raw.get('embed_only')!r}. Refusing rather than guessing "
+            "which sources a post may quote."
+        )
+    return tuple(str(s).strip() for s in raw["embed_only"])
+
+
 def view() -> str:
     raw = os.getenv("PUBLICATION_VIEW")
     if raw is None or not raw.strip():

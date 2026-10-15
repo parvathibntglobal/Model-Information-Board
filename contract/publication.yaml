@@ -52,3 +52,27 @@ derived_posts:
   #
   # Must be true or false. Absent raises (rule 6): the generator never guesses.
   may_draw_on_withheld: true
+
+  # EMBED ONLY - RE-REVIEWED 2026-10-13 by anooj, approved by the MD (whose idea
+  # it was). docs/proposals/publish-blogs-with-official-embeds.md.
+  #
+  # A source listed here appears in a published post ONLY as the platform's
+  # official embed of the post (X for Websites; Reddit's oEmbed markup), placed
+  # beside our own-words description that names the platform. Its text is never
+  # copied into our prose - not in «», not as a pull quote - and no handle,
+  # subreddit or URL is typed by us. The generator refuses a draft that quotes
+  # one of these sources, and refuses an embed of any source NOT listed here.
+  #
+  # EVERY OTHER SOURCE a post draws on is quoted exactly and credited with its
+  # platform and a link (quote + attribution + link, BUILD-PLAN's form). The
+  # 2026-10-05 "no link, no platform name" position for blog drafts is
+  # superseded by this re-review.
+  #
+  # What this does NOT change: the board stays as `withheld_from_public` says,
+  # and the collection routes stay as `contract/sources.yaml` records them.
+  #
+  # Must be a list. Absent raises (rule 6). An empty list is a definite answer -
+  # "quote every source" - and is never what a missing key means.
+  embed_only:
+    - reddit
+    - x
