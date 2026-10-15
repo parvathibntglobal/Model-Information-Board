@@ -958,7 +958,7 @@ def faq_page() -> dict:
     # shown (review of #508, item 6).
     from judge import publication
 
-    platforms = evidence_platforms(tuple(publication.hidden_here()))
+    platforms = evidence_platforms(tuple(publication.withheld_sources()))
     listed = ", ".join(platforms[:-1]) + f" and {platforms[-1]}" if len(platforms) > 1 \
         else (platforms[0] if platforms else "no platform")
 
@@ -1200,8 +1200,12 @@ def compare_page(ids: str = "") -> dict:
         # them, and the platform split below would name them outright.
         from judge import publication
 
-        pub_sql, pub_args = publication.sql_public_document("board_entry.document_id")
-        pub_sql_b, pub_args_b = publication.sql_public_document("b.document_id")
+        # TOTALS COUNT EVERY SOURCE; THE PER-PLATFORM LIST NAMES NONE OF THE
+        # WITHHELD ONES, whatever the deployment's view (contract/publication.yaml,
+        # 2026-10-15). `platforms` is the only per-platform figure here.
+        pub_sql, pub_args = publication.sql_counted_document("board_entry.document_id")
+        pub_sql_b, pub_args_b = publication.sql_counted_document("b.document_id")
+        shown_sql_b, shown_args_b = publication.sql_shown_document("b.document_id")
         for m in found:
             rows = conn.execute(
                 "SELECT polarity, count(*), count(DISTINCT document_id) "
@@ -1234,9 +1238,9 @@ def compare_page(ids: str = "") -> dict:
                 "JOIN document d ON d.id = b.document_id "
                 "WHERE b.model_version_id = %s "
                 "  AND b.ruling IS DISTINCT FROM 'declined' "
-                + pub_sql_b +
+                + shown_sql_b +
                 "GROUP BY d.source ORDER BY 2 DESC",
-                (m["model_version_id"], *pub_args_b),
+                (m["model_version_id"], *shown_args_b),
             ).fetchall()
             replies = conn.execute(
                 "SELECT count(DISTINCT d.id) FROM board_entry b "

@@ -55,7 +55,12 @@ def reports_view(conn: Any) -> dict:
     from judge.config import parent_heading
     from judge.store.board_entries import board_sections
 
-    sections = board_sections(conn, hide_source=publication.withheld_publicly)
+    # TOTALS COUNT EVERY SOURCE (contract/publication.yaml, 2026-10-15). This
+    # page shows counts only, so nothing here can name a withheld platform -
+    # except the number of platforms, which counts named ones only (below).
+    counted = set(publication.hidden_from_counts())
+    sections = board_sections(conn, hide_source=lambda src: src in counted)
+    named = set(publication.withheld_sources())
 
     doc_ids = {
         q["document_id"]
@@ -84,7 +89,8 @@ def reports_view(conn: Any) -> dict:
             for m in item.get("models", []):
                 key = m["model_key"]
                 docs = docs_by_model.get(key, set())
-                platforms = {meta[d][0] for d in docs if d in meta and meta[d][0]}
+                platforms = {meta[d][0] for d in docs
+                             if d in meta and meta[d][0] and meta[d][0] not in named}
                 dates = [meta[d][1] for d in docs if d in meta and meta[d][1]]
                 split = m.get("report_split") or _metric_split(quotes, key)
                 models.append({

@@ -258,7 +258,7 @@ class RosterReader:
 
         rows = self._conn.execute(
             SQL, {"pipeline_version": self._pipeline_version,
-                  "hidden": list(publication.hidden_here())}
+                  "hidden": list(publication.hidden_from_counts())}
         ).fetchall()
         # NULL, NOT "unreported", WITH THE LEGACY CARDS OFF. Cells stop being
         # rebuilt, so the rows still in `cell` are a frozen verdict; and a model

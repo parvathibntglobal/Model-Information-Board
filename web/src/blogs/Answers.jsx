@@ -114,7 +114,7 @@ export function AnswersFor({ rest }) {
                 {!a.mapped ? (
                   <p className="lv-note">No board topic is mapped to {a.label}, so engineers' reports are not summarised here.</p>
                 ) : reported === 0 ? (
-                  <p className="lv-none">No engineer has reported on {name}'s {a.label} in the public sources we read.</p>
+                  <p className="lv-none">No engineer has reported on {name}'s {a.label} yet.</p>
                 ) : (
                   <>
                     <p className="qa-rep">

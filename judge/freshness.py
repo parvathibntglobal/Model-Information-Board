@@ -32,7 +32,8 @@ def board_freshness(conn: Any) -> dict:
     """Overall and per-model freshness, over the entries the board shows."""
     from judge import publication
 
-    pub_sql, pub_args = publication.sql_public_document("be.document_id")
+    # Dates and totals, never a source: every source counts (2026-10-15).
+    pub_sql, pub_args = publication.sql_counted_document("be.document_id")
     base = (
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "WHERE be.ruling IS DISTINCT FROM 'declined'" + pub_sql

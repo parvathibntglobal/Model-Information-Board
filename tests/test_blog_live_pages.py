@@ -3,8 +3,8 @@
 What each test pins is a rule the page states in words, so a refactor that
 breaks one breaks a sentence a reader was told:
 
-- public sources only, whatever view the deployment runs, and what that
-  leaves out is counted (rule 4);
+- totals count every source (contract/publication.yaml, 2026-10-15); a
+  quote or link never comes from a withheld source, whatever the view;
 - an engineer is counted once per side; a quote is shown once;
 - an empty side is returned empty, never filled or dropped;
 - the disagreement order is made of the two counts every row shows (rule 3);
@@ -229,11 +229,11 @@ def test_settings_have_no_defaults():
     assert s["quiz"]["options"] >= 2 and s["quiz"]["margin_percent"] > 0
 
 
-def test_disagreement_is_public_only_ruled_and_ordered_by_its_counts(conn):
+def test_disagreement_counts_every_source_is_ruled_and_ordered_by_its_counts(conn):
     out = blog_live.contested(conn)
     rows = {(r["model"]["id"], r["slug"]): r for r in out["pairs"]}
     alpha = rows[("acme/alpha-1", "tool-use")]
-    assert (alpha["working"], alpha["problems"]) == (2, 2)  # u1 once; reddit left out
+    assert (alpha["working"], alpha["problems"]) == (2, 3)  # u1 once; reddit COUNTED (2026-10-15)
     bravo = rows[("beta/bravo-2", "tool-use")]
     assert (bravo["working"], bravo["problems"]) == (1, 1)  # the merged row joined it
     assert ("gamma/charlie-3", "tool-use") not in rows  # declined, and one-sided
@@ -243,7 +243,7 @@ def test_disagreement_is_public_only_ruled_and_ordered_by_its_counts(conn):
 
 def test_a_wall_shows_each_quote_once_and_an_empty_side_empty(conn):
     w = blog_live.wall(conn, "capability", "tool-use", "acme/alpha-1")
-    assert (w["working"], w["problems"]) == (2, 2)
+    assert (w["working"], w["problems"]) == (2, 3)  # counts: every source
     assert len(w["quotes"]["positive"]) == 3 and len(w["quotes"]["negative"]) == 2
     assert all("withheld" not in q["quote"] for side in w["quotes"].values() for q in side)
     assert w["withheld_entries"] == 1
@@ -257,7 +257,7 @@ def test_a_wall_shows_each_quote_once_and_an_empty_side_empty(conn):
 def test_the_week_counts_posts_by_when_they_were_written(conn):
     w = blog_live.week(conn, today=TODAY)
     assert w["week"] == "2026-10-12" and w["in_progress"]
-    assert w["reports"]["voices"] == 8  # u1..u6, u9, u10; u8 wrote in September
+    assert w["reports"]["voices"] == 9  # u1..u6, u9, u10; u8 wrote in September
     assert [m["id"] for m in w["listings"]] == ["acme/alpha-1"]  # the one listed that week
     assert blog_live.week(conn, "2026-10-13", today=TODAY) is None  # not a Monday
     assert blog_live.week(conn, "2025-01-06", today=TODAY) is None  # not offered
@@ -330,9 +330,9 @@ def test_only_approved_general_questions_reach_the_quiz_and_a_shortfall_is_said(
         assert right["name"] == "b"  # answer_index 1, whatever the shuffle
 
 
-def test_a_preview_counts_public_reports_only(conn):
+def test_a_preview_counts_every_source(conn):
     m = blog_live.preview(conn, "model", "acme/alpha-1")
-    assert (m["working"], m["problems"]) == (2, 2)
+    assert (m["working"], m["problems"]) == (2, 3)
     t = blog_live.preview(conn, "cap", "tool-use")
     assert t["models"] == 3 and t["sample_problems"] is not None
     assert blog_live.preview(conn, "cap", "no-such-slug") is None
@@ -342,18 +342,18 @@ def test_a_preview_counts_public_reports_only(conn):
 # ── the reference formats (judge/blog_reference.py) ─────────────────────────
 
 
-def test_the_glossary_is_every_written_description_with_public_counts(conn):
+def test_the_glossary_is_every_written_description_with_its_counts(conn):
     from judge import blog_reference
     from judge.config import capability_about, job_about
 
     entries = blog_reference.glossary_index(conn)["entries"]
     assert len(entries) == len(capability_about()) + len(job_about())
     tool = next(e for e in entries if e["section"] == "capability" and e["slug"] == "tool-use")
-    assert (tool["models"], tool["engineers"]) == (3, 7)  # merged row in, reddit and declined out
+    assert (tool["models"], tool["engineers"]) == (3, 8)  # merged row and reddit in, declined out
     e = blog_reference.glossary_entry(conn, "capability", "tool-use")
     assert e["about"] == capability_about()["tool-use"]
     assert [m["model"]["id"] for m in e["models"]][0] == "acme/alpha-1"
-    assert e["withheld_entries"] == 1
+    assert "withheld_entries" not in e  # it shows no quotes and leaves nothing out of a total
     assert blog_reference.glossary_entry(conn, "capability", "summaries") is None  # no description
 
 
@@ -364,7 +364,7 @@ def test_an_issue_needs_enough_engineers_and_says_when_it_was_last_reported(conn
     assert [(m["model"]["id"], m["issues"]) for m in idx["models"]] == [("acme/alpha-1", 1)]
     a = blog_reference.issues_for(conn, "acme/alpha-1")
     [issue] = a["issues"]
-    assert (issue["slug"], issue["problems"], issue["working"]) == ("tool-use", 2, 2)
+    assert (issue["slug"], issue["problems"], issue["working"]) == ("tool-use", 3, 2)
     assert issue["latest"] == "2026-10-13" and "fixed" not in issue
     assert all("withheld" not in q["quote"] for q in issue["quotes"])
     # reports, but none reaching the threshold: an empty list, said in words
@@ -377,7 +377,7 @@ def test_an_answer_keeps_not_published_apart_from_no(conn):
 
     a = {x["key"]: x for x in blog_reference.answers_for(conn, "acme/alpha-1")["answers"]}
     assert a["tools"]["advertised"] is True
-    assert (a["tools"]["working"], a["tools"]["problems"]) == (2, 2)
+    assert (a["tools"]["working"], a["tools"]["problems"]) == (2, 3)
     assert a["vision_input"]["advertised"] is True
     assert a["prompt_caching"]["advertised"] is None  # no cached-read price published
     assert a["reasoning"]["mapped"] is False  # no board topic ruled to mean it

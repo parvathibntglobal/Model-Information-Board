@@ -7,8 +7,10 @@
     answers         "Does <model> support <feature>?" - what the catalogue
                     advertises beside what engineers report
 
-Code over the board and the catalogue, public sources only, no model call -
-the same footing as judge/blog_live.py, whose helpers this reuses.
+Code over the board and the catalogue, no model call - the same footing as
+judge/blog_live.py, whose helpers this reuses: TOTALS COUNT EVERY SOURCE, and a
+quote, link or platform name comes only from sources the contract does not
+withhold (contract/publication.yaml, amended 2026-10-15).
 
 NOTHING HERE SAYS "FIXED", "BEST" OR "NO". An issue shows when it was LAST
 reported, never a status, because a silence after a date is not a fix (rule
@@ -27,12 +29,12 @@ from judge.blog_live import (
     SECTIONS,
     SOURCE_LABEL,
     _hidden,
+    _hidden_counts,
     _in_catalog,
     _iso,
     _model,
     _pair_rows,
     _topic_names,
-    _withheld,
     catalog_entry,
 )
 from judge.config import (
@@ -93,7 +95,7 @@ def _quotes(conn, hidden, where: str, params: dict, limit: int | None = None) ->
 def glossary_index(conn) -> dict[str, Any]:
     """Every job and capability that has a hand-written description, with how
     many models and engineers the board has for it (public sources)."""
-    hidden = _hidden()
+    hidden = _hidden_counts()
     vocab, board = _vocab_names(), _topic_names(conn, hidden)
     parents = slug_parents()
     tally = {
@@ -133,7 +135,7 @@ def glossary_entry(conn, section: str, slug: str) -> dict[str, Any] | None:
     text = _ABOUT[section]().get(slug)
     if not text:
         return None
-    hidden = _hidden()
+    hidden = _hidden_counts()
     vocab, board = _vocab_names(), _topic_names(conn, hidden)
     listed = _in_catalog(conn)
     p = {"section": section, "slug": slug}
@@ -172,9 +174,6 @@ def glossary_entry(conn, section: str, slug: str) -> dict[str, Any] | None:
         "engineers": engineers,
         "models": models,
         "siblings": siblings,
-        "withheld_entries": _withheld(
-            conn, f"AND be.section = %(section)s AND {_SLUG} = %(slug)s", {"hidden": hidden, **p}
-        ),
     }
 
 
@@ -202,7 +201,7 @@ def _issue_rows(conn, hidden, model_id: str | None = None) -> list[tuple]:
 def issues_index(conn) -> dict[str, Any]:
     """Models with at least one known issue, most issues first - a count shown
     on every row, and the page says that is the order."""
-    hidden = _hidden()
+    hidden = _hidden_counts()
     listed = _in_catalog(conn)
     by_model: dict[str, dict] = {}
     for cid, name, _slug, _neg, _pos, _first, last in _issue_rows(conn, hidden):
@@ -220,7 +219,7 @@ def issues_for(conn, model_id: str) -> dict[str, Any] | None:
     """One model's known issues, each with the quotes behind it. None when the
     model has no public report at all (the route answers 404); an EMPTY list
     when it has reports but no issue reached the threshold - said in words."""
-    hidden = _hidden()
+    hidden = _hidden_counts()
     seen = conn.execute(
         f"SELECT v.display_name {_FROM} AND v.canonical_id = %(model)s LIMIT 1",
         {"hidden": hidden, "model": model_id},
@@ -240,7 +239,7 @@ def issues_for(conn, model_id: str) -> dict[str, Any] | None:
                 "latest": _iso(last.date()) if last else None,
                 "quotes": _quotes(
                     conn,
-                    hidden,
+                    _hidden(),
                     f"AND be.section = 'capability' AND {_SLUG} = %(slug)s "
                     f"AND v.canonical_id = %(model)s AND be.polarity = 'negative'",
                     {"slug": slug, "model": model_id},
@@ -261,7 +260,7 @@ def issues_for(conn, model_id: str) -> dict[str, Any] | None:
 
 def answers_index(conn) -> dict[str, Any]:
     """Models a Q&A page exists for: those with at least one public report."""
-    hidden = _hidden()
+    hidden = _hidden_counts()
     listed = _in_catalog(conn)
     rows = conn.execute(
         f"SELECT v.canonical_id, v.display_name, count(DISTINCT d.author_id) {_FROM} "
@@ -276,7 +275,7 @@ def answers_index(conn) -> dict[str, Any]:
 
 def answers_for(conn, model_id: str) -> dict[str, Any] | None:
     """Each feature's question for one model: advertised, and reported."""
-    hidden = _hidden()
+    hidden = _hidden_counts()
     seen = conn.execute(
         f"SELECT v.display_name {_FROM} AND v.canonical_id = %(model)s LIMIT 1",
         {"hidden": hidden, "model": model_id},
@@ -309,7 +308,7 @@ def answers_for(conn, model_id: str) -> dict[str, Any] | None:
             for pol in ("positive", "negative"):
                 q = _quotes(
                     conn,
-                    hidden,
+                    _hidden(),
                     f"AND be.section = 'capability' AND {_SLUG} = ANY(%(slugs)s) "
                     f"AND v.canonical_id = %(model)s AND be.polarity = %(pol)s",
                     {"slugs": slugs, "model": model_id, "pol": pol},

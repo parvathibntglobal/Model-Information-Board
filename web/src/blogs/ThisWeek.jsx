@@ -158,9 +158,8 @@ export default function ThisWeek({ start }) {
       )}
       {w && (
         <footer className="lv-foot">
-          <p>Built in code from OpenRouter's catalogue, the registry's price history and the board's public reports.
+          <p>Built in code from OpenRouter's catalogue, the registry's price history and the board's reports, counting every source we read.
             No model writes this page and no model is scored or ranked.</p>
-          {w.withheld_entries > 0 && <p>{w.withheld_entries} reports from sources not shown on public pages are left out of this week's counts.</p>}
         </footer>
       )}
     </div>

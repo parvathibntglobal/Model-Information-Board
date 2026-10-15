@@ -76,16 +76,20 @@ def _axis(view, kind, slug):
     return next(a for a in view["axes"] if a["kind"] == kind and a["slug"] == slug)
 
 
-def test_withheld_sources_add_nothing_even_on_an_internal_deployment(conn, monkeypatch):
-    monkeypatch.setenv("PUBLICATION_VIEW", "internal")
-    view = reports_view(conn)
-    m = _axis(view, "capability", "tool-use")["models"][0]
-    assert m["reports"] == 2  # devto + hackernews; reddit and x left out
-    assert m["platforms"] == 2
-    assert m["split"] == {"positive": 1, "negative": 1, "neutral": 0, "both": 0}
-    # dated by what is counted, never by the newer withheld posts
-    assert m["newest"] == "2026-09-01"
-    assert view["withheld_entries"] == 2
+def test_totals_count_every_source_and_name_none_of_the_withheld(conn, monkeypatch):
+    """contract/publication.yaml, amended 2026-10-15: a TOTAL counts every
+    source ("20 voices" includes Reddit), and nothing splits it by platform. The
+    number of platforms counts only the ones a public page may name, on any
+    deployment view."""
+    for view_name in ("internal", "public"):
+        monkeypatch.setenv("PUBLICATION_VIEW", view_name)
+        view = reports_view(conn)
+        m = _axis(view, "capability", "tool-use")["models"][0]
+        assert m["reports"] == 4  # devto, hackernews, reddit and x
+        assert m["platforms"] == 2  # devto, hackernews: withheld ones never counted as named
+        assert m["split"] == {"positive": 3, "negative": 1, "neutral": 0, "both": 0}
+        assert m["newest"] == "2026-10-01"  # the newest counted post
+        assert view["withheld_entries"] == 0  # nothing left out of a total
 
 
 def test_nothing_that_identifies_a_statement_leaves(conn):
@@ -116,7 +120,7 @@ def test_a_metric_row_is_split_per_report(conn):
 def test_the_numbers_are_the_boards(conn):
     from judge.store.board_entries import board_sections
 
-    board = board_sections(conn, hide_source=publication.withheld_publicly)
+    board = board_sections(conn, hide_source=lambda src: src in publication.hidden_from_counts())
     b = next(i for i in board["capability"] if i["slug"] == "tool-use")["models"][0]
     r = _axis(reports_view(conn), "capability", "tool-use")["models"][0]
     assert (r["voices"], r["reports"], r["group"]) == (b["voices"], b["reports"], b["group"])

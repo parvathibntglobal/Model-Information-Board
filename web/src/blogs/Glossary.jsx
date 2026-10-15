@@ -115,7 +115,7 @@ export function GlossaryEntry({ rest }) {
           <section className="lv-card">
             <h2>What engineers report <span>{engineers(e.engineers)}</span></h2>
             {e.models.length === 0
-              ? <p className="lv-none">Nobody has reported on this in the public sources we read.</p>
+              ? <p className="lv-none">Nobody has reported on this yet.</p>
               : (
                 <>
                   <p className="lv-note">Per model, the engineers who report it working, report problems, or mention it. Ordered by how many engineers wrote about it.</p>
@@ -141,8 +141,7 @@ export function GlossaryEntry({ rest }) {
             </section>
           )}
           <footer className="lv-foot">
-            <p>The description is written by the team and names no model. The counts are built in code from the board's public reports.</p>
-            {e.withheld_entries > 0 && <p>{e.withheld_entries} reports from sources not shown on public pages are left out.</p>}
+            <p>The description is written by the team and names no model. The counts are built in code from the board's reports and include every source we read.</p>
           </footer>
         </>
       )}

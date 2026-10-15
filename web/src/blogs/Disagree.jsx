@@ -125,12 +125,14 @@ function Footer({ withheld }) {
   return (
     <footer className="lv-foot">
       <p>
-        Built in code from the board's reports, public sources only. Which side a quote is on is the
+        Built in code from the board's reports. Counts include every source we read; quotes and links
+        come only from sources we show publicly. Which side a quote is on is the
         extractor's reading of it; every quote is shown exactly as written and links to where it was
         posted. Nothing on this page is written by a model, and no model is scored or ranked.
       </p>
       {withheld > 0 && (
-        <p>{withheld} reports from sources that are not shown on public pages are left out of every count here.</p>
+        <p>{withheld} of the reports behind these counts come from sources whose posts are not quoted on public
+          pages, so a count can be larger than the quotes shown for it.</p>
       )}
     </footer>
   )
@@ -150,11 +152,16 @@ function QuoteCard({ q }) {
 }
 
 function Side({ title, tone, quotes, count, empty }) {
+  // A COUNT WITH NO QUOTE IS NOT "NOBODY". Totals count every source; quotes
+  // come only from sources shown publicly, so a side can have reports and no
+  // quote - and must say that, not "nobody" (rule 4).
   return (
     <section className={`lv-side lv-side-${tone}`}>
       <h2>{title} <span>{engineers(count)}</span></h2>
       {quotes.length === 0
-        ? <p className="lv-none">{empty}</p>
+        ? <p className="lv-none">{count > 0
+          ? `${engineers(count)} counted here, from posts that are not quoted on public pages.`
+          : empty}</p>
         : quotes.map((q, i) => <QuoteCard key={i} q={q} />)}
     </section>
   )
@@ -205,9 +212,9 @@ export function Wall({ rest }) {
           </header>
           <div className="lv-wall">
             <Side title="Reports of it working" tone="pos" quotes={w.quotes.positive} count={w.working}
-                  empty="Nobody has reported it working on this, in the public sources we read." />
+                  empty="Nobody has reported it working on this." />
             <Side title="Reports of problems" tone="neg" quotes={w.quotes.negative} count={w.problems}
-                  empty="Nobody has reported problems with this, in the public sources we read." />
+                  empty="Nobody has reported problems with this." />
           </div>
           {w.quotes.neutral.length > 0 && (
             <section className="lv-side lv-side-neu">

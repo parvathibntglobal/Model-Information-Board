@@ -12,10 +12,12 @@ NO MODEL CALL, NO REVIEW PER PAGE. These re-render board rows; nothing here
 writes a sentence about a model. Every figure is a count (engineers, reports,
 days) or a measured price (rule 3).
 
-PUBLIC SOURCES ONLY, WHATEVER VIEW THE DEPLOYMENT RUNS. `contract/publication.yaml`
-withholds some sources from public pages, and these pages are built to be
-public, so they filter with the contract's list even on an internal deployment.
-What that leaves out is COUNTED and said (rule 4), never named.
+TOTALS COUNT EVERY SOURCE; QUOTES SHOW PUBLIC SOURCES ONLY (contract/
+publication.yaml, amended 2026-10-15). "20 engineers" counts every source we
+read, and nothing on these pages says how many came from which platform. A
+quote, a link or a platform name comes only from sources the contract does not
+withhold, whatever view the deployment runs - so a wall can count more reports
+than it quotes, and it says so in words (rule 4) without naming a platform.
 
 A VOICE IS A DISTINCT `document.author_id`. A row whose document has no author
 still shows its quote and adds no voice.
@@ -74,7 +76,13 @@ def _per_token(cid: str, v) -> float | None:
 
 
 def _hidden() -> list[str]:
+    """For QUOTES, links and platform names: the contract's withheld list."""
     return list(publication.withheld_sources())
+
+
+def _hidden_counts() -> list[str]:
+    """For TOTALS: empty while totals include every source."""
+    return list(publication.hidden_from_counts())
 
 
 def _iso(v: Any) -> str | None:
@@ -110,8 +118,10 @@ def _topic_names(conn, hidden: list[str]) -> dict[tuple[str, str], str]:
 
 
 def _withheld(conn, where: str, params: dict) -> int:
-    """Rows a public page leaves out because of their source, under the same
-    filter as the page (rule 4). Unknown provenance counts as withheld."""
+    """Rows whose source a public page does not QUOTE, under the same filter as
+    the page (rule 4). Since 2026-10-15 they are still COUNTED in its totals;
+    this is how many of those reports have no quote shown. Unknown provenance
+    counts here too. Pass the QUOTE list (`_hidden()`), never the counts one."""
     return conn.execute(
         "SELECT count(*) FROM board_entry be JOIN document d ON d.id = be.document_id "
         "JOIN model_version v "
@@ -161,7 +171,7 @@ def contested(conn) -> dict[str, Any]:
     engineers on the smaller side first, then on the larger side. There is no
     "controversy" figure; each row shows both counts, so a reader can check
     any row's place against its neighbours (rule 3)."""
-    hidden = _hidden()
+    hidden = _hidden_counts()
     names = _topic_names(conn, hidden)
     listed = _in_catalog(conn)
     pairs = [
@@ -191,7 +201,7 @@ def contested(conn) -> dict[str, Any]:
         "withheld_entries": _withheld(
             conn,
             "AND be.section = ANY(%(sections)s)",
-            {"hidden": hidden, "sections": list(SECTIONS)},
+            {"hidden": _hidden(), "sections": list(SECTIONS)},
         ),
     }
 
@@ -209,6 +219,17 @@ def wall(conn, section: str, slug: str, model_id: str) -> dict[str, Any] | None:
         return None
     hidden = _hidden()
     p = {"hidden": hidden, "section": section, "slug": slug, "model": model_id}
+    pc = {**p, "hidden": _hidden_counts()}
+    # THE COUNTS, from every source. A pair with no row at all is a 404.
+    counted = _pair_rows(
+        conn, pc["hidden"],
+        f"AND be.section = %(section)s AND {_SLUG} = %(slug)s AND v.canonical_id = %(model)s",
+        pc,
+    )
+    if not counted:
+        return None
+    _s, _sl, _cid, model_name, c_pos, c_neg, c_neu = counted[0]
+    # THE QUOTES, from the sources a public page may quote.
     rows = conn.execute(
         f"SELECT be.polarity, be.quote, be.document_id, d.url, d.source, d.created_at, "
         f"       d.author_id, v.display_name, be.name "
@@ -217,15 +238,10 @@ def wall(conn, section: str, slug: str, model_id: str) -> dict[str, Any] | None:
         f"ORDER BY d.created_at DESC NULLS LAST, be.document_id",
         p,
     ).fetchall()
-    if not rows:
-        return None
     sides: dict[str, list[dict]] = {"positive": [], "negative": [], "neutral": []}
-    authors: dict[str, set[str]] = {"positive": set(), "negative": set(), "neutral": set()}
     seen: set[tuple[str, str]] = set()
     no_author = 0
     for pol, quote, doc, url, source, written, author, _mname, _tname in rows:
-        if author:
-            authors[pol].add(author)
         # ONE QUOTE ONCE. The same words from the same document can be stored
         # under two pipeline versions; the reader should see them once.
         if (doc, quote) in seen:
@@ -242,7 +258,7 @@ def wall(conn, section: str, slug: str, model_id: str) -> dict[str, Any] | None:
             }
         )
     listed = _in_catalog(conn)
-    names = _topic_names(conn, hidden)
+    names = _topic_names(conn, pc["hidden"])
     about = (job_about() if section == "best_for" else capability_about()).get(slug)
 
     # THE RAILS: the same topic for other models, and this model's other
@@ -251,9 +267,9 @@ def wall(conn, section: str, slug: str, model_id: str) -> dict[str, Any] | None:
         {"model": _model(cid, name, listed), "working": wp, "problems": wn, "neutral": wz}
         for _s, _slug, cid, name, wp, wn, wz in _pair_rows(
             conn,
-            hidden,
+            pc["hidden"],
             f"AND be.section = %(section)s AND {_SLUG} = %(slug)s AND v.canonical_id <> %(model)s",
-            p,
+            pc,
         )
     ]
     same_topic.sort(
@@ -262,7 +278,7 @@ def wall(conn, section: str, slug: str, model_id: str) -> dict[str, Any] | None:
     other_topics = [
         {"section": s, "slug": sl, "topic": names.get((s, sl), sl), "working": wp, "problems": wn}
         for s, sl, _cid, _n, wp, wn, _wz in _pair_rows(
-            conn, hidden, "AND v.canonical_id = %(model)s", p
+            conn, pc["hidden"], "AND v.canonical_id = %(model)s", pc
         )
         if wp >= 1 and wn >= 1 and not (s == section and sl == slug)
     ]
@@ -272,10 +288,10 @@ def wall(conn, section: str, slug: str, model_id: str) -> dict[str, Any] | None:
         "slug": slug,
         "topic": names.get((section, slug), slug),
         "about": about,
-        "model": _model(model_id, rows[0][7], listed),
-        "working": len(authors["positive"]),
-        "problems": len(authors["negative"]),
-        "neutral": len(authors["neutral"]),
+        "model": _model(model_id, model_name, listed),
+        "working": c_pos,
+        "problems": c_neg,
+        "neutral": c_neu,
         "quotes": sides,
         "quotes_without_author": no_author,
         "withheld_entries": _withheld(
@@ -320,7 +336,7 @@ def week(conn, start: str | None = None, today: date | None = None) -> dict[str,
         return None
     w0 = date.fromisoformat(start)
     w1 = w0 + timedelta(days=7)
-    hidden = _hidden()
+    hidden = _hidden_counts()  # this page shows totals and dates, never a quote
     listed = _in_catalog(conn)
     p = {"hidden": hidden, "w0": w0, "w1": w1, "sections": list(SECTIONS)}
 
@@ -469,9 +485,6 @@ def week(conn, start: str | None = None, today: date | None = None) -> dict[str,
             "compared": drift[1],
             "catalogue_read": _iso(drift[2].date()) if drift[2] else None,
         },
-        "withheld_entries": _withheld(
-            conn, "AND d.created_at >= %(w0)s AND d.created_at < %(w1)s", p
-        ),
     }
 
 
@@ -816,7 +829,7 @@ def quiz(conn, day: str | None = None, today: date | None = None) -> dict[str, A
     # FROM THE BOARD: the rest. A shortfall of approved general questions is
     # filled here and SAID (rule 4) - never filled with an unapproved draft.
     shortfall = cfg["general_per_day"] - len(general)
-    models = _quiz_models(conn, _hidden())
+    models = _quiz_models(conn, _hidden_counts())
     kinds = list(QUESTION_KINDS)
     rng.shuffle(kinds)
     board = []
@@ -845,7 +858,8 @@ def quiz(conn, day: str | None = None, today: date | None = None) -> dict[str, A
 def preview(conn, kind: str, ident: str) -> dict[str, Any] | None:
     """A small card. `kind` is `model` (a canonical id), `job` or `cap` (a
     slug). None when there is nothing public to show."""
-    hidden = _hidden()
+    hidden = _hidden_counts()
+    quote_hidden = _hidden()
     if kind == "model":
         cat = conn.execute(
             "SELECT name, provider, context_length, price_in, price_out FROM model_catalog "
@@ -896,7 +910,7 @@ def preview(conn, kind: str, ident: str) -> dict[str, Any] | None:
             f"SELECT be.quote, v.display_name {_FROM} AND be.section = %(section)s "
             f"AND {_SLUG} = %(slug)s AND be.polarity = %(pol)s AND length(be.quote) <= 220 "
             f"ORDER BY d.created_at DESC NULLS LAST, be.id LIMIT 1",
-            {**p, "pol": pol},
+            {**p, "pol": pol, "hidden": quote_hidden},
         ).fetchone()
         sample[pol] = {"quote": r[0], "model": r[1]} if r else None
     about = (job_about() if section == "best_for" else capability_about()).get(ident)

@@ -189,11 +189,12 @@ class TestTheView:
         order = view["new_releases"]
         assert order.index("acme/text-r") < order.index("acme/text-a")
 
-    def test_reports_link_only_where_the_public_view_holds_some(self, view):
-        """`text-r` is reported only on Reddit, which the public view withholds -
-        its link would open an empty page."""
+    def test_a_model_reported_only_on_a_withheld_source_still_counts(self, view):
+        """`text-r` is reported only on Reddit. Since 2026-10-15 totals count every
+        source (contract/publication.yaml), so it has a reports page with counts -
+        and still no Reddit quote, link or name on it."""
         assert model(view, "acme/text-a")["reported"] is True
-        assert model(view, "acme/text-r")["reported"] is False
+        assert model(view, "acme/text-r")["reported"] is True
         assert model(view, "acme/text-r")["in_registry"] is True
         assert model(view, "acme/video-v")["in_registry"] is False
 
@@ -253,16 +254,17 @@ def test_the_view_is_json():
 
 
 class TestVoicesOrderTheList:
-    def test_voices_are_distinct_people_on_the_public_view(self, view):
-        """au1 posted twice: one voice, two reports. au3 is on Reddit only."""
+    def test_voices_are_distinct_people_from_every_source(self, view):
+        """au1 posted twice: one voice, two reports. au3 is on Reddit only, and
+        counts: totals include every source (2026-10-15)."""
         m = model(view, "acme/text-a")
         assert (m["voices"], m["reports"]) == (2, 3)
-        assert model(view, "acme/text-r")["voices"] == 0
+        assert model(view, "acme/text-r")["voices"] == 1
 
     def test_a_type_with_no_voiced_model_stays_empty(self, view):
-        assert view["types_voiced"]["text"] == 1
+        assert view["types_voiced"]["text"] == 2
         assert view["types_voiced"]["video"] == 0 and view["types"]["video"] == 1
-        assert view["voiced"] == 1
+        assert view["voiced"] == 2
 
 
 class TestOneModelsPage:

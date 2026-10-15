@@ -118,6 +118,9 @@ export function IssuesFor({ rest }) {
                     <span role="cell">{i.latest ? day(i.latest) : '-'}</span>
                   </summary>
                   <div className="is-body">
+                    {i.quotes.length === 0 && (
+                      <p className="lv-none">These reports are counted here, from posts that are not quoted on public pages.</p>
+                    )}
                     {i.quotes.map((q, k) => (
                       <blockquote key={k} className="lv-quote">
                         <p>{q.quote}</p>

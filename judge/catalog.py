@@ -98,7 +98,9 @@ def _engineer_voices(conn) -> tuple[dict[str, int], dict[str, int]]:
     voices: dict[str, set] = {}
     docs: dict[str, set] = {}
     for cid, source, author, doc in rows:
-        if publication.withheld_publicly(source):
+        # TOTALS COUNT EVERY SOURCE (contract/publication.yaml, 2026-10-15):
+        # "20 voices" includes Reddit, and nothing says how many came from it.
+        if source in publication.hidden_from_counts():
             continue
         docs.setdefault(cid, set()).add(doc)
         if author is not None:

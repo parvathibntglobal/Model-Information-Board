@@ -15,7 +15,8 @@ import '../styles/blog-live.css'
  * previews too. Pointer devices only: a touch has no hover, and a card that
  * opened on tap would swallow the tap that was meant to follow the link.
  *
- * The counts are public sources only, the same as the blog's live pages.
+ * Counts include every source, as on the blog's live pages; the sample
+ * quotes come only from sources shown publicly.
  */
 
 const ROUTES = [
@@ -48,7 +49,7 @@ function Body({ d }) {
         <span className="lv-pos">{d.working} working</span>
         <span className="lv-neg">{d.problems} {d.problems === 1 ? 'problem' : 'problems'}</span>
         {d.neutral > 0 && <span className="lv-neu">{d.neutral} neutral</span>}
-        <span className="hp-unit">engineers, public sources</span>
+        <span className="hp-unit">engineers</span>
       </p>
     )
   if (d.kind === 'model') {
