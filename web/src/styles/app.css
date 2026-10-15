@@ -1165,7 +1165,7 @@ th.r,td.r{text-align:right}
 .cmp-table thead th{background:var(--surface-2);font-size:var(--fs-sm)}
 .cmp-table thead th:first-child{background:transparent;border:0}
 .cmp-table tbody th{
-  background:var(--surface-2);font-weight:600;color:var(--text-1);
+  background:var(--surface-2);font-weight:600;color:var(--text);
   white-space:nowrap;width:1%;
 }
 .cmp-table td .dim{color:var(--text-3)}
@@ -1793,3 +1793,38 @@ a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:
 /* components/Freshness.jsx: when the page's evidence last changed. */
 .freshness{margin:4px 0 0;font-size:var(--fs-xs)}
 .freshness time{color:var(--text-2)}
+
+/* ── MODEL TYPES AND THE MODELS MEGA MENU (2026-10-14) ──────────────────────
+   One colour per OpenRouter output type, used by the nav's Models menu and
+   the Models pages (catalog.css). Defined here because the nav loads with
+   every page; `.t-<type>` sets --ty for whatever sits inside it. */
+:root{--ty-text:#8AB4FF;--ty-image:#F5A97F;--ty-video:#E78FD8;--ty-speech:#7DD8B5;
+  --ty-audio:#F2D479;--ty-transcription:#9FD3F5;--ty-decisions:#C3A6FF}
+.t-text{--ty:var(--ty-text)}.t-image{--ty:var(--ty-image)}.t-video{--ty:var(--ty-video)}
+.t-speech{--ty:var(--ty-speech)}.t-audio{--ty:var(--ty-audio)}
+.t-transcription{--ty:var(--ty-transcription)}.t-decisions{--ty:var(--ty-decisions)}
+
+.nav-mega .nav-menu-pop{left:50%;transform:translateX(-50%);min-width:0;width:min(640px, 92vw)}
+.nav-mega-in{display:grid;grid-template-columns:220px 1fr;gap:6px;padding:12px}
+.nav-mega-col{display:flex;flex-direction:column;gap:2px}
+.nav-mega-h{font:600 var(--fs-label) var(--font-mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-3);padding:6px 10px 8px}
+.nav-mega-link{display:flex;flex-direction:column;gap:2px;padding:9px 10px;border-radius:10px;
+  color:var(--text);font-size:var(--fs-sm);border-left:2px solid transparent}
+.nav-mega-link small{color:var(--text-3);font-size:var(--fs-xs)}
+.nav-mega-link:hover,.nav-mega-link:focus-visible{background:var(--surface);border-left-color:var(--text-2)}
+.nav-mega-link.on{background:var(--surface-2);border-left-color:var(--text)}
+.nav-mega-types{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-left:12px;border-left:1px solid var(--border-soft)}
+.nav-mega-types .nav-mega-h{grid-column:1 / -1}
+.nav-mega-tile{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--border-soft);color:var(--text);font-size:var(--fs-sm)}
+.nav-mega-tile i{flex:none;width:10px;height:10px;margin-top:4px;border-radius:50%;
+  background:var(--ty);box-shadow:0 0 0 3px var(--bg-elev),0 0 0 4px var(--ty)}
+.nav-mega-tile span{display:flex;flex-direction:column;gap:2px}
+.nav-mega-tile small{color:var(--text-3);font-size:var(--fs-xs)}
+.nav-mega-tile:hover,.nav-mega-tile:focus-visible{border-color:var(--ty);background:var(--surface-2)}
+.nav-mega-tile.on{border-color:var(--ty)}
+@media (max-width: 720px){
+  .nav-mega-in{grid-template-columns:1fr}
+  .nav-mega-types{padding-left:0;border-left:0}
+}

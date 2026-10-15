@@ -18,6 +18,12 @@ export function goPath(go) {
   const kind = i === -1 ? go : go.slice(0, i)
   const arg = i === -1 ? '' : go.slice(i + 1)
   if (kind === 'board') return arg ? `/board?tab=${arg}` : '/board'
+  // ONE HEADING'S BOX on a tab: `group:cap:agentic`. The tab comes first and
+  // the heading after the FIRST colon, the same split as the drill-downs.
+  if (kind === 'group') {
+    const j = arg.indexOf(':')
+    return j === -1 ? `/board?tab=${arg}` : `/board?tab=${arg.slice(0, j)}&group=${encodeURIComponent(arg.slice(j + 1))}`
+  }
   if (kind === 'job') return `/board/jobs/${arg}`
   if (kind === 'cap') return `/board/capabilities/${arg}`
   if (kind === 'metric') return `/board/metrics/${arg}`

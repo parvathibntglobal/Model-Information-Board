@@ -52,7 +52,7 @@ def _common() -> str:
     """Just `CommonAxes`, where the cells are rendered."""
     src = code()
     start = src.index("function CommonAxes")
-    return src[start:src.index("function Table", start)]
+    return src[start:src.index("function HowToRead", start)]
 
 
 def _shared() -> str:
@@ -62,22 +62,22 @@ def _shared() -> str:
     return src[start:src.index("function CommonAxes", start)]
 
 
-class TestTheOriginalViewIsStillThere:
-    """⚠ THE FIRST ATTEMPT DELETED IT, and that was the wrong trade.
-    `Listed` shows what one model was discussed on IN FULL, which no
-    intersection can: an axis only one model carries vanishes from a shared
-    table by construction, and for most models most axes are exactly that."""
+class TestTheOriginalViewIsGone:
+    """⚠ REMOVED 2026-10-15 AT THE PRODUCT OWNER'S REQUEST, AND THE TRADE IS KNOWN.
+    The first attempt to remove `Listed` was reversed because it showed what one
+    model was discussed on IN FULL - a section only one model carries vanishes
+    from a shared table by construction. That is still true, and it is now
+    accepted: this page compares, and a section one model alone was discussed
+    on is not a comparison. Each model's own page (/catalog/model/...) lists
+    everything it was discussed on."""
 
-    def test_the_per_model_lists_are_intact(self):
+    def test_the_per_model_lists_are_gone(self):
         code_ = code()
-        assert "<Listed unit=\"job\"" in code_
-        assert "<Listed unit=\"capability\"" in code_
-        assert "<Listed unit=\"metric\"" in code_
+        assert "<Listed" not in code_
+        assert "What engineers said, counted" not in code_
 
-    def test_the_plural_map_is_still_there(self):
-        """"15 capabilitys" was on the page. `unit + "s"` is not English and
-        the unit it breaks on is the one with the most rows."""
-        assert "capability: 'capabilities'" in code()
+    def test_the_comparable_sections_stay(self):
+        assert "<CommonAxes models={models} />" in code()
 
 
 class TestMembershipIsEveryModel:

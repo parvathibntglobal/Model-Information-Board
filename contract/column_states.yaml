@@ -303,6 +303,15 @@ columns:
         new generation and break exactly the idempotence this column exists to provide.
 
         '
+    parent_proposed:
+      reviewed: true
+      state: read
+      why: >-
+        The heading the extractor filed an entry under (2026-10-14), NULL when
+        it gave none or one that is not one of its section's headings. Written by
+        judge/store/board_entries.py:store_entries; read by board_sections,
+        which carries the commonest value per leaf to
+        judge/board_grouping.py:group_section.
     polarity:
       reviewed: true
       state: read
@@ -1130,6 +1139,71 @@ columns:
     type:
       reviewed: false
       state: write_only
+  model_catalog:
+    canonical_id:
+      reviewed: true
+      state: read
+      why: "the model's id, shown and linked on the Models pages"
+    context_length:
+      reviewed: true
+      state: read
+      why: 'shown on each model card'
+    description:
+      reviewed: true
+      state: read
+      why: "OpenRouter's description, shown under the heading of a model's page (judge/catalog.py:catalog_model)"
+    first_seen_at:
+      reviewed: true
+      state: defaulted
+      why: "set by its DEFAULT now() on the insert that first lists a model, never by code - the upsert leaves it alone, so it keeps the first sighting. Nothing reads it yet; the intended reader is a 'new to the board' sort, distinct from listed_at"
+    input_modalities:
+      reviewed: true
+      state: read
+      why: 'shown on each model card'
+    last_seen_at:
+      reviewed: true
+      state: read
+      why: 'the page lists only what the latest poll listed'
+    listed_at:
+      reviewed: true
+      state: read
+      why: 'orders New releases and is shown as the date listed'
+    max_output_tokens:
+      reviewed: true
+      state: read
+      why: "shown on the model page as the longest answer it can write"
+    name:
+      reviewed: true
+      state: read
+      why: "the card's heading"
+    output_modalities:
+      reviewed: true
+      state: read
+      why: "the type filters (Text, Image, ...) and the card's badges"
+    price_cached_read:
+      reviewed: true
+      state: read
+      why: "shown on the model page and used by its workload estimate for the cached share"
+    price_in:
+      reviewed: true
+      state: read
+      why: 'shown per 1M input tokens; NULL renders as not priced per token'
+    price_out:
+      reviewed: true
+      state: read
+      why: 'shown per 1M output tokens; NULL renders as not priced per token'
+    pricing:
+      reviewed: true
+      state: read
+      why: 'the published unit price shown when a model is not priced per token'
+    provider:
+      reviewed: true
+      state: read
+      why: 'the provider bubbles'
+    supported_parameters:
+      reviewed: true
+      state: read
+      why: "the model page's feature list (tool calling, structured output, reasoning) - empty reads as not stated, never as no"
   model_version:
     advertised_context:
       reviewed: false
@@ -1141,8 +1215,9 @@ columns:
       reviewed: false
       state: read
     deprecation_date:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: "read by judge/catalog.py:catalog_model since 2026-10-14 - shown on a model's catalogue page when the registry tracks it"
     display_name:
       reviewed: false
       state: read
@@ -1159,8 +1234,9 @@ columns:
       reviewed: false
       state: read
     knowledge_cutoff:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: "read by judge/catalog.py:catalog_model since 2026-10-14 - shown on a model's catalogue page when the registry tracks it"
     last_swept_at:
       reviewed: false
       state: read

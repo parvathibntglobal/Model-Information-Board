@@ -70,7 +70,7 @@ def _strip_css_comments(text: str) -> str:
 KNOWN_UNDEFINED_INLINE: set[str] = set()
 
 KNOWN_UNDEFINED = {
-    "app.css": {"--adm-nav", "--line", "--r2", "--t-fast", "--text-1"},
+    "app.css": {"--adm-nav", "--line", "--r2", "--t-fast"},
 }
 
 

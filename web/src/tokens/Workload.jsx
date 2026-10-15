@@ -4,6 +4,7 @@ import { Badge } from '../components/ui'
 import { DAYS_PER_MONTH, workloadRows } from './cost'
 import { Cost, Fit } from './cells'
 import { modelHref } from './links'
+import PersonaPicker from './PersonaPicker'
 
 /**
  * PRICE A WORKLOAD (2026-10-12): tokens in and out per call, calls per day,
@@ -35,8 +36,13 @@ export default function Workload({ models, tokens, encodingNameFor, query, sort 
   const shown = showAll ? rows.priced : rows.priced.slice(0, FIRST_ROWS)
   const noCache = rows.priced.filter((r) => r.cache === 'none').length
 
+  // A PERSONA FILLS THE FOUR FIELDS (2026-10-14); editing any of them after
+  // makes the numbers the reader's own. See tokens/personas.js.
+  const pick = (v) => { setInTok(v.inTok); setOutTok(v.outTok); setPerDay(v.perDay); setCachedPct(v.cached) }
+
   return (
     <>
+      <PersonaPicker value={{ inTok, outTok, perDay, cached: cachedPct }} onPick={pick} />
       <div className="card tc-form">
         <label>
           <span className="label">Input tokens per call</span>

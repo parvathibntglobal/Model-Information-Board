@@ -319,6 +319,10 @@ export const freshness = () => cached('freshness', () => request('/freshness'), 
 // THE REPORTS PAGE: the board's counts over the PUBLIC view, never a quote
 // (judge/reports.py). Cached like the board, which it is read from.
 export const reportsPage = () => cached('reports', () => request('/reports'), { ttl: BOARD_TTL_MS })
+// The Models pages: OpenRouter's whole list by provider and type (judge/catalog.py).
+export const modelCatalog = () => cached('catalog', () => request('/model-catalog'), { ttl: BOARD_TTL_MS })
+// One model's page: price, specs, registry facts and engineer voices.
+export const modelCatalogEntry = (id) => request(`/model-catalog/${modelPath(id)}`)
 
 export const coveragePage = () => request('/coverage')
 

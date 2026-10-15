@@ -461,6 +461,27 @@ def _poll_registry_stage(context) -> StageResult:
     )
 
 
+def _poll_catalog_stage(context) -> StageResult:
+    """OpenRouter's whole list, every output type, into `model_catalog` - the
+    Models pages' New releases come from here. Nothing downstream needs it: a
+    failure here starves those pages of new listings and nothing else."""
+    from collect.registry.catalog import poll_catalog
+    from collect.registry.openrouter import UnreadableFeed
+
+    conn = context.get("conn")
+    if conn is None:
+        return StageResult(REFUSED, "no database connection",
+                           starves="the Models pages keep yesterday's listing")
+    if not context.get("client"):
+        return StageResult(REFUSED, "no HTTP client supplied",
+                           starves="the Models pages keep yesterday's listing")
+    try:
+        counts = poll_catalog(conn, context["client"])
+    except UnreadableFeed as e:
+        return StageResult(ERROR, str(e), starves="the Models pages keep yesterday's listing")
+    return StageResult(OK, counts=counts)
+
+
 def _recompute_window_stage(context) -> StageResult:
     """FR-1's trailing window. The sole writer of `model_version.in_window`."""
     from collect.registry.load import recompute_window
@@ -761,6 +782,7 @@ def default_stages() -> list[Stage]:
     return [
         Stage("preflight", run=_preflight_stage),
         Stage("poll-registry", run=_poll_registry_stage, needs=("preflight",)),
+        Stage("poll-catalog", run=_poll_catalog_stage, needs=("preflight",)),
         Stage("recompute-window", run=_recompute_window_stage, needs=("preflight",)),
         # BEFORE anything that could produce a claim. An empty `capability`
         # table does not degrade extraction, it refuses every insert at the

@@ -38,11 +38,11 @@ const GROUPS = [
   { id: 'neutral', label: 'Neutral reports only', colour: 'var(--neutral)' },
   { id: 'problems', label: 'Problems reported, none working', colour: 'var(--fail)' },
 ]
-const PLACEHOLDER = { models: 'Search AI models', job: 'Search jobs', capability: 'Search capabilities', metric: 'Search metrics' }
+const PLACEHOLDER = { models: 'Search models', job: 'Search jobs', capability: 'Search capabilities', metric: 'Search metrics' }
 
 function Definition({ pill, min }) {
   if (pill === 'models') {
-    return <p className="rp-definition"><b>AI models</b> on our registry that engineers have reported on in real use. A model is listed once at least <b>{min} different people</b> reported on it for one job, capability or metric. Open a model to see everything it has been discussed for.</p>
+    return <p className="rp-definition"><b>Models</b>: the AI models on our registry that engineers have reported on in real use. A model is listed once at least <b>{min} different people</b> reported on it for one job, capability or metric. Open a model to see everything it has been discussed for.</p>
   }
   if (pill === 'job') return <p className="rp-definition"><b>Jobs</b> are what people used a model for, such as coding agents or summarising documents. They are named from the reports themselves, not picked from a fixed list.</p>
   if (pill === 'capability') return <p className="rp-definition"><b>Capabilities</b> are specific abilities people reported working or failing, such as reasoning, tool use, vision or long context.</p>
@@ -214,7 +214,7 @@ function ModelsList({ v, q, open, onCompare }) {
   return (
     <>
       <div className="rp-sec-head">
-        <h2>AI models</h2>
+        <h2>Models</h2>
         <span className="rp-count">{matches.length === v.models.length ? v.models.length : `${matches.length} of ${v.models.length}`}</span>
         <div className="rp-tools rp-cmpbar">
           {picking ? (
@@ -269,7 +269,7 @@ function ModelView({ v, id, min, multi, open, back }) {
   const r = v.models.find((x) => modelId(x) === id || x.key === id)
   const base = r || [...v.all.values()].find((x) => modelId(x) === id || x.key === id)
   const crumbs = (
-    <div className="rp-crumbs"><Crumb onGo={() => back(null)}>AI models</Crumb> / <span>{base ? shortName(base) : 'Model'}</span></div>
+    <div className="rp-crumbs"><Crumb onGo={() => back(null)}>Models</Crumb> / <span>{base ? shortName(base) : 'Model'}</span></div>
   )
   if (!r) {
     return <>{crumbs}<div className="rp-empty">{base ? `${shortName(base)} has no job, capability or metric with ${min}+ voices${multi ? ' from 2+ platforms' : ''}. Lower the threshold to see it.` : 'There is no model at this address.'}</div></>
@@ -357,7 +357,7 @@ function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
   const hit = v.byKind[k.id].find((x) => x.axis.slug === slug)
   const a = hit ? hit.axis : axes.find((x) => x.kind === k.id && x.slug === slug)
   const crumbs = (
-    <div className="rp-crumbs"><Crumb onGo={() => back(null)}>AI models</Crumb> / <Crumb onGo={() => back(k.tab)}>{k.label}</Crumb> / <span>{a ? a.name : slug}</span></div>
+    <div className="rp-crumbs"><Crumb onGo={() => back(null)}>Models</Crumb> / <Crumb onGo={() => back(k.tab)}>{k.label}</Crumb> / <span>{a ? a.name : slug}</span></div>
   )
   if (!a) return <>{crumbs}<div className="rp-empty">There is no {k.one} at this address.</div></>
   const models = hit ? hit.models : []
@@ -440,7 +440,7 @@ function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
 /**
  * EACH SECTION IS ITS OWN PAGE (2026-10-14), as Model specs is under Tools:
  *
- *   /reports, /reports/models         AI models (the first is the nav's Reports link)
+ *   /reports, /reports/models         Models (the first is the nav's Models link)
  *   /reports/models/<vendor>/<model>  one model, everything it was reported for
  *   /reports/jobs | capabilities | metrics           the list
  *   /reports/jobs/<slug> (etc.)                      one job, capability, metric
@@ -450,7 +450,7 @@ function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
  * the nav first used are redirected to their page.
  */
 const SECTIONS = {
-  models: { pill: 'models', title: 'AI models', lede: 'Every AI model on our registry that engineers have reported on in real use, with what it has been discussed for.' },
+  models: { pill: 'models', title: 'Models', lede: 'Every AI model on our registry that engineers have reported on in real use, with what it has been discussed for.' },
   jobs: { pill: 'job', title: 'Jobs', lede: 'What people used AI models for, such as coding agents or summarising documents, and which models they reported on for each.' },
   capabilities: { pill: 'capability', title: 'Capabilities', lede: 'Specific abilities people reported working or failing, such as reasoning, tool use, vision or long context.' },
   metrics: { pill: 'metric', title: 'Metrics', lede: 'Figures people measured themselves, such as speed, cost or benchmark results, counted by the reports that gave them.' },
@@ -495,7 +495,7 @@ export default function Reports() {
       .catch((e) => {
         if (!alive) return
         if (e instanceof BoardUnreadable) setUnreadable(e.message)
-        else setErr(e.message || 'The AI models could not be read.')
+        else setErr(e.message || 'The models could not be read.')
       })
     return () => { alive = false }
   }, [])
@@ -540,7 +540,7 @@ export default function Reports() {
     navigate(pathname + (qs ? `?${qs}` : ''), { replace: true })
   }
 
-  const heading = section ? section.title : 'AI models'
+  const heading = section ? section.title : 'Models'
   const lede = section
     ? section.lede
     : 'The jobs they used them for, the capabilities they tested and the figures they measured. Everything is counted from our evidence collection and never quoted.'
@@ -548,7 +548,7 @@ export default function Reports() {
   return (
     <div className="shell section-tight stack stack-4 rp">
       <div className="stack stack-1">
-        <span className="go-badge go-board page-tag" style={{ alignSelf: 'flex-start' }}>AI models</span>
+        <span className="go-badge go-board page-tag" style={{ alignSelf: 'flex-start' }}>Models</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>{heading}</h1>
         <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>
           {lede} A model appears only where at least {min} different people reported on it.
@@ -557,7 +557,7 @@ export default function Reports() {
 
       <section className="rp-part">
         <div className="rp-part-head">
-          <span className="eyebrow">{section && section.title !== 'AI models' ? `AI models · ${section.title}` : 'AI models'}</span>
+          <span className="eyebrow">{section && section.title !== 'Models' ? `Models · ${section.title}` : 'Models'}</span>
           <span className="rp-part-sub">
             Counted from public reports, at least <b>{min}</b> voices each
             {data?.newest_report && <> · newest report {data.newest_report}</>}

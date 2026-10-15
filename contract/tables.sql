@@ -196,6 +196,32 @@ CREATE TABLE pricing_history (
   PRIMARY KEY (model_version_id, observed_at)
 );
 
+-- ── model_catalog - OpenRouter's whole list, every output type (2026-10-14) ──
+-- For the Models pages ONLY; nothing in the evidence pipeline reads it, so a
+-- voice or video model listed here never becomes a search target. Writer:
+-- collect/registry/catalog.py. Reader: judge/catalog.py. Column meanings in
+-- migrations/20261014T1300_model_catalog.sql.
+CREATE TABLE model_catalog (
+  canonical_id       text PRIMARY KEY,   -- OpenRouter's id as listed
+  provider           text NOT NULL,      -- vendor segment, '~' stripped
+  name               text NOT NULL,
+  description        text,
+  listed_at          timestamptz,        -- when OPENROUTER listed it, not a release date
+  input_modalities   text[] NOT NULL,
+  output_modalities  text[] NOT NULL,    -- OpenRouter's types, as published
+  context_length     int,
+  price_in           numeric(12,6),      -- USD per 1M tokens; NULL = not priced per token
+  price_out          numeric(12,6),
+  price_cached_read  numeric(12,6),      -- USD per 1M cached input tokens; NULL = none published
+  pricing            jsonb NOT NULL,     -- as published (per image, per second ...)
+  max_output_tokens  int,
+  supported_parameters text[] NOT NULL DEFAULT '{}',  -- empty = none listed, not "none supported"
+  first_seen_at      timestamptz NOT NULL DEFAULT now(),
+  last_seen_at       timestamptz NOT NULL
+);
+
+CREATE INDEX model_catalog_seen_idx ON model_catalog (last_seen_at);
+
 
 -- ============================================================================
 --  THE INTERFACE — collect/ fills these, judge/ reads them.
@@ -913,6 +939,14 @@ CREATE TABLE board_entry (
   -- when the read path learned to resolve both. NULL is not backfilled:
   -- guessing from the old shape would bake an accident in as a decision.
   model_scope       text,
+
+  -- ── the heading the extractor filed an entry under (2026-10-14) ─────────
+  -- One of its section's headings in contract/slug_parents.yaml, or NULL:
+  -- written before this column, or the extractor gave no heading or one that
+  -- is not real (counted per section in store_entries' outcome as
+  -- `unfiled_by_section`). Read by board_sections to place a leaf the
+  -- contract has not filed; the contract wins wherever it has an answer.
+  parent_proposed   text,
 
   -- ── was this row's SLUG backed by its own quote? #368 ────────────────────
   -- `axis_verbatim` and `subject_verbatim` are the words COPIED from the

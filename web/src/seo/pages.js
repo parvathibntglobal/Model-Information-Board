@@ -184,6 +184,30 @@ export function modelPicker() {
   }
 }
 
+/** `/catalog` and `/catalog/new`: every model OpenRouter lists. `type` is a
+ *  model type key (`image`), `'new'` for New releases, or null for All models. */
+const CATALOG_TYPE_NAMES = { text: 'Text', image: 'Image', video: 'Video', speech: 'Speech', audio: 'Audio', transcription: 'Transcription', decisions: 'Decision' }
+export function catalogIndex(type = null) {
+  if (type === 'new') {
+    return { title: fullTitle('New AI model releases'), description: 'The AI models listed most recently, newest first, with their prices, context and type.', canonical: '/catalog/new' }
+  }
+  if (type && CATALOG_TYPE_NAMES[type]) {
+    const n = CATALOG_TYPE_NAMES[type]
+    return { title: fullTitle(`${n} AI models by provider`), description: `Every ${n.toLowerCase()} AI model, by provider, with list prices and context.`, canonical: `/catalog?type=${type}` }
+  }
+  return { title: fullTitle('All AI models by provider and type'), description: 'Every AI model, from every provider: text, image, video, speech, audio, transcription and decision models.', canonical: '/catalog' }
+}
+
+/** One model's page in the catalogue (`/catalog/model/<id>`). */
+export function catalogModelHead(m) {
+  const who = m.provider_name ? `${m.provider_name} ${m.name}` : m.name
+  return {
+    title: fullTitle(`${who}: price, specs and what engineers report`),
+    description: `${who}: list price per million tokens, what a workload would cost, context and features, and what engineers report about it.`,
+    canonical: `/catalog/model/${m.id}`,
+  }
+}
+
 export function toolsIndex() {
   return {
     title: fullTitle('AI model tools: model picker, specs and token counter'),
@@ -200,7 +224,7 @@ export function toolsIndex() {
 export function reportsIndex(section = null, item = null) {
   if (!section) {
     return {
-      title: fullTitle('AI models: what engineers report about each one'),
+      title: fullTitle('Models: what engineers report about each AI model'),
       description: 'What engineers report about each AI model, by job, capability and metric: counted, and shown only where at least five different people reported.',
       canonical: '/reports',
     }
@@ -215,7 +239,7 @@ export function reportsIndex(section = null, item = null) {
     }
   }
   return {
-    title: fullTitle(section.key === 'models' ? 'AI models: what engineers report about each one' : `${section.title}: what engineers report`),
+    title: fullTitle(section.key === 'models' ? 'Models: what engineers report about each AI model' : `${section.title}: what engineers report`),
     description: clip(section.lede),
     canonical: base,
     breadcrumbs: [{ name: 'AI models', path: '/reports' }, ...(section.key === 'models' ? [] : [{ name: section.title, path: base }])],

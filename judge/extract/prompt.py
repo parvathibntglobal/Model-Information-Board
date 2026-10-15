@@ -101,6 +101,15 @@ You will be shown EXEMPLARS at the end: real sections from that hand-designed \
 board. They are there to calibrate HOW BROAD a section should be and how a \
 name reads. They are not a closed list, and matching one is not the goal.
 
+WHAT CHANGED, AND WHAT DID NOT. Where the board already has names for a \
+section, you are shown THE BOARD'S VOCABULARY for it instead of exemplars: \
+every name it has, under its headings. REUSE a listed name whenever one names \
+what the quote reports, even when the writer's words differ - two names for \
+one thing split its reports in two, and that is the commonest defect this \
+board has. Name a new one only when none does, and file EVERY entry under one \
+of its section's headings in `parent`. What has not changed: nothing caps what \
+you may find, and a new name correctly filed is better than a wrong reuse.
+
 ASK ALL THREE QUESTIONS OF EVERY QUOTE
 
 Add an entry for each question the quote itself answers. Most quotes answer \
@@ -417,6 +426,7 @@ def build_system_prompt(
     definitions: dict | None = None,
     *,
     legacy: bool | None = None,
+    vocabulary: dict | None = None,
 ) -> str:
     """The classifier prompt: one CLOSED list, three OPEN sections.
 
@@ -471,6 +481,13 @@ def build_system_prompt(
         from judge.config import board_exemplars
 
         exemplars = board_exemplars()
+    # THE CAPABILITY VOCABULARY (2026-10-14), defaulting to the contract file
+    # for the same reason `exemplars` does. Passing `{}` reproduces the
+    # exemplar-only prompt every row before that date was extracted under.
+    if vocabulary is None:
+        from judge.config import board_vocabulary
+
+        vocabulary = board_vocabulary()
 
     def _section(key: str, heading: str) -> str:
         block = exemplars.get(key) or {}
@@ -495,7 +512,28 @@ def build_system_prompt(
         # capability-card path off the field is not in the tool schema either,
         # so an instruction to fill it would ask for something with no slot.
         base = legacy_free_prompt(base)
-    open_half = (
+    def _either(vocab_key: str, exemplar_key: str, heading: str) -> str:
+        # THE VOCABULARY WHERE THE BOARD HAS ONE, the exemplars where it has not.
+        if vocabulary.get(vocab_key):
+            question = (exemplars.get(exemplar_key) or {}).get("question", "")
+            return _vocabulary_section(vocab_key, vocabulary[vocab_key], heading, question)
+        return _section(exemplar_key, heading)
+
+    if any(vocabulary.get(k) for k in ("best_for", "capability", "metric")):
+        open_half = (
+            "\n\n"
+            + "=" * 70
+            + "\nTHE BOARD'S VOCABULARY, REUSE FIRST - NOT A CLOSED LIST\n"
+            + "=" * 70
+            + "\n"
+            + VOCABULARY_RULES
+            + _either("best_for", "best_for", SECTION_TITLES["best_for"])
+            + _either("capability", "capabilities", SECTION_TITLES["capability"])
+            + _either("metric", "metrics", SECTION_TITLES["metric"])
+        )
+    else:
+        open_half = None
+    open_half = open_half or (
         # ── the OPEN half ───────────────────────────────────────────────────
         "\n\n"
         + "=" * 70
@@ -541,6 +579,74 @@ def build_system_prompt(
         + _keys_block(capability_keys, definitions)
     )
     return base + open_half + closed_half
+
+
+#: The three section titles, the same whether a section shows its vocabulary
+#: or its exemplars.
+SECTION_TITLES = {
+    "best_for": "SECTION 1 - BEST FOR (jobs somebody runs)",
+    "capability": "SECTION 2 - CAPABILITIES (one named behaviour)",
+    "metric": "SECTION 3 - METRICS (a measured axis with a unit)",
+}
+
+#: What the extractor is told about the vocabulary, once, above all three.
+VOCABULARY_RULES = """\
+These are the names the board already has, per section, under its headings.
+The key in brackets is what goes in `parent`.
+
+  - REUSE A LISTED SLUG whenever one names what the quote reports, even when
+    the writer's words differ: "refuses harmless prompts" is `over-refusal`,
+    "keeps giving me broken JSON" is `structured-output`. Copy the slug
+    exactly. Two names for one thing split its reports in two, and that is
+    the commonest defect this board has.
+  - DO NOT NARROW A LISTED NAME by adding where it was seen: "tool calls in
+    long sessions" is `function-calling` or `agentic-tool-use`, not a new
+    slug. Context belongs in `conditions`, never in the slug.
+  - ONLY WHEN NO LISTED SLUG NAMES IT, name a new one - and file it.
+  - EVERY ENTRY CARRIES `parent`: for a listed slug, the heading it is listed
+    under; for a new one, the heading of ITS OWN section it belongs under.
+  - NEVER FORCE A QUOTE INTO A LISTED SLUG THAT DOES NOT NAME WHAT IT REPORTS.
+    A new name, correctly filed, is better than a wrong reuse: a wrong reuse
+    puts a report on a page about something else.
+"""
+
+#: What differs per section, said beside that section's list.
+VOCABULARY_SECTION_NOTES = {
+    "best_for": (
+        "  A listed job is still a job only when BOTH tests above hold - the writer "
+        "names the task\n  and says the model worked for it. A listed name never "
+        "licenses an entry the quote\n  does not support."
+    ),
+    "capability": "",
+    "metric": (
+        "  REUSE AN AXIS ONLY FOR THE SAME QUANTITY IN THE SAME UNIT. A total is "
+        "not a rate, an\n  elapsed time is not a latency, and a figure under a "
+        "familiar wrong axis is a wrong\n  number. NEVER reuse a benchmark's name "
+        "for another version or setting of it:\n  `terminal-bench-2-1` is not "
+        "`terminal-bench`, `hle-with-tools` is not `hle`."
+    ),
+}
+
+
+def _vocabulary_section(section: str, vocab: dict, heading: str, question: str) -> str:
+    """One section's vocabulary: every heading's key and name, then its slugs.
+    Slugs only - no definitions - because the slug is the name, and hundreds
+    of definitions would be a second prompt."""
+    from judge.config import parent_heading
+
+    rows = [
+        f"  [{key}] {parent_heading(key)}\n      " + ", ".join(item["slug"] for item in items)
+        for key, items in vocab.items()
+        if items
+    ]
+    note = VOCABULARY_SECTION_NOTES.get(section, "")
+    return (
+        f"\n\n{heading} - THE VOCABULARY, REUSE FIRST"
+        + (f'\n  The question it answers: "{question}"' if question else "")
+        + ("\n" + note if note else "")
+        + "\n"
+        + "\n".join(rows)
+    )
 
 
 def wrap_untrusted(flattened_text: str) -> str:
