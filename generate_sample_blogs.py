@@ -265,9 +265,23 @@ def clean(name: str) -> str:
     return name.split(": ", 1)[1] if ": " in (name or "") else (name or "")
 
 
+#: Every setting this script reads. A launcher's environment supplies these
+#: whether or not a `.env` file sits beside the script.
+_SETTINGS = ("OPENROUTER_API_KEY", "OPENROUTER_BASE_URL", "USER_AGENT", "RAW_STORE_PATH",
+             "BLOG_POSTS_DIR", "DATABASE_URL", "STAGING_DATABASE_URL")
+
+
 def env() -> dict[str, str]:
     vals = {}
-    for raw in (ROOT / ".env").read_text(encoding="utf-8").splitlines():
+    # THE FILE IS OPTIONAL (2026-10-15). A git worktree has no `.env` of its
+    # own - the backend's launcher loads the main checkout's into the process
+    # environment - and reading it unconditionally made every run started from
+    # a worktree's Admin -> Blogs die on FileNotFoundError before doing anything.
+    # A setting missing from BOTH still fails loudly where it is needed
+    # ("OPENROUTER_API_KEY is unset", "no ... DATABASE_URL"), so this is not a
+    # fallback that can succeed on a wrong input (rule 12).
+    path = ROOT / ".env"
+    for raw in path.read_text(encoding="utf-8").splitlines() if path.exists() else ():
         line = raw.lstrip("﻿").strip()
         if "=" in line and not line.startswith("#"):
             k, v = line.split("=", 1)
@@ -279,7 +293,7 @@ def env() -> dict[str, str]:
     # almost-empty local store: the planner resolved nothing and planned
     # 0 posts with no error - the Blogs page button included.
     vals.update({k: os.environ[k] for k in vals if k in os.environ})
-    for k in ("RAW_STORE_PATH", "BLOG_POSTS_DIR", "DATABASE_URL", "STAGING_DATABASE_URL"):
+    for k in _SETTINGS:
         if k in os.environ:
             vals[k] = os.environ[k]
     return vals
