@@ -37,7 +37,7 @@ export function BlogTopics() {
 
   const ov = data?.overview
   const running = data?.harvest?.running
-  const shape = Object.fromEntries((data?.plan || []).map((p) => [p.key, p.shape]))
+  const plan = Object.fromEntries((data?.plan || []).map((p) => [p.key, p]))
 
   return (
     <details className="fold">
@@ -93,7 +93,12 @@ export function BlogTopics() {
                     <td className="tnum">{t.in_window}</td>
                     <td className="tnum">{t.this_week}</td>
                     <td className="tnum">{t.prior_three_weeks}</td>
-                    <td>{shape[t.key] && <Badge tone={shape[t.key] === 'combined article' ? 'pass' : 'mute'}>{shape[t.key]}</Badge>}</td>
+                    <td>
+                      {/* RULE 4: a topic that cannot be written yet says why. */}
+                      {plan[t.key]?.shape
+                        ? <Badge tone={plan[t.key].shape === 'combined article' ? 'pass' : 'mute'}>{plan[t.key].shape}</Badge>
+                        : <span className="dim" style={{ fontSize: 11 }}>{plan[t.key]?.why_not || 'not planned'}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

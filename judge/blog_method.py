@@ -49,15 +49,19 @@ STAGES = [
      "what": "The planner picks a format (field report, head-to-head, cost teardown, migration "
              "guide, architecture pattern, release analysis, evaluation critique) and a subject "
              "with enough board evidence that has not been written yet - least-used formats first, "
-             "never the same subject twice in a batch.",
-     "where": "generate_sample_blogs.py plan_posts, blog_formats.yaml planner"},
+             "never the same subject twice in a batch. TOPIC POSTS (general AI - RAG, agents, "
+             "reasoning models) are planned from the blog's own harvest instead: several sources "
+             "on a topic make a topic synthesis, one makes an explainer with a quiz.",
+     "where": "generate_sample_blogs.py plan_posts and --topic-pack, blog_formats.yaml planner, "
+              "judge/topics.py plan"},
     {"step": "Select the documents",
      "who": "code",
      "what": "The threads behind the subject's board entries, ranked by how many models, entries "
              "and themes they carry, with room kept for threads reporting problems; capped per "
              "source and for embed-only sources. A thread whose text is not on this machine is "
-             "skipped and counted.",
-     "where": "select_documents, rank_threads"},
+             "skipped and counted. A topic post takes the newest posts harvested on its topic "
+             "(arXiv excluded while its ruling is internal-only), full text where it was fetched.",
+     "where": "select_documents, rank_threads; topic_docs, judge/topics.sources"},
     {"step": "Build the brief",
      "who": "code",
      "what": "The format's structure, voice and length; the fact sheet of published prices; the "

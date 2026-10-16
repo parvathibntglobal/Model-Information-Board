@@ -685,7 +685,7 @@
 
 /* The lead, styled per format rather than one box for all. */
 .es-open{margin:0 0 1.8rem}
-.es-open .lbl,.es-log .lbl,.es-points .lbl,.es-chain .lbl,.es-fcol .lbl,.es-receipt .lbl,.es-levers .lbl,.es-map .lbl,.es-ctree .lbl,.es-probe .lbl{font:600 .68rem var(--es-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--es-accent);margin-bottom:.5rem}
+.es-gloss .lbl,.es-quiz .lbl,.es-open .lbl,.es-log .lbl,.es-points .lbl,.es-chain .lbl,.es-fcol .lbl,.es-receipt .lbl,.es-levers .lbl,.es-map .lbl,.es-ctree .lbl,.es-probe .lbl{font:600 .68rem var(--es-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--es-accent);margin-bottom:.5rem}
 .es-open p{margin:0 !important;color:var(--es-text) !important}
 .es-open.strip{font-family:var(--es-mono);padding:.8rem 1rem;border:1px dashed var(--es-accent);border-radius:8px;background:var(--es-panel)}
 .es-open.strip p{font-size:.88rem;line-height:1.6}
@@ -918,3 +918,22 @@
 .bv .hbox-unfiled{border-style:dashed;background:transparent}
 .bv .backline{margin-top:10px;font-size:.9rem}
 .bv .icard .filed-by{margin-top:8px;font-size:.76rem;color:var(--warn)}
+
+/* TOPIC POSTS (2026-10-16): the synthesis glossary and the explainer quiz.
+   The quiz is CSS-only: :checked colours the pick, :has() shows the right
+   answer and the explanation once a question is answered. */
+.es-gloss{margin:0 0 2rem;padding:1rem 1.2rem;border:1px solid var(--es-line2);border-radius:12px;background:var(--es-panel)}
+.es-gloss dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem 1.4rem;margin:0}
+.es-gloss dt{font-weight:600;color:var(--es-text)}
+.es-gloss dd{margin:.2rem 0 0;color:var(--es-body);font-size:.92rem;line-height:1.5}
+.es-quiz{margin:2.4rem 0 1rem;padding:1.2rem;border-radius:12px;border:1px solid var(--es-accent);background:var(--es-panel)}
+.es-quiz .q{border:0;margin:0 0 1.4rem;padding:0;min-width:0}
+.es-quiz legend{font-weight:600;color:var(--es-text);margin-bottom:.6rem;padding:0;display:flex;gap:.6rem;line-height:1.45}
+.es-quiz legend .n{font:600 .75rem var(--es-mono);color:var(--es-accent);padding-top:.2rem}
+.es-quiz .opt{display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .75rem;margin:.35rem 0;border-radius:8px;border:1px solid var(--es-line2);cursor:pointer;color:var(--es-text)}
+.es-quiz .opt input{margin-top:.25rem;accent-color:var(--es-accent)}
+.es-quiz .opt.right:has(input:checked){border-color:var(--es-good);background:rgba(62,207,142,.12)}
+.es-quiz .opt.wrong:has(input:checked){border-color:var(--es-warn);background:rgba(227,179,65,.12)}
+.es-quiz .q:has(input:checked) .opt.right{border-color:var(--es-good)}
+.es-quiz .why{display:none;margin:.5rem 0 0;font-size:.92rem;color:var(--es-body)}
+.es-quiz .q:has(input:checked) .why{display:block}

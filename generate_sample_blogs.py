@@ -652,6 +652,53 @@ STRUCTURE (call publish_essay exactly once)
 - One scenario matrix (5 to 8 rows) and one decision tree (3 to 5 branches), as the brief describes.
 - A `faq` of exactly 3 questions, as SEARCH describes."""
 
+#: THE PROMPT FOR A TOPIC POST (2026-10-16): a concept in AI - RAG, agents,
+#: reasoning models - written from the posts the blog's own harvest found on it,
+#: for a reader who searched the concept. The grounding rules are SYSTEM's,
+#: word for word where they apply; what changes is the reader (anyone learning
+#: the topic, not only an engineer choosing a model) and the material (a few
+#: writers' posts, not practitioners' threads). system_for() replaces the
+#: STRUCTURE section, as it does for SYSTEM.
+TOPIC_SYSTEM = """You are a technical blogger writing for people learning about AI - engineers, builders and curious readers who searched for this topic. You write for the Model Information Board team, as "we", and you talk to the reader as "you".
+
+You are given one or more SOURCES: recent posts by writers working on this topic. Read every one completely before writing. Work out what each writer explains, claims, built or measured, and where they agree or part ways. Then teach the topic: what it is, how it works, why it matters now, and what is still unsettled - with the sources as your evidence.
+
+VOICE
+- Write like a good teacher with a point of view: conversational, confident and specific. Short sentences: most under 15 words, none over 30. One idea per sentence. Define a term the first time it appears, in plain words, then use it. Give a concrete example before an abstraction. No throat-clearing ("It is worth noting", "In practice", "Ultimately", "When it comes to"), and never restate the heading. No bullet points inside paragraphs.
+- Take positions. Say where you agree with a writer and where you do not, and why: "We agree with the writer who put it as «...», but only for ...". Disagree with claims, never mock people.
+- Vary the rhythm: put a short, punchy sentence of eight words or fewer beside the longer ones. Prefer a fresh, exact word over the stock one; do not lean on "rather", "while" or "whether".
+- Never refer to your inputs as a set. Do not write "according to the sources", "the documents", "the posts I was given", or anything that reveals a reading list. You may name a writer's site, as the page credits it ("a post on simonwillison.net", "one engineering blog").
+- Never count people, posts or quotes ("a dozen writers", "most researchers"). No scores or ratings out of 10 or 100.
+
+EXPLAINING A CONCEPT
+- You may explain what a term generally means, and how the technique works in outline, in your own words - that is teaching, not a claim. Anything about what a particular system, team, paper or product did, found or measured must come from a source and be quoted in «».
+- Never invent a study, an experiment, a product feature, a benchmark or a person. If the sources do not say how well something works, do not say it either; say what is not yet known.
+
+RETRACING A WRITER'S WORK - our first-hand voice
+- Walk the reader through at least one thing a writer built, tried or argued, in our voice: "We went through one writer's ...", "We retraced how ...". Paraphrase the steps in your own words; the paragraph quotes the writer's «exact words» so it is clear whose work it was. Then give our take.
+- Never write that we ran, tested or measured something ourselves unless a WHAT WE TRIED note says so.
+
+FIRST PERSON
+- Opinions in the first person are welcome: "we think", "in our view". First-person EXPERIENCE ("we tried", "we ran") is allowed ONLY to retell a WHAT WE TRIED note in the brief. Never invent something we did.
+
+SEARCH - write to be found and to answer
+- The brief names a PRIMARY KEYWORD - the question a searcher types. Use it naturally in the description, and in the tldr or the first paragraph, and list it first in `keywords`. The TITLE names the topic as the brief's SUBJECT gives it, but need not contain the keyword phrase.
+- TITLES: write a title only this post could have - its sharpest idea or the question it answers. Never an "X, Not Y" contrast. The brief lists TITLES ALREADY USED: yours must not echo their wording or shape.
+- The tldr is a direct answer a searcher would want quoted.
+- The `faq` answers EXACTLY 3 questions people type into Google about this topic, phrased as they would type them; at least one names the topic. Each answer opens with a one-sentence direct answer, then 1 to 3 sentences of support: 40 to 90 words in all, held to the same grounding rules.
+
+GROUNDING — checked by code; a violation rejects the essay
+- Verbatim fragments: when you quote a writer, wrap their exact words in «guillemets». The text inside «» must be copied character for character from one source — a fragment of a sentence is fine, 4 to 30 words. Use no other quotation marks around any phrase of three or more words.
+- Numbers: every number in prose (percentages, sizes, dates, versions, results) must appear in a source or a WHAT WE TRIED note. Do not compute, estimate or round new figures. Write every figure above ten in digits, and do not compute ratios or multiples.
+- Any sentence that credits a writer or researcher ("one team found", "the author argues", "researchers report") must contain a «verbatim» fragment of what they said. If you cannot quote it, do not attribute it.
+- Do not attribute intent or strategy to any company, and do not state what a product or API can or cannot do unless a source says so.
+- Code examples are illustrative patterns of an idea the post explains. They must not present invented parameters as a product's official API.
+- Never write a username, handle or URL, and never mention these rules.
+
+STRUCTURE (call publish_essay exactly once)
+- Replaced per format by system_for()."""
+
+
 TOOL = {
     "type": "function",
     "function": {
@@ -1020,7 +1067,12 @@ def prose_fields(essay: dict):
     for key, sp in SPECIALS.items():
         for i, it in enumerate(essay.get(key) or []):
             for f in sp["prose"]:
-                yield f"{key}[{i}].{f}", (it or {}).get(f, "")
+                val = (it or {}).get(f, "")
+                if isinstance(val, list):  # a quiz's options: each one is prose
+                    for k, x in enumerate(val):
+                        yield f"{key}[{i}].{f}[{k}]", str(x)
+                else:
+                    yield f"{key}[{i}].{f}", val
 
 
 def has_code(section: dict) -> bool:
@@ -1044,7 +1096,8 @@ def words_in(essay: dict) -> int:
 
 
 #: The three original posts' structure. A planned post carries its format's.
-LEGACY_RULES = {"sections": (5, 7), "matrix": True, "tree": True, "code": (1, 99), "words": (MIN_WORDS, 2800)}
+LEGACY_RULES = {"sections": (5, 7), "matrix": True, "tree": True, "code": (1, 99), "words": (MIN_WORDS, 2800),
+                "voices": 3, "retrace": 1}
 
 
 def check(essay: dict, context: str, rules: dict | None = None, experiences: str = "",
@@ -1187,8 +1240,13 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
             v += embed_violations(essay, doc_texts, doc_sources, embed_only)
             embedded = {e["discussion"] - 1 for e in embeds
                         if isinstance(e, dict) and isinstance(e.get("discussion"), int)}
-        v += voices_violations(essay, doc_texts, embedded=embedded)
-        v += retrace_violations(essay, exempt_sections={e.get("section") for e in embeds if isinstance(e, dict)},
+        # HOW MANY VOICES, AND HOW MUCH RETRACING, IS THE FORMAT'S (2026-10-16):
+        # an explainer written from one post cannot quote three. A rules dict
+        # built before the keys existed carries the floors every format had.
+        v += voices_violations(essay, doc_texts, need=rules.get("voices", LEGACY_RULES["voices"]),
+                               embedded=embedded)
+        v += retrace_violations(essay, min_count=rules.get("retrace", LEGACY_RULES["retrace"]),
+                                exempt_sections={e.get("section") for e in embeds if isinstance(e, dict)},
                                 embedded_platforms=embedded_platforms)
     return v
 
@@ -1946,7 +2004,27 @@ def _distinctiveness(essay: dict, rules: dict) -> list[str]:
             for n in names:
                 if sum(norm_heading((it or {}).get("pick", "")) == norm_heading(n) for it in items) < 2:
                     v.append(f"picks: needs at least two items for {n}")
+        if key == "quiz":
+            v += quiz_violations(items)
     v += _pace(essay, heads, paras, rules.get("prose"))
+    return v
+
+
+def quiz_violations(items: list) -> list[str]:
+    """Each question answerable on the page: enough distinct options, and an
+    `answer` that points at one of them. A quiz whose right answer is missing
+    or out of range would mark every reader wrong."""
+    v: list[str] = []
+    olo, ohi = QUIZ_OPTIONS
+    for i, it in enumerate(items):
+        opts = [str(o).strip() for o in (it or {}).get("options") or []]
+        if not olo <= len(opts) <= ohi:
+            v.append(f"quiz[{i}].options: needs {olo} to {ohi} options, has {len(opts)}")
+        if len({o.lower() for o in opts}) != len(opts) or not all(opts):
+            v.append(f"quiz[{i}].options: every option must be non-empty and different")
+        a = (it or {}).get("answer")
+        if not isinstance(a, int) or isinstance(a, bool) or not 0 <= a < len(opts):
+            v.append(f"quiz[{i}].answer: must be the 0-based index of one option, not {a!r}")
     return v
 
 
@@ -2643,7 +2721,8 @@ def _export_special(post, essay, text):
         return None
     sp = SPECIALS[key]
     return {"type": key, "title": sp["title"],
-            "items": [{f: (text(str(it.get(f, ""))) if f in sp["prose"] else it.get(f))
+            "items": [{f: (([text(str(x)) for x in it.get(f) or []] if isinstance(it.get(f), list)
+                            else text(str(it.get(f, "")))) if f in sp["prose"] else it.get(f))
                        for f in sp["fields"]} for it in essay[key]]}
 
 
@@ -2782,7 +2861,8 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         "feat": post["key"] == "opus",
         "title": essay["title"],
         "dek": GUILLEMET.sub(r"\1", essay["dek"]),
-        "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+        "by": post.get("byline") or ("Draft for team review · written by a language model from engineers' public "
+                                     "reports · checked in code"),
         "lead": text(essay["tldr"]),
         **cover,
         # THE META DESCRIPTION AND KEYWORDS TRAVEL WITH THE POST (2026-10-13).
@@ -2817,7 +2897,7 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         "provenance": {
             "model": rec["requested_model"], "served_as": served,
             "generated_at": rec["started"], "rechecked_from": rec.get("rechecked_from"),
-            "documents": [d["thread_context_id"] for d in docs],
+            "documents": [d.get("thread_context_id") or d.get("topic_item_id") for d in docs],
             # Counted, for "How this post was made": where its discussions were
             # posted, and how many are shown as the platform's own embed.
             "platforms": {platform_name(k): sum(d["source"] == k for d in docs)
@@ -2861,6 +2941,10 @@ VERIFIED = "be.quote_verified AND coalesce(be.ruling,'') <> 'declined'"
 #: prose (checked like any paragraph), item-count bounds, and the instruction.
 #: `status` values are categorical words chosen from a fixed list - never a
 #: number - so rule 3 is not in play.
+#: The explainer's quiz: questions per post, options per question.
+QUIZ_QUESTIONS = (3, 5)
+QUIZ_OPTIONS = (3, 4)
+
 SPECIALS: dict[str, dict] = {
     "findings": {
         "title": "Findings", "items": (4, 8), "prose": ["finding"],
@@ -2909,6 +2993,27 @@ SPECIALS: dict[str, dict] = {
         "ask": "PROBES: 3 to 6 rows, one per evaluation or claim: what is reported ('measure'), what it "
                "actually tests ('tests'), and what it misses for a production workload ('misses').",
     },
+    # TOPIC POSTS (2026-10-16). A synthesis carries the terms a newcomer meets;
+    # an explainer closes on a quiz the reader answers on the page (views.js).
+    "glossary": {
+        "title": "Terms in this piece", "items": (4, 8), "prose": ["term", "meaning"],
+        "fields": {"term": {"type": "string"}, "meaning": {"type": "string"}},
+        "ask": "GLOSSARY: 4 to 8 terms a reader new to this topic meets in this post, each with a one-sentence "
+               "plain meaning ('meaning'). Same grounding rules as the prose.",
+    },
+    "quiz": {
+        "title": "Check what you took away", "items": QUIZ_QUESTIONS, "prose": ["question", "options", "explanation"],
+        "fields": {"question": {"type": "string"},
+                   "options": {"type": "array", "items": {"type": "string"},
+                               "description": f"{QUIZ_OPTIONS[0]} to {QUIZ_OPTIONS[1]} answers, one of them right."},
+                   "answer": {"type": "integer", "description": "0-based index of the right option."},
+                   "explanation": {"type": "string",
+                                   "description": "One or two sentences: why the right answer is right."}},
+        "ask": f"QUIZ: {QUIZ_QUESTIONS[0]} to {QUIZ_QUESTIONS[1]} multiple-choice questions on the ideas this post "
+               f"taught, each with {QUIZ_OPTIONS[0]} to {QUIZ_OPTIONS[1]} distinct options, the 0-based index of the "
+               "right one in `answer`, and a short explanation. Test understanding, not recall of a figure; no trick "
+               "options. Same grounding rules as the prose.",
+    },
 }
 _WH = re.compile(r"^\s*(what|why|how)\b", re.I)
 
@@ -2943,6 +3048,9 @@ def load_formats() -> dict:
             raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} is missing {sorted(missing)}")
         if "visuals" not in (f.get("blocks") or {}):
             raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} blocks has no `visuals` range")
+        for k in ("voices", "retrace"):
+            if not isinstance((f.get("blocks") or {}).get(k), int):
+                raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} blocks needs a whole-number `{k}`")
         if f["special"] not in SPECIALS:
             raise BuildError(f"blog_formats.yaml: format {f['key']!r} names unknown special {f['special']!r}")
         # A FLOOR THE FORMAT'S OWN SHAPE CANNOT REACH IS A CONTRADICTION, NOT A
@@ -3013,7 +3121,8 @@ def system_for(fmt: dict) -> str:
         lines.append("- One scenario matrix (5 to 8 rows), as the brief describes.")
     if b["tree"]:
         lines.append("- One decision tree (3 to 5 branches), as the brief describes.")
-    return SYSTEM.split(STRUCT_HEAD)[0] + "\n".join(lines)
+    base = TOPIC_SYSTEM if fmt["subject"] == "concept" else SYSTEM
+    return base.split(STRUCT_HEAD)[0] + "\n".join(lines)
 
 
 def tool_for(fmt: dict) -> dict:
@@ -3044,6 +3153,7 @@ def rules_for(fmt: dict, a: str = "", b: str = "") -> dict:
             "heading_question": question, "heading_no_wh": not question,
             "special": fmt["special"], "pick_names": [x for x in (a, b) if x],
             "visuals": tuple(fmt["blocks"]["visuals"]),
+            "voices": fmt["blocks"]["voices"], "retrace": fmt["blocks"]["retrace"],
             "prose": fmt["prose"],
             # Filled per post by run_plan: every heading other posts already use.
             "taken_headings": set(),
@@ -3148,7 +3258,7 @@ def trending_terms(cur, window_days: int | None = None, top: int | None = None) 
 def add_search_and_experience(post: dict, trending: list[str] | None = None) -> None:
     """Keywords, our own notes and trending terms into one planned post's brief,
     and the matching check inputs onto the post (`seo`, `experience_text`)."""
-    if post.get("names"):
+    if post.get("names") and not post.get("seo"):  # a topic post brings its own (blog_topics.yaml)
         post["seo"] = keyword_plan(post["names"], load_keywords())
         post["brief"] += (f"\nPRIMARY KEYWORD: {post['seo']['primary']}"
                           f"\nSECONDARY KEYWORDS: {'; '.join(post['seo']['secondary'])}")
@@ -3282,8 +3392,11 @@ def plan_posts(cur, reader, n: int, only_format: str | None = None,
     '+' in sorted order, or a topic key."""
     cfg = load_formats()
     done = existing_plan_keys(cur)
-    order = sorted(cfg["formats"], key=lambda f: (sum(k.startswith(f["key"] + ":") for k in done),
-                                                 cfg["formats"].index(f)))
+    # TOPIC FORMATS ARE PLANNED BY --topic-pack (2026-10-16): their subjects
+    # come from the blog's own harvest, not from board entries.
+    board = [f for f in cfg["formats"] if f["subject"] != "concept"]
+    order = sorted(board, key=lambda f: (sum(k.startswith(f["key"] + ":") for k in done),
+                                         board.index(f)))
     if only_format:
         order = [f for f in order if f["key"] == only_format]
         if not order:
@@ -3548,7 +3661,7 @@ def write_pack(post: dict, docs: list[dict], facts: list[dict]) -> Path:
         "## Brief, sources and fact sheet",
         "",
         "```text",
-        user_message(post, docs, facts),
+        (topic_user_message(post, docs) if post.get("topic") else user_message(post, docs, facts)),
         "```",
         "",
         "## Output schema",
@@ -3601,6 +3714,12 @@ def ingest(key: str, dsn: str) -> None:
     d = PACKS / key
     pack = json.loads((d / "pack.json").read_text(encoding="utf-8"))
     post, docs, facts = pack["post"], pack["docs"], pack["facts"]
+    # A DATE COMES BACK FROM pack.json AS TEXT (json default=str); export reads
+    # it as a datetime, so it is parsed back here - and a value that does not
+    # parse raises rather than reaching the page as some other date (rule 12).
+    for x in docs:
+        if isinstance(x.get("posted"), str):
+            x["posted"] = datetime.fromisoformat(x["posted"])
     rules = post.get("rules") or {}
     if isinstance(rules.get("taken_headings"), list):
         rules["taken_headings"] = set(rules["taken_headings"])
@@ -3630,7 +3749,8 @@ def ingest(key: str, dsn: str) -> None:
         raise BuildError(f"{key}: {len(gate)} blocking violation(s); fix essay.json and ingest again")
     rec = {"post": key, "requested_model": CLAUDE_WRITER,
            "started": datetime.now(UTC).isoformat(timespec="seconds"),
-           "documents": [{k: x[k] for k in ("thread_context_id", "source", "chars", "truncated", "why")
+           "documents": [{k: x[k] for k in ("thread_context_id", "topic_item_id", "source", "chars", "truncated",
+                                            "why")
                           if k in x} for x in docs],
            "facts": [f.get("canonical_id") for f in facts],
            "attempts": [{"served": CLAUDE_WRITER, "provider": "Claude Code", "generation_id": None,
@@ -3656,6 +3776,143 @@ def ingest(key: str, dsn: str) -> None:
           + ", ".join(f"{k} {len(v)}" for k, v in stored.items()), flush=True)
 
 
+# ── topic posts: general AI, from the blog's own harvest (2026-10-16) ────────
+#
+# The board-entry planner can only write about MODELS. A reader searching
+# "what is RAG?" or "System 1 vs System 2 AI" found nothing here, so a second
+# planner writes about TOPICS (blog_topics.yaml), from the posts
+# scripts/harvest_topics.py collected on each:
+#
+#   --topic-pack auto [N]   the N most active topics that have a source, as
+#                           judge/topics.plan() lists them
+#   --topic-pack KEY        one topic, by its blog_topics.yaml key
+#
+# Several sources make a `topic-synthesis`; one makes a `topic-explainer` with
+# a quiz (judge/topics.shape_for). The pack, the writer, --ingest and every
+# check are the board posts' own. No model is called here.
+
+TOPIC_FORMAT = {"combined article": "topic-synthesis", "explainer with a quiz": "topic-explainer"}
+TOPIC_BYLINE = ("Draft for team review · written by Claude Code from writers' published posts · "
+                "checked in code")
+
+
+def topic_docs(conn, reader, key: str) -> tuple[list[dict], list[dict]]:
+    """The sources a post on `key` is written from: judge/topics.sources(),
+    each with its article text from the raw store where the evidence harvest
+    stored it, else the feed's own summary - and which of the two it is."""
+    from judge import topics
+
+    cap = topics.config()["posts"]["max_sources"]
+    docs, skipped = [], []
+    for it in topics.sources(conn, key):
+        if len(docs) == cap:
+            break
+        # THE FLATTENED TEXT, NOT THE RAW PAGE: a blog document's own text_ref
+        # is the fetched HTML (measured 2026-10-16 - a pack opened on
+        # "<!DOCTYPE html>"), while its thread_context holds the extracted text
+        # the evidence pipeline reads.
+        row = conn.execute(
+            "SELECT d.source, (SELECT tc.flattened_text_ref FROM thread_context tc "
+            "                  WHERE tc.thread_root_id = d.id ORDER BY tc.id DESC LIMIT 1) "
+            "FROM document d WHERE d.url = %s ORDER BY d.fetched_at DESC NULLS LAST LIMIT 1",
+            (it["url"],)).fetchone()
+        text, text_from = None, None
+        if row and row[1]:
+            got = reader.resolve(row[1])
+            text, text_from = (got.text, "article") if got.text else (None, None)
+        if not text and it.get("summary"):
+            text, text_from = f"{it['title']}\n\n{it['summary']}", "feed summary"
+        if not text:
+            skipped.append({"topic_item_id": it["id"], "outcome": "no article text and no feed summary"})
+            continue
+        source = (row[0] if row else None) or it["source"].split(":", 1)[0]
+        docs.append({"topic_item_id": it["id"], "source": source, "url": it["url"], "title": it["title"],
+                     "posted": it["published_at"], "text_from": text_from,
+                     "chars": len(text), "truncated": len(text) > MAX_DOC_CHARS, "text": text[:MAX_DOC_CHARS],
+                     "why": {"topic": key}})
+    return docs, skipped
+
+
+def planned_topic_post(fmt: dict, t: dict) -> dict:
+    """A planned post for topic `t` (a blog_topics.yaml entry) in format `fmt`,
+    in the shape planned_post() gives a board post."""
+    plan_key = f"{fmt['key']}:concept/{t['key']}"
+    slug = re.sub(r"[^a-z0-9]+", "-", plan_key.lower()).strip("-")[:90]
+    seo = {"primary": t["search"], "secondary": [t["name"]], "subject": [t["short"]]}
+    brief = brief_for(fmt, t["name"], t["short"], "") + (
+        f"\nPRIMARY KEYWORD: {seo['primary']}\nSECONDARY KEYWORDS: {'; '.join(seo['secondary'])}"
+        f"\nTHE TITLE NAMES THE TOPIC AS: {t['short']}")
+    return {"key": slug, "file": f"{slug}.html", "kicker": fmt["name"], "where": None,
+            "tags": [t["short"], fmt["name"]], "brief": brief, "system": system_for(fmt),
+            "tool": tool_for(fmt), "rules": rules_for(fmt, t["short"], ""),
+            "prices": False, "format_cfg": fmt, "byline": TOPIC_BYLINE, "seo": seo, "topic": t["key"],
+            "plan": {"plan_key": plan_key, "format": fmt["key"], "subject": t["name"]},
+            "names": {"kind": "concept", "a": t["short"], "b": "", "label": t["name"]},
+            "embed_only": derived_posts_embed_only(), "subject": None, "params": {}, "facts": []}
+
+
+def topic_user_message(post, docs) -> str:
+    parts = [post["brief"], "", "SOURCES:"]
+    for i, d in enumerate(docs, 1):
+        when = d["posted"].date().isoformat() if hasattr(d.get("posted"), "date") else (d.get("posted") or "undated")
+        site = credit_of(d["source"], d["url"])["who"] or platform_name(d["source"])
+        how = ("the full post" if d["text_from"] == "article"
+               else "the feed's summary only - the full post was not fetched")
+        parts += [f"\n<<<SOURCE {i} - \"{d['title']}\" - {site}, {when} - {how}; quote exactly in «», "
+                  f"the page credits it>>>", d["text"], f"<<<END SOURCE {i}>>>"]
+    parts.append("\nWrite the essay now by calling publish_essay.")
+    return "\n".join(parts)
+
+
+def run_topic_pack(args, dsn, reader) -> None:
+    """Write packs for topic posts. Calls no model."""
+    from judge import topics
+
+    cfg = load_formats()
+    fmts = {f["key"]: f for f in cfg["formats"]}
+    want, n = args.topic_pack[0], int(args.topic_pack[1]) if len(args.topic_pack) > 1 else 1
+    with psycopg.connect(dsn, connect_timeout=20) as conn:
+        conn.read_only = True
+        if want == "auto":
+            keys = [x["key"] for x in topics.plan(conn) if x["shape"]][:n]
+        else:
+            topics.topic(want)  # an unknown key raises here, before anything is written
+            keys = [want]
+        picked = []
+        for key in keys:
+            docs, skipped = topic_docs(conn, reader, key)
+            shape = topics.shape_for(len(docs))
+            if not shape:
+                print(f"  {key}: no source a post may use ({len(skipped)} without text); nothing written",
+                      flush=True)
+                continue
+            picked.append((planned_topic_post(fmts[TOPIC_FORMAT[shape]], topics.topic(key)), docs, skipped))
+    if not picked:
+        raise BuildError("no topic has a source a post may use; see Admin -> Blogs -> Topics")
+    existing = []
+    for f in sorted(POSTS_OUT.glob("*.json")):
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            existing.append((d["slug"], d["title"]))
+        except (OSError, json.JSONDecodeError, KeyError):
+            continue
+    taken = existing_headings()
+    for post, docs, skipped in picked:
+        # THE SAME BRIEF FINISHING run_pack gives a board post.
+        post["rules"]["taken_headings"] = set(taken)
+        add_search_and_experience(post)
+        others = [t for k, t in existing if k != post["key"]]
+        post["rules"]["taken_titles"] = others
+        post["rules"]["title_names"] = post["seo"]["subject"]
+        if others:
+            post["brief"] += "\nTITLES ALREADY USED (yours must not echo their wording or shape): " + "; ".join(others)
+        if taken:
+            post["brief"] += "\nHEADINGS ALREADY USED (do not reuse any): " + "; ".join(sorted(taken))
+        d = write_pack(post, docs, [])
+        print(f"  pack {d.relative_to(ROOT)}  ({post['kicker']}; {len(docs)} source(s), "
+              f"{sum(x['text_from'] == 'article' for x in docs)} full post(s); skipped {len(skipped)})", flush=True)
+
+
 def main() -> None:
     global GEN_MODEL
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -3675,6 +3932,9 @@ def main() -> None:
                                       "anthropic/claude-opus-5+openai/gpt-5.6-sol - regenerates it if written")
     ap.add_argument("--pack", type=int, metavar="N",
                     help="plan N posts and write their WRITING PACKS for Claude Code; no model call")
+    ap.add_argument("--topic-pack", nargs="+", metavar="KEY|auto [N]",
+                    help="write packs for TOPIC posts (blog_topics.yaml): one topic key, or 'auto N' for the "
+                         "N most active topics with a usable source; no model call")
     ap.add_argument("--ingest", metavar="KEY",
                     help="check blog_packs/KEY/essay.json and store it as a pending draft if it passes")
     ap.add_argument("--status", action="store_true",
@@ -3686,12 +3946,17 @@ def main() -> None:
     E = env()
     # PACKS AND INGEST USE THIS BACKEND'S OWN DATABASE (2026-10-16): the pack is
     # reviewed and stored where Admin -> Blogs reads, and they need no model.
-    if args.pack is not None or args.ingest:
+    if args.pack is not None or args.ingest or args.topic_pack:
         local = E.get("DATABASE_URL")
         if not local:
             raise BuildError("DATABASE_URL is not set; packs and ingest read and store there")
         if args.ingest:
             ingest(args.ingest, local)
+            return
+        if args.topic_pack:
+            if len(args.topic_pack) > 2 or (len(args.topic_pack) == 2 and not args.topic_pack[1].isdigit()):
+                raise BuildError("--topic-pack takes a topic key, or 'auto' and a count")
+            run_topic_pack(args, local, RawStoreReader(RawStore(E.get("RAW_STORE_PATH") or "./raw_store")))
             return
         if not 1 <= args.pack <= 5:
             raise BuildError("--pack takes 1 to 5")

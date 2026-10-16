@@ -33,93 +33,164 @@ emerging:
   window_days: 30
   max_terms: 25
 
-# key: a stable slug. name: what a reader sees. terms: matched case-insensitively
+# WHAT A TOPIC POST MAY BE WRITTEN FROM (generate_sample_blogs.py --topic-pack).
+posts:
+  # ARXIV IS NOT A SOURCE OF A POST while contract/sources.yaml `arxiv-api-terms`
+  # stands on `internal-development-only`: a post quotes every source it uses
+  # with a link, and that ruling holds "only while nothing is published
+  # externally". arXiv items still count toward a topic's trend above. Setting
+  # this true needs that ruling changed first (contract/, two eyes). Required.
+  arxiv_as_source: false
+  # Sources are taken from this many days back, newest first - an explainer of
+  # RAG may rest on a good post from last month.
+  source_window_days: 120
+  max_sources: 6
+
+# key: a stable slug. name: what a reader sees. short: how a title names it.
+# search: the primary search keyword a topic post is written to (checked in code).
+# terms: matched case-insensitively
 # on whole words in the title and summary. A topic can be added at any time;
 # items are re-matched on every harvest.
 topics:
   - key: rag
     name: Retrieval-augmented generation (RAG)
+    short: "RAG"
+    search: "what is RAG"
     terms: [retrieval-augmented, retrieval augmented, RAG, GraphRAG]
   - key: agents
     name: AI agents
+    short: "AI agents"
+    search: "what are AI agents"
     terms: [AI agent, AI agents, agentic, multi-agent, autonomous agent, autonomous agents]
   - key: tool-use
     name: Tool use and MCP
+    short: "tool use"
+    search: "what is MCP"
     terms: [tool use, tool calling, function calling, model context protocol, MCP]
   - key: reasoning-models
     name: Reasoning models (System 1 and System 2)
+    short: "reasoning models"
+    search: "System 1 vs System 2 AI"
     terms: [reasoning model, reasoning models, chain-of-thought, chain of thought, test-time compute,
             inference-time compute, System 2, System 1, thinking model, slow thinking]
   - key: superintelligence
     name: AGI and superintelligence
+    short: "superintelligence"
+    search: "what is artificial superintelligence"
     terms: [superintelligence, artificial superintelligence, ASI, AGI, artificial general intelligence]
   - key: alignment
     name: Alignment and preference training
+    short: "AI alignment"
+    search: "what is AI alignment"
     terms: [alignment, RLHF, DPO, preference optimization, reward model, reward models, constitutional AI]
   - key: interpretability
     name: Interpretability
+    short: "interpretability"
+    search: "what is mechanistic interpretability"
     terms: [interpretability, mechanistic, sparse autoencoder, sparse autoencoders, circuits, steering vector]
   - key: safety
     name: AI safety and security
+    short: "AI safety"
+    search: "what is prompt injection"
     terms: [AI safety, jailbreak, jailbreaks, prompt injection, red teaming, red-teaming, guardrails]
   - key: evals
     name: Evaluation and benchmarks
+    short: "LLM evaluation"
+    search: "how to evaluate LLMs"
     terms: [benchmark, benchmarks, evaluation, evals, LLM-as-a-judge, LLM as a judge]
   - key: multimodal
     name: Multimodal models
+    short: "multimodal models"
+    search: "what is a multimodal model"
     terms: [multimodal, vision-language, VLM, text-to-image, video generation, speech recognition,
             text-to-speech]
   - key: long-context
     name: Long context
+    short: "long context"
+    search: "what is a context window"
     terms: [long context, long-context, context window, context length]
   - key: efficiency
     name: Inference efficiency
+    short: "inference efficiency"
+    search: "how to make LLM inference faster"
     terms: [quantization, distillation, pruning, speculative decoding, KV cache, inference efficiency]
   - key: moe
     name: Mixture of experts
+    short: "mixture of experts"
+    search: "what is mixture of experts"
     terms: [mixture of experts, mixture-of-experts, MoE]
   - key: small-models
     name: Small and on-device models
+    short: "small language models"
+    search: "what is a small language model"
     terms: [small language model, small language models, SLM, on-device]
   - key: fine-tuning
     name: Fine-tuning
+    short: "fine-tuning"
+    search: "what is fine-tuning an LLM"
     terms: [fine-tuning, fine tuning, LoRA, QLoRA, PEFT, instruction tuning]
   - key: synthetic-data
     name: Synthetic data
+    short: "synthetic data"
+    search: "what is synthetic data for LLMs"
     terms: [synthetic data, data curation, data contamination]
   - key: scaling
     name: Scaling laws
+    short: "scaling laws"
+    search: "what are scaling laws"
     terms: [scaling law, scaling laws, compute-optimal]
   - key: world-models
     name: World models
+    short: "world models"
+    search: "what is a world model in AI"
     terms: [world model, world models]
   - key: robotics
     name: Robotics and embodied AI
+    short: "embodied AI"
+    search: "what is embodied AI"
     terms: [robotics, embodied, robot learning, vision-language-action]
   - key: code-generation
     name: Code generation and coding agents
+    short: "coding agents"
+    search: "what are AI coding agents"
     terms: [code generation, coding agent, coding agents, software engineering agent, SWE-bench, program synthesis]
   - key: embeddings
     name: Embeddings and vector search
+    short: "embeddings"
+    search: "what are embeddings"
     terms: [embedding model, embedding models, vector search, vector database, dense retrieval]
   - key: prompting
     name: Prompting and in-context learning
+    short: "prompt engineering"
+    search: "what is in-context learning"
     terms: [prompt engineering, in-context learning, few-shot, prompt optimization]
   - key: hallucination
     name: Hallucination and factuality
+    short: "hallucination"
+    search: "why do LLMs hallucinate"
     terms: [hallucination, hallucinations, factuality, grounding]
   - key: memory
     name: Memory for language models
+    short: "agent memory"
+    search: "how does memory work in AI agents"
     terms: [agent memory, long-term memory, memory-augmented]
   - key: diffusion
     name: Diffusion models
+    short: "diffusion models"
+    search: "what is a diffusion model"
     terms: [diffusion model, diffusion models, diffusion language model]
   - key: architectures
     name: Beyond the transformer
+    short: "state space models"
+    search: "what is a state space model"
     terms: [state space model, state space models, SSM, Mamba, linear attention, recurrent]
   - key: open-weights
     name: Open-weight models
+    short: "open-weight models"
+    search: "what is an open-weight model"
     terms: [open-weight, open weights, open-source model, open-source models, open source LLM]
   - key: ai-policy
     name: AI policy and regulation
+    short: "AI regulation"
+    search: "what is the EU AI Act"
     terms: [EU AI Act, AI regulation, AI policy, AI governance]

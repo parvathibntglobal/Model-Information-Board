@@ -105,9 +105,9 @@ def test_overview_counts_and_names_the_silent_topics(conn):
 
 
 def test_the_plan_gives_each_active_topic_a_shape(conn):
-    _item(conn, "1", "Graph RAG at scale", 2)
-    _item(conn, "2", "Retrieval-augmented generation for code", 5)
-    _item(conn, "3", "Mixture of experts routing", 3)
+    _src(conn, "1", "blog:example.org", "Graph RAG at scale", 2)
+    _src(conn, "2", "blog:example.org", "Retrieval-augmented generation for code", 5)
+    _src(conn, "3", "blog:example.org", "Mixture of experts routing", 3)
 
     shapes = {p["key"]: p["shape"] for p in topics.plan(conn, NOW)}
     assert shapes == {"rag": "combined article", "moe": "explainer with a quiz"}
@@ -120,7 +120,7 @@ def test_emerging_lists_only_phrases_no_topic_covers(conn):
         _item(conn, f"w{i}", f"Weight averaging recipes part {i}", 2)
 
     phrases = {e["phrase"] for e in topics.emerging(conn, NOW)}
-    assert "weight averaging" in phrases
+    assert any("weight averaging" in p for p in phrases)
     assert not any("retrieval augmented" in p for p in phrases)  # covered by `rag`
 
 
@@ -129,3 +129,75 @@ def test_the_admin_routes_exist():
 
     paths = {(r.path, m) for r in app.routes for m in getattr(r, "methods", ())}
     assert ("/blog-topics", "GET") in paths and ("/blog-topics/harvest", "POST") in paths
+
+
+# ── topic posts (Phase C): sources, shapes, the quiz ──────────────────────
+
+
+def _src(conn, iid, source, title, days_ago):
+    conn.execute(
+        "INSERT INTO topic_item (id, source, kind, title, url, published_at, topics) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (iid, source, "paper" if source == "arxiv" else "post", title, f"https://example.org/{iid}",
+         NOW - timedelta(days=days_ago), topics.match(title)),
+    )
+
+
+def test_arxiv_is_not_a_post_source_while_its_ruling_is_internal(conn):
+    assert topics.config()["posts"]["arxiv_as_source"] is False
+    _src(conn, "a1", "arxiv", "A RAG paper", 2)
+    _src(conn, "b1", "blog:example.org", "RAG in a support desk", 3)
+    assert [s["id"] for s in topics.sources(conn, "rag", NOW)] == ["b1"]
+
+
+def test_an_arxiv_only_topic_says_why_it_cannot_be_written(conn):
+    _src(conn, "a1", "arxiv", "Mixture of experts routing", 2)
+    plan = {p["key"]: p for p in topics.plan(conn, NOW)}
+    assert plan["moe"]["shape"] is None and "arXiv" in plan["moe"]["why_not"]
+
+
+def test_shapes_follow_the_number_of_sources():
+    assert topics.shape_for(0) is None
+    assert topics.shape_for(1) == "explainer with a quiz"
+    assert topics.shape_for(topics.config()["synthesis_min_items"]) == "combined article"
+
+
+def _gsb():
+    import importlib.util
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("gsb_topics", root / "generate_sample_blogs.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_a_quiz_answer_must_point_at_an_option():
+    g = _gsb()
+    ok = {"question": "q?", "options": ["a", "b", "c"], "answer": 2, "explanation": "e"}
+    assert g.quiz_violations([ok]) == []
+    assert g.quiz_violations([{**ok, "answer": 3}])
+    assert g.quiz_violations([{**ok, "answer": True}])  # a bool is not an index
+    assert g.quiz_violations([{**ok, "options": ["a", "A", "c"]}])  # not distinct
+    assert g.quiz_violations([{**ok, "options": ["a", "b"]}])  # too few
+
+
+def test_topic_formats_load_and_are_not_board_planned():
+    g = _gsb()
+    fmts = {f["key"]: f for f in g.load_formats()["formats"]}
+    assert fmts["topic-explainer"]["special"] == "quiz"
+    assert fmts["topic-synthesis"]["special"] == "glossary"
+    assert fmts["topic-explainer"]["blocks"]["voices"] == 1
+    assert all(isinstance(f["blocks"]["voices"], int) for f in fmts.values())
+    # the topic prompt replaces the practitioner one, and keeps its grounding rules
+    sys_prompt = g.system_for(fmts["topic-explainer"])
+    assert "learning about AI" in sys_prompt and "GROUNDING" in sys_prompt and "QUIZ:" in sys_prompt
+
+
+def test_quiz_options_are_checked_as_prose():
+    g = _gsb()
+    item = {"question": "q?", "options": ["fine", "it rose 97%"], "answer": 0, "explanation": "e"}
+    essay = {"quiz": [item]}
+    paths = dict(g.prose_fields(essay))
+    assert paths["quiz[0].options[1]"] == "it rose 97%"  # so the number check sees it

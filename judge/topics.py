@@ -7,8 +7,9 @@
                       before (a count, never a score), and the newest items
     emerging(conn)    phrases recurring in recent titles that NO topic covers -
                       proposals for a person to adopt as topics (rule 10)
+    sources(conn, k)  the items a post on topic k may be written from (posts:)
     plan(conn)        what each active topic can become: a combined article when
-                      several items share it, an explainer with a quiz when one does
+                      several sources share it, an explainer with a quiz when one does
 
 Reads `topic_item` (scripts/harvest_topics.py writes it). Nothing here touches the
 evidence pipeline or the board.
@@ -93,13 +94,21 @@ _POSSESSIVE = re.compile(r"['\u2019]s(?![a-z0-9])")
 @lru_cache(maxsize=1)
 def config() -> dict[str, Any]:
     raw = yaml.safe_load(CONFIG.read_text(encoding="utf-8")) or {}
-    for key in ("arxiv", "window_days", "synthesis_min_items", "emerging", "topics"):
+    for key in ("arxiv", "window_days", "synthesis_min_items", "emerging", "posts", "topics"):
         if key not in raw:
             raise ValueError(f"blog_topics.yaml: `{key}` is missing")
+    posts = raw["posts"] or {}
+    if not isinstance(posts.get("arxiv_as_source"), bool):
+        raise ValueError("blog_topics.yaml: posts.arxiv_as_source must be true or false")
+    for key in ("source_window_days", "max_sources"):
+        if not isinstance(posts.get(key), int):
+            raise ValueError(f"blog_topics.yaml: posts.{key} must be a whole number")
     seen = set()
     for t in raw["topics"]:
-        if not t.get("key") or not t.get("name") or not t.get("terms"):
-            raise ValueError(f"blog_topics.yaml: every topic needs key, name and terms: {t!r}")
+        if not all(t.get(k) for k in ("key", "name", "short", "search", "terms")):
+            raise ValueError(
+                f"blog_topics.yaml: every topic needs key, name, short, search and terms: {t!r}"
+            )
         if t["key"] in seen:
             raise ValueError(f"blog_topics.yaml: topic {t['key']!r} is listed twice")
         seen.add(t["key"])
@@ -229,7 +238,11 @@ def emerging(conn, today: datetime | None = None) -> list[dict[str, Any]]:
         counts.update(_ngrams(title))
     covered = [rx for _key, rx in _patterns()]
     out = []
-    for gram, n in counts.most_common():
+    # DETERMINISTIC, LONGEST FIRST: ties were in set order (string hashing
+    # varies per process), and the shorter-inside-longer rule below then kept
+    # whichever came first - so the list changed between runs.
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], -len(kv[0].split()), kv[0]))
+    for gram, n in ranked:
         if n < cfg["min_items"]:
             break
         if any(rx.search(gram) for rx in covered):
@@ -243,18 +256,69 @@ def emerging(conn, today: datetime | None = None) -> list[dict[str, Any]]:
     return out
 
 
-def plan(conn, today: datetime | None = None) -> list[dict[str, Any]]:
-    """What each topic active in the window can become. Several items sharing a
-    topic make a COMBINED article; one item makes an EXPLAINER WITH A QUIZ."""
-    ov = overview(conn, today)
-    need = config()["synthesis_min_items"]
-    return [
+ARXIV_ONLY = "every item is on arXiv, which is not a post source while its ruling is internal-only"
+
+
+def topic(key: str) -> dict[str, Any]:
+    for t in config()["topics"]:
+        if t["key"] == key:
+            return t
+    raise KeyError(f"blog_topics.yaml has no topic {key!r}")
+
+
+def sources(conn, key: str, today: datetime | None = None) -> list[dict[str, Any]]:
+    """The items a post on `key` may be written from, newest first: in the
+    source window, and not from arXiv while `posts.arxiv_as_source` is false.
+    Not capped here - the pack takes `max_sources` of those whose text it can
+    read."""
+    cfg = config()["posts"]
+    now = today or datetime.now(UTC)
+    rows = conn.execute(
+        "SELECT id, source, kind, title, url, published_at, summary FROM topic_item "
+        "WHERE %(k)s = ANY(topics) AND published_at >= %(since)s "
+        "  AND (%(arxiv)s OR source <> 'arxiv') "
+        "ORDER BY published_at DESC, id",
         {
-            "key": t["key"],
-            "name": t["name"],
-            "items": t["in_window"],
-            "shape": "combined article" if t["in_window"] >= need else "explainer with a quiz",
-        }
-        for t in ov["topics"]
-        if t["in_window"] > 0
-    ]
+            "k": key,
+            "since": now - timedelta(days=cfg["source_window_days"]),
+            "arxiv": cfg["arxiv_as_source"],
+        },
+    ).fetchall()
+    cols = ("id", "source", "kind", "title", "url", "published_at", "summary")
+    return [dict(zip(cols, r, strict=True)) for r in rows]
+
+
+def shape_for(n_sources: int) -> str | None:
+    """Several sources make a COMBINED article; one makes an EXPLAINER WITH A
+    QUIZ; none makes nothing."""
+    if n_sources >= config()["synthesis_min_items"]:
+        return "combined article"
+    return "explainer with a quiz" if n_sources == 1 else None
+
+
+def plan(conn, today: datetime | None = None) -> list[dict[str, Any]]:
+    """What each topic active in the window can become, from the sources a post
+    may use. A topic active only on arXiv says so (rule 4) rather than vanishing:
+    its trend is real, and the reason it cannot be written yet is the ruling."""
+    ov = overview(conn, today)
+    max_sources = config()["posts"]["max_sources"]
+    arxiv_ok = config()["posts"]["arxiv_as_source"]
+    out = []
+    for t in ov["topics"]:
+        if t["in_window"] <= 0:
+            continue
+        n = min(len(sources(conn, t["key"], today)), max_sources)
+        shape = shape_for(n)
+        out.append(
+            {
+                "key": t["key"],
+                "name": t["name"],
+                "items": t["in_window"],
+                "sources": n,
+                "shape": shape,
+                "why_not": None
+                if shape
+                else (ARXIV_ONLY if not arxiv_ok else "no item in the source window"),
+            }
+        )
+    return out

@@ -102,9 +102,20 @@ def test_length_counts_what_the_reader_reads():
 
 
 def test_every_format_is_an_8_to_15_minute_read_with_visuals():
+    # BOARD POSTS. Topic posts (subject `concept`, 2026-10-16) are shorter on
+    # purpose - an explainer teaches one idea from one source - and are held
+    # to their own lengths below.
     for f in g.load_formats()["formats"]:
+        if f["subject"] == "concept":
+            continue
         assert f["words"] == [1850, 3450], f["key"]
         assert f["blocks"]["visuals"] == [2, 5], f["key"]
+
+
+def test_topic_formats_have_their_own_lengths():
+    fmts = {f["key"]: f for f in g.load_formats()["formats"] if f["subject"] == "concept"}
+    assert fmts["topic-synthesis"]["words"] == [1500, 3000]
+    assert fmts["topic-explainer"]["words"] == [900, 1800]
 
 
 def test_skim_lines_are_gone_from_prompt_tool_and_formats():

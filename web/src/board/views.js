@@ -1359,13 +1359,17 @@ const LAYOUTS = {
   blueprint: { label: 'Component',   lead: 'The pattern in one line', tools: 'end' },
   brief:     { label: 'Point',       lead: 'The verdict',             tools: 'top' },
   critique:  { label: 'Argument',    lead: 'The argument',            tools: 'mid' },
+  // TOPIC POSTS (2026-10-16): general AI, from the blog's own harvest. A
+  // synthesis opens on the terms a newcomer meets; an explainer closes on a quiz.
+  synthesis: { label: 'Idea',        lead: 'In one line',             tools: 'end' },
+  explainer: { label: 'Step',        lead: 'In one line',             tools: 'end' },
 };
 // Posts written before `layout` was exported carry their format in
 // provenance; the first three carry only a kicker. A post matching none renders
 // the plain page - visibly unstyled, never silently given some other format's.
 const FORMAT_LAYOUT = { 'field-report': 'report', 'head-to-head': 'versus', 'cost-teardown': 'ledger',
   'migration-guide': 'runbook', 'architecture-pattern': 'blueprint', 'release-analysis': 'brief',
-  'evaluation-critique': 'critique' };
+  'evaluation-critique': 'critique', 'topic-synthesis': 'synthesis', 'topic-explainer': 'explainer' };
 const KICKER_LAYOUT = { 'Model deep dive': 'report', 'Routing guide': 'versus', 'Capability analysis': 'brief' };
 function layoutOf(p){
   if(LAYOUTS[p.layout]) return p.layout;
@@ -1527,6 +1531,24 @@ function claimWall(sp){
     <div class="grid">${sp.items.map(x => `<div class="cl c-${cls(x.status)}"><span class="stamp">${esc(x.status)}</span>
       <h4>${essayText(x.claim)}</h4><p>${essayText(x.finding)}</p></div>`).join('')}</div></section>`;
 }
+// THE GLOSSARY of a topic synthesis: the terms a newcomer meets, defined once.
+function glossaryBox(sp){
+  return `<section class="es-gloss"><div class="lbl">${esc(sp.title || 'Terms')}</div><dl>${sp.items.map(x =>
+    `<div><dt>${essayText(x.term)}</dt><dd>${essayText(x.meaning)}</dd></div>`).join('')}</dl></section>`;
+}
+// THE QUIZ of an explainer. CSS-only state like the other tools: a radio per
+// option, the right one marked in the markup, and the explanation shown once
+// any option of that question is picked (board.css .es-quiz). Nothing a reader
+// picks is sent anywhere or kept.
+let _qz = 0;
+function quizBox(sp){
+  const id = `es-qz${++_qz}`;
+  return `<section class="es-quiz"><div class="lbl">${esc(sp.title || 'Quiz')}</div>${sp.items.map((q, i) =>
+    `<fieldset class="q"><legend><span class="n">${pad2(i + 1)}</span>${essayText(q.question)}</legend>${
+      (q.options || []).map((o, k) => `<label class="opt ${k === q.answer ? 'right' : 'wrong'}">`
+        + `<input type="radio" name="${id}-${i}"><span>${essayText(o)}</span></label>`).join('')}
+      <p class="why"><b>Why:</b> ${essayText(q.explanation)}</p></fieldset>`).join('')}</section>`;
+}
 function probeList(sp){
   return `<section class="es-probe"><div class="lbl">${esc(sp.title || 'What the measures test')}</div>${sp.items.map(x =>
     `<details><summary><b>${essayText(x.measure)}</b><span>${essayText(x.tests)}</span></summary>
@@ -1679,7 +1701,7 @@ function vPost(slug){
   const rows = sheetRows(parts.prices);
   const pv = p.provenance || {};
   const asOf = String(pv.generated_at || '').slice(0, 10);
-  _mx = 0;
+  _mx = 0; _qz = 0;
   CITE = Object.fromEntries(Object.entries(p.cite || {}).map(([k, n]) => [esc(k), n]));
   SRC = Object.fromEntries((p.sources || []).map(s => [s.n, s]));
   CARDED = new Set();
@@ -1765,6 +1787,13 @@ function vPost(slug){
     open = leadBox(conf, p, 'thesis')
       + `<nav class="es-chain"><div class="lbl">The argument in ${secs.length} steps</div>${tocList(secs, '', String)}</nav>`;
     if(sp && sp.type === 'probes' && sp.items && sp.items.length) end = probeList(sp);
+  } else if(L === 'synthesis'){
+    open = leadBox(conf, p, 'strip') + (sp && sp.type === 'glossary' && sp.items && sp.items.length ? glossaryBox(sp) : '');
+  } else if(L === 'explainer'){
+    const steps = secs.filter(s => s.head.num !== 'FAQ');  // the FAQ is not a step
+    open = leadBox(conf, p, 'strip')
+      + `<nav class="es-points"><div class="lbl">In ${steps.length} steps</div>${tocList(steps, '', pad2)}</nav>`;
+    if(sp && sp.type === 'quiz' && sp.items && sp.items.length) end = quizBox(sp);
   } else {
     open = leadBox(conf, p);
   }

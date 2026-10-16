@@ -160,7 +160,7 @@ formats:
     special: findings
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
 
   - key: head-to-head
     name: Head-to-head
@@ -186,7 +186,7 @@ formats:
     special: picks
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
     matrix_title: "When to use {a} vs {b}"
 
   - key: cost-teardown
@@ -214,7 +214,7 @@ formats:
     special: drivers
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
     matrix_title: "What moves the bill"
 
   - key: migration-guide
@@ -239,7 +239,7 @@ formats:
     special: steps
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: true, code: [1, 2], prices: true, visuals: [2, 5]}
+    blocks: {matrix: false, tree: true, code: [1, 2], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
     tree_question: "Should this workload move between {a} and {b}, and in which direction?"
 
   - key: architecture-pattern
@@ -266,7 +266,7 @@ formats:
     special: layers
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [1, 2], prices: false, visuals: [2, 5]}
+    blocks: {matrix: true, tree: false, code: [1, 2], prices: false, visuals: [2, 5], voices: 3, retrace: 1}
     matrix_title: "Pattern versus anti-pattern"
 
   - key: release-analysis
@@ -292,7 +292,7 @@ formats:
     special: claims
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: true, code: [0, 1], prices: true, visuals: [2, 5]}
+    blocks: {matrix: false, tree: true, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
     tree_question: "Should your team adopt {a} now?"
 
   - key: evaluation-critique
@@ -318,4 +318,64 @@ formats:
     special: probes
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 5]}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 5], voices: 3, retrace: 1}
+
+  # ── TOPIC POSTS (2026-10-16): general AI, not one model ────────────────────
+  # Planned by `--topic-pack` from the blog's own harvest (blog_topics.yaml,
+  # judge/topics.py), never by the board planner: their subject is a topic
+  # ("RAG", "AI agents"), and their sources are the posts the harvest found on
+  # it. Several sources on one topic make a SYNTHESIS; one makes an EXPLAINER
+  # with a quiz. `voices` is how many different sources must be quoted, and
+  # `retrace` how many pieces of a writer's work the post walks through.
+
+  - key: topic-synthesis
+    name: Topic synthesis
+    subject: concept
+    layout: synthesis
+    derived_from: "team ask 2026-10-16: one article from several posts on one topic"
+    shape: >-
+      One article that brings several writers' recent work on this topic together: what
+      the idea is, where they agree, where they part ways, and what it means for someone
+      building with AI now.
+    voice: >-
+      An explainer's voice with a point of view: define a term the first time it appears,
+      then build on it. Medium paragraphs; each section moves the reader one step further
+      into the topic.
+    paragraphs: {per_section: [3, 5], words: [45, 85]}
+    heading_rules: >-
+      Each heading states one idea or claim about this topic in plain words, as a short
+      sentence a reader could quote. Never a question, never starting with "What", "Why"
+      or "How", and never a generic label such as "Introduction" or "Conclusion".
+    opening: >-
+      the plainest one-sentence answer to what this topic is, then the concrete moment that makes it matter now
+    closing: >-
+      what is still unsettled about this topic, and what would settle it
+    special: glossary
+    sections: [6, 9]
+    words: [1500, 3000]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 4], voices: 2, retrace: 1}
+
+  - key: topic-explainer
+    name: Explainer
+    subject: concept
+    layout: explainer
+    derived_from: "team ask 2026-10-16: one post on a topic becomes an interactive explainer with a quiz"
+    shape: >-
+      An explainer that teaches this topic from one writer's recent post: the idea in plain
+      words, how it works step by step, what the post shows about it, and where it falls
+      short - ending with a short quiz so the reader can check what they took away.
+    voice: >-
+      A patient teacher's voice: short paragraphs, one idea each, a concrete example before
+      any abstraction. Talk to "you" directly.
+    paragraphs: {per_section: [2, 4], words: [40, 80]}
+    heading_rules: >-
+      Each heading names one step in understanding this topic as a short statement. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      the plainest one-sentence answer to what this topic is, with an everyday comparison
+    closing: >-
+      the limit of the idea: where it stops working, and what to read or try next
+    special: quiz
+    sections: [5, 7]
+    words: [900, 1800]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 1, retrace: 1}
