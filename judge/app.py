@@ -2726,6 +2726,42 @@ class BlogGenerateRequest(BaseModel):
     count: int = 3
 
 
+# HOW A POST IS MADE, AND THE WRITING PACKS (2026-10-16): the pipeline, the
+# rules the checker applies, and the packs Claude Code writes from. See
+# judge/blog_method.py. Preparing packs calls no model.
+
+
+@app.get("/blog-posts/method")
+def blog_posts_method() -> dict:
+    from judge import blog_method
+
+    out = blog_method.method()
+    try:
+        out["prompt"] = _blog_prompt_parts()
+    except Exception as e:  # noqa: BLE001 - the method still shows without the prompt
+        out["prompt"] = {"unreadable": _safe_detail(e)}
+    return out
+
+
+@app.get("/blog-posts/packs")
+def blog_posts_packs() -> dict:
+    from judge import blog_method
+
+    return {"packs": blog_method.packs(), "run": blog_method.pack_status()}
+
+
+@app.post("/blog-posts/packs")
+def blog_posts_start_packs(req: BlogGenerateRequest) -> dict:
+    from judge import blog_method
+
+    try:
+        return blog_method.start_pack(req.count)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+
 @app.post("/blog-posts/generate")
 def blog_posts_generate(req: BlogGenerateRequest) -> dict:
     """Start a background run that plans and writes `count` NEW drafts.
@@ -2734,6 +2770,9 @@ def blog_posts_generate(req: BlogGenerateRequest) -> dict:
     at a time. Returns at once; poll GET /blog-posts/generate for progress.
     The run is `generate_sample_blogs.py --plan N --status` - see
     `judge/blog_posts.py` for why it is a subprocess.
+
+    PAUSED WHILE CLAUDE CODE WRITES (blog_formats.yaml `writer`, 2026-10-16):
+    `start_generation` refuses with 409 before a run starts.
     """
     from judge import blog_posts, blog_runs
 

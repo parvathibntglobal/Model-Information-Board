@@ -190,3 +190,12 @@
   .lv-opts{grid-template-columns:1fr}
   .lv-row{flex-direction:column;align-items:flex-start}
 }
+
+/* Admin -> Blogs: how a post is made, and the writing packs (2026-10-16) */
+.bm-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px}
+.bm-steps li p{margin:2px 0;font-size:var(--fs-xs);color:var(--text-2);max-width:90ch;line-height:1.5}
+.bm-step-head{display:flex;gap:8px;align-items:center;font-size:var(--fs-sm)}
+.bm-where{font-size:10px}
+.bm-rules ul{margin:4px 0;padding-left:18px;font-size:var(--fs-xs);color:var(--text-2);line-height:1.55}
+.bm-rules b{font-size:var(--fs-sm)}
+.bm-packs{padding:12px 14px;border:1px solid var(--border-soft);border-radius:var(--r-control);background:var(--bg-elev)}

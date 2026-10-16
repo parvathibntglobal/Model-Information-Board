@@ -386,6 +386,11 @@ export const draftQuizQuestions = (topic) => request('/quiz-bank/draft', { metho
 export const reviewQuizQuestion = (id, decision, note) =>
   request('/quiz-bank/review', { method: 'POST', body: { id, decision, note: note || null } })
 
+// HOW A POST IS MADE, AND THE WRITING PACKS (judge/blog_method.py, 2026-10-16).
+export const blogMethod = () => request('/blog-posts/method')
+export const blogPacks = () => request('/blog-posts/packs')
+export const startBlogPacks = (count = 3) => request('/blog-posts/packs', { method: 'POST', body: { count } })
+
 export const reviewBlogPost = (slug, decision, reason) =>
   request('/blog-posts/review', { method: 'POST', body: { slug, decision, reason: reason || null } })
 

@@ -39,6 +39,23 @@
 #   opening    what the first section opens on, per format
 #   closing    what the last section is, per format; a last heading that is a
 #              choice ("which", "when to use", "should you") is refused
+# WHO WRITES THE DRAFTS (2026-10-16, anooj). The team's review found no
+# journalistic improvement in the OpenRouter drafts, so until the prompt is
+# tuned the blog makes NO OpenRouter call at all - neither the essay nor the
+# pictures.
+#
+#   claude-code   code selects the subject and documents and writes a WRITING
+#                 PACK (`--pack N`: the prompt, the sources, the fact sheet and
+#                 the rules, no model call); Claude Code (Opus 5.5) writes the
+#                 post from it; `--ingest KEY` runs every check the model path
+#                 runs and stores a passing post as a pending draft. A person
+#                 approves it in Admin -> Blogs, as before.
+#   openrouter    the original path: GEN_MODEL on OpenRouter writes and repairs.
+#
+# Required; anything else refuses (rule 12). The pictures need an OpenRouter
+# image model, so a claude-code post has none until that changes.
+writer: claude-code
+
 prose:
   sentence_median_max: 15
   sentence_max: 30

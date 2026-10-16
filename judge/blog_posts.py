@@ -160,6 +160,13 @@ def start_generation(count: int) -> dict:
         raise GenerationRefused(422, "count must be 1 to 5")
     if _proc is not None and _proc.poll() is None:
         raise GenerationRefused(409, "a generation run is already in progress")
+    # PAUSED WHILE CLAUDE CODE WRITES (blog_formats.yaml `writer`, 2026-10-16).
+    from judge.blog_method import writer
+
+    if writer() == "claude-code":
+        raise GenerationRefused(
+            409, "Blog drafts are written by Claude Code from writing packs until the prompt is "
+                 "tuned; no OpenRouter call is made. Prepare packs instead.")
     script = ROOT / "generate_sample_blogs.py"
     STATUS_FILE.parent.mkdir(exist_ok=True)
     now = datetime.now(UTC).isoformat(timespec="seconds")

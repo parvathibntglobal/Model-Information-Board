@@ -26,9 +26,14 @@ def main() -> int:
     formats = gen.load_formats()["formats"]
     fmt = formats[0]
     brief = gen.brief_for(fmt, "«subject»", "«model A»", "«model B»")
-    doc = {"text": "«one whole engineering discussion, as harvested»"}
+    # `source` IS REQUIRED since 2026-10-13: user_message marks each document
+    # embed-only or quotable by its platform. Without it this dump raised
+    # KeyError and the Prompts panel lost the blog prompt.
+    doc = {"text": "«one whole engineering discussion, as harvested»", "source": "devto"}
+    # WHO WRITES (blog_formats.yaml `writer`, 2026-10-16): the model name only
+    # while the OpenRouter path is the writer.
     out = {
-        "model": gen.GEN_MODEL,
+        "model": gen.GEN_MODEL if gen.writer() == "openrouter" else gen.CLAUDE_WRITER,
         "formats": [f["name"] for f in formats],
         "format": fmt["name"],
         "system": gen.system_for(fmt),

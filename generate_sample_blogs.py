@@ -3472,6 +3472,190 @@ def spend(record: dict) -> tuple[float | None, int, int]:
     return (reported if complete else None), tin, tout
 
 
+# ── writing packs: Claude Code writes, code checks (2026-10-16) ──────────────
+#
+# THE OPENROUTER DRAFTS ARE PAUSED (blog_formats.yaml `writer`). The team's
+# review found no journalistic improvement, so until the prompt is tuned a post
+# is written by Claude Code (Opus 5.5) from a WRITING PACK, and nothing here
+# calls a model:
+#
+#   --pack N      plan N posts exactly as --plan does (same planner, same
+#                 selection, same brief), and write each one's pack:
+#                 blog_packs/<key>/prompt.md   what the writer reads
+#                 blog_packs/<key>/pack.json   what --ingest checks against
+#   (Claude Code writes blog_packs/<key>/essay.json)
+#   --ingest KEY  run every check the model path runs, on that essay, and
+#                 store a passing post as a PENDING draft. A person approves it
+#                 in Admin -> Blogs, as before. A failing one writes
+#                 checks.txt beside it and stores nothing.
+#
+# THE CHECKS ARE THE SAME FUNCTION. `check(...)` is called with the arguments
+# `synthesise` passes it, so a hand-written post clears the same bar a model
+# draft did - verbatim fragments, embeds, voices, retrace, SEO, titles, prose.
+
+PACKS = ROOT / "blog_packs"
+CLAUDE_WRITER = "anthropic/claude-opus-5.5 (Claude Code)"
+
+
+def writer() -> str:
+    """blog_formats.yaml `writer`: 'claude-code' or 'openrouter'. No default."""
+    raw = yaml.safe_load(FORMATS_FILE.read_text(encoding="utf-8")) or {}
+    w = raw.get("writer")
+    if w not in ("claude-code", "openrouter"):
+        raise BuildError(f"blog_formats.yaml `writer` must be claude-code or openrouter, not {w!r}")
+    return w
+
+
+def _jsonable(x):
+    if isinstance(x, set):
+        return sorted(x)
+    if isinstance(x, dict):
+        return {k: _jsonable(v) for k, v in x.items() if not k.startswith("_")}
+    if isinstance(x, (list, tuple)):
+        return [_jsonable(v) for v in x]
+    return x
+
+
+def write_pack(post: dict, docs: list[dict], facts: list[dict]) -> Path:
+    d = PACKS / post["key"]
+    d.mkdir(parents=True, exist_ok=True)
+    pack = {
+        "written_for": CLAUDE_WRITER,
+        "created": datetime.now(UTC).isoformat(timespec="seconds"),
+        "post": _jsonable(post),
+        "docs": docs,
+        "facts": _jsonable(facts),
+    }
+    (d / "pack.json").write_text(json.dumps(pack, ensure_ascii=False, indent=1, default=str),
+                                 encoding="utf-8")
+    schema = json.dumps(post["tool"]["function"]["parameters"], ensure_ascii=False, indent=1)
+    prompt = "\n".join([
+        f"# Writing pack: {post['plan']['subject']} ({post['kicker']})",
+        "",
+        f"Plan key: `{post['plan']['plan_key']}`. Written for {CLAUDE_WRITER}.",
+        "",
+        "Write the post as `essay.json` in this folder: ONE JSON object that matches the schema at the",
+        f"end (the `{post['tool']['function']['name']}` tool's parameters). Then run",
+        f"`python generate_sample_blogs.py --ingest {post['key']}`. It runs every check a model draft",
+        "faces and stores a passing post as a pending draft for review in Admin -> Blogs.",
+        "",
+        "## System prompt",
+        "",
+        "```text",
+        post.get("system", SYSTEM),
+        "```",
+        "",
+        "## Brief, sources and fact sheet",
+        "",
+        "```text",
+        user_message(post, docs, facts),
+        "```",
+        "",
+        "## Output schema",
+        "",
+        "```json",
+        schema,
+        "```",
+        "",
+    ])
+    (d / "prompt.md").write_text(prompt, encoding="utf-8")
+    return d
+
+
+def run_pack(args, dsn, reader) -> None:
+    """Plan N posts and write their packs. Calls no model."""
+    with psycopg.connect(dsn, row_factory=dict_row, connect_timeout=20) as conn:
+        conn.read_only = True
+        inputs = plan_posts(conn.cursor(), reader, args.pack,
+                            only_format=args.format, only_subject=args.subject)
+        trending = trending_terms(conn.cursor())
+    if not inputs:
+        raise BuildError("the planner found nothing left to write on this machine")
+    existing = []
+    for f in sorted(POSTS_OUT.glob("*.json")):
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            existing.append((d["slug"], d["title"]))
+        except (OSError, json.JSONDecodeError, KeyError):
+            continue
+    taken = existing_headings()
+    for post, docs, skipped, facts in inputs:
+        # THE SAME BRIEF the model path builds in run_plan, so a pack asks for
+        # exactly what a model draft was asked for.
+        post["rules"]["taken_headings"] = set(taken)
+        add_search_and_experience(post, trending)
+        others = [t for k, t in existing if k != post["key"]]
+        post["rules"]["taken_titles"] = others
+        post["rules"]["title_names"] = ((post.get("seo") or {}).get("subject")
+                                        or post["rules"].get("pick_names") or [])
+        if others:
+            post["brief"] += "\nTITLES ALREADY USED (yours must not echo their wording or shape): " + "; ".join(others)
+        if taken:
+            post["brief"] += "\nHEADINGS ALREADY USED (do not reuse any): " + "; ".join(sorted(taken))
+        d = write_pack(post, docs, facts)
+        print(f"  pack {d.relative_to(ROOT)}  ({len(docs)} documents; skipped {len(skipped)})", flush=True)
+
+
+def ingest(key: str, dsn: str) -> None:
+    """Check a Claude-written essay against its pack; store it if it passes."""
+    d = PACKS / key
+    pack = json.loads((d / "pack.json").read_text(encoding="utf-8"))
+    post, docs, facts = pack["post"], pack["docs"], pack["facts"]
+    rules = post.get("rules") or {}
+    if isinstance(rules.get("taken_headings"), list):
+        rules["taken_headings"] = set(rules["taken_headings"])
+    essay_path = d / "essay.json"
+    if not essay_path.exists():
+        raise BuildError(f"{essay_path.relative_to(ROOT)} does not exist - write the post first")
+    try:
+        essay = json.loads(essay_path.read_text(encoding="utf-8"))
+        if not isinstance(essay, dict):
+            raise json.JSONDecodeError("not an object", "", 0)
+        context = "\n".join(x["text"] for x in docs) + "\n" + fact_lines(facts)
+        violations = check(essay, context, rules, post.get("experience_text", ""), post.get("seo"),
+                           [x["text"] for x in docs] if post.get("names") else None,
+                           [x["source"] for x in docs] if post.get("names") else None,
+                           tuple(post.get("embed_only") or ()))
+    except json.JSONDecodeError as e:
+        essay, violations = None, [f"essay.json is not a JSON object: {e}"]
+    gate = [x for x in violations if not is_style(x)]
+    style = [x for x in violations if is_style(x)]
+    (d / "checks.txt").write_text(
+        f"{len(gate)} blocking, {len(style)} style\n\nBLOCKING\n" + "\n".join(f"- {x}" for x in gate)
+        + "\n\nSTYLE (recorded, not blocking)\n" + "\n".join(f"- {x}" for x in style) + "\n",
+        encoding="utf-8")
+    print(f"[{key}] {len(gate)} blocking, {len(style)} style violation(s); see "
+          f"{(d / 'checks.txt').relative_to(ROOT)}", flush=True)
+    if gate:
+        raise BuildError(f"{key}: {len(gate)} blocking violation(s); fix essay.json and ingest again")
+    rec = {"post": key, "requested_model": CLAUDE_WRITER,
+           "started": datetime.now(UTC).isoformat(timespec="seconds"),
+           "documents": [{k: x[k] for k in ("thread_context_id", "source", "chars", "truncated", "why")
+                          if k in x} for x in docs],
+           "facts": [f.get("canonical_id") for f in facts],
+           "attempts": [{"served": CLAUDE_WRITER, "provider": "Claude Code", "generation_id": None,
+                         "unwrapped": False, "usage": None, "violations": violations,
+                         "rhythm_cv": rhythm_cv(essay), "essay": essay, "raw": None}],
+           "passed": True, "essay": essay, "style_notes": style, "plan": post.get("plan")}
+    save(rec)
+    post["_illustrations"] = []  # the picture model is an OpenRouter call: none while paused
+    existing = []
+    for f in sorted(POSTS_OUT.glob("*.json")):
+        try:
+            existing.append((json.loads(f.read_text(encoding="utf-8"))["slug"], ""))
+        except (OSError, json.JSONDecodeError, KeyError):
+            continue
+    mins = max(1, math.ceil(reading_words(essay) / 230))
+    out = export_post(post, essay, docs, facts, rec, mins, existing[-3:])
+    from judge import blog_store
+
+    with psycopg.connect(dsn, connect_timeout=20) as conn:
+        stored = blog_store.store_drafts(conn, [json.loads(out.read_text(encoding="utf-8"))])
+        conn.commit()
+    print(f"[{key}] wrote {out.relative_to(ROOT)}; store: "
+          + ", ".join(f"{k} {len(v)}" for k, v in stored.items()), flush=True)
+
+
 def main() -> None:
     global GEN_MODEL
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -3489,14 +3673,36 @@ def main() -> None:
     ap.add_argument("--format", help="with --plan: only this format key (e.g. head-to-head)")
     ap.add_argument("--subject", help="with --plan: only this subject, e.g. "
                                       "anthropic/claude-opus-5+openai/gpt-5.6-sol - regenerates it if written")
+    ap.add_argument("--pack", type=int, metavar="N",
+                    help="plan N posts and write their WRITING PACKS for Claude Code; no model call")
+    ap.add_argument("--ingest", metavar="KEY",
+                    help="check blog_packs/KEY/essay.json and store it as a pending draft if it passes")
     ap.add_argument("--status", action="store_true",
                     help="with --plan: keep _blog_synthesis/_ui_status.json current (the Blogs page polls it)")
     args = ap.parse_args()
     _ui["on"] = bool(args.status)
     GEN_MODEL = args.model
-    print(f"generation model: {GEN_MODEL}", flush=True)
     os.chdir(ROOT)
     E = env()
+    # PACKS AND INGEST USE THIS BACKEND'S OWN DATABASE (2026-10-16): the pack is
+    # reviewed and stored where Admin -> Blogs reads, and they need no model.
+    if args.pack is not None or args.ingest:
+        local = E.get("DATABASE_URL")
+        if not local:
+            raise BuildError("DATABASE_URL is not set; packs and ingest read and store there")
+        if args.ingest:
+            ingest(args.ingest, local)
+            return
+        if not 1 <= args.pack <= 5:
+            raise BuildError("--pack takes 1 to 5")
+        run_pack(args, local, RawStoreReader(RawStore(E.get("RAW_STORE_PATH") or "./raw_store")))
+        return
+    # THE MODEL PATH IS PAUSED while blog_formats.yaml says claude-code. --reuse,
+    # --recheck and a dry plan call no model and stay available.
+    if writer() == "claude-code" and not (args.reuse or args.recheck or args.dry_run):
+        raise BuildError("blog_formats.yaml `writer` is claude-code: no OpenRouter call is made. "
+                         "Use --pack N to prepare writing packs for Claude Code.")
+    print(f"generation model: {GEN_MODEL}", flush=True)
     dsn = E.get("STAGING_DATABASE_URL") or E.get("DATABASE_URL")
     if not dsn:
         raise BuildError("no STAGING_DATABASE_URL / DATABASE_URL in .env")

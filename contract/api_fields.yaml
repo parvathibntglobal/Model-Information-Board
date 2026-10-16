@@ -392,6 +392,11 @@ fields:
     - /admin/stages
     - /fetch/stop
     state: consumed
+  packs:
+    reviewed: false
+    routes:
+    - /blog-posts/packs
+    state: consumed
   page:
     reviewed: false
     routes:
@@ -549,6 +554,11 @@ fields:
     reviewed: false
     routes:
     - /admin/board-entries/rule
+    state: consumed
+  run:
+    reviewed: false
+    routes:
+    - /blog-posts/packs
     state: consumed
   run_id:
     reviewed: false
