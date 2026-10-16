@@ -1123,6 +1123,28 @@ const LIVE = [
   ['live:answers', 'What each model supports', 'Advertised features beside what engineers report.', 'Reference'],
   ['live:glossary', 'Glossary', 'What each capability and job means, in plain words.', 'Reference'],
 ];
+// A POST'S PICTURE, OR NOTHING. An AI picture is an inline JPEG/PNG/WebP; a
+// FIGURE DRAWN FOR THE POST (2026-10-16) is an inline SVG, shown through <img>
+// so it can run no script. Any other src draws nothing - never a placeholder.
+function pictureSrc(v){
+  const src = String((v && v.src) || '');
+  const ok = v && v.kind === 'figure'
+    ? /^data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+$/.test(src)
+    : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src);
+  return ok ? src : '';
+}
+function coverOf(p){
+  if(p.cover && pictureSrc(p.cover)) return p.cover;
+  const b = (p.body || []).find(x => x[0] === 'image' && pictureSrc(x[1]));
+  return b ? b[1] : null;
+}
+
+// THE BLOGS LANDING, LAID OUT LIKE A RESEARCH BLOG (2026-10-16, team ask:
+// "like bair.berkeley.edu/blog - the design with pictures, not the content").
+// One centred column, newest first: the title, a byline with the format, date
+// and reading time, the post's own picture full width, the dek, and a link on.
+// Ten to a page. A post with no picture shows none - nothing stands in.
+const BLOGS_PER_PAGE = 10;
 function vBlogs(){
   const meta = DB.postsMeta || { reason: null, skipped: [] };
   // THREE STATES (rule 4): drafts, a configured backend with none, and a
@@ -1133,29 +1155,44 @@ function vBlogs(){
   const skipped = (meta.skipped || []).length
     ? `<p class="es-empty">Could not be read: ${
         meta.skipped.map(x=>`${esc(x.file)} (${esc(x.why)})`).join('; ')}</p>` : '';
-  const cards = DB.posts.map(p=>`<a class="es-card${layoutOf(p)?` lay-${layoutOf(p)}`:''}" ${goAttrs(`post:${p.slug}`)}>
-      <div class="es-kicker">${esc(p.kicker||p.tag)}${reviewOf(p)!=='approved'?' · draft':''}</div>
-      <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p>
-      <div class="es-tags">${(p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('')}</div>
-      <div class="es-sum">${essayText(p.lead)}</div>
-      <div class="es-meta"><span>${p.read?`${esc(p.read)} min read`:''}</span><span>${esc((p.meta||[])[0]||'')}</span></div>
-    </a>`).join('');
+  const when = p => String(((p.provenance || {}).generated_at) || '');
+  const all = [...DB.posts].sort((a, b) => when(b).localeCompare(when(a)) || String(a.title).localeCompare(String(b.title)));
+  const pages = Math.max(1, Math.ceil(all.length / BLOGS_PER_PAGE));
+  let page = 1;
+  try { page = Math.min(pages, Math.max(1, parseInt(new URLSearchParams(location.search).get('page') || '1', 10) || 1)); } catch { page = 1; }
+  const shown = all.slice((page - 1) * BLOGS_PER_PAGE, page * BLOGS_PER_PAGE);
+  const cards = shown.map(p => {
+    const c = coverOf(p);
+    const draft = reviewOf(p) !== 'approved' ? '<span class="bl-draft">draft</span>' : '';
+    return `<article class="bl-post">
+      <h2 class="bl-title"><a ${goAttrs(`post:${p.slug}`)}>${esc(p.title)}</a></h2>
+      <div class="bl-by"><span class="bl-kind">${esc(p.kicker || p.tag)}</span><span>${esc((p.meta || [])[0] || '')}</span>${
+        p.read ? `<span>${esc(p.read)} min read</span>` : ''}${draft}</div>
+      ${c ? `<a class="bl-fig${c.kind === 'figure' ? ' drawn' : ''}" ${goAttrs(`post:${p.slug}`)}><img src="${pictureSrc(c)}" alt="${esc(c.alt || '')}" loading="lazy" decoding="async"></a>` : ''}
+      <p class="bl-ex">${esc(p.dek || '')}</p>
+      <a class="bl-more" ${goAttrs(`post:${p.slug}`)}>Continue reading &rarr;</a>
+    </article>`;
+  }).join('');
+  const pager = pages > 1 ? `<nav class="bl-pager" aria-label="More posts">${
+    page > 1 ? `<a href="/blogs${page - 1 > 1 ? `?page=${page - 1}` : ''}">&larr; Newer</a>` : '<span></span>'}<span class="bl-pg">Page ${page} of ${pages}</span>${
+    page < pages ? `<a href="/blogs?page=${page + 1}">Older &rarr;</a>` : '<span></span>'}</nav>` : '';
   return `<div class="essay"><div class="es-wrap">
     <header class="es-hub"><span class="go-badge go-blogs page-tag">Blogs</span>
       <h1>How AI models behave in production</h1>
       <p class="es-dek">Long-form engineering essays on running frontier models in real systems — the failure
       modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>
-    <nav class="lv-explore lv-in-essay" aria-label="Live pages">${LIVE.map(([go, t, d, k]) =>
-      `<a class="lv-tile"${goAttrs(go)}><span class="lv-kicker">${k}</span><b>${t}</b><span>${d}</span></a>`).join('')}</nav>
     ${DB.posts.length ? `<div class="es-draft">${DB.posts.every(x=>reviewOf(x)==='approved')
       ? '<b>Approved by the team, not yet published outside it.</b>'
-      : '<b>Drafts for team review.</b>'} Written by a language model from
-      engineers' public reports and checked in code — every quote is matched against its source text and every
-      figure against the source or the price registry.${DB.posts.every(x=>reviewOf(x)==='approved')
+      : '<b>Drafts for team review.</b>'} Written by a language model - since 16 October 2026 by Claude Code -
+      from engineers' public reports and published research, and checked in code: every quote is matched against
+      its source text, and every figure against the source or the price registry. Pictures are labelled with how
+      they were made.${DB.posts.every(x=>reviewOf(x)==='approved')
       ? ' A person on the team read each post and approved it before it appeared here.'
       : ' Posts marked draft have not been approved by a person yet.'}</div>
-      <div class="es-cards">${cards}</div>` : empty}
+      <div class="bl-list">${cards}</div>${pager}` : empty}
     ${skipped}
+    <nav class="lv-explore lv-in-essay" aria-label="Live pages">${LIVE.map(([go, t, d, k]) =>
+      `<a class="lv-tile"${goAttrs(go)}><span class="lv-kicker">${k}</span><b>${t}</b><span>${d}</span></a>`).join('')}</nav>
   </div></div>`;
 }
 
@@ -1275,10 +1312,11 @@ function essayBlock([t,v]){
   // A GENERATED PICTURE (generator, 2026-10-13): always labelled as AI-made,
   // and only ever an inline JPEG/PNG/WebP - any other src is not drawn.
   if(t==='image'){
-    const src = String((v && v.src) || '');
-    if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src)) return '';
-    return `<figure class="es-fig es-fig-image${v.cover ? ' es-cover' : ''}"><img src="${src}" alt="${esc(v.alt || '')}" loading="lazy" decoding="async">
-      <figcaption>${v.caption ? `${essayText(v.caption)} ` : ''}<span class="es-ai">AI-generated illustration</span></figcaption></figure>`;
+    const src = pictureSrc(v);
+    if(!src) return '';
+    const fig = v.kind === 'figure';
+    return `<figure class="es-fig es-fig-image${fig ? ' es-drawn' : ''}${v.cover ? ' es-cover' : ''}"><img src="${src}" alt="${esc(v.alt || '')}" loading="lazy" decoding="async">
+      <figcaption>${v.caption ? `${essayText(v.caption)} ` : ''}<span class="es-ai">${fig ? 'Figure drawn by Claude Code for this post' : 'AI-generated illustration'}</span></figcaption></figure>`;
   }
   // EVERY PARAGRAPH IN FULL (2026-10-13). Skim mode showed one line per
   // paragraph by default and read as an incomplete post, so it is gone. Posts

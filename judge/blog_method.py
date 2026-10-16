@@ -71,8 +71,10 @@ STAGES = [
     {"step": "Write the post",
      "who": "writer",
      "what": "From the writing pack: the system prompt, the brief, the full source texts and the "
-             "output schema.",
-     "where": "blog_packs/<key>/prompt.md -> essay.json"},
+             "output schema. A topic post's writer also draws its figures - a cover and "
+             "diagrams of what the post explains - as SVG files beside the essay; no image "
+             "model is called.",
+     "where": "blog_packs/<key>/prompt.md -> essay.json, fig-*.svg"},
     {"step": "Check it",
      "who": "code",
      "what": "Every rule below, by the same function a model draft faced. Any blocking violation "
@@ -118,8 +120,10 @@ RULES = [
          "The format's structured block (findings, picks, cost drivers, runbook, layers, claims "
          "or probes), code examples within its bounds, a 3-question FAQ.",
          "Illustration scenes with no text, numbers, logos, product names or real people.",
+         "Drawn figures: one cover plus figures in sections; plain SVG only (no script, no "
+         "link out, no embedded image); every number drawn appears in a source.",
      ],
-     "where": "check, illustration_violations"},
+     "where": "check, illustration_violations, figure_violations, svg_problems"},
     {"group": "Writing",
      "items": [
          "Sentence length and rhythm limits; banned stock phrases; capped words.",

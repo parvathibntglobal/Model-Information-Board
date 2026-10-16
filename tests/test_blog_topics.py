@@ -83,8 +83,14 @@ def _item(conn, iid, title, days_ago, summary=None):
     conn.execute(
         "INSERT INTO topic_item (id, source, kind, title, summary, url, published_at, topics) "
         "VALUES (%s, 'arxiv', 'paper', %s, %s, %s, %s, %s)",
-        (iid, title, summary, f"https://arxiv.org/abs/{iid}", NOW - timedelta(days=days_ago),
-         topics.match(title, summary)),
+        (
+            iid,
+            title,
+            summary,
+            f"https://arxiv.org/abs/{iid}",
+            NOW - timedelta(days=days_ago),
+            topics.match(title, summary),
+        ),
     )
 
 
@@ -138,8 +144,15 @@ def _src(conn, iid, source, title, days_ago):
     conn.execute(
         "INSERT INTO topic_item (id, source, kind, title, url, published_at, topics) "
         "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-        (iid, source, "paper" if source == "arxiv" else "post", title, f"https://example.org/{iid}",
-         NOW - timedelta(days=days_ago), topics.match(title)),
+        (
+            iid,
+            source,
+            "paper" if source == "arxiv" else "post",
+            title,
+            f"https://example.org/{iid}",
+            NOW - timedelta(days=days_ago),
+            topics.match(title),
+        ),
     )
 
 
@@ -263,3 +276,98 @@ def test_export_links_a_special_item_to_its_source():
     sp = g._export_special(post, essay, lambda t: t, docs)
     ref = {"title": "Paper one", "url": "https://arxiv.org/abs/1", "platform": "arXiv"}
     assert sp["items"][0]["ref"] == ref
+
+
+# ── figures drawn for the post (2026-10-16) ───────────────────────────────
+
+_OK_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><radialGradient id="g"/>'
+    '</defs><rect width="1200" height="630" fill="url(#g)"/><text x="9" y="40">reward <tspan>lands'
+    "</tspan></text></svg>"
+)
+
+
+@pytest.mark.parametrize(
+    "bad, why",
+    [
+        (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><script>x</script></svg>',
+            "<script>",
+        ),
+        (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect onload="x()"/></svg>',
+            "event handler",
+        ),
+        (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><use href="https://e.org/a#b"/></svg>',
+            "links out",
+        ),
+        (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect fill="url(https://e.org/x)"/></svg>',
+            "url()",
+        ),
+        (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><image href="#a"/></svg>',
+            "<image>",
+        ),
+        (
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><style>*{}</style></svg>',
+            "<style>",
+        ),
+        ('<svg xmlns="http://www.w3.org/2000/svg"/>', "viewBox"),
+        ("<!DOCTYPE svg><svg/>", "DOCTYPE"),
+        ("<svg", "well-formed"),
+    ],
+)
+def test_a_figure_is_only_a_drawing(bad, why):
+    probs, _ = _gsb().svg_problems(bad)
+    assert any(why in p for p in probs), probs
+
+
+def test_a_clean_figure_passes_and_its_words_are_read():
+    probs, words = _gsb().svg_problems(_OK_SVG)
+    assert probs == [] and words == "reward lands"
+
+
+def test_a_number_drawn_in_a_figure_is_checked_like_prose(tmp_path):
+    g = _gsb()
+    (tmp_path / "fig-cover.svg").write_text(
+        _OK_SVG.replace("reward", "reward 97%"), encoding="utf-8"
+    )
+    essay = {
+        "figures": [
+            {"file": "fig-cover.svg", "section": 0, "cover": True, "alt": "a", "caption": "c"}
+        ]
+    }
+    g.attach_figures(essay, tmp_path)
+    assert dict(g.prose_fields(essay))["figures[0].svg"] == "reward 97% lands"
+
+
+def test_figures_need_one_cover_and_their_own_sections(tmp_path):
+    g = _gsb()
+    for n in ("cover", "a", "b"):
+        (tmp_path / f"fig-{n}.svg").write_text(_OK_SVG, encoding="utf-8")
+    fig = lambda f, s, c=False: {"file": f, "section": s, "cover": c, "alt": "x", "caption": "y"}  # noqa: E731
+    good = {"figures": [fig("fig-cover.svg", 0, True), fig("fig-a.svg", 1), fig("fig-b.svg", 2)]}
+    g.attach_figures(good, tmp_path)
+    assert g.figure_violations(good, 5, (2, 3)) == []
+    twice = {"figures": [fig("fig-cover.svg", 0, True), fig("fig-a.svg", 1), fig("fig-b.svg", 1)]}
+    g.attach_figures(twice, tmp_path)
+    assert any("one figure per section" in x for x in g.figure_violations(twice, 5, (2, 3)))
+    missing = {
+        "figures": [fig("fig-cover.svg", 0, True), fig("fig-a.svg", 1), fig("fig-zz.svg", 2)]
+    }
+    g.attach_figures(missing, tmp_path)
+    assert any("no file" in x for x in g.figure_violations(missing, 5, (2, 3)))
+
+
+def test_topic_formats_ask_for_figures_not_generated_pictures():
+    g = _gsb()
+    for f in g.load_formats()["formats"]:
+        if f["subject"] != "concept":
+            continue
+        params = g.tool_for(f)["function"]["parameters"]
+        assert "figures" in params["required"] and "illustrations" not in params["properties"], f[
+            "key"
+        ]
+        assert "FIGURES:" in g.system_for(f) and "ILLUSTRATIONS:" not in g.system_for(f), f["key"]

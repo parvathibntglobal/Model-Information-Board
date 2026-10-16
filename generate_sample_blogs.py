@@ -1071,6 +1071,13 @@ def prose_fields(essay: dict):
     for i, il in enumerate(essay.get("illustrations") or []):
         yield f"illustrations[{i}].caption", (il or {}).get("caption", "")
         yield f"illustrations[{i}].alt", (il or {}).get("alt", "")
+    for i, fg in enumerate(essay.get("figures") or []):
+        fg = fg if isinstance(fg, dict) else {}
+        yield f"figures[{i}].caption", fg.get("caption", "")
+        yield f"figures[{i}].alt", fg.get("alt", "")
+        # THE WORDS DRAWN IN THE FIGURE are checked like any sentence: a number
+        # in a label must be in a source, exactly as in a paragraph.
+        yield f"figures[{i}].svg", fg.get("_words", "")
     for i, qa in enumerate(essay.get("faq") or []):
         yield f"faq[{i}].question", (qa or {}).get("question", "")
         yield f"faq[{i}].answer", (qa or {}).get("answer", "")
@@ -1241,7 +1248,10 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
         v += title_violations(essay.get("title", ""), rules)
     if "visuals" in rules:
         v += visual_violations(essay, rules["visuals"], ctx_nums)
-        v += illustration_violations(essay, len(essay.get("sections") or []))
+        if rules.get("figures"):
+            v += figure_violations(essay, len(essay.get("sections") or []), tuple(rules["figures"]))
+        else:
+            v += illustration_violations(essay, len(essay.get("sections") or []))
     if seo:
         v += seo_violations(essay, seo)
     if doc_texts:
@@ -1441,6 +1451,129 @@ def scene_shows(scene: str) -> str:
         i = j
     out.append(scene[i:])
     return " ".join(out)
+
+
+# ── FIGURES DRAWN FOR THE POST (2026-10-16) ──────────────────────────────────
+#
+# Team ask: pictures that show what the article is actually about, not the
+# generic scenes the image model drew. While blogs make no OpenRouter call
+# there is no image model, so the WRITER draws each figure as an SVG file in
+# its pack (blog_packs/<key>/fig-*.svg): a cover and diagrams of the mechanism
+# the post explains. Code checks every figure the way it checks prose - its
+# words and numbers are prose fields (every digit must be in a source) - and
+# refuses anything an SVG could use to run code or fetch from elsewhere. The
+# page shows them as <img> (an image-context SVG runs no script), labelled as
+# drawn for the post.
+
+FIGURE_FILE = re.compile(r"^fig-[a-z0-9-]{1,40}\.svg$")
+FIGURE_MAX_BYTES = 80_000
+FIGURE_MODEL = "Claude Code (figure drawn as SVG)"
+_SVG_NS = "{http://www.w3.org/2000/svg}"
+_SVG_TAGS = frozenset({
+    "svg", "g", "defs", "title", "desc", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
+    "text", "tspan", "linearGradient", "radialGradient", "stop", "marker", "clipPath", "mask", "pattern",
+    "use", "symbol",
+})
+
+
+def svg_problems(svg: str) -> tuple[list[str], str]:
+    """(problems, the figure's visible words). An SVG is accepted only as a
+    drawing: known shape and text elements, no script, no event handler, no
+    embedded document or image, no link out of the file."""
+    import xml.etree.ElementTree as ET
+
+    if len(svg.encode("utf-8")) > FIGURE_MAX_BYTES:
+        return [f"is {len(svg.encode('utf-8')):,} bytes; keep a figure under {FIGURE_MAX_BYTES:,}"], ""
+    if re.search(r"<!DOCTYPE|<!ENTITY", svg, re.I):
+        return ["declares a DOCTYPE or ENTITY; a figure needs neither"], ""
+    try:
+        root = ET.fromstring(svg)
+    except ET.ParseError as e:
+        return [f"is not well-formed XML: {e}"], ""
+    out, words = [], []
+    if root.tag not in (f"{_SVG_NS}svg", "svg"):
+        out.append("the root element must be <svg> in the SVG namespace")
+    if not root.get("viewBox"):
+        out.append("the <svg> needs a viewBox, so it scales to the page")
+    for el in root.iter():
+        tag = el.tag.split("}", 1)[-1]
+        if tag not in _SVG_TAGS:
+            out.append(f"<{tag}> is not allowed in a figure")
+        for k, val in el.attrib.items():
+            name = k.split("}", 1)[-1].lower()
+            if name.startswith("on"):
+                out.append(f"<{tag}> has an event handler ({name})")
+            if name == "href" and not str(val).startswith("#"):
+                out.append(f"<{tag}> links out of the file ({val[:40]!r}); only '#id' references")
+            for ref in re.findall(r"url\(\s*([^)]*)\)", str(val)):
+                if not ref.strip("'\" ").startswith("#"):
+                    out.append(f"<{tag}> {name} points a url() outside the file")
+        # THE WORDS A READER SEES: every <text> element whole (its <tspan>s
+        # included), plus <title> and <desc>, which screen readers announce.
+        if tag in ("text", "title", "desc"):
+            words.append(" ".join("".join(el.itertext()).split()))
+    return sorted(set(out)), " ".join(w for w in words if w)
+
+
+def figure_violations(essay: dict, n_sections: int, span: tuple) -> list[str]:
+    """One cover (section 0, cover true) and `span` figures in sections, at most
+    one per section; each loaded and clean (attach_figures did the loading)."""
+    v: list[str] = []
+    figs = [f for f in essay.get("figures") or [] if isinstance(f, dict)]
+    covers = [f for f in figs if f.get("cover")]
+    inner = [f for f in figs if not f.get("cover")]
+    if len(covers) != 1:
+        v.append(f"figures: exactly 1 cover (cover: true), has {len(covers)}")
+    elif covers[0].get("section") != 0:
+        v.append("figures: the cover's section must be 0")
+    lo, hi = span
+    if not lo <= len(inner) <= hi:
+        v.append(f"figures: {lo} to {hi} figures inside sections besides the cover, has {len(inner)}")
+    secs = [f.get("section") for f in inner]
+    for i, f in enumerate(figs):
+        sec = f.get("section")
+        if not isinstance(sec, int) or isinstance(sec, bool) or not 0 <= sec < max(1, n_sections):
+            v.append(f"figures[{i}].section: must be a section index from 0 to {n_sections - 1}, not {sec!r}")
+        if not FIGURE_FILE.match(str(f.get("file") or "")):
+            v.append(f"figures[{i}].file: name it fig-<something>.svg, not {f.get('file')!r}")
+        for k in ("alt", "caption"):
+            if not str(f.get(k) or "").strip():
+                v.append(f"figures[{i}].{k}: empty")
+        if len(str(f.get("alt") or "")) > 125:
+            v.append(f"figures[{i}].alt: at most 125 characters")
+        for prob in f.get("_problems") or []:
+            v.append(f"figures[{i}] ({f.get('file')}): {prob}")
+    if len(set(secs)) != len(secs):
+        v.append("figures: at most one figure per section besides the cover")
+    return v
+
+
+def attach_figures(essay: dict, pack_dir: Path) -> None:
+    """Load each figure's SVG from the pack into the essay (`_svg`, `_words`,
+    `_problems`) so check() can read it. Leading underscores never export."""
+    for f in essay.get("figures") or []:
+        if not isinstance(f, dict):
+            continue
+        name = str(f.get("file") or "")
+        path = pack_dir / name
+        if not FIGURE_FILE.match(name) or not path.is_file():
+            f["_problems"] = [f"no file {name!r} in the pack"]
+            continue
+        svg = path.read_text(encoding="utf-8")
+        f["_svg"] = svg
+        f["_problems"], f["_words"] = svg_problems(svg)
+
+
+def figure_illustrations(essay: dict) -> list[dict]:
+    """The checked figures in the shape export_post places pictures in."""
+    import base64
+
+    out = []
+    for f in essay.get("figures") or []:
+        src = "data:image/svg+xml;base64," + base64.b64encode(f["_svg"].encode("utf-8")).decode("ascii")
+        out.append({"section": f["section"], "src": src, "alt": f["alt"], "caption": f["caption"],
+                    "model": FIGURE_MODEL, "cover": bool(f.get("cover")), "kind": "figure"})
+    return out
 
 
 def illustration_violations(essay: dict, n_sections: int) -> list[str]:
@@ -2817,7 +2950,8 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
     # never a placeholder (rule 6); the page then draws none.
     first = next((c for c in post.get("_illustrations") or [] if c.get("cover")), None)
     cover = ({"cover": {"src": first["src"], "alt": first["alt"], "caption": first["caption"],
-                        "generated_by": first["model"], "cut": first.get("cut")}} if first else {})
+                        "generated_by": first["model"], "cut": first.get("cut"),
+                        "kind": first.get("kind", "illustration")}} if first else {})
     body: list[list] = []
     for n, s in enumerate(essay["sections"], 1):
         body.append(["h2", {"text": s["heading"], "num": f"{n:02d}", "id": slug(s["heading"])}])
@@ -2829,7 +2963,8 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         for il in post.get("_illustrations") or []:
             if il["section"] == n - 1 and not il.get("cover"):
                 paras.insert(1, ["image", {"src": il["src"], "alt": il["alt"], "caption": il["caption"],
-                                           "generated_by": il["model"], "cut": il.get("cut")}])
+                                           "generated_by": il["model"], "cut": il.get("cut"),
+                                           "kind": il.get("kind", "illustration")}])
         if s.get("pull_quote"):
             paras.insert(min(2, len(paras)), ["quote", verified(s["pull_quote"])])
         body += paras
@@ -3194,6 +3329,16 @@ def system_for(fmt: dict) -> str:
              "developer comparing two diverging paths). The picture carries NO text, numbers, logos, brand or "
              "product names, real people, screenshots, dashboards or charts - data belongs in the visuals, "
              "never in a generated picture."]
+    if b.get("figures"):
+        flo, fhi = b["figures"]
+        lines = [x for x in lines if not x.startswith("- ILLUSTRATIONS:")]
+        lines.append(
+            f"- FIGURES: draw 1 COVER and {flo} to {fhi} figures inside sections, each an SVG file in the pack "
+            "folder, listed in `figures`. Each shows what THIS post explains - the mechanism, the data flow, the "
+            "architecture, the trade-off, the failure - never a generic scene. The cover is the post's central "
+            "idea as one strong picture. Short labels only; every number drawn must appear in a source; no "
+            "logos, real people or product screenshots. A figure that plots quantities uses only sourced "
+            "values. Plain SVG shapes and text: no script, no external link, no embedded image.")
     lines.append(f"- {clo} to {chi} code or configuration examples, attached to the section they belong to."
                  if chi else "- No code examples.")
     if b["matrix"]:
@@ -3215,6 +3360,20 @@ def tool_for(fmt: dict) -> dict:
             params["required"].remove(field)
     if not fmt["blocks"]["code"][1]:
         params["properties"]["sections"]["items"]["properties"].pop("code")
+    if fmt["blocks"].get("figures"):
+        lo, hi = fmt["blocks"]["figures"]
+        params["properties"].pop("illustrations", None)
+        params["properties"]["figures"] = {
+            "type": "array",
+            "description": f"1 cover plus {lo} to {hi} figures inside sections. Each is an SVG file you write in "
+                           "this pack's folder; this lists them.",
+            "items": {"type": "object", "required": ["file", "section", "cover", "alt", "caption"], "properties": {
+                "file": {"type": "string", "description": "fig-<name>.svg, in this pack's folder."},
+                "section": {"type": "integer", "description": "0-based section it belongs to; the cover is 0."},
+                "cover": {"type": "boolean", "description": "true for exactly one figure: the post's cover."},
+                "alt": {"type": "string", "description": "What the figure shows, at most 125 characters."},
+                "caption": {"type": "string", "description": "One sentence tying it to the text."}}}}
+        params["required"].append("figures")
     sp = SPECIALS[fmt["special"]]
     params["properties"][fmt["special"]] = {
         "type": "array", "description": sp["ask"],
@@ -3233,6 +3392,7 @@ def rules_for(fmt: dict, a: str = "", b: str = "") -> dict:
             "special": fmt["special"], "pick_names": [x for x in (a, b) if x],
             "visuals": tuple(fmt["blocks"]["visuals"]),
             "voices": fmt["blocks"]["voices"], "retrace": fmt["blocks"]["retrace"],
+            "figures": tuple(fmt["blocks"]["figures"]) if fmt["blocks"].get("figures") else None,
             "prose": fmt["prose"],
             # Filled per post by run_plan: every heading other posts already use.
             "taken_headings": set(),
@@ -3810,6 +3970,7 @@ def ingest(key: str, dsn: str) -> None:
         if not isinstance(essay, dict):
             raise json.JSONDecodeError("not an object", "", 0)
         context = "\n".join(x["text"] for x in docs) + "\n" + fact_lines(facts)
+        attach_figures(essay, d)
         violations = check(essay, context, rules, post.get("experience_text", ""), post.get("seo"),
                            [x["text"] for x in docs] if post.get("names") else None,
                            [x["source"] for x in docs] if post.get("names") else None,
@@ -3834,10 +3995,12 @@ def ingest(key: str, dsn: str) -> None:
            "facts": [f.get("canonical_id") for f in facts],
            "attempts": [{"served": CLAUDE_WRITER, "provider": "Claude Code", "generation_id": None,
                          "unwrapped": False, "usage": None, "violations": violations,
-                         "rhythm_cv": rhythm_cv(essay), "essay": essay, "raw": None}],
-           "passed": True, "essay": essay, "style_notes": style, "plan": post.get("plan")}
+                         "rhythm_cv": rhythm_cv(essay), "essay": _jsonable(essay), "raw": None}],
+           "passed": True, "essay": _jsonable(essay), "style_notes": style, "plan": post.get("plan")}
     save(rec)
-    post["_illustrations"] = []  # the picture model is an OpenRouter call: none while paused
+    # THE PICTURE MODEL IS AN OPENROUTER CALL, paused with the rest; a format
+    # that draws figures brings its own, checked above.
+    post["_illustrations"] = figure_illustrations(essay) if (rules.get("figures")) else []
     existing = []
     for f in sorted(POSTS_OUT.glob("*.json")):
         try:
@@ -3898,8 +4061,13 @@ def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dic
         return (3 * len(rx.findall(title)) + min(len(rx.findall(summary)), 3)
                 + (2 if focus.search(f"{title} {summary}") else 0))
 
-    # Stable: equal relevance keeps sources()' newest-first order.
-    ranked = sorted(topics.sources(conn, key), key=lambda it: -relevance(it))
+    # FRESH SOURCES FIRST (2026-10-16): an item another pack already wrote
+    # from goes to the back, so a second post on a topic - in another style -
+    # is not the first one retold. A weight, not a gate: used items still
+    # fill a pack when nothing fresh is left.
+    used = used_topic_items()
+    # Stable: equal rank keeps sources()' newest-first order.
+    ranked = sorted(topics.sources(conn, key), key=lambda it: (it["id"] in used, -relevance(it)))
     docs, skipped = [], []
     for it in ranked:
         if len(docs) == cap:
@@ -3931,6 +4099,18 @@ def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dic
                      "chars": len(text), "truncated": len(text) > MAX_DOC_CHARS, "text": text[:MAX_DOC_CHARS],
                      "why": {"topic": key}})
     return docs, skipped
+
+
+def used_topic_items() -> set[str]:
+    """Every topic item some writing pack on this machine was written from."""
+    used: set[str] = set()
+    for f in PACKS.glob("*/pack.json"):
+        try:
+            used |= {d.get("topic_item_id") for d in json.loads(f.read_text(encoding="utf-8")).get("docs") or []}
+        except (OSError, json.JSONDecodeError):
+            continue
+    used.discard(None)
+    return used
 
 
 def planned_topic_post(fmt: dict, t: dict) -> dict:

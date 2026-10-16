@@ -354,7 +354,7 @@ formats:
     sources: [2, 6]
     sections: [6, 9]
     words: [1500, 3000]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 4], voices: 2, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 4], voices: 2, retrace: 1, figures: [2, 3]}
 
   - key: topic-explainer
     name: Explainer
@@ -380,7 +380,7 @@ formats:
     sources: [1, 3]
     sections: [5, 7]
     words: [900, 1800]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 1, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 1, retrace: 1, figures: [2, 3]}
 
   # ── MORE TOPIC STYLES (2026-10-16, team ask: "ten articles of different
   #    styles - not all with a quiz; for some include something else").
@@ -410,7 +410,7 @@ formats:
     sources: [2, 5]
     sections: [5, 8]
     words: [1200, 2400]
-    blocks: {matrix: false, tree: false, code: [1, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [1, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
 
   - key: myth-vs-reality
     name: Myth vs reality
@@ -435,7 +435,7 @@ formats:
     sources: [3, 6]
     sections: [5, 8]
     words: [1200, 2400]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
 
   - key: research-radar
     name: Research radar
@@ -460,7 +460,7 @@ formats:
     sources: [4, 6]
     sections: [5, 8]
     words: [1200, 2400]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 3, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 3, retrace: 1, figures: [2, 3]}
 
   - key: debate
     name: Debate
@@ -485,7 +485,7 @@ formats:
     sources: [2, 6]
     sections: [5, 8]
     words: [1200, 2400]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
 
   - key: field-guide
     name: Field guide
@@ -510,7 +510,7 @@ formats:
     sources: [2, 6]
     sections: [5, 8]
     words: [1200, 2400]
-    blocks: {matrix: false, tree: false, code: [0, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
 
   - key: paper-walkthrough
     name: Paper walkthrough
@@ -535,4 +535,4 @@ formats:
     sources: [2, 5]
     sections: [5, 8]
     words: [1200, 2400]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
