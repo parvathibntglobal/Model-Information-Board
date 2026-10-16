@@ -56,6 +56,21 @@
 # image model, so a claude-code post has none until that changes.
 writer: claude-code
 
+# WHO A MODEL POST IS FOR (team, 2026-10-16): the thirty topic posts were
+# "impressive but very technical". Posts about the MODELS themselves - built
+# from what engineers report on the board - are written for a wider reader:
+# someone choosing, paying for or building on a model, not only a specialist.
+# Appended to every board post's brief by generate_sample_blogs.run_pack.
+# Required (rule 12): absent raises.
+model_post_reader: >-
+  READER: someone choosing, paying for or building with this model - a developer, a product
+  lead, a curious technical reader - not only an ML specialist. Lead with what the model is
+  good and bad at in everyday work, in plain words, before any mechanism. Explain every term
+  of art in a clause the first time (context window, tool call, reasoning effort, caching).
+  Prefer a concrete task ("summarising a long contract", "fixing a failing test") to an
+  abstraction. Keep formulas out; keep code to the one example the format asks for. Stay
+  warm, direct and opinionated - a knowledgeable friend, not a lab report.
+
 prose:
   sentence_median_max: 15
   sentence_max: 30
@@ -160,7 +175,7 @@ formats:
     special: findings
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
 
   - key: head-to-head
     name: Head-to-head
@@ -186,7 +201,7 @@ formats:
     special: picks
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     matrix_title: "When to use {a} vs {b}"
 
   - key: cost-teardown
@@ -214,7 +229,7 @@ formats:
     special: drivers
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     matrix_title: "What moves the bill"
 
   - key: migration-guide
@@ -239,7 +254,7 @@ formats:
     special: steps
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: true, code: [1, 2], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
+    blocks: {matrix: false, tree: true, code: [1, 2], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     tree_question: "Should this workload move between {a} and {b}, and in which direction?"
 
   - key: architecture-pattern
@@ -266,7 +281,7 @@ formats:
     special: layers
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [1, 2], prices: false, visuals: [2, 5], voices: 3, retrace: 1}
+    blocks: {matrix: true, tree: false, code: [1, 2], prices: false, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     matrix_title: "Pattern versus anti-pattern"
 
   - key: release-analysis
@@ -292,7 +307,7 @@ formats:
     special: claims
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: true, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1}
+    blocks: {matrix: false, tree: true, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     tree_question: "Should your team adopt {a} now?"
 
   - key: evaluation-critique
@@ -318,7 +333,7 @@ formats:
     special: probes
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 5], voices: 3, retrace: 1}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
 
   # ── TOPIC POSTS (2026-10-16): general AI, not one model ────────────────────
   # Planned by `--topic-pack` from the blog's own harvest (blog_topics.yaml,

@@ -1823,7 +1823,10 @@ function vPost(slug){
   } else if(L === 'versus'){
     // A question card: the answer paragraph shows, the reasoning folds.
     secHtml = secs.map((s, i) => {
-      const k = s.blocks.findIndex(b => b[0] === 'p');
+      let k = s.blocks.findIndex(b => b[0] === 'p');
+      // A PICTURE RIGHT AFTER THE ANSWER STAYS IN VIEW (2026-10-16): folded into
+      // "The reasoning", a drawn figure never loaded until the card was opened.
+      while(k >= 0 && s.blocks[k + 1] && s.blocks[k + 1][0] === 'image') k++;
       const head = k < 0 ? s.blocks : s.blocks.slice(0, k + 1), rest = k < 0 ? [] : s.blocks.slice(k + 1);
       const more = rest.filter(b => b[0] === 'p').length;
       return `<section class="es-qcard">${sectionHtml({ head: s.head, blocks: head }, conf.label, i + 1)}${rest.length

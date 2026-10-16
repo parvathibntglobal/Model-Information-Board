@@ -3547,6 +3547,15 @@ def stored_plan_keys(cur) -> set[str]:
 
 def existing_plan_keys(cur=None) -> set[str]:
     keys = stored_plan_keys(cur) if cur is not None else set()
+    # A PACK WAITING FOR ITS WRITER IS A POST BEING WRITTEN (2026-10-16): two
+    # --pack runs must not plan the same (format, subject) twice.
+    for f in PACKS.glob("*/pack.json"):
+        try:
+            k = (json.loads(f.read_text(encoding="utf-8")).get("post") or {}).get("plan", {}).get("plan_key")
+        except (OSError, json.JSONDecodeError):
+            continue
+        if k:
+            keys.add(k)
     for f in POSTS_OUT.glob("*.json"):
         try:
             k = (json.loads(f.read_text(encoding="utf-8")).get("provenance") or {}).get("plan_key")
@@ -3936,6 +3945,10 @@ def run_pack(args, dsn, reader) -> None:
         # exactly what a model draft was asked for.
         post["rules"]["taken_headings"] = set(taken)
         add_search_and_experience(post, trending)
+        reader = (yaml.safe_load(FORMATS_FILE.read_text(encoding="utf-8")) or {}).get("model_post_reader")
+        if not reader:
+            raise BuildError("blog_formats.yaml: `model_post_reader` is missing")
+        post["brief"] += "\n" + " ".join(str(reader).split())
         others = [t for k, t in existing if k != post["key"]]
         post["rules"]["taken_titles"] = others
         post["rules"]["title_names"] = ((post.get("seo") or {}).get("subject")
