@@ -1,0 +1,748 @@
+{
+ "slug": "head-to-head-anthropic-claude-haiku-4-5-anthropic-claude-opus-5",
+ "status": "draft",
+ "tag": "Head-to-head",
+ "feat": false,
+ "title": "Claude Haiku 4.5 vs Claude Opus 5: The Hour One Misses, the Words One Adds",
+ "dek": "Haiku 4.5 is quick, compatible and easy to read, but it trips on arithmetic it thinks it knows. Opus 5 calls tools well and talks too much. Here is where each one wins real work.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Claude Haiku 4.5 vs Claude Opus 5: Haiku 4.5 suits triage, digests and drop-in code but slips on date traps without reasoning. Opus 5 earns its place in tool chains and code review, if you can bear its manner.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgYmFsYW5jZSB3ZWlnaHMgYSBjbG9jayBvbmUgaG91ciBvZmYgYWdhaW5zdCBhIGxvbmcgc2Nyb2xsIG9mIHJlcGx5IHRleHQ8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJwaXZvdGdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJyZWRnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0idmlvbGV0Z2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuMzIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBmdWxjcnVtIC0tPgogIDxlbGxpcHNlIGN4PSI2MDAiIGN5PSIxOTAiIHJ4PSIxOTAiIHJ5PSIxNTAiIGZpbGw9InVybCgjcGl2b3RnbG93KSIvPgogIDxwb2x5Z29uIHBvaW50cz0iNjAwLDE5NiA1NDgsNTYwIDY1Miw1NjAiIGZpbGw9IiMyYzM1NDQiIG9wYWNpdHk9IjAuOSIvPgogIDxwb2x5Z29uIHBvaW50cz0iNjAwLDE5NiA1NDgsNTYwIDY1Miw1NjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHJlY3QgeD0iNDcwIiB5PSI1NTYiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTgiIHJ4PSI5IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgoKICA8IS0tIGJlYW0gLS0+CiAgPHJlY3QgeD0iMjAwIiB5PSIxODIiIHdpZHRoPSI4MDAiIGhlaWdodD0iMTYiIHJ4PSI4IiBmaWxsPSIjN2FhMmZmIi8+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMTkwIiByPSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiLz4KCiAgPCEtLSBsZWZ0IHBhbiBzdHJpbmdzIGFuZCBwYW4gLS0+CiAgPGxpbmUgeDE9IjIzMCIgeTE9IjE5OCIgeDI9IjEyMCIgeTI9IjQyMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDxsaW5lIHgxPSIyMzAiIHkxPSIxOTgiIHgyPSIzNDAiIHkyPSI0MjAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8cGF0aCBkPSJNMTAwLDQyMCBRMjMwLDQ3MCAzNjAsNDIwIFoiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CgogIDwhLS0gcmlnaHQgcGFuIHN0cmluZ3MgYW5kIHBhbiAtLT4KICA8bGluZSB4MT0iOTcwIiB5MT0iMTk4IiB4Mj0iODYwIiB5Mj0iNDIwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGxpbmUgeDE9Ijk3MCIgeTE9IjE5OCIgeDI9IjEwODAiIHkyPSI0MjAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8cGF0aCBkPSJNODQwLDQyMCBROTcwLDQ3MCAxMTAwLDQyMCBaIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgoKICA8IS0tIGxlZnQgb2JqZWN0OiBjbG9jayBvbmUgaG91ciBvZmYgLS0+CiAgPGVsbGlwc2UgY3g9IjIzMCIgY3k9IjMzMCIgcng9IjEyMCIgcnk9IjExMCIgZmlsbD0idXJsKCNyZWRnbG93KSIvPgogIDxjaXJjbGUgY3g9IjIzMCIgY3k9IjMzNSIgcj0iODIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGcgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iMjMwIiB5MT0iMjYzIiB4Mj0iMjMwIiB5Mj0iMjc3Ii8+CiAgICA8bGluZSB4MT0iMzAyIiB5MT0iMzM1IiB4Mj0iMjg4IiB5Mj0iMzM1Ii8+CiAgICA8bGluZSB4MT0iMjMwIiB5MT0iNDA3IiB4Mj0iMjMwIiB5Mj0iMzkzIi8+CiAgICA8bGluZSB4MT0iMTU4IiB5MT0iMzM1IiB4Mj0iMTcyIiB5Mj0iMzM1Ii8+CiAgPC9nPgogIDwhLS0gdGhlIGFyYyBiZXR3ZWVuIGNvcnJlY3QgaG91ciBhbmQgdGhlIGhhYml0dWFsIGhvdXIgLS0+CiAgPHBhdGggZD0iTTE5NSwzOTYgQTcwLDcwIDAgMCAxIDE2OSwzNzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8IS0tIGNvcnJlY3QgaGFuZCwgZmFpbnQgZ3JlZW4gLS0+CiAgPGxpbmUgeDE9IjIzMCIgeTE9IjMzNSIgeDI9IjE5OCIgeTI9IjM5MCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC41NSIgc3Ryb2tlLWRhc2hhcnJheT0iMiA5Ii8+CiAgPCEtLSBoYWJpdHVhbCBoYW5kLCByZWQgLS0+CiAgPGxpbmUgeDE9IjIzMCIgeTE9IjMzNSIgeDI9IjE3NSIgeTI9IjM2NyIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxsaW5lIHgxPSIyMzAiIHkxPSIzMzUiIHgyPSIyMzAiIHkyPSIyODIiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSIyMzAiIGN5PSIzMzUiIHI9IjgiIGZpbGw9IiNlOGVkZjUiLz4KCiAgPCEtLSByaWdodCBvYmplY3Q6IGEgbG9uZyBzY3JvbGwgb2YgcmVwbHkgdGV4dCAtLT4KICA8ZWxsaXBzZSBjeD0iOTcwIiBjeT0iMzAwIiByeD0iMTUwIiByeT0iMTYwIiBmaWxsPSJ1cmwoI3Zpb2xldGdsb3cpIi8+CiAgPHJlY3QgeD0iOTAyIiB5PSIyMTciIHdpZHRoPSIxNTAiIGhlaWdodD0iMjAxIiByeD0iMTQiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuMTgiLz4KICA8cmVjdCB4PSI4OTAiIHk9IjIwOCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIyMTAiIHJ4PSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8ZyBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSI5MTIiIHkxPSIyMzYiIHgyPSIxMDE4IiB5Mj0iMjM2IiBvcGFjaXR5PSIwLjg1Ii8+CiAgICA8bGluZSB4MT0iOTEyIiB5MT0iMjU4IiB4Mj0iMTAwNCIgeTI9IjI1OCIgb3BhY2l0eT0iMC43Ii8+CiAgICA8bGluZSB4MT0iOTEyIiB5MT0iMjgwIiB4Mj0iMTAxOCIgeTI9IjI4MCIgb3BhY2l0eT0iMC43Ii8+CiAgICA8bGluZSB4MT0iOTEyIiB5MT0iMzAyIiB4Mj0iOTkwIiB5Mj0iMzAyIiBvcGFjaXR5PSIwLjciLz4KICAgIDxsaW5lIHgxPSI5MTIiIHkxPSIzMjQiIHgyPSIxMDE4IiB5Mj0iMzI0IiBvcGFjaXR5PSIwLjYiLz4KICAgIDxsaW5lIHgxPSI5MTIiIHkxPSIzNDYiIHgyPSIxMDEwIiB5Mj0iMzQ2IiBvcGFjaXR5PSIwLjYiLz4KICAgIDxsaW5lIHgxPSI5MTIiIHkxPSIzNjgiIHgyPSIxMDE4IiB5Mj0iMzY4IiBvcGFjaXR5PSIwLjUiLz4KICAgIDxsaW5lIHgxPSI5MTIiIHkxPSIzOTAiIHgyPSI5ODQiIHkyPSIzOTAiIG9wYWNpdHk9IjAuNSIvPgogIDwvZz4KCiAgPCEtLSBsYWJlbHMgLS0+CiAgPHRleHQgeD0iMjMwIiB5PSI1MjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SGFpa3UgNC41PC90ZXh0PgogIDx0ZXh0IHg9IjIzMCIgeT0iNTYyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm9uZSBob3VyIG9mZjwvdGV4dD4KICA8dGV4dCB4PSI5NzAiIHk9IjUyMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5PcHVzIDU8L3RleHQ+CiAgPHRleHQgeD0iOTcwIiB5PSI1NjIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2E3OGJmYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bG9uZyBhbnN3ZXJzPC90ZXh0Pgo8L3N2Zz4K",
+  "alt": "A balance holds a clock with its hour hand one hour off on one side and a long scroll of reply text on the other.",
+  "caption": "The trade this post weighs: Haiku 4.5 slips on habits like the usual time offset, and Opus 5 makes you read more.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Claude Haiku 4.5 vs Claude Opus 5 for real work: clock-change traps, temperature errors, streaming bugs, tone and tool use, settled from what engineers hit.",
+ "keywords": [
+  "Claude Haiku 4.5 vs Claude Opus 5",
+  "Claude Haiku 4.5 or Claude Opus 5",
+  "Claude Haiku 4.5 vs Claude Opus 5 for coding",
+  "AI model comparison",
+  "Claude Opus 5 temperature error",
+  "Claude Haiku 4.5 time zones"
+ ],
+ "kicker": "Head-to-head",
+ "tags": [
+  "Claude Haiku 4.5",
+  "Claude Opus 5",
+  "Head-to-head"
+ ],
+ "read": 12,
+ "decisions": [
+  "Send dates through a time-zone library, whichever model extracts them.",
+  "Strip temperature, top_p and top_k before any Opus 5 call.",
+  "Keep triage and digests on Haiku 4.5; escalate diffs and long tool chains to Opus 5.",
+  "Test the streamed second turn before shipping an Opus 5 chat.",
+  "Measure Haiku 4.5 with reasoning against Opus 5 at low effort on your own records."
+ ],
+ "layout": "versus",
+ "arrangement": "b",
+ "special": {
+  "type": "picks",
+  "title": "Pick it when",
+  "items": [
+   {
+    "pick": "Claude Haiku 4.5",
+    "when": "Support ticket triage, where the work is high-volume and low-ambiguity"
+   },
+   {
+    "pick": "Claude Haiku 4.5",
+    "when": "Daily digests that turn meeting notes into action items"
+   },
+   {
+    "pick": "Claude Haiku 4.5",
+    "when": "Dropping into a stack that shares temperature settings across models"
+   },
+   {
+    "pick": "Claude Opus 5",
+    "when": "Code review across a large diff"
+   },
+   {
+    "pick": "Claude Opus 5",
+    "when": "Long agent chains with many tool calls"
+   },
+   {
+    "pick": "Claude Opus 5",
+    "when": "One-line date conversions with no reasoning step and no library behind them"
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~12 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A daylight saving week splits Haiku 4.5 from Opus 5",
+    "num": "01",
+    "id": "a-daylight-saving-week-splits-haiku-4-5-from-opus-5"
+   }
+  ],
+  [
+   "p",
+   "Ask both models to turn a contest deadline into Madrid time, on a date when Europe and the US have changed clocks on different days. Claude Haiku 4.5 got 4% of those trap dates right in one public benchmark. Claude Opus 5 got 96%. That is the sharpest line we found in any Claude Haiku 4.5 vs Claude Opus 5 comparison. Opus 5 wins this point outright, as long as nothing else does the arithmetic."
+  ],
+  [
+   "p",
+   "The trap is simple. In 2026, Europe leaves summer time on October 25 and the US on November 1. For that week, the usual gap between Madrid and Los Angeles is 8 hours, not 9. A model that has memorised the usual gap answers an hour wrong, and sounds sure of it. The dev.to write-up behind the benchmark says «Some models even state the correct rule in their reasoning and then ignore it.»"
+  ],
+  [
+   "p",
+   "Haiku 4.5 is not bad at the task itself. On control dates, the same sentences moved out of the gap, it scored 92%. On the trap dates it scored 4%, and «when it is wrong, it is wrong by exactly the hour you would predict». That is a habit, not missing knowledge. Opus 5 mostly lost the habit, with 96% on traps and 90% on controls."
+  ],
+  [
+   "p",
+   "We read the Opus 5 row with one caveat. It came from a secondary run where each model ran once, and the write-up warns that «Differences between close neighbors on a single-run leaderboard are noise». A gap of 4% against 96% is no close neighbour. We think it is real. It also tells you exactly where Haiku 4.5 needs supervision."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Correct deadline conversions in direct mode, in percent, on clock-change trap dates and their control twins; the Opus 5 figures come from a secondary single run.",
+    "unit": "% correct",
+    "bars": [
+     {
+      "label": "Haiku 4.5, trap dates",
+      "value": 4.0
+     },
+     {
+      "label": "Haiku 4.5, control dates",
+      "value": 92.0
+     },
+     {
+      "label": "Opus 5, trap dates",
+      "value": 96.0
+     },
+     {
+      "label": "Opus 5, control dates",
+      "value": 90.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Thinking out loud lifts Haiku 4.5 from 9 to 17 out of 20",
+    "num": "02",
+    "id": "thinking-out-loud-lifts-haiku-4-5-from-9-to-17-out-of-20"
+   }
+  ],
+  [
+   "p",
+   "Give Haiku 4.5 a short reasoning step, or hand the sum to code, and much of the gap closes. Opus 5 still leads on a single direct answer. The margin just stops deciding the build. We went through the benchmark author's whole test to see where the rescue comes from, and the fix it recommends is simple: «let the model extract the date, time, and zone, and let a time-zone library do the arithmetic»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPHRpdGxlPlRoZSBzYW1lIHRyYXAgZGVhZGxpbmUgYW5zd2VyZWQgZGlyZWN0bHksIHRoZW4gZXh0cmFjdGVkIGJ5IHRoZSBtb2RlbCBhbmQgY29tcHV0ZWQgYnkgYSB0aW1lLXpvbmUgbGlicmFyeTwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImdyZWVuZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2ZmN2I3MiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhZ3IiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI3MDAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gdGhlIGlucHV0IHNlbnRlbmNlLCBzaGFyZWQgYnkgYm90aCByb3dzIC0tPgogIDxyZWN0IHg9IjYwIiB5PSI0MCIgd2lkdGg9IjEwODAiIGhlaWdodD0iODQiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI2MDAiIHk9Ijk0IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y2xvc2UgTW9uZGF5LCBPY3RvYmVyIDI2LCAyMDI2IGF0IDExOjU5IFBNIFBUIMK3IHJlYWRlciBpbiBNYWRyaWQ8L3RleHQ+CgogIDwhLS0gcm93IGxhYmVscyAtLT4KICA8dGV4dCB4PSI2MCIgeT0iMTk2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPkRpcmVjdCBhbnN3ZXI8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjQzNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjM2VjZjhlIj5FeHRyYWN0LCB0aGVuIGNvbXB1dGU8L3RleHQ+CgogIDwhLS0gUk9XIDE6IGRpcmVjdCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMjIwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjExMCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjE4Ii8+CiAgPHJlY3QgeD0iNjAiIHk9IjIyMCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIxODUiIHk9IjI4NSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5tb2RlbDwvdGV4dD4KICA8bGluZSB4MT0iMzIwIiB5MT0iMjc1IiB4Mj0iNDcwIiB5Mj0iMjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KICA8cmVjdCB4PSI0ODAiIHk9IjIyMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggOCIvPgogIDx0ZXh0IHg9IjY0MCIgeT0iMjY4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnVzdWFsIG9mZnNldDwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5mcm9tIGhhYml0PC90ZXh0PgogIDxsaW5lIHgxPSI4MTAiIHkxPSIyNzUiIHgyPSI5MTAiIHkyPSIyNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogIDxyZWN0IHg9IjkyMCIgeT0iMjIwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjExMCIgcng9IjE2IiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjE2Ii8+CiAgPHJlY3QgeD0iOTIwIiB5PSIyMjAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTAzMCIgeT0iMjkwIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSI0MCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MDg6NTk8L3RleHQ+CiAgPHRleHQgeD0iMTAzMCIgeT0iMzcwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm9uZSBob3VyIG9mZjwvdGV4dD4KCiAgPGxpbmUgeDE9IjYwIiB5MT0iMzk4IiB4Mj0iMTE0MCIgeTI9IjM5OCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPCEtLSBST1cgMjogZXh0cmFjdCB0aGVuIGNvbXB1dGUgLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjQ2MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4xOCIvPgogIDxyZWN0IHg9IjYwIiB5PSI0NjAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTg1IiB5PSI1MDgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bW9kZWw8L3RleHQ+CiAgPHRleHQgeD0iMTg1IiB5PSI1NDUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXh0cmFjdHMgb25seTwvdGV4dD4KICA8bGluZSB4MT0iMzIwIiB5MT0iNTE1IiB4Mj0iMzgwIiB5Mj0iNTE1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICA8IS0tIHRocmVlIGZpZWxkIGNoaXBzIC0tPgogIDxyZWN0IHg9IjM5MCIgeT0iNDUyIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjQ4MSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kYXRlPC90ZXh0PgogIDxyZWN0IHg9IjM5MCIgeT0iNDk3IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjUyNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aW1lPC90ZXh0PgogIDxyZWN0IHg9IjM5MCIgeT0iNTQyIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI0NjUiIHk9IjU3MSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj56b25lPC90ZXh0PgogIDxsaW5lIHgxPSI1NTAiIHkxPSI1MTUiIHgyPSI2MDAiIHkyPSI1MTUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FnKSIvPgogIDxyZWN0IHg9IjYxMCIgeT0iNDYwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjExMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9Ijc0MCIgeT0iNTA4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnRpbWUtem9uZTwvdGV4dD4KICA8dGV4dCB4PSI3NDAiIHk9IjU0NSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5saWJyYXJ5PC90ZXh0PgogIDxsaW5lIHgxPSI4ODAiIHkxPSI1MTUiIHgyPSI5MTAiIHkyPSI1MTUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FncikiLz4KICA8ZWxsaXBzZSBjeD0iMTAzMCIgY3k9IjUxNSIgcng9IjE1MCIgcnk9IjEwMCIgZmlsbD0idXJsKCNncmVlbmdsb3cpIi8+CiAgPHJlY3QgeD0iOTIwIiB5PSI0NjAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMTYiLz4KICA8cmVjdCB4PSI5MjAiIHk9IjQ2MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIxMDMwIiB5PSI1MDIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T2N0IDI3PC90ZXh0PgogIDx0ZXh0IHg9IjEwMzAiIHk9IjU0OCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjA3OjU5PC90ZXh0PgogIDx0ZXh0IHg9IjEwMzAiIHk9IjYxMiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zb3VyY2Ugc2hvd248L3RleHQ+CgogIDx0ZXh0IHg9IjYwMCIgeT0iNjY4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVpdGhlciBtb2RlbCBjYW4gZG8gdGhlIGV4dHJhY3RpbmcuIE9ubHkgdGhlIGxpYnJhcnkgZG9lcyB0aGUgc3VtLjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "One trap deadline answered directly and wrong by an hour, then extracted into fields and computed correctly by a library.",
+    "caption": "Moving the arithmetic out of the model turns Haiku 4.5's habitual one-hour error into a correct, sourced answer.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The setup is tidy. Each of 50 trap sentences has a control twin with the same wording, reader, clock time and weekday. Only the date moves. Every answer is checked against Python's `zoneinfo` and a second hand-written oracle. Models answer in direct mode, a single line with no visible thinking, «like a quick lookup or an agent writing to a calendar»."
+  ],
+  [
+   "p",
+   "Direct mode is where Haiku 4.5 falls over. On the standard set it scored 9/20 answering straight away, and 17/20 when allowed to think briefly first. On durations that cross a clock change it got 0 of 3 in direct mode, alongside Opus 4.5 and Sonnet 4.5. The write-up's own reading is careful: «the direct mode is where cheap models break», not a precise effect size."
+  ],
+  [
+   "p",
+   "We agree with the fix, and we would apply it to Opus 5 too. A model can recite the right rule and still apply the wrong one, and the write-up says it plainly: «Reading the explanation is not verification». So let either model pull the date, time and zone out of the text. Let a library do the sum. Then Haiku 4.5's weakness costs you nothing, and Opus 5's strength buys you nothing either."
+  ],
+  [
+   "h2",
+   {
+    "text": "Shared temperature settings crash Opus 5 and pass on Haiku 4.5",
+    "num": "03",
+    "id": "shared-temperature-settings-crash-opus-5-and-pass-on-haiku-4"
+   }
+  ],
+  [
+   "p",
+   "Haiku 4.5 wins the plumbing point. Code that sets a sampling value, such as temperature, the dial for how random a reply is, keeps working on Haiku 4.5. The same code fails on Opus 5 with an HTTP 400 error. If your stack shares one settings object across models, Opus 5 is the riskier swap by a wide margin."
+  ],
+  [
+   "p",
+   "A GitHub issue against Pydantic AI, a Python agent library, shows the failure on Amazon Bedrock. Its direct Anthropic adapter drops the settings with a warning. The Bedrock adapter forwards them, so «every request with a sampling setting hard-fails with a 400 on the Claude 5 generation over Bedrock». In the issue's probe table, Haiku 4.5 accepts temperature, top_p and top_k on that same route. Nothing changed but the model."
+  ],
+  [
+   "p",
+   "Another GitHub issue, against LangChain, hits the same wall on the direct API. Setting `temperature=0` on Opus 5 returns a 400, and code that does so «breaks with an opaque provider 400 the moment the model string is upgraded». The library's bundled model profiles already mark the failing models. Nothing reads the flag. That is the kind of bug you meet at deploy time, not in testing."
+  ],
+  [
+   "p",
+   "We think this is the most underrated difference between the two models. It never shows up on a leaderboard, and it turns an upgrade into an outage. The fix proposed on each issue is the same: drop the three keys with a warning when the model is known to reject them. You can do that in your own code today, before any library ships a patch."
+  ],
+  [
+   "code",
+   {
+    "label": "Drop sampling settings the target model rejects, with a warning",
+    "language": "python",
+    "source": "import warnings\n\nSAMPLING_KEYS = (\"temperature\", \"top_p\", \"top_k\")\n\n# Fill this set from your own probe on your own route,\n# not from memory: which model ids answered with a 400.\nREJECTS_SAMPLING = {\"claude-opus-5\"}\n\n\ndef settings_for(model_id: str, shared: dict) -> dict:\n    \"\"\"Copy shared settings, minus sampling keys this model rejects.\"\"\"\n    out = dict(shared)\n    if model_id not in REJECTS_SAMPLING:\n        return out\n    dropped = [k for k in SAMPLING_KEYS if k in out]\n    for k in dropped:\n        out.pop(k)\n    if dropped:\n        warnings.warn(f\"{model_id}: ignoring {dropped}\")\n    return out\n"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What happened when requests carried sampling settings, from probes posted on GitHub issues.",
+    "columns": [
+     "Model and route",
+     "Settings sent",
+     "Result"
+    ],
+    "rows": [
+     [
+      "Opus 5 on Bedrock",
+      "temperature, top_p, top_k",
+      "400 for each"
+     ],
+     [
+      "Sonnet 5 on Bedrock",
+      "temperature, top_p",
+      "400"
+     ],
+     [
+      "Haiku 4.5 on Bedrock",
+      "temperature, top_p, top_k",
+      "ok"
+     ],
+     [
+      "Opus 5, direct API",
+      "temperature=0",
+      "400"
+     ],
+     [
+      "Sonnet 4.6, direct API",
+      "temperature=0",
+      "works"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Streamed Opus 5 replies can break the next turn of a chat",
+    "num": "04",
+    "id": "streamed-opus-5-replies-can-break-the-next-turn-of-a-chat"
+   }
+  ],
+  [
+   "p",
+   "This point goes to Haiku 4.5 by default, because the reported bug names only models that think before answering. Opus 5 runs that thinking step even when you never ask for it. Streaming, where the reply arrives in pieces as it is written, then produces an odd shape. If your chat sends the whole history back each turn, Opus 5 needs one extra guard."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPlN0cmVhbWVkIHBpZWNlcyBmcm9tIGEgdGhpbmtpbmctYnktZGVmYXVsdCBtb2RlbCBtZXJnZSB3aXRoIGEgbGVhZGluZyBlbXB0eSBzdHJpbmc7IHJlcGxheWluZyBpdCBmYWlscyB1bmxlc3MgYSBndWFyZCBzdHJpcHMgaXQ8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJyZWRnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC40Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYWciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYWdyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjYwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHN0cmVhbWVkIHBpZWNlcyBhcnJpdmluZyAtLT4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+U3RyZWFtZWQgcGllY2VzLCBtZXJnZWQ8L3RleHQ+CiAgPGc+CiAgICA8cmVjdCB4PSI2MCIgeT0iMTAwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjgwIiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI3IDciLz4KICAgIDx0ZXh0IHg9IjExNSIgeT0iMTUyIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Jyc8L3RleHQ+CiAgICA8cmVjdCB4PSIxOTAiIHk9IjEwMCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI4MCIgcng9IjE0IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjIiLz4KICAgIDxyZWN0IHg9IjE5MCIgeT0iMTAwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjgwIiByeD0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIzMDUiIHk9IjE1MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aGlua2luZzwvdGV4dD4KICAgIDxyZWN0IHg9IjQ0MCIgeT0iMTAwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjgwIiByeD0iMTQiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMiIvPgogICAgPHJlY3QgeD0iNDQwIiB5PSIxMDAiIHdpZHRoPSIxNzAiIGhlaWdodD0iODAiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjUyNSIgeT0iMTUyIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+J1BhcmlzJzwvdGV4dD4KICA8L2c+CiAgPHRleHQgeD0iMTE1IiB5PSIyMjIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZW1wdHkgc3RyaW5nPC90ZXh0PgoKICA8IS0tIGZvcms6IHR3byBwYXRocyAtLT4KICA8cGF0aCBkPSJNNjQwLDE0MCBDNzIwLDE0MCA3MjAsMzMwIDgwMCwzMzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogIDxwYXRoIGQ9Ik02MCwyNDUgTDYxMCwyNDUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjYiLz4KICA8cGF0aCBkPSJNMzM1LDI1MCBDMzM1LDQ0MCA1MDAsNTIwIDU4MCw1MjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FncikiLz4KCiAgPCEtLSBmYWlsdXJlIHBhdGggLS0+CiAgPHRleHQgeD0iODMwIiB5PSIyNzAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCI+cmVwbGF5ZWQgbmV4dCB0dXJuPC90ZXh0PgogIDxlbGxpcHNlIGN4PSI5NjAiIGN5PSIzNDAiIHJ4PSIxOTAiIHJ5PSIxMTAiIGZpbGw9InVybCgjcmVkZ2xvdykiLz4KICA8cmVjdCB4PSI4MTAiIHk9IjI5MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI5NzAiIHk9IjM0MCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjQwMDwvdGV4dD4KICA8dGV4dCB4PSI5NzAiIHk9IjM3NCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5lbXB0eSB0ZXh0IGJsb2NrIHJlZnVzZWQ8L3RleHQ+CgogIDwhLS0gZ3VhcmQgcGF0aCAtLT4KICA8cmVjdCB4PSI1OTAiIHk9IjQ3MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNiIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4xNiIvPgogIDxyZWN0IHg9IjU5MCIgeT0iNDcwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjE2IiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjY5MCIgeT0iNTE0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnN0cmlwIGd1YXJkPC90ZXh0PgogIDx0ZXh0IHg9IjY5MCIgeT0iNTQ4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmRyb3BzIHRoZSAnJzwvdGV4dD4KICA8bGluZSB4MT0iODAwIiB5MT0iNTIwIiB4Mj0iODUwIiB5Mj0iNTIwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhZ3IpIi8+CiAgPHJlY3QgeD0iODYwIiB5PSI0NzAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTAwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMTYiLz4KICA8cmVjdCB4PSI4NjAiIHk9IjQ3MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI5OTUiIHk9IjUxNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aGlua2luZywgdGV4dDwvdGV4dD4KICA8dGV4dCB4PSI5OTUiIHk9IjU0OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZXBsYXlzIGNsZWFubHk8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSI2MjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+VGhlIHJlcG9ydCBuYW1lcyBPcHVzIDUgYW5kIFNvbm5ldCA1LCB3aGljaCB0aGluayBieSBkZWZhdWx0LjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Streamed pieces merge with a leading empty string; replaying fails with a 400 unless a guard strips it first.",
+    "caption": "The extra guard a streamed Opus 5 chat needs before the second turn is sent.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A LangChain issue on GitHub traces it. With thinking on by default, the streamed pieces merge into a list that starts with an empty string, then a thinking block, then the answer. Send that message back and the API refuses: «messages: text content blocks must be non-empty». In the issue's words, «A plain two-turn streamed chat on the current flagship model breaks.»"
+  ],
+  [
+   "p",
+   "The workaround is to ask for thinking explicitly with the adaptive setting, which «streams a clean [thinking, text] block list and replays without error». The proposed fix also adds a strip check, so a stray empty string never becomes an empty block. Both changes are small. Neither is one you would think to write until the second turn fails in front of a user."
+  ],
+  [
+   "p",
+   "We are not convinced this is an Opus 5 flaw. It is a library bug that Opus 5's default behaviour exposes. The distinction matters less than it sounds. Your users see a broken chat either way. Haiku 4.5 does not appear in the report's list of affected models, so the simpler loop still runs on it."
+  ],
+  [
+   "h2",
+   {
+    "text": "Long, contrarian answers make Opus 5 slow to read",
+    "num": "05",
+    "id": "long-contrarian-answers-make-opus-5-slow-to-read"
+   }
+  ],
+  [
+   "p",
+   "On replies that a person reads and acts on, Haiku 4.5 comes out ahead, mostly by default. The complaints about Opus 5 here are about manner, not accuracy. A Hacker News thread opens bluntly: «Claude thinks the user is always wrong.» Haiku 4.5 draws none of that fire in what we read. That is weaker praise than it sounds, but it counts."
+  ],
+  [
+   "p",
+   "The same thread says the habit «was at its peak with Opus 4.8 but is still present in Opus 5». Its author adds that Claude «even disagrees with itself», ending a position with paragraphs that take it apart. A reply puts it more sharply: «Opus 5 feels like it needs to present itself as smarter than it is». Every answer carries a reading cost."
+  ],
+  [
+   "p",
+   "A developer on Reddit went further and handed a project from Opus 5 back to Opus 4.6. The plans finally made sense, they wrote, and Opus 5's phrasing had been hard to follow. Their fix was an output style asking for ASD-STE100, a controlled technical English, kept short and free of jargon. That works. It is also setup you pay for once per tool."
+  ],
+  [
+   "p",
+   "A Reddit thread about a newer Claude release turned into a long complaint about Opus 5's rambling, with one reply mocking its answers as load-bearing. We think the tone tax is real. It lands hardest on short tasks where a reader wants one line. Haiku 4.5 is the plainer writer for those, and nobody had to prompt it into plainness."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1voz6sm/downgraded_from_opus_5_to_opus_46_and_it_feels/",
+    "title": "Downgraded from Opus 5 to Opus 4.6 and it feels night and day",
+    "author": "Budget-Juggernaut-68",
+    "community": "ClaudeAI",
+    "caption": "A developer explains why they moved a project off Opus 5 and how an output style made its answers easier to follow."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Tool use keeps pulling engineers back to Opus 5",
+    "num": "06",
+    "id": "tool-use-keeps-pulling-engineers-back-to-opus-5"
+   }
+  ],
+  [
+   "p",
+   "Opus 5 wins long agent work, where a model calls tools such as a search, a test runner or a ticket system in a chain. Engineers who dislike its manner keep using it there anyway. That is the split in this comparison. We side with the tool-use camp for agent loops, and with the critics for chat."
+  ],
+  [
+   "p",
+   "The Hacker News thread shows the split inside a single reply. Its author calls the model «5 for sure is unbearable, 4.8 is a reasonable sweet spot», then admits «lately I haven't downgraded because 5 is so much better at tool use». Another reply there grants that «For quick one-shot type work I don't mind using Opus/Sonnet 5.» Annoying and useful, at once."
+  ],
+  [
+   "p",
+   "On the other side, a Reddit commenter called Opus 5 unusable for day-to-day work. A second Reddit poster said it went way overboard on a simple task and analysed the whole repository. A dev.to guide to agent builds sits with the first camp on code: «Code reasoning across a diff is the one place a frontier model consistently earns its cost.» Haiku 4.5 rarely enters this fight."
+  ],
+  [
+   "p",
+   "Our view: both camps describe the same model in different jobs. On a long tool chain, extra care and self-checking pay off, and the reader is a program. On a two-line question, the same habits read as a lecture. The evidence favours Opus 5 for agent loops and code review. It does not rescue Opus 5 for chat, where Haiku 4.5 stays easier company."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1w4juuz/introducing_claude_fable_51_and_claude_mythos_51/",
+    "title": "Introducing Claude Fable 5.1 and Claude Mythos 5.1",
+    "author": "ClaudeOfficial",
+    "community": "ClaudeAI",
+    "caption": "A release thread where replies complain that Opus 5 rambles and overreaches on simple tasks."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Ticket triage and daily digests stay with Haiku 4.5",
+    "num": "07",
+    "id": "ticket-triage-and-daily-digests-stay-with-haiku-4-5"
+   }
+  ],
+  [
+   "p",
+   "For high-volume, low-ambiguity work, Haiku 4.5 is the better fit, and Opus 5 is mostly wasted effort. The dev.to agent guide puts Haiku 4.5 on support triage because «Triage is high-volume and low-ambiguity, which is the cheapest model's sweet spot.» It reserves Opus 5 for code review, incident analysis and hard chains. We agree with that split."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPkluY29taW5nIHdvcmsgc3BsaXRzIGF0IGEgZ2F0ZTogcm91dGluZSB0aWNrZXRzIGFuZCBkaWdlc3RzIGdvIHRvIEhhaWt1IDQuNSwganVkZ21lbnQgY2FsbHMgZ28gdG8gT3B1cyA1PC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2F0ZWdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYWIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXYiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNhNzhiZmEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MjAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gaW5jb21pbmcgd29yayAtLT4KICA8dGV4dCB4PSI2MCIgeT0iODAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+SW5jb21pbmcgd29yazwvdGV4dD4KICA8ZyBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMi41Ij4KICAgIDxyZWN0IHg9IjYwIiB5PSIyMzAiIHdpZHRoPSI5MCIgaGVpZ2h0PSI2MCIgcng9IjEyIi8+CiAgICA8cmVjdCB4PSI4MCIgeT0iMjUwIiB3aWR0aD0iOTAiIGhlaWdodD0iNjAiIHJ4PSIxMiIvPgogICAgPHJlY3QgeD0iMTAwIiB5PSIyNzAiIHdpZHRoPSI5MCIgaGVpZ2h0PSI2MCIgcng9IjEyIi8+CiAgICA8cmVjdCB4PSIxMjAiIHk9IjI5MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjYwIiByeD0iMTIiLz4KICA8L2c+CiAgPGcgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC43Ij4KICAgIDxsaW5lIHgxPSIxMzYiIHkxPSIzMTIiIHgyPSIxOTQiIHkyPSIzMTIiLz4KICAgIDxsaW5lIHgxPSIxMzYiIHkxPSIzMzAiIHgyPSIxODAiIHkyPSIzMzAiLz4KICA8L2c+CiAgPGxpbmUgeDE9IjIyMCIgeTE9IjMxMCIgeDI9IjM1MCIgeTI9IjMxMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KCiAgPCEtLSB0aGUgZ2F0ZSAtLT4KICA8ZWxsaXBzZSBjeD0iNDYwIiBjeT0iMzEwIiByeD0iMTQwIiByeT0iMTIwIiBmaWxsPSJ1cmwoI2dhdGVnbG93KSIvPgogIDxwb2x5Z29uIHBvaW50cz0iNDYwLDIxMCA1NzAsMzEwIDQ2MCw0MTAgMzUwLDMxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8dGV4dCB4PSI0NjAiIHk9IjMwMiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZTNiMzQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5uZWVkczwvdGV4dD4KICA8dGV4dCB4PSI0NjAiIHk9IjMzNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZTNiMzQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5qdWRnbWVudD88L3RleHQ+CgogIDwhLS0gdXBwZXIgbGFuZTogT3B1cyA1IC0tPgogIDxwYXRoIGQ9Ik01MjAsMjY1IEM1NzAsMTcwIDYyMCwxNTAgNzAwLDE1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXYpIi8+CiAgPHJlY3QgeD0iNzEwIiB5PSI5MCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxOCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xNiIvPgogIDxyZWN0IHg9IjcxMCIgeT0iOTAiIHdpZHRoPSI0MzAiIGhlaWdodD0iMTIwIiByeD0iMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNzQwIiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+T3B1cyA1PC90ZXh0PgogIDx0ZXh0IHg9Ijc0MCIgeT0iMTgwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNhNzhiZmEiPmNvZGUgcmV2aWV3LCBpbmNpZGVudHMsIGxvbmcgY2hhaW5zPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMjQwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNhNzhiZmEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnllczwvdGV4dD4KCiAgPCEtLSBsb3dlciBsYW5lOiBIYWlrdSA0LjUgLS0+CiAgPHBhdGggZD0iTTUyMCwzNTUgQzU3MCw0NTAgNjIwLDQ3MCA3MDAsNDcwIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhYikiLz4KICA8cmVjdCB4PSI3MTAiIHk9IjQxMCIgd2lkdGg9IjQzMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxOCIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4xNiIvPgogIDxyZWN0IHg9IjcxMCIgeT0iNDEwIiB3aWR0aD0iNDMwIiBoZWlnaHQ9IjEyMCIgcng9IjE4IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9Ijc0MCIgeT0iNDYwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPkhhaWt1IDQuNTwvdGV4dD4KICA8dGV4dCB4PSI3NDAiIHk9IjUwMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIj50cmlhZ2UsIGRpZ2VzdHMsIGJ1bGsgZXh0cmFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjQwMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjN2FhMmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ubzwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjU4MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5UaGUgZ2F0ZSBpcyB5b3VyIHJ1bGUsIHdyaXR0ZW4gZG93bi4gTmVpdGhlciBtb2RlbCBkZWNpZGVzIGl0LjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Incoming work meets a judgment gate; routine items go to Haiku 4.5, code review and long chains go to Opus 5.",
+    "caption": "A two-lane build: a capable model for the judgment step and a small one for bulk work.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Its pick for a project-ops agent, which turns meeting notes into tickets, is Haiku 4.5 too. «Summarising and restructuring text does not need a reasoning model, and this agent runs daily.» A reasoning model, here, means one that thinks step by step before answering. Opus 5 does that by default. This job does not need it."
+  ],
+  [
+   "p",
+   "Context window, the amount of text a model can hold in one request, is the spec where Opus 5 wins on paper. Opus 5 carries a 1M token window, and Haiku 4.5 advertises 200,000 tokens. A dev.to comparison of business automation calls Haiku's 200K window «still more than most pipelines need». We agree for triage and digests. Reviewing a long contract in one call is a different job."
+  ],
+  [
+   "p",
+   "The same comparison describes splitting real builds in two: «a capable model for the judgment step and a small one for bulk extraction». That is the shape we would copy. Haiku 4.5 reads the stream, and Opus 5 gets the items that need a judgment call. The agent guide adds a rule that suits both models: «Start one tier below what you think you need.»"
+  ],
+  [
+   "h2",
+   {
+    "text": "Scope creep on small edits weighs on Opus 5 more",
+    "num": "08",
+    "id": "scope-creep-on-small-edits-weighs-on-opus-5-more"
+   }
+  ],
+  [
+   "p",
+   "On narrow, well-specified edits, Haiku 4.5 edges this point, because the reported Opus 5 failure is doing too much. Fixing one failing test should not become a tour of the repository. Opus 5 needs a fence around the task. Haiku 4.5, in what we read, needs a reasoning step more than a fence."
+  ],
+  [
+   "p",
+   "A Reddit poster had each Claude model transcribe its own Claude Code system prompt, the standing instructions a tool sends before your request, and compared them. Haiku 4.5 gets an older long-form rulebook with enumerated sections. Opus 5 gets a compressed template plus two sections no other model carries: one on delivering work, one on corrections."
+  ],
+  [
+   "p",
+   "The poster reads those sections as patches for familiar complaints: scope creep, unrequested refactoring, spirals of self-correction, arguing with the premise. One passage tells Opus 5 not to quietly narrow, widen or transform the scope it was given. Another tells it to stop narrating small corrections. We find that reading plausible. It is still one capture, not a vendor statement."
+  ],
+  [
+   "p",
+   "The same capture lists knowledge cutoffs: February 2025 for Haiku 4.5 and May 2026 for Opus 5. That gap matters when you fix code against a recently changed library. Haiku 4.5 may simply not know the new interface. For narrow edits on stable code we would still start with Haiku 4.5, and give Opus 5 an explicit scope line when it takes over."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1vm4dzz/decoding_claudes_dna_comparing_system_prompts/",
+    "title": "Decoding Claude's DNA: Comparing System Prompts Across Fable 5, Opus 5/4.8/4.6, Sonnet 5 & Haiku 4.5",
+    "author": "arthurlindao",
+    "community": "ClaudeAI",
+    "caption": "A side-by-side reading of the system prompts that Claude Code gives each Claude model, including Haiku 4.5 and Opus 5."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The unrun test pits Haiku 4.5 thinking against Opus 5 on low effort",
+    "num": "09",
+    "id": "the-unrun-test-pits-haiku-4-5-thinking-against-opus-5-on-low"
+   }
+  ],
+  [
+   "p",
+   "Neither model wins this point yet, because the deciding test has not been published. Haiku 4.5 improves sharply with a reasoning step. Opus 5 can run at a lower effort setting, the dial that limits how long it thinks. Which pairing makes fewer costly mistakes on your tasks is still open, and we would not guess."
+  ],
+  [
+   "p",
+   "The dev.to automation comparison frames the test well: «Before you build a cascade that routes cheap work to a small model, measure the flagship at low effort on the same tasks.» A cascade sends work to a small model first and hands hard cases up. Its author warns that «A cascade also forfeits cache reuse, because caches are scoped per model». Caching means reusing a prompt the provider has already processed."
+  ],
+  [
+   "p",
+   "Here is the measurement we would want. Take a small set of real records with known correct answers. Run Haiku 4.5 in direct mode and with a short reasoning step. Run Opus 5 at low effort and at its default. Count wrong answers, retries and the minutes a person spends reading each reply. Reading time is the cost nobody logs."
+  ],
+  [
+   "p",
+   "Then add the clock-change weeks as a fixed check, because the benchmark write-up calls them «a small, cheap regression test for any agent that touches calendars». Until a team publishes that comparison, the honest answer turns on who reads the output. A program forgives long answers. A person forgives a wrong hour far less, and nobody has timed both."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The comparison a team would have to run to settle which pairing makes fewer costly mistakes.",
+    "steps": [
+     "Collect real records with known correct answers",
+     "Run Haiku 4.5 directly, then with a reasoning step",
+     "Run Opus 5 at low effort, then at its default",
+     "Add clock-change dates as a fixed regression check",
+     "Count wrong answers, retries and human reading time"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "When to use Claude Haiku 4.5 vs Claude Opus 5",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Support ticket triage",
+      "High volume and low ambiguity; Opus 5's long replies add reading time for no gain",
+      "Keep refund and write tools out of the agent's reach",
+      "Claude Haiku 4.5"
+     ],
+     [
+      "Deadlines and calendar conversion",
+      "Haiku 4.5 applies the usual offset on clock-change weeks; Opus 5 does far better but ran once",
+      "The model extracts date, time and zone; a time-zone library computes",
+      "Either model, with a library doing the arithmetic"
+     ],
+     [
+      "Code review across a large diff",
+      "Opus 5 reasons better across the diff; its answers run long and argue",
+      "Ask for a short findings list and state the scope",
+      "Claude Opus 5"
+     ],
+     [
+      "Long agent chains with many tool calls",
+      "Opus 5 is better at tool use; it can widen the task on its own",
+      "Write an explicit scope line and review before any write",
+      "Claude Opus 5"
+     ],
+     [
+      "One settings object shared across models",
+      "Opus 5 returns a 400 on temperature, top_p and top_k; Haiku 4.5 accepts them",
+      "Drop sampling keys per model, with a warning",
+      "Haiku 4.5 as a drop-in; Opus 5 behind a settings filter"
+     ],
+     [
+      "Streamed multi-turn chat",
+      "Opus 5 thinks by default and a streamed message can fail replay",
+      "Request adaptive thinking explicitly and strip empty strings",
+      "Opus 5 with a replay guard, or Haiku 4.5"
+     ],
+     [
+      "Daily meeting digests",
+      "Summarising needs no reasoning step, and the job runs every day",
+      "A fixed template and a short output",
+      "Claude Haiku 4.5"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Is Claude Haiku 4.5 good enough for coding?"
+  ],
+  [
+   "p",
+   "For narrow edits and support tooling, yes, but reasoning across a large diff still favours Opus 5. A dev.to guide to agent builds keeps the top tier for review, because «Code reasoning across a diff is the one place a frontier model consistently earns its cost.» Haiku 4.5 also trusts memorised arithmetic, so give it a reasoning step or a library for dates."
+  ],
+  [
+   "h3",
+   "Why does Claude Opus 5 reject temperature?"
+  ],
+  [
+   "p",
+   "Opus 5 returns a 400 error when a request sets temperature, top_p or top_k, so older settings break on upgrade. A LangChain issue on GitHub says such code «breaks with an opaque provider 400 the moment the model string is upgraded». Haiku 4.5 accepted the same settings on Bedrock. Drop the keys with a warning before each Opus 5 call."
+  ],
+  [
+   "h3",
+   "Claude Haiku 4.5 vs Claude Opus 5: which is better for AI agents?"
+  ],
+  [
+   "p",
+   "Opus 5 suits long tool chains and code review, and Haiku 4.5 suits routing, triage and daily digests. A dev.to guide sums up the tiers as «Haiku for routing, Sonnet for reasoning, Opus for long chains.» Opus 5's long, argumentative replies cost reading time, so keep it where a program, not a person, reads most of its output."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ],
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Claude Opus 4.6",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Fable 5.1",
+      "$10.00",
+      "$50.00",
+      "$0.25"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Sonnet 4.6",
+      "$3.00",
+      "$15.00",
+      "$0.30"
+     ],
+     [
+      "Grok 4.20",
+      "$1.25",
+      "$2.50",
+      "$0.20"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "hugo_valer_79d0d94e00804b",
+   "what": "The model knew the rule it still used last weeks offset",
+   "url": "https://dev.to/hugo_valer_79d0d94e00804b/the-model-knew-the-rule-it-still-used-last-weeks-offset-584m",
+   "posted": "2026-10-07"
+  },
+  {
+   "n": 2,
+   "platform": "GitHub",
+   "who": "pydantic/pydantic-ai",
+   "what": "Issue #7791",
+   "url": "https://github.com/pydantic/pydantic-ai/issues/7791",
+   "posted": "2026-08-27"
+  },
+  {
+   "n": 3,
+   "platform": "GitHub",
+   "who": "langchain-ai/langchain",
+   "what": "Issue #39686",
+   "url": "https://github.com/langchain-ai/langchain/issues/39686",
+   "posted": "2026-08-17"
+  },
+  {
+   "n": 4,
+   "platform": "GitHub",
+   "who": "langchain-ai/langchain",
+   "what": "Issue #39687",
+   "url": "https://github.com/langchain-ai/langchain/issues/39687",
+   "posted": "2026-08-17"
+  },
+  {
+   "n": 5,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49699373",
+   "posted": "2026-09-14"
+  },
+  {
+   "n": 6,
+   "platform": "dev.to",
+   "who": "rupa_tiwari_dd308948d710f",
+   "what": "Mcp agent use cases 8 ai agents you can build by role",
+   "url": "https://dev.to/rupa_tiwari_dd308948d710f/mcp-agent-use-cases-8-ai-agents-you-can-build-by-role-4c91",
+   "posted": "2026-09-15"
+  },
+  {
+   "n": 7,
+   "platform": "dev.to",
+   "who": "2pizza",
+   "what": "Claude api vs openai for business automation what actually decides it in 2026",
+   "url": "https://dev.to/2pizza/claude-api-vs-openai-for-business-automation-what-actually-decides-it-in-2026-4j71",
+   "posted": "2026-09-11"
+  }
+ ],
+ "cite": {
+  "Some models even state the correct rule in their reasoning and then ignore it.": 1,
+  "when it is wrong, it is wrong by exactly the hour you would predict": 1,
+  "Differences between close neighbors on a single-run leaderboard are noise": 1,
+  "let the model extract the date, time, and zone, and let a time-zone library do the arithmetic": 1,
+  "like a quick lookup or an agent writing to a calendar": 1,
+  "the direct mode is where cheap models break": 1,
+  "Reading the explanation is not verification": 1,
+  "every request with a sampling setting hard-fails with a 400 on the Claude 5 generation over Bedrock": 2,
+  "breaks with an opaque provider 400 the moment the model string is upgraded": 3,
+  "messages: text content blocks must be non-empty": 4,
+  "A plain two-turn streamed chat on the current flagship model breaks.": 4,
+  "streams a clean [thinking, text] block list and replays without error": 4,
+  "Claude thinks the user is always wrong.": 5,
+  "was at its peak with Opus 4.8 but is still present in Opus 5": 5,
+  "even disagrees with itself": 5,
+  "Opus 5 feels like it needs to present itself as smarter than it is": 5,
+  "5 for sure is unbearable, 4.8 is a reasonable sweet spot": 5,
+  "lately I haven't downgraded because 5 is so much better at tool use": 5,
+  "For quick one-shot type work I don't mind using Opus/Sonnet 5.": 5,
+  "Code reasoning across a diff is the one place a frontier model consistently earns its cost.": 6,
+  "Triage is high-volume and low-ambiguity, which is the cheapest model's sweet spot.": 6,
+  "Summarising and restructuring text does not need a reasoning model, and this agent runs daily.": 6,
+  "still more than most pipelines need": 7,
+  "a capable model for the judgment step and a small one for bulk extraction": 7,
+  "Start one tier below what you think you need.": 6,
+  "Before you build a cascade that routes cheap work to a small model, measure the flagship at low effort on the same tasks.": 7,
+  "A cascade also forfeits cache reuse, because caches are scoped per model": 7,
+  "a small, cheap regression test for any agent that touches calendars": 1,
+  "Haiku for routing, Sonnet for reasoning, Opus for long chains.": 6
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:11:33+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_35a9b6071dfc039b",
+   "thread_context_8408cf1bdeda25f7",
+   "thread_context_e2b31946ae0e0ff6",
+   "thread_context_ce7147b9dff5abd2",
+   "thread_context_acdf9fb4e3c8af7a",
+   "thread_context_cd3280bb725d7445",
+   "thread_context_5b76134b1c757861",
+   "thread_context_4da53efb4d4e4c15",
+   "thread_context_cf3323d1b682bc5e",
+   "thread_context_9a9321fb82f88a92"
+  ],
+  "platforms": {
+   "GitHub": 3,
+   "dev.to": 3,
+   "Reddit": 3,
+   "Hacker News": 1
+  },
+  "embedded": 3,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "head-to-head:anthropic/claude-haiku-4.5+anthropic/claude-opus-5",
+  "format": "head-to-head",
+  "reviewed_by": null
+ }
+}

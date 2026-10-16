@@ -1,0 +1,736 @@
+{
+ "slug": "migration-guide-anthropic-claude-opus-5-openai-gpt-6-astra",
+ "status": "draft",
+ "tag": "Migration guide",
+ "feat": false,
+ "title": "Switching Claude Opus 5 and GPT-6 Astra: Start by Deleting Your Temperature",
+ "dek": "Moving a working system between these two models is a contract change. Here is what breaks first, what to check, and how to bring traffic home if it goes wrong.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Claude Opus 5 vs GPT-6 Astra is a contract change, not a name change: strip sampling settings, rewrite prompts, price a cold cache, replay your own traffic, and decide the rollback signal first.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPlJlcXVlc3RzIGNyb3NzIGZyb20gb25lIG1vZGVsIHRvIHRoZSBvdGhlciB0aHJvdWdoIGEgY2hlY2twb2ludCwgd2l0aCBhIGRhc2hlZCByZXR1cm4gcGF0aCBiZW5lYXRoPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvd0wiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjQ1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93UiIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuNDUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3dHIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0ibWIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0ibWEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gZmFpbnQgZ3JpZCAtLT4KICA8ZyBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMSIgb3BhY2l0eT0iMC41Ij4KICAgIDxsaW5lIHgxPSIwIiB5MT0iMTA1IiB4Mj0iMTIwMCIgeTI9IjEwNSIvPjxsaW5lIHgxPSIwIiB5MT0iMjEwIiB4Mj0iMTIwMCIgeTI9IjIxMCIvPgogICAgPGxpbmUgeDE9IjAiIHkxPSIzMTUiIHgyPSIxMjAwIiB5Mj0iMzE1Ii8+PGxpbmUgeDE9IjAiIHkxPSI0MjAiIHgyPSIxMjAwIiB5Mj0iNDIwIi8+CiAgICA8bGluZSB4MT0iMCIgeTE9IjUyNSIgeDI9IjEyMDAiIHkyPSI1MjUiLz4KICA8L2c+CgogIDwhLS0gbGVmdCBub2RlIC0tPgogIDxlbGxpcHNlIGN4PSIyMTAiIGN5PSIzMTUiIHJ4PSIyMTAiIHJ5PSIxOTAiIGZpbGw9InVybCgjZ2xvd0wpIi8+CiAgPHJlY3QgeD0iOTgiIHk9IjIyNSIgd2lkdGg9IjIzNiIgaGVpZ2h0PSIxODAiIHJ4PSIyMCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xOCIvPgogIDxyZWN0IHg9Ijg2IiB5PSIyMTMiIHdpZHRoPSIyMzYiIGhlaWdodD0iMTgwIiByeD0iMjAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMjA0IiB5PSIzMTgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3B1cyA1PC90ZXh0PgogIDxsaW5lIHgxPSIxMzAiIHkxPSIzNTAiIHgyPSIyNzgiIHkyPSIzNTAiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNiIvPgoKICA8IS0tIHJpZ2h0IG5vZGUgLS0+CiAgPGVsbGlwc2UgY3g9Ijk5MCIgY3k9IjMxNSIgcng9IjIxMCIgcnk9IjE5MCIgZmlsbD0idXJsKCNnbG93UikiLz4KICA8cmVjdCB4PSI4OTAiIHk9IjIyNSIgd2lkdGg9IjIzNiIgaGVpZ2h0PSIxODAiIHJ4PSIyMCIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4xOCIvPgogIDxyZWN0IHg9Ijg3OCIgeT0iMjEzIiB3aWR0aD0iMjM2IiBoZWlnaHQ9IjE4MCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9Ijk5NiIgeT0iMzE4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFzdHJhPC90ZXh0PgogIDxsaW5lIHgxPSI5MjIiIHkxPSIzNTAiIHgyPSIxMDcwIiB5Mj0iMzUwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjYiLz4KCiAgPCEtLSBmb3J3YXJkIGFyYyAtLT4KICA8cGF0aCBkPSJNMzIyLDI1MCBDNDQwLDkwIDc2MCw5MCA4NzAsMjUwIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgbWFya2VyLWVuZD0idXJsKCNtYikiLz4KICA8IS0tIHBhY2tldHMgb24gdGhlIGZvcndhcmQgYXJjIC0tPgogIDxyZWN0IHg9IjM4NSIgeT0iMTQ2IiB3aWR0aD0iMzQiIGhlaWdodD0iMzQiIHJ4PSI4IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjU1Ii8+CiAgPHJlY3QgeD0iNDYwIiB5PSIxMTgiIHdpZHRoPSIzNCIgaGVpZ2h0PSIzNCIgcng9IjgiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNzUiLz4KICA8cmVjdCB4PSI3MDYiIHk9IjExOCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjM0IiByeD0iOCIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC44NSIvPgogIDxyZWN0IHg9Ijc4MCIgeT0iMTQ2IiB3aWR0aD0iMzQiIGhlaWdodD0iMzQiIHJ4PSI4IiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjY1Ii8+CgogIDwhLS0gY2hlY2twb2ludCBnYXRlIG9uIHRoZSBhcmMgLS0+CiAgPGNpcmNsZSBjeD0iNTk4IiBjeT0iMTMwIiByPSI5MCIgZmlsbD0idXJsKCNnbG93RykiLz4KICA8cmVjdCB4PSI1NjYiIHk9IjYyIiB3aWR0aD0iNjQiIGhlaWdodD0iMTM2IiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGxpbmUgeDE9IjU4MiIgeTE9IjgwIiB4Mj0iNTgyIiB5Mj0iMTgwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjYxNCIgeTE9IjgwIiB4Mj0iNjE0IiB5Mj0iMTgwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CiAgPHBhdGggZD0iTTU4MiwxMzIgbDEyLDE0IGwyMiwtMzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KCiAgPCEtLSByZXR1cm4gYXJjLCBkYXNoZWQgLS0+CiAgPHBhdGggZD0iTTg3MCwzODAgQzc2MCw1NjAgNDQwLDU2MCAzMzAsMzg1IiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iMTQgMTAiIG1hcmtlci1lbmQ9InVybCgjbWEpIi8+CiAgPCEtLSBhIHRvZ2dsZSBzd2l0Y2ggb24gdGhlIHJldHVybiBwYXRoIC0tPgogIDxyZWN0IHg9IjU0OCIgeT0iNDg0IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjUwIiByeD0iMjUiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGNpcmNsZSBjeD0iNTczIiBjeT0iNTA5IiByPSIxNyIgZmlsbD0iI2UzYjM0MSIvPgo8L3N2Zz4K",
+  "alt": "Requests travel from an Opus 5 box to an Astra box through a green checkpoint, with a dashed amber return path below.",
+  "caption": "A switch is a one-way trip only if you never planned the way back.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Claude Opus 5 vs GPT-6 Astra as a runbook: settings that fail, the cache you lose, prompts to rewrite, and the signal that sends traffic back.",
+ "keywords": [
+  "Claude Opus 5 vs GPT-6 Astra",
+  "Claude Opus 5 or GPT-6 Astra",
+  "Claude Opus 5 vs GPT-6 Astra for coding",
+  "Claude Opus 5 vs GPT-6 Astra pricing",
+  "AI model comparison",
+  "LLM migration runbook"
+ ],
+ "kicker": "Migration guide",
+ "tags": [
+  "Claude Opus 5",
+  "GPT-6 Astra",
+  "Migration guide"
+ ],
+ "read": 11,
+ "decisions": [
+  "Treat the switch as a contract change: settings, prompts, cache and harness all move.",
+  "Move coding and desktop agents toward GPT-6 Astra only after a replay on your own requests.",
+  "Keep vague, open-ended work on Claude Opus 5, with tone limits written into the prompt.",
+  "Decide the rollback tripwires before the canary: parse failures, refusals, cost per accepted task."
+ ],
+ "layout": "runbook",
+ "arrangement": "b",
+ "special": {
+  "type": "steps",
+  "title": "Runbook",
+  "items": [
+   {
+    "step": "Strip sampling settings",
+    "action": "Remove temperature, top_p and top_k from shared settings for Claude Opus 5 and filter them per model in one function.",
+    "check": "A probe request to Opus 5 on every route you use returns an answer, not a 400."
+   },
+   {
+    "step": "Freeze a replay set",
+    "action": "Pull real requests from recent logs, including vague, very long and security-flavoured ones, each with a known good answer.",
+    "check": "Both models run the whole set through your real harness and every result is stored."
+   },
+   {
+    "step": "Rewrite each prompt for its reader",
+    "action": "Spell tasks out in full for GPT-6 Astra; add scope, length and tone limits for Claude Opus 5.",
+    "check": "Replay scores on the new prompt match or beat the old model on its old prompt."
+   },
+   {
+    "step": "Parse tool calls and map effort",
+    "action": "Replace string matching on tool arguments with JSON parsing and schema checks, and translate thinking budgets into effort levels.",
+    "check": "The replay shows no parse errors, and logs show the effort level each provider received."
+   },
+   {
+    "step": "Price with a cold cache",
+    "action": "Estimate the first weeks with no cache hits, then measure output tokens and retries per accepted task.",
+    "check": "Cost per accepted task on the new model is a measured figure, not a guess."
+   },
+   {
+    "step": "Shadow, then canary",
+    "action": "Mirror live traffic silently, then serve a thin, labelled slice to real users.",
+    "check": "Parse failures, refusals and cost per accepted task stay inside the old model's baseline."
+   },
+   {
+    "step": "Widen with the way back open",
+    "action": "Grow the slice in steps while a trickle of traffic keeps the old model's cache and configuration alive.",
+    "check": "A flag flip returns all traffic to the old model without a deploy."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~11 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Strip sampling settings before the first request",
+    "num": "01",
+    "id": "strip-sampling-settings-before-the-first-request"
+   }
+  ],
+  [
+   "p",
+   "Delete `temperature` from your shared settings before Claude Opus 5 sees a single request. That is the first thing to break. Temperature, `top_p` and `top_k` are sampling settings: knobs that make the wording more or less random. A GitHub issue shows Opus 5 on Bedrock rejecting each of them with a 400, the error code for a bad request."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPk9uZSBzaGFyZWQgc2V0dGluZ3Mgb2JqZWN0IHRha2VzIHR3byBwYXRocyB0byBDbGF1ZGUgT3B1cyA1OiBvbmUgZHJvcHMgdGhlIHNhbXBsaW5nIGtleXMsIG9uZSBwYXNzZXMgdGhlbSBhbmQgZ2V0cyBhIDQwMDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3dSIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC40NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9Im1nIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9Im1yIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9Im1tIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjQwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHNoYXJlZCBzZXR0aW5ncyBjYXJkIC0tPgogIDxyZWN0IHg9IjUyIiB5PSIxODYiIHdpZHRoPSIzMDAiIGhlaWdodD0iMjUwIiByeD0iMTgiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTUiLz4KICA8cmVjdCB4PSI0MCIgeT0iMTc0IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI1MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjE5MCIgeT0iMjIyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNoYXJlZCBzZXR0aW5nczwvdGV4dD4KICA8bGluZSB4MT0iNzAiIHkxPSIyNDAiIHgyPSIzMTAiIHkyPSIyNDAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzQiIHk9IjI5MCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlM2IzNDEiPnRlbXBlcmF0dXJlPC90ZXh0PgogIDx0ZXh0IHg9Ijc0IiB5PSIzMzQiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZTNiMzQxIj50b3BfcDwvdGV4dD4KICA8dGV4dCB4PSI3NCIgeT0iMzc4IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2UzYjM0MSI+dG9wX2s8L3RleHQ+CgogIDwhLS0gc3BsaXQgLS0+CiAgPHBhdGggZD0iTTM0MCwyNzAgQzQyMCwyNzAgNDMwLDE1MCA1MTAsMTUwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNtbSkiLz4KICA8cGF0aCBkPSJNMzQwLDMzMCBDNDIwLDMzMCA0MzAsNDcwIDUxMCw0NzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI21tKSIvPgoKICA8IS0tIHVwcGVyIHBhdGg6IGRpcmVjdCBhZGFwdGVyIGRyb3BzIGtleXMgLS0+CiAgPHJlY3QgeD0iNTIwIiB5PSIxMDAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTAwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNjU1IiB5PSIxNDQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNyIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZGlyZWN0IGFkYXB0ZXI8L3RleHQ+CiAgPHRleHQgeD0iNjU1IiB5PSIxODAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+d2FybnMsIGRyb3BzIGtleXM8L3RleHQ+CiAgPCEtLSBkcm9wcGVkIGtleXMgZmFsbGluZyBhd2F5IC0tPgogIDxnIG9wYWNpdHk9IjAuNTUiPgogICAgPHJlY3QgeD0iNjEwIiB5PSIyMTgiIHdpZHRoPSIyNiIgaGVpZ2h0PSIxMiIgcng9IjQiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDxyZWN0IHg9IjY0NiIgeT0iMjMyIiB3aWR0aD0iMjYiIGhlaWdodD0iMTIiIHJ4PSI0IiBmaWxsPSIjZTNiMzQxIi8+CiAgICA8cmVjdCB4PSI2ODIiIHk9IjI0NiIgd2lkdGg9IjI2IiBoZWlnaHQ9IjEyIiByeD0iNCIgZmlsbD0iI2UzYjM0MSIvPgogIDwvZz4KICA8cGF0aCBkPSJNNzkwLDE1MCBMOTAwLDE1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjbWcpIi8+CiAgPHJlY3QgeD0iOTEwIiB5PSIxMDAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTAwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMTQiLz4KICA8cmVjdCB4PSI5MTAiIHk9IjEwMCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8cGF0aCBkPSJNOTQ4LDE1MiBsMTQsMTYgbDI2LC0zNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjEwNzAiIHk9IjE2MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hbnN3ZXI8L3RleHQ+CgogIDwhLS0gbG93ZXIgcGF0aDogQmVkcm9jayBwYXNzZXMga2V5cyB0aHJvdWdoIC0tPgogIDxyZWN0IHg9IjUyMCIgeT0iNDIwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjEwMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjY1NSIgeT0iNDY0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjciIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkJlZHJvY2sgcGF0aDwvdGV4dD4KICA8dGV4dCB4PSI2NTUiIHk9IjUwMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wYXNzZXMga2V5cyBvbjwvdGV4dD4KICA8cGF0aCBkPSJNNzkwLDQ3MCBMOTAwLDQ3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjbXIpIi8+CiAgPGNpcmNsZSBjeD0iMTAzNSIgY3k9IjQ3MCIgcj0iMTEwIiBmaWxsPSJ1cmwoI2dsb3dSKSIvPgogIDxyZWN0IHg9IjkxMCIgeT0iNDIwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjEwMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjEwMzUiIHk9IjQ4NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj40MDA8L3RleHQ+CgogIDwhLS0gZml4IGxpbmUgLS0+CiAgPGxpbmUgeDE9IjQwIiB5MT0iNTgwIiB4Mj0iMTE2MCIgeTI9IjU4MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjYxOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5GaXg6IGZpbHRlciB0aGUga2V5cyBwZXIgbW9kZWwsIGluIG9uZSBwbGFjZTwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Shared sampling settings split two ways: a direct adapter drops them, a Bedrock path passes them on and gets a 400.",
+    "caption": "The same shared settings succeed through one adapter and fail with a 400 through another, which is why the filter belongs in your code.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The failure hides in plumbing you forgot you had. The engineer who filed it explained that «A global `temperature` in shared `model_settings` therefore breaks an app the moment a model is switched to Opus 5 / Sonnet 5 on Bedrock». They found it in production. The same settings, sent through the library's direct adapter, were dropped with a warning instead."
+  ],
+  [
+   "p",
+   "So the fix is boring, and boring is good. Filter the three keys per model at the edge of your code. Log what you dropped. The issue's own workaround is to «unset `temperature`/`top_p` for these models». Do it in one function, so the next model swap is a one-line change and not a hunt."
+  ],
+  [
+   "p",
+   "Going the other way has its own first break. On GPT-6 Astra, the early surprise is a refusal. A Hacker News reply warned of «straight refusals due to the security limitations, which can be quite annoying». If any of your traffic touches security work, replay those prompts first. Find out before your users do."
+  ],
+  [
+   "code",
+   {
+    "label": "Drop sampling keys per model before the request leaves your code (illustrative)",
+    "language": "python",
+    "source": "import warnings\n\n# Models that reject sampling settings on the routes you use.\n# Fill this from your own probe requests, not from memory.\nNO_SAMPLING = {'claude-opus-5', 'claude-sonnet-5'}\nSAMPLING_KEYS = ('temperature', 'top_p', 'top_k')\n\ndef settings_for(model: str, shared: dict) -> dict:\n    out = dict(shared)  # never mutate the shared object\n    if model in NO_SAMPLING:\n        dropped = [k for k in SAMPLING_KEYS if out.pop(k, None) is not None]\n        if dropped:\n            warnings.warn(f'{model}: dropped {dropped}')\n    return out"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Match the direction to the job in front of you",
+    "num": "02",
+    "id": "match-the-direction-to-the-job-in-front-of-you"
+   }
+  ],
+  [
+   "p",
+   "Start with the jobs where the evidence leans one way. For bug fixing, a Hacker News reply called GPT-6 «downright the best overall model at raw code generation / cross discipline understanding / bugfixing». On computer use, meaning a model driving desktop software, a launch analysis put Astra at 72.6% on OSWorld 2.0. Those are real reasons to move coding agents."
+  ],
+  [
+   "p",
+   "Reasoning leans the same way. A Hacker News summary of an outside evaluation said Astra «can solve significantly more difficult math problems in a single forward pass than past models». A forward pass is one sweep through the network, with no visible scratch work. That helps heavy analysis. It says nothing about tone."
+  ],
+  [
+   "p",
+   "Other jobs lean toward Opus 5. Vague, creative or open-ended briefs suit a model that fills gaps on its own. Long agent runs count too: one Hacker News commenter stayed on Opus 5 over older Claude models because «5 is so much better at tool use». Security prompts that Astra refuses should stay put until you have tested them."
+  ],
+  [
+   "p",
+   "Sometimes the right move is no move. A dev.to write-up from an agency that ships on both vendors gives the rule: «Already deep in one ecosystem and nothing is broken: stay, and spend the migration budget on caching and evals instead». We agree. A switch earns its risk only when something is failing that the other model plausibly fixes."
+  ],
+  [
+   "h2",
+   {
+    "text": "Rewrite each prompt for the model that will read it",
+    "num": "03",
+    "id": "rewrite-each-prompt-for-the-model-that-will-read-it"
+   }
+  ],
+  [
+   "p",
+   "Open your longest system prompt and read it as a stranger would. Every line encodes a habit of the old model. That agency write-up puts it plainly: «Prompts carry assumptions about how a specific model behaves, and those assumptions are usually invisible until they are wrong.» Copying a prompt across unchanged is the classic quiet failure."
+  ],
+  [
+   "p",
+   "Moving to Astra, tighten the brief. A Hacker News reply said of OpenAI's models: «You really have to be specific with your prompts and they're far less communicative also». The person asking had already heard Astra was «not as 'smart' in figuring things out on it's own with a vague prompt». Spell out the file, the failing assertion and the expected result."
+  ],
+  [
+   "p",
+   "Moving to Opus 5, loosen the brief but fence the scope. The same reply credits Anthropic's models with «better at creative plans and generally filling in the gaps». Gap filling has an edge, though. A Reddit poster described Opus 5 analysing a whole repository for a simple, direct task. Say how far it may look."
+  ],
+  [
+   "p",
+   "Then cut the old scaffolding. The agency adds that «Prompts written for older models are often too prescriptive for current ones and actively reduce output quality». We think that holds in both directions here. Write each model's prompt fresh, then score it on your own records before it carries a single user."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1w4juuz/introducing_claude_fable_51_and_claude_mythos_51/",
+    "title": "Introducing Claude Fable 5.1 and Claude Mythos 5.1",
+    "author": "ClaudeOfficial",
+    "community": "ClaudeAI",
+    "caption": "A Reddit thread on a later Claude release, where a poster says Opus 5 went far beyond a simple task and others complain of rambling replies."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Parse tool arguments and reset the effort dial",
+    "num": "04",
+    "id": "parse-tool-arguments-and-reset-the-effort-dial"
+   }
+  ],
+  [
+   "p",
+   "Find every place your code reads a tool call's arguments as raw text. A tool call is the model asking your code to run a function, with the arguments packed as JSON. The agency warns that current models «may escape strings inside tool arguments differently than older ones». String matching on that text breaks without a sound."
+  ],
+  [
+   "p",
+   "Their instruction is short: «Parse the JSON. Always.» Take it literally. Parse, validate against a schema, then compare fields. If a router keys on a status field, check the value against an allowed list. A stray capital letter should fail loudly, not land in a queue nobody reads."
+  ],
+  [
+   "p",
+   "Next, map your reasoning settings. Reasoning effort is a dial for how long the model thinks before it answers. On the Anthropic side, the write-up says «The old fixed thinking budget is gone and returns an error on the current generation». Code written for a token budget must be rewritten for an effort level."
+  ],
+  [
+   "p",
+   "Watch for silent changes as well as loud ones. The same GitHub issue flagged a library path that quietly turns an `xhigh` effort request into `max` on Bedrock. Nothing errors. You simply get a different setting than the one you asked for. Log the effort level each provider actually received, per request."
+  ],
+  [
+   "h2",
+   {
+    "text": "Settle the voice contract before users hear it",
+    "num": "05",
+    "id": "settle-the-voice-contract-before-users-hear-it"
+   }
+  ],
+  [
+   "p",
+   "Read a handful of Opus 5 replies aloud before you hand it your users. Its manner is the most argued-over part of this switch. A Hacker News thread titled Claude is a Contrarian complained that «If the user asserts anything, Claude has to disagree with it.» A commenter there found «5 for sure is unbearable, 4.8 is a reasonable sweet spot»."
+  ],
+  [
+   "p",
+   "A Reddit poster went further and dropped from Opus 5 back to Opus 4.6, saying the older model's plans finally made sense. Their fix is worth copying. They set a custom output style asking for short, plain, jargon-free English, and reported that it worked well. No model change needed."
+  ],
+  [
+   "p",
+   "Not everyone reads the chattiness as a defect. The reply that praised Anthropic's models for «generally filling in the gaps» also called OpenAI's models «far less communicative», then added «which is a plus because they don't pepper your code with billions of pointless comments». Terse cuts both ways. It saves tokens and loses explanation."
+  ],
+  [
+   "p",
+   "In our view the critics win on tone and the defenders win on substance. Opus 5's pushback reads as rude. Its gap filling is real value on loose briefs. So treat voice as a spec you write: length, tone and scope limits go in the system prompt. Then check them in the replay, like any other output."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "How each model's everyday behaviour was described in public reports, and what that means for your prompt.",
+    "columns": [
+     "Behaviour",
+     "Claude Opus 5",
+     "GPT-6 Astra",
+     "What to put in the prompt"
+    ],
+    "rows": [
+     [
+      "Vague briefs",
+      "Fills gaps, sometimes overreaches",
+      "Needs the task spelled out",
+      "Scope limits for Opus 5, full detail for Astra"
+     ],
+     [
+      "Tone",
+      "Pushes back on the user, runs long",
+      "Terse, fewer comments in code",
+      "Length and tone rules for Opus 5"
+     ],
+     [
+      "Security tasks",
+      "No reports either way",
+      "Refusals under security limits",
+      "Replay security prompts on Astra first"
+     ],
+     [
+      "Tool use",
+      "Praised over older Claude models",
+      "72.6% on OSWorld 2.0 desktop tasks",
+      "Score tool calls in the replay for both"
+     ]
+    ]
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1voz6sm/downgraded_from_opus_5_to_opus_46_and_it_feels/",
+    "title": "Downgraded from Opus 5 to Opus 4.6 and it feels night and day",
+    "author": "Budget-Juggernaut-68",
+    "community": "ClaudeAI",
+    "caption": "A Reddit poster drops from Opus 5 to Opus 4.6 over hard-to-follow wording, then fixes it with a plain-English output style."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Price the move with a cold cache",
+    "num": "06",
+    "id": "price-the-move-with-a-cold-cache"
+   }
+  ],
+  [
+   "p",
+   "Budget the first week at full price. Caching means the provider stores a long, repeated prompt opening and bills later reads of it at a discount. The agency write-up notes that «caches are scoped per model». Switch models and every saved opening is gone. Your first bill on the new model will look worse than its steady state."
+  ],
+  [
+   "p",
+   "Then weigh output, which is often the larger line. Astra's list rates sit above Opus 5's on input, cached input and output. Against that, a launch analysis reported Astra «using about 65 percent fewer output tokens than Opus 5 at those settings». Those two facts pull in opposite directions. Only your own traffic settles the net."
+  ],
+  [
+   "p",
+   "Check request length as well. The context window is how much text a model can read in one request, and both models now take about a million tokens. The agency warns that «OpenAI applies a higher rate above a length threshold». Count how many of your requests sit above that line, such as long contracts, before they move."
+  ],
+  [
+   "p",
+   "Count retries as cost. If a model returns broken JSON, your code asks again and pays again. The agency's arithmetic: malformed output on 5 percent of calls means «you are paying 105 percent of your token estimate». A model swap can move that figure either way. Measure it during the overlap, per model."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The cost lines that move when traffic switches, and what to measure for each.",
+    "columns": [
+     "Cost line",
+     "What changes on a switch",
+     "What to measure"
+    ],
+    "rows": [
+     [
+      "Cache reads",
+      "Saved prompt openings do not carry over; caches are per model",
+      "Cache hit share in the first and second week"
+     ],
+     [
+      "Output tokens",
+      "Astra was reported using about 65 percent fewer than Opus 5 on one benchmark",
+      "Output tokens per finished task"
+     ],
+     [
+      "List rates",
+      "Astra's rates sit above Opus 5's",
+      "Cost per accepted task, not per token"
+     ],
+     [
+      "Long requests",
+      "The OpenAI side charges more above a length threshold",
+      "Share of requests above that threshold"
+     ],
+     [
+      "Retries",
+      "Malformed output is paid for twice",
+      "Retry rate per model"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Replay your own traffic before believing a leaderboard",
+    "num": "07",
+    "id": "replay-your-own-traffic-before-believing-a-leaderboard"
+   }
+  ],
+  [
+   "p",
+   "We went through one dev.to engineer's reading of the ARC-AGI-3 fine print, and it is the best warning in this whole move. A harness is the code around a model: memory, tools, retries. Astra's 99.9% came from what they call «OpenAI's Provider Adapter harness, which preserves opaque reasoning state between requests». Their Standard harness run scored 62.7%."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPlRoZSBzYW1lIEdQVC02IEFzdHJhIHdlaWdodHMgaW5zaWRlIHR3byBoYXJuZXNzZXMgc2NvcmUgOTkuOSUgYW5kIDYyLjclIG9uIEFSQy1BR0ktMzwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImNvcmUiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NjAiIGZpbGw9InVybCgjYmcpIi8+CiAgPHRleHQgeD0iNjAwIiB5PSI2MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BUkMtQUdJLTM6IG9uZSBtb2RlbCwgdHdvIGhhcm5lc3NlczwvdGV4dD4KCiAgPCEtLSBMRUZUIHNjYWZmb2xkIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIxMDAiIHdpZHRoPSI1MDAiIGhlaWdodD0iMzMwIiByeD0iMjAiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSI2MCIgeT0iMTAwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjMzMCIgcng9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMiAwIi8+CiAgPHRleHQgeD0iMzEwIiB5PSIxNDYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UHJvdmlkZXIgQWRhcHRlciBoYXJuZXNzPC90ZXh0PgogIDxjaXJjbGUgY3g9IjMxMCIgY3k9IjI3NSIgcj0iOTUiIGZpbGw9InVybCgjY29yZSkiLz4KICA8cmVjdCB4PSIyMzAiIHk9IjIxNSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIzMTAiIHk9IjI2OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zYW1lPC90ZXh0PgogIDx0ZXh0IHg9IjMxMCIgeT0iMzAwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPndlaWdodHM8L3RleHQ+CiAgPCEtLSBzdGF0ZSBsb29wIC0tPgogIDxwYXRoIGQ9Ik0zOTIsMjUwIEM0NzAsMjMwIDQ3MCwzMjAgMzkyLDMwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8cGF0aCBkPSJNMjI4LDI1MCBDMTUwLDIzMCAxNTAsMzIwIDIyOCwzMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMzEwIiB5PSIzOTgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+a2VlcHMgcmVhc29uaW5nIHN0YXRlPC90ZXh0PgoKICA8IS0tIFJJR0hUIHNjYWZmb2xkIC0tPgogIDxyZWN0IHg9IjY0MCIgeT0iMTAwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjMzMCIgcng9IjIwIiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjA2Ii8+CiAgPHJlY3QgeD0iNjQwIiB5PSIxMDAiIHdpZHRoPSI1MDAiIGhlaWdodD0iMzMwIiByeD0iMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iODkwIiB5PSIxNDYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U3RhbmRhcmQgaGFybmVzczwvdGV4dD4KICA8Y2lyY2xlIGN4PSI4OTAiIGN5PSIyNzUiIHI9Ijk1IiBmaWxsPSJ1cmwoI2NvcmUpIi8+CiAgPHJlY3QgeD0iODEwIiB5PSIyMTUiIHdpZHRoPSIxNjAiIGhlaWdodD0iMTIwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iODkwIiB5PSIyNjgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c2FtZTwvdGV4dD4KICA8dGV4dCB4PSI4OTAiIHk9IjMwMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj53ZWlnaHRzPC90ZXh0PgogIDwhLS0gYnJva2VuIGxvb3A6IHN0YXRlbGVzcyAtLT4KICA8cGF0aCBkPSJNOTcyLDI1MCBDMTAzMCwyNDAgMTA0MCwyNzAgMTAzNiwyODIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI4IDgiLz4KICA8cGF0aCBkPSJNODA4LDI1MCBDNzUwLDI0MCA3NDAsMjcwIDc0NCwyODIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI4IDgiLz4KICA8dGV4dCB4PSI4OTAiIHk9IjM5OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zdGF0ZWxlc3MsIHByb3ZpZGVyLW5ldXRyYWw8L3RleHQ+CgogIDwhLS0gc2NvcmUgYmFycywgc2NhbGVkIHRvIHRoZSBzdGF0ZWQgcGVyY2VudGFnZXMgKGZ1bGwgdHJhY2sgPSAxMDAlKSAtLT4KICA8cmVjdCB4PSI2MCIgeT0iNDcwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjM0IiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiLz4KICA8cmVjdCB4PSI2MCIgeT0iNDcwIiB3aWR0aD0iMzk5LjYiIGhlaWdodD0iMzQiIHJ4PSIxMCIgZmlsbD0iIzNlY2Y4ZSIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iNDk3IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJlbmQiPjk5LjklPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI1NDgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+cnVuIGNvc3QgJDE4LDgxNzwvdGV4dD4KCiAgPHJlY3QgeD0iNjQwIiB5PSI0NzAiIHdpZHRoPSI0MDAiIGhlaWdodD0iMzQiIHJ4PSIxMCIgZmlsbD0iIzJjMzU0NCIvPgogIDxyZWN0IHg9IjY0MCIgeT0iNDcwIiB3aWR0aD0iMjUwLjgiIGhlaWdodD0iMzQiIHJ4PSIxMCIgZmlsbD0iI2UzYjM0MSIvPgogIDx0ZXh0IHg9IjExNDAiIHk9IjQ5NyIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0iZW5kIj42Mi43JTwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjU0OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5ydW4gY29zdCAkMjYsMDk4PC90ZXh0PgoKICA8bGluZSB4MT0iNjAiIHkxPSI1OTAiIHgyPSIxMTQwIiB5Mj0iNTkwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iNjMwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPllvdXIgaGFybmVzcyBtb3ZlcyB3aXRoIHRoZSBtb2RlbDwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Two harnesses around the same weights: one keeps reasoning state and scores 99.9%, the stateless one scores 62.7%.",
+    "caption": "One model, two scaffolds, two very different ARC-AGI-3 results, which is why the replay runs through your own harness.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The cost ran the other way: $18,817 for the adapter run and $26,098 for the standard one. The engineer's summary is blunt: «Same model. Same weights. The difference is entirely in the scaffolding around it.» We agree, and we would push it further. Your harness is part of the model you are migrating."
+  ],
+  [
+   "p",
+   "Apply that to your own stack. If your code carries conversation state between calls, a model that thrives on carried state may look better for you than on a public table. If your calls are stateless, it may look worse. Leaderboards cannot tell you which. Only your requests can."
+  ],
+  [
+   "p",
+   "So build the replay before the switch. The agency says «a few dozen real records with known correct answers is enough to make the decision non-religious». Pull them from last month's logs. Include the ugly ones: the vague ticket, the giant contract, the security question that might be refused. Run both models through your real harness."
+  ],
+  [
+   "h2",
+   {
+    "text": "Shift traffic in small, labelled slices",
+    "num": "08",
+    "id": "shift-traffic-in-small-labelled-slices"
+   }
+  ],
+  [
+   "p",
+   "Run in shadow before anyone sees the new model. Shadow traffic means sending a copy of each live request to the new model, scoring its answer, then throwing it away. Users see nothing. You see failures early, on your real mix of work, at the price of paying for both models for a while."
+  ],
+  [
+   "p",
+   "Next, open a canary. A canary is a thin slice of live requests served by the new model while the old one handles the rest. Keep it thin. Pick a slice you can reverse cheaply, such as internal users or one low-risk workflow, so a bad day stays small."
+  ],
+  [
+   "p",
+   "Label every request with the model, the prompt version and the harness version. Without labels, a bad week is a mystery. With them, you can say which slice regressed and why. This also keeps the comparison honest when two things change at once."
+  ],
+  [
+   "p",
+   "Widen only when the numbers hold for several days. Watch cost per accepted task, not cost per token. An accepted task is one a user or an automatic check signed off on. A cheaper token that needs a retry is not cheaper. Widen in steps, and keep the old model live behind each one."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The order of a safe switch, from offline replay to a widened canary.",
+    "steps": [
+     "Replay last month's requests through your real harness",
+     "Shadow live traffic and score answers silently",
+     "Serve a thin, labelled canary slice",
+     "Compare parse failures, refusals and cost per accepted task",
+     "Widen in steps with the old model kept warm"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Roll back the moment the floor drops",
+    "num": "09",
+    "id": "roll-back-the-moment-the-floor-drops"
+   }
+  ],
+  [
+   "p",
+   "Write the stop signal down before the canary starts. Pick three tripwires: parse failures, refusals and cost per accepted task. Set each against the old model's baseline from the replay. If any one crosses its line for a full day, stop widening. Send the slice back."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPkEgY2FuYXJ5IHNsaWNlIHBhc3NlcyB0aHJlZSB0cmlwd2lyZXM7IG9uZSB0cmlwcyBhbmQgYSBmbGFnIGZsaXAgc2VuZHMgdHJhZmZpYyBiYWNrIHRvIHRoZSBvbGQgbW9kZWwsIGtlcHQgd2FybTwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3dSIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC41NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvd0EiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwLjQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJtYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzdhYTJmZiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJtdiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIG1hcmtlcldpZHRoPSIzMCIgbWFya2VySGVpZ2h0PSIzMCIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNhNzhiZmEiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0ibWEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NjAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gaW5jb21pbmcgdHJhZmZpYyAtLT4KICA8dGV4dCB4PSIxMTAiIHk9IjMwMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5saXZlIHRyYWZmaWM8L3RleHQ+CiAgPHBhdGggZD0iTTYwLDM0MCBMMjE1LDM0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjYiIG1hcmtlci1lbmQ9InVybCgjbWIpIi8+CgogIDwhLS0gdGhlIGZsYWcgLS0+CiAgPGNpcmNsZSBjeD0iMjgwIiBjeT0iMzQwIiByPSI4MCIgZmlsbD0idXJsKCNnbG93QSkiLz4KICA8cmVjdCB4PSIyMjUiIHk9IjMwMCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI4MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjI4MCIgeT0iMzUwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZsYWc8L3RleHQ+CgogIDwhLS0gY2FuYXJ5IGJyYW5jaCAodGhpbikgLS0+CiAgPHBhdGggZD0iTTMzNSwzMjAgQzQwMCwzMjAgNDAwLDE3MCA0NzAsMTcwIEw5MzAsMTcwIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNtYikiLz4KICA8dGV4dCB4PSI0NzAiIHk9IjEyOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIj5jYW5hcnkgc2xpY2U8L3RleHQ+CgogIDwhLS0gdHJpcHdpcmVzIC0tPgogIDxjaXJjbGUgY3g9IjU2MCIgY3k9IjE3MCIgcj0iMjAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNTYwIiB5PSIyMzYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cGFyc2U8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIyNjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZmFpbHVyZXM8L3RleHQ+CiAgPGNpcmNsZSBjeD0iNzAwIiBjeT0iMTcwIiByPSIyMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI3MDAiIHk9IjIzNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIzIiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZWZ1c2FsczwvdGV4dD4KICA8Y2lyY2xlIGN4PSI4NDAiIGN5PSIxNzAiIHI9IjcwIiBmaWxsPSJ1cmwoI2dsb3dSKSIvPgogIDxjaXJjbGUgY3g9Ijg0MCIgY3k9IjE3MCIgcj0iMjIiIGZpbGw9IiNmZjdiNzIiLz4KICA8dGV4dCB4PSI4NDAiIHk9IjE3OSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjMTAxNDFiIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4hPC90ZXh0PgogIDx0ZXh0IHg9Ijg0MCIgeT0iMjM2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjMiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmNvc3QgcGVyPC90ZXh0PgogIDx0ZXh0IHg9Ijg0MCIgeT0iMjY0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjMiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFjY2VwdGVkIHRhc2s8L3RleHQ+CgogIDwhLS0gbmV3IG1vZGVsIC0tPgogIDxyZWN0IHg9Ijk0MCIgeT0iMTEwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjEyMCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjEwNTAiIHk9IjE4MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5uZXcgbW9kZWw8L3RleHQ+CgogIDwhLS0gbWFpbiBicmFuY2ggKHRoaWNrKSB0byBvbGQgbW9kZWwgLS0+CiAgPHBhdGggZD0iTTMzNSwzNjAgQzQwMCwzNjAgNDAwLDUwMCA0NzAsNTAwIEw5MzAsNTAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMTIiIG9wYWNpdHk9IjAuODUiIG1hcmtlci1lbmQ9InVybCgjbXYpIi8+CiAgPHRleHQgeD0iNTIwIiB5PSI1NTAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2E3OGJmYSI+bW9zdCB0cmFmZmljIHN0YXlzPC90ZXh0PgoKICA8IS0tIG9sZCBtb2RlbCwgd2FybSAtLT4KICA8cmVjdCB4PSI5NDAiIHk9IjQ0MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxOCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xNSIvPgogIDxyZWN0IHg9Ijk0MCIgeT0iNDQwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjEyMCIgcng9IjE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjEwNTAiIHk9IjQ5NCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5vbGQgbW9kZWw8L3RleHQ+CiAgPHRleHQgeD0iMTA1MCIgeT0iNTMwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjMiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmNhY2hlIGtlcHQgd2FybTwvdGV4dD4KCiAgPCEtLSB0aGUgZmxpcCBiYWNrIC0tPgogIDxwYXRoIGQ9Ik04NDAsMjg0IEM3ODAsNDAwIDQ4MCw0MDAgMzQ1LDM0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjEyIDkiIG1hcmtlci1lbmQ9InVybCgjbWEpIi8+CiAgPHRleHQgeD0iNjIwIiB5PSI0MTgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZmxpcCBiYWNrPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A canary slice trips on cost per accepted task and a flag flips traffic back to the old model.",
+    "caption": "Three tripwires sit on the canary, and any one of them sends the slice back to an old model whose cache was kept warm.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Add a human tripwire too. Complaints about tone count. Opus 5's critics described replies built for «making whatever the user has said seem more wrong». If support tickets start quoting your assistant's attitude, treat that as a rollback signal, even when every automatic metric looks green."
+  ],
+  [
+   "p",
+   "Make the return a flag flip, never a deploy. Keep the old model's prompt, settings object and harness version pinned and ready. Keep a trickle of traffic on it, so its cache stays warm. Caches are per model, and a cold return pays full price on the way home."
+  ],
+  [
+   "p",
+   "Then read the failure before you try again. Was it the model, the prompt or the harness? The ARC-AGI-3 fine print showed one model swinging from 99.9% to 62.7% on harness alone. A failed move often teaches you about your own scaffolding first. Fix that, replay, and reopen the slice."
+  ],
+  [
+   "h2",
+   {
+    "text": "Should this workload move between Claude Opus 5 and GPT-6 Astra, and in which direction?",
+    "num": "Decision tree",
+    "id": "decision"
+   }
+  ],
+  [
+   "tree",
+   {
+    "question": "Should this workload move between Claude Opus 5 and GPT-6 Astra, and in which direction?",
+    "branches": [
+     {
+      "condition": "Nothing is failing and your stack is built around one vendor",
+      "outcome": "Stay where you are and spend the budget on caching and evals",
+      "route": "Stay"
+     },
+     {
+      "condition": "Bug fixing, raw code generation or desktop computer-use agents",
+      "outcome": "Trial GPT-6 Astra with tightly specified prompts after a replay",
+      "route": "Opus 5 to Astra"
+     },
+     {
+      "condition": "Vague, creative or open-ended briefs that need gaps filled",
+      "outcome": "Keep or move to Claude Opus 5, with tone and scope limits in the prompt",
+      "route": "Astra to Opus 5"
+     },
+     {
+      "condition": "Security work that Astra's guardrails may refuse",
+      "outcome": "Replay those prompts on Astra before moving any of them",
+      "route": "Test first"
+     },
+     {
+      "condition": "Many requests near the long-context price threshold",
+      "outcome": "Price those requests on both sides before moving them to Astra",
+      "route": "Measure first"
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Is GPT-6 Astra better than Claude Opus 5 for coding?"
+  ],
+  [
+   "p",
+   "For raw code generation and bug fixing, GPT-6 Astra has the stronger reputation, but only a replay of your own tickets settles it. A Hacker News reply called it «downright the best overall model at raw code generation / cross discipline understanding / bugfixing». The same reply warned that you must be specific with prompts. Claude Opus 5 copes better with vague briefs."
+  ],
+  [
+   "h3",
+   "Why does temperature fail on Claude Opus 5?"
+  ],
+  [
+   "p",
+   "On some routes, Claude Opus 5 rejects sampling settings such as temperature, top_p and top_k with a 400 error. A GitHub issue traced one case to a library that passed the settings through on Bedrock, even though its direct adapter dropped them with a warning. Remove those keys for Opus 5 before the request leaves your code."
+  ],
+  [
+   "h3",
+   "How do you roll back an LLM migration safely?"
+  ],
+  [
+   "p",
+   "Decide the rollback signal before the canary starts, and make the return a flag flip. Good tripwires are parse failures, refusals and cost per accepted task, each measured against the old model's baseline. Keep the old prompt, settings and harness pinned, and keep some traffic on the old model so its cache stays warm."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "GPT-6 Astra",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ],
+     [
+      "Claude Fable 5.1",
+      "$10.00",
+      "$50.00",
+      "$0.25"
+     ],
+     [
+      "Claude Opus 4.6",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "GPT-5.6 Sol",
+      "$4.00",
+      "$20.00",
+      "$0.40"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "GitHub",
+   "who": "pydantic/pydantic-ai",
+   "what": "Issue #7791",
+   "url": "https://github.com/pydantic/pydantic-ai/issues/7791",
+   "posted": "2026-08-27"
+  },
+  {
+   "n": 2,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49608008",
+   "posted": "2026-09-08"
+  },
+  {
+   "n": 3,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49627370",
+   "posted": "2026-09-09"
+  },
+  {
+   "n": 4,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49699373",
+   "posted": "2026-09-14"
+  },
+  {
+   "n": 5,
+   "platform": "dev.to",
+   "who": "2pizza",
+   "what": "Claude api vs openai for business automation what actually decides it in 2026",
+   "url": "https://dev.to/2pizza/claude-api-vs-openai-for-business-automation-what-actually-decides-it-in-2026-4j71",
+   "posted": "2026-09-11"
+  },
+  {
+   "n": 6,
+   "platform": "dev.to",
+   "who": "deanlee",
+   "what": "Openai named astra agi the review had no veto",
+   "url": "https://dev.to/deanlee/openai-named-astra-agi-the-review-had-no-veto-fog",
+   "posted": "2026-09-10"
+  },
+  {
+   "n": 7,
+   "platform": "dev.to",
+   "who": "dibyaprakash_pradhan",
+   "what": "Can gpt 6 astra generate a pcb",
+   "url": "https://dev.to/dibyaprakash_pradhan/can-gpt-6-astra-generate-a-pcb-1flg",
+   "posted": "2026-09-05"
+  }
+ ],
+ "cite": {
+  "A global `temperature` in shared `model_settings` therefore breaks an app the moment a model is switched to Opus 5 / Sonnet 5 on Bedrock": 1,
+  "unset `temperature`/`top_p` for these models": 1,
+  "straight refusals due to the security limitations, which can be quite annoying": 2,
+  "downright the best overall model at raw code generation / cross discipline understanding / bugfixing": 2,
+  "can solve significantly more difficult math problems in a single forward pass than past models": 3,
+  "5 is so much better at tool use": 4,
+  "Already deep in one ecosystem and nothing is broken: stay, and spend the migration budget on caching and evals instead": 5,
+  "Prompts carry assumptions about how a specific model behaves, and those assumptions are usually invisible until they are wrong.": 5,
+  "You really have to be specific with your prompts and they're far less communicative also": 2,
+  "not as 'smart' in figuring things out on it's own with a vague prompt": 2,
+  "better at creative plans and generally filling in the gaps": 2,
+  "Prompts written for older models are often too prescriptive for current ones and actively reduce output quality": 5,
+  "may escape strings inside tool arguments differently than older ones": 5,
+  "Parse the JSON. Always.": 5,
+  "The old fixed thinking budget is gone and returns an error on the current generation": 5,
+  "If the user asserts anything, Claude has to disagree with it.": 4,
+  "5 for sure is unbearable, 4.8 is a reasonable sweet spot": 4,
+  "generally filling in the gaps": 2,
+  "far less communicative": 2,
+  "which is a plus because they don't pepper your code with billions of pointless comments": 2,
+  "caches are scoped per model": 5,
+  "using about 65 percent fewer output tokens than Opus 5 at those settings": 6,
+  "OpenAI applies a higher rate above a length threshold": 5,
+  "you are paying 105 percent of your token estimate": 5,
+  "OpenAI's Provider Adapter harness, which preserves opaque reasoning state between requests": 7,
+  "Same model. Same weights. The difference is entirely in the scaffolding around it.": 7,
+  "a few dozen real records with known correct answers is enough to make the decision non-religious": 5,
+  "making whatever the user has said seem more wrong": 4
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:11:46+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_44fa985999d8cf54",
+   "thread_context_8408cf1bdeda25f7",
+   "thread_context_bbcef3ec44ce5ffe",
+   "thread_context_35a9b6071dfc039b",
+   "thread_context_7c8313163ce0a065",
+   "thread_context_cd3280bb725d7445",
+   "thread_context_e00e0fbfd53f8e3d",
+   "thread_context_dd96213f921cef9e",
+   "thread_context_5b76134b1c757861",
+   "thread_context_4da53efb4d4e4c15"
+  ],
+  "platforms": {
+   "dev.to": 3,
+   "GitHub": 1,
+   "Hacker News": 3,
+   "Reddit": 3
+  },
+  "embedded": 2,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "migration-guide:anthropic/claude-opus-5+openai/gpt-6-astra",
+  "format": "migration-guide",
+  "reviewed_by": null
+ }
+}
