@@ -2762,6 +2762,33 @@ def blog_posts_start_packs(req: BlogGenerateRequest) -> dict:
         raise HTTPException(status_code=409, detail=str(e)) from None
 
 
+# THE BLOG'S TOPIC HARVEST (2026-10-16): what the field is writing about, for
+# the blog only - judge/topics.py and scripts/harvest_topics.py. No model.
+
+
+@app.get("/blog-topics")
+def blog_topics_view() -> dict:
+    from judge import blog_method, topics
+
+    with _conn() as conn:
+        return {
+            "overview": topics.overview(conn),
+            "emerging": topics.emerging(conn),
+            "plan": topics.plan(conn),
+            "harvest": blog_method.topic_harvest_status(),
+        }
+
+
+@app.post("/blog-topics/harvest")
+def blog_topics_harvest() -> dict:
+    from judge import blog_method
+
+    try:
+        return blog_method.start_topic_harvest()
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+
 @app.post("/blog-posts/generate")
 def blog_posts_generate(req: BlogGenerateRequest) -> dict:
     """Start a background run that plans and writes `count` NEW drafts.

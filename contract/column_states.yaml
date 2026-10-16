@@ -1875,6 +1875,46 @@ columns:
     thread_context_id:
       reviewed: false
       state: read
+  topic_item:
+    authors:
+      reviewed: true
+      state: write_only
+      why: >-
+        Added 2026-10-16 with the blog's topic harvest. Written by
+        scripts/harvest_topics.py from arXiv's author list and a feed's
+        author field. Intended reader: the topic writing packs, which credit
+        a paper's or post's authors by name in the post; unbuilt until
+        those packs land (Phase C of the topic work).
+    harvested_at:
+      reviewed: true
+      state: defaulted
+      why: >-
+        DEFAULT now() on insert; read by judge/topics.py overview for the
+        last harvest and for when collection began (trend_meaningful_from).
+    id:
+      reviewed: true
+      state: read
+    kind:
+      reviewed: true
+      state: read
+    published_at:
+      reviewed: true
+      state: read
+    source:
+      reviewed: true
+      state: read
+    summary:
+      reviewed: true
+      state: read
+    title:
+      reviewed: true
+      state: read
+    topics:
+      reviewed: true
+      state: read
+    url:
+      reviewed: true
+      state: read
   watermark:
     cursor:
       reviewed: false

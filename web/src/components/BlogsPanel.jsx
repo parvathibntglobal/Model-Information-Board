@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { blogMethod, blogPosts, startBlogGeneration, blogGenerationStatus, blogGenerationLog, blogRuns, reviewBlogPost, storeBlogDrafts } from '../api'
 import { BlogMethod, WritingPacks } from './BlogMethod'
+import { BlogTopics } from './BlogTopics'
 import { Badge, Notice } from './ui'
 import { IconAlert, IconGrid } from './Icons'
 
@@ -345,6 +346,7 @@ export default function BlogsPanel() {
         {startErr && <Notice icon={<IconAlert />}>{startErr}</Notice>}
         {claude ? <WritingPacks /> : <RunStatus gen={gen} />}
         <BlogMethod method={method} />
+        <BlogTopics />
 
         {posts.err && <Notice icon={<IconAlert />}>The posts could not be read: {posts.err}</Notice>}
         {reviewErr && <Notice icon={<IconAlert />}>Could not record the decision for {reviewErr}</Notice>}

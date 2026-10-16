@@ -391,6 +391,10 @@ export const blogMethod = () => request('/blog-posts/method')
 export const blogPacks = () => request('/blog-posts/packs')
 export const startBlogPacks = (count = 3) => request('/blog-posts/packs', { method: 'POST', body: { count } })
 
+// THE BLOG'S TOPIC HARVEST (judge/topics.py, 2026-10-16): no model call.
+export const blogTopics = () => request('/blog-topics')
+export const startTopicHarvest = () => request('/blog-topics/harvest', { method: 'POST' })
+
 export const reviewBlogPost = (slug, decision, reason) =>
   request('/blog-posts/review', { method: 'POST', body: { slug, decision, reason: reason || null } })
 

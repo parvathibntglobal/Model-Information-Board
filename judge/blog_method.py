@@ -191,3 +191,33 @@ def pack_status() -> dict[str, Any]:
     return {"running": running,
             "exit_code": None if _proc is None or running else _proc.returncode,
             "log_tail": tail}
+
+
+# ── the topic harvest (2026-10-16): scripts/harvest_topics.py, no model ─────
+
+_topic_proc: subprocess.Popen | None = None
+TOPIC_LOG = PACKS / "_topic_harvest.log"
+
+
+def start_topic_harvest() -> dict[str, Any]:
+    """Harvest arXiv and the reviewed feeds in the background. No model call."""
+    global _topic_proc
+    if _topic_proc is not None and _topic_proc.poll() is None:
+        raise RuntimeError("a topic harvest is already running")
+    PACKS.mkdir(exist_ok=True)
+    log = TOPIC_LOG.open("w", encoding="utf-8")
+    _topic_proc = subprocess.Popen(
+        [sys.executable, "-u", str(ROOT / "scripts" / "harvest_topics.py")],
+        cwd=str(ROOT), env=os.environ.copy(), stdout=log, stderr=subprocess.STDOUT,
+    )
+    return {"started": datetime.now(UTC).isoformat(timespec="seconds")}
+
+
+def topic_harvest_status() -> dict[str, Any]:
+    running = _topic_proc is not None and _topic_proc.poll() is None
+    tail = []
+    if TOPIC_LOG.exists():
+        tail = TOPIC_LOG.read_text(encoding="utf-8", errors="replace").splitlines()[-4:]
+    return {"running": running,
+            "exit_code": None if _topic_proc is None or running else _topic_proc.returncode,
+            "log_tail": tail}

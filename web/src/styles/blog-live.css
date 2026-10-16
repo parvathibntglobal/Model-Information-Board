@@ -199,3 +199,9 @@
 .bm-rules ul{margin:4px 0;padding-left:18px;font-size:var(--fs-xs);color:var(--text-2);line-height:1.55}
 .bm-rules b{font-size:var(--fs-sm)}
 .bm-packs{padding:12px 14px;border:1px solid var(--border-soft);border-radius:var(--r-control);background:var(--bg-elev)}
+
+/* Admin -> Blogs -> Topics (2026-10-16) */
+.bm-topic-items { margin: 6px 0 0; padding-left: 16px; font-size: 12px; }
+.bm-topic-items li { margin-bottom: 4px; }
+.bm-topic-items .mono { font-size: 10px; }
+.bm-emerging { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; font-size: 12px; }

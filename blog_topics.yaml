@@ -1,0 +1,125 @@
+# THE BLOG'S TOPIC HARVEST (2026-10-16, anooj): general AI, not only models.
+#
+# The first blog read only board entries - what engineers said about MODELS -
+# so a reader searching "what is a System 1 model?" or "what is RAG?" found
+# nothing here. This file drives a second, separate harvest for the blog:
+#
+#   arxiv     the newest papers in the categories below, from the official API
+#             (contract/sources.yaml `arxiv-api-terms`, its rate guidance)
+#   feeds     every blog feed contract/sources.yaml already reviews (robots and
+#             terms checked per feed, the same gate the evidence harvest uses)
+#
+# What is stored is what the publisher syndicates - a title, the abstract or
+# the feed summary, the authors, the date and the link - never a full article
+# (scripts/harvest_topics.py, table topic_item). No model is called.
+#
+# TOPICS ARE CURATED, NOT COMPUTED (rule 10): which phrases count as one topic
+# is a person's ruling. The harvest lists EMERGING TERMS - phrases recurring in
+# recent titles that no topic covers - for a person (or Claude Code, proposing)
+# to adopt as a new topic below. That is how this list follows the field.
+#
+# Required keys; absent raises (rule 12): judge/topics.py.
+
+arxiv:
+  # arXiv `search_query`: the categories the blog follows.
+  query: "cat:cs.AI OR cat:cs.CL OR cat:cs.LG OR cat:cs.MA"
+  # Pages of the newest submissions per harvest (the API's page size each).
+  max_pages: 2
+
+window_days: 14          # a topic's items are counted over this many days
+synthesis_min_items: 2   # this many items on one topic -> one combined article
+emerging:
+  min_items: 3           # a phrase must recur in this many recent titles
+  window_days: 30
+  max_terms: 25
+
+# key: a stable slug. name: what a reader sees. terms: matched case-insensitively
+# on whole words in the title and summary. A topic can be added at any time;
+# items are re-matched on every harvest.
+topics:
+  - key: rag
+    name: Retrieval-augmented generation (RAG)
+    terms: [retrieval-augmented, retrieval augmented, RAG, GraphRAG]
+  - key: agents
+    name: AI agents
+    terms: [AI agent, AI agents, agentic, multi-agent, autonomous agent, autonomous agents]
+  - key: tool-use
+    name: Tool use and MCP
+    terms: [tool use, tool calling, function calling, model context protocol, MCP]
+  - key: reasoning-models
+    name: Reasoning models (System 1 and System 2)
+    terms: [reasoning model, reasoning models, chain-of-thought, chain of thought, test-time compute,
+            inference-time compute, System 2, System 1, thinking model, slow thinking]
+  - key: superintelligence
+    name: AGI and superintelligence
+    terms: [superintelligence, artificial superintelligence, ASI, AGI, artificial general intelligence]
+  - key: alignment
+    name: Alignment and preference training
+    terms: [alignment, RLHF, DPO, preference optimization, reward model, reward models, constitutional AI]
+  - key: interpretability
+    name: Interpretability
+    terms: [interpretability, mechanistic, sparse autoencoder, sparse autoencoders, circuits, steering vector]
+  - key: safety
+    name: AI safety and security
+    terms: [AI safety, jailbreak, jailbreaks, prompt injection, red teaming, red-teaming, guardrails]
+  - key: evals
+    name: Evaluation and benchmarks
+    terms: [benchmark, benchmarks, evaluation, evals, LLM-as-a-judge, LLM as a judge]
+  - key: multimodal
+    name: Multimodal models
+    terms: [multimodal, vision-language, VLM, text-to-image, video generation, speech recognition,
+            text-to-speech]
+  - key: long-context
+    name: Long context
+    terms: [long context, long-context, context window, context length]
+  - key: efficiency
+    name: Inference efficiency
+    terms: [quantization, distillation, pruning, speculative decoding, KV cache, inference efficiency]
+  - key: moe
+    name: Mixture of experts
+    terms: [mixture of experts, mixture-of-experts, MoE]
+  - key: small-models
+    name: Small and on-device models
+    terms: [small language model, small language models, SLM, on-device]
+  - key: fine-tuning
+    name: Fine-tuning
+    terms: [fine-tuning, fine tuning, LoRA, QLoRA, PEFT, instruction tuning]
+  - key: synthetic-data
+    name: Synthetic data
+    terms: [synthetic data, data curation, data contamination]
+  - key: scaling
+    name: Scaling laws
+    terms: [scaling law, scaling laws, compute-optimal]
+  - key: world-models
+    name: World models
+    terms: [world model, world models]
+  - key: robotics
+    name: Robotics and embodied AI
+    terms: [robotics, embodied, robot learning, vision-language-action]
+  - key: code-generation
+    name: Code generation and coding agents
+    terms: [code generation, coding agent, coding agents, software engineering agent, SWE-bench, program synthesis]
+  - key: embeddings
+    name: Embeddings and vector search
+    terms: [embedding model, embedding models, vector search, vector database, dense retrieval]
+  - key: prompting
+    name: Prompting and in-context learning
+    terms: [prompt engineering, in-context learning, few-shot, prompt optimization]
+  - key: hallucination
+    name: Hallucination and factuality
+    terms: [hallucination, hallucinations, factuality, grounding]
+  - key: memory
+    name: Memory for language models
+    terms: [agent memory, long-term memory, memory-augmented]
+  - key: diffusion
+    name: Diffusion models
+    terms: [diffusion model, diffusion models, diffusion language model]
+  - key: architectures
+    name: Beyond the transformer
+    terms: [state space model, state space models, SSM, Mamba, linear attention, recurrent]
+  - key: open-weights
+    name: Open-weight models
+    terms: [open-weight, open weights, open-source model, open-source models, open source LLM]
+  - key: ai-policy
+    name: AI policy and regulation
+    terms: [EU AI Act, AI regulation, AI policy, AI governance]

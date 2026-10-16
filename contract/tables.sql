@@ -1831,3 +1831,28 @@ CREATE TABLE IF NOT EXISTS quiz_question (
 );
 
 CREATE INDEX IF NOT EXISTS quiz_question_state_idx ON quiz_question (state);
+
+-- THE BLOG'S TOPIC HARVEST (2026-10-16): papers and posts about AI in general,
+-- for the blog only. See contract/migrations/20261016T0900_topic_item.sql.
+CREATE TABLE IF NOT EXISTS topic_item (
+  -- 'arxiv:<id>' for a paper; '<feed source id>|<entry id>' for a post.
+  id            text PRIMARY KEY,
+  -- 'arxiv', or the feed's source id as contract/sources.yaml names it.
+  source        text NOT NULL,
+  kind          text NOT NULL,
+  title         text NOT NULL,
+  -- The abstract or the feed summary, as plain text. NULL when the feed gives none.
+  summary       text,
+  url           text NOT NULL,
+  authors       text[] NOT NULL DEFAULT '{}',
+  -- When the publisher says it was published. NULL when it does not say.
+  published_at  timestamptz,
+  -- The blog_topics.yaml keys its title and summary match. Recomputed on every
+  -- harvest, so a topic added later re-labels old items.
+  topics        text[] NOT NULL DEFAULT '{}',
+  harvested_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT topic_item_kind_ck CHECK (kind IN ('paper', 'post'))
+);
+
+CREATE INDEX IF NOT EXISTS topic_item_published_idx ON topic_item (published_at);
+CREATE INDEX IF NOT EXISTS topic_item_topics_idx ON topic_item USING gin (topics);
