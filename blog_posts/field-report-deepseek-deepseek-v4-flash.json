@@ -1,0 +1,357 @@
+{
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "dek": "DeepSeek V4 Flash 0423 can make extraction workloads inexpensive, but provider routing and reasoning defaults change the operational result. Treat the endpoint, not the model name, as the unit you validate.",
+ "rel": [
+  [
+   "post:head-to-head-deepseek-deepseek-v4-flash-z-ai-glm-5",
+   "DeepSeek V4 Flash 0423 vs GLM 5: Route by Workload"
+  ],
+  [
+   "post:migration-guide-deepseek-deepseek-v4-flash-moonshotai-kimi-k2-5",
+   "DeepSeek V4 Flash 0423 and Kimi K2.5: A Safe Migration Guide"
+  ],
+  [
+   "post:release-analysis-openai-gpt-6-astra",
+   "GPT-6 Astra in Production: The Agent Is Better, the System Still Decides"
+  ]
+ ],
+ "tag": "Field report",
+ "body": [
+  [
+   "h2",
+   {
+    "id": "provider-choice-can-erase-a-clean-extraction-result",
+    "num": "01",
+    "text": "Provider choice can erase a clean extraction result."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "An automatic route hit the 16,384-token output ceiling, returned no claims, and exceeded its list-price estimate.",
+    "text": "An automatic provider route spent about 9 minutes on each thread and returned no claims when it hit the 16,384-token output ceiling. The same run billed $0.0205 against a $0.0064 list-price estimate. Pinning the provider fixed the failure."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "A small smoke test produced 17 exact-match verified claims in 73 seconds, without schema retries.",
+    "text": "Our September smoke test found a different result. DeepSeek V4 Flash produced 17 verified claims against Gemini 2.5 Flash’s 12 on the same pair of discussions. Every DeepSeek quote passed exact matching, with no invented quotes, no schema retries, and a 73-second run; this was a small smoke test, not a benchmark."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "Provider identity belongs in the evaluation because route choice changed latency, completion, and billing.",
+    "text": "We agree with the engineering lesson implied by both runs: the served endpoint is part of the system under test. A model label alone cannot explain extraction quality, elapsed time, or billing."
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "reasoning-defaults-can-consume-the-answer-budget",
+    "num": "02",
+    "text": "Reasoning defaults can consume the answer budget."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "The dated 0731 build enabled high-effort reasoning by default, consuming output budget before the answer finished.",
+    "text": "A move from the undated model to the dated 0731 build switched high-effort reasoning on by default, without a configuration change. Reasoning tokens counted as output and used the same output limit, so a 10,859-character article reached the 16,384-token ceiling before the answer finished."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "Explicitly disabling reasoning restored completion on a 10,859-character article under the reported configuration.",
+    "text": "Turning reasoning off explicitly restored completion. A dated build can change the token budget available for user-facing output, even when your application still sends the same task."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "A migration test must compare reasoning settings and usable answer capacity, not just model names.",
+    "text": "We agree that reasoning deserves an explicit policy, not an assumed default. The evidence shows the output was truncated under that configuration; it leaves open whether every dated deployment will behave identically."
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "low-registry-rates-do-not-predict-the-invoice",
+    "num": "03",
+    "text": "Low registry rates do not predict the invoice."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "Registry rates are low, but cache treatment and provider selection change effective input cost.",
+    "text": "The registry lists DeepSeek V4 Flash 0423 at low input and output rates, with a separate cached-input rate. Those rates make the model attractive for repeated-context workloads, but they are not a promise about every provider’s realized bill."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "A DeepSeek-served route was reported at $0.018 per million input tokens under its cache economics.",
+    "text": "A separate pricing analysis found DeepSeek Flash cache reads as low as 2% of input cost for the DeepSeek-served route, while other providers charged more. It also described an effective input price of $0.018 per million tokens for that route. Cache hit rates and provider choice therefore change the economics. The invoice tells the story."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "Measure the bill and completion rate for accepted results, including failed calls and output-ceiling events.",
+    "text": "Our October run makes the distinction operational: one unpinned provider billed above the list-price estimate after spending about 9 minutes per thread without producing claims. We would measure cost per accepted result, including failed and truncated calls, rather than infer it from token rates."
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "the-long-context-figure-is-not-a-serving-guarantee",
+    "num": "04",
+    "text": "The long context figure is not a serving guarantee."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "The advertised 1,048,576-token context says nothing by itself about endpoint output limits.",
+    "text": "DeepSeek V4 Flash 0423 advertises a 1,048,576-token context window. That registry figure does not guarantee the output capacity or behavior of a particular provider; the observed 16,384-token output ceiling shows why those limits need separate checks."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "Reasoning consumption and provider output ceilings can prevent completion on long-input jobs.",
+    "text": "The 0731 migration also shows how a large input can fail to produce a complete response when reasoning consumes output tokens. The automatic-route delay has no established cause, so we should not assign it to model quality, context handling, or provider hardware without a controlled comparison."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "Coding-agent quality for repository work remains unmeasured, so evaluate completed tasks with your own harness.",
+    "text": "Coding-agent quality remains an open question for V4 Flash. The available examples show a successful claim-extraction smoke test and serving failures, but no coding benchmark or repository-agent result. For coding decisions, run your harness and inspect completed work, not a context-window headline. No repository result is available."
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "unresolved-serving-differences-need-endpoint-level-evidence",
+    "num": "05",
+    "text": "Unresolved serving differences need endpoint-level evidence."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "Provider variance is observed, but the mechanism behind its latency and completion differences remains unresolved.",
+    "text": "The strongest open question is why provider choice produced such different latency and completion behavior. Pinning a provider corrected one observed failure, but no controlled comparison isolates serving implementation, routing state, or other causes."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "Reasoning defaults, cache rates, and 0423 endpoint limits remain unsettled across providers and dated builds.",
+    "text": "The available evidence leaves open how often reasoning defaults change across dated builds. It also leaves cache hit rates and 0423 endpoint limits unsettled across providers. Those claims need repeatable tests against the exact provider and configuration you plan to ship. The variation matters."
+   }
+  ],
+  [
+   "p",
+   {
+    "skim": "A release gate should repeat pinned endpoint tests and record quality, limits, time, and billed cost.",
+    "text": "Change the release gate: record provider identity, reasoning configuration, input and output limits, completion status, exact-match checks, elapsed time, and billed cost. Then rerun representative long and short jobs after every model-date or provider change. The evidence needed is a pinned, repeated evaluation—not a model-name substitution. Keep the endpoint fixed."
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "faq",
+    "num": "FAQ",
+    "text": "Questions people ask"
+   }
+  ],
+  [
+   "h3",
+   "Is DeepSeek V4 Flash good for coding?"
+  ],
+  [
+   "p",
+   "The available evidence does not settle whether DeepSeek V4 Flash is good for coding. It includes a small claim-extraction smoke test, not a repository coding evaluation or coding-agent benchmark. Test it on your own issues, tool loop, and acceptance checks, and measure completed work, latency, and cost rather than treating extraction results as coding evidence."
+  ],
+  [
+   "h3",
+   "What is DeepSeek V4 Flash pricing?"
+  ],
+  [
+   "p",
+   "DeepSeek V4 Flash 0423 has low registry rates for input and output, with a separate cached-input rate. Effective cost can vary by provider and cache behavior; one analysis reported an effective input price of $0.018 per million tokens on a DeepSeek-served route. Measure your actual endpoint bill, including unsuccessful calls."
+  ],
+  [
+   "h3",
+   "Why did DeepSeek V4 Flash hit the output token limit?"
+  ],
+  [
+   "p",
+   "In the reported dated 0731 migration, high-effort reasoning switched on by default, and reasoning tokens counted toward the output limit. A 10,859-character article reached the 16,384-token ceiling before the answer finished. Explicitly turning reasoning off restored completion in that run, so check reasoning configuration and provider limits during upgrades."
+  ],
+  [
+   "h3",
+   "Does DeepSeek V4 Flash’s context window guarantee long document completion?"
+  ],
+  [
+   "p",
+   "No; the advertised 1,048,576-token context does not guarantee that an endpoint can return a complete long-document answer. A reported provider hit a 16,384-token output ceiling, and a dated build spent output budget on reasoning. Validate input acceptance and output capacity separately on the provider you intend to use."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "kind": "prices",
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero.",
+    "rows": [
+     [
+      "DeepSeek V4 Flash 0423",
+      "$0.042",
+      "$0.084",
+      "$0.0084"
+     ],
+     [
+      "Kimi K3",
+      "$0.713",
+      "$10.00",
+      "$0.713"
+     ],
+     [
+      "Qwen3.8 27B",
+      "$0.42",
+      "$3.00",
+      "$0.085"
+     ],
+     [
+      "Qwen3.8 Max",
+      "$2.00",
+      "$6.00",
+      "$0.25"
+     ],
+     [
+      "Inkling",
+      "$1.00",
+      "$4.05",
+      "$0.17"
+     ],
+     [
+      "GLM 5.3",
+      "$0.2219",
+      "$3.39",
+      "$0.1775"
+     ],
+     [
+      "DeepSeek V4 Pro 0423",
+      "$0.2088",
+      "$0.4176",
+      "$0.0174"
+     ],
+     [
+      "MiMo-V2.5-Pro",
+      "$0.435",
+      "$0.87",
+      "$0.0036"
+     ]
+    ]
+   }
+  ]
+ ],
+ "feat": false,
+ "lead": "DeepSeek V4 Flash review: it is compelling for low-cost extraction, but production behavior depends on provider and reasoning configuration; pin and test both.",
+ "meta": [
+  "13 October 2026",
+  "~3 min read",
+  "Draft — not reviewed"
+ ],
+ "read": 3,
+ "slug": "field-report-deepseek-deepseek-v4-flash",
+ "tags": [
+  "DeepSeek V4 Flash 0423",
+  "Field report"
+ ],
+ "title": "DeepSeek V4 Flash review: cheap tokens, uneven serving",
+ "kicker": "Field report",
+ "layout": "report",
+ "status": "draft",
+ "special": {
+  "type": "findings",
+  "items": [
+   {
+    "status": "established",
+    "finding": "A small extraction smoke test produced 17 exact-match verified claims in 73 seconds without schema retries."
+   },
+   {
+    "status": "established",
+    "finding": "An automatic provider route spent about 9 minutes per thread, hit a 16,384-token output ceiling, and returned no claims in one run."
+   },
+   {
+    "status": "established",
+    "finding": "Pinning the provider fixed the reported automatic-route failure."
+   },
+   {
+    "status": "established",
+    "finding": "A dated 0731 build enabled high-effort reasoning by default in the reported migration, and turning reasoning off restored completion."
+   },
+   {
+    "status": "not established",
+    "finding": "The mechanism behind the provider-specific latency and completion difference remains unknown."
+   },
+   {
+    "status": "not established",
+    "finding": "Coding-agent quality for DeepSeek V4 Flash on repository tasks remains untested in the available examples."
+   }
+  ],
+  "title": "Findings"
+ },
+ "keywords": [
+  "DeepSeek V4 Flash review",
+  "DeepSeek V4 Flash pricing",
+  "DeepSeek V4 Flash in production",
+  "is DeepSeek V4 Flash good for coding",
+  "DeepSeek V4 Flash alternatives",
+  "provider routing",
+  "reasoning tokens"
+ ],
+ "decisions": [
+  "Pin a provider for production workloads instead of accepting an untested automatic route.",
+  "Set reasoning explicitly when output completeness matters.",
+  "Track cost per accepted result, including truncations, retries, and stalled calls.",
+  "Re-run long-input and exact-match evaluations after provider or dated-build changes."
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "format": "field-report",
+  "plan_key": "field-report:deepseek/deepseek-v4-flash",
+  "documents": [
+   "thread_context_5d71adaa9a1865e0",
+   "thread_context_d3076bab8e533499",
+   "thread_context_45594771c616eefd",
+   "thread_context_62c54a1a0b362593",
+   "thread_context_6bad65b157254468",
+   "thread_context_a0bb5e4fa68d4261"
+  ],
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "reviewed_by": null,
+  "generated_at": "2026-10-13T04:54:27+00:00",
+  "rechecked_from": null
+ },
+ "arrangement": "a",
+ "description": "DeepSeek V4 Flash review: real pipeline tests show strong exact-match extraction, but provider variance, output ceilings, and reasoning defaults demand endpoint-level checks."
+}

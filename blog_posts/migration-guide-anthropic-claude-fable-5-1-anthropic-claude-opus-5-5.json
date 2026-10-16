@@ -1,0 +1,625 @@
+{
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "dek": "Moving traffic from Fable 5.1 to Opus 5.5 can cut token spend and speed up implementation. Protect long-horizon orchestration with a matched workload test, explicit checks, and a rollback trigger.",
+ "rel": [
+  [
+   "post:migration-guide-openai-gpt-5-6-sol-openai-gpt-6-astra",
+   "GPT-5.6 Sol vs GPT-6 Astra: A Safe Migration Guide"
+  ],
+  [
+   "post:release-analysis-minimax-minimax-m3",
+   "MiniMax M3 review: strong coding, uneven reliability"
+  ],
+  [
+   "post:release-analysis-openai-gpt-6-astra",
+   "GPT-6 Astra in Production: The Agent Is Better, the System Still Decides"
+  ]
+ ],
+ "tag": "Migration guide",
+ "body": [
+  [
+   "h2",
+   {
+    "id": "protect-the-orchestrator-before-you-move-traffic",
+    "num": "01",
+    "text": "Protect the orchestrator before you move traffic"
+   }
+  ],
+  [
+   "p",
+   "When traffic moves, orchestration state is often the first thing to break. Pin the coordinator role before switching traffic. Long-running sessions can lose task state, miss dependencies, or lose track of workers; those failures are harder to spot than a slow code edit."
+  ],
+  [
+   "p",
+   "We retraced a Reddit poster's automated workflow migration. The poster reported that errors rose after switching the orchestrator, then described a lower error rate with Fable. This is an embedded account, not a controlled comparison, but it is a strong reason to test orchestration separately from implementation."
+  ],
+  [
+   "p",
+   "Start with one route, not a wholesale default change. Keep Fable on coordinator duties and send bounded code changes to Opus. That split preserves the role where migration risk looks highest, while letting you measure the faster worker on real tasks. Move one workload at a time. Check worker status before you widen."
+  ],
+  [
+   "p",
+   "We agree with engineers who keep Fable for long-horizon planning. We do not treat that as evidence Fable wins every planning task: the reports conflict, and workload shape, context discipline, and harness behavior differ. Your first job is to expose those differences in your own evaluation. Start with the riskiest handoff."
+  ],
+  [
+   "code",
+   {
+    "label": "Route by role, not a global model alias",
+    "source": "routes:\n  coordinator: claude-fable-5.1\n  bounded_implementation: claude-opus-5.5\n  independent_review: claude-fable-5.1\n\nlimits:\n  max_parallel_agents: <your-tested-limit>\n  require_spec_before_write: true\n  require_external_test_result: true",
+    "language": "yaml"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "rows": [
+     [
+      "Bounded code edit",
+      "Opus 5.5 canary",
+      "Tests and diff accepted"
+     ],
+     [
+      "Ambiguous feature plan",
+      "Fable 5.1 coordinator",
+      "Dependencies and surfaces captured"
+     ],
+     [
+      "Long-running agent loop",
+      "Fable 5.1 initially",
+      "Handoffs and worker state retained"
+     ],
+     [
+      "Critical implementation",
+      "Opus plus independent review",
+      "Spec-based checks pass"
+     ]
+    ],
+    "caption": "Starting route by workload risk, subject to your own matched evaluation.",
+    "columns": [
+     "Workload",
+     "Initial route",
+     "Migration check"
+    ]
+   }
+  ],
+  [
+   "embed",
+   {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1wsg7em/is_fable_51_needed_any_more/",
+    "title": "Is Fable 5.1 needed any more ?",
+    "author": "Sweet-Helicopter2769",
+    "caption": "A Reddit poster describes a workflow that favors Fable as the main coordinator and uses Opus agents for implementation, illustrating why role separation deserves a controlled test.",
+    "platform": "reddit",
+    "community": "ClaudeAI"
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "freeze-the-task-contract-and-the-harness",
+    "num": "02",
+    "text": "Freeze the task contract and the harness"
+   }
+  ],
+  [
+   "p",
+   "Capture the exact prompt, system instructions, tools, repository snapshot, and stopping rules before moving a request. Change only the model route during the first comparison. Otherwise, a better result could come from a new prompt or harness rather than the model. Keep a replayable trace."
+  ],
+  [
+   "p",
+   "Keep tool permissions identical, and record every handoff. Check that the coordinator can identify active workers, completed work, failures, and unresolved decisions. The Reddit report of a lost subagent is a warning about orchestration state, not proof of a particular model defect."
+  ],
+  [
+   "p",
+   "Separate the spec from the implementation when you need an independent review. An engineer on X recommends having Fable inspect code against the spec without seeing the implementation plan. That design gives review a different view; it also means the reviewer needs a precise, durable requirement document. Preserve that separation."
+  ],
+  [
+   "p",
+   "Do not assume the model switch repairs context management. One Reddit poster described maintaining issue lists and durable plans through a long session. That is a useful pattern to test, but your own compaction, handoff, and resume behavior determines whether state survives. Check recovery after a fresh session."
+  ],
+  [
+   "h2",
+   {
+    "id": "build-a-matched-evaluation-around-failures",
+    "num": "03",
+    "text": "Build a matched evaluation around failures"
+   }
+  ],
+  [
+   "p",
+   "Choose tasks that resemble the traffic you plan to move: short fixes, large-repository changes, ambiguous feature planning, and multi-step orchestration. Score acceptance and missed requirements, not just whether the model produced a plausible answer. Include failure recovery."
+  ],
+  [
+   "p",
+   "The dev.to skill-training write-up offers a useful method. It says «Only the gate could tell them apart.» The team held the student model fixed, changed instructions in small steps, and accepted an edit only after a separate selection gate improved. Apply that discipline to model migration: hold the harness fixed and reject attractive changes that fail the gate."
+  ],
+  [
+   "p",
+   "Keep selection tasks separate from tuning tasks. Repeat runs on uncertain workflows, inspect each failure, and require a reviewer or test suite to validate outcomes. A fluent plan can still omit a dependency; a green test can still encode the implementation instead of the requirement. Score both."
+  ],
+  [
+   "p",
+   "We agree with the principle of an external gate. We would not transplant that write-up's small task-set results as evidence that either Claude model will win your production workload. It demonstrates a method, not a head-to-head Fable-versus-Opus benchmark. Build your own holdout."
+  ],
+  [
+   "h2",
+   {
+    "id": "move-bounded-coding-before-complex-delegation",
+    "num": "04",
+    "text": "Move bounded coding before complex delegation"
+   }
+  ],
+  [
+   "p",
+   "Start the Opus canary with isolated implementation: a small edit, a defined bug, or a patch with clear acceptance tests. Check the diff, run the relevant tests, and record review corrections. This gives you a lower-risk place to evaluate speed and coding quality. Keep the repository state fixed."
+  ],
+  [
+   "p",
+   "For Claude Fable 5.1 vs Claude Opus 5.5 for coding, the practitioner reports split by task. A Reddit poster said Opus suited day-to-day iteration, but Fable held up better on large codebases and ambiguous debugging. Another account reported Opus missing key changes in a new product flow, including payment-screen implications. Both are embedded reports; treat them as test cases to reproduce, not universal rankings."
+  ],
+  [
+   "p",
+   "Only after bounded edits pass should you move multi-step implementation. Put task boundaries and completion criteria in a durable spec. Require workers to report changed files, tests, and unresolved items; verify those claims outside the generating agent. Catch omissions before merge."
+  ],
+  [
+   "p",
+   "Keep a human or independent reviewer for consequential changes. The X post describes an implementation agent and a separate spec-based verifier. We agree with its anti-mirror design: the author should not be the only judge of its own work. Separate the test writer's view."
+  ],
+  [
+   "embed",
+   {
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1wv2cp2/anyone_using_fable_51_still/",
+    "title": "anyone using Fable 5.1 still?",
+    "author": "Kylearean",
+    "caption": "Reddit participants report faster Opus iteration but continued Fable use for architecture and ambiguous large-codebase tasks, making planning a workload to evaluate independently.",
+    "platform": "reddit",
+    "community": "ClaudeAI"
+   }
+  ],
+  [
+   "embed",
+   {
+    "url": "https://www.reddit.com/r/ClaudeCode/comments/1wxew8d/so_why_use_fable_51_now_that_opus55_is_better_in/",
+    "title": "so why use Fable 5.1? now that opus5.5 is better in everyway or am i missing a niche usecase?",
+    "author": "-JuliusSeizure",
+    "caption": "A Reddit poster reports an orchestration error increase after switching to Opus, while other participants describe Fable as stronger for long-horizon planning and complex feature scoping.",
+    "platform": "reddit",
+    "community": "ClaudeCode"
+   }
+  ],
+  [
+   "embed",
+   {
+    "url": "https://x.com/tekari0/status/2105999486007074975",
+    "caption": "An X post describes a spec-isolated Fable verifier checking Opus-generated code, a pattern relevant to independent review.",
+    "platform": "x"
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "test-planning-and-reasoning-as-separate-routes",
+    "num": "05",
+    "text": "Test planning and reasoning as separate routes"
+   }
+  ],
+  [
+   "p",
+   "Give both models the same ambiguous feature brief and the same repository context. Compare missing dependencies, affected surfaces, assumptions, and actionable sequencing. A broad summary is not enough; score the concrete obligations your team expects the plan to capture. Inspect omissions by severity."
+  ],
+  [
+   "p",
+   "Planning is where reports split. A Reddit poster reported that Fable made more sound architecture decisions. Another poster described Opus as a strong planner and implementer, but reported Fable catching areas Opus missed in a new product flow. Those accounts favor a cautious Fable coordinator for complex, long-horizon work, not an automatic Fable route for every plan."
+  ],
+  [
+   "p",
+   "Do not accept claims that one model is simply smarter across the board. The Hacker News discussion includes a user saying Opus 5.5 feels like «about 10x the usage of Fable 5.1 with similar, perhaps greater levels of intelligence.» That is one person's experience, not a controlled quality or efficiency measurement. Treat it as a report to investigate."
+  ],
+  [
+   "p",
+   "We favor role-specific evidence. Use Opus for a planning workload only when it preserves required dependencies and handoffs under your actual session length. Use Fable as a second look when the consequence of a missed requirement outweighs the added review cost. Compare the same brief."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "rows": [
+     [
+      "Claude Fable 5.1",
+      "$10.00",
+      "$50.00",
+      "$0.25",
+      "1,000,000 tokens"
+     ],
+     [
+      "Claude Opus 5.5",
+      "$4.00",
+      "$20.00",
+      "$0.20",
+      "1,000,000 tokens"
+     ]
+    ],
+    "caption": "Registry list rates and advertised context for both models.",
+    "columns": [
+     "Model",
+     "Input per million",
+     "Output per million",
+     "Cached input per million",
+     "Advertised context"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "price-accepted-work-not-token-rates",
+    "num": "06",
+    "text": "Price accepted work, not token rates"
+   }
+  ],
+  [
+   "p",
+   "Check current registry rates before forecasting the migration. Fable 5.1 is $10 input and $50 output per million tokens, with cached input at $0.25. Opus 5.5 is $4 input and $20 output, with cached input at $0.20. Both list a 1,000,000-token context window. Use those rates as a floor, not a workload forecast."
+  ],
+  [
+   "p",
+   "A Reddit poster reported that Fable's planning advantage did not always justify its usage. That is one operator's judgment, not a bill comparison. The lower Opus rates make it a natural candidate for routine traffic, but token prices do not tell you cost per accepted change. Count retries, generated output, repeated context, review time, failed tool calls, and work that needs rescue."
+  ],
+  [
+   "p",
+   "A dev.to pricing analysis warns that «dollars-per-task tells the truth». Its comparison concerns Fable 5.1 and Fable 5, not this migration, so do not import its task-cost result here. Use the warning, then calculate your own accepted-work cost for both routes. Include reviewer time."
+  ],
+  [
+   "p",
+   "The Hacker News report of greater usage on Opus is not a benchmark, and the listed prices are not a guarantee of your bill. Track cached and uncached input separately, plus output and retries. We agree that Opus lowers the trial barrier; we do not agree that lower token rates settle the architecture. Measure by task class."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "steps": [
+     "Freeze prompt, tools, and task contract",
+     "Route bounded traffic to Opus",
+     "Record handoffs, tests, and accepted work",
+     "Compare against the Fable baseline",
+     "Widen only after the gate passes"
+    ],
+    "caption": "A controlled canary keeps fallback and verification in the path."
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "canary-the-new-route-and-inspect-every-handoff",
+    "num": "07",
+    "text": "Canary the new route and inspect every handoff"
+   }
+  ],
+  [
+   "p",
+   "Send only a controlled slice of eligible traffic to Opus. Keep Fable as the fallback, and tag requests with task type, route, tool activity, context state, and outcome. Stop before widening if you cannot reconstruct how a result was produced. Preserve traces from the first run."
+  ],
+  [
+   "p",
+   "Check complete workflow outcomes, not just final prose. Verify that all delegated tasks returned, the coordinator retained their status, acceptance tests reflect the spec, and no required item disappeared during compaction or handoff. Reconcile the final result against the task list."
+  ],
+  [
+   "p",
+   "Compare matched tasks across routes whenever the workflow permits it. The Reddit orchestration account reports a sharp error increase after a switch, but the cause is not established. Prompt, harness, context, and tool behavior could contribute; test those variables rather than assigning blame from the anecdote. Change one factor per retest."
+  ],
+  [
+   "p",
+   "Use external verification for reasoning-heavy work when possible. The arXiv report on Lean-backed Rust verification describes «Lean's kernel as the final check.» A formal checker can change the task boundary. That finding concerns proof generation, not Fable-versus-Opus quality, but it supports a production rule: use external verification when correctness can be mechanically checked."
+  ],
+  [
+   "h2",
+   {
+    "id": "set-the-stop-signal-before-the-canary",
+    "num": "08",
+    "text": "Set the stop signal before the canary"
+   }
+  ],
+  [
+   "p",
+   "Stop the rollout when accepted-work quality falls, required tasks go missing, safety checks fail, or retries and review erase the expected savings. Set thresholds from your baseline before the canary starts; do not invent a tolerance after seeing a bad result. Define an owner for the rollback."
+  ],
+  [
+   "p",
+   "Route affected traffic back to the last known configuration. Preserve prompts, specs, traces, tool results, and diffs so you can reproduce the failure. Keep the Opus route available for bounded tasks that passed, but disable the failing workload class until the cause is understood. Confirm the fallback receives traffic."
+  ],
+  [
+   "p",
+   "Do not call normal variance a model regression without matched evidence. A Reddit discussion disputes claims of degradation and points to context and harness changes as possible factors. The disagreement matters: log the actual setup and version with each run before drawing conclusions. Keep the comparison reproducible."
+  ],
+  [
+   "p",
+   "We agree with keeping both routes available when their roles differ. We disagree with a blanket migration justified by faster responses or lower token rates; neither guarantees that long-running orchestration remains reliable. Return traffic to Fable where the gate fails, then re-test after changing one factor at a time. Leave the failing route paused."
+  ],
+  [
+   "h2",
+   {
+    "id": "decision",
+    "num": "Decision tree",
+    "text": "Should this workload move between Claude Fable 5.1 and Claude Opus 5.5, and in which direction?"
+   }
+  ],
+  [
+   "tree",
+   {
+    "branches": [
+     {
+      "route": "Canary, then widen by task class",
+      "outcome": "Move the workload to Opus 5.5",
+      "condition": "Bounded edit with clear acceptance tests; Opus passes your matched gate"
+     },
+     {
+      "route": "Test Opus only in a shadow or limited canary",
+      "outcome": "Keep Fable 5.1 as coordinator",
+      "condition": "Long-horizon coordination, ambiguous requirements, or many dependent agents"
+     },
+     {
+      "route": "Keep spec isolated from implementation planning",
+      "outcome": "Use Opus for implementation and Fable for verification",
+      "condition": "Opus produces work but an independent check is essential"
+     },
+     {
+      "route": "Fix the contract or harness, then repeat the evaluation",
+      "outcome": "Do not migrate this workload yet",
+      "condition": "Either route misses requirements or fails external checks"
+     }
+    ],
+    "question": "Should this workload move between Claude Fable 5.1 and Claude Opus 5.5, and in which direction?"
+   }
+  ],
+  [
+   "h2",
+   {
+    "id": "faq",
+    "num": "FAQ",
+    "text": "Questions people ask"
+   }
+  ],
+  [
+   "h3",
+   "Is Claude Fable 5.1 better than Claude Opus 5.5 for coding?"
+  ],
+  [
+   "p",
+   "Neither model is established as better for every coding workload; test the task class you intend to move. Practitioner reports favor Opus for bounded, day-to-day implementation and faster iteration, but describe Fable as stronger on some ambiguous requirements and large-codebase planning. Compare accepted changes, missed requirements, retries, and review corrections using the same harness before changing the default."
+  ],
+  [
+   "h3",
+   "How much does Claude Fable 5.1 cost compared with Claude Opus 5.5?"
+  ],
+  [
+   "p",
+   "The registry rate card lists Fable 5.1 at $10 input and $50 output per million tokens, versus Opus 5.5 at $4 input and $20 output. Cached input is $0.25 for Fable and $0.20 for Opus. Your workload bill also depends on generated output, cache use, retries, and review, so measure cost per accepted result."
+  ],
+  [
+   "h3",
+   "Should I use Claude Fable 5.1 or Claude Opus 5.5 as an orchestrator?"
+  ],
+  [
+   "p",
+   "Keep Fable 5.1 as the initial coordinator for long-running or ambiguous workflows unless Opus passes a matched orchestration test. Reports describe Opus losing track of workers in one workflow, but others say it handles long tasks well. Test state retention, handoffs, dependencies, and recovery with your own harness, and keep an immediate route back to the known configuration."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "kind": "prices",
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero.",
+    "rows": [
+     [
+      "Claude Fable 5.1",
+      "$10.00",
+      "$50.00",
+      "$0.25"
+     ],
+     [
+      "Claude Opus 5.5",
+      "$4.00",
+      "$20.00",
+      "$0.20"
+     ],
+     [
+      "Gemini 3.8 Flash",
+      "$0.75",
+      "$3.75",
+      "$0.075"
+     ],
+     [
+      "Claude Sonnet 5.5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "GPT-6 Astra",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ],
+     [
+      "GPT-6 Sol",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Qwen3.8 27B",
+      "$0.42",
+      "$3.00",
+      "$0.085"
+     ],
+     [
+      "Claude Fable 5",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ]
+    ]
+   }
+  ]
+ ],
+ "cite": {
+  "dollars-per-task tells the truth": 3,
+  "Lean's kernel as the final check.": 4,
+  "Only the gate could tell them apart.": 1,
+  "about 10x the usage of Fable 5.1 with similar, perhaps greater levels of intelligence.": 2
+ },
+ "feat": false,
+ "lead": "For Claude Fable 5.1 vs Claude Opus 5.5, move bounded implementation first; keep Fable for long-horizon planning until your matched orchestration tests pass.",
+ "meta": [
+  "14 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "read": 9,
+ "slug": "migration-guide-anthropic-claude-fable-5-1-anthropic-claude-opus-5-5",
+ "tags": [
+  "Claude Fable 5.1",
+  "Claude Opus 5.5",
+  "Migration guide"
+ ],
+ "title": "Claude Fable 5.1 vs Opus 5.5: Keep the Planner in the Loop",
+ "kicker": "Migration guide",
+ "layout": "runbook",
+ "status": "draft",
+ "sources": [
+  {
+   "n": 1,
+   "url": "https://dev.to/proskillpacks/we-trained-an-agent-skill-instead-of-writing-it-the-validation-gate-rejected-most-of-our-edits-308c",
+   "who": "proskillpacks",
+   "what": "We trained an agent skill instead of writing it the validation gate rejected most of our edits",
+   "posted": "2026-10-05",
+   "platform": "dev.to"
+  },
+  {
+   "n": 2,
+   "url": "https://news.ycombinator.com/item?id=49893876",
+   "who": "",
+   "what": "Discussion",
+   "posted": "2026-09-29",
+   "platform": "Hacker News"
+  },
+  {
+   "n": 3,
+   "url": "https://dev.to/danielsamfdo/the-tuesday-intelligence-went-on-sale-2gjp",
+   "who": "danielsamfdo",
+   "what": "The tuesday intelligence went on sale",
+   "posted": "2026-10-07",
+   "platform": "dev.to"
+  },
+  {
+   "n": 4,
+   "url": "https://arxiv.org/abs/2610.03994v1",
+   "who": "arxiv.org",
+   "what": "2610.03994v1",
+   "posted": "2026-10-03",
+   "platform": "arXiv"
+  }
+ ],
+ "special": {
+  "type": "steps",
+  "items": [
+   {
+    "step": "Freeze the contract",
+    "check": "A replay produces the same task setup and captures its current outcome.",
+    "action": "Save the prompt, tools, repository state, acceptance criteria, and baseline route."
+   },
+   {
+    "step": "Define workload classes",
+    "check": "Every canary task has one named class and a clear pass condition.",
+    "action": "Separate bounded edits, planning, orchestration, and critical changes."
+   },
+   {
+    "step": "Build the gate",
+    "check": "The gate catches at least the failures your baseline evaluation includes.",
+    "action": "Use held-out tasks, external tests, and independent review for consequential work."
+   },
+   {
+    "step": "Canary bounded edits",
+    "check": "Diffs, tests, acceptance, and review corrections meet the predefined baseline.",
+    "action": "Route a limited set of low-risk implementation tasks to Opus 5.5."
+   },
+   {
+    "step": "Probe orchestration",
+    "check": "No required task disappears and every worker outcome is accounted for.",
+    "action": "Test handoffs, worker tracking, dependencies, compaction, and recovery separately."
+   },
+   {
+    "step": "Measure accepted-work cost",
+    "check": "The comparison uses workload-level cost, not token rate alone.",
+    "action": "Record input, output, cache, retries, review effort, and accepted results by route."
+   },
+   {
+    "step": "Widen or roll back",
+    "check": "The selected route meets quality and safety gates, with fallback proven.",
+    "action": "Increase only passing task classes; return failing traffic to its previous route."
+   }
+  ],
+  "title": "Runbook"
+ },
+ "keywords": [
+  "Claude Fable 5.1 vs Claude Opus 5.5",
+  "Claude Fable 5.1 or Claude Opus 5.5",
+  "Claude Fable 5.1 vs Claude Opus 5.5 for coding",
+  "Claude Fable 5.1 vs Claude Opus 5.5 pricing",
+  "AI model comparison",
+  "coding agents",
+  "agentic tool use"
+ ],
+ "decisions": [
+  "Move bounded coding first; do not switch orchestration by default.",
+  "Keep Fable available for long-horizon planning and escalation.",
+  "Measure accepted-work cost, including retries and review.",
+  "Use independent checks for critical changes.",
+  "Roll back immediately on missed work or safety drift."
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "format": "migration-guide",
+  "embedded": 4,
+  "plan_key": "migration-guide:anthropic/claude-fable-5.1+anthropic/claude-opus-5.5",
+  "documents": [
+   "thread_context_49f62187d34cdcb7",
+   "thread_context_e0ee17a6c38eadb4",
+   "thread_context_58a7c9a6db9ee496",
+   "thread_context_ec51f351524810fc",
+   "thread_context_cfe5833219d54f11",
+   "thread_context_e8df186359d67d17",
+   "thread_context_553051a09f78fd7d",
+   "thread_context_91b5629c2b9ef21c",
+   "thread_context_4addcbfefb2d05ed",
+   "thread_context_3518c697a87e43b0"
+  ],
+  "platforms": {
+   "X": 1,
+   "arXiv": 1,
+   "Reddit": 3,
+   "dev.to": 3,
+   "Hacker News": 2
+  },
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "reviewed_by": null,
+  "style_notes": [],
+  "generated_at": "2026-10-14T05:45:27+00:00",
+  "rechecked_from": null
+ },
+ "arrangement": "a",
+ "description": "Claude Fable 5.1 vs Claude Opus 5.5: a production migration guide to coding, orchestration, cost per million tokens, evaluation, and safe rollback."
+}
