@@ -1,0 +1,442 @@
+{
+ "slug": "myth-vs-reality-concept-multimodal",
+ "status": "draft",
+ "tag": "Myth vs reality",
+ "feat": false,
+ "title": "The Myths About Multimodal Models Break Where Two Inputs Meet",
+ "dek": "Image plus text, model plus tool, model plus person: the popular beliefs treat each part alone. New papers keep finding the action in the overlap.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "A multimodal model reasons over images, audio, video and text together, and its surprises live in the combinations: benign pairs turn unsafe, error counts miss meaning, and trust drifts into delegation.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPlR3byBoYXJtbGVzcyBpbnB1dHMsIG9uZSBoYXphcmRvdXMgb3ZlcmxhcDwvdGl0bGU+CiAgPGRlc2M+QW4gaW1hZ2UgY2FyZCBhbmQgYSB0ZXh0IGNhcmQsIGVhY2ggbWFya2VkIHNhZmUsIG92ZXJsYXA7IHRoZSBvdmVybGFwIGdsb3dzIHdpdGggYSB3YXJuaW5nIHNpZ24uPC9kZXNjPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJob3QiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC42IiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuMTgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8Y2xpcFBhdGggaWQ9ImltZ2NsaXAiPgogICAgICA8cmVjdCB4PSIyNTAiIHk9IjEyMCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIzOTAiIHJ4PSIyMCIvPgogICAgPC9jbGlwUGF0aD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIGltYWdlIGNhcmQgLS0+CiAgPHJlY3QgeD0iMjUwIiB5PSIxMjAiIHdpZHRoPSI0MjAiIGhlaWdodD0iMzkwIiByeD0iMjAiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTQiLz4KICA8ZyBjbGlwLXBhdGg9InVybCgjaW1nY2xpcCkiPgogICAgPGNpcmNsZSBjeD0iMzUwIiBjeT0iMjIwIiByPSIzNCIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC44Ii8+CiAgICA8cG9seWdvbiBwb2ludHM9IjI1MCw1MTAgMzgwLDMyMCA0NzAsNDIwIDU0MCwzNTAgNjcwLDUxMCIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC40NSIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyNTAsNTEwIDMzMCw0MDAgNDIwLDUxMCIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4zNSIvPgogIDwvZz4KICA8cmVjdCB4PSIyNTAiIHk9IjEyMCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIzOTAiIHJ4PSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KCiAgPCEtLSB0ZXh0IGNhcmQgLS0+CiAgPHJlY3QgeD0iNTQwIiB5PSIxNzAiIHdpZHRoPSI0MjAiIGhlaWdodD0iMzkwIiByeD0iMjAiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuMTIiLz4KICA8cmVjdCB4PSI1NDAiIHk9IjE3MCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIzOTAiIHJ4PSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8cmVjdCB4PSI3MDAiIHk9IjIzMCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxNiIgcng9IjgiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuOSIvPgogIDxyZWN0IHg9IjcwMCIgeT0iMjcwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE2IiByeD0iOCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC42Ii8+CiAgPHJlY3QgeD0iNzAwIiB5PSIzMTAiIHdpZHRoPSIyMTAiIGhlaWdodD0iMTYiIHJ4PSI4IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjYiLz4KICA8cmVjdCB4PSI3MDAiIHk9IjM1MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNiIgcng9IjgiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNiIvPgogIDxyZWN0IHg9IjcwMCIgeT0iMzkwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE2IiByeD0iOCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC42Ii8+CiAgPHJlY3QgeD0iNzAwIiB5PSI0MzAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTYiIHJ4PSI4IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjkiLz4KCiAgPCEtLSBvdmVybGFwIGdsb3cgLS0+CiAgPGVsbGlwc2UgY3g9IjYwNSIgY3k9IjM0MCIgcng9IjE5MCIgcnk9IjIzMCIgZmlsbD0idXJsKCNob3QpIi8+CiAgPHJlY3QgeD0iNTQwIiB5PSIxNzAiIHdpZHRoPSIxMzAiIGhlaWdodD0iMzQwIiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNTQwIiB5PSIxNzAiIHdpZHRoPSIxMzAiIGhlaWdodD0iMzQwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgOCIvPgoKICA8IS0tIHdhcm5pbmcgc2lnbiBpbiB0aGUgb3ZlcmxhcCAtLT4KICA8cG9seWdvbiBwb2ludHM9IjYwNSwyODAgNjYwLDM3NSA1NTAsMzc1IiBmaWxsPSIjMTAxNDFiIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxsaW5lIHgxPSI2MDUiIHkxPSIzMTAiIHgyPSI2MDUiIHkyPSIzNDUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSI2MDUiIGN5PSIzNjAiIHI9IjQuNSIgZmlsbD0iI2ZmN2I3MiIvPgoKICA8IS0tIHNhZmUgYmFkZ2VzIG9uIGVhY2ggY2FyZCAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyOTAsMTYwKSI+CiAgICA8Y2lyY2xlIHI9IjI2IiBmaWxsPSIjMTAxNDFiIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTS0xMSwxIEwtMywxMCBMMTIsLTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8L2c+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoOTIwLDUyMCkiPgogICAgPGNpcmNsZSByPSIyNiIgZmlsbD0iIzEwMTQxYiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxwYXRoIGQ9Ik0tMTEsMSBMLTMsMTAgTDEyLC04IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPC9nPgo8L3N2Zz4K",
+  "alt": "An image card and a text card, each marked safe, overlap; the overlapping strip glows red with a warning sign.",
+  "caption": "Each input passes inspection alone; the risk, and much of the interest, sits in the overlap.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is a multimodal model, and which beliefs about it hold up? Six myths checked against new research on safety, imagination, speech and trust.",
+ "keywords": [
+  "what is a multimodal model",
+  "multimodal models",
+  "multimodal AI safety",
+  "vision-language models",
+  "speech recognition metrics",
+  "multimodal fusion"
+ ],
+ "kicker": "Myth vs reality",
+ "tags": [
+  "multimodal models",
+  "Myth vs reality"
+ ],
+ "read": 7,
+ "decisions": [
+  "Screen image and text together, not one at a time",
+  "Prefer a clarifying question to a refusal when intent is unclear",
+  "Score transcripts by consequence, not only by error count",
+  "Watch for delegation creep late in long sessions",
+  "Filter weak channels before you fuse them"
+ ],
+ "layout": "myths",
+ "arrangement": "b",
+ "special": {
+  "type": "myths",
+  "title": "Myth or not",
+  "items": [
+   {
+    "myth": "If the image is safe and the text is safe, the request is safe.",
+    "reality": "Individually benign images and texts can turn unsafe when read jointly, and cross-modal ambiguity can commit a model to a hazardous premise.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "A safer multimodal model has to refuse more.",
+    "reality": "SAFE-PRO asks clarifying questions under a reward that penalizes over-refusal, and roughly halves over-refusal against SRPO.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "A vision model can only reason about what is in the frame.",
+    "reality": "CoWorld Reasoner calls a video world model to imagine extra views as evidence, with relative gains of 11.8% on MMSI and 13.0% on ERQA.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Word error rate tells you how bad a transcript is.",
+    "reality": "Errors of similar size can have very different consequences; SITAR scores situational distortion with a lightweight learned regressor.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "People who trust the assistant hand it the task.",
+    "reality": "Trust strongly predicted delegation, yet verification was the dominant policy and often came with high trust.",
+    "verdict": "partly true"
+   },
+   {
+    "myth": "Fusing senses beats any single one.",
+    "reality": "A fused screening model reached 0.76 accuracy against 0.65 for video and 0.67 for audio, but replication on new people and settings is still missing.",
+    "verdict": "partly true"
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Meaning lives where two inputs meet",
+    "num": "01",
+    "id": "meaning-lives-where-two-inputs-meet"
+   }
+  ],
+  [
+   "p",
+   "Here's the line you hear most: a multimodal model is just a language model that can also look at pictures. Bolt on an image encoder and you're done. So what is a multimodal model, really? It maps several input types, like images, audio, video and text, into one shared reasoning process. The first crack shows up in safety work. Two harmless inputs can combine into something that isn't."
+  ],
+  [
+   "p",
+   "A new arXiv paper on cross-modal safety opens with exactly that: models «can act unsafely when individually benign images and texts are interpreted jointly». Read it slowly. Each input passes inspection alone. The meaning that matters exists only in the pair. If your checks look at inputs one at a time, they're looking in the wrong place."
+  ],
+  [
+   "p",
+   "That idea runs through this whole piece. We'll take the popular beliefs one by one, state each fairly, concede what's true, then show where the evidence bends it. The pattern surprised us. The myths tend to assume the senses work separately. The new results keep landing in combinations: image with text, model with tool, model with the person checking it."
+  ],
+  [
+   "h2",
+   {
+    "text": "Two harmless inputs can add up to a harmful request",
+    "num": "02",
+    "id": "two-harmless-inputs-can-add-up-to-a-harmful-request"
+   }
+  ],
+  [
+   "p",
+   "The belief: screen the image, screen the text, and you've screened the request. It's appealing because it's modular. The SAFE-PRO authors name a risk it misses, «where cross-modal ambiguity silently commits the model to a hazardous premise that path-level optimization alone cannot correct». Path-level optimization means training the reasoning trace toward safe steps. It can't repair a premise already accepted."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPkEgcmlzay1jb25kaXRpb25lZCB1bmNlcnRhaW50eSBnYXRlPC90aXRsZT4KICA8ZGVzYz5BbiBpbWFnZSBhbmQgYSB0ZXh0IGFyZSByZWFkIGpvaW50bHk7IHByZWRpY3RpdmUgZW50cm9weSBhbmQgYSBjcm9zcy1tb2RhbCByaXNrIHNjb3JlIGNvbWJpbmUgaW50byBvbmUgc2lnbmFsIHRoYXQgZGVjaWRlcyBiZXR3ZWVuIGFza2luZyBhIGNsYXJpZnlpbmcgcXVlc3Rpb24gYW5kIGFuc3dlcmluZy48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhYSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYWciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8IS0tIGlucHV0cyAtLT4KICAgIDxyZWN0IHg9IjUwIiB5PSIxNTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iOTAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjEzNSIgeT0iMjA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5pbWFnZTwvdGV4dD4KICAgIDxyZWN0IHg9IjUwIiB5PSIzMzAiIHdpZHRoPSIxNzAiIGhlaWdodD0iOTAiIHJ4PSIxNiIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjEzNSIgeT0iMzg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij50ZXh0PC90ZXh0PgogICAgPHBhdGggZD0iTTIyMCwxOTUgQzI3MCwxOTUgMjcwLDI4NSAzMTIsMjg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogICAgPHBhdGggZD0iTTIyMCwzNzUgQzI3MCwzNzUgMjcwLDI4NSAzMTIsMjg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgoKICAgIDwhLS0gam9pbnQgcmVhZGluZyAtLT4KICAgIDxyZWN0IHg9IjMyMCIgeT0iMjQwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI0MTUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+am9pbnQ8L3RleHQ+CiAgICA8dGV4dCB4PSI0MTUiIHk9IjMwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+cmVhZGluZzwvdGV4dD4KCiAgICA8IS0tIHR3byBzaWduYWxzIC0tPgogICAgPGxpbmUgeDE9IjUxMCIgeTE9IjI3MCIgeDI9IjU3MiIgeTI9IjIwMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICAgIDxsaW5lIHgxPSI1MTAiIHkxPSIzMDAiIHgyPSI1NzIiIHkyPSIzNzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cmVjdCB4PSI1ODAiIHk9IjE1MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI4MCIgcng9IjE0IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iNjk1IiB5PSIxOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPnByZWRpY3RpdmUgZW50cm9weTwvdGV4dD4KICAgIDxyZWN0IHg9IjU4MCIgeT0iMzQwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjgwIiByeD0iMTQiIGZpbGw9IiNmZjdiNzIiIG9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI2OTUiIHk9IjM4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+Y3Jvc3MtbW9kYWwgcmlzazwvdGV4dD4KCiAgICA8IS0tIFJDVSBnYXRlIC0tPgogICAgPGVsbGlwc2UgY3g9IjkwMCIgY3k9IjI4NSIgcng9IjExMCIgcnk9IjExMCIgZmlsbD0idXJsKCNnbG93KSIvPgogICAgPHBhdGggZD0iTTgxMCwxOTAgQzg1MCwxOTAgODUwLDI4NSA4NjAsMjg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTgxMCwzODAgQzg1MCwzODAgODUwLDI4NSA4NjAsMjg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBvbHlnb24gcG9pbnRzPSI5MDAsMjI1IDk2MCwyODUgOTAwLDM0NSA4NDAsMjg1IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iOTAwIiB5PSIyOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjYTc4YmZhIj5SQ1U8L3RleHQ+CgogICAgPCEtLSBvdXRjb21lcyAtLT4KICAgIDxwYXRoIGQ9Ik05MzUsMjUwIEM5NjAsMjAwIDk3NSwxNzAgMTAwMCwxNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FhKSIvPgogICAgPHJlY3QgeD0iMTAwOCIgeT0iMTEwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxMDg4IiB5PSIxNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlM2IzNDEiPmFzazwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwODgiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+Y2xhcmlmeSBpbnRlbnQ8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDg4IiB5PSI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+c2lnbmFsIGhpZ2g8L3RleHQ+CiAgICA8cGF0aCBkPSJNOTM1LDMyMCBDOTYwLDM3MCA5NzUsNDAwIDEwMDAsNDEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICAgIDxyZWN0IHg9IjEwMDgiIHk9IjM3MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI5MCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjEyIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTA4OCIgeT0iNDA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjM2VjZjhlIj5hbnN3ZXI8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDg4IiB5PSI0NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiPmludGVudCBjbGVhcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwODgiIHk9IjQ5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+c2lnbmFsIGxvdzwvdGV4dD4KCiAgICA8dGV4dCB4PSI2MDAiIHk9IjU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+VGhlIGdhdGUgcmVhZHMgdGhlIHBhaXIsIG5ldmVyIG9uZSBpbnB1dCBhbG9uZTwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Image and text feed a joint reading; entropy and cross-modal risk combine in an RCU gate that routes to ask or answer.",
+    "caption": "SAFE-PRO's idea in outline: uncertainty and cross-modal risk together decide when to ask before answering.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Their answer is to notice ambiguity and ask about it. SAFE-PRO builds a Risk-Conditioned Uncertainty signal, «combining predictive entropy with a learned cross-modal risk score». Predictive entropy measures how spread out the next-token probabilities are: `H = -Σ p log p`. High entropy plus high joint risk means the intent is unclear. The signal is used «to decide when to ask safety-grounded clarifying questions»."
+  ],
+  [
+   "p",
+   "And the refusal worry? Safer usually means more refusals, so you'd expect a trade. The training reward «prioritizes safety and penalizes over-refusal», and the abstract says SAFE-PRO «roughly halves its over-refusal» against SRPO. We think this is the right instinct. Asking is cheaper than refusing. It's also kinder to the honest user with an odd photo."
+  ],
+  [
+   "code",
+   {
+    "label": "An illustrative ask-or-answer gate in the spirit of RCU (not the authors' code)",
+    "language": "python",
+    "source": "import math\n\ndef respond(image, text, model, risk_head, ask_threshold):\n    probs = model.next_token_probs(image, text)        # read the PAIR, never one input\n    entropy = -sum(p * math.log(p) for p in probs if p > 0)\n    risk = risk_head(image, text)                       # learned cross-modal risk score\n    signal = combine(entropy, risk)                     # risk-conditioned uncertainty\n    if signal > ask_threshold:\n        return ask_clarifying_question(image, text)     # settle the intent before acting\n    return model.generate(image, text)"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A vision model can borrow evidence it was never shown",
+    "num": "03",
+    "id": "a-vision-model-can-borrow-evidence-it-was-never-shown"
+   }
+  ],
+  [
+   "p",
+   "Next belief: a vision-language model can only reason about what's in the frame. A VLM, or vision-language model, encodes images into tokens a language model reads. If the answer needs a view the camera never caught, tough luck. Or so the story goes. A new arXiv paper on CoWorld Reasoner hands that missing view to a video world model, a generator that predicts plausible frames."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPkEgdmlzaW9uLWxhbmd1YWdlIG1vZGVsIGNhbGxpbmcgYSB2aWRlbyB3b3JsZCBtb2RlbCBhcyBhIHRvb2w8L3RpdGxlPgogIDxkZXNjPlRoZSBWTE0gc2VuZHMgYSBnZW5lcmF0aW9uIHJlcXVlc3QgdG8gYSB2aWRlbyB3b3JsZCBtb2RlbCwgZ2V0cyBpbWFnaW5lZCBmcmFtZXMgYmFjayBhcyBldmlkZW5jZSwgYW5kIGFuIG91dGVyIGxvb3AgcmV2aXNlcyB0b29scywgc2tpbGxzIGFuZCBjb2RlIHdoaWxlIGJvdGggbW9kZWwgd2VpZ2h0cyBzdGF5IGZpeGVkLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXYiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2UzYjM0MSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPCEtLSBvdXRlciBjby1ldm9sdXRpb24gbG9vcCAtLT4KICAgIDxyZWN0IHg9IjYwIiB5PSI2MCIgd2lkdGg9IjEwODAiIGhlaWdodD0iNDQwIiByeD0iMjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSIxMCAxMCIgb3BhY2l0eT0iMC43Ii8+CiAgICA8dGV4dCB4PSI5MCIgeT0iMTA1IiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZTNiMzQxIj5jby1ldm9sdmUgdG9vbHMsIHNraWxscyBhbmQgY29kZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwIiB5PSIxMzciIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPmZyb20gZXhlY3V0aW9uIGZlZWRiYWNrPC90ZXh0PgoKICAgIDwhLS0gVkxNIC0tPgogICAgPGVsbGlwc2UgY3g9IjMyMCIgY3k9IjMwMCIgcng9IjE5MCIgcnk9IjE1MCIgZmlsbD0idXJsKCNnbG93KSIvPgogICAgPHJlY3QgeD0iMjAwIiB5PSIyMjAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTYwIiByeD0iMjAiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIzMjAiIHk9IjI5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+VkxNPC90ZXh0PgogICAgPHRleHQgeD0iMzIwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnBpY2tzIGFuIG9wZXJhdGlvbjwvdGV4dD4KCiAgICA8IS0tIFZXTSAtLT4KICAgIDxyZWN0IHg9Ijc2MCIgeT0iMjIwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE2MCIgcng9IjIwIiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iOTAwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPnZpZGVvIHdvcmxkPC90ZXh0PgogICAgPHRleHQgeD0iOTAwIiB5PSIzMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPm1vZGVsPC90ZXh0PgoKICAgIDwhLS0gcmVxdWVzdCAvIGZyYW1lcyAtLT4KICAgIDxwYXRoIGQ9Ik00NDAsMjU1IEw3NTIsMjU1IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhYikiLz4KICAgIDx0ZXh0IHg9IjU5NiIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIj5nZW5lcmF0aW9uIHJlcXVlc3Q8L3RleHQ+CiAgICA8cGF0aCBkPSJNNzYwLDM0NSBMNDQ4LDM0NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXYpIi8+CiAgICA8dGV4dCB4PSI1OTYiIHk9IjM4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2E3OGJmYSI+aW1hZ2luZWQgZnJhbWVzPC90ZXh0PgogICAgPCEtLSBmaWxtIHN0cmlwIC0tPgogICAgPGcgb3BhY2l0eT0iMC45Ij4KICAgICAgPHJlY3QgeD0iNTQ2IiB5PSI0MDAiIHdpZHRoPSIzNCIgaGVpZ2h0PSIyNiIgcng9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICAgIDxyZWN0IHg9IjU4NiIgeT0iNDAwIiB3aWR0aD0iMzQiIGhlaWdodD0iMjYiIHJ4PSI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgICA8cmVjdCB4PSI2MjYiIHk9IjQwMCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjI2IiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDwvZz4KICAgIDx0ZXh0IHg9IjU5NiIgeT0iNDYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5yZWFkIGFzIHZpc3VhbCBldmlkZW5jZTwvdGV4dD4KCiAgICA8IS0tIHdlaWdodHMgZml4ZWQgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg2MDAsNTYwKSI+CiAgICAgIDxyZWN0IHg9Ii0yNiIgeT0iLTYiIHdpZHRoPSI1MiIgaGVpZ2h0PSI0MCIgcng9IjgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxwYXRoIGQ9Ik0tMTQsLTYgTC0xNCwtMTggQy0xNCwtMzYgMTQsLTM2IDE0LC0xOCBMMTQsLTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8L2c+CiAgICA8dGV4dCB4PSI2NDUiIHk9IjU4MiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+Ym90aCBtb2RlbCB3ZWlnaHRzIGZpeGVkPC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==",
+    "alt": "A VLM sends a generation request to a video world model and reads imagined frames back, inside a co-evolution loop.",
+    "caption": "CoWorld Reasoner's harness: the vision model asks a world model for views it was never shown, with weights fixed.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "We retraced the harness from its abstract. The VLM gets tools and skills. Skills guide it «in deciding whether to imagine, selecting an operation, constructing a generation request, and interpreting the resulting visual evidence». So the model picks an operation, writes the request, gets generated frames back, and reads them as evidence. A co-evolution step then revises tools, skills and code from execution feedback, «while keeping both model weights fixed»."
+  ],
+  [
+   "p",
+   "The payoff is real. «The strongest variant improves on all seven benchmarks», with relative accuracy gains of 11.8% on MMSI and 13.0% on ERQA. We find the idea clever and slightly unnerving. Imagined frames are generated, not observed. A model reasoning over its own pictures can be confidently wrong in a fresh way. The abstract doesn't say how often imagination misleads."
+  ],
+  [
+   "h2",
+   {
+    "text": "Counting word errors misses what a bad transcript does",
+    "num": "04",
+    "id": "counting-word-errors-misses-what-a-bad-transcript-does"
+   }
+  ],
+  [
+   "p",
+   "Speech is a modality too, with its own comfortable belief: word error rate tells you how bad a transcript is. Word error rate counts substituted, inserted and deleted words against a reference, divided by its length. It's cheap and familiar. The SITAR authors push back: «transcription errors with similar lexical or semantic discrepancies can have markedly different consequences for the situation conveyed by speech»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPlNhbWUgZXJyb3IgY291bnQsIGRpZmZlcmVudCBjb25zZXF1ZW5jZXM8L3RpdGxlPgogIDxkZXNjPlR3byB0cmFuc2NyaXB0cyBvZiBvbmUgc3Bva2VuIGluc3RydWN0aW9uIGFyZSBlYWNoIG9uZSB3b3JkIG9mZjsgb25lIGFkZHMgYSBmaWxsZXIgd29yZCwgdGhlIG90aGVyIGZsaXBzIGxlZnQgdG8gcmlnaHQgYW5kIGNoYW5nZXMgdGhlIHNpdHVhdGlvbi48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPCEtLSByZWZlcmVuY2UgLS0+CiAgICA8dGV4dCB4PSI2MCIgeT0iODAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPnNwb2tlbjwvdGV4dD4KICAgIDxyZWN0IHg9IjYwIiB5PSIxMDAiIHdpZHRoPSI3MjAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSIxNTIiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZThlZGY1Ij50dXJuIGxlZnQgYXQgdGhlIGJyaWRnZTwvdGV4dD4KCiAgICA8IS0tIGh5cG90aGVzaXMgQSAtLT4KICAgIDx0ZXh0IHg9IjYwIiB5PSIyNTAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPnRyYW5zY3JpcHQgQTwvdGV4dD4KICAgIDxyZWN0IHg9IjYwIiB5PSIyNzAiIHdpZHRoPSI3MjAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSIzMjIiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZThlZGY1Ij50dXJuIGxlZnQgYXQgPHRzcGFuIGZpbGw9IiNlM2IzNDEiPnVoPC90c3Bhbj4gdGhlIGJyaWRnZTwvdGV4dD4KCiAgICA8IS0tIGh5cG90aGVzaXMgQiAtLT4KICAgIDx0ZXh0IHg9IjYwIiB5PSI0MjAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPnRyYW5zY3JpcHQgQjwvdGV4dD4KICAgIDxyZWN0IHg9IjYwIiB5PSI0NDAiIHdpZHRoPSI3MjAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSI0OTIiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZThlZGY1Ij50dXJuIDx0c3BhbiBmaWxsPSIjZmY3YjcyIj5yaWdodDwvdHNwYW4+IGF0IHRoZSBicmlkZ2U8L3RleHQ+CgogICAgPCEtLSBlcnJvciBjb3VudCBjb2x1bW4gLS0+CiAgICA8dGV4dCB4PSI5MDAiIHk9IjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij53b3JkIGVycm9yczwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwODAiIHk9IjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5zaXR1YXRpb248L3RleHQ+CiAgICA8dGV4dCB4PSI5MDAiIHk9IjMyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2UzYjM0MSI+b25lIGluc2VydDwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwMCIgeT0iNDkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZTNiMzQxIj5vbmUgc3dhcDwvdGV4dD4KICAgIDxsaW5lIHgxPSI5MDAiIHkxPSIzNDUiIHgyPSI5MDAiIHkyPSIzODAiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI0IDYiLz4KICAgIDxsaW5lIHgxPSI5MDAiIHkxPSI0MjAiIHgyPSI5MDAiIHkyPSI0NjAiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI0IDYiLz4KICAgIDx0ZXh0IHg9IjkwMCIgeT0iNDA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5zYW1lIGNvdW50PC90ZXh0PgoKICAgIDwhLS0gc2l0dWF0aW9uIGNvbHVtbiAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEwODAsMzEwKSI+CiAgICAgIDxjaXJjbGUgcj0iMjgiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPHBhdGggZD0iTS0xMiwxIEwtMywxMSBMMTMsLTkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgIDwvZz4KICAgIDx0ZXh0IHg9IjEwODAiIHk9IjM3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzNlY2Y4ZSI+dW5jaGFuZ2VkPC90ZXh0PgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTA4MCw0ODApIj4KICAgICAgPGNpcmNsZSByPSIyOCIgZmlsbD0iI2ZmN2I3MiIgb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8bGluZSB4MT0iLTEwIiB5MT0iLTEwIiB4Mj0iMTAiIHkyPSIxMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8bGluZSB4MT0iMTAiIHkxPSItMTAiIHgyPSItMTAiIHkyPSIxMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPC9nPgogICAgPHRleHQgeD0iMTA4MCIgeT0iNTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZmY3YjcyIj5kaXN0b3J0ZWQ8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "Two transcripts each one word off a spoken instruction; one keeps the meaning, the other flips left to right.",
+    "caption": "Same word error count, different situation: the gap a situational metric like SITAR is built to score.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Picture two transcripts of one driving instruction. One adds a filler word. The other swaps left for right. Each is one word off, so the error count is identical. Only one sends the car somewhere else. That's the gap SITAR targets with a situational distortion score: how far an error moves what the speech describes or asks for."
+  ],
+  [
+   "p",
+   "Mechanism next. An LLM judge on every pair would work, but the authors note it «introduces computational cost and scoring variability». So SITAR builds training targets from a bounded recursive formula with limited offline LLM help. Then it trains a «lightweight BERT-family regressor that scores reference-hypothesis pairs in a single forward pass». We agree with that trade. A judge you can't afford nightly isn't a metric."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How SITAR turns a costly judge into a cheap metric, as its abstract describes the build.",
+    "steps": [
+     "Rate situational severity and cumulative extent of an error",
+     "Combine both through a bounded recursive formula",
+     "Build training targets with limited offline LLM help",
+     "Train a lightweight BERT-family regressor on those targets",
+     "Score each reference-hypothesis pair in one forward pass"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Trust predicts hand-offs, yet checking stays the habit",
+    "num": "05",
+    "id": "trust-predicts-hand-offs-yet-checking-stays-the-habit"
+   }
+  ],
+  [
+   "p",
+   "Now a human-side belief: people who trust a multimodal assistant simply hand it the task. Partly true. A new arXiv study on delegation had people rate trust after each video question-answering response, then pick a policy: reject, verify, or delegate fully. Trust «strongly predicted the user's delegation choices», with an odds ratio of 14.97. That ratio compares the odds of delegating as trust goes up."
+  ],
+  [
+   "p",
+   "Here's the twist. «Trust and delegation nevertheless remained distinct.» Verification was the dominant policy, and it «often co-occurred with high trust». People who trusted an answer still checked it. That's a healthy instinct. It also breaks the tidy picture where trust is a dial that sets autonomy."
+  ],
+  [
+   "p",
+   "The stranger finding is about time. Delegation rose with task order even after adjusting for trust, an odds ratio of 1.22, pointing to «an experience-related component that self-reported trust ratings alone could not capture». In plain terms, people drift toward handing over control as a session goes on. Their trust ratings don't show it. For anyone designing review steps, that drift is the warning to keep."
+  ],
+  [
+   "h2",
+   {
+    "text": "Fused signals may beat single senses, and the evidence is still young",
+    "num": "06",
+    "id": "fused-signals-may-beat-single-senses-and-the-evidence-is-sti"
+   }
+  ],
+  [
+   "p",
+   "Last, the belief we half expect to survive: combine the senses and you beat any one of them. Screening for cognitive decline is a hard test of it. One study gathered video, audio and text from conversational tasks with a voice assistant. The best single models peaked at 0.65 accuracy for video and 0.67 for audio. The fused model reached «an accuracy of 0.76 (AUC 0.75) on Command-Reading»."
+  ],
+  [
+   "p",
+   "AUC, the area under the ROC curve, measures how well a score ranks positives above negatives. The fused model held 0.76 accuracy on Question-Answering too, where audio alone did best. A sibling paper, CogDrift-4D, follows drift across sessions over an 18-month horizon, with «a classification accuracy of 0.733 +- 0.13». That spread is wide. In its design, a «localized Quality Gate dynamically filters low-integrity features before final fusion»."
+  ],
+  [
+   "p",
+   "So is fusion the real deal? In our view the direction is right and the evidence is early. The settling evidence is plain. Fused models should beat single senses on people and sessions they never trained on, recorded somewhere new. Studies should also show how often one bad channel drags the fused answer down. Until then, we'd file it as partly true."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Single-sense and fused screening results from one voice-assistant study, as its abstract reports them.",
+    "columns": [
+     "Model",
+     "Task",
+     "Accuracy",
+     "AUC"
+    ],
+    "rows": [
+     [
+      "Video only",
+      "Command-Reading",
+      "0.65",
+      "0.69"
+     ],
+     [
+      "Audio only",
+      "Question-Answering",
+      "0.67",
+      "0.73"
+     ],
+     [
+      "Fused",
+      "Command-Reading",
+      "0.76",
+      "0.75"
+     ],
+     [
+      "Fused",
+      "Question-Answering",
+      "0.76",
+      "0.73"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is a multimodal model?"
+  ],
+  [
+   "p",
+   "A multimodal model takes in more than one kind of input, such as images, audio, video and text, and reasons over them together. Encoders usually turn each input into tokens or vectors the model can read. The joint reading is the point, and it's also where new failures live, like benign images and texts that turn unsafe once combined."
+  ],
+  [
+   "h3",
+   "Are multimodal models more accurate than single-modality models?"
+  ],
+  [
+   "p",
+   "Sometimes, and the evidence is still early. In one screening study, a fused model reached 0.76 accuracy on both tasks, against best single-sense results of 0.65 for video and 0.67 for audio. Fusion can also import a weak channel's noise, which is why, in CogDrift-4D, a «localized Quality Gate dynamically filters low-integrity features before final fusion»."
+  ],
+  [
+   "h3",
+   "Why do multimodal AI models need special safety checks?"
+  ],
+  [
+   "p",
+   "Because harm can live in the pair of inputs, not in either one. A new arXiv paper warns that models «can act unsafely when individually benign images and texts are interpreted jointly». Its SAFE-PRO method asks a clarifying question when uncertainty and cross-modal risk are both high, and it roughly halves over-refusal compared with SRPO."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "When Reasoning Is Not Enough: Proactive Inquiry for Cross-Modal Safety in Multimodal Large Language Models",
+   "url": "https://arxiv.org/abs/2610.22068v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "CoWorld Reasoner: Agentic Multimodal Reasoning with the Evolving Video World Model-Driven Harness",
+   "url": "https://arxiv.org/abs/2610.21910v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "SITAR: A Situational Distortion Metric for Automatic Speech Recognition Evaluation",
+   "url": "https://arxiv.org/abs/2610.21440v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Following Delegation Traces to Study Human Oversight in Interaction with Multimodal AI",
+   "url": "https://arxiv.org/abs/2610.21948v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Task-Centric Multimodal Learning for Cognitive Impairment Detection",
+   "url": "https://arxiv.org/abs/2610.20906v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "CogDrift-4D: Hierarchical Multimodal Modeling of Temporal Behavioral Decay for MCI Detection",
+   "url": "https://arxiv.org/abs/2610.20877v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "can act unsafely when individually benign images and texts are interpreted jointly": 1,
+  "where cross-modal ambiguity silently commits the model to a hazardous premise that path-level optimization alone cannot correct": 1,
+  "combining predictive entropy with a learned cross-modal risk score": 1,
+  "to decide when to ask safety-grounded clarifying questions": 1,
+  "prioritizes safety and penalizes over-refusal": 1,
+  "roughly halves its over-refusal": 1,
+  "in deciding whether to imagine, selecting an operation, constructing a generation request, and interpreting the resulting visual evidence": 2,
+  "while keeping both model weights fixed": 2,
+  "The strongest variant improves on all seven benchmarks": 2,
+  "transcription errors with similar lexical or semantic discrepancies can have markedly different consequences for the situation conveyed by speech": 3,
+  "introduces computational cost and scoring variability": 3,
+  "lightweight BERT-family regressor that scores reference-hypothesis pairs in a single forward pass": 3,
+  "strongly predicted the user's delegation choices": 4,
+  "Trust and delegation nevertheless remained distinct.": 4,
+  "often co-occurred with high trust": 4,
+  "an experience-related component that self-reported trust ratings alone could not capture": 4,
+  "an accuracy of 0.76 (AUC 0.75) on Command-Reading": 5,
+  "a classification accuracy of 0.733 +- 0.13": 6,
+  "localized Quality Gate dynamically filters low-integrity features before final fusion": 6
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:40:11+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22068v1",
+   "arxiv:2610.21948v1",
+   "arxiv:2610.21910v1",
+   "arxiv:2610.21440v1",
+   "arxiv:2610.20906v1",
+   "arxiv:2610.20877v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "myth-vs-reality:concept/multimodal",
+  "format": "myth-vs-reality",
+  "reviewed_by": null
+ }
+}

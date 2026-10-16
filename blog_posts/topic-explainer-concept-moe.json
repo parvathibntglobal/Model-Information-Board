@@ -1,0 +1,423 @@
+{
+ "slug": "topic-explainer-concept-moe",
+ "status": "draft",
+ "tag": "Explainer",
+ "feat": false,
+ "title": "Mixture of Experts and the Router That Stops Exploring",
+ "dek": "A plain-words explainer of sparse expert layers, built around one new paper's warning: two popular design choices can quietly work against each other.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is mixture of experts? A layer of many small networks where a router sends each token to just a few. New work warns that shared experts can make that router stop exploring.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgcm91dGVyIHNlbmRzIGEgdG9rZW4gZG93biB0aGUgc2FtZSB0d28gd29ybiBwYXRocyB3aGlsZSBtb3N0IGV4cGVydHMgc2l0IGRhcmsgYW5kIHVudHJpZWQ8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJ0b2siIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJob3QiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYUIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjQiIG1hcmtlckhlaWdodD0iNCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjN2FhMmZmIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHRva2VuIC0tPgogIDxjaXJjbGUgY3g9IjEyMCIgY3k9IjI1MCIgcj0iMTEwIiBmaWxsPSJ1cmwoI3RvaykiLz4KICA8Y2lyY2xlIGN4PSIxMjAiIGN5PSIyNTAiIHI9IjMwIiBmaWxsPSIjN2FhMmZmIi8+CiAgPGxpbmUgeDE9IjE1MiIgeTE9IjI1MCIgeDI9IjI3MCIgeTI9IjI1MCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjYiIG1hcmtlci1lbmQ9InVybCgjYUIpIi8+CgogIDwhLS0gcm91dGVyIC0tPgogIDxwb2x5Z29uIHBvaW50cz0iMzQwLDE4MCA0MTAsMjUwIDM0MCwzMjAgMjcwLDI1MCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjQiLz4KICA8Y2lyY2xlIGN4PSIzNDAiIGN5PSIyNTAiIHI9IjEyIiBmaWxsPSIjZThlZGY1Ii8+CiAgPHRleHQgeD0iMzQwIiB5PSIzNzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSI+cm91dGVyPC90ZXh0PgoKICA8IS0tIGZhaW50IHVudHJpZWQgcGF0aHMgLS0+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgMTAiIG9wYWNpdHk9IjAuNDUiPgogICAgPHBhdGggZD0iTTQxMCwyNTAgQzUyMCwyNTAgNTQwLDEyOCA2NTAsMTI4Ii8+CiAgICA8cGF0aCBkPSJNNDEwLDI1MCBDNTIwLDI1MCA2MDAsMTI4IDc3NCwxMjgiLz4KICAgIDxwYXRoIGQ9Ik00MTAsMjUwIEM1MjAsMjUwIDcwMCwxMjggMTAyMiwxMjgiLz4KICAgIDxwYXRoIGQ9Ik00MTAsMjUwIEM1MjAsMjUwIDU2MCwyNTIgNjUwLDI1MiIvPgogICAgPHBhdGggZD0iTTQxMCwyNTAgQzUyMCwyNTAgNzIwLDI1MiA4OTgsMjUyIi8+CiAgICA8cGF0aCBkPSJNNDEwLDI1MCBDNTIwLDI1MCA1NjAsMzc2IDY1MCwzNzYiLz4KICAgIDxwYXRoIGQ9Ik00MTAsMjUwIEM1MjAsMjUwIDY0MCwzNzYgNzc0LDM3NiIvPgogICAgPHBhdGggZD0iTTQxMCwyNTAgQzUyMCwyNTAgNzIwLDM3NiA4OTgsMzc2Ii8+CiAgICA8cGF0aCBkPSJNNDEwLDI1MCBDNTIwLDI1MCA3NjAsMzc2IDEwMjIsMzc2Ii8+CiAgPC9nPgoKICA8IS0tIGV4cGVydCBncmlkOiA0IHggMyAtLT4KICA8ZyBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyI+CiAgICA8cmVjdCB4PSI2MDYiIHk9Ijg0IiB3aWR0aD0iODgiIGhlaWdodD0iODgiIHJ4PSIxNiIvPgogICAgPHJlY3QgeD0iNzMwIiB5PSI4NCIgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiByeD0iMTYiLz4KICAgIDxyZWN0IHg9Ijk3OCIgeT0iODQiIHdpZHRoPSI4OCIgaGVpZ2h0PSI4OCIgcng9IjE2Ii8+CiAgICA8cmVjdCB4PSI2MDYiIHk9IjIwOCIgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiByeD0iMTYiLz4KICAgIDxyZWN0IHg9Ijg1NCIgeT0iMjA4IiB3aWR0aD0iODgiIGhlaWdodD0iODgiIHJ4PSIxNiIvPgogICAgPHJlY3QgeD0iNjA2IiB5PSIzMzIiIHdpZHRoPSI4OCIgaGVpZ2h0PSI4OCIgcng9IjE2Ii8+CiAgICA8cmVjdCB4PSI3MzAiIHk9IjMzMiIgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiByeD0iMTYiLz4KICAgIDxyZWN0IHg9Ijg1NCIgeT0iMzMyIiB3aWR0aD0iODgiIGhlaWdodD0iODgiIHJ4PSIxNiIvPgogICAgPHJlY3QgeD0iOTc4IiB5PSIzMzIiIHdpZHRoPSI4OCIgaGVpZ2h0PSI4OCIgcng9IjE2Ii8+CiAgPC9nPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZmlsbD0iIzNhNDU1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+CiAgICA8dGV4dCB4PSI2NTAiIHk9IjE0MCI+PzwvdGV4dD48dGV4dCB4PSI3NzQiIHk9IjE0MCI+PzwvdGV4dD48dGV4dCB4PSIxMDIyIiB5PSIxNDAiPj88L3RleHQ+CiAgICA8dGV4dCB4PSI2NTAiIHk9IjI2NCI+PzwvdGV4dD48dGV4dCB4PSI4OTgiIHk9IjI2NCI+PzwvdGV4dD4KICAgIDx0ZXh0IHg9IjY1MCIgeT0iMzg4Ij4/PC90ZXh0Pjx0ZXh0IHg9Ijc3NCIgeT0iMzg4Ij4/PC90ZXh0Pjx0ZXh0IHg9Ijg5OCIgeT0iMzg4Ij4/PC90ZXh0Pjx0ZXh0IHg9IjEwMjIiIHk9IjM4OCI+PzwvdGV4dD4KICA8L2c+CgogIDwhLS0gdGhlIHR3byB3b3JuIHBhdGhzIC0tPgogIDxjaXJjbGUgY3g9Ijg5OCIgY3k9IjEyOCIgcj0iOTAiIGZpbGw9InVybCgjaG90KSIvPgogIDxjaXJjbGUgY3g9IjEwMjIiIGN5PSIyNTIiIHI9IjkwIiBmaWxsPSJ1cmwoI2hvdCkiLz4KICA8cGF0aCBkPSJNNDEwLDI1MCBDNTYwLDI1MCA2ODAsMTI4IDg0NiwxMjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIxMiIgb3BhY2l0eT0iMC4zMCIvPgogIDxwYXRoIGQ9Ik00MTAsMjUwIEM1NjAsMjUwIDY4MCwxMjggODQ2LDEyOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjUiIG1hcmtlci1lbmQ9InVybCgjYUIpIi8+CiAgPHBhdGggZD0iTTQxMCwyNTAgQzYwMCwyNTAgNzYwLDI1MiA5NzAsMjUyIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMTIiIG9wYWNpdHk9IjAuMzAiLz4KICA8cGF0aCBkPSJNNDEwLDI1MCBDNjAwLDI1MCA3NjAsMjUyIDk3MCwyNTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI1IiBtYXJrZXItZW5kPSJ1cmwoI2FCKSIvPgogIDxyZWN0IHg9Ijg1NCIgeT0iODQiIHdpZHRoPSI4OCIgaGVpZ2h0PSI4OCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuODUiIHN0cm9rZT0iI2M3ZDZmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHJlY3QgeD0iOTc4IiB5PSIyMDgiIHdpZHRoPSI4OCIgaGVpZ2h0PSI4OCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuODUiIHN0cm9rZT0iI2M3ZDZmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CgogIDwhLS0gc2hhcmVkIGV4cGVydCwgYWx3YXlzIG9uIC0tPgogIDxwYXRoIGQ9Ik0zNDAsMzIwIEwzNDAsNDIwIFEzNDAsNTIwIDQ0MCw1MjAgTDYwMCw1MjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgPHJlY3QgeD0iNjA2IiB5PSI0NzYiIHdpZHRoPSI0NjAiIGhlaWdodD0iODgiIHJ4PSIxOCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjM1IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjgzNiIgeT0iNTMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPnNoYXJlZDwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A token enters a router that sends it down two bright worn paths to the same experts; most expert tiles sit dark.",
+  "caption": "When the router stops exploring, a few experts get every token and the rest stay untried.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is mixture of experts? How a router sends each token to a few expert networks, and why shared experts can make that router stop exploring.",
+ "keywords": [
+  "what is mixture of experts",
+  "Mixture of experts",
+  "MoE router",
+  "shared experts",
+  "fine-grained experts",
+  "sparse expert models"
+ ],
+ "kicker": "Explainer",
+ "tags": [
+  "mixture of experts",
+  "Explainer"
+ ],
+ "read": 7,
+ "decisions": [
+  "Count total and active parameters separately when sizing hardware for an MoE model.",
+  "Log which experts each token picks; narrowing picks point to a lazy router.",
+  "Test shared experts and fine-grained experts together, not one at a time.",
+  "Ask for the numbers before repeating an MoE routing gain."
+ ],
+ "layout": "explainer",
+ "arrangement": "b",
+ "special": {
+  "type": "quiz",
+  "title": "Check what you took away",
+  "items": [
+   {
+    "question": "In a mixture-of-experts layer, what decides which experts process a token?",
+    "options": [
+     "A fixed rule that cycles through the experts in order",
+     "A learned router that scores every expert for that token",
+     "The user, through the wording of the prompt",
+     "Nothing: every expert processes every token"
+    ],
+    "answer": 1,
+    "explanation": "The router multiplies the token's hidden vector into one score per expert and keeps the top few."
+   },
+   {
+    "question": "Why does fine-grained expert segmentation raise the need for exploration?",
+    "options": [
+     "It makes every expert active for every token",
+     "It removes the router from the layer",
+     "It enlarges the space of expert combinations the router has to search"
+    ],
+    "answer": 2,
+    "explanation": "Smaller experts at the same active share mean far more possible teams, so finding good ones takes more exploring."
+   },
+   {
+    "question": "How can a shared expert make routing less exploratory?",
+    "options": [
+     "It absorbs what tokens share, so the router sees inputs that vary less",
+     "It forces the router to pick experts at random",
+     "It stores every routed expert at lower precision"
+    ],
+    "answer": 0,
+    "explanation": "With less variety left in token representations, similar inputs earn similar scores and the same experts keep winning."
+   },
+   {
+    "question": "What does DPA-MoE use to decide how much precision each chosen expert gets?",
+    "options": [
+     "A separate retrained checkpoint for each budget",
+     "The length of the user's prompt",
+     "A fixed precision set once for the whole model",
+     "Live router gate scores at inference time"
+    ],
+    "answer": 3,
+    "explanation": "Experts with higher gate scores load more weight chunks from the same encoded checkpoint."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Each token visits only a few specialists",
+    "num": "01",
+    "id": "each-token-visits-only-a-few-specialists"
+   }
+  ],
+  [
+   "p",
+   "A mixture of experts is a model layer split into many smaller networks, where each token is handled by only a few of them. Think of a hospital triage desk. Every patient gets seen, but nobody sees every doctor. The specialists are called experts. The triage desk is called the router, and it's the part this post keeps coming back to."
+  ],
+  [
+   "p",
+   "Where do the experts live? Inside a transformer, each block runs an attention step and then a feed-forward step. The feed-forward step is a pair of big matrix multiplies applied to every token. A mixture-of-experts layer swaps that one big network for many smaller ones. Each smaller network is an expert. The router decides which few a token visits."
+  ],
+  [
+   "p",
+   "The payoff is compute, not storage. The DPA-MoE paper says these models «reduce computation by routing each token to a small set of experts». You still keep every expert in memory. You just don't run most of them for any given token. That's why a name like Qwen3-30B-A3B carries two sizes: the whole model and the slice that's active."
+  ],
+  [
+   "h2",
+   {
+    "text": "The router scores experts and keeps the top few",
+    "num": "02",
+    "id": "the-router-scores-experts-and-keeps-the-top-few"
+   }
+  ],
+  [
+   "p",
+   "Let's follow one token's trip. It arrives as a hidden vector, a list of numbers that encodes the token in context. The router is a small learned matrix. It multiplies that vector and produces one score, called a logit, per expert. Higher means a better fit. No expert has done any work yet."
+  ],
+  [
+   "p",
+   "Next comes top-k selection. The router keeps the k highest-scoring experts and drops the rest. A softmax over the survivors turns their logits into gate weights that sum to one. The token then runs through each chosen expert. The layer's output is the gate-weighted sum of their answers. Everyone else sits this token out."
+  ],
+  [
+   "p",
+   "Training adds a wrinkle. A router left alone tends to favour a few experts early, and those experts then improve fastest. It's a rich-get-richer loop. Common recipes add a load-balancing loss so tokens spread out. Keep that loop in mind, because the next two sections are about a quieter version of it."
+  ],
+  [
+   "code",
+   {
+    "label": "A minimal top-k routing step for one token (illustrative, not any library's API)",
+    "language": "python",
+    "source": "import numpy as np\n\ndef moe_layer(x, router_w, experts, k, shared=None):\n    \"\"\"x: one token's hidden vector. experts: list of small feed-forward nets.\"\"\"\n    logits = router_w @ x                    # one score per expert\n    top = np.argsort(logits)[-k:]            # keep the k best-scoring experts\n    z = logits[top] - logits[top].max()\n    gates = np.exp(z) / np.exp(z).sum()      # softmax over the survivors only\n    out = sum(g * experts[i](x) for g, i in zip(gates, top))\n    if shared is not None:                   # a shared expert skips the router\n        out = out + shared(x)\n    return out\n"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "One token's path through a mixture-of-experts layer, from router scores to the combined output.",
+    "steps": [
+     "Token arrives as a hidden vector",
+     "Router multiplies it into one logit per expert",
+     "Keep the top-k experts and drop the rest",
+     "Softmax over the survivors gives gate weights",
+     "Each chosen expert transforms the token",
+     "Output is the gate-weighted sum, plus any shared expert"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Smaller experts and always-on experts pull in opposite directions",
+    "num": "03",
+    "id": "smaller-experts-and-always-on-experts-pull-in-opposite-direc"
+   }
+  ],
+  [
+   "p",
+   "Modern designs stack two tweaks on this basic layer. A new arXiv paper on routing exploration names them: «fine-grained expert segmentation and shared experts». Fine-grained segmentation cuts each expert into smaller pieces, so a token visits more of them. A shared expert skips the router and processes every token. Both sound like pure upgrades."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPkNvYXJzZSBleHBlcnRzIHZlcnN1cyBmaW5lLWdyYWluZWQgZXhwZXJ0cyB3aXRoIGEgc2hhcmVkIGV4cGVydCwgYXQgdGhlIHNhbWUgYWN0aXZlIHNoYXJlPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIGxlZnQ6IGNvYXJzZSAtLT4KICA8dGV4dCB4PSIyOTAiIHk9IjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPmNvYXJzZSBleHBlcnRzPC90ZXh0PgogIDxnIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSIjMTUxYTIzIj4KICAgIDxyZWN0IHg9IjcwIiB5PSIxMDAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMzIwIiByeD0iMTYiLz4KICAgIDxyZWN0IHg9IjMwMCIgeT0iMTAwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjMyMCIgcng9IjE2Ii8+CiAgICA8cmVjdCB4PSI0MTAiIHk9IjEwMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIzMjAiIHJ4PSIxNiIvPgogIDwvZz4KICA8cmVjdCB4PSIxODAiIHk9IjEwMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIzMjAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjgiIHN0cm9rZT0iI2M3ZDZmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMjkwIiB5PSI0NzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+ZmV3IHdheXMgdG8gY29tYmluZTwvdGV4dD4KCiAgPGxpbmUgeDE9IjYwMCIgeTE9IjYwIiB4Mj0iNjAwIiB5Mj0iNTYwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iOCA4Ii8+CgogIDwhLS0gcmlnaHQ6IGZpbmUtZ3JhaW5lZCwgc2FtZSB0b3RhbCBhcmVhLCBzYW1lIGxpdCBhcmVhIC0tPgogIDx0ZXh0IHg9IjkxMCIgeT0iNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+ZmluZS1ncmFpbmVkIGV4cGVydHM8L3RleHQ+CiAgPGcgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9IiMxNTFhMjMiPgogICAgPHJlY3QgeD0iNjkwIiB5PSIxMDAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNzQiIHJ4PSIxMiIvPgogICAgPHJlY3QgeD0iODAwIiB5PSIxMDAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNzQiIHJ4PSIxMiIvPgogICAgPHJlY3QgeD0iMTAyMCIgeT0iMTAwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiLz4KICAgIDxyZWN0IHg9IjY5MCIgeT0iMTgyIiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiLz4KICAgIDxyZWN0IHg9IjkxMCIgeT0iMTgyIiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiLz4KICAgIDxyZWN0IHg9IjEwMjAiIHk9IjE4MiIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI3NCIgcng9IjEyIi8+CiAgICA8cmVjdCB4PSI4MDAiIHk9IjI2NCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI3NCIgcng9IjEyIi8+CiAgICA8cmVjdCB4PSI5MTAiIHk9IjI2NCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI3NCIgcng9IjEyIi8+CiAgICA8cmVjdCB4PSIxMDIwIiB5PSIyNjQiIHdpZHRoPSIxMDAiIGhlaWdodD0iNzQiIHJ4PSIxMiIvPgogICAgPHJlY3QgeD0iNjkwIiB5PSIzNDYiIHdpZHRoPSIxMDAiIGhlaWdodD0iNzQiIHJ4PSIxMiIvPgogICAgPHJlY3QgeD0iODAwIiB5PSIzNDYiIHdpZHRoPSIxMDAiIGhlaWdodD0iNzQiIHJ4PSIxMiIvPgogICAgPHJlY3QgeD0iMTAyMCIgeT0iMzQ2IiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjgiIHN0cm9rZT0iI2M3ZDZmZiIgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxyZWN0IHg9IjkxMCIgeT0iMTAwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiLz4KICAgIDxyZWN0IHg9IjgwMCIgeT0iMTgyIiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiLz4KICAgIDxyZWN0IHg9IjY5MCIgeT0iMjY0IiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiLz4KICAgIDxyZWN0IHg9IjkxMCIgeT0iMzQ2IiB3aWR0aD0iMTAwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiLz4KICA8L2c+CiAgPHRleHQgeD0iOTA1IiB5PSI0NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+bWFueSBtb3JlIGNvbWJpbmF0aW9uczwvdGV4dD4KCiAgPCEtLSBzaGFyZWQgZXhwZXJ0IC0tPgogIDxyZWN0IHg9IjY5MCIgeT0iNDk0IiB3aWR0aD0iNDMwIiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4zNSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI5MDUiIHk9IjUzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1Ij5zaGFyZWQgZXhwZXJ0LCBldmVyeSB0b2tlbjwvdGV4dD4KCiAgPHRleHQgeD0iMjkwIiB5PSI1MzYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzdhYTJmZiI+c2FtZSBhY3RpdmUgc2hhcmUgb24gYm90aCBzaWRlczwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Left: four tall experts with one lit. Right: a grid of small experts with four lit, plus a shared expert bar.",
+    "caption": "Fine-grained experts keep the same active share but allow many more teams; the shared expert sees every token.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Why bother with finer experts? Picture choosing one big expert out of a handful, against several small ones out of many. The active share of the layer is the same. But the number of possible teams explodes. The authors describe it as «more expert combinations at a fixed activation ratio». You buy flexibility without buying compute."
+  ],
+  [
+   "p",
+   "Shared experts solve a different problem. Some knowledge, like basic grammar, is needed by nearly every token. Without a shared expert, that common knowledge gets copied into many routed experts. With one, it lives in a single place that's «active for every token». The routed experts are then free to specialise. So far, so sensible."
+  ],
+  [
+   "h2",
+   {
+    "text": "A router that sees similar tokens stops exploring",
+    "num": "04",
+    "id": "a-router-that-sees-similar-tokens-stops-exploring"
+   }
+  ],
+  [
+   "p",
+   "We went through the MirrorMoE argument one link at a time, because it's subtle. A shared expert absorbs what tokens have in common. What's left for the router to look at varies less from token to token. The authors write that «shared experts can make routing less exploratory by reducing the variability of token representations». Similar inputs earn similar scores. So the router keeps picking the same few experts."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPkEgc2hhcmVkIGV4cGVydCBzcXVlZXplcyB2YXJpZWQgdG9rZW5zIHRvZ2V0aGVyIHNvIHRoZSByb3V0ZXIga2VlcHMgcGlja2luZyB0aGUgc2FtZSBleHBlcnRzOyBzdXBwcmVzc2lvbiBzaHJpbmtzIHRoZSBzZWFyY2g8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYU0iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjIwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHBhbmVsIDE6IHZhcmllZCB0b2tlbnMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjQwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjQ0MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+dmFyaWVkIHRva2VuczwvdGV4dD4KICA8ZyBmaWxsPSIjN2FhMmZmIj4KICAgIDxjaXJjbGUgY3g9IjkwIiBjeT0iMTYwIiByPSIxMSIvPjxjaXJjbGUgY3g9IjMwMCIgY3k9IjE0MCIgcj0iMTEiLz48Y2lyY2xlIGN4PSIxODAiIGN5PSIyMTAiIHI9IjExIi8+CiAgICA8Y2lyY2xlIGN4PSIzMjAiIGN5PSIyNzAiIHI9IjExIi8+PGNpcmNsZSBjeD0iMTEwIiBjeT0iMzAwIiByPSIxMSIvPjxjaXJjbGUgY3g9IjI0MCIgY3k9IjMzMCIgcj0iMTEiLz4KICAgIDxjaXJjbGUgY3g9IjgwIiBjeT0iNDEwIiByPSIxMSIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjQyMCIgcj0iMTEiLz48Y2lyY2xlIGN4PSIzMTAiIGN5PSI0MDAiIHI9IjExIi8+CiAgICA8Y2lyY2xlIGN4PSIxNTAiIGN5PSIzNzAiIHI9IjExIi8+PGNpcmNsZSBjeD0iMjYwIiBjeT0iMTkwIiByPSIxMSIvPgogIDwvZz4KCiAgPGxpbmUgeDE9IjM4MCIgeTE9IjI2MCIgeDI9IjQzMCIgeTI9IjI2MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYU0pIi8+CgogIDwhLS0gcGFuZWwgMjogYWZ0ZXIgc2hhcmVkIGV4cGVydCAtLT4KICA8cmVjdCB4PSI0NDAiIHk9IjQwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjQ0MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYxMCIgeT0iODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2E3OGJmYSI+YWZ0ZXIgc2hhcmVkIGV4cGVydDwvdGV4dD4KICA8Y2lyY2xlIGN4PSI2MTAiIGN5PSIyNzUiIHI9IjcwIiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjEyIi8+CiAgPGcgZmlsbD0iIzdhYTJmZiI+CiAgICA8Y2lyY2xlIGN4PSI1OTAiIGN5PSIyNTAiIHI9IjExIi8+PGNpcmNsZSBjeD0iNjI1IiBjeT0iMjQwIiByPSIxMSIvPjxjaXJjbGUgY3g9IjY0NSIgY3k9IjI3MCIgcj0iMTEiLz4KICAgIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjI4NSIgcj0iMTEiLz48Y2lyY2xlIGN4PSI1NzAiIGN5PSIyNzUiIHI9IjExIi8+PGNpcmNsZSBjeD0iNjMwIiBjeT0iMzA1IiByPSIxMSIvPgogICAgPGNpcmNsZSBjeD0iNTk1IiBjeT0iMzE1IiByPSIxMSIvPjxjaXJjbGUgY3g9IjY2MCIgY3k9IjI5NSIgcj0iMTEiLz48Y2lyY2xlIGN4PSI1NjAiIGN5PSIzMDAiIHI9IjExIi8+CiAgICA8Y2lyY2xlIGN4PSI2MTUiIGN5PSIyNjIiIHI9IjExIi8+PGNpcmNsZSBjeD0iNTgyIiBjeT0iMjMwIiByPSIxMSIvPgogIDwvZz4KICA8dGV4dCB4PSI2MTAiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5sZXNzIHZhcmlldHkgdG88L3RleHQ+CiAgPHRleHQgeD0iNjEwIiB5PSI0NTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+cm91dGUgb248L3RleHQ+CgogIDxsaW5lIHgxPSI3OTAiIHkxPSIyNjAiIHgyPSI4NDAiIHkyPSIyNjAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FNKSIvPgoKICA8IS0tIHBhbmVsIDM6IHJvdXRlciBwaWNrcyAtLT4KICA8cmVjdCB4PSI4NTAiIHk9IjQwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjQ0MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS1vcGFjaXR5PSIwLjUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjEwMTAiIHk9Ijg4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPnNhbWUgZmV3IHBpY2tlZDwvdGV4dD4KICA8ZyBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0iIzE1MWEyMyI+CiAgICA8cmVjdCB4PSI4ODAiIHk9IjEzMCIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjYwIiByeD0iMTAiLz48cmVjdCB4PSI5NzIiIHk9IjEzMCIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjYwIiByeD0iMTAiLz4KICAgIDxyZWN0IHg9Ijg4MCIgeT0iMjA2IiB3aWR0aD0iNzYiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPjxyZWN0IHg9IjEwNjQiIHk9IjIwNiIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjYwIiByeD0iMTAiLz4KICAgIDxyZWN0IHg9Ijk3MiIgeT0iMjgyIiB3aWR0aD0iNzYiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPjxyZWN0IHg9IjEwNjQiIHk9IjI4MiIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjYwIiByeD0iMTAiLz4KICAgIDxyZWN0IHg9Ijg4MCIgeT0iMzU4IiB3aWR0aD0iNzYiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPjxyZWN0IHg9Ijk3MiIgeT0iMzU4IiB3aWR0aD0iNzYiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPgogICAgPHJlY3QgeD0iMTA2NCIgeT0iMzU4IiB3aWR0aD0iNzYiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuODUiIHN0cm9rZT0iI2M3ZDZmZiIgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxyZWN0IHg9IjEwNjQiIHk9IjEzMCIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjYwIiByeD0iMTAiLz4KICAgIDxyZWN0IHg9Ijk3MiIgeT0iMjA2IiB3aWR0aD0iNzYiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPgogICAgPHJlY3QgeD0iODgwIiB5PSIyODIiIHdpZHRoPSI3NiIgaGVpZ2h0PSI2MCIgcng9IjEwIi8+CiAgPC9nPgoKICA8IS0tIHRoZSBmaXggLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjUxMCIgd2lkdGg9IjExNDAiIGhlaWdodD0iODQiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utb3BhY2l0eT0iMC41IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZyBmaWxsPSIjMmMzNTQ0Ij4KICAgIDxyZWN0IHg9IjcwIiB5PSI1MzAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI0NCIgcng9IjgiLz48cmVjdCB4PSIxMjQiIHk9IjUzMCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjQ0IiByeD0iOCIvPgogICAgPHJlY3QgeD0iMjMyIiB5PSI1MzAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI0NCIgcng9IjgiLz4KICA8L2c+CiAgPGcgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iODAiIHkxPSI1NDAiIHgyPSIxMDQiIHkyPSI1NjQiLz48bGluZSB4MT0iMTA0IiB5MT0iNTQwIiB4Mj0iODAiIHkyPSI1NjQiLz4KICAgIDxsaW5lIHgxPSIxMzQiIHkxPSI1NDAiIHgyPSIxNTgiIHkyPSI1NjQiLz48bGluZSB4MT0iMTU4IiB5MT0iNTQwIiB4Mj0iMTM0IiB5Mj0iNTY0Ii8+CiAgICA8bGluZSB4MT0iMjQyIiB5MT0iNTQwIiB4Mj0iMjY2IiB5Mj0iNTY0Ii8+PGxpbmUgeDE9IjI2NiIgeTE9IjU0MCIgeDI9IjI0MiIgeTI9IjU2NCIvPgogIDwvZz4KICA8cmVjdCB4PSIxNzgiIHk9IjUzMCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjg1Ii8+CiAgPHJlY3QgeD0iMjg2IiB5PSI1MzAiIHdpZHRoPSI0NCIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC44NSIvPgogIDx0ZXh0IHg9IjM3MCIgeT0iNTYyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPmZpeDogc3VwcHJlc3MgZXhwZXJ0cyB0aGlzIHRva2VuIGRvZXMgbm90IG5lZWQ8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Scattered tokens get squeezed into a tight cluster by a shared expert, and the router then picks the same few experts.",
+    "caption": "The exploration dilemma: less variety in what the router sees means fewer teams tried, and suppression shrinks the search.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Now add fine-grained segmentation. With many small experts, the space of possible teams is enormous. Finding good teams needs more exploration, not less. The paper points to «the greater need for exploration induced by fine-grained expert segmentation due to the combinatorially enlarged routing space». One design widens the search. The other dulls the searcher. That's the dilemma."
+  ],
+  [
+   "p",
+   "Their fix keeps both features. MirrorMoE works by «shrinking the exploration space through token-adaptive suppression of unnecessary experts». For each token, it switches off experts that token clearly doesn't need, so the router searches a smaller field. We like the shape of this fix. If you can't sharpen the searcher, give it less ground to cover."
+  ],
+  [
+   "p",
+   "Does it work? The abstract says «MirrorMoE consistently improves performance across model scales», and gives no figure. We're not convinced by a gain we can't size yet, though the mechanism is clean. Read the paper's tables before you repeat the claim."
+  ],
+  [
+   "h2",
+   {
+    "text": "Router scores also work as a control knob",
+    "num": "05",
+    "id": "router-scores-also-work-as-a-control-knob"
+   }
+  ],
+  [
+   "p",
+   "Here's a neat side effect. Once the router has scored experts, those gate weights say how much each chosen expert matters for this token. The DPA-MoE paper starts from a gap: «each selected expert is still used at a fixed precision». Precision means how many bits each weight gets. A barely-used expert gets the same bits as a vital one."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPlJvdXRlciBnYXRlIHNjb3JlcyBkZWNpZGUgaG93IG1hbnkgcHJlY2lzaW9uIGNodW5rcyBlYWNoIGNob3NlbiBleHBlcnQgbG9hZHMgZnJvbSBvbmUgY2hlY2twb2ludDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhTSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI3IiByZWZZPSI1IiBtYXJrZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIG1hcmtlcldpZHRoPSIyMCIgbWFya2VySGVpZ2h0PSIyMCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHJvdXRlciAtLT4KICA8cG9seWdvbiBwb2ludHM9IjEzMCwyMzAgMjAwLDMwMCAxMzAsMzcwIDYwLDMwMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjQiLz4KICA8dGV4dCB4PSIxMzAiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5yb3V0ZXI8L3RleHQ+CiAgPHBhdGggZD0iTTIwMCwzMDAgQzI4MCwzMDAgMzAwLDE1MCAzODAsMTUwIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iOCIgbWFya2VyLWVuZD0idXJsKCNhTSkiLz4KICA8cGF0aCBkPSJNMjAwLDMwMCBDMjgwLDMwMCAzMDAsMzAwIDM4MCwzMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI1IiBtYXJrZXItZW5kPSJ1cmwoI2FNKSIvPgogIDxwYXRoIGQ9Ik0yMDAsMzAwIEMyODAsMzAwIDMwMCw0NTAgMzgwLDQ1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYU0pIi8+CgogIDwhLS0gdGhyZWUgY2hvc2VuIGV4cGVydHMgLS0+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0Ij4KICAgIDxyZWN0IHg9IjM5MCIgeT0iMTEyIiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijc2IiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI0ODUiIHk9IjE2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSI+aGlnaCBnYXRlPC90ZXh0PgogICAgPHJlY3QgeD0iMzkwIiB5PSIyNjIiIHdpZHRoPSIxOTAiIGhlaWdodD0iNzYiIHJ4PSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjQ4NSIgeT0iMzEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1Ij5taWRkbGUgZ2F0ZTwvdGV4dD4KICAgIDxyZWN0IHg9IjM5MCIgeT0iNDEyIiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijc2IiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI0ODUiIHk9IjQ2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSI+bG93IGdhdGU8L3RleHQ+CiAgPC9nPgoKICA8IS0tIGNodW5rIHJvd3M6IG9uZSBlbmNvZGVkIGNoZWNrcG9pbnQsIHByZWZpeC1kZWNvZGFibGUgLS0+CiAgPHRleHQgeD0iODgwIiB5PSI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij53ZWlnaHQgY2h1bmtzIGxvYWRlZDwvdGV4dD4KICA8ZyBzdHJva2Utd2lkdGg9IjMiPgogICAgPHJlY3QgeD0iNjQwIiB5PSIxMTgiIHdpZHRoPSIxMTAiIGhlaWdodD0iNjQiIHJ4PSIxMCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjg1IiBzdHJva2U9IiMzZWNmOGUiLz4KICAgIDxyZWN0IHg9Ijc2MCIgeT0iMTE4IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjY0IiByeD0iMTAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC42NSIgc3Ryb2tlPSIjM2VjZjhlIi8+CiAgICA8cmVjdCB4PSI4ODAiIHk9IjExOCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI2NCIgcng9IjEwIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuNDUiIHN0cm9rZT0iIzNlY2Y4ZSIvPgogICAgPHJlY3QgeD0iMTAwMCIgeT0iMTE4IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjY0IiByeD0iMTAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4zMCIgc3Ryb2tlPSIjM2VjZjhlIi8+CgogICAgPHJlY3QgeD0iNjQwIiB5PSIyNjgiIHdpZHRoPSIxMTAiIGhlaWdodD0iNjQiIHJ4PSIxMCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjg1IiBzdHJva2U9IiMzZWNmOGUiLz4KICAgIDxyZWN0IHg9Ijc2MCIgeT0iMjY4IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjY0IiByeD0iMTAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC42NSIgc3Ryb2tlPSIjM2VjZjhlIi8+CiAgICA8cmVjdCB4PSI4ODAiIHk9IjI2OCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI2NCIgcng9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS1kYXNoYXJyYXk9IjggNiIvPgogICAgPHJlY3QgeD0iMTAwMCIgeT0iMjY4IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjY0IiByeD0iMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLWRhc2hhcnJheT0iOCA2Ii8+CgogICAgPHJlY3QgeD0iNjQwIiB5PSI0MTgiIHdpZHRoPSIxMTAiIGhlaWdodD0iNjQiIHJ4PSIxMCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjg1IiBzdHJva2U9IiMzZWNmOGUiLz4KICAgIDxyZWN0IHg9Ijc2MCIgeT0iNDE4IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjY0IiByeD0iMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLWRhc2hhcnJheT0iOCA2Ii8+CiAgICA8cmVjdCB4PSI4ODAiIHk9IjQxOCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI2NCIgcng9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS1kYXNoYXJyYXk9IjggNiIvPgogICAgPHJlY3QgeD0iMTAwMCIgeT0iNDE4IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjY0IiByeD0iMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLWRhc2hhcnJheT0iOCA2Ii8+CiAgPC9nPgogIDxsaW5lIHgxPSI2NDAiIHkxPSI1MzAiIHgyPSIxMTAwIiB5Mj0iNTMwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhTSkiLz4KICA8dGV4dCB4PSI2NDAiIHk9IjU3MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5jb2Fyc2UgZmlyc3QsIGZpbmVyIGJpdHMgYWZ0ZXI8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "A router sends a token to three experts; the high-gate expert loads four weight chunks, the low-gate expert loads one.",
+    "caption": "DPA-MoE lets gate scores decide how many precision chunks each chosen expert loads.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Their framework «encodes expert feed-forward weights as prefix-decodable chunks», which you can read in order and stop early. Then it «allocates chunks at inference time using live router gate scores». A high-gate expert loads more chunks. A low-gate one makes do with fewer. One file can then «operate at multiple effective weight budgets without retraining or re-encoding»."
+  ],
+  [
+   "p",
+   "Routing also makes behaviour easier to find. A personalization paper argues MoE models «sparsely route each token to a few specialized experts, reducing polysemanticity and enabling such localization». Polysemantic neurons each carry several unrelated concepts, which makes dense models hard to read. The authors found that «boosting their associated experts moves the non-personalized model toward it». That's a steering wheel made of routing."
+  ],
+  [
+   "h2",
+   {
+    "text": "Every expert still has to sit in memory",
+    "num": "06",
+    "id": "every-expert-still-has-to-sit-in-memory"
+   }
+  ],
+  [
+   "p",
+   "Here's where the idea stops helping. Sparse routing cuts compute per token, but every expert still occupies memory. If your bottleneck is fitting weights on a device, a mixture of experts can make things worse. DPA-MoE attacks that edge with fewer bits, and it reports «modest steady-state throughput overhead in our prototype». Precision on demand isn't free."
+  ],
+  [
+   "p",
+   "Routing itself is still poorly understood. The MirrorMoE paper warns that «the additional expressiveness offered by fine-grained segmentation may not be fully realized». In our view that's the sharpest sentence in any of these abstracts. A choice that sounds like a free upgrade can cancel another one. Nobody has a general rule for when."
+  ],
+  [
+   "p",
+   "Want to see it yourself? Train a tiny MoE on a toy task and log which experts each token picks. Add a shared expert and check if the picks narrow. Then read the MirrorMoE and DPA-MoE papers in full, since their abstracts give no figures. Watch the router's choices, not just the loss."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What each recent abstract shows about routing, and what it leaves for the full paper or for you to test.",
+    "columns": [
+     "Idea",
+     "What the abstract shows",
+     "What it leaves open"
+    ],
+    "rows": [
+     [
+      "Shared plus fine-grained experts",
+      "They can make routing less exploratory",
+      "How large the loss is"
+     ],
+     [
+      "MirrorMoE suppression",
+      "Improves performance across model scales",
+      "No figure given"
+     ],
+     [
+      "DPA-MoE chunk allocation",
+      "Better KL divergence and accuracy at matched budgets",
+      "Throughput overhead in a prototype"
+     ],
+     [
+      "Personalized MoE experts",
+      "Experts can be located and boosted",
+      "Features beyond personalization"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is mixture of experts in AI?"
+  ],
+  [
+   "p",
+   "Mixture of experts is a model design where a router sends each token to a few small expert networks instead of one large one. Only the chosen experts run, so compute per token drops. Every expert is still stored, so memory use stays high. Qwen3-30B-A3B and DeepSeekMoE-16B are examples of the design."
+  ],
+  [
+   "h3",
+   "What is a shared expert in MoE?"
+  ],
+  [
+   "p",
+   "A shared expert is one that processes every token and bypasses the router. It holds knowledge nearly every token needs, which frees the routed experts to specialise. A recent paper warns that «shared experts can make routing less exploratory by reducing the variability of token representations», which can waste the benefit of many small experts."
+  ],
+  [
+   "h3",
+   "Does mixture of experts make inference faster?"
+  ],
+  [
+   "p",
+   "It cuts the compute each token needs, but it doesn't shrink the weights you must hold in memory. Real speed depends on whether your hardware is limited by arithmetic or by memory. Work like DPA-MoE goes further, using live router gate scores to give less important experts fewer bits at inference time."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "DPA-MoE: A Runtime Precision Control Framework for MoE Inference",
+   "url": "https://arxiv.org/abs/2610.21378v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Rethinking Routing Exploration in Modern Mixture-of-Experts",
+   "url": "https://arxiv.org/abs/2610.22353v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Explaining the Roles of Experts in Mixture-of-Experts LLMs for Personalization",
+   "url": "https://arxiv.org/abs/2610.22127v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "reduce computation by routing each token to a small set of experts": 1,
+  "fine-grained expert segmentation and shared experts": 2,
+  "more expert combinations at a fixed activation ratio": 2,
+  "active for every token": 2,
+  "shared experts can make routing less exploratory by reducing the variability of token representations": 2,
+  "the greater need for exploration induced by fine-grained expert segmentation due to the combinatorially enlarged routing space": 2,
+  "shrinking the exploration space through token-adaptive suppression of unnecessary experts": 2,
+  "MirrorMoE consistently improves performance across model scales": 2,
+  "each selected expert is still used at a fixed precision": 1,
+  "encodes expert feed-forward weights as prefix-decodable chunks": 1,
+  "allocates chunks at inference time using live router gate scores": 1,
+  "operate at multiple effective weight budgets without retraining or re-encoding": 1,
+  "sparsely route each token to a few specialized experts, reducing polysemanticity and enabling such localization": 3,
+  "boosting their associated experts moves the non-personalized model toward it": 3,
+  "modest steady-state throughput overhead in our prototype": 1,
+  "the additional expressiveness offered by fine-grained segmentation may not be fully realized": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:41:30+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22127v1",
+   "arxiv:2610.22353v1",
+   "arxiv:2610.21378v1"
+  ],
+  "platforms": {
+   "arXiv": 3
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-explainer:concept/moe",
+  "format": "topic-explainer",
+  "reviewed_by": null
+ }
+}

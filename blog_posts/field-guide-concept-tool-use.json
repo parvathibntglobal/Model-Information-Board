@@ -1,0 +1,447 @@
+{
+ "slug": "field-guide-concept-tool-use",
+ "status": "draft",
+ "tag": "Field guide",
+ "feat": false,
+ "title": "Tool Use Is Decided by the Schema Before the First Call Runs",
+ "dek": "A field guide to MCP tool selection: why parameter shape and list order steer the model, why tool memory should advise and not dictate, and when to skip tools entirely.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is MCP? A protocol that hands a model tool names, descriptions and argument schemas to pick from. Selection reads only that metadata, so schema shape and list order quietly decide which implementation runs.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgbW9kZWwncyBiZWFtIGxhbmRzIG9uIG9uZSBvZiB0d28gdG9vbHMgd2l0aCB0aGUgc2FtZSBuYW1lOiB0aGUgb25lIHdpdGggZmxhdCBwYXJhbWV0ZXJzPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmVhbSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC41NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4wNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZXllZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuNDUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InBpY2tnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4zIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gbW9kZWwgbm9kZSAtLT4KICA8Y2lyY2xlIGN4PSI2MDAiIGN5PSIxMTAiIHI9IjEyMCIgZmlsbD0idXJsKCNleWVnbG93KSIvPgogIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjExMCIgcj0iNTQiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxlbGxpcHNlIGN4PSI2MDAiIGN5PSIxMTAiIHJ4PSIzMCIgcnk9IjE4IiBmaWxsPSJub25lIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjExMCIgcj0iOSIgZmlsbD0iI2U4ZWRmNSIvPgoKICA8IS0tIGJlYW0gdG8gdGhlIGZsYXQgdG9vbCAtLT4KICA8cG9seWdvbiBwb2ludHM9IjU4MiwxNjAgNjE4LDE2MCA1MjAsMzMwIDIxMCwzMzAiIGZpbGw9InVybCgjYmVhbSkiLz4KICA8ZWxsaXBzZSBjeD0iMzY1IiBjeT0iNDQwIiByeD0iMjkwIiByeT0iMTcwIiBmaWxsPSJ1cmwoI3BpY2tnbG93KSIvPgoKICA8IS0tIHRvb2wgQTogZmxhdCBwYXJhbWV0ZXJzIC0tPgogIDxyZWN0IHg9IjE2MCIgeT0iMzIwIiB3aWR0aD0iNDEwIiBoZWlnaHQ9IjIzMCIgcng9IjIwIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHRleHQgeD0iMzY1IiB5PSIzNzgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zZWFyY2hfcnVuYm9va3M8L3RleHQ+CiAgPGcgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxyZWN0IHg9IjIwMCIgeT0iNDIwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQ0IiByeD0iMjIiLz4KICAgIDxyZWN0IHg9IjMxNSIgeT0iNDIwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQ0IiByeD0iMjIiLz4KICAgIDxyZWN0IHg9IjQzMCIgeT0iNDIwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQ0IiByeD0iMjIiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzdhYTJmZiI+CiAgICA8cmVjdCB4PSIyMjIiIHk9IjQ5MCIgd2lkdGg9IjU2IiBoZWlnaHQ9IjgiIHJ4PSI0IiBvcGFjaXR5PSIwLjYiLz4KICAgIDxyZWN0IHg9IjMzNyIgeT0iNDkwIiB3aWR0aD0iNTYiIGhlaWdodD0iOCIgcng9IjQiIG9wYWNpdHk9IjAuNiIvPgogICAgPHJlY3QgeD0iNDUyIiB5PSI0OTAiIHdpZHRoPSI1NiIgaGVpZ2h0PSI4IiByeD0iNCIgb3BhY2l0eT0iMC42Ii8+CiAgPC9nPgogIDxjaXJjbGUgY3g9IjU0OCIgY3k9IjM0MiIgcj0iMjYiIGZpbGw9IiMzZWNmOGUiLz4KICA8cGF0aCBkPSJNNTM2LDM0MiBMNTQ1LDM1MiBMNTYxLDMzMyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgoKICA8IS0tIHRvb2wgQjogZ3JvdXBlZCBwYXJhbWV0ZXJzIC0tPgogIDxyZWN0IHg9IjYzMCIgeT0iMzIwIiB3aWR0aD0iNDEwIiBoZWlnaHQ9IjIzMCIgcng9IjIwIiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNDUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHRleHQgeD0iODM1IiB5PSIzNzgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zZWFyY2hfcnVuYm9va3M8L3RleHQ+CiAgPHJlY3QgeD0iNjgwIiB5PSI0MDgiIHdpZHRoPSIzMTAiIGhlaWdodD0iMTA0IiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxMCA4Ii8+CiAgPHRleHQgeD0iNjk2IiB5PSI0NzIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjQwIj57PC90ZXh0PgogIDx0ZXh0IHg9Ijk3NCIgeT0iNDcyIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSI0MCIgdGV4dC1hbmNob3I9ImVuZCI+fTwvdGV4dD4KICA8ZyBmaWxsPSIjOTVhMWI0IiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyLjUiPgogICAgPHJlY3QgeD0iNzI4IiB5PSI0NDAiIHdpZHRoPSI2OCIgaGVpZ2h0PSI0MCIgcng9IjIwIi8+CiAgICA8cmVjdCB4PSI4MDIiIHk9IjQ0MCIgd2lkdGg9IjY4IiBoZWlnaHQ9IjQwIiByeD0iMjAiLz4KICAgIDxyZWN0IHg9Ijg3NiIgeT0iNDQwIiB3aWR0aD0iNjgiIGhlaWdodD0iNDAiIHJ4PSIyMCIvPgogIDwvZz4KPC9zdmc+Cg==",
+  "alt": "A model's beam falls on one of two tools named search_runbooks: the one with separate parameter slots, not the grouped one.",
+  "caption": "Two tools with one name and one job, and the parameter shape that tips the model's choice.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is MCP, and why does a tool's parameter schema decide whether it gets picked? A field guide to tool selection, ordering, memory and tracing.",
+ "keywords": [
+  "what is MCP",
+  "Tool use and MCP",
+  "MCP tool selection",
+  "tool schema design",
+  "LLM tool use",
+  "tool graph memory"
+ ],
+ "kicker": "Field guide",
+ "tags": [
+  "tool use",
+  "Field guide"
+ ],
+ "read": 8,
+ "decisions": [
+  "Sort tools deterministically before they reach the model.",
+  "Flatten parameter schemas and describe every field.",
+  "Remove or rename duplicate tools across MCP servers.",
+  "Store tool lessons as text hints, not next-step rules.",
+  "Hard-code the workflow when the call sequence never changes."
+ ],
+ "layout": "fieldguide",
+ "arrangement": "a",
+ "special": {
+  "type": "checklist",
+  "title": "Before you ship",
+  "items": [
+   {
+    "check": "List every tool name exposed by more than one MCP server.",
+    "why": "Duplicates with different schemas let selection drift to the wrong backend while answers still look right."
+   },
+   {
+    "check": "Flatten nested parameter objects where the backend allows it.",
+    "why": "Grouped or composite parameters are disfavoured, so the tool you meant may quietly lose."
+   },
+   {
+    "check": "Give every parameter a plain-language description.",
+    "why": "Descriptions that explain parameters raise selection; bare field names leave the model guessing."
+   },
+   {
+    "check": "Sort the offered tool list deterministically and log its hash per request.",
+    "why": "Order shifts selection, and runtime discovery can reorder tools without any deploy."
+   },
+   {
+    "check": "Shuffle tool positions when comparing schema variants.",
+    "why": "Without it, position bias gets credited to the schema you are testing."
+   },
+   {
+    "check": "Record the offered list, the chosen tool and its server on one span.",
+    "why": "A wrong-server pick reads as a correct answer in any single log."
+   },
+   {
+    "check": "Set a per-step timeout and a retry policy on tool calls.",
+    "why": "One hung call stalls the whole loop with nothing in the logs."
+   },
+   {
+    "check": "Feed past tool experience as text hints, never as a prescribed next tool.",
+    "why": "Prescriptive tool graphs were often wrong and cost extra calls for little gain."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Expect duplicate tools to look identical to the model",
+    "num": "01",
+    "id": "expect-duplicate-tools-to-look-identical-to-the-model"
+   }
+  ],
+  [
+   "p",
+   "Here's the failure we'd bet is in your system right now. Two MCP servers both expose a tool called `search_runbooks`. One fronts the old wiki index; the other fronts the new one your team migrated to. Same name, near-identical description. The agent keeps calling the old one. Nobody notices, because both return plausible text. Wrong backend, right-looking answer."
+  ],
+  [
+   "p",
+   "So what is MCP, and why does it make this easy? The Model Context Protocol is a standard way for an agent to find tools on separate servers. Each server publishes its tools: a name, a description and a JSON schema for the arguments. The agent fetches that list, puts it in the model's context, and lets the model pick. Execution happens on the server."
+  ],
+  [
+   "p",
+   "That last step is the whole game. A new arXiv paper on MCP metadata puts it flatly: «LLMs select tools from metadata rather than from their implementations». The model never sees your code. It sees a few lines of text and a schema. One engineering blog describes the upside, where «the agent connects to MCP servers and discovers their tools at runtime». Runtime discovery also discovers your duplicates."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "One MCP tool call, from discovery to execution, and the single step where the model decides.",
+    "steps": [
+     "Agent connects to each registered MCP server",
+     "Servers return tool names, descriptions and argument schemas",
+     "Client lists every tool in the model's context",
+     "Model selects a tool from that metadata alone",
+     "Server runs the call and returns the result"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Treat the parameter schema as a ranking signal",
+    "num": "02",
+    "id": "treat-the-parameter-schema-as-a-ranking-signal"
+   }
+  ],
+  [
+   "p",
+   "The duplicate problem isn't rare. The MCP metadata paper analysed 367,174 MCP tools and found that «Many of these tools share names and similar descriptions but expose different parameter schemas». That raises the question the authors asked: «can parameter-schema differences influence tool selection before any call is made?» Short answer: yes. More than anything else they tested."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPlR3byBydW5ib29rIHNlYXJjaCB0b29scyB3aXRoIHRoZSBzYW1lIGpvYjogZmxhdCB0b3AtbGV2ZWwgZmllbGRzIGFnYWluc3Qgb25lIGdyb3VwZWQgZmlsdGVycyBvYmplY3Q8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC4yMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJnIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjIwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHRleHQgeD0iMzIwIiB5PSI2MiIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+b2xkIGluZGV4IHNlcnZlcjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg4MCIgeT0iNjIiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm5ldyBpbmRleCBzZXJ2ZXI8L3RleHQ+CiAgPC9nPgoKICA8Y2lyY2xlIGN4PSIzMjAiIGN5PSIyOTAiIHI9IjI2MCIgZmlsbD0idXJsKCNnbG93KSIvPgogIDxyZWN0IHg9IjgwIiB5PSI5MCIgd2lkdGg9IjQ4MCIgaGVpZ2h0PSIzMzAiIHJ4PSIyMCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxyZWN0IHg9IjY0MCIgeT0iOTAiIHdpZHRoPSI0ODAiIGhlaWdodD0iMzMwIiByeD0iMjAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4wNiIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KCiAgPGcgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjYiPgogICAgPHRleHQgeD0iMTEyIiB5PSIxNDYiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI3MDAiPnNlYXJjaF9ydW5ib29rczwvdGV4dD4KICAgIDx0ZXh0IHg9IjExMiIgeT0iMjEwIiBmaWxsPSIjN2FhMmZmIj5xdWVyeTwvdGV4dD48dGV4dCB4PSIzMDAiIHk9IjIxMCIgZmlsbD0iIzk1YTFiNCI+c3RyaW5nPC90ZXh0PgogICAgPHRleHQgeD0iMTEyIiB5PSIyNjIiIGZpbGw9IiM3YWEyZmYiPnRlYW08L3RleHQ+PHRleHQgeD0iMzAwIiB5PSIyNjIiIGZpbGw9IiM5NWExYjQiPnN0cmluZzwvdGV4dD4KICAgIDx0ZXh0IHg9IjExMiIgeT0iMzE0IiBmaWxsPSIjN2FhMmZmIj5saW1pdDwvdGV4dD48dGV4dCB4PSIzMDAiIHk9IjMxNCIgZmlsbD0iIzk1YTFiNCI+aW50ZWdlcjwvdGV4dD4KCiAgICA8dGV4dCB4PSI2NzIiIHk9IjE0NiIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjcwMCI+c2VhcmNoX3J1bmJvb2tzPC90ZXh0PgogICAgPHRleHQgeD0iNjcyIiB5PSIyMTAiIGZpbGw9IiM3YWEyZmYiPmZpbHRlcnM8L3RleHQ+PHRleHQgeD0iODYwIiB5PSIyMTAiIGZpbGw9IiM5NWExYjQiPm9iamVjdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjcxMiIgeT0iMjYyIiBmaWxsPSIjOTVhMWI0Ij5xdWVyeTwvdGV4dD4KICAgIDx0ZXh0IHg9IjcxMiIgeT0iMzA2IiBmaWxsPSIjOTVhMWI0Ij50ZWFtPC90ZXh0PgogICAgPHRleHQgeD0iNzEyIiB5PSIzNTAiIGZpbGw9IiM5NWExYjQiPmxpbWl0PC90ZXh0PgogIDwvZz4KICA8cGF0aCBkPSJNNjkwLDIyOCBWMzYyIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+CiAgICA8dGV4dCB4PSIxMTIiIHk9IjM5NCI+c2VwYXJhdGUgdG9wLWxldmVsIGZpZWxkczwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwMCIgeT0iMzk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5vbmUgZ3JvdXBlZCBvYmplY3Q8L3RleHQ+CiAgPC9nPgoKICA8IS0tIG1vZGVsIGNob2ljZSAtLT4KICA8cmVjdCB4PSI0NzAiIHk9IjQ3MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI3MCIgcng9IjM1IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjUxNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj5tb2RlbCBzZWxlY3RzPC90ZXh0PgogIDxwYXRoIGQ9Ik00NzAsNTA1IEMzODAsNTA1IDMzMCw0ODAgMzIwLDQzMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXJyZykiLz4KICA8cGF0aCBkPSJNNzMwLDUwNSBDODIwLDUwNSA4NzAsNDgwIDg4MCw0MzIiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI4IDgiIGZpbGw9Im5vbmUiLz4KICA8dGV4dCB4PSIyMDAiIHk9IjU4MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIiBmb250LXdlaWdodD0iNzAwIj5mYXZvdXJlZDwvdGV4dD4KICA8dGV4dCB4PSIxMDAwIiB5PSI1ODAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2UzYjM0MSIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9ImVuZCI+c2FtZSBqb2IsIHBpY2tlZCBsZXNzPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Two runbook tool schemas side by side: flat query, team and limit fields, and the same fields nested inside a filters object.",
+    "caption": "The worked example: same function, different schema shape, and the flat one is the shape models tend to favour.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "We went through how they isolated the effect, because the design is the convincing part. «Each comparison changes exactly one metadata factor (server name, tool name, description, or parameter schema) while keeping the others fixed». That ran across five LLMs and five tasks. They also balanced tool positions and fitted a conditional logistic regression. So a tool's slot in the list couldn't pose as preference."
+  ],
+  [
+   "p",
+   "The headline finding: «parameter-schema changes produce the largest and most consistent selection shifts among the tested interventions». The direction is specific too. «Models tend to favor separate top-level parameters over grouped or composite forms». Our old runbook tool takes flat `query`, `team` and `limit` fields. The new one wraps them in a single `filters` object. Guess which one wins."
+  ],
+  [
+   "code",
+   {
+    "label": "Two tool definitions with the same job: flat fields against one grouped object (illustrative)",
+    "language": "json",
+    "source": "[\n  {\n    \"name\": \"search_runbooks\",\n    \"description\": \"Search team runbooks (old wiki index).\",\n    \"inputSchema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"query\": {\"type\": \"string\"},\n        \"team\":  {\"type\": \"string\"},\n        \"limit\": {\"type\": \"integer\"}\n      },\n      \"required\": [\"query\"]\n    }\n  },\n  {\n    \"name\": \"search_runbooks\",\n    \"description\": \"Search team runbooks (new index).\",\n    \"inputSchema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"filters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"query\": {\"type\": \"string\"},\n            \"team\":  {\"type\": \"string\"},\n            \"limit\": {\"type\": \"integer\"}\n          }\n        }\n      },\n      \"required\": [\"filters\"]\n    }\n  }\n]\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Describe every parameter in plain words",
+    "num": "03",
+    "id": "describe-every-parameter-in-plain-words"
+   }
+  ],
+  [
+   "p",
+   "Descriptions matter too, in a particular way. The same paper reports that «Descriptions that explain parameters also tend to increase selection», and that «name effects are weaker and less consistent». So the name you agonised over matters less than a sentence saying what `team` accepts. We think that's good news. Descriptions are cheap to fix, and you own them."
+  ],
+  [
+   "p",
+   "There's a catch, and it's subtle. The authors add that «schema effects depend on the specific parameter names and on how the request represents the same information». A user who types a team name may favour a tool with a `team` field. A request phrased around a service ID may favour another. Selection is a match between request wording and schema wording."
+  ],
+  [
+   "p",
+   "The reassuring result is the hard constraint. «When only one schema satisfies an explicit request requirement, all five models select the compatible tool despite position preferences». So if your new tool alone accepts a `since` date, a request that names a date should find it. Make the differences explicit. Ambiguity is where the bias lives."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What changing each piece of tool metadata did to selection, as the MCP metadata paper reports it.",
+    "columns": [
+     "Metadata changed",
+     "Effect on selection"
+    ],
+    "rows": [
+     [
+      "Parameter schema",
+      "Largest and most consistent shifts; separate top-level fields favoured"
+     ],
+     [
+      "Description that explains parameters",
+      "Tends to increase selection"
+     ],
+     [
+      "Tool or server name",
+      "Weaker and less consistent effects"
+     ],
+     [
+      "Only one schema meets an explicit requirement",
+      "All five models pick the compatible tool"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Pin tool order before you trust a comparison",
+    "num": "04",
+    "id": "pin-tool-order-before-you-trust-a-comparison"
+   }
+  ],
+  [
+   "p",
+   "Position is the factor everyone forgets. The authors had to balance it out before measuring anything, and their conclusion says why: «schema design and tool ordering can therefore affect which implementation is invoked even when functionality is unchanged». Read that as a production warning. The order your client lists tools in is a hidden input to every decision."
+  ],
+  [
+   "p",
+   "MCP makes that order fluid. The Grab engineering post celebrates that «adding a new capability can be as simple as registering an MCP server, rather than redeploying the agent». That's a real win, and we'd keep it. It also means the list your model sees can change on a Tuesday with no code review. A server registers. The old favourite slides down."
+  ],
+  [
+   "p",
+   "Our advice is boring, and it works. Sort tools deterministically before they reach the prompt, by server and then by name. Log a hash of the offered list with every request. When you evaluate a schema change, shuffle positions across runs, the way the paper balanced them. Otherwise you'll credit the schema for what the slot did."
+  ],
+  [
+   "h2",
+   {
+    "text": "Keep tool memory as a hint, never a script",
+    "num": "05",
+    "id": "keep-tool-memory-as-a-hint-never-a-script"
+   }
+  ],
+  [
+   "p",
+   "Once tools work, someone proposes memory. Tool graph memory is the popular shape: it «stores past experience as tool transitions to guide subsequent selection». After `search_runbooks`, the graph says, agents usually call `read_file`. Sounds sensible. A new arXiv paper put it on nine models and two benchmarks. The results are sobering."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPlRvb2wgbWVtb3J5IGFzIGEgcHJlc2NyaXB0aW9uIG9mIHRoZSBuZXh0IHRvb2wsIGFnYWluc3QgdGhlIHNhbWUgZXhwZXJpZW5jZSBnaXZlbiBhcyBhIHRleHQgaGludDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InJlZGdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjI1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJncmVlbmdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjIyIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MjAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGxpbmUgeDE9IjYwMCIgeTE9IjQwIiB4Mj0iNjAwIiB5Mj0iNTgwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiA4Ii8+CgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8dGV4dCB4PSIzMDAiIHk9IjcwIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj5hcyBhIHByZXNjcmlwdGlvbjwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwMCIgeT0iNzAiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmFzIGEgc29mdCBwcmlvcjwvdGV4dD4KICA8L2c+CgogIDwhLS0gbGVmdDogdG9vbCBncmFwaCBmb3JjaW5nIHRoZSBuZXh0IHN0ZXAgLS0+CiAgPGNpcmNsZSBjeD0iMzAwIiBjeT0iMzIwIiByPSIyMzAiIGZpbGw9InVybCgjcmVkZ2xvdykiLz4KICA8ZyBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNCI+CiAgICA8cmVjdCB4PSI3MCIgeT0iMTQwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjYwIiByeD0iMTQiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjE4MCIgeT0iMTc5IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zZWFyY2g8L3RleHQ+CiAgICA8cmVjdCB4PSIzMjAiIHk9IjI3MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI2MCIgcng9IjE0IiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI0MzAiIHk9IjMwOSIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmVhZF9maWxlPC90ZXh0PgogICAgPHJlY3QgeD0iNzAiIHk9IjQwMCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI2MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNiIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjE4MCIgeT0iNDM5IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5sb2dfc2VhcmNoPC90ZXh0PgogIDwvZz4KICA8cGF0aCBkPSJNMjkwLDE4MCBDMzYwLDE5MCA0MTAsMjIwIDQyNSwyNjIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI2IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FycnIpIi8+CiAgPHBhdGggZD0iTTE4MCwyMDYgVjM5MiIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggOCIgZmlsbD0ibm9uZSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiI+CiAgICA8dGV4dCB4PSI0MzAiIHk9IjM2NiIgZmlsbD0iI2ZmN2I3MiIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bmV4dCB0b29sOiBkbyB0aGlzPC90ZXh0PgogICAgPHRleHQgeD0iMzAwIiB5PSI1MjAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmd1aWRhbmNlIG9mdGVuIGluY29ycmVjdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjMwMCIgeT0iNTUyIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5nYWlucyBjb3N0IGV4dHJhIG1vZGVsIGNhbGxzPC90ZXh0PgogIDwvZz4KCiAgPCEtLSByaWdodDogdGhlIHByb21wdCB3aXRoIGEgaGludCwgd2VpZ2hlZCBhZ2FpbnN0IHRoZSBzY2hlbWEgLS0+CiAgPGNpcmNsZSBjeD0iOTAwIiBjeT0iMzIwIiByPSIyMzAiIGZpbGw9InVybCgjZ3JlZW5nbG93KSIvPgogIDxyZWN0IHg9IjY5MCIgeT0iMTMwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjI1MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiI+CiAgICA8dGV4dCB4PSI3MTYiIHk9IjE3MiIgZmlsbD0iIzk1YTFiNCI+cHJvbXB0PC90ZXh0PgogICAgPHJlY3QgeD0iNzE2IiB5PSIxOTIiIHdpZHRoPSIzNjgiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iNzM2IiB5PSIyMjQiIGZpbGw9IiNlOGVkZjUiPmhpbnQ6IHJ1bmJvb2tzIHVzdWFsbHk8L3RleHQ+CiAgICA8dGV4dCB4PSI3MzYiIHk9IjI1MCIgZmlsbD0iI2U4ZWRmNSI+YW5zd2VyIHRoaXMga2luZCBvZiB0aWNrZXQ8L3RleHQ+CiAgICA8cmVjdCB4PSI3MTYiIHk9IjI4MiIgd2lkdGg9IjM2OCIgaGVpZ2h0PSI3NCIgcng9IjEyIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI3MzYiIHk9IjMxNCIgZmlsbD0iI2U4ZWRmNSI+dG9vbCBsaXN0IGFuZCBzY2hlbWFzPC90ZXh0PgogICAgPHRleHQgeD0iNzM2IiB5PSIzNDAiIGZpbGw9IiM5NWExYjQiPnRoZSBtb2RlbCBzdGlsbCBkZWNpZGVzPC90ZXh0PgogIDwvZz4KICA8bGluZSB4MT0iOTAwIiB5MT0iMzg4IiB4Mj0iOTAwIiB5Mj0iNDUwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHJlY3QgeD0iNzgwIiB5PSI0NTgiIHdpZHRoPSIyNDAiIGhlaWdodD0iNTYiIHJ4PSIyOCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iOTAwIiB5PSI0OTQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+d2VpZ2hlZCBjaG9pY2U8L3RleHQ+CiAgPHRleHQgeD0iOTAwIiB5PSI1NTIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YWxtb3N0IG5vIGV4dHJhIGNhbGxzPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Left, a tool graph forces read_file as the next step; right, a prompt holds a text hint beside the tool schemas.",
+    "caption": "Tool memory as a prescription against the same experience given as a soft prior the model weighs.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Its authors found «it seldom improves significantly over baselines, and that its gains, where present, cost over twice the LLM calls». Worse, «The memory's guidance is often incorrect», and «random or no guidance retains most of the gain». Their reading is that «the benefit stems from extra computation rather than the memory itself». The graph was mostly an excuse to think longer."
+  ],
+  [
+   "p",
+   "What worked better was gentler. «Storing the same experience instead as textual insights outperforms tool graph memory with almost no extra LLM calls». Their summary is the line to keep: «memory serves better as a soft prior than as a prescription of the next tool». We agree. Put past lessons in the prompt as advice, and let the model weigh them against the schemas in front of it."
+  ],
+  [
+   "h2",
+   {
+    "text": "Trace every tool call back to its request",
+    "num": "06",
+    "id": "trace-every-tool-call-back-to-its-request"
+   }
+  ],
+  [
+   "p",
+   "None of this is debuggable blind. The Grab team describes its early state as «grepping logs across three separate systems: the agent workflow, the tool calls, and the model call». Worse, «There was no shared trace tying them together». That's exactly where our wrong-server bug hides. The answer looks fine in one log. The server name sits in another."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPlRocmVlIHVuY29ubmVjdGVkIGxvZ3MgYWdhaW5zdCBvbmUgdHJhY2UgdGhhdCBjYXJyaWVzIHRoZSB0b29sIHNlbGVjdGlvbiBhcyBpdHMgb3duIHNwYW48L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4yNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDx0ZXh0IHg9IjI1MCIgeT0iNjQiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmJlZm9yZTogdGhyZWUgbG9nczwvdGV4dD4KICAgIDx0ZXh0IHg9IjgzMCIgeT0iNjQiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmFmdGVyOiBvbmUgdHJhY2U8L3RleHQ+CiAgPC9nPgoKICA8IS0tIHRocmVlIHNlcGFyYXRlIGxvZ3MgLS0+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4KICAgIDxyZWN0IHg9IjQwIiB5PSIxMDAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNDIwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIGZpbGwtb3BhY2l0eT0iMC40NSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjE4NSIgeT0iMTAwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjQyMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNDUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIzMzAiIHk9IjEwMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI0MjAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgZmlsbC1vcGFjaXR5PSIwLjQ1IiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTA1IiB5PSI1NjAiPndvcmtmbG93PC90ZXh0PgogICAgPHRleHQgeD0iMjUwIiB5PSI1NjAiPnRvb2wgY2FsbHM8L3RleHQ+CiAgICA8dGV4dCB4PSIzOTUiIHk9IjU2MCI+bW9kZWw8L3RleHQ+CiAgPC9nPgogIDxnIGZpbGw9IiM5NWExYjQiIG9wYWNpdHk9IjAuNTUiPgogICAgPHJlY3QgeD0iNjAiIHk9IjEzMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjgiIHJ4PSI0Ii8+PHJlY3QgeD0iNjAiIHk9IjE2MCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjgiIHJ4PSI0Ii8+CiAgICA8cmVjdCB4PSI2MCIgeT0iMTkwIiB3aWR0aD0iODQiIGhlaWdodD0iOCIgcng9IjQiLz48cmVjdCB4PSI2MCIgeT0iMjIwIiB3aWR0aD0iNjAiIGhlaWdodD0iOCIgcng9IjQiLz4KICAgIDxyZWN0IHg9IjIwNSIgeT0iMTMwIiB3aWR0aD0iODAiIGhlaWdodD0iOCIgcng9IjQiLz48cmVjdCB4PSIyMDUiIHk9IjE2MCIgd2lkdGg9IjkyIiBoZWlnaHQ9IjgiIHJ4PSI0Ii8+CiAgICA8cmVjdCB4PSIyMDUiIHk9IjE5MCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjgiIHJ4PSI0Ii8+PHJlY3QgeD0iMjA1IiB5PSIyMjAiIHdpZHRoPSI4NiIgaGVpZ2h0PSI4IiByeD0iNCIvPgogICAgPHJlY3QgeD0iMzUwIiB5PSIxMzAiIHdpZHRoPSI4OCIgaGVpZ2h0PSI4IiByeD0iNCIvPjxyZWN0IHg9IjM1MCIgeT0iMTYwIiB3aWR0aD0iNjQiIGhlaWdodD0iOCIgcng9IjQiLz4KICAgIDxyZWN0IHg9IjM1MCIgeT0iMTkwIiB3aWR0aD0iODAiIGhlaWdodD0iOCIgcng9IjQiLz48cmVjdCB4PSIzNTAiIHk9IjIyMCIgd2lkdGg9IjcyIiBoZWlnaHQ9IjgiIHJ4PSI0Ii8+CiAgPC9nPgogIDxyZWN0IHg9IjIwNSIgeT0iMjUwIiB3aWR0aD0iOTIiIGhlaWdodD0iMTAiIHJ4PSI1IiBmaWxsPSIjZmY3YjcyIi8+CiAgPHRleHQgeD0iMjUwIiB5PSIzOTAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI2NCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+PzwvdGV4dD4KICA8dGV4dCB4PSIyNTAiIHk9IjYwNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ubyBzaGFyZWQgaWQgam9pbnMgdGhlbTwvdGV4dD4KCiAgPGxpbmUgeDE9IjUwMCIgeTE9IjMyMCIgeDI9IjU2MCIgeTI9IjMyMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8IS0tIG9uZSB0cmFjZSwgbmVzdGVkIHNwYW5zIC0tPgogIDxjaXJjbGUgY3g9Ijg2MCIgY3k9IjMzMCIgcj0iMjkwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPGcgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiPgogICAgPHJlY3QgeD0iNTgwIiB5PSIxMDAiIHdpZHRoPSI1ODAiIGhlaWdodD0iNDQwIiByeD0iMTgiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjYwNCIgeT0iMTQwIiBmaWxsPSIjZThlZGY1IiBmb250LXdlaWdodD0iNzAwIj5yZXF1ZXN0PC90ZXh0PgogICAgPHJlY3QgeD0iNjEyIiB5PSIxNjIiIHdpZHRoPSI1MjQiIGhlaWdodD0iNTQiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE2IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iNjM0IiB5PSIxOTciIGZpbGw9IiNlOGVkZjUiPm1vZGVsIGNhbGw8L3RleHQ+CiAgICA8cmVjdCB4PSI2MTIiIHk9IjIzMCIgd2lkdGg9IjUyNCIgaGVpZ2h0PSIxNzAiIHJ4PSIxMiIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjM0IiB5PSIyNjYiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI3MDAiPnRvb2wuc2VsZWN0PC90ZXh0PgogICAgPHRleHQgeD0iNjYwIiB5PSIzMDQiIGZpbGw9IiM5NWExYjQiPm9mZmVyZWQgbGlzdCArIG9yZGVyPC90ZXh0PgogICAgPHRleHQgeD0iNjYwIiB5PSIzNDAiIGZpbGw9IiM5NWExYjQiPnRvb2wgY2hvc2VuPC90ZXh0PgogICAgPHRleHQgeD0iNjYwIiB5PSIzNzYiIGZpbGw9IiMzZWNmOGUiPnNlcnZlciB0aGF0IHJhbiBpdDwvdGV4dD4KICAgIDxyZWN0IHg9IjYxMiIgeT0iNDE0IiB3aWR0aD0iNTI0IiBoZWlnaHQ9IjU0IiByeD0iMTIiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjYzNCIgeT0iNDQ5IiBmaWxsPSIjZThlZGY1Ij50b29sIGNhbGw8L3RleHQ+CiAgICA8cmVjdCB4PSI2NDQiIHk9IjQ3OCIgd2lkdGg9IjQ5MiIgaGVpZ2h0PSI0NiIgcng9IjEyIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjY2NiIgeT0iNTA5IiBmaWxsPSIjOTVhMWI0Ij5yZXRyaWV2YWw8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "Three disconnected log columns beside one trace whose tool.select span records the offered list, the choice and its server.",
+    "caption": "Putting the selection on its own span is what makes a wrong-server pick visible.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Their fix was a single instrumentor that «auto-instruments FastAPI, outbound HTTP, LangChain, and MCP». With it, the mess «turns into one end-to-end trace across every LLM call, tool call, and retrieval step». Their template also wraps each agent step in «a retry policy and a 30-second per-step timeout». Copy both ideas. A tool call with no deadline is an outage waiting politely."
+  ],
+  [
+   "p",
+   "Then put the selection itself on a span. Record the tool list the model saw, its order, the tool it picked and the server that ran it. A question like whether the old index still gets traffic becomes a query. No investigation needed. We'd also take their blunter lesson to heart: «Vibe check is not an evaluation strategy»."
+  ],
+  [
+   "code",
+   {
+    "label": "Recording the offered list, its order and the chosen server on one span (illustrative)",
+    "language": "python",
+    "source": "import hashlib\nimport json\n\nfrom my_tracing import tracer   # whatever tracing library you already run\n\ndef offered(tools):\n    # Deterministic order before the prompt: server, then tool name.\n    return sorted(tools, key=lambda t: (t[\"server\"], t[\"name\"]))\n\ndef select_with_trace(pick, tools, request_id):\n    tools = offered(tools)\n    listing = json.dumps([[t[\"server\"], t[\"name\"]] for t in tools])\n    with tracer.start_as_current_span(\"tool.select\") as span:\n        span.set_attribute(\"request.id\", request_id)\n        span.set_attribute(\"tools.offered\", listing)\n        span.set_attribute(\"tools.offered_hash\", hashlib.sha256(listing.encode()).hexdigest()[:12])\n        tool = pick(tools)                      # the model's choice\n        span.set_attribute(\"tool.name\", tool[\"name\"])\n        span.set_attribute(\"tool.server\", tool[\"server\"])\n        return tool\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Skip tool use when the next call is already known",
+    "num": "07",
+    "id": "skip-tool-use-when-the-next-call-is-already-known"
+   }
+  ],
+  [
+   "p",
+   "Sometimes the right number of model-chosen tools is zero. If your workflow always runs the same calls in the same order, write it as code. Fetch the ticket, search the runbooks, post the summary. A model choosing among tools adds a decision you don't need. Every decision has an error rate. Why pay for one you could hard-code?"
+  ],
+  [
+   "p",
+   "The tool-memory paper hints at the cost from another angle: «even with the correct next tool suggested, many failures remain, such as giving up without a tool call». If a model can drop the ball when handed the answer, don't hand it a choice it doesn't need. A fixed pipeline never forgets a step."
+  ],
+  [
+   "p",
+   "Skip MCP too when one process owns every tool and nothing else will reuse them. Discovery, schemas and remote servers earn their keep when tools are shared across teams, the problem Grab frames as «how one team safely reuses another team's tools». For three in-process functions, that's plumbing without plumbers. In our view, reach for MCP when sharing is the problem, and not before."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is MCP in AI?"
+  ],
+  [
+   "p",
+   "MCP, the Model Context Protocol, is a standard way for an agent to discover tools on separate servers and call them. Each server lists its tools with a name, a description and an argument schema. The model picks from that metadata, so how you write it shapes which tool runs. Execution stays on the server, which lets teams share tools without redeploying agents."
+  ],
+  [
+   "h3",
+   "How does an LLM decide which tool to use?"
+  ],
+  [
+   "p",
+   "It decides from metadata, not code: the tool's name, description and parameter schema. One MCP study found that parameter-schema changes «produce the largest and most consistent selection shifts», with separate top-level fields favoured over grouped ones. Descriptions that explain parameters help, and names matter less. Tool order shifts choices too, so keep the list deterministic."
+  ],
+  [
+   "h3",
+   "Does tool use get better with memory of past tool calls?"
+  ],
+  [
+   "p",
+   "Not reliably, if the memory dictates the next tool. A study of tool graph memory found «it seldom improves significantly over baselines», and its guidance was often wrong. Storing the same experience as short textual insights did better, with almost no extra model calls. Treat memory as a hint in the prompt, never as the next step."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Which Metadata Matters for LLM Tool Selection in MCP? Evidence from Controlled Factor-Level Interventions",
+   "url": "https://arxiv.org/abs/2610.14334v1",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 2,
+   "platform": "an engineering blog",
+   "who": "engineering.grab.com",
+   "what": "Agent platform (Part 1): How we help Grab build and run AI agents at scale",
+   "url": "https://engineering.grab.com/how-grab-builds-and-runs-ai-agents-at-scale",
+   "posted": "2026-07-24"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Rethinking the Role of Tool Graph Memory in Multi-Turn Tool Use",
+   "url": "https://arxiv.org/abs/2610.21571v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "LLMs select tools from metadata rather than from their implementations": 1,
+  "the agent connects to MCP servers and discovers their tools at runtime": 2,
+  "Many of these tools share names and similar descriptions but expose different parameter schemas": 1,
+  "can parameter-schema differences influence tool selection before any call is made?": 1,
+  "Each comparison changes exactly one metadata factor (server name, tool name, description, or parameter schema) while keeping the others fixed": 1,
+  "parameter-schema changes produce the largest and most consistent selection shifts among the tested interventions": 1,
+  "Models tend to favor separate top-level parameters over grouped or composite forms": 1,
+  "Descriptions that explain parameters also tend to increase selection": 1,
+  "name effects are weaker and less consistent": 1,
+  "schema effects depend on the specific parameter names and on how the request represents the same information": 1,
+  "When only one schema satisfies an explicit request requirement, all five models select the compatible tool despite position preferences": 1,
+  "schema design and tool ordering can therefore affect which implementation is invoked even when functionality is unchanged": 1,
+  "adding a new capability can be as simple as registering an MCP server, rather than redeploying the agent": 2,
+  "stores past experience as tool transitions to guide subsequent selection": 3,
+  "it seldom improves significantly over baselines, and that its gains, where present, cost over twice the LLM calls": 3,
+  "The memory's guidance is often incorrect": 3,
+  "random or no guidance retains most of the gain": 3,
+  "the benefit stems from extra computation rather than the memory itself": 3,
+  "Storing the same experience instead as textual insights outperforms tool graph memory with almost no extra LLM calls": 3,
+  "memory serves better as a soft prior than as a prescription of the next tool": 3,
+  "grepping logs across three separate systems: the agent workflow, the tool calls, and the model call": 2,
+  "There was no shared trace tying them together": 2,
+  "auto-instruments FastAPI, outbound HTTP, LangChain, and MCP": 2,
+  "turns into one end-to-end trace across every LLM call, tool call, and retrieval step": 2,
+  "a retry policy and a 30-second per-step timeout": 2,
+  "Vibe check is not an evaluation strategy": 2,
+  "even with the correct next tool suggested, many failures remain, such as giving up without a tool call": 3,
+  "how one team safely reuses another team's tools": 2,
+  "produce the largest and most consistent selection shifts": 1,
+  "it seldom improves significantly over baselines": 3
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:47:34+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.14334v1",
+   "arxiv:2610.21571v1",
+   "blog:engineering.grab.com|https://engineering.grab.com/how-grab-builds-and-runs-ai-agents-at-scale"
+  ],
+  "platforms": {
+   "arXiv": 2,
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-guide:concept/tool-use",
+  "format": "field-guide",
+  "reviewed_by": null
+ }
+}

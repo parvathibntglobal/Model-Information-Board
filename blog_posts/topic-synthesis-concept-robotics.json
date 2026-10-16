@@ -1,0 +1,484 @@
+{
+ "slug": "topic-synthesis-concept-robotics",
+ "status": "draft",
+ "tag": "Topic synthesis",
+ "feat": false,
+ "title": "Embodied AI and the Question of How Far to Trust the Next Move",
+ "dek": "New robotics work splits a robot's spatial knowledge into stages, checks a planned motion before the arm commits, and freezes experiments so someone else can rerun them.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "Embodied AI turns model outputs into motion, so errors compound physically. New work finds the first failing stage, verifies action prefixes before execution and freezes experiments for replay. Trust is earned one checked step at a time.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgcm9ib3QgYXJtJ3MgcGxhbm5lZCBtb3Rpb24sIGN1dCBieSBhIGNoZWNrcG9pbnQgYmVmb3JlIGl0IGNvbW1pdHM8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJnYXRlIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC41IiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KICA8IS0tIGZsb29yIC0tPgogIDxsaW5lIHgxPSI2MCIgeTE9IjU0MCIgeDI9IjExNDAiIHkyPSI1NDAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CgogIDwhLS0gYXJtIC0tPgogIDxyZWN0IHg9IjEyMCIgeT0iNTAwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjQwIiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iNDkwIiByPSIyNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjQiLz4KICA8bGluZSB4MT0iMjAwIiB5MT0iNDkwIiB4Mj0iMzAwIiB5Mj0iMzAwIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxjaXJjbGUgY3g9IjMwMCIgY3k9IjMwMCIgcj0iMjIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGxpbmUgeDE9IjMwMCIgeTE9IjMwMCIgeDI9IjQ0MCIgeTI9IjI1MCIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSI0NDAiIGN5PSIyNTAiIHI9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxwYXRoIGQ9Ik00NTIsMjMyIEw0ODYsMjIyIE00NTIsMjY4IEw0ODYsMjc4IiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CgogIDwhLS0gcGxhbm5lZCBjaHVuazogY29tbWl0dGVkIHByZWZpeCAtLT4KICA8cGF0aCBkPSJNNTAwLDI1MCBDNTYwLDIzMCA2MTAsMjMwIDY2MCwyNTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8ZyBmaWxsPSIjM2VjZjhlIj4KICAgIDxjaXJjbGUgY3g9IjUzMCIgY3k9IjI0MCIgcj0iMTEiLz48Y2lyY2xlIGN4PSI1ODAiIGN5PSIyMzQiIHI9IjExIi8+PGNpcmNsZSBjeD0iNjMwIiBjeT0iMjQwIiByPSIxMSIvPgogIDwvZz4KICA8IS0tIHRoZSBjaGVja3BvaW50IC0tPgogIDxjaXJjbGUgY3g9IjY5MCIgY3k9IjI2MiIgcj0iMTQwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPHJlY3QgeD0iNjc2IiB5PSI4MCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjQ0MCIgcng9IjE0IiBmaWxsPSJ1cmwoI2dhdGUpIi8+CiAgPGxpbmUgeDE9IjY5MCIgeTE9IjExMCIgeDI9IjY5MCIgeTI9IjQ5MCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjQgMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxjaXJjbGUgY3g9IjY5MCIgY3k9IjI2MiIgcj0iMjYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgPHBhdGggZD0iTTY3OCwyNjMgbDgsOCBsMTYsLTE3IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CgogIDwhLS0gdW5jb21taXR0ZWQgcmVtYWluZGVyIC0tPgogIDxwYXRoIGQ9Ik03MjAsMjcyIEM4MDAsMzEwIDg2MCwzODAgOTIwLDQ0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjggMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC42Ii8+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNiI+CiAgICA8Y2lyY2xlIGN4PSI3NzAiIGN5PSIyOTciIHI9IjExIi8+PGNpcmNsZSBjeD0iODMwIiBjeT0iMzQ1IiByPSIxMSIvPjxjaXJjbGUgY3g9Ijg4NSIgY3k9IjQwMCIgcj0iMTEiLz4KICA8L2c+CiAgPCEtLSB0YXJnZXQgb2JqZWN0IC0tPgogIDxyZWN0IHg9IjkzMCIgeT0iNDUwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjkwIiByeD0iMTIiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4yMiIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8dGV4dCB4PSI2OTAiIHk9IjU5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmaWxsPSIjN2FhMmZmIiBmb250LXdlaWdodD0iNjAwIj50cnVzdCB0aGlzIGZhcjwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A robot arm's planned path toward a box, cut by a glowing checkpoint: committed steps before it, faded steps after.",
+  "caption": "The question running through this post: how much of a planned motion should a robot commit to before it checks again.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is embodied AI, and how far should a robot trust its next move? New work on spatial stages, action-chunk checks and reproducible swarm runs.",
+ "keywords": [
+  "what is embodied AI",
+  "embodied AI",
+  "Robotics and embodied AI",
+  "vision-language-action models",
+  "action chunking",
+  "embodied spatial intelligence",
+  "reproducible robot learning"
+ ],
+ "kicker": "Topic synthesis",
+ "tags": [
+  "embodied AI",
+  "Topic synthesis"
+ ],
+ "read": 9,
+ "decisions": [
+  "Score spatial perception per stage so a bad grasp can be traced to grounding, relation or action.",
+  "Gate action chunks with a check that reads the policy's own representation.",
+  "Freeze, hash and fingerprint every robot-learning experiment before comparing results.",
+  "Treat image-benchmark gains as a proxy until a manipulation result backs them."
+ ],
+ "layout": "synthesis",
+ "arrangement": "b",
+ "special": {
+  "type": "glossary",
+  "title": "Terms in this piece",
+  "items": [
+   {
+    "term": "Embodied AI",
+    "meaning": "A model that perceives a physical scene and acts in it, so its outputs become motion."
+   },
+   {
+    "term": "Vision-language-action (VLA) policy",
+    "meaning": "A model that maps camera frames and an instruction to robot actions."
+   },
+   {
+    "term": "Action chunk",
+    "meaning": "A short sequence of future actions a policy emits in one go to save inference calls."
+   },
+   {
+    "term": "Execution horizon",
+    "meaning": "How many actions of a chunk run before the policy is queried again."
+   },
+   {
+    "term": "Distillation",
+    "meaning": "Training a student model to imitate the outputs of stronger teacher models."
+   },
+   {
+    "term": "Data flywheel",
+    "meaning": "A loop that generates training examples, filters them and collects more where the model fails."
+   },
+   {
+    "term": "MARL",
+    "meaning": "Multi-agent reinforcement learning, where several agents learn from rewards in a shared environment."
+   },
+   {
+    "term": "Environment fingerprinting",
+    "meaning": "Recording the exact software and machine setup an experiment ran on, so a rerun can be checked against it."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Embodied AI is a model whose mistakes move real objects",
+    "num": "01",
+    "id": "embodied-ai-is-a-model-whose-mistakes-move-real-objects"
+   }
+  ],
+  [
+   "p",
+   "Embodied AI is a model that perceives a physical scene and acts in it, so its errors move real things. That's the plainest answer to what is embodied AI. The moment it matters is small. A robot policy proposes its next several motions in one go. Run all of them and a bad grasp plays out before the model looks again."
+  ],
+  [
+   "p",
+   "A new arXiv paper on action chunks puts the tension plainly: «deciding how much of each sequence to execute is critical to task success». An action chunk is a short run of future actions a policy emits at once, which saves inference calls. The catch? Every action you commit to is one you didn't re-check against the world. Momentum is the enemy."
+  ],
+  [
+   "p",
+   "This post pulls recent robotics work together around that tension. One strand teaches a model where things are and how to act on them. Another checks a planned motion before the arm commits. A third makes robot-learning experiments rerunnable on another machine. They look unrelated. They share one instinct: find the exact place a failure starts, then guard it."
+  ],
+  [
+   "h2",
+   {
+    "text": "Spatial intelligence is three skills stacked in a fixed order",
+    "num": "02",
+    "id": "spatial-intelligence-is-three-skills-stacked-in-a-fixed-orde"
+   }
+  ],
+  [
+   "p",
+   "Start with knowing where things are. The Anvil abstract argues that embodied spatial intelligence needs more than recognition, since «models must localize entities, reason about their relations, and express this knowledge in action-relevant forms». Call those stages Ground, Relation and Act. Ground finds the mug. Relation says it sits left of the bowl. Act turns that into a grasp point."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPkdyb3VuZCwgcmVsYXRpb24gYW5kIGFjdDogdGhyZWUgc3RhZ2VzIG9mIHNwYXRpYWwga25vd2xlZGdlLCBhbmQgYW4gZWFybHkgbWlzcyBjYXJyaWVkIGZvcndhcmQ8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC40Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjIwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8IS0tIHN0YWdlIHBhbmVscyAtLT4KICAgIDxnPgogICAgICA8cmVjdCB4PSI1MCIgeT0iOTAiIHdpZHRoPSIzMjAiIGhlaWdodD0iMzAwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxyZWN0IHg9IjQ0MCIgeT0iOTAiIHdpZHRoPSIzMjAiIGhlaWdodD0iMzAwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxyZWN0IHg9IjgzMCIgeT0iOTAiIHdpZHRoPSIzMjAiIGhlaWdodD0iMzAwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8L2c+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjMwIiBmaWxsPSIjN2FhMmZmIiBmb250LXdlaWdodD0iNzAwIj5Hcm91bmQ8L3RleHQ+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjMwIiBmaWxsPSIjYTc4YmZhIiBmb250LXdlaWdodD0iNzAwIj5SZWxhdGlvbjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijk5MCIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiMzZWNmOGUiIGZvbnQtd2VpZ2h0PSI3MDAiPkFjdDwvdGV4dD4KICAgIDxsaW5lIHgxPSIzNzUiIHkxPSIyNDAiIHgyPSI0MzIiIHkyPSIyNDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogICAgPGxpbmUgeDE9Ijc2NSIgeTE9IjI0MCIgeDI9IjgyMiIgeTI9IjI0MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CgogICAgPCEtLSBncm91bmQ6IG9iamVjdHMgd2l0aCBib3hlcyAtLT4KICAgIDxyZWN0IHg9Ijk1IiB5PSIyMzAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI5MCIgcng9IjEwIiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxlbGxpcHNlIGN4PSIyOTAiIGN5PSIzMDAiIHJ4PSI1MCIgcnk9IjIyIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjgwIiB5PSIyMTUiIHdpZHRoPSIxMTAiIGhlaWdodD0iMTIwIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggNiIvPgogICAgPHRleHQgeD0iMTM1IiB5PSIyMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPm11ZzwvdGV4dD4KICAgIDx0ZXh0IHg9IjI5MCIgeT0iMzU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5ib3dsPC90ZXh0PgogICAgPHRleHQgeD0iMjEwIiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPndoZXJlIGlzIGl0PC90ZXh0PgoKICAgIDwhLS0gcmVsYXRpb24gLS0+CiAgICA8cmVjdCB4PSI0ODAiIHk9IjIzMCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjgwIiByeD0iMTAiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGVsbGlwc2UgY3g9IjY5MCIgY3k9IjI5MCIgcng9IjQ2IiByeT0iMjAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTU2MCwyNjUgQzYwMCwyMzAgNjMwLDI0MCA2NTAsMjcwIiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KICAgIDx0ZXh0IHg9IjYwMCIgeT0iMTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5sZWZ0IG9mIHRoZSBib3dsPC90ZXh0PgoKICAgIDwhLS0gYWN0IC0tPgogICAgPHJlY3QgeD0iODcwIiB5PSIyNTAiIHdpZHRoPSI3MCIgaGVpZ2h0PSI4MCIgcng9IjEwIiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxwYXRoIGQ9Ik0xMDYwLDE3MCBMMTA2MCwyMTUgTTEwNDAsMjE1IEwxMDgwLDIxNSBNMTA0MCwyMTUgTDEwNDAsMjQwIE0xMDgwLDIxNSBMMTA4MCwyNDAiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiLz4KICAgIDxwYXRoIGQ9Ik0xMDMwLDI1MCBDOTkwLDI2MCA5NzAsMjcwIDk1MCwyODUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtZGFzaGFycmF5PSI4IDgiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgICA8dGV4dCB4PSI5OTAiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+Z3Jhc3AgcG9pbnQ8L3RleHQ+CgogICAgPCEtLSBmYWlsdXJlIHByb3BhZ2F0aW9uIC0tPgogICAgPGNpcmNsZSBjeD0iMjEwIiBjeT0iNDcwIiByPSI3MCIgZmlsbD0idXJsKCNnbG93KSIvPgogICAgPGNpcmNsZSBjeD0iMjEwIiBjeT0iNDcwIiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIvPgogICAgPHBhdGggZD0iTTIzNSw0NzAgTDk2MCw0NzAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtZGFzaGFycmF5PSIxMCAxMCIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgICA8Y2lyY2xlIGN4PSI5OTAiIGN5PSI0NzAiIHI9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iMjEwIiB5PSI1NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjdiNzIiIGZvbnQtd2VpZ2h0PSI2MDAiPmVhcmxpZXN0IGRlY2lzaXZlIGZhaWx1cmU8L3RleHQ+CiAgICA8dGV4dCB4PSI5OTAiIHk9IjU0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiI+d3JvbmcgZ3Jhc3A8L3RleHQ+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjQ1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+dGhlIG1pc3MgcHJvcGFnYXRlczwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Three panels, Ground, Relation and Act, with an early grounding miss carried forward to a wrong grasp.",
+    "caption": "Spatial knowledge flows from grounding to relations to action, so a miss at the first stage surfaces as a wrong grasp at the last.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Order matters because errors flow downhill. If grounding boxes the wrong mug, a perfect relation step still reasons about the wrong object, and the grasp lands on air. The Anvil benchmark is built to tell those cases apart, with «scene-linked assessments that distinguish stage competence from error propagation». That distinction is the whole game. A bad grasp alone can't tell you which stage broke."
+  ],
+  [
+   "p",
+   "So why not train all three stages together and let gradient descent sort it out? Anvil's answer is that «joint training can conflate the knowledge needed at different stages because supervision is fragmented across incompatible geometric and semantic outputs». Boxes, relation labels and grasp points are different output shapes. Mixed naively, one stage's loss can drown another's. We think that diagnosis is right, and underrated."
+  ],
+  [
+   "h2",
+   {
+    "text": "Distillation works better when it aims at the first wrong turn",
+    "num": "03",
+    "id": "distillation-works-better-when-it-aims-at-the-first-wrong-tu"
+   }
+  ],
+  [
+   "p",
+   "Anvil's student is a 9B model trained by distillation, where a student learns to imitate stronger teachers. Here the teachers are specialists, each strong on one kind of spatial output. The interesting part is who teaches when. «Semantic-first-fault routing targets teacher supervision to the student's earliest decisive failure». Fix the first wrong turn, and later stages may come right on their own."
+  ],
+  [
+   "p",
+   "We went through the rest of the recipe. The data flywheel «combines form-specific generation, cross-stage consistency verification, and failure-driven recollection across 11 Ground--Relation--Act forms». In plain terms: generate examples per output type, keep ones whose stages agree, and harvest more where the student fails. Then «stage normalization controls the loss scale across native outputs of different lengths». Long answers can't hog the gradient."
+  ],
+  [
+   "p",
+   "The scale is large. Anvil builds 5.8M source-grounded records across 160K images, holding out 580K records for evaluation and training on 5.22M. Across seven public benchmarks, «Anvil-MOPD outperforms Qwen3.5-9B and RynnBrain-8B by 9.29 and 11.03 percentage points, respectively». It also reaches 80.67% on VABench-Point, a pointing test. Those are benchmark wins on images. No robot moved."
+  ],
+  [
+   "p",
+   "That last point is our main reservation. Pointing and spatial question answering are proxies for manipulation, and the abstract reports no arm-in-the-loop result. We still like the design. Its own «Controlled studies support targeted coverage, selective transfer, and feedback-guided repair as complementary framework components». That's the right kind of evidence for a recipe. It just isn't evidence about grasping."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Anvil-MOPD's lead over two baselines, in percentage points, averaged across seven public spatial benchmarks.",
+    "unit": "percentage points ahead of the baseline",
+    "bars": [
+     {
+      "label": "vs Qwen3.5-9B",
+      "value": 9.29
+     },
+     {
+      "label": "vs RynnBrain-8B",
+      "value": 11.03
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "An action chunk is a bet on several future steps at once",
+    "num": "04",
+    "id": "an-action-chunk-is-a-bet-on-several-future-steps-at-once"
+   }
+  ],
+  [
+   "p",
+   "Now switch from knowing to moving. A vision-language-action model, or VLA, takes camera frames and an instruction and outputs motor commands. The PAV abstract opens on how they work: «Vision-language-action (VLA) policies generate action sequences that reduce repeated inference». Then something must pick the execution horizon. That's how many actions of the chunk run before the policy is queried again."
+  ],
+  [
+   "p",
+   "Long horizons save queries and lose reactivity. Short horizons react fast and burn compute. Existing tricks set the horizon from signals inside the generator, and the abstract names them: «Existing adaptive methods make this decision using generation stability or prediction agreement». If the policy keeps producing similar chunks, run more of each. That sounds sensible. It isn't quite."
+  ],
+  [
+   "p",
+   "Here's the gap. Stability tells you the policy agrees with itself. It says nothing about whether running a prefix keeps the task completable. A policy can be stably wrong, calmly steering a cup toward the table edge. A prefix, here, is the first few actions of a chunk. The right question is about its consequences, and a consistency signal never asks it."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How chunked execution runs on a VLA, and where the horizon decision sits.",
+    "steps": [
+     "Camera frames and an instruction enter the VLA policy",
+     "The policy emits a chunk of future actions",
+     "A horizon rule decides how many actions run",
+     "The robot executes that prefix without re-checking",
+     "The policy is queried again from the new scene"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A verifier can judge a prefix before the arm commits to it",
+    "num": "05",
+    "id": "a-verifier-can-judge-a-prefix-before-the-arm-commits-to-it"
+   }
+  ],
+  [
+   "p",
+   "PAV, short for policy-aligned predictive verifier, inserts a check between proposal and motion. It «anticipates the consequences of candidate action prefixes and evaluates their compatibility with successful continuation before execution». It doesn't invent new actions. It scores the ones the policy already proposed, and «The resulting validity scores guide execution-horizon selection». Think of it as a pre-flight check per prefix."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPkEgdmVyaWZpZXIgc2NvcmVzIHByZWZpeGVzIG9mIGFuIGFjdGlvbiBjaHVuayBiZWZvcmUgdGhlIHJvYm90IGV4ZWN1dGVzIHRoZW08L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjQwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8IS0tIHBvbGljeSAtLT4KICAgIDxyZWN0IHg9IjUwIiB5PSI3MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSI5MCIgcng9IjE4IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxNjUiIHk9IjEyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+VkxBIHBvbGljeTwvdGV4dD4KICAgIDxsaW5lIHgxPSIyOTAiIHkxPSIxMTUiIHgyPSIzNjAiIHkyPSIxMTUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogICAgPCEtLSBjaHVuayB0aWxlcyAtLT4KICAgIDxnIHN0cm9rZS13aWR0aD0iMyI+CiAgICAgIDxyZWN0IHg9IjM3MCIgeT0iODAiIHdpZHRoPSI5MCIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiLz4KICAgICAgPHJlY3QgeD0iNDcwIiB5PSI4MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIvPgogICAgICA8cmVjdCB4PSI1NzAiIHk9IjgwIiB3aWR0aD0iOTAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIi8+CiAgICAgIDxyZWN0IHg9IjY3MCIgeT0iODAiIHdpZHRoPSI5MCIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiLz4KICAgICAgPHJlY3QgeD0iNzcwIiB5PSI4MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIvPgogICAgICA8cmVjdCB4PSI4NzAiIHk9IjgwIiB3aWR0aD0iOTAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIi8+CiAgICA8L2c+CiAgICA8dGV4dCB4PSI2NjUiIHk9IjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5wcm9wb3NlZCBhY3Rpb24gY2h1bms8L3RleHQ+CgogICAgPCEtLSBjYW5kaWRhdGUgcHJlZml4ZXMgLS0+CiAgICA8dGV4dCB4PSI1MCIgeT0iMjM1IiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5jYW5kaWRhdGU8L3RleHQ+CiAgICA8dGV4dCB4PSI1MCIgeT0iMjY1IiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5wcmVmaXhlczwvdGV4dD4KICAgIDxyZWN0IHg9IjM3MCIgeT0iMjA1IiB3aWR0aD0iMzkwIiBoZWlnaHQ9IjQ0IiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjM3MCIgeT0iMjc1IiB3aWR0aD0iNTkwIiBoZWlnaHQ9IjQ0IiByeD0iMTIiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjM3MCIgeT0iMzQ1IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjQ0IiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNiIvPgogICAgPGNpcmNsZSBjeD0iMTAxMCIgY3k9IjIyNyIgcj0iMjIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTEwMDAsMjI4IGw3LDcgbDE0LC0xNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogICAgPGNpcmNsZSBjeD0iMTAxMCIgY3k9IjI5NyIgcj0iMjIiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTEwMDEsMjg4IGwxOCwxOCBNMTAxOSwyODggbC0xOCwxOCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPGNpcmNsZSBjeD0iMTAxMCIgY3k9IjM2NyIgcj0iMjIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTEwMDAsMzY4IGw3LDcgbDE0LC0xNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogICAgPHRleHQgeD0iMTA1MCIgeT0iMjM1IiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIj52YWxpZDwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNTAiIHk9IjMwNSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiI+ZGVhZCBlbmQ8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDUwIiB5PSIzNzUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiPnZhbGlkPC90ZXh0PgoKICAgIDwhLS0gdmVyaWZpZXIgYm94IC0tPgogICAgPHJlY3QgeD0iNTAiIHk9IjQ0MCIgd2lkdGg9IjU2MCIgaGVpZ2h0PSIxNTAiIHJ4PSIxOCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMzMwIiB5PSI0OTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI2MDAiPnZlcmlmaWVyPC90ZXh0PgogICAgPHRleHQgeD0iMzMwIiB5PSI1MzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPnJlYWRzIHRoZSBwb2xpY3kncyBvd248L3RleHQ+CiAgICA8dGV4dCB4PSIzMzAiIHk9IjU2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+dGFzayByZXByZXNlbnRhdGlvbjwvdGV4dD4KICAgIDxwYXRoIGQ9Ik02MTAsNTE1IEM2ODAsNTE1IDcwMCw0NDAgNzIwLDQxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CgogICAgPHBhdGggZD0iTTc2MCwyNDkgQzgyMCwzMDAgODYwLDQwMCA5MDAsNDUyIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iOCA4IiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogICAgPCEtLSBleGVjdXRlIC0tPgogICAgPGNpcmNsZSBjeD0iOTMwIiBjeT0iNTE1IiByPSIxMTAiIGZpbGw9InVybCgjZ2xvdykiLz4KICAgIDxyZWN0IHg9Ijc2MCIgeT0iNDYwIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjExMCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iOTUwIiB5PSI1MDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiMzZWNmOGUiIGZvbnQtd2VpZ2h0PSI2MDAiPmV4ZWN1dGUgdGhpcyBmYXI8L3RleHQ+CiAgICA8dGV4dCB4PSI5NTAiIHk9IjU0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+dGhlbiBxdWVyeSBhZ2FpbjwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "A policy proposes an action chunk; a verifier marks candidate prefixes valid or dead end, and only a valid one runs.",
+    "caption": "A policy-aligned verifier scores candidate prefixes inside the policy's own representation, and the robot executes only what it trusts.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Where does it look? Inside the policy itself. The verifier «evaluates existing proposals in the VLA's internal task-conditioned representation space», meaning the hidden features the VLA already computed for this scene and instruction. That's cheap, since no separate world model renders future frames. It's also aligned by construction. The verifier judges in the same terms the policy plans in."
+  ],
+  [
+   "p",
+   "Training it is the clever bit. Robot episodes usually end in one label: success or failure. PAV turns that into per-step judgments: «we combine trajectory-level survival supervision with a localization prior that preserves useful behavior within failed rollouts». A failed episode isn't all bad. Its first half may have been fine. The prior keeps those early steps from being punished for a late slip."
+  ],
+  [
+   "p",
+   "Evidence spans simulation and hardware. Tests with pi_0 and pi_0.5 across LIBERO, RoboTwin 2.0 and real-world manipulation «show improved success-query trade-offs». The abstract gives no figures, so you can't size the gain yet. In our view the reframing is the real contribution: future prediction used «to assess how far to trust a policy's proposed actions». That's a role worth stealing."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative sketch of verifier-gated chunk execution (our pattern, not the PAV code)",
+    "language": "python",
+    "source": "def execute_verified(policy, verifier, obs, threshold):\n    z = policy.encode(obs)                 # task-conditioned representation\n    chunk = policy.propose(obs)            # actions for several future steps\n    for prefix in longest_first(prefixes(chunk)):\n        if verifier.validity(z, prefix) >= threshold:\n            return prefix                  # commit only this far\n    return shortest(prefixes(chunk))       # trust a single step, then re-query"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A swarm experiment is only as good as its rerun",
+    "num": "06",
+    "id": "a-swarm-experiment-is-only-as-good-as-its-rerun"
+   }
+  ],
+  [
+   "p",
+   "The third strand looks less glamorous and might matter as much. Multi-agent reinforcement learning, or MARL, trains several agents that learn together, and swarm robotics leans on it. The ARGoS simulator is a common home for that work. MARGoS starts from an awkward fact: «a single experiment is assembled from manually aligned simulator files, training scripts, configuration values, paths, seeds, and environment details»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPkxvb3NlIGV4cGVyaW1lbnQgaW5wdXRzIHNlYWxlZCBpbnRvIG9uZSBoYXNoZWQsIGZyb3plbiBidW5kbGUgdGhhdCByZXBsYXlzIG9uIGFub3RoZXIgbWFjaGluZTwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjQ1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDx0ZXh0IHg9IjIwMCIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI2MDAiPkFsaWduZWQgYnkgaGFuZDwvdGV4dD4KICAgIDwhLS0gbG9vc2UgY2FyZHMgLS0+CiAgICA8ZyBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4KICAgICAgPGcgdHJhbnNmb3JtPSJyb3RhdGUoLTYgMTQwIDEzMCkiPjxyZWN0IHg9IjUwIiB5PSIxMDAiIHdpZHRoPSIxOTAiIGhlaWdodD0iNjAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz48dGV4dCB4PSIxNDUiIHk9IjEzOSI+c2ltIGZpbGVzPC90ZXh0PjwvZz4KICAgICAgPGcgdHJhbnNmb3JtPSJyb3RhdGUoNSAzMDAgMjAwKSI+PHJlY3QgeD0iMjEwIiB5PSIxNzAiIHdpZHRoPSIxOTAiIGhlaWdodD0iNjAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz48dGV4dCB4PSIzMDUiIHk9IjIwOSI+c2NyaXB0czwvdGV4dD48L2c+CiAgICAgIDxnIHRyYW5zZm9ybT0icm90YXRlKC0zIDE0MCAyNzApIj48cmVjdCB4PSI1MCIgeT0iMjQ1IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjYwIiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMTQ1IiB5PSIyODQiPmNvbmZpZzwvdGV4dD48L2c+CiAgICAgIDxnIHRyYW5zZm9ybT0icm90YXRlKDcgMzEwIDMzMCkiPjxyZWN0IHg9IjIxNSIgeT0iMzA1IiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjYwIiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+PHRleHQgeD0iMzEwIiB5PSIzNDQiPnBhdGhzPC90ZXh0PjwvZz4KICAgICAgPGcgdHJhbnNmb3JtPSJyb3RhdGUoLTggMTQ1IDQxMCkiPjxyZWN0IHg9IjUwIiB5PSIzODUiIHdpZHRoPSIxOTAiIGhlaWdodD0iNjAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz48dGV4dCB4PSIxNDUiIHk9IjQyNCI+c2VlZHM8L3RleHQ+PC9nPgogICAgICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSg0IDMwNSA0NzApIj48cmVjdCB4PSIyMTAiIHk9IjQ0NSIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI2MCIgcng9IjEyIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjMwNSIgeT0iNDg0Ij5lbnZpcm9ubWVudDwvdGV4dD48L2c+CiAgICA8L2c+CiAgICA8bGluZSB4MT0iNDMwIiB5MT0iMzAwIiB4Mj0iNTAwIiB5Mj0iMzAwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KCiAgICA8IS0tIGJ1bmRsZSAtLT4KICAgIDxjaXJjbGUgY3g9IjY0MCIgY3k9IjMwMCIgcj0iMTcwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICA8cmVjdCB4PSI1MTUiIHk9IjE5MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIyMjAiIHJ4PSIyMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwYXRoIGQ9Ik01MTUsMjUwIEw3NjUsMjUwIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjQwIiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNhNzhiZmEiIGZvbnQtd2VpZ2h0PSI2MDAiPmJ1bmRsZTwvdGV4dD4KICAgIDxwYXRoIGQ9Ik02MjAsMzAwIHYtMTQgYTIwLDIwIDAgMCAxIDQwLDAgdjE0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHJlY3QgeD0iNjA4IiB5PSIzMDAiIHdpZHRoPSI2NCIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiNlOGVkZjUiLz4KICAgIDx0ZXh0IHg9IjY0MCIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSI+Y29uZmlnIGhhc2g8L3RleHQ+CiAgICA8dGV4dCB4PSI2NDAiIHk9IjQ2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+ZnJvemVuLCBzZWVkcyBjYXJyaWVkPC90ZXh0PgogICAgPHRleHQgeD0iNjQwIiB5PSI0OTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmVuZCB0byBlbmQ8L3RleHQ+CgogICAgPCEtLSByZXBsYXkgb24gbWFjaGluZXMgLS0+CiAgICA8cGF0aCBkPSJNNzcwLDI2MCBDODMwLDIyMCA4NjAsMTgwIDkwMCwxNzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogICAgPHBhdGggZD0iTTc3MCwzNDAgQzgzMCwzODAgODYwLDQyMCA5MDAsNDMwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KICAgIDxyZWN0IHg9IjkxMCIgeT0iMTEwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjEyMCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTAzMCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5tYWNoaW5lIEE8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDMwIiB5PSIxOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiPnJlcGxheSBtYXRjaGVzPC90ZXh0PgogICAgPHJlY3QgeD0iOTEwIiB5PSIzNzAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTIwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxMDMwIiB5PSI0MjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPm1hY2hpbmUgQjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMzAiIHk9IjQ1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzNlY2Y4ZSI+ZmluZ2VycHJpbnQgY2hlY2tlZDwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMzAiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+SGFuZGVkIG9mZjwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Loose experiment input cards sealed into one hashed, locked bundle that replays on two machines.",
+    "caption": "MARGoS turns hand-aligned experiment inputs into one frozen, hashed bundle that replays and checks on another machine.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "That fragility bites close to home, because «reuse and reproduction stay fragile even within one research group». Have you ever tried to rerun a colleague's swarm result from last spring? One mismatched seed or a moved path, and the emergent behaviour you were promised never emerges. Worse, nothing tells you which input changed. You debug blind."
+  ],
+  [
+   "p",
+   "MARGoS treats those inputs as managed objects. It «elevates these experiment-defining inputs to first-class, platform-managed artifacts». The toolkit is plain engineering: «configuration hashing, end-to-end seed propagation, frozen (immutable) configurations, structured logging, environment fingerprinting», plus exportable bundles for replay elsewhere. A config hash names an exact setup. A fingerprint records the machine it ran on."
+  ],
+  [
+   "p",
+   "How strong is the evidence? Modest. The claim rests on «A five-dimension evaluation (architecture, efficiency, reproducibility, usability, and collaboration)», and the abstract reports no replication rate. We agree with the direction anyway. Robot-learning results that can't be rerun can't be compared, and that includes every benchmark win above."
+  ],
+  [
+   "h2",
+   {
+    "text": "The shared lesson is to localise failure before fixing it",
+    "num": "07",
+    "id": "the-shared-lesson-is-to-localise-failure-before-fixing-it"
+   }
+  ],
+  [
+   "p",
+   "Put the strands side by side and one pattern shows. Anvil routes teaching to the earliest decisive failure. PAV learns per-step judgments from episode-level outcomes, sparing the good early steps. MARGoS fingerprints every input so a broken rerun points at what changed. Each refuses to treat a failure as one undivided blob. That's the agreement."
+  ],
+  [
+   "p",
+   "They part ways on the bet each makes. Anvil bets on better training: targeted data and smarter distillation, so the model errs less. PAV bets on runtime caution: keep the policy fixed and check its plans before acting. MARGoS bets on process, with no model change at all. These bets complement each other. None excludes the others."
+  ],
+  [
+   "p",
+   "So what changes if you're building a robot stack now? Treat spatial perception as staged, and score each stage on its own. Put a check between a policy's proposal and the motor command, and let it read the policy's own state. Freeze and hash every experiment input before you compare anything. None of that needs a new model."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Where each line of work looks for failure, what it changes, and what kind of evidence backs it.",
+    "columns": [
+     "Work",
+     "Where it looks for failure",
+     "What it changes",
+     "Evidence so far"
+    ],
+    "rows": [
+     [
+      "Anvil",
+      "The earliest decisive failure across Ground, Relation and Act",
+      "Training data and distillation",
+      "Benchmark gains on images"
+     ],
+     [
+      "PAV",
+      "Candidate action prefixes before execution",
+      "The runtime execution horizon",
+      "Simulation and real-world manipulation, no figures in the abstract"
+     ],
+     [
+      "MARGoS",
+      "Experiment inputs that drift between runs",
+      "Experiment infrastructure",
+      "A five-dimension evaluation"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Benchmark gains still have to survive a real arm",
+    "num": "08",
+    "id": "benchmark-gains-still-have-to-survive-a-real-arm"
+   }
+  ],
+  [
+   "p",
+   "Plenty is unsettled. Anvil's gains are measured on spatial benchmarks over images. No result here shows that 9.29 points of spatial accuracy buys any grasp success. PAV reports better trade-offs without sizes in the abstract, so the real-world margin is unknown. MARGoS argues reproducibility improves but publishes no replication rate. Each claim stops one step short of the robot."
+  ],
+  [
+   "p",
+   "There's also a seam between the strands. Anvil's student is a perception and reasoning model. PAV wraps an action policy. Nothing yet tests a spatial student feeding a VLA, with a verifier gating its chunks. Would better grounding make the verifier's job easier, or would errors just move downstream? These results can't say."
+  ],
+  [
+   "p",
+   "Here's the experiment that would settle most of it. Take one manipulation suite, frozen and hashed in a MARGoS-style bundle. Run a VLA with fixed-horizon chunks, then with PAV-style verification, then with an Anvil-style spatial front end. Report success per query on real hardware, across machines. If the gains stack, the field has a recipe. If not, we learn which layer is decorative."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is embodied AI?"
+  ],
+  [
+   "p",
+   "Embodied AI is a model that perceives a physical scene and acts in it, usually through a robot. Its outputs become motion, so mistakes compound in the world. Recent work splits the problem into locating things, relating them and acting on them, then checks planned actions before the robot executes them."
+  ],
+  [
+   "h3",
+   "What is a vision-language-action model in robotics?"
+  ],
+  [
+   "p",
+   "A vision-language-action model, or VLA, takes camera input and an instruction and outputs robot actions. Many VLAs emit a chunk of future actions at once to save inference calls. The hard part is deciding how much of that chunk to run, which a verifier like PAV scores in the policy's own representation."
+  ],
+  [
+   "h3",
+   "How do robots decide how much of a plan to execute?"
+  ],
+  [
+   "p",
+   "They pick an execution horizon, the number of planned actions run before the policy is queried again. Older adaptive methods used generation stability or prediction agreement. A policy-aligned predictive verifier instead scores each candidate prefix for compatibility with successful continuation, tested with pi_0 and pi_0.5 across LIBERO, RoboTwin 2.0 and real hardware."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Policy-Aligned Predictive Verification for Adaptive VLA Action-Chunk Execution",
+   "url": "https://arxiv.org/abs/2610.21434v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Anvil: Scaling Embodied Spatial Intelligence through Knowledge Recirculation",
+   "url": "https://arxiv.org/abs/2610.21882v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "MARGoS: A Configuration-Driven Platform for Reproducible MARL Experiments in ARGoS",
+   "url": "https://arxiv.org/abs/2610.13772v1",
+   "posted": "2026-10-09"
+  }
+ ],
+ "cite": {
+  "deciding how much of each sequence to execute is critical to task success": 1,
+  "models must localize entities, reason about their relations, and express this knowledge in action-relevant forms": 2,
+  "scene-linked assessments that distinguish stage competence from error propagation": 2,
+  "joint training can conflate the knowledge needed at different stages because supervision is fragmented across incompatible geometric and semantic outputs": 2,
+  "Semantic-first-fault routing targets teacher supervision to the student's earliest decisive failure": 2,
+  "combines form-specific generation, cross-stage consistency verification, and failure-driven recollection across 11 Ground--Relation--Act forms": 2,
+  "stage normalization controls the loss scale across native outputs of different lengths": 2,
+  "Anvil-MOPD outperforms Qwen3.5-9B and RynnBrain-8B by 9.29 and 11.03 percentage points, respectively": 2,
+  "Controlled studies support targeted coverage, selective transfer, and feedback-guided repair as complementary framework components": 2,
+  "Vision-language-action (VLA) policies generate action sequences that reduce repeated inference": 1,
+  "Existing adaptive methods make this decision using generation stability or prediction agreement": 1,
+  "anticipates the consequences of candidate action prefixes and evaluates their compatibility with successful continuation before execution": 1,
+  "The resulting validity scores guide execution-horizon selection": 1,
+  "evaluates existing proposals in the VLA's internal task-conditioned representation space": 1,
+  "we combine trajectory-level survival supervision with a localization prior that preserves useful behavior within failed rollouts": 1,
+  "show improved success-query trade-offs": 1,
+  "to assess how far to trust a policy's proposed actions": 1,
+  "a single experiment is assembled from manually aligned simulator files, training scripts, configuration values, paths, seeds, and environment details": 3,
+  "reuse and reproduction stay fragile even within one research group": 3,
+  "elevates these experiment-defining inputs to first-class, platform-managed artifacts": 3,
+  "configuration hashing, end-to-end seed propagation, frozen (immutable) configurations, structured logging, environment fingerprinting": 3,
+  "A five-dimension evaluation (architecture, efficiency, reproducibility, usability, and collaboration)": 3
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:44:53+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21882v1",
+   "arxiv:2610.21434v1",
+   "arxiv:2610.13772v1"
+  ],
+  "platforms": {
+   "arXiv": 3
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-synthesis:concept/robotics",
+  "format": "topic-synthesis",
+  "reviewed_by": null
+ }
+}

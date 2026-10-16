@@ -1,0 +1,352 @@
+{
+ "slug": "topic-explainer-concept-agents",
+ "status": "draft",
+ "tag": "Explainer",
+ "feat": false,
+ "title": "What Are AI Agents? A Loop, Some Tools and Two Weeks of Plumbing",
+ "dek": "An AI agent is a language model that can act as well as answer. We explain the loop at its core, then follow one company's support bot from prototype to production.",
+ "by": "Draft for team review · written by Claude Code from writers' published posts · checked in code",
+ "lead": "What are AI agents? Programs that let a language model pick a tool, run it, read the result and repeat until the job is done, inside plumbing that keeps it safe.",
+ "description": "What are AI agents? A plain explainer: the loop at their core, the tools they call, and the plumbing that takes longest to build.",
+ "keywords": [
+  "what are AI agents",
+  "AI agents",
+  "agent loop",
+  "tool calling",
+  "MCP servers",
+  "AI agents in production"
+ ],
+ "kicker": "Explainer",
+ "tags": [
+  "AI agents",
+  "Explainer"
+ ],
+ "read": 6,
+ "decisions": [
+  "Start with one agent loop and a few read-only tools.",
+  "Cap every loop with retries and a per-step timeout.",
+  "Put model calls behind one gateway so providers can change.",
+  "Trace each request across model calls, tools and retrieval.",
+  "Write golden test cases before you change a prompt."
+ ],
+ "layout": "explainer",
+ "arrangement": "a",
+ "special": {
+  "type": "quiz",
+  "title": "Check what you took away",
+  "items": [
+   {
+    "question": "In an agent loop, what happens right after the agent calls a tool?",
+    "options": [
+     "The tool's raw output goes straight to the user",
+     "The results are fed back to the model so it can decide the next step",
+     "A human must approve the call before anything else",
+     "The agent restarts with a different model"
+    ],
+    "answer": 1,
+    "explanation": "Feeding results back is what makes it a loop: the model rereads its situation and picks the next step."
+   },
+   {
+    "question": "Grab's support bot could not resolve a question. What did it do?",
+    "options": [
+     "Closed the ticket as answered",
+     "Asked the user to rephrase until it could answer",
+     "Routed the ticket to the right human with the context attached"
+    ],
+    "answer": 2,
+    "explanation": "A good agent knows its limits and hands over what it learned, so the human starts ahead."
+   },
+   {
+    "question": "Which part took longest when Grab first shipped an agent?",
+    "options": [
+     "Writing the reasoning loop",
+     "The production wrapper: login, secrets, config, tracing and metrics",
+     "Picking a name for the bot"
+    ],
+    "answer": 1,
+    "explanation": "The loop took an afternoon; the wrapper around it took about two weeks."
+   },
+   {
+    "question": "Why route every model call through one gateway?",
+    "options": [
+     "So providers can change without each app rewriting its code",
+     "So the agent can skip testing",
+     "So each team writes its own provider integration"
+    ],
+    "answer": 0,
+    "explanation": "One indirection lets a platform team swap providers, set budgets and add fallbacks centrally."
+   }
+  ]
+ },
+ "meta": [
+  "16 October 2026",
+  "~6 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "An agent is a model that can use tools",
+    "num": "01",
+    "id": "an-agent-is-a-model-that-can-use-tools"
+   }
+  ],
+  [
+   "p",
+   "An AI agent is a language model that can act, not just answer. Think of a new hire at a help desk. They read the request, open the right folders, try a fix, and report back. A chatbot only talks. An agent talks, looks things up, and does things on your behalf."
+  ],
+  [
+   "p",
+   "So what are AI agents made of? Three parts. There is a model that reasons about the next step. There are tools it may call, such as a search box, a log reader or a ticket system. And there is a loop that keeps going until the job is done or the agent gives up."
+  ],
+  [
+   "p",
+   "That last part matters most. A single model call is a guess. A loop lets the model check its guess against the world. It can search, read what came back, and search again with a better question. Most of what people call agentic behaviour is this loop, repeated a few times."
+  ],
+  [
+   "h2",
+   {
+    "text": "The loop is the whole trick",
+    "num": "02",
+    "id": "the-loop-is-the-whole-trick"
+   }
+  ],
+  [
+   "p",
+   "Here is the loop in plain steps. Grab's engineering team describes its first support agent this way: «It takes the user’s question, decides which tools to call, executes those calls, feeds the results back into the prompt, and returns an answer». Every agent you meet runs some version of that cycle."
+  ],
+  [
+   "p",
+   "Notice the phrase about feeding results back. That is where an agent differs from a script. A script follows fixed steps. An agent rereads its situation after every tool call. If the first search finds nothing, the model can try different words. If a log shows an error, it can open the runbook next."
+  ],
+  [
+   "p",
+   "This flexibility cuts both ways. A loop can recover from a bad first step. It can also wander, call tools it does not need, or never stop. Good agent code therefore caps the work. Grab's starter agents compile with «a retry policy and a 30-second per-step timeout», a small detail with a big job."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The basic agent loop, as Grab's first support agent ran it.",
+    "steps": [
+     "Take the user's question",
+     "Decide which tools to call",
+     "Run those tool calls",
+     "Feed the results back into the prompt",
+     "Repeat until the answer is ready",
+     "Return the answer, or hand over to a human"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "One support bot shows the loop at work",
+    "num": "03",
+    "id": "one-support-bot-shows-the-loop-at-work"
+   }
+  ],
+  [
+   "p",
+   "We went through how Grab's team grew one internal support bot into a company framework. The bot sat in front of their infrastructure engineers. Instead of paging someone at once, «a bot first triages the request, checks the team’s documentation, runbooks, and past Slack threads». Then it tries to answer in the same thread."
+  ],
+  [
+   "p",
+   "When the bot cannot help, it hands over. It «routes the ticket to the right human, with the relevant context already attached». We think this is the most underrated design choice in the whole story. An agent that knows its limits, and passes on what it learned, saves time even when it fails."
+  ],
+  [
+   "p",
+   "Its tools were ordinary. Search covered the wiki, docs and tickets. Other tools read logs, opened runbook files and searched chat history. Nothing here is exotic. The power came from letting the model choose among them, one step at a time, for each new question."
+  ],
+  [
+   "h2",
+   {
+    "text": "Most of the work sits outside the loop",
+    "num": "04",
+    "id": "most-of-the-work-sits-outside-the-loop"
+   }
+  ],
+  [
+   "p",
+   "Here is the surprise. Building the loop was quick. Grab's team puts it bluntly: «The reasoning loop took a whole afternoon. The production wrapper took two weeks.» The wrapper meant login, secrets, configuration per environment, tracing, health checks and metrics. None of it is specific to agents. All of it had to exist first."
+  ],
+  [
+   "p",
+   "We agree with the writer who concluded that «the hard part of building an agent was not the agent itself, but everything around it». That matches what any service team learns. A prototype proves an idea. A production service proves it can fail safely, be debugged, and be changed without fear."
+  ],
+  [
+   "p",
+   "Their early bot also showed the cost of skipping tests. Each channel could set its own prompt and tools, then ship. «There were no real evaluations, just optimism that it would work.» It is an honest line. Without tests, you cannot tell whether a prompt change made the agent better or merely different."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What separated Grab's demo agent from its production agents.",
+    "columns": [
+     "Concern",
+     "Early support bot",
+     "Framework agent"
+    ],
+    "rows": [
+     [
+      "Testing",
+      "Ship and hope it helps",
+      "Golden test cases and LLM-as-judge evaluators from day one"
+     ],
+     [
+      "Model access",
+      "Provider wired into the app",
+      "One gateway; provider chosen centrally"
+     ],
+     [
+      "Debugging",
+      "Logs in three separate systems",
+      "One end-to-end trace per request"
+     ],
+     [
+      "Tools",
+      "Defined in per-channel config",
+      "Discovered from MCP servers at runtime"
+     ],
+     [
+      "Setup time",
+      "Two weeks for the wrapper",
+      "About an hour"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Gateways, traces and evals turn a demo into a service",
+    "num": "05",
+    "id": "gateways-traces-and-evals-turn-a-demo-into-a-service"
+   }
+  ],
+  [
+   "p",
+   "The fix was a shared framework, so each team stopped rebuilding the same plumbing. A new project starts from a template with the wrapper already wired. The result, in their words: «The day-one wiring that used to take two weeks or more now takes about an hour»."
+  ],
+  [
+   "p",
+   "Three pieces carry most of the weight. First, every model call goes through one gateway. Swapping a provider then becomes a configuration change. Second, one trace follows each request through model calls, tool calls and retrieval. Before that, a wrong answer meant digging through logs in three separate systems, with «no shared trace tying them together»."
+  ],
+  [
+   "p",
+   "Third, tools live on shared servers that speak the Model Context Protocol, or MCP. An agent discovers their tools at runtime. So «adding a new capability can be as simple as registering an MCP server». In our view, this is the part most worth copying, even for a small team with one agent."
+  ],
+  [
+   "h2",
+   {
+    "text": "Agents stop where evidence and evaluation stop",
+    "num": "06",
+    "id": "agents-stop-where-evidence-and-evaluation-stop"
+   }
+  ],
+  [
+   "p",
+   "Agents are not magic workers. They are loops around a model, and they inherit the model's mistakes. A loop can repeat a wrong idea with great confidence. Tools help only if they return good information. And nobody can say an agent improved unless a test set says so."
+  ],
+  [
+   "p",
+   "Grab's own next step shows the limit. At 500 agents, they write, «the problems were no longer framework problems». One of them is telling whether an agent improved after a prompt change. That is an evaluation question, not a model question, and their answer is promised for a later part."
+  ],
+  [
+   "p",
+   "If you want to try the idea yourself, start small. Give one model two or three read-only tools. Write ten questions you already know the answers to. Run the loop, read every step it took, and add a timeout. You will learn more about agents in an afternoon than from any demo."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What are AI agents in simple terms?"
+  ],
+  [
+   "p",
+   "AI agents are programs where a language model chooses tools, uses them, and checks the results in a loop until a task is done. A chatbot only replies with text. An agent can search documents, read logs or file a ticket, then decide its next step from what it found."
+  ],
+  [
+   "h3",
+   "How is an AI agent different from a chatbot?"
+  ],
+  [
+   "p",
+   "A chatbot answers from what it already knows, while an agent can take actions through tools and react to the results. That loop lets an agent recover from a bad first step. It also means it needs limits, such as timeouts and retries, so it cannot wander forever."
+  ],
+  [
+   "h3",
+   "What do you need to run an AI agent in production?"
+  ],
+  [
+   "p",
+   "You need far more than the model loop: login, secrets, configuration, tracing, health checks and tests. Grab's team found the loop took an afternoon and «The production wrapper took two weeks.» Shared templates and one model gateway cut that setup down sharply."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "an engineering blog",
+   "who": "engineering.grab.com",
+   "what": "How grab builds and runs ai agents at scale",
+   "url": "https://engineering.grab.com/how-grab-builds-and-runs-ai-agents-at-scale",
+   "posted": "2026-07-24"
+  }
+ ],
+ "cite": {
+  "It takes the user’s question, decides which tools to call, executes those calls, feeds the results back into the prompt, and returns an answer": 1,
+  "a retry policy and a 30-second per-step timeout": 1,
+  "a bot first triages the request, checks the team’s documentation, runbooks, and past Slack threads": 1,
+  "routes the ticket to the right human, with the relevant context already attached": 1,
+  "The reasoning loop took a whole afternoon. The production wrapper took two weeks.": 1,
+  "the hard part of building an agent was not the agent itself, but everything around it": 1,
+  "There were no real evaluations, just optimism that it would work.": 1,
+  "The day-one wiring that used to take two weeks or more now takes about an hour": 1,
+  "no shared trace tying them together": 1,
+  "adding a new capability can be as simple as registering an MCP server": 1,
+  "the problems were no longer framework problems": 1,
+  "The production wrapper took two weeks.": 1
+ },
+ "rel": [
+  [
+   "post:migration-guide-deepseek-deepseek-v4-flash-moonshotai-kimi-k2-5",
+   ""
+  ],
+  [
+   "post:release-analysis-openai-gpt-6-astra",
+   ""
+  ],
+  [
+   "post:release-analysis-z-ai-glm-5-3-flash",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T05:21:29+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "blog:engineering.grab.com|https://engineering.grab.com/how-grab-builds-and-runs-ai-agents-at-scale"
+  ],
+  "platforms": {
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-explainer:concept/agents",
+  "format": "topic-explainer",
+  "reviewed_by": null
+ }
+}

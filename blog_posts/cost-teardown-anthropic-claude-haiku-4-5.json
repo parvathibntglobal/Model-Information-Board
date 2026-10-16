@@ -1,0 +1,780 @@
+{
+ "slug": "cost-teardown-anthropic-claude-haiku-4-5",
+ "status": "draft",
+ "tag": "Cost teardown",
+ "feat": false,
+ "title": "Claude Haiku 4.5 Costs Little per Call and More per Correct Answer",
+ "dek": "A cost teardown of the cheap Claude tier: the tool schemas, cache misses, retries and second looks that sit between a low rate card and the bill you actually pay.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Claude Haiku 4.5 review in one line: the rate is low, but tool schemas, broken caches, retries and false alarms set the bill. Fix caching and retries before you change models.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgc21hbGwgY29pbiBmb3IgdGhlIGNhbGwgc2l0cyBvbiB0b3Agb2YgYSBsb25nIHJlY2VpcHQgb2YgaGlkZGVuIGNvc3QgbGluZXM8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJjb2luZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAuNDUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InBhcGVyZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNiIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAuMTYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBhcGVyIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzFmMjYzMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxYTIwMmIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImZhZGUiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTUxYTIzIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIiBzdG9wLW9wYWNpdHk9IjEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBnbG93IHVuZGVyIHRoZSByZWNlaXB0IC0tPgogIDxlbGxpcHNlIGN4PSI2NDAiIGN5PSI0MDAiIHJ4PSI0MzAiIHJ5PSIzMDAiIGZpbGw9InVybCgjcGFwZXJnbG93KSIvPgoKICA8IS0tIHJlY2VpcHQgcGFwZXIsIHppZ3phZyB0b3AgZWRnZSwgcnVubmluZyBvZmYgdGhlIGJvdHRvbSAtLT4KICA8cGF0aCBkPSJNNDMwLDE1MCBMNDUyLDEzMiBMNDc0LDE1MCBMNDk2LDEzMiBMNTE4LDE1MCBMNTQwLDEzMiBMNTYyLDE1MCBMNTg0LDEzMiBMNjA2LDE1MCBMNjI4LDEzMiBMNjUwLDE1MCBMNjcyLDEzMiBMNjk0LDE1MCBMNzE2LDEzMiBMNzM4LDE1MCBMNzYwLDEzMiBMNzgyLDE1MCBMODA0LDEzMiBMODI2LDE1MCBMODQ4LDEzMiBMODcwLDE1MCBMODcwLDY0MCBMNDMwLDY0MCBaIgogICAgICAgIGZpbGw9InVybCgjcGFwZXIpIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgoKICA8IS0tIHJvdzogY2FsbCAoc21hbGwsIGdyZWVuKSAtLT4KICA8Y2lyY2xlIGN4PSI0ODYiIGN5PSIyMDYiIHI9IjE2IiBmaWxsPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iNTE4IiB5PSIyMTYiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj5jYWxsPC90ZXh0PgogIDxsaW5lIHgxPSI2MDAiIHkxPSIyMDgiIHgyPSI4MzAiIHkyPSIyMDgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIyIDEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNyIvPgogIDxsaW5lIHgxPSI0NjAiIHkxPSIyNDYiIHgyPSI4NDAiIHkyPSIyNDYiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSIxMCA4IiBvcGFjaXR5PSIwLjUiLz4KCiAgPCEtLSBoaWRkZW4gbGluZXMgLS0+CiAgPGcgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiPgogICAgPGNpcmNsZSBjeD0iNDg2IiBjeT0iMjk4IiByPSIxNiIgZmlsbD0iI2UzYjM0MSIvPgogICAgPHRleHQgeD0iNTE4IiB5PSIzMDkiIGZpbGw9IiNlOGVkZjUiPnNjaGVtYXM8L3RleHQ+CiAgICA8bGluZSB4MT0iNjkwIiB5MT0iMzAwIiB4Mj0iODMwIiB5Mj0iMzAwIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMiAxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjciLz4KCiAgICA8Y2lyY2xlIGN4PSI0ODYiIGN5PSIzNzIiIHI9IjE2IiBmaWxsPSIjZTNiMzQxIi8+CiAgICA8dGV4dCB4PSI1MTgiIHk9IjM4MyIgZmlsbD0iI2U4ZWRmNSI+Y2FjaGUgbWlzczwvdGV4dD4KICAgIDxsaW5lIHgxPSI3MzAiIHkxPSIzNzQiIHgyPSI4MzAiIHkyPSIzNzQiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIyIDEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNyIvPgoKICAgIDxjaXJjbGUgY3g9IjQ4NiIgY3k9IjQ0NiIgcj0iMTYiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDx0ZXh0IHg9IjUxOCIgeT0iNDU3IiBmaWxsPSIjZThlZGY1Ij5yZXRyeTwvdGV4dD4KICAgIDxsaW5lIHgxPSI2MzAiIHkxPSI0NDgiIHgyPSI4MzAiIHkyPSI0NDgiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIyIDEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNyIvPgoKICAgIDxjaXJjbGUgY3g9IjQ4NiIgY3k9IjUyMCIgcj0iMTYiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDx0ZXh0IHg9IjUxOCIgeT0iNTMxIiBmaWxsPSIjZThlZGY1Ij5yZXZpZXc8L3RleHQ+CiAgICA8bGluZSB4MT0iNjUwIiB5MT0iNTIyIiB4Mj0iODMwIiB5Mj0iNTIyIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMiAxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjciLz4KICA8L2c+CgogIDwhLS0gdGhlIHBhcGVyIGtlZXBzIGdvaW5nIC0tPgogIDxyZWN0IHg9IjQyOCIgeT0iNTQwIiB3aWR0aD0iNDQ2IiBoZWlnaHQ9IjkyIiBmaWxsPSJ1cmwoI2ZhZGUpIi8+CgogIDwhLS0gY29pbjogdGhlIHBlci1jYWxsIHJhdGUsIHNtYWxsIGFuZCBzaXR0aW5nIG9uIHRvcCAtLT4KICA8Y2lyY2xlIGN4PSIzMDAiIGN5PSIxNzAiIHI9IjExMCIgZmlsbD0idXJsKCNjb2luZ2xvdykiLz4KICA8Y2lyY2xlIGN4PSIzMDAiIGN5PSIxNzAiIHI9IjU2IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGNpcmNsZSBjeD0iMzAwIiBjeT0iMTcwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNiIvPgogIDxwYXRoIGQ9Ik0zNjIsMTg0IEM0MDAsMTk2IDQzMCwyMDIgNDY2LDIwNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgOCIgb3BhY2l0eT0iMC44Ii8+CgogIDwhLS0gbWFnbmlmaWVyIG92ZXIgdGhlIHJldmlldyBsaW5lIC0tPgogIDxjaXJjbGUgY3g9Ijk4NSIgY3k9IjQ3MCIgcj0iNzAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiLz4KICA8bGluZSB4MT0iMTAzNSIgeTE9IjUyMCIgeDI9IjExMDAiIHkyPSI1ODUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTkxNSw0OTQgQzg4MCw1MDUgODYwLDUxMiA4NDYsNTIwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA4IiBvcGFjaXR5PSIwLjgiLz4KPC9zdmc+Cg==",
+  "alt": "A small coin labelled call sits atop a long receipt whose hidden lines read schemas, cache miss, retry and review.",
+  "caption": "The per-call rate is the small coin at the top; the lines that make the bill run underneath it.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Claude Haiku 4.5 review, from the bill up: tool schemas, cache misses, retries and false alarms decide what the cheap model really costs.",
+ "keywords": [
+  "Claude Haiku 4.5 review",
+  "Claude Haiku 4.5 pricing",
+  "is Claude Haiku 4.5 good for coding",
+  "Claude Haiku 4.5 in production",
+  "Claude Haiku 4.5 alternatives",
+  "prompt caching"
+ ],
+ "kicker": "Cost teardown",
+ "tags": [
+  "Claude Haiku 4.5",
+  "Cost teardown"
+ ],
+ "read": 11,
+ "decisions": [
+  "Keep the first lines of every Haiku prompt identical so the cache can hit.",
+  "Connect at most three tool servers, and read each schema first.",
+  "Let Haiku extract fields; let a library do dates and sums.",
+  "Measure the flagship at low effort before building a Haiku cascade.",
+  "Keep Haiku off code review until false alarms are measured."
+ ],
+ "layout": "ledger",
+ "arrangement": "a",
+ "special": {
+  "type": "drivers",
+  "title": "Cost drivers",
+  "items": [
+   {
+    "driver": "Tool schemas in every request",
+    "mechanism": "Each connected server injects its full schema into every call; a large server runs to roughly 18,000 tokens.",
+    "lever": "Connect three servers at most, and read each tool list before it goes in."
+   },
+   {
+    "driver": "Cache-breaking prompt openings",
+    "mechanism": "A timestamp, unsorted JSON or a reordered tool list makes every call miss a cache that bills input at about a tenth of the rate.",
+    "lever": "Keep the opening byte-identical and put anything that varies at the end."
+   },
+   {
+    "driver": "Retries on malformed output",
+    "mechanism": "Malformed JSON on 5 percent of calls means paying 105 percent of the token estimate, plus latency.",
+    "lever": "Enforce structured output with a strict tool schema."
+   },
+   {
+    "driver": "Answers in direct mode",
+    "mechanism": "With no thinking step Haiku scored 9/20 on deadline conversions, against 17/20 with one.",
+    "lever": "Let the model extract fields and let a library do the arithmetic."
+   },
+   {
+    "driver": "Web search pass-through",
+    "mechanism": "Search fees are charged at request finish and cannot be bounded per request.",
+    "lever": "Write a reservation row before each call and reconcile against the provider meter."
+   },
+   {
+    "driver": "Cold cascades",
+    "mechanism": "Caches are scoped per model, so every escalation from Haiku starts without a cache hit.",
+    "lever": "Measure the flagship at low effort on the same tasks before building a cascade."
+   },
+   {
+    "driver": "False alarms in review",
+    "mechanism": "Haiku flagged a defect on 96% of already-fixed code, and each flag spends reviewer time.",
+    "lever": "Log time to dismiss each comment before putting Haiku on review."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~11 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Tool schemas riding along on every request",
+    "num": "01",
+    "id": "tool-schemas-riding-along-on-every-request"
+   }
+  ],
+  [
+   "p",
+   "Here's the line on a Haiku bill that surprises people most: the tool descriptions. «A large server like GitHub runs to roughly 18,000 tokens on its own.» A tool call is the model asking your code to run a function. Every tool it might call is described in the prompt. You pay for that text on each request. Even before anyone types."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPlRocmVlIHRvb2wgc2VydmVycyBpbmplY3QgdGhlaXIgZnVsbCBzY2hlbWEgaW50byBldmVyeSBIYWlrdSByZXF1ZXN0PC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMTYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZWxsaXBzZSBjeD0iODMwIiBjeT0iMzMwIiByeD0iNDIwIiByeT0iMjYwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CgogIDx0ZXh0IHg9IjYwIiB5PSI2NiIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIj5FdmVyeSByZXF1ZXN0IGNhcnJpZXMgZXZlcnkgc2NoZW1hPC90ZXh0PgoKICA8IS0tIGZhbiBsaW5lczogZWFjaCBzZXJ2ZXIgZmVlZHMgaXRzIGJsb2NrIGluIGV2ZXJ5IHJlcXVlc3QgLS0+CiAgPGcgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBvcGFjaXR5PSIwLjU1Ij4KICAgIDxwYXRoIGQ9Ik0zMjAsMTg1IEM0MzAsMTg1IDQ0MCwxNTcgNTQwLDE1NyIgc3Ryb2tlPSIjN2FhMmZmIi8+CiAgICA8cGF0aCBkPSJNMzIwLDE4NSBDNDMwLDE4NSA0NDAsMzA3IDU0MCwzMDciIHN0cm9rZT0iIzdhYTJmZiIvPgogICAgPHBhdGggZD0iTTMyMCwxODUgQzQzMCwxODUgNDQwLDQ1NyA1NDAsNDU3IiBzdHJva2U9IiM3YWEyZmYiLz4KICAgIDxwYXRoIGQ9Ik0zMjAsMzM1IEM0MzAsMzM1IDQ0MCwxNzUgNTQwLDE3NSIgc3Ryb2tlPSIjYTc4YmZhIi8+CiAgICA8cGF0aCBkPSJNMzIwLDMzNSBDNDMwLDMzNSA0NDAsMzI1IDU0MCwzMjUiIHN0cm9rZT0iI2E3OGJmYSIvPgogICAgPHBhdGggZD0iTTMyMCwzMzUgQzQzMCwzMzUgNDQwLDQ3NSA1NDAsNDc1IiBzdHJva2U9IiNhNzhiZmEiLz4KICAgIDxwYXRoIGQ9Ik0zMjAsNDg1IEM0MzAsNDg1IDQ0MCwxOTMgNTQwLDE5MyIgc3Ryb2tlPSIjZTNiMzQxIi8+CiAgICA8cGF0aCBkPSJNMzIwLDQ4NSBDNDMwLDQ4NSA0NDAsMzQzIDU0MCwzNDMiIHN0cm9rZT0iI2UzYjM0MSIvPgogICAgPHBhdGggZD0iTTMyMCw0ODUgQzQzMCw0ODUgNDQwLDQ5MyA1NDAsNDkzIiBzdHJva2U9IiNlM2IzNDEiLz4KICA8L2c+CgogIDwhLS0gc2VydmVycyAtLT4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI2MDAiPgogICAgPHJlY3QgeD0iNjAiIHk9IjEzNSIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iOTAiIHk9IjE5NSIgZmlsbD0iI2U4ZWRmNSI+YmlsbGluZyBzZXJ2ZXI8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iMjg1IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjEwMCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI5MCIgeT0iMzQ1IiBmaWxsPSIjZThlZGY1Ij5jaGF0IHNlcnZlcjwvdGV4dD4KICAgIDxyZWN0IHg9IjYwIiB5PSI0MzUiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTAwIiByeD0iMTYiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSI0OTUiIGZpbGw9IiNlOGVkZjUiPnRyYWNrZXIgc2VydmVyPC90ZXh0PgogIDwvZz4KCiAgPCEtLSByZXF1ZXN0cyAtLT4KICA8ZyBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjYwMCI+CiAgICA8Zz4KICAgICAgPHJlY3QgeD0iNTQ4IiB5PSIxNDAiIHdpZHRoPSIxNDYiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjI4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgICA8cmVjdCB4PSI3MDQiIHk9IjE0MCIgd2lkdGg9IjE0NiIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMjgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICAgIDxyZWN0IHg9Ijg2MCIgeT0iMTQwIiB3aWR0aD0iMTQ2IiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4yNCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHJlY3QgeD0iMTAxNiIgeT0iMTQwIiB3aWR0aD0iMTI0IiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHRleHQgeD0iMTA3OCIgeT0iMTgzIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aWNrZXQ8L3RleHQ+CiAgICA8L2c+CiAgICA8Zz4KICAgICAgPHJlY3QgeD0iNTQ4IiB5PSIyOTAiIHdpZHRoPSIxNDYiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjI4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgICA8cmVjdCB4PSI3MDQiIHk9IjI5MCIgd2lkdGg9IjE0NiIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMjgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICAgIDxyZWN0IHg9Ijg2MCIgeT0iMjkwIiB3aWR0aD0iMTQ2IiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4yNCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHJlY3QgeD0iMTAxNiIgeT0iMjkwIiB3aWR0aD0iMTI0IiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHRleHQgeD0iMTA3OCIgeT0iMzMzIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aWNrZXQ8L3RleHQ+CiAgICA8L2c+CiAgICA8Zz4KICAgICAgPHJlY3QgeD0iNTQ4IiB5PSI0NDAiIHdpZHRoPSIxNDYiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjI4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgICA8cmVjdCB4PSI3MDQiIHk9IjQ0MCIgd2lkdGg9IjE0NiIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMjgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICAgIDxyZWN0IHg9Ijg2MCIgeT0iNDQwIiB3aWR0aD0iMTQ2IiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4yNCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHJlY3QgeD0iMTAxNiIgeT0iNDQwIiB3aWR0aD0iMTI0IiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHRleHQgeD0iMTA3OCIgeT0iNDgzIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aWNrZXQ8L3RleHQ+CiAgICA8L2c+CiAgICA8ZyBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4KICAgICAgPHRleHQgeD0iNjIxIiB5PSIxODMiPnNjaGVtYTwvdGV4dD48dGV4dCB4PSI3NzciIHk9IjE4MyI+c2NoZW1hPC90ZXh0Pjx0ZXh0IHg9IjkzMyIgeT0iMTgzIj5zY2hlbWE8L3RleHQ+CiAgICAgIDx0ZXh0IHg9IjYyMSIgeT0iMzMzIj5zY2hlbWE8L3RleHQ+PHRleHQgeD0iNzc3IiB5PSIzMzMiPnNjaGVtYTwvdGV4dD48dGV4dCB4PSI5MzMiIHk9IjMzMyI+c2NoZW1hPC90ZXh0PgogICAgICA8dGV4dCB4PSI2MjEiIHk9IjQ4MyI+c2NoZW1hPC90ZXh0Pjx0ZXh0IHg9Ijc3NyIgeT0iNDgzIj5zY2hlbWE8L3RleHQ+PHRleHQgeD0iOTMzIiB5PSI0ODMiPnNjaGVtYTwvdGV4dD4KICAgIDwvZz4KICA8L2c+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij4KICAgIDx0ZXh0IHg9IjU0OCIgeT0iMTI4Ij5jYWxsPC90ZXh0PgogICAgPHRleHQgeD0iNTQ4IiB5PSIyNzgiPm5leHQgY2FsbDwvdGV4dD4KICAgIDx0ZXh0IHg9IjU0OCIgeT0iNDI4Ij5hbmQgdGhlIG5leHQ8L3RleHQ+CiAgPC9nPgoKICA8IS0tIGZvb3Rub3RlIC0tPgogIDxyZWN0IHg9IjU0OCIgeT0iNTQ4IiB3aWR0aD0iNTkyIiBoZWlnaHQ9IjU2IiByeD0iMTQiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI4NDQiIHk9IjU4NSIgZmlsbD0iI2UzYjM0MSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5vbmUgbGFyZ2Ugc2VydmVyOiByb3VnaGx5IDE4LDAwMCB0b2tlbnM8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Three tool servers each push their full schema into every one of several Haiku requests before the user's message.",
+    "caption": "Every connected server's schema rides in every request, which is why the three-server ceiling is a cost rule.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "So this Claude Haiku 4.5 review starts with the plain picture. Haiku is the cheap, small model in its family. It's good at sorting tickets, summarising notes and following instructions. It holds a correct answer when a user pushes back. It stumbles when a task hides arithmetic, like a deadline that crosses a clock change. As a code reviewer, it objects far too often."
+  ],
+  [
+   "p",
+   "A dev.to guide to MCP agents names the mechanism. MCP, the Model Context Protocol, is a standard way to plug tool servers into an agent. «Every connected server injects its full tool schema into the model's context on every single request.» Connect six large servers and the schemas alone crowd the prompt. Its lever is blunt: «Three servers is the ceiling» for most agents."
+  ],
+  [
+   "p",
+   "Haiku's context window, the amount of text it can read in one request, is smaller than its siblings'. «Haiku 4.5 sits at 200K, which is still more than most pipelines need.» Bloated schemas cost twice, though. The same guide warns that «tool-selection accuracy drops as near-identical tool descriptions pile up». A wrong pick becomes a second call. So read each server's tool list before it goes in."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Claude Haiku 4.5 across public benchmarks, each with the setting that changed its result.",
+    "columns": [
+     "Task",
+     "Setting compared",
+     "Haiku's result"
+    ],
+    "rows": [
+     [
+      "Data-science judgment calls",
+      "Four options shown vs none",
+      "36 vs 20 of 36"
+     ],
+     [
+      "Deadline conversion",
+      "Direct answer vs short reasoning",
+      "9/20 vs 17/20"
+     ],
+     [
+      "Clock-change trap dates",
+      "Trap dates vs control dates",
+      "4% vs 92%"
+     ],
+     [
+      "Fact questions",
+      "From memory vs web search",
+      "10.5% vs 94.7%"
+     ],
+     [
+      "Pushback on correct answers",
+      "Notebook run",
+      "72 of 72 held"
+     ],
+     [
+      "Reviewing already-fixed code",
+      "Flagged a defect anyway",
+      "96%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Cache prefixes broken by one timestamp",
+    "num": "02",
+    "id": "cache-prefixes-broken-by-one-timestamp"
+   }
+  ],
+  [
+   "p",
+   "Prompt caching means the provider stores the opening of a prompt it has just seen. When the next request starts the same way, that part is billed at a discount. One automation consultancy on dev.to states the size plainly: «Both vendors bill cached input at about a tenth of the standard rate». On a high-volume Haiku agent, that is the biggest lever. It is also the easiest to lose."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY4MCI+CiAgPHRpdGxlPkEgcHJvbXB0IHRoYXQgb3BlbnMgd2l0aCBhIHRpbWVzdGFtcCBtaXNzZXMgdGhlIGNhY2hlOyBhIGZpeGVkIG9wZW5pbmcgd2l0aCB0aGUgZGF0ZSBhdCB0aGUgZW5kIGNhbiBoaXQgaXQ8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnb29kIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC4xOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjgwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIFRPUDogdGltZXN0YW1wIGZpcnN0IC0tPgogIDx0ZXh0IHg9IjYwIiB5PSI2MiIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIj5EYXRlIGZpcnN0PC90ZXh0PgogIDxnIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4KICAgIDwhLS0gY2FsbCBvbmUgLS0+CiAgICA8cmVjdCB4PSI2MCIgeT0iOTAiIHdpZHRoPSIxOTAiIGhlaWdodD0iNjQiIHJ4PSIxMiIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjI1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTU1IiB5PSIxMzAiIGZpbGw9IiNlOGVkZjUiPmRhdGU8L3RleHQ+CiAgICA8cmVjdCB4PSIyNjAiIHk9IjkwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIzODUiIHk9IjEzMCIgZmlsbD0iI2U4ZWRmNSI+aW5zdHJ1Y3Rpb25zPC90ZXh0PgogICAgPHJlY3QgeD0iNTIwIiB5PSI5MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI2NCIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iNjQ1IiB5PSIxMzAiIGZpbGw9IiNlOGVkZjUiPnRvb2wgc2NoZW1hczwvdGV4dD4KICAgIDxyZWN0IHg9Ijc4MCIgeT0iOTAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNjQiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9Ijg1NSIgeT0iMTMwIiBmaWxsPSIjZThlZGY1Ij50aWNrZXQ8L3RleHQ+CiAgICA8IS0tIGNhbGwgdHdvIC0tPgogICAgPHJlY3QgeD0iNjAiIHk9IjE3MiIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI2NCIgcng9IjEyIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KICAgIDx0ZXh0IHg9IjE1NSIgeT0iMjEyIiBmaWxsPSIjZThlZGY1Ij5uZXcgZGF0ZTwvdGV4dD4KICAgIDxyZWN0IHg9IjI2MCIgeT0iMTcyIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIzODUiIHk9IjIxMiIgZmlsbD0iI2U4ZWRmNSI+aW5zdHJ1Y3Rpb25zPC90ZXh0PgogICAgPHJlY3QgeD0iNTIwIiB5PSIxNzIiIHdpZHRoPSIyNTAiIGhlaWdodD0iNjQiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjY0NSIgeT0iMjEyIiBmaWxsPSIjZThlZGY1Ij50b29sIHNjaGVtYXM8L3RleHQ+CiAgICA8cmVjdCB4PSI3ODAiIHk9IjE3MiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI2NCIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iODU1IiB5PSIyMTIiIGZpbGw9IiNlOGVkZjUiPnRpY2tldDwvdGV4dD4KICA8L2c+CiAgPGNpcmNsZSBjeD0iMTAxMCIgY3k9IjE2MyIgcj0iMzQiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxwYXRoIGQ9Ik05OTYsMTQ5IEwxMDI0LDE3NyBNMTAyNCwxNDkgTDk5NiwxNzciIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8dGV4dCB4PSIxMDEwIiB5PSIyMzYiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bWlzczwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMjg0IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiPlRoZSBmaXJzdCBsaW5lIGNoYW5nZXMsIHNvIG5vdGhpbmcgYWZ0ZXIgaXQgY2FuIGJlIHJldXNlZC48L3RleHQ+CgogIDxsaW5lIHgxPSI2MCIgeTE9IjMyNiIgeDI9IjExNDAiIHkyPSIzMjYiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CgogIDwhLS0gQk9UVE9NOiBmaXhlZCBvcGVuaW5nIC0tPgogIDxlbGxpcHNlIGN4PSI0MjAiIGN5PSI1MDAiIHJ4PSI0MjAiIHJ5PSIxNzAiIGZpbGw9InVybCgjZ29vZCkiLz4KICA8dGV4dCB4PSI2MCIgeT0iMzY2IiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPkZpeGVkIG9wZW5pbmc8L3RleHQ+CiAgPCEtLSBicmFja2V0IG92ZXIgdGhlIGNhY2hlZCBwYXJ0IC0tPgogIDxwYXRoIGQ9Ik02MCw0MjQgTDYwLDQxNCBMNjkwLDQxNCBMNjkwLDQyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIzNzUiIHk9IjQwNCIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zYW1lIGJ5dGVzIGV2ZXJ5IGNhbGw6IGNhY2hlZCBpbnB1dDwvdGV4dD4KICA8ZyBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CiAgICA8cmVjdCB4PSI2MCIgeT0iNDM2IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMjEwIiB5PSI0NzYiIGZpbGw9IiNlOGVkZjUiPmluc3RydWN0aW9uczwvdGV4dD4KICAgIDxyZWN0IHg9IjM3MCIgeT0iNDM2IiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNTMwIiB5PSI0NzYiIGZpbGw9IiNlOGVkZjUiPnNvcnRlZCBzY2hlbWFzPC90ZXh0PgogICAgPHJlY3QgeD0iNzAwIiB5PSI0MzYiIHdpZHRoPSIyMzAiIGhlaWdodD0iNjQiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjgxNSIgeT0iNDc2IiBmaWxsPSIjZThlZGY1Ij50aWNrZXQgKyBkYXRlPC90ZXh0PgogICAgPHJlY3QgeD0iNjAiIHk9IjUxOCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI2NCIgcng9IjEyIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjIxMCIgeT0iNTU4IiBmaWxsPSIjZThlZGY1Ij5pbnN0cnVjdGlvbnM8L3RleHQ+CiAgICA8cmVjdCB4PSIzNzAiIHk9IjUxOCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI2NCIgcng9IjEyIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjUzMCIgeT0iNTU4IiBmaWxsPSIjZThlZGY1Ij5zb3J0ZWQgc2NoZW1hczwvdGV4dD4KICAgIDxyZWN0IHg9IjcwMCIgeT0iNTE4IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KICAgIDx0ZXh0IHg9IjgxNSIgeT0iNTU4IiBmaWxsPSIjZThlZGY1Ij50aWNrZXQgKyBkYXRlPC90ZXh0PgogIDwvZz4KICA8Y2lyY2xlIGN4PSIxMDEwIiBjeT0iNTA1IiByPSIzNCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHBhdGggZD0iTTk5NCw1MDYgTDEwMDYsNTE5IEwxMDI4LDQ5MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjEwMTAiIHk9IjU3OCIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5oaXQ8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjYzMCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0Ij5UaGUgZGF0ZSBtb3ZlcyB0byB0aGUgZW5kLCBiZXNpZGUgdGhlIHRpY2tldCB0aGF0IGNoYW5nZXMgYW55d2F5LjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Two prompts: one opens with a timestamp and misses the cache; the other keeps a fixed opening and moves the date to the end.",
+    "caption": "Move whatever changes to the end of the prompt and the expensive opening can be billed as cached input.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "quote",
+   "pays full price forever and nobody notices, because the bill looks plausible"
+  ],
+  [
+   "p",
+   "The cache only hits when the opening matches. The same writer lists what quietly breaks it: «a timestamp in the system prompt, an unsorted JSON blob, a tool list that reorders». Any of those changes the first lines on every call. Then the pipeline «pays full price forever and nobody notices, because the bill looks plausible». No error appears. The invoice just stays high."
+  ],
+  [
+   "p",
+   "Take a Haiku support-triage agent, the job one MCP guide gives this model. Its prompt opens with instructions, then the schemas for billing, chat and bug-tracker tools. Put today's date on the first line and every request misses the cache. Move the date to the end. Sort the tool list. Serialise JSON with sorted keys. Now the expensive opening repeats, and the discount can apply."
+  ],
+  [
+   "p",
+   "We think this is the cheapest fix on the whole bill. It needs no model change and no new vendor. Batch work stacks on top: both vendors «halve everything on batch», says the same consultancy. A daily meeting-notes agent, another Haiku job in that MCP guide, is a natural fit. Nobody needs those notes in seconds."
+  ],
+  [
+   "h2",
+   {
+    "text": "Retries triggered by malformed output",
+    "num": "03",
+    "id": "retries-triggered-by-malformed-output"
+   }
+  ],
+  [
+   "p",
+   "A retry resends the whole prompt, schemas and all. The consultancy's arithmetic is simple. If a model returns malformed JSON on 5 percent of calls, «you are paying 105 percent of your token estimate and adding latency to every slow path». That is why output reliability, in their words, «is a cost line». It belongs in the budget."
+  ],
+  [
+   "p",
+   "Structured output is the lever. It means the provider enforces a JSON shape, instead of your prompt asking nicely. On the Anthropic side, the same writer says, you can «mark a tool strict so its arguments validate exactly against your schema». A strict schema stops the malformed reply before your code sees it. Then the retry never fires."
+  ],
+  [
+   "p",
+   "«An automation system is a machine that routes on a field.» That line, from the same consultancy, explains why small formatting drift is expensive. Say the status reads approved on one call and Approved on the next. Records stall in a queue. Nobody gets paged. The cost shows up as stale tickets, never as an error."
+  ],
+  [
+   "p",
+   "Here engineers agree, and so do we: Haiku follows instructions well. In one dev.to pushback benchmark, it held its correct answer in 72 of 72 runs in the notebook. That writer's first scorer misread Haiku's replies. «Fixing the checker erased Haiku's apparent weakness.» Your own parser can manufacture retries the model never earned. «Always read the raw outputs.»"
+  ],
+  [
+   "h2",
+   {
+    "text": "Direct answers that skip the thinking step",
+    "num": "04",
+    "id": "direct-answers-that-skip-the-thinking-step"
+   }
+  ],
+  [
+   "p",
+   "We went through one engineer's dev.to benchmark on «the most boring bug I know: converting a deadline into your own time zone». It isolates a cost nobody budgets. The trap is the week when Europe and the US change clocks on different dates. In direct mode, a one-line answer with no thinking, Haiku scored 9/20. With a short reasoning step it scored 17/20. In the author's words, «the direct mode is where cheap models break»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPHRpdGxlPlR3byBwYXRocyBmb3Igb25lIGRlYWRsaW5lOiB0aGUgbW9kZWwgZG9lcyB0aGUgY2xvY2sgbWF0aHMgYW5kIGxhbmRzIG9uZSBob3VyIG9mZiwgb3IgZXh0cmFjdHMgZmllbGRzIGZvciBhIGxpYnJhcnk8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93ZyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAuMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFydyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgWiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjcwMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBpbnB1dCBjYXJkIC0tPgogIDxyZWN0IHg9IjQwIiB5PSIyNzUiIHdpZHRoPSIyOTAiIGhlaWdodD0iMTUwIiByeD0iMTgiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIxODUiIHk9IjMzMCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9jdCAyNjwvdGV4dD4KICA8dGV4dCB4PSIxODUiIHk9IjM2NCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjExOjU5IFBNIFBUPC90ZXh0PgogIDx0ZXh0IHg9IjE4NSIgeT0iNDAyIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlYWRlciBpbiBNYWRyaWQ8L3RleHQ+CgogIDwhLS0gYnJhbmNoZXMgLS0+CiAgPHBhdGggZD0iTTMzMCwzMjAgQzM3MCwyNTAgMzgwLDE4MCAzODYsMTYwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcncpIi8+CiAgPHBhdGggZD0iTTMzMCwzODAgQzM3MCw0NTAgMzgwLDUyMCAzODYsNTQwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcncpIi8+CgogIDwhLS0gVE9QIFBBVEggLS0+CiAgPHRleHQgeD0iNDIwIiB5PSI2MiIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj5UaGUgbW9kZWwgZG9lcyB0aGUgbWF0aHM8L3RleHQ+CiAgPGNpcmNsZSBjeD0iNDUwIiBjeT0iMTUwIiByPSI1NiIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjIyIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgogIDx0ZXh0IHg9IjQ1MCIgeT0iMTU5IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkhhaWt1PC90ZXh0PgogIDxsaW5lIHgxPSI1MTAiIHkxPSIxNTAiIHgyPSI4ODAiIHkyPSIxNTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FydykiLz4KICA8dGV4dCB4PSI2OTUiIHk9IjEzNCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hcHBsaWVzIHRoZSB1c3VhbCBvZmZzZXQ8L3RleHQ+CiAgPHJlY3QgeD0iODkwIiB5PSIxMDAiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTAwIiByeD0iMTgiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIxMDIwIiB5PSIxNjQiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjQwIiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4wODo1OTwvdGV4dD4KICA8dGV4dCB4PSIxMDIwIiB5PSIyMzYiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+b25lIGhvdXIgb2ZmPC90ZXh0PgoKICA8bGluZSB4MT0iNDIwIiB5MT0iMzUwIiB4Mj0iMTE1MCIgeTI9IjM1MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgMTAiLz4KCiAgPCEtLSBCT1RUT00gUEFUSCAtLT4KICA8ZWxsaXBzZSBjeD0iODYwIiBjeT0iNTQ1IiByeD0iMzgwIiByeT0iMTQwIiBmaWxsPSJ1cmwoI2dsb3dnKSIvPgogIDx0ZXh0IHg9IjQyMCIgeT0iNDMwIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiPlRoZSBtb2RlbCBleHRyYWN0cywgYSBsaWJyYXJ5IGNvbXB1dGVzPC90ZXh0PgogIDxjaXJjbGUgY3g9IjQ1MCIgY3k9IjU0NSIgcj0iNTYiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4yMiIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8dGV4dCB4PSI0NTAiIHk9IjU1NCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5IYWlrdTwvdGV4dD4KICA8bGluZSB4MT0iNTA4IiB5MT0iNTQ1IiB4Mj0iNTQ4IiB5Mj0iNTQ1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcncpIi8+CiAgPHJlY3QgeD0iNTU4IiB5PSI0NzUiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTQwIiByeD0iMTYiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGcgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPgogICAgPHRleHQgeD0iNTg0IiB5PSI1MTYiPmRhdGU8L3RleHQ+CiAgICA8dGV4dCB4PSI1ODQiIHk9IjU1NCI+dGltZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjU4NCIgeT0iNTkyIj56b25lPC90ZXh0PgogIDwvZz4KICA8bGluZSB4MT0iNzQ4IiB5MT0iNTQ1IiB4Mj0iNzg4IiB5Mj0iNTQ1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcncpIi8+CiAgPHJlY3QgeD0iNzk4IiB5PSI0ODUiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9Ijg5MyIgeT0iNTM3IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnRpbWUtem9uZTwvdGV4dD4KICA8dGV4dCB4PSI4OTMiIHk9IjU2OSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5saWJyYXJ5PC90ZXh0PgogIDxsaW5lIHgxPSI5ODgiIHkxPSI1NDUiIHgyPSIxMDE4IiB5Mj0iNTQ1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcncpIi8+CiAgPHJlY3QgeD0iMTAyNiIgeT0iNDk1IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjEwMCIgcng9IjE4IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTA5NiIgeT0iNTU4IiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+MDc6NTk8L3RleHQ+CiAgPHRleHQgeD0iMTA5NiIgeT0iNjQwIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI2MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmNvcnJlY3Q8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Top path: Haiku does the clock maths and lands one hour off. Bottom path: Haiku extracts fields and a library computes.",
+    "caption": "The cheaper fix for clock-change errors moves the arithmetic out of the model and into a time-zone library.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The pre-registered pairs make the cost sharper. Each trap sentence has a control twin, moved out of the clock-change gap. Haiku got 4% of traps right and 92% of controls. Of its 48 trap errors, 46 were exactly the naive answer. As the author puts it, «when it is wrong, it is wrong by exactly the hour you would predict». A predictable error is a fixable one."
+  ],
+  [
+   "p",
+   "There are two levers, and they cost different amounts. Turning on thinking buys accuracy with extra output tokens on every call. The cheaper lever moves the arithmetic out of the model entirely. The engineer's recommendation: «let the model extract the date, time, and zone, and let a time-zone library do the arithmetic». We agree, and we'd apply it to sums and unit conversions too."
+  ],
+  [
+   "p",
+   "Don't pay for thinking and then trust the explanation. The same author warns that «A model that states the right rule can still apply the habitual one.» A reply can name the right clock rule and still use the usual offset. «Reading the explanation is not verification.» So the library call is a check that costs no extra tokens."
+  ],
+  [
+   "code",
+   {
+    "label": "Extract with the model, compute with a library (illustrative pattern)",
+    "language": "python",
+    "source": "from datetime import datetime, timezone\nfrom zoneinfo import ZoneInfo\n\ndef deadline_for_reader(fields: dict, reader_zone: str) -> datetime:\n    # `fields` comes from a strict tool call: {\"local\": ISO time, \"zone\": IANA name}.\n    # The model only copies what the page says; it never does clock arithmetic.\n    local = datetime.fromisoformat(fields[\"local\"]).replace(tzinfo=ZoneInfo(fields[\"zone\"]))\n    # Go through UTC before adding any duration: adding hours to an aware local\n    # time adds wall-clock hours and skips the clock change.\n    instant = local.astimezone(timezone.utc)\n    return instant.astimezone(ZoneInfo(reader_zone))\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Web search charges settled after the call",
+    "num": "05",
+    "id": "web-search-charges-settled-after-the-call"
+   }
+  ],
+  [
+   "p",
+   "Haiku from memory is a poor source for anything that changed this year. In one dev.to test of 76 questions, most with recently changed answers, claude-haiku-4-5 was right 10.5% of the time from memory. With web search on, it reached 94.7%. Its gain of +84.2 points was the largest among the models asked both ways. Search is the lever that moves accuracy most."
+  ],
+  [
+   "p",
+   "Search has its own meter, and it runs late. The same write-up explains that «native web search cannot be bounded per request». The provider passes the search fee through and charges when the request finishes. So «a per-call estimate is a planning figure, not a brake». You learn the price after you've paid it."
+  ],
+  [
+   "p",
+   "The writer's fix lives outside the calling code. «A reservation row is written before the request goes out.» Each seat, meaning one model in one mode, gets one send. A reconcile step compares the provider's meter with the ledger. If the meter runs ahead, the lane halts until a human clears it. «Over-recording is the correct direction to be wrong in.»"
+  ],
+  [
+   "p",
+   "We'd copy that ledger for any Haiku agent with search switched on. Fact lookups are where Haiku most needs the tool. They're also where the spend can't be capped per call. A cheap model with an unbounded tool is not a cheap agent. Put the brake in your own database, where a bug can't skip it."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Percent correct from memory on one 76-question test, before web search was switched on.",
+    "unit": "% correct from memory",
+    "bars": [
+     {
+      "label": "claude-haiku-4-5",
+      "value": 10.5
+     },
+     {
+      "label": "gemini-3.5-flash-lite",
+      "value": 21.1
+     },
+     {
+      "label": "claude-sonnet-5",
+      "value": 40.8
+     },
+     {
+      "label": "claude-opus-5",
+      "value": 51.3
+     },
+     {
+      "label": "gpt-6-astra",
+      "value": 78.9
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Cascades that forfeit the cache",
+    "num": "06",
+    "id": "cascades-that-forfeit-the-cache"
+   }
+  ],
+  [
+   "p",
+   "Here engineers split, and the money rides on it. A cascade sends easy work to a small model and escalates the rest. The MCP guide backs it: «Haiku for routing, Sonnet for reasoning, Opus for long chains.» It frames the whole call as money: «Model choice is a cost decision, not a quality one.» On that view, Haiku is the default worker."
+  ],
+  [
+   "p",
+   "The automation consultancy pushes back. «Before you build a cascade that routes cheap work to a small model, measure the flagship at low effort on the same tasks.» Effort is a setting for how much a model reasons before it answers. Their reason is mechanical: «A cascade also forfeits cache reuse, because caches are scoped per model». Every escalation starts cold."
+  ],
+  [
+   "p",
+   "A third result muddies both sides. In one dev.to write-up, 100 made-up sales emails went through a dedicated decision model, Haiku with thinking off, and Claude Fable 5.1. Haiku got 84 of 100 lead scores exactly right in 11.1s. The decision model got 89 in 3.6s. All three found every hot lead. The summary: «Jev for volume, Claude for anything that needs writing or real reasoning»."
+  ],
+  [
+   "p",
+   "Where do we land? The evidence favours measuring first. Haiku saves money on narrow, repeated work with a stable prompt. It loses that edge when escalations start cold, or when a smaller specialist sorts faster. We're not convinced that model choice is purely a cost decision. The false-alarm and trap results show quality turning straight into cost."
+  ],
+  [
+   "p",
+   "Escalation carries one more trap. A GitHub issue shows sampling settings such as temperature passing fine on Haiku 4.5 over AWS Bedrock. On Opus 5 and Sonnet 5, «every request with a sampling setting hard-fails with a 400 on the Claude 5 generation over Bedrock». A shared config that works on Haiku breaks the moment you escalate. Strip sampling settings per model."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "One lead-scoring run on 100 made-up sales emails: a dedicated decision model against two Claude settings.",
+    "columns": [
+     "Model",
+     "Time",
+     "Lead scores exactly right",
+     "Hot leads found"
+    ],
+    "rows": [
+     [
+      "Dedicated decision model",
+      "3.6s",
+      "89 of 100",
+      "15/15"
+     ],
+     [
+      "Claude Haiku 4.5, thinking off",
+      "11.1s",
+      "84 of 100",
+      "15/15"
+     ],
+     [
+      "Claude Fable 5.1, effort low",
+      "38.7s",
+      "97 of 100",
+      "15/15"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Second runs that disagree with the first",
+    "num": "07",
+    "id": "second-runs-that-disagree-with-the-first"
+   }
+  ],
+  [
+   "p",
+   "A single benchmark run is a cheap number with an expensive error bar. One dev.to benchmark tests safe food textures for people who struggle to swallow. Haiku's two runs on byte-identical prompts scored 85.0 and 81.60 on the final key. The author is blunt: «the 3.4-point swing is sampling noise, not a change in what the model was asked». So budget for repeats."
+  ],
+  [
+   "p",
+   "Temperature doesn't rescue you. Temperature is the setting for how random a model's word choices are, and zero is meant to be the steady end. The deadline benchmark says otherwise: «Temperature 0 is not a fixed answer». Its repeat runs agreed on each case only 92.1% of the time. Even the pushback test moved, from 72 held to 68 on the leaderboard."
+  ],
+  [
+   "p",
+   "Some errors cost more than a rerun. On the safety benchmark, «Claude Haiku 4.5 accepted food pieces that are too big for the prescribed level», including for young children. It had 7 critical misses out of 51 unsafe items. In a domain like that, every answer needs a human check. That reviewer is the real line item."
+  ],
+  [
+   "p",
+   "Quiz scores mislead in a cheaper way. On a data-science judgment benchmark, Haiku got 36 of 36 with four options shown and 20 with none. Its author flags that «Haiku has the largest drop of any model despite a perfect multiple-choice score». A quiz is cheap to run. Your real task is open-ended, so evaluate it that way."
+  ],
+  [
+   "h2",
+   {
+    "text": "Reviewer attention spent on false alarms",
+    "num": "08",
+    "id": "reviewer-attention-spent-on-false-alarms"
+   }
+  ],
+  [
+   "p",
+   "Here's the cost nobody has put a figure on. One dev.to benchmark rebuilt history's costliest bugs, then showed models the fixed code as well. Models flagged some defect on 44% of fixed artifacts, and «Claude Haiku 4.5 did so on 96% of them». By contrast, «Sonnet 5.5 never did and Opus 5.5 once». In tokens, each comment looks cheap."
+  ],
+  [
+   "p",
+   "Some of those comments are invented. On a regex that could backtrack until the CPU is gone, Haiku warned about SQL injection instead. The regex never touches a database. Someone still has to read that warning, check it and dismiss it. That's reviewer time. No invoice shows it."
+  ],
+  [
+   "quote",
+   "a tool that objects to everything teaches people to stop reading its comments"
+  ],
+  [
+   "p",
+   "Worse, the cost compounds. The benchmark's author names the mechanism: «a tool that objects to everything teaches people to stop reading its comments». The comment that finally matters gets skimmed with the rest. Then the cheap reviewer has cost you a missed bug. We can describe that cost, but nobody has measured it."
+  ],
+  [
+   "p",
+   "In our view, this is the largest unpriced line on any Haiku review bot. Measuring it isn't hard. Log how long each comment takes to dismiss, and how often anyone acts on one. Track whether people still open the bot's reviews after a month. Until those numbers exist, the per-token rate says almost nothing about this bill."
+  ],
+  [
+   "h2",
+   {
+    "text": "What moves the bill",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Support ticket triage at high volume",
+      "Short, low-ambiguity sorting suits Haiku, but ticket text is untrusted input",
+      "Stable cached opening, strict output schema, no refund tool in reach",
+      "Claude Haiku 4.5 with read-only tools"
+     ],
+     [
+      "Daily meeting notes turned into tasks",
+      "Summarising needs no reasoning model, and nobody needs results in seconds",
+      "Run it on batch and keep the prompt opening identical",
+      "Claude Haiku 4.5 on batch"
+     ],
+     [
+      "Deadlines across time zones",
+      "Direct one-line answers miss clock-change weeks by exactly one hour",
+      "Haiku extracts date, time and zone; a time-zone library computes",
+      "Claude Haiku 4.5 plus a library call"
+     ],
+     [
+      "Facts that changed this year",
+      "From memory Haiku is often stale; search fees settle after the call",
+      "Reserve spend before each request and reconcile against the provider meter",
+      "Claude Haiku 4.5 with web search and a spend ledger"
+     ],
+     [
+      "Lead scoring on a large inbox",
+      "In one run a dedicated decision model beat Haiku on speed and accuracy",
+      "Send low-confidence items to a human pile, never straight to action",
+      "A decision model for sorting, Claude for writing replies"
+     ],
+     [
+      "Code review on finished fixes",
+      "Haiku flagged a defect on 96% of already-fixed code",
+      "Log time to dismiss each comment before scaling the bot",
+      "Claude Sonnet 5.5, which raised no false alarm there"
+     ],
+     [
+      "Escalating to Opus 5 on Bedrock",
+      "Sampling settings that pass on Haiku fail with a 400 on Claude 5 models",
+      "Strip temperature and top_p per model before the request leaves",
+      "Per-model settings instead of one shared config"
+     ],
+     [
+      "Diet-safety questions from families",
+      "Haiku had 7 critical misses on one swallow-safety benchmark",
+      "Treat each answer as a question to bring to the clinician",
+      "Human review on every answer"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Is Claude Haiku 4.5 good for coding?"
+  ],
+  [
+   "p",
+   "It spots well-known bug patterns, but as a code reviewer it raises too many false alarms. In one dev.to benchmark built from history's costliest bugs, models were also shown the fixed code, and «Claude Haiku 4.5 did so on 96% of them», flagging a defect that was gone. Sonnet 5.5 never did. Keep Haiku on triage and summaries, and measure review noise first."
+  ],
+  [
+   "h3",
+   "What is the context window of Claude Haiku 4.5?"
+  ],
+  [
+   "p",
+   "Claude Haiku 4.5 reads up to 200K tokens per request, which one consultancy calls «still more than most pipelines need». The context window is how much text the model can take in at once. Tool schemas eat into it, because a large MCP server can run to roughly 18,000 tokens and rides along on every request. Keep connected servers few."
+  ],
+  [
+   "h3",
+   "How do I reduce Claude Haiku 4.5 costs?"
+  ],
+  [
+   "p",
+   "Fix prompt caching and retries before you change the model. Keep the opening of every prompt identical so cached input is billed at the discount, and enforce structured output so malformed replies stop triggering retries. One automation consultancy puts the order as «fix caching and retries first, change model second, build a cascade last». Then trim the connected tool servers."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ],
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Opus 5.5",
+      "$4.00",
+      "$20.00",
+      "$0.20"
+     ],
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Gemma 4 31B",
+      "$0.20",
+      "$0.40",
+      "not published"
+     ],
+     [
+      "GPT-5.4 Mini",
+      "$0.75",
+      "$4.50",
+      "$0.075"
+     ],
+     [
+      "Grok 4.20",
+      "$1.25",
+      "$2.50",
+      "$0.20"
+     ],
+     [
+      "Gemini 3.5 Flash Lite",
+      "$0.30",
+      "$2.50",
+      "$0.03"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "rupa_tiwari_dd308948d710f",
+   "what": "Mcp agent use cases 8 ai agents you can build by role",
+   "url": "https://dev.to/rupa_tiwari_dd308948d710f/mcp-agent-use-cases-8-ai-agents-you-can-build-by-role-4c91",
+   "posted": "2026-09-15"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "2pizza",
+   "what": "Claude api vs openai for business automation what actually decides it in 2026",
+   "url": "https://dev.to/2pizza/claude-api-vs-openai-for-business-automation-what-actually-decides-it-in-2026-4j71",
+   "posted": "2026-09-11"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "sundas_naeem_6f4864a7c69d",
+   "what": "Hold or fold do ai models abandon correct answers when users push back",
+   "url": "https://dev.to/sundas_naeem_6f4864a7c69d/hold-or-fold-do-ai-models-abandon-correct-answers-when-users-push-back-22jf",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 4,
+   "platform": "dev.to",
+   "who": "hugo_valer_79d0d94e00804b",
+   "what": "The model knew the rule it still used last weeks offset",
+   "url": "https://dev.to/hugo_valer_79d0d94e00804b/the-model-knew-the-rule-it-still-used-last-weeks-offset-584m",
+   "posted": "2026-10-07"
+  },
+  {
+   "n": 5,
+   "platform": "dev.to",
+   "who": "disisnoturbusiness",
+   "what": "I asked 63 models the same 76 questions with and without web search",
+   "url": "https://dev.to/disisnoturbusiness/i-asked-63-models-the-same-76-questions-with-and-without-web-search-45b1",
+   "posted": "2026-10-08"
+  },
+  {
+   "n": 6,
+   "platform": "dev.to",
+   "who": "kielltampubolon",
+   "what": "Wiring a third party decision model into claude code and what i wouldnt let it do by default",
+   "url": "https://dev.to/kielltampubolon/wiring-a-third-party-decision-model-into-claude-code-and-what-i-wouldnt-let-it-do-by-default-1mho",
+   "posted": "2026-10-05"
+  },
+  {
+   "n": 7,
+   "platform": "GitHub",
+   "who": "pydantic/pydantic-ai",
+   "what": "Issue #7791",
+   "url": "https://github.com/pydantic/pydantic-ai/issues/7791",
+   "posted": "2026-08-27"
+  },
+  {
+   "n": 8,
+   "platform": "dev.to",
+   "who": "daniel_drew",
+   "what": "Would an ai let my patient drink thin water benchmarking llms on dysphagia diet safety",
+   "url": "https://dev.to/daniel_drew/would-an-ai-let-my-patient-drink-thin-water-benchmarking-llms-on-dysphagia-diet-safety-h52",
+   "posted": "2026-10-05"
+  },
+  {
+   "n": 9,
+   "platform": "dev.to",
+   "who": "khushi886987",
+   "what": "Llms pass the data science quiz then give different advice a kaggle benchmark of 36 measured",
+   "url": "https://dev.to/khushi886987/llms-pass-the-data-science-quiz-then-give-different-advice-a-kaggle-benchmark-of-36-measured-2i6b",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 10,
+   "platform": "dev.to",
+   "who": "kaichen_dev",
+   "what": "Would todays ai have caught ariane 5 i rebuilt 26 of historys costliest bugs to find out",
+   "url": "https://dev.to/kaichen_dev/would-todays-ai-have-caught-ariane-5-i-rebuilt-26-of-historys-costliest-bugs-to-find-out-5d8m",
+   "posted": "2026-10-09"
+  }
+ ],
+ "cite": {
+  "A large server like GitHub runs to roughly 18,000 tokens on its own.": 1,
+  "Every connected server injects its full tool schema into the model's context on every single request.": 1,
+  "Three servers is the ceiling": 1,
+  "Haiku 4.5 sits at 200K, which is still more than most pipelines need.": 2,
+  "tool-selection accuracy drops as near-identical tool descriptions pile up": 1,
+  "Both vendors bill cached input at about a tenth of the standard rate": 2,
+  "a timestamp in the system prompt, an unsorted JSON blob, a tool list that reorders": 2,
+  "pays full price forever and nobody notices, because the bill looks plausible": 2,
+  "halve everything on batch": 2,
+  "you are paying 105 percent of your token estimate and adding latency to every slow path": 2,
+  "is a cost line": 2,
+  "mark a tool strict so its arguments validate exactly against your schema": 2,
+  "An automation system is a machine that routes on a field.": 2,
+  "Fixing the checker erased Haiku's apparent weakness.": 3,
+  "Always read the raw outputs.": 3,
+  "the most boring bug I know: converting a deadline into your own time zone": 4,
+  "the direct mode is where cheap models break": 4,
+  "when it is wrong, it is wrong by exactly the hour you would predict": 4,
+  "let the model extract the date, time, and zone, and let a time-zone library do the arithmetic": 4,
+  "A model that states the right rule can still apply the habitual one.": 4,
+  "Reading the explanation is not verification.": 4,
+  "native web search cannot be bounded per request": 5,
+  "a per-call estimate is a planning figure, not a brake": 5,
+  "A reservation row is written before the request goes out.": 5,
+  "Over-recording is the correct direction to be wrong in.": 5,
+  "Haiku for routing, Sonnet for reasoning, Opus for long chains.": 1,
+  "Model choice is a cost decision, not a quality one.": 1,
+  "Before you build a cascade that routes cheap work to a small model, measure the flagship at low effort on the same tasks.": 2,
+  "A cascade also forfeits cache reuse, because caches are scoped per model": 2,
+  "Jev for volume, Claude for anything that needs writing or real reasoning": 6,
+  "every request with a sampling setting hard-fails with a 400 on the Claude 5 generation over Bedrock": 7,
+  "the 3.4-point swing is sampling noise, not a change in what the model was asked": 8,
+  "Temperature 0 is not a fixed answer": 4,
+  "Claude Haiku 4.5 accepted food pieces that are too big for the prescribed level": 8,
+  "Haiku has the largest drop of any model despite a perfect multiple-choice score": 9,
+  "Claude Haiku 4.5 did so on 96% of them": 10,
+  "Sonnet 5.5 never did and Opus 5.5 once": 10,
+  "a tool that objects to everything teaches people to stop reading its comments": 10,
+  "still more than most pipelines need": 2,
+  "fix caching and retries first, change model second, build a cascade last": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:12:56+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_fcad7749c458bbad",
+   "thread_context_e2b31946ae0e0ff6",
+   "thread_context_ce7147b9dff5abd2",
+   "thread_context_35a9b6071dfc039b",
+   "thread_context_7f79555e3bed8967",
+   "thread_context_8408cf1bdeda25f7",
+   "thread_context_26669ec8b37d21fe",
+   "thread_context_6123a2caa6794354",
+   "thread_context_f1714ab1acbfb3be",
+   "thread_context_7cc0f15c194b5302"
+  ],
+  "platforms": {
+   "dev.to": 9,
+   "GitHub": 1
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "cost-teardown:anthropic/claude-haiku-4.5",
+  "format": "cost-teardown",
+  "reviewed_by": null
+ }
+}

@@ -1,0 +1,433 @@
+{
+ "slug": "myth-vs-reality-concept-alignment",
+ "status": "draft",
+ "tag": "Myth vs reality",
+ "feat": false,
+ "title": "AI Alignment Begins Where Your Instructions Run Out",
+ "dek": "Six things people believe about alignment and preference training, checked one at a time against new papers on agents, self-judging models, reward models and a writing tic.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is AI alignment? More than obedience. Agents miss requirements nobody stated, models judge their own outputs inconsistently, and preference training can amplify habits nobody wanted.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgc21hbGwgY2FyZCBvZiBzdGF0ZWQgcmVxdWlyZW1lbnRzIGNvdmVycyBvbmx5IHRoZSB0b3Agb2YgYSBsYXJnZXIgb3V0bGluZSBvZiB0cnVlIHJlcXVpcmVtZW50cywgdHdvIG9mIHRoZW0gbGl0IGZyb20gdGhlIGNvZGU8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJ2ZyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImdnIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC40NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8ZWxsaXBzZSBjeD0iNjQwIiBjeT0iMzMwIiByeD0iNDIwIiByeT0iMzAwIiBmaWxsPSJ1cmwoI3ZnKSIvPgogICAgPCEtLSB0cnVlIHJlcXVpcmVtZW50czogbGFyZ2UgZGFzaGVkIG91dGxpbmUgLS0+CiAgICA8cmVjdCB4PSIzNjAiIHk9IjgwIiB3aWR0aD0iNTYwIiBoZWlnaHQ9IjQ4MCIgcng9IjIwIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMDYiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxNCAxMCIvPgogICAgPHRleHQgeD0iODkwIiB5PSIxMjgiIGZvbnQtc2l6ZT0iMzQiIGZpbGw9IiNhNzhiZmEiIHRleHQtYW5jaG9yPSJlbmQiIGZvbnQtd2VpZ2h0PSI2MDAiPnRydWU8L3RleHQ+CiAgICA8IS0tIHJvd3Mgb2YgdGhlIHRydWUgcmVxdWlyZW1lbnRzIC0tPgogICAgPGcgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2Utd2lkdGg9IjEwIj4KICAgICAgPGxpbmUgeDE9IjQxMCIgeTE9IjIxMCIgeDI9Ijc0MCIgeTI9IjIxMCIgc3Ryb2tlPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjkiLz4KICAgICAgPGxpbmUgeDE9IjQxMCIgeTE9IjI1MCIgeDI9IjYyMCIgeTI9IjI1MCIgc3Ryb2tlPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjkiLz4KICAgICAgPGxpbmUgeDE9IjQxMCIgeTE9IjM0MCIgeDI9IjgwMCIgeTI9IjM0MCIgc3Ryb2tlPSIjM2VjZjhlIi8+CiAgICAgIDxsaW5lIHgxPSI0MTAiIHkxPSI0MTAiIHgyPSI3MjAiIHkyPSI0MTAiIHN0cm9rZT0iIzk1YTFiNCIgb3BhY2l0eT0iMC4zIi8+CiAgICAgIDxsaW5lIHgxPSI0MTAiIHkxPSI0ODAiIHgyPSI3ODAiIHkyPSI0ODAiIHN0cm9rZT0iIzNlY2Y4ZSIvPgogICAgPC9nPgogICAgPCEtLSBzdGF0ZWQgcmVxdWlyZW1lbnRzOiBzbWFsbCBzb2xpZCBjYXJkIG92ZXIgdGhlIHRvcCAtLT4KICAgIDxyZWN0IHg9IjM4NCIgeT0iMTUwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjE1MCIgcng9IjE4IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjI4OCIgZm9udC1zaXplPSIzMCIgZmlsbD0iIzdhYTJmZiIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC13ZWlnaHQ9IjYwMCI+c3RhdGVkPC90ZXh0PgogICAgPCEtLSB0aGUgZW52aXJvbm1lbnQ6IGNvZGUgdGhhdCByZXZlYWxzIHRoZSByZXN0IC0tPgogICAgPGVsbGlwc2UgY3g9IjEwNjAiIGN5PSI0MTAiIHJ4PSIxMTAiIHJ5PSIxMTAiIGZpbGw9InVybCgjZ2cpIi8+CiAgICA8cmVjdCB4PSIxMDAwIiB5PSIzNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTAwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxMDYwIiB5PSI0MjUiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIj57IH08L3RleHQ+CiAgICA8cGF0aCBkPSJNOTk4LDM5NiBDOTIwLDM4MCA4ODAsMzUwIDgxMiwzNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiLz4KICAgIDxwYXRoIGQ9Ik05OTgsNDMwIEM5MjAsNDUwIDg4MCw0NzYgNzkyLDQ4MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNiIvPgogIDwvZz4KPC9zdmc+Cg==",
+  "alt": "A small card of stated requirements covers the top of a larger dashed outline of true ones, two lit from a code block.",
+  "caption": "The stated instruction covers only part of what the task needs; the rest is discoverable from the code, if the agent goes looking.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is AI alignment beyond obedience? Six common beliefs about alignment and preference training, checked against new research on agents and reward models.",
+ "keywords": [
+  "what is AI alignment",
+  "Alignment and preference training",
+  "AI alignment",
+  "preference training",
+  "outcome alignment",
+  "reward model bias"
+ ],
+ "kicker": "Myth vs reality",
+ "tags": [
+  "AI alignment",
+  "Myth vs reality"
+ ],
+ "read": 7,
+ "decisions": [
+  "Score agents on requirements they infer, separately from ones you add after review",
+  "Test a self-critique loop by putting one model in both roles under the same principle",
+  "Track how often a stock phrase appears before and after preference training",
+  "Audit a reward model on cases where a surface feature and quality come apart"
+ ],
+ "layout": "myths",
+ "arrangement": "b",
+ "special": {
+  "type": "myths",
+  "title": "Myth or not",
+  "items": [
+   {
+    "myth": "An aligned model does exactly what it's told.",
+    "reality": "Opening instructions often leave out needed requirements, and agents working from the partial instruction lost 53 to 67 points of success rate.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "A planning mode or a few feedback rounds will fix an agent that misses requirements.",
+    "reality": "Neither a plan-mode harness nor consequence feedback across four submissions closed the outcome-alignment gap.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "If a model's outputs comply with the rules, its values are consistent.",
+    "reality": "Across 28 LLMs, highly compliant models often judged their own generations differently from how they wrote them.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Preference training only removes bad habits.",
+    "reality": "Supervised fine-tuning and preference optimization tended to raise the frequency of a construction that was usually correct but unneeded.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "A reward model is a stand-in for human taste.",
+    "reality": "One reached state-of-the-art agreement with human judgment, yet reward models and an LLM judge also favoured a phrase where context did not call for it.",
+    "verdict": "partly true"
+   },
+   {
+    "myth": "Language models process meaning a bit like human brains do.",
+    "reality": "For one model, variance shared with a readable semantic representation dominated its brain alignment, on fMRI from seven participants.",
+    "verdict": "partly true"
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "An aligned agent has to supply what you forgot to say",
+    "num": "01",
+    "id": "an-aligned-agent-has-to-supply-what-you-forgot-to-say"
+   }
+  ],
+  [
+   "p",
+   "Ask around and you'll hear it said with total confidence: an aligned model is one that does what you tell it. That's the most repeated answer to what is AI alignment, and it sounds airtight. Then you watch a coding agent finish a task exactly as asked. The tests pass. The feature is still wrong, because you never mentioned the part that mattered."
+  ],
+  [
+   "p",
+   "Some vocabulary first. Alignment is the work of getting a model's behaviour to match what people actually want. Preference training is its main tool. You collect pairs of responses where a person picked the better one. Then you either train a reward model, a network that scores responses, or optimise the policy on the pairs directly. The model learns to produce what raters preferred."
+  ],
+  [
+   "p",
+   "Here's the first crack in the obedience story. A new arXiv paper on agents starts from a line every engineer will recognise: «initial instructions are often incomplete». In 100 user-agent trajectories, 56% of opening instructions left out requirements that later proved necessary. And 52% of the useful follow-up requirements could have been inferred from the project itself."
+  ],
+  [
+   "p",
+   "So is perfect obedience a failure? Not quite. It's a floor, and alignment lives in the gap above it. The rest of this post takes the beliefs people repeat about alignment one at a time. For each, we concede what's true in it, then check it against what a recent paper actually measured."
+  ],
+  [
+   "h2",
+   {
+    "text": "Instructions are evidence about the goal",
+    "num": "02",
+    "id": "instructions-are-evidence-about-the-goal"
+   }
+  ],
+  [
+   "p",
+   "We went through how the TiGanEval authors make this measurable, and the design is the clever part. They argue an agent should «treat the instruction as evidence rather than as the objective». In their benchmark, the user genuinely lacks part of the requirements. Yet «each requirement stays discoverable from the code and runtime behaviour of the environment». Nothing is hidden. It's just unsaid."
+  ],
+  [
+   "p",
+   "One more rule keeps the score honest. In their setup, «requirements the agent infers are separated from those the user adds after observing delivered work». That stops an agent from earning credit for a fix you had to ask for. The authors call the target ability outcome alignment, meaning «inferring the true requirements from the instruction and the environment» and meeting them unprompted."
+  ],
+  [
+   "p",
+   "The results are stark. Across eight frontier models, including GPT-5.6-Sol, success rates fall by 53 to 67 points from the full specification to the partial instruction. Feedback doesn't rescue it, since «consequence feedback across four submissions does not close the gap». We agree with the authors that «a plan-mode harness cannot compensate for the missing ability of the model itself»."
+  ],
+  [
+   "p",
+   "One caveat from us, though. A benchmark where every requirement is discoverable is the friendly case. Real projects also hide requirements in people's heads. Still, if models miss what's sitting right there in the code, the unfriendly case can only be harder."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What the outcome-alignment paper reports about incomplete instructions and the agents given them.",
+    "columns": [
+     "Measurement",
+     "Reported figure"
+    ],
+    "rows": [
+     [
+      "Opening instructions that omit later-needed requirements",
+      "56% of 100 trajectories"
+     ],
+     [
+      "Useful follow-up requirements inferable from the project",
+      "52%"
+     ],
+     [
+      "Success-rate loss, full specification to partial instruction",
+      "53 to 67 points"
+     ],
+     [
+      "Frontier models evaluated",
+      "eight, including GPT-5.6-Sol"
+     ],
+     [
+      "Feedback that failed to close the gap",
+      "four submissions"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Compliant outputs can hide inconsistent values",
+    "num": "03",
+    "id": "compliant-outputs-can-hide-inconsistent-values"
+   }
+  ],
+  [
+   "p",
+   "Next belief: if a model's answers follow the rules, its values are in order. That's how most evaluation works, and the VALCON authors say so directly. Value alignment evaluations «heavily rely on output compliance». Does the model refuse the harmful request? Tick. But modern pipelines «often rely on the same LLM to both generate actions and evaluate their acceptability». Consistency between those roles matters."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPk9uZSBtb2RlbCB3cml0ZXMgYSByZXBseSBhcyBnZW5lcmF0b3IgYW5kIHRoZW4ganVkZ2VzIGl0IGFzIGV2YWx1YXRvciwgdW5kZXIgdGhlIHNhbWUgcHJpbmNpcGxlLCBhbmQgdGhlIHR3byBkaXNhZ3JlZTwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InJnIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NDAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2Ij4KICAgIDxyZWN0IHg9IjQyMCIgeT0iNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNzAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjYwMCIgeT0iODUiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNhbWUgcHJpbmNpcGxlPC90ZXh0PgogICAgPGxpbmUgeDE9IjUyMCIgeTE9IjExMiIgeDI9IjQwMCIgeTI9IjE5MCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNiIvPgogICAgPGxpbmUgeDE9IjY4MCIgeTE9IjExMiIgeDI9IjgwMCIgeTI9IjE5MCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNiIvPgogICAgPCEtLSBvbmUgbW9kZWwsIHR3byByb2xlcyAtLT4KICAgIDxyZWN0IHg9IjIwMCIgeT0iMTkwIiB3aWR0aD0iODAwIiBoZWlnaHQ9IjI1MCIgcng9IjI0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjAwIiB5PSIyMzIiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiPm9uZSBtb2RlbDwvdGV4dD4KICAgIDxlbGxpcHNlIGN4PSI0MDAiIGN5PSIzMzAiIHJ4PSIxNTAiIHJ5PSI4MCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNDAwIiB5PSIzMjIiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmdlbmVyYXRvcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjQwMCIgeT0iMzU2IiBmaWxsPSIjN2FhMmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj5hY3Rpbmc8L3RleHQ+CiAgICA8ZWxsaXBzZSBjeD0iODAwIiBjeT0iMzMwIiByeD0iMTUwIiByeT0iODAiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjgwMCIgeT0iMzIyIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ldmFsdWF0b3I8L3RleHQ+CiAgICA8dGV4dCB4PSI4MDAiIHk9IjM1NiIgZmlsbD0iI2E3OGJmYSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiI+anVkZ2luZzwvdGV4dD4KICAgIDxsaW5lIHgxPSI1NjAiIHkxPSIzMDAiIHgyPSI2NDAiIHkyPSIzNjAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8bGluZSB4MT0iNTYwIiB5MT0iMzYwIiB4Mj0iNjQwIiB5Mj0iMzAwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjAwIiB5PSI0MjAiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiPmRlY291cGxlZDwvdGV4dD4KICAgIDwhLS0gb3V0cHV0cyAtLT4KICAgIDxsaW5lIHgxPSI0MDAiIHkxPSI0NDIiIHgyPSI0MDAiIHkyPSI1MDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cmVjdCB4PSIyNjAiIHk9IjUxMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNDAwIiB5PSI1NjAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPndyaXRlcyBhIHJlcGx5PC90ZXh0PgogICAgPGxpbmUgeDE9IjgwMCIgeTE9IjQ0MiIgeDI9IjgwMCIgeTI9IjUwMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICAgIDxyZWN0IHg9IjY0MCIgeT0iNTEwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI4MDAiIHk9IjU2MCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmF0ZXMgaXRzIG93biByZXBseTwvdGV4dD4KICAgIDxlbGxpcHNlIGN4PSI2MDAiIGN5PSI1NTAiIHJ4PSI5MCIgcnk9IjYwIiBmaWxsPSJ1cmwoI3JnKSIvPgogICAgPHRleHQgeD0iNjAwIiB5PSI1NjYiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iNDgiIGZvbnQtd2VpZ2h0PSI2MDAiPuKJoDwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "One model as generator and evaluator under one principle; its reply and its rating of that reply disagree.",
+    "caption": "VALCON's test puts one model in both roles under the same principle, and the two roles often disagree.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Their test is neat. Put one model in two roles under identical principles: first as generator, then as evaluator of what it generated. A consistent model should approve its own acceptable outputs and flag its own bad ones. Across 28 LLMs, the finding was blunt: «models with highly compliant outputs frequently fail to align their judgments with their own generations». Writer and judge disagree, inside one model."
+  ],
+  [
+   "p",
+   "Probing found «a role-dependent representational decoupling associated with this behavioral asymmetry». In plain terms, the model represents a principle one way when acting and another way when judging. A targeted intervention on those representations helped. We think this matters most for self-critique loops. If a model grades its own drafts, a split like this waves bad drafts through."
+  ],
+  [
+   "h2",
+   {
+    "text": "Preference training can teach a habit nobody asked for",
+    "num": "04",
+    "id": "preference-training-can-teach-a-habit-nobody-asked-for"
+   }
+  ],
+  [
+   "p",
+   "Belief three: preference training only sands off bad behaviour. Mostly, it does. But it adds things too. A Mandarin study looks at one writing tic, the corrective construction that reads in English as not X, but Y. Five commercial models use it 2.5 to 9.2 times as densely as a human reference. If you read model output in English, you may know its cousin."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPkEgcHJlZmVyZW5jZS10cmFpbmluZyBsb29wIGluIHdoaWNoIGEgcmV3YXJkIG1vZGVsJ3MgdGFzdGUgZm9yIG9uZSBwaHJhc2UgbWFrZXMgdGhlIHBvbGljeSB1c2UgaXQgbW9yZSBlYWNoIHJvdW5kPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NjAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2Ij4KICAgIDwhLS0gbG9vcCAtLT4KICAgIDxwYXRoIGQ9Ik0zMzAsMTcwIEM1MjAsODAgNjgwLDgwIDg2MCwxNzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cGF0aCBkPSJNOTMwLDMwMCBDOTgwLDQwMCA5MzAsNTAwIDgyMCw1NDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cGF0aCBkPSJNMzgwLDU0MCBDMjcwLDUwMCAyMjAsNDAwIDI2MCwzMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cmVjdCB4PSIxMjAiIHk9IjE4MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjI3MCIgeT0iMjMwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wb2xpY3kgd3JpdGVzPC90ZXh0PgogICAgPHRleHQgeD0iMjcwIiB5PSIyNjQiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiPnR3byBjYW5kaWRhdGUgcmVwbGllczwvdGV4dD4KICAgIDxyZWN0IHg9Ijc4MCIgeT0iMTgwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjExMCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iOTQwIiB5PSIyMzAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJld2FyZCBtb2RlbDwvdGV4dD4KICAgIDx0ZXh0IHg9Ijk0MCIgeT0iMjY0IiBmaWxsPSIjYTc4YmZhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj5wcmVmZXJzIHRoZSBwaHJhc2U8L3RleHQ+CiAgICA8cmVjdCB4PSI0MjAiIHk9IjUwMCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIxMDAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjYxMCIgeT0iNTQ2IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wcmVmZXJlbmNlIHVwZGF0ZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjYxMCIgeT0iNTgwIiBmaWxsPSIjZTNiMzQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj5waHJhc2UgZ2V0cyBsaWtlbGllcjwvdGV4dD4KICAgIDwhLS0gdGhlIHBocmFzZSwgZ3Jvd2luZyBlYWNoIHJvdW5kIChjb25jZXB0LCBub3QgZGF0YSkgLS0+CiAgICA8ZyBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CiAgICAgIDxyZWN0IHg9IjQ3MCIgeT0iMzAwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjQwIiByeD0iMjAiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xMiIvPgogICAgICA8dGV4dCB4PSI2MDUiIHk9IjMyOCIgZmlsbD0iI2UzYjM0MSIgZm9udC1zaXplPSIyMiIgb3BhY2l0eT0iMC42Ij5ub3QgWCwgYnV0IFk8L3RleHQ+CiAgICAgIDxyZWN0IHg9IjQ0MCIgeT0iMzU4IiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjUwIiByeD0iMjUiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xOCIvPgogICAgICA8dGV4dCB4PSI2MDUiIHk9IjM5MiIgZmlsbD0iI2UzYjM0MSIgZm9udC1zaXplPSIyOCIgb3BhY2l0eT0iMC44Ij5ub3QgWCwgYnV0IFk8L3RleHQ+CiAgICAgIDxyZWN0IHg9IjQwNSIgeT0iNDI0IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjYwIiByeD0iMzAiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4yNiIvPgogICAgICA8dGV4dCB4PSI2MDUiIHk9IjQ2NSIgZmlsbD0iI2UzYjM0MSIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjYwMCI+bm90IFgsIGJ1dCBZPC90ZXh0PgogICAgPC9nPgogICAgPHRleHQgeD0iNjAwIiB5PSI2MCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCI+dXN1YWxseSBjb3JyZWN0LCBvZnRlbiB1bm5lZWRlZDwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "A loop from policy to reward model to preference update, with the phrase not X, but Y growing larger each round.",
+    "caption": "When a reward model favours a phrase, each preference update makes the policy reach for it more often.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The surprise is that the tic is rarely wrong. Of 307 annotated uses, only 1.30% were defective, and 52.8% were optional: correct, but unneeded. The authors conclude that «models fall short in appropriateness far more often than in correctness». A tic, in their framing, «depends on whether the model knows when it is called for». Grammar isn't the problem. Judgment is."
+  ],
+  [
+   "p",
+   "Here's where alignment comes in. «Several reward models favor the construction even over quality-matched variants». Worse, «both supervised fine-tuning and preference optimization tend to raise its frequency in open-weight models». So the training meant to make output better is the thing amplifying the habit. A reward model that likes a phrase teaches the policy to say it more."
+  ],
+  [
+   "p",
+   "We're not convinced this is only cosmetic. A phrase is the visible case, because you can count it. The same loop can reward any surface feature that raters or reward models happen to like. Most of those won't be nearly as easy to spot."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The appropriateness test the Mandarin study applies to each use of the corrective construction.",
+    "steps": [
+     "Take one use of the not X, but Y construction",
+     "Test if the context makes X a live alternative",
+     "Test if rejecting X tells the reader anything",
+     "Label the use substantive, optional or defective",
+     "Compare how often each label occurs across models"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Reward models agree with people where someone checked",
+    "num": "05",
+    "id": "reward-models-agree-with-people-where-someone-checked"
+   }
+  ],
+  [
+   "p",
+   "Belief four: a reward model is a faithful stand-in for human taste. Partly true. AVC-Reward, a reward model for audio-video generation, «achieves state-of-the-art alignment with human judgment among automatic methods». It splits a clip into events, checks each one across sound and picture, and «provides interpretable rationales that localize failures». That's a judge you can audit."
+  ],
+  [
+   "p",
+   "Its authors also show it «improves the audio-video consistency of a joint generation model when used as an online reinforcement-learning signal». So it isn't just a scorer on a shelf. It steers training. That's the good version of the loop from the last section: the reward measures what you care about, so optimising it helps."
+  ],
+  [
+   "p",
+   "The bad version sits right beside it. In the Mandarin study, «an LLM judge favors it even where the context does not license it». A judge can match human ratings on average and still carry a bias toward one surface feature. In our view, the honest claim for any reward model is narrow. It agrees with people on the cases someone checked."
+  ],
+  [
+   "h2",
+   {
+    "text": "Models and brains may share more meaning than skeptics expect",
+    "num": "06",
+    "id": "models-and-brains-may-share-more-meaning-than-skeptics-expec"
+   }
+  ],
+  [
+   "p",
+   "One last belief, and this one might hold up. People often say language models process meaning nothing like we do. Brain alignment research tests that, and alignment means something else here: how well a model's internal states predict human neural responses. A new arXiv paper splits that predictive power for one model, LLaMA2-7B, on fMRI recordings of seven participants hearing stories."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPkJyYWluLXByZWRpY3RpdmUgdmFyaWFuY2Ugc3BsaXQgYmV0d2VlbiBhIGxhbmd1YWdlIG1vZGVsIGFuZCBhbiBpbnRlcnByZXRhYmxlIHNlbWFudGljIHJlcHJlc2VudGF0aW9uLCB3aXRoIGEgc2hhcmVkIG92ZXJsYXA8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGNsaXBQYXRoIGlkPSJsZWZ0Ij48Y2lyY2xlIGN4PSI1MDAiIGN5PSIzMzAiIHI9IjIyMCIvPjwvY2xpcFBhdGg+CiAgICA8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjIwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiI+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI4Ij5wcmVkaWN0aW5nIGZNUkkgcmVzcG9uc2VzIHRvIHNwb2tlbiBzdG9yaWVzPC90ZXh0PgogICAgPGNpcmNsZSBjeD0iNTAwIiBjeT0iMzMwIiByPSIyMjAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxjaXJjbGUgY3g9IjcwMCIgY3k9IjMzMCIgcj0iMjIwIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8Y2lyY2xlIGN4PSI3MDAiIGN5PSIzMzAiIHI9IjIyMCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIyIiBjbGlwLXBhdGg9InVybCgjbGVmdCkiLz4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMzIwIiBmaWxsPSIjN2FhMmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNjAwIj5MTGFNQTItN0I8L3RleHQ+CiAgICA8dGV4dCB4PSIzNzAiIHk9IjM1NiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiI+dW5pcXVlPC90ZXh0PgogICAgPHRleHQgeD0iODMwIiB5PSIzMjAiIGZpbGw9IiNhNzhiZmEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI2MDAiPlNDUklCRTwvdGV4dD4KICAgIDx0ZXh0IHg9IjgzMCIgeT0iMzU2IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj51bmlxdWU8L3RleHQ+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjMyMCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjYwMCI+c2hhcmVkPC90ZXh0PgogICAgPHRleHQgeD0iNjAwIiB5PSIzNTYiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiPmRvbWluYW50PC90ZXh0PgogICAgPHRleHQgeD0iODMwIiB5PSIzOTAiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiPjY1IHByb3BlcnRpZXM8L3RleHQ+CiAgICA8cmVjdCB4PSI5MDAiIHk9IjUwMCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iMTAzMCIgeT0iNTM1IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj5jb25jcmV0ZSBtZWFuaW5nPC90ZXh0PgogICAgPHRleHQgeD0iMTAzMCIgeT0iNTY1IiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj5zaGFyZXMgbW9yZTwvdGV4dD4KICAgIDxwYXRoIGQ9Ik04OTgsNTMwIEM4MDAsNTIwIDcwMCw0NzAgNjQwLDQwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Two overlapping circles, LLaMA2-7B and SCRIBE, with the shared overlap marked dominant and concrete meaning sharing more.",
+    "caption": "Brain-predictive variance splits into a part the model shares with a readable semantic representation and parts unique to each.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The authors compare the model against SCRIBE, a readable representation spanning 65 semantic properties. They find that «shared variance is the dominant component across the whole brain and language-related regions». And «Concrete properties show greater shared variance with LLaMA2-7B than abstract properties». So much of what makes the model brain-like is meaning you can name."
+  ],
+  [
+   "p",
+   "Do models think like us, then? Not yet proven. This is one model, seven listeners and narrative stories. Abstract meaning, the part we'd most like to understand, shared less. What would settle it is the same split across several model families, many more listeners, and abstract text like arguments or instructions. Then the overlap would say something about language models in general."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is AI alignment in simple terms?"
+  ],
+  [
+   "p",
+   "AI alignment is the work of making a model's behaviour match what people actually want, which is more than following instructions. Preference training is the main tool: people pick better responses and the model learns from those choices. A new agent paper argues a model should «treat the instruction as evidence rather than as the objective», and infer what was left unsaid."
+  ],
+  [
+   "h3",
+   "Does preference training make models better writers?"
+  ],
+  [
+   "p",
+   "Not always: preference training can amplify habits nobody asked for. A Mandarin study found that «both supervised fine-tuning and preference optimization tend to raise its frequency in open-weight models», for a construction that was usually correct but unneeded. The reward model liked the phrase, so the policy learned to use it more, whether or not the context called for it."
+  ],
+  [
+   "h3",
+   "Can a language model judge its own outputs reliably?"
+  ],
+  [
+   "p",
+   "Not consistently yet. VALCON put 28 LLMs in both generator and evaluator roles and found that «models with highly compliant outputs frequently fail to align their judgments with their own generations». A representation-directed intervention reduced those failures, but a self-grading loop still deserves an outside check before you trust its verdicts."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Instructions Are Evidence, Not Objectives: Measuring Outcome Alignment of Agents",
+   "url": "https://arxiv.org/abs/2610.17757v1",
+   "posted": "2026-10-13"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "VALCON: Benchmarking and Enhancing Value Consistency in Large Language Models via Dual-Role Variation",
+   "url": "https://arxiv.org/abs/2610.21304v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Not X, but When: Diagnosing a Mandarin LLM Writing Tic through Contextual Appropriateness",
+   "url": "https://arxiv.org/abs/2610.22249v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "AVC-Reward: Event-Centric Audio-Video Consistency Evaluation",
+   "url": "https://arxiv.org/abs/2610.22321v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Decomposing Brain-LLM Alignment with Interpretable Semantic Representations",
+   "url": "https://arxiv.org/abs/2610.21508v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "initial instructions are often incomplete": 1,
+  "treat the instruction as evidence rather than as the objective": 1,
+  "each requirement stays discoverable from the code and runtime behaviour of the environment": 1,
+  "requirements the agent infers are separated from those the user adds after observing delivered work": 1,
+  "inferring the true requirements from the instruction and the environment": 1,
+  "consequence feedback across four submissions does not close the gap": 1,
+  "a plan-mode harness cannot compensate for the missing ability of the model itself": 1,
+  "heavily rely on output compliance": 2,
+  "often rely on the same LLM to both generate actions and evaluate their acceptability": 2,
+  "models with highly compliant outputs frequently fail to align their judgments with their own generations": 2,
+  "a role-dependent representational decoupling associated with this behavioral asymmetry": 2,
+  "models fall short in appropriateness far more often than in correctness": 3,
+  "depends on whether the model knows when it is called for": 3,
+  "Several reward models favor the construction even over quality-matched variants": 3,
+  "both supervised fine-tuning and preference optimization tend to raise its frequency in open-weight models": 3,
+  "achieves state-of-the-art alignment with human judgment among automatic methods": 4,
+  "provides interpretable rationales that localize failures": 4,
+  "improves the audio-video consistency of a joint generation model when used as an online reinforcement-learning signal": 4,
+  "an LLM judge favors it even where the context does not license it": 3,
+  "shared variance is the dominant component across the whole brain and language-related regions": 5,
+  "Concrete properties show greater shared variance with LLaMA2-7B than abstract properties": 5
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:45:25+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21508v1",
+   "arxiv:2610.17757v1",
+   "arxiv:2610.21304v1",
+   "arxiv:2610.22249v1",
+   "arxiv:2610.21422v1",
+   "arxiv:2610.22321v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "myth-vs-reality:concept/alignment",
+  "format": "myth-vs-reality",
+  "reviewed_by": null
+ }
+}

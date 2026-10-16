@@ -1,0 +1,429 @@
+{
+ "slug": "myth-vs-reality-concept-prompting",
+ "status": "draft",
+ "tag": "Myth vs reality",
+ "feat": false,
+ "title": "Prompt Engineering Lore and What Few-Shot Examples Actually Do",
+ "dek": "We take the things people repeat about few-shot prompting one at a time, and set each against what new papers actually found.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is in-context learning? A frozen model adapting to examples in its prompt. It's real, but examples can be right for the wrong reason, shorter inputs can win, and training may tilt models toward recall.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPlRocmVlIGZldy1zaG90IGV4YW1wbGUgY2FyZHMgYWxsIHNob3cgYSBjb3JyZWN0IGFuc3dlciwgYnV0IGEgbGVucyByZXZlYWxzIG9uZSByZXN0cyBvbiBhIGJyb2tlbiBjaGFpbiBvZiByZWFzb25pbmc8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJsZW5zIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4yMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjAuOCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjA2Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJoYWxvIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4xOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjIzMCIgcj0iNDIwIiBmaWxsPSJ1cmwoI2hhbG8pIi8+CgogIDwhLS0gd2F0ZXJsaW5lIGJldHdlZW4gYW5zd2VyIGFuZCByYXRpb25hbGUgLS0+CiAgPGxpbmUgeDE9IjYwIiB5MT0iMjkwIiB4Mj0iMTE0MCIgeTI9IjI5MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDEwIi8+CiAgPHRleHQgeD0iNzAiIHk9IjI3MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0Ij5hbnN3ZXI8L3RleHQ+CiAgPHRleHQgeD0iNzAiIHk9IjMzMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0Ij5yYXRpb25hbGU8L3RleHQ+CgogIDwhLS0gdGhyZWUgZXhhbXBsZSBjYXJkcyBhYm92ZSB0aGUgbGluZSAtLT4KICA8Zz4KICAgIDxyZWN0IHg9IjIwMCIgeT0iOTAiIHdpZHRoPSIyMzAiIGhlaWdodD0iMTcwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIyMzAiIHk9IjEyMiIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiMyYzM1NDQiLz4KICAgIDxyZWN0IHg9IjIzMCIgeT0iMTUwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE0IiByeD0iNyIgZmlsbD0iIzJjMzU0NCIvPgogICAgPHJlY3QgeD0iMjMwIiB5PSIxNzgiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiMyYzM1NDQiLz4KICAgIDxjaXJjbGUgY3g9IjM4MCIgY3k9IjIxNCIgcj0iMjQiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMiIvPgogICAgPHBhdGggZD0iTTM2OCwyMTQgTDM3NywyMjQgTDM5NCwyMDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8L2c+CiAgPGc+CiAgICA8cmVjdCB4PSI0ODUiIHk9IjkwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjE3MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iNTE1IiB5PSIxMjIiIHdpZHRoPSIxNDAiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjMmMzNTQ0Ii8+CiAgICA8cmVjdCB4PSI1MTUiIHk9IjE1MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiMyYzM1NDQiLz4KICAgIDxyZWN0IHg9IjUxNSIgeT0iMTc4IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE0IiByeD0iNyIgZmlsbD0iIzJjMzU0NCIvPgogICAgPGNpcmNsZSBjeD0iNjY1IiBjeT0iMjE0IiByPSIyNCIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4yIi8+CiAgICA8cGF0aCBkPSJNNjUzLDIxNCBMNjYyLDIyNCBMNjc5LDIwNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDwvZz4KICA8Zz4KICAgIDxyZWN0IHg9Ijc3MCIgeT0iOTAiIHdpZHRoPSIyMzAiIGhlaWdodD0iMTcwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSI4MDAiIHk9IjEyMiIgd2lkdGg9IjExMCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiMyYzM1NDQiLz4KICAgIDxyZWN0IHg9IjgwMCIgeT0iMTUwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE0IiByeD0iNyIgZmlsbD0iIzJjMzU0NCIvPgogICAgPHJlY3QgeD0iODAwIiB5PSIxNzgiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjMmMzNTQ0Ii8+CiAgICA8Y2lyY2xlIGN4PSI5NTAiIGN5PSIyMTQiIHI9IjI0IiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjIiLz4KICAgIDxwYXRoIGQ9Ik05MzgsMjE0IEw5NDcsMjI0IEw5NjQsMjA0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPC9nPgoKICA8IS0tIHJhdGlvbmFsZSBjaGFpbnMgYmVsb3cgdGhlIGxpbmUgLS0+CiAgPGcgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9IiMxNTFhMjMiPgogICAgPGxpbmUgeDE9IjMxNSIgeTE9IjMwMCIgeDI9IjMxNSIgeTI9IjU0MCIvPgogICAgPGNpcmNsZSBjeD0iMzE1IiBjeT0iMzUwIiByPSIxNiIvPjxjaXJjbGUgY3g9IjMxNSIgY3k9IjQyMCIgcj0iMTYiLz48Y2lyY2xlIGN4PSIzMTUiIGN5PSI0OTAiIHI9IjE2Ii8+CiAgICA8bGluZSB4MT0iODg1IiB5MT0iMzAwIiB4Mj0iODg1IiB5Mj0iNTQwIi8+CiAgICA8Y2lyY2xlIGN4PSI4ODUiIGN5PSIzNTAiIHI9IjE2Ii8+PGNpcmNsZSBjeD0iODg1IiBjeT0iNDIwIiByPSIxNiIvPjxjaXJjbGUgY3g9Ijg4NSIgY3k9IjQ5MCIgcj0iMTYiLz4KICA8L2c+CiAgPCEtLSB0aGUgYnJva2VuIG9uZSAtLT4KICA8Y2lyY2xlIGN4PSI2MDAiIGN5PSI0MzAiIHI9IjE1MCIgZmlsbD0idXJsKCNsZW5zKSIvPgogIDxnIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSIjMTUxYTIzIj4KICAgIDxsaW5lIHgxPSI2MDAiIHkxPSIzMDAiIHgyPSI2MDAiIHkyPSIzOTUiLz4KICAgIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjM1MCIgcj0iMTYiLz4KICAgIDxsaW5lIHgxPSI2MDAiIHkxPSI0NTUiIHgyPSI2MDAiIHkyPSI1NDAiLz4KICAgIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjQ5MCIgcj0iMTYiLz4KICA8L2c+CiAgPHBhdGggZD0iTTU4NCw0MDUgTDU5Niw0MTggTDU5MCw0MzAgTDYwNCw0NDQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNNjE0LDQwNSBMNjA2LDQxOCBMNjEyLDQzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC43Ii8+CiAgPCEtLSBsZW5zIHJpbmcgLS0+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iNDMwIiByPSIxMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI1IiBvcGFjaXR5PSIwLjg1Ii8+CiAgPGxpbmUgeDE9IjY3OSIgeTE9IjUwOSIgeDI9Ijc2MCIgeTI9IjU5MCIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjE0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuODUiLz4KPC9zdmc+Cg==",
+  "alt": "Three example cards each show a green check; beneath them, a lens reveals the middle card's reasoning chain is broken.",
+  "caption": "A few-shot example can carry the right answer on top of a broken rationale underneath.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is in-context learning, really? Prompt engineering beliefs about few-shot examples, long inputs and recall, checked against new research.",
+ "keywords": [
+  "what is in-context learning",
+  "Prompting and in-context learning",
+  "prompt engineering",
+  "few-shot prompting",
+  "in-context learning myths",
+  "self-generated demonstrations"
+ ],
+ "kicker": "Myth vs reality",
+ "tags": [
+  "prompt engineering",
+  "Myth vs reality"
+ ],
+ "read": 7,
+ "decisions": [
+  "Test self-written demonstrations on similar problems before keeping them.",
+  "Try the shorter, cleaner input before pasting a whole document.",
+  "Compare prompting and fine-tuning on your own inputs and runtime budget.",
+  "Probe recall against reading with invented topics and shuffled labels."
+ ],
+ "layout": "myths",
+ "arrangement": "a",
+ "special": {
+  "type": "myths",
+  "title": "Myth or not",
+  "items": [
+   {
+    "myth": "Show the model a few examples and it learns the task.",
+    "reality": "It adapts for one request with frozen weights, and following the examples reliably is a known challenge.",
+    "verdict": "partly true"
+   },
+   {
+    "myth": "If a self-written demonstration reaches the right answer, it's a good demonstration.",
+    "reality": "A spurious rationale can reach the same answer; running the rationale on similar problems separates the two.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Give the model the full document, because more context is always better.",
+    "reality": "For biomedical lay summaries, abstracts beat full text overall, and prompting on abstracts ran 5.31 times faster.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Fine-tuning always beats prompting.",
+    "reality": "Fine-tuning can still win a given task, but in the lay-summary study prompting on abstracts kept quality at lower runtime.",
+    "verdict": "partly true"
+   },
+   {
+    "myth": "In-context learning is a late trick only huge, heavily trained models have.",
+    "reality": "In a solvable theory, the in-context predictor appears early; the memorising one needs more training tokens.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Few-shot prompting only works for left-to-right text generation.",
+    "reality": "Diffusion language models can use examples to fill several masked regions at once, with context on both sides.",
+    "verdict": "myth"
+   },
+   {
+    "myth": "With enough training, models stop reading the prompt and just recall.",
+    "reality": "Theory says a recall strategy appears only after enough training tokens; which one real models use is still untested.",
+    "verdict": "partly true"
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Examples steer a model without changing its weights",
+    "num": "01",
+    "id": "examples-steer-a-model-without-changing-its-weights"
+   }
+  ],
+  [
+   "p",
+   "Show the model a few examples and it learns the task. You've heard it in every prompt engineering discussion, and it's half right. The examples really do change what comes out. But a new arXiv paper on few-shot prompting sets out to tackle «the known challenge of reliably following demonstrations in few-shot prompting». If the model had learned the task, why would following it be unreliable? That's the first crack."
+  ],
+  [
+   "p",
+   "So what is in-context learning, exactly? It's a model using its prompt as data. The weights stay frozen. Your examples sit in the context window, and attention lets the new query draw on them while the next token is computed. A theory paper describes it as models «using their prompt to adapt to novel tasks». Close the session, and nothing was kept."
+  ],
+  [
+   "p",
+   "We think the belief is partly true. The model does adapt, and that's genuinely useful. Few-shot prompting earns its keep where, as one abstract puts it, «instructions and rewards are hard to specify». But adapting for one request isn't learning in the training sense. Each prompt starts from scratch. Every example costs tokens, every single time."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "What happens during in-context learning, from prompt to output, with the weights never touched.",
+    "steps": [
+     "Prompt holds instructions plus a few worked examples",
+     "Model reads them as context; its weights stay frozen",
+     "Attention lets the new query draw on the examples",
+     "Output follows the pattern, when the model follows it",
+     "Nothing is kept for the next request"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A right answer can hide a wrong rationale",
+    "num": "02",
+    "id": "a-right-answer-can-hide-a-wrong-rationale"
+   }
+  ],
+  [
+   "p",
+   "Next belief: if a demonstration reaches the right answer, it's a good demonstration. It powers a popular trick. Self-generated in-context learning lets a model write its own worked examples, «often outperforming manual prompts». You keep the ones whose reasoning lands on the correct output and toss the rest. Sounds airtight. It isn't."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPlR3byByYXRpb25hbGVzIGdpdmUgdGhlIHNhbWUgYW5zd2VyIG9uIHRoZSBvcmlnaW5hbCBwcm9ibGVtOyBydW4gYXMgcHJvZ3JhbXMgb24gYSBzaW1pbGFyIHByb2JsZW0sIG9ubHkgdGhlIGZhaXRoZnVsIG9uZSBzdGlsbCB3b3JrczwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhTSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI3IiByZWZZPSI1IiBtYXJrZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIG1hcmtlcldpZHRoPSIxNiIgbWFya2VySGVpZ2h0PSIxNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjQwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIGNvbHVtbiBoZWFkZXJzIC0tPgogIDx0ZXh0IHg9IjIxMCIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+b3JpZ2luYWwgcHJvYmxlbTwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPnJhdGlvbmFsZSBhcyBwcm9ncmFtPC90ZXh0PgogIDx0ZXh0IHg9Ijk4NSIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2E3OGJmYSI+c2ltaWxhciBwcm9ibGVtPC90ZXh0PgoKICA8IS0tIHJvdyAxOiBmYWl0aGZ1bCAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMTEwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPnNhbWUgYW5zd2VyPC90ZXh0PgogIDxwYXRoIGQ9Ik0xOTAsMTkwIEwyMDMsMjAzIEwyMjgsMTc4IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPGxpbmUgeDE9IjM1MCIgeTE9IjE3MCIgeDI9IjQ0MCIgeTI9IjE3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYU0pIi8+CiAgPHJlY3QgeD0iNDUwIiB5PSIxMTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjE2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjM2VjZjhlIj5mYWl0aGZ1bDwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnVzZXMgdGhlIGNhdXNlPC90ZXh0PgogIDxsaW5lIHgxPSI3NjAiIHkxPSIxNzAiIHgyPSI4NTAiIHkyPSIxNzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FNKSIvPgogIDxyZWN0IHg9Ijg2MCIgeT0iMTEwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxjaXJjbGUgY3g9Ijk4NSIgY3k9IjE3MCIgcj0iMzIiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMiIvPgogIDxwYXRoIGQ9Ik05NjgsMTcwIEw5ODAsMTgzIEwxMDA0LDE1NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjExMzAiIHk9IjE4MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjM2VjZjhlIj5rZWVwPC90ZXh0PgoKICA8IS0tIHJvdyAyOiBzcHVyaW91cyAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMjkwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iMzQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPnNhbWUgYW5zd2VyPC90ZXh0PgogIDxwYXRoIGQ9Ik0xOTAsMzcwIEwyMDMsMzgzIEwyMjgsMzU4IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPGxpbmUgeDE9IjM1MCIgeTE9IjM1MCIgeDI9IjQ0MCIgeTI9IjM1MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYU0pIi8+CiAgPHJlY3QgeD0iNDUwIiB5PSIyOTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjM0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZmY3YjcyIj5zcHVyaW91czwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnN0b3J5IHRvbGQgYWZ0ZXI8L3RleHQ+CiAgPGxpbmUgeDE9Ijc2MCIgeTE9IjM1MCIgeDI9Ijg1MCIgeTI9IjM1MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYU0pIi8+CiAgPHJlY3QgeD0iODYwIiB5PSIyOTAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGNpcmNsZSBjeD0iOTg1IiBjeT0iMzUwIiByPSIzMiIgZmlsbD0iI2ZmN2I3MiIgb3BhY2l0eT0iMC4yIi8+CiAgPGcgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8bGluZSB4MT0iOTcwIiB5MT0iMzM1IiB4Mj0iMTAwMCIgeTI9IjM2NSIvPjxsaW5lIHgxPSIxMDAwIiB5MT0iMzM1IiB4Mj0iOTcwIiB5Mj0iMzY1Ii8+CiAgPC9nPgogIDx0ZXh0IHg9IjExMzAiIHk9IjM2MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIj5kcm9wPC90ZXh0PgoKICA8IS0tIHRoZSBwb2ludCAtLT4KICA8cmVjdCB4PSI4MCIgeT0iNDcwIiB3aWR0aD0iMTAzMCIgaGVpZ2h0PSIxMzAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1OTUiIHk9IjUyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5yZWFkaW5nIHRoZSBhbnN3ZXIgY2Fubm90IHRlbGwgdGhlc2UgYXBhcnQ8L3RleHQ+CiAgPHRleHQgeD0iNTk1IiB5PSI1NjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2E3OGJmYSI+Y2hhbmdpbmcgdGhlIHByb2JsZW0gY2FuPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Faithful and spurious rationales both give the same answer; run on a similar problem, the faithful one passes and is kept.",
+    "caption": "Reading the answer can't separate the two rationales; changing the problem and rerunning the rationale can.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The ECI2D authors name the hidden assumption: filters work by «assuming a rationale is high-quality if it leads to the correct output». Their objection is sharp. They show «both faithful causal rationales and spurious post-hoc rationales can yield same outputs and are statistically indistinguishable from observation alone». A rationale can be a story told after the fact. It still points at the right answer."
+  ],
+  [
+   "p",
+   "We went through their filter step by step. First, each written rationale becomes code: the method «abstracts language rationales into executable programs». Next, the program runs on logically similar problems, a deliberate intervention in the causal sense. A faithful rationale keeps working there. A spurious one breaks. Only demonstrations that survive the change are kept."
+  ],
+  [
+   "p",
+   "The payoff is striking. ECI2D beats observation-based filtering while «retaining far fewer demonstrations, with gains exceeding 7 points as the test distribution shifts». We agree with the core idea: a check that only reads the answer can't see the reasoning. The open question is reach. Math converts to programs easily. Open-ended writing is much harder to picture."
+  ],
+  [
+   "code",
+   {
+    "label": "An intervention-style filter for self-written demonstrations (illustrative sketch, not the paper's code)",
+    "language": "python",
+    "source": "def keep_demo(program, similar_problems):\n    \"\"\"program: a rationale rewritten as code.\n    similar_problems: (input, gold) pairs that share the original logic\n    but change its surface details.\"\"\"\n    for x, gold in similar_problems:\n        try:\n            if program(x) != gold:\n                return False   # right once, wrong under intervention\n        except Exception:\n            return False\n    return True                # the rationale transfers: keep it\n\ndemos = [d for d in candidates\n         if d.correct and keep_demo(d.program, perturb(d.problem))]\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Shorter input can buy the better summary",
+    "num": "03",
+    "id": "shorter-input-can-buy-the-better-summary"
+   }
+  ],
+  [
+   "p",
+   "Here's a belief nobody says out loud but everyone acts on: more context is better, so paste the whole document. A biomedical lay-summary study put it to a direct test. It asked «whether abstracts contain enough information to produce lay summaries as good as those based on full-text articles». The answer surprised us. Shorter won. In the study's words, «abstract-based summarization performs better overall»."
+  ],
+  [
+   "p",
+   "It was faster too. The study reports that «abstract zero- and few-shot prompting is 5.31 times faster than full-text methods». Why would less text win on quality? Our guess is that an abstract is already a summary, written by the people who know the work best. A full paper hands the model methods, tables and caveats it must then ignore. That's our hypothesis, not their finding."
+  ],
+  [
+   "p",
+   "The same study took on a second belief: fine-tuning beats prompting. Its other question was «whether few-shot learning performs as well as task-specific fine-tuning». On cost, «abstract fine-tuning is 4.70 times faster» than working from full text, and prompting is quicker still. Its conclusion is that «abstract-based prompting reduces runtime cost while maintaining lay summary quality». In our view the input choice moved the result more than the method did."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What the biomedical lay-summary study reports for abstract-based inputs against full text.",
+    "columns": [
+     "Input and method",
+     "Reported result"
+    ],
+    "rows": [
+     [
+      "Abstract-based summarization",
+      "Performs better overall"
+     ],
+     [
+      "Abstract fine-tuning",
+      "4.70 times faster than full-text methods"
+     ],
+     [
+      "Abstract zero- and few-shot prompting",
+      "5.31 times faster than full-text methods"
+     ],
+     [
+      "Abstract-based prompting",
+      "Keeps lay summary quality at lower runtime cost"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "In-context learning shows up early in training",
+    "num": "04",
+    "id": "in-context-learning-shows-up-early-in-training"
+   }
+  ],
+  [
+   "p",
+   "Another popular belief: in-context learning is a late, emergent trick that only shows up in huge, heavily trained models. A new theory paper argues for the opposite order. It studies a solvable topic model with two competing solutions. One is «a specialised predictor, that stores the finite topic mixture». The other is «an in-context one, optimal for topics never seen during training»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCI+CiAgPHRpdGxlPkFsb25nIHRyYWluaW5nLCB0aGUgaW4tY29udGV4dCBwcmVkaWN0b3IgaXMgYXZhaWxhYmxlIGVhcmx5IGFuZCB0aGUgc3BlY2lhbGlzZWQgcHJlZGljdG9yIGFwcGVhcnMgb25seSBsYXRlcjwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImVhcmx5IiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjE1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC4yNSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjc1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjc1Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsYXRlIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjE1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC4zNSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjc1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjc1Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYU0iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBtYXJrZXJXaWR0aD0iMTgiIG1hcmtlckhlaWdodD0iMTgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjU2MCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSB0cmFpbmluZyBheGlzIC0tPgogIDxsaW5lIHgxPSI4MCIgeTE9IjQ0MCIgeDI9IjExMjAiIHkyPSI0NDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FNKSIvPgogIDx0ZXh0IHg9IjExMTAiIHk9IjQ4MiIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0Ij50cmFpbmluZyB0b2tlbnM8L3RleHQ+CgogIDwhLS0gaW4tY29udGV4dCBsYW5lIC0tPgogIDx0ZXh0IHg9IjgwIiB5PSIxMTAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzdhYTJmZiI+aW4tY29udGV4dCBwcmVkaWN0b3I8L3RleHQ+CiAgPHJlY3QgeD0iMjAwIiB5PSIxMzAiIHdpZHRoPSI5MTAiIGhlaWdodD0iNTYiIHJ4PSIyOCIgZmlsbD0idXJsKCNlYXJseSkiLz4KICA8dGV4dCB4PSIyMzAiIHk9IjE2OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjMTAxNDFiIiBmb250LXdlaWdodD0iNjAwIj5yZWFkcyB0aGUgcHJvbXB0LCBoYW5kbGVzIHVuc2VlbiB0b3BpY3M8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMTU4IiByPSIxNCIgZmlsbD0iIzdhYTJmZiIvPgogIDxsaW5lIHgxPSIyMDAiIHkxPSIxNzIiIHgyPSIyMDAiIHkyPSI0NDAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDgiLz4KICA8dGV4dCB4PSIyMTYiIHk9IjQyMCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3YWEyZmYiPmVhcmx5PC90ZXh0PgoKICA8IS0tIHNwZWNpYWxpc2VkIGxhbmUgLS0+CiAgPHRleHQgeD0iODAiIHk9IjI1NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjYTc4YmZhIj5zcGVjaWFsaXNlZCBwcmVkaWN0b3I8L3RleHQ+CiAgPHJlY3QgeD0iNzAwIiB5PSIyNzYiIHdpZHRoPSI0MTAiIGhlaWdodD0iNTYiIHJ4PSIyOCIgZmlsbD0idXJsKCNsYXRlKSIvPgogIDx0ZXh0IHg9Ijc2MCIgeT0iMzE0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMxMDE0MWIiIGZvbnQtd2VpZ2h0PSI2MDAiPnN0b3JlcyB0aGUgdG9waWMgbWl4PC90ZXh0PgogIDxjaXJjbGUgY3g9IjcwMCIgY3k9IjMwNCIgcj0iMTQiIGZpbGw9IiNhNzhiZmEiLz4KICA8bGluZSB4MT0iNzAwIiB5MT0iMzE4IiB4Mj0iNzAwIiB5Mj0iNDQwIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA4Ii8+CiAgPHRleHQgeD0iNzIyIiB5PSIzODAiIHRleHQtYW5jaG9yPSJzdGFydCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij50b2tlbnMgb3V0bnVtYmVyIHRoZTwvdGV4dD4KICA8dGV4dCB4PSI3MjIiIHk9IjQxMiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPmRhdGEgZ2VuZXJhdG9yJ3MgcGFyYW1ldGVyczwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "A training timeline: the in-context predictor bar starts early, the specialised predictor bar starts much later.",
+    "caption": "In the topic-model theory, reading the prompt is available early; storing the topic mix comes only after enough training tokens.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The headline result is about timing. The theory predicts that «the in-context predictor is available early, while the specialised one emerges only after the training tokens outnumber the parameters of the data-generating process». Put plainly, reading the prompt is the cheap strategy. Memorising the world needs more data. Real transformers followed the script, «with no fitted parameters»."
+  ],
+  [
+   "p",
+   "Why should a prompt engineer care? Because the strategy a model settles on shapes how it behaves on inputs unlike its training. The authors point out that until now «there is no learning theory for this competition». We think that's an honest framing. The theory is clean, but it's a toy world. Real pretraining is far messier."
+  ],
+  [
+   "h2",
+   {
+    "text": "Examples can guide edits on both sides of a gap",
+    "num": "05",
+    "id": "examples-can-guide-edits-on-both-sides-of-a-gap"
+   }
+  ],
+  [
+   "p",
+   "One more belief: few-shot prompting is a left-to-right business. You show examples, then the model continues the text. That works fine for chat. It works badly for edits, where a demonstrated change has to land in the middle of existing code. The diffusion paper notes that «such edits often depend on both left and right context, making generation with causal autoregressive models awkward»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPk9uZSBleGFtcGxlIGVkaXQgZ3VpZGVzIGEgZGlmZnVzaW9uIG1vZGVsIHRvIGZpbGwgc2V2ZXJhbCBtYXNrZWQgc2l0ZXMgaW4gYSBmaWxlIGF0IG9uY2UsIHVzaW5nIGNvbnRleHQgb24gYm90aCBzaWRlczwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhViIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI3IiByZWZZPSI1IiBtYXJrZXJVbml0cz0idXNlclNwYWNlT25Vc2UiIG1hcmtlcldpZHRoPSIxNiIgbWFya2VySGVpZ2h0PSIxNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFHIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjUiIHJlZlk9IjUiIG1hcmtlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgbWFya2VyV2lkdGg9IjE0IiBtYXJrZXJIZWlnaHQ9IjE0IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBleGFtcGxlIGVkaXQgY2FyZCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iNzAiIHdpZHRoPSIzMzAiIGhlaWdodD0iMjUwIiByeD0iMTgiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIyMTUiIHk9IjU0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNhNzhiZmEiPmV4YW1wbGUgZWRpdDwvdGV4dD4KICA8dGV4dCB4PSI4MCIgeT0iMTI4IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiI+b2xkX2NhbGwoeCk8L3RleHQ+CiAgPHRleHQgeD0iODAiIHk9IjE5MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0Ij5iZWNvbWVzPC90ZXh0PgogIDx0ZXh0IHg9IjgwIiB5PSIyNTYiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIj5uZXdfY2FsbCh4KTwvdGV4dD4KCiAgPCEtLSBjYW52YXM6IGEgZmlsZSAtLT4KICA8cmVjdCB4PSI1MDAiIHk9IjQwIiB3aWR0aD0iNjUwIiBoZWlnaHQ9IjU2MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjgyNSIgeT0iODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+b25lIHNoYXJlZCBjYW52YXM8L3RleHQ+CiAgPGcgZmlsbD0iIzJjMzU0NCI+CiAgICA8cmVjdCB4PSI1NDAiIHk9IjExNiIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIxNiIgcng9IjgiLz4KICAgIDxyZWN0IHg9IjU3MCIgeT0iMTQ2IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE2IiByeD0iOCIvPgogICAgPHJlY3QgeD0iNTcwIiB5PSIyMzYiIHdpZHRoPSI0MjAiIGhlaWdodD0iMTYiIHJ4PSI4Ii8+CiAgICA8cmVjdCB4PSI1NDAiIHk9IjI2NiIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIxNiIgcng9IjgiLz4KICAgIDxyZWN0IHg9IjU3MCIgeT0iMzU2IiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjE2IiByeD0iOCIvPgogICAgPHJlY3QgeD0iNTcwIiB5PSIzODYiIHdpZHRoPSIyMzAiIGhlaWdodD0iMTYiIHJ4PSI4Ii8+CiAgICA8cmVjdCB4PSI1NDAiIHk9IjQ3NiIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIxNiIgcng9IjgiLz4KICAgIDxyZWN0IHg9IjU3MCIgeT0iNTA2IiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE2IiByeD0iOCIvPgogIDwvZz4KICA8IS0tIG1hc2tlZCBzaXRlcyBiZWluZyBmaWxsZWQgLS0+CiAgPGc+CiAgICA8cmVjdCB4PSI1NzAiIHk9IjE3NCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI0MCIgcng9IjEwIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMjIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxMCA2Ii8+CiAgICA8dGV4dCB4PSI1OTAiIHk9IjIwMyIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNjN2Q2ZmYiPm5ld19jYWxsKGEpPC90ZXh0PgogICAgPHJlY3QgeD0iNTcwIiB5PSIyOTQiIHdpZHRoPSIyNTAiIGhlaWdodD0iNDAiIHJ4PSIxMCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjIyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgNiIvPgogICAgPHRleHQgeD0iNTkwIiB5PSIzMjMiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjYzdkNmZmIj5uZXdfY2FsbChiKTwvdGV4dD4KICAgIDxyZWN0IHg9IjU3MCIgeT0iNDE0IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjQwIiByeD0iMTAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4yMiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDYiLz4KICAgIDx0ZXh0IHg9IjU5MCIgeT0iNDQzIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2M3ZDZmZiI+bmV3X2NhbGwoYyk8L3RleHQ+CiAgPC9nPgogIDwhLS0gZ3VpZGFuY2UgYXJyb3dzIC0tPgogIDxwYXRoIGQ9Ik0zODAsMTk1IEM0NTAsMTk1IDQ3MCwxOTQgNTYwLDE5NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYVYpIi8+CiAgPHBhdGggZD0iTTM4MCwyNDAgQzQ2MCwyNTAgNDcwLDMxNCA1NjAsMzE0IiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhVikiLz4KICA8cGF0aCBkPSJNMzgwLDI4NSBDNDUwLDMyMCA0NzAsNDM0IDU2MCw0MzQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FWKSIvPgoKICA8IS0tIGJvdGgtc2lkZXMgY29udGV4dCAtLT4KICA8bGluZSB4MT0iMTA1MCIgeTE9IjEzMiIgeDI9IjEwNTAiIHkyPSIyMzIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItc3RhcnQ9InVybCgjYUcpIiBtYXJrZXItZW5kPSJ1cmwoI2FHKSIvPgogIDx0ZXh0IHg9IjEwNjYiIHk9IjE3OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjM2VjZjhlIj5ib3RoPC90ZXh0PgogIDx0ZXh0IHg9IjEwNjYiIHk9IjIwNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjM2VjZjhlIj5zaWRlczwvdGV4dD4KICA8dGV4dCB4PSI4MjUiIHk9IjU3NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5tYXNrZWQgc2l0ZXMgZmlsbGVkIHRvZ2V0aGVyPC90ZXh0PgoKICA8dGV4dCB4PSIyMTUiIHk9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5yZXdhcmQgZmF2b3VycyBmaWxsczwvdGV4dD4KICA8dGV4dCB4PSIyMTUiIHk9IjQzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij50aGUgZXhhbXBsZSBzdXBwb3J0czwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "An example edit card points to three masked call sites in one file, each filled with the new call at the same time.",
+    "caption": "Multi-target few-shot prompting: one demonstrated edit guides every masked site in a shared canvas.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Diffusion language models work differently. They start from a canvas with masked regions and fill the masks over several denoising steps, seeing text on both sides. In this setup, «examples guide the infilling of multiple masked regions within a shared canvas». Picture an API migration. One example shows the old call and the new one. Every call site in the file is masked and filled together."
+  ],
+  [
+   "p",
+   "They add a twist for reliability. Selective masking yields «a likelihood-ratio reward that favors example-supported infills», a score for how much each fill leans on the examples. The headline: «demonstrations improve infilling accuracy, with example guidance yielding further gains in several settings». We'd love to see this on a messy production codebase. The refactoring case studies are a promising start."
+  ],
+  [
+   "h2",
+   {
+    "text": "Recall may still crowd out the prompt with enough training",
+    "num": "06",
+    "id": "recall-may-still-crowd-out-the-prompt-with-enough-training"
+   }
+  ],
+  [
+   "p",
+   "Here's the belief that might survive. Plenty of people suspect big models don't really read your examples at all. They just recall something similar from training. The topic-model theory gives that worry a mechanism. Its specialised predictor appears once training runs long enough, «after the training tokens outnumber the parameters of the data-generating process». Train long enough, and recall is on the table."
+  ],
+  [
+   "p",
+   "So which strategy runs inside a model you call today? Nobody can say from these abstracts. The theory says the prevailing strategy «determines how the model behaves beyond its training distribution». A model leaning on recall would ace familiar tasks and stumble on novel ones. One that reads the prompt would hold up better off the beaten path."
+  ],
+  [
+   "p",
+   "Here's evidence that would settle it. Build tasks around invented topics no model could have seen, and compare them with familiar ones. Shuffle the labels in your examples and check if outputs follow the shuffle. A prompt-reader follows along. A recaller ignores it. Repeat across model sizes, and you'd finally know what your examples are doing."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is in-context learning?"
+  ],
+  [
+   "p",
+   "In-context learning is a model picking up a task from instructions or examples in its prompt, with its weights unchanged. The examples sit in the context window and shape the next tokens through attention. Nothing persists afterwards. The next request starts fresh, so each example costs tokens every time you send it."
+  ],
+  [
+   "h3",
+   "What is the difference between prompt engineering and fine-tuning?"
+  ],
+  [
+   "p",
+   "Prompt engineering changes what you send the model, and fine-tuning changes the model's weights. Prompting is faster to iterate and needs no training run. A biomedical lay-summary study found «abstract-based prompting reduces runtime cost while maintaining lay summary quality», though fine-tuning can still win on other tasks. Test both on your own inputs."
+  ],
+  [
+   "h3",
+   "Do more few-shot examples always help?"
+  ],
+  [
+   "p",
+   "No, soundness matters more than count. A demonstration with spurious reasoning can still reach the right answer. The ECI2D method keeps only rationales that survive tests on logically similar problems, «retaining far fewer demonstrations, with gains exceeding 7 points as the test distribution shifts». A few sound examples beat a pile of lucky ones."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Multi-Target Few-Shot Prompting with Diffusion Language Models",
+   "url": "https://arxiv.org/abs/2610.22294v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "In-Context Learning Before Specialisation: Theory of Learning in a Solvable Topic Model",
+   "url": "https://arxiv.org/abs/2610.21901v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "From Observation to Intervention: Distilling Self-Generated In-Context Demonstrations via Executable Causal Intervention",
+   "url": "https://arxiv.org/abs/2610.21149v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Abstracts or full text? Evaluating input scope and computational efficiency in biomedical lay summarization",
+   "url": "https://arxiv.org/abs/2610.21690v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "the known challenge of reliably following demonstrations in few-shot prompting": 1,
+  "using their prompt to adapt to novel tasks": 2,
+  "instructions and rewards are hard to specify": 1,
+  "often outperforming manual prompts": 3,
+  "assuming a rationale is high-quality if it leads to the correct output": 3,
+  "both faithful causal rationales and spurious post-hoc rationales can yield same outputs and are statistically indistinguishable from observation alone": 3,
+  "abstracts language rationales into executable programs": 3,
+  "retaining far fewer demonstrations, with gains exceeding 7 points as the test distribution shifts": 3,
+  "whether abstracts contain enough information to produce lay summaries as good as those based on full-text articles": 4,
+  "abstract-based summarization performs better overall": 4,
+  "abstract zero- and few-shot prompting is 5.31 times faster than full-text methods": 4,
+  "whether few-shot learning performs as well as task-specific fine-tuning": 4,
+  "abstract fine-tuning is 4.70 times faster": 4,
+  "abstract-based prompting reduces runtime cost while maintaining lay summary quality": 4,
+  "a specialised predictor, that stores the finite topic mixture": 2,
+  "an in-context one, optimal for topics never seen during training": 2,
+  "the in-context predictor is available early, while the specialised one emerges only after the training tokens outnumber the parameters of the data-generating process": 2,
+  "with no fitted parameters": 2,
+  "there is no learning theory for this competition": 2,
+  "such edits often depend on both left and right context, making generation with causal autoregressive models awkward": 1,
+  "examples guide the infilling of multiple masked regions within a shared canvas": 1,
+  "a likelihood-ratio reward that favors example-supported infills": 1,
+  "demonstrations improve infilling accuracy, with example guidance yielding further gains in several settings": 1,
+  "after the training tokens outnumber the parameters of the data-generating process": 2,
+  "determines how the model behaves beyond its training distribution": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:45:59+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22294v1",
+   "arxiv:2610.21901v1",
+   "arxiv:2610.21690v1",
+   "arxiv:2610.21149v1",
+   "arxiv:2610.21422v1"
+  ],
+  "platforms": {
+   "arXiv": 5
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "myth-vs-reality:concept/prompting",
+  "format": "myth-vs-reality",
+  "reviewed_by": null
+ }
+}

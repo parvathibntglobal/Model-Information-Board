@@ -1,0 +1,441 @@
+{
+ "slug": "topic-explainer-concept-reasoning-models",
+ "status": "draft",
+ "tag": "Explainer",
+ "feat": false,
+ "title": "Reasoning Models Think Longer, and Sometimes Read You Too Literally",
+ "dek": "An explainer on System 1 and System 2 in language models: one-pass odds, reasoning traces, what the thinking costs, and the odd way it cancels what you meant.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "System 1 vs System 2 AI: one forward pass that reads odds, or a model that writes reasoning tokens first. Thinking buys accuracy at a real token price, and it can cancel the everyday meaning you intended.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgc2hvcnQgc2luZ2xlLXBhc3MgYXJjIGFuZCBhIGxvbmcgZG90dGVkIHJlYXNvbmluZyB0cmFjZSByZWFjaCB0aGUgc2FtZSBhbnN3ZXI7IHRoZSB0cmFjZSBjcm9zc2VzIG91dCB0aGUgbm90LWFsbCByZWFkaW5nPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ29sZCIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAuNDIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImJsdWUiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzdhYTJmZiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPCEtLSBxdWVzdGlvbiAtLT4KICAgIDxjaXJjbGUgY3g9IjE1MCIgY3k9IjMwMCIgcj0iODAiIGZpbGw9InVybCgjYmx1ZSkiLz4KICAgIDxjaXJjbGUgY3g9IjE1MCIgY3k9IjMwMCIgcj0iMjYiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwhLS0gYW5zd2VyIC0tPgogICAgPHJlY3QgeD0iMTAwMCIgeT0iMjUwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjEwMCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGxpbmUgeDE9IjEwMjgiIHkxPSIyODUiIHgyPSIxMTEyIiB5Mj0iMjg1IiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjgiLz4KICAgIDxsaW5lIHgxPSIxMDI4IiB5MT0iMzEyIiB4Mj0iMTA5MCIgeTI9IjMxMiIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC41Ii8+CiAgICA8IS0tIGZhc3QgcGF0aCAtLT4KICAgIDxwYXRoIGQ9Ik0xODAsMjgwIEM0MjAsMTIwIDc2MCwxMjAgOTkwLDI3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYWIpIi8+CiAgICA8dGV4dCB4PSI1ODUiIHk9IjE0MCIgZm9udC1zaXplPSIzMCIgZmlsbD0iIzdhYTJmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+b25lIHBhc3M8L3RleHQ+CiAgICA8IS0tIHNsb3cgcGF0aDogcmVhc29uaW5nIHRva2VucyBhcyBkb3RzIC0tPgogICAgPHBhdGggZD0iTTE3NiwzMjIgQzI0MCw1MjAgNDIwLDU5MCA1MjAsNTAwIEM2MDAsNDMwIDU2MCwzNjAgNjUwLDM4MCBDNzYwLDQwNCA3MjAsNTgwIDg1MCw1NjAgQzk1MCw1NDUgOTYwLDQxMCA5OTYsMzQwIiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWRhc2hhcnJheT0iMC4xIDIyIiBvcGFjaXR5PSIwLjkiLz4KICAgIDwhLS0gZW50ZXJ0YWluZWQgcmVhZGluZywgdGhlbiBjYW5jZWxsZWQgLS0+CiAgICA8ZWxsaXBzZSBjeD0iNTIwIiBjeT0iNTAwIiByeD0iMTUwIiByeT0iOTUiIGZpbGw9InVybCgjZ29sZCkiLz4KICAgIDxyZWN0IHg9IjQ0MCIgeT0iNDYyIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjcwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI1MjAiIHk9IjUwOCIgZm9udC1zaXplPSIzMiIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjYwMCI+bm90IGFsbDwvdGV4dD4KICAgIDxsaW5lIHgxPSI0MjgiIHkxPSI1NDAiIHgyPSI2MTIiIHkyPSI0NTIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8L2c+Cjwvc3ZnPgo=",
+  "alt": "A short arc labelled one pass and a long dotted reasoning trace reach one answer; the trace crosses out a not-all card.",
+  "caption": "Two routes to the same answer slot, and the long one picks up and then discards the reading a person would have meant.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "System 1 vs System 2 AI explained: one-pass odds versus reasoning traces, what thinking costs, and how it can make models read you too literally.",
+ "keywords": [
+  "System 1 vs System 2 AI",
+  "Reasoning models (System 1 and System 2)",
+  "reasoning models",
+  "reasoning tokens",
+  "System1-Arena",
+  "implicature in reasoning models"
+ ],
+ "kicker": "Explainer",
+ "tags": [
+  "reasoning models",
+  "Explainer"
+ ],
+ "read": 7,
+ "decisions": [
+  "Read one-pass odds first for discrete, single-step decisions",
+  "Set reasoning effort explicitly and recheck it whenever a model build changes",
+  "Budget the output limit for reasoning tokens plus the full answer",
+  "Test how a model interprets everyday wording as well as how accurate it is"
+ ],
+ "layout": "explainer",
+ "arrangement": "a",
+ "special": {
+  "type": "quiz",
+  "title": "Check what you took away",
+  "items": [
+   {
+    "question": "What does a System-1 model hand back for a discrete decision?",
+    "options": [
+     "Probabilities over the options from one forward pass",
+     "A written chain of reasoning followed by an answer",
+     "A request to a human reviewer for every case"
+    ],
+    "answer": 0,
+    "explanation": "System 1 reads the odds straight off the answer slot after one pass through the network, with no text written first."
+   },
+   {
+    "question": "Reasoning tokens count against the output limit. On a long input, what can go wrong?",
+    "options": [
+     "The input is shortened to make room",
+     "The model hits the ceiling before it finishes the answer",
+     "The model stops reasoning on its own once space runs low"
+    ],
+    "answer": 1,
+    "explanation": "Thinking and answering share one output budget, so a long trace can use up the space the reply needed."
+   },
+   {
+    "question": "In the implicature study, what does extra thinking tend to do to the word some?",
+    "options": [
+     "It strengthens the not-all reading",
+     "It leaves the reading unchanged",
+     "It cancels the not-all reading in favour of the logical one"
+    ],
+    "answer": 2,
+    "explanation": "Thinking made models read logical words as logic, so some stopped implying not all."
+   },
+   {
+    "question": "What did cutting the reasoning trace at successive points reveal?",
+    "options": [
+     "The model never considered the everyday reading",
+     "The model entertained the everyday reading early and cancelled it later",
+     "The model switched readings at random"
+    ],
+    "answer": 1,
+    "explanation": "Early cuts gave the enriched reading and later cuts the literal one, which is why answering early recovers it."
+   },
+   {
+    "question": "Where did small one-pass System-1 models struggle most in System1-Arena?",
+    "options": [
+     "Text classification",
+     "Calibration of their probabilities",
+     "Closed-loop environments where actions change the next state"
+    ],
+    "answer": 2,
+    "explanation": "Small System-1 models rarely succeeded in closed loops, even though the largest ones held up on one-shot accuracy."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Reasoning models write scratch work before they answer",
+    "num": "01",
+    "id": "reasoning-models-write-scratch-work-before-they-answer"
+   }
+  ],
+  [
+   "p",
+   "A reasoning model is a language model that writes scratch work before it answers, the way you'd work a long sum on paper before calling out a total. That split is what people mean by System 1 vs System 2 AI. System 1 answers in one fast pass. System 2 thinks in steps first. Same question, two speeds."
+  ],
+  [
+   "p",
+   "The labels come from psychology, where System 1 is quick intuition and System 2 is slow, effortful thought. For models, the split is mechanical. A System-1 model scores the options straight away. A System-2 model generates reasoning tokens, then answers with that text in view. One fresh arXiv paper puts the new part plainly: «Reasoning models now let users decide how long a model thinks before it answers»."
+  ],
+  [
+   "p",
+   "So you hold a dial. More thinking costs tokens and time. It can buy accuracy. It can also change what the model thinks you meant, and that surprised us more than anything else on this topic. We'll take each piece in order, starting with the fast path."
+  ],
+  [
+   "h2",
+   {
+    "text": "A single forward pass turns a request into odds",
+    "num": "02",
+    "id": "a-single-forward-pass-turns-a-request-into-odds"
+   }
+  ],
+  [
+   "p",
+   "Start with System 1, because it's simpler. A forward pass is one trip of your input through the network. At the end, the model produces logits, a raw score for every possible next token. Softmax turns those scores into probabilities. If the next slot is the answer, those probabilities are the model's odds over the options. No text gets written."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPlN5c3RlbSAxIHJlYWRzIG9kZHMgYXQgdGhlIGFuc3dlciBzbG90IGFmdGVyIG9uZSBmb3J3YXJkIHBhc3M7IFN5c3RlbSAyIHdyaXRlcyBzdGVwcyBmaXJzdDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiI+CiAgICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiM3YWEyZmYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI2MDAiPlN5c3RlbSAxOiBvbmUgZm9yd2FyZCBwYXNzPC90ZXh0PgogICAgPHJlY3QgeD0iNjAiIHk9IjEwMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTQ1IiB5PSIxNTAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlcXVlc3Q8L3RleHQ+CiAgICA8bGluZSB4MT0iMjMyIiB5MT0iMTQwIiB4Mj0iMjkyIiB5Mj0iMTQwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogICAgPHJlY3QgeD0iMzAwIiB5PSIxMDAiIHdpZHRoPSIxNzAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMzg1IiB5PSIxNTAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm1vZGVsPC90ZXh0PgogICAgPGxpbmUgeDE9IjQ3MiIgeTE9IjE0MCIgeDI9Ijc4MiIgeTI9IjE0MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICAgIDx0ZXh0IHg9IjYyNyIgeT0iMTIyIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj5ubyB0b2tlbnMgd3JpdHRlbjwvdGV4dD4KICAgIDxyZWN0IHg9Ijc5MCIgeT0iMTAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI4NjUiIHk9IjE1MCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiPkFuc3dlcjo8L3RleHQ+CiAgICA8bGluZSB4MT0iOTQyIiB5MT0iMTQwIiB4Mj0iOTgyIiB5Mj0iMTQwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogICAgPHJlY3QgeD0iOTkwIiB5PSI5NiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjIwIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjEwNjUiIHk9IjEyNCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiI+cChmbGFnKTwvdGV4dD4KICAgIDxyZWN0IHg9Ijk5MCIgeT0iMTQ2IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iMjAiIGZpbGw9IiM5NWExYjQiIGZpbGwtb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjEwNjUiIHk9IjE3NCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiI+cChwYXNzKTwvdGV4dD4KICAgIDxsaW5lIHgxPSI2MCIgeTE9IjI3MCIgeDI9IjExNDAiIHkyPSIyNzAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI2MCIgeT0iMzQwIiBmaWxsPSIjYTc4YmZhIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIj5TeXN0ZW0gMjogc3RlcHMgZmlyc3Q8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iMzcwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxNDUiIHk9IjQyMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmVxdWVzdDwvdGV4dD4KICAgIDxsaW5lIHgxPSIyMzIiIHkxPSI0MTAiIHgyPSIyOTIiIHkyPSI0MTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cmVjdCB4PSIzMDAiIHk9IjM3MCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIzODUiIHk9IjQyMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bW9kZWw8L3RleHQ+CiAgICA8ZyBmaWxsPSIjYTc4YmZhIj4KICAgICAgPHJlY3QgeD0iNDkwIiB5PSIzOTIiIHdpZHRoPSIyNiIgaGVpZ2h0PSIzNiIgcng9IjYiIG9wYWNpdHk9IjAuOSIvPjxyZWN0IHg9IjUyNCIgeT0iMzkyIiB3aWR0aD0iMjYiIGhlaWdodD0iMzYiIHJ4PSI2IiBvcGFjaXR5PSIwLjgiLz4KICAgICAgPHJlY3QgeD0iNTU4IiB5PSIzOTIiIHdpZHRoPSIyNiIgaGVpZ2h0PSIzNiIgcng9IjYiIG9wYWNpdHk9IjAuNyIvPjxyZWN0IHg9IjU5MiIgeT0iMzkyIiB3aWR0aD0iMjYiIGhlaWdodD0iMzYiIHJ4PSI2IiBvcGFjaXR5PSIwLjgiLz4KICAgICAgPHJlY3QgeD0iNjI2IiB5PSIzOTIiIHdpZHRoPSIyNiIgaGVpZ2h0PSIzNiIgcng9IjYiIG9wYWNpdHk9IjAuNiIvPjxyZWN0IHg9IjY2MCIgeT0iMzkyIiB3aWR0aD0iMjYiIGhlaWdodD0iMzYiIHJ4PSI2IiBvcGFjaXR5PSIwLjciLz4KICAgICAgPHJlY3QgeD0iNjk0IiB5PSIzOTIiIHdpZHRoPSIyNiIgaGVpZ2h0PSIzNiIgcng9IjYiIG9wYWNpdHk9IjAuNSIvPjxyZWN0IHg9IjcyOCIgeT0iMzkyIiB3aWR0aD0iMjYiIGhlaWdodD0iMzYiIHJ4PSI2IiBvcGFjaXR5PSIwLjYiLz4KICAgIDwvZz4KICAgIDx0ZXh0IHg9IjYyMiIgeT0iNDgwIiBmaWxsPSIjZTNiMzQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0Ij5yZWFzb25pbmcgdG9rZW5zLCBiaWxsZWQgYXMgb3V0cHV0PC90ZXh0PgogICAgPHBhdGggZD0iTTc2MCw0MTAgQzc3MCw0MTAgNzc0LDQxMCA3ODIsNDEwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogICAgPHJlY3QgeD0iNzkwIiB5PSIzNzAiIHdpZHRoPSIxNTAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9Ijg2NSIgeT0iNDIwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNCI+QW5zd2VyOjwvdGV4dD4KICAgIDxsaW5lIHgxPSI5NDIiIHkxPSI0MTAiIHgyPSI5ODIiIHkyPSI0MTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cmVjdCB4PSI5OTAiIHk9IjM2NiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI0MCIgcng9IjIwIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjEwNjUiIHk9IjM5NCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiI+cChmbGFnKTwvdGV4dD4KICAgIDxyZWN0IHg9Ijk5MCIgeT0iNDE2IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjQwIiByeD0iMjAiIGZpbGw9IiM5NWExYjQiIGZpbGwtb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjEwNjUiIHk9IjQ0NCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiI+cChwYXNzKTwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwIiB5PSI1NjAiIGZpbGw9IiM5NWExYjQiIGZvbnQtc2l6ZT0iMjQiPlNhbWUgYW5zd2VyIHNsb3QsIHNhbWUgb3B0aW9ucy4gT25seSB0aGUgdGV4dCBiZWZvcmUgaXQgY2hhbmdlcy48L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "Two pipelines: System 1 goes from request to model to the answer slot; System 2 writes reasoning tokens first.",
+    "caption": "System 1 and System 2 read the same answer slot; only the reasoning tokens written before it differ.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The System1-Arena authors describe models that «return probabilities over options in a single forward pass». Their examples are everyday decisions, like flagging phishing or escalating to a human. The output is one number per option. You can threshold it, log it, and check its calibration, meaning whether answers given with high confidence really come out right that often."
+  ],
+  [
+   "p",
+   "System 2 adds a step before that slot. The model generates a chain of reasoning tokens, then reaches the same answer slot with its own notes in the prompt. The odds you read at the end are conditioned on everything it wrote. That's the only mechanical difference. Everything else, good and bad, follows from those extra tokens."
+  ],
+  [
+   "code",
+   {
+    "label": "Reading the same answer slot with and without a reasoning trace (illustrative pseudo-code)",
+    "language": "python",
+    "source": "options = [\"flag\", \"pass\"]\nids = [tok(o) for o in options]\n\n# System 1: one forward pass, read the odds at the answer slot\nlogits = model(request + \"\\nAnswer:\")[-1]      # scores for the next token\np_fast = softmax(logits[ids])\n\n# System 2: write scratch work first, then read the very same slot\ntrace = model.generate(request + \"\\nThink it through.\", max_new_tokens=budget)\nlogits = model(request + trace + \"\\nAnswer:\")[-1]\np_slow = softmax(logits[ids])\n\n# every token in `trace` is output you pay for, and it shares the output limit\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Reasoning tokens are scratch paper on the output bill",
+    "num": "03",
+    "id": "reasoning-tokens-are-scratch-paper-on-the-output-bill"
+   }
+  ],
+  [
+   "p",
+   "Those extra tokens aren't free. Reasoning tokens bill as output and count against the output limit, the cap on how much one response may generate. So thinking competes with answering for the same space. On a long input that needs a long answer, the scratch paper can crowd out the reply itself. Here's the case that taught us."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCI+CiAgPHRpdGxlPlJlYXNvbmluZyB0b2tlbnMgZmlsbCB0aGUgb3V0cHV0IGxpbWl0IGFuZCBjdXQgdGhlIGFuc3dlciBvZmY7IHdpdGggcmVhc29uaW5nIG9mZiB0aGUgYW5zd2VyIGZpdHM8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHBhdHRlcm4gaWQ9InRvayIgeD0iNzYiIHk9IjE2NSIgd2lkdGg9IjI4IiBoZWlnaHQ9IjYwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPHJlY3QgeD0iMyIgeT0iMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjYwIiByeD0iNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC41NSIvPgogICAgPC9wYXR0ZXJuPgogICAgPGNsaXBQYXRoIGlkPSJib3gxIj48cmVjdCB4PSI2MCIgeT0iMTQwIiB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIvPjwvY2xpcFBhdGg+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjU2MCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiPgogICAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIj5oaWdoLWVmZm9ydCByZWFzb25pbmcgb24gYnkgZGVmYXVsdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwNjAiIHk9IjEyMiIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1zaXplPSIyNCI+MTYsMzg0IHRva2VuIG91dHB1dCBjZWlsaW5nPC90ZXh0PgogICAgPGcgY2xpcC1wYXRoPSJ1cmwoI2JveDEpIj4KICAgICAgPHJlY3QgeD0iNjAiIHk9IjE0MCIgd2lkdGg9IjEwMDAiIGhlaWdodD0iMTEwIiBmaWxsPSIjMTUxYTIzIi8+CiAgICAgIDxyZWN0IHg9Ijc2IiB5PSIxNjUiIHdpZHRoPSI4MDAiIGhlaWdodD0iNjAiIGZpbGw9InVybCgjdG9rKSIvPgogICAgICA8cmVjdCB4PSI4ODQiIHk9IjE2NSIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI2MCIgcng9IjEwIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMzUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDx0ZXh0IHg9IjkwNCIgeT0iMjA1IiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI0Ij5hbnN3ZXI8L3RleHQ+CiAgICA8L2c+CiAgICA8cmVjdCB4PSI2MCIgeT0iMTQwIiB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxwYXRoIGQ9Ik0xMDYwLDEzMCBMMTA3MiwxNTAgTDEwNTYsMTcwIEwxMDcyLDE5MCBMMTA1NiwyMTAgTDEwNzIsMjMwIEwxMDYwLDI2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgIDx0ZXh0IHg9IjEwOTAiIHk9IjIwNSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1zaXplPSIyNCI+Y3V0PC90ZXh0PgogICAgPHRleHQgeD0iNzYiIHk9IjI5MCIgZmlsbD0iI2E3OGJmYSIgZm9udC1zaXplPSIyNCI+cmVhc29uaW5nIHRva2VucywgYmlsbGVkIGFzIG91dHB1dDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwIiB5PSIzODAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI2MDAiPnJlYXNvbmluZyB0dXJuZWQgb2ZmIGV4cGxpY2l0bHk8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iNDEwIiB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9Ijc2IiB5PSI0MzUiIHdpZHRoPSIzMDAiIGhlaWdodD0iNjAiIHJ4PSIxMCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjM1IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iOTYiIHk9IjQ3NSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1zaXplPSIyNCI+YW5zd2VyPC90ZXh0PgogICAgPHBhdGggZD0iTTM5Niw0NjUgbDEyLDE0IGwyNCwtMzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgIDx0ZXh0IHg9IjQ2MCIgeT0iNDc0IiBmaWxsPSIjM2VjZjhlIiBmb250LXNpemU9IjI0Ij5maW5pc2hlcyBpbnNpZGUgdGhlIGxpbWl0PC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==",
+    "alt": "An output box at a 16,384 token ceiling filled by reasoning tokens, cutting the answer off; below, the answer fits alone.",
+    "caption": "Reasoning tokens share the output ceiling with the answer, so a default reasoning setting can cut the reply off at the 16,384 token ceiling.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "When we moved our extractor from the undated DeepSeek V4 Flash to the dated 0731 build, high-effort reasoning switched on by default without us asking. A 10,859-character article then hit the 16,384 token ceiling before the model finished its answer. Turning reasoning off explicitly brought it back. Nothing else had changed."
+  ],
+  [
+   "p",
+   "The lesson is boring and important. In our view, a reasoning default you didn't choose is a bug waiting for a long input. Set the effort level explicitly, and recheck it whenever a model build changes. Watch for answers that stop mid-sentence. They're the cheapest symptom you'll ever get."
+  ],
+  [
+   "h2",
+   {
+    "text": "System1-Arena puts both kinds through the same decisions",
+    "num": "04",
+    "id": "system1-arena-puts-both-kinds-through-the-same-decisions"
+   }
+  ],
+  [
+   "p",
+   "We went through how System1-Arena sets up the comparison, because the design is the point. It «gives all models the same decision requests and scores their probabilities». There are 92k questions across 105 tasks, plus 138 closed-loop environments where each action changes what comes next. In real-time mode, «the world evolves while a model decides». Slow thinking has a clock on it."
+  ],
+  [
+   "p",
+   "The results draw a clean trade-off. The authors report that «The largest System-1 models match or exceed fast closed LLMs in non-agentic accuracy». Those models also gave better-calibrated probabilities at one-quarter of the latency. A reasoning LLM was the most accurate, «at about 70x the cost of a fast LLM». Accuracy has a price tag."
+  ],
+  [
+   "p",
+   "Closed loops tell another story. There, large open LLMs succeed most often, up to 32.9%, and small System-1 models rarely succeed. We think that split is the most useful finding here. One-shot decisions reward fast, well-calibrated odds. Multi-step control, where every action reshapes the next state, is where small one-pass scorers fall over."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What System1-Arena reports for each approach, in its own terms.",
+    "columns": [
+     "Approach",
+     "How it answers",
+     "Reported result"
+    ],
+    "rows": [
+     [
+      "Largest System-1 models",
+      "Probabilities from one forward pass",
+      "Match or exceed fast closed LLMs on non-agentic accuracy, at one-quarter of the latency"
+     ],
+     [
+      "Reasoning LLM",
+      "Writes reasoning steps, then answers",
+      "Most accurate, at about 70x the cost of a fast LLM"
+     ],
+     [
+      "Large open LLMs in closed loops",
+      "Read at the answer token",
+      "Succeed most often, up to 32.9%"
+     ],
+     [
+      "Small System-1 models in closed loops",
+      "Probabilities from one forward pass",
+      "Rarely succeed"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Extra thinking can cancel the meaning you intended",
+    "num": "05",
+    "id": "extra-thinking-can-cancel-the-meaning-you-intended"
+   }
+  ],
+  [
+   "p",
+   "Now the surprise. Tell someone that some students passed, and «listeners infer that not all of them did». That extra meaning is an implicature: something implied, never stated. Strict logic says some can include all. People almost never mean it that way. A new arXiv paper asks what longer thinking does to this everyday inference."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPkN1dHRpbmcgYSByZWFzb25pbmcgdHJhY2UgYXQgc3VjY2Vzc2l2ZSBwb2ludHM6IGVhcmx5IGN1dHMgZ2l2ZSB0aGUgZW5yaWNoZWQgcmVhZGluZywgbGF0ZSBjdXRzIHRoZSBsaXRlcmFsIG9uZTwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InRyYWNlIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwLjU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC41IiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuNTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuNTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiPgogICAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI4Ij5yZXF1ZXN0OiBzb21lIHN0dWRlbnRzIHBhc3NlZC4gRGlkIGFsbCBvZiB0aGVtPzwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwIiB5PSIxOTAiIGZpbGw9IiM5NWExYjQiIGZvbnQtc2l6ZT0iMjQiPnJlYXNvbmluZyB0cmFjZTwvdGV4dD4KICAgIDxyZWN0IHg9IjYwIiB5PSIyMTAiIHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjU2IiByeD0iMjgiIGZpbGw9InVybCgjdHJhY2UpIi8+CiAgICA8ZyBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA2Ij4KICAgICAgPGxpbmUgeDE9IjIzMCIgeTE9IjE5NiIgeDI9IjIzMCIgeTI9IjI5MCIvPgogICAgICA8bGluZSB4MT0iNDgwIiB5MT0iMTk2IiB4Mj0iNDgwIiB5Mj0iMjkwIi8+CiAgICAgIDxsaW5lIHgxPSI3MzAiIHkxPSIxOTYiIHgyPSI3MzAiIHkyPSIyOTAiLz4KICAgICAgPGxpbmUgeDE9Ijk4MCIgeTE9IjE5NiIgeDI9Ijk4MCIgeTI9IjI5MCIvPgogICAgPC9nPgogICAgPHRleHQgeD0iMjMwIiB5PSIxNDAiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiPmN1dCBlYXJseTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijk4MCIgeT0iMTQwIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj5jdXQgbGF0ZTwvdGV4dD4KICAgIDxyZWN0IHg9IjE2MCIgeT0iMzIwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjQ4IiByeD0iMjQiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iMjMwIiB5PSIzNTIiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiPm5vdCBhbGw8L3RleHQ+CiAgICA8cmVjdCB4PSI0MTAiIHk9IjMyMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI0OCIgcng9IjI0IiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjQ4MCIgeT0iMzUyIiBmaWxsPSIjZTNiMzQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0Ij5ub3QgYWxsPC90ZXh0PgogICAgPHJlY3QgeD0iNjQwIiB5PSIzMjAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDgiIHJ4PSIyNCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI3MzAiIHk9IjM1MiIgZmlsbD0iIzdhYTJmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCI+bWF5YmUgYWxsPC90ZXh0PgogICAgPHJlY3QgeD0iODkwIiB5PSIzMjAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDgiIHJ4PSIyNCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI5ODAiIHk9IjM1MiIgZmlsbD0iIzdhYTJmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCI+bWF5YmUgYWxsPC90ZXh0PgogICAgPHRleHQgeD0iMzU1IiB5PSI0MjAiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmVudGVydGFpbmVkPC90ZXh0PgogICAgPHRleHQgeD0iODU1IiB5PSI0MjAiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmNhbmNlbGxlZDwvdGV4dD4KICAgIDxsaW5lIHgxPSI2MDAiIHkxPSIzMDAiIHgyPSI2MDAiIHkyPSI0NDAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cGF0aCBkPSJNMjMwLDM4MCBDMjMwLDUwMCA0MjAsNTQwIDU2MCw1NDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FnKSIvPgogICAgPHJlY3QgeD0iNTYwIiB5PSI1MTAiIHdpZHRoPSI1NDAiIGhlaWdodD0iNjQiIHJ4PSIxNiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iODMwIiB5PSI1NTEiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlbWVkeTogYW5zd2VyIGZyb20gdGhlIGVhcmx5IHJlYWRpbmc8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "A reasoning trace cut at four points: early cuts read not all, late cuts read maybe all, with a remedy arrow back to early.",
+    "caption": "Cutting the trace early recovers the not-all reading the model entertained and later cancelled.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Their method is clean. They «keep a model's weights fixed, change only how much it thinks, and record which reading it chooses». The headline: «Thinking makes models read logical words as logic». Some loses its not-all reading and or loses its not-both reading, in most tested open models and in GPT-5. Context-driven inferences, like indirect answers, get better."
+  ],
+  [
+   "p",
+   "A second tool shows why. It «cuts the model's own reasoning at successive points and asks for an answer». Early cuts give the human reading. Later cuts give the literal one. In the authors' words, «models first entertain the enriched reading and cancel it later». Answering from that early reading recovers the implicatures without losing literal accuracy."
+  ],
+  [
+   "p",
+   "We agree with their closing line: «Evaluations of reasoning models should measure how they interpret, not only how accurate they are». A support bot that reads some refunds as possibly every refund isn't wrong by logic. It's wrong by the customer, which is the only judge that counts."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The truncation probe from the implicature paper, step by step.",
+    "steps": [
+     "Fix the model's weights and the request",
+     "Let the model reason for a chosen length",
+     "Cut the trace at successive points",
+     "Ask for an answer at every cut",
+     "Record where the not-all reading turns literal"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Training decides what the extra thinking is for",
+    "num": "06",
+    "id": "training-decides-what-the-extra-thinking-is-for"
+   }
+  ],
+  [
+   "p",
+   "Thinking isn't one fixed behaviour. Training shapes what the trace works toward. A paper on scientific ideation trains a reasoning model with «a set-level reinforcement learning objective». In one generation, the model writes K idea cards, and «each idea's quality is weighted by its distance from the ideas written before it». Each new idea gets pushed away from the last."
+  ],
+  [
+   "p",
+   "Their trained 8B model scores higher on creative utility, «a measure combining quality and diversity», than Claude Opus 4.8 and GPT-6 Astra on their own benchmark. When a coding agent ran proof-of-concept experiments, its ideas were about as executable as Claude Opus 4.8's. We'd read that as a training lesson first. The objective tells the reasoning where to spend itself."
+  ],
+  [
+   "h2",
+   {
+    "text": "The thinking dial stops paying at the edge of the task",
+    "num": "07",
+    "id": "the-thinking-dial-stops-paying-at-the-edge-of-the-task"
+   }
+  ],
+  [
+   "p",
+   "So where does the idea stop working? Thinking helps when an answer needs steps you can't take in one pass. It hurts when a request leans on how people talk, because the trace drifts toward logic. It costs tokens either way. And on closed-loop tasks, small one-pass scorers rarely succeed, however fast they are."
+  ],
+  [
+   "p",
+   "Two cheap experiments will teach you more than any leaderboard. First, read your own model's odds at the answer slot with no thinking, then with thinking, on a few of your real decisions. Second, cut a reasoning trace at several points and ask for the answer each time. Watch where the reading flips. Then read the implicature paper in full."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is System 1 vs System 2 in AI?"
+  ],
+  [
+   "p",
+   "System 1 means a model answers in one forward pass, reading odds off the answer slot; System 2 means it writes reasoning steps first. System1-Arena reports that «The largest System-1 models match or exceed fast closed LLMs in non-agentic accuracy». A reasoning LLM was still the most accurate, at a much higher cost."
+  ],
+  [
+   "h3",
+   "Do reasoning models always give better answers?"
+  ],
+  [
+   "p",
+   "No: thinking longer can raise accuracy, and it can also change how a model reads you. A new arXiv paper found that «Thinking makes models read logical words as logic», cancelling the not-all reading of some. Reasoning tokens also bill as output, so any gain comes with a price you should measure on your own requests."
+  ],
+  [
+   "h3",
+   "Why do reasoning models cost more to run?"
+  ],
+  [
+   "p",
+   "Because the reasoning they write is billed as output and counts against the output limit. On System1-Arena, a reasoning LLM was the most accurate «at about 70x the cost of a fast LLM». A long trace can even fill the output ceiling before the answer is finished, so set the reasoning effort explicitly."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Entertain, then Cancel: How Thinking Makes Reasoning Models Read Some and Or Literally",
+   "url": "https://arxiv.org/abs/2610.21204v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "System1-Arena: Which Decisions Can Be Left to System 1?",
+   "url": "https://arxiv.org/abs/2610.21244v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Training Reasoning Models to Generate Diverse Scientific Ideas",
+   "url": "https://arxiv.org/abs/2610.22324v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "Reasoning models now let users decide how long a model thinks before it answers": 1,
+  "return probabilities over options in a single forward pass": 2,
+  "gives all models the same decision requests and scores their probabilities": 2,
+  "the world evolves while a model decides": 2,
+  "The largest System-1 models match or exceed fast closed LLMs in non-agentic accuracy": 2,
+  "at about 70x the cost of a fast LLM": 2,
+  "listeners infer that not all of them did": 1,
+  "keep a model's weights fixed, change only how much it thinks, and record which reading it chooses": 1,
+  "Thinking makes models read logical words as logic": 1,
+  "cuts the model's own reasoning at successive points and asks for an answer": 1,
+  "models first entertain the enriched reading and cancel it later": 1,
+  "Evaluations of reasoning models should measure how they interpret, not only how accurate they are": 1,
+  "a set-level reinforcement learning objective": 3,
+  "each idea's quality is weighted by its distance from the ideas written before it": 3,
+  "a measure combining quality and diversity": 3
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:40:43+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21204v1",
+   "arxiv:2610.22324v1",
+   "arxiv:2610.21244v1"
+  ],
+  "platforms": {
+   "arXiv": 3
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-explainer:concept/reasoning-models",
+  "format": "topic-explainer",
+  "reviewed_by": null
+ }
+}

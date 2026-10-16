@@ -1,0 +1,508 @@
+{
+ "slug": "field-guide-concept-fine-tuning",
+ "status": "draft",
+ "tag": "Field guide",
+ "feat": false,
+ "title": "Fine-Tuning Without Amnesia: Fence the Old Skills, Then Fix the Data",
+ "dek": "Fine-tuning buys new behavior by moving weights, and the move can quietly erase what the model already did well. Here is how to aim it.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is fine-tuning an LLM? More training on your own examples, which moves the weights toward your task. Fence the directions old skills live in, fix the data first, and measure retention every run.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkZlbmNlZCBwcmluY2lwYWwgZGlyZWN0aW9ucyB3aXRoIGFuIHVwZGF0ZSBhbG9uZyBhIHRoaW4gYXhpczwvdGl0bGU+CiAgPGRlc2M+QSB3ZWlnaHQgZWxsaXBzZSB3aG9zZSBsb25nIGF4ZXMgYXJlIHNoaWVsZGVkIGluIHZpb2xldCwgYW5kIGEgZ3JlZW4gdXBkYXRlIGFycm93IG1vdmVzIGFsb25nIGEgdGhpbiBheGlzOyBhIHJlZCBnaG9zdCBhcnJvdyBhbG9uZyB0aGUgbG9uZyBheGlzIGlzIHN0cnVjayB0aHJvdWdoLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIwLjYiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4wOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2dsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjQ1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHBhdHRlcm4gaWQ9ImhhdGNoIiB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHBhdHRlcm5UcmFuc2Zvcm09InJvdGF0ZSg0NSkiPgogICAgICA8cmVjdCB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuMTAiLz4KICAgICAgPGxpbmUgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjE0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC40NSIvPgogICAgPC9wYXR0ZXJuPgogICAgPG1hcmtlciBpZD0iYWciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjUiIG1hcmtlckhlaWdodD0iNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjciIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI1IiBtYXJrZXJIZWlnaHQ9IjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2ZmN2I3MiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZWxsaXBzZSBjeD0iNjAwIiBjeT0iMzIwIiByeD0iNTIwIiByeT0iMzAwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CgogIDxnIHRyYW5zZm9ybT0icm90YXRlKC0xNCA2MDAgMzIwKSI+CiAgICA8IS0tIG5lc3RlZCBlbGxpcHNlczogdGhlIHNwYWNlIG9mIHdlaWdodCBkaXJlY3Rpb25zIC0tPgogICAgPGVsbGlwc2UgY3g9IjYwMCIgY3k9IjMyMCIgcng9IjQ0MCIgcnk9IjE1MCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjA2IiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGVsbGlwc2UgY3g9IjYwMCIgY3k9IjMyMCIgcng9IjM0MCIgcnk9IjExMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDxlbGxpcHNlIGN4PSI2MDAiIGN5PSIzMjAiIHJ4PSIyMzAiIHJ5PSI3NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgICA8IS0tIHByb3RlY3RlZCBiYW5kIGFsb25nIHRoZSBwcmluY2lwYWwgYXhpcyAtLT4KICAgIDxyZWN0IHg9IjE1MCIgeT0iMjkwIiB3aWR0aD0iOTAwIiBoZWlnaHQ9IjYwIiByeD0iMzAiIGZpbGw9InVybCgjaGF0Y2gpIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLW9wYWNpdHk9IjAuOCIvPgogICAgPGxpbmUgeDE9IjE3MCIgeTE9IjMyMCIgeDI9IjEwMzAiIHkyPSIzMjAiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICA8IS0tIHNlY29uZCBwcm90ZWN0ZWQgYXhpcywgZmFpbnRlciAtLT4KICAgIDxyZWN0IHg9IjMwMCIgeT0iMjYyIiB3aWR0aD0iNjAwIiBoZWlnaHQ9IjIwIiByeD0iMTAiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuMTgiLz4KCiAgICA8IS0tIGdob3N0IHVwZGF0ZSBhbG9uZyB0aGUgcHJpbmNpcGFsIGF4aXMsIHJlZnVzZWQgLS0+CiAgICA8bGluZSB4MT0iNjQwIiB5MT0iMzIwIiB4Mj0iOTAwIiB5Mj0iMzIwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWRhc2hhcnJheT0iMTQgMTAiIG1hcmtlci1lbmQ9InVybCgjYXIpIiBvcGFjaXR5PSIwLjkiLz4KICAgIDxnIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiPgogICAgICA8bGluZSB4MT0iNzUyIiB5MT0iMjk0IiB4Mj0iNzkyIiB5Mj0iMzQ2Ii8+CiAgICAgIDxsaW5lIHgxPSI3OTIiIHkxPSIyOTQiIHgyPSI3NTIiIHkyPSIzNDYiLz4KICAgIDwvZz4KICA8L2c+CgogIDwhLS0gdGhlIGFsbG93ZWQgdXBkYXRlLCBhbG9uZyBhIHRoaW4gZGlyZWN0aW9uIC0tPgogIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjMyMCIgcj0iNzAiIGZpbGw9InVybCgjZ2dsb3cpIi8+CiAgPGxpbmUgeDE9IjYwMCIgeTE9IjMyMCIgeDI9IjU2MCIgeTI9IjE2OCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjYiIG1hcmtlci1lbmQ9InVybCgjYWcpIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSI2MDAiIGN5PSIzMjAiIHI9IjExIiBmaWxsPSIjZThlZGY1Ii8+CgogIDwhLS0gc2hpZWxkcyBhdCBib3RoIGVuZHMgb2YgdGhlIHByaW5jaXBhbCBheGlzIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE1MCA0MTQpIj4KICAgIDxwYXRoIGQ9Ik0wLC0zNCBMMjgsLTI0IEwyOCwyIEMyOCwyMCAxNCwzMiAwLDM4IEMtMTQsMzIgLTI4LDIwIC0yOCwyIEwtMjgsLTI0IFoiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cGF0aCBkPSJNLTEwLDAgTC0yLDkgTDEyLC04IiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPC9nPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEwNTAgMjAyKSI+CiAgICA8cGF0aCBkPSJNMCwtMzQgTDI4LC0yNCBMMjgsMiBDMjgsMjAgMTQsMzIgMCwzOCBDLTE0LDMyIC0yOCwyMCAtMjgsMiBMLTI4LC0yNCBaIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTS0xMCwwIEwtMiw5IEwxMiwtOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDwvZz4KCiAgPHRleHQgeD0iNTIwIiB5PSIxNDAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0OCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9ImVuZCI+bmV3IHRhc2s8L3RleHQ+CiAgPHRleHQgeD0iNDIwIiB5PSI0OTAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0OCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2E3OGJmYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+b2xkIHNraWxsczwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A glowing ellipse of weight directions with its long axes shielded and a green update arrow sliding along a thin axis.",
+  "caption": "Fine-tuning moves weights; the trick is moving them where the old skills don't live.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is fine-tuning an LLM, and how do you keep it from erasing old skills? Subspace updates, probes, data work and temporal updates.",
+ "keywords": [
+  "what is fine-tuning an LLM",
+  "fine-tuning",
+  "catastrophic forgetting",
+  "supervised fine-tuning",
+  "subspace tuning",
+  "preference optimization"
+ ],
+ "kicker": "Field guide",
+ "tags": [
+  "fine-tuning",
+  "Field guide"
+ ],
+ "read": 8,
+ "decisions": [
+  "Default to subspace-restricted updates when old skills must survive.",
+  "Probe the base model for the structure before paying for a run.",
+  "Spend effort on data actions before tuning the trainer.",
+  "Pair new and obsolete answers when your source of truth changes.",
+  "Add a loss term, and a control run, for what reviewers judge."
+ ],
+ "layout": "fieldguide",
+ "arrangement": "a",
+ "special": {
+  "type": "checklist",
+  "title": "Before you ship",
+  "items": [
+   {
+    "check": "Run a retention eval on general skills before and after every fine-tune.",
+    "why": "Catches catastrophic forgetting that the target metric never shows."
+   },
+   {
+    "check": "Fit a linear probe on base-model hidden states for the structure you extend.",
+    "why": "Catches inert facts that get memorized but never generalize."
+   },
+   {
+    "check": "Hold out subjects that share structure with the training ones.",
+    "why": "Catches a model that recalls trained rows and transfers nothing."
+   },
+   {
+    "check": "Retrain from the base model when you compare two data edits.",
+    "why": "Catches gains you credit to the wrong change."
+   },
+   {
+    "check": "Test obsolete answers as well as new ones after an update.",
+    "why": "Catches a model that learns the new fact and keeps asserting the old one."
+   },
+   {
+    "check": "Probe neighboring knowledge next to anything you changed.",
+    "why": "Catches collateral drift in code or facts you never meant to touch."
+   },
+   {
+    "check": "Run a matched control fine-tune without your auxiliary loss.",
+    "why": "Catches a structural property that standard fine-tuning quietly makes worse."
+   },
+   {
+    "check": "Check projector and language model adapters together in a multimodal model.",
+    "why": "Catches representation drift at the seam between the two halves."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Fence off the skills the base model already has",
+    "num": "01",
+    "id": "fence-off-the-skills-the-base-model-already-has"
+   }
+  ],
+  [
+   "p",
+   "The most common fine-tuning failure shows up a week after launch. You train your repo assistant on your team's internal questions and answers. It now knows your build system cold. It also writes worse general Python than it did before. Nobody tested that. This is catastrophic forgetting, and plain supervised fine-tuning (SFT), training on input and target pairs, produces it by default."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPHRpdGxlPlBsYWluIFNGVCBhZ2FpbnN0IHN1YnNwYWNlIHR1bmluZyBvbiBhIHJlcG8gYXNzaXN0YW50PC90aXRsZT4KICA8ZGVzYz5BIGJhc2UgbW9kZWwgd2l0aCBnZW5lcmFsIHNraWxscyBpcyBmaW5lLXR1bmVkIHR3byB3YXlzLiBQbGFpbiBTRlQgYWRkcyByZXBvIGZhY3RzIGFuZCBmYWRlcyB0aGUgZ2VuZXJhbCBza2lsbHMuIFN1YnNwYWNlIHR1bmluZyBhZGRzIHJlcG8gZmFjdHMgYW5kIGtlZXBzIHRoZW0uPC9kZXNjPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4yNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI3MDAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGVsbGlwc2UgY3g9IjIyMCIgY3k9IjM2MCIgcng9IjI0MCIgcnk9IjI2MCIgZmlsbD0idXJsKCNnbG93KSIvPgoKICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPCEtLSBiYXNlIG1vZGVsIC0tPgogICAgPHJlY3QgeD0iNTAiIHk9IjIwMCIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIzMDAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjIyMCIgeT0iMjUwIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5CYXNlIG1vZGVsPC90ZXh0PgogICAgPGcgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+CiAgICAgIDxyZWN0IHg9IjgwIiB5PSIyODAiIHdpZHRoPSIyODAiIGhlaWdodD0iNTQiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgICA8dGV4dCB4PSIyMjAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Z2VuZXJhbCBQeXRob248L3RleHQ+CiAgICAgIDxyZWN0IHg9IjgwIiB5PSIzNDYiIHdpZHRoPSIyODAiIGhlaWdodD0iNTQiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgICA8dGV4dCB4PSIyMjAiIHk9IjM4MSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZXhwbGFpbmluZyBjb2RlPC90ZXh0PgogICAgICA8cmVjdCB4PSI4MCIgeT0iNDEyIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjU0IiByeD0iMTIiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHRleHQgeD0iMjIwIiB5PSI0NDciIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZvbGxvd2luZyBydWxlczwvdGV4dD4KICAgIDwvZz4KCiAgICA8IS0tIGFycm93cyAtLT4KICAgIDxwYXRoIGQ9Ik0zOTUsMzIwIEM0NzAsMzIwIDQ4MCwxNzAgNTYwLDE3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogICAgPHBhdGggZD0iTTM5NSwzODAgQzQ3MCwzODAgNDgwLDUzMCA1NjAsNTMwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgICA8dGV4dCB4PSI0NTAiIHk9IjE3NSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cGxhaW4gU0ZUPC90ZXh0PgogICAgPHRleHQgeD0iNDUwIiB5PSI1NTUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZlbmNlZDwvdGV4dD4KCiAgICA8IS0tIG91dGNvbWUgQTogcGxhaW4gU0ZUIC0tPgogICAgPHJlY3QgeD0iNTc1IiB5PSI0MCIgd2lkdGg9IjU4MCIgaGVpZ2h0PSIyODAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjYwNSIgeT0iODgiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPkxlYXJucyB0aGUgcmVwbywgZm9yZ2V0cyB0aGUgcmVzdDwvdGV4dD4KICAgIDxnIGZvbnQtc2l6ZT0iMjQiPgogICAgICA8cmVjdCB4PSI2MDUiIHk9IjExMiIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI1NCIgcng9IjEyIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KICAgICAgPHRleHQgeD0iNzMwIiB5PSIxNDciIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmdlbmVyYWwgUHl0aG9uPC90ZXh0PgogICAgICA8cmVjdCB4PSI2MDUiIHk9IjE3OCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI1NCIgcng9IjEyIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMTAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KICAgICAgPHRleHQgeD0iNzMwIiB5PSIyMTMiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmV4cGxhaW5pbmcgY29kZTwvdGV4dD4KICAgICAgPHJlY3QgeD0iNjA1IiB5PSIyNDQiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTQiIHJ4PSIxMiIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjEwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iOCA2Ii8+CiAgICAgIDx0ZXh0IHg9IjczMCIgeT0iMjc5IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5mb2xsb3dpbmcgcnVsZXM8L3RleHQ+CiAgICAgIDxyZWN0IHg9Ijg4MCIgeT0iMTc4IiB3aWR0aD0iMjQ1IiBoZWlnaHQ9IjU0IiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHRleHQgeD0iMTAwMiIgeT0iMjEzIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZXBvIGZhY3RzPC90ZXh0PgogICAgPC9nPgoKICAgIDwhLS0gb3V0Y29tZSBCOiBzdWJzcGFjZSB0dW5pbmcgLS0+CiAgICA8cmVjdCB4PSI1NzUiIHk9IjM4MCIgd2lkdGg9IjU4MCIgaGVpZ2h0PSIyODAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjYwNSIgeT0iNDI4IiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjM2VjZjhlIj5MZWFybnMgdGhlIHJlcG8sIGtlZXBzIHRoZSByZXN0PC90ZXh0PgogICAgPGcgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+CiAgICAgIDxyZWN0IHg9IjYwNSIgeT0iNDUyIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjU0IiByeD0iMTIiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHRleHQgeD0iNzMwIiB5PSI0ODciIHRleHQtYW5jaG9yPSJtaWRkbGUiPmdlbmVyYWwgUHl0aG9uPC90ZXh0PgogICAgICA8cmVjdCB4PSI2MDUiIHk9IjUxOCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI1NCIgcng9IjEyIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICAgIDx0ZXh0IHg9IjczMCIgeT0iNTUzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5leHBsYWluaW5nIGNvZGU8L3RleHQ+CiAgICAgIDxyZWN0IHg9IjYwNSIgeT0iNTg0IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjU0IiByeD0iMTIiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgICAgPHRleHQgeD0iNzMwIiB5PSI2MTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZvbGxvd2luZyBydWxlczwvdGV4dD4KICAgICAgPHJlY3QgeD0iODgwIiB5PSI1MTgiIHdpZHRoPSIyNDUiIGhlaWdodD0iNTQiIHJ4PSIxMiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIyIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgICA8dGV4dCB4PSIxMDAyIiB5PSI1NTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlcG8gZmFjdHM8L3RleHQ+CiAgICA8L2c+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "Before and after cards: plain SFT fades general skills to red, subspace tuning keeps them green while adding repo facts.",
+    "caption": "The same repo-assistant fine-tune with plain SFT and with updates fenced out of the principal directions.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "quote",
+   "SFT concentrates updates along these directions and is susceptible to catastrophic forgetting"
+  ],
+  [
+   "p",
+   "Fine-tuning means more gradient descent on a pretrained model, so its weights drift toward your examples. A new arXiv paper on subspace tuning says where the drift does damage. Every weight matrix has principal singular directions, the axes it stretches inputs along most. The authors write that «SFT concentrates updates along these directions and is susceptible to catastrophic forgetting». On-policy methods, which learn from the model's own samples, «avoid updating the principal singular directions of weight matrices and thus forget less»."
+  ],
+  [
+   "p",
+   "Their method, Subspace Tuning (SST), «restricts each weight update to the bottom singular subspace». You find the principal directions once, then strip that component out of every gradient step. Protecting up to 99% of the weight subspace, they write, «substantially improves retention while preserving strong target-task performance». It also keeps the model «close to its base distribution», with 2 to 4 times less KL drift, the gap between tuned and base output distributions."
+  ],
+  [
+   "p",
+   "We think this belongs in your default recipe. One caveat matters. The paper says the effect «strengthens with model and data size and nearly eliminates forgetting in the large-model regime». Read the other way, a small model may keep less. So measure retention on your own size."
+  ],
+  [
+   "code",
+   {
+    "label": "The subspace idea as illustrative pseudo-code (not a library API)",
+    "language": "python",
+    "source": "# Illustrative pattern: keep updates out of the principal directions\nU, S, Vt = svd(W)                  # singular directions of one weight matrix\nP = U[:, :k]                       # top-k principal directions: protected\n\ndef fenced(grad):\n    # remove the part of the update that lies along protected directions\n    return grad - P @ (P.T @ grad)\n\nfor batch in task_batches:\n    grad = loss(W, batch).grad()\n    W = W - lr * fenced(grad)      # learning happens in the bottom subspace\n    if time_to_refresh():\n        U, S, Vt = svd(W)          # directions move as W moves\n        P = U[:, :k]"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Probe the base model before you pay for a run",
+    "num": "02",
+    "id": "probe-the-base-model-before-you-pay-for-a-run"
+   }
+  ],
+  [
+   "p",
+   "Your repo assistant raises a second question. You teach it facts about some modules. Will it generalize to modules you never showed it? A new arXiv paper on active and inert facts has a crisp answer. Active facts help new learning. Inert facts can be recalled but don't. The dividing line is a property you can measure before training."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPHRpdGxlPlRoZSByZWxhYmVsbGluZyB0ZXN0IGZvciBhY3RpdmUgZmFjdHM8L3RpdGxlPgogIDxkZXNjPlRyYWluZWQgY2l0aWVzIG1hcCB0byBhbmltYWwgbGFiZWxzIHRocm91Z2ggYSBoaWRkZW4gY29udGluZW50IGxheWVyOyBhIGhlbGQtb3V0IGNpdHksIE11bmljaCwgaXMgYXNrZWQgZm9yIGl0cyBsYWJlbC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjI4Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYWIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjN2FhMmZmIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFtIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJheSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI3MDAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGVsbGlwc2UgY3g9IjYwMCIgY3k9IjM3MCIgcng9IjIzMCIgcnk9IjI0MCIgZmlsbD0idXJsKCNnbG93KSIvPgoKICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHRleHQgeD0iMTcwIiB5PSI0NCIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c3ViamVjdHM8L3RleHQ+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjQ0IiBmb250LXNpemU9IjI2IiBmaWxsPSIjYTc4YmZhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5oaWRkZW4gc3RydWN0dXJlPC90ZXh0PgogICAgPHRleHQgeD0iMTAzMCIgeT0iNDQiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm5ldyBsYWJlbHM8L3RleHQ+CgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCA1MCkiPjwhLS0gaGlkZGVuIG1pZGRsZSBsYXllciAtLT4KICAgIDxyZWN0IHg9IjQ2MCIgeT0iMTEwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjQ0MCIgcng9IjIwIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSIxMCA4Ii8+CiAgICA8cmVjdCB4PSI1MDAiIHk9IjE3MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI3MCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjAwIiB5PSIyMTUiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkV1cm9wZTwvdGV4dD4KICAgIDxyZWN0IHg9IjUwMCIgeT0iNDAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjQ0NSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QXNpYTwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwMCIgeT0iNTMwIiBmb250LXNpemU9IjIyIiBmaWxsPSIjYTc4YmZhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5uZXZlciBzaG93bjwvdGV4dD4KCiAgICA8IS0tIHN1YmplY3RzIC0tPgogICAgPHJlY3QgeD0iNjAiIHk9IjE1MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI3MCIgcng9IjE0IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxNzAiIHk9IjE5NSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGFyaXM8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iMjcwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDYiLz4KICAgIDx0ZXh0IHg9IjE3MCIgeT0iMzE1IiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NdW5pY2g8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iNDIwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjE3MCIgeT0iNDY1IiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5LeW90bzwvdGV4dD4KICAgIDx0ZXh0IHg9IjE3MCIgeT0iMzgwIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZTNiMzQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5oZWxkIG91dDwvdGV4dD4KCiAgICA8IS0tIGxhYmVscyAtLT4KICAgIDxyZWN0IHg9IjkyMCIgeT0iMTcwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjEwMzAiIHk9IjIxNSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y3JhYjwvdGV4dD4KICAgIDxyZWN0IHg9IjkyMCIgeT0iNDAwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjEwMzAiIHk9IjQ0NSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+emVicmE8L3RleHQ+CgogICAgPCEtLSBsaW5rcyB0aHJvdWdoIGhpZGRlbiBsYXllciAoZmFpbnQpIC0tPgogICAgPHBhdGggZD0iTTI4NSwxODUgTDQ5NSwyMDUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgICA8cGF0aCBkPSJNMjg1LDQ1NSBMNDk1LDQzNSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNiIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhbSkiLz4KICAgIDxwYXRoIGQ9Ik03MDUsMjA1IEw5MTUsMjA1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiA2IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FtKSIvPgogICAgPHBhdGggZD0iTTcwNSw0MzUgTDkxNSw0MzUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CgogICAgPCEtLSB0cmFpbmVkIGRpcmVjdCBtYXBwaW5ncywgYXJjaW5nIG92ZXIgdGhlIGhpZGRlbiBsYXllciAtLT4KICAgIDxwYXRoIGQ9Ik0yMDAsMTQ1IEMzODAsNDAgODIwLDQwIDEwMDAsMTY1IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhYikiLz4KICAgIDxwYXRoIGQ9Ik0yMDAsNDk1IEMzODAsNjAwIDgyMCw2MDAgMTAwMCw0NzUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FiKSIvPgogICAgPHRleHQgeD0iNjAwIiB5PSI4NSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzdhYTJmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dHJhaW5lZDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwMCIgeT0iNjEwIiBmb250LXNpemU9IjIyIiBmaWxsPSIjN2FhMmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50cmFpbmVkPC90ZXh0PgoKICAgIDwhLS0gdGhlIHRlc3QgLS0+CiAgICA8cGF0aCBkPSJNMjg1LDMwMCBDMzgwLDI3MCA0MzAsMjQwIDQ5NSwyMTUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2F5KSIvPgogICAgPHBhdGggZD0iTTcwNSwyMTUgQzgwMCwyNTAgODUwLDMwMCA5MTUsMzAwIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWRhc2hhcnJheT0iNCA4IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxjaXJjbGUgY3g9IjEwMzAiIGN5PSIzMTAiIHI9IjQwIiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxMDMwIiB5PSIzMjQiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPj88L3RleHQ+CiAgPC9nPjwvZz4KPC9zdmc+Cg==",
+    "alt": "Cities map to continents, continents map to animal labels, and a held-out city is asked for its label.",
+    "caption": "The relabelling test: train on Paris to crab, then ask whether Munich lands on crab too.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "We retraced their setup, because the trick is lovely. Take a relation that maps a place to its continent. Swap each continent for an arbitrary animal, so «Europe -> crab, Asia -> zebra». Fine-tune on some places, never stating the rule. Then test a held-out city: «Having learned Paris -> crab, does it answer Munich -> crab?» The model has to find the hidden continent structure on its own."
+  ],
+  [
+   "p",
+   "It mostly depends on one thing. In the authors' words, «how linearly readable the original relation is in pretrained representations strongly predicts this generalization». A linear probe is a single linear layer trained to read a property out of hidden states. Within each model, readability and transfer «correlate across relations at Pearson r = 0.87 to 0.92». Even the mistakes have structure: map a wrong label back and «Munich -> zebra becomes Munich -> Asia»."
+  ],
+  [
+   "p",
+   "In our view this is a cheap pre-flight check. Fit a linear probe on base-model hidden states for the structure you want to extend. If it reads cleanly, fine-tuning has something to build on. If not, expect memorized facts that don't spread. That reading is our extrapolation from the abstract, not a recipe the paper tested."
+  ],
+  [
+   "h2",
+   {
+    "text": "Fix the training examples before you touch the trainer",
+    "num": "03",
+    "id": "fix-the-training-examples-before-you-touch-the-trainer"
+   }
+  ],
+  [
+   "p",
+   "Most of a good fine-tune is data work. The AutoSFT authors watched agents rediscover that: given the full training stack, agents «converge on supervised fine-tuning and spend most effort revising training data». The learning rate barely came into it. The examples did."
+  ],
+  [
+   "p",
+   "A human data engineer has a wide toolkit, and the paper spells it out. A person «adjusts proportions, prunes, repairs, replaces and synthesizes the data». A lone agent fell short of that. The authors found «it reaches only one action, adjusting category proportions», and its context filled with execution output until it was thrown away mid-search. Sound familiar? That's the failure mode of any long agent loop."
+  ],
+  [
+   "p",
+   "AutoSFT splits the job. A meta agent «separates execution from analysis», gathers proposals from independent angles, and calls a synthesis subagent for capabilities the pool can't cover. Each part adds something. Analysis lifts the best IFEval by +6.5. Synthesis adds +3.4 IFEval and +2.9 IFBench. On code, analysis adds +3.7 MBPP+ over a single agent that does not improve."
+  ],
+  [
+   "p",
+   "We like one design choice above the rest. The comparisons come from «runs that retrain from the base model each round», so every gain traces to one component. Copy that discipline for your own data edits. Change one thing, retrain from base, compare. Their conclusion matches ours: what matters is «covering diverse data actions» for your examples."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Gains AutoSFT reports as each component is added, with model, trainer and budget held fixed.",
+    "columns": [
+     "Component added",
+     "Benchmark",
+     "Reported change"
+    ],
+    "rows": [
+     [
+      "Analysis subagents",
+      "IFEval (best)",
+      "+6.5"
+     ],
+     [
+      "Synthesis subagent",
+      "IFEval",
+      "+3.4"
+     ],
+     [
+      "Synthesis subagent",
+      "IFBench",
+      "+2.9"
+     ],
+     [
+      "Analysis, on code",
+      "MBPP+",
+      "+3.7"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Train on the diff when your code moves on",
+    "num": "04",
+    "id": "train-on-the-diff-when-your-code-moves-on"
+   }
+  ],
+  [
+   "p",
+   "Back to the repo assistant, which now has a shelf life. Your code changes daily, and a fine-tune freezes one moment of it. A new arXiv paper on code comprehension names the problem: repository-specialized models «can become misaligned as code evolves». Last month's answer about the auth module is now confidently wrong."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPHRpdGxlPkEgcmVwb3NpdG9yeSB0cmFuc2l0aW9uIGJlY29tZXMgdHJhaW5pbmcgc2lnbmFsPC90aXRsZT4KICA8ZGVzYz5PbmUgY29kZSBjaGFuZ2Ugb24gYSB0aW1lbGluZSB5aWVsZHMgYSBxdWVzdGlvbiB3aXRoIGEgcHJlZmVycmVkIG5ldyBhbnN3ZXIsIGEgcmVqZWN0ZWQgb2Jzb2xldGUgYW5zd2VyLCBhbmQgYSByZXBsYXllZCBzdGlsbC12YWxpZCBmYWN0LCBhbGwgZmVlZGluZyBvbmUgdXBkYXRlLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhbSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYWciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2ZmN2I3MiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI3MDAiIGZpbGw9InVybCgjYmcpIi8+CgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8IS0tIHRpbWVsaW5lIC0tPgogICAgPGxpbmUgeDE9IjgwIiB5MT0iOTAiIHgyPSIxMTIwIiB5Mj0iOTAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICA8Y2lyY2xlIGN4PSIxNjAiIGN5PSI5MCIgcj0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8Y2lyY2xlIGN4PSI0MDAiIGN5PSI5MCIgcj0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8Y2lyY2xlIGN4PSI2NDAiIGN5PSI5MCIgcj0iMTgiIGZpbGw9IiM3YWEyZmYiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8Y2lyY2xlIGN4PSI4ODAiIGN5PSI5MCIgcj0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8Y2lyY2xlIGN4PSIxMDgwIiBjeT0iOTAiIHI9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNTIwIiB5PSI2MCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+b2xkIGNvZGU8L3RleHQ+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjYwIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5uZXcgY29kZTwvdGV4dD4KICAgIDxwYXRoIGQ9Ik02NDAsMTEyIEw2NDAsMTYwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhYikiLz4KCiAgICA8IS0tIHF1ZXN0aW9uIGNhcmQgLS0+CiAgICA8cmVjdCB4PSIzNzAiIHk9IjE3MCIgd2lkdGg9IjU0MCIgaGVpZ2h0PSI3NiIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjQwIiB5PSIyMTgiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPldoZXJlIGlzIHRoZSBzZXNzaW9uIGNoZWNrZWQ/PC90ZXh0PgoKICAgIDwhLS0gdGhyZWUgb3V0cHV0cyAtLT4KICAgIDxwYXRoIGQ9Ik01MjAsMjUwIEM0NjAsMjkwIDMwMCwyOTAgMjUwLDMyNiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYWcpIi8+CiAgICA8cGF0aCBkPSJNNjQwLDI1MCBMNjQwLDMyNiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgICA8cGF0aCBkPSJNNzYwLDI1MCBDODIwLDI5MCA5ODAsMjkwIDEwMzAsMzI2IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhYikiLz4KCiAgICA8cmVjdCB4PSI2MCIgeT0iMzM0IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjEzMCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIyNDAiIHk9IjM4MCIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bmV3IGFuc3dlcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iNDIwIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSI+bWlkZGxld2FyZS5weTwvdGV4dD4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iNDUyIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wcmVmZXJyZWQ8L3RleHQ+CgogICAgPHJlY3QgeD0iNDYwIiB5PSIzMzQiIHdpZHRoPSIzNjAiIGhlaWdodD0iMTMwIiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDYiLz4KICAgIDx0ZXh0IHg9IjY0MCIgeT0iMzgwIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5vYnNvbGV0ZSBhbnN3ZXI8L3RleHQ+CiAgICA8dGV4dCB4PSI2NDAiIHk9IjQyMCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiPmxvZ2luLnB5PC90ZXh0PgogICAgPHRleHQgeD0iNjQwIiB5PSI0NTIiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlamVjdGVkPC90ZXh0PgoKICAgIDxyZWN0IHg9Ijg2MCIgeT0iMzM0IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjEzMCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxMDEwIiB5PSIzODAiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiM3YWEyZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnN0aWxsIHZhbGlkPC90ZXh0PgogICAgPHRleHQgeD0iMTAxMCIgeT0iNDIwIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZXRyeSBwb2xpY3k8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDEwIiB5PSI0NTIiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlcGxheWVkPC90ZXh0PgoKICAgIDwhLS0gaW50byB0aGUgdXBkYXRlIC0tPgogICAgPHBhdGggZD0iTTI0MCw0NzAgQzI0MCw1NDAgNDYwLDU2MCA1NDAsNTgwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhbSkiLz4KICAgIDxwYXRoIGQ9Ik02NDAsNDcwIEw2NDAsNTYwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhbSkiLz4KICAgIDxwYXRoIGQ9Ik0xMDEwLDQ3MCBDMTAxMCw1NDAgODIwLDU2MCA3NDAsNTgwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhbSkiLz4KICAgIDxlbGxpcHNlIGN4PSI2NDAiIGN5PSI2MTAiIHJ4PSIyNjAiIHJ5PSI3MCIgZmlsbD0idXJsKCNnbG93KSIvPgogICAgPHJlY3QgeD0iNDcwIiB5PSI1NzAiIHdpZHRoPSIzNDAiIGhlaWdodD0iODAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjY0MCIgeT0iNjIwIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5vbmUgdXBkYXRlPC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==",
+    "alt": "A timeline of code versions where each change yields a preferred new answer, a rejected old one and a replayed fact.",
+    "caption": "TAFT turns each repository transition into a ranked pair plus replayed retention examples.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The paper splits the job into four parts, and each needs its own test: «acquiring new knowledge, suppressing obsolete, retaining still-valid, and preserving semantically neighboring knowledge». Retraining on new answers only covers the first. Neighbors are the sneaky one. Teach the new auth flow and the session code nearby can wobble."
+  ],
+  [
+   "p",
+   "TAFT, their method, «treats repository transitions as supervision». Each code change yields questions with a new answer and an old one. Preference optimization then pushes the model toward the newly valid answer and away from the obsolete one. Think of it as a ranked pair, not a single target. Replayed retention examples guard what stayed true."
+  ],
+  [
+   "p",
+   "Against both baselines, TAFT reaches «an average relative improvement of 18% in updated/suppressed knowledge accuracy». Retention climbs too, along with «roughly 1.5 times the neighbor accuracy». The test spans 255,295 QA entries across ten temporal slices. We think the paired old-versus-new example is the idea to steal, even if you never run TAFT itself."
+  ],
+  [
+   "h2",
+   {
+    "text": "Give the loss a term for what reviewers judge",
+    "num": "05",
+    "id": "give-the-loss-a-term-for-what-reviewers-judge"
+   }
+  ],
+  [
+   "p",
+   "Cross-entropy, the usual fine-tuning loss, scores each token on its own. That's a pointwise loss. If your users judge structure, the loss may never see it. A new arXiv paper on wind-field super-resolution, which sharpens coarse weather grids into fine ones, shows the gap cleanly."
+  ],
+  [
+   "p",
+   "The authors note that scientific reading «often hinges on extrema, connected regions, and multiscale scalar structure». So they fine-tuned a pretrained CNN with «differentiable topology-inspired auxiliary losses», extra terms that reward the right peaks and regions. Each of 16 configurations faced «a matched standard fine-tuning control that uses only the original reconstruction loss». That control is the clever bit."
+  ],
+  [
+   "p",
+   "The final objective cuts mean bottleneck and two Wasserstein distances by 31%, 25% and 27% against the pretrained model, and on 150 of 168 fields. The plain control is the one «which on its own worsens all three». The price is pointwise sharpness: 1.30 dB PSNR, «about half the gain of standard fine-tuning». Pick your trade on purpose."
+  ],
+  [
+   "p",
+   "For the repo assistant, ask what your reviewers actually check. Does the answer cite the right file? Does the snippet compile? Those deserve their own term or their own filter, plus a control run without it. We agree with the paper's quiet lesson: a standard fine-tune can make the property you care about worse."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Topology-aware fine-tuning against a standard control on the wind-field benchmark.",
+    "columns": [
+     "Objective",
+     "Topology distances",
+     "PSNR"
+    ],
+    "rows": [
+     [
+      "Standard fine-tuning control",
+      "Worsens all three",
+      "Larger gain"
+     ],
+     [
+      "Topology-inspired objective",
+      "31%, 25% and 27% lower than pretrained",
+      "+1.30 dB, about half the control's gain"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Move the projector and the language model together",
+    "num": "06",
+    "id": "move-the-projector-and-the-language-model-together"
+   }
+  ],
+  [
+   "p",
+   "Now your repo assistant learns to read architecture diagrams. A multimodal model has a projector, a small network that maps image features into the language model's input space. Continual instruction tuning means teaching it new tasks one after another. A new arXiv paper on that setting found a seam where things tear."
+  ],
+  [
+   "p",
+   "Common recipes guard the language model and keep updating the projector. The CART authors warn that «Such asymmetric adaptation can cause substantial representation drift in the projector». The two halves stop speaking the same language. Forgetting gets worse, not better."
+  ],
+  [
+   "p",
+   "CART «maintains task-specific experts for both modules and combines them through weighted mixtures». An expert here is a task-specific copy of a module's adapter. The mixing weights account for «considering both expert relevance and cross-module compatibility», so both sides adapt in step. Similar experts get merged to «further control model growth». The abstract says «CART achieves state-of-the-art performance» but gives no figures, so we'd treat the size of the win as unknown."
+  ],
+  [
+   "h2",
+   {
+    "text": "Leave the weights alone when the answer is a lookup",
+    "num": "07",
+    "id": "leave-the-weights-alone-when-the-answer-is-a-lookup"
+   }
+  ],
+  [
+   "p",
+   "Here's the case where you shouldn't fine-tune at all. Your users ask which version of a config file is live. That answer changes with every merge. Fine-tuning writes knowledge into weights, and every refresh costs a training run plus a retention check. If the fact is a lookup, look it up at query time."
+  ],
+  [
+   "p",
+   "Skip it too when the structure isn't there to build on. The active-facts paper puts it bluntly: transfer «depends less on whether its facts can be recalled than on how readily their shared structure can be read out linearly». If your probe reads nothing, training may just memorize the rows you gave it."
+  ],
+  [
+   "p",
+   "And skip it when you can't see forgetting. No retention eval means no evidence the old skills survived. In our view, a fine-tune without one isn't ready to ship, however good the target metric looks. Build the eval first. Then decide."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is fine-tuning an LLM?"
+  ],
+  [
+   "p",
+   "Fine-tuning is more training on a pretrained model with your own examples, so its weights shift toward your task. Supervised fine-tuning uses input and target pairs. The catch is forgetting: a new arXiv paper notes that SFT «concentrates updates along these directions and is susceptible to catastrophic forgetting», so old skills can fade."
+  ],
+  [
+   "h3",
+   "Does fine-tuning cause catastrophic forgetting?"
+  ],
+  [
+   "p",
+   "It can, and plain supervised fine-tuning is the usual culprit. The damage tracks the principal singular directions of the weight matrices. Subspace Tuning restricts updates to the bottom subspace, and its authors say that protecting the subspace «substantially improves retention while preserving strong target-task performance». Measure retention either way."
+  ],
+  [
+   "h3",
+   "Should I fine-tune a model on my codebase?"
+  ],
+  [
+   "p",
+   "Only if you can keep it current and measure what it forgets. Repository-specialized models «can become misaligned as code evolves», so plan for updates. TAFT trains on code changes, pairing new answers against obsolete ones. For facts that change every merge, we think a lookup at query time is the saner default."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Towards Continual Learning: Mitigating Forgetting With Subspace Tuning",
+   "url": "https://arxiv.org/abs/2610.22293v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Knowledge That Is Linear Before Fine-Tuning Generalizes After It",
+   "url": "https://arxiv.org/abs/2610.22300v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "AutoSFT: An Agentic System for Automated Data Research in Supervised Fine-Tuning",
+   "url": "https://arxiv.org/abs/2610.22194v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Temporal Adaptive Fine-Tuning for Code Comprehension",
+   "url": "https://arxiv.org/abs/2610.19970v1",
+   "posted": "2026-10-14"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Topology-Inspired Fine-Tuning for Wind-Field Super-Resolution",
+   "url": "https://arxiv.org/abs/2610.22262v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "CART: Compatible Routing for Multimodal Continual Instruction Tuning",
+   "url": "https://arxiv.org/abs/2610.22137v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "SFT concentrates updates along these directions and is susceptible to catastrophic forgetting": 1,
+  "avoid updating the principal singular directions of weight matrices and thus forget less": 1,
+  "restricts each weight update to the bottom singular subspace": 1,
+  "substantially improves retention while preserving strong target-task performance": 1,
+  "close to its base distribution": 1,
+  "strengthens with model and data size and nearly eliminates forgetting in the large-model regime": 1,
+  "Europe -> crab, Asia -> zebra": 2,
+  "Having learned Paris -> crab, does it answer Munich -> crab?": 2,
+  "how linearly readable the original relation is in pretrained representations strongly predicts this generalization": 2,
+  "correlate across relations at Pearson r = 0.87 to 0.92": 2,
+  "Munich -> zebra becomes Munich -> Asia": 2,
+  "converge on supervised fine-tuning and spend most effort revising training data": 3,
+  "adjusts proportions, prunes, repairs, replaces and synthesizes the data": 3,
+  "it reaches only one action, adjusting category proportions": 3,
+  "separates execution from analysis": 3,
+  "runs that retrain from the base model each round": 3,
+  "covering diverse data actions": 3,
+  "can become misaligned as code evolves": 4,
+  "acquiring new knowledge, suppressing obsolete, retaining still-valid, and preserving semantically neighboring knowledge": 4,
+  "treats repository transitions as supervision": 4,
+  "an average relative improvement of 18% in updated/suppressed knowledge accuracy": 4,
+  "roughly 1.5 times the neighbor accuracy": 4,
+  "often hinges on extrema, connected regions, and multiscale scalar structure": 5,
+  "differentiable topology-inspired auxiliary losses": 5,
+  "a matched standard fine-tuning control that uses only the original reconstruction loss": 5,
+  "which on its own worsens all three": 5,
+  "about half the gain of standard fine-tuning": 5,
+  "Such asymmetric adaptation can cause substantial representation drift in the projector": 6,
+  "maintains task-specific experts for both modules and combines them through weighted mixtures": 6,
+  "considering both expert relevance and cross-module compatibility": 6,
+  "further control model growth": 6,
+  "CART achieves state-of-the-art performance": 6,
+  "depends less on whether its facts can be recalled than on how readily their shared structure can be read out linearly": 2,
+  "concentrates updates along these directions and is susceptible to catastrophic forgetting": 1
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-long-context",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:36:02+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22300v1",
+   "arxiv:2610.22137v1",
+   "arxiv:2610.19970v1",
+   "arxiv:2610.22262v1",
+   "arxiv:2610.22194v1",
+   "arxiv:2610.22293v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-guide:concept/fine-tuning",
+  "format": "field-guide",
+  "reviewed_by": null
+ }
+}

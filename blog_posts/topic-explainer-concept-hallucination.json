@@ -1,0 +1,364 @@
+{
+ "slug": "topic-explainer-concept-hallucination",
+ "status": "draft",
+ "tag": "Explainer",
+ "feat": false,
+ "title": "Hallucination Has Two Shapes: Invented Facts and Skipped Steps",
+ "dek": "A plain walk through why language models make things up, how a small proxy model's attention can catch it, and the quieter failure where every sentence is true and the conversation still goes wrong.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "Why do LLMs hallucinate? They're trained to produce likely text, not checked text. A small proxy model's attention can flag unsupported answers, and comparing how a dialogue unfolds catches skipped steps.",
+ "description": "Why do LLMs hallucinate? How sampling invents facts, how a small proxy model's attention flags them, and why agents also fail on procedure.",
+ "keywords": [
+  "why do LLMs hallucinate",
+  "Hallucination and factuality",
+  "hallucination detection",
+  "procedural hallucination",
+  "attention-based hallucination detector",
+  "grounded generation"
+ ],
+ "kicker": "Explainer",
+ "tags": [
+  "hallucination",
+  "Explainer"
+ ],
+ "read": 7,
+ "decisions": [
+  "Check replies against the prompt's context with a small frozen proxy model.",
+  "Prefer a trained probe on the proxy over prompting the same proxy as a judge.",
+  "Write your agent's procedure down so deviations have something to deviate from.",
+  "Watch for the first off-track turn, not only for wrong facts."
+ ],
+ "layout": "explainer",
+ "arrangement": "a",
+ "special": {
+  "type": "quiz",
+  "title": "Check what you took away",
+  "items": [
+   {
+    "question": "A support agent quotes the refund policy correctly but pays out before verifying the caller. Which failure is this?",
+    "options": [
+     "Factual hallucination",
+     "Procedural hallucination",
+     "No failure, since every statement was true"
+    ],
+    "answer": 1,
+    "explanation": "Each reply is accurate, but the conversation left the intended process. That's procedural hallucination."
+   },
+   {
+    "question": "In the plainest terms, why do language models produce unsupported answers?",
+    "options": [
+     "They generate likely next tokens, and a likely sentence need not be a supported one",
+     "Their context window deletes facts from the prompt",
+     "They store no knowledge at all"
+    ],
+    "answer": 0,
+    "explanation": "Sampling picks what usually comes next. Nothing in that loop checks the claim against a source."
+   },
+   {
+    "question": "How can a small proxy model flag an unsupported answer from a bigger, closed generator?",
+    "options": [
+     "It retrains the generator's weights",
+     "It reads the context and the reply, and its attention statistics feed a trained probe",
+     "It searches the web for each claim"
+    ],
+    "answer": 1,
+    "explanation": "The proxy is frozen and only reads. A probe on its attention features does the flagging."
+   },
+   {
+    "question": "What made attention-based detectors costly on long inputs?",
+    "options": [
+     "Standard pipelines built the full attention matrix, whose memory grows quadratically with length",
+     "They needed a human to label every reply",
+     "They could only read proprietary models"
+    ],
+    "answer": 0,
+    "explanation": "Computing the statistics inside the FlashAttention pass avoids ever holding the full matrix."
+   },
+   {
+    "question": "Why does DialFork compare dialogues by how they unfold instead of by meaning?",
+    "options": [
+     "Meaning-based comparison is too slow to run",
+     "A dialogue that skips a step can still mean nearly the same as a correct one",
+     "Dialogues carry no meaning worth comparing"
+    ],
+    "answer": 1,
+    "explanation": "Semantic similarity misses the order of steps, which is exactly where procedural hallucination lives."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A hallucination is a fluent guess with nothing under it",
+    "num": "01",
+    "id": "a-hallucination-is-a-fluent-guess-with-nothing-under-it"
+   }
+  ],
+  [
+   "p",
+   "A hallucination is a model's answer that sounds right but isn't backed by anything, like a tour guide who invents a castle's history instead of admitting they forgot. So why do LLMs hallucinate? Because they're built to continue text plausibly, and plausible isn't the same as true. The guide isn't lying on purpose. Their whole job is to keep talking."
+  ],
+  [
+   "p",
+   "Keep one example in your head for this whole post. A bank's support agent has the refund policy pasted into its prompt. A customer asks how long they have to claim. The agent names a window the policy never mentions. That's the classic kind. A new arXiv paper starts from that worry: «Large language models can produce fluent answers» that the prompt's own context doesn't back."
+  ],
+  [
+   "p",
+   "Now a second failure. The same agent quotes the policy perfectly, then issues the refund before checking who's calling. Every sentence is true. The conversation is still wrong. We think this second kind gets underrated, because a fact-checker reading each reply in isolation would pass it. Hold onto it; we'll come back."
+  ],
+  [
+   "h2",
+   {
+    "text": "Sampling rewards whatever sounds likely",
+    "num": "02",
+    "id": "sampling-rewards-whatever-sounds-likely"
+   }
+  ],
+  [
+   "p",
+   "Here's the machinery. At each step the model outputs logits, one raw score per token in its vocabulary. A softmax turns those scores into probabilities, and the decoder picks the next token from them. Then it repeats. Nothing in that loop asks if the claim is supported. It only asks what usually comes next, given everything so far."
+  ],
+  [
+   "p",
+   "Back to the refund question. The prompt holds the policy, but it also holds a customer asking about a time limit. Refund windows are common in the text a model learns from. So a confident time limit can score high, even when the pasted policy says nothing about one. The likely answer wins. The supported answer was never on the ballot."
+  ],
+  [
+   "p",
+   "There's no built-in abstain button either. Admitting ignorance is just another continuation, and it only wins when training made it likely at that spot. In our view, that's the most useful idea in this whole topic: hallucination is the normal output of a fluent predictor, not a rare glitch. Fixes either change what's likely, or check the answer afterwards."
+  ],
+  [
+   "h2",
+   {
+    "text": "Small proxy models can watch where the answer looked",
+    "num": "03",
+    "id": "small-proxy-models-can-watch-where-the-answer-looked"
+   }
+  ],
+  [
+   "p",
+   "Checking afterwards is where the FlashAttention with Statistics paper comes in. Its premise is that «A compact frozen proxy model can detect such answers by reading the context and another model's response, even from a proprietary generator». Frozen means its weights never change. You feed it the policy and the agent's reply as one sequence. It generates nothing. It just reads."
+  ],
+  [
+   "p",
+   "As it reads, each attention head spreads weight over earlier tokens. Attention-based detectors summarise those weights into statistics, such as how much the reply's tokens look back at the context. A probe, a small classifier trained on those features, then flags unsupported replies. In the refund case, the invented time limit might draw little attention from the policy. That's the signal."
+  ],
+  [
+   "p",
+   "The toy code below builds the full attention matrix to get one feature per head. Notice the problem. Building that matrix is exactly the expensive part, because, as the paper puts it, «standard pipelines materialize the attention matrix, whose memory grows quadratically with sequence length». Long policies, long chats and long retrieved passages all make it worse."
+  ],
+  [
+   "code",
+   {
+    "label": "A toy attention feature: how much each head's reply tokens look at the context (illustrative)",
+    "language": "python",
+    "source": "import numpy as np\n\ndef context_attention_share(attn, n_ctx):\n    \"\"\"attn: [heads, seq, seq] attention weights from a frozen proxy model.\n    Returns, per head, the attention mass reply tokens put on the context.\"\"\"\n    reply_rows = attn[:, n_ctx:, :]             # rows for the reply tokens\n    on_ctx = reply_rows[:, :, :n_ctx].sum(-1)   # mass landing on context tokens\n    return on_ctx.mean(-1)                      # one feature per head\n\n# The probe is just a small classifier over these features, e.g.\n# from sklearn.linear_model import LogisticRegression\n# probe = LogisticRegression().fit(features, is_unsupported)\n#\n# Note: this materialises the full matrix. That is the cost the paper avoids.\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Attention statistics come almost free inside the kernel",
+    "num": "04",
+    "id": "attention-statistics-come-almost-free-inside-the-kernel"
+   }
+  ],
+  [
+   "p",
+   "FlashAttention is a fused kernel that computes attention in tiles, so the full matrix never sits in memory at once. The fix is to collect statistics inside that pass. The authors compute them «by accumulation in the FlashAttention pass, sparse lookups after it, or a second tiled pass over the scores». Some features come nearly free. Others cost more."
+  ],
+  [
+   "p",
+   "The overhead figures are the surprise. On an H100, the statistics of five published detectors added 16% to a Qwen3-8B forward pass at 2K tokens. At 35K tokens that fell to 1.4%. Storage came to 22.5 KiB per response token. Longer inputs make the extra work relatively cheaper. That's backwards from what you'd fear."
+  ],
+  [
+   "p",
+   "We went through the results claim by claim. F1 is the balance of precision and recall, so it punishes both missed and false flags. Proxies from 0.6B to 8B parameters made strong detectors, and «a 4B proxy outperforms the strongest of nine zero-shot 4-9B LLM judges in F1 on two of the three». Also, «probing each proxy beats prompting it as a judge». We agree with that last one most."
+  ],
+  [
+   "p",
+   "One caution rides along. The attention features help selectively: «adding attention features significantly improves F1 in half of the 12 benchmark-proxy pairs, never significantly lowering it». Half, not all. Never hurting is good news, but the gain depends on which proxy meets which benchmark."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Latency added by the statistics of five published detectors to a forward pass on an H100, in percent, at two input lengths.",
+    "unit": "% added latency",
+    "bars": [
+     {
+      "label": "2K tokens",
+      "value": 16.0
+     },
+     {
+      "label": "35K tokens",
+      "value": 1.4
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Every sentence can be true and the conversation still wrong",
+    "num": "05",
+    "id": "every-sentence-can-be-true-and-the-conversation-still-wrong"
+   }
+  ],
+  [
+   "p",
+   "Back to the refund that skipped the identity check. The DialFork authors call this «procedural hallucination, in which an agent produces individually fluent and factually plausible utterances while deviating from the intended conversational process». Each reply passes a fact check. The order of steps doesn't. A grounding detector can't see it, because nothing in any single reply is unsupported."
+  ],
+  [
+   "p",
+   "We retraced how they build their benchmark. Start with a conformant dialogue, one that follows the procedure. Pick a turn, branch the dialogue there, and plant a deviation: «forking conformant dialogues at controlled turn positions and injecting one of four hallucination types». The result spans 36,278 dialogues across 24 tasks in 12 domains. People then checked it, with 30 human annotators validating the construction."
+  ],
+  [
+   "p",
+   "Three tasks follow, at three zoom levels: a whole set of dialogues, a single dialogue, and the turn where things first go wrong. That last one is aimed at real-time guardrails. Their metrics, FlowKL and FlowScore, «compare dialogues by how they unfold rather than their content». At the dialogue level, «FlowScore significantly outperforms all baselines across seven encoders». Similar meaning hides a different order."
+  ],
+  [
+   "p",
+   "We think this is the bigger idea of the two. DialFork's framing is that agents are «increasingly expected to follow procedural logic», and a fact checker reads replies one at a time. Process lives between the replies. You need a tool that looks there."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How DialFork turns a correct dialogue into a test of procedural hallucination.",
+    "steps": [
+     "Start from a conformant dialogue that follows the procedure",
+     "Fork it at a controlled turn position",
+     "Inject one of four hallucination types",
+     "Human annotators validate the construction",
+     "Measure deviation for a set, a dialogue, or a turn"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Detection stops at the edge of the context",
+    "num": "06",
+    "id": "detection-stops-at-the-edge-of-the-context"
+   }
+  ],
+  [
+   "p",
+   "Both ideas have hard edges. The proxy detector needs context in the prompt to compare against. Ask a trivia question with no reference pasted in, and there's nothing for attention to lean on. It's a grounding check, not a truth oracle. And a probe is a trained classifier, so it needs labelled examples that look like your own traffic."
+  ],
+  [
+   "p",
+   "DialFork has its own edge. It needs a reference process: conformant dialogues to measure against. If nobody wrote the procedure down, there's nothing to deviate from. Neither approach explains why a model hallucinates in the first place. They measure and catch. They don't cure."
+  ],
+  [
+   "p",
+   "So what's worth trying next? Load a small open model, paste a short policy plus a reply that invents a detail, and inspect how much the reply's tokens attend to the policy. Then write your own agent's procedure down as numbered steps, and find the first turn where a transcript leaves it. That turn is your procedural hallucination."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Why do LLMs hallucinate?"
+  ],
+  [
+   "p",
+   "They are trained to produce probable continuations, and a probable sentence is not always a supported one. Nothing in plain next-token sampling checks an answer against a source. When the right fact is missing from the prompt or weakly learned, the model still produces something fluent, because fluency is what its objective rewards."
+  ],
+  [
+   "h3",
+   "How do you detect hallucinations in RAG answers?"
+  ],
+  [
+   "p",
+   "One approach runs a small frozen proxy model over the retrieved context and the answer, then trains a probe on its attention statistics. A new arXiv paper reports that «a 4B proxy outperforms the strongest of nine zero-shot 4-9B LLM judges in F1 on two of the three». Probing the proxy also beat prompting it as a judge."
+  ],
+  [
+   "h3",
+   "What is procedural hallucination?"
+  ],
+  [
+   "p",
+   "It's when an agent says things that sound fine and are factually plausible, but strays from the process it was meant to follow. Think of a support bot that refunds before verifying the caller. DialFork, a new benchmark, measures it on raw dialogue text by comparing how conversations unfold instead of what they say."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "FlashAttention with Statistics: Low-Overhead Attention Features for Compact Hallucination Detectors",
+   "url": "https://arxiv.org/abs/2610.21483v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "DialFork: Going Beyond Factuality to Evaluate Procedural Hallucination in Conversational Agents",
+   "url": "https://arxiv.org/abs/2610.21561v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "Large language models can produce fluent answers": 1,
+  "A compact frozen proxy model can detect such answers by reading the context and another model's response, even from a proprietary generator": 1,
+  "standard pipelines materialize the attention matrix, whose memory grows quadratically with sequence length": 1,
+  "by accumulation in the FlashAttention pass, sparse lookups after it, or a second tiled pass over the scores": 1,
+  "a 4B proxy outperforms the strongest of nine zero-shot 4-9B LLM judges in F1 on two of the three": 1,
+  "probing each proxy beats prompting it as a judge": 1,
+  "adding attention features significantly improves F1 in half of the 12 benchmark-proxy pairs, never significantly lowering it": 1,
+  "procedural hallucination, in which an agent produces individually fluent and factually plausible utterances while deviating from the intended conversational process": 2,
+  "forking conformant dialogues at controlled turn positions and injecting one of four hallucination types": 2,
+  "compare dialogues by how they unfold rather than their content": 2,
+  "FlowScore significantly outperforms all baselines across seven encoders": 2,
+  "increasingly expected to follow procedural logic": 2
+ },
+ "rel": [
+  [
+   "post:topic-explainer-concept-agents",
+   ""
+  ],
+  [
+   "post:topic-explainer-concept-tokenization",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:03:30+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21561v1",
+   "arxiv:2610.21483v1"
+  ],
+  "platforms": {
+   "arXiv": 2
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-explainer:concept/hallucination",
+  "format": "topic-explainer",
+  "reviewed_by": null
+ }
+}

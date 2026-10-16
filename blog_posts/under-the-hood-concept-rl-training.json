@@ -1,0 +1,413 @@
+{
+ "slug": "under-the-hood-concept-rl-training",
+ "status": "draft",
+ "tag": "Under the hood",
+ "feat": false,
+ "title": "Reinforcement Learning for LLMs Lives or Dies Where the Reward Lands",
+ "dek": "Inside the loop that trains language models on checkable rewards: rollouts, group baselines, and the long-task fixes that snapshot, shape and grade the middle.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "So what is reinforcement learning with verifiable rewards? A model samples answers, a program grades them, and GRPO pushes up whatever beat its siblings. Long tasks break it, because the grade arrives once.",
+ "description": "What is reinforcement learning with verifiable rewards? The rollout loop, GRPO's group baseline, and why one reward at the end breaks long agent tasks.",
+ "keywords": [
+  "what is reinforcement learning with verifiable rewards",
+  "Reinforcement learning for language models",
+  "reinforcement learning for LLMs",
+  "GRPO explained",
+  "process reward model",
+  "credit assignment in agent RL"
+ ],
+ "kicker": "Under the hood",
+ "tags": [
+  "reinforcement learning for LLMs",
+  "Under the hood"
+ ],
+ "read": 8,
+ "decisions": [
+  "Start with a verifier you can read before reaching for a learned reward model.",
+  "Track how many groups are all-pass or all-fail; they teach nothing.",
+  "On long agent tasks, budget for resumable snapshots or a guarded process reward.",
+  "Hand-audit high-reward rollouts for holes in the verifier."
+ ],
+ "layout": "mechanism",
+ "arrangement": "a",
+ "special": {
+  "type": "lab",
+  "title": "Try it yourself",
+  "items": [
+   {
+    "step": "Write a verifier",
+    "how": "In a notebook, write a function that reads the final answer from a completion and returns one for an exact match with the known answer, zero otherwise. Feed it a few hand-written completions.",
+    "look_for": "Correct completions score one, and a right answer in the wrong format scores zero. That's your first verifier hole."
+   },
+   {
+    "step": "Sample a group per problem",
+    "how": "Load any small open instruct model you can run locally, pick a handful of arithmetic word problems, and sample eight completions per problem at a moderate temperature.",
+    "look_for": "Mixed right and wrong answers on some problems, and uniform all-right or all-wrong groups on others."
+   },
+   {
+    "step": "Compute group advantages",
+    "how": "Score each group with your verifier and pass the rewards to the group_advantages function from this post.",
+    "look_for": "Mixed groups give positive and negative advantages. Uniform groups give all zeros."
+   },
+   {
+    "step": "Stretch the horizon",
+    "how": "Chain several problems into one task that passes only if every sub-answer is right, then rescore the same samples.",
+    "look_for": "The share of all-zero groups climbs fast and the advantages go silent."
+   },
+   {
+    "step": "Add partial credit",
+    "how": "Give each chained task a progress score, the fraction of sub-answers that are correct, and recompute the advantages from it.",
+    "look_for": "Signal returns on the long tasks. Then pad answers with guesses and see if progress rises without real correctness."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A program that grades the answer",
+    "num": "01",
+    "id": "a-program-that-grades-the-answer"
+   }
+  ],
+  [
+   "p",
+   "Picture a model writing a patch for a failing test. It edits four files, runs the suite, and one assertion still fails. Under a verifiable reward, that whole attempt scores zero. No partial credit. That bluntness is the point of the technique, and it's also the problem this post follows from end to end. A reward you can check with code is cheap and hard to flatter."
+  ],
+  [
+   "p",
+   "So what is reinforcement learning with verifiable rewards? It's policy-gradient training where the reward comes from a program, not from a person or a learned judge. The policy is the language model itself. It samples a completion, and a verifier checks it against something objective: unit tests, an exact final answer, a parser. The score flows back as the training signal. Nothing has to learn to grade."
+  ],
+  [
+   "p",
+   "Compare that with a reward model, a separate network trained on human preference pairs to emit a scalar score. A reward model can be fooled, because it's just another model with blind spots. A verifier can be fooled too, but only through holes you can read in its source. We think that's why coding became RL's favourite playground. The SPROUT abstract credits progress in coding agents to «relying on verified successful trajectories as learning signals»."
+  ],
+  [
+   "code",
+   {
+    "label": "Two verifiers: an exact-match math check and a test-suite check (illustrative)",
+    "language": "python",
+    "source": "import subprocess\n\ndef math_reward(completion: str, gold: str) -> float:\n    # Read the text after the last \"Answer:\"; anything else scores zero.\n    if \"Answer:\" not in completion:\n        return 0.0\n    guess = completion.rsplit(\"Answer:\", 1)[1].strip()\n    return 1.0 if guess == gold.strip() else 0.0\n\ndef code_reward(repo_dir: str) -> float:\n    # The test suite is the judge. Exit code 0 means every test passed.\n    run = subprocess.run([\"pytest\", \"-q\"], cwd=repo_dir,\n                         capture_output=True, timeout=600)\n    return 1.0 if run.returncode == 0 else 0.0\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Rollouts, groups and a baseline for free",
+    "num": "02",
+    "id": "rollouts-groups-and-a-baseline-for-free"
+   }
+  ],
+  [
+   "p",
+   "Here's the loop. For each prompt, the trainer samples a group of completions from the current policy. Each one is a rollout: the full sampled sequence, plus any tool calls and environment steps along the way. The verifier scores every rollout. Then the trainer turns raw rewards into advantages, a number saying how much better a rollout did than expected. That last step gives GRPO its name."
+  ],
+  [
+   "p",
+   "GRPO, group relative policy optimization, skips the learned value network that PPO uses as a critic. Its baseline is simply the group. The advantage is `(r - mean(r)) / std(r)` over the sampled siblings. Every token in a rollout gets that rollout's advantage. The update multiplies each token's probability ratio by it, clips the ratio so one step can't lurch, and usually adds a KL penalty toward a frozen reference model."
+  ],
+  [
+   "p",
+   "Follow one math prompt through. Eight samples come back and three are correct. The correct ones get a positive advantage; the five wrong ones get a negative one. Now suppose all eight are wrong. Every reward is zero, so every advantage is zero too. That prompt teaches nothing. Same if all eight pass. GRPO only learns from prompts sitting right at the edge of what the model can do."
+  ],
+  [
+   "p",
+   "The bill is mostly sampling. Every update needs a fresh group of long completions, and on agent tasks each rollout also drives a sandbox. So anything that wastes fewer rollouts matters. A telecom control paper starts its policy with «automated Behavioral Cloning (BC) using domain heuristics for sample-efficient training». It reports «converging 75% faster with 50% fewer training steps». That's a network controller, though. Whether the trick transfers to text policies is open."
+  ],
+  [
+   "code",
+   {
+    "label": "Group-relative advantages, and the two groups that teach nothing (illustrative)",
+    "language": "python",
+    "source": "import numpy as np\n\ndef group_advantages(rewards, eps=1e-6):\n    r = np.asarray(rewards, dtype=float)\n    return (r - r.mean()) / (r.std() + eps)\n\nprint(group_advantages([1, 0, 0, 1, 0, 0, 0, 1]))  # mixed group: real signal\nprint(group_advantages([0] * 8))                    # all wrong: all zeros\nprint(group_advantages([1] * 8))                    # all right: all zeros too\n"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "One GRPO update with a verifiable reward, from sampling to the next policy.",
+    "steps": [
+     "Sample a group of completions for each prompt",
+     "Verifier scores every rollout pass or fail",
+     "Subtract the group mean, divide by the group spread",
+     "Weight each token's probability ratio by its rollout's advantage",
+     "Clip the ratio and penalise drift from the reference",
+     "Update the policy, then sample fresh rollouts"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "One reward at the end of a long trajectory",
+    "num": "03",
+    "id": "one-reward-at-the-end-of-a-long-trajectory"
+   }
+  ],
+  [
+   "p",
+   "Now stretch the task. A coding agent works for dozens of turns: read files, install a package, edit, run tests, edit again. The verifier still speaks once, at the very end. The SPROUT authors put the trap plainly: «a minor error can invalidate the entire rollout». One bad edit early on, and the good work around it earns the same zero as noise."
+  ],
+  [
+   "p",
+   "That's the credit assignment problem: deciding which decisions in a trajectory deserve the reward. Outcome rewards dodge it by smearing one number across every token. The KnowGPO authors hit the same wall in search agents, where outcome-based RL offers «only a single terminal reward shared across an entire trajectory». Wait, really? Yes. A sharp search query and a useless one get identical credit."
+  ],
+  [
+   "p",
+   "Combine that with the group baseline and it gets worse. On a hard long task, a whole group can come back failed. All-zero groups produce zero advantage. So the rollouts that took longest to sample may teach the least. SPROUT calls verified successes «scarce in long-horizon software engineering tasks», and we agree that this scarcity is the real bottleneck. Bigger models don't fix a signal that never arrives."
+  ],
+  [
+   "h2",
+   {
+    "text": "Snapshots that let a failed rollout resume",
+    "num": "04",
+    "id": "snapshots-that-let-a-failed-rollout-resume"
+   }
+  ],
+  [
+   "p",
+   "We went through the SPROUT method step by step, as its abstract lays it out. Restarting every attempt from scratch is wasteful. Resetting only the context and working directory fails differently, because it «misses state changes such as installed dependencies». Their answer is a checkpoint at every turn. The infrastructure «checkpoints both the filesystem and the agent context after each assistant turn». Disk and memory, saved together."
+  ],
+  [
+   "p",
+   "With snapshots in hand, a failed attempt isn't garbage anymore. A verifier-guided backtracking policy picks a point to resume from and a way forward. So the agent branches from its last good turn, not from the first. Earlier progress survives. You get more verified successes per unit of sampling, which is exactly what a sparse reward starves for."
+  ],
+  [
+   "quote",
+   "SPROUT was built on top of a lightweight infrastructure that checkpoints both the filesystem and the agent context after each assistant turn."
+  ],
+  [
+   "p",
+   "The headline numbers are big. Here pass@k means the chance that at least one of k samples passes. SPROUT claims «up to 23.6% improvement over pass@k across various LLMs», using between 32% and 52% of their tokens. In RL training it beat standard GRPO by 13.9 points and cut time per training step by 39.5%. Cheaper and better at once is rare."
+  ],
+  [
+   "p",
+   "We like this design because it changes what a rollout is. It's no longer a straight line. It's a tree you can prune and regrow. The catch? Snapshotting a whole filesystem per turn costs storage and orchestration, and the abstract gives no figure for that overhead. It also needs a verifier that can say where things went wrong. That's a second judge to trust."
+  ],
+  [
+   "h2",
+   {
+    "text": "Rewards that grade the middle of the work",
+    "num": "05",
+    "id": "rewards-that-grade-the-middle-of-the-work"
+   }
+  ],
+  [
+   "p",
+   "The other escape is a denser reward: score progress, not just the finish. That's a process reward. The risk is obvious. Give partial credit for looking busy and the policy learns to look busy. That failure is called reward hacking, where the policy maximises the score without doing the task. Dense rewards invite it, so every design here needs a guard."
+  ],
+  [
+   "p",
+   "Potential-based shaping is the classic guard. You pick a potential function Φ over states and add `F = γ·Φ(s') - Φ(s)` to each step's reward. The bonus telescopes, so looping back to a high-potential state earns nothing net. PRM4RL builds its potential from an LLM-written plan, with «a subtask-oriented, fine-grained progress function designed to monitor task execution progress». Its experiments are robotics control, not text."
+  ],
+  [
+   "p",
+   "KnowGPO grades progress in what a search agent knows. It «decomposes the information required to derive the answer into atomic knowledge conditions». A trajectory's state is the subset it has satisfied so far. Rollouts in the same knowledge state are compared with each other, and new knowledge per step becomes the reward. Clever. That's GRPO's group trick, moved from the prompt into the middle of the trajectory."
+  ],
+  [
+   "p",
+   "A memory-writing paper pushes density further. Its «Memory RL then optimizes downstream answerability using dense per-chunk probes, attributed cross-chunk rewards, over-storage controls, and chunk-level GRPO». Look at those over-storage controls. A writer rewarded only for answerability would just store everything. Here the reward hack was anticipated and priced into the objective. We think that's the right instinct for any process reward."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Where each approach gets its reward signal, and what you have to trust in return.",
+    "columns": [
+     "Approach",
+     "Reward signal",
+     "What it fixes",
+     "What you must trust"
+    ],
+    "rows": [
+     [
+      "Outcome-only GRPO",
+      "Verifier at the end",
+      "Simple and hard to fool",
+      "Long tasks rarely pass"
+     ],
+     [
+      "SPROUT",
+      "Verifier plus resumable snapshots",
+      "Too few successful long rollouts",
+      "Backtracking verifier and snapshot cost"
+     ],
+     [
+      "PRM4RL",
+      "Progress function from an LLM plan",
+      "Sparse rewards in robot control",
+      "The plan's subtasks are right"
+     ],
+     [
+      "KnowGPO",
+      "Knowledge conditions satisfied per step",
+      "Credit for individual searches",
+      "The condition decomposition"
+     ],
+     [
+      "Memory RL",
+      "Per-chunk probes and attributed rewards",
+      "Credit for each memory write",
+      "Probes match real downstream use"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Progress signals nobody has audited yet",
+    "num": "06",
+    "id": "progress-signals-nobody-has-audited-yet"
+   }
+  ],
+  [
+   "p",
+   "Here's the part nobody fully understands yet. Each dense reward stands on a component that writes it: an LLM-drafted plan, a decomposition into conditions, a backtracking verifier. Who checks the checker's helpers? No error rate for any of them is reported up front. That gap matters more than any headline gain, because a wrong helper quietly trains the policy toward the wrong thing."
+  ],
+  [
+   "p",
+   "We're not convinced robotics results carry over to language policies. A progress function for a robot arm is easier to write than one for a refactor. Even the memory writer's win is narrow: «a 55.49% macro average versus 54.62% for Claude Opus 5», measured «On fixed 20% benchmark subsamples». Real, but thin. A shaped reward can look great on a small slice and mislead at scale."
+  ],
+  [
+   "p",
+   "So measure it yourself. Log the share of groups whose rewards are all identical; that's your wasted sampling. Hand-audit high-reward rollouts for verifier holes. For any process reward, check whether step scores rise on trajectories that still fail at the end. If they do, the policy is learning the shaping, not the task. That's the number we'd want first."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is reinforcement learning with verifiable rewards?"
+  ],
+  [
+   "p",
+   "It's reinforcement learning where a program, not a person or a learned judge, scores each model output. A math answer is compared with the known result, or a patch is run against tests. That score becomes the reward, and a policy-gradient method such as GRPO raises the probability of the outputs that passed."
+  ],
+  [
+   "h3",
+   "How is GRPO different from PPO?"
+  ],
+  [
+   "p",
+   "GRPO drops the learned value network and uses the average reward of several samples for the same prompt as its baseline. That saves memory and a whole extra model to train. The cost is that a group where every sample gets the same reward produces no learning signal at all, which bites hardest on difficult, long tasks."
+  ],
+  [
+   "h3",
+   "Why is reinforcement learning for LLMs hard on long agent tasks?"
+  ],
+  [
+   "p",
+   "The reward usually arrives once, at the end, so one early mistake zeroes out an otherwise good trajectory. Fixes either keep more attempts alive, like resuming from snapshots of the environment, or add process rewards that score progress along the way. Both add a new component that you then have to trust and audit."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "SPROUT: Scaling Agentic Reinforcement Learning for Long-Horizon Software Engineering",
+   "url": "https://arxiv.org/abs/2610.14405v1",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "X-RIC: An Agentic RAN-Intelligent Controller Benchmark for Enhancing Reinforcement Learning",
+   "url": "https://arxiv.org/abs/2610.22269v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "KnowGPO: Knowledge-Grouped Policy Optimization for Search Agents",
+   "url": "https://arxiv.org/abs/2610.22331v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Progress Reward Model for Reinforcement Learning via Large Language Models",
+   "url": "https://arxiv.org/abs/2610.22056v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Hy-Memory-30B-A3B: Attributed Reinforcement Learning for Long-Term Memory Writing",
+   "url": "https://arxiv.org/abs/2610.22196v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "relying on verified successful trajectories as learning signals": 1,
+  "automated Behavioral Cloning (BC) using domain heuristics for sample-efficient training": 2,
+  "converging 75% faster with 50% fewer training steps": 2,
+  "a minor error can invalidate the entire rollout": 1,
+  "only a single terminal reward shared across an entire trajectory": 3,
+  "scarce in long-horizon software engineering tasks": 1,
+  "misses state changes such as installed dependencies": 1,
+  "checkpoints both the filesystem and the agent context after each assistant turn": 1,
+  "up to 23.6% improvement over pass@k across various LLMs": 1,
+  "SPROUT was built on top of a lightweight infrastructure that checkpoints both the filesystem and the agent context after each assistant turn.": 1,
+  "a subtask-oriented, fine-grained progress function designed to monitor task execution progress": 4,
+  "decomposes the information required to derive the answer into atomic knowledge conditions": 3,
+  "Memory RL then optimizes downstream answerability using dense per-chunk probes, attributed cross-chunk rewards, over-storage controls, and chunk-level GRPO": 5,
+  "a 55.49% macro average versus 54.62% for Claude Opus 5": 5,
+  "On fixed 20% benchmark subsamples": 5
+ },
+ "rel": [
+  [
+   "post:release-analysis-z-ai-glm-5-3-flash",
+   ""
+  ],
+  [
+   "post:research-radar-concept-code-generation",
+   ""
+  ],
+  [
+   "post:topic-explainer-concept-agents",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:00:53+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22056v1",
+   "arxiv:2610.14405v1",
+   "arxiv:2610.22331v1",
+   "arxiv:2610.22269v1",
+   "arxiv:2610.22196v1"
+  ],
+  "platforms": {
+   "arXiv": 5
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "under-the-hood:concept/rl-training",
+  "format": "under-the-hood",
+  "reviewed_by": null
+ }
+}
