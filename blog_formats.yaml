@@ -351,6 +351,7 @@ formats:
     closing: >-
       what is still unsettled about this topic, and what would settle it
     special: glossary
+    sources: [2, 6]
     sections: [6, 9]
     words: [1500, 3000]
     blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 4], voices: 2, retrace: 1}
@@ -376,6 +377,162 @@ formats:
     closing: >-
       the limit of the idea: where it stops working, and what to read or try next
     special: quiz
+    sources: [1, 3]
     sections: [5, 7]
     words: [900, 1800]
     blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 1, retrace: 1}
+
+  # ── MORE TOPIC STYLES (2026-10-16, team ask: "ten articles of different
+  #    styles - not all with a quiz; for some include something else").
+  #    Each owns one interactive block and one page layout (views.js). ──────
+
+  - key: under-the-hood
+    name: Under the hood
+    subject: concept
+    layout: mechanism
+    derived_from: "team ask 2026-10-16: more technical topic posts"
+    shape: >-
+      A technical deep dive into how this technique actually works: the inputs, the
+      computation, the outputs, what it costs and where it breaks - followed by a lab the
+      reader can run to see it work.
+    voice: >-
+      An engineer walking a colleague through the machinery: precise, curious, a little
+      playful. One mechanism per section, built up in the order it runs.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading names one moving part or stage of the mechanism as a short noun phrase
+      or statement. Never a question, never starting with "What", "Why" or "How".
+    opening: >-
+      a concrete moment where this mechanism matters - what goes wrong without it, or the surprising thing it makes possible
+    closing: >-
+      the part of the mechanism nobody fully understands yet, and what a reader could measure to find out
+    special: lab
+    sources: [2, 5]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [1, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+
+  - key: myth-vs-reality
+    name: Myth vs reality
+    subject: concept
+    layout: myths
+    derived_from: "team ask 2026-10-16: varied topic styles"
+    shape: >-
+      A myth-busting piece: the beliefs people repeat about this topic, set against what
+      recent research and engineering writing actually shows, one belief at a time.
+    voice: >-
+      Friendly and skeptical, like a colleague who has read the papers so you do not have
+      to. State the belief fairly before taking it apart; concede what is true in it.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading states the reality behind one belief as a short sentence. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      the most widely repeated belief about this topic, stated as people say it, then the first crack in it
+    closing: >-
+      the belief that might turn out to be true after all, and what evidence would settle it
+    special: myths
+    sources: [3, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+
+  - key: research-radar
+    name: Research radar
+    subject: concept
+    layout: radar
+    derived_from: "team ask 2026-10-16: track new technology, concepts and topics"
+    shape: >-
+      A roundup of what is new on this topic right now: the fresh ideas and methods in
+      recent papers and posts, what each one does, and which ones are worth your attention.
+    voice: >-
+      A well-read guide pointing out what is interesting: brisk, specific, enthusiastic
+      where it is earned and blunt where an idea is thin. Each section covers one idea.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading names one idea or method and what it does, as a short statement. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      the single newest idea that changes how you would think about this topic, stated plainly
+    closing: >-
+      the thread that ties these ideas together, and the open problem none of them solves yet
+    special: radar
+    sources: [4, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 3, retrace: 1}
+
+  - key: debate
+    name: Debate
+    subject: concept
+    layout: debate
+    derived_from: "team ask 2026-10-16: varied topic styles"
+    shape: >-
+      A debate over one live question in this topic: the strongest case on each side, the
+      evidence each side leans on, and where we come down - and why.
+    voice: >-
+      A fair-minded host who enjoys an argument: give each side its best voice, then press
+      it. Take a clear position by the end, with its reasons.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading states one claim in the argument as a short sentence (it may be
+      contrarian). Never a question, never starting with "What", "Why" or "How".
+    opening: >-
+      the question being argued, stated as a real disagreement between people who know the field
+    closing: >-
+      where we come down, and the one result that would change our mind
+    special: positions
+    sources: [2, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+
+  - key: field-guide
+    name: Field guide
+    subject: concept
+    layout: fieldguide
+    derived_from: "team ask 2026-10-16: varied topic styles"
+    shape: >-
+      A practical field guide to using this technique well: what it buys you, the decisions
+      you will face, the traps, and a checklist to run before you ship.
+    voice: >-
+      A seasoned practitioner's notes: concrete, second person, opinionated about defaults.
+      Each section is one decision or trap, with the reason behind the advice.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading is an instruction or a trap stated plainly (for example "Measure before
+      you compress"). Never a question, never starting with "What", "Why" or "How".
+    opening: >-
+      the most common way this technique goes wrong in a real system
+    closing: >-
+      the situation where you should not use this technique at all
+    special: checklist
+    sources: [2, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1}
+
+  - key: paper-walkthrough
+    name: Paper walkthrough
+    subject: concept
+    layout: paper
+    derived_from: "team ask 2026-10-16: fetch from arXiv, more technical"
+    shape: >-
+      A walkthrough of recent papers on this topic: the problem each tackles, the method in
+      plain technical terms, what they measured, and how much of it you should believe.
+    voice: >-
+      A reading-group leader who has read the papers closely: technical, precise about what
+      was and was not shown, generous about good ideas and honest about weak evidence.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading states one finding or idea from the papers as a short sentence. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      the problem these papers attack, made concrete with the failure it causes today
+    closing: >-
+      what the papers leave unshown, and the experiment that would settle it
+    special: results
+    sources: [2, 5]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1}

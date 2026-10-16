@@ -143,17 +143,48 @@ def _src(conn, iid, source, title, days_ago):
     )
 
 
-def test_arxiv_is_not_a_post_source_while_its_ruling_is_internal(conn):
-    assert topics.config()["posts"]["arxiv_as_source"] is False
+def _arxiv_off(monkeypatch):
+    import copy
+
+    cfg = copy.deepcopy(topics.config())
+    cfg["posts"]["arxiv_as_source"] = False
+    monkeypatch.setattr(topics, "config", lambda: cfg)
+
+
+def test_arxiv_is_a_source_with_its_acknowledgement(conn):
+    # 2026-10-16: the team read arXiv's terms; publishing needs the acknowledgement.
+    posts = topics.config()["posts"]
+    assert posts["arxiv_as_source"] is True and "arXiv" in posts["arxiv_acknowledgement"]
+    _src(conn, "a1", "arxiv", "A RAG paper", 2)
+    _src(conn, "b1", "blog:example.org", "RAG in a support desk", 3)
+    assert {s["id"] for s in topics.sources(conn, "rag", NOW)} == {"a1", "b1"}
+
+
+def test_with_arxiv_switched_off_it_is_not_a_source(conn, monkeypatch):
+    _arxiv_off(monkeypatch)
     _src(conn, "a1", "arxiv", "A RAG paper", 2)
     _src(conn, "b1", "blog:example.org", "RAG in a support desk", 3)
     assert [s["id"] for s in topics.sources(conn, "rag", NOW)] == ["b1"]
 
 
-def test_an_arxiv_only_topic_says_why_it_cannot_be_written(conn):
+def test_an_arxiv_only_topic_says_why_when_arxiv_is_off(conn, monkeypatch):
+    _arxiv_off(monkeypatch)
     _src(conn, "a1", "arxiv", "Mixture of experts routing", 2)
     plan = {p["key"]: p for p in topics.plan(conn, NOW)}
     assert plan["moe"]["shape"] is None and "arXiv" in plan["moe"]["why_not"]
+
+
+def test_a_model_is_counted_by_its_whole_name_and_never_by_an_ordinary_word(conn):
+    conn.execute(
+        "INSERT INTO model_version "
+        "  (id, canonical_id, provider, family, display_name, provenance, sources) VALUES "
+        "('x/gpt-5', 'x/gpt-5', 'x', 'gpt', 'X: GPT-5', 'polled', '{}'), "
+        "('x/gpt-5.4', 'x/gpt-5.4', 'x', 'gpt', 'X: GPT-5.4', 'polled', '{}'), "
+        "('x/fusion', 'x/fusion', 'x', 'fusion', 'X: Fusion', 'polled', '{}')"
+    )
+    _src(conn, "p1", "arxiv", "Fusion of experts with GPT-5.4", 2)
+    by = {m["model"]: m["items"] for m in topics.model_mentions(conn, NOW)}
+    assert by == {"x/gpt-5.4": 1}  # not GPT-5 inside GPT-5.4; not the word "Fusion"
 
 
 def test_shapes_follow_the_number_of_sources():
@@ -201,3 +232,34 @@ def test_quiz_options_are_checked_as_prose():
     essay = {"quiz": [item]}
     paths = dict(g.prose_fields(essay))
     assert paths["quiz[0].options[1]"] == "it rose 97%"  # so the number check sees it
+
+
+def test_every_topic_format_states_its_source_range_and_block():
+    g = _gsb()
+    fmts = [f for f in g.load_formats()["formats"] if f["subject"] == "concept"]
+    assert len({f["special"] for f in fmts}) == len(fmts)  # one block per style
+    assert sum(f["special"] == "quiz" for f in fmts) == 1  # the quiz is one style of many
+    for f in fmts:
+        lo, hi = f["sources"]
+        assert 1 <= lo <= hi and f["blocks"]["voices"] <= hi, f["key"]
+
+
+def test_a_special_items_source_must_be_a_source_in_the_pack():
+    g = _gsb()
+    fmt = next(f for f in g.load_formats()["formats"] if f["key"] == "research-radar")
+    rules = g.rules_for(fmt, "x") | {"n_sources": 2}
+    item = {"item": "a", "what": "b", "why": "c", "stage": "new idea", "source": 3}
+    v = g._distinctiveness({"sections": [], "radar": [item]}, rules)
+    assert any("radar[0].source" in x for x in v)
+    v = g._distinctiveness({"sections": [], "radar": [item | {"source": 2}]}, rules)
+    assert not any("radar[0].source" in x for x in v)
+
+
+def test_export_links_a_special_item_to_its_source():
+    g = _gsb()
+    post = {"format_cfg": {"special": "results"}}
+    docs = [{"source": "arxiv", "url": "https://arxiv.org/abs/1", "title": "Paper one"}]
+    essay = {"results": [{"result": "r", "setup": "s", "source": 1}]}
+    sp = g._export_special(post, essay, lambda t: t, docs)
+    ref = {"title": "Paper one", "url": "https://arxiv.org/abs/1", "platform": "arXiv"}
+    assert sp["items"][0]["ref"] == ref

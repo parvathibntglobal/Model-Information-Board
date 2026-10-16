@@ -2774,6 +2774,7 @@ def blog_topics_view() -> dict:
         return {
             "overview": topics.overview(conn),
             "emerging": topics.emerging(conn),
+            "models": topics.model_mentions(conn),
             "plan": topics.plan(conn),
             "harvest": blog_method.topic_harvest_status(),
         }

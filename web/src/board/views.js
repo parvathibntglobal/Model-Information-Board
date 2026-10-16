@@ -1214,7 +1214,8 @@ function sourcesBlock(p){
   return `<section class="es-sources"><h2>Sources</h2><ol>${s.map(x =>
     `<li id="es-src-${esc(x.n)}"><span class="plat">${esc(x.platform)}</span>
       <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.what)}</a>${x.who ? ` by ${esc(x.who)}` : ''}${x.posted ? ` · ${esc(x.posted)}` : ''}</li>`).join('')}</ol>
-    <p class="es-note">Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.</p></section>`;
+    <p class="es-note">Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.</p>${
+    p.acknowledgement ? `<p class="es-note es-ack">${esc(p.acknowledgement)}</p>` : ''}</section>`;
 }
 
 function routeBadge(r){
@@ -1363,13 +1364,22 @@ const LAYOUTS = {
   // synthesis opens on the terms a newcomer meets; an explainer closes on a quiz.
   synthesis: { label: 'Idea',        lead: 'In one line',             tools: 'end' },
   explainer: { label: 'Step',        lead: 'In one line',             tools: 'end' },
+  // MORE TOPIC STYLES (2026-10-16): one interactive block each.
+  mechanism: { label: 'Part',        lead: 'The short version',       tools: 'end' },
+  myths:     { label: 'Reality',     lead: 'The short version',       tools: 'end' },
+  radar:     { label: 'Signal',      lead: 'What is new',             tools: 'end' },
+  debate:    { label: 'Claim',       lead: 'The question',            tools: 'end' },
+  fieldguide:{ label: 'Rule',        lead: 'The one thing to know',   tools: 'end' },
+  paper:     { label: 'Finding',     lead: 'The papers in one line',  tools: 'end' },
 };
 // Posts written before `layout` was exported carry their format in
 // provenance; the first three carry only a kicker. A post matching none renders
 // the plain page - visibly unstyled, never silently given some other format's.
 const FORMAT_LAYOUT = { 'field-report': 'report', 'head-to-head': 'versus', 'cost-teardown': 'ledger',
   'migration-guide': 'runbook', 'architecture-pattern': 'blueprint', 'release-analysis': 'brief',
-  'evaluation-critique': 'critique', 'topic-synthesis': 'synthesis', 'topic-explainer': 'explainer' };
+  'evaluation-critique': 'critique', 'topic-synthesis': 'synthesis', 'topic-explainer': 'explainer',
+  'under-the-hood': 'mechanism', 'myth-vs-reality': 'myths', 'research-radar': 'radar', 'debate': 'debate',
+  'field-guide': 'fieldguide', 'paper-walkthrough': 'paper' };
 const KICKER_LAYOUT = { 'Model deep dive': 'report', 'Routing guide': 'versus', 'Capability analysis': 'brief' };
 function layoutOf(p){
   if(LAYOUTS[p.layout]) return p.layout;
@@ -1548,6 +1558,57 @@ function quizBox(sp){
       (q.options || []).map((o, k) => `<label class="opt ${k === q.answer ? 'right' : 'wrong'}">`
         + `<input type="radio" name="${id}-${i}"><span>${essayText(o)}</span></label>`).join('')}
       <p class="why"><b>Why:</b> ${essayText(q.explanation)}</p></fieldset>`).join('')}</section>`;
+}
+// A SPECIAL ITEM'S SOURCE: the paper's or post's own title and link, which
+// export resolved from the writer's SOURCE number (generate_sample_blogs.py).
+function refLink(it){
+  const r = it && it.ref;
+  if(!r || !/^https:\/\//.test(r.url || '')) return '';
+  return `<a class="es-ref" href="${esc(r.url)}" rel="nofollow noopener" target="_blank">${esc(r.platform)} · ${esc(r.title)}</a>`;
+}
+// LAB (under the hood): steps to run, ticked off as you go.
+function labBox(sp){
+  return `<section class="es-levers es-lab"><div class="lbl">${esc(sp.title || 'Try it yourself')}</div><ol>${sp.items.map(x =>
+    `<li><label><input type="checkbox"><span><b>${essayText(x.step)}</b> ${essayText(x.how)}`
+    + `<em class="look">You should see: ${essayText(x.look_for)}</em></span></label></li>`).join('')}</ol>
+    <div class="tally">Done <span class="ct"></span> of ${sp.items.length}</div></section>`;
+}
+// MYTHS: a card per belief; open it to see what the evidence says.
+function mythCards(sp){
+  const cls = v => v === 'true' ? 'ok' : v === 'partly true' ? 'part' : 'none';
+  return `<section class="es-myths"><div class="lbl">${esc(sp.title || 'Myth or not')}</div>
+    <p class="hint">Guess first, then open a card.</p><div class="grid">${sp.items.map(x =>
+    `<details class="mc m-${cls(x.verdict)}"><summary><span class="q">${essayText(x.myth)}</span>`
+    + `<span class="tap">Open</span></summary><span class="stamp">${esc(x.verdict)}</span>`
+    + `<p>${essayText(x.reality)}</p></details>`).join('')}</div></section>`;
+}
+// RADAR: filter by stage; each item links to the paper or post it came from.
+function radarList(sp){
+  const stages = ['new idea', 'early results', 'in use'];
+  const k = st => Math.max(0, stages.indexOf(st));
+  return `<section class="es-radar"><div class="lbl">${esc(sp.title || 'On the radar')}</div>
+    <div class="es-pills" role="radiogroup" aria-label="Filter by stage"><span>Show</span>
+      <label><input type="radio" name="es-rd" checked>Everything</label>${stages.map((st, i) =>
+      `<label><input type="radio" name="es-rd" class="f${i}">${esc(st)}</label>`).join('')}</div>
+    <div class="grid">${sp.items.map(x => `<div class="rd s${k(x.stage)}"><span class="stage">${esc(x.stage)}</span>
+      <h4>${essayText(x.item)}</h4><p>${essayText(x.what)}</p><p class="why">${essayText(x.why)}</p>${refLink(x)}</div>`).join('')}</div></section>`;
+}
+// DEBATE: the sides beside each other, each with where it breaks.
+function sidesBox(sp){
+  return `<section class="es-sides"><div class="lbl">${esc(sp.title || 'Two sides')}</div><div class="grid">${sp.items.map((x, i) =>
+    `<div class="side"><span class="n">${String.fromCharCode(65 + i)}</span><h4>${essayText(x.side)}</h4>`
+    + `<p>${essayText(x.case)}</p><details><summary>Where it breaks</summary><p>${essayText(x.weakness)}</p></details></div>`).join('')}</div></section>`;
+}
+// FIELD GUIDE: a checklist with a tally, like the runbook's.
+function checklistBox(sp){
+  return `<section class="es-levers"><div class="lbl">${esc(sp.title || 'Before you ship')}</div><ul>${sp.items.map(x =>
+    `<li><label><input type="checkbox"><span><b>${essayText(x.check)}</b> ${essayText(x.why)}</span></label></li>`).join('')}</ul>
+    <div class="tally">Checked <span class="ct"></span> of ${sp.items.length}</div></section>`;
+}
+// PAPER WALKTHROUGH: what was measured, under what setup, and by whom.
+function resultsBox(sp){
+  return `<section class="es-results"><div class="lbl">${esc(sp.title || 'What was measured')}</div>${sp.items.map(x =>
+    `<div class="rs"><p class="r">${essayText(x.result)}</p><p class="set">${essayText(x.setup)}</p>${refLink(x)}</div>`).join('')}</section>`;
 }
 function probeList(sp){
   return `<section class="es-probe"><div class="lbl">${esc(sp.title || 'What the measures test')}</div>${sp.items.map(x =>
@@ -1787,6 +1848,21 @@ function vPost(slug){
     open = leadBox(conf, p, 'thesis')
       + `<nav class="es-chain"><div class="lbl">The argument in ${secs.length} steps</div>${tocList(secs, '', String)}</nav>`;
     if(sp && sp.type === 'probes' && sp.items && sp.items.length) end = probeList(sp);
+  } else if(L === 'mechanism'){
+    open = leadBox(conf, p, 'strip')
+      + `<nav class="es-points"><div class="lbl">The machinery, in order</div>${tocList(secs.filter(s => s.head.num !== 'FAQ'), '', pad2)}</nav>`;
+    if(sp && sp.type === 'lab' && sp.items && sp.items.length) end = labBox(sp);
+  } else if(L === 'myths'){
+    open = leadBox(conf, p, 'verdict') + (sp && sp.type === 'myths' && sp.items && sp.items.length ? mythCards(sp) : '');
+  } else if(L === 'radar'){
+    open = leadBox(conf, p, 'strip') + (sp && sp.type === 'radar' && sp.items && sp.items.length ? radarList(sp) : '');
+  } else if(L === 'debate'){
+    open = leadBox(conf, p, 'thesis') + (sp && sp.type === 'positions' && sp.items && sp.items.length ? sidesBox(sp) : '');
+  } else if(L === 'fieldguide'){
+    open = leadBox(conf, p, 'before');
+    if(sp && sp.type === 'checklist' && sp.items && sp.items.length) end = checklistBox(sp);
+  } else if(L === 'paper'){
+    open = leadBox(conf, p, 'strip') + (sp && sp.type === 'results' && sp.items && sp.items.length ? resultsBox(sp) : '');
   } else if(L === 'synthesis'){
     open = leadBox(conf, p, 'strip') + (sp && sp.type === 'glossary' && sp.items && sp.items.length ? glossaryBox(sp) : '');
   } else if(L === 'explainer'){

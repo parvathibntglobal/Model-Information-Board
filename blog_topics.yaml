@@ -21,10 +21,13 @@
 # Required keys; absent raises (rule 12): judge/topics.py.
 
 arxiv:
-  # arXiv `search_query`: the categories the blog follows.
-  query: "cat:cs.AI OR cat:cs.CL OR cat:cs.LG OR cat:cs.MA"
-  # Pages of the newest submissions per harvest (the API's page size each).
-  max_pages: 2
+  # The categories the blog follows (team, 2026-10-16): AI, machine learning,
+  # computation and language, software engineering. Queried ONE AT A TIME, so
+  # a busy category cannot crowd a quieter one (cs.SE) out of the newest pages.
+  categories: [cs.AI, cs.LG, cs.CL, cs.SE]
+  # Pages of the newest submissions per category per harvest (50 papers a page,
+  # one request every 3 seconds as arXiv asks).
+  pages_per_category: 3
 
 window_days: 14          # a topic's items are counted over this many days
 synthesis_min_items: 2   # this many items on one topic -> one combined article
@@ -35,12 +38,28 @@ emerging:
 
 # WHAT A TOPIC POST MAY BE WRITTEN FROM (generate_sample_blogs.py --topic-pack).
 posts:
-  # ARXIV IS NOT A SOURCE OF A POST while contract/sources.yaml `arxiv-api-terms`
-  # stands on `internal-development-only`: a post quotes every source it uses
-  # with a link, and that ruling holds "only while nothing is published
-  # externally". arXiv items still count toward a topic's trend above. Setting
-  # this true needs that ruling changed first (contract/, two eyes). Required.
-  arxiv_as_source: false
+  # ARXIV IS A SOURCE OF A POST (anooj, 2026-10-16): the team read arXiv's API
+  # terms - publishing is allowed with the acknowledgement below on the page.
+  # What is quoted is the abstract the API returns (arXiv's metadata), with the
+  # paper's title and a link to its abstract page; never the PDF.
+  # ⚠ contract/sources.yaml `arxiv-api-terms` still reads
+  # internal-development-only. Its update is proposed in
+  # docs/proposals/arxiv-in-blog-posts.md (contract/, two eyes) and must land
+  # BEFORE a post quoting arXiv is approved for the public page. Required.
+  arxiv_as_source: true
+  # Shown on every post that draws on an arXiv source (views.js). Required
+  # while arxiv_as_source is true.
+  arxiv_acknowledgement: "Thank you to arXiv for use of its open access interoperability."
+  # WHICH SOURCES A POST TAKES FIRST (generate_sample_blogs.topic_docs). A
+  # topic term in the TITLE counts most, then in the summary; an item that
+  # also names one of these focus terms ranks higher, because the blog is about
+  # language models and the field around them. A WEIGHT, NOT A GATE (rule 8):
+  # nothing is dropped for lacking one. Measured 2026-10-16 before this: a debate
+  # on AI agents drew robot-pursuit papers, and an interpretability post drew
+  # two quantum-circuit papers through the word "circuits".
+  focus_terms: [language model, language models, LLM, LLMs, transformer, transformers, chatbot,
+                foundation model, foundation models, GPT, coding agent, coding agents, AI agent, AI agents,
+                LLM agent, LLM agents, reasoning model, reasoning models]
   # Sources are taken from this many days back, newest first - an explainer of
   # RAG may rest on a good post from last month.
   source_window_days: 120
@@ -87,7 +106,8 @@ topics:
     name: Interpretability
     short: "interpretability"
     search: "what is mechanistic interpretability"
-    terms: [interpretability, mechanistic, sparse autoencoder, sparse autoencoders, circuits, steering vector]
+    terms: [interpretability, mechanistic interpretability, sparse autoencoder, sparse autoencoders,
+            circuit discovery, attention heads, steering vector, steering vectors, probing]
   - key: safety
     name: AI safety and security
     short: "AI safety"
@@ -168,7 +188,7 @@ topics:
     name: Hallucination and factuality
     short: "hallucination"
     search: "why do LLMs hallucinate"
-    terms: [hallucination, hallucinations, factuality, grounding]
+    terms: [hallucination, hallucinations, factuality, faithfulness, grounded generation]
   - key: memory
     name: Memory for language models
     short: "agent memory"
@@ -194,3 +214,56 @@ topics:
     short: "AI regulation"
     search: "what is the EU AI Act"
     terms: [EU AI Act, AI regulation, AI policy, AI governance]
+  # ── added 2026-10-16 with cs.SE and the team ask to track technology,
+  #    concepts and methods more closely ─────────────────────────────────────
+  - key: rl-training
+    name: Reinforcement learning for language models
+    short: "reinforcement learning for LLMs"
+    search: "what is reinforcement learning with verifiable rewards"
+    terms: [reinforcement learning, RLVR, verifiable rewards, GRPO, PPO, policy optimization, reward hacking]
+  - key: computer-use
+    name: Computer-use, GUI and web agents
+    short: "computer-use agents"
+    search: "what is a computer use agent"
+    terms: [computer use, computer-use, GUI agent, GUI agents, web agent, web agents, browser agent, browser agents]
+  - key: context-engineering
+    name: Context engineering
+    short: "context engineering"
+    search: "what is context engineering"
+    terms: [context engineering, context management, context compression, prompt compression]
+  - key: serving
+    name: LLM serving
+    short: "LLM serving"
+    search: "how does LLM serving work"
+    terms: [LLM serving, inference serving, vLLM, continuous batching, PagedAttention, disaggregated serving]
+  - key: tokenization
+    name: Tokenization
+    short: "tokenization"
+    search: "what is tokenization in LLMs"
+    terms: [tokenizer, tokenizers, tokenization]
+  - key: software-testing
+    name: LLMs for testing, repair and code review
+    short: "LLM test generation"
+    search: "can LLMs write unit tests"
+    terms: [program repair, test generation, unit test generation, bug localization, fault localization,
+            vulnerability detection, code review, static analysis]
+  - key: ai-for-science
+    name: AI for science
+    short: "AI for science"
+    search: "how is AI used in scientific discovery"
+    terms: [AI for science, scientific discovery, protein design, materials discovery, drug discovery]
+  - key: uncertainty
+    name: Uncertainty and calibration
+    short: "LLM calibration"
+    search: "how confident are LLMs in their answers"
+    terms: [uncertainty quantification, calibration, confidence estimation, selective prediction]
+  - key: continual-learning
+    name: Continual learning
+    short: "continual learning"
+    search: "what is catastrophic forgetting"
+    terms: [continual learning, catastrophic forgetting, lifelong learning]
+  - key: graph-learning
+    name: Graph neural networks
+    short: "graph neural networks"
+    search: "what is a graph neural network"
+    terms: [graph neural network, graph neural networks, GNN, GNNs, graph learning]

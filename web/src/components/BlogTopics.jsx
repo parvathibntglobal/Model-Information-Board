@@ -50,7 +50,7 @@ export function BlogTopics() {
       <div className="stack stack-3" style={{ paddingTop: 'var(--s2)' }}>
         <div className="row-between" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <span className="dim" style={{ fontSize: 11, maxWidth: 560 }}>
-            Newest arXiv papers (cs.AI, cs.CL, cs.LG, cs.MA) and every reviewed blog feed, matched to the topics in
+            Newest arXiv papers (cs.AI, cs.LG, cs.CL, cs.SE) and every reviewed blog feed, matched to the topics in
             blog_topics.yaml. Several items on one topic make a combined article; one makes an explainer with a quiz.
             No model is called.
           </span>
@@ -112,6 +112,20 @@ export function BlogTopics() {
             <p className="dim" style={{ fontSize: 11, margin: 0 }}>
               {ov.unmatched_in_window} item(s) in the window match no topic.
             </p>
+            <div className="stack stack-2">
+              <span className="label">Models the field is writing about</span>
+              <span className="dim" style={{ fontSize: 11 }}>
+                Registry models named in harvested papers and posts in the window, by how many items name each. A
+                model the registry does not list shows up under emerging phrases instead. A one-word name with no version (Fusion, Extract) is not counted: an ordinary word in a title is not a model.
+              </span>
+              {(data.models || []).length === 0
+                ? <p className="dim" style={{ fontSize: 11, margin: 0 }}>No registry model is named in the window.</p>
+                : (
+                  <ul className="bm-emerging">
+                    {data.models.slice(0, 30).map((m) => <li key={m.model}><b>{m.name}</b> <span className="dim">{m.items} item{m.items === 1 ? '' : 's'}</span></li>)}
+                  </ul>
+                )}
+            </div>
             <div className="stack stack-2">
               <span className="label">Emerging phrases</span>
               <span className="dim" style={{ fontSize: 11 }}>

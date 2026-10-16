@@ -685,7 +685,7 @@
 
 /* The lead, styled per format rather than one box for all. */
 .es-open{margin:0 0 1.8rem}
-.es-gloss .lbl,.es-quiz .lbl,.es-open .lbl,.es-log .lbl,.es-points .lbl,.es-chain .lbl,.es-fcol .lbl,.es-receipt .lbl,.es-levers .lbl,.es-map .lbl,.es-ctree .lbl,.es-probe .lbl{font:600 .68rem var(--es-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--es-accent);margin-bottom:.5rem}
+.es-gloss .lbl,.es-quiz .lbl,.es-myths .lbl,.es-radar .lbl,.es-sides .lbl,.es-results .lbl,.es-open .lbl,.es-log .lbl,.es-points .lbl,.es-chain .lbl,.es-fcol .lbl,.es-receipt .lbl,.es-levers .lbl,.es-map .lbl,.es-ctree .lbl,.es-probe .lbl{font:600 .68rem var(--es-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--es-accent);margin-bottom:.5rem}
 .es-open p{margin:0 !important;color:var(--es-text) !important}
 .es-open.strip{font-family:var(--es-mono);padding:.8rem 1rem;border:1px dashed var(--es-accent);border-radius:8px;background:var(--es-panel)}
 .es-open.strip p{font-size:.88rem;line-height:1.6}
@@ -937,3 +937,46 @@
 .es-quiz .q:has(input:checked) .opt.right{border-color:var(--es-good)}
 .es-quiz .why{display:none;margin:.5rem 0 0;font-size:.92rem;color:var(--es-body)}
 .es-quiz .q:has(input:checked) .why{display:block}
+
+/* MORE TOPIC STYLES (2026-10-16). CSS-only state throughout: nothing a reader
+   opens, ticks or filters is sent anywhere. */
+.es-ref{display:inline-block;margin-top:.5rem;font:500 .74rem var(--es-mono);color:var(--es-accent);text-decoration:none}
+.es-ref:hover{text-decoration:underline}
+.es-lab ol{margin:0;padding-left:1.2rem}
+.es-lab .look{display:block;margin-top:.25rem;font-style:normal;color:var(--es-muted);font-size:.86rem}
+.es-myths{margin:0 0 2rem}
+.es-myths .hint{color:var(--es-muted);font-size:.85rem;margin:0 0 .6rem}
+.es-myths .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem}
+.es-myths .mc{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
+.es-myths summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:.5rem}
+.es-myths summary::-webkit-details-marker{display:none}
+.es-myths .q{color:var(--es-text);font-weight:600;line-height:1.4}
+.es-myths .tap{font:600 .66rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-accent)}
+.es-myths .mc[open] .tap{display:none}
+.es-myths .stamp{display:inline-block;margin-top:.6rem;font:700 .66rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;padding:.2rem .5rem;border:2px solid;border-radius:4px;transform:rotate(-2deg)}
+.es-myths .m-ok .stamp{color:var(--es-good)}
+.es-myths .m-part .stamp{color:var(--es-warn)}
+.es-myths .m-none .stamp{color:var(--es-muted)}
+.es-myths .mc p{font-size:.88rem !important;margin:.5rem 0 0 !important;line-height:1.5}
+.es-radar{margin:0 0 2rem}
+.es-radar .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem;margin-top:.6rem}
+.es-radar .rd{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
+.es-radar .stage{font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-warn)}
+.es-radar .s2 .stage{color:var(--es-good)}
+.es-radar .s0 .stage{color:var(--es-accent2)}
+.es-radar h4{margin:.4rem 0 .3rem;font-size:.98rem;color:var(--es-text)}
+.es-radar p{font-size:.86rem !important;margin:0 0 .4rem !important;line-height:1.5}
+.es-radar p.why{color:var(--es-muted) !important}
+.es-radar:has(.f0:checked) .rd:not(.s0),.es-radar:has(.f1:checked) .rd:not(.s1),.es-radar:has(.f2:checked) .rd:not(.s2){display:none}
+.es-sides{margin:0 0 2rem}
+.es-sides .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem}
+.es-sides .side{padding:1.1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line2)}
+.es-sides .n{font:700 1.4rem var(--es-mono);color:var(--es-accent)}
+.es-sides h4{margin:.3rem 0 .4rem;color:var(--es-text)}
+.es-sides p{font-size:.9rem !important;line-height:1.55}
+.es-sides summary{cursor:pointer;font:600 .7rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-warn);margin-top:.4rem}
+.es-results{margin:0 0 2rem;border-left:3px solid var(--es-accent);padding-left:1rem}
+.es-results .rs{padding:.7rem 0;border-bottom:1px solid var(--es-line)}
+.es-results .r{color:var(--es-text) !important;font-weight:600;margin:0 !important}
+.es-results .set{color:var(--es-muted) !important;font-size:.86rem !important;margin:.25rem 0 0 !important}
+.es-ack{margin-top:.4rem !important}

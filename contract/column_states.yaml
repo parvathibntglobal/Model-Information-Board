@@ -1878,13 +1878,12 @@ columns:
   topic_item:
     authors:
       reviewed: true
-      state: write_only
+      state: read
       why: >-
-        Added 2026-10-16 with the blog's topic harvest. Written by
-        scripts/harvest_topics.py from arXiv's author list and a feed's
-        author field. Intended reader: the topic writing packs, which credit
-        a paper's or post's authors by name in the post; unbuilt until
-        those packs land (Phase C of the topic work).
+        Written by scripts/harvest_topics.py from arXiv's author list and a feed's
+        author field. Read by judge/topics.sources, and given to the writer in an
+        arXiv source's text by generate_sample_blogs.topic_docs ("Authors: ..."),
+        so a topic post can name a paper's authors (2026-10-16).
     harvested_at:
       reviewed: true
       state: defaulted

@@ -100,6 +100,15 @@ def config() -> dict[str, Any]:
     posts = raw["posts"] or {}
     if not isinstance(posts.get("arxiv_as_source"), bool):
         raise ValueError("blog_topics.yaml: posts.arxiv_as_source must be true or false")
+    if posts["arxiv_as_source"] and not str(posts.get("arxiv_acknowledgement") or "").strip():
+        raise ValueError(
+            "blog_topics.yaml: posts.arxiv_acknowledgement is required with arXiv as a source"
+        )
+    arx = raw["arxiv"] or {}
+    if not arx.get("categories") or not isinstance(arx.get("pages_per_category"), int):
+        raise ValueError("blog_topics.yaml: arxiv needs categories and pages_per_category")
+    if not posts.get("focus_terms"):
+        raise ValueError("blog_topics.yaml: posts.focus_terms is missing")
     for key in ("source_window_days", "max_sources"):
         if not isinstance(posts.get(key), int):
             raise ValueError(f"blog_topics.yaml: posts.{key} must be a whole number")
@@ -274,7 +283,7 @@ def sources(conn, key: str, today: datetime | None = None) -> list[dict[str, Any
     cfg = config()["posts"]
     now = today or datetime.now(UTC)
     rows = conn.execute(
-        "SELECT id, source, kind, title, url, published_at, summary FROM topic_item "
+        "SELECT id, source, kind, title, url, authors, published_at, summary FROM topic_item "
         "WHERE %(k)s = ANY(topics) AND published_at >= %(since)s "
         "  AND (%(arxiv)s OR source <> 'arxiv') "
         "ORDER BY published_at DESC, id",
@@ -284,7 +293,7 @@ def sources(conn, key: str, today: datetime | None = None) -> list[dict[str, Any
             "arxiv": cfg["arxiv_as_source"],
         },
     ).fetchall()
-    cols = ("id", "source", "kind", "title", "url", "published_at", "summary")
+    cols = ("id", "source", "kind", "title", "url", "authors", "published_at", "summary")
     return [dict(zip(cols, r, strict=True)) for r in rows]
 
 
@@ -321,4 +330,44 @@ def plan(conn, today: datetime | None = None) -> list[dict[str, Any]]:
                 else (ARXIV_ONLY if not arxiv_ok else "no item in the source window"),
             }
         )
+    return out
+
+
+def _model_pattern(name: str) -> re.Pattern:
+    # THE WHOLE NAME (rule 10): "GPT-5" must not match inside "GPT-5.4", nor
+    # "Opus 5" inside "Opus 5.5" - the same boundary views.js nameRx uses.
+    return re.compile(rf"(?<![\w.\-]){re.escape(name)}(?![\w\-]|\.\d)", re.IGNORECASE)
+
+
+def model_mentions(conn, today: datetime | None = None) -> list[dict[str, Any]]:
+    """Registry models the harvested papers and posts NAME in the window, by
+    how many items name each - what the field is writing about, model by model.
+    A count of items, never a score. A model the registry does not list cannot
+    appear here; new names surface under emerging() instead. A one-word name
+    with no version (e.g. "Fusion") is not counted - see below."""
+    now = today or datetime.now(UTC)
+    since = now - timedelta(days=config()["window_days"])
+    texts = [
+        f"{t} {s or ''}"
+        for t, s in conn.execute(
+            "SELECT title, summary FROM topic_item WHERE published_at >= %s", (since,)
+        ).fetchall()
+    ]
+    out = []
+    for cid, display in conn.execute(
+        "SELECT canonical_id, display_name FROM model_version WHERE display_name IS NOT NULL"
+    ).fetchall():
+        name = display.split(": ", 1)[1] if ": " in display else display
+        # A NAME THAT IS ALSO AN ORDINARY WORD IS NOT COUNTED (rule 10): the
+        # first run counted "Fusion", "Extract", "Summarize" and "Pareto" -
+        # registry models, and words every abstract uses. Only a name with a
+        # version digit or more than one word is a name a title would not
+        # contain by accident.
+        if len(name) < 4 or not (re.search(r"\d", name) or " " in name.strip()):
+            continue
+        rx = _model_pattern(name)
+        n = sum(1 for t in texts if rx.search(t))
+        if n:
+            out.append({"model": cid, "name": name, "items": n})
+    out.sort(key=lambda m: (-m["items"], m["name"]))
     return out

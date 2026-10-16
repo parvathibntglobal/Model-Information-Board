@@ -370,6 +370,7 @@ fields:
   models:
     reviewed: false
     routes:
+    - /blog-topics
     - /compare
     - /models
     state: consumed

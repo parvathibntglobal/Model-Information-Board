@@ -12,7 +12,7 @@ so the blog can answer "what is RAG?" or "what is a System 1 model?" too.
 Sources, both through the gated entry points the evidence harvest uses, so the
 terms rulings, robots.txt and rate limits apply exactly as there:
 
-    arXiv   collect.adapters.arxiv.harvester_for_source, the query and page count
+    arXiv   collect.adapters.arxiv.harvester_for_source, one query per category
             in blog_topics.yaml
     feeds   collect.adapters.blog.fetch.fetcher_for_source, every feed
             contract/sources.yaml reviews; feed metadata only, no article fetch
@@ -73,11 +73,18 @@ def harvest_arxiv(contract, client, store, cfg) -> tuple[list[dict], str]:
             rulings=contract.rulings,
             client=client,
             store=store,
-            max_pages=int(cfg["max_pages"]),
+            max_pages=int(cfg["pages_per_category"]),
         )
     except Exception as e:  # noqa: BLE001 - a refusal is reported, not raised
         return [], f"refused: {type(e).__name__}: {e}"
-    run = harvester.search(cfg["query"])
+    papers, notes = {}, []
+    # ONE QUERY PER CATEGORY: a paper cross-listed in two is kept once.
+    for cat in cfg["categories"]:
+        run = harvester.search(f"cat:{cat}")
+        for p in run.papers:
+            papers.setdefault(p.external_id, p)
+        cut = f" (truncated: {run.truncated_by})" if run.truncated_by else ""
+        notes.append(f"{cat} {len(run.papers)}{cut}")
     items = [
         {
             "id": f"arxiv:{p.external_id}",
@@ -89,12 +96,9 @@ def harvest_arxiv(contract, client, store, cfg) -> tuple[list[dict], str]:
             "authors": list(p.authors),
             "published_at": _when(p.published),
         }
-        for p in run.papers
+        for p in papers.values()
     ]
-    note = f"{len(items)} papers"
-    if run.truncated_by:
-        note += f" (truncated: {run.truncated_by})"
-    return items, note
+    return items, f"{len(items)} distinct papers ({'; '.join(notes)})"
 
 
 def harvest_feeds(contract, client, store) -> tuple[list[dict], list[str]]:

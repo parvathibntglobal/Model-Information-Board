@@ -663,8 +663,17 @@ TOPIC_SYSTEM = """You are a technical blogger writing for people learning about 
 
 You are given one or more SOURCES: recent posts by writers working on this topic. Read every one completely before writing. Work out what each writer explains, claims, built or measured, and where they agree or part ways. Then teach the topic: what it is, how it works, why it matters now, and what is still unsettled - with the sources as your evidence.
 
-VOICE
-- Write like a good teacher with a point of view: conversational, confident and specific. Short sentences: most under 15 words, none over 30. One idea per sentence. Define a term the first time it appears, in plain words, then use it. Give a concrete example before an abstraction. No throat-clearing ("It is worth noting", "In practice", "Ultimately", "When it comes to"), and never restate the heading. No bullet points inside paragraphs.
+TECHNICAL DEPTH (team ask, 2026-10-16: the first topic posts read too general)
+- Your reader builds things. Explain the MECHANISM, not just the idea: what goes in, what is computed, what comes out, what it costs, and exactly where it breaks. Name the real moving parts - the objective being optimised, the data that flows, the component that does the work.
+- Use the field's own terms (logits, KV cache, reward model, attention head, rollout, calibration error) and define each one in a clause the first time. A short formula in `backticks`, a few lines of pseudo-code, or a code example is welcome wherever it makes a mechanism concrete.
+- Prefer one worked example followed all the way through over three examples touched once.
+- Never pad with history or hype. If a paragraph would fit any post on any topic, cut it.
+
+VOICE - live and human (team ask, 2026-10-16)
+- Write the way a sharp engineer talks to a colleague they respect: warm, direct, a little opinionated, never stiff. Contractions are fine. Ask the reader a real question now and then, and answer it. A short aside in parentheses is fine. Light humour is welcome when it lands; never force it.
+- Every post should sound like it was written by someone who finds this genuinely interesting. Show the surprise, the catch, the "wait, really?" moment in the source.
+- Short sentences: most under 15 words, none over 30. One idea per sentence. Give a concrete example before an abstraction. No throat-clearing ("It is worth noting", "In practice", "Ultimately", "When it comes to"), no corporate filler ("leverage", "robust solution", "game-changer"), and never restate the heading. No bullet points inside paragraphs.
+- Do not open two posts the same way. Vary the opening move: a concrete failure, a surprising number from a source, a question, a tiny scene.
 - Take positions. Say where you agree with a writer and where you do not, and why: "We agree with the writer who put it as «...», but only for ...". Disagree with claims, never mock people.
 - Vary the rhythm: put a short, punchy sentence of eight words or fewer beside the longer ones. Prefer a fresh, exact word over the stock one; do not lean on "rather", "while" or "whether".
 - Never refer to your inputs as a set. Do not write "according to the sources", "the documents", "the posts I was given", or anything that reveals a reading list. You may name a writer's site, as the page credits it ("a post on simonwillison.net", "one engineering blog").
@@ -689,7 +698,8 @@ SEARCH - write to be found and to answer
 
 GROUNDING — checked by code; a violation rejects the essay
 - Verbatim fragments: when you quote a writer, wrap their exact words in «guillemets». The text inside «» must be copied character for character from one source — a fragment of a sentence is fine, 4 to 30 words. Use no other quotation marks around any phrase of three or more words.
-- Numbers: every number in prose (percentages, sizes, dates, versions, results) must appear in a source or a WHAT WE TRIED note. Do not compute, estimate or round new figures. Write every figure above ten in digits, and do not compute ratios or multiples.
+- Numbers: every number in prose (percentages, sizes, dates, versions, results) must appear in a source or a WHAT WE TRIED note. Do not compute, estimate or round new figures. Write every figure above ten in digits, and do not compute ratios or multiples. A general technical constant no source states (a bit width, a context length) is described in words or left out - never typed as a digit.
+- A paper is credited by what it is ("a new arXiv paper on ...", "the authors of ..."); you may name its authors as the SOURCE lists them.
 - Any sentence that credits a writer or researcher ("one team found", "the author argues", "researchers report") must contain a «verbatim» fragment of what they said. If you cannot quote it, do not attribute it.
 - Do not attribute intent or strategy to any company, and do not state what a product or API can or cannot do unless a source says so.
 - Code examples are illustrative patterns of an idea the post explains. They must not present invented parameters as a product's official API.
@@ -2006,6 +2016,12 @@ def _distinctiveness(essay: dict, rules: dict) -> list[str]:
                     v.append(f"picks: needs at least two items for {n}")
         if key == "quiz":
             v += quiz_violations(items)
+        if "source" in sp["fields"]:
+            n_src = rules.get("n_sources") or 0
+            for i, it in enumerate(items):
+                src = (it or {}).get("source")
+                if not isinstance(src, int) or isinstance(src, bool) or not 1 <= src <= n_src:
+                    v.append(f"{key}[{i}].source: must be a SOURCE number from 1 to {n_src}, not {src!r}")
     v += _pace(essay, heads, paras, rules.get("prose"))
     return v
 
@@ -2715,15 +2731,23 @@ def post_slug(post) -> str:
     return post["file"].removesuffix(".html")
 
 
-def _export_special(post, essay, text):
+def _export_special(post, essay, text, docs=()):
     key = (post.get("format_cfg") or {}).get("special")
     if not key or not essay.get(key):
         return None
     sp = SPECIALS[key]
-    return {"type": key, "title": sp["title"],
-            "items": [{f: (([text(str(x)) for x in it.get(f) or []] if isinstance(it.get(f), list)
-                            else text(str(it.get(f, "")))) if f in sp["prose"] else it.get(f))
-                       for f in sp["fields"]} for it in essay[key]]}
+    items = [{f: (([text(str(x)) for x in it.get(f) or []] if isinstance(it.get(f), list)
+                   else text(str(it.get(f, "")))) if f in sp["prose"] else it.get(f))
+              for f in sp["fields"]} for it in essay[key]]
+    # A SOURCE NUMBER IS THE WRITER'S; THE LINK IS CODE'S. The page shows the
+    # paper's or post's own title and address, never a number it cannot read.
+    for it in items:
+        n = it.get("source")
+        if isinstance(n, int) and 1 <= n <= len(docs):
+            d = docs[n - 1]
+            it["ref"] = {"title": d.get("title") or credit_of(d["source"], d["url"])["what"], "url": d["url"],
+                         "platform": platform_name(d["source"])}
+    return {"type": key, "title": sp["title"], "items": items}
 
 
 def _arrangement_for(fmt_key: str | None, slug: str) -> str | None:
@@ -2767,7 +2791,10 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         n = next((s["n"] for s in sources if s["url"] == d["url"]), None)
         if n is None:
             n = len(sources) + 1
-            sources.append({"n": n, **credit_of(d["source"], d["url"]),
+            credit = credit_of(d["source"], d["url"])
+            if d.get("title"):  # a topic source has its own title; it beats one read off the URL
+                credit["what"] = d["title"]
+            sources.append({"n": n, **credit,
                             "posted": d["posted"].date().isoformat() if d.get("posted") else None})
         cite.setdefault(frag, n)
         return frag
@@ -2884,7 +2911,11 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         # alternate a, b, a ... by how many of that format exist here already.
         # Recorded on the post, so a preview and the published page agree.
         "arrangement": _arrangement_for((post.get("plan") or {}).get("format"), post_slug(post)),
-        "special": _export_special(post, essay, text),
+        "special": _export_special(post, essay, text, docs),
+        # ARXIV'S ACKNOWLEDGEMENT (blog_topics.yaml posts.arxiv_acknowledgement),
+        # on every post that draws on an arXiv source. Read by views.js vPost.
+        "acknowledgement": (post.get("arxiv_acknowledgement")
+                            if any(d["source"] == "arxiv" for d in docs) else None),
         "meta": [TODAY.strftime("%d %B %Y"), f"~{mins} min read", "Draft — not reviewed"],
         "body": body,
         # QUOTE CREDITS (views.js): `cite` maps each quoted fragment to its
@@ -3001,6 +3032,52 @@ SPECIALS: dict[str, dict] = {
         "ask": "GLOSSARY: 4 to 8 terms a reader new to this topic meets in this post, each with a one-sentence "
                "plain meaning ('meaning'). Same grounding rules as the prose.",
     },
+    # MORE STYLES (2026-10-16, team ask: ten topic posts of different styles,
+    # not all with a quiz). `source` is the 1-based SOURCE number the item
+    # rests on; export turns it into the paper's or post's title and link.
+    "lab": {
+        "title": "Try it yourself", "items": (3, 6), "prose": ["step", "how", "look_for"],
+        "fields": {"step": {"type": "string"}, "how": {"type": "string"}, "look_for": {"type": "string"}},
+        "ask": "LAB: 3 to 6 hands-on steps a reader can run on a laptop or a hosted notebook to see the idea "
+               "work: a short imperative title ('step'), what to do ('how'), and what they should see if it "
+               "worked ('look_for'). Illustrative, never a claim about a product's API.",
+    },
+    "myths": {
+        "title": "Myth or not", "items": (4, 7), "prose": ["myth", "reality"],
+        "fields": {"myth": {"type": "string"}, "reality": {"type": "string"},
+                   "verdict": {"type": "string", "enum": ["myth", "partly true", "true"]}},
+        "ask": "MYTHS: 4 to 7 beliefs people hold about this topic ('myth', stated as people say it), what "
+               "the evidence says ('reality'), and a verdict word: 'myth', 'partly true' or 'true'.",
+    },
+    "radar": {
+        "title": "On the radar", "items": (4, 8), "prose": ["item", "what", "why"],
+        "fields": {"item": {"type": "string", "description": "A short name for the idea or method."},
+                   "what": {"type": "string"}, "why": {"type": "string"},
+                   "stage": {"type": "string", "enum": ["new idea", "early results", "in use"]},
+                   "source": {"type": "integer", "description": "The SOURCE number it comes from."}},
+        "ask": "RADAR: 4 to 8 ideas or methods from the sources worth watching: a short name ('item'), what "
+               "it is in one sentence ('what'), why it matters ('why'), a stage word - 'new idea', 'early "
+               "results' or 'in use' - and the SOURCE number it comes from ('source').",
+    },
+    "positions": {
+        "title": "Two sides", "items": (2, 4), "prose": ["side", "case", "weakness"],
+        "fields": {"side": {"type": "string"}, "case": {"type": "string"}, "weakness": {"type": "string"}},
+        "ask": "POSITIONS: 2 to 4 positions in the debate this post is about: a short label ('side'), its "
+               "strongest case in one or two sentences ('case'), and where it breaks ('weakness').",
+    },
+    "checklist": {
+        "title": "Before you ship", "items": (5, 10), "prose": ["check", "why"],
+        "fields": {"check": {"type": "string"}, "why": {"type": "string"}},
+        "ask": "CHECKLIST: 5 to 10 checks an engineer should run before shipping this technique: the check "
+               "as an instruction ('check') and the failure it catches ('why').",
+    },
+    "results": {
+        "title": "What was measured", "items": (3, 8), "prose": ["result", "setup"],
+        "fields": {"result": {"type": "string"}, "setup": {"type": "string"},
+                   "source": {"type": "integer", "description": "The SOURCE number that reports it."}},
+        "ask": "RESULTS: 3 to 8 results the sources report: the finding with its figure exactly as given "
+               "('result'), the conditions it held under ('setup'), and the SOURCE number ('source').",
+    },
     "quiz": {
         "title": "Check what you took away", "items": QUIZ_QUESTIONS, "prose": ["question", "options", "explanation"],
         "fields": {"question": {"type": "string"},
@@ -3048,6 +3125,8 @@ def load_formats() -> dict:
             raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} is missing {sorted(missing)}")
         if "visuals" not in (f.get("blocks") or {}):
             raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} blocks has no `visuals` range")
+        if f["subject"] == "concept" and not (isinstance(f.get("sources"), list) and len(f["sources"]) == 2):
+            raise BuildError(f"blog_formats.yaml: topic format {f.get('key')!r} needs `sources: [min, max]`")
         for k in ("voices", "retrace"):
             if not isinstance((f.get("blocks") or {}).get(k), int):
                 raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} blocks needs a whole-number `{k}`")
@@ -3792,19 +3871,37 @@ def ingest(key: str, dsn: str) -> None:
 # check are the board posts' own. No model is called here.
 
 TOPIC_FORMAT = {"combined article": "topic-synthesis", "explainer with a quiz": "topic-explainer"}
-TOPIC_BYLINE = ("Draft for team review · written by Claude Code from writers' published posts · "
-                "checked in code")
+TOPIC_BYLINE = ("Draft for team review · written by Claude Code from published research and engineering "
+                "writing · checked in code")
 
 
-def topic_docs(conn, reader, key: str) -> tuple[list[dict], list[dict]]:
+def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dict], list[dict]]:
     """The sources a post on `key` is written from: judge/topics.sources(),
     each with its article text from the raw store where the evidence harvest
-    stored it, else the feed's own summary - and which of the two it is."""
+    stored it, an arXiv paper's abstract and authors, or else the feed's own
+    summary - and which of these it is.
+
+    ABOUT THE TOPIC FIRST: a topic term in the title counts most, then in the
+    summary, and naming a language-model focus term counts too
+    (blog_topics.yaml posts.focus_terms); then newest first. Measured
+    2026-10-16: `evals` had 110 items in the window, most of them papers that
+    merely report a benchmark."""
     from judge import topics
 
-    cap = topics.config()["posts"]["max_sources"]
+    cfg = topics.config()["posts"]
+    cap = cap or cfg["max_sources"]
+    rx = dict(topics._patterns())[key]
+    focus = re.compile(r"(?<![\w-])(?:" + "|".join(re.escape(f) for f in cfg["focus_terms"]) + r")(?![\w-])", re.I)
+
+    def relevance(it) -> int:
+        title, summary = it["title"] or "", it.get("summary") or ""
+        return (3 * len(rx.findall(title)) + min(len(rx.findall(summary)), 3)
+                + (2 if focus.search(f"{title} {summary}") else 0))
+
+    # Stable: equal relevance keeps sources()' newest-first order.
+    ranked = sorted(topics.sources(conn, key), key=lambda it: -relevance(it))
     docs, skipped = [], []
-    for it in topics.sources(conn, key):
+    for it in ranked:
         if len(docs) == cap:
             break
         # THE FLATTENED TEXT, NOT THE RAW PAGE: a blog document's own text_ref
@@ -3820,6 +3917,9 @@ def topic_docs(conn, reader, key: str) -> tuple[list[dict], list[dict]]:
         if row and row[1]:
             got = reader.resolve(row[1])
             text, text_from = (got.text, "article") if got.text else (None, None)
+        if not text and it["source"] == "arxiv" and it.get("summary"):
+            by = ", ".join(it.get("authors") or []) or "not listed"
+            text, text_from = f"{it['title']}\nAuthors: {by}\n\n{it['summary']}", "abstract"
         if not text and it.get("summary"):
             text, text_from = f"{it['title']}\n\n{it['summary']}", "feed summary"
         if not text:
@@ -3856,8 +3956,8 @@ def topic_user_message(post, docs) -> str:
     for i, d in enumerate(docs, 1):
         when = d["posted"].date().isoformat() if hasattr(d.get("posted"), "date") else (d.get("posted") or "undated")
         site = credit_of(d["source"], d["url"])["who"] or platform_name(d["source"])
-        how = ("the full post" if d["text_from"] == "article"
-               else "the feed's summary only - the full post was not fetched")
+        how = {"article": "the full post", "abstract": "the paper's arXiv abstract (the paper itself was not read)",
+               }.get(d["text_from"], "the feed's summary only - the full post was not fetched")
         parts += [f"\n<<<SOURCE {i} - \"{d['title']}\" - {site}, {when} - {how}; quote exactly in «», "
                   f"the page credits it>>>", d["text"], f"<<<END SOURCE {i}>>>"]
     parts.append("\nWrite the essay now by calling publish_essay.")
@@ -3871,6 +3971,9 @@ def run_topic_pack(args, dsn, reader) -> None:
     cfg = load_formats()
     fmts = {f["key"]: f for f in cfg["formats"]}
     want, n = args.topic_pack[0], int(args.topic_pack[1]) if len(args.topic_pack) > 1 else 1
+    forced = args.topic_format
+    if forced and (forced not in fmts or fmts[forced]["subject"] != "concept"):
+        raise BuildError(f"--topic-format {forced!r} is not a topic format in blog_formats.yaml")
     with psycopg.connect(dsn, connect_timeout=20) as conn:
         conn.read_only = True
         if want == "auto":
@@ -3880,13 +3983,30 @@ def run_topic_pack(args, dsn, reader) -> None:
             keys = [want]
         picked = []
         for key in keys:
-            docs, skipped = topic_docs(conn, reader, key)
-            shape = topics.shape_for(len(docs))
-            if not shape:
-                print(f"  {key}: no source a post may use ({len(skipped)} without text); nothing written",
-                      flush=True)
-                continue
-            picked.append((planned_topic_post(fmts[TOPIC_FORMAT[shape]], topics.topic(key)), docs, skipped))
+            if forced:
+                # A CHOSEN FORMAT takes its own number of sources, and refuses
+                # a topic that has fewer than it needs rather than writing thin.
+                lo, hi = fmts[forced]["sources"]
+                docs, skipped = topic_docs(conn, reader, key, cap=hi)
+                if len(docs) < lo:
+                    print(f"  {key}: {len(docs)} usable source(s); {forced} needs {lo}; nothing written",
+                          flush=True)
+                    continue
+                fmt = fmts[forced]
+            else:
+                docs, skipped = topic_docs(conn, reader, key)
+                shape = topics.shape_for(len(docs))
+                if not shape:
+                    print(f"  {key}: no source a post may use ({len(skipped)} without text); nothing written",
+                          flush=True)
+                    continue
+                fmt = fmts[TOPIC_FORMAT[shape]]
+                docs = docs[: fmt["sources"][1]]
+            post = planned_topic_post(fmt, topics.topic(key))
+            post["rules"]["n_sources"] = len(docs)
+            if any(d["source"] == "arxiv" for d in docs):
+                post["arxiv_acknowledgement"] = topics.config()["posts"]["arxiv_acknowledgement"]
+            picked.append((post, docs, skipped))
     if not picked:
         raise BuildError("no topic has a source a post may use; see Admin -> Blogs -> Topics")
     existing = []
@@ -3935,6 +4055,8 @@ def main() -> None:
     ap.add_argument("--topic-pack", nargs="+", metavar="KEY|auto [N]",
                     help="write packs for TOPIC posts (blog_topics.yaml): one topic key, or 'auto N' for the "
                          "N most active topics with a usable source; no model call")
+    ap.add_argument("--topic-format", metavar="FORMAT",
+                    help="with --topic-pack KEY: write it in this topic format (e.g. myth-vs-reality)")
     ap.add_argument("--ingest", metavar="KEY",
                     help="check blog_packs/KEY/essay.json and store it as a pending draft if it passes")
     ap.add_argument("--status", action="store_true",
