@@ -4051,6 +4051,68 @@ TOPIC_BYLINE = ("Draft for team review · written by Claude Code from published 
                 "writing · checked in code")
 
 
+BRIDGE_ENTRIES = """
+SELECT tc.id, tc.flattened_text_ref, d.source, d.url, d.created_at, be.quote, mv.display_name
+  FROM board_entry be""" + ENTRY_THREAD + """
+  JOIN model_version mv ON mv.id = be.model_version_id
+ WHERE be.quote_verified AND coalesce(be.ruling,'') <> 'declined'
+   AND d.source <> ALL(%s)"""
+
+
+def board_bridge(conn, reader, key: str, limit: int) -> list[dict]:
+    """Board threads with a GENUINE link to topic `key`: their verified quotes
+    match the topic's own terms (judge/topics._patterns) at least
+    `min_matching_quotes` times. Code decides the link; the writer only reads
+    what it is given. Embed-only and withheld sources are left out, so every
+    bridged thread can be quoted with a credit and a link. Most matching
+    quotes first, then the newest. Returns at most `limit` documents.
+    """
+    from judge import topics
+
+    cfg = topics.config()["posts"].get("board_bridge")
+    if not cfg or "max_threads" not in cfg or "min_matching_quotes" not in cfg:
+        raise BuildError("blog_topics.yaml posts.board_bridge needs max_threads and min_matching_quotes")
+    limit = min(limit, int(cfg["max_threads"]))
+    if limit <= 0:
+        return []
+    rx = dict(topics._patterns())[key]
+    left_out = sorted(set(derived_posts_embed_only()) | set(withheld_sources()))
+    threads: dict[str, dict] = {}
+    for tc_id, ref, source, url, created, quote, model in conn.execute(BRIDGE_ENTRIES, (left_out,)):
+        if not quote or not rx.search(quote):
+            continue
+        t = threads.setdefault(tc_id, {"ref": ref, "source": source, "url": url, "newest": created,
+                                       "quotes": 0, "models": set()})
+        t["quotes"] += 1
+        t["models"].add(model)
+        if created and (t["newest"] is None or created > t["newest"]):
+            t["newest"] = created
+    ranked = sorted(((k, t) for k, t in threads.items() if t["quotes"] >= int(cfg["min_matching_quotes"])),
+                    key=lambda kt: (-kt[1]["quotes"], -(kt[1]["newest"].timestamp() if kt[1]["newest"] else 0)))
+    out = []
+    for tc_id, t in ranked:
+        if len(out) == limit:
+            break
+        got = reader.resolve(t["ref"]) if t["ref"] else None
+        if not got or not got.text:
+            continue  # not on this machine - the next thread, never an empty source
+        text = got.text
+        # THE TITLE: the harvested feed title for this URL where there is one;
+        # else the thread's first line of three or more words, markdown marks
+        # stripped. A section label such as "## Abstract" is not a title.
+        row = conn.execute("SELECT title FROM topic_item WHERE url = %s LIMIT 1", (t["url"],)).fetchone()
+        first = row[0] if row else next(
+            (ln.strip("# ").strip()[:120] for ln in text.splitlines()
+             if len(ln.strip("# ").split()) >= 3), "")
+        out.append({"thread_context_id": tc_id, "source": t["source"], "url": t["url"],
+                    "title": first or f"An engineer discussion of {', '.join(sorted(t['models']))}",
+                    "posted": t["newest"], "text_from": "board thread",
+                    "chars": len(text), "truncated": len(text) > MAX_DOC_CHARS, "text": text[:MAX_DOC_CHARS],
+                    "why": {"topic": key, "bridge": {"models": sorted(t["models"]),
+                                                     "matching_quotes": t["quotes"]}}})
+    return out
+
+
 def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dict], list[dict]]:
     """The sources a post on `key` is written from: judge/topics.sources(),
     each with its article text from the raw store where the evidence harvest
@@ -4081,6 +4143,11 @@ def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dic
     used = used_topic_items()
     # Stable: equal rank keeps sources()' newest-first order.
     ranked = sorted(topics.sources(conn, key), key=lambda it: (it["id"] in used, -relevance(it)))
+    # THE BOARD BRIDGE (2026-10-18): board threads whose verified quotes are
+    # about this topic take up to `max_threads` of the slots, never all of them,
+    # so the post is still about the topic first.
+    bridge = board_bridge(conn, reader, key, limit=cap - 1)
+    cap -= len(bridge)
     docs, skipped = [], []
     for it in ranked:
         if len(docs) == cap:
@@ -4111,7 +4178,7 @@ def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dic
                      "posted": it["published_at"], "text_from": text_from,
                      "chars": len(text), "truncated": len(text) > MAX_DOC_CHARS, "text": text[:MAX_DOC_CHARS],
                      "why": {"topic": key}})
-    return docs, skipped
+    return docs + bridge, skipped
 
 
 def used_topic_items() -> set[str]:
@@ -4151,6 +4218,13 @@ def topic_user_message(post, docs) -> str:
         site = credit_of(d["source"], d["url"])["who"] or platform_name(d["source"])
         how = {"article": "the full post", "abstract": "the paper's arXiv abstract (the paper itself was not read)",
                }.get(d["text_from"], "the feed's summary only - the full post was not fetched")
+        bridge = (d.get("why") or {}).get("bridge")
+        if bridge:
+            # The reader of `why.bridge` (rule 9): the writer is told what the
+            # link is, so the post can say which models the discussion is about.
+            how = ("an engineer discussion from the model board, about "
+                   + ", ".join(bridge["models"]) + f"; {bridge['matching_quotes']} of its verified "
+                   "quotes are on this topic - use it to show how the topic plays out with real models")
         parts += [f"\n<<<SOURCE {i} - \"{d['title']}\" - {site}, {when} - {how}; quote exactly in «», "
                   f"the page credits it>>>", d["text"], f"<<<END SOURCE {i}>>>"]
     parts.append("\nWrite the essay now by calling publish_essay.")

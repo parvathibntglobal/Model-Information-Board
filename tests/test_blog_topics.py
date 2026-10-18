@@ -250,7 +250,16 @@ def test_quiz_options_are_checked_as_prose():
 def test_every_topic_format_states_its_source_range_and_block():
     g = _gsb()
     fmts = [f for f in g.load_formats()["formats"] if f["subject"] == "concept"]
-    assert len({f["special"] for f in fmts}) == len(fmts)  # one block per style
+    # ONE BLOCK PER STYLE, unless a format says whose it borrows (`reuses`,
+    # 2026-10-18): then the block must be that format's, so a borrow is a
+    # declared decision rather than an accident.
+    own = [f for f in fmts if not f.get("reuses")]
+    assert len({f["special"] for f in own}) == len(own)
+    by_key = {f["key"]: f for f in fmts}
+    for f in fmts:
+        if f.get("reuses"):
+            assert f["special"] == by_key[f["reuses"]]["special"], f["key"]
+            assert f["layout"] == by_key[f["reuses"]]["layout"], f["key"]
     assert sum(f["special"] == "quiz" for f in fmts) == 1  # the quiz is one style of many
     for f in fmts:
         lo, hi = f["sources"]

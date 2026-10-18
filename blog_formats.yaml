@@ -127,7 +127,9 @@ planner:
   min_models_topic: 3
   # How many candidates per subject kind the planner considers, most-evidenced
   # first. An internal ordering; nothing about it reaches a page.
-  candidates_per_kind: 25
+  # 40 from 2026-10-18 (was 25): a repeat-free batch ran out of top-25 subjects;
+  # Jev 1.13 and Grok 4.6 had fresh fetch data and sat just outside the window.
+  candidates_per_kind: 40
   # WHICH DISCUSSIONS A POST IS WRITTEN FROM (2026-10-13). Ranked by relevance
   # (generate_sample_blogs.rank_threads): naming more of the subject's models,
   # then more entries about them, then themes, then recency. A thread with
@@ -551,3 +553,69 @@ formats:
     sections: [5, 8]
     words: [1200, 2400]
     blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  # ── TWO MORE TOPIC STYLES (2026-10-18, anooj shared a list of eight blog
+  #    formats; six already exist here: head-to-head, paper-walkthrough,
+  #    under-the-hood, myth-vs-reality, research-radar, field-guide). These two
+  #    reuse an existing page layout and block, so the web needs no change.
+  #    "Prompt & output autopsy" was NOT added: its bad output and its fixes
+  #    would have to be invented unless a source shows both, and a post may say
+  #    only what its sources say. ─────────────────────────────────────────────
+
+  - key: build-and-break
+    name: Build and break
+    subject: concept
+    layout: fieldguide
+    # Borrows field-guide's page and checklist block (no web change); the test
+    # tests/test_blog_topics.py checks the borrowed block is that format's.
+    reuses: field-guide
+    derived_from: "anooj 2026-10-18: Build & Break tutorial (goal, architecture, workflow, where it fails, fixes)"
+    shape: >-
+      A build-and-break walkthrough: the goal, the architecture people use to reach it, the
+      workflow step by step, then exactly where it fails in practice and the fix for each
+      failure - built from what the writers and engineers in the sources actually did.
+    voice: >-
+      A builder showing their scars: hands-on, second person, specific about the step that
+      broke and why. Every failure is tied to the condition that caused it.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading names one build step or one failure and its fix, as a short statement
+      (for example "Retries double the bill when the tool times out"). Never a question,
+      never starting with "What", "Why" or "How".
+    opening: >-
+      the goal stated in one sentence, then the first place a straightforward build of it breaks
+    closing: >-
+      the failure nobody in the sources has fixed yet, and what a reader could try to fix it
+    special: checklist
+    sources: [2, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  - key: socio-technical
+    name: Socio-technical essay
+    subject: concept
+    layout: synthesis
+    reuses: topic-synthesis
+    derived_from: "anooj 2026-10-18: Socio-technical essay (observation, human impact, industry tension, outlook)"
+    shape: >-
+      An essay that zooms out from the code: an observation about how this technology is
+      being used, what it changes for the people doing the work, the tension it creates in
+      teams and the industry, and where that tension is heading.
+    voice: >-
+      A thoughtful essayist who still knows the engineering: grounded in what the sources
+      show people doing, humane, willing to name a trade-off without moralising.
+    paragraphs: {per_section: [2, 4], words: [45, 90]}
+    heading_rules: >-
+      Each heading states one observation or tension about people and this technology as a
+      short sentence a reader could quote. Never a question, never starting with "What",
+      "Why" or "How".
+    opening: >-
+      one concrete thing people are now doing differently because of this technology, as the sources show it
+    closing: >-
+      the tension that is still open, and what would show which way it resolves
+    special: glossary
+    sources: [2, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 0], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}

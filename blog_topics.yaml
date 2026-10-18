@@ -64,6 +64,17 @@ posts:
   # RAG may rest on a good post from last month.
   source_window_days: 120
   max_sources: 6
+  # THE BOARD BRIDGE (2026-10-18, anooj: "combine the model fetch data with the
+  # blogs, only where there is a genuine connection"). A topic post may also be
+  # written from engineer discussions on the model board - but only a thread
+  # whose VERIFIED quotes match this topic's own `terms` at least
+  # `min_matching_quotes` times, so one passing word does not make a link. The
+  # link is decided by that regex, in code, never by the writer. Reddit and X
+  # threads are left out (they may appear only as embeds, contract/
+  # publication.yaml), so a bridged thread is always quotable with a link.
+  # Bridged threads take slots within the format's source range, never more
+  # than `max_threads`, and never all of them. Required: absent raises.
+  board_bridge: {max_threads: 2, min_matching_quotes: 2}
 
 # key: a stable slug. name: what a reader sees. short: how a title names it.
 # search: the primary search keyword a topic post is written to (checked in code).
