@@ -65,3 +65,31 @@ models:
     aliases:
       surface: 'qwen3.5 omni flash'
       variants: ['qwen3.5-omni-flash', 'qwen3.5omniflash', 'qwen35omniflash']
+
+  # ── TypeSafe Jev 1.13, added 2026-10-18 ──────────────────────────────────
+  # UNPOLLED BECAUSE OPENROUTER'S LIST OMITS IT, NOT BECAUSE OPENROUTER LACKS
+  # IT. `GET /api/v1/models/typesafe/jev-1.13/endpoints` answers with one live
+  # endpoint (TypeSafe, snapshot `typesafe/jev-1.13-20260917`, created
+  # 2026-09-18), but `GET /api/v1/models` did not list it on 2026-10-18 (0 of
+  # 471 entries). The poll reads only the list, so it cannot bring this row.
+  # Its output modality is `decisions` ("a typed choice"), which is the likely
+  # reason it is left out of a text-model listing.
+  #
+  # ⚠ IF THE LIST EVER CARRIES IT, DELETE THIS ENTRY. `_refuse_provenance_
+  #   downgrade` will refuse this whole file the moment the poll owns the row.
+  #
+  # NO PRICE HERE, though the endpoint quotes one (prompt 0.000000042/token,
+  # completion 0 on 2026-10-18). Rule 6 and FR-2: this loader takes no figure
+  # without a source, and the poll is the only writer that cites one.
+  #
+  # `typesafe/jev-router` (listed) and `~typesafe/jev-latest` are the router
+  # and the floating alias in front of this model. Neither is seated: the user
+  # asked for the numbered model, and a router's reports describe whichever
+  # model it picked.
+  - canonical_id: 'typesafe/jev-1.13'
+    provider: 'typesafe'
+    family: 'jev'
+    display_name: 'Jev 1.13'
+    aliases:
+      surface: 'jev 1.13'
+      variants: ['jev-1.13', 'jev1.13', 'jev113']

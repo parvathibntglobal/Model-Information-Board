@@ -100,6 +100,17 @@ def main() -> int:
     conn = psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=15)
     before = conn.execute("SELECT count(*) FROM model_version").fetchone()[0]
     aliases_before = conn.execute("SELECT count(*) FROM model_alias").fetchone()[0]
+    # Which of this file's models are new to this database. The load may only
+    # add those, so this - not "none or all of them" - is what `model_version`
+    # is allowed to move by. The all-or-none form refused the first load after
+    # an entry was ADDED to an already-loaded file (Jev 1.13, 2026-10-18).
+    import yaml as _yaml_ids
+
+    _listed = [m["canonical_id"] for m in _yaml_ids.safe_load(
+        contract.read_text(encoding="utf-8"))["models"]]
+    new_here = len(_listed) - conn.execute(
+        "SELECT count(*) FROM model_version WHERE canonical_id = ANY(%s)", (_listed,),
+    ).fetchone()[0]
 
     # `unpolled`, NOT `seed`. Both files here hold REAL models - a person typed
     # the row because no poll carries it, not because the build needed a stand-in.
@@ -144,10 +155,11 @@ def main() -> int:
             failures.append(f"{cid} has a price, and nothing measured one")
         if prov != "unpolled":
             failures.append(f"{cid} landed as {prov!r}, expected 'unpolled'")
-    # The rest of the registry must be untouched: this file names three models
-    # and the loader has no business moving anything else.
-    if after - before not in (0, len(wanted)):
-        failures.append(f"model_version moved by {after - before}, expected 0 or {len(wanted)}")
+    # The rest of the registry must be untouched: the loader may add the
+    # file's models that were absent and has no business moving anything else.
+    if after - before != new_here:
+        failures.append(f"model_version moved by {after - before}, expected {new_here} "
+                        f"(the file's models absent before this load)")
 
     if args.dry_run:
         conn.rollback()
