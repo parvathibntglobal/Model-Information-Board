@@ -16,6 +16,11 @@ terms rulings, robots.txt and rate limits apply exactly as there:
             in blog_topics.yaml
     feeds   collect.adapters.blog.fetch.fetcher_for_source, every feed
             contract/sources.yaml reviews; feed metadata only, no article fetch
+    Hacker News, dev.to, Hugging Face daily papers (2026-10-18): each topic's
+            own `terms` as queries (Hugging Face: the day's featured papers),
+            through the same gated harvester_for_source the model fetch uses
+            (blog_topics.yaml `platforms`). Stories, articles
+            and papers inside the window; title, summary, author, date, link.
 
 What is stored is what the publisher syndicates: a title, the abstract or the
 feed summary as plain text, the authors, the date and the link. Every item is
@@ -34,7 +39,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from collect.adapters import arxiv  # noqa: E402
+from collect.adapters import arxiv, devto, hackernews, huggingface  # noqa: E402
 from collect.adapters.blog.fetch import NotAFetchTargetError, fetcher_for_source  # noqa: E402
 from collect.adapters.blog.robots import RobotsGate  # noqa: E402
 from collect.config import settings  # noqa: E402
@@ -135,11 +140,150 @@ def harvest_feeds(contract, client, store) -> tuple[list[dict], list[str]]:
     return items, notes
 
 
+def _queries(topic: dict, n: int) -> list[str]:
+    """A topic's first `n` terms, the list order being the priority."""
+    return [str(t) for t in topic["terms"]][:n]
+
+
+def _platform_cfg() -> dict:
+    from judge.topics import config
+
+    cfg = config().get("platforms")
+    need = ("queries_per_topic", "window_days", "hackernews", "devto", "huggingface_papers")
+    if not cfg or any(k not in cfg for k in need):
+        raise SystemExit(f"blog_topics.yaml `platforms` needs {need}; "
+                         "refusing rather than guessing")
+    return cfg
+
+
+def harvest_platforms(contract, client, store, topics: list[dict]) -> tuple[list[dict], list[str]]:
+    """Hacker News stories, dev.to articles and Hugging Face papers, by topic.
+
+    Each platform is built through its own `harvester_for_source`, so the terms
+    gate refuses exactly as it does for the model fetch; a refusal is reported
+    and the other platforms still run. Every item is matched against ALL topics
+    when stored (store_items), so the query only decides what is fetched.
+    """
+    from datetime import UTC, timedelta
+
+    cfg = _platform_cfg()
+    since = datetime.now(UTC) - timedelta(days=int(cfg["window_days"]))
+    nq = int(cfg["queries_per_topic"])
+    rows = {p.get("id"): p for p in contract.platforms}
+    items: dict[str, dict] = {}
+    notes: list[str] = []
+
+    def gated(name, module, **kw):
+        if name not in rows:
+            notes.append(f"{name}: no `{name}` source row in contract/sources.yaml")
+            return None
+        try:
+            return module.harvester_for_source(rows[name], rulings=contract.rulings,
+                                               client=client, store=store, **kw)
+        except Exception as e:  # noqa: BLE001 - a refusal is reported, not raised
+            notes.append(f"{name}: refused: {type(e).__name__}: {e}")
+            return None
+
+    def count(prefix):
+        return sum(1 for k in items if k.startswith(prefix))
+
+    hn = gated("hackernews", hackernews)
+    if hn:
+        per = int(cfg["hackernews"]["per_query"])
+        floor = int(cfg["hackernews"].get("min_points", 0))
+        hits = 0
+        for t in topics:
+            for q in _queries(t, nq):
+                for h in hn.search_stories(q, since_ts=int(since.timestamp()), per_page=per):
+                    hits += 1
+                    if (h.get("points") or 0) < floor or not h.get("title"):
+                        continue
+                    iid = f"hackernews:{h['objectID']}"
+                    link = h.get("url")
+                    parts = [plain(h.get("story_text")) or "",
+                             f"Links to {link}." if link else "",
+                             f"{h.get('points') or 0} points, "
+                             f"{h.get('num_comments') or 0} comments on Hacker News."]
+                    items.setdefault(iid, {
+                        "id": iid, "source": "hackernews", "kind": "post",
+                        "title": plain(h["title"]),
+                        "summary": plain(" ".join(x for x in parts if x)),
+                        "url": f"https://news.ycombinator.com/item?id={h['objectID']}",
+                        "authors": [h["author"]] if h.get("author") else [],
+                        "published_at": _when(h.get("created_at")),
+                    })
+        notes.append(f"hackernews: {count('hackernews:')} stories kept of {hits} hits")
+
+    dv = gated("devto", devto, max_pages=1, per_page=int(cfg["devto"]["per_query"]))
+    if dv:
+        hits = 0
+        for t in topics:
+            for q in _queries(t, nq):
+                # dev.to's search answers HTTP 500 to a hyphenated query
+                # ("multi-agent system", 2026-10-18); a space finds the same posts.
+                for hit in dv.search(q.replace("-", " ")).hits:
+                    hits += 1
+                    when = _when(hit.published_at)
+                    if not hit.url or not hit.title or (when and when < since):
+                        continue
+                    iid = f"devto:{hit.article_id}"
+                    items.setdefault(iid, {
+                        "id": iid, "source": "devto", "kind": "post",
+                        "title": plain(hit.title), "summary": plain(hit.description),
+                        "url": hit.url,
+                        "authors": [hit.author_handle] if hit.author_handle else [],
+                        "published_at": when,
+                    })
+        notes.append(f"devto: {count('devto:')} articles kept of {hits} hits")
+
+    hf = gated("huggingface", huggingface)
+    if hf:
+        hits, days = 0, int(cfg["window_days"])
+        for back in range(days):
+            day = (datetime.now(UTC) - timedelta(days=back)).date().isoformat()
+            for x in hf.daily_papers(day):
+                hits += 1
+                paper = x["paper"]
+                pid = str(paper.get("id") or "")
+                if not pid or not paper.get("title"):
+                    continue
+                # THE SAME PAPER ONCE: Hugging Face lists arXiv papers, so a
+                # paper the arXiv arm already stored is skipped in store_items.
+                iid = f"hfpapers:{pid}"
+                authors = [a.get("name") for a in (paper.get("authors") or [])
+                           if isinstance(a, dict) and a.get("name")]
+                parts = [paper.get("summary") or "",
+                         f"{paper.get('upvotes') or 0} upvotes on Hugging Face Papers."]
+                items.setdefault(iid, {
+                    "id": iid, "source": "huggingface", "kind": "paper",
+                    "title": plain(paper["title"]),
+                    "summary": plain(" ".join(x for x in parts if x)),
+                    "url": f"https://huggingface.co/papers/{pid}", "authors": authors,
+                    "published_at": _when(paper.get("publishedAt") or x.get("publishedAt")),
+                })
+        notes.append(f"huggingface daily papers: {count('hfpapers:')} papers over {days} days "
+                     f"({hits} listed)")
+    return list(items.values()), notes
+
+
 def store_items(conn, items: list[dict]) -> int:
     from judge.topics import match
 
     new = 0
     for it in items:
+        # ONE PAPER, ONE ROW. Hugging Face lists arXiv papers by bare id
+        # ("2610.22080"); the arXiv arm stores the versioned id
+        # ("arxiv:2610.22080v1"). Compared on the bare id, or the check never
+        # matches - it did not, 2026-10-18, and 25 papers were stored twice.
+        # arXiv is the paper's own source, so it wins whichever arrives first.
+        if it["id"].startswith("hfpapers:"):
+            bare = it["id"].split(":", 1)[1]
+            if conn.execute("SELECT 1 FROM topic_item WHERE id = %s OR id LIKE %s",
+                            (f"arxiv:{bare}", f"arxiv:{bare}v%")).fetchone():
+                continue
+        elif it["id"].startswith("arxiv:"):
+            bare = re.sub(r"v\d+$", "", it["id"].split(":", 1)[1])
+            conn.execute("DELETE FROM topic_item WHERE id = %s", (f"hfpapers:{bare}",))
         cur = conn.execute(
             "INSERT INTO topic_item "
             "(id, source, kind, title, summary, url, authors, published_at, topics) "
@@ -171,6 +315,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dry-run", action="store_true", help="fetch and count; store nothing")
     ap.add_argument("--rematch", action="store_true", help="only re-label stored items")
+    ap.add_argument("--only", choices=("arxiv", "feeds", "platforms"), action="append",
+                    help="run only these arms (repeatable); default all")
     args = ap.parse_args(argv)
 
     import psycopg
@@ -190,17 +336,25 @@ def main(argv: list[str] | None = None) -> int:
 
     contract = load_sources()
     store = RawStore(Path(settings().raw_store_path))
+    arms = set(args.only or ("arxiv", "feeds", "platforms"))
+    papers, posts, found = [], [], []
+    arxiv_note, feed_notes, plat_notes = "not run", [], []
     with build_client() as client:
-        papers, arxiv_note = harvest_arxiv(contract, client, store, config()["arxiv"])
-        posts, feed_notes = harvest_feeds(contract, client, store)
+        if "arxiv" in arms:
+            papers, arxiv_note = harvest_arxiv(contract, client, store, config()["arxiv"])
+        if "feeds" in arms:
+            posts, feed_notes = harvest_feeds(contract, client, store)
+        if "platforms" in arms:
+            found, plat_notes = harvest_platforms(contract, client, store, config()["topics"])
     print(f"arxiv: {arxiv_note}")
-    for n in feed_notes:
+    for n in feed_notes + plat_notes:
         print(f"  {n}")
-    print(f"fetched {len(papers)} paper(s) and {len(posts)} post(s)")
+    print(f"fetched {len(papers)} paper(s), {len(posts)} feed post(s), "
+          f"{len(found)} platform item(s)")
     if args.dry_run:
         return 0
     with psycopg.connect(dsn) as conn:
-        new = store_items(conn, papers + posts)
+        new = store_items(conn, papers + posts + found)
         changed = rematch(conn)
         conn.commit()
     print(f"stored {new} new item(s); re-labelled {changed}")

@@ -29,6 +29,23 @@ arxiv:
   # one request every 3 seconds as arXiv asks).
   pages_per_category: 3
 
+# THE PLATFORM ARMS (2026-10-18, anooj: "arXiv, Hacker News, dev.to and Hugging
+# Face have free APIs - track these subjects there"). Each topic's own `terms`
+# are the queries: the first `queries_per_topic` of them, so the list order is
+# the priority. Through the same gated adapters the model fetch uses
+# (contract/sources.yaml rulings; Hugging Face daily papers sit outside its ruling's
+# wording until docs/proposals/huggingface-papers-in-topic-harvest.md is
+# reviewed). Items older than `window_days` are not stored. Required: absent
+# raises (scripts/harvest_topics.py).
+platforms:
+  queries_per_topic: 2
+  window_days: 30
+  hackernews: {per_query: 20, min_points: 3}
+  devto: {per_query: 15}
+  # Hugging Face: the papers it FEATURES each day, one request a day of the
+  # window - not a keyword search (relevance-ordered; 25 of 750 hits in window).
+  huggingface_papers: {daily: true}
+
 window_days: 14          # a topic's items are counted over this many days
 synthesis_min_items: 2   # this many items on one topic -> one combined article
 emerging:
@@ -144,7 +161,8 @@ topics:
     name: Inference efficiency
     short: "inference efficiency"
     search: "how to make LLM inference faster"
-    terms: [quantization, distillation, pruning, speculative decoding, KV cache, inference efficiency]
+    terms: [quantization, distillation, pruning, speculative decoding, KV cache, inference efficiency, model compression,
+            low-bit, sparse activation, activation sparsity]
   - key: moe
     name: Mixture of experts
     short: "mixture of experts"
@@ -179,7 +197,7 @@ topics:
     name: Robotics and embodied AI
     short: "embodied AI"
     search: "what is embodied AI"
-    terms: [robotics, embodied, robot learning, vision-language-action]
+    terms: [robotics, embodied, robot learning, vision-language-action, VLA model, VLA models, humanoid, dexterous manipulation]
   - key: code-generation
     name: Code generation and coding agents
     short: "coding agents"
@@ -209,7 +227,7 @@ topics:
     name: Diffusion models
     short: "diffusion models"
     search: "what is a diffusion model"
-    terms: [diffusion model, diffusion models, diffusion language model]
+    terms: [diffusion model, diffusion models, diffusion language model, diffusion language models, masked diffusion]
   - key: architectures
     name: Beyond the transformer
     short: "state space models"
@@ -236,7 +254,8 @@ topics:
     name: Computer-use, GUI and web agents
     short: "computer-use agents"
     search: "what is a computer use agent"
-    terms: [computer use, computer-use, GUI agent, GUI agents, web agent, web agents, browser agent, browser agents]
+    terms: [computer use, computer-use, computer-using agent, computer-using agents, GUI agent, GUI agents, GUI interaction,
+            web agent, web agents, browser agent, browser agents, OS agent, OS agents]
   - key: context-engineering
     name: Context engineering
     short: "context engineering"
@@ -246,12 +265,13 @@ topics:
     name: LLM serving
     short: "LLM serving"
     search: "how does LLM serving work"
-    terms: [LLM serving, inference serving, vLLM, continuous batching, PagedAttention, disaggregated serving]
+    terms: [LLM serving, inference serving, vLLM, SGLang, TensorRT-LLM, continuous batching, PagedAttention, disaggregated serving,
+            inference engine, inference engines]
   - key: tokenization
     name: Tokenization
     short: "tokenization"
     search: "what is tokenization in LLMs"
-    terms: [tokenizer, tokenizers, tokenization]
+    terms: [tokenizer, tokenizers, tokenization, byte-level model, byte-level models, tokenizer-free]
   - key: software-testing
     name: LLMs for testing, repair and code review
     short: "LLM test generation"
@@ -278,3 +298,98 @@ topics:
     short: "graph neural networks"
     search: "what is a graph neural network"
     terms: [graph neural network, graph neural networks, GNN, GNNs, graph learning]
+
+  # ── added 2026-10-18 (anooj: "our blog should include every such innovative
+  #    advancement"). Gaps from the 30-day audit of unmatched items, and the
+  #    subjects suggested that day. ORDINARY WORDS ARE NOT TERMS (rule 10): a
+  #    term is a phrase that only means this topic, or the topic misfiles.
+  - key: agent-security
+    name: Agent security
+    short: "agent security"
+    search: "how to secure AI agents"
+    terms: [agent security, indirect prompt injection, tool poisoning, malicious skill, malicious skills,
+            agent sandbox, sandboxed agent, data exfiltration, agent hijacking]
+  - key: multi-agent
+    name: Multi-agent systems
+    short: "multi-agent systems"
+    search: "what is a multi-agent system"
+    terms: [multi-agent system, multi-agent systems, agent swarm, agent swarms, agent orchestration,
+            agent collaboration, multi-agent collaboration]
+  - key: agent-protocols
+    name: Agent protocols and identity
+    short: "agent protocols"
+    search: "what is the A2A protocol"
+    terms: [A2A protocol, agent-to-agent, Agent2Agent, agent protocol, agent identity, agent skills,
+            AGENTS.md, agent interoperability]
+  - key: self-improving
+    name: Self-improving agents
+    short: "self-improving agents"
+    search: "what is a self-improving AI agent"
+    terms: [self-improving, self-improvement, recursive self-improvement, self-evolving, self-rewriting]
+  - key: local-ai
+    name: Local and on-device AI
+    short: "local LLMs"
+    search: "how to run an LLM locally"
+    terms: [local LLM, local LLMs, run locally, on-device, Ollama, llama.cpp, LM Studio, edge inference]
+  - key: ai-hardware
+    name: AI hardware and accelerators
+    short: "AI hardware"
+    search: "what hardware runs AI models"
+    terms: [AI accelerator, AI accelerators, AI chip, AI chips, TPU, TPUs, inference chip, GPU cluster,
+            hardware co-design]
+  - key: time-series
+    name: Time-series foundation models
+    short: "time-series foundation models"
+    search: "what is a time series foundation model"
+    terms: [time series foundation model, time-series foundation model, time series forecasting,
+            time-series forecasting, time-series reasoning]
+  - key: video-generation
+    name: Video generation
+    short: "AI video generation"
+    search: "how does AI video generation work"
+    terms: [video generation, text-to-video, video diffusion, video model, video models, world simulator]
+  - key: image-generation
+    name: Image generation and editing
+    short: "AI image generation"
+    search: "how does AI image generation work"
+    terms: [image generation, text-to-image, image editing, image editor model]
+  - key: voice-ai
+    name: Voice and audio AI
+    short: "voice AI"
+    search: "how do AI voice agents work"
+    terms: [speech recognition, text-to-speech, voice agent, voice agents, speech model, speech models,
+            audio model, audio language model, realtime voice, audio watermarking]
+  - key: deception
+    name: Deception, sycophancy and honesty
+    short: "AI deception"
+    search: "can AI models be deceptive"
+    terms: [sycophancy, sycophantic, AI deception, deceptive behavior, scheming, LLM honesty, model honesty,
+            reward hacking]
+
+  # ── PROJECTS (2026-10-18): named open-source agents and tools, tracked as
+  #    topics until a tracked-projects list exists. Only their own names count. ──
+  - key: openclaw
+    name: OpenClaw
+    short: "OpenClaw"
+    search: "what is OpenClaw"
+    terms: [OpenClaw, Clawdbot, Moltbot, NemoClaw, ClawHub]
+  - key: hermes-agent
+    name: Hermes Agent
+    short: "Hermes Agent"
+    search: "what is Hermes Agent"
+    terms: [Hermes Agent, hermes-agent]
+  - key: claude-code
+    name: Claude Code
+    short: "Claude Code"
+    search: "what is Claude Code"
+    terms: [Claude Code]
+  - key: codex
+    name: OpenAI Codex
+    short: "OpenAI Codex"
+    search: "what is OpenAI Codex"
+    terms: [OpenAI Codex, Codex CLI]
+  - key: deerflow
+    name: DeerFlow
+    short: "DeerFlow"
+    search: "what is DeerFlow"
+    terms: [DeerFlow]
