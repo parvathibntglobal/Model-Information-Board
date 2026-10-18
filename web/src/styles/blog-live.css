@@ -205,3 +205,24 @@
 .bm-topic-items li { margin-bottom: 4px; }
 .bm-topic-items .mono { font-size: 10px; }
 .bm-emerging { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; font-size: 12px; }
+
+/* THE POST DIRECTORY (2026-10-18): every post on one page, by model, topic,
+   title or date (web/src/blogs/Directory.jsx). Reuses the bar and list above. */
+.dir-format{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--r-control);
+  padding:6px 10px;font-size:var(--fs-sm)}
+.dir-count{margin-top:0}
+.dir-jump{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 var(--s2);font-size:var(--fs-sm)}
+.dir-jump a{min-width:28px;text-align:center;padding:3px 6px;border:1px solid var(--border-soft);border-radius:var(--r-control);
+  color:var(--text-2)}
+.dir-jump a:hover{color:var(--text);background:var(--surface)}
+.dir-group{scroll-margin-top:var(--s5)}
+.dir-row{align-items:flex-start}
+.dir-row .lv-row-main{flex-direction:column;gap:2px}
+.dir-dek{font-size:var(--fs-xs);color:var(--text-3);max-width:80ch;display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden}
+.dir-meta{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 10px;font-size:var(--fs-xs);color:var(--text-3);
+  white-space:nowrap;flex:0 0 auto}
+.dir-fmt{color:var(--accent)}
+@media (max-width:640px){
+  .dir-meta{justify-content:flex-start}
+}

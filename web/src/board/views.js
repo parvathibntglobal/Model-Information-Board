@@ -1121,6 +1121,7 @@ const LIVE = [
   ['live:quiz', 'Daily quiz', 'Five questions a day on how language models work.', 'Live'],
   ['live:issues', 'Known issues', 'Problems engineers report with each model, with the quotes.', 'Reference'],
   ['live:answers', 'What each model supports', 'Advertised features beside what engineers report.', 'Reference'],
+  ['live:directory', 'Directory', 'Every post, by the model it covers, its topic, its title or its date.', 'Reference'],
   ['live:glossary', 'Glossary', 'What each capability and job means, in plain words.', 'Reference'],
 ];
 // A POST'S PICTURE, OR NOTHING. An AI picture is an inline JPEG/PNG/WebP; a
@@ -1189,6 +1190,7 @@ function vBlogs(){
       they were made.${DB.posts.every(x=>reviewOf(x)==='approved')
       ? ' A person on the team read each post and approved it before it appeared here.'
       : ' Posts marked draft have not been approved by a person yet.'}</div>
+      <a class="bl-dir"${goAttrs('live:directory')}>Find a post: all ${DB.posts.length} by model, topic or title &rarr;</a>
       <div class="bl-list">${cards}</div>${pager}` : empty}
     ${skipped}
     <nav class="lv-explore lv-in-essay" aria-label="Live pages">${LIVE.map(([go, t, d, k]) =>

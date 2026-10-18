@@ -997,6 +997,8 @@
 .bl-ex{margin:0;color:var(--es-body);font-size:1.02rem;line-height:1.65}
 .bl-more{align-self:flex-start;font:600 .82rem var(--es-mono);color:var(--es-accent);text-decoration:none;cursor:pointer}
 .bl-more:hover{text-decoration:underline}
+.bl-dir{display:block;max-width:780px;margin:1.5rem auto 0;font:600 .85rem var(--es-mono);color:var(--es-accent);text-decoration:none}
+.bl-dir:hover{text-decoration:underline}
 .bl-pager{max-width:780px;margin:3rem auto 1rem;display:flex;justify-content:space-between;align-items:center;font:600 .85rem var(--es-mono)}
 .bl-pager a{color:var(--es-accent);text-decoration:none}
 .bl-pg{color:var(--es-muted)}

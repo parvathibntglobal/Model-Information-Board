@@ -10,6 +10,7 @@ import { useHead } from '../seo/head'
 import { blogIndex, blogPost } from '../seo/pages'
 import { DisagreeIndex, Wall } from '../blogs/Disagree'
 import { ReadNext } from '../blogs/Explore'
+import Directory from '../blogs/Directory'
 import Quiz from '../blogs/Quiz'
 import ThisWeek from '../blogs/ThisWeek'
 import { GlossaryEntry, GlossaryIndex } from '../blogs/Glossary'
@@ -40,6 +41,7 @@ import '../styles/blog-live.css'
  *   /blogs/this-week[/<monday>]              this week in models
  *   /blogs/quiz                              the daily quiz
  *   /blogs/glossary[/<jobs|capabilities>/<slug>]   what a topic is
+ *   /blogs/directory                         every post, by model/topic/title/date
  *   /blogs/issues[/<model id>]               known issues per model
  *   /blogs/answers[/<model id>]              what a model supports
  */
@@ -51,6 +53,8 @@ export default function Blogs() {
   if (rest.startsWith('this-week/')) return <ThisWeek start={rest.slice('this-week/'.length)} />
   if (rest === 'quiz') return <Quiz />
   // THE REFERENCE FORMATS (judge/blog_reference.py), not articles either.
+  // THE POST DIRECTORY (2026-10-18): every post on one page, to find one.
+  if (rest === 'directory') return <Directory />
   if (rest === 'glossary') return <GlossaryIndex />
   if (rest.startsWith('glossary/')) return <GlossaryEntry key={rest} rest={rest} />
   if (rest === 'issues') return <IssuesIndex />

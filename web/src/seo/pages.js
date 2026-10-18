@@ -307,6 +307,13 @@ export function glossaryHead() {
     canonical: '/blogs/glossary',
   }
 }
+export function directoryHead() {
+  return {
+    title: fullTitle('Blog directory: every post by model and topic'),
+    description: 'Every Model Information Board post in one place, by the model it covers, the topic it explains, its title or its date.',
+    canonical: '/blogs/directory',
+  }
+}
 export function glossaryEntryHead(e, path) {
   if (!e) return glossaryHead()
   return {
