@@ -81,6 +81,9 @@ posts:
   # RAG may rest on a good post from last month.
   source_window_days: 120
   max_sources: 6
+  # A source with less text than this is skipped for a post (2026-10-18): a
+  # Hacker News story with no comments yet, a one-line blurb. Required.
+  min_source_chars: 400
   # THE BOARD BRIDGE (2026-10-18, anooj: "combine the model fetch data with the
   # blogs, only where there is a genuine connection"). A topic post may also be
   # written from engineer discussions on the model board - but only a thread

@@ -186,3 +186,22 @@ def test_a_paper_already_stored_from_arxiv_is_not_stored_twice():
     # arXiv arriving later replaces its Hugging Face twin: it is the paper's own source.
     mod.store_items(conn, [{**base, "source": "arxiv", "id": "arxiv:2610.99999v2"}])
     assert conn.deleted == ["hfpapers:2610.99999"]
+
+
+def test_a_hacker_news_thread_reads_as_plain_text_in_order():
+    """live_text's flattener (generate_sample_blogs._hn_thread_text): the story,
+    then each comment before its replies, tags stripped and entities decoded."""
+    import generate_sample_blogs as g
+
+    item = {
+        "title": "Show HN: a thing",
+        "text": "<p>We built it &amp; it works</p>",
+        "children": [
+            {"text": "First <i>comment</i>", "children": [{"text": "a reply", "children": []}]},
+            {"text": "", "children": []},
+            {"text": "Second comment", "children": []},
+        ],
+    }
+    lines = g._hn_thread_text(item).split("\n\n")
+    assert lines == ["Show HN: a thing", "We built it & it works", "First comment", "  a reply",
+                     "Second comment"]

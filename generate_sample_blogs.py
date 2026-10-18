@@ -4113,6 +4113,81 @@ def board_bridge(conn, reader, key: str, limit: int) -> list[dict]:
     return out
 
 
+# ── full text for a topic source the harvest stored as a blurb (2026-10-18) ──
+#
+# The topic harvest stores what a search returns: a dev.to article's one-line
+# description, a Hacker News story's title and link. Measured 2026-10-18 on the
+# local clone: 17 of 157 topic-labelled dev.to items and 11 of 181 Hacker News
+# items had full text in the document store. A post cannot quote a blurb, so a
+# source a pack SELECTS is fetched in full here - through the same gated
+# adapter, stored in the raw store first - and only then. Anything that fails
+# falls back to the blurb, which the brief labels as such.
+
+_LIVE: dict = {}
+_HN_TAG = re.compile(r"<[^>]+>")
+
+
+def _live_harvester(source: str):
+    if source not in _LIVE:
+        from collect.adapters import devto, hackernews
+        from collect.http import build_client
+        from collect.registry.sources import load_sources
+
+        contract = load_sources()
+        row = next((x for x in contract.platforms if x.get("id") == source), None)
+        mod = {"devto": devto, "hackernews": hackernews}[source]
+        if row is None:
+            raise BuildError(f"no `{source}` source row in contract/sources.yaml")
+        _LIVE.setdefault("client", build_client())
+        store = RawStore(env().get("RAW_STORE_PATH") or "./raw_store")
+        _LIVE[source] = (mod, mod.harvester_for_source(row, rulings=contract.rulings,
+                                                         client=_LIVE["client"], store=store))
+    return _LIVE[source]
+
+
+def _hn_thread_text(item: dict) -> str:
+    """A Hacker News story and its comments, in reading order, as plain text."""
+    def clean(t):
+        return re.sub(r"\s+", " ", html.unescape(_HN_TAG.sub(" ", t or ""))).strip()
+
+    lines = [clean(item.get("title")), clean(item.get("text"))]
+
+    def walk(node, depth):
+        for c in node.get("children") or []:
+            body = clean(c.get("text"))
+            if body:
+                lines.append(("  " * min(depth, 4)) + body)
+            walk(c, depth + 1)
+
+    walk(item, 0)
+    return "\n\n".join(x for x in lines if x)
+
+
+def live_text(it: dict) -> tuple[str | None, str | None]:
+    """Full text for a dev.to or Hacker News topic item, or (None, None)."""
+    from datetime import UTC as _UTC
+
+    source = it["source"].split(":", 1)[0]
+    if source not in ("devto", "hackernews"):
+        return None, None
+    try:
+        mod, h = _live_harvester(source)
+        ext = it["id"].split(":", 1)[1]
+        now = datetime.now(_UTC)
+        if source == "devto":
+            got = h.fetch_article(mod.DevtoHit(
+                article_id=int(ext), title="", description="", url=it["url"], published_at=None,
+                tags=(), author_external_id=None, author_handle=None, language=None,
+                reactions=0, comments=0), mod.DevtoRun(query=f"article:{ext}", started_at=now))
+            return ((got.body, "article") if got and got.body else (None, None))
+        got = h.fetch_item(ext, mod.HnRun(query=f"item:{ext}", started_at=now))
+        text = _hn_thread_text(got[1]) if got else ""
+        return (text, "discussion") if text else (None, None)
+    except Exception as e:  # noqa: BLE001 - a source that cannot be fetched stays a blurb
+        print(f"  live text for {it['id']} not fetched: {type(e).__name__}: {e}", flush=True)
+        return None, None
+
+
 def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dict], list[dict]]:
     """The sources a post on `key` is written from: judge/topics.sources(),
     each with its article text from the raw store where the evidence harvest
@@ -4165,13 +4240,27 @@ def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dic
         if row and row[1]:
             got = reader.resolve(row[1])
             text, text_from = (got.text, "article") if got.text else (None, None)
+        if not text:
+            text, text_from = live_text(it)
         if not text and it["source"] == "arxiv" and it.get("summary"):
+            by = ", ".join(it.get("authors") or []) or "not listed"
+            text, text_from = f"{it['title']}\nAuthors: {by}\n\n{it['summary']}", "abstract"
+        # A HUGGING FACE PAPER IS AN arXiv ABSTRACT (2026-10-18): same label,
+        # and the post carries arXiv's acknowledgement for it too.
+        if not text and it["source"] == "huggingface" and it.get("summary"):
             by = ", ".join(it.get("authors") or []) or "not listed"
             text, text_from = f"{it['title']}\nAuthors: {by}\n\n{it['summary']}", "abstract"
         if not text and it.get("summary"):
             text, text_from = f"{it['title']}\n\n{it['summary']}", "feed summary"
         if not text:
             skipped.append({"topic_item_id": it["id"], "outcome": "no article text and no feed summary"})
+            continue
+        # TOO THIN TO QUOTE (2026-10-18): a Hacker News story with no comments
+        # yet, or a one-line blurb, gives a writer nothing to quote. Skipped and
+        # named; the next source takes the slot.
+        if len(text) < int(cfg["min_source_chars"]):
+            skipped.append({"topic_item_id": it["id"],
+                            "outcome": f"only {len(text)} characters of text ({text_from})"})
             continue
         source = (row[0] if row else None) or it["source"].split(":", 1)[0]
         docs.append({"topic_item_id": it["id"], "source": source, "url": it["url"], "title": it["title"],
@@ -4217,6 +4306,7 @@ def topic_user_message(post, docs) -> str:
         when = d["posted"].date().isoformat() if hasattr(d.get("posted"), "date") else (d.get("posted") or "undated")
         site = credit_of(d["source"], d["url"])["who"] or platform_name(d["source"])
         how = {"article": "the full post", "abstract": "the paper's arXiv abstract (the paper itself was not read)",
+               "discussion": "the Hacker News story and its full comment thread",
                }.get(d["text_from"], "the feed's summary only - the full post was not fetched")
         bridge = (d.get("why") or {}).get("bridge")
         if bridge:
@@ -4271,7 +4361,7 @@ def run_topic_pack(args, dsn, reader) -> None:
                 docs = docs[: fmt["sources"][1]]
             post = planned_topic_post(fmt, topics.topic(key))
             post["rules"]["n_sources"] = len(docs)
-            if any(d["source"] == "arxiv" for d in docs):
+            if any(d["source"] in ("arxiv", "huggingface") for d in docs):
                 post["arxiv_acknowledgement"] = topics.config()["posts"]["arxiv_acknowledgement"]
             picked.append((post, docs, skipped))
     if not picked:
