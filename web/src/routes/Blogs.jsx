@@ -8,7 +8,6 @@ import { loadEmbeds } from '../board/embeds'
 import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { blogIndex, blogPost } from '../seo/pages'
-import { ReadNext } from '../blogs/Explore'
 import Directory from '../blogs/Directory'
 import '../styles/blog-live.css'
 
@@ -37,6 +36,12 @@ import '../styles/blog-live.css'
  * (Disagree, ThisWeek, Quiz, Glossary, Issues, Answers) and the endpoints in
  * judge/blog_live.py and judge/blog_reference.py, so restoring one is an import
  * and a line here plus its tile in views.js `LIVE`.
+ *
+ * NOR IS THE READ-NEXT BLOCK UNDER A POST (2026-10-19): `ReadNext`
+ * (blogs/Explore.jsx) offered tiles to three of those pages - disagree, this
+ * week, the quiz - and links into claim walls, all of which now open "not
+ * found"; it also asked /blog-live/disagree, which a signed-out visitor is
+ * refused. Restoring it is the import and the line under <BoardView> again.
  */
 export default function Blogs() {
   const rest = useParams()['*'] || ''
@@ -126,7 +131,6 @@ function BlogPosts({ rest }) {
         </div>
       )}
       <BoardView html={html} key={rest} />
-      {rest && post && <ReadNext post={post} />}
     </>
   )
 }
