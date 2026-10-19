@@ -39,6 +39,14 @@ export function goPath(go) {
   // Out to the model's own page, which holds every section rather than one.
   // ModelDetail redirects an internal id to the canonical URL (SEO item 2).
   if (kind === 'model') return `/models/${arg}`
+  // THE PUBLIC MODEL PAGE, for links a reader who is not signed in follows -
+  // the blog. `/models/*` is behind the sign-in (App.jsx), so a post's model
+  // names sent every reader to the login screen: 1,102 links over the 150
+  // published posts on 2026-10-19. The arg is a canonical id; the catalog
+  // answers 404 to an internal key, so the caller passes none.
+  if (kind === 'catmodel') return `/catalog/model/${arg.split('/').map(encodeURIComponent).join('/')}`
+  // Two or three canonical ids, comma-separated, in the order the text names them.
+  if (kind === 'compare') return `/compare?ids=${encodeURIComponent(arg)}`
   if (kind === 'blogs') return '/blogs'
   if (kind === 'post') return `/blogs/${arg}`
   if (kind === 'live') return `/blogs/${arg}`

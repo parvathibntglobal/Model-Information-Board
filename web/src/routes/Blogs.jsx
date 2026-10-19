@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { blogPosts, listModels } from '../api'
+import { blogPosts, fetchAll, listRegistry, modelCatalog } from '../api'
 import { DB } from '../board/db'
 import { vBlogs, vPost } from '../board/views'
 import BoardView from '../board/BoardView'
@@ -64,8 +64,13 @@ function BlogPosts({ rest }) {
       // a failure here leaves posts readable, just without links and cards.
       // ONE RETRY after 3 s: a single dropped database connection left the
       // example post without its cards on 2026-10-06.
-      const loadModels = (left) => listModels(200)
+      // THE WHOLE REGISTRY, not the 31 tracked models (2026-10-19): posts name
+      // Claude Opus 5, Fable 5 and DeepSeek V4 Pro as often as tracked ones,
+      // and /compare and the public model page take any registry model. Every
+      // page followed (fetchAll); a list that stopped early says so.
+      const loadModels = (left) => fetchAll((l, o) => listRegistry(l, o))
         .then((m) => {
+          if (m.truncated) console.warn('interactive posts: the model list stopped before its end; some names will not link')
           DB.blogModels = m.models || []
           setState((s) => ({ ...s, n: (s.n || 0) + 1 }))
         })
@@ -74,6 +79,15 @@ function BlogPosts({ rest }) {
           console.warn('interactive posts: models not loaded:', e.message)
         })
       loadModels(1)
+      // WHICH MODELS HAVE A PUBLIC PAGE, so a model name links only where the
+      // link opens one (views.js `modelCard`). The same cached list the
+      // catalog and Compare read. No retry: without it names keep their cards.
+      modelCatalog()
+        .then((c) => {
+          DB.blogCatalogIds = new Set((c.models || []).map((m) => m.id))
+          setState((s) => ({ ...s, n: (s.n || 0) + 1 }))
+        })
+        .catch((e) => console.warn('interactive posts: catalog not loaded, model names are not linked:', e.message))
     })
     .catch((e) => {
       DB.posts = []
