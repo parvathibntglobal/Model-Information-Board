@@ -2946,6 +2946,17 @@ def admin_seo_keywords() -> dict:
     return keywords_on_site.load()
 
 
+@app.get("/admin/seo-keyword-plan")
+def admin_seo_keyword_plan() -> dict:
+    """Keyword plan: which SEO keywords to use on which public page, with their
+    monthly searches (Keyword Planner band, or an estimate from one), and the
+    pages and tools worth adding. A dated file from seo/keyword_plan.json;
+    reads no database. Signed-in only. See judge/keyword_plan.py."""
+    from judge import keyword_plan
+
+    return keyword_plan.load()
+
+
 @app.get("/changelog")
 def changelog_page(days: int = 30) -> dict:
     """FR-27. What changed, and whether it was us or the world."""

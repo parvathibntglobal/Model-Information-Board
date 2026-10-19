@@ -1,0 +1,8163 @@
+{
+ "built": "2026-10-19",
+ "exported_at": "2026-10-19T11:33:21+00:00",
+ "min_monthly_searches": 10000,
+ "pages": [
+  {
+   "key": "home",
+   "kind": "page",
+   "name": "Home",
+   "url": "/",
+   "about": "The front door: best AI model for the job, LLM leaderboard alternative."
+  },
+  {
+   "key": "tools",
+   "kind": "page",
+   "name": "Tools",
+   "url": "/tools",
+   "about": "The three tools, side by side."
+  },
+  {
+   "key": "picker",
+   "kind": "page",
+   "name": "Best AI model picker",
+   "url": "/model-picker",
+   "about": "Best model for a job or capability, or a cheaper alternative."
+  },
+  {
+   "key": "specs",
+   "kind": "page",
+   "name": "Model specs finder",
+   "url": "/model-finder",
+   "about": "Filter every model by advertised spec: context, price, open weights, tools."
+  },
+  {
+   "key": "tokens",
+   "kind": "page",
+   "name": "Token counter and cost calculator",
+   "url": "/token-counter",
+   "about": "Count a prompt's tokens and price it on every model."
+  },
+  {
+   "key": "blogs",
+   "kind": "page",
+   "name": "Blogs",
+   "url": "/blogs",
+   "about": "The blog index."
+  },
+  {
+   "key": "directory",
+   "kind": "page",
+   "name": "Blog directory",
+   "url": "/blogs/directory",
+   "about": "Every post by model, topic, title or date."
+  },
+  {
+   "key": "post",
+   "kind": "page",
+   "name": "Blog post",
+   "url": "/blogs/<slug>",
+   "about": "One post per topic: guides, explainers, comparisons, field reports."
+  },
+  {
+   "key": "catalog",
+   "kind": "page",
+   "name": "All models",
+   "url": "/catalog",
+   "about": "Every model by provider and type (provider and type views)."
+  },
+  {
+   "key": "new",
+   "kind": "page",
+   "name": "New releases",
+   "url": "/catalog/new",
+   "about": "Models released recently."
+  },
+  {
+   "key": "model",
+   "kind": "page",
+   "name": "Model page",
+   "url": "/catalog/model/<model>",
+   "about": "One model: price, context, specs, what engineers report."
+  },
+  {
+   "key": "compare",
+   "kind": "page",
+   "name": "Compare models",
+   "url": "/compare?ids=<a>,<b>",
+   "about": "Two or three models side by side."
+  },
+  {
+   "key": "reports",
+   "kind": "page",
+   "name": "Most reported - models",
+   "url": "/reports/models",
+   "about": "Which models engineers report on most, working or failing."
+  },
+  {
+   "key": "reports_jobs",
+   "kind": "page",
+   "name": "Most reported - by job",
+   "url": "/reports/jobs",
+   "about": "Each job and the models reported for it."
+  },
+  {
+   "key": "reports_caps",
+   "kind": "page",
+   "name": "Most reported - by capability",
+   "url": "/reports/capabilities",
+   "about": "Each capability and the models reported for it."
+  },
+  {
+   "key": "reports_metrics",
+   "kind": "page",
+   "name": "Most reported - by metric",
+   "url": "/reports/metrics",
+   "about": "Figures engineers measured: speed, cost, benchmark results."
+  },
+  {
+   "key": "discussions",
+   "kind": "page",
+   "name": "Discussions",
+   "url": "/discussions",
+   "about": "Readers' own experiences with models."
+  },
+  {
+   "key": "faq",
+   "kind": "page",
+   "name": "FAQ",
+   "url": "/#faq",
+   "about": "The questions section of the home page."
+  },
+  {
+   "key": "new_glossary",
+   "kind": "new-page",
+   "name": "Glossary",
+   "url": "/glossary",
+   "about": "One definition per term: what is an LLM, a context window, a benchmark. (The blog's unrouted glossary is a start.)"
+  },
+  {
+   "key": "new_benchmarks",
+   "kind": "new-page",
+   "name": "Benchmarks",
+   "url": "/benchmarks/<benchmark>",
+   "about": "Each benchmark: what it measures, whether it is saturated, the scores engineers reported."
+  },
+  {
+   "key": "new_providers",
+   "kind": "new-page",
+   "name": "Provider pages",
+   "url": "/providers/<vendor>",
+   "about": "One provider: its models, pricing, terms, alternatives. Today only a filter of All models."
+  },
+  {
+   "key": "new_guides",
+   "kind": "new-page",
+   "name": "Developer guides",
+   "url": "/guides/<topic>",
+   "about": "API getting started, SDKs, errors, rate limits, integrations."
+  },
+  {
+   "key": "new_local",
+   "kind": "new-page",
+   "name": "Run models locally",
+   "url": "/local",
+   "about": "Local and self-hosted models: what runs where, hardware, open weights."
+  },
+  {
+   "key": "new_trust",
+   "kind": "new-page",
+   "name": "Data, privacy and compliance",
+   "url": "/trust",
+   "about": "What each provider does with your data, and its certifications."
+  },
+  {
+   "key": "new_changes",
+   "kind": "new-page",
+   "name": "What changed",
+   "url": "/changes",
+   "about": "Model updates, deprecations and reported quality drift. The backend's /changelog is a start."
+  },
+  {
+   "key": "new_industries",
+   "kind": "new-page",
+   "name": "Best model by industry or team",
+   "url": "/best-for/<industry>",
+   "about": "Healthcare, legal, finance, support, marketing."
+  },
+  {
+   "key": "tool_price",
+   "kind": "new-tool",
+   "name": "LLM price tracker",
+   "url": "/tools/price-tracker",
+   "about": "Every model's price over time, from the price history the registry already records."
+  },
+  {
+   "key": "tool_vram",
+   "kind": "new-tool",
+   "name": "Hardware and VRAM calculator",
+   "url": "/tools/hardware",
+   "about": "How much GPU memory a model needs, by size and quantisation."
+  },
+  {
+   "key": "tool_checklist",
+   "kind": "new-tool",
+   "name": "Model selection checklist",
+   "url": "/tools/checklist",
+   "about": "A checklist and evaluation template to download."
+  },
+  {
+   "key": "tool_export",
+   "kind": "new-tool",
+   "name": "Comparison download",
+   "url": "/compare",
+   "about": "A comparison as a spreadsheet or PDF, from Compare."
+  }
+ ],
+ "keywords": [
+  {
+   "keyword": "ai agents",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/agentic-automation",
+   "volume_kind": "measured",
+   "volume": "100K – 1M",
+   "searches": 316227,
+   "band_floor": 100000,
+   "basis": null
+  },
+  {
+   "keyword": "ai translation",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/translation",
+   "volume_kind": "measured",
+   "volume": "100K – 1M",
+   "searches": 316227,
+   "band_floor": 100000,
+   "basis": null
+  },
+  {
+   "keyword": "claude opus",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "measured",
+   "volume": "100K – 1M",
+   "searches": 316227,
+   "band_floor": 100000,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek v4",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "measured",
+   "volume": "100K – 1M",
+   "searches": 316227,
+   "band_floor": 100000,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 3 pro",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "measured",
+   "volume": "100K – 1M",
+   "searches": 316227,
+   "band_floor": 100000,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "measured",
+   "volume": "100K – 1M",
+   "searches": 316227,
+   "band_floor": 100000,
+   "basis": null
+  },
+  {
+   "keyword": "kimi k2",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "measured",
+   "volume": "100K – 1M",
+   "searches": 316227,
+   "band_floor": 100000,
+   "basis": null
+  },
+  {
+   "keyword": "prompt engineering",
+   "combo": "E1×F6",
+   "combos": [
+    "E1×F6"
+   ],
+   "pattern": "prompt engineering",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "100K – 1M",
+   "searches": 316227,
+   "band_floor": 100000,
+   "basis": null
+  },
+  {
+   "keyword": "ai coding agent",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/coding-agent",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "ai leaderboard",
+   "combo": "E1×C9",
+   "combos": [
+    "E1×C9",
+    "E1×G13"
+   ],
+   "pattern": "ai leaderboard",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "ai model rankings",
+   "combo": "E1×C9",
+   "combos": [
+    "E1×C9"
+   ],
+   "pattern": "ai model rankings",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "ai summarization",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/summarization",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "arc agi",
+   "combo": "E19",
+   "combos": [
+    "E19"
+   ],
+   "pattern": "{benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/arc-agi",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "best ai model",
+   "combo": "E1×C3",
+   "combos": [
+    "E1×C3"
+   ],
+   "pattern": "best ai model",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "chatbot arena",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "chatbot arena",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "claude api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E8×M1"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "claude haiku 4.5",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "claude opus 5",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "claude vs gemini",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1",
+    "E8×C1"
+   ],
+   "pattern": "{model} vs {model_b}",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "coding agent",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/coding-agent",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "coding agents",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/coding-agent",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1",
+    "E8×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek v4 flash",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek v4 pro",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "free llm api",
+   "combo": "E1×C3×Q4",
+   "combos": [
+    "E1×C3×Q4"
+   ],
+   "pattern": "free llm api",
+   "page": "specs",
+   "link": "/model-finder",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 3 flash",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "gemini api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E8×M1"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog?provider=google",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 mini",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "grok 4",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "llama 4",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "llm arena",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "llm arena",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "llm benchmarks",
+   "combo": "E1×R2",
+   "combos": [
+    "E1×R2"
+   ],
+   "pattern": "llm benchmarks",
+   "page": "new_benchmarks",
+   "link": "/benchmarks",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "llm leaderboard",
+   "combo": "E1×C9",
+   "combos": [
+    "E1×C9",
+    "E1×G13"
+   ],
+   "pattern": "llm leaderboard",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "llm rankings",
+   "combo": "E1×C9",
+   "combos": [
+    "E1×C9"
+   ],
+   "pattern": "llm rankings",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "local llm",
+   "combo": "E15",
+   "combos": [
+    "E15"
+   ],
+   "pattern": "local llm",
+   "page": "new_local",
+   "link": "/local",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "multi agent systems",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/orchestration",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "open source llm",
+   "combo": "E15×M3",
+   "combos": [
+    "E15×M3"
+   ],
+   "pattern": "open source llm",
+   "page": "specs",
+   "link": "/model-finder",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "openai api pricing",
+   "combo": "E8×M1",
+   "combos": [
+    "E8×M1"
+   ],
+   "pattern": "{vendor} api pricing",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "opus vs sonnet",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "qwen3",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "retrieval augmented generation",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/rag",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "swe bench",
+   "combo": "E19",
+   "combos": [
+    "E19"
+   ],
+   "pattern": "{benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/swe-bench",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "terminal bench",
+   "combo": "E19",
+   "combos": [
+    "E19"
+   ],
+   "pattern": "{benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/terminal-bench",
+   "volume_kind": "measured",
+   "volume": "10K – 100K",
+   "searches": 31622,
+   "band_floor": 10000,
+   "basis": null
+  },
+  {
+   "keyword": "claude opus api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude opus cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude opus cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude opus cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude opus price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude opus pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "deepseek v4 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "deepseek v4 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "deepseek v4 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "deepseek v4 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "deepseek v4 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "deepseek v4 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 pro api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 pro cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 pro cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 pro cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 pro price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gpt 5' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gpt 5' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gpt 5' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gpt 5' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gpt 5' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "kimi k2 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "kimi k2 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "kimi k2 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "kimi k2 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "kimi k2 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "kimi k2 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x pricing share 1.8%"
+  },
+  {
+   "keyword": "what is aime",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/aime",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'aime' 100K – 1M x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is claude opus",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is deepseek v4",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is gemini 3 pro",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is gpt 5",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'gpt 5' 100K – 1M x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is kimi k2",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "estimated",
+   "volume": "~5,600",
+   "searches": 5600,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x what_is share 1.8%"
+  },
+  {
+   "keyword": "ai model comparison",
+   "combo": "E1×C8",
+   "combos": [
+    "E1×C8"
+   ],
+   "pattern": "ai model comparison",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "benchmark gaming",
+   "combo": "E19×R9-moat",
+   "combos": [
+    "E19×R9-moat"
+   ],
+   "pattern": "benchmark gaming",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "best coding agent",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "best coding llm",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "best free llm",
+   "combo": "E1×C3×Q4",
+   "combos": [
+    "E1×C3×Q4"
+   ],
+   "pattern": "best free llm",
+   "page": "specs",
+   "link": "/model-finder",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for coding",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "best local llm",
+   "combo": "E1×C3×Q7",
+   "combos": [
+    "E1×C3×Q7",
+    "E15×C3"
+   ],
+   "pattern": "best local llm",
+   "page": "new_local",
+   "link": "/local",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "best open source llm",
+   "combo": "E1×C3×Q4",
+   "combos": [
+    "E1×C3×Q4"
+   ],
+   "pattern": "best open source llm",
+   "page": "specs",
+   "link": "/model-finder",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "claude context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "claude vs deepseek",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "{model} vs {model_b}",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "code review ai",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports_jobs",
+   "link": "/reports/jobs",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "compare ai models",
+   "combo": "E1×C8",
+   "combos": [
+    "E1×C8"
+   ],
+   "pattern": "compare ai models",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "data extraction",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/extraction",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8",
+    "E8×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek v4 pro pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "document parsing",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/document-analysis",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "fine tuning llm",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports_jobs",
+   "link": "/reports/jobs",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "function calling",
+   "combo": "E3",
+   "combos": [
+    "E3"
+   ],
+   "pattern": "{capability}",
+   "page": "reports_caps",
+   "link": "/reports/capabilities/function-calling",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 3 pro pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "google alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "{vendor} alternatives",
+   "page": "new_providers",
+   "link": "/providers/google",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "is deepseek open source",
+   "combo": "E20×M3",
+   "combos": [
+    "E20×M3"
+   ],
+   "pattern": "is {model} open source",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "is deepseek safe",
+   "combo": "E20×O9",
+   "combos": [
+    "E20×O9"
+   ],
+   "pattern": "is {model} safe",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "llm agent",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports_jobs",
+   "link": "/reports/jobs",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "llm benchmark leaderboard",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "llm comparison",
+   "combo": "E1×C8",
+   "combos": [
+    "E1×C8"
+   ],
+   "pattern": "llm comparison",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "llm inference",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports_jobs",
+   "link": "/reports/jobs",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "mistral large 3",
+   "combo": "E20",
+   "combos": [
+    "E20"
+   ],
+   "pattern": "{model}",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "mmlu pro",
+   "combo": "E19",
+   "combos": [
+    "E19"
+   ],
+   "pattern": "{benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/mmlu-pro",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "model drift",
+   "combo": "E20×N10-moat",
+   "combos": [
+    "E20×N10-moat"
+   ],
+   "pattern": "model drift",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "open llm leaderboard",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "open source llm leaderboard",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "open weight models",
+   "combo": "E15×M3",
+   "combos": [
+    "E15×M3"
+   ],
+   "pattern": "open weight models",
+   "page": "specs",
+   "link": "/model-finder",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "openai vs anthropic",
+   "combo": "E8×C1",
+   "combos": [
+    "E8×C1"
+   ],
+   "pattern": "{vendor} vs {vendor_b}",
+   "page": "new_providers",
+   "link": "/providers/openai",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "self hosted llm",
+   "combo": "E15",
+   "combos": [
+    "E15"
+   ],
+   "pattern": "self hosted llm",
+   "page": "new_local",
+   "link": "/local",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "structured output",
+   "combo": "E3",
+   "combos": [
+    "E3"
+   ],
+   "pattern": "{capability}",
+   "page": "reports_caps",
+   "link": "/reports/capabilities/structured-output",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "swe bench verified",
+   "combo": "E19",
+   "combos": [
+    "E19"
+   ],
+   "pattern": "{benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/swe-bench-verified",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "text classification",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs/classification",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "time to first token",
+   "combo": "E12",
+   "combos": [
+    "E12"
+   ],
+   "pattern": "{metric}",
+   "page": "reports_metrics",
+   "link": "/reports/metrics/time-to-first-token",
+   "volume_kind": "measured",
+   "volume": "1K – 10K",
+   "searches": 3162,
+   "band_floor": 1000,
+   "basis": null
+  },
+  {
+   "keyword": "claude haiku 4.5 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude haiku 4.5 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude haiku 4.5 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude haiku 4.5 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude haiku 4.5 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude haiku 4.5 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "Claude Opus 5 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "Claude Opus 5 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "Claude Opus 5 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "Claude Opus 5 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "Claude Opus 5 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude sonnet 5 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude sonnet 5 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude sonnet 5 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude sonnet 5 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude sonnet 5 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "claude sonnet 5 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Pro api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Pro cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Pro cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Pro cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "DeepSeek V4 Pro price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 flash api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 flash cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 flash cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 flash cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 flash price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gemini 3 flash pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 mini api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 mini cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 mini cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 mini cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 mini price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "gpt 5 mini pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "grok 4 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "grok 4 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "grok 4 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "grok 4 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "grok 4 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "grok 4 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "llama 4 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "llama 4 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "llama 4 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "llama 4 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "llama 4 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "llama 4 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "qwen3 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "qwen3 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "qwen3 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "qwen3 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "qwen3 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "qwen3 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x pricing share 1.8%"
+  },
+  {
+   "keyword": "what is arc agi",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/arc-agi",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'arc agi' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is claude haiku 4.5",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is Claude Opus 5",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is claude sonnet 5",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is DeepSeek V4 Flash",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is DeepSeek V4 Pro",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is gemini 3 flash",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is gpt 5 mini",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is grok 4",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is livebench",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/livebench",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'livebench' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is llama 4",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is qwen3",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is terminal bench",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/terminal-bench",
+   "volume_kind": "estimated",
+   "volume": "~600",
+   "searches": 600,
+   "band_floor": null,
+   "basis": "'terminal bench' 10K – 100K x what_is share 1.8%"
+  },
+  {
+   "keyword": "claude opus honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "claude opus reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "claude opus review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "deepseek v4 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "deepseek v4 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "deepseek v4 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "gemini 3 pro honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "kimi k2 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "kimi k2 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "kimi k2 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "estimated",
+   "volume": "~400",
+   "searches": 400,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x review share 0.1%"
+  },
+  {
+   "keyword": "ai api costs",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "anthropic alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "{vendor} alternatives",
+   "page": "new_providers",
+   "link": "/providers/anthropic",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "anthropic vs google",
+   "combo": "E8×C1",
+   "combos": [
+    "E8×C1"
+   ],
+   "pattern": "{vendor} vs {vendor_b}",
+   "page": "new_providers",
+   "link": "/providers/anthropic",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "benchmark leaderboard",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_benchmarks",
+   "link": "/benchmarks",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "best llm 2026",
+   "combo": "E1×C3×Q3",
+   "combos": [
+    "E1×C3×Q3"
+   ],
+   "pattern": "best llm {year}",
+   "page": "new",
+   "link": "/catalog/new",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for ocr",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for rag",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for translation",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for writing",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "best llm reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "best small llm",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "chatgpt getting worse",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "cheapest llm",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "claude better than gpt",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "claude got worse",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "claude opus 5 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "claude opus 5 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "claude opus 5 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "claude sonnet 5 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "claude vs gpt reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "coding llm leaderboard",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "context window comparison",
+   "combo": "E12×C8",
+   "combos": [
+    "E12×C8"
+   ],
+   "pattern": "{metric} comparison",
+   "page": "specs",
+   "link": "/model-finder",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "cost per token",
+   "combo": "E12",
+   "combos": [
+    "E12"
+   ],
+   "pattern": "{metric}",
+   "page": "reports_metrics",
+   "link": "/reports/metrics/cost-per-token",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2",
+    "E20×C2"
+   ],
+   "pattern": "{vendor} alternatives",
+   "page": "new_providers",
+   "link": "/providers/deepseek",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek license",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10",
+    "E8×T10"
+   ],
+   "pattern": "{model} license",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek v4 pro reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek v4 pro review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "deepseek vs openai",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "did chatgpt get worse",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "did {model} get worse",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "did claude get worse",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "did {model} get worse",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "fastest llm",
+   "combo": "E1×D5",
+   "combos": [
+    "E1×D5"
+   ],
+   "pattern": "fastest llm",
+   "page": "specs",
+   "link": "/model-finder",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "fastest llm api",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 2.5 vs 3",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 3 pro reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 3 pro review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "gemini vs deepseek",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "{model} vs {model_b}",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 4 vs gpt 5",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 mini vs 4o",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 vs claude",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "{model} vs {model_b}",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "groq alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "haiku vs gemini flash",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "is claude getting dumber",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "is deepseek any good",
+   "combo": "E20×C7",
+   "combos": [
+    "E20×C7"
+   ],
+   "pattern": "is {model} any good",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "is llama open source",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm api pricing",
+   "combo": "E1×M2",
+   "combos": [
+    "E1×M2",
+    "E1×M1"
+   ],
+   "pattern": "llm api pricing",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm cost calculator",
+   "combo": "E12×G3",
+   "combos": [
+    "E12×G3",
+    "E1×G3"
+   ],
+   "pattern": "llm cost calculator",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm cost comparison",
+   "combo": "E1×M2",
+   "combos": [
+    "E1×M2"
+   ],
+   "pattern": "llm cost comparison",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm cost optimization",
+   "combo": "E12×M6",
+   "combos": [
+    "E12×M6"
+   ],
+   "pattern": "llm cost optimization",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm drift",
+   "combo": "E20×N10-moat",
+   "combos": [
+    "E20×N10-moat"
+   ],
+   "pattern": "llm drift",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm intelligence ranking",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm latency",
+   "combo": "E1×D5",
+   "combos": [
+    "E1×D5"
+   ],
+   "pattern": "llm latency",
+   "page": "specs",
+   "link": "/model-finder",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm leaderboard 2026",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm price comparison",
+   "combo": "E1×M2",
+   "combos": [
+    "E1×M2"
+   ],
+   "pattern": "llm price comparison",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm reviews",
+   "combo": "E20×O8-moat",
+   "combos": [
+    "E20×O8-moat"
+   ],
+   "pattern": "llm reviews",
+   "page": "discussions",
+   "link": "/discussions",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "llm token cost",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "meta alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "{vendor} alternatives",
+   "page": "new_providers",
+   "link": "/providers/meta",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "model degradation",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "open source chatgpt alternative",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "openai alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "{vendor} alternatives",
+   "page": "new_providers",
+   "link": "/providers/openai",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "openai api alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "opus 5 vs sonnet 5",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "tokens per second",
+   "combo": "E12",
+   "combos": [
+    "E12"
+   ],
+   "pattern": "{metric}",
+   "page": "reports_metrics",
+   "link": "/reports/metrics/tokens-per-second",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "what is mmlu",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/mmlu",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "what is swe bench",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/swe-bench",
+   "volume_kind": "measured",
+   "volume": "100 – 1K",
+   "searches": 316,
+   "band_floor": 100,
+   "basis": null
+  },
+  {
+   "keyword": "best ai for ai agents",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'ai agents' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for ai translation",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'ai translation' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for rag",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'rag' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for ai agents",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'ai agents' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for ai translation",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'ai translation' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for rag",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'rag' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for ai agents",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'ai agents' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for ai translation",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'ai translation' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for ai agents",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'ai agents' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for ai translation",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'ai translation' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for rag",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'rag' 100K – 1M x best_for share 0.1%"
+  },
+  {
+   "keyword": "claude opus context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "claude opus token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog?provider=anthropic",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'claude opus' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "deepseek v4 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "deepseek v4 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog?provider=deepseek",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'deepseek v4' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "gemini 3 pro context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "gemini 3 pro token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-pro",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'gemini 3 pro' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "gpt 5 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'gpt 5' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "kimi k2 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "kimi k2 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog?provider=moonshotai",
+   "volume_kind": "estimated",
+   "volume": "~300",
+   "searches": 300,
+   "band_floor": null,
+   "basis": "'kimi k2' 100K – 1M x context share 0.1%"
+  },
+  {
+   "keyword": "mistral large 3 api pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} api pricing",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x pricing share 1.8%"
+  },
+  {
+   "keyword": "mistral large 3 cost",
+   "combo": "E20×M6",
+   "combos": [
+    "E20×M6"
+   ],
+   "pattern": "{model} cost",
+   "page": "tokens",
+   "link": "/token-counter",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x pricing share 1.8%"
+  },
+  {
+   "keyword": "mistral large 3 cost per million tokens",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "{model} cost per million tokens",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x pricing share 1.8%"
+  },
+  {
+   "keyword": "mistral large 3 cost per token",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2",
+    "E12×D5"
+   ],
+   "pattern": "{model} cost per token",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x pricing share 1.8%"
+  },
+  {
+   "keyword": "mistral large 3 price",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} price",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x pricing share 1.8%"
+  },
+  {
+   "keyword": "mistral large 3 pricing",
+   "combo": "E20×M1",
+   "combos": [
+    "E20×M1"
+   ],
+   "pattern": "{model} pricing",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x pricing share 1.8%"
+  },
+  {
+   "keyword": "what is function calling",
+   "combo": "E3×F1",
+   "combos": [
+    "E3×F1"
+   ],
+   "pattern": "what is {capability}",
+   "page": "new_glossary",
+   "link": "/glossary",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'function calling' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is gsm8k",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/gsm8k",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'gsm8k' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is livecodebench",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/livecodebench",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'livecodebench' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is mbpp",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/mbpp",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mbpp' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is mistral large 3",
+   "combo": "E20×F1",
+   "combos": [
+    "E20×F1"
+   ],
+   "pattern": "what is {model}",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is mmlu pro",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/mmlu-pro",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'mmlu pro' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is structured output",
+   "combo": "E3×F1",
+   "combos": [
+    "E3×F1"
+   ],
+   "pattern": "what is {capability}",
+   "page": "new_glossary",
+   "link": "/glossary",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'structured output' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is swe bench verified",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/swe-bench-verified",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'swe bench verified' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is time to first token",
+   "combo": "E12×F1",
+   "combos": [
+    "E12×F1"
+   ],
+   "pattern": "what is {metric}",
+   "page": "new_glossary",
+   "link": "/glossary",
+   "volume_kind": "estimated",
+   "volume": "~100",
+   "searches": 100,
+   "band_floor": null,
+   "basis": "'time to first token' 1K – 10K x what_is share 1.8%"
+  },
+  {
+   "keyword": "2m context window",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "ai benchmarks explained",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_benchmarks",
+   "link": "/benchmarks",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "ai model tracker",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "ai model tracker",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "benchmark contamination",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "benchmark saturation",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "best cheap llm",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "best function calling llm",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for agents",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for chatbot",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for classification",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for sql",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "best model for summarization",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "chatgpt api alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "chatgpt dumber",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "claude 3.5 vs 4",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "claude haiku 4.5 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "cohere alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "commercial use llm",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "data contamination llm",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "do ai agents work",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "fastest inference provider",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "free openai alternative",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 1.5 deprecated",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 3 flash latency",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5",
+    "E12×D5"
+   ],
+   "pattern": "{model} latency",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 3 flash review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 3.5 turbo deprecated",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 4 alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 4 deprecated",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 got worse",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 improvements",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 latency",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5",
+    "E12×D5"
+   ],
+   "pattern": "{model} latency",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 mini review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 slower",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 token cost",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 vs deepseek",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "{model} vs {model_b}",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 vs gemini",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "{model} vs {model_b}",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 vs grok",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 vs llama 4",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "{model} vs {model_b}",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "grok 4 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "groq speed",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is claude 5 good",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is deepseek v4 good",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "is {model} good",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is deepseek worth it",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "is {model} worth it",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is gemini 3 good",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is gemini 3 worth it",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is gpt 5 any good",
+   "combo": "E20×C7",
+   "combos": [
+    "E20×C7"
+   ],
+   "pattern": "is {model} any good",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is gpt 5 good",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "is {model} good",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is gpt 5 overhyped",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is gpt 5 worth it",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "is {model} worth it",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "is grok 4 good",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "is {model} good",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "llama 4 license",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "{model} license",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "llama 4 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "llama 4 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "llama 4 vs qwen3",
+   "combo": "E20×C1",
+   "combos": [
+    "E20×C1"
+   ],
+   "pattern": "{model} vs {model_b}",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "llama commercial use",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "llm benchmark speed",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "llm nondeterminism",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "llm response time",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "mistral alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "{vendor} alternatives",
+   "page": "new_providers",
+   "link": "/providers/mistral",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "mistral license",
+   "combo": "E8×T10",
+   "combos": [
+    "E8×T10"
+   ],
+   "pattern": "{vendor} license",
+   "page": "new_providers",
+   "link": "/providers/mistral",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "openai api deprecation",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "openai model deprecations",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "openai vs anthropic pricing",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "qwen3 licence",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "sql generation",
+   "combo": "E4",
+   "combos": [
+    "E4"
+   ],
+   "pattern": "{job}",
+   "page": "reports_jobs",
+   "link": "/reports/jobs",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "what is gpqa",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/gpqa",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "what is humaneval",
+   "combo": "E19×F1",
+   "combos": [
+    "E19×F1"
+   ],
+   "pattern": "what is {benchmark}",
+   "page": "new_benchmarks",
+   "link": "/benchmarks/humaneval",
+   "volume_kind": "measured",
+   "volume": "10 – 100",
+   "searches": 31,
+   "band_floor": 10,
+   "basis": null
+  },
+  {
+   "keyword": "apache 2.0 llm",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "are llms reliable",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "best ai for ai coding agent",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'ai coding agent' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for ai summarization",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'ai summarization' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for coding agent",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'coding agent' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for coding agents",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'coding agents' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for data extraction",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'data extraction' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for document parsing",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'document parsing' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for multi agent systems",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'multi agent systems' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for retrieval augmented generation",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'retrieval augmented generation' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for sql generation",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'sql generation' 10 – 100 x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai for text classification",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best ai for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'text classification' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for ai coding agent",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'ai coding agent' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for ai summarization",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'ai summarization' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for coding agent",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'coding agent' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for coding agents",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'coding agents' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for data extraction",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'data extraction' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for document parsing",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'document parsing' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for multi agent systems",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'multi agent systems' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for retrieval augmented generation",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'retrieval augmented generation' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for sql generation",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'sql generation' 10 – 100 x best_for share 0.1%"
+  },
+  {
+   "keyword": "best ai model for text classification",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1"
+   ],
+   "pattern": "best ai model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'text classification' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best extraction llm",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "best llm for ai coding agent",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'ai coding agent' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for ai summarization",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'ai summarization' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for coding agent",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'coding agent' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for coding agents",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'coding agents' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for data extraction",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'data extraction' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for document parsing",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'document parsing' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for multi agent systems",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'multi agent systems' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for retrieval augmented generation",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'retrieval augmented generation' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for sql generation",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'sql generation' 10 – 100 x best_for share 0.1%"
+  },
+  {
+   "keyword": "best llm for text classification",
+   "combo": "E1×C3×Q1",
+   "combos": [
+    "E1×C3×Q1",
+    "E4×C3"
+   ],
+   "pattern": "best llm for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'text classification' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for ai coding agent",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'ai coding agent' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for ai summarization",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'ai summarization' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for coding agent",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'coding agent' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for coding agents",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'coding agents' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for data extraction",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'data extraction' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for document parsing",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'document parsing' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for multi agent systems",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'multi agent systems' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for retrieval augmented generation",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'retrieval augmented generation' 10K – 100K x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for sql generation",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'sql generation' 10 – 100 x best_for share 0.1%"
+  },
+  {
+   "keyword": "best model for text classification",
+   "combo": "E4×C3",
+   "combos": [
+    "E4×C3"
+   ],
+   "pattern": "best model for {job}",
+   "page": "picker",
+   "link": "/model-picker",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'text classification' 1K – 10K x best_for share 0.1%"
+  },
+  {
+   "keyword": "business llm licence",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "cheaper openai alternative",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "cheapest llm leaderboard",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "claude 3 deprecated",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "claude 4 vs claude 5",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "claude 5 vs 4 coding",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "claude api alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "claude haiku 4.5 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "claude haiku 4.5 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "claude haiku 4.5 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "claude haiku 4.5 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-haiku-4.5",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude haiku 4.5' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "Claude Opus 5 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "Claude Opus 5 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "claude opus 5 latency",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5",
+    "E12×D5"
+   ],
+   "pattern": "{model} latency",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "claude opus 5 opinions",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "Claude Opus 5 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-opus-5",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude opus 5' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "claude rate limits worse",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "claude sonnet 5 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "claude sonnet 5 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "claude sonnet 5 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "claude sonnet 5 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/anthropic/claude-sonnet-5",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'claude sonnet 5' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "claude vs gpt speed",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "DeepSeek V4 Flash context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "DeepSeek V4 Flash token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-flash",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'deepseek v4 flash' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "DeepSeek V4 Pro context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "DeepSeek V4 Pro honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "DeepSeek V4 Pro token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/deepseek/deepseek-v4-pro",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'deepseek v4 pro' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "deprecated ai models",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "does ai coding work",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "gemini 3 flash context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "gemini 3 flash honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "gemini 3 flash reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "gemini 3 flash token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/google/gemini-3-flash",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'gemini 3 flash' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "gpt 4 replacement",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 4 shutdown date",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 4 still better",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 mini context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "gpt 5 mini honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "gpt 5 mini reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "gpt 5 mini token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/openai/gpt-5-mini",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'gpt 5 mini' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "gpt 5 quality drop",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 throughput",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 user reviews",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 what changed",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "gpt 5 worth upgrading",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "grok 4 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "grok 4 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "grok 4 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "grok 4 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog/model/x-ai/grok-4",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'grok 4' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "is claude 5 worth it",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "is gpt 4 still good",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "is llm hype",
+   "combo": "E20×O2",
+   "combos": [
+    "E20×O2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "is swe bench reliable",
+   "combo": "E19×R9-blog",
+   "combos": [
+    "E19×R9-blog"
+   ],
+   "pattern": "is {benchmark} reliable",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "llama 4 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "llama 4 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "llama 4 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog?provider=meta-llama",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'llama 4' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "llm benchmark problems",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "llm commercial license",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "llm cost per request",
+   "combo": "E20×M2",
+   "combos": [
+    "E20×M2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "llm eval reliability",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "llm migration guide",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "llm performance degradation",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "llm rankings by cost",
+   "combo": "E1×G13",
+   "combos": [
+    "E1×G13"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "home",
+   "link": "/",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "llm streaming latency",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "migrate from gpt 4",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "mistral large 3 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x context share 0.1%"
+  },
+  {
+   "keyword": "mistral large 3 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x review share 0.1%"
+  },
+  {
+   "keyword": "mistral large 3 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x review share 0.1%"
+  },
+  {
+   "keyword": "mistral large 3 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x review share 0.1%"
+  },
+  {
+   "keyword": "mistral large 3 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog?provider=mistralai",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'mistral large 3' 1K – 10K x context share 0.1%"
+  },
+  {
+   "keyword": "mit licensed llm",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "mmlu saturated",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "model regression testing",
+   "combo": "E20×N10",
+   "combos": [
+    "E20×N10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "model retirement schedule",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "open source llm alternatives",
+   "combo": "E8×C2",
+   "combos": [
+    "E8×C2"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_providers",
+   "link": "/providers",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "open weights vs source",
+   "combo": "E20×T10",
+   "combos": [
+    "E20×T10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "openai sunset models",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "qwen3 context window",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2",
+    "E12×D5"
+   ],
+   "pattern": "{model} context window",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "qwen3 honest review",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} honest review",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "qwen3 reddit",
+   "combo": "E20×O8",
+   "combos": [
+    "E20×O8"
+   ],
+   "pattern": "{model} reddit",
+   "page": "reports",
+   "link": "/reports/models",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "qwen3 review",
+   "combo": "E20×O8-blog",
+   "combos": [
+    "E20×O8-blog",
+    "E20×C7"
+   ],
+   "pattern": "{model} review",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x review share 0.1%"
+  },
+  {
+   "keyword": "qwen3 token limit",
+   "combo": "E20×D2",
+   "combos": [
+    "E20×D2"
+   ],
+   "pattern": "{model} token limit",
+   "page": "model",
+   "link": "/catalog?provider=qwen",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'qwen3' 10K – 100K x context share 0.1%"
+  },
+  {
+   "keyword": "should i upgrade gpt 5",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "swe bench contamination",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "{benchmark} contamination",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "training data contamination",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "ttft comparison",
+   "combo": "E20×D5",
+   "combos": [
+    "E20×D5"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "model",
+   "link": "/catalog/model",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "what is cost per token",
+   "combo": "E12×F1",
+   "combos": [
+    "E12×F1"
+   ],
+   "pattern": "what is {metric}",
+   "page": "new_glossary",
+   "link": "/glossary",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'cost per token' 100 – 1K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what is tokens per second",
+   "combo": "E12×F1",
+   "combos": [
+    "E12×F1"
+   ],
+   "pattern": "what is {metric}",
+   "page": "new_glossary",
+   "link": "/glossary",
+   "volume_kind": "estimated",
+   "volume": "~0",
+   "searches": 0,
+   "band_floor": null,
+   "basis": "'tokens per second' 100 – 1K x what_is share 1.8%"
+  },
+  {
+   "keyword": "what replaced gpt 4",
+   "combo": "E20×N8",
+   "combos": [
+    "E20×N8"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "new_changes",
+   "link": "/changes",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "why benchmarks are wrong",
+   "combo": "E19×R9",
+   "combos": [
+    "E19×R9"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "post",
+   "link": "/blogs",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  },
+  {
+   "keyword": "worth switching to deepseek",
+   "combo": "E20×O10",
+   "combos": [
+    "E20×O10"
+   ],
+   "pattern": "(measured keyword)",
+   "page": "compare",
+   "link": "/compare",
+   "volume_kind": "measured",
+   "volume": "0",
+   "searches": 0,
+   "band_floor": 0,
+   "basis": null
+  }
+ ],
+ "method": {
+  "counts": {
+   "generated": 14129,
+   "one_word_dropped": 32,
+   "keywords": 13863,
+   "measured": 269,
+   "estimated": 236,
+   "no_volume": 13358,
+   "at_or_above_threshold": 44
+  },
+  "shares": {
+   "pricing": {
+    "share": 0.01778279410038924,
+    "pairs": [
+     {
+      "head": "claude opus 5",
+      "head_band": "10K – 100K",
+      "keyword": "claude opus 5 pricing",
+      "band": "100 – 1K",
+      "ratio": 0.010000000000000002
+     },
+     {
+      "head": "deepseek v4 pro",
+      "head_band": "10K – 100K",
+      "keyword": "deepseek v4 pro pricing",
+      "band": "1K – 10K",
+      "ratio": 0.1
+     },
+     {
+      "head": "gemini 3 pro",
+      "head_band": "100K – 1M",
+      "keyword": "gemini 3 pro pricing",
+      "band": "1K – 10K",
+      "ratio": 0.010000000000000002
+     },
+     {
+      "head": "gpt 5",
+      "head_band": "100K – 1M",
+      "keyword": "gpt 5 pricing",
+      "band": "1K – 10K",
+      "ratio": 0.010000000000000002
+     }
+    ]
+   },
+   "versus": {
+    "share": null,
+    "pairs": []
+   },
+   "what_is": {
+    "share": 0.017782794100389226,
+    "pairs": [
+     {
+      "head": "swe bench",
+      "head_band": "10K – 100K",
+      "keyword": "what is swe bench",
+      "band": "100 – 1K",
+      "ratio": 0.010000000000000002
+     },
+     {
+      "head": "gpqa",
+      "head_band": "1K – 10K",
+      "keyword": "what is gpqa",
+      "band": "10 – 100",
+      "ratio": 0.009999999999999998
+     },
+     {
+      "head": "mmlu",
+      "head_band": "1K – 10K",
+      "keyword": "what is mmlu",
+      "band": "100 – 1K",
+      "ratio": 0.1
+     },
+     {
+      "head": "humaneval",
+      "head_band": "1K – 10K",
+      "keyword": "what is humaneval",
+      "band": "10 – 100",
+      "ratio": 0.009999999999999998
+     }
+    ]
+   },
+   "review": {
+    "share": 0.0013335214321633251,
+    "pairs": [
+     {
+      "head": "claude opus 5",
+      "head_band": "10K – 100K",
+      "keyword": "claude opus 5 review",
+      "band": "100 – 1K",
+      "ratio": 0.010000000000000002
+     },
+     {
+      "head": "deepseek v4 pro",
+      "head_band": "10K – 100K",
+      "keyword": "deepseek v4 pro review",
+      "band": "100 – 1K",
+      "ratio": 0.010000000000000002
+     },
+     {
+      "head": "claude haiku 4.5",
+      "head_band": "10K – 100K",
+      "keyword": "claude haiku 4.5 review",
+      "band": "10 – 100",
+      "ratio": 0.001
+     },
+     {
+      "head": "claude sonnet 5",
+      "head_band": "10K – 100K",
+      "keyword": "claude sonnet 5 review",
+      "band": "100 – 1K",
+      "ratio": 0.010000000000000002
+     },
+     {
+      "head": "gemini 3 pro",
+      "head_band": "100K – 1M",
+      "keyword": "gemini 3 pro review",
+      "band": "100 – 1K",
+      "ratio": 0.0010000000000000002
+     },
+     {
+      "head": "gemini 3 flash",
+      "head_band": "10K – 100K",
+      "keyword": "gemini 3 flash review",
+      "band": "10 – 100",
+      "ratio": 0.001
+     },
+     {
+      "head": "gpt 5",
+      "head_band": "100K – 1M",
+      "keyword": "gpt 5 review",
+      "band": "10 – 100",
+      "ratio": 0.0001
+     },
+     {
+      "head": "gpt 5 mini",
+      "head_band": "10K – 100K",
+      "keyword": "gpt 5 mini review",
+      "band": "10 – 100",
+      "ratio": 0.001
+     },
+     {
+      "head": "grok 4",
+      "head_band": "10K – 100K",
+      "keyword": "grok 4 review",
+      "band": "10 – 100",
+      "ratio": 0.001
+     },
+     {
+      "head": "llama 4",
+      "head_band": "10K – 100K",
+      "keyword": "llama 4 review",
+      "band": "10 – 100",
+      "ratio": 0.001
+     },
+     {
+      "head": "claude opus 5",
+      "head_band": "10K – 100K",
+      "keyword": "claude opus 5 reddit",
+      "band": "100 – 1K",
+      "ratio": 0.010000000000000002
+     },
+     {
+      "head": "deepseek v4 pro",
+      "head_band": "10K – 100K",
+      "keyword": "deepseek v4 pro reddit",
+      "band": "100 – 1K",
+      "ratio": 0.010000000000000002
+     },
+     {
+      "head": "gemini 3 pro",
+      "head_band": "100K – 1M",
+      "keyword": "gemini 3 pro reddit",
+      "band": "100 – 1K",
+      "ratio": 0.0010000000000000002
+     },
+     {
+      "head": "gpt 5",
+      "head_band": "100K – 1M",
+      "keyword": "gpt 5 reddit",
+      "band": "10 – 100",
+      "ratio": 0.0001
+     },
+     {
+      "head": "llama 4",
+      "head_band": "10K – 100K",
+      "keyword": "llama 4 reddit",
+      "band": "10 – 100",
+      "ratio": 0.001
+     },
+     {
+      "head": "gpt 5",
+      "head_band": "100K – 1M",
+      "keyword": "gpt 5 honest review",
+      "band": "10 – 100",
+      "ratio": 0.0001
+     }
+    ]
+   },
+   "alternatives": {
+    "share": null,
+    "pairs": []
+   },
+   "best_for": {
+    "share": 0.0010000000000000002,
+    "pairs": [
+     {
+      "head": "rag",
+      "head_band": "100K – 1M",
+      "keyword": "best llm for rag",
+      "band": "100 – 1K",
+      "ratio": 0.0010000000000000002
+     }
+    ]
+   },
+   "open_source": {
+    "share": null,
+    "pairs": []
+   },
+   "context": {
+    "share": 0.0010000000000000002,
+    "pairs": [
+     {
+      "head": "gpt 5",
+      "head_band": "100K – 1M",
+      "keyword": "gpt 5 context window",
+      "band": "100 – 1K",
+      "ratio": 0.0010000000000000002
+     }
+    ]
+   },
+   "api": {
+    "share": null,
+    "pairs": []
+   },
+   "leaderboard": {
+    "share": null,
+    "pairs": []
+   }
+  },
+  "skipped_combinations": {
+   "E20×Q12": "<threshold> has no board values",
+   "E8": "a provider's bare name is navigational to the provider, not to this board",
+   "E8×I4": "the 4th-pass pattern reads as two products, not a search",
+   "E8×N10": "the 4th-pass pattern reads as two products, not a search",
+   "E8×U5": "the 4th-pass pattern reads as two products, not a search",
+   "E12×Q12": "<threshold> has no board values",
+   "E12×M2": "the 4th-pass pattern reads as a metric costed per token",
+   "E12×D2": "the 4th-pass pattern reads as a metric with a context window",
+   "E12×P8": "the 4th-pass pattern reads as a metric with a workaround",
+   "E12×R2": "the 4th-pass pattern reads as a metric benchmarked",
+   "E15×C1": "the 4th-pass pattern reads as local vs local",
+   "E15×T2": "the 4th-pass pattern reads as a deployment training on data",
+   "E15×Q7": "the 4th-pass pattern repeats itself",
+   "E1×O5": "an editorial angle, not a search",
+   "E14×D1": "runtime requirements are not this board's subject",
+   "E4×P1": "<does the job> has no board values",
+   "E4×H7": "<thing> has no board values",
+   "E1×R7": "an editorial sentence, not a search",
+   "E1×C1": "reads as LLM vs LLM",
+   "E1×C4": "reads as LLM or LLM",
+   "E1×U5": "reads as upgrade to LLM",
+   "E1×I4": "reads as does LLM work with a tool",
+   "E1×P3": "reads as fix LLM",
+   "E1×P9": "reads as why is LLM a nightmare",
+   "E1×R4": "reads as a model running LLM",
+   "E1×R9": "reads as is LLM saturated",
+   "E1×N10": "reads as did LLM get worse",
+   "E1×S6": "reads as how to trial LLM",
+   "E1×W3": "reads as LLM tokens per watt",
+   "E1×C7": "reads as LLM review",
+   "E1×M5": "reads as switching to LLM",
+   "E1×M6": "an editorial sentence, not a search",
+   "E1×P7": "reads as problems with LLM",
+   "E1×P8": "reads as LLM workaround",
+   "E1×Q12": "<threshold> has no board values",
+   "E1×R8": "an editorial sentence, not a search",
+   "E1×T10": "an editorial sentence, not a search",
+   "E1×T6": "reads as LLM uptime",
+   "E1×W6": "reads as CUDA for LLM",
+   "E3×D8": "reads as a capability's schema",
+   "E3×P4": "reads as why does a capability hallucinate",
+   "E3×P6": "reads as a capability's failure modes",
+   "E3×T7": "reads as a capability's hallucination rate",
+   "E4×C4": "reads as job or job for job",
+   "E4×C7": "reads as a job reviewed",
+   "E4×G11": "reads as a job as a PDF"
+  },
+  "volume_source": "Google Keyword Planner bands, global, all languages, Jan-Jul 2026 (the workbook's 'Planner volumes (measured)' sheet)"
+ },
+ "source": "Model Information Board —SEO keywords.xlsx + seo/keyword_plan.yaml"
+}
