@@ -56,6 +56,7 @@ const TokenCounter = page(() => import('./routes/TokenCounter'))
 const ModelFinder = page(() => import('./routes/ModelFinder'))
 const Admin = page(() => import('./routes/Admin'))
 const BlogLogs = page(() => import('./routes/BlogLogs'))
+const Keywords = page(() => import('./routes/Keywords'))
 
 /** What a page shows while its chunk downloads: the skeleton the pages use for data. */
 const PAGE_LOADING = (
@@ -72,7 +73,7 @@ function ScrollToTop() {
 
 /**
  * Route guard - FOR THE SIGNED-IN SURFACES ONLY (2026-10-15, Parvathi): the
- * Board, the old model pages (/models) and Admin. Every published page - home,
+ * Board, the old model pages (/models), Admin and SEO keywords. Every published page - home,
  * Blogs, Tools and the three tools, the Models pages, Compare, Discussions,
  * FAQ - opens without signing in, and reads the backend's public endpoints
  * (judge/gate.py: PUBLIC_READ_PATHS). A visitor who opens a guarded page is
@@ -144,6 +145,8 @@ export default function App() {
           <Route path="/model-finder"  element={<ModelFinder />} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
+          <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />
+          <Route path="/keywords" element={<MovedTo path="/seo-keywords" />} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
 
           {/* NOT A REDIRECT (SEO item 7): an unknown address says so, at that address. */}

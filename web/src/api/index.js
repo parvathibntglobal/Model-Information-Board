@@ -542,6 +542,10 @@ export const adminLostClaims = () => request('/admin/runs/lost-claims')
 // Admin -> Scheduler: workflow setup, policy, due queue, switch and GitHub runs. Read-only.
 export const adminScheduler = () => request('/admin/scheduler')
 
+// Keywords dashboard: which SEO keywords sit on which public page, and where. A dated snapshot.
+// (Not `adminKeywords` above - that is the search terms each platform is sent.)
+export const adminSeoKeywords = () => request('/admin/seo-keywords')
+
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`
 // - there is no credential in this payload and none can be derived from it.

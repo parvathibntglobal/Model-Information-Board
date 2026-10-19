@@ -41,6 +41,7 @@ const SIGNED_IN = [
   { to: '/models', label: 'Models' },
   { to: '/board', label: 'Board' },
   { to: '/admin', label: 'Admin' },
+  { to: '/seo-keywords', label: 'SEO keywords' },
 ]
 
 /** Whether `to` (which may carry a query) is the page being shown. */
