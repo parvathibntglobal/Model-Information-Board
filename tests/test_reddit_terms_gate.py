@@ -18,8 +18,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from collect.adapters.basis import PUBLIC_DERIVED_PUBLICATION
 from collect.adapters.reddit import (
-    INTERNAL_DEVELOPMENT_ONLY,
     RedditHarvester,
     harvester_for_source,
     observe_reddit_use,
@@ -29,6 +29,9 @@ from collect.registry.assertions import TermsNotReviewedError
 from collect.registry.sources import load_sources
 
 RULING_ID = "reddit-via-rapidapi"
+
+#: THE BASIS THE CONTRACT ASSERTS (2026-10-19). Was internal-development-only.
+CURRENT = PUBLIC_DERIVED_PUBLICATION
 
 
 @pytest.fixture(scope="module")
@@ -41,7 +44,7 @@ def reddit_row(document) -> dict:
     return next(r for r in document["sources"] if r["id"] == "reddit")
 
 
-def _observations(basis: str = INTERNAL_DEVELOPMENT_ONLY) -> dict:
+def _observations(basis: str = CURRENT) -> dict:
     return {"reddit": {"use_basis": basis}}
 
 
@@ -66,11 +69,11 @@ def test_the_ruling_records_who_read_the_terms():
 
 
 def test_the_ruling_names_the_basis_it_rests_on():
-    """`internal-development-only` is a shorter fuse than review_valid_days,
-    and it is only a fuse if something reads it."""
+    """The basis is a shorter fuse than review_valid_days, and it is only a
+    fuse if something reads it. `public-derived-publication` since 2026-10-19."""
     ruling = load_sources().rulings[RULING_ID]
-    assert ruling.basis == INTERNAL_DEVELOPMENT_ONLY
-    assert ruling.live_preconditions["use_basis"] == [INTERNAL_DEVELOPMENT_ONLY]
+    assert ruling.basis == CURRENT
+    assert ruling.live_preconditions["use_basis"] == [CURRENT]
 
 
 def test_the_four_unresolved_conditions_are_named_in_the_summary():
@@ -205,19 +208,18 @@ def _undertaking(monkeypatch, **overrides):
     import collect.registry.sources as sources_module
 
     block = {
-        "asserts": INTERNAL_DEVELOPMENT_ONLY,
+        "asserts": CURRENT,
         "asserted_by": "tester",
         "asserted_on": date.today(),
         "review_valid_days": 30,
-        "required_conditions": {"auth_walled": True, "external_users": False,
-                                "publicly_linked": False, "monetized": False},
-        "conditions": {"auth_walled": True, "external_users": False,
-                       "publicly_linked": False, "monetized": False},
+        # FROM THE CONTRACT, not a copy of it: the closed set changes when the
+        # basis does (2026-10-19), and a copy here is what broke with it.
+        "required_conditions": dict(_real_contract().use_basis_undertaking["required_conditions"]),
+        "conditions": dict(_real_contract().use_basis_undertaking["required_conditions"]),
     }
     block.update(overrides)
     if overrides.get("conditions"):
-        block["conditions"] = {**{"auth_walled": True, "external_users": False,
-                                  "publicly_linked": False, "monetized": False},
+        block["conditions"] = {**_real_contract().use_basis_undertaking["required_conditions"],
                                **overrides["conditions"]}
     # REPLACE ONLY THE UNDERTAKING. `assert_terms_reviewed` reads `.rulings`
     # off the same object, so a bare namespace makes the gate raise
@@ -232,7 +234,7 @@ def _undertaking(monkeypatch, **overrides):
 
 def test_a_signed_undertaking_reports_the_basis(monkeypatch):
     _undertaking(monkeypatch)
-    assert observe_reddit_use()["use_basis"] == INTERNAL_DEVELOPMENT_ONLY
+    assert observe_reddit_use()["use_basis"] == CURRENT
 
 
 def test_an_unsigned_undertaking_is_not_a_basis(monkeypatch):
@@ -243,7 +245,7 @@ def test_an_unsigned_undertaking_is_not_a_basis(monkeypatch):
     """
     _undertaking(monkeypatch, asserted_by=None)
     basis = observe_reddit_use()["use_basis"]
-    assert basis != INTERNAL_DEVELOPMENT_ONLY
+    assert basis != CURRENT
     assert "unsigned" in basis
 
 
@@ -263,7 +265,7 @@ def test_an_absent_undertaking_refuses_rather_than_permits(monkeypatch):
         lambda: dataclasses.replace(real, use_basis_undertaking=None),
     )
     basis = observe_reddit_use()["use_basis"]
-    assert basis != INTERNAL_DEVELOPMENT_ONLY
+    assert basis != CURRENT
     assert "no-undertaking" in basis
 
 
@@ -271,7 +273,7 @@ def test_an_expired_undertaking_is_not_a_basis(monkeypatch):
     """An undertaking with no expiry is a thing nobody revisits."""
     _undertaking(monkeypatch, asserted_on=date.today() - timedelta(days=400))
     basis = observe_reddit_use()["use_basis"]
-    assert basis != INTERNAL_DEVELOPMENT_ONLY
+    assert basis != CURRENT
     assert "expired" in basis
     # NAMED, not merely different. The gate quotes the observed value, so the
     # refusal has to say WHICH check failed.
@@ -284,11 +286,11 @@ def test_conditions_beat_the_asserts_line(monkeypatch):
     Letting `asserts:` win over `conditions:` would make the conditions
     decorative - and they are the only part a person can actually check.
     """
-    _undertaking(monkeypatch, conditions={"external_users": True})
+    _undertaking(monkeypatch, conditions={"full_text_republished": True})
     basis = observe_reddit_use()["use_basis"]
-    assert basis != INTERNAL_DEVELOPMENT_ONLY
+    assert basis != CURRENT
     assert "void" in basis
-    assert "external_users" in basis
+    assert "full_text_republished" in basis
 
 
 class TestConditionsAreAClosedContract:
@@ -322,7 +324,7 @@ class TestConditionsAreAClosedContract:
         """
         _undertaking(monkeypatch, conditions={"indexed_by_search_engines": True})
         basis = observe_reddit_use()["use_basis"]
-        assert basis != INTERNAL_DEVELOPMENT_ONLY
+        assert basis != CURRENT
         assert "not a known condition" in basis
         assert "indexed_by_search_engines" in basis
 
@@ -333,20 +335,20 @@ class TestConditionsAreAClosedContract:
         `false` that happens to be reassuring is still a fact nobody modelled.
         """
         _undertaking(monkeypatch, conditions={"some_new_condition": False})
-        assert observe_reddit_use()["use_basis"] != INTERNAL_DEVELOPMENT_ONLY
+        assert observe_reddit_use()["use_basis"] != CURRENT
 
     def test_a_missing_required_condition_is_not_a_pass(self, monkeypatch):
         """Rule 6, which is the argument the whole undertaking rests on."""
         block = _undertaking(monkeypatch)
         block["conditions"].pop("monetized")
         basis = observe_reddit_use()["use_basis"]
-        assert basis != INTERNAL_DEVELOPMENT_ONLY
+        assert basis != CURRENT
         assert "required and not asserted" in basis
 
     def test_a_wrong_value_still_voids(self, monkeypatch):
-        _undertaking(monkeypatch, conditions={"external_users": True})
+        _undertaking(monkeypatch, conditions={"full_text_republished": True})
         basis = observe_reddit_use()["use_basis"]
-        assert "external_users" in basis and "must be False" in basis
+        assert "full_text_republished" in basis and "must be False" in basis
 
     def test_every_fault_is_named_rather_than_the_first(self, monkeypatch):
         """The gate quotes the observed value, so it has to say all of it.
@@ -354,17 +356,17 @@ class TestConditionsAreAClosedContract:
         Reporting one fault turns fixing an undertaking into a guessing loop.
         """
         block = _undertaking(monkeypatch, conditions={"shared_with_client": True})
-        block["conditions"]["auth_walled"] = False
+        block["conditions"]["internal_view_auth_walled"] = False
         basis = observe_reddit_use()["use_basis"]
         assert "shared_with_client" in basis
-        assert "auth_walled" in basis
+        assert "internal_view_auth_walled" in basis
 
     def test_a_missing_contract_voids_rather_than_passing(self, monkeypatch):
         """A checker that cannot find its contract has not passed anything."""
         block = _undertaking(monkeypatch)
         block.pop("required_conditions")
         basis = observe_reddit_use()["use_basis"]
-        assert basis != INTERNAL_DEVELOPMENT_ONLY
+        assert basis != CURRENT
         assert "required_conditions" in basis
 
     def test_the_contract_is_read_from_the_file_not_carried_in_code(self):
@@ -406,7 +408,7 @@ def test_all_platforms_on_this_basis_observe_it_identically(monkeypatch):
             "x": observe_x_use()["use_basis"],
         }
         assert len(set(observed.values())) == 1, observed
-        internal = next(iter(observed.values())) == INTERNAL_DEVELOPMENT_ONLY
+        internal = next(iter(observed.values())) == CURRENT
         assert internal is expect_internal, observed
 
 

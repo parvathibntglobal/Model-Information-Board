@@ -681,6 +681,8 @@
 .es-sources ol{padding-left:1.3rem;font-size:.9rem;color:var(--es-dim)}
 .es-sources li{margin:.35rem 0;scroll-margin-top:80px}
 .es-sources a{color:var(--es-accent2)}
+/* arXiv's acknowledgement under the sources (judge/publication.py with_credits) */
+.es-sources .es-ack{font-style:italic;margin-top:-1rem !important}
 .es-sources .plat{font:600 .64rem var(--es-mono);text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border:1px solid var(--es-line);border-radius:4px;color:var(--es-text)}
 
 /* The lead, styled per format rather than one box for all. */

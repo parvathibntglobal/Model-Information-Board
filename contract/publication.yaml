@@ -1,9 +1,10 @@
 # What may appear on a PUBLIC surface, by source.
 #
-# ⚠ PROPOSED 2026-10-05 BY anooj, ON BRANCH anooj_001 - NOT RATIFIED.
-#   contract/ gets two eyes: this file reaches main only through a reviewed PR.
-#   The argument, the open questions and what it does to the terms rulings are in
-#   docs/proposals/public-surfaces-withhold-reddit-arxiv-x.md.
+# PROPOSED 2026-10-05 by anooj; APPROVED 2026-10-19 through the go-public
+#   contract PR (#535), reviewed by parvathi. contract/ gets two eyes. The
+#   original argument is in docs/proposals/public-surfaces-withhold-reddit-arxiv-x.md;
+#   the publication basis it serves is `use_basis_undertaking` in
+#   contract/sources.yaml.
 #
 # THE AGREED POSITION (team, 2026-10-05): nothing from Reddit, arXiv or X is
 # shown on our public platform's board. We may still collect from them for
@@ -26,9 +27,11 @@
 # an empty list raises - it never silently publishes everything.
 
 version: "0.1"
-status: proposed
+status: approved
 proposed_on: 2026-10-05
 proposed_by: anooj
+approved_on: 2026-10-19   # through the go-public contract PR; reviewer below
+reviewed_by: parvathi     # by approving that PR
 
 withheld_from_public:
   # `document.source` values, exactly as the collectors write them.
@@ -36,6 +39,11 @@ withheld_from_public:
     - reddit
     - arxiv
     - x
+  # Whether a public TOTAL (voices, reports, entries, models) counts rows from
+  # the sources above. true since 2026-10-15 (approved 2026-10-19): totals
+  # include every source, and no page shows a per-platform count. Must be true
+  # or false - absent raises (rule 6, rule 12) once judge/publication.py reads it.
+  totals_include_withheld: true
 
 derived_posts:
   # BLOG DRAFTS MAY BE WRITTEN FROM WITHHELD SOURCES. Decided by anooj on
@@ -76,3 +84,11 @@ derived_posts:
   embed_only:
     - reddit
     - x
+
+credits:
+  # ARXIV'S ACKNOWLEDGEMENT, as its API terms ask (2026-10-19, review of #535).
+  # Attached at SERVE time to every post whose sources include an arXiv paper
+  # (judge/publication.py `with_credits`), so no post goes out without it however
+  # it was written. The undertaking's `arxiv_acknowledged: true` rests on this.
+  # Required: absent or empty raises (rule 12).
+  arxiv_acknowledgement: "Thank you to arXiv for use of its open access interoperability."
