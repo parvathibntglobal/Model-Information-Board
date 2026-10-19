@@ -17,6 +17,8 @@ undertaking in `contract/sources.yaml` is what makes that statement checkable.
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
+from contextvars import ContextVar
 from functools import lru_cache
 
 VIEWS = ("public", "internal")
@@ -84,7 +86,30 @@ def derived_posts_embed_only() -> tuple[str, ...]:
     return tuple(str(s).strip() for s in raw["embed_only"])
 
 
+#: Set for the length of one block by `forced_public()`: an anonymous caller is
+#: always served the public view, whatever view this deployment runs.
+_FORCED_PUBLIC: ContextVar[bool] = ContextVar("forced_public", default=False)
+
+
+@contextmanager
+def forced_public():
+    """Run a block on the PUBLIC view regardless of PUBLICATION_VIEW.
+
+    For an endpoint answering a caller who has not signed in (2026-10-15): an
+    internal deployment shows withheld sources to its own users, never to a
+    visitor. Scoped to the block and to this context, so nothing else serving
+    at the same time is affected.
+    """
+    token = _FORCED_PUBLIC.set(True)
+    try:
+        yield
+    finally:
+        _FORCED_PUBLIC.reset(token)
+
+
 def view() -> str:
+    if _FORCED_PUBLIC.get():
+        return "public"
     raw = os.getenv("PUBLICATION_VIEW")
     if raw is None or not raw.strip():
         return "public"

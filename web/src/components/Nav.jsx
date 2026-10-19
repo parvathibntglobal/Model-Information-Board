@@ -34,9 +34,9 @@ const LINKS = [
   { to: '/#faq', label: 'FAQ', anchor: true },
 ]
 
-// BEHIND "LOG IN": the full board, the model pages and the admin console. These
-// are the signed-in surfaces; the menu groups them now so the later login work
-// only has to change who may open them, not where they live.
+// BEHIND "LOG IN": the full board, the model pages and the admin console - the
+// only pages that still need a sign-in (2026-10-15). Shown to everyone: a
+// visitor who picks one is taken to /login and brought back once signed in.
 const SIGNED_IN = [
   { to: '/models', label: 'Models' },
   { to: '/board', label: 'Board' },
@@ -116,7 +116,7 @@ export default function Nav({ session, onSignOut }) {
         </Link>
 
         <nav className="nav-links">
-          {session && LINKS.map((l) => (
+          {LINKS.map((l) => (
             l.anchor ? (
               // A PLAIN ANCHOR, not a NavLink. `to="/#faq"` matches the route
               // `/`, so NavLink would light up Home and FAQ at once — and the
@@ -141,11 +141,11 @@ export default function Nav({ session, onSignOut }) {
             </NavLink>
             )
           ))}
-          {session && (
-            <Menu items={SIGNED_IN} loc={loc} end
-                  lit={SIGNED_IN.some((i) => isHere(i.to, loc))}
-                  head={<button type="button" className="nav-link nav-menu-btn" aria-haspopup="true">Log in {caret}</button>} />
-          )}
+          <Menu items={SIGNED_IN} loc={loc} end
+                lit={SIGNED_IN.some((i) => isHere(i.to, loc))}
+                head={session
+                  ? <button type="button" className="nav-link nav-menu-btn" aria-haspopup="true">Log in {caret}</button>
+                  : <Link to="/login" className="nav-link nav-menu-btn" aria-haspopup="true">Log in {caret}</Link>} />
         </nav>
 
         <div className="nav-right">

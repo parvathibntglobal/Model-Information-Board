@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import NamedTuple
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from judge import fetch_reaper, login
@@ -1069,8 +1069,30 @@ def _with_board_paths(items: list[dict], section: str, url_seg: str,
     return out
 
 
+#: What a comparison sends to a caller who has not signed in: the counts, never
+#: the words. These keys hold quotes, post links, document ids or Board links.
+_COMPARE_PRIVATE_KEYS = frozenset({
+    "quotes", "url", "document_id", "board_path", "board_model_path",
+})
+
+
+def _counts_only(value):
+    """A copy of a compare payload with every private key emptied, not dropped:
+    a list becomes [] and anything else None, so the page renders the same
+    shape with nothing in it rather than failing on a missing key."""
+    if isinstance(value, dict):
+        return {
+            k: (([] if isinstance(v, list) else None) if k in _COMPARE_PRIVATE_KEYS
+                else _counts_only(v))
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_counts_only(v) for v in value]
+    return value
+
+
 @app.get("/compare")
-def compare_page(ids: str = "") -> dict:
+def compare_page(ids: str = "", request: Request = None) -> dict:
     """Two or three models side by side — registry facts and counted evidence.
 
     THE DEMO'S TABLE HAD NINE ROWS AND THIS ONE CANNOT HAVE ALL NINE. Verdict,
@@ -1081,6 +1103,17 @@ def compare_page(ids: str = "") -> dict:
     what is missing - rather than omitting rows and letting the reader assume
     the board compared everything it could.
     """
+    # A CALLER WHO HAS NOT SIGNED IN (judge/gate.py marks it) gets the PUBLIC
+    # view and the counts only - no quote, post link or Board link - so the
+    # comparison is safe on a published page (2026-10-15). The same function
+    # builds it, called again with no request, then emptied by `_counts_only`.
+    if request is not None and getattr(request.state, "anonymous", False):
+        from judge import publication
+
+        with publication.forced_public():
+            payload = compare_page(ids)
+        return _counts_only(payload)
+
     from judge.pages.roster import RosterReader
     from judge.store.board_entries import evidence_for_model
 

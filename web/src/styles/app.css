@@ -363,6 +363,8 @@ button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--t
 .hero-strip{display:flex;align-items:center;gap:12px;margin-top:var(--gap);min-width:0}
 .hero-strip .chip{text-decoration:none;color:inherit;flex:none}
 .hero-set{display:flex;flex-wrap:wrap;gap:8px}
+.hero-lab{flex:none;font-size:.88rem;font-weight:600;color:var(--text-2);white-space:nowrap}
+@media (max-width:640px){.hero-strip{flex-wrap:wrap}}
 .hero-collage{display:flex;flex-direction:column;gap:14px;position:relative;z-index:3}
 .hq{position:relative;margin:0;width:88%;background:var(--surface);
   border:1px solid var(--border);border-left:3px solid var(--text-3);border-radius:var(--r-card);
@@ -1939,8 +1941,8 @@ a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:
 @keyframes ts-blink{50%{opacity:0}}
 .ts-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:28px}
 .ts-chip{padding:4px 11px;border-radius:var(--r-pill);border:1px solid var(--border);font-size:var(--fs-xs);color:var(--text-3);
-  opacity:.35;transform:scale(.92);transition:opacity .3s,transform .3s,background .3s,color .3s,border-color .3s}
-.ts-chip.ts-in{opacity:1;transform:scale(1)}
+  transform:scale(.92);transition:transform .3s,background .3s,color .3s,border-color .3s}
+.ts-chip.ts-in{transform:scale(1)}
 .ts-chip-job.ts-in{background:var(--info-dim);border-color:var(--info);color:var(--text)}
 .ts-chip-spec.ts-in{background:var(--pass-dim);border-color:var(--pass);color:var(--text)}
 .ts-note{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}

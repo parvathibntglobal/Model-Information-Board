@@ -6,6 +6,7 @@ import {
 import { Badge, Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconSearch } from '../components/Icons'
 import Freshness from '../components/Freshness'
+import { getSession } from '../auth'
 import { useHead } from '../seo/head'
 import { comparePage as compareHead } from '../seo/pages'
 
@@ -42,7 +43,11 @@ export default function Compare() {
   // OPENED FROM REPORTS (`?from=reports`, 2026-10-14). Reports is counts only and
   // never quotes, so a comparison started there leaves out "In their words".
   // Opened from the Models list, the page is unchanged.
-  const fromReports = sp.get('from') === 'reports'
+  //
+  // NOT SIGNED IN COUNTS THE SAME (2026-10-15): the backend sends a visitor
+  // the counts only (judge/app.py: compare_page), so the page leaves out what
+  // it no longer has rather than showing an empty "In their words".
+  const fromReports = sp.get('from') === 'reports' || !getSession()
   const ids = (sp.get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean)
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
   //: The registry, for the picker. Loaded lazily - a reader who never opens
@@ -86,7 +91,12 @@ export default function Compare() {
     setSp(fromReports ? { ids: trimmed.join(','), from: 'reports' } : { ids: trimmed.join(',') })
   }
 
-  const dropModel = (id) => setIds(ids.filter((x) => x !== id))
+  // A MODEL IS DROPPED BY EITHER OF ITS IDS. The address may name it by its
+  // readable id (`anthropic/claude-sonnet-5`, what every link from the home
+  // page and the Models pages uses) or by its registry id (`mv_...`); the
+  // chip knows both. Dropping by the registry id alone left a readable-id
+  // address untouched, so the x did nothing (2026-10-15).
+  const dropModel = (m) => setIds(ids.filter((x) => x !== m.model_version_id && x !== m.canonical_id))
   const addModel = (id) => { if (!ids.includes(id)) setIds([...ids, id]) }
 
   if (ids.length < 2) {
@@ -431,7 +441,7 @@ function ChangeModels({ ids, models, roster, onLoad, onAdd, onDrop }) {
             {m.display_name}
             <button
               type="button"
-              onClick={() => onDrop(m.model_version_id)}
+              onClick={() => onDrop(m)}
               disabled={atFloor}
               title={atFloor
                 ? 'A comparison needs two models. Add one before removing this.'
