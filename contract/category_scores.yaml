@@ -1,0 +1,142 @@
+# The category score on the Compare page: what it counts, how, and when it is
+# shown. CLAUDE.md rule 3 permits this figure and no other; read the rule's
+# second exception before changing anything here.
+#
+# ⚠ PROPOSED 2026-10-19 (anooj). NOT RATIFIED until @parvathibntglobal reviews
+#   it (contract/ gets two eyes). No code reads this file yet; the page that
+#   will is built after this merges.
+#
+# WHAT THE SCORE IS
+#
+#   For one model in one category:
+#
+#     positive   reports with at least one positive entry in the category
+#     negative   reports with at least one negative entry in the category
+#     both       reports that are both (one report, two polarities)
+#     neutral    reports that are neither
+#     sided      positive + negative - both      (reports that took a side)
+#
+#     score      round(100 x Wilson lower bound of positive / sided)
+#
+#   A REPORT IS A DOCUMENT, counted once per (model, category) however many
+#   entries it filed there - the same unit as `_split` in
+#   judge/store/board_entries.py, so the counts shown beside the score are the
+#   counts it was computed from. `z` is `wilson_z` in board_ordering.yaml: the
+#   page's order and the page's score use one confidence level, not two.
+#
+#   The lower bound, not the raw share, because 1 positive of 1 is not 100.
+#   At z = 1.96: 1 of 1 scores 21, 3 of 3 scores 44, 7 of 10 scores 40,
+#   20 of 20 scores 84. It answers "how sure can a reader be that most reports
+#   are positive", and it reads low on little evidence by design.
+#
+# WHAT THE SCORE IS NOT, AND THE PAGE SAYS SO IN WORDS
+#
+#   It is not a benchmark, a measurement of the model, or a share of all
+#   engineers. It is a summary of what was reported on this board, and the
+#   reports are the extractor's reading of public posts (rule 2: the model
+#   proposes the polarity label, code counts it).
+#
+# WHICH POLARITIES SCORE: `best_for` and `capability`. NOT `metric`.
+#
+#   NEUTRAL REPORTS ARE SHOWN AND NOT SCORED. A neutral report took no side,
+#   so it is not evidence for or against.
+#
+#   A METRIC ROW COUNTS AS A NEUTRAL REPORT HERE, WHATEVER ITS LABEL. Metric
+#   rows DO carry a polarity - on 2026-10-19, of 3,514 undeclined metric rows
+#   on the shared database, 764 positive, 315 negative, 2,435 neutral - but
+#   the board has never ordered on it (GROUPED_SECTIONS in board_entries.py
+#   leaves `metric` out: a figure's polarity is the extractor's reading of
+#   whether a number is good, which is a judgement about the number rather
+#   than a report of use). Scoring it here would make this page the first to
+#   read it. Measured effect of scoring it anyway: 19 of 303 scored pairs move
+#   by 10 or more, and 15 more pairs gain a score, most in speed-cost.
+#
+#   `best_for` IS MOSTLY POSITIVE BY CONSTRUCTION: 1,691 positive, 178
+#   negative, 157 neutral on the same date, because judge/extract/prompt.py
+#   declines to propose a negative job and files the problem under
+#   `capability` instead. Within one category that is not lost - the negative
+#   lands in a capability parent of the same category, and a document counts
+#   once per category. ACROSS categories it is not even: `reliability` has no
+#   job parent and its median score is 21 against 35-56 elsewhere. So the
+#   page compares MODELS within a category and says so; a model's eight
+#   scores are not comparable with each other. Measured effect of scoring
+#   capability alone: 60 of 263 pairs move by 10 or more, 40 pairs lose
+#   their score.
+#
+#   docs/measurements/category-score-preview-2026-10-19.{py,out.txt} has all
+#   three formulas over the same rows.
+scored_sections: [best_for, capability]
+#
+# BELOW `min_sided_reports` THERE IS NO SCORE, NOT A LOW ONE (rule 6). The page
+#   shows the counts and says "too few reports to score". A model nobody
+#   reported on in a category shows "no reports" - distinct from both (rule 4).
+#
+# SOURCES: every source the board counts, including those whose text is shown
+#   only as an official embed (publication.yaml `totals_include_withheld`).
+#   No per-platform split.
+
+version: 1
+
+#: Reports that took a side, at least, before a score is shown. A threshold
+#: with no default in code (rule 12): a reader that cannot find it refuses.
+#:
+#: Measured 2026-10-19 over the 644 (model, category) pairs with any report on
+#: the shared database: 523 would score at 1, 303 at 3, 228 at 5, 143 at 10.
+#: 3 is proposed because below it the bound cannot separate much - 1 of 1
+#: scores 21 and 1 of 3 scores 6 - while 5 hides a quarter of what 3 shows.
+min_sided_reports: 3
+
+#: Eight categories over the 29 parent headings in slug_parents.yaml. Every
+#: parent is in exactly one category; a test will hold that once a reader
+#: exists. A leaf slug reaches a category through its parent - the contract's
+#: filing first, then a `parent_proposed` that names a real heading, exactly
+#: as judge/board_grouping.py files it. An unfiled leaf counts nowhere.
+categories:
+  coding:
+    name: Coding and software
+    parents:
+      best_for: [software-development, review-and-security]
+      capability: [software-engineering]
+      metric: [coding-benchmarks]
+  agents:
+    name: Agents and tool use
+    parents:
+      best_for: [agentic-automation]
+      capability: [agentic]
+      metric: [agent-benchmarks]
+  reasoning:
+    name: Reasoning and knowledge
+    parents:
+      best_for: [reasoning-and-science]
+      capability: [reasoning-and-math]
+      metric: [reasoning-benchmarks, reliability-rate]
+  writing:
+    name: Writing and conversation
+    parents:
+      best_for: [writing-and-content, chat-and-assistants]
+      capability: [writing-language]
+      metric: []
+  documents:
+    name: Documents and long context
+    parents:
+      best_for: [documents-and-research]
+      capability: [long-context-and-memory]
+      metric: []
+  media:
+    name: Vision and media
+    parents:
+      best_for: [media-generation]
+      capability: [vision-media]
+      metric: [media-benchmarks]
+  reliability:
+    name: Reliability and safety
+    parents:
+      best_for: []
+      capability: [instruction-and-reliability, safety-and-honesty, api-behaviour]
+      metric: [security-benchmarks]
+  speed-cost:
+    name: Speed and cost
+    parents:
+      best_for: [cost-volume-local]
+      capability: [performance-cost]
+      metric: [price, speed-latency, token-volume, capacity-spec]

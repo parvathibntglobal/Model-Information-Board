@@ -1,0 +1,75 @@
+board_entry rows read (declined excluded): 11346
+rows filed under no category, by section: {'metric': 74, 'capability': 26, 'best_for': 15}
+metric rows by polarity: {'neutral': 2435, 'positive': 764, 'negative': 315}
+(model, category) pairs with any report: 644
+
+pairs that would show a score, by minimum sided reports:
+  sided >=  1:  523 of 644 pairs, 110 models
+  sided >=  3:  303 of 644 pairs, 63 models
+  sided >=  5:  228 of 644 pairs, 50 models
+  sided >= 10:  143 of 644 pairs, 35 models
+
+per category (sided >= 3): pairs shown / pairs with any report
+  coding                   43 / 80  
+  agents                   42 / 90  
+  reasoning                51 / 96  
+  writing                  33 / 60  
+  documents                28 / 61  
+  media                    23 / 68  
+  reliability              47 / 78  
+  speed-cost               36 / 111 
+
+score distribution where shown (sided >= 3), 100 x Wilson lower bound:
+    0-9   33
+   10-19  33
+   20-29  41
+   30-39  38
+   40-49  55
+   50-59  52
+   60-69  30
+   70-79  16
+   80-89  5
+
+ten models with the most reports, all eight categories (score at sided >= 3):
+  Anthropic: Claude Opus 5.5
+     coding: 85(111+/23-/6~) | agents: 86(71+/8-/11~) | reasonin: 76(48+/12-/20~) | writing: 69(41+/11-/3~) | document: 60(9+/1-/2~) | media: 80(24+/3-/1~) | reliabil: 36(24+/26-/4~) | speed-co: 78(27+/2-/76~)
+  Anthropic: Claude Opus 4.6
+     coding: 66(46+/16-/5~) | agents: 58(41+/20-/5~) | reasonin: 55(33+/17-/16~) | writing: 69(47+/13-/2~) | document: 59(14+/3-/3~) | media: 38(4+/1-/0~) | reliabil: 25(21+/37-/10~) | speed-co: 41(11+/8-/30~)
+  MiniMax: MiniMax M3
+     coding: 53(28+/13-/8~) | agents: 74(35+/5-/12~) | reasonin: 34(18+/18-/7~) | writing: 35(6+/4-/1~) | document: 60(17+/4-/10~) | media: 65(11+/1-/11~) | reliabil: 19(10+/22-/1~) | speed-co: 43(13+/7-/62~)
+  OpenAI: GPT-6 Astra
+     coding: 68(27+/9-/8~) | agents: 76(38+/6-/8~) | reasonin: 63(27+/7-/29~) | writing: 35(7+/4-/1~) | document: 45(7+/2-/0~) | media: 64(20+/5-/4~) | reliabil: 33(13+/13-/7~) | speed-co: 43(8+/4-/58~)
+  Anthropic: Claude Opus 5
+     coding: 49(27+/21-/1~) | agents: 38(17+/17-/8~) | reasonin: 47(21+/13-/22~) | writing: 9(8+/42-/0~) | document: 41(6+/2-/1~) | media: 44(5+/2-/3~) | reliabil: 18(16+/43-/5~) | speed-co: 3(1+/5-/30~)
+  Anthropic: Claude Fable 5.1
+     coding: 59(35+/17-/6~) | agents: 68(39+/10-/4~) | reasonin: 58(24+/9-/9~) | writing: 41(11+/8-/1~) | document: 65(7+/0-/1~) | media: 62(13+/2-/0~) | reliabil: 30(15+/22-/2~) | speed-co: 13(4+/9-/36~)
+  Google: Gemini 3.8 Flash
+     coding: 69(25+/5-/1~) | agents: 73(21+/3-/1~) | reasonin: 54(27+/14-/20~) | writing: 46(13+/6-/0~) | document: 50(10+/3-/3~) | media: 42(9+/5-/2~) | reliabil: 33(23+/28-/6~) | speed-co: 62(16+/4-/33~)
+  OpenAI: GPT-5.6 Sol
+     coding: 53(30+/19-/4~) | agents: 50(26+/18-/6~) | reasonin: 32(11+/11-/23~) | writing: 6(1+/2-/0~) | document: n/a(1+/0-/1~) | media: 12(2+/3-/0~) | reliabil: 17(10+/23-/4~) | speed-co: 58(11+/3-/33~)
+  SpaceXAI: Grok 4.7
+     coding: 33(15+/18-/3~) | agents: 57(17+/7-/2~) | reasonin: 31(12+/13-/10~) | writing: 17(8+/18-/3~) | document: 32(7+/5-/0~) | media: n/a(1+/1-/2~) | reliabil: 10(6+/22-/0~) | speed-co: 8(4+/16-/28~)
+  Z.ai: GLM 5.3
+     coding: 72(28+/7-/5~) | agents: 59(14+/4-/6~) | reasonin: 55(14+/4-/5~) | writing: 17(6+/11-/0~) | document: 6(1+/2-/1~) | media: n/a(0+/1-/0~) | reliabil: 12(9+/32-/7~) | speed-co: 21(5+/6-/32~)
+
+polarity by section (declined excluded):
+  best_for    {'negative': 178, 'neutral': 157, 'positive': 1691}
+  capability  {'negative': 2148, 'neutral': 679, 'positive': 2979}
+  metric      {'negative': 315, 'neutral': 2435, 'positive': 764}
+
+pairs scored (sided >= 3) and median score, per category:
+  category     A: n / median  B: n / median  C: n / median
+  coding       A:  38 /  44    B:  43 /  53    C:  44 /  54  
+  agents       A:  35 /  44    B:  42 /  56    C:  42 /  56  
+  reasoning    A:  49 /  40    B:  51 /  41    C:  55 /  41  
+  writing      A:  26 /  22    B:  33 /  35    C:  33 /  35  
+  documents    A:  17 /  30    B:  28 /  44    C:  28 /  44  
+  media        A:  19 /  39    B:  23 /  42    C:  23 /  44  
+  reliability  A:  47 /  21    B:  47 /  21    C:  47 /  21  
+  speed-cost   A:  32 /  40    B:  36 /  41    C:  46 /  43  
+
+A -> B: 263 pairs scored under both; 60 move by 10+; 40 gain a score
+
+B -> C: 303 pairs scored under both; 19 move by 10+; 15 gain a score
+
+(model, category) pairs with at least one metric figure: 321
