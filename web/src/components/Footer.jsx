@@ -73,7 +73,7 @@ export default function Footer() {
               Find the best AI model for the job, counted from what engineers reported in real work —
               working, failing or neither, filed by job, capability and metric.
             </p>
-            <p className="footer-promise">No scores · no paid placement · free to use</p>
+            <p className="footer-promise">No paid placement · free to use</p>
           </div>
 
           <nav className="footer-col" aria-label="Tools">

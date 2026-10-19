@@ -67,8 +67,8 @@ questions:
       such as Chatbot Arena, or a table of AI model rankings gives each model one
       score, averaged across tasks you may never run. The Model Information Board
       counts how many different engineers reported each AI model working or
-      failing at the job they were doing, and shows those counts rather than a
-      score. It is free to use, sells no model and takes no paid placement.
+      failing at the job they were doing, and shows those counts rather than one
+      overall score. It is free to use, sells no model and takes no paid placement.
 
   - id: how-ranked
     basis: policy
