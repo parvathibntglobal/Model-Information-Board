@@ -102,7 +102,7 @@ export default function Faq() {
   return (
     <section id="faq" className="section-tight shell">
       <div className="section-head">
-        <span className="eyebrow">FAQ page</span>
+        <span className="eyebrow">FAQ</span>
         <h2>Frequently asked questions</h2>
       </div>
 

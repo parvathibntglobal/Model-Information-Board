@@ -32,7 +32,7 @@
 # sentence reads like every other sentence on the page.
 
 version: 1
-updated: 2026-10-01
+updated: 2026-10-15
 source: model-board-landing-demo.html (FAQ section, 11 questions — 8 served, 3 withheld)
 
 # Rendered into schema.org FAQPage JSON-LD as well as onto the page. Only
@@ -41,55 +41,66 @@ source: model-board-landing-demo.html (FAQ section, 11 questions — 8 served, 3
 schema_type: FAQPage
 
 questions:
+  # ── REWRITTEN 2026-10-15 for the public site as it now stands ───────────
+  # The pages a visitor can open are the Models pages (/catalog, /reports),
+  # the tools (Best AI model picker, Model specs finder, Token counter),
+  # Compare and Blogs. They publish COUNTS - how many different people reported
+  # a model working, failing or neither - never the posts themselves, and the
+  # Board is not published. The old answers promised quotes "word for word" and
+  # links to every post, and spoke of "the board"; neither is what a reader sees.
+  #
+  # KEYWORDS ARE MEASURED ONLY: Google Keyword Planner bands in
+  # seo/excel files/model-board-seo-category-selection.xlsx, sheet "Planner
+  # volumes (measured)". Each entry names the ones it carries.
+  #
+  # Two of the old eight are folded in rather than dropped: "is it free" into
+  # the first answer, "how current" into the drift one.
+
   - id: not-a-leaderboard
     basis: policy
-    open: true                    # the demo had this one expanded
+    open: true
     q: Is the Model Information Board an LLM leaderboard?
-    # REWRITTEN 2026-10-01. It said the board "ranks fit for your task by cost"
-    # and "backs every recommendation" - the Ask flow, which is gone. The board
-    # files reports and counts them; it recommends nothing.
-    # KEYWORDS 2026-10-01: "LLM leaderboard", "AI leaderboard", "Chatbot
-    # Arena", "LLM rankings" (Keyword Planner, 10K-100K each).
+    # KEYWORDS: llm leaderboard, ai leaderboard, ai model rankings, chatbot
+    # arena, llm arena, llm rankings (10K-100K each).
     a: >-
-      No — it is an LLM leaderboard alternative. An AI leaderboard, a Chatbot
-      Arena vote or a table of LLM rankings gives each model one score on
-      curated tasks. The board keeps what engineers actually wrote about each
-      AI model, word for word, files every report under the job, capability or
-      metric it describes, and links it to the post it came from. It counts
-      people rather than posts, and shows those counts rather than a score.
+      No — it is an LLM leaderboard alternative. An AI leaderboard, an LLM arena
+      such as Chatbot Arena, or a table of AI model rankings gives each model one
+      score, averaged across tasks you may never run. The Model Information Board
+      counts how many different engineers reported each AI model working or
+      failing at the job they were doing, and shows those counts rather than a
+      score. It is free to use, sells no model and takes no paid placement.
 
   - id: how-ranked
     basis: policy
-    q: How are AI models ranked on the board?
-    # REWRITTEN 2026-10-01 to say what the board does: the three groups of
-    # `board_sections` (judge/store/board_entries.py), ordered without a shown
-    # score. The old answer weighed cost into position, which nothing does.
+    q: How do I find the best AI model for my job?
+    # KEYWORDS: best ai model (10K-100K), coding agent, ai agents, rag
+    # (10K-1M), best llm for coding (1K-10K).
     a: >-
-      There is no score. On each job or capability page, AI models with at
-      least one report of it working come first, ordered by how consistently
-      the reports that took a side say it worked; then models whose reports are
-      only neutral; then models reported only as failing. Every row shows its
-      own counts, so the order can be checked, and where reports disagree the
-      page shows both rather than averaging them into one number.
+      Start from the job in the Best AI model picker — a coding agent, a RAG
+      pipeline, code review, AI agents — or from a capability or a model you
+      already use. A model appears there only where at least 5 different people
+      reported on it, and each one shows how many said it worked, how many said
+      it failed and how many took no side. The words follow a fixed rule, never a
+      score: *reported working* when nobody reported a failure, *mostly working*
+      when working reports outnumber failures three to one, *mixed* otherwise.
+      The best LLM for coding is the one engineers reported working for your
+      kind of coding, not the top of a list.
 
   - id: where-evidence
     basis: policy
-    # THE COUNT IS READ FROM contract/sources.yaml, NOT WRITTEN HERE. The demo
-    # said "ten public platforms" and named ten. The real contract holds eight
-    # with a terms ruling, and TikTok, Instagram, Hashnode and WordPress are not
-    # among them. A hardcoded ten would be a claim about coverage that the
-    # sources file contradicts, so the endpoint substitutes the real platforms
-    # and the real count into `{n}`.
-    #
-    # NO PLATFORM NAMES (2026-10-06, Parvathi): public pages withhold some
-    # sources (contract/publication.yaml), and a list of names here could
-    # contradict what the page shows. The count follows the same view.
+    # THE COUNT IS READ FROM contract/sources.yaml, NOT WRITTEN HERE, and on a
+    # public view it follows the withheld sources (contract/publication.yaml):
+    # the endpoint substitutes the real count into `{n}`. No platform names, so
+    # the answer cannot contradict what a page shows (2026-10-06, Parvathi).
+    q: Where do the reports come from?
     a_template: >-
-      {n} public platforms. Every claim carries a verbatim quote,
-      verified in code against its source, with a link back — and where a
-      platform was assessed and ruled out, the reason is published rather than
-      hidden.
-    q: Where does the evidence come from?
+      From what engineers publicly wrote about the AI models they use in real
+      work, on {n} public platforms. Every statement is checked in code against
+      the post it came from before it is counted, and each person is counted
+      once per job however often they posted. The pages publish the counts that
+      result rather than republishing the posts; the two short lines quoted on
+      the home page are shown with where they were written. Where a platform was
+      assessed and ruled out, the reason is published rather than hidden.
     demo_answer: >-
       Ten public platforms — arXiv, Reddit, Hacker News, dev.to, Hugging Face,
       X, TikTok, Instagram, Hashnode and WordPress. Every claim carries a
@@ -97,20 +108,57 @@ questions:
       and where a platform was assessed and ruled out, the reason is published
       rather than hidden.
 
+  - id: compare-models
+    basis: policy
+    q: How do I compare AI models side by side?
+    # KEYWORDS: ai model comparison, compare ai models, llm comparison
+    # (1K-10K), claude vs gemini, opus vs sonnet (10K-100K).
+    a: >-
+      Open Compare and pick up to three models — Claude vs Gemini, Opus vs
+      Sonnet, or any three from the Models pages. The AI model comparison lines
+      up the jobs and capabilities engineers reported on for each, with the
+      working, failing and neutral counts side by side, and picks no winner.
+      The ones all of them were reported on get their own table, so each row is
+      a count against a count; a job nobody reported for one model is left out
+      for it rather than shown as a zero. Price and context window are on each
+      model's own page, kept apart from the reports because they are what the
+      provider advertises, not what engineers found.
+
+  - id: price-a-prompt
+    basis: policy
+    q: How much will an AI model cost me to run?
+    # KEYWORDS: openai api pricing, claude api pricing, gemini api pricing
+    # (10K-100K), cheapest llm api (1K-10K).
+    # NAMES NO MODEL: "which is cheapest" is the withheld question below; this
+    # one says how to work it out, which needs no claim about any model.
+    a: >-
+      Paste your prompt into the Token counter. It counts the tokens in your
+      browser — your text never leaves the page — and prices them as input or
+      output on every model, so OpenAI API pricing, Claude API pricing and Gemini
+      API pricing sit side by side for the same prompt, along with whether it
+      fits each model's context window. The Model specs finder filters every
+      model by context window, price, tool calling and structured output. Both
+      show what providers advertise; the cheapest LLM API is only worth it if
+      engineers reported it working for your job, which is what the reports are
+      for.
+
   - id: free-and-open
     basis: policy
-    # The demo's version named a licence beside every model. The registry has no
-    # licence column, so that sentence is dropped rather than softened - see
-    # `docs` note in the endpoint. Everything else here is policy and stands.
-    q: Is there a good free, open-source or local LLM?
+    # The registry has no licence column, so the demo's "names the licence
+    # beside every model" stays dropped; the answer says so instead.
+    q: Is there a good free, open source or local LLM?
+    # KEYWORDS: open source llm, local llm, free llm api (10K-100K), best free
+    # llm, best open source llm, best local llm, open weight models, self hosted
+    # llm (1K-10K).
     a: >-
-      Several open-weight models hold up on specific tasks, and engineers report
-      running some of them as a local LLM on their own hardware. The best open
-      source LLM for coding is not the one for long context, and open weights
-      versus open source are different licences with different commercial
-      terms. The board shows where a free or local model was reported to be
-      enough — and where a licence has not been recorded, it says that rather
-      than guessing at one.
+      Several open weight models hold up on specific jobs, and engineers report
+      running some of them as a local LLM or a self hosted LLM on their own
+      hardware. The best open source LLM for coding is not the one for long
+      context, so look the job up rather than the model: the reports show where
+      a free or local model was reported to be enough, and the Models pages list
+      every model by provider and type with its advertised price, free ones
+      included. Open weights and open source are different licences; where a
+      licence has not been recorded, the pages say so rather than guess.
     demo_answer: >-
       Several open-weight models hold up on specific tasks. The best open source
       LLM for coding is not the one for long context, and open weights vs open
@@ -121,38 +169,26 @@ questions:
   - id: did-it-get-worse
     basis: policy
     q: Did Claude get worse, or is it just me?
+    # KEYWORDS: model drift (1K-10K), claude opus (100K-1M).
     a: >-
-      Nobody can answer that from one person's experience, which is the whole
-      difficulty. LLM drift is only ever established by several engineers
-      reporting the same change independently, so the board collects those
-      reports per model and shows the date each one landed.
-
-  - id: how-current
-    basis: policy
-    q: How current is the board, and who maintains it?
-    a: >-
-      Models change faster than any review cycle, so the board re-reads the
-      public record and dates every claim it keeps. A report from March sits
-      beside its date rather than being folded into a running average — and a
-      deprecated model is a date somebody has to plan around.
+      One person's experience cannot settle it, which is the whole difficulty.
+      Model drift is only established when several engineers independently
+      report the same change, so the reports are kept per model and dated, and
+      the public record is re-read as new posts appear. A report from March sits
+      beside its date rather than being folded into a running average, so a
+      change shows up as newer reports saying something different.
 
   - id: not-discussed
     basis: policy
-    q: What does “not discussed” mean on the board?
+    q: Why is a model or a job missing, or showing no reports?
+    # KEYWORDS: none forced; it explains the 5-people floor the pages state.
     a: >-
-      That nobody has publicly reported using that AI model for that job or
-      capability yet. It is not a low score and not a criticism: a model with no
-      reports is a model nobody has checked, not a model that failed.
-
-  - id: is-it-free
-    basis: policy
-    q: Is the Model Information Board free to use?
-    # "WITHOUT AN ACCOUNT" REMOVED 2026-10-01: every page sits behind a sign-in
-    # today, so the sentence was false. Put it back when the board is public.
-    a: >-
-      Yes. The board publishes what engineers found and links every report to
-      its source, so anything on it can be checked. It sells no model and takes
-      no placement, which is why it can say when a cheaper option holds up.
+      A model is counted for a job, capability or metric only once at least 5
+      different people have reported on it. Fewer is not a low score and not a
+      criticism — it means not enough engineers have written about that model
+      for that job yet. New releases appear on the Models pages straight away
+      with their advertised specs and price, and their reports fill in as
+      people use them.
 
 # ── WITHHELD FROM THE PAGE ──────────────────────────────────────────────────
 #

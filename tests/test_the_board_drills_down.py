@@ -322,7 +322,7 @@ class TestTheBadgeIsTheModelsOwn:
         js = _db()
         assert "s: evidenceState(" in js
         assert "m.voices ?? m.reports" in js
-        assert "(m.polarities || []).map((polarity) => ({ polarity }))" in js
+        assert "polarity ? (m.polarities || []).map((p) => ({ polarity: p })) : []" in js
 
     def test_there_is_still_exactly_one_definition_of_the_state(self):
         # A second copy of the rule in Python would be two definitions of

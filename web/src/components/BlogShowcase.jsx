@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useInView } from './ui'
 import { Link } from 'react-router-dom'
 import { blogPosts } from '../api'
 
@@ -233,32 +234,48 @@ export default function BlogShowcase() {
   return <Strip posts={posts} />
 }
 
-/** The moving row. The cards are rendered twice so the loop has no seam; the
- *  second copy is hidden from screen readers and from the tab order. */
+/** The moving row: a slow continuous glide. The cards are rendered twice so
+ *  the loop has no seam; the second copy is hidden from screen readers and
+ *  from the tab order.
+ *
+ *  2026-10-15: it glides only while on screen (components/ui.jsx: useInView),
+ *  at about one card every nine seconds (it was fifteen), and holds while the
+ *  pointer or a finger is on the row, so a card can be read and clicked
+ *  without sliding away. */
+const SPEED = 0.038 // px per ms
+
 function Strip({ posts }) {
   const box = useRef(null)
   const paused = useRef(false)
+  const [el, setEl] = useState(null)
+  const inView = useInView(el)
 
   useEffect(() => {
-    const el = box.current
-    if (!el) return undefined
+    const track = box.current
+    if (!track || !inView) return undefined
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined
     let raf = 0
     let last = performance.now()
-    const SPEED = 0.025 // px per ms: a slow glide, roughly one card every fifteen seconds
+    // THE POSITION IS KEPT HERE, NOT READ BACK: a frame moves well under a
+    // pixel, and the browser rounds scrollLeft, so `scrollLeft += 0.6` never
+    // moved the row at all on a 1x screen. A jump bigger than a few pixels is
+    // a hand scroll or an arrow, and the glide carries on from there.
+    let pos = track.scrollLeft
     const tick = (now) => {
       const dt = Math.min(now - last, 64)
       last = now
+      if (Math.abs(track.scrollLeft - pos) > 3) pos = track.scrollLeft
       if (!paused.current) {
-        el.scrollLeft += SPEED * dt
-        const half = el.scrollWidth / 2
-        if (el.scrollLeft >= half) el.scrollLeft -= half
+        pos += SPEED * dt
+        const half = track.scrollWidth / 2
+        if (pos >= half) pos -= half
+        track.scrollLeft = pos
       }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [posts])
+  }, [posts, inView])
 
   const hold = (v) => () => { paused.current = v }
   const step = (dir) => {
@@ -269,14 +286,13 @@ function Strip({ posts }) {
   }
 
   return (
-    <div className="bs">
+    <div className="bs" ref={setEl}>
       {/* THE ARROWS SIT ON THE STRIP'S EDGES, at the cards' middle. */}
       <button type="button" className="bs-btn bs-prev" aria-label="Previous posts" onClick={() => step(-1)}>‹</button>
       <button type="button" className="bs-btn bs-next" aria-label="Next posts" onClick={() => step(1)}>›</button>
       <div className="bs-track" ref={box}
            onMouseEnter={hold(true)} onMouseLeave={hold(false)}
-           onTouchStart={hold(true)} onTouchEnd={hold(false)}
-           onFocus={hold(true)} onBlur={hold(false)}>
+           onTouchStart={hold(true)} onTouchEnd={hold(false)}>
         {posts.map((p) => <Card key={p.slug} p={p} />)}
         {posts.map((p) => <Card key={`${p.slug}~2`} p={p} hidden />)}
       </div>

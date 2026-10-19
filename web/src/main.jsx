@@ -5,6 +5,8 @@ import './styles/fonts.css'
 import './styles/app.css'
 import './styles/board.css'
 import './styles/token-counter.css'
+import './styles/reports.css'
+import './styles/picker.css'
 import App from './App'
 
 // The single-file build has no server to rewrite paths, so it routes on the hash.

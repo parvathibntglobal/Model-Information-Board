@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import NamedTuple
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from judge import fetch_reaper, login
@@ -1069,8 +1069,49 @@ def _with_board_paths(items: list[dict], section: str, url_seg: str,
     return out
 
 
+#: What a comparison sends to a caller who has not signed in: the counts, never
+#: the words. These keys hold quotes, post links, document ids or Board links.
+_COMPARE_PRIVATE_KEYS = frozenset({
+    "quotes", "url", "document_id", "board_path", "board_model_path",
+})
+
+
+def _counts_only(value):
+    """A copy of a compare payload with every private key emptied, not dropped:
+    a list becomes [] and anything else None, so the page renders the same
+    shape with nothing in it rather than failing on a missing key."""
+    if isinstance(value, dict):
+        return {
+            k: (([] if isinstance(v, list) else None) if k in _COMPARE_PRIVATE_KEYS
+                else _counts_only(v))
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_counts_only(v) for v in value]
+    return value
+
+
+def _no_platform_split(payload: dict) -> dict:
+    """HOW MANY PLATFORMS, NOT WHICH OR HOW MUCH (2026-10-19).
+
+    `reported.polarity.platforms` lists documents per source. The page shows
+    only the number of platforms, but a per-source count on a public endpoint
+    is a per-platform split, which the use-basis undertaking rules out
+    (contract/sources.yaml: `per_platform_counts_shown: false`). So a caller
+    who has not signed in gets one entry per platform with the source and its
+    count emptied: the length, which the page reads, survives; the split does
+    not. Signed-in callers are unchanged."""
+    for m in payload.get("models") or []:
+        polarity = (m.get("reported") or {}).get("polarity") or {}
+        if isinstance(polarity.get("platforms"), list):
+            polarity["platforms"] = [
+                {"source": None, "documents": None} for _ in polarity["platforms"]
+            ]
+    return payload
+
+
 @app.get("/compare")
-def compare_page(ids: str = "") -> dict:
+def compare_page(ids: str = "", request: Request = None) -> dict:
     """Two or three models side by side — registry facts and counted evidence.
 
     THE DEMO'S TABLE HAD NINE ROWS AND THIS ONE CANNOT HAVE ALL NINE. Verdict,
@@ -1081,6 +1122,17 @@ def compare_page(ids: str = "") -> dict:
     what is missing - rather than omitting rows and letting the reader assume
     the board compared everything it could.
     """
+    # A CALLER WHO HAS NOT SIGNED IN (judge/gate.py marks it) gets the PUBLIC
+    # view and the counts only - no quote, post link or Board link - so the
+    # comparison is safe on a published page (2026-10-15). The same function
+    # builds it, called again with no request, then emptied by `_counts_only`.
+    if request is not None and getattr(request.state, "anonymous", False):
+        from judge import publication
+
+        with publication.forced_public():
+            payload = compare_page(ids)
+        return _no_platform_split(_counts_only(payload))
+
     from judge.pages.roster import RosterReader
     from judge.store.board_entries import evidence_for_model
 
@@ -2293,6 +2345,42 @@ def freshness_page() -> dict:
 
     with _conn() as conn:
         return board_freshness(conn)
+
+
+@app.get("/reports")
+def reports_page() -> dict:
+    """The Reports page: every job, capability and metric with each model's
+    voices, reports, platforms and positive / negative / neutral split -
+    counted, never quoted, and always over the PUBLIC view. See
+    `judge/reports.py`."""
+    from judge.reports import reports_view
+
+    with _conn() as conn:
+        return reports_view(conn)
+
+
+@app.get("/model-catalog")
+def model_catalog() -> dict:
+    """The Models pages: OpenRouter's whole list by provider and by type, the
+    newest listings, and which models have reports to open. See
+    `judge/catalog.py`; never read from the evidence pipeline."""
+    from judge.catalog import catalog_view
+
+    with _conn() as conn:
+        return catalog_view(conn)
+
+
+@app.get("/model-catalog/{model_id:path}")
+def model_catalog_entry(model_id: str) -> dict:
+    """One model's page: price, specs, registry facts and engineer voices.
+    404 when the catalogue does not list it."""
+    from judge.catalog import catalog_model
+
+    with _conn() as conn:
+        found = catalog_model(conn, model_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail=f"{model_id} is not in the model catalogue")
+    return found
 
 
 @app.get("/board")

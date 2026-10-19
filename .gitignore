@@ -131,3 +131,8 @@ api-fields.json
 /classification_withheld.jsonl
 /model_only_sweep.jsonl
 /model_only_sweep_corrected.jsonl
+
+# GENERATED BLOG DRAFTS (2026-10-14). The generator writes into the checkout it
+# runs from, and a draft can carry Reddit and X embeds, which never go into this
+# repo. Approved posts live in the database (blog_post), not in files.
+blog_posts/

@@ -101,6 +101,39 @@ def auth_state() -> dict[str, object]:
 #: rate-limited separately.
 EXEMPT_PATHS = frozenset({"/health", "/auth/login"})
 
+#: THE PUBLIC READS (2026-10-15, Parvathi): what the published pages - home,
+#: Models, the tools, Compare, Blogs, FAQ - read, reachable WITHOUT a token so
+#: a visitor who has not signed in can use them. The sign-in wall now guards
+#: only the signed-in surfaces: the Board, the old model pages and Admin.
+#:
+#: GET ONLY, AND EACH ONE CHECKED FOR WHAT IT SENDS. Every path here returns
+#: counts, advertised specs or reviewed copy over the PUBLIC view - no quote,
+#: link or handle from a withheld source - except two, which are handled:
+#:   /compare      carries quotes and post links; for an anonymous caller the
+#:                 endpoint strips them and forces the public view
+#:                 (judge/app.py: compare_page).
+#:   /blog-posts   only its default, `include=public` - the APPROVED posts as
+#:                 they were reviewed. `include=all` (drafts, the review queue)
+#:                 still needs a token.
+#: Anything not listed - the Board's endpoints, a model's evidence, every
+#: write, every admin route - is unchanged: it needs a token.
+PUBLIC_READ_PATHS = frozenset({
+    "/reports", "/model-catalog", "/faq", "/models", "/freshness",
+    "/seo/indexable", "/blog-posts", "/compare",
+})
+PUBLIC_READ_PREFIXES = ("/model-catalog/",)
+
+
+def is_public_read(request: Request) -> bool:
+    """True when this request may be served to a caller with no token."""
+    if request.method not in ("GET", "HEAD"):
+        return False
+    path = request.url.path
+    if path not in PUBLIC_READ_PATHS and not path.startswith(PUBLIC_READ_PREFIXES):
+        return False
+    # the approved posts only; drafts and the review queue still need a token
+    return path != "/blog-posts" or request.query_params.get("include", "public") == "public"
+
 
 def require_token(
     request: Request,
@@ -109,6 +142,25 @@ def require_token(
     """FastAPI dependency. Raises, or returns None and lets the route run."""
     if request.url.path in EXEMPT_PATHS:
         return
+
+    # A PUBLIC READ WITH NO VALID TOKEN IS SERVED AS ANONYMOUS, and says so on
+    # the request, so an endpoint that holds more than counts (/compare) can
+    # strip it. A valid token still marks the caller as signed in. An invalid
+    # or expired one is treated as no token here rather than refused: a stale
+    # session in a browser must not break the public pages.
+    request.state.anonymous = False
+    if is_public_read(request):
+        supplied_public = ""
+        if authorization and authorization.lower().startswith("bearer "):
+            supplied_public = authorization[7:].strip()
+        expected_public = _token()
+        signed_in = bool(supplied_public) and (
+            (bool(expected_public) and hmac.compare_digest(supplied_public, expected_public))
+            or bool(login.read(supplied_public))
+        )
+        request.state.anonymous = not signed_in and bool(expected_public or _environment() != DEV)
+        if not signed_in:
+            return
 
     expected = _token()
 

@@ -153,7 +153,15 @@ class TestCorroborationIsJudgedOnVoices:
         assert "return voices >= 2 ? 'v' : 's'" in js
 
     def test_it_is_fed_voices_rather_than_reports(self):
-        assert "evidenceState(item.voices ?? item.reports, item.quotes)" in self._js()
+        # Polarity is passed only where a section has one: metrics carry none
+        # since 2026-10-15 (`commonFields(m, { polarity: false })`).
+        expected = "evidenceState(item.voices ?? item.reports, polarity ? item.quotes : [])"
+        assert expected in self._js()
+
+    def test_a_metric_is_never_contested(self):
+        """A stated figure is not praised or criticised; "contested" is a
+        polarity reading, so metric sections pass no polarity at all."""
+        assert "commonFields(m, { polarity: false })" in self._js()
 
     def test_an_older_payload_degrades_to_the_old_behaviour_not_to_none(self):
         # `?? item.reports`, not `?? 0`. A payload without `voices` should read
