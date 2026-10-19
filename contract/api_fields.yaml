@@ -147,6 +147,11 @@ fields:
     - /admin/settings
     - /board
     state: consumed
+  category_method:
+    reviewed: true
+    routes:
+    - /compare
+    state: consumed
   characters:
     reviewed: false
     routes:

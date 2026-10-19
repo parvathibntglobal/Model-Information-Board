@@ -1692,6 +1692,13 @@ th.r,td.r{text-align:right}
 .st-fig{font-family:var(--font-mono);font-size:var(--fs-sm);color:var(--text);padding:2px 9px;border:1px solid var(--border);
   border-radius:var(--r-pill);background:var(--bg-elev)}
 .st-none{font-size:var(--fs-xs);color:var(--text-3);font-style:italic}
+/* Compare: score per category (2026-10-19). The score and its counts always together. */
+.cs-cell{flex-direction:column;align-items:flex-start;gap:2px}
+.cs-score{font-family:var(--font-mono);font-size:var(--fs-h3);font-weight:600;color:var(--text);line-height:1.1}
+.cs-of{font-size:var(--fs-xs);font-weight:400;color:var(--text-3);margin-left:2px}
+.cs-counts{font-size:var(--fs-xs);color:var(--text-2)}
+.cs-few{font-size:var(--fs-sm);color:var(--text-2)}
+.cs-none{font-size:var(--fs-xs);color:var(--text-3);font-style:italic}
 @media (max-width:800px){
   .h2h{grid-template-columns:1fr}
   .h2h-vs + .h2h-card{border-left:0;border-top:1px solid var(--border-soft)}
