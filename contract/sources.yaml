@@ -66,138 +66,74 @@ review_marker: "REVIEW REQUIRED"
 
 
 # ============================================================================
-#  THE USE-BASIS UNDERTAKING          ⚠ PROPOSED 2026-09-15 - NOT YET ASSERTED
+#  THE USE-BASIS UNDERTAKING        PUBLIC DERIVED PUBLICATION, 2026-10-19
 #
-#  Eight rulings below rest on `basis: internal-development-only`. That basis
-#  is a fact about WHO CAN REACH THIS DEPLOYMENT, and until now the only thing
-#  answering it was `ENVIRONMENT`, which is a DEPLOYMENT MODE. Two different
-#  facts, one answering for the other.
+#  WHAT CHANGED, AND WHY THIS IS A REPLACEMENT RATHER THAN A RE-DATE.
+#  Until 2026-10-17 this block asserted `internal-development-only`: nothing
+#  derived from the corpus published, the board reachable only by the team
+#  (signed by anooj 2026-09-15, re-asserted 2026-09-17, expired 2026-10-17).
+#  Its own comment said the first derived post would void it "deliberately and
+#  by its own terms", and that "the replacement basis wants to be ready first".
+#  This is that replacement, agreed by the team:
 #
-#  `collect/adapters/basis.py` named the gap in its own docstring before it
-#  cost anything: "Publication is a property of who is looking at a page. No
-#  environment variable knows that." So a PERSON asserts it here, with a name
-#  and a date, and `observe_use_basis()` reads the assertion.
+#    - Reddit and X appear in anything public ONLY as the platform's official
+#      embed (MD-approved 2026-10-13; contract/publication.yaml embed_only).
+#    - Every other source (Hacker News, dev.to, Hugging Face, GitHub, blogs) is
+#      quoted, never republished, with its platform credit and a link.
+#    - arXiv is credited with its acknowledgement, as its API terms ask.
+#    - Public totals (voices, reports, entries) count every source; no page
+#      shows a per-platform count or split (2026-10-15).
+#    - The board's internal view, which shows every source's quotes, stays
+#      behind the sign-in for the team; the evaluating leadership is internal.
 #
-#  ✔ ASSERTED 2026-09-15 BY anooj. Before that this block shipped UNSIGNED and
-#    every ruling resting on it refused - deliberately, because an undertaking
-#    nobody has signed must not be readable as one somebody has. That remains
-#    the behaviour for an absent, expired or self-contradicting block.
+#  A PERSON'S STATEMENT, AS BEFORE. Each condition is something a person checks
+#  by looking; no process can. The checker (collect/adapters/basis.py) still
+#  refuses an absent, expired, unsigned or self-contradicting block, and every
+#  ruling below accepts only this basis - so a lapse stops all eight together,
+#  never one quietly.
 #
-#    THIS IS A PERSON'S STATEMENT, NOT A CONFIGURATION VALUE. It says the four
-#    conditions below were true of every reachable surface on the date named,
-#    and it is wrong the moment one of them stops being true - which is what
-#    `voided_by` is for and why the expiry is 30 days rather than 90.
-#
-#  ABSENT IS NOT PERMISSIVE (rule 6). No undertaking, an expired one, or one
-#  that contradicts itself all mean NO BASIS, which means every ruling that
-#  rests on one refuses.
-#
-#  WHY THE EXPIRY IS SHORTER THAN A RULING'S. `review_valid_days: 90` on a
-#  ruling is about a TERMS DOCUMENT, which changes in months. This is about a
-#  fact that is one careless link away from false, so it expires in 30 days.
-#  It is also a visible count of how long a terms reading has been deferred:
-#  an undertaking renewed four times has been standing in for a reading for
-#  four months.
+#  WHAT THIS DOES NOT DO. It reads no terms document that was unread before;
+#  each ruling still records what was and was not read. Terms findings inform
+#  and do not block (team decision); the amendment notes on each ruling record
+#  the accepted risk rather than hiding it.
 # ============================================================================
 
 use_basis_undertaking:
-  asserts: internal-development-only
+  asserts: public-derived-publication
   asserted_by: anooj
-  asserted_on: 2026-09-17
+  asserted_on: 2026-10-19
   review_valid_days: 30
 
-  #: RE-ASSERTED 2026-09-17, NOT REFRESHED. READ THIS BEFORE TOUCHING THE DATE.
-  #:
-  #: The position changed: we intend to publish DERIVED content - Reddit posts,
-  #: independent blogs, social posts - written from what we gather. That is
-  #: publishing, and it is not what this undertaking was signed against.
-  #:
-  #: IT DID NOT VOID, AND THAT IS WHY THIS BLOCK CHANGED BY HAND.
-  #: All four conditions and all four `voided_by` clauses describe ACCESS TO
-  #: THE BOARD. Writing a Reddit post from gathered evidence issues no account,
-  #: publishes no board URL, removes no auth wall and takes no payment - so all
-  #: four stayed literally true, `_undertaking_basis()` went on returning
-  #: `internal-development-only`, and eight rulings went on passing their
-  #: `use_basis` precondition. The harvest would have continued on a basis that
-  #: had stopped describing our intent, with nothing in code able to notice.
-  #: Diagnosed in docs/proposals/the-undertaking-does-not-cover-derived-
-  #: publication.md, merged 2026-09-17 as #344.
-  #:
-  #: WHY RE-ASSERT RATHER THAN LET IT EXPIRE ON 2026-10-15.
-  #: Expiry would have produced the same refusal, and produced it as an
-  #: ACCIDENT. `_undertaking_basis()` would have returned
-  #: `undertaking-expired (asserted 2026-09-15, expired 2026-10-15)` - which
-  #: reads as an administrative lapse, and the obvious fix for a stale date is
-  #: a fresh date. Somebody would have re-dated the block to clear a red
-  #: harvest and re-asserted, in one keystroke, a basis nobody re-examined.
-  #: The expiry exists to FORCE a review; letting it fire turns it into a
-  #: rubber stamp.
-  #:
-  #: WHAT IS ASSERTED NOW, AND IT IS NARROWER THAN IT LOOKS.
-  #: `derived_publication: false` says NOTHING HAS BEEN PUBLISHED YET - which
-  #: is true on 2026-09-17 and is a fact about the world, not about our plans.
-  #: It is not a decision against derived publication. It is the honest state
-  #: while the basis that would permit it (`derived-publication-only`, proposed
-  #: in docs/proposals/the-derived-publication-basis.md) is unratified and its
-  #: per-source `publication` records do not exist as fields.
-  #:
-  #: SO THE FIRST DERIVED POST VOIDS THIS BLOCK, deliberately and by its own
-  #: terms. Flip `conditions.derived_publication` to `true` and the checker
-  #: refuses every ruling that names a basis - which is the correct refusal and
-  #: a full harvest outage, so the replacement basis wants to be ready first.
-  #: That is the ordering this re-assertion buys time for. It does not remove
-  #: the decision; it stops the decision being made by a calendar.
-
-  #: THE CLOSED SET, AND WHAT EACH MUST BE.
-  #:
-  #: ⚠ THIS EXISTS BECAUSE `basis.py` CARRIED ITS OWN COPY AND IGNORED THE REST.
-  #:   `_undertaking_basis` looped a hardcoded four-tuple, so a key in
-  #:   `conditions` that it did not recognise was never read. Measured on main
-  #:   2026-09-15 (#314): an undertaking asserting
-  #:   `indexed_by_search_engines: true` and `shared_with_client: true`
-  #:   observed as `internal-development-only`. The block could say the board
-  #:   was indexed and shared with a client and still read as internal.
-  #:
-  #: So the contract lives HERE and the checker reads it. Adding a condition is
-  #: a two-line change to this file with a diff, rather than a code change
-  #: somebody has to remember to mirror.
-  #:
-  #: `conditions` below must match this EXACTLY - same keys, same values. An
-  #: unknown key VOIDS rather than being ignored, because somebody adding one is
-  #: telling us something and being overruled by silence is the worst available
-  #: response. A missing key voids too: not observed is not a pass (rule 6).
+  #: `conditions` must match this EXACTLY - same keys, same values. An unknown
+  #: key voids, a missing key voids (rule 6). Unchanged mechanism; new facts.
   required_conditions:
-    auth_walled: true
-    external_users: false
-    publicly_linked: false
+    reddit_x_embed_only: true
+    others_quoted_with_credit_and_link: true
+    arxiv_acknowledged: true
+    per_platform_counts_shown: false
+    full_text_republished: false
+    internal_view_auth_walled: true
     monetized: false
-    derived_publication: false
 
-  #: WHAT THE PERSON ASSERTS IS TRUE. Each is a fact a person can check in ten
-  #: minutes and no process can check at all.
+  #: WHAT THE PERSON ASSERTS IS TRUE, on the date above.
   conditions:
-    auth_walled: true        # every reachable surface requires a sign-in
-    external_users: false    # nobody outside the team holds an account
-    publicly_linked: false   # the URL is not published, linked or indexed
+    reddit_x_embed_only: true                 # Reddit/X text appears publicly only inside official embeds
+    others_quoted_with_credit_and_link: true  # every other quote carries its platform and a link
+    arxiv_acknowledged: true                  # any arXiv-derived content carries arXiv's acknowledgement
+    per_platform_counts_shown: false          # public totals count every source, never split by platform
+    full_text_republished: false              # quoted or embedded, never a whole article, thread or post
+    internal_view_auth_walled: true           # PUBLICATION_VIEW=internal pages require the team sign-in
     monetized: false
-    # NOTHING DERIVED FROM THE CORPUS HAS BEEN PUBLISHED OUTSIDE THE TEAM.
-    # A fact about today, checkable the same way the four above are: somebody
-    # looks. It is NOT a statement that we will not - see the header.
-    derived_publication: false
 
-  #: ANY ONE OF THESE VOIDS IT IMMEDIATELY, before the date. Listed rather than
-  #: left to judgement, because "is it still internal?" is a question somebody
-  #: answers optimistically at speed.
+  #: ANY ONE OF THESE VOIDS IT IMMEDIATELY, before the date.
   voided_by:
-    - an account issued to anybody outside the team
-    - the URL published, linked or indexed anywhere
-    - the auth wall removed or bypassed on any surface
-    - any payment taken for access to the board
-    # ⚠ THE FIRST FOUR ARE ALL ABOUT THE BOARD, WHICH IS HOW THIS LIST MISSED
-    #   DERIVED PUBLICATION ENTIRELY. Added 2026-09-17 so the list covers what
-    #   leaves the team as well as what reaches the board.
-    - any derived post, article or social message published outside the team
-      from material in this corpus
+    - Reddit or X text shown publicly outside the platform's official embed
+    - a quote from any other source shown publicly without its platform credit and link
+    - arXiv-derived content published without arXiv's acknowledgement
+    - a public page showing a count split by platform
+    - an article, thread or post republished in full rather than quoted or embedded
+    - the internal view (every source's quotes) reachable without the team sign-in
+    - any payment taken, or advertising placed beside a Reddit or X embed
 
 
 # ============================================================================
@@ -222,11 +158,19 @@ terms_rulings:
     party: publisher
     reviewed_on: 2026-09-21          # was 2026-08-14; re-read on adding nine feeds
     reviewed_by: anooj
-    basis: internal-development-only
+    basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: true
     summary: >-
+      AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
+      The basis moves from internal-development-only to
+      public-derived-publication (use_basis_undertaking, top of this file):
+      derived content
+      is published - quotes with the platform's credit and a link, never full text. The reading below is kept as ruled: what was
+      read and what was not is unchanged, and the unread terms it lists are
+      the accepted risk of publishing, recorded rather than resolved.
+      ---- AS RULED ----
       Self-hosted practitioner or company blog: the publication and the domain
       are the same party. A public feed served without login or payment, with
       robots.txt permitting the feed path and the article paths it links.
@@ -481,7 +425,7 @@ terms_rulings:
       # and did not check it, so the same deployment refused Reddit and
       # harvested from here under the identical sentence. See
       # docs/proposals/the-undertaking-replaces-environment.md.
-      use_basis: [internal-development-only]
+      use_basis: [public-derived-publication]
     recorded_evidence:
       #: ⚠ WAS `article_path_allowed`, SPLIT 2026-09-17. One boolean was
       #:   carrying two different facts and only prose told them apart - see
@@ -511,7 +455,7 @@ terms_rulings:
     platform_host: medium.com
     reviewed_on: 2026-08-14
     reviewed_by: anooj
-    basis: internal-development-only
+    basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
 
@@ -519,6 +463,14 @@ terms_rulings:
     fetch_articles: false
 
     summary: >-
+      AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
+      The basis moves from internal-development-only to
+      public-derived-publication (use_basis_undertaking, top of this file):
+      derived content
+      is published - quotes with the platform's credit and a link, never full text. The reading below is kept as ruled: what was
+      read and what was not is unchanged, and the unread terms it lists are
+      the accepted risk of publishing, recorded rather than resolved.
+      ---- AS RULED ----
       Medium-hosted publication, whether served from medium.com or from a
       publisher's custom domain. Medium's robots.txt governs, and the
       publisher's does not — the publisher cannot grant what Medium withholds.
@@ -635,7 +587,7 @@ terms_rulings:
       # and did not check it, so the same deployment refused Reddit and
       # harvested from here under the identical sentence. See
       # docs/proposals/the-undertaking-replaces-environment.md.
-      use_basis: [internal-development-only]
+      use_basis: [public-derived-publication]
     recorded_evidence:
       feed_carries_full_text: [true]
       article_fetch_refused: [true]
@@ -722,10 +674,18 @@ terms_rulings:
     platform_host: reddit.com
     reviewed_on: 2026-08-18
     reviewed_by: anooj
-    basis: internal-development-only
+    basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
     summary: >-
+      AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
+      The basis moves from internal-development-only to
+      public-derived-publication (use_basis_undertaking, top of this file):
+      derived content
+      is published - Reddit only as the platform's official embed, never quoted. The reading below is kept as ruled: what was
+      read and what was not is unchanged, and the unread terms it lists are
+      the accepted risk of publishing, recorded rather than resolved.
+      ---- AS RULED ----
       Access via a RapidAPI reseller, verified as a proxy of Reddit's official
       Data API rather than a scrape: t2_ fullnames, subreddit_id, Reddit's own
       cursor, 104 fields per post.
@@ -787,7 +747,7 @@ terms_rulings:
     # acquired external users. That gap is why the four conditions above are
     # recorded rather than treated as handled.
     live_preconditions:
-      use_basis: [internal-development-only]
+      use_basis: [public-derived-publication]
     recorded_evidence:
       official_api_proxy: [true]
       full_text_republished: [false]
@@ -912,11 +872,19 @@ terms_rulings:
     platform_host: arxiv.org
     reviewed_on: 2026-09-08
     reviewed_by: anooj
-    basis: internal-development-only
+    basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: true
     summary: >-
+      AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
+      The basis moves from internal-development-only to
+      public-derived-publication (use_basis_undertaking, top of this file):
+      derived content
+      is published - papers credited by title and link with arXiv's acknowledgement. The reading below is kept as ruled: what was
+      read and what was not is unchanged, and the unread terms it lists are
+      the accepted risk of publishing, recorded rather than resolved.
+      ---- AS RULED ----
       RULED 2026-09-08. Access is the Atom API at export.arxiv.org and never
       arxiv.org's HTML or the PDFs.
 
@@ -969,7 +937,7 @@ terms_rulings:
     # and NOT an observation of whether anything has been published.
     live_preconditions:
       access_path: [api]
-      use_basis: [internal-development-only]
+      use_basis: [public-derived-publication]
     recorded_evidence:
       republication_claimed: [false]
       terms_document_read: [false]
@@ -1003,11 +971,19 @@ terms_rulings:
     platform_host: x.com
     reviewed_on: 2026-09-08
     reviewed_by: anooj
-    basis: internal-development-only
+    basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: true
     summary: >-
+      AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
+      The basis moves from internal-development-only to
+      public-derived-publication (use_basis_undertaking, top of this file):
+      derived content
+      is published - X only as the platform's official embed, never quoted. The reading below is kept as ruled: what was
+      read and what was not is unchanged, and the unread terms it lists are
+      the accepted risk of publishing, recorded rather than resolved.
+      ---- AS RULED ----
       RULED 2026-09-08, INHERITING `reddit-via-rapidapi`. Access is a RapidAPI
       scraper provider selected by `SCRAPER_PROVIDER` (`twitter241` today), NOT
       X's own API - the same gateway, the same `RAPIDAPI_KEY` and the same
@@ -1081,7 +1057,7 @@ terms_rulings:
       access_path: [rapidapi-reseller]
       scraper_provider: [twitter241]
       credential_present: [true]
-      use_basis: [internal-development-only]
+      use_basis: [public-derived-publication]
     recorded_evidence:
       republication_claimed: [false]
       terms_document_read: [false]
@@ -1160,7 +1136,7 @@ terms_rulings:
     platform_host: dev.to
     reviewed_on: 2026-09-09
     reviewed_by: parvathi
-    basis: internal-development-only
+    basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: true
@@ -1169,7 +1145,7 @@ terms_rulings:
       # and did not check it, so the same deployment refused Reddit and
       # harvested from here under the identical sentence. See
       # docs/proposals/the-undertaking-replaces-environment.md.
-      use_basis: [internal-development-only]
+      use_basis: [public-derived-publication]
       access_path: [api]
       search_endpoint: ["/articles/search"]
     recorded_evidence:
@@ -1178,6 +1154,14 @@ terms_rulings:
       robots_checked: [false]
       legal_review_completed: [false]
     summary: |
+      AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
+      The basis moves from internal-development-only to
+      public-derived-publication (use_basis_undertaking, top of this file):
+      derived content
+      is published - quotes with the platform's credit and a link, never full text. The reading below is kept as ruled: what was
+      read and what was not is unchanged, and the unread terms it lists are
+      the accepted risk of publishing, recorded rather than resolved.
+      ---- AS RULED ----
       RULED 2026-09-09. Access is the documented public API at dev.to/api and
       never the site HTML. The search endpoint needs no credential, which is a
       fact about the route and NOT a statement about permission.
@@ -1214,7 +1198,7 @@ terms_rulings:
     platform_host: news.ycombinator.com
     reviewed_on: 2026-09-09
     reviewed_by: parvathi
-    basis: internal-development-only
+    basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: true
@@ -1223,7 +1207,7 @@ terms_rulings:
       # and did not check it, so the same deployment refused Reddit and
       # harvested from here under the identical sentence. See
       # docs/proposals/the-undertaking-replaces-environment.md.
-      use_basis: [internal-development-only]
+      use_basis: [public-derived-publication]
       access_path: [api]
     recorded_evidence:
       republication_claimed: [false]
@@ -1232,6 +1216,14 @@ terms_rulings:
       credentials_issued_by_platform: [false]
       legal_review_completed: [false]
     summary: |
+      AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
+      The basis moves from internal-development-only to
+      public-derived-publication (use_basis_undertaking, top of this file):
+      derived content
+      is published - quotes with the platform's credit and a link, never full text. The reading below is kept as ruled: what was
+      read and what was not is unchanged, and the unread terms it lists are
+      the accepted risk of publishing, recorded rather than resolved.
+      ---- AS RULED ----
       RULED 2026-09-09. Access is the Algolia-hosted HN Search API at
       hn.algolia.com/api/v1, never scraped HTML.
 
@@ -1275,7 +1267,7 @@ terms_rulings:
     platform_host: huggingface.co
     reviewed_on: 2026-09-09
     reviewed_by: parvathi
-    basis: internal-development-only
+    basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: true
@@ -1284,7 +1276,7 @@ terms_rulings:
       # and did not check it, so the same deployment refused Reddit and
       # harvested from here under the identical sentence. See
       # docs/proposals/the-undertaking-replaces-environment.md.
-      use_basis: [internal-development-only]
+      use_basis: [public-derived-publication]
       access_path: [api]
     recorded_evidence:
       republication_claimed: [false]
@@ -1292,6 +1284,14 @@ terms_rulings:
       robots_checked: [false]
       legal_review_completed: [false]
     summary: |
+      AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
+      The basis moves from internal-development-only to
+      public-derived-publication (use_basis_undertaking, top of this file):
+      derived content
+      is published - quotes with the platform's credit and a link, never full text. The reading below is kept as ruled: what was
+      read and what was not is unchanged, and the unread terms it lists are
+      the accepted risk of publishing, recorded rather than resolved.
+      ---- AS RULED ----
       RULED 2026-09-09. Access is the documented public API at huggingface.co/api
       - repo search and the discussions endpoints - never the site HTML and never
       model weights.

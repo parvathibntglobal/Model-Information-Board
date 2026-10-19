@@ -38,18 +38,21 @@ def signed_undertaking(monkeypatch):
 
     sources_module.load_sources.cache_clear()
     real = sources_module.load_sources()
+    # THE CONTRACT'S OWN UNDERTAKING, signed by "tester" and dated today, so
+    # the fixture follows whatever basis contract/sources.yaml asserts. It
+    # hardcoded `internal-development-only` and its four conditions until
+    # 2026-10-19, and moving to `public-derived-publication` broke 19 tests
+    # that were about the gate, not about which basis it holds.
+    # BOTH HALVES. `required_conditions` is the closed set the checker reads
+    # (#314); `conditions` is what the person asserts.
+    contract = real.use_basis_undertaking
     block = {
-        "asserts": "internal-development-only",
+        "asserts": contract["asserts"],
         "asserted_by": "tester",
         "asserted_on": date.today(),
         "review_valid_days": 30,
-        # BOTH HALVES. `required_conditions` is the closed set the checker
-        # reads (#314); `conditions` is what the person asserts. A fixture that
-        # supplied only the second would void every undertaking it built.
-        "required_conditions": {"auth_walled": True, "external_users": False,
-                                "publicly_linked": False, "monetized": False},
-        "conditions": {"auth_walled": True, "external_users": False,
-                       "publicly_linked": False, "monetized": False},
+        "required_conditions": dict(contract["required_conditions"]),
+        "conditions": dict(contract["required_conditions"]),
     }
     monkeypatch.setattr(
         sources_module, "load_sources",
