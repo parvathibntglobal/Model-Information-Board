@@ -9,19 +9,19 @@ import { PRIVATE } from '../seo/pages'
 /**
  * KEYWORD PLAN (2026-10-19, anooj): which keywords to use on which PUBLIC page.
  *
- * Every combination on the SEO workbook's Combinations sheet, expanded with the
- * board's own values (seo/keyword_plan.yaml), and kept when people search it
- * at least `min_monthly_searches` times a month - 10,000 by default. The
- * volume is a Google Keyword Planner band from the workbook, or an ESTIMATE
- * from one: the head term's measured band x the share of searches that add
- * that modifier, a share the build MEASURES from the workbook's own pairs.
- * A keyword with neither is not shown (scripts/build_keyword_plan.py).
+ * ONE SECTION PER PAGE, at least `per_section` keywords each, written from that
+ * page's intent as real search queries, each traced to its combo code on the
+ * SEO workbook's Combinations sheet (seo/keyword_plan.yaml). No volume floor.
+ *
+ * A VOLUME is shown only where there is one: a Google Keyword Planner band from
+ * the workbook, or an ESTIMATE from one (the head's measured band x a share the
+ * build measures from the workbook's own pairs). Everything else says "not
+ * measured" - most keywords here - never a guess (scripts/build_keyword_plan.py).
  *
  * PAGES are the site's page layouts, not every post or comparison: a blog
  * post, a model page, a comparison are one page each, and a keyword names the
- * one it belongs on (its link). Pages that do not exist yet are suggested as
- * NEW PAGES or NEW TOOLS, with the keywords that would justify them. Nothing
- * behind the sign-in is a target: a search visitor cannot reach it.
+ * one it belongs on (its link). NEW PAGES and NEW TOOLS are suggestions, with
+ * the keywords that would justify them. Nothing behind the sign-in is a target.
  */
 const GROUPS = [
   { kind: 'page', label: 'Pages on the site' },
@@ -37,19 +37,14 @@ export default function KeywordPlan() {
   const [err, setErr] = useState(null)
   const [sp, setSp] = useSearchParams()
   const pageKey = sp.get('p') || ''
-  const [below, setBelow] = useState(false)
   const [q, setQ] = useState('')
   const [sort, setSort] = useState({ k: 'searches', dir: -1 })
   const [shown, setShown] = useState(STEP)
 
   useEffect(() => { adminSeoKeywordPlan().then(setData).catch((e) => setErr(e.message)) }, [])
 
-  const floor = data?.min_monthly_searches || 0
   const pages = useMemo(() => new Map((data?.pages || []).map((p) => [p.key, p])), [data])
-  const inScope = useMemo(
-    () => (data?.keywords || []).filter((k) => below || k.searches >= floor),
-    [data, below, floor],
-  )
+  const inScope = useMemo(() => data?.keywords || [], [data])
   const perPage = useMemo(() => {
     const c = {}
     inScope.forEach((k) => { c[k.page] = (c[k.page] || 0) + 1 })
@@ -70,7 +65,7 @@ export default function KeywordPlan() {
     })
   }, [inScope, pageKey, q, sort, pages])
 
-  useEffect(() => { setShown(STEP) }, [pageKey, below, q, sort])
+  useEffect(() => { setShown(STEP) }, [pageKey, q, sort])
 
   const choose = (key) => setSp(key ? { tab: 'plan', p: key } : { tab: 'plan' })
   const th = (k, label, num) => {
@@ -95,8 +90,8 @@ export default function KeywordPlan() {
   }
   const m = data.method || {}
   const c = m.counts || {}
-  const total = data.keywords.length
-  const atFloor = data.keywords.filter((k) => k.searches >= floor).length
+  const want = data.per_section
+  const short = Object.entries(m.short_sections || {})
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -104,13 +99,14 @@ export default function KeywordPlan() {
         <span className="eyebrow">Signed in · Keyword plan</span>
         <h1 style={{ fontSize: 'var(--fs-h2)' }}>Keyword plan</h1>
         <p className="muted" style={{ maxWidth: '80ch' }}>
-          Keywords people search at least {fmt(floor)} times a month, worldwide, and the public page each one should be
-          used on. Built from every combination on the SEO workbook. A volume is a Google Keyword Planner band from the
-          workbook, or an estimate made from one; the table says which.
+          The search queries to use on each public page, written from what that page is for, at least {fmt(want)} per
+          section, each traced to its combination on the SEO workbook. Searches a month are shown where Google Keyword
+          Planner measured them, or where they can be estimated from a measurement; the rest say "not measured".
         </p>
         <p className="kw-meta mono">
-          Plan {data.built} · {atFloor} keywords at {fmt(floor)}+ a month · {total - atFloor} with a volume below it ·
-          {' '}{fmt(c.no_volume)} generated with no volume · {fmt(c.generated)} generated in all
+          Plan {data.built} · {fmt(c.keywords)} keywords in {data.pages.length} sections · {fmt(c.measured)} measured ·
+          {' '}{fmt(c.estimated)} estimated · {fmt(c.not_measured)} not measured
+          {short.length ? ` · below ${want}: ${short.map(([k, n]) => `${pages.get(k)?.name || k} ${n}`).join(', ')}` : ''}
         </p>
         <details className="kw-method">
           <summary>How the volumes are worked out</summary>
@@ -130,16 +126,16 @@ export default function KeywordPlan() {
                     <td className="mono">{cls}</td>
                     <td className="num mono">{s.share == null ? 'none' : `${(100 * s.share).toFixed(1)}%`}</td>
                     <td>{s.pairs.length
-                      ? s.pairs.map((p) => `${p.keyword} (${p.band}) / ${p.head} (${p.head_band})`).join(' · ')
+                      ? s.pairs.map((p) => `${p.keyword} (${p.keyword_band}) / ${p.head} (${p.head_band})`).join(' · ')
                       : 'no measured pair'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <p className="muted">
-              {Object.keys(m.skipped_combinations || {}).length} combinations make no keyword, each with its reason:
-              {' '}{Object.entries(m.skipped_combinations || {}).map(([k, why]) => `${k} (${why})`).join(' · ')}.
-              {' '}{fmt(c.one_word_dropped)} one-word keywords were dropped: one word is kept only when it names a model.
+              Each section takes one keyword from each of its phrasings in turn, with a different mix of values per
+              phrasing, so no section is one phrasing repeated with every model name. One word is kept only when it
+              names a model.
             </p>
           </div>
         </details>
@@ -178,9 +174,7 @@ export default function KeywordPlan() {
           </div>
           <p className="muted">{page.about}</p>
           <p className="muted">
-            {perPage[page.key]
-              ? `${perPage[page.key]} keyword${perPage[page.key] === 1 ? '' : 's'} to use on this page${below ? '' : `, each searched ${fmt(floor)}+ times a month`}.`
-              : `No keyword reaches ${fmt(floor)} searches a month here${below ? '' : ' - tick "Include keywords below" to see the rest'}.`}
+            {fmt(perPage[page.key] || 0)} keywords for this page, from {page.phrasings} phrasings.
           </p>
         </section>
       )}
@@ -189,10 +183,6 @@ export default function KeywordPlan() {
         <span className="kw-filters-search">
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a keyword or pattern…" aria-label="Find a keyword" />
         </span>
-        <label className="kw-check">
-          <input type="checkbox" checked={below} onChange={(e) => setBelow(e.target.checked)} />
-          Include keywords below {fmt(floor)} a month ({total - atFloor})
-        </label>
         <span className="kw-count mono">{rows.length} shown</span>
       </div>
 
@@ -216,8 +206,10 @@ export default function KeywordPlan() {
               return (
                 <tr key={k.keyword}>
                   <th scope="row" className="kw-kw">{k.keyword}</th>
-                  <td className="num mono">{k.volume}</td>
-                  <td className={k.volume_kind === 'estimated' ? 'kw-variant' : undefined}>{k.volume_kind === 'measured' ? 'Measured' : 'Estimated'}</td>
+                  <td className="num mono">{k.volume ?? ''}</td>
+                  <td className={k.volume_kind === 'measured' ? undefined : 'kw-variant'}>
+                    {k.volume_kind === 'measured' ? 'Measured' : k.volume_kind === 'estimated' ? 'Estimated' : 'Not measured'}
+                  </td>
                   {!pageKey && (
                     <td>
                       <button type="button" className="kw-linkbtn" onClick={() => choose(k.page)}>{p?.name || k.page}</button>
@@ -237,7 +229,7 @@ export default function KeywordPlan() {
             })}
           </tbody>
         </table>
-        {!rows.length && <p className="muted kw-empty">No keyword here{below ? '' : ` at ${fmt(floor)}+ a month`}.</p>}
+        {!rows.length && <p className="muted kw-empty">No keyword matches.</p>}
       </div>
       {rows.length > shown && (
         <button type="button" className="btn btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => setShown((n) => n + STEP)}>

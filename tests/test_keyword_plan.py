@@ -2,13 +2,14 @@
 
 scripts/build_keyword_plan.py runs by hand (it reads the SEO workbook); its
 rules are pure and pinned here, and the committed plan is checked for what the
-page promises: public pages only, one word only for a model, and no volume
-without a measurement behind it.
+page promises: public pages only, every section full, one word only for a
+model, no phrasing crowding out the rest, and no volume without a measurement.
 """
 
 from __future__ import annotations
 
 import importlib.util
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -19,13 +20,14 @@ from judge import gate, keyword_plan
 from judge.app import app
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location(
+_spec = importlib.util.spec_from_file_location(
     "build_keyword_plan", ROOT / "scripts" / "build_keyword_plan.py"
 )
-build = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(build)
+build = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(build)
 
 SIGNED_IN = ("/board", "/models", "/admin", "/seo-keywords", "/keywords", "/login")
+PLAN_YAML = yaml.safe_load((ROOT / "seo" / "keyword_plan.yaml").read_text(encoding="utf-8"))
 
 
 # ── the endpoint ────────────────────────────────────────────────────────────
@@ -73,31 +75,72 @@ def test_every_target_is_a_public_page():
         assert not k["link"].split("?")[0].startswith(SIGNED_IN), k
 
 
+def test_every_section_holds_at_least_its_minimum():
+    data = _plan()
+    per = Counter(k["page"] for k in data["keywords"])
+    for p in data["pages"]:
+        assert per[p["key"]] >= data["per_section"], (p["key"], per[p["key"]])
+
+
+def test_the_suggestions_that_were_turned_down_stay_out():
+    """Ruled 2026-10-19 (anooj): Glossary, What changed and Developer guides
+    stay; these went, and a new suggestion must be a different idea."""
+    gone = {
+        "Benchmarks",
+        "Provider pages",
+        "Run models locally",
+        "Data, privacy and compliance",
+        "Best model by industry or team",
+        "LLM price tracker",
+        "Hardware and VRAM calculator",
+        "Model selection checklist",
+        "Comparison download",
+    }
+    names = {p["name"] for p in _plan()["pages"]}
+    assert not gone & names
+    assert {"Glossary", "What changed", "Developer guides"} <= names
+
+
+def test_no_phrasing_crowds_out_a_section():
+    """The point of the round-robin: a section is many phrasings, not one
+    phrasing with every model name. No phrasing holds more than a tenth."""
+    data = _plan()
+    by = {}
+    for k in data["keywords"]:
+        by.setdefault(k["page"], Counter())[k["pattern"]] += 1
+    for page, pats in by.items():
+        assert pats.most_common(1)[0][1] <= sum(pats.values()) // 10, (page, pats.most_common(1))
+
+
+def test_a_keyword_is_on_one_section_only():
+    keys = [build.norm(k["keyword"]) for k in _plan()["keywords"]]
+    assert len(keys) == len(set(keys))
+
+
 def test_one_word_is_a_model_or_nothing():
+    names = {build.norm(v) for k in ("model", "casual") for v in PLAN_YAML["pools"][k]}
+    names |= {build.norm(m["name"]) for m in build.tracked_models(None)}
     for k in _plan()["keywords"]:
-        if len(build.norm(k["keyword"]).split()) == 1:
-            assert k["combo"].startswith("E20"), k
+        key = build.norm(k["keyword"])
+        if len(key.split()) == 1:
+            assert key in names, k
 
 
 def test_every_volume_has_a_measurement_behind_it():
     data = _plan()
     shares = data["method"]["shares"]
     for k in data["keywords"]:
-        assert k["volume_kind"] in ("measured", "estimated")
+        assert k["volume_kind"] in ("measured", "estimated", None)
         if k["volume_kind"] == "estimated":
             cls = k["basis"].split(" x ")[1].split(" share")[0]
             assert shares[cls]["share"] is not None and shares[cls]["pairs"], k
+        if k["volume_kind"] is None:
+            assert k["volume"] is None and k["searches"] is None, k
 
 
-def test_the_threshold_comes_from_the_plan_file():
-    plan = yaml.safe_load((ROOT / "seo" / "keyword_plan.yaml").read_text(encoding="utf-8"))
-    assert _plan()["min_monthly_searches"] == plan["min_monthly_searches"]
-
-
-def test_every_combination_names_a_page_or_a_reason():
-    plan = yaml.safe_load((ROOT / "seo" / "keyword_plan.yaml").read_text(encoding="utf-8"))
-    for code, spec in plan["combinations"].items():
-        assert spec.get("skip") or spec.get("page") in plan["pages"], code
+def test_every_section_names_a_page():
+    for key in PLAN_YAML["sections"]:
+        assert key in PLAN_YAML["pages"], key
 
 
 # ── the rules ───────────────────────────────────────────────────────────────
@@ -111,23 +154,36 @@ def test_a_band_is_read_as_a_range():
     assert build.midpoint((0, 0)) == 0
 
 
-VALUES = {
-    "model": [
-        {"name": "Claude Opus 5"},
-        {"name": "GPT 5"},
-        {"name": "Nano Banana", "kind": "image"},
-    ],
-    "vendor": [{"name": "OpenAI"}],
+POOLS = {
+    "model": [{"name": "claude opus 5"}, {"name": "gpt 5"}, {"name": "kimi k3"}],
+    "job": [{"name": "coding"}, {"name": "rag"}],
 }
 
 
-def test_a_pair_is_made_once_and_like_with_like():
-    made = [kw for kw, _ in build.expand("{model} vs {model_b}", VALUES)]
-    assert made == ["Claude Opus 5 vs GPT 5"]
+def test_a_phrasing_draws_the_same_values_every_build():
+    a = list(build.candidates("{model} for {job}", POOLS, "page|t"))
+    b = list(build.candidates("{model} for {job}", POOLS, "page|t"))
+    assert [k for k, _ in a] == [k for k, _ in b] and len(a) == 6
 
 
-def test_a_template_with_no_values_makes_nothing():
-    assert list(build.expand("{benchmark} leaderboard", VALUES)) == []
+def test_a_pair_never_meets_itself():
+    for kw, used in build.candidates("{model} vs {model_b}", POOLS, "s"):
+        assert used["model"]["name"] != used["model_b"]["name"], kw
+
+
+def test_a_phrasing_with_no_values_makes_nothing():
+    assert list(build.candidates("{benchmark} leaderboard", POOLS, "s")) == []
+
+
+def test_a_section_takes_its_phrasings_in_turn():
+    groups = [{"combo": "E20", "t": ["{model} pricing", "{model} review"]}]
+    rows = build.pick("model", groups, POOLS, 4, set())
+    assert [r["pattern"] for r in rows] == ["{model} pricing", "{model} review"] * 2
+
+
+def test_a_keyword_already_taken_is_skipped():
+    groups = [{"combo": "E1", "t": ["llm leaderboard"]}]
+    assert build.pick("home", groups, POOLS, 5, {"llm leaderboard"}) == []
 
 
 def test_one_word_survives_only_as_a_model():
@@ -136,32 +192,16 @@ def test_one_word_survives_only_as_a_model():
     assert build.one_word_ok("coding agents", {"job": {"name": "coding agents"}})
 
 
-PLANNER = {
-    "gpt 5": {
-        "keyword": "gpt 5",
-        "band": (100_000, 1_000_000),
-        "label": "100K – 1M",
-        "combo": "E20",
-    },
-    "gpt 5 pricing": {
-        "keyword": "gpt 5 pricing",
-        "band": (1_000, 10_000),
-        "label": "1K – 10K",
-        "combo": "E20",
-    },
-    "cheapest llm": {
-        "keyword": "cheapest llm",
-        "band": (1_000, 10_000),
-        "label": "1K – 10K",
-        "combo": "E12",
-    },
-    "cheapest llm api": {
-        "keyword": "cheapest llm api",
-        "band": (1_000, 10_000),
-        "label": "1K – 10K",
-        "combo": "E12",
-    },
-}
+def _planner(*rows):
+    return {k: {"keyword": k, "band": b, "label": lab} for k, b, lab in rows}
+
+
+PLANNER = _planner(
+    ("gpt 5", (100_000, 1_000_000), "100K – 1M"),
+    ("gpt 5 pricing", (1_000, 10_000), "1K – 10K"),
+    ("cheapest llm", (1_000, 10_000), "1K – 10K"),
+    ("cheapest llm api", (1_000, 10_000), "1K – 10K"),
+)
 
 
 def test_a_share_is_measured_from_a_heads_own_pair():
@@ -174,7 +214,7 @@ def test_a_share_is_measured_from_a_heads_own_pair():
 
 def test_a_phrase_that_is_not_a_value_never_calibrates():
     """ "cheapest llm" -> "cheapest llm api" is not a model's API searches; taking
-    it made the first build's api share 316% (2026-10-19)."""
+    it made a first build's api share 316% (2026-10-19)."""
     shares = build.measure_shares({"api": ["{model} api"]}, PLANNER, {"model": [{"name": "gpt 5"}]})
     assert shares["api"] == {"share": None, "pairs": []}
 
@@ -185,14 +225,13 @@ def test_an_estimate_needs_a_measured_head_and_a_share():
     est = build.volume(
         "gpt 5 price", "{model} price", {"model": {"name": "gpt 5"}}, PLANNER, shares, cls_of
     )
-    assert est["volume_kind"] == "estimated" and est["searches"] == 6300
-    none = build.volume(
-        "grok 9 price", "{model} price", {"model": {"name": "grok 9"}}, PLANNER, shares, cls_of
-    )
-    assert none["volume_kind"] is None
+    assert est["volume_kind"] == "estimated" and est["searches"] == 6320
+    unknown = {"model": {"name": "grok 9"}}
+    none = build.volume("grok 9 price", "{model} price", unknown, PLANNER, shares, cls_of)
+    assert none["volume_kind"] is None and none["searches"] is None
 
 
 def test_a_page_type_url_loses_its_pattern():
     assert build.base_url("/compare?ids=<a>,<b>") == "/compare"
-    assert build.base_url("/benchmarks/<benchmark>") == "/benchmarks"
+    assert build.base_url("/glossary/<concept>") == "/glossary"
     assert build.base_url("/model-finder") == "/model-finder"

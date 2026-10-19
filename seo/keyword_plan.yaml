@@ -1,485 +1,279 @@
 # The keyword plan: which keywords to use on which public page.
 #
-# Read by scripts/build_keyword_plan.py, which expands every combination below
-# with the values at the bottom, gives each keyword a monthly search volume -
-# measured where Google Keyword Planner measured it, estimated where it did not
-# - and writes seo/keyword_plan.json for the "Keyword plan" tab of
-# /seo-keywords. Proposed 2026-10-19 (anooj); everything here is editable.
+# Read by scripts/build_keyword_plan.py, which writes seo/keyword_plan.json for
+# the "Keyword plan" tab of /seo-keywords. Proposed 2026-10-19 (anooj); every
+# line here is editable.
 #
-# SOURCE: the Combinations sheet of "Model Information Board —SEO keywords.xlsx"
-# (262 combinations). Each combination keeps its combo code; its keywords are
-# written out here as templates because the sheet's patterns pack alternatives
-# into one line ("<model> latency / tokens per second" is two keywords) and a
-# mechanical split of them produced keywords nobody types.
+# ONE SECTION PER PAGE, and each section's keywords are written from THAT
+# page's intent: what a person searching would want the page to answer. Every
+# phrasing carries the combo code of the SEO workbook's Combinations sheet it
+# comes from, so a keyword traces back to the category grammar.
 #
-# PUBLIC PAGES ONLY. Nothing behind the sign-in (/board, /models, /admin) is a
-# target: a search visitor cannot reach it.
+# REAL QUERIES, NOT NAME SWAPS. A section has many phrasings; the builder draws
+# a different mix of values for each and takes keywords from the phrasings in
+# turn, so no section reads "claude latency, gpt latency, grok latency" - each
+# phrasing contributes a handful (scripts/build_keyword_plan.py, `pick`). At
+# least `per_section` keywords per section; a section that cannot reach it
+# says so on the dashboard rather than padding.
+#
+# PUBLIC PAGES ONLY. Nothing behind the sign-in (/board, /models, /admin).
 
-#: A keyword is listed when its monthly searches (global) are at least this,
-#: measured or estimated. The dashboard can show the rest on request.
-min_monthly_searches: 10000
+per_section: 520
 
-#: The year a "<year>" placeholder takes.
-year: 2026
-
-# ── the pages ────────────────────────────────────────────────────────────────
-# kind: page (exists today) · new-page / new-tool (suggested, does not exist)
 pages:
-  home:            {kind: page, name: Home, url: /, about: "The front door: best AI model for the job, LLM leaderboard alternative."}
-  tools:           {kind: page, name: Tools, url: /tools, about: "The three tools, side by side."}
-  picker:          {kind: page, name: Best AI model picker, url: /model-picker, about: "Best model for a job or capability, or a cheaper alternative."}
-  specs:           {kind: page, name: Model specs finder, url: /model-finder, about: "Filter every model by advertised spec: context, price, open weights, tools."}
-  tokens:          {kind: page, name: Token counter and cost calculator, url: /token-counter, about: "Count a prompt's tokens and price it on every model."}
-  blogs:           {kind: page, name: Blogs, url: /blogs, about: "The blog index."}
-  directory:       {kind: page, name: Blog directory, url: /blogs/directory, about: "Every post by model, topic, title or date."}
-  post:            {kind: page, name: Blog post, url: "/blogs/<slug>", about: "One post per topic: guides, explainers, comparisons, field reports."}
-  catalog:         {kind: page, name: All models, url: /catalog, about: "Every model by provider and type (provider and type views)."}
-  new:             {kind: page, name: New releases, url: /catalog/new, about: "Models released recently."}
-  model:           {kind: page, name: Model page, url: "/catalog/model/<model>", about: "One model: price, context, specs, what engineers report."}
+  home:            {kind: page, name: Home, url: /, about: "Find the best AI model for the job, from what engineers report. An LLM leaderboard alternative."}
+  tools:           {kind: page, name: Tools, url: /tools, about: "Free AI model tools: pick a model, filter by spec, price a prompt."}
+  picker:          {kind: page, name: Best AI model picker, url: /model-picker, about: "The best model for a job or capability, or a cheaper one that does it as well."}
+  specs:           {kind: page, name: Model specs finder, url: /model-finder, about: "Filter every model by advertised spec: context window, price, open weights, vision, tools."}
+  tokens:          {kind: page, name: Token counter and cost calculator, url: /token-counter, about: "Count a prompt's tokens and see what it costs on every model."}
+  blogs:           {kind: page, name: Blogs, url: /blogs, about: "Long-form posts on how AI models behave in production."}
+  directory:       {kind: page, name: Blog directory, url: /blogs/directory, about: "Every post, by model, topic, title or date."}
+  post:            {kind: page, name: Blog post, url: "/blogs/<slug>", about: "One post per topic: field reports, explainers, cost teardowns, migration guides."}
+  catalog:         {kind: page, name: All models, url: /catalog, about: "Every AI model, by provider and by type."}
+  new:             {kind: page, name: New releases, url: /catalog/new, about: "AI models released recently."}
+  model:           {kind: page, name: Model page, url: "/catalog/model/<model>", about: "One model: price, context, specs, and what engineers report about it."}
   compare:         {kind: page, name: Compare models, url: "/compare?ids=<a>,<b>", about: "Two or three models side by side."}
-  reports:         {kind: page, name: Most reported - models, url: /reports/models, about: "Which models engineers report on most, working or failing."}
-  reports_jobs:    {kind: page, name: Most reported - by job, url: /reports/jobs, about: "Each job and the models reported for it."}
-  reports_caps:    {kind: page, name: Most reported - by capability, url: /reports/capabilities, about: "Each capability and the models reported for it."}
-  reports_metrics: {kind: page, name: Most reported - by metric, url: /reports/metrics, about: "Figures engineers measured: speed, cost, benchmark results."}
-  discussions:     {kind: page, name: Discussions, url: /discussions, about: "Readers' own experiences with models."}
-  faq:             {kind: page, name: FAQ, url: "/#faq", about: "The questions section of the home page."}
+  reports:         {kind: page, name: Most reported - models, url: /reports/models, about: "Which models engineers report on most, and whether it worked."}
+  reports_jobs:    {kind: page, name: Most reported - by job, url: /reports/jobs, about: "Each job (coding agents, RAG, code review) and the models engineers used for it."}
+  reports_caps:    {kind: page, name: Most reported - by capability, url: /reports/capabilities, about: "Each capability (reasoning, tool use, vision) and how models did at it."}
+  reports_metrics: {kind: page, name: Most reported - by metric, url: /reports/metrics, about: "Figures engineers measured: speed, cost, benchmark scores."}
+  discussions:     {kind: page, name: Discussions, url: /discussions, about: "Readers' own experiences with AI models."}
+  faq:             {kind: page, name: FAQ, url: "/#faq", about: "Short answers to common questions about AI models and this board."}
 
-  new_glossary:    {kind: new-page, name: Glossary, url: /glossary, about: "One definition per term: what is an LLM, a context window, a benchmark. (The blog's unrouted glossary is a start.)"}
-  new_benchmarks:  {kind: new-page, name: Benchmarks, url: "/benchmarks/<benchmark>", about: "Each benchmark: what it measures, whether it is saturated, the scores engineers reported."}
-  new_providers:   {kind: new-page, name: Provider pages, url: "/providers/<vendor>", about: "One provider: its models, pricing, terms, alternatives. Today only a filter of All models."}
-  new_guides:      {kind: new-page, name: Developer guides, url: "/guides/<topic>", about: "API getting started, SDKs, errors, rate limits, integrations."}
-  new_local:       {kind: new-page, name: Run models locally, url: /local, about: "Local and self-hosted models: what runs where, hardware, open weights."}
-  new_trust:       {kind: new-page, name: "Data, privacy and compliance", url: /trust, about: "What each provider does with your data, and its certifications."}
-  new_changes:     {kind: new-page, name: What changed, url: /changes, about: "Model updates, deprecations and reported quality drift. The backend's /changelog is a start."}
-  new_industries:  {kind: new-page, name: Best model by industry or team, url: "/best-for/<industry>", about: "Healthcare, legal, finance, support, marketing."}
-  tool_price:      {kind: new-tool, name: LLM price tracker, url: /tools/price-tracker, about: "Every model's price over time, from the price history the registry already records."}
-  tool_vram:       {kind: new-tool, name: Hardware and VRAM calculator, url: /tools/hardware, about: "How much GPU memory a model needs, by size and quantisation."}
-  tool_checklist:  {kind: new-tool, name: Model selection checklist, url: /tools/checklist, about: "A checklist and evaluation template to download."}
-  tool_export:     {kind: new-tool, name: Comparison download, url: /compare, about: "A comparison as a spreadsheet or PDF, from Compare."}
+  glossary:        {kind: new-page, name: Glossary, url: "/glossary/<concept>", about: "One plain definition per term: tokens, context window, RAG, quantization. (The blog's unrouted glossary is a start.)"}
+  changes:         {kind: new-page, name: What changed, url: /changes, about: "Model updates, deprecations, version history and reported quality drift. The backend's /changelog is a start."}
+  guides:          {kind: new-page, name: Developer guides, url: "/guides/<devtask>", about: "Using model APIs: getting started, SDKs, errors, rate limits, streaming, tools."}
+  alternatives:    {kind: new-page, name: Alternatives, url: "/alternatives/<model>", about: "For one model, the models engineers moved to instead, and why: cheaper, faster, open."}
+  prompts:         {kind: new-page, name: Prompt library, url: "/prompts/<job>", about: "Prompts and system prompts that work, per model and per job."}
+  context_tool:    {kind: new-tool, name: Context window checker, url: /tools/context-checker, about: "Will this document, codebase or chat fit in a model's context window, and what does it cost to send."}
+  migration_tool:  {kind: new-tool, name: Migration helper, url: /tools/migration, about: "Moving from one model to another: settings that break, price change, what engineers report after switching."}
 
-# ── the combinations: page, and the keywords each one makes ──────────────────
-# Placeholders: {model} {model_b} {vendor} {vendor_b} {job} {capability}
-# {benchmark} {benchmark_b} {metric} {industry} {function} {role} {tool}
-# {language} {year}. A combination with `skip` makes no keywords; the reason is
-# shown on the dashboard.
-combinations:
-  # E20 named model
-  E20:        {page: model, keywords: ["{model}"]}
-  E20×F1:     {page: model, keywords: ["what is {model}"]}
-  E20×C1:     {page: compare, keywords: ["{model} vs {model_b}"]}
-  E20×C4:     {page: compare, keywords: ["{model} or {model_b} for {job}"]}
-  E20×C5:     {page: compare, keywords: ["difference between {model} and {model_b}"]}
-  E20×C8:     {page: compare, keywords: ["{model} comparison"]}
-  E20×M1:     {page: model, keywords: ["{model} pricing", "{model} price"]}
-  E20×M2:     {page: model, keywords: ["{model} api pricing", "{model} cost per token", "{model} cost per million tokens"]}
-  E20×M3:     {page: model, keywords: ["is {model} free", "is {model} open source"]}
-  E20×D5:     {page: model, keywords: ["{model} latency", "{model} tokens per second", "{model} speed"]}
-  E20×D2:     {page: model, keywords: ["{model} context window", "{model} token limit"]}
-  E20×T7:     {page: reports, keywords: ["{model} accuracy", "{model} hallucination rate"]}
-  E20×T10:    {page: model, keywords: ["{model} license", "{model} open weights"]}
-  E20×T9:     {page: new_providers, keywords: ["{model} vendor lock-in"]}
-  E20×O2:     {page: reports, keywords: ["does {model} actually work", "is {model} good"]}
-  E20×O4:     {page: reports, keywords: ["{model} downsides", "{model} cons"]}
-  E20×O8:     {page: reports, keywords: ["{model} reddit", "{model} honest review"]}
-  E20×O10:    {page: compare, keywords: ["is {model} worth upgrading to", "is {model} worth it"]}
-  E20×N8:     {page: new_changes, keywords: ["{model} deprecated", "{model} end of life"]}
-  E20×N9:     {page: new, keywords: ["{model} release date", "is {model} available"]}
-  E20×N10:    {page: new_changes, keywords: ["did {model} get worse", "{model} quality dropped", "{model} nerfed"]}
-  E20×I3:     {page: new_guides, keywords: ["{model} api", "{model} sdk"]}
-  E20×I5:     {page: post, keywords: ["migrate from {model} to {model_b}"]}
-  E20×P4:     {page: post, keywords: ["why does {model} hallucinate", "why is {model} slow"]}
-  E20×P5:     {page: reports, keywords: ["{model} limitations"]}
-  E20×A8:     {page: post, keywords: ["reduce {model} cost", "reduce {model} latency"]}
-  E20×W1:     {page: new_local, keywords: ["{model} hardware requirements", "{model} gpu requirements"]}
-  E20×W7:     {page: new_local, keywords: ["run {model} locally", "run {model} offline"]}
-  E20×H9:     {page: post, keywords: ["how to evaluate {model}"]}
-  E20×E19:    {page: reports_metrics, keywords: ["{model} {benchmark} score", "{model} {benchmark}"]}
-  E20×Q4:     {page: model, keywords: ["free {model}", "{model} free"]}
-  E20×Q7:     {page: new_local, keywords: ["self hosted {model}", "local {model}"]}
-  E20×Q12:    {skip: "<threshold> has no board values"}
-  # E1 core
-  E1:         {page: home, keywords: ["llm", "ai model", "large language model", "ai models", "llms"]}
-  E1×F1:      {page: new_glossary, keywords: ["what is an llm", "what is a large language model", "what is an ai model"]}
-  E1×F4:      {page: new_glossary, keywords: ["llm glossary", "ai glossary", "ai model terminology"]}
-  E1×F5:      {page: catalog, keywords: ["types of ai models", "types of llms", "open vs closed models"]}
-  E1×C3:      {page: home, keywords: ["best ai model", "best llm", "best ai models", "best large language model"]}
-  E1×C9:      {page: reports, keywords: ["ai model rankings", "llm rankings", "llm leaderboard", "ai leaderboard"]}
-  E1×G13:     {page: home, keywords: ["llm leaderboard", "ai leaderboard", "llm arena", "chatbot arena", "llm tracker", "ai model tracker", "llm leaderboard alternative"]}
-  E1×M2:      {page: tokens, keywords: ["llm cost comparison", "llm api pricing", "ai model pricing comparison", "llm price comparison"]}
-  E1×S1:      {page: picker, keywords: ["how to choose an llm", "which llm should i use", "which ai model should i use"]}
-  E1×S2:      {page: post, keywords: ["llm evaluation criteria", "how to evaluate an llm"]}
-  E1×C3×Q1:   {page: picker, keywords: ["best ai model for {job}", "best llm for {job}"]}
-  E1×C3×Q4:   {page: specs, keywords: ["best free llm", "best open source llm", "free llm api", "best free ai model"]}
-  E1×C3×Q7:   {page: new_local, keywords: ["best local llm", "best self hosted llm"]}
-  E1×C3×Q3:   {page: new, keywords: ["best ai model {year}", "best llm {year}", "latest ai models", "new ai models"]}
-  # E4 job
-  E4:         {page: reports_jobs, keywords: ["{job}"]}
-  E4×C3:      {page: picker, keywords: ["best model for {job}", "best llm for {job}", "best ai for {job}"]}
-  E4×C3×Q4:   {page: picker, keywords: ["best cheap model for {job}", "best free llm for {job}"]}
-  E4×S1:      {page: picker, keywords: ["how to choose a model for {job}"]}
-  E4×M2:      {page: tokens, keywords: ["{job} cost", "cost of {job} with llm"]}
-  E4×G13:     {page: reports_jobs, keywords: ["{job} leaderboard", "{job} benchmark"]}
-  # E3 capability
-  E3:         {page: reports_caps, keywords: ["{capability}"]}
-  E3×F1:      {page: new_glossary, keywords: ["what is {capability}"]}
-  E3×C3:      {page: picker, keywords: ["best model for {capability}", "best llm for {capability}"]}
-  E3×R2:      {page: new_benchmarks, keywords: ["{capability} benchmark"]}
-  E3×H9:      {page: post, keywords: ["how to evaluate {capability}"]}
-  # E19 benchmark
-  E19:        {page: new_benchmarks, keywords: ["{benchmark}"]}
-  E19×F1:     {page: new_benchmarks, keywords: ["what is {benchmark}", "{benchmark} explained"]}
-  E19×R9:     {page: post, keywords: ["is {benchmark} saturated", "{benchmark} contamination"]}
-  E19×R2:     {page: reports_metrics, keywords: ["{benchmark} results", "{benchmark} scores"]}
-  E19×C1:     {page: new_benchmarks, keywords: ["{benchmark} vs {benchmark_b}"]}
-  E19×G13:    {page: reports_metrics, keywords: ["{benchmark} leaderboard"]}
-  # E8 vendor
-  E8:         {skip: "a provider's bare name is navigational to the provider, not to this board"}
-  E8×C2:      {page: new_providers, keywords: ["{vendor} alternatives", "alternatives to {vendor}"]}
-  E8×C6:      {page: new_providers, keywords: ["{vendor} competitors"]}
-  E8×C1:      {page: new_providers, keywords: ["{vendor} vs {vendor_b}"]}
-  E8×M1:      {page: tokens, keywords: ["{vendor} api pricing", "{vendor} pricing"]}
-  E8×O8:      {page: discussions, keywords: ["{vendor} reddit", "{vendor} review"]}
-  E8×T10:     {page: new_providers, keywords: ["{vendor} terms of service", "{vendor} license"]}
-  E8×T4:      {page: new_providers, keywords: ["{vendor} commercial use"]}
-  E8×T9:      {page: new_providers, keywords: ["{vendor} vendor lock-in"]}
-  E8×C4:      {page: compare, keywords: ["{vendor} or {vendor_b} for {job}"]}
-  E8×D3:      {page: new_guides, keywords: ["{vendor} rate limits"]}
-  E8×P2:      {page: new_guides, keywords: ["{vendor} 429 error", "{vendor} api error"]}
-  E8×T2:      {page: new_trust, keywords: ["does {vendor} train on my data", "{vendor} data privacy"]}
-  E8×T6:      {page: new_trust, keywords: ["{vendor} status", "{vendor} outage", "{vendor} uptime"]}
-  E8×T8:      {page: new_trust, keywords: ["{vendor} usage policy"]}
-  E8×N8:      {page: new_changes, keywords: ["{vendor} deprecations"]}
-  E8×H1:      {page: new_guides, keywords: ["how to use {vendor} api"]}
-  E8×I3:      {page: new_guides, keywords: ["{vendor} api", "{vendor} sdk"]}
-  E8×I4:      {skip: "the 4th-pass pattern reads as two products, not a search"}
-  E8×N10:     {skip: "the 4th-pass pattern reads as two products, not a search"}
-  E8×U5:      {skip: "the 4th-pass pattern reads as two products, not a search"}
-  # E12 metric
-  E12:        {page: reports_metrics, keywords: ["{metric}"]}
-  E12×F1:     {page: new_glossary, keywords: ["what is {metric}"]}
-  E12×D5:     {page: model, keywords: ["{model} {metric}"]}
-  E12×Q12:    {skip: "<threshold> has no board values"}
-  E12×A3:     {page: post, keywords: ["how to reduce {metric}", "how to improve {metric}"]}
-  E12×C8:     {page: specs, keywords: ["{metric} comparison", "llm {metric} comparison"]}
-  E12×G13:    {page: tool_price, keywords: ["llm price tracker", "ai model price tracker", "llm {metric} tracker"]}
-  E12×G3:     {page: tokens, keywords: ["{metric} calculator", "llm cost calculator", "token cost calculator", "ai cost calculator"]}
-  E12×A8:     {page: post, keywords: ["reduce {metric}"]}
-  E12×M2:     {skip: "the 4th-pass pattern reads as a metric costed per token"}
-  E12×D2:     {skip: "the 4th-pass pattern reads as a metric with a context window"}
-  E12×P8:     {skip: "the 4th-pass pattern reads as a metric with a workaround"}
-  E12×R2:     {skip: "the 4th-pass pattern reads as a metric benchmarked"}
-  # E15 deployment
-  E15:        {page: new_local, keywords: ["local llm", "self hosted llm", "on device llm", "on premise llm"]}
-  E15×C3:     {page: new_local, keywords: ["best local llm", "best self hosted llm", "best local ai model"]}
-  E15×W7:     {page: new_local, keywords: ["run llm locally", "run llm offline", "offline ai model"]}
-  E15×M3:     {page: specs, keywords: ["open weight models", "open source llm", "open source ai models", "free llm"]}
-  E15×W1:     {page: tool_vram, keywords: ["local llm hardware requirements", "local llm gpu requirements"]}
-  E15×H5:     {page: new_local, keywords: ["self host llm", "deploy llm on premise"]}
-  E15×C1:     {skip: "the 4th-pass pattern reads as local vs local"}
-  E15×T2:     {skip: "the 4th-pass pattern reads as a deployment training on data"}
-  E15×Q7:     {skip: "the 4th-pass pattern repeats itself"}
-  # board artefacts and moats
-  E1×G13-moat: {page: home, keywords: ["live llm leaderboard", "ai model leaderboard live"]}
-  E1×G3:       {page: tokens, keywords: ["llm cost calculator", "token calculator", "token counter", "openai token counter", "llm token counter"]}
-  E19×R9-moat: {page: post, keywords: ["llm benchmark methodology", "benchmark gaming"]}
-  E20×N10-moat: {page: new_changes, keywords: ["model drift", "llm drift", "ai model drift"]}
-  E20×O8-moat: {page: discussions, keywords: ["llm reviews", "ai model reviews"]}
-  # editorial (blog posts)
-  E20×R7:      {page: post, keywords: ["switched from {model} to {model_b}"]}
-  E20×N10-blog: {page: post, keywords: ["is {model} getting worse"]}
-  E20×O8-blog: {page: post, keywords: ["{model} review"]}
-  E20×O4-blog: {page: post, keywords: ["{model} problems"]}
-  E20×R8:      {page: post, keywords: ["{model} in production"]}
-  E19×R9-blog: {page: post, keywords: ["is {benchmark} reliable"]}
-  E20×T10-blog: {page: post, keywords: ["open weights vs open source"]}
-  E12×M6:      {page: post, keywords: ["llm cost optimization", "hidden costs of llm"]}
-  E20×N8-blog: {page: post, keywords: ["{model} deprecation"]}
-  E1×O5:       {skip: "an editorial angle, not a search"}
-  E20×P4-blog: {page: post, keywords: ["why does {model} hallucinate"]}
-  E1×R1:       {page: post, keywords: ["llm statistics", "ai model statistics", "llm market share"]}
-  E8×C2-blog:  {page: post, keywords: ["switching from {vendor}"]}
-  E4×R4:       {page: post, keywords: ["{model} for {job}"]}
-  # verticals and authority
-  E5×C3:       {page: new_industries, keywords: ["best ai model for {industry}", "best llm for {industry}"]}
-  E5×E4:       {page: new_industries, keywords: ["ai for {industry}", "llm for {industry}"]}
-  E5×S1:       {page: new_industries, keywords: ["choosing an llm for {industry}"]}
-  E6×C3:       {page: new_industries, keywords: ["best ai model for {function}", "best llm for {function}"]}
-  E6×E4:       {page: new_industries, keywords: ["ai for {function}", "llm for {function}"]}
-  E6×S1:       {page: new_industries, keywords: ["how to choose an ai model for {function}"]}
-  E6×C4:       {page: new_industries, keywords: ["which ai model for {function}"]}
-  E6×H6:       {page: post, keywords: ["automate {function} with ai"]}
-  E1×N2:       {page: blogs, keywords: ["ai model trends", "llm trends", "ai trends {year}"]}
-  E1×N7:       {page: post, keywords: ["history of llms", "llm timeline", "ai model timeline"]}
-  E1×R5:       {page: post, keywords: ["state of llms {year}", "state of ai {year}"]}
-  E20×O6:      {page: post, keywords: ["will {model} replace {role}", "will ai replace {role}"]}
-  E1×F6:       {page: post, keywords: ["llm best practices", "prompt engineering best practices", "prompt engineering"]}
-  # developer and API
-  E20×H1:      {page: new_guides, keywords: ["how to use {model}"]}
-  E20×H2:      {page: new_guides, keywords: ["{model} api getting started", "{model} api key"]}
-  E20×H8:      {page: new_guides, keywords: ["{model} {language}", "{model} api {language}"]}
-  E14×H8:      {page: new_guides, keywords: ["llm in {language}", "call llm api from {language}"]}
-  E14×H1:      {page: new_guides, keywords: ["how to call an llm from {language}"]}
-  E14×I3:      {page: new_guides, keywords: ["{language} llm sdk", "{language} openai sdk"]}
-  E14×D1:      {skip: "runtime requirements are not this board's subject"}
-  E20×I2:      {page: new_guides, keywords: ["{model} {tool}", "{model} with {tool}"]}
-  E20×I4:      {page: new_guides, keywords: ["does {model} work with {tool}"]}
-  E20×I8:      {page: new_guides, keywords: ["{model} mcp", "{model} openai compatible"]}
-  E20×G6:      {page: post, keywords: ["{model} system prompt", "{model} prompts"]}
-  # evaluation and selection
-  E1×S3:       {page: tool_checklist, keywords: ["llm selection checklist", "model selection checklist", "ai model evaluation template"]}
-  E1×S4:       {page: faq, keywords: ["questions to ask before choosing an llm"]}
-  E20×S6:      {page: post, keywords: ["how to test {model}", "{model} trial"]}
-  # trust and specs
-  E20×T1:      {page: new_trust, keywords: ["{model} security", "is {model} secure"]}
-  E20×T2:      {page: new_trust, keywords: ["does {model} train on my data", "{model} privacy"]}
-  E20×T3:      {page: new_trust, keywords: ["is {model} hipaa compliant", "{model} gdpr"]}
-  E20×T5:      {page: new_trust, keywords: ["{model} bias"]}
-  E20×T6:      {page: new_trust, keywords: ["{model} uptime", "{model} down", "{model} status"]}
-  E20×D3:      {page: new_guides, keywords: ["{model} rate limits", "{model} rate limit"]}
-  E20×D4:      {page: model, keywords: ["{model} supported languages", "{model} multilingual"]}
-  # troubleshooting
-  E20×P2:      {page: new_guides, keywords: ["{model} 429", "{model} error", "{model} timeout"]}
-  E20×P3:      {page: new_guides, keywords: ["{model} not working", "fix {model}"]}
-  E20×P6:      {page: reports, keywords: ["{model} failure modes"]}
-  E20×P8:      {page: new_guides, keywords: ["{model} workaround", "{model} rate limit workaround"]}
-  # local and hardware
-  E20×W2:      {page: tool_vram, keywords: ["{model} vram", "{model} vram requirements", "how many gpus for {model}"]}
-  E20×W3:      {page: new_local, keywords: ["{model} tokens per watt"]}
-  E20×W6:      {page: new_local, keywords: ["{model} vllm", "{model} cuda"]}
-  E1×W9:       {page: new_local, keywords: ["rent vs buy gpu for llm", "gpu for llm"]}
-  # assets and reviews
-  E1×G4:       {page: tool_export, keywords: ["llm cheat sheet", "ai model cheat sheet"]}
-  E1×G8:       {page: tool_export, keywords: ["llm comparison spreadsheet", "ai model comparison spreadsheet"]}
-  E1×G11:      {page: tool_export, keywords: ["llm comparison pdf"]}
-  E20×C7:      {page: reports, keywords: ["{model} review", "is {model} any good"]}
-  # community, pain and legitimacy
-  E20×P7:      {page: reports, keywords: ["problems with {model}", "{model} complaints", "{model} issues"]}
-  E20×P9:      {page: reports, keywords: ["why is {model} so slow", "{model} slow"]}
-  E20×O9:      {page: model, keywords: ["is {model} safe", "is {model} legit"]}
-  E20×A2:      {page: post, keywords: ["{model} deep dive"]}
-  E20×M5:      {page: post, keywords: ["cost savings switching to {model}"]}
-  E20×D1:      {page: new_local, keywords: ["{model} system requirements"]}
-  E20×D8:      {page: new_guides, keywords: ["{model} structured output", "{model} json mode"]}
-  E1×Q2:       {page: new_trust, keywords: ["eu hosted llm", "us hosted llm", "llm data residency"]}
-  E4×P1:       {skip: "<does the job> has no board values"}
-  # build, automate, upgrade, ops, governance
-  E4×H4:       {page: post, keywords: ["build an ai {job} app", "build {job} with llm"]}
-  E1×H4:       {page: post, keywords: ["build an llm app", "build an ai app"]}
-  E20×H4:      {page: post, keywords: ["build with {model}", "build an app with {model}"]}
-  E1×H6:       {page: post, keywords: ["ai automation", "llm workflow", "ai workflow automation"]}
-  E4×H6:       {page: post, keywords: ["automate {job} with ai"]}
-  E4×H7:       {skip: "<thing> has no board values"}
-  E20×U5:      {page: new_changes, keywords: ["upgrade to {model}", "{model} breaking changes"]}
-  E1×U6:       {page: post, keywords: ["llm monitoring", "llm observability"]}
-  E20×U6:      {page: post, keywords: ["monitor {model} in production"]}
-  E20×A7:      {page: post, keywords: ["how does {model} work", "{model} architecture"]}
-  E1×T8:       {page: new_trust, keywords: ["ai governance", "ai usage policy"]}
-  E20×T8:      {page: new_trust, keywords: ["{model} guardrails", "{model} content policy"]}
-  # the 4th pass, kept only where the pattern reads as a search
-  E1×P6:       {page: post, keywords: ["llm failure modes"]}
-  E1×C8:       {page: compare, keywords: ["llm comparison table", "ai model comparison", "compare ai models", "llm comparison"]}
-  E1×A7:       {page: post, keywords: ["how llms work", "llm architecture"]}
-  E1×R7:       {skip: "an editorial sentence, not a search"}
-  E1×T2:       {page: new_trust, keywords: ["does llm train on my data"]}
-  E1×P2:       {page: new_guides, keywords: ["llm api error", "llm timeout"]}
-  E1×D1:       {page: new_local, keywords: ["llm system requirements"]}
-  E1×D5:       {page: specs, keywords: ["llm latency", "llm tokens per second", "fastest llm"]}
-  E1×R2:       {page: new_benchmarks, keywords: ["llm benchmark", "llm benchmarks", "ai benchmarks"]}
-  E1×C1:       {skip: "reads as LLM vs LLM"}
-  E1×C4:       {skip: "reads as LLM or LLM"}
-  E1×H1:       {page: new_guides, keywords: ["how to use an llm"]}
-  E1×M3:       {page: specs, keywords: ["free llm", "is there a free llm"]}
-  E1×O6:       {page: post, keywords: ["will ai replace {role}"]}
-  E1×T1:       {page: new_trust, keywords: ["llm security"]}
-  E1×T3:       {page: new_trust, keywords: ["hipaa compliant llm", "gdpr compliant llm"]}
-  E1×U5:       {skip: "reads as upgrade to LLM"}
-  E1×G6:       {page: post, keywords: ["llm system prompt", "llm prompts"]}
-  E1×H2:       {page: new_guides, keywords: ["llm api getting started", "llm api tutorial"]}
-  E1×I4:       {skip: "reads as does LLM work with a tool"}
-  E1×P3:       {skip: "reads as fix LLM"}
-  E1×P5:       {page: post, keywords: ["llm limitations", "limitations of llms"]}
-  E1×P9:       {skip: "reads as why is LLM a nightmare"}
-  E1×R4:       {skip: "reads as a model running LLM"}
-  E1×R9:       {skip: "reads as is LLM saturated"}
-  E1×W2:       {page: tool_vram, keywords: ["vram for llm", "how much vram for llm", "gpu for local llm"]}
-  E1×D3:       {page: new_guides, keywords: ["llm rate limits"]}
-  E1×H8:       {page: new_guides, keywords: ["llm {language}"]}
-  E1×H9:       {page: post, keywords: ["how to evaluate llm", "llm evaluation"]}
-  E1×N10:      {skip: "reads as did LLM get worse"}
-  E1×S6:       {skip: "reads as how to trial LLM"}
-  E1×T9:       {page: post, keywords: ["llm vendor lock-in"]}
-  E1×W3:       {skip: "reads as LLM tokens per watt"}
-  E1×C7:       {skip: "reads as LLM review"}
-  E1×D2:       {page: specs, keywords: ["llm context window", "largest context window llm", "llm token limit"]}
-  E1×I2:       {page: new_guides, keywords: ["llm {tool}"]}
-  E1×I3:       {page: new_guides, keywords: ["llm api", "llm sdk"]}
-  E1×M1:       {page: tokens, keywords: ["llm pricing", "llm api pricing", "ai api pricing"]}
-  E1×M5:       {skip: "reads as switching to LLM"}
-  E1×M6:       {skip: "an editorial sentence, not a search"}
-  E1×P4:       {page: post, keywords: ["why do llms hallucinate", "llm hallucination"]}
-  E1×P7:       {skip: "reads as problems with LLM"}
-  E1×P8:       {skip: "reads as LLM workaround"}
-  E1×Q12:      {skip: "<threshold> has no board values"}
-  E1×R8:       {skip: "an editorial sentence, not a search"}
-  E1×T10:      {skip: "an editorial sentence, not a search"}
-  E1×T5:       {page: post, keywords: ["llm bias"]}
-  E1×T6:       {skip: "reads as LLM uptime"}
-  E1×T7:       {page: post, keywords: ["llm accuracy", "llm hallucination rate"]}
-  E1×W6:       {skip: "reads as CUDA for LLM"}
-  E19×C9:      {page: reports_metrics, keywords: ["{benchmark} leaderboard"]}
-  E3×D8:       {skip: "reads as a capability's schema"}
-  E3×C9:       {page: reports_caps, keywords: ["{capability} leaderboard", "best {capability} model"]}
-  E3×P4:       {skip: "reads as why does a capability hallucinate"}
-  E4×C9:       {page: reports_jobs, keywords: ["{job} leaderboard"]}
-  E3×P5:       {page: reports_caps, keywords: ["{capability} limitations"]}
-  E3×P6:       {skip: "reads as a capability's failure modes"}
-  E3×T7:       {skip: "reads as a capability's hallucination rate"}
-  E4×C4:       {skip: "reads as job or job for job"}
-  E4×C7:       {skip: "reads as a job reviewed"}
-  E4×G11:      {skip: "reads as a job as a PDF"}
-  E4×G6:       {page: post, keywords: ["{job} prompts", "{job} prompt"]}
-  E4×Q4:       {page: picker, keywords: ["free {job} ai", "free ai for {job}"]}
-  E1×Q3:       {page: new, keywords: ["latest ai models", "new llm releases", "new ai models {year}"]}
-  E1×H5:       {page: new_local, keywords: ["can i run an llm locally", "run llm locally"]}
-  E20×C2:      {page: model, keywords: ["{model} alternatives", "alternatives to {model}"]}
-  E20×M6:      {page: tokens, keywords: ["cost of running {model}", "{model} cost"]}
-  E20×N7:      {page: new_changes, keywords: ["{model} versions", "{model} version history"]}
-  E20×R2:      {page: reports_metrics, keywords: ["{model} benchmarks", "{model} benchmark scores"]}
+# ── value pools ──────────────────────────────────────────────────────────────
+# `model` also takes every text model in contract/tracked_models.yaml (added by
+# the script, with its catalog id). `casual` is how people actually type names.
+pools:
+  model: [claude opus 5.5, claude opus 5, claude sonnet 5.5, claude fable 5.1, claude haiku 4.5, gpt 6, gpt 5,
+          gpt 5 mini, gemini 3 pro, gemini 3 flash, gemini 3.8 flash, deepseek v4, deepseek v4 pro, deepseek v4 flash,
+          kimi k2, kimi k3, qwen3, glm 5.3, minimax m3, grok 4, grok 4.7, llama 4, mistral large 3]
+  casual: [claude, chatgpt, gemini, deepseek, grok, llama, qwen, kimi, glm, mistral, opus, sonnet, haiku, gpt 6, gpt 5,
+           gemini pro, gemini flash, copilot, minimax]
+  vendor: [openai, anthropic, google, deepseek, xai, alibaba, mistral, meta, moonshot ai, zhipu, minimax]
+  job: [coding, code review, debugging, refactoring, unit tests, web development, frontend, python, sql, data analysis,
+        writing, creative writing, copywriting, blog posts, summarization, translation, research, math, customer support,
+        chatbots, ai agents, coding agents, rag, document analysis, data extraction, classification, roleplay,
+        cybersecurity, legal documents, spreadsheets, emails, resumes, studying, game development]
+  task: [write code, debug python, summarize a pdf, translate documents, answer customer emails, write blog posts,
+         analyze a spreadsheet, extract data from invoices, build a chatbot, write sql queries, review pull requests,
+         write unit tests, solve math problems, write a cover letter, research a topic, automate workflows,
+         build ai agents, classify support tickets, write marketing copy, fix bugs, explain code, refactor legacy code,
+         read long documents, generate json, plan a project, write documentation, analyze contracts]
+  capability: [reasoning, coding, tool calling, function calling, long context, vision, image understanding,
+               structured output, instruction following, math, multilingual, memory, agentic tasks, computer use,
+               web browsing, creative writing, summarization]
+  #: What a spec filter can ask for: advertised features, not abilities.
+  feature: [function calling, tool calling, vision, image input, structured output, json mode, prompt caching,
+            streaming, batch api, web search, computer use, audio input, fine-tuning, a 1m context window,
+            reasoning mode, open weights]
+  #: Pairs of terms people actually compare.
+  cvs: [rag vs fine-tuning, tokens vs words, open weights vs open source, temperature vs top p, embeddings vs tokens,
+        lora vs full fine-tuning, moe vs dense models, prompt caching vs kv cache, function calling vs mcp,
+        ai agent vs chatbot, reasoning model vs llm, quantization vs distillation, context window vs max tokens,
+        system prompt vs user prompt, llm vs slm, gguf vs safetensors, rlhf vs dpo, batch api vs streaming,
+        latency vs throughput, pretraining vs fine-tuning, jailbreak vs prompt injection, rag vs long context,
+        agents vs workflows, llm vs chatbot, open source vs closed llms, input tokens vs output tokens]
+  benchmark: [swe-bench, swe-bench verified, swe-bench pro, terminal-bench, arc-agi, arc-agi 2, livebench, gpqa,
+              gpqa diamond, mmlu, mmlu-pro, humaneval, livecodebench, gsm8k, aime, mbpp, humanity's last exam,
+              osworld, lmarena, artificial analysis index]
+  metric: [context window, tokens per second, latency, time to first token, cost per million tokens,
+           max output tokens, price per token, throughput, rate limits, output speed]
+  concept: [llm, large language model, token, tokenizer, context window, prompt, system prompt, prompt engineering,
+            temperature, top p, max tokens, embeddings, vector database, rag, retrieval augmented generation, fine-tuning,
+            lora, rlhf, distillation, quantization, gguf, moe, mixture of experts, kv cache, prompt caching, inference,
+            latency, time to first token, throughput, parameters, active parameters, open weights, open source model,
+            closed model, foundation model, multimodal model, reasoning model, chain of thought, thinking tokens,
+            hallucination, grounding, function calling, tool use, structured output, json mode, ai agent, agentic ai,
+            multi-agent system, mcp, model context protocol, benchmark, llm eval, llm as a judge, context length,
+            attention, transformer, pretraining, post-training, model drift, knowledge cutoff, rate limit, batch api,
+            streaming, guardrails, prompt injection, jailbreak, red teaming, alignment, ai safety, model card,
+            api key, vision model, embedding model, small language model, local llm, frontier model]
+  language: [python, javascript, typescript, node.js, java, go, rust, c#, php, ruby]
+  tool: [langchain, llamaindex, vercel ai sdk, openai sdk, n8n, zapier, cursor, vs code, github copilot, aws bedrock,
+         azure, vertex ai, openrouter, ollama, lm studio, hugging face, fastapi, next.js]
+  error: [429 too many requests, rate limit exceeded, 401 unauthorized, 500 internal server error, 529 overloaded,
+          context length exceeded, timeout, invalid api key, quota exceeded, max tokens reached]
+  devtask: [stream responses, use function calling, get json output, count tokens, cache prompts, batch requests,
+            set a system prompt, send images, handle rate limits, set temperature, use tools, build an agent,
+            create embeddings, retry failed requests, reduce latency, lower api costs, upload a pdf, set max tokens]
+  audience: [developers, beginners, students, startups, small business, enterprises, data scientists, writers,
+             researchers, teams]
+  constraint: [cheap, free, fast, open source, local, small, lightweight, private, multilingual, long context]
+  amount: ["1000 words", "500 words", "a page of text", "10000 characters", "a 100 page pdf", "1 million tokens",
+           "100k tokens", "a novel", "a codebase", "an hour of chat"]
+  doc: [a 100 page pdf, a 300 page book, a whole codebase, a long contract, a research paper, a meeting transcript,
+        a spreadsheet, a legal case file, a chat history, documentation]
+  type: [text, image, video, speech, audio, transcription, embedding, coding, reasoning, multimodal, open source,
+         open weight, small, local, chat]
+  topic: [prompt engineering, ai agents, rag, fine-tuning, llm evaluation, model drift, llm costs, hallucination,
+          ai coding, multi-agent systems, open weights, local llms, reasoning models, context windows, ai benchmarks,
+          llm security, prompt injection, ai in production, mcp, agentic coding, vibe coding, ai code review,
+          llm observability, structured output]
+  when: [this week, this month, october 2026, "2026", today, recently]
+  year: ["2026", "2025"]
+  change: [update, changelog, release notes, new version, latest version]
+  issue: [forgetting, hallucinating, refusing, timing out, cutting off answers, ignoring instructions, getting lazy]
 
-# ── the values each placeholder takes ────────────────────────────────────────
-# A value may name the page it belongs on (`link`), so a keyword points at a
-# specific URL rather than a page type. `{model}` also takes every model in
-# contract/tracked_models.yaml, added by the script.
-values:
+# ── sections: page -> phrasings, each tagged with its workbook combo code ─────
+sections:
+  home:
+    - {combo: E1×C3, t: ["best ai model", "best ai model {year}", "best llm {year}", "what is the best ai model right now", "which ai model is the best", "best ai model for {job}", "best llm for {job}", "best ai for {task}", "which ai is best for {job}", "best ai model for {audience}", "best {constraint} ai model", "top ai models {year}", "most capable ai model {year}", "smartest ai model {year}"]}
+    - {combo: E1×G13, t: ["llm leaderboard", "ai leaderboard", "ai model leaderboard {year}", "llm leaderboard alternative", "llm rankings", "ai model rankings", "chatbot arena alternative", "lmarena alternative", "llm leaderboard for {job}", "real world llm leaderboard", "llm leaderboard based on real usage"]}
+    - {combo: E1×C8, t: ["ai model comparison", "compare ai models", "llm comparison", "compare llms for {job}", "ai model comparison {year}", "{casual} vs {casual_b}", "which is better {casual} or {casual_b}"]}
+    - {combo: E1×R4, t: ["which ai model do developers use", "what ai do engineers use for {job}", "ai models engineers actually use", "real world ai model reviews", "honest ai model reviews", "ai model reviews from developers", "what llm are people using for {job}"]}
+    - {combo: E4×C3, t: ["best ai for {job} {year}", "best ai coding assistant", "best ai for writing", "best ai for research", "best ai for students", "best free ai for {job}", "best open source llm for {job}"]}
+    - {combo: E1×C3, t: ["best ai models ranked by developers", "best llm for {audience} {year}", "which ai should i use {year}", "ai model reviews {year}", "best ai model for {job} reddit", "most reliable ai model for {job}", "best value ai model {year}"]}
+  tools:
+    - {combo: E1×G13, t: ["ai model tools", "free ai model tools", "llm tools", "free llm tools for {audience}", "ai model selection tool", "ai model finder", "llm finder", "ai model picker"]}
+    - {combo: E1×G3, t: ["llm cost calculator", "ai cost calculator", "token calculator", "{casual} cost calculator", "ai api cost estimator", "llm pricing calculator", "how much will {job} cost with ai", "estimate ai costs for {audience}"]}
+    - {combo: E1×V1, t: ["tool to compare ai models", "ai model comparison tool", "llm comparison tool", "tool to choose an llm", "which llm should i use tool", "llm selector", "best tool to pick an ai model for {job}"]}
+    - {combo: E12×C8, t: ["llm specs comparison tool", "compare llm context windows", "compare ai model prices", "llm price comparison tool", "compare {metric} across llms", "{metric} comparison tool"]}
+    - {combo: E1×G3, t: ["{casual} pricing calculator", "calculate {casual} api cost", "how much does {casual} cost for {job}", "{job} cost calculator ai", "free token counter for {casual}", "ai budget calculator for {audience}", "monthly ai api cost for {audience}", "cost of running {casual} for {job}"]}
+    - {combo: E1×V1, t: ["best free ai tools for {job}", "ai tools for {audience}", "tools to test llms", "llm evaluation tool", "find the right ai model for {job}", "ai model recommender", "which ai model fits my budget", "ai model finder for {job}", "llm picker for {audience}", "{constraint} ai model finder"]}
+    - {combo: E12×C8, t: ["compare {casual} and {casual_b} prices", "{casual} vs {casual_b} cost", "compare context window of {casual} and {casual_b}", "filter ai models by {feature}", "find llms with {feature}"]}
+  picker:
+    - {combo: E4×C3, t: ["best ai model for {job}", "best llm for {job}", "best ai for {task}", "which ai is best for {job}", "best model for {job} {year}", "what is the best ai for {task}", "best {constraint} model for {job}", "best ai for {job} reddit", "best ai for {job} for {audience}", "top llm for {job}"]}
+    - {combo: E3×C3, t: ["best llm for {capability}", "which ai is best at {capability}", "best model for {capability} {year}", "ai with the best {capability}", "most accurate ai for {job}"]}
+    - {combo: E4×C3×Q4, t: ["cheapest ai for {job}", "best cheap llm for {job}", "best free ai for {task}", "cheaper alternative to {casual} for {job}", "cheap model as good as {model} for {job}", "budget llm for {job}"]}
+    - {combo: E1×S1, t: ["how to choose an llm", "how to choose an ai model for {job}", "which llm should i use for {job}", "which ai model should i use", "what ai should i use to {task}", "should i use {casual} or {casual_b} for {job}", "help me choose an ai model"]}
+    - {combo: E20×C4, t: ["{casual} or {casual_b} for {job}", "is {casual} good for {job}", "is {model} good at {job}", "can {casual} {task}", "{model} for {job}"]}
+  specs:
+    - {combo: E12×C8, t: ["llm with largest context window", "llm context window comparison", "ai models with 1 million token context", "longest context window llm {year}", "llm with 200k context", "llm max output tokens comparison", "fastest llm tokens per second", "llm {metric} comparison", "{metric} of every llm"]}
+    - {combo: E3×C3, t: ["llms that support function calling", "ai models with vision", "llms with structured output", "models that support json mode", "llm with tool calling and vision", "open source llm with function calling", "llm with {feature} support", "which models support {feature}"]}
+    - {combo: E1×C3×Q4, t: ["free llm api", "free ai api", "cheapest llm api", "cheapest ai model api {year}", "open weight models list", "open source llms with commercial license", "best {constraint} llm", "{constraint} llm with {feature}"]}
+    - {combo: E20×D2, t: ["{model} context window", "{model} max output tokens", "{model} specs", "{model} parameters", "how many tokens can {casual} handle", "{casual} context length", "{model} token limit"]}
+    - {combo: E1×F5, t: ["llm specs", "ai model specs", "compare llm specs", "llm feature comparison", "which llm supports {feature}"]}
+    - {combo: E3×C3, t: ["{casual} {feature} support", "does {casual} support {feature}", "does {model} have vision", "does {model} support function calling", "{constraint} models with {feature}", "llm with {feature} and long context", "models with {feature} {year}"]}
+    - {combo: E20×D2, t: ["{model} input limit", "{model} output limit", "{model} knowledge cutoff", "{casual} knowledge cutoff", "{model} training data cutoff", "{model} model size", "{model} active parameters", "how big is {model}"]}
+    - {combo: E1×F5, t: ["{type} models with {feature}", "{vendor} models with {feature}", "{vendor} models context window", "{vendor} model specs"]}
+  tokens:
+    - {combo: E1×G3, t: ["token counter", "llm token counter", "token calculator", "{casual} token counter", "{casual} token calculator", "count tokens online", "tokenizer online", "how many tokens is {amount}", "how many tokens in {amount}", "words to tokens", "characters to tokens"]}
+    - {combo: E20×M2, t: ["{model} cost per token", "{model} price per million tokens", "how much does {model} cost per request", "{model} api cost calculator", "{casual} api cost", "how much does it cost to {task} with {casual}", "{model} cost for {amount}", "estimate {casual} api cost"]}
+    - {combo: E1×M2, t: ["llm cost comparison", "llm api pricing comparison", "ai api pricing {year}", "cheapest llm per token", "compare llm prices", "llm price per million tokens", "how much does an llm api cost", "ai cost per request"]}
+    - {combo: E12×G3, t: ["prompt cost calculator", "api cost calculator for {job}", "how much does {job} cost with ai", "openai cost calculator", "claude cost calculator", "gemini cost calculator", "{language} token counter"]}
+    - {combo: E1×G3, t: ["how many tokens does {casual} use for {amount}", "{casual} tokenizer", "{casual} token count for {amount}", "token count {language} code", "how many tokens is a {language} file", "tokens per word {casual}", "{casual} input vs output tokens"]}
+    - {combo: E20×M2, t: ["{model} input price", "{model} output price", "{model} cached input price", "is {casual} cheaper than {casual_b}", "{casual} vs {casual_b} price per token", "cost of {amount} on {casual}"]}
+  blogs:
+    - {combo: E1×N2, t: ["ai model blog", "llm blog", "ai engineering blog", "{topic} blog", "articles about {topic}", "{topic} articles {year}", "llm in production blog", "best ai blogs {year}", "ai model news", "llm news {when}"]}
+    - {combo: E1×R4, t: ["{topic} lessons learned", "{topic} real world experience", "{topic} case study", "what engineers learned about {topic}", "{topic} in production", "how teams use {topic}"]}
+    - {combo: E1×F2, t: ["{topic} explained", "{topic} guide", "{topic} for {audience}", "introduction to {topic}", "{topic} deep dive", "understanding {topic}"]}
+    - {combo: E1×N2, t: ["{topic} news", "{topic} {year}", "latest on {topic}", "{topic} trends {year}", "{casual} news", "{vendor} ai news", "what's happening with {topic}", "{topic} research {year}"]}
+    - {combo: E1×R4, t: ["{topic} for {job}", "{topic} examples", "{topic} for beginners"]}
+  directory:
+    - {combo: E20×O8-blog, t: ["{model} articles", "{model} blog posts", "everything about {model}", "{casual} reviews and articles", "posts about {casual}", "{vendor} model articles", "{vendor} ai blog posts"]}
+    - {combo: E1×N2, t: ["ai articles by topic", "llm articles by model", "{topic} posts", "all articles on {topic}", "ai blog archive", "llm article index", "ai blog posts {year}", "{topic} reading list"]}
+    - {combo: E4×R4, t: ["{job} ai articles", "articles on ai for {job}", "{job} with llm articles", "posts about using ai for {job}"]}
+    - {combo: E20×O8-blog, t: ["{casual} articles {year}", "{casual} guides", "{casual} tutorials", "{job} with {casual} articles", "{vendor} news articles", "{topic} with {casual} posts", "all {casual} reviews", "{model} guide"]}
+  post:
+    - {combo: E20×R7, t: ["switched from {casual} to {casual_b}", "why we moved from {casual} to {casual_b}", "{casual} to {casual_b} migration experience", "lessons from using {model} for {job}", "{model} in production", "{model} for {job} real world"]}
+    - {combo: E20×P4-blog, t: ["why does {casual} hallucinate", "why is {casual} so slow", "why is {casual} getting worse", "why does {casual} ignore instructions", "{casual} keeps forgetting context", "why is {casual} so expensive"]}
+    - {combo: E1×F6, t: ["{topic} best practices", "how to do {topic}", "{topic} tutorial", "{topic} mistakes to avoid", "{topic} tips", "{topic} checklist"]}
+    - {combo: E12×M6, t: ["how to reduce llm costs", "cut {casual} api costs", "llm cost optimization", "is {casual} worth the price", "hidden costs of llms", "cheapest way to do {job} with ai"]}
+    - {combo: E19×R9-blog, t: ["are llm benchmarks reliable", "is {benchmark} saturated", "{benchmark} contamination", "do benchmarks matter for {job}", "benchmarks vs real world performance"]}
+  catalog:
+    - {combo: E1×F5, t: ["list of ai models", "list of llms {year}", "all ai models", "every llm", "types of ai models", "{type} ai models", "{type} models list", "best {type} models", "{type} llms {year}"]}
+    - {combo: E8, t: ["{vendor} models", "{vendor} models list", "all {vendor} models", "{vendor} models {year}", "{vendor} llm lineup", "which models does {vendor} have", "{vendor} model names"]}
+    - {combo: E15×M3, t: ["open source llms", "open weight models", "list of open source llms", "open source ai models {year}", "commercial llms list", "closed vs open source llms"]}
+    - {combo: E1×C3, t: ["ai models by provider", "llms by company", "ai model directory", "ai model catalog", "llm database"]}
+    - {combo: E1×F5, t: ["{type} models from {vendor}", "{vendor} {type} models", "best {type} models {year}", "free {type} ai models", "open source {type} models", "{type} model list {year}", "all {constraint} ai models", "list of {constraint} llms"]}
+    - {combo: E8, t: ["{vendor} latest models", "{vendor} model family", "{vendor} models compared", "how many models does {vendor} have", "{vendor} cheapest model", "{vendor} best model", "{vendor} fastest model", "{vendor} open source models", "{vendor} api models"]}
+    - {combo: E1×F5, t: ["{type} models for {job}", "ai models for {audience}", "{vendor} vs {vendor_b} model lineup", "which {type} model is best", "{constraint} {type} models", "list of {vendor} {type} models", "{type} ai models compared"]}
+  new:
+    - {combo: E1×C3×Q3, t: ["new ai models", "latest ai models", "new llm releases", "newest ai model", "new ai models {when}", "latest llm {year}", "ai models released {when}", "newest {type} ai models", "latest {vendor} model", "new {vendor} model", "{vendor} new model release"]}
+    - {combo: E20×N9, t: ["{model} release date", "when was {model} released", "is {model} out", "{model} launch", "{model} available now", "when is {casual} next model coming"]}
+    - {combo: E1×N2, t: ["ai model release tracker", "llm release timeline {year}", "upcoming ai models", "ai news {when}", "what new ai models came out {when}"]}
+    - {combo: E1×C3×Q3, t: ["new {casual} model", "{casual} new version", "latest {casual} version", "is there a new {casual} model", "new {type} model from {vendor}", "{vendor} announced new model", "new ai model for {job}", "new coding model {when}", "new open source llm {when}", "new {constraint} llm {when}", "{model} just released", "{vendor} model launch {when}"]}
   model:
-    # Model families Keyword Planner measured as searches in their own right.
-    # They are not one model, so they point at their provider's models.
-    - {name: claude opus, link: "/catalog?provider=anthropic"}
-    - {name: claude sonnet, link: "/catalog?provider=anthropic"}
-    - {name: claude haiku 4.5, link: "/catalog/model/anthropic/claude-haiku-4.5"}
-    - {name: claude sonnet 5, link: "/catalog/model/anthropic/claude-sonnet-5"}
-    - {name: deepseek v4, link: "/catalog?provider=deepseek"}
-    - {name: gemini 3 pro, link: "/catalog/model/google/gemini-3-pro"}
-    - {name: gemini 3 flash, link: "/catalog/model/google/gemini-3-flash"}
-    - {name: gpt 5, link: "/catalog/model/openai/gpt-5"}
-    - {name: gpt 5 mini, link: "/catalog/model/openai/gpt-5-mini"}
-    - {name: kimi k2, link: "/catalog?provider=moonshotai"}
-    - {name: grok 4, link: "/catalog/model/x-ai/grok-4"}
-    - {name: llama 4, link: "/catalog?provider=meta-llama"}
-    - {name: qwen3, link: "/catalog?provider=qwen"}
-    - {name: mistral large 3, link: "/catalog?provider=mistralai"}
-    - {name: claude, link: "/catalog?provider=anthropic"}
-    - {name: gemini, link: "/catalog?provider=google"}
-    - {name: chatgpt, link: "/catalog?provider=openai"}
-    - {name: deepseek, link: "/catalog?provider=deepseek"}
-  vendor:
-    - {name: OpenAI, link: "/catalog?provider=openai"}
-    - {name: Anthropic, link: "/catalog?provider=anthropic"}
-    - {name: Google, link: "/catalog?provider=google"}
-    - {name: DeepSeek, link: "/catalog?provider=deepseek"}
-    - {name: xAI, link: "/catalog?provider=x-ai"}
-    - {name: Alibaba, link: "/catalog?provider=qwen"}
-    - {name: Z.ai, link: "/catalog?provider=z-ai"}
-    - {name: MiniMax, link: "/catalog?provider=minimax"}
-    - {name: Moonshot AI, link: "/catalog?provider=moonshotai"}
-    - {name: Mistral, link: "/catalog?provider=mistralai"}
-    - {name: Meta, link: "/catalog?provider=meta-llama"}
-    - {name: Claude, link: "/catalog?provider=anthropic"}
-    - {name: Gemini, link: "/catalog?provider=google"}
-  job:
-    - {name: ai agents, link: /reports/jobs/agentic-automation}
-    - {name: coding agents, link: /reports/jobs/coding-agent}
-    - {name: coding agent, link: /reports/jobs/coding-agent}
-    - {name: ai coding agent, link: /reports/jobs/coding-agent}
-    - {name: coding, link: /reports/jobs/coding}
-    - {name: code review, link: /reports/jobs/code-review}
-    - {name: retrieval augmented generation, link: /reports/jobs/rag}
-    - {name: rag, link: /reports/jobs/rag}
-    - {name: ai translation, link: /reports/jobs/translation}
-    - {name: translation, link: /reports/jobs/translation}
-    - {name: ai summarization, link: /reports/jobs/summarization}
-    - {name: summarization, link: /reports/jobs/summarization}
-    - {name: multi agent systems, link: /reports/jobs/orchestration}
-    - {name: data extraction, link: /reports/jobs/extraction}
-    - {name: document parsing, link: /reports/jobs/document-analysis}
-    - {name: text classification, link: /reports/jobs/classification}
-    - {name: creative writing, link: /reports/jobs/creative-writing}
-    - {name: roleplay, link: /reports/jobs/roleplay}
-    - {name: web development, link: /reports/jobs/web-development}
-    - {name: computer use, link: /reports/jobs/computer-use}
-    - {name: cybersecurity, link: /reports/jobs/cybersecurity}
-    - {name: research, link: /reports/jobs/research}
-    - {name: sql generation}
-  capability:
-    - {name: reasoning, link: /reports/capabilities/reasoning}
-    - {name: instruction following, link: /reports/capabilities/instruction-following}
-    - {name: agentic tool use, link: /reports/capabilities/agentic-tool-use}
-    - {name: tool calling, link: /reports/capabilities/agentic-tool-use}
-    - {name: function calling, link: /reports/capabilities/function-calling}
-    - {name: code generation, link: /reports/capabilities/code-generation}
-    - {name: long context, link: /reports/capabilities/long-context}
-    - {name: vision, link: /reports/capabilities/vision}
-    - {name: structured output, link: /reports/capabilities/structured-output}
-    - {name: computer use, link: /reports/capabilities/computer-use}
-    - {name: prompt caching, link: /reports/capabilities/prompt-caching}
-    - {name: multimodal, link: /reports/capabilities/multimodal}
-    - {name: hallucination, link: /reports/capabilities/hallucination}
-  benchmark:
-    - {name: swe bench, link: /reports/metrics/swe-bench}
-    - {name: swe bench verified, link: /reports/metrics/swe-bench-verified}
-    - {name: swe bench pro, link: /reports/metrics/swe-bench-pro}
-    - {name: terminal bench, link: /reports/metrics/terminal-bench}
-    - {name: arc agi}
-    - {name: livebench}
-    - {name: gpqa, link: /reports/metrics/gpqa-diamond}
-    - {name: mmlu}
-    - {name: mmlu pro}
-    - {name: humaneval}
-    - {name: livecodebench}
-    - {name: gsm8k}
-    - {name: aime}
-    - {name: mbpp}
-    - {name: humanity's last exam, link: /reports/metrics/hle}
-    - {name: osworld}
-  metric:
-    - {name: cost per token, link: /reports/metrics/cost-per-token}
-    - {name: context window, link: /reports/metrics/context-window}
-    - {name: tokens per second, link: /reports/metrics/tokens-per-second}
-    - {name: time to first token, link: /reports/metrics/time-to-first-token}
-    - {name: latency, link: /reports/metrics/latency}
-    - {name: cost per task, link: /reports/metrics/cost-per-task}
-    - {name: output tokens, link: /reports/metrics/output-tokens}
-    - {name: max output tokens, link: /reports/metrics/max-output-tokens}
-  industry: [{name: healthcare}, {name: legal}, {name: finance}, {name: fintech}]
-  function: [{name: customer support}, {name: marketing}, {name: sales}, {name: hr}]
-  role: [{name: software engineers}, {name: programmers}, {name: developers}, {name: writers}]
-  tool: [{name: langchain}, {name: n8n}, {name: cursor}, {name: bedrock}, {name: openrouter}]
-  language: [{name: python}, {name: typescript}, {name: javascript}]
+    - {combo: E20, t: ["{model}", "{model} model", "{model} ai", "{model} llm", "what is {model}", "{model} overview"]}
+    - {combo: E20×M1, t: ["{model} pricing", "{model} price", "how much does {model} cost", "is {model} free", "{model} api price"]}
+    - {combo: E20×C7, t: ["{model} review", "is {model} good", "{model} pros and cons", "{model} strengths and weaknesses", "how good is {model}", "{model} worth it"]}
+    - {combo: E20×D5, t: ["{model} speed", "how fast is {model}", "{model} latency", "{model} tokens per second", "is {model} fast"]}
+    - {combo: E20×E19, t: ["{model} benchmarks", "{model} {benchmark} score", "{model} coding benchmark", "how does {model} score on {benchmark}"]}
+    - {combo: E20×T10, t: ["is {model} open source", "{model} license", "can i run {model} locally", "{model} open weights", "{model} commercial use"]}
+    - {combo: E4×R4, t: ["{model} for {job}", "is {model} good for {job}", "how good is {model} at {job}", "{model} {capability}", "can {model} {task}"]}
+  compare:
+    - {combo: E20×C1, t: ["{model} vs {model_b}", "{casual} vs {casual_b}", "{model} vs {model_b} for {job}", "{casual} vs {casual_b} {year}", "{casual} vs {casual_b} reddit", "{model} vs {model_b} benchmark", "{model} vs {model_b} price", "{model} vs {model_b} speed"]}
+    - {combo: E20×C5, t: ["difference between {model} and {model_b}", "is {casual} better than {casual_b}", "{casual} or {casual_b} which is better", "which is smarter {casual} or {casual_b}", "{casual} vs {casual_b} for {job}"]}
+    - {combo: E8×C1, t: ["{vendor} vs {vendor_b}", "{vendor} vs {vendor_b} models", "{vendor} vs {vendor_b} api", "{vendor} vs {vendor_b} for {job}"]}
+    - {combo: E1×C8, t: ["compare {casual} and {casual_b}", "{casual} vs {casual_b} comparison table", "side by side ai model comparison", "{model} compared to {model_b}"]}
+  reports:
+    - {combo: E1×C9, t: ["most popular ai models", "most used llms {year}", "which llm do developers use most", "most reported ai models", "ai models developers trust", "most popular llm for {job}"]}
+    - {combo: E20×O8, t: ["what developers say about {model}", "{model} user reviews", "{model} real world performance", "{casual} honest review", "does {model} actually work", "{model} problems", "{model} complaints", "is {casual} getting worse"]}
+    - {combo: E20×R8, t: ["where {model} fails", "{model} limitations", "{model} failure modes", "{model} reliability", "{model} production issues"]}
+    - {combo: E20×O8, t: ["is {model} reliable", "{casual} reliability for {job}", "{model} success rate", "how often does {casual} fail", "{model} reviews {year}", "{casual} user experience", "most complained about ai model", "{casual} accuracy reviews"]}
+  reports_jobs:
+    - {combo: E4, t: ["{job} ai", "ai for {job}", "llm for {job}", "ai {job} tools", "{job} with ai", "using ai for {job}", "ai models for {job}"]}
+    - {combo: E4×G13, t: ["best ai for {job} according to developers", "{job} llm comparison", "{job} ai leaderboard", "which llm is best for {job} reddit", "{job} model rankings", "top models for {job} {year}"]}
+    - {combo: E4×R4, t: ["how developers use ai for {job}", "ai for {job} real world results", "does ai work for {job}", "is ai good at {job}", "can ai do {job}"]}
+  reports_caps:
+    - {combo: E3, t: ["llm {capability}", "ai {capability}", "{capability} in llms", "{capability} ai models", "llm {capability} comparison"]}
+    - {combo: E3×C9, t: ["which llm has the best {capability}", "best model for {capability}", "{capability} leaderboard", "{capability} ranking llm", "top llm for {capability} {year}"]}
+    - {combo: E20×D5, t: ["{model} {capability}", "how good is {casual} at {capability}", "is {casual} good at {capability}", "{casual} {capability} problems", "{model} {capability} review"]}
+    - {combo: E3×C9, t: ["{casual} vs {casual_b} {capability}", "which is better at {capability} {casual} or {casual_b}", "{capability} benchmark llm", "how to test llm {capability}", "llm {capability} for {job}", "best {constraint} model for {capability}"]}
+  reports_metrics:
+    - {combo: E19×G13, t: ["{benchmark} leaderboard", "{benchmark} scores", "{benchmark} results {year}", "{benchmark} top models", "{benchmark} rankings", "what is the highest {benchmark} score", "{model} {benchmark}"]}
+    - {combo: E12×C8, t: ["fastest llm", "fastest ai model {year}", "lowest latency llm", "llm {metric} benchmark", "{metric} by model", "real world {metric} of llms", "{casual} {metric}"]}
+    - {combo: E1×R2, t: ["llm benchmarks", "ai benchmarks {year}", "llm benchmark comparison", "coding benchmarks for llms", "agent benchmarks", "best benchmark for {job}"]}
+    - {combo: E12×D5, t: ["{model} {metric}", "{casual} {metric} {year}", "{casual} vs {casual_b} {metric}", "{benchmark} {casual} score", "{casual} {benchmark} results", "{benchmark} explained", "{benchmark} vs {benchmark_b}", "{metric} of {model}", "llm {metric} {year}", "llm with lowest {metric}", "llm with best {metric}"]}
+  discussions:
+    - {combo: E20×O8, t: ["{casual} reddit", "{model} reddit", "{casual} experiences", "what do people think of {model}", "is {casual} worth it reddit", "{casual} honest opinion", "anyone using {model} for {job}", "{casual} vs {casual_b} reddit"]}
+    - {combo: E8×O8, t: ["{vendor} reddit", "{vendor} reviews", "{vendor} api experiences", "is {vendor} reliable", "{vendor} community"]}
+    - {combo: E20×P7, t: ["problems with {casual}", "{casual} not working", "{casual} keeps {issue}", "is anyone else having issues with {casual}", "{casual} worse lately"]}
+    - {combo: E20×O8, t: ["{casual} for {job} reddit", "is {casual} better than {casual_b} reddit", "best llm for {job} reddit", "{model} first impressions", "{model} thoughts", "{casual} users", "{casual} feedback", "my experience with {model}"]}
+  faq:
+    - {combo: E1×S4, t: ["is {casual} free", "can {casual} {task}", "does {casual} have an api", "is {casual} safe to use", "is {casual} better than {casual_b}", "what is the best free ai", "which ai is the most accurate", "how are ai models ranked"]}
+    - {combo: E1×F1, t: ["what is an llm", "how do llms work", "what does an ai model do", "are ai models accurate", "can ai models make mistakes", "why do ai models hallucinate", "how much does an ai model cost"]}
+    - {combo: E1×S1, t: ["how do i choose an ai model", "what ai should i use for {job}", "which llm should a beginner use", "do i need a paid ai model for {job}"]}
+    - {combo: E1×S4, t: ["is {casual} safe", "is {casual} private", "does {casual} store my data", "can i use {casual} for free", "how much does {casual} cost per month", "what is {casual} used for", "who makes {casual}", "is {casual} open source", "how accurate is {casual}", "can {casual} access the internet", "does {casual} have a context limit", "what can {casual} do", "which ai is best for {audience}", "is ai good at {job}"]}
+    - {combo: E1×S4, t: ["is {casual} good for {job}", "can {casual} help with {job}", "does {casual} remember conversations", "is {casual} better for {job} or {casual_b}", "why is {casual} {issue}", "can {casual} read pdfs", "does {casual} work offline", "is {casual} worth paying for"]}
+  glossary:
+    - {combo: E1×F1, t: ["what is {concept}", "{concept} meaning", "{concept} definition", "{concept} explained", "what does {concept} mean in ai", "{concept} in llm", "{concept} simple explanation", "how does {concept} work", "{concept} example", "why does {concept} matter"]}
+    - {combo: E1×F4, t: ["{cvs}", "{cvs} explained", "{cvs} difference", "{cvs} which is better", "{cvs} for {audience}", "llm glossary", "ai glossary", "ai terms explained", "llm terminology", "ai model terms for {audience}"]}
+    - {combo: E1×F1, t: ["{concept} for beginners", "{concept} in ai explained simply", "{concept} pros and cons", "when to use {concept}", "{concept} use cases"]}
+  changes:
+    - {combo: E20×N10, t: ["did {casual} get worse", "{casual} nerfed", "is {casual} getting dumber", "{model} quality dropped", "{casual} worse {when}", "why did {casual} change", "{casual} downgrade"]}
+    - {combo: E20×N8, t: ["{model} deprecated", "{model} deprecation date", "when will {model} be retired", "is {model} being shut down", "{model} end of life", "{vendor} model deprecations", "{vendor} deprecation schedule"]}
+    - {combo: E20×N5, t: ["{model} {change}", "what's new in {model}", "{model} vs previous version", "{casual} {change} {when}", "{vendor} model {change}", "{vendor} release notes {when}", "what changed in {model}"]}
+    - {combo: E20×N7, t: ["{model} version history", "{casual} versions", "{casual} model timeline", "{vendor} model history", "all versions of {casual}"]}
+  guides:
+    - {combo: E20×H2, t: ["{model} api", "{model} api key", "{model} api tutorial", "how to use {model} api", "{model} api getting started", "{casual} api in {language}", "{casual} api example {language}", "{model} sdk"]}
+    - {combo: E20×P2, t: ["{casual} api {error}", "{model} {error}", "how to fix {casual} {error}", "{casual} api error", "{casual} rate limits", "{vendor} api {error}", "{vendor} rate limits"]}
+    - {combo: E20×H8, t: ["how to {devtask} with {casual}", "how to {devtask} with {casual} api", "{devtask} {language} llm api", "{devtask} with {tool}", "how to {devtask} in {language}"]}
+    - {combo: E20×I2, t: ["{model} with {tool}", "use {casual} in {tool}", "{casual} {tool} integration", "{tool} with {casual} api", "does {casual} work with {tool}"]}
+  alternatives:
+    - {combo: E20×C2, t: ["{model} alternatives", "alternatives to {casual}", "cheaper alternative to {model}", "{casual} alternative for {job}", "free alternative to {casual}", "open source alternative to {casual}", "best {casual} alternative {year}", "{casual} alternative reddit", "models like {model}", "what to use instead of {casual}"]}
+    - {combo: E8×C2, t: ["{vendor} alternatives", "alternatives to {vendor} api", "{vendor} competitors", "cheaper than {vendor} api", "switching from {vendor}"]}
+    - {combo: E20×C2, t: ["{casual} competitors", "apps like {casual}", "{casual} vs alternatives", "better than {casual}", "{casual} alternative for {audience}", "{constraint} alternative to {casual}", "{model} replacement", "cheapest alternative to {casual} api", "{casual} alternative with {capability}"]}
+  prompts:
+    - {combo: E20×G6, t: ["{casual} prompts", "{casual} prompts for {job}", "best {casual} prompts", "{model} system prompt", "{casual} system prompt for {job}", "prompt templates for {job}", "best prompt for {task}", "{job} prompts", "{casual} prompt tips", "how to prompt {casual}"]}
+    - {combo: E1×G6, t: ["prompt library", "ai prompt library", "llm prompt examples", "prompts for {audience}", "prompt engineering examples", "system prompt examples", "prompt templates {year}"]}
+    - {combo: E20×G6, t: ["{casual} prompt for {task}", "prompt to {task}", "{job} prompt examples", "{job} system prompt", "prompts for {task}", "best prompts for {audience}", "{casual} coding prompts", "{casual} writing prompts", "prompt template to {task}"]}
+  context_tool:
+    - {combo: E20×D2, t: ["will {doc} fit in {casual}", "can {casual} read {doc}", "{casual} context window size", "how many pages fit in {casual} context", "how many tokens is {doc}", "{model} context limit", "context window checker", "does {doc} fit in context window", "llm for {doc}", "best ai to read {doc}"]}
+    - {combo: E12×D2, t: ["how many words in 128k tokens", "how many pages is 1 million tokens", "context window calculator", "token limit checker", "how big is a 200k context window"]}
+    - {combo: E20×D2, t: ["can {casual} handle {doc}", "best llm for {doc}", "how to send {doc} to {casual}", "{casual} file size limit", "{casual} max pdf size", "{model} max input", "split {doc} for llm", "{casual} long document", "how many tokens fit in {casual}", "llm for long documents", "{casual} {amount} limit"]}
+    - {combo: E20×D2, t: ["how much text can {casual} take", "{casual} max tokens per request", "can {model} process {doc}", "{casual} context window vs {casual_b}", "what happens when {casual} context is full", "{casual} forgets long conversations", "longest document {casual} can read"]}
+  migration_tool:
+    - {combo: E20×I5, t: ["migrate from {model} to {model_b}", "switch from {casual} to {casual_b}", "{casual} to {casual_b} migration", "{model} to {model_b} breaking changes", "moving from {casual} to {casual_b} api", "{casual} to {casual_b} prompt changes", "is it worth switching from {casual} to {casual_b}", "{casual} to {casual_b} cost difference"]}
+    - {combo: E20×U5, t: ["upgrade to {model}", "{model} upgrade guide", "{model} migration guide", "{vendor} to {vendor_b} migration", "replace {casual} with {casual_b}", "switching llm providers"]}
+    - {combo: E20×I5, t: ["{casual} to {casual_b} api differences", "port prompts from {casual} to {casual_b}"]}
 
 # ── estimating searches a month ──────────────────────────────────────────────
-# MEASURED: Keyword Planner bands on the workbook's "Planner volumes
-# (measured)" sheet (global, all languages, Jan-Jul 2026). A band is a range;
-# its geometric midpoint is used to compare and to estimate (10K-100K ->
-# 31,623), and the band itself is what the dashboard shows.
-#
-# ESTIMATED: a keyword Planner did not measure, made from a head it did
-# ("claude opus" -> "claude opus pricing"), is the head's midpoint times the
-# share of the head's searches that add that modifier. The script MEASURES
-# each share from the workbook's own pairs - a head and its modified form both
-# measured - and a modifier with no such pair has no share and its keywords no
-# estimate (CLAUDE.md rule 6: an unknown is not a guess). A pair keyword
-# ("a vs b") takes the smaller head.
-#
-# Each class lists the templates it covers: the {placeholder} is the head.
+# MEASURED: a Keyword Planner band from the workbook's "Planner volumes
+# (measured)" sheet (global, all languages, Jan-Jul 2026). ESTIMATED: a
+# keyword Planner did not measure, whose head it did, is the head's band
+# midpoint x the share of searches that add that modifier. Each share is
+# MEASURED by the script from the workbook's own pairs; a modifier with no
+# pair gets no share and no estimate. Everything else: "not measured".
 share_classes:
-  pricing: ["{model} pricing", "{model} price", "{model} api pricing", "{model} cost per token",
-            "{model} cost per million tokens", "{vendor} api pricing", "{vendor} pricing", "{model} cost"]
-  versus: ["{model} vs {model_b}", "{vendor} vs {vendor_b}", "difference between {model} and {model_b}"]
-  what_is: ["what is {model}", "what is {benchmark}", "what is {capability}", "what is {metric}"]
-  review: ["{model} review", "{model} reddit", "{model} honest review", "{vendor} reddit", "{vendor} review"]
-  alternatives: ["{model} alternatives", "alternatives to {model}", "{vendor} alternatives", "alternatives to {vendor}"]
-  best_for: ["best model for {job}", "best llm for {job}", "best ai for {job}", "best ai model for {job}"]
-  open_source: ["is {model} open source", "is {model} free", "{model} open weights", "{model} free", "free {model}"]
-  context: ["{model} context window", "{model} token limit"]
-  api: ["{model} api", "{vendor} api", "{model} sdk", "{vendor} sdk"]
-  leaderboard: ["{benchmark} leaderboard", "{job} leaderboard", "{capability} leaderboard"]
+  pricing: ["{model} pricing", "{model} price", "{model} api price", "{model} cost per token"]
+  what_is: ["what is {model}", "what is {concept}"]
+  review: ["{model} review", "{model} reddit", "{casual} reddit", "{casual} honest review"]

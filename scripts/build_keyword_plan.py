@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Build the keyword plan: which keywords to use on which public page.
 
-Reads `seo/keyword_plan.yaml` (pages, combinations, values) and the board SEO
+Reads `seo/keyword_plan.yaml` (pages, value pools, and per-page phrasings, each
+tagged with its combo code from the SEO workbook's Combinations sheet) and the
 workbook's "Planner volumes (measured)" sheet; writes `seo/keyword_plan.json`
 for the "Keyword plan" tab of /seo-keywords (judge/keyword_plan.py).
 
@@ -9,36 +10,37 @@ for the "Keyword plan" tab of /seo-keywords (judge/keyword_plan.py).
         --board "docs/SEO keywords/Model Information Board —SEO keywords.xlsx" \\
         [--api http://127.0.0.1:8000]
 
-`--api` reads the tracked models' catalog ids from the board's own /models,
-so a model keyword links to that model's page and a pair to its comparison.
-Without it, those keywords point at the page type rather than one URL.
+`--api` reads the tracked models' catalog ids from the board's own /models, so
+a model keyword links to that model's page and a pair to its comparison.
 
-WHAT A KEYWORD'S VOLUME IS, in the order tried:
+HOW A SECTION IS FILLED (`pick`). Each phrasing draws a different, repeatable
+mix of values (seeded by page and phrasing), and the section takes ONE keyword
+from each phrasing in turn until it holds `per_section`. So a section is many
+phrasings with a few values each, not one phrasing with every model name - the
+"claude latency, gpt latency, grok latency" list this replaced. A keyword is
+used once, on the first section that claims it.
 
-  measured    the keyword itself is on the Planner sheet: its band.
-  estimated   it is not, but its head is ("claude opus" for "claude opus
-              pricing"): the head's band midpoint x the share of a head's
-              searches that add that modifier. SHARES ARE MEASURED HERE, from
-              the sheet's own pairs (a head and its modified form both
-              measured), never typed - a modifier with no pair has no share.
-  none        neither: the keyword is counted, not listed (CLAUDE.md rule 6).
+A KEYWORD'S VOLUME, where it has one:
 
-A band is a range, so its GEOMETRIC midpoint stands for it in arithmetic
-(10K-100K -> 31,623). The page shows the band, or "~N (estimated)".
+  measured    the keyword is on the Planner sheet: its band.
+  estimated   it is not, but its head is, and its phrasing is in a share
+              class: the head's band midpoint x the share, which is MEASURED
+              here from the workbook's own pairs (a head and its modified form
+              both measured) - never typed.
+  none        neither: "not measured". Most keywords here (CLAUDE.md rule 6).
 
-ONE WORD IS A MODEL OR NOTHING (2026-10-19, anooj): a keyword of one word is
-kept only when it is a model or model family name ("qwen3", "claude"). "rag",
-"classification", "local" alone say nothing about which page answers them.
+ONE WORD IS A MODEL OR NOTHING (2026-10-19, anooj).
 """
 
 from __future__ import annotations
 
 import argparse
-import itertools
 import json
 import math
+import random
 import re
 import sys
+import zlib
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -50,10 +52,20 @@ import yaml  # noqa: E402
 
 PLAN = ROOT / "seo" / "keyword_plan.yaml"
 OUT = ROOT / "seo" / "keyword_plan.json"
-TOKEN = re.compile(r"[a-z0-9]+(?:[.'][a-z0-9]+)*")
+TOKEN = re.compile(r"[a-z0-9]+(?:[.'#+][a-z0-9]+)*[#+]*")
 SLOT = re.compile(r"\{(\w+)\}")
-#: A pair placeholder and the one it pairs with.
-PAIRS = {"model_b": "model", "vendor_b": "vendor", "benchmark_b": "benchmark"}
+#: A pair placeholder and the pool it shares with its first half.
+PAIRS = {
+    "model_b": "model",
+    "casual_b": "casual",
+    "vendor_b": "vendor",
+    "concept_b": "concept",
+    "benchmark_b": "benchmark",
+}
+#: Placeholders that name a model: a one-word keyword is kept only from these.
+MODEL_SLOTS = {"model", "model_b", "casual", "casual_b"}
+#: How many value mixes one phrasing may offer a section.
+DRAWS = 40
 
 
 def norm(text: str) -> str:
@@ -96,13 +108,12 @@ def read_planner(path: Path) -> dict[str, dict]:
                 "keyword": str(d["Keyword"]).strip(),
                 "band": b,
                 "label": str(d["Volume / month"]),
-                "combo": d.get("Combo code"),
             }
     return out
 
 
 def tracked_models(api: str | None) -> list[dict]:
-    """contract/tracked_models.yaml, with catalog ids from the board's /models when given."""
+    """Text models in contract/tracked_models.yaml, with catalog ids from /models when given."""
     spec = yaml.safe_load((ROOT / "contract" / "tracked_models.yaml").read_text(encoding="utf-8"))
     ids = {}
     if api:
@@ -110,82 +121,110 @@ def tracked_models(api: str | None) -> list[dict]:
 
         with urlopen(f"{api}/models?tracked=1&limit=200", timeout=60) as r:  # noqa: S310 - our API
             for m in json.load(r).get("models", []):
-                # The registry spells a version "5-1" where the catalog spells
-                # it "5.1"; one key for both.
+                # The registry spells a version "5-1" where the catalog spells it "5.1".
                 for field in ("model_version_id", "canonical_id"):
                     if m.get(field):
                         ids[m[field].replace(".", "-")] = m.get("canonical_id")
     return [
-        {
-            "name": m["name"],
-            "kind": m.get("kind", "text"),
-            "id": ids.get(m["registry"].replace(".", "-")),
-        }
+        {"name": m["name"].lower(), "id": ids.get(m["registry"].replace(".", "-"))}
         for m in spec.get("models") or []
+        if m.get("kind", "text") == "text"
     ]
 
 
-# ── expansion ───────────────────────────────────────────────────────────────
+def pools_of(plan: dict, models: list[dict]) -> dict[str, list[dict]]:
+    """The YAML pools as {name} values; tracked text models join `model` with their ids."""
+    pools = {k: [{"name": str(v)} for v in vs] for k, vs in (plan.get("pools") or {}).items()}
+    by_name = {norm(v["name"]): v for v in pools.get("model", [])}
+    for m in models:
+        if norm(m["name"]) in by_name:
+            by_name[norm(m["name"])]["id"] = m["id"]
+        else:
+            pools.setdefault("model", []).append(dict(m))
+    return pools
 
 
-def expand(template: str, values: dict[str, list[dict]]):
-    """Every (keyword, {placeholder: value}) a template makes."""
+# ── filling a section ───────────────────────────────────────────────────────
+
+
+def candidates(template: str, pools: dict[str, list[dict]], seed: str):
+    """Up to DRAWS distinct (keyword, values) for one phrasing, in a repeatable
+    random order: the same YAML always gives the same plan."""
     names = SLOT.findall(template)
-    pools = []
-    for n in names:
-        base = PAIRS.get(n, n)
-        pool = values.get(base)
-        if not pool:
-            return
-        if any(PAIRS.get(m) == base for m in names):
-            # a pair compares like with like: text models with text models
-            pool = [v for v in pool if v.get("kind", "text") == "text"]
-        pools.append(pool)
-    seen_pairs = set()
-    for combo in itertools.product(*pools):
-        used = dict(zip(names, combo, strict=True))
-        pair_ok = True
-        for b, a in PAIRS.items():
-            if a in used and b in used:
-                if norm(used[a]["name"]) == norm(used[b]["name"]):
-                    pair_ok = False
-                key = (a,) + tuple(sorted((norm(used[a]["name"]), norm(used[b]["name"]))))
-                if key in seen_pairs:
-                    pair_ok = False  # "a vs b" once, not "b vs a" too
-                seen_pairs.add(key)
-        if not pair_ok:
+    if not names:
+        yield template, {}
+        return
+    if any(not pools.get(PAIRS.get(n, n)) for n in names):
+        return
+    rng = random.Random(zlib.crc32(seed.encode()))
+    seen = set()
+    for _ in range(DRAWS * 4):
+        used = {}
+        for n in names:
+            base = PAIRS.get(n, n)
+            taken = {norm(v["name"]) for k, v in used.items() if PAIRS.get(k, k) == base}
+            choices = [v for v in pools[base] if norm(v["name"]) not in taken]
+            if not choices:
+                break
+            used[n] = rng.choice(choices)
+        if len(used) != len(names):
             continue
         kw = template
         for n, v in used.items():
             kw = kw.replace("{" + n + "}", v["name"])
+        key = norm(kw)
+        if key in seen:
+            continue
+        seen.add(key)
         yield kw, used
+        if len(seen) >= DRAWS:
+            return
 
 
 def one_word_ok(keyword: str, used: dict) -> bool:
-    if len(norm(keyword).split()) != 1:
-        return True
-    return any(n in ("model", "model_b") for n in used)
+    return len(norm(keyword).split()) != 1 or bool(MODEL_SLOTS & set(used))
 
 
-# ── shares, measured from the workbook's own pairs ──────────────────────────
+def pick(page: str, groups: list[dict], pools, want: int, taken: set[str]) -> list[dict]:
+    """Round-robin over the section's phrasings, one keyword at a time."""
+    queues = []
+    for g in groups:
+        for t in g["t"]:
+            queues.append((g["combo"], t, iter(candidates(t, pools, f"{page}|{t}"))))
+    out = []
+    while queues and len(out) < want:
+        alive = []
+        for combo, t, q in queues:
+            for kw, used in q:
+                key = norm(kw)
+                if key in taken or not one_word_ok(kw, used):
+                    continue
+                taken.add(key)
+                out.append({"keyword": kw, "combo": combo, "pattern": t, "used": used})
+                alive.append((combo, t, q))
+                break
+            if len(out) >= want:
+                break
+        queues = alive
+    return out
 
 
-def measure_shares(
-    classes: dict[str, list[str]], planner: dict[str, dict], values: dict[str, list[dict]]
-) -> dict[str, dict]:
-    """For each modifier class: the geometric mean of modified / head over every
-    pair where both are on the Planner sheet with a non-zero band."""
+# ── volumes ─────────────────────────────────────────────────────────────────
+
+
+def measure_shares(classes, planner, pools) -> dict[str, dict]:
+    """For each modifier class, the geometric mean of modified / head over every
+    pair on the Planner sheet. THE HEAD IS A VALUE OF THAT PLACEHOLDER, never
+    any measured phrase: "cheapest llm" -> "cheapest llm api" is not a model's
+    API searches, and taking it made a first build's api share 316%."""
     out = {}
     for cls, templates in classes.items():
         samples, seen = [], set()
         for t in templates:
             names = SLOT.findall(t)
             if len(names) != 1:
-                continue  # a pair keyword has two heads; calibrate on singles
-            # THE HEAD IS A VALUE OF THAT PLACEHOLDER, never any measured phrase:
-            # "cheapest llm" -> "cheapest llm api" is not a model's API searches,
-            # and taking it made the first build's api share 316% (2026-10-19).
-            for v in values.get(PAIRS.get(names[0], names[0])) or []:
+                continue
+            for v in pools.get(PAIRS.get(names[0], names[0])) or []:
                 hk = norm(v["name"])
                 h = planner.get(hk)
                 if not h or h["band"][0] == 0:
@@ -199,147 +238,52 @@ def measure_shares(
                             "head": h["keyword"],
                             "head_band": h["label"],
                             "keyword": m["keyword"],
-                            "band": m["label"],
+                            "keyword_band": m["label"],
                             "ratio": midpoint(m["band"]) / midpoint(h["band"]),
                         }
                     )
+        share = None
         if samples:
             share = math.exp(sum(math.log(s["ratio"]) for s in samples) / len(samples))
-            out[cls] = {"share": share, "pairs": samples}
-        else:
-            out[cls] = {"share": None, "pairs": []}
+        out[cls] = {"share": share, "pairs": samples}
     return out
 
 
-def build(plan: dict, planner: dict[str, dict], models: list[dict]) -> dict:
-    values = {k: [dict(v) for v in vs] for k, vs in (plan.get("values") or {}).items()}
-    for m in models:  # the tracked models, first
-        values.setdefault("model", [])
-        if not any(norm(v["name"]) == norm(m["name"]) for v in values["model"]):
-            values["model"].insert(0, {"name": m["name"], "kind": m["kind"], "id": m["id"]})
-    values["year"] = [{"name": str(plan.get("year", ""))}]
-    pages = plan["pages"]
-    cls_of = {t: c for c, ts in (plan.get("share_classes") or {}).items() for t in ts}
-    shares = measure_shares(plan.get("share_classes") or {}, planner, values)
-
-    keywords: dict[str, dict] = {}
-    counts = Counter()
-    skipped = {}
-    for code, spec in (plan.get("combinations") or {}).items():
-        if spec.get("skip"):
-            skipped[code] = spec["skip"]
-            continue
-        page = spec["page"]
-        if page not in pages:
-            raise SystemExit(f"{code}: page {page!r} is not in `pages`")  # rule 12: say so
-        for template in spec.get("keywords") or []:
-            for kw, used in expand(template, values):
-                key = norm(kw)
-                counts["generated"] += 1
-                if not one_word_ok(kw, used):
-                    counts["one_word_dropped"] += 1
-                    continue
-                if key in keywords:
-                    keywords[key]["combos"].append(code)
-                    continue
-                vol = volume(key, template, used, planner, shares, cls_of)
-                # A measured keyword is shown as Planner spelled it.
-                shown = planner[key]["keyword"] if key in planner else kw
-                keywords[key] = {
-                    "keyword": shown,
-                    "combo": code,
-                    "combos": [code],
-                    "pattern": template,
-                    "page": page,
-                    "link": link(pages[page], used),
-                    **vol,
-                }
-    # MEASURED KEYWORDS NO TEMPLATE MADE ("opus vs sonnet"), on the page
-    # their own combo points at; the one-word rule applies to them too.
-    combos = plan.get("combinations") or {}
-    for key, m in planner.items():
-        if key in keywords or not m["combo"]:
-            continue
-        spec = combos.get(str(m["combo"]).strip()) or {}
-        if spec.get("skip") or "page" not in spec:
-            continue
-        if len(key.split()) == 1 and not str(m["combo"]).startswith("E20"):
-            counts["one_word_dropped"] += 1
-            continue
-        keywords[key] = {
-            "keyword": m["keyword"],
-            "combo": str(m["combo"]),
-            "combos": [str(m["combo"])],
-            "pattern": "(measured keyword)",
-            "page": spec["page"],
-            "link": base_url(pages[spec["page"]]["url"]),
-            **volume(key, "", {}, planner, shares, cls_of),
-        }
-    counts["keywords"] = len(keywords)
-    counts["measured"] = sum(1 for k in keywords.values() if k["volume_kind"] == "measured")
-    counts["estimated"] = sum(1 for k in keywords.values() if k["volume_kind"] == "estimated")
-    counts["no_volume"] = sum(1 for k in keywords.values() if k["volume_kind"] is None)
-    floor = int(plan.get("min_monthly_searches", 0))
-    listed = [k for k in keywords.values() if k["volume_kind"] is not None]
-    listed.sort(key=lambda k: (-k["searches"], k["keyword"].lower()))
-    counts["at_or_above_threshold"] = sum(1 for k in listed if k["searches"] >= floor)
-    return {
-        "built": datetime.now(UTC).date().isoformat(),
-        "exported_at": datetime.now(UTC).isoformat(timespec="seconds"),
-        "min_monthly_searches": floor,
-        "pages": [{"key": k, **v} for k, v in pages.items()],
-        "keywords": listed,
-        "method": {
-            "counts": dict(counts),
-            "shares": {c: {"share": s["share"], "pairs": s["pairs"]} for c, s in shares.items()},
-            "skipped_combinations": skipped,
-            "volume_source": "Google Keyword Planner bands, global, all languages, Jan-Jul 2026 "
-            "(the workbook's 'Planner volumes (measured)' sheet)",
-        },
-    }
+NO_VOLUME = {"volume_kind": None, "volume": None, "searches": None, "basis": None}
 
 
 def volume(key, template, used, planner, shares, cls_of) -> dict:
     m = planner.get(key)
     if m:
+        if m["band"][0] == 0:
+            return {"volume_kind": "measured", "volume": "0", "searches": 0, "basis": None}
         return {
             "volume_kind": "measured",
             "volume": m["label"],
             "searches": int(midpoint(m["band"])),
-            "band_floor": m["band"][0],
             "basis": None,
         }
     cls = cls_of.get(template)
     share = (shares.get(cls) or {}).get("share") if cls else None
     if share is None or not used:
-        return {
-            "volume_kind": None,
-            "volume": None,
-            "searches": 0,
-            "band_floor": None,
-            "basis": None,
-        }
+        return dict(NO_VOLUME)
     heads = []
     for v in used.values():
         h = planner.get(norm(v["name"]))
         if not h or h["band"][0] == 0:
-            return {
-                "volume_kind": None,
-                "volume": None,
-                "searches": 0,
-                "band_floor": None,
-                "basis": None,
-            }
+            return dict(NO_VOLUME)
         heads.append(h)
     head = min(heads, key=lambda h: midpoint(h["band"]))
-    est = int(round(midpoint(head["band"]) * share, -2))
+    est = int(round(midpoint(head["band"]) * share, -1))
     return {
         "volume_kind": "estimated",
         "volume": f"~{est:,}",
         "searches": est,
-        "band_floor": None,
         "basis": f"'{head['keyword']}' {head['label']} x {cls} share {share:.1%}",
     }
+
+
+# ── links ───────────────────────────────────────────────────────────────────
 
 
 def base_url(url: str) -> str:
@@ -351,21 +295,66 @@ def base_url(url: str) -> str:
 def link(page: dict, used: dict) -> str:
     url = page["url"]
     model, model_b = used.get("model"), used.get("model_b")
-    if "<a>" in url:  # a comparison
+    if "<a>" in url:
         if model and model_b and model.get("id") and model_b.get("id"):
             return f"/compare?ids={model['id']},{model_b['id']}"
-        return "/compare"
-    if "<model>" in url and model:
-        if model.get("id"):
-            return f"/catalog/model/{model['id']}"
-        return model.get("link") or "/catalog"
-    for n in ("job", "capability", "benchmark", "metric"):
-        if used.get(n) and used[n].get("link") and url.startswith("/reports"):
-            return used[n]["link"]
+        return base_url(url)
+    if "<model>" in url and model and model.get("id"):
+        return url.replace("<model>", model["id"])
     for n, v in used.items():
         if f"<{n}>" in url:
             return url.replace(f"<{n}>", "-".join(norm(v["name"]).split()))
     return base_url(url)
+
+
+def build(plan: dict, planner: dict[str, dict], models: list[dict]) -> dict:
+    pools = pools_of(plan, models)
+    pages = plan["pages"]
+    want = int(plan["per_section"])
+    cls_of = {t: c for c, ts in (plan.get("share_classes") or {}).items() for t in ts}
+    shares = measure_shares(plan.get("share_classes") or {}, planner, pools)
+    taken: set[str] = set()
+    keywords, per_page = [], {}
+    for key, groups in (plan.get("sections") or {}).items():
+        if key not in pages:
+            raise SystemExit(f"section {key!r} is not in `pages`")  # rule 12: say so
+        rows = pick(key, groups, pools, want, taken)
+        per_page[key] = {"keywords": len(rows), "phrasings": sum(len(g["t"]) for g in groups)}
+        for r in rows:
+            vol = volume(norm(r["keyword"]), r["pattern"], r["used"], planner, shares, cls_of)
+            keywords.append(
+                {
+                    "keyword": r["keyword"],
+                    "page": key,
+                    "combo": r["combo"],
+                    "pattern": r["pattern"],
+                    "link": link(pages[key], r["used"]),
+                    **vol,
+                }
+            )
+    empty = {"keywords": 0, "phrasings": 0}
+    counts = Counter(k["volume_kind"] or "none" for k in keywords)
+    return {
+        "built": datetime.now(UTC).date().isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "per_section": want,
+        "pages": [{"key": k, **v, **per_page.get(k, empty)} for k, v in pages.items()],
+        "keywords": keywords,
+        "method": {
+            "counts": {
+                "keywords": len(keywords),
+                "measured": counts["measured"],
+                "estimated": counts["estimated"],
+                "not_measured": counts["none"],
+            },
+            "short_sections": {
+                k: v["keywords"] for k, v in per_page.items() if v["keywords"] < want
+            },
+            "shares": shares,
+            "volume_source": "Google Keyword Planner bands, global, all languages, Jan-Jul 2026 "
+            "(the workbook's 'Planner volumes (measured)' sheet)",
+        },
+    }
 
 
 def main(argv=None) -> int:
@@ -375,22 +364,18 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, default=OUT)
     args = ap.parse_args(argv)
     plan = yaml.safe_load(PLAN.read_text(encoding="utf-8"))
-    data = build(
-        plan, read_planner(args.board), tracked_models(args.api.rstrip("/") if args.api else None)
-    )
+    api = args.api.rstrip("/") if args.api else None
+    data = build(plan, read_planner(args.board), tracked_models(api))
     data["source"] = f"{args.board.name} + {PLAN.relative_to(ROOT).as_posix()}"
-    args.out.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    args.out.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     c = data["method"]["counts"]
     print(
-        f"wrote {args.out}: {c['keywords']} keywords ({c['measured']} measured, {c['estimated']} "
-        f"estimated, {c['no_volume']} with no volume); {c['at_or_above_threshold']} at "
-        f"{data['min_monthly_searches']:,}+ a month"
+        f"wrote {args.out}: {c['keywords']} keywords in {len(data['pages'])} sections "
+        f"({c['measured']} measured, {c['estimated']} estimated, {c['not_measured']} not measured)"
     )
-    for cls, s in data["method"]["shares"].items():
-        print(
-            f"  share {cls:13} {('%.1f%%' % (100 * s['share'])) if s['share'] else 'none':>7}  "
-            f"from {len(s['pairs'])} pair(s)"
-        )
+    for p in data["pages"]:
+        flag = "" if p["keywords"] >= data["per_section"] else "   SHORT"
+        print(f"  {p['key']:16} {p['keywords']:5} keywords from {p['phrasings']:3} phrasings{flag}")
     return 0
 
 
