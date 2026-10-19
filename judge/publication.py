@@ -86,6 +86,73 @@ def derived_posts_embed_only() -> tuple[str, ...]:
     return tuple(str(s).strip() for s in raw["embed_only"])
 
 
+@lru_cache(maxsize=1)
+def arxiv_acknowledgement() -> str:
+    """The line arXiv's API terms ask for, as `contract/publication.yaml` gives it.
+
+    `credits.arxiv_acknowledgement` (2026-10-19). Required: absent or empty
+    raises (rule 12) - a post must never go out without it because a key was
+    missing. The undertaking's `arxiv_acknowledged` condition rests on this.
+    """
+    from judge.config import _read
+
+    text = ((_read("publication.yaml") or {}).get("credits") or {}).get("arxiv_acknowledgement")
+    if not isinstance(text, str) or not text.strip():
+        raise PublicationConfigError(
+            "contract/publication.yaml `credits.arxiv_acknowledgement` is missing or "
+            "empty. Refusing rather than serving arXiv-derived posts without it."
+        )
+    return text.strip()
+
+
+def cites_arxiv(post: dict) -> bool:
+    """True when any of a post's credited sources is an arXiv paper."""
+    from urllib.parse import urlparse
+
+    for s in post.get("sources") or []:
+        if not isinstance(s, dict):
+            continue
+        host = urlparse(str(s.get("url") or "")).hostname or ""
+        if str(s.get("platform") or "").lower() == "arxiv" or host == "arxiv.org" \
+                or host.endswith(".arxiv.org"):
+            return True
+    return False
+
+
+def with_credits(post: dict) -> dict:
+    """A post as it is SERVED: arXiv's acknowledgement attached when it cites one.
+
+    AT SERVE TIME, NOT WRITE TIME (2026-10-19, review of #535). Six approved
+    posts cited arXiv papers and none carried the acknowledgement: the line was
+    only ever added by the topic-post generator, so every post written another
+    way went out without it. Attaching it where every post is served covers
+    every post, however and whenever it was written. A post that already
+    carries an `acknowledgement` keeps its own.
+    """
+    if post.get("acknowledgement") or not cites_arxiv(post):
+        return post
+    return {**post, "acknowledgement": arxiv_acknowledgement()}
+
+
+#: The provenance fields a PUBLIC post keeps. Everything else - `platforms`
+#: (documents per platform), `documents` (platform-prefixed ids), `embedded`,
+#: the check records - is the generator's working, and `platforms` is a count
+#: split by platform on a public endpoint, which the undertaking's
+#: `per_platform_counts_shown: false` rules out (found reviewing #536, which
+#: opens /blog-posts to signed-out visitors; 2026-10-19). An allowlist, so a
+#: field added later stays private until somebody decides otherwise.
+PUBLIC_PROVENANCE = ("model", "served_as", "generated_at", "plan_key", "format")
+
+
+def public_post(post: dict) -> dict:
+    """A post as the PUBLIC Blogs page receives it: credits attached, and the
+    provenance cut to `PUBLIC_PROVENANCE`. Admin's review read keeps it all."""
+    post = with_credits(post)
+    prov = post.get("provenance")
+    if isinstance(prov, dict):
+        post = {**post, "provenance": {k: prov[k] for k in PUBLIC_PROVENANCE if k in prov}}
+    return post
+
 #: Set for the length of one block by `forced_public()`: an anonymous caller is
 #: always served the public view, whatever view this deployment runs.
 _FORCED_PUBLIC: ContextVar[bool] = ContextVar("forced_public", default=False)

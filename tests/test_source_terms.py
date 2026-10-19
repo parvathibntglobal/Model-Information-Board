@@ -17,7 +17,7 @@ from datetime import date, timedelta
 import pytest
 import yaml
 
-from collect.adapters.basis import INTERNAL_DEVELOPMENT_ONLY
+from collect.adapters.basis import PUBLIC_DERIVED_PUBLICATION
 from collect.config import CONTRACT_DIR
 from collect.registry.assertions import TermsNotReviewedError, assert_terms_reviewed
 from collect.registry.sources import (
@@ -54,7 +54,7 @@ def _observations(source, *, allowed=True):
         # ⚠ ADDED 2026-09-15. Both blog rulings now ENFORCE the basis they
         # name, so a healthy run observes it - previously they named it and
         # checked nothing, and this helper modelled that gap faithfully.
-        "use_basis": INTERNAL_DEVELOPMENT_ONLY,
+        "use_basis": PUBLIC_DERIVED_PUBLICATION,
         # THE PLATFORM-SPECIFIC ONES, spelled as the real adapters spell them.
         # Supplied for every source rather than only the one that needs each:
         # `_check_facts` ignores an observation no ruling asks for, and a helper
@@ -395,8 +395,8 @@ def test_reddit_now_names_a_ruling_and_it_constrains_rather_than_clears():
     assert reddit["terms_ruling"] == "reddit-via-rapidapi"
 
     ruling = contract.rulings["reddit-via-rapidapi"]
-    assert ruling.basis == "internal-development-only"
-    assert ruling.live_preconditions["use_basis"] == ["internal-development-only"]
+    assert ruling.basis == "public-derived-publication"
+    assert ruling.live_preconditions["use_basis"] == ["public-derived-publication"]
 
     with pytest.raises(TermsNotReviewedError):
         assert_terms_reviewed(

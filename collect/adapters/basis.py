@@ -47,6 +47,14 @@ from datetime import date, timedelta
 #: source with a message about a basis mismatch.
 INTERNAL_DEVELOPMENT_ONLY = "internal-development-only"
 
+#: THE BASIS SINCE 2026-10-19: derived content is published - Reddit and X only
+#: as official embeds, other sources quoted with credit and link, arXiv with its
+#: acknowledgement, totals never split by platform, the internal view behind
+#: the team sign-in (contract/sources.yaml `use_basis_undertaking`). The
+#: internal basis above is kept as a name for the history that describes it;
+#: no ruling accepts it any more.
+PUBLIC_DERIVED_PUBLICATION = "public-derived-publication"
+
 #: ⚠ REPLACED BY THE UNDERTAKING, 2026-09-15 (PROPOSED).
 #:
 #: This used to be the whole check: anything but `production` observed as
