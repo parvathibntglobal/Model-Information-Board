@@ -55,3 +55,4 @@
 .kw-linkbtn{all:unset;cursor:pointer;color:var(--text);text-decoration:underline dotted var(--border-strong);text-underline-offset:3px}
 .kw-linkbtn:hover,.kw-linkbtn:focus-visible{text-decoration-style:solid}
 .kw-new{font-size:10.5px;font-family:var(--font-mono);color:var(--warn)}
+.kw-target{font-size:var(--fs-sm);color:var(--text-2);text-align:right}

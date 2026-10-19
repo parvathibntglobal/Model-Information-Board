@@ -7,77 +7,66 @@ import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 
 /**
- * KEYWORD PLAN (2026-10-19, anooj): which keywords to use on which PUBLIC page.
+ * KEYWORD PLAN, BY QUERY TYPE (2026-10-19, anooj).
  *
- * ONE SECTION PER PAGE, at least `per_section` keywords each, written from that
- * page's intent as real search queries, each traced to its combo code on the
- * SEO workbook's Combinations sheet (seo/keyword_plan.yaml). No volume floor.
+ * A search query is an INTENT plus an ENTITY: "what is system 1 model" is a
+ * definition ("what is") of a concept ("system 1 model"). The intent decides
+ * what shape of answer wins it - a glossary entry, a comparison table, a model
+ * page, a tutorial, first-hand experiences - so each section here is one
+ * intent, the page and FORMAT that answers it on this board, how to place the
+ * keyword there (title, H1, H2s, links, structured data), and every keyword
+ * the intent makes with the entities it fits (seo/keyword_plan.yaml,
+ * scripts/build_keyword_plan.py).
  *
- * A VOLUME is shown only where there is one: a Google Keyword Planner band from
- * the workbook, or an ESTIMATE from one (the head's measured band x a share the
- * build measures from the workbook's own pairs). Everything else says "not
- * measured" - most keywords here - never a guess (scripts/build_keyword_plan.py).
+ * Two views: BY QUERY TYPE (an intent and its keywords) and BY PAGE (every
+ * query type one page should answer). A keyword's link is the exact page that
+ * answers it where one exists - a model's page, a pair's comparison, the post
+ * already written on a concept; "to write" marks a page that does not yet.
  *
- * PAGES are the site's page layouts, not every post or comparison: a blog
- * post, a model page, a comparison are one page each, and a keyword names the
- * one it belongs on (its link). NEW PAGES and NEW TOOLS are suggestions, with
- * the keywords that would justify them. Nothing behind the sign-in is a target.
+ * A volume is shown only where Google Keyword Planner measured it or a
+ * measured share estimates it; everything else says "not measured".
  */
-const GROUPS = [
-  { kind: 'page', label: 'Pages on the site' },
-  { kind: 'new-page', label: 'Suggested new pages' },
-  { kind: 'new-tool', label: 'Suggested new tools' },
-]
-const STEP = 300
-const fmt = (n) => (n == null ? '' : Number(n).toLocaleString('en-US'))
+const STEP = 200
+const KIND = { page: 'Page on the site', 'new-page': 'Suggested new page', 'new-tool': 'Suggested new tool' }
 
 export default function KeywordPlan() {
   useHead(PRIVATE.keywords)
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
   const [sp, setSp] = useSearchParams()
-  const pageKey = sp.get('p') || ''
+  const view = sp.get('view') === 'page' ? 'page' : 'intent'
+  const pick = sp.get('s') || ''
   const [q, setQ] = useState('')
-  const [sort, setSort] = useState({ k: 'searches', dir: -1 })
   const [shown, setShown] = useState(STEP)
 
   useEffect(() => { adminSeoKeywordPlan().then(setData).catch((e) => setErr(e.message)) }, [])
 
   const pages = useMemo(() => new Map((data?.pages || []).map((p) => [p.key, p])), [data])
-  const inScope = useMemo(() => data?.keywords || [], [data])
+  const sections = useMemo(() => data?.sections || [], [data])
+  const byKey = useMemo(() => new Map(sections.map((s) => [s.key, s])), [sections])
   const perPage = useMemo(() => {
     const c = {}
-    inScope.forEach((k) => { c[k.page] = (c[k.page] || 0) + 1 })
+    ;(data?.keywords || []).forEach((k) => { c[k.page] = (c[k.page] || 0) + 1 })
     return c
-  }, [inScope])
-  const page = pageKey ? pages.get(pageKey) : null
+  }, [data])
+  const pagesInUse = useMemo(
+    () => (data?.pages || []).filter((p) => perPage[p.key]),
+    [data, perPage],
+  )
+  const first = view === 'page' ? pagesInUse[0]?.key : sections[0]?.key
+  const sel = pick || first || ''
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    const keep = (k) => (!pageKey || k.page === pageKey)
-      && (!needle || k.keyword.toLowerCase().includes(needle) || (k.pattern || '').toLowerCase().includes(needle))
-    const val = (k) => (sort.k === 'page' ? pages.get(k.page)?.name : k[sort.k])
-    return inScope.filter(keep).sort((a, b) => {
-      const x = val(a), y = val(b)
-      if (x == null || x === '') return 1
-      if (y == null || y === '') return -1
-      return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true })) * sort.dir
-    })
-  }, [inScope, pageKey, q, sort, pages])
+    return (data?.keywords || [])
+      .filter((k) => (view === 'page' ? k.page === sel : k.section === sel))
+      .filter((k) => !needle || k.keyword.toLowerCase().includes(needle) || k.entity.toLowerCase().includes(needle))
+      .sort((a, b) => (b.searches ?? -1) - (a.searches ?? -1))
+  }, [data, view, sel, q])
 
-  useEffect(() => { setShown(STEP) }, [pageKey, q, sort])
+  useEffect(() => { setShown(STEP) }, [view, sel, q])
 
-  const choose = (key) => setSp(key ? { tab: 'plan', p: key } : { tab: 'plan' })
-  const th = (k, label, num) => {
-    const on = sort.k === k
-    return (
-      <th className={num ? 'num' : undefined} aria-sort={on ? (sort.dir > 0 ? 'ascending' : 'descending') : 'none'}>
-        <button type="button" className="kw-sort" onClick={() => setSort({ k, dir: on ? -sort.dir : num ? -1 : 1 })}>
-          {label}<span aria-hidden="true">{on ? (sort.dir > 0 ? ' ▲' : ' ▼') : ' ↕'}</span>
-        </button>
-      </th>
-    )
-  }
+  const go = (v, s) => setSp({ tab: 'plan', ...(v === 'page' ? { view: 'page' } : {}), ...(s ? { s } : {}) })
 
   if (err) return <div className="shell section-tight"><Notice icon={<IconAlert />}>The keyword plan could not be read: {err}</Notice></div>
   if (!data) return <div className="shell section-tight"><div className="skel" style={{ height: 320 }} /></div>
@@ -88,116 +77,76 @@ export default function KeywordPlan() {
       </div>
     )
   }
-  const m = data.method || {}
-  const c = m.counts || {}
-  const want = data.per_section
-  const short = Object.entries(m.short_sections || {})
+  const c = data.method?.counts || {}
+  const section = view === 'intent' ? byKey.get(sel) : null
+  const page = view === 'page' ? pages.get(sel) : null
+  const pageSections = page ? sections.filter((s) => s.page === page.key) : []
 
   return (
     <div className="shell section-tight stack stack-4">
       <div className="stack stack-1">
         <span className="eyebrow">Signed in · Keyword plan</span>
         <h1 style={{ fontSize: 'var(--fs-h2)' }}>Keyword plan</h1>
-        <p className="muted" style={{ maxWidth: '80ch' }}>
-          The search queries to use on each public page, written from what that page is for, at least {fmt(want)} per
-          section, each traced to its combination on the SEO workbook. Searches a month are shown where Google Keyword
-          Planner measured them, or where they can be estimated from a measurement; the rest say "not measured".
+        <p className="muted" style={{ maxWidth: '82ch' }}>
+          A search is an intent plus a subject: <i>what is</i> + <i>system 1 model</i>. The intent decides which kind of
+          answer wins it, so each query type below says which page answers it here, in what format, and how to place
+          the keyword: title, heading, links and structured data. Then every keyword it makes.
         </p>
         <p className="kw-meta mono">
-          Plan {data.built} · {fmt(c.keywords)} keywords in {data.pages.length} sections · {fmt(c.measured)} measured ·
-          {' '}{fmt(c.estimated)} estimated · {fmt(c.not_measured)} not measured
-          {short.length ? ` · below ${want}: ${short.map(([k, n]) => `${pages.get(k)?.name || k} ${n}`).join(', ')}` : ''}
+          Plan {data.built} · {c.keywords?.toLocaleString('en-US')} keywords in {sections.length} query types ·
+          {' '}{c.concepts} concepts · {c.models} models · {c.measured} measured · {c.estimated} estimated ·
+          {' '}{c.posts_to_write?.toLocaleString('en-US')} concept keywords with no post yet
         </p>
-        <details className="kw-method">
-          <summary>How the volumes are worked out</summary>
-          <div className="stack stack-2" style={{ marginTop: 8 }}>
-            <p className="muted">
-              <b>Measured</b>: the keyword itself was measured by Keyword Planner ({m.volume_source}). The band is shown;
-              its geometric midpoint is used to sort. <b>Estimated</b>: only its head term was measured, so the estimate
-              is that head's midpoint times the share of a head's searches that add the modifier. Each share is measured
-              from the workbook's own pairs, where a head and its modified form were both measured. A modifier with no
-              such pair has no share, and its keywords no estimate.
-            </p>
-            <table className="kw-table kw-shares">
-              <thead><tr><th>Modifier</th><th className="num">Share</th><th>Measured from</th></tr></thead>
-              <tbody>
-                {Object.entries(m.shares || {}).map(([cls, s]) => (
-                  <tr key={cls}>
-                    <td className="mono">{cls}</td>
-                    <td className="num mono">{s.share == null ? 'none' : `${(100 * s.share).toFixed(1)}%`}</td>
-                    <td>{s.pairs.length
-                      ? s.pairs.map((p) => `${p.keyword} (${p.keyword_band}) / ${p.head} (${p.head_band})`).join(' · ')
-                      : 'no measured pair'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="muted">
-              Each section takes one keyword from each of its phrasings in turn, with a different mix of values per
-              phrasing, so no section is one phrasing repeated with every model name. One word is kept only when it
-              names a model.
-            </p>
-          </div>
-        </details>
       </div>
 
-      <div className="stack stack-2">
-        <button type="button" className={`chip ${!pageKey ? 'chip-on' : ''}`} style={{ alignSelf: 'flex-start' }} onClick={() => choose('')}>
-          All pages <span className="x">{inScope.length}</span>
-        </button>
-        {GROUPS.map((g) => (
-          <div key={g.kind} className="stack stack-1">
-            <span className="label">{g.label}</span>
-            <nav className="kw-pills" aria-label={g.label}>
-              {data.pages.filter((p) => p.kind === g.kind).map((p) => (
-                <button key={p.key} type="button" onClick={() => choose(p.key)}
-                        className={`chip ${pageKey === p.key ? 'chip-on' : ''} ${perPage[p.key] ? '' : 'kw-chip-none'}`}>
-                  {p.name} <span className="x">{perPage[p.key] || 0}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-        ))}
+      <div className="kw-tabs" role="tablist" aria-label="Plan views">
+        <button type="button" role="tab" aria-selected={view === 'intent'} className={`kw-tab ${view === 'intent' ? 'kw-tab-on' : ''}`} onClick={() => go('intent')}>By query type</button>
+        <button type="button" role="tab" aria-selected={view === 'page'} className={`kw-tab ${view === 'page' ? 'kw-tab-on' : ''}`} onClick={() => go('page')}>By page</button>
       </div>
 
+      <nav className="kw-pills" aria-label={view === 'page' ? 'Pages' : 'Query types'}>
+        {view === 'intent'
+          ? sections.map((s) => (
+            <button key={s.key} type="button" className={`chip ${sel === s.key ? 'chip-on' : ''}`} onClick={() => go('intent', s.key)}>
+              {s.name} <span className="x">{s.keywords}</span>
+            </button>
+          ))
+          : pagesInUse.map((p) => (
+            <button key={p.key} type="button" className={`chip ${sel === p.key ? 'chip-on' : ''}`} onClick={() => go('page', p.key)}>
+              {p.name}{p.kind !== 'page' && <span className="kw-new"> {p.kind === 'new-tool' ? 'new tool' : 'new page'}</span>} <span className="x">{perPage[p.key]}</span>
+            </button>
+          ))}
+      </nav>
+
+      {section && <IntentCard s={section} page={pages.get(section.page)} />}
       {page && (
-        <section className="card stack stack-2" aria-label={page.name}>
-          <div className="kw-tab-head">
-            <div className="stack stack-1">
-              <span className="label">{page.kind === 'page' ? 'Page on the site' : page.kind === 'new-page' ? 'Suggested new page' : 'Suggested new tool'}</span>
-              <b>{page.name}</b>
-              <span className="mono kw-path">{page.url}</span>
-            </div>
-            {page.kind === 'page' && !page.url.includes('<') && (
-              <Link to={page.url} target="_blank" rel="noopener" className="btn btn-ghost">Open page ↗</Link>
-            )}
-          </div>
-          <p className="muted">{page.about}</p>
-          <p className="muted">
-            {fmt(perPage[page.key] || 0)} keywords for this page, from {page.phrasings} phrasings.
-          </p>
-        </section>
+        <div className="stack stack-2">
+          <section className="card stack stack-1">
+            <span className="label">{KIND[page.kind]}</span>
+            <b>{page.name}</b>
+            <span className="mono kw-path">{page.url}</span>
+            <p className="muted">Answers {pageSections.length} query type{pageSections.length === 1 ? '' : 's'}: {pageSections.map((s) => s.name).join(' · ')}.</p>
+          </section>
+          {pageSections.map((s) => <IntentCard key={s.key} s={s} page={page} compact />)}
+        </div>
       )}
 
       <div className="kw-filters">
         <span className="kw-filters-search">
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a keyword or pattern…" aria-label="Find a keyword" />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a keyword or subject…" aria-label="Find a keyword" />
         </span>
-        <span className="kw-count mono">{rows.length} shown</span>
+        <span className="kw-count mono">{rows.length.toLocaleString('en-US')} keywords</span>
       </div>
 
       <div className="kw-scroll">
         <table className="kw-table">
           <thead>
             <tr>
-              {th('keyword', 'Keyword')}
-              {th('searches', 'Searches a month', true)}
-              {th('volume_kind', 'Volume')}
-              {!pageKey && th('page', 'Use on')}
-              {th('link', 'Page link')}
-              {th('pattern', 'Pattern')}
-              {th('combo', 'Combo code')}
-              <th>How it was estimated</th>
+              <th><span className="kw-sort">Keyword</span></th>
+              <th><span className="kw-sort">Subject</span></th>
+              {view === 'page' && <th><span className="kw-sort">Query type</span></th>}
+              <th><span className="kw-sort">Answered at</span></th>
+              <th className="num"><span className="kw-sort">Searches a month</span></th>
             </tr>
           </thead>
           <tbody>
@@ -206,24 +155,16 @@ export default function KeywordPlan() {
               return (
                 <tr key={k.keyword}>
                   <th scope="row" className="kw-kw">{k.keyword}</th>
-                  <td className="num mono">{k.volume ?? ''}</td>
-                  <td className={k.volume_kind === 'measured' ? undefined : 'kw-variant'}>
-                    {k.volume_kind === 'measured' ? 'Measured' : k.volume_kind === 'estimated' ? 'Estimated' : 'Not measured'}
-                  </td>
-                  {!pageKey && (
-                    <td>
-                      <button type="button" className="kw-linkbtn" onClick={() => choose(k.page)}>{p?.name || k.page}</button>
-                      {p && p.kind !== 'page' && <span className="kw-new"> {p.kind === 'new-tool' ? 'new tool' : 'new page'}</span>}
-                    </td>
-                  )}
+                  <td className="muted">{k.entity}</td>
+                  {view === 'page' && <td>{byKey.get(k.section)?.name}</td>}
                   <td className="mono">
-                    {p?.kind === 'page' && !k.link.includes('<')
+                    {k.page_exists && p?.kind === 'page'
                       ? <Link to={k.link} target="_blank" rel="noopener">{k.link}</Link>
-                      : k.link}
+                      : <>{k.link} <span className="kw-new">{p?.kind === 'page' ? 'to write' : p?.kind === 'new-tool' ? 'new tool' : 'new page'}</span></>}
                   </td>
-                  <td className="mono">{k.pattern}</td>
-                  <td className="mono">{k.combo}</td>
-                  <td className="muted">{k.basis || ''}</td>
+                  <td className="num mono">
+                    {k.volume_kind ? <>{k.volume}{k.volume_kind === 'estimated' && <span className="kw-variant"> est.</span>}</> : <span className="kw-variant">not measured</span>}
+                  </td>
                 </tr>
               )
             })}
@@ -233,9 +174,41 @@ export default function KeywordPlan() {
       </div>
       {rows.length > shown && (
         <button type="button" className="btn btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => setShown((n) => n + STEP)}>
-          Show {Math.min(STEP, rows.length - shown)} more of {rows.length - shown}
+          Show {Math.min(STEP, rows.length - shown)} more of {(rows.length - shown).toLocaleString('en-US')}
         </button>
       )}
     </div>
+  )
+}
+
+/** One query type: its intent, the page and format that answer it, and how to place it. */
+function IntentCard({ s, page, compact }) {
+  const pl = s.place || {}
+  return (
+    <section className="card stack stack-2" aria-label={s.name}>
+      <div className="kw-tab-head">
+        <div className="stack stack-1">
+          <span className="label">{compact ? 'Query type' : 'Query type · combo ' + s.combo}</span>
+          <b>{s.name}</b>
+        </div>
+        {page && (
+          <span className="kw-target">
+            Answered on <b>{page.name}</b>{page.kind !== 'page' && <span className="kw-new"> {page.kind === 'new-tool' ? 'new tool' : 'new page'}</span>}
+            <span className="mono kw-path"> {page.url}</span>
+          </span>
+        )}
+      </div>
+      <dl className="kw-facts">
+        <dt>Intent words</dt><dd>{s.intent}</dd>
+        <dt>Combined with</dt><dd>{s.entity}</dd>
+        <dt>Answer format</dt><dd>{s.format}</dd>
+        {pl.title && (<><dt>Title</dt><dd className="mono">{pl.title}</dd></>)}
+        {pl.h1 && (<><dt>H1</dt><dd className="mono">{pl.h1}</dd></>)}
+        {pl.h2 && (<><dt>H2 sections</dt><dd>{pl.h2.join(' · ')}</dd></>)}
+        {pl.links && (<><dt>Link to</dt><dd>{pl.links.join(' · ')}</dd></>)}
+        {pl.schema && (<><dt>Structured data</dt><dd className="mono">{pl.schema}</dd></>)}
+        {!compact && (<><dt>Patterns</dt><dd className="mono">{(s.patterns || []).join(' · ')}</dd></>)}
+      </dl>
+    </section>
   )
 }
