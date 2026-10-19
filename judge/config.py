@@ -322,6 +322,60 @@ def board_ordering_z() -> float:
 
 
 @lru_cache(maxsize=1)
+def category_scores() -> dict:
+    """`contract/category_scores.yaml`: the one visible score CLAUDE.md rule 3
+    permits - its categories, which sections score, and the minimum.
+
+    Returns {"min_sided_reports": int, "scored_sections": frozenset,
+    "categories": [{"key", "name"}] in file order,
+    "parent_to_category": {(section, parent): key}}.
+
+    NO DEFAULTS, AND A PARENT IN TWO CATEGORIES IS REFUSED. A missing minimum
+    would score one report as readily as fifty (rule 12); a parent filed twice
+    would count one report in two categories and inflate both. A parent that is
+    not a heading in contract/slug_parents.yaml is refused too: it would score
+    nothing, silently, under a category that looks covered.
+    """
+    raw = _read("category_scores.yaml")
+    if not isinstance(raw, dict):
+        raise ValueError("contract/category_scores.yaml must be a mapping")
+    minimum = raw.get("min_sided_reports")
+    if isinstance(minimum, bool) or not isinstance(minimum, int) or minimum < 1:
+        raise ValueError(
+            "contract/category_scores.yaml: min_sided_reports must be a positive "
+            f"integer, got {minimum!r}"
+        )
+    scored = raw.get("scored_sections")
+    if not isinstance(scored, list) or not scored:
+        raise ValueError("contract/category_scores.yaml: scored_sections must be a non-empty list")
+    headings = {s: set(m.values()) for s, m in slug_parents().items()}
+    cats, owner = [], {}
+    for key, spec in (raw.get("categories") or {}).items():
+        for section, names in ((spec or {}).get("parents") or {}).items():
+            for p in names or []:
+                if p not in headings.get(section, set()):
+                    raise ValueError(
+                        f"contract/category_scores.yaml: {key}: {p!r} is not a {section} "
+                        "heading in contract/slug_parents.yaml"
+                    )
+                if (section, p) in owner:
+                    raise ValueError(
+                        f"contract/category_scores.yaml: {section}/{p} is in both "
+                        f"{owner[(section, p)]!r} and {key!r}"
+                    )
+                owner[(section, p)] = str(key)
+        cats.append({"key": str(key), "name": str((spec or {}).get("name") or key)})
+    if not cats:
+        raise ValueError("contract/category_scores.yaml: no categories")
+    return {
+        "min_sided_reports": minimum,
+        "scored_sections": frozenset(scored),
+        "categories": cats,
+        "parent_to_category": owner,
+    }
+
+
+@lru_cache(maxsize=1)
 def blog_live_settings() -> dict[str, dict[str, int]]:
     """`contract/blog_live.yaml`: the numbers the blog's live pages run on.
 

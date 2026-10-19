@@ -174,6 +174,12 @@ These are the rules a helpful refactor will otherwise quietly violate.
    Rule 2 still holds inside it: the extractor proposes each polarity label,
    and code counts. No model sees, computes or adjusts the score.
 
+   The instance, from 2026-10-19: `judge/category_scores.py` computes it,
+   `/compare` returns it per model as `reported.categories` with the rule
+   under `category_method`, and `web/src/routes/Compare.jsx` (`CategoryScores`)
+   renders each score with its counts. `tests/test_category_scores.py` pins
+   the arithmetic and the conditions above that live in the markup.
+
 4. **Silence is not criticism.** "Nobody has discussed this" must render
    distinctly from "engineers report problems". Absence of evidence must never
    read as evidence of capability.

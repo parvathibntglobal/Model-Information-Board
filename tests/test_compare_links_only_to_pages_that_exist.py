@@ -130,28 +130,31 @@ class TestAPathExistsOnlyWhereTheBoardHasThePage:
 
 
 class TestThePageNeverRendersADeadLink:
-    def test_the_axis_name_links_only_when_a_path_exists(self):
-        jsx = _jsx()
-        assert "axisPath\n" in jsx or "axisPath ?" in jsx.replace("\n", " ").replace("  ", " ") \
-            or re.search(r"\{axisPath\s*\?", jsx), (
-            "the axis name is no longer conditional on a board path"
-        )
-        assert "to={`/board/${axisPath}`}" in jsx
+    """⚠ THE SHARED-AXES LISTS CAME OFF THE PAGE 2026-10-19, at the product
+    owner's request, for the category score - and with them every board link
+    this class used to pin (the axis name and each cell, both conditional on a
+    board path). The payload still carries `board_path` and the backend tests
+    above still hold it to the board's own pages, for any reader that wants it.
 
-    def test_the_cell_links_only_when_a_path_exists(self):
+    What a public page must still never do is link into the signed-in board:
+    a reader who is not signed in would land on the login screen."""
+
+    def test_the_page_links_nothing_behind_the_sign_in(self):
         jsx = _jsx()
-        assert re.search(r"\{it\.board_model_path\s*\?", jsx), (
-            "the cell link is no longer conditional; a cell for a model the board "
-            "does not list on this axis would open an empty page"
-        )
-        assert "to={`/board/${it.board_model_path}`}" in jsx
+        assert "to={`/board/" not in jsx
+        assert "to={`/models/" not in jsx and 'to="/models' not in jsx
 
     def test_the_ranking_is_not_reproduced_here(self):
-        """⚠ THE DESIGN DECISION, pinned. The board already orders these pages;
-        a position shown on compare would be a second copy that can disagree."""
+        """⚠ THE DESIGN DECISION, pinned. The board orders its pages; a position
+        shown on compare would be a second copy that can disagree. The category
+        score (CLAUDE.md rule 3, second exception) is not a position: it is read
+        from the payload, and the page computes no model's score itself - the
+        only Wilson arithmetic here works the method note's two fixed examples."""
         jsx = _jsx()
-        assert "wilson" not in jsx.lower()
         assert not re.search(r"#\$\{[^}]*\}\s*of", jsx), (
             "a '#N of M' position is rendered on compare; the ranking lives on "
             "the board and is linked, not copied"
         )
+        assert "{c.score}" in jsx
+        calls = re.findall(r"(?<!function )wilsonExample\(([^)]*)\)", jsx)
+        assert calls and all(re.fullmatch(r"\d+, \d+, method\.wilson_z", c) for c in calls), calls
