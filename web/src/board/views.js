@@ -1113,16 +1113,13 @@ function reviewOf(p){
 }
 const day = (ts) => ts ? String(ts).slice(0, 10) : '';
 
-// THE LIVE PAGES (2026-10-15), offered at the top of the index: built in code
-// from the board, not posts (judge/blog_live.py, web/src/blogs/).
+// THE PAGES OFFERED UNDER THE INDEX. Only the post directory since 2026-10-19
+// (anooj): the live and reference pages - where engineers disagree, this week,
+// the daily quiz, glossary, known issues, answers - are off the blog page and
+// unrouted (web/src/routes/Blogs.jsx). Their code stays in web/src/blogs/ and
+// judge/blog_live.py, so restoring one is a line here and one there.
 const LIVE = [
-  ['live:disagree', 'Where engineers disagree', 'Models and topics with reports on both sides, every quote linked.', 'Live'],
-  ['live:this-week', 'This week in models', 'New listings, what engineers wrote, prices and retirements.', 'Live'],
-  ['live:quiz', 'Daily quiz', 'Five questions a day on how language models work.', 'Live'],
-  ['live:issues', 'Known issues', 'Problems engineers report with each model, with the quotes.', 'Reference'],
-  ['live:answers', 'What each model supports', 'Advertised features beside what engineers report.', 'Reference'],
   ['live:directory', 'Directory', 'Every post, by the model it covers, its topic, its title or its date.', 'Reference'],
-  ['live:glossary', 'Glossary', 'What each capability and job means, in plain words.', 'Reference'],
 ];
 // A POST'S PICTURE, OR NOTHING. An AI picture is an inline JPEG/PNG/WebP; a
 // FIGURE DRAWN FOR THE POST (2026-10-16) is an inline SVG, shown through <img>
