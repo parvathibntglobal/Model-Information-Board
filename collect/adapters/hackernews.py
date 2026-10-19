@@ -495,6 +495,35 @@ class HackerNewsHarvester:
         run.finished_at = self._clock()
         return run
 
+    def search_stories(self, query: str, *, since_ts: int, per_page: int = 20,
+                       run: HnRun | None = None) -> list[dict[str, Any]]:
+        """The newest STORIES matching `query` since `since_ts` (unix seconds).
+
+        FOR THE BLOG'S TOPIC HARVEST (2026-10-18), not the model fetch. The
+        model fetch reads COMMENTS (`search`, `tags=comment`) because a comment
+        is where an engineer reports a model; a topic harvest wants the
+        submission itself - what the field is linking to and discussing - so
+        this asks for `tags=story`, newest first, one page. The page is stored
+        before anything reads it, like every other call here.
+        """
+        run = run if run is not None else HnRun(query=query, started_at=self._clock())
+        params = {"query": query, "tags": "story", "hitsPerPage": per_page,
+                  "numericFilters": f"created_at_i>{int(since_ts)}"}
+        response = self._get(SEARCH_BY_DATE_PATH, params, run)
+        run.search_calls += 1
+        if response is None:
+            return []
+        stored = self._store.put(response.content, namespace=RAW)
+        run.discovery_refs.append(stored.ref)
+        run.pages_stored += 1
+        try:
+            payload = response.json()
+        except ValueError:
+            run.http_errors += 1
+            log.error("hackernews: story search for %r is not JSON", query)
+            return []
+        return [h for h in (payload.get("hits") or []) if isinstance(h, dict) and h.get("objectID")]
+
     def sieve_run(self, run: HnRun, terms) -> HnRun:
         """Apply the terms to comment text only. See `HnComment.sieve_text`."""
         from collect.adapters.queries.sieve import sieve

@@ -1,0 +1,466 @@
+{
+ "slug": "paper-walkthrough-concept-agents",
+ "status": "draft",
+ "tag": "Paper walkthrough",
+ "feat": false,
+ "title": "AI Agents in Parts: Sessions, Votes, Steps and Heartbeats",
+ "dek": "New arXiv work stops treating an agent as one model in one context. Here is how it splits credit, trust and permissions across the pieces, and how much of it was measured.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "AI agents now span sessions, voters, procedures and fleets. New papers split credit per session, test answers by putting agents in the minority, normalise procedures and distrust self-reports. Only part of it is measured yet.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkFuIGFnZW50IGRyYXduIGFzIGFuIGV4cGxvZGVkIGJsb2NrIG9mIGZvdXIgcGFydHM8L3RpdGxlPgogIDxkZXNjPlNlc3Npb25zLCB2b3RlcnMsIHByb2NlZHVyZSBzdGVwcyBhbmQgYSBoZWFydGJlYXQgcHVsbGVkIGFwYXJ0IGZyb20gb25lIGFnZW50IGNvcmUuPC9kZXNjPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJjb3JlIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC41NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDwhLS0gZ2hvc3Qgb2YgdGhlIG9yaWdpbmFsIHNpbmdsZSBibG9jayAtLT4KICA8cmVjdCB4PSI0NDAiIHk9IjE1NSIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIzMjAiIHJ4PSIyOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDEwIi8+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzE1IiByPSIxNzAiIGZpbGw9InVybCgjY29yZSkiLz4KICA8Y2lyY2xlIGN4PSI2MDAiIGN5PSIzMTUiIHI9IjE4IiBmaWxsPSIjZThlZGY1Ii8+CiAgPCEtLSBleHBsb2RlIGxpbmVzIC0tPgogIDxnIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxsaW5lIHgxPSI1NzciIHkxPSIyOTUiIHgyPSI0NTUiIHkyPSIxOTAiLz4KICAgIDxsaW5lIHgxPSI2MjMiIHkxPSIyOTUiIHgyPSI3NDUiIHkyPSIxOTAiLz4KICAgIDxsaW5lIHgxPSI1NzciIHkxPSIzMzUiIHgyPSI0NTUiIHkyPSI0NDAiLz4KICAgIDxsaW5lIHgxPSI2MjMiIHkxPSIzMzUiIHgyPSI3NDUiIHkyPSI0NDAiLz4KICA8L2c+CgogIDwhLS0gdG9wLWxlZnQgdGlsZTogc3RhY2tlZCBzZXNzaW9ucyAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNTUsNTUpIj4KICAgIDxyZWN0IHdpZHRoPSIyMzAiIGhlaWdodD0iMjAwIiByeD0iMjAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjQwIiB5PSI0MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CiAgICA8cmVjdCB4PSI1OCIgeT0iNzAiIHdpZHRoPSIxMjAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNzUiLz4KICAgIDxyZWN0IHg9Ijc2IiB5PSIxMDAiIHdpZHRoPSIxMjAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxsaW5lIHgxPSI5NiIgeTE9IjEyNSIgeDI9IjE3NiIgeTI9IjEyNSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxsaW5lIHgxPSI5NiIgeTE9IjE0NSIgeDI9IjE1MCIgeTI9IjE0NSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8L2c+CiAgPCEtLSB0b3AtcmlnaHQgdGlsZTogdm90ZXJzLCBvbmUgaGVsZCBpbiB0aGUgbWlub3JpdHkgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNzE1LDU1KSI+CiAgICA8cmVjdCB3aWR0aD0iMjMwIiBoZWlnaHQ9IjIwMCIgcng9IjIwIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8Y2lyY2xlIGN4PSI3MCIgY3k9IjcwIiByPSIyNCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC41NSIvPgogICAgPGNpcmNsZSBjeD0iMTYwIiBjeT0iNzAiIHI9IjI0IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjU1Ii8+CiAgICA8Y2lyY2xlIGN4PSI3MCIgY3k9IjE0MCIgcj0iMjQiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNTUiLz4KICAgIDxjaXJjbGUgY3g9IjE2MCIgY3k9IjE0MCIgcj0iMjgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgICA8Y2lyY2xlIGN4PSIxNjAiIGN5PSIxNDAiIHI9IjkiIGZpbGw9IiNlM2IzNDEiLz4KICA8L2c+CiAgPCEtLSBib3R0b20tbGVmdCB0aWxlOiBzY29wZWQgcHJvY2VkdXJlIHN0ZXBzIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1NSwzNzUpIj4KICAgIDxyZWN0IHdpZHRoPSIyMzAiIGhlaWdodD0iMjAwIiByeD0iMjAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjI4IiB5PSI4MCIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjQ2IiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSI5MiIgeT0iODAiIHdpZHRoPSI0NiIgaGVpZ2h0PSI0NiIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iMTU2IiB5PSI4MCIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjQ2IiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8bGluZSB4MT0iNzQiIHkxPSIxMDMiIHgyPSI5MiIgeTI9IjEwMyIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxsaW5lIHgxPSIxMzgiIHkxPSIxMDMiIHgyPSIxNTYiIHkyPSIxMDMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8IS0tIHNtYWxsIGxvY2tzIC0tPgogICAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiPgogICAgICA8cGF0aCBkPSJNNDMsMTYwIHYtOCBhOCw4IDAgMCAxIDE2LDAgdjgiLz48cGF0aCBkPSJNMTA3LDE2MCB2LTggYTgsOCAwIDAgMSAxNiwwIHY4Ii8+PHBhdGggZD0iTTE3MSwxNjAgdi04IGE4LDggMCAwIDEgMTYsMCB2OCIvPgogICAgPC9nPgogICAgPHJlY3QgeD0iMzgiIHk9IjE2MCIgd2lkdGg9IjI2IiBoZWlnaHQ9IjE4IiByeD0iNCIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPHJlY3QgeD0iMTAyIiB5PSIxNjAiIHdpZHRoPSIyNiIgaGVpZ2h0PSIxOCIgcng9IjQiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDxyZWN0IHg9IjE2NiIgeT0iMTYwIiB3aWR0aD0iMjYiIGhlaWdodD0iMTgiIHJ4PSI0IiBmaWxsPSIjM2VjZjhlIi8+CiAgPC9nPgogIDwhLS0gYm90dG9tLXJpZ2h0IHRpbGU6IGhlYXJ0YmVhdCB3aXRoIGEgZ2FwIC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcxNSwzNzUpIj4KICAgIDxyZWN0IHdpZHRoPSIyMzAiIGhlaWdodD0iMjAwIiByeD0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxwb2x5bGluZSBwb2ludHM9IjIwLDExMCA1MCwxMTAgNjIsNzAgNzYsMTUwIDg4LDExMCAxMjAsMTEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8bGluZSB4MT0iMTI4IiB5MT0iMTEwIiB4Mj0iMjEwIiB5Mj0iMTEwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iNiAxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8Y2lyY2xlIGN4PSIxNzAiIGN5PSIxMTAiIHI9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDwvZz4KPC9zdmc+Cg==",
+  "alt": "One agent block exploded into four tiles: stacked sessions, voting dots, locked procedure steps and a heartbeat with a gap.",
+  "caption": "An agent today comes apart into sessions, voters, scoped steps and a status pulse, and each paper here works on one tile.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What are AI agents made of now? A walkthrough of new papers on session credit, multi-agent votes, procedure normal forms and agent status reports.",
+ "keywords": [
+  "what are AI agents",
+  "AI agents",
+  "multi-session agentic reinforcement learning",
+  "multi-agent aggregation",
+  "agent security benchmark",
+  "agent workflow normal forms",
+  "agent status protocol"
+ ],
+ "kicker": "Paper walkthrough",
+ "tags": [
+  "AI agents",
+  "Paper walkthrough"
+ ],
+ "read": 7,
+ "decisions": [
+  "Ask for retry gains and cost per agent, never pass@1 alone, before trusting a security agent.",
+  "Give each agent step only the tools that step needs.",
+  "Infer agent liveness from heartbeats instead of trusting self-reported status.",
+  "Test an aggregator's pick by staging it in the minority before accepting it."
+ ],
+ "layout": "paper",
+ "arrangement": "b",
+ "special": {
+  "type": "results",
+  "title": "What was measured",
+  "items": [
+   {
+    "result": "The best agents reach 68% pass@1 and 81% pass@4.",
+    "setup": "CWE-bench: 120 held-out repository audit-and-repair tasks across 73 CWE types and eight languages, checked by a programmatic verifier.",
+    "source": 2,
+    "ref": {
+     "title": "CWE-bench: Refocusing Agentic Security from Exploitation to Defense",
+     "url": "https://arxiv.org/abs/2610.17020v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Agents with the same pass@1 differ widely in retry gains and cost.",
+    "setup": "CWE-bench analyses across the evaluated agents.",
+    "source": 2,
+    "ref": {
+     "title": "CWE-bench: Refocusing Agentic Security from Exploitation to Defense",
+     "url": "https://arxiv.org/abs/2610.17020v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Difficulty varies far more by vulnerability category than by language, and no single agent is best across either.",
+    "setup": "CWE-bench, spanning all OWASP Top 10 2025 categories.",
+    "source": 2,
+    "ref": {
+     "title": "CWE-bench: Refocusing Agentic Security from Exploitation to Defense",
+     "url": "https://arxiv.org/abs/2610.17020v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Mosaic outperforms broadcasting in both context compaction and subagent forking, using fewer sessions on average.",
+    "setup": "BrowseComp with Qwen3.5-4B, multi-session agentic RL.",
+    "source": 3,
+    "ref": {
+     "title": "Mosaic: Multi-Session Agentic Reinforcement Learning",
+     "url": "https://arxiv.org/abs/2610.22174v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Higher average accuracy and better token efficiency than competing non-oracle aggregation methods.",
+    "setup": "Three mathematical reasoning benchmarks and four heterogeneous LLM combinations.",
+    "source": 1,
+    "ref": {
+     "title": "Bias Control and Injection for Multi-Agent Aggregation",
+     "url": "https://arxiv.org/abs/2610.21290v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Improves final-answer accuracy when applied to multi-agent debate and Mixture-of-Agents.",
+    "setup": "No change to those methods' interaction or synthesis processes.",
+    "source": 1,
+    "ref": {
+     "title": "Bias Control and Injection for Multi-Agent Aggregation",
+     "url": "https://arxiv.org/abs/2610.21290v1",
+     "platform": "arXiv"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "One agent run now spans sessions, voters and steps",
+    "num": "01",
+    "id": "one-agent-run-now-spans-sessions-voters-and-steps"
+   }
+  ],
+  [
+   "p",
+   "Picture a browsing agent on a hard research question. Halfway through, its context fills, so the harness compacts it and starts a fresh session. The second session finds the answer. Then training hands both sessions identical credit. That quiet failure is a good place to start if you're asking what are AI agents today. The thing you deploy is no longer one context. It's a bundle of parts."
+  ],
+  [
+   "p",
+   "A new arXiv paper on multi-session RL names the mismatch: «Most existing agentic reinforcement learning methods assume single-session trajectories». The same split shows up elsewhere. Several agents vote on one answer. A procedure fans out into steps with different tool rights. A fleet of agents reports status to a dashboard. Each piece needs its own credit, its own trust, or its own check."
+  ],
+  [
+   "p",
+   "So this walkthrough reads recent arXiv work as one argument about parts. For each paper we cover the problem, the method in plain terms, what got measured, and how far to believe it. Fair warning: only part of this work measured anything. The rest are specifications and theories, and we'll say which. For our purposes, an agent is a model looping over tools toward a goal."
+  ],
+  [
+   "h2",
+   {
+    "text": "Mosaic splits one reward across the sessions that earned it",
+    "num": "02",
+    "id": "mosaic-splits-one-reward-across-the-sessions-that-earned-it"
+   }
+  ],
+  [
+   "p",
+   "Start with credit assignment. In RL for agents, an advantage is how much better a trajectory did than expected, and it scales the gradient on every token. When one trajectory spans sessions, the default is blunt. The Mosaic abstract says «a widely adopted method is to broadcast trajectory-level advantages to all sessions». Every session gets the same push. A session that wasted its budget is rewarded like the one that solved it."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPkJyb2FkY2FzdCBjcmVkaXQgY29tcGFyZWQgd2l0aCBwZXItc2Vzc2lvbiBjcmVkaXQgYWNyb3NzIG9uZSBtdWx0aS1zZXNzaW9uIHRyYWplY3Rvcnk8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC40NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjYwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8IS0tIHJvdyAxOiBicm9hZGNhc3QgLS0+CiAgICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI2MDAiPkJyb2FkY2FzdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjIzMCIgeT0iNzAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmV2ZXJ5IHNlc3Npb24gZ2V0cyB0aGUgc2FtZSBwdXNoPC90ZXh0PgogICAgPHJlY3QgeD0iNjAiIHk9IjEwMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMjgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIzODAiIHk9IjEwMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMjgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSI3MDAiIHk9IjEwMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMjgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIyMDAiIHk9IjE1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+c2Vzc2lvbiBBPC90ZXh0PgogICAgPHRleHQgeD0iNTIwIiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnNlc3Npb24gQjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg0MCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5zdWJhZ2VudDwvdGV4dD4KICAgIDxjaXJjbGUgY3g9IjEwODAiIGN5PSIxNDAiIHI9IjYwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICA8cGF0aCBkPSJNMTA4MCwxMDggbDksMjEgbDIzLDIgbC0xNywxNSBsNSwyMiBsLTIwLC0xMiBsLTIwLDEyIGw1LC0yMiBsLTE3LC0xNSBsMjMsLTIgeiIgZmlsbD0iI2UzYjM0MSIvPgogICAgPHRleHQgeD0iMTA4MCIgeT0iODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlM2IzNDEiPnJld2FyZDwvdGV4dD4KICAgIDxnIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtZGFzaGFycmF5PSI2IDgiPgogICAgICA8cGF0aCBkPSJNMTA4MCwxNzggTDEwODAsMjQwIEwyMDAsMjQwIi8+CiAgICAgIDxwYXRoIGQ9Ik0yMDAsMjQwIEwyMDAsMTkyIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogICAgICA8cGF0aCBkPSJNNTIwLDI0MCBMNTIwLDE5MiIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KICAgICAgPHBhdGggZD0iTTg0MCwyNDAgTDg0MCwxOTIiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgICA8L2c+CgogICAgPCEtLSBkaXZpZGVyIC0tPgogICAgPGxpbmUgeDE9IjYwIiB5MT0iMzAwIiB4Mj0iMTE0MCIgeTI9IjMwMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgICA8IS0tIHJvdyAyOiBwZXItc2Vzc2lvbiBzaGFwaW5nIC0tPgogICAgPHRleHQgeD0iNjAiIHk9IjM3MCIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+UGVyIHNlc3Npb248L3RleHQ+CiAgICA8dGV4dCB4PSIyNTAiIHk9IjM3MCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+Y3JlZGl0IGZvbGxvd3MgbWFyZ2luYWwgY29udHJpYnV0aW9uPC90ZXh0PgogICAgPHJlY3QgeD0iNjAiIHk9IjQwMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIzODAiIHk9IjQwMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMzUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICA8cmVjdCB4PSI3MDAiIHk9IjQwMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggOCIvPgogICAgPHRleHQgeD0iMjAwIiB5PSI0NTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnNlc3Npb24gQTwvdGV4dD4KICAgIDx0ZXh0IHg9IjUyMCIgeT0iNDUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5zZXNzaW9uIEI8L3RleHQ+CiAgICA8dGV4dCB4PSI4NDAiIHk9IjQ1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCI+c3ViYWdlbnQ8L3RleHQ+CiAgICA8dGV4dCB4PSIyMDAiIHk9IjUyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2UzYjM0MSI+c2V0IGl0IHVwPC90ZXh0PgogICAgPHRleHQgeD0iNTIwIiB5PSI1MjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiPmZvdW5kIHRoZSBhbnN3ZXI8L3RleHQ+CiAgICA8dGV4dCB4PSI4NDAiIHk9IjUyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+YWRkZWQgbGl0dGxlPC90ZXh0PgogICAgPHBhdGggZD0iTTEwODAsNDA4IGw5LDIxIGwyMywyIGwtMTcsMTUgbDUsMjIgbC0yMCwtMTIgbC0yMCwxMiBsNSwtMjIgbC0xNywtMTUgbDIzLC0yIHoiIGZpbGw9IiNlM2IzNDEiLz4KCiAgICA8IS0tIHNlc3Npb24gYm91bmRhcnkgbWFya3MgLS0+CiAgICA8dGV4dCB4PSIzNjAiIHk9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzdhYTJmZiI+Y29tcGFjdGlvbjwvdGV4dD4KICAgIDxsaW5lIHgxPSIzNjAiIHkxPSI1NzUiIHgyPSIzNjAiIHkyPSI0OTIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogICAgPHRleHQgeD0iNjgwIiB5PSI2MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3YWEyZmYiPmZvcms8L3RleHQ+CiAgICA8bGluZSB4MT0iNjgwIiB5MT0iNTc1IiB4Mj0iNjgwIiB5Mj0iNDkyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Two rows of sessions: one where a reward reaches all equally, one where credit differs by each session's contribution.",
+    "caption": "Broadcasting gives every session the same advantage, while Mosaic shapes each session's share by its estimated marginal contribution.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "We retraced the fix, and it works on two levels. «At the trajectory level, it incorporates session-usage signals into advantage estimation», so a run that burned extra sessions earns less. «At the session level, it shapes each session's advantage according to the estimated marginal contribution». Think of it as `A_session = shape(A_trajectory, contribution)`. There's no learned value network, which is what critic-free means here. Cheap and clever."
+  ],
+  [
+   "p",
+   "How much should you believe it? The result is real but narrow: «Experiments on BrowseComp with Qwen3.5-4B show that Mosaic outperforms broadcasting» for both compaction and subagent forking, using fewer sessions on average. That's one benchmark and one small model, and the abstract gives no margin. We think the idea will travel. The evidence hasn't yet."
+  ],
+  [
+   "h2",
+   {
+    "text": "Putting an agent in the minority shows how firm its answer is",
+    "num": "03",
+    "id": "putting-an-agent-in-the-minority-shows-how-firm-its-answer-i"
+   }
+  ],
+  [
+   "p",
+   "Now several agents, one question. The aggregation paper asks it bluntly: «when agents disagree, whose decision should be trusted?» Voting looks like the answer until you notice the biases. Agents bend to «non-semantic biases such as majority pressure and response-style preferences», so a confident, well-formatted wrong answer can win. Good reasoning gets buried under loud presentation."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPkJpYXMgY29udHJvbCBhbmQgYmlhcyBpbmplY3Rpb24gaW4gbXVsdGktYWdlbnQgYWdncmVnYXRpb248L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMC40NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjQwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8IS0tIGNvbHVtbiAxOiBiaWFzIGNvbnRyb2wgLS0+CiAgICA8dGV4dCB4PSIxODAiIHk9IjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiBmb250LXdlaWdodD0iNjAwIj5CaWFzIGNvbnRyb2w8L3RleHQ+CiAgICA8dGV4dCB4PSIxODAiIHk9IjEwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+b25lIHBsYWluIHRyYWNlIHBlciBhbnN3ZXI8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iMTUwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE0MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iOTAiIHk9IjE5NSIgZm9udC1zaXplPSIyOCIgZmlsbD0iIzdhYTJmZiIgZm9udC13ZWlnaHQ9IjcwMCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiPkE8L3RleHQ+CiAgICA8bGluZSB4MT0iMTMwIiB5MT0iMTg4IiB4Mj0iMjcwIiB5Mj0iMTg4IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGxpbmUgeDE9IjkwIiB5MT0iMjI1IiB4Mj0iMjcwIiB5Mj0iMjI1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGxpbmUgeDE9IjkwIiB5MT0iMjU4IiB4Mj0iMjIwIiB5Mj0iMjU4IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iNjAiIHk9IjMzMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjkwIiB5PSIzNzUiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiM3YWEyZmYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIj5CPC90ZXh0PgogICAgPGxpbmUgeDE9IjEzMCIgeTE9IjM2OCIgeDI9IjI3MCIgeTI9IjM2OCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxsaW5lIHgxPSI5MCIgeTE9IjQwNSIgeDI9IjI3MCIgeTI9IjQwNSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxsaW5lIHgxPSI5MCIgeTE9IjQzOCIgeDI9IjIyMCIgeTI9IjQzOCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjE4MCIgeT0iNTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5ubyB2b3RlIHRhbGxpZXMsPC90ZXh0PgogICAgPHRleHQgeD0iMTgwIiB5PSI1NTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPm5vIHN0eWxpbmc8L3RleHQ+CiAgICA8bGluZSB4MT0iMzE1IiB5MT0iMzEwIiB4Mj0iNDEwIiB5Mj0iMzEwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KCiAgICA8IS0tIGNvbHVtbiAyOiBiaWFzIGluamVjdGlvbiAtLT4KICAgIDx0ZXh0IHg9IjYwMCIgeT0iNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI2MDAiPkJpYXMgaW5qZWN0aW9uPC90ZXh0PgogICAgPHRleHQgeD0iNjAwIiB5PSIxMDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPml0cyBvd24gcGljayBpcyBvdXRudW1iZXJlZDwvdGV4dD4KICAgIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjMxMCIgcj0iMTUwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICA8Y2lyY2xlIGN4PSI2MDAiIGN5PSIzMTAiIHI9IjU4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iNjAwIiB5PSIzMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIj5BPC90ZXh0PgogICAgPGcgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNiI+CiAgICAgIDxjaXJjbGUgY3g9IjQ4MCIgY3k9IjIwMCIgcj0iMzQiLz48Y2lyY2xlIGN4PSI3MjAiIGN5PSIyMDAiIHI9IjM0Ii8+PGNpcmNsZSBjeD0iNjAwIiBjeT0iNDYwIiByPSIzNCIvPgogICAgPC9nPgogICAgPGcgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiPgogICAgICA8dGV4dCB4PSI0ODAiIHk9IjIwOSI+QjwvdGV4dD48dGV4dCB4PSI3MjAiIHk9IjIwOSI+QjwvdGV4dD48dGV4dCB4PSI2MDAiIHk9IjQ2OSI+QjwvdGV4dD4KICAgIDwvZz4KICAgIDx0ZXh0IHg9IjYwMCIgeT0iNTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjYTc4YmZhIj5hZ2dyZWdhdG9yIHVuZGVyIHN0YWdlZCBwcmVzc3VyZTwvdGV4dD4KCiAgICA8IS0tIGNvbHVtbiAzOiBvdXRjb21lcyAtLT4KICAgIDxsaW5lIHgxPSI3OTAiIHkxPSIyODAiIHgyPSI4ODAiIHkyPSIyMTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogICAgPGxpbmUgeDE9Ijc5MCIgeTE9IjM0MCIgeDI9Ijg4MCIgeTI9IjQxMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgICA8cmVjdCB4PSI4OTAiIHk9IjE1MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjE2IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTAyNSIgeT0iMTk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjM2VjZjhlIiBmb250LXdlaWdodD0iNjAwIj5ob2xkcyBBPC90ZXh0PgogICAgPHRleHQgeD0iMTAyNSIgeT0iMjM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij5hIGZpcm0gYW5zd2VyPC90ZXh0PgogICAgPHJlY3QgeD0iODkwIiB5PSIzNjAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjEwMjUiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2ZmN2I3MiIgZm9udC13ZWlnaHQ9IjYwMCI+ZmxpcHMgdG8gQjwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMjUiIHk9IjQ0NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+dHJ1c3QgaXQgbGVzczwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Plain answer traces feed an aggregator whose own pick is surrounded by opposing answers; it either holds or flips.",
+    "caption": "Bias control strips style and tallies, then bias injection outnumbers the aggregator's own pick to see if it holds.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The method makes two moves. Bias control comes first: the aggregator sees «one style-normalized reasoning trace per distinct answer». No vote tallies, no flashy formatting. Bias injection comes second, and it's the surprise. The framework works «by placing each aggregating agent's initially selected answer in the minority». If the agent drops its pick under staged pressure, the pick was shaky."
+  ],
+  [
+   "p",
+   "We like this a lot. Instability under pressure becomes a free reliability signal, and the method «requires neither validation data nor prior knowledge of relative model strength». The measured claim is higher average accuracy and better token efficiency than non-oracle rivals, across three math benchmarks and four model mixes. Math has checkable answers, though. Open-ended agent work may not behave the same."
+  ],
+  [
+   "h2",
+   {
+    "text": "A defender has to find every hole in the repository",
+    "num": "04",
+    "id": "a-defender-has-to-find-every-hole-in-the-repository"
+   }
+  ],
+  [
+   "p",
+   "Security evals for agents have mostly scored attacks. CWE-bench argues that's the wrong half, since «a working exploit does not show that an agent can make software safe». Its framing is the classic asymmetry: «An attacker needs to exploit only one vulnerability; a defender must find and fix all of them». So the tasks ask for audits and repairs. Exploits don't count."
+  ],
+  [
+   "p",
+   "The setup is strict. There are 120 held-out repository tasks across 73 CWE types and eight languages. Agents get a repo and a threat model, but «are not told the weakness, where it occurs, or how many vulnerable sites there are». A programmatic verifier checks that each patch blocks the exploit and keeps the original behaviour. Here pass@k means at least one of k attempts succeeds."
+  ],
+  [
+   "p",
+   "The headline: «The best agents reach 68% pass@1 and 81% pass@4». The more useful finding sits behind it: «agents with the same pass@1 differ widely in retry gains and cost». Two agents can tie on first tries and diverge on what retries buy. In our view that's the number to ask any vendor for. The benchmark is private, which protects it and limits outside checks."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Share of CWE-bench audit-and-repair tasks passed by the best agents, in percent, on first try and within four tries.",
+    "unit": "% of CWE-bench tasks passed",
+    "bars": [
+     {
+      "label": "Best agents, pass@1",
+      "value": 68.0
+     },
+     {
+      "label": "Best agents, pass@4",
+      "value": 81.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Agent procedures can be normalised like database tables",
+    "num": "05",
+    "id": "agent-procedures-can-be-normalised-like-database-tables"
+   }
+  ],
+  [
+   "p",
+   "FAOP tackles the procedures agents follow, the multi-step skills teams write down. Today they live as loose files, where «steps bundle actions, copied procedures drift apart, any step may reach any tool, and refactoring goes unchecked». Sound like your folder of prompt files? The pitch is to bring «database-grade discipline to AI agent workflows», treating each workflow as a typed function over scoped state."
+  ],
+  [
+   "p",
+   "The four normal forms stack. «Decomposed (FNF-1) splits a workflow into atomic steps». Typed (FNF-2) makes data flow explicit and type-checked. Factored (FNF-3) gives each shared procedure one canonical definition, so a fix lands everywhere. Scoped (FNF-4) «confines every step to least-privilege tool access». An algebra of sound equalities then lets a compiler rewrite and parallelise workflows."
+  ],
+  [
+   "p",
+   "We agree with the direction. Least-privilege steps are the cheapest security win in agent design. Be clear about the evidence, though. It's a formal theory plus an implementation, and the demonstration is that «A worked financial workflow illustrates the approach end to end». There's no measured comparison against loose files. The classifier that asks if a workflow needs AI at all is what we'd test first."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative only: a scoped, typed step in the spirit of FNF-2 and FNF-4 (not SkillBase's API)",
+    "language": "python",
+    "source": "@step(tools={\"ledger.read\"})                 # least privilege: read only\ndef fetch_invoice(q: InvoiceQuery) -> Invoice: ...\n\n@step(tools={\"fx.read\"})\ndef convert_total(inv: Invoice) -> ConvertedTotal: ...\n\n@step(tools={\"payments.write\"})              # the only step that can pay\ndef pay(total: ConvertedTotal) -> Receipt: ...\n\npay_invoice = compose(fetch_invoice, convert_total, pay)  # type-checked chain"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "FAOP's four progressive normal forms, each building on the last.",
+    "steps": [
+     "FNF-1 Decomposed: split the workflow into atomic steps",
+     "FNF-2 Typed: make data flow explicit and type-checked",
+     "FNF-3 Factored: one canonical definition per shared procedure",
+     "FNF-4 Scoped: least-privilege tool access for every step"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A status server should not take an agent's word for it",
+    "num": "06",
+    "id": "a-status-server-should-not-take-an-agent-s-word-for-it"
+   }
+  ],
+  [
+   "p",
+   "The last paper is the plainest and maybe the most overdue. The Agent Status Protocol starts from a fact every on-call engineer knows: «an agent that has crashed, hung or been compromised cannot be trusted to report its own failure». Agents push small JSON events over HTTP POST. Observers like dashboards subscribe through Server-Sent Events, a one-way stream from server to client."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPkEgc3RhdHVzIHNlcnZlciBpbmZlcnMgbGl2ZW5lc3MgZnJvbSBoZWFydGJlYXRzIGFuZCB0cmFja3Mgc3RhdGUgb24gc2VwYXJhdGUgZGltZW5zaW9uczwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYyMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPCEtLSBzZWxmIHJlcG9ydCBidWJibGUgLS0+CiAgICA8cmVjdCB4PSI2MCIgeT0iNDAiIHdpZHRoPSIzMDAiIGhlaWdodD0iODAiIHJ4PSIxOCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjE2IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTE0MCwxMjAgbC0xNCwzNCBsNDAsLTM0IHoiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgIDx0ZXh0IHg9IjIxMCIgeT0iOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiPmFnZW50OiBhbGwgZ29vZDwvdGV4dD4KCiAgICA8IS0tIGhlYXJ0YmVhdCBsaW5lIC0tPgogICAgPHBvbHlsaW5lIHBvaW50cz0iNjAsMjUwIDE0MCwyNTAgMTYwLDE5MCAxODIsMzEwIDIwMCwyNTAgMzAwLDI1MCAzMjAsMTkwIDM0MiwzMTAgMzYwLDI1MCA0NjAsMjUwIDQ4MCwxOTAgNTAyLDMxMCA1MjAsMjUwIDYwMCwyNTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxsaW5lIHgxPSI2MDAiIHkxPSIyNTAiIHgyPSIxMDAwIiB5Mj0iMjUwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iOCAxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8Y2lyY2xlIGN4PSI3OTAiIGN5PSIyNTAiIHI9IjkwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICA8Y2lyY2xlIGN4PSI3MDAiIGN5PSIyNTAiIHI9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGNpcmNsZSBjeD0iODAwIiBjeT0iMjUwIiByPSIxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxjaXJjbGUgY3g9IjkwMCIgY3k9IjI1MCIgcj0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI4MDAiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2ZmN2I3MiIgZm9udC13ZWlnaHQ9IjYwMCI+bWlzc2VkIGhlYXJ0YmVhdHM8L3RleHQ+CiAgICA8bGluZSB4MT0iMTAwNSIgeTE9IjI1MCIgeDI9IjEwNTAiIHkyPSIyNTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogICAgPHJlY3QgeD0iMTA2MCIgeT0iMjA1IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxMTE1IiB5PSIyNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPnNlcnZlcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjExMTUiIHk9IjMzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiI+ZmxhZ3MgaXQ8L3RleHQ+CiAgICA8dGV4dCB4PSIzMzAiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzNlY2Y4ZSI+cmVndWxhciBwdWxzZXM8L3RleHQ+CgogICAgPCEtLSBzdGF0ZSBkaW1lbnNpb25zIC0tPgogICAgPGxpbmUgeDE9IjYwIiB5MT0iMzkwIiB4Mj0iMTE0MCIgeTI9IjM5MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjYwIiB5PSI0NDAiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI2MDAiPk9uZSBhZ2VudCwgc2V2ZXJhbCBzdGF0ZXMgYXQgb25jZTwvdGV4dD4KICAgIDxnIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgogICAgICA8cmVjdCB4PSI2MCIgeT0iNDcwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijk2IiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDx0ZXh0IHg9IjE1NSIgeT0iNTA4IiBmaWxsPSIjOTVhMWI0Ij5saWZlY3ljbGU8L3RleHQ+PHRleHQgeD0iMTU1IiB5PSI1NDUiIGZpbGw9IiM3YWEyZmYiPm9ubGluZTwvdGV4dD4KICAgICAgPHJlY3QgeD0iMjgwIiB5PSI0NzAiIHdpZHRoPSIxOTAiIGhlaWdodD0iOTYiIHJ4PSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPHRleHQgeD0iMzc1IiB5PSI1MDgiIGZpbGw9IiM5NWExYjQiPmhlYWx0aDwvdGV4dD48dGV4dCB4PSIzNzUiIHk9IjU0NSIgZmlsbD0iI2UzYjM0MSI+ZGVncmFkZWQ8L3RleHQ+CiAgICAgIDxyZWN0IHg9IjUwMCIgeT0iNDcwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9Ijk2IiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDx0ZXh0IHg9IjU5NSIgeT0iNTA4IiBmaWxsPSIjOTVhMWI0Ij50YXNrPC90ZXh0Pjx0ZXh0IHg9IjU5NSIgeT0iNTQ1IiBmaWxsPSIjM2VjZjhlIj53b3JraW5nPC90ZXh0PgogICAgICA8cmVjdCB4PSI3MjAiIHk9IjQ3MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI5NiIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8dGV4dCB4PSI4MTUiIHk9IjUwOCIgZmlsbD0iIzk1YTFiNCI+Zmxvb3I8L3RleHQ+PHRleHQgeD0iODE1IiB5PSI1NDUiIGZpbGw9IiNhNzhiZmEiPndhaXRpbmc8L3RleHQ+CiAgICAgIDxyZWN0IHg9Ijk0MCIgeT0iNDcwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9Ijk2IiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDx0ZXh0IHg9IjEwNDAiIHk9IjUwOCIgZmlsbD0iIzk1YTFiNCI+Z292ZXJuYW5jZTwvdGV4dD48dGV4dCB4PSIxMDQwIiB5PSI1NDUiIGZpbGw9IiNlOGVkZjUiPm9ic2VydmVkPC90ZXh0PgogICAgPC9nPgogIDwvZz4KPC9zdmc+Cg==",
+    "alt": "A heartbeat line stops while the agent still says all good; the server flags it. Below, five separate state dimensions.",
+    "caption": "The status server trusts missed heartbeats over the agent's own report and tracks lifecycle, health, task, floor and governance apart.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The design choice we'd steal is distrust. In the protocol, «the server infers liveness from missed heartbeats», and it can flag agents that are alive but stuck. Reports from supervisors, guardrails, operators and peers can outrank the agent's own claim. State splits into independent dimensions, so one agent can be «online, degraded, working on a task and waiting for the floor at the same time»."
+  ],
+  [
+   "p",
+   "How much to believe? There's nothing to believe yet, in the measured sense. The authors are upfront: «This paper presents version 0.1 of ASP as a proposal, not as an approved standard». No load test, no failure-injection study. We still think separating self-report from observed liveness is right. It's the minority trick again, one layer down."
+  ],
+  [
+   "h2",
+   {
+    "text": "The settling experiment runs every part on one agent",
+    "num": "07",
+    "id": "the-settling-experiment-runs-every-part-on-one-agent"
+   }
+  ],
+  [
+   "p",
+   "Step back and the gaps line up. Mosaic was measured on one benchmark with one small model. The aggregation results come from math with checkable answers. CWE-bench measures agents but doesn't train or monitor them. FAOP and ASP are designs without measured comparisons. Each paper fixes one part. None shows the parts holding together under load."
+  ],
+  [
+   "p",
+   "Here's the experiment we'd want. Take a multi-session security agent on CWE-bench-style tasks. Train one copy with broadcast advantages and one with Mosaic-style shaping. Run both behind scoped, typed procedures, with a heartbeat-based status server watching. Then report pass@1, pass@4, sessions used and cost per fixed vulnerability, side by side."
+  ],
+  [
+   "p",
+   "Two answers would matter most. Does per-session credit raise defensive pass rates, or only browsing accuracy? And does a scoped procedure library change what retries cost? If both move, the parts story holds. If neither does, agents are still mostly the model, and the plumbing is hygiene. Either result beats another single-part paper."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What are AI agents?"
+  ],
+  [
+   "p",
+   "AI agents are language models that loop over tools toward a goal, choosing each next step from what came back. Recent agents also span several sessions, consult other agents and follow written procedures. That is why new arXiv work targets credit across sessions, trust among voting agents, and status checks that do not rely on the agent's own word."
+  ],
+  [
+   "h3",
+   "How do you train an AI agent that uses multiple sessions?"
+  ],
+  [
+   "p",
+   "You assign credit per session instead of copying one trajectory-level advantage to every session. Mosaic adds session-usage signals at the trajectory level and shapes each session's advantage by its estimated marginal contribution, with no learned critic. On BrowseComp with Qwen3.5-4B it beat broadcasting for both compaction and subagent forking, using fewer sessions on average."
+  ],
+  [
+   "h3",
+   "How good are AI agents at fixing security vulnerabilities?"
+  ],
+  [
+   "p",
+   "On a strict defensive benchmark, the best agents fix most tasks but miss a real share. CWE-bench reports 68% pass@1 and 81% pass@4 over 120 held-out repository audit-and-repair tasks. Agents with the same pass@1 still differ widely in retry gains and cost, and no single agent is best across languages or vulnerability categories."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Mosaic: Multi-Session Agentic Reinforcement Learning",
+   "url": "https://arxiv.org/abs/2610.22174v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Bias Control and Injection for Multi-Agent Aggregation",
+   "url": "https://arxiv.org/abs/2610.21290v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "CWE-bench: Refocusing Agentic Security from Exploitation to Defense",
+   "url": "https://arxiv.org/abs/2610.17020v1",
+   "posted": "2026-10-12"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "FAOPs: Normal Forms and an Algebra for AI Agent Workflows",
+   "url": "https://arxiv.org/abs/2610.22061v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Agent Status Protocol (ASP): A Lightweight Specification for State Reporting in Multi-Agent Systems",
+   "url": "https://arxiv.org/abs/2610.21538v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "Most existing agentic reinforcement learning methods assume single-session trajectories": 1,
+  "a widely adopted method is to broadcast trajectory-level advantages to all sessions": 1,
+  "At the trajectory level, it incorporates session-usage signals into advantage estimation": 1,
+  "At the session level, it shapes each session's advantage according to the estimated marginal contribution": 1,
+  "Experiments on BrowseComp with Qwen3.5-4B show that Mosaic outperforms broadcasting": 1,
+  "when agents disagree, whose decision should be trusted?": 2,
+  "non-semantic biases such as majority pressure and response-style preferences": 2,
+  "one style-normalized reasoning trace per distinct answer": 2,
+  "by placing each aggregating agent's initially selected answer in the minority": 2,
+  "requires neither validation data nor prior knowledge of relative model strength": 2,
+  "a working exploit does not show that an agent can make software safe": 3,
+  "An attacker needs to exploit only one vulnerability; a defender must find and fix all of them": 3,
+  "are not told the weakness, where it occurs, or how many vulnerable sites there are": 3,
+  "The best agents reach 68% pass@1 and 81% pass@4": 3,
+  "agents with the same pass@1 differ widely in retry gains and cost": 3,
+  "steps bundle actions, copied procedures drift apart, any step may reach any tool, and refactoring goes unchecked": 4,
+  "database-grade discipline to AI agent workflows": 4,
+  "Decomposed (FNF-1) splits a workflow into atomic steps": 4,
+  "confines every step to least-privilege tool access": 4,
+  "A worked financial workflow illustrates the approach end to end": 4,
+  "an agent that has crashed, hung or been compromised cannot be trusted to report its own failure": 5,
+  "the server infers liveness from missed heartbeats": 5,
+  "online, degraded, working on a task and waiting for the floor at the same time": 5,
+  "This paper presents version 0.1 of ASP as a proposal, not as an approved standard": 5
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:39:33+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21290v1",
+   "arxiv:2610.17020v1",
+   "arxiv:2610.22174v1",
+   "arxiv:2610.22061v1",
+   "arxiv:2610.21538v1"
+  ],
+  "platforms": {
+   "arXiv": 5
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "paper-walkthrough:concept/agents",
+  "format": "paper-walkthrough",
+  "reviewed_by": null
+ }
+}

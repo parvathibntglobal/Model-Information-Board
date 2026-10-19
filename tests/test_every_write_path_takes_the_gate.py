@@ -73,6 +73,9 @@ READ_ONLY: dict[str, str] = {
     "propose_model.py": ("previews adding or untracking a model for /admin/models/propose; "
                          "SELECTs only, over a default_transaction_read_only connection; "
                          "no write verb (#459)"),
+    "pull_raw_store.py": ("fetches missing raw payloads from the shared raw_blob table "
+                          "into local files; SELECTs only, both connections "
+                          "default_transaction_read_only; no write verb"),
     "raw_store_census.py": ("#321's census: counts where each payload is, over a "
                             "default_transaction_read_only connection; stats the raw "
                             "store, never RawStore.get (which caches); no write verb"),

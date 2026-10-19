@@ -216,6 +216,8 @@ CREATE TABLE model_catalog (
   pricing            jsonb NOT NULL,     -- as published (per image, per second ...)
   max_output_tokens  int,
   supported_parameters text[] NOT NULL DEFAULT '{}',  -- empty = none listed, not "none supported"
+  expiration_date    date,                -- OpenRouter stops serving it; NULL = none announced
+  knowledge_cutoff   date,                -- as the feed states it; NULL = not stated
   first_seen_at      timestamptz NOT NULL DEFAULT now(),
   last_seen_at       timestamptz NOT NULL
 );
@@ -1565,8 +1567,9 @@ CREATE TABLE IF NOT EXISTS spend_ledger (
   -- rule-2 violation and should be refused by the database rather than appear
   -- as a new line on a chart nobody questions. 'blog' is the generator rule 2
   -- named on 2026-10-06; it is recorded OUTSIDE the daily cap
-  -- (20261007T0900_spend_ledger_blog_stage.sql).
-  CONSTRAINT spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog'))
+  -- (20261007T0900_spend_ledger_blog_stage.sql). 'quiz' is the quiz question
+  -- drafter, outside the cap the same way (20261015T1400_quiz_question.sql).
+  CONSTRAINT spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog', 'quiz'))
 );
 
 -- The two questions asked of this table: "what has today cost" (the shared cap)
@@ -1797,3 +1800,59 @@ CREATE TABLE raw_blob (
   size       bigint NOT NULL,
   stored_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- THE QUIZ'S QUESTION BANK (2026-10-15): drafted by a model, approved by a
+-- person; the daily quiz draws approved rows only. See
+-- contract/migrations/20261015T1400_quiz_question.sql.
+CREATE TABLE IF NOT EXISTS quiz_question (
+  -- qq_ + sha256 of the normalised question text, so a re-draft of the same
+  -- question is one row, not two.
+  id              text PRIMARY KEY,
+  topic           text NOT NULL,
+  difficulty      text NOT NULL,
+  question        text NOT NULL,
+  -- Exactly four answer texts, in the order drafted. The page shuffles.
+  options         jsonb NOT NULL,
+  answer_index    integer NOT NULL,
+  explanation     text NOT NULL,
+  state           text NOT NULL DEFAULT 'pending',
+  proposer_model  text NOT NULL,
+  run_id          text NOT NULL,
+  generated_at    timestamptz NOT NULL DEFAULT now(),
+  reviewed_at     timestamptz,
+  review_note     text,
+  CONSTRAINT quiz_question_state_ck CHECK (state IN ('pending', 'approved', 'rejected')),
+  CONSTRAINT quiz_question_difficulty_ck CHECK (difficulty IN ('easy', 'medium', 'hard')),
+  CONSTRAINT quiz_question_options_ck
+    CHECK (jsonb_typeof(options) = 'array' AND jsonb_array_length(options) = 4),
+  CONSTRAINT quiz_question_answer_ck CHECK (answer_index BETWEEN 0 AND 3),
+  -- A decision has a time; a pending question has none.
+  CONSTRAINT quiz_question_reviewed_ck CHECK ((state = 'pending') = (reviewed_at IS NULL))
+);
+
+CREATE INDEX IF NOT EXISTS quiz_question_state_idx ON quiz_question (state);
+
+-- THE BLOG'S TOPIC HARVEST (2026-10-16): papers and posts about AI in general,
+-- for the blog only. See contract/migrations/20261016T0900_topic_item.sql.
+CREATE TABLE IF NOT EXISTS topic_item (
+  -- 'arxiv:<id>' for a paper; '<feed source id>|<entry id>' for a post.
+  id            text PRIMARY KEY,
+  -- 'arxiv', or the feed's source id as contract/sources.yaml names it.
+  source        text NOT NULL,
+  kind          text NOT NULL,
+  title         text NOT NULL,
+  -- The abstract or the feed summary, as plain text. NULL when the feed gives none.
+  summary       text,
+  url           text NOT NULL,
+  authors       text[] NOT NULL DEFAULT '{}',
+  -- When the publisher says it was published. NULL when it does not say.
+  published_at  timestamptz,
+  -- The blog_topics.yaml keys its title and summary match. Recomputed on every
+  -- harvest, so a topic added later re-labels old items.
+  topics        text[] NOT NULL DEFAULT '{}',
+  harvested_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT topic_item_kind_ck CHECK (kind IN ('paper', 'post'))
+);
+
+CREATE INDEX IF NOT EXISTS topic_item_published_idx ON topic_item (published_at);
+CREATE INDEX IF NOT EXISTS topic_item_topics_idx ON topic_item USING gin (topics);

@@ -263,6 +263,98 @@ export function blogIndex() {
   }
 }
 
+/** The blog's live pages (2026-10-15), built in code from public reports. */
+export function liveDisagree() {
+  return {
+    title: fullTitle('Where engineers disagree about AI models'),
+    description: 'Every model and topic where some engineers report it working and others report problems, with both counts and every quote.',
+    canonical: '/blogs/disagree',
+  }
+}
+
+export function liveWall(w, path) {
+  if (!w) return liveDisagree()
+  const name = String(w.model.name || '').split(':').slice(-1)[0].trim()
+  return {
+    title: fullTitle(`${name} on ${w.topic}: what engineers report`),
+    description: `${w.working} engineers report ${name} working on ${w.topic.toLowerCase()} and ${w.problems} report problems. Every quote, linked to its source.`,
+    canonical: path,
+  }
+}
+
+export function liveWeek(start) {
+  return {
+    title: fullTitle(start ? `This week in AI models: week of ${start}` : 'This week in AI models'),
+    description: 'New models listed, what engineers wrote, price changes and retirement dates, week by week.',
+    canonical: start ? `/blogs/this-week/${start}` : '/blogs/this-week',
+  }
+}
+
+export function liveQuiz() {
+  return {
+    title: fullTitle('Daily LLM quiz'),
+    description: 'Five questions a day on how large language models work - tokens, attention, fine-tuning, retrieval and cost.',
+    canonical: '/blogs/quiz',
+  }
+}
+
+/** The blog's reference formats (2026-10-15): glossary, known issues, answers. */
+const shortOf = (n) => String(n || '').split(':').slice(-1)[0].trim()
+export function glossaryHead() {
+  return {
+    title: fullTitle('Glossary of AI model capabilities and jobs'),
+    description: 'What each AI model capability and job means, in plain words, with how many engineers have reported on it.',
+    canonical: '/blogs/glossary',
+  }
+}
+export function directoryHead() {
+  return {
+    title: fullTitle('Blog directory: every post by model and topic'),
+    description: 'Every Model Information Board post in one place, by the model it covers, the topic it explains, its title or its date.',
+    canonical: '/blogs/directory',
+  }
+}
+export function glossaryEntryHead(e, path) {
+  if (!e) return glossaryHead()
+  return {
+    title: fullTitle(`What is ${e.name.toLowerCase()}?`),
+    description: e.about.length > 155 ? `${e.about.slice(0, 152).trimEnd()}…` : e.about,
+    canonical: path,
+  }
+}
+export function issuesHead() {
+  return {
+    title: fullTitle('Known issues in AI models, as engineers report them'),
+    description: 'Problems engineers report with each AI model, each with its quotes and when it was last reported.',
+    canonical: '/blogs/issues',
+  }
+}
+export function issuesForHead(d, path) {
+  if (!d) return issuesHead()
+  const n = shortOf(d.model.name)
+  return {
+    title: fullTitle(`${n} known issues`),
+    description: `${d.issues.length} problems engineers report with ${n}, each with the quotes behind it and when it was last reported.`,
+    canonical: path,
+  }
+}
+export function answersHead() {
+  return {
+    title: fullTitle('What does each AI model support?'),
+    description: 'Tool calling, structured output, image input and prompt caching: what each model advertises, beside what engineers report.',
+    canonical: '/blogs/answers',
+  }
+}
+export function answersForHead(d, path) {
+  if (!d) return answersHead()
+  const n = shortOf(d.model.name)
+  return {
+    title: fullTitle(`Does ${n} support tool calling, structured output and image input?`),
+    description: `What ${n} advertises, beside what engineers report: tool calling, structured output, image input, prompt caching.`,
+    canonical: path,
+  }
+}
+
 /** `/blogs/:slug`, from the post itself. A post the reader may not see gets the index's head. */
 export function blogPost(post) {
   if (!post) return blogIndex()

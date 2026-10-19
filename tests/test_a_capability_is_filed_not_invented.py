@@ -197,6 +197,31 @@ class TestTheStoreKeepsEveryReport:
         assert item["parent_proposed"] == "agentic"
 
 
+class TestTheStoreSaysWhoItsRowsAreAbout:
+    """A per-model run stores rows about every model its threads name, and only
+    the searched model's land on its page. The total alone read as a lost write
+    (Nano Banana 2, 2026-10-12): "166 stored" against a page of 7 quotes."""
+
+    def test_stored_rows_are_split_by_scope_and_sum_to_stored(self, conn):
+        from judge.store.board_entries import store_entries
+
+        rows = [dict(_row("s1", "agentic", "qa"), model_scope="searched"),
+                dict(_row("s2", "agentic", "qb"), model_scope="searched"),
+                dict(_row("s3", "agentic", "qc"), model_scope="mentioned"),
+                _row("s4", "agentic", "qd")]
+        out = store_entries(conn, rows, proposer_model="m", searched_model_version_id="mv_x")
+        assert out["stored_by_scope"] == {"searched": 2, "mentioned": 1, "unlabelled": 1}
+        assert sum(out["stored_by_scope"].values()) == out["stored"]
+
+    def test_a_row_already_stored_is_not_counted_again(self, conn):
+        from judge.store.board_entries import store_entries
+
+        row = dict(_row("s1", "agentic", "qa"), model_scope="searched")
+        store_entries(conn, [row], proposer_model="m")
+        again = store_entries(conn, [row], proposer_model="m")
+        assert again["stored"] == 0 and again["stored_by_scope"] == {}
+
+
 class TestJobsAndMetricsAreFiledToo:
     def test_a_new_job_goes_under_the_job_heading_the_extractor_gave(self):
         rows = group_section([leaf("a-new-job", "media-generation")], section="best_for")

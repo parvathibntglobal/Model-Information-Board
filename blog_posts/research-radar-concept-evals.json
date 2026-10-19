@@ -1,0 +1,532 @@
+{
+ "slug": "research-radar-concept-evals",
+ "status": "draft",
+ "tag": "Research radar",
+ "feat": false,
+ "title": "LLM Evaluation Keeps Scoring the Stand-In Instead of the Thing",
+ "dek": "This month's evaluation research, read as one pattern: agreement posing as correctness, accuracy posing as forgetting, a timestamp posing as availability, and a judge posing as readers.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "The newest lesson on how to evaluate LLMs: every metric stands in for a claim. Agreement, accuracy, timestamps and automated judges each failed as stand-ins this month, so check the claim itself.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkZpdmUgcmVwaHJhc2luZ3Mgb2Ygb25lIHF1ZXN0aW9uIGFsbCBhZ3JlZSBvbiB0aGUgc2FtZSB3cm9uZyBhbnN3ZXIgd2hpbGUgdGhlIGNvcnJlY3Qgb25lIHNpdHMgYXBhcnQ8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJyaW5nIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC4wIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC41NSIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjEyIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC44IiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAuMjIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImdvbGQiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJjb3JlIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gY29uc2Vuc3VzIHJpbmcgLS0+CiAgPGNpcmNsZSBjeD0iNDgwIiBjeT0iMzE1IiByPSIzMDAiIGZpbGw9InVybCgjcmluZykiLz4KICA8Y2lyY2xlIGN4PSI0ODAiIGN5PSIzMTUiIHI9IjIwNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1vcGFjaXR5PSIwLjc1Ii8+CgogIDwhLS0gcmF5cyBmcm9tIHRoZSBxdWVzdGlvbiB0byBpdHMgcmVwaHJhc2luZ3MgLS0+CiAgPGcgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLW9wYWNpdHk9IjAuNyI+CiAgICA8bGluZSB4MT0iNDgwIiB5MT0iMzE1IiB4Mj0iNDgwIiB5Mj0iMTEwIi8+CiAgICA8bGluZSB4MT0iNDgwIiB5MT0iMzE1IiB4Mj0iNjc1IiB5Mj0iMjUyIi8+CiAgICA8bGluZSB4MT0iNDgwIiB5MT0iMzE1IiB4Mj0iNjAwIiB5Mj0iNDgxIi8+CiAgICA8bGluZSB4MT0iNDgwIiB5MT0iMzE1IiB4Mj0iMzYwIiB5Mj0iNDgxIi8+CiAgICA8bGluZSB4MT0iNDgwIiB5MT0iMzE1IiB4Mj0iMjg1IiB5Mj0iMjUyIi8+CiAgPC9nPgogIDxjaXJjbGUgY3g9IjQ4MCIgY3k9IjMxNSIgcj0iMTEwIiBmaWxsPSJ1cmwoI2NvcmUpIi8+CiAgPGNpcmNsZSBjeD0iNDgwIiBjeT0iMzE1IiByPSI1MCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjI1IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgogIDx0ZXh0IHg9IjQ4MCIgeT0iMzM0IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTIiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPj88L3RleHQ+CgogIDwhLS0gZml2ZSBhbnN3ZXIgY2FyZHMsIGFsbCB0aGUgc2FtZSAtLT4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDYiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiPgogICAgPHJlY3QgeD0iNDM2IiB5PSI2NiIgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iNDgwIiB5PSIxMjYiPkI8L3RleHQ+CiAgICA8cmVjdCB4PSI2MzEiIHk9IjIwOCIgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iNjc1IiB5PSIyNjgiPkI8L3RleHQ+CiAgICA8cmVjdCB4PSI1NTYiIHk9IjQzNyIgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iNjAwIiB5PSI0OTciPkI8L3RleHQ+CiAgICA8cmVjdCB4PSIzMTYiIHk9IjQzNyIgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iMzYwIiB5PSI0OTciPkI8L3RleHQ+CiAgICA8cmVjdCB4PSIyNDEiIHk9IjIwOCIgd2lkdGg9Ijg4IiBoZWlnaHQ9Ijg4IiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iMjg1IiB5PSIyNjgiPkI8L3RleHQ+CiAgPC9nPgoKICA8IS0tIHRoZSBjb3JyZWN0IGFuc3dlciwgb3V0c2lkZSB0aGUgYWdyZWVtZW50IC0tPgogIDxjaXJjbGUgY3g9Ijk4NSIgY3k9IjMxNSIgcj0iMTUwIiBmaWxsPSJ1cmwoI2dvbGQpIi8+CiAgPHJlY3QgeD0iOTI1IiB5PSIyNTUiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiByeD0iMjIiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjEyIDkiLz4KICA8dGV4dCB4PSI5ODUiIHk9IjMzNyIgZmlsbD0iI2UzYjM0MSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjYwIiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5DPC90ZXh0PgogIDxwb2x5Z29uIHBvaW50cz0iOTg1LDE5MCA5OTQsMjE0IDEwMTksMjE0IDk5OSwyMjkgMTAwNiwyNTMgOTg1LDIzOSA5NjQsMjUzIDk3MSwyMjkgOTUxLDIxNCA5NzYsMjE0IiBmaWxsPSIjZTNiMzQxIi8+CiAgPGxpbmUgeDE9Ijc0MCIgeTE9IjMxNSIgeDI9IjkwMCIgeTI9IjMxNSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgMTAiLz4KICA8ZyBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSI4MDYiIHkxPSIzMDEiIHgyPSI4MzQiIHkyPSIzMjkiLz4KICAgIDxsaW5lIHgxPSI4MzQiIHkxPSIzMDEiIHgyPSI4MDYiIHkyPSIzMjkiLz4KICA8L2c+Cjwvc3ZnPgo=",
+  "alt": "Five rephrasings of one question ring a glowing circle, all answering B, while the starred correct answer C sits outside.",
+  "caption": "Perfect agreement on the wrong answer: the confident-wrong case that agreement-based evaluation cannot see.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How to evaluate LLMs when the metric is a stand-in: judges that agree and are wrong, leaky timestamps, unlearning attacks and judges that miss readers.",
+ "keywords": [
+  "how to evaluate LLMs",
+  "Evaluation and benchmarks",
+  "LLM evaluation",
+  "label-free evaluation",
+  "LLM as a judge",
+  "benchmark leakage"
+ ],
+ "kicker": "Research radar",
+ "tags": [
+  "LLM evaluation",
+  "Research radar"
+ ],
+ "read": 7,
+ "decisions": [
+  "Audit any agreement-based filter against a small labelled slice.",
+  "Write down when each eval input actually became available.",
+  "Test deletion claims with an attack, not an accuracy check.",
+  "Validate automated judges on subtle distinctions, not just easy ones.",
+  "Ship the scoring code with any benchmark number you publish."
+ ],
+ "layout": "radar",
+ "arrangement": "a",
+ "special": {
+  "type": "radar",
+  "title": "On the radar",
+  "items": [
+   {
+    "item": "Consistency-accuracy dissociation",
+    "what": "A per-example map showing that wrong answers cluster where a model is most self-consistent.",
+    "why": "Self-consistency filters and majority votes can certify confident errors as reliable.",
+    "stage": "early results",
+    "source": 5,
+    "ref": {
+     "title": "When Judges Agree and Are Wrong: Consistency-Accuracy Dissociation as a Blind Spot for Label-Free Evaluation",
+     "url": "https://arxiv.org/abs/2610.21128v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Availability Contract",
+    "what": "A benchmark declaration of the input boundary, availability evidence, outcome start and supported claims.",
+    "why": "Timing leaks inside one event can flip labels while model rankings look stable.",
+    "stage": "new idea",
+    "source": 2,
+    "ref": {
+     "title": "When Does \"Post-Call\" Begin? An Availability Contract for Earnings-Call NLP Benchmarks",
+     "url": "https://arxiv.org/abs/2610.21659v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Link inference attacks for unlearning",
+    "what": "Lethe scores edge unlearning by attacking the model to see if a deleted edge still shows.",
+    "why": "Accuracy barely moves when an edge is removed, so it cannot tell forgotten from kept.",
+    "stage": "early results",
+    "source": 1,
+    "ref": {
+     "title": "Lethe: Link Inference Attacks For Evaluation of Edge Unlearning Methods",
+     "url": "https://arxiv.org/abs/2610.21869v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Story-graph narrative benchmark",
+    "what": "Published works annotated with events in both orders and a causal story graph, used to test nonlinear telling.",
+    "why": "Human readers caught a quality difference that the automated judge did not.",
+    "stage": "early results",
+    "source": 4,
+    "ref": {
+     "title": "Can LLMs Tell Stories Out of Order? A Corpus and Benchmark for Nonlinear Narrative Generation",
+     "url": "https://arxiv.org/abs/2610.21468v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Released metric routines",
+    "what": "LOADBench ships reference code for the metrics that define each analog design task.",
+    "why": "A shared scorer is what makes results from different groups comparable at all.",
+    "stage": "early results",
+    "source": 3,
+    "ref": {
+     "title": "LOADBench: A Large Open Analog Dataset and Benchmark for Machine Learning in IC Design",
+     "url": "https://arxiv.org/abs/2610.21591v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Error analysis before metrics",
+    "what": "Read real traces, label them pass or fail, build a failure taxonomy, then automate.",
+    "why": "Metrics built on observed failures measure what actually breaks for your users.",
+    "stage": "in use",
+    "source": 6,
+    "ref": {
+     "title": "AI Evals: Everything You Need to Know",
+     "url": "https://hamel.dev/blog/posts/evals-faq/",
+     "platform": "an engineering blog"
+    }
+   },
+   {
+    "item": "Active-learning trace sampling",
+    "what": "An agent clusters traces, picks examples for a person to label, and updates a failure taxonomy as labels arrive.",
+    "why": "It spends scarce human labels on the traces most likely to teach something new.",
+    "stage": "new idea",
+    "source": 6,
+    "ref": {
+     "title": "AI Evals: Everything You Need to Know",
+     "url": "https://hamel.dev/blog/posts/evals-faq/",
+     "platform": "an engineering blog"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Agreement turns out to be a poor stand-in for correctness",
+    "num": "01",
+    "id": "agreement-turns-out-to-be-a-poor-stand-in-for-correctness"
+   }
+  ],
+  [
+   "p",
+   "Here's the newest idea worth rearranging your evals around. A model that agrees with itself can still be wrong, and its wrong answers may be mostly the confident kind. A new arXiv paper on label-free evaluation found that «60% of all incorrect answers fall in the high-consistency region», meaning consistency of 0.8 or more. That's not a corner case. That's the bulk."
+  ],
+  [
+   "p",
+   "Label-free methods, think self-consistency filtering or majority voting, «rely on an implicit assumption that consistency can serve as a proxy for correctness». The paper tested it across four financial QA test sets, ten consistency dimensions and two frontier model families. Then the worse news: «77.7% of these show complete answer collapse», meaning «identical wrong answers across all perturbation variants». Rephrase the question five ways. Get one wrong answer, over and over."
+  ],
+  [
+   "p",
+   "We went through the method, because it's the reusable part. The authors scored consistency and accuracy together «at the level of individual examples rather than in aggregate». Averages hide the quadrant; a per-item view shows it. The effect held «from t=0.50 to t=1.00», so no threshold tweak saves you. Our view: any pipeline that votes needs a labelled slice to audit it."
+  ],
+  [
+   "code",
+   {
+    "label": "A self-consistency filter, and the labelled audit that catches what it keeps (illustrative)",
+    "language": "python",
+    "source": "from collections import Counter\n\ndef consistent(answers, threshold=0.8):\n    \"\"\"Label-free filter: trust an item when its rephrasings agree.\"\"\"\n    top, n = Counter(answers).most_common(1)[0]\n    return n / len(answers) >= threshold, top\n\n# Five rephrasings of one question; the model has collapsed onto \"B\".\nok, answer = consistent([\"B\", \"B\", \"B\", \"B\", \"B\"])   # (True, \"B\")\n# If gold is \"C\", this item is kept, trusted and wrong.\n\ndef confident_wrong_share(items, gold):\n    \"\"\"Needs a small labelled slice: of the items the filter trusts,\n    how many are wrong? Agreement alone can never compute this.\"\"\"\n    kept = [(i, consistent(i.answers)[1]) for i in items if consistent(i.answers)[0]]\n    wrong = [i for i, a in kept if a != gold[i.id]]\n    return len(wrong) / max(1, len(kept))\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Error analysis comes before any metric",
+    "num": "02",
+    "id": "error-analysis-comes-before-any-metric"
+   }
+  ],
+  [
+   "p",
+   "The most in-use idea on this radar is also the least glamorous. An evals FAQ on hamel.dev opens its setup advice with «Start with error analysis, not infrastructure». The minimum kit is a person and a notebook: «Spend 30 minutes manually reviewing 20-50 LLM outputs whenever you make significant changes». You write notes on each trace, then group them into a failure taxonomy."
+  ],
+  [
+   "p",
+   "Then you count. Labels stay binary, since «Binary evaluations force clearer thinking and more consistent labeling». Only then do you automate, and only for failures that survive a prompt fix. The cost note is sobering: «LLM-as-Judge evaluators require 100+ labeled examples, ongoing weekly maintenance». A judge is a product you maintain. It isn't a free oracle."
+  ],
+  [
+   "p",
+   "We agree with nearly all of it, and especially with one line: «If you’re passing 100% of your evals, you’re likely not challenging your system enough». The consistency paper above is the same warning from a different angle. A perfect score usually means the yardstick is too easy. Or it's measuring the wrong thing."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The error-analysis loop that comes before any automated metric, in the order the FAQ lays it out.",
+    "steps": [
+     "Review a sample of real traces by hand",
+     "Write open notes on the first failure in each",
+     "Group notes into a failure taxonomy and count",
+     "Fix whatever a prompt change can fix",
+     "Automate checks only for failures that persist",
+     "Validate each automated judge against human labels"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "An availability contract pins down when the input existed",
+    "num": "03",
+    "id": "an-availability-contract-pins-down-when-the-input-existed"
+   }
+  ],
+  [
+   "p",
+   "This one comes from finance, and it'll bite anyone who evaluates on time-stamped events. Earnings-call benchmarks can suffer «a within-event timing mismatch when the prediction target begins before the textual or audio input used by a model could be complete». Put plainly, you score a market prediction against a window that opened before the model could have heard the call end."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU4MCI+CiAgPHRpdGxlPkFuIGVhcm5pbmdzIGNhbGwgb24gYSB0aW1lbGluZTogYSB0YXJnZXQgd2luZG93IHRoYXQgb3BlbnMgYXQgY2FsbCBzdGFydCBvdmVybGFwcyBpbnB1dCB0aGUgbW9kZWwgY291bGQgbm90IHlldCBoYXZlPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibGVhayIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC41NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4xNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ib2siIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAuNTUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAuMTUiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI1ODAiIGZpbGw9InVybCgjYmcpIi8+CgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8IS0tIHRoZSBjYWxsIGl0c2VsZiAtLT4KICAgIDxyZWN0IHg9IjMzMCIgeT0iMTIwIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjUyMCIgeT0iMTcwIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj50aGUgY2FsbDogcmVtYXJrcyBhbmQgUSZhbXA7QTwvdGV4dD4KICAgIDxyZWN0IHg9IjcxMCIgeT0iMTIwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggNiIvPgogICAgPHRleHQgeD0iNzg1IiB5PSIxNTYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnByb2Nlc3Npbmc8L3RleHQ+CiAgICA8dGV4dCB4PSI3ODUiIHk9IjE4NCIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YWxsb3dhbmNlPC90ZXh0PgoKICAgIDwhLS0gdGltZSBheGlzIC0tPgogICAgPGxpbmUgeDE9IjYwIiB5MT0iMjgwIiB4Mj0iMTE1MCIgeTI9IjI4MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogICAgPGcgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiPgogICAgICA8bGluZSB4MT0iMTQwIiB5MT0iMjY2IiB4Mj0iMTQwIiB5Mj0iMjk0Ii8+CiAgICAgIDxsaW5lIHgxPSIzMzAiIHkxPSIyNjIiIHgyPSIzMzAiIHkyPSIyOTgiLz4KICAgICAgPGxpbmUgeDE9Ijg2MCIgeTE9IjI2MiIgeDI9Ijg2MCIgeTI9IjI5OCIvPgogICAgPC9nPgogICAgPHRleHQgeD0iMTQwIiB5PSIyNTAiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnByZXZpb3VzIGNsb3NlPC90ZXh0PgogICAgPHRleHQgeD0iMzMwIiB5PSIzMzAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmNhbGwgc3RhcnRzPC90ZXh0PgogICAgPHRleHQgeD0iODYwIiB5PSIzMzAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmlucHV0IGNvbXBsZXRlPC90ZXh0PgogICAgPHRleHQgeD0iMTEyMCIgeT0iMzE4IiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0iZW5kIj50aW1lPC90ZXh0PgoKICAgIDwhLS0gbGVha3kgdGFyZ2V0IHdpbmRvdyAtLT4KICAgIDxyZWN0IHg9IjMzMCIgeT0iMzcyIiB3aWR0aD0iNzkwIiBoZWlnaHQ9IjU2IiByeD0iMTIiIGZpbGw9InVybCgjbGVhaykiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIzNTIiIHk9IjQwOCIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjcwMCI+dGFyZ2V0IHdpbmRvdyBvcGVucyB0b28gZWFybHk8L3RleHQ+CiAgICA8cmVjdCB4PSIzMzAiIHk9IjM3MiIgd2lkdGg9IjUzMCIgaGVpZ2h0PSI1NiIgcng9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNCA2Ii8+CgogICAgPCEtLSBjb250cmFjdCB3aW5kb3cgLS0+CiAgICA8cmVjdCB4PSI4NjAiIHk9IjQ2MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI1NiIgcng9IjEyIiBmaWxsPSJ1cmwoI29rKSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9Ijg0MCIgeT0iNDk2IiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0iZW5kIiBmb250LXdlaWdodD0iNzAwIj5kZWNsYXJlZCB1bmRlciB0aGUgY29udHJhY3Q8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "Timeline of a call, a processing allowance and input complete; a red target window opens at call start, a green one later.",
+    "caption": "The within-event mismatch: a target window that opens at call start scores the model on input it could not yet have.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The usual guard doesn't help. «Chronological train--test splits do not prevent this mismatch, because it occurs inside individual events rather than across samples». The proposed fix is a contract that «requires a benchmark to state the input boundary, evidence for input availability, the outcome start, and the claims supported by that evidence». Four fields. Written down, per benchmark."
+  ],
+  [
+   "p",
+   "Then the numbers land. Across 552 earnings calls from 24 firms, moving from a call-start proxy to a completion proxy «flips return signs for 9.4% of calls». With completion-clock cutpoints fixed, 28.3% change quintile. On a separate volatility benchmark, shifting windows by one session raised error by 18.1-21.4%, «while their point rankings remain unchanged». Rankings held. Labels didn't."
+  ],
+  [
+   "p",
+   "That last finding travels far beyond earnings calls. We think it's the sharpest line on the radar: «labels and losses can depend materially on the declared outcome clock even when model rankings appear stable». If your eval carries a timestamp, ask when its input actually became available. Agent logs, support tickets and news feeds all qualify."
+  ],
+  [
+   "h2",
+   {
+    "text": "Link inference attacks test whether an edge was forgotten",
+    "num": "04",
+    "id": "link-inference-attacks-test-whether-an-edge-was-forgotten"
+   }
+  ],
+  [
+   "p",
+   "Unlearning means removing a piece of training data's influence without retraining from scratch. For graph neural networks, forgetting one edge is the hard case, called edge unlearning or EU. Lethe, a new arXiv benchmark, reports that «dedicated EU methods can be slower than retraining anew». Worse, «accuracy metrics are uninformative due to the negligible impact of edge removal». Both findings sting."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPkEgZGVsZXRlZCBncmFwaCBlZGdlOiBhY2N1cmFjeSBiYXJlbHkgbW92ZXMsIHdoaWxlIGEgbGluayBpbmZlcmVuY2UgYXR0YWNrIHByb2JlcyB3aGV0aGVyIHRoZSBlZGdlIHN0aWxsIHNob3dzPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0icHJvYmUiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBncmFwaCAtLT4KICA8ZyBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iNCI+CiAgICA8bGluZSB4MT0iMTUwIiB5MT0iMTcwIiB4Mj0iMzAwIiB5Mj0iMTIwIi8+CiAgICA8bGluZSB4MT0iMTUwIiB5MT0iMTcwIiB4Mj0iMjEwIiB5Mj0iMzMwIi8+CiAgICA8bGluZSB4MT0iMzAwIiB5MT0iMTIwIiB4Mj0iNDIwIiB5Mj0iMjIwIi8+CiAgICA8bGluZSB4MT0iMjEwIiB5MT0iMzMwIiB4Mj0iMzYwIiB5Mj0iNDAwIi8+CiAgICA8bGluZSB4MT0iNDIwIiB5MT0iMjIwIiB4Mj0iMzYwIiB5Mj0iNDAwIi8+CiAgICA8bGluZSB4MT0iMjEwIiB5MT0iMzMwIiB4Mj0iMTEwIiB5Mj0iNDUwIi8+CiAgICA8bGluZSB4MT0iMzYwIiB5MT0iNDAwIiB4Mj0iMzAwIiB5Mj0iNTIwIi8+CiAgICA8bGluZSB4MT0iNDIwIiB5MT0iMjIwIiB4Mj0iNTYwIiB5Mj0iMTYwIi8+CiAgPC9nPgogIDxjaXJjbGUgY3g9IjMyMCIgY3k9IjI3MCIgcj0iMTQwIiBmaWxsPSJ1cmwoI3Byb2JlKSIvPgogIDxsaW5lIHgxPSIzMDAiIHkxPSIxMjAiIHgyPSIzNjAiIHkyPSI0MDAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtZGFzaGFycmF5PSIxMCA5Ii8+CiAgPGcgZmlsbD0iIzdhYTJmZiIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjIiPgogICAgPGNpcmNsZSBjeD0iMTUwIiBjeT0iMTcwIiByPSIyMCIvPjxjaXJjbGUgY3g9IjQyMCIgY3k9IjIyMCIgcj0iMjAiLz4KICAgIDxjaXJjbGUgY3g9IjIxMCIgY3k9IjMzMCIgcj0iMjAiLz48Y2lyY2xlIGN4PSIxMTAiIGN5PSI0NTAiIHI9IjIwIi8+CiAgICA8Y2lyY2xlIGN4PSIzMDAiIGN5PSI1MjAiIHI9IjIwIi8+PGNpcmNsZSBjeD0iNTYwIiBjeT0iMTYwIiByPSIyMCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjZmY3YjcyIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMiI+CiAgICA8Y2lyY2xlIGN4PSIzMDAiIGN5PSIxMjAiIHI9IjIyIi8+PGNpcmNsZSBjeD0iMzYwIiBjeT0iNDAwIiByPSIyMiIvPgogIDwvZz4KICA8dGV4dCB4PSI0MDAiIHk9IjU2MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj5kZWxldGVkIGVkZ2U8L3RleHQ+CiAgPGxpbmUgeDE9IjM5MCIgeTE9IjUzNCIgeDI9IjMzOCIgeTI9IjMyMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPCEtLSByZWFkb3V0cyAtLT4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHJlY3QgeD0iNjYwIiB5PSIxMTAiIHdpZHRoPSI0NzAiIGhlaWdodD0iMTYwIiByeD0iMjAiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjkwIiB5PSIxNjAiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlM2IzNDEiIGZvbnQtd2VpZ2h0PSI3MDAiPmFjY3VyYWN5IGNoZWNrPC90ZXh0PgogICAgPGxpbmUgeDE9IjY5MCIgeTE9IjIxNCIgeDI9IjEwMDAiIHkyPSIyMTQiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMjUyIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5iYXJlbHkgbW92ZXMsIGZvcmdvdHRlbiBvciBub3Q8L3RleHQ+CgogICAgPHJlY3QgeD0iNjYwIiB5PSIzMjAiIHdpZHRoPSI0NzAiIGhlaWdodD0iMTgwIiByeD0iMjAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjkwIiB5PSIzNzAiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiMzZWNmOGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmxpbmsgaW5mZXJlbmNlIGF0dGFjazwvdGV4dD4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iNDE0IiBmb250LXNpemU9IjIyIiBmaWxsPSIjZThlZGY1Ij5hc2tzIHRoZSBtb2RlbDogYXJlIHRoZXNlPC90ZXh0PgogICAgPHRleHQgeD0iNjkwIiB5PSI0NDQiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiPnR3byBub2RlcyBzdGlsbCBsaW5rZWQ/PC90ZXh0PgogICAgPHRleHQgeD0iNjkwIiB5PSI0NzgiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnRlc3RzIHRoZSBmb3JnZXR0aW5nIGNsYWltIGl0c2VsZjwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "A small graph with one dashed red deleted edge, beside an accuracy check that barely moves and a link attack that probes it.",
+    "caption": "Lethe's switch of yardstick: probe the deleted edge directly, since accuracy barely registers its removal.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Uninformative how? Earlier tests ran on graphs where «GNNs exploit node features rather than graph structure». Delete an edge and accuracy barely moves, forgotten or not. So Lethe swaps the yardstick for «empirical measures based on link inference attacks rather than proxy accuracy metrics». An attacker probes whether the model still behaves as if the edge exists. That tests the actual claim."
+  ],
+  [
+   "p",
+   "This pattern deserves to spread. If you claim a model forgot something, attack it and see. Don't settle for a downstream score holding steady. The same logic applies to unlearning in language models and to privacy claims about fine-tuned ones. Accuracy can't see what was deleted. An attack can."
+  ],
+  [
+   "h2",
+   {
+    "text": "Story graphs expose what an automated judge misses",
+    "num": "05",
+    "id": "story-graphs-expose-what-an-automated-judge-misses"
+   }
+  ],
+  [
+   "p",
+   "Here's a benchmark with a lovely premise: «Every story has two orders: the order in which its events happen and the order in which they are told». A new arXiv paper built its test from 83 published works. Each is annotated with events in both orders and a story graph of causal links. Then models were asked to tell stories out of order."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU4MCI+CiAgPHRpdGxlPkEgc3RvcnkncyB0d28gb3JkZXJzOiBldmVudHMgYXMgdGhleSBoYXBwZW5lZCBhbmQgYXMgdGhleSBhcmUgdG9sZCwgd2l0aCByZWFkZXJzIG5vdGljaW5nIGEgZGlmZmVyZW5jZSB0aGUganVkZ2UgbWlzc2VzPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTgwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHRleHQgeD0iNjAiIHk9Ijc2IiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0IiBmb250LXdlaWdodD0iNzAwIj5hcyBpdCBoYXBwZW5lZDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwIiB5PSI1MjAiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiM5NWExYjQiIGZvbnQtd2VpZ2h0PSI3MDAiPmFzIGl0IGlzIHRvbGQ8L3RleHQ+CiAgPC9nPgoKICA8IS0tIGNyb3NzaW5nIGxpbmtzIC0tPgogIDxnIHN0cm9rZS13aWR0aD0iNCIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC44NSI+CiAgICA8cGF0aCBkPSJNMTUwLDE5MCBDMTUwLDI4MCAzNzAsMjgwIDM3MCwzODAiIHN0cm9rZT0iIzdhYTJmZiIvPgogICAgPHBhdGggZD0iTTM3MCwxOTAgQzM3MCwyOTAgODEwLDI3MCA4MTAsMzgwIiBzdHJva2U9IiNhNzhiZmEiLz4KICAgIDxwYXRoIGQ9Ik01OTAsMTkwIEM1OTAsMjgwIDE1MCwyODAgMTUwLDM4MCIgc3Ryb2tlPSIjZTNiMzQxIi8+CiAgICA8cGF0aCBkPSJNODEwLDE5MCBDODEwLDI4MCA1OTAsMjgwIDU5MCwzODAiIHN0cm9rZT0iIzNlY2Y4ZSIvPgogIDwvZz4KCiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ0IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1Ij4KICAgIDxyZWN0IHg9IjEwMCIgeT0iMTAwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTUwIiB5PSIxNjIiPkE8L3RleHQ+CiAgICA8cmVjdCB4PSIzMjAiIHk9IjEwMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI5MCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjM3MCIgeT0iMTYyIj5CPC90ZXh0PgogICAgPHJlY3QgeD0iNTQwIiB5PSIxMDAiIHdpZHRoPSIxMDAiIGhlaWdodD0iOTAiIHJ4PSIxNiIgZmlsbD0iI2UzYjM0MSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI1OTAiIHk9IjE2MiI+QzwvdGV4dD4KICAgIDxyZWN0IHg9Ijc2MCIgeT0iMTAwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iODEwIiB5PSIxNjIiPkQ8L3RleHQ+CgogICAgPHJlY3QgeD0iMTAwIiB5PSIzODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iOTAiIHJ4PSIxNiIgZmlsbD0iI2UzYjM0MSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxNTAiIHk9IjQ0MiI+QzwvdGV4dD4KICAgIDxyZWN0IHg9IjMyMCIgeT0iMzgwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMzcwIiB5PSI0NDIiPkE8L3RleHQ+CiAgICA8cmVjdCB4PSI1NDAiIHk9IjM4MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI5MCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjU5MCIgeT0iNDQyIj5EPC90ZXh0PgogICAgPHJlY3QgeD0iNzYwIiB5PSIzODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iOTAiIHJ4PSIxNiIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI4MTAiIHk9IjQ0MiI+QjwvdGV4dD4KICA8L2c+CgogIDwhLS0gd2hvIG5vdGljZXMgLS0+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDxyZWN0IHg9IjkzMCIgeT0iMTcwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjExMCIgcng9IjE4IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cGF0aCBkPSJNOTU4LDIyNiBMOTc2LDI0NCBMMTAwNiwyMDgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgIDx0ZXh0IHg9IjEwMjIiIHk9IjIyMiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjcwMCI+cmVhZGVyczwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMjIiIHk9IjI1MiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+bm90aWNlPC90ZXh0PgoKICAgIDxyZWN0IHg9IjkzMCIgeT0iMzEwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjExMCIgcng9IjE4IiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8ZyBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgICAgPGxpbmUgeDE9Ijk2MCIgeTE9IjM1MCIgeDI9Ijk5MCIgeTI9IjM4MCIvPjxsaW5lIHgxPSI5OTAiIHkxPSIzNTAiIHgyPSI5NjAiIHkyPSIzODAiLz4KICAgIDwvZz4KICAgIDx0ZXh0IHg9IjEwMTIiIHk9IjM2MiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjcwMCI+anVkZ2U8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDEyIiB5PSIzOTIiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPm1pc3NlcyBpdDwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Four events A to D in the order they happened, crossing to the order told, C A D B; readers notice, the judge misses.",
+    "caption": "A story's two orders, and the quality difference human readers caught that the automated judge did not.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Models drift toward the timeline. Given events chronologically, «all 19 models tell them, on average, more chronologically than the published works do». Asked for a specific structure, «they land within the human range about half the time». And 71 human readers found the requested nonlinear versions harder to follow in 81% of decisive judgments."
+  ],
+  [
+   "p",
+   "The eval lesson sits in one clause. Readers preferred stories written from the story graph in 72% of decisive judgments, «a difference the judge does not detect». The automated judge tracked readers on the easy call and missed the subtle one. Treat that as a standing warning. Validate your judge on the distinctions you actually care about, not the obvious ones."
+  ],
+  [
+   "h2",
+   {
+    "text": "Open metric code makes benchmark numbers comparable",
+    "num": "06",
+    "id": "open-metric-code-makes-benchmark-numbers-comparable"
+   }
+  ],
+  [
+   "p",
+   "Last fresh idea, from analog chip design. Machine learning results there were reported «with ad-hoc metrics, leaving comparisons across methods unreliable». LOADBench answers with more than 100 opamp topologies and «six benchmark tasks with precise protocols», from inverse sizing to Pareto-membership prediction. That part is domain-specific. The release policy isn't."
+  ],
+  [
+   "p",
+   "The detail we'd copy is this: «reference implementations of the metric-defining routines are released under an open license». Not just the numbers, but the code that computes them. Two groups reporting one metric name with different scoring code aren't comparing anything. Shipping the scorer is what makes results «reproducible and directly comparable». It costs a repository. It saves an argument."
+  ],
+  [
+   "h2",
+   {
+    "text": "Every stand-in needs a declared yardstick",
+    "num": "07",
+    "id": "every-stand-in-needs-a-declared-yardstick"
+   }
+  ],
+  [
+   "p",
+   "Line these up and one thread runs through all of them. Each paper caught a stand-in quietly scoring in place of the real claim. Consistency stood in for correctness. Accuracy stood in for forgetting. A call-start timestamp stood in for availability. A judge stood in for readers. Each fix names the yardstick and checks it against the thing itself."
+  ],
+  [
+   "p",
+   "That's also how to evaluate LLMs in your own stack. Name the claim. Name the stand-in you're actually scoring. Then find one cheap, direct check of the claim: a labelled slice, an attack, a timing audit, a handful of human readers. The FAQ's advice to «validate them against human judgment» is the same move, made with a notebook."
+  ],
+  [
+   "p",
+   "The open problem is the one none of these solves. Label-free evaluation exists because labels are expensive, and the confident-wrong quadrant «cannot be detected by any evaluation signal that is built on agreement alone». So how small can a labelled audit slice be and still catch it? Nobody has a good answer yet. That's the paper we'd most like to see next."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Each idea on this radar, the stand-in it caught, and the direct check that exposed the gap.",
+    "columns": [
+     "Claim being made",
+     "Stand-in that was scored",
+     "Direct check that exposed it"
+    ],
+    "rows": [
+     [
+      "The answer is correct",
+      "Agreement across rephrasings",
+      "Per-example accuracy on labelled items"
+     ],
+     [
+      "The edge was forgotten",
+      "Accuracy after unlearning",
+      "Link inference attacks"
+     ],
+     [
+      "The input was available",
+      "Call-start timestamp",
+      "Completion proxy and an availability contract"
+     ],
+     [
+      "The story reads well",
+      "Automated judge",
+      "Preferences from human readers"
+     ],
+     [
+      "Results are comparable",
+      "Paper-specific metric code",
+      "Released metric-defining routines"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How to evaluate LLMs without labels?"
+  ],
+  [
+   "p",
+   "You can screen without labels, but agreement alone won't find the confident errors. One study found «60% of all incorrect answers fall in the high-consistency region», exactly where self-consistency filters look most reliable. Keep a small labelled slice, score accuracy per example, and use it to audit any agreement-based signal before you trust it."
+  ],
+  [
+   "h3",
+   "What is error analysis in LLM evaluation?"
+  ],
+  [
+   "p",
+   "Error analysis means reading real outputs, noting failures and grouping them into a taxonomy before you write any metric. An evals FAQ on hamel.dev calls it «the most important activity in evals». You review traces, label them pass or fail, count failure categories, and automate checks only for failures that persist after prompt fixes."
+  ],
+  [
+   "h3",
+   "Can an LLM judge replace human evaluation?"
+  ],
+  [
+   "p",
+   "Not without validation on the distinctions you care about. In a nonlinear storytelling benchmark, readers preferred stories built from a story graph, «a difference the judge does not detect». Judges also need upkeep: one FAQ says such evaluators require «100+ labeled examples, ongoing weekly maintenance». Treat a judge as a model you test, never as an oracle."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "When Judges Agree and Are Wrong: Consistency-Accuracy Dissociation as a Blind Spot for Label-Free Evaluation",
+   "url": "https://arxiv.org/abs/2610.21128v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "an engineering blog",
+   "who": "hamel.dev",
+   "what": "AI Evals: Everything You Need to Know",
+   "url": "https://hamel.dev/blog/posts/evals-faq/",
+   "posted": "2026-09-18"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "When Does \"Post-Call\" Begin? An Availability Contract for Earnings-Call NLP Benchmarks",
+   "url": "https://arxiv.org/abs/2610.21659v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Lethe: Link Inference Attacks For Evaluation of Edge Unlearning Methods",
+   "url": "https://arxiv.org/abs/2610.21869v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Can LLMs Tell Stories Out of Order? A Corpus and Benchmark for Nonlinear Narrative Generation",
+   "url": "https://arxiv.org/abs/2610.21468v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "LOADBench: A Large Open Analog Dataset and Benchmark for Machine Learning in IC Design",
+   "url": "https://arxiv.org/abs/2610.21591v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "60% of all incorrect answers fall in the high-consistency region": 1,
+  "rely on an implicit assumption that consistency can serve as a proxy for correctness": 1,
+  "77.7% of these show complete answer collapse": 1,
+  "identical wrong answers across all perturbation variants": 1,
+  "at the level of individual examples rather than in aggregate": 1,
+  "from t=0.50 to t=1.00": 1,
+  "Start with error analysis, not infrastructure": 2,
+  "Spend 30 minutes manually reviewing 20-50 LLM outputs whenever you make significant changes": 2,
+  "Binary evaluations force clearer thinking and more consistent labeling": 2,
+  "LLM-as-Judge evaluators require 100+ labeled examples, ongoing weekly maintenance": 2,
+  "If you’re passing 100% of your evals, you’re likely not challenging your system enough": 2,
+  "a within-event timing mismatch when the prediction target begins before the textual or audio input used by a model could be complete": 3,
+  "Chronological train--test splits do not prevent this mismatch, because it occurs inside individual events rather than across samples": 3,
+  "requires a benchmark to state the input boundary, evidence for input availability, the outcome start, and the claims supported by that evidence": 3,
+  "flips return signs for 9.4% of calls": 3,
+  "while their point rankings remain unchanged": 3,
+  "labels and losses can depend materially on the declared outcome clock even when model rankings appear stable": 3,
+  "dedicated EU methods can be slower than retraining anew": 4,
+  "accuracy metrics are uninformative due to the negligible impact of edge removal": 4,
+  "GNNs exploit node features rather than graph structure": 4,
+  "empirical measures based on link inference attacks rather than proxy accuracy metrics": 4,
+  "Every story has two orders: the order in which its events happen and the order in which they are told": 5,
+  "all 19 models tell them, on average, more chronologically than the published works do": 5,
+  "they land within the human range about half the time": 5,
+  "a difference the judge does not detect": 5,
+  "with ad-hoc metrics, leaving comparisons across methods unreliable": 6,
+  "six benchmark tasks with precise protocols": 6,
+  "reference implementations of the metric-defining routines are released under an open license": 6,
+  "reproducible and directly comparable": 6,
+  "validate them against human judgment": 2,
+  "cannot be detected by any evaluation signal that is built on agreement alone": 1,
+  "the most important activity in evals": 2,
+  "100+ labeled examples, ongoing weekly maintenance": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:47:16+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21869v1",
+   "arxiv:2610.21659v1",
+   "arxiv:2610.21591v1",
+   "arxiv:2610.21468v1",
+   "arxiv:2610.21128v1",
+   "blog:hamel.dev|https://hamel.dev/blog/posts/evals-faq/"
+  ],
+  "platforms": {
+   "arXiv": 5,
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "research-radar:concept/evals",
+  "format": "research-radar",
+  "reviewed_by": null
+ }
+}

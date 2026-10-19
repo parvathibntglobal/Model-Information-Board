@@ -1113,6 +1113,39 @@ function reviewOf(p){
 }
 const day = (ts) => ts ? String(ts).slice(0, 10) : '';
 
+// THE LIVE PAGES (2026-10-15), offered at the top of the index: built in code
+// from the board, not posts (judge/blog_live.py, web/src/blogs/).
+const LIVE = [
+  ['live:disagree', 'Where engineers disagree', 'Models and topics with reports on both sides, every quote linked.', 'Live'],
+  ['live:this-week', 'This week in models', 'New listings, what engineers wrote, prices and retirements.', 'Live'],
+  ['live:quiz', 'Daily quiz', 'Five questions a day on how language models work.', 'Live'],
+  ['live:issues', 'Known issues', 'Problems engineers report with each model, with the quotes.', 'Reference'],
+  ['live:answers', 'What each model supports', 'Advertised features beside what engineers report.', 'Reference'],
+  ['live:directory', 'Directory', 'Every post, by the model it covers, its topic, its title or its date.', 'Reference'],
+  ['live:glossary', 'Glossary', 'What each capability and job means, in plain words.', 'Reference'],
+];
+// A POST'S PICTURE, OR NOTHING. An AI picture is an inline JPEG/PNG/WebP; a
+// FIGURE DRAWN FOR THE POST (2026-10-16) is an inline SVG, shown through <img>
+// so it can run no script. Any other src draws nothing - never a placeholder.
+function pictureSrc(v){
+  const src = String((v && v.src) || '');
+  const ok = v && v.kind === 'figure'
+    ? /^data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+$/.test(src)
+    : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src);
+  return ok ? src : '';
+}
+function coverOf(p){
+  if(p.cover && pictureSrc(p.cover)) return p.cover;
+  const b = (p.body || []).find(x => x[0] === 'image' && pictureSrc(x[1]));
+  return b ? b[1] : null;
+}
+
+// THE BLOGS LANDING, LAID OUT LIKE A RESEARCH BLOG (2026-10-16, team ask:
+// "like bair.berkeley.edu/blog - the design with pictures, not the content").
+// One centred column, newest first: the title, a byline with the format, date
+// and reading time, the post's own picture full width, the dek, and a link on.
+// Ten to a page. A post with no picture shows none - nothing stands in.
+const BLOGS_PER_PAGE = 10;
 function vBlogs(){
   const meta = DB.postsMeta || { reason: null, skipped: [] };
   // THREE STATES (rule 4): drafts, a configured backend with none, and a
@@ -1123,13 +1156,27 @@ function vBlogs(){
   const skipped = (meta.skipped || []).length
     ? `<p class="es-empty">Could not be read: ${
         meta.skipped.map(x=>`${esc(x.file)} (${esc(x.why)})`).join('; ')}</p>` : '';
-  const cards = DB.posts.map(p=>`<a class="es-card${layoutOf(p)?` lay-${layoutOf(p)}`:''}" ${goAttrs(`post:${p.slug}`)}>
-      <div class="es-kicker">${esc(p.kicker||p.tag)}${reviewOf(p)!=='approved'?' · draft':''}</div>
-      <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p>
-      <div class="es-tags">${(p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('')}</div>
-      <div class="es-sum">${essayText(p.lead)}</div>
-      <div class="es-meta"><span>${p.read?`${esc(p.read)} min read`:''}</span><span>${esc((p.meta||[])[0]||'')}</span></div>
-    </a>`).join('');
+  const when = p => String(((p.provenance || {}).generated_at) || '');
+  const all = [...DB.posts].sort((a, b) => when(b).localeCompare(when(a)) || String(a.title).localeCompare(String(b.title)));
+  const pages = Math.max(1, Math.ceil(all.length / BLOGS_PER_PAGE));
+  let page = 1;
+  try { page = Math.min(pages, Math.max(1, parseInt(new URLSearchParams(location.search).get('page') || '1', 10) || 1)); } catch { page = 1; }
+  const shown = all.slice((page - 1) * BLOGS_PER_PAGE, page * BLOGS_PER_PAGE);
+  const cards = shown.map(p => {
+    const c = coverOf(p);
+    const draft = reviewOf(p) !== 'approved' ? '<span class="bl-draft">draft</span>' : '';
+    return `<article class="bl-post">
+      <h2 class="bl-title"><a ${goAttrs(`post:${p.slug}`)}>${esc(p.title)}</a></h2>
+      <div class="bl-by"><span class="bl-kind">${esc(p.kicker || p.tag)}</span><span>${esc((p.meta || [])[0] || '')}</span>${
+        p.read ? `<span>${esc(p.read)} min read</span>` : ''}${draft}</div>
+      ${c ? `<a class="bl-fig${c.kind === 'figure' ? ' drawn' : ''}" ${goAttrs(`post:${p.slug}`)}><img src="${pictureSrc(c)}" alt="${esc(c.alt || '')}" loading="lazy" decoding="async"></a>` : ''}
+      <p class="bl-ex">${esc(p.dek || '')}</p>
+      <a class="bl-more" ${goAttrs(`post:${p.slug}`)}>Continue reading &rarr;</a>
+    </article>`;
+  }).join('');
+  const pager = pages > 1 ? `<nav class="bl-pager" aria-label="More posts">${
+    page > 1 ? `<a href="/blogs${page - 1 > 1 ? `?page=${page - 1}` : ''}">&larr; Newer</a>` : '<span></span>'}<span class="bl-pg">Page ${page} of ${pages}</span>${
+    page < pages ? `<a href="/blogs?page=${page + 1}">Older &rarr;</a>` : '<span></span>'}</nav>` : '';
   return `<div class="essay"><div class="es-wrap">
     <header class="es-hub"><span class="go-badge go-blogs page-tag">Blogs</span>
       <h1>How AI models behave in production</h1>
@@ -1137,13 +1184,17 @@ function vBlogs(){
       modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>
     ${DB.posts.length ? `<div class="es-draft">${DB.posts.every(x=>reviewOf(x)==='approved')
       ? '<b>Approved by the team, not yet published outside it.</b>'
-      : '<b>Drafts for team review.</b>'} Written by a language model from
-      engineers' public reports and checked in code — every quote is matched against its source text and every
-      figure against the source or the price registry.${DB.posts.every(x=>reviewOf(x)==='approved')
+      : '<b>Drafts for team review.</b>'} Written by a language model - since 16 October 2026 by Claude Code -
+      from engineers' public reports and published research, and checked in code: every quote is matched against
+      its source text, and every figure against the source or the price registry. Pictures are labelled with how
+      they were made.${DB.posts.every(x=>reviewOf(x)==='approved')
       ? ' A person on the team read each post and approved it before it appeared here.'
       : ' Posts marked draft have not been approved by a person yet.'}</div>
-      <div class="es-cards">${cards}</div>` : empty}
+      <a class="bl-dir"${goAttrs('live:directory')}>Find a post: all ${DB.posts.length} by model, topic or title &rarr;</a>
+      <div class="bl-list">${cards}</div>${pager}` : empty}
     ${skipped}
+    <nav class="lv-explore lv-in-essay" aria-label="Live pages">${LIVE.map(([go, t, d, k]) =>
+      `<a class="lv-tile"${goAttrs(go)}><span class="lv-kicker">${k}</span><b>${t}</b><span>${d}</span></a>`).join('')}</nav>
   </div></div>`;
 }
 
@@ -1265,10 +1316,11 @@ function essayBlock([t,v]){
   // A GENERATED PICTURE (generator, 2026-10-13): always labelled as AI-made,
   // and only ever an inline JPEG/PNG/WebP - any other src is not drawn.
   if(t==='image'){
-    const src = String((v && v.src) || '');
-    if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src)) return '';
-    return `<figure class="es-fig es-fig-image${v.cover ? ' es-cover' : ''}"><img src="${src}" alt="${esc(v.alt || '')}" loading="lazy" decoding="async">
-      <figcaption>${v.caption ? `${essayText(v.caption)} ` : ''}<span class="es-ai">AI-generated illustration</span></figcaption></figure>`;
+    const src = pictureSrc(v);
+    if(!src) return '';
+    const fig = v.kind === 'figure';
+    return `<figure class="es-fig es-fig-image${fig ? ' es-drawn' : ''}${v.cover ? ' es-cover' : ''}"><img src="${src}" alt="${esc(v.alt || '')}" loading="lazy" decoding="async">
+      <figcaption>${v.caption ? `${essayText(v.caption)} ` : ''}<span class="es-ai">${fig ? 'Figure drawn by Claude Code for this post' : 'AI-generated illustration'}</span></figcaption></figure>`;
   }
   // EVERY PARAGRAPH IN FULL (2026-10-13). Skim mode showed one line per
   // paragraph by default and read as an incomplete post, so it is gone. Posts
@@ -1350,13 +1402,26 @@ const LAYOUTS = {
   blueprint: { label: 'Component',   lead: 'The pattern in one line', tools: 'end' },
   brief:     { label: 'Point',       lead: 'The verdict',             tools: 'top' },
   critique:  { label: 'Argument',    lead: 'The argument',            tools: 'mid' },
+  // TOPIC POSTS (2026-10-16): general AI, from the blog's own harvest. A
+  // synthesis opens on the terms a newcomer meets; an explainer closes on a quiz.
+  synthesis: { label: 'Idea',        lead: 'In one line',             tools: 'end' },
+  explainer: { label: 'Step',        lead: 'In one line',             tools: 'end' },
+  // MORE TOPIC STYLES (2026-10-16): one interactive block each.
+  mechanism: { label: 'Part',        lead: 'The short version',       tools: 'end' },
+  myths:     { label: 'Reality',     lead: 'The short version',       tools: 'end' },
+  radar:     { label: 'Signal',      lead: 'What is new',             tools: 'end' },
+  debate:    { label: 'Claim',       lead: 'The question',            tools: 'end' },
+  fieldguide:{ label: 'Rule',        lead: 'The one thing to know',   tools: 'end' },
+  paper:     { label: 'Finding',     lead: 'The papers in one line',  tools: 'end' },
 };
 // Posts written before `layout` was exported carry their format in
 // provenance; the first three carry only a kicker. A post matching none renders
 // the plain page - visibly unstyled, never silently given some other format's.
 const FORMAT_LAYOUT = { 'field-report': 'report', 'head-to-head': 'versus', 'cost-teardown': 'ledger',
   'migration-guide': 'runbook', 'architecture-pattern': 'blueprint', 'release-analysis': 'brief',
-  'evaluation-critique': 'critique' };
+  'evaluation-critique': 'critique', 'topic-synthesis': 'synthesis', 'topic-explainer': 'explainer',
+  'under-the-hood': 'mechanism', 'myth-vs-reality': 'myths', 'research-radar': 'radar', 'debate': 'debate',
+  'field-guide': 'fieldguide', 'paper-walkthrough': 'paper' };
 const KICKER_LAYOUT = { 'Model deep dive': 'report', 'Routing guide': 'versus', 'Capability analysis': 'brief' };
 function layoutOf(p){
   if(LAYOUTS[p.layout]) return p.layout;
@@ -1518,6 +1583,75 @@ function claimWall(sp){
     <div class="grid">${sp.items.map(x => `<div class="cl c-${cls(x.status)}"><span class="stamp">${esc(x.status)}</span>
       <h4>${essayText(x.claim)}</h4><p>${essayText(x.finding)}</p></div>`).join('')}</div></section>`;
 }
+// THE GLOSSARY of a topic synthesis: the terms a newcomer meets, defined once.
+function glossaryBox(sp){
+  return `<section class="es-gloss"><div class="lbl">${esc(sp.title || 'Terms')}</div><dl>${sp.items.map(x =>
+    `<div><dt>${essayText(x.term)}</dt><dd>${essayText(x.meaning)}</dd></div>`).join('')}</dl></section>`;
+}
+// THE QUIZ of an explainer. CSS-only state like the other tools: a radio per
+// option, the right one marked in the markup, and the explanation shown once
+// any option of that question is picked (board.css .es-quiz). Nothing a reader
+// picks is sent anywhere or kept.
+let _qz = 0;
+function quizBox(sp){
+  const id = `es-qz${++_qz}`;
+  return `<section class="es-quiz"><div class="lbl">${esc(sp.title || 'Quiz')}</div>${sp.items.map((q, i) =>
+    `<fieldset class="q"><legend><span class="n">${pad2(i + 1)}</span>${essayText(q.question)}</legend>${
+      (q.options || []).map((o, k) => `<label class="opt ${k === q.answer ? 'right' : 'wrong'}">`
+        + `<input type="radio" name="${id}-${i}"><span>${essayText(o)}</span></label>`).join('')}
+      <p class="why"><b>Why:</b> ${essayText(q.explanation)}</p></fieldset>`).join('')}</section>`;
+}
+// A SPECIAL ITEM'S SOURCE: the paper's or post's own title and link, which
+// export resolved from the writer's SOURCE number (generate_sample_blogs.py).
+function refLink(it){
+  const r = it && it.ref;
+  if(!r || !/^https:\/\//.test(r.url || '')) return '';
+  return `<a class="es-ref" href="${esc(r.url)}" rel="nofollow noopener" target="_blank">${esc(r.platform)} · ${esc(r.title)}</a>`;
+}
+// LAB (under the hood): steps to run, ticked off as you go.
+function labBox(sp){
+  return `<section class="es-levers es-lab"><div class="lbl">${esc(sp.title || 'Try it yourself')}</div><ol>${sp.items.map(x =>
+    `<li><label><input type="checkbox"><span><b>${essayText(x.step)}</b> ${essayText(x.how)}`
+    + `<em class="look">You should see: ${essayText(x.look_for)}</em></span></label></li>`).join('')}</ol>
+    <div class="tally">Done <span class="ct"></span> of ${sp.items.length}</div></section>`;
+}
+// MYTHS: a card per belief; open it to see what the evidence says.
+function mythCards(sp){
+  const cls = v => v === 'true' ? 'ok' : v === 'partly true' ? 'part' : 'none';
+  return `<section class="es-myths"><div class="lbl">${esc(sp.title || 'Myth or not')}</div>
+    <p class="hint">Guess first, then open a card.</p><div class="grid">${sp.items.map(x =>
+    `<details class="mc m-${cls(x.verdict)}"><summary><span class="q">${essayText(x.myth)}</span>`
+    + `<span class="tap">Open</span></summary><span class="stamp">${esc(x.verdict)}</span>`
+    + `<p>${essayText(x.reality)}</p></details>`).join('')}</div></section>`;
+}
+// RADAR: filter by stage; each item links to the paper or post it came from.
+function radarList(sp){
+  const stages = ['new idea', 'early results', 'in use'];
+  const k = st => Math.max(0, stages.indexOf(st));
+  return `<section class="es-radar"><div class="lbl">${esc(sp.title || 'On the radar')}</div>
+    <div class="es-pills" role="radiogroup" aria-label="Filter by stage"><span>Show</span>
+      <label><input type="radio" name="es-rd" checked>Everything</label>${stages.map((st, i) =>
+      `<label><input type="radio" name="es-rd" class="f${i}">${esc(st)}</label>`).join('')}</div>
+    <div class="grid">${sp.items.map(x => `<div class="rd s${k(x.stage)}"><span class="stage">${esc(x.stage)}</span>
+      <h4>${essayText(x.item)}</h4><p>${essayText(x.what)}</p><p class="why">${essayText(x.why)}</p>${refLink(x)}</div>`).join('')}</div></section>`;
+}
+// DEBATE: the sides beside each other, each with where it breaks.
+function sidesBox(sp){
+  return `<section class="es-sides"><div class="lbl">${esc(sp.title || 'Two sides')}</div><div class="grid">${sp.items.map((x, i) =>
+    `<div class="side"><span class="n">${String.fromCharCode(65 + i)}</span><h4>${essayText(x.side)}</h4>`
+    + `<p>${essayText(x.case)}</p><details><summary>Where it breaks</summary><p>${essayText(x.weakness)}</p></details></div>`).join('')}</div></section>`;
+}
+// FIELD GUIDE: a checklist with a tally, like the runbook's.
+function checklistBox(sp){
+  return `<section class="es-levers"><div class="lbl">${esc(sp.title || 'Before you ship')}</div><ul>${sp.items.map(x =>
+    `<li><label><input type="checkbox"><span><b>${essayText(x.check)}</b> ${essayText(x.why)}</span></label></li>`).join('')}</ul>
+    <div class="tally">Checked <span class="ct"></span> of ${sp.items.length}</div></section>`;
+}
+// PAPER WALKTHROUGH: what was measured, under what setup, and by whom.
+function resultsBox(sp){
+  return `<section class="es-results"><div class="lbl">${esc(sp.title || 'What was measured')}</div>${sp.items.map(x =>
+    `<div class="rs"><p class="r">${essayText(x.result)}</p><p class="set">${essayText(x.setup)}</p>${refLink(x)}</div>`).join('')}</section>`;
+}
 function probeList(sp){
   return `<section class="es-probe"><div class="lbl">${esc(sp.title || 'What the measures test')}</div>${sp.items.map(x =>
     `<details><summary><b>${essayText(x.measure)}</b><span>${essayText(x.tests)}</span></summary>
@@ -1670,7 +1804,7 @@ function vPost(slug){
   const rows = sheetRows(parts.prices);
   const pv = p.provenance || {};
   const asOf = String(pv.generated_at || '').slice(0, 10);
-  _mx = 0;
+  _mx = 0; _qz = 0;
   CITE = Object.fromEntries(Object.entries(p.cite || {}).map(([k, n]) => [esc(k), n]));
   SRC = Object.fromEntries((p.sources || []).map(s => [s.n, s]));
   CARDED = new Set();
@@ -1693,7 +1827,10 @@ function vPost(slug){
   } else if(L === 'versus'){
     // A question card: the answer paragraph shows, the reasoning folds.
     secHtml = secs.map((s, i) => {
-      const k = s.blocks.findIndex(b => b[0] === 'p');
+      let k = s.blocks.findIndex(b => b[0] === 'p');
+      // A PICTURE RIGHT AFTER THE ANSWER STAYS IN VIEW (2026-10-16): folded into
+      // "The reasoning", a drawn figure never loaded until the card was opened.
+      while(k >= 0 && s.blocks[k + 1] && s.blocks[k + 1][0] === 'image') k++;
       const head = k < 0 ? s.blocks : s.blocks.slice(0, k + 1), rest = k < 0 ? [] : s.blocks.slice(k + 1);
       const more = rest.filter(b => b[0] === 'p').length;
       return `<section class="es-qcard">${sectionHtml({ head: s.head, blocks: head }, conf.label, i + 1)}${rest.length
@@ -1756,6 +1893,28 @@ function vPost(slug){
     open = leadBox(conf, p, 'thesis')
       + `<nav class="es-chain"><div class="lbl">The argument in ${secs.length} steps</div>${tocList(secs, '', String)}</nav>`;
     if(sp && sp.type === 'probes' && sp.items && sp.items.length) end = probeList(sp);
+  } else if(L === 'mechanism'){
+    open = leadBox(conf, p, 'strip')
+      + `<nav class="es-points"><div class="lbl">The machinery, in order</div>${tocList(secs.filter(s => s.head.num !== 'FAQ'), '', pad2)}</nav>`;
+    if(sp && sp.type === 'lab' && sp.items && sp.items.length) end = labBox(sp);
+  } else if(L === 'myths'){
+    open = leadBox(conf, p, 'verdict') + (sp && sp.type === 'myths' && sp.items && sp.items.length ? mythCards(sp) : '');
+  } else if(L === 'radar'){
+    open = leadBox(conf, p, 'strip') + (sp && sp.type === 'radar' && sp.items && sp.items.length ? radarList(sp) : '');
+  } else if(L === 'debate'){
+    open = leadBox(conf, p, 'thesis') + (sp && sp.type === 'positions' && sp.items && sp.items.length ? sidesBox(sp) : '');
+  } else if(L === 'fieldguide'){
+    open = leadBox(conf, p, 'before');
+    if(sp && sp.type === 'checklist' && sp.items && sp.items.length) end = checklistBox(sp);
+  } else if(L === 'paper'){
+    open = leadBox(conf, p, 'strip') + (sp && sp.type === 'results' && sp.items && sp.items.length ? resultsBox(sp) : '');
+  } else if(L === 'synthesis'){
+    open = leadBox(conf, p, 'strip') + (sp && sp.type === 'glossary' && sp.items && sp.items.length ? glossaryBox(sp) : '');
+  } else if(L === 'explainer'){
+    const steps = secs.filter(s => s.head.num !== 'FAQ');  // the FAQ is not a step
+    open = leadBox(conf, p, 'strip')
+      + `<nav class="es-points"><div class="lbl">In ${steps.length} steps</div>${tocList(steps, '', pad2)}</nav>`;
+    if(sp && sp.type === 'quiz' && sp.items && sp.items.length) end = quizBox(sp);
   } else {
     open = leadBox(conf, p);
   }
@@ -1777,7 +1936,18 @@ function vPost(slug){
   const picksSide = L === 'versus' && V === 'b' && sp && sp.type === 'picks'
     ? `<div class="es-scard">${vsNames(p).map(n => `<div class="lbl">Pick ${esc(n)} when</div><ul class="dec">${
         sp.items.filter(x => x.pick === n).map(x => `<li>${essayText(x.when)}</li>`).join('')}</ul>`).join('')}</div>` : '';
-  const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel"${goAttrs(h)}>${esc(t)}</a>`).join('');
+  // CONTINUE READING, COMPUTED (2026-10-15). `p.rel` was the same three links
+  // on every post - written by the generator, related to nothing. Now: other
+  // posts sharing a model (its tags other than the format), most shared first,
+  // then posts in the same format. A join, never "you'll like".
+  const own = new Set((p.tags || []).filter(t => t !== p.tag));
+  const rel = (DB.posts || []).filter(q => q.slug !== p.slug)
+    .map(q => ({ q, shared: (q.tags || []).filter(t => own.has(t)).length, same: q.tag === p.tag }))
+    .filter(x => x.shared > 0 || x.same)
+    .sort((a, b) => (b.shared - a.shared) || (b.same - a.same) || a.q.title.localeCompare(b.q.title))
+    .slice(0, 4)
+    .map(({ q, shared }) => `<a class="es-rel"${goAttrs(`post:${q.slug}`)}>${esc(q.title)}${
+      shared ? `<span class="es-rel-why"> · same model</span>` : `<span class="es-rel-why"> · ${esc(q.tag)}</span>`}</a>`).join('');
   const sheet = rows.length ? `<div class="es-scard es-sheet"><div class="lbl">Price sheet${asOf ? ` · ${esc(asOf)}` : ''}</div>
     <table><thead><tr><th></th><th>In</th><th>Out</th></tr></thead><tbody>${rows.map(r =>
     `<tr><td>${esc(r.name)}</td><td>${esc(r.pin)}</td><td>${esc(r.pout)}</td></tr>`).join('')}</tbody></table>

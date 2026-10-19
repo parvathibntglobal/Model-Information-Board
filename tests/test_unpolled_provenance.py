@@ -52,6 +52,14 @@ THE_FOUR = {
     "google/gemini-3.8-flash",
 }
 
+#: Seated in `unpolled_models.yaml` AFTER the migration ran, and loaded as
+#: `unpolled` directly by `scripts/load_unpolled_models.py`, as the message
+#: below asks. Listed so a new seat is still a named decision here rather than a
+#: silent pass - and kept apart from THE_FOUR, which is a copy of the SQL.
+SEATED_AFTER_THE_MIGRATION = {
+    "typesafe/jev-1.13",  # 2026-10-18; OpenRouter serves it, its list omits it
+}
+
 AS_OF = date(2026, 8, 12)
 
 
@@ -98,11 +106,11 @@ def test_the_non_fixture_contracts_hold_exactly_the_models_the_migration_names(
     models = load_seed_file(CONTRACT / filename).models
     assert models, f"{filename} declares no models"
     for model in models:
-        assert model.canonical_id in THE_FOUR, (
+        assert model.canonical_id in THE_FOUR | SEATED_AFTER_THE_MIGRATION, (
             f"{model.canonical_id} is in {filename} and is not one of the four "
             "the migration converts. A newly seated model must be loaded as "
             "`unpolled` directly — do not add it to the migration, which has "
-            "already run."
+            "already run — and named in SEATED_AFTER_THE_MIGRATION."
         )
 
 

@@ -2892,6 +2892,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     if budget is not None:
         budget.spent_usd = spend_ledger.spent_today()
         spent_before = budget.spent_usd
+        # TWO FETCHES AT ONCE (2026-10-15): every cap check re-reads today's
+        # total, so a run started beside this one spends from the same cap.
+        budget.shared_today = spend_ledger.spent_today
     # `undatable` WAS DISCARDED HERE (`facts, _ = ...`). A document with no
     # `created_at` has no facts, so the pipeline skips every claim from it with
     # one log line each - and every X document was undated from 2026-09-08 to
@@ -3215,7 +3218,21 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     truncated = [r.extraction.thread_context_id for r in results
                  if r.extraction.truncated]
     board_stored = sum(r.board_entries_stored or 0 for r in results)
+    # WHO THE STORED ROWS ARE ABOUT (2026-10-15). A thread about this model
+    # names others, and their rows go to THEIR pages. The total alone, beside a
+    # model page showing a handful of quotes, read as a lost write - it is how
+    # "166 stored" against 7 quotes on Nano Banana 2 was reported as a defect.
+    by_scope: dict[str, int] = {}
+    for r in results:
+        for k, n in (getattr(r, "board_entries_by_scope", None) or {}).items():
+            by_scope[k] = by_scope.get(k, 0) + n
+    about = by_scope.get("searched", 0)
+    others = by_scope.get("mentioned", 0)
+    unlabelled = by_scope.get("unlabelled", 0)
     detail = (f"{verified} claim(s) verified, {board_stored} board entr(ies) stored"
+              + (f" ({about} about this model, {others} about other models named in the"
+                 f" same threads" + (f", {unlabelled} unlabelled" if unlabelled else "")
+                 + ")" if board_stored else "")
               + (f", {stored} legacy claim row(s)" if legacy_on else ""))
     # THE DIFFERENCE BETWEEN WRITES AND ROWS, ON THE LINE THAT REPORTS THE
     # ROWS (#444). Said only when it happened.
@@ -3301,6 +3318,11 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         sent_chars=sum(len(t.flattened_text) for t in threads),
         claims_verified=verified,
         claims_stored=stored,
+        # Board entries, the rows a model page reads, split by who they are
+        # about. Only `entries_about_model` lands on this model's page.
+        entries_stored=board_stored,
+        entries_about_model=about,
+        entries_about_others=others,
         cells_written=cells,
         **({
             "tokens_in": budget.input_tokens,

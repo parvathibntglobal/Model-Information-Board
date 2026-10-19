@@ -81,6 +81,10 @@ def indexable_pages(conn: Any) -> dict:
     out: list[dict] = [{"path": p, "kind": "always", "voices": None} for p in r["always"]]
     tallies = {k: {"pages": 0, "indexable": 0} for k in PAGE_KINDS}
 
+    # WHICH PAGES ARE WORTH INDEXING IS DECIDED BY WHAT THEY CAN SHOW. Totals on
+    # a page count every source since 2026-10-15, but a page whose voices come
+    # mostly from sources it may not quote is thin to a search engine - so the
+    # threshold counts the quotable (public) voices only, as before.
     sections = board_sections(conn, hide_source=publication.withheld_publicly)
     mkey_lastmod: dict[str, str] = {}
     for key, seg in SEGMENT.items():

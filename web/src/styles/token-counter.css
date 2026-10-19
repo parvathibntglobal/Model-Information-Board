@@ -121,3 +121,6 @@
   .mf-row{grid-template-columns:1fr;grid-template-areas:"name" "specs" "flags" "ev"}
   .mf-specs{grid-template-columns:1fr 1fr}
 }
+
+/* "Saved by caching" (2026-10-15): one more column once some input is cached. */
+.tc-cached .tc-tr{grid-template-columns:minmax(0,2fr) 1fr 1fr 1fr 1.2fr 1.1fr}

@@ -1,0 +1,431 @@
+{
+ "slug": "debate-concept-code-generation",
+ "status": "draft",
+ "tag": "Debate",
+ "feat": false,
+ "title": "Coding Agents Grading Their Own Homework: A Debate Over the Test Oracle",
+ "dek": "Agents now write the code and the tests that judge it. We give the self-checking camp its best case, then press it against fresh benchmarks.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "Coding agents can build code their own tests cannot judge: their checks copy the implementation and their suites let planted bugs live. Keep the test oracle outside the agent, and let the agent run the loop.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgY2hlY2sgdGhhdCBtaXJyb3JzIHRoZSBjb2RlIGluc3RlYWQgb2YgdGhlIHNwZWM8L3RpdGxlPgogIDxkZXNjPkEgY29kZSBjYXJkIG9uIHRoZSBsZWZ0IGlzIHJlZmxlY3RlZCBhY3Jvc3MgYSBnbG93aW5nIG1pcnJvciBpbnRvIGEgY2hlY2sgY2FyZCBvbiB0aGUgcmlnaHQsIHdoaWxlIGEgc3BlYyBjYXJkIGJlbG93IGNvbm5lY3RzIHRvIHRoZSBjaGVjayBvbmx5IGJ5IGEgYnJva2VuIGxpbmUuPC9kZXNjPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMC40NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibWlycm9yIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC41IiBzdG9wLWNvbG9yPSIjZThlZGY1IiBzdG9wLW9wYWNpdHk9IjAuOSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2E3OGJmYSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZWxsaXBzZSBjeD0iNjAwIiBjeT0iMjcwIiByeD0iMjYwIiByeT0iMjUwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CgogIDwhLS0gbWlycm9yIC0tPgogIDxsaW5lIHgxPSI2MDAiIHkxPSI0MCIgeDI9IjYwMCIgeTI9IjUwMCIgc3Ryb2tlPSJ1cmwoI21pcnJvcikiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxsaW5lIHgxPSI2MDAiIHkxPSI0MCIgeDI9IjYwMCIgeTI9IjUwMCIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1kYXNoYXJyYXk9IjQgMTAiIG9wYWNpdHk9IjAuNCIvPgoKICA8IS0tIGNvZGUgY2FyZCAtLT4KICA8Zz4KICAgIDxyZWN0IHg9IjE4NiIgeT0iOTYiIHdpZHRoPSIzMjAiIGhlaWdodD0iMzMwIiByeD0iMTgiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTAiLz4KICAgIDxyZWN0IHg9IjE4NiIgeT0iOTYiIHdpZHRoPSIzMjAiIGhlaWdodD0iMzMwIiByeD0iMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8Y2lyY2xlIGN4PSIyMTYiIGN5PSIxMjQiIHI9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNiIvPgogICAgPGNpcmNsZSBjeD0iMjM4IiBjeT0iMTI0IiByPSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjQiLz4KICAgIDxjaXJjbGUgY3g9IjI2MCIgY3k9IjEyNCIgcj0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4yNSIvPgogICAgPHJlY3QgeD0iMjE2IiB5PSIxNjAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjN2FhMmZmIi8+CiAgICA8cmVjdCB4PSIyNDYiIHk9IjE5NCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNyIvPgogICAgPHJlY3QgeD0iMjQ2IiB5PSIyMjgiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjciLz4KICAgIDxyZWN0IHg9IjI3NiIgeT0iMjYyIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjE0IiByeD0iNyIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC44NSIvPgogICAgPHJlY3QgeD0iMjQ2IiB5PSIyOTYiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjciLz4KICAgIDxyZWN0IHg9IjIxNiIgeT0iMzMwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjE0IiByeD0iNyIgZmlsbD0iIzdhYTJmZiIvPgogICAgPHRleHQgeD0iMzQ2IiB5PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZThlZGY1Ij5jb2RlPC90ZXh0PgogIDwvZz4KCiAgPCEtLSByZWZsZWN0aW9uIGFycm93cyAtLT4KICA8cGF0aCBkPSJNNTIwLDIwMCBDNTYwLDE4MCA2NDAsMTgwIDY4MCwyMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8cGF0aCBkPSJNNTIwLDI3MCBDNTYwLDI1MCA2NDAsMjUwIDY4MCwyNzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8cGF0aCBkPSJNNTIwLDM0MCBDNTYwLDMyMCA2NDAsMzIwIDY4MCwzNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KCiAgPCEtLSBjaGVjayBjYXJkOiBhIG1pcnJvciBpbWFnZSBvZiB0aGUgY29kZSBjYXJkIC0tPgogIDxnPgogICAgPHJlY3QgeD0iNjk0IiB5PSI5NiIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIzMzAiIHJ4PSIxOCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xMiIvPgogICAgPHJlY3QgeD0iNjk0IiB5PSI5NiIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIzMzAiIHJ4PSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxjaXJjbGUgY3g9Ijk4NCIgY3k9IjEyNCIgcj0iNiIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC42Ii8+CiAgICA8Y2lyY2xlIGN4PSI5NjIiIGN5PSIxMjQiIHI9IjYiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNCIvPgogICAgPGNpcmNsZSBjeD0iOTQwIiBjeT0iMTI0IiByPSI2IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjI1Ii8+CiAgICA8cmVjdCB4PSI3OTQiIHk9IjE2MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNhNzhiZmEiLz4KICAgIDxyZWN0IHg9IjczNCIgeT0iMTk0IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjE0IiByeD0iNyIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8cmVjdCB4PSI4MDQiIHk9IjIyOCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNyIvPgogICAgPHJlY3QgeD0iNzU0IiB5PSIyNjIiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjg1Ii8+CiAgICA8cmVjdCB4PSI3NTQiIHk9IjI5NiIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNyIvPgogICAgPHJlY3QgeD0iODY0IiB5PSIzMzAiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8dGV4dCB4PSI4NTQiIHk9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNlOGVkZjUiPmNoZWNrPC90ZXh0PgogIDwvZz4KCiAgPCEtLSBzcGVjIGNhcmQsIHNldCBhcGFydCAtLT4KICA8Zz4KICAgIDxyZWN0IHg9IjQ3MCIgeT0iNTIwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijg0IiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMTIiLz4KICAgIDxyZWN0IHg9IjQ3MCIgeT0iNTIwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijg0IiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSI0OTYiIHk9IjU0NiIgd2lkdGg9IjkwIiBoZWlnaHQ9IjEwIiByeD0iNSIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8cmVjdCB4PSI0OTYiIHk9IjU2OCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjEwIiByeD0iNSIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC41Ii8+CiAgICA8dGV4dCB4PSI2NjgiIHk9IjU3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNlOGVkZjUiPnNwZWM8L3RleHQ+CiAgPC9nPgogIDwhLS0gYnJva2VuIGxpbmsgZnJvbSBzcGVjIHRvIGNoZWNrIC0tPgogIDxwYXRoIGQ9Ik03MzAsNTYwIEM4MDAsNTYwIDg0MCw1MjAgODUwLDQ3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggMTAiIG9wYWNpdHk9IjAuOCIvPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDgxMiw1MzQpIj4KICAgIDxjaXJjbGUgcj0iMjAiIGZpbGw9IiMxMDE0MWIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8bGluZSB4MT0iLTgiIHkxPSItOCIgeDI9IjgiIHkyPSI4IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8bGluZSB4MT0iOCIgeTE9Ii04IiB4Mj0iLTgiIHkyPSI4IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPC9nPgo8L3N2Zz4K",
+  "alt": "A code card mirrored into a check card across a glowing line, with a spec card below whose link to the check is broken.",
+  "caption": "The sceptics' picture: a check that reflects the code it should judge, cut off from the spec it should encode.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What are AI coding agents, and can they test their own code? A debate over agent-written checks, mutation scores and who holds the answer key.",
+ "keywords": [
+  "what are AI coding agents",
+  "coding agents",
+  "code generation and coding agents",
+  "agent-written tests",
+  "mutation testing",
+  "test oracle"
+ ],
+ "kicker": "Debate",
+ "tags": [
+  "coding agents",
+  "Debate"
+ ],
+ "read": 8,
+ "decisions": [
+  "Write the oracle from the spec, away from the implementation",
+  "Score agent-added tests by mutation, not by pass rate",
+  "Show the agent whole files when it must edit them",
+  "Block merges that leave earlier tests failing"
+ ],
+ "layout": "debate",
+ "arrangement": "a",
+ "special": {
+  "type": "positions",
+  "title": "Two sides",
+  "items": [
+   {
+    "side": "Close the loop",
+    "case": "Agents improve when they run code, read failures and refine their own context; SpecForge reports a 94.9% solve rate on DevEval+ that way.",
+    "weakness": "The tests in that loop are a fixed yardstick, so it shows an agent refining against an oracle, not grading itself."
+   },
+   {
+    "side": "Keep the oracle outside",
+    "case": "Agent-written checks mirror the reference implementation, and agent suites score below 60% on mutation, so agents cannot yet judge their own code.",
+    "weakness": "It rests on benchmarks with structured specs, and says little about how hand-written suites would score on the same tasks."
+   },
+   {
+    "side": "Fix the inputs first",
+    "case": "Many failures start before judgment: retrievers miss files, compressors alter text, and inherited test failures drag later tasks down.",
+    "weakness": "Better context explains missed patches, but not why agent checks copy the implementation instead of the spec."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "The real fight is over who holds the answer key",
+    "num": "01",
+    "id": "the-real-fight-is-over-who-holds-the-answer-key"
+   }
+  ],
+  [
+   "p",
+   "Ask two people who build developer tools if a coding agent can check its own work, and you'll get a real argument. So what are AI coding agents, in this fight? They're language models in a loop that reads a repository, edits files, runs tests, and repeats. The disagreement is narrow and sharp. One camp says the loop can verify itself. The other says the answer key must come from outside."
+  ],
+  [
+   "p",
+   "That answer key has a name: the test oracle, the thing that decides if an output is correct. For a coding agent it's usually a test suite. If the agent writes both the code and the suite, it holds the pen and the red marker. That can work. A good student can grade a practice exam. A student who grades by peeking at their own answers learns nothing."
+  ],
+  [
+   "p",
+   "The SpecGuardBench authors frame the stakes plainly: «tests remain the primary evidence for judging whether their code is correct». So this isn't an academic quarrel. Weak agent tests mean every green checkmark downstream is weak too. We'll give each camp its strongest voice, press it hard, and then say where we land. Fair warning: we land somewhere."
+  ],
+  [
+   "h2",
+   {
+    "text": "A well built loop can already correct itself",
+    "num": "02",
+    "id": "a-well-built-loop-can-already-correct-itself"
+   }
+  ],
+  [
+   "p",
+   "Start with the optimists, because their best evidence is impressive. A new arXiv paper on SpecForge keeps the model frozen and improves its context instead. That context is a behavioral specification: plain-language documentation of what each function or class should do. Better specs, better code. The paper reports «a 94.9% solve rate with Claude-4.5-Sonnet» on DevEval+, and «a 5.7-percentage-point average improvement over the strongest baseline»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPk91dHB1dCBjb3VwbGluZyBhbmQgY2FsbGVlLWJlZm9yZS1jYWxsZXIgcmVmaW5lbWVudDwvdGl0bGU+CiAgPGRlc2M+TGVmdDogcmVmaW5pbmcgdGhlIHNwZWMgb2YgYSBjYWxsZWUgYnJlYWtzIHRoZSBjYWxsZXIgdGhhdCByZWxpZWQgb24gaXQuIFJpZ2h0OiByZWZpbmluZyBjYWxsZWVzIGZpcnN0LCB0aGVuIHRoZSBjYWxsZXIsIGtlZXBzIGFsbCB0aHJlZSBwYXNzaW5nLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0icmVkZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFnIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjIwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxsaW5lIHgxPSI2MDAiIHkxPSI3MCIgeDI9IjYwMCIgeTI9IjU4MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgOCIvPgoKICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHRleHQgeD0iMzAwIiB5PSI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiI+T3V0cHV0IGNvdXBsaW5nPC90ZXh0PgogICAgPHRleHQgeD0iMzAwIiB5PSIxMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmZpeCBvbmUgc3BlYywgYnJlYWsgaXRzIGNhbGxlcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjkwMCIgeT0iNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMzZWNmOGUiPkNhbGxlZXMgYmVmb3JlIGNhbGxlcnM8L3RleHQ+CiAgICA8dGV4dCB4PSI5MDAiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+cmVmaW5lIGJvdHRvbSB1cDwvdGV4dD4KICA8L2c+CgogIDwhLS0gTEVGVCBQQU5FTCAtLT4KICA8ZWxsaXBzZSBjeD0iMzAwIiBjeT0iMjE1IiByeD0iMTUwIiByeT0iODAiIGZpbGw9InVybCgjcmVkZ2xvdykiLz4KICA8cmVjdCB4PSIyMDAiIHk9IjE4MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI3MCIgcng9IjE2IiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjE1Ii8+CiAgPHJlY3QgeD0iMjAwIiB5PSIxODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIzMDAiIHk9IjIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiPnJlcG9ydCgpPC90ZXh0PgogIDx0ZXh0IHg9IjMwMCIgeT0iMjg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiI+cmVncmVzc2VzPC90ZXh0PgoKICA8cmVjdCB4PSI3MCIgeT0iNDAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjcwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMTUiLz4KICA8cmVjdCB4PSI3MCIgeT0iNDAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjcwIiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTcwIiB5PSI0NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1Ij5wYXJzZSgpPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iNTEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzNlY2Y4ZSI+c3BlYyByZWZpbmVkPC90ZXh0PgoKICA8cmVjdCB4PSIzMzAiIHk9IjQwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI3MCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjEyIi8+CiAgPHJlY3QgeD0iMzMwIiB5PSI0MDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI0MzAiIHk9IjQ0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiPmZvcm1hdCgpPC90ZXh0PgoKICA8bGluZSB4MT0iMjYwIiB5MT0iMzAwIiB4Mj0iMjAwIiB5Mj0iMzkyIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogIDxsaW5lIHgxPSIzNDAiIHkxPSIzMDAiIHgyPSI0MDAiIHkyPSIzOTIiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgPHRleHQgeD0iMzAwIiB5PSI1NjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5jYWxsZXIgcmVsaWVkIG9uIHRoZSBvbGQgYmVoYXZpb3I8L3RleHQ+CgogIDwhLS0gUklHSFQgUEFORUwgLS0+CiAgPHJlY3QgeD0iODAwIiB5PSIxODAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzAiIHJ4PSIxNiIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4xNSIvPgogIDxyZWN0IHg9IjgwMCIgeT0iMTgwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjcwIiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iOTAwIiB5PSIyMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1Ij5yZXBvcnQoKTwvdGV4dD4KICA8dGV4dCB4PSI5MDAiIHk9IjI4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiPnJlZmluZWQgbGFzdDwvdGV4dD4KCiAgPHJlY3QgeD0iNjcwIiB5PSI0MDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzAiIHJ4PSIxNiIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4xNSIvPgogIDxyZWN0IHg9IjY3MCIgeT0iNDAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjcwIiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNzcwIiB5PSI0NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1Ij5wYXJzZSgpPC90ZXh0PgoKICA8cmVjdCB4PSI5MzAiIHk9IjQwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI3MCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjE1Ii8+CiAgPHJlY3QgeD0iOTMwIiB5PSI0MDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIxMDMwIiB5PSI0NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1Ij5mb3JtYXQoKTwvdGV4dD4KICA8dGV4dCB4PSI5MDAiIHk9IjUxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiPnJlZmluZWQgZmlyc3Q8L3RleHQ+CgogIDxsaW5lIHgxPSI3NzAiIHkxPSIzOTIiIHgyPSI4NDAiIHkyPSIzMDAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FnKSIvPgogIDxsaW5lIHgxPSIxMDMwIiB5MT0iMzkyIiB4Mj0iOTYwIiB5Mj0iMzAwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICA8dGV4dCB4PSI5MDAiIHk9IjU2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmVhY2ggY2FsbGVyIHNlZXMgc2V0dGxlZCBjYWxsZWVzPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Two call graphs: refining a callee's spec breaks its caller, and refining callees before the caller keeps all green.",
+    "caption": "Output coupling, the whack-a-mole SpecForge must tame, and the bottom-up order it uses.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "We went through the loop as the abstract lays it out. In each round, «an agent generates code from its current specifications, evaluates it with execution-verified tests, and refines the specifications based on observed failures». The improved specs then steer the next round. Now notice what never moves: the tests. The specs climb, and the tests are the wall they climb against. Hold that thought."
+  ],
+  [
+   "p",
+   "The catch is the part we found most fun. Code entities depend on each other, so «Improving the specification of one entity can inadvertently degrade the correctness of others, a phenomenon we call output coupling.» Fix the spec for a parser, and the caller that leaned on its old quirks breaks. One of the fixes is easy to state: «dependency-constrained entity selection prioritizes callee-before-caller refinement». Engineering, not magic."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The SpecForge self-improvement loop as its abstract describes it: the specs change, the tests stay fixed.",
+    "steps": [
+     "Generate code from the current behavioral specifications",
+     "Run execution-verified tests against the generated code",
+     "Collect the failures the tests expose",
+     "Refine specs, callees before callers",
+     "Keep several promising spec states alive",
+     "Repeat with the improved specs guiding generation"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Checks written beside the code tend to copy it",
+    "num": "03",
+    "id": "checks-written-beside-the-code-tend-to-copy-it"
+   }
+  ],
+  [
+   "p",
+   "Now the sceptics, and their sharpest exhibit. SpecGuardBench hands an agent a natural-language spec, repository context and a reference implementation. The agent builds a validation harness: executable checks plus scenarios that exercise the code. A good harness rejects wrong implementations and accepts every right one. It spans 291 tasks from 13 real-world repositories. The headline: «none constructs a harness scored as faithful on the benchmark's implementations for more than 63% of the tasks»."
+  ],
+  [
+   "p",
+   "The failure mode is the interesting bit. The authors report that «the agents show a clear tendency to write checks that mirror the reference implementation rather than the specification». So those checks reject implementations the spec allows. Picture a spec saying ties may come back in any order. The reference happens to keep them stable. The agent's check demands that exact order. A valid rewrite now fails."
+  ],
+  [
+   "p",
+   "We think this is the strongest single point in the whole debate. A check that copies the implementation is a snapshot, and a snapshot can't tell drift toward a bug from drift toward correctness. It is silent about the spec. The authors put the bottleneck exactly there: «The bottleneck lies less in exploring test scenarios than in constructing checks that faithfully reflect the specification.» That's a reading problem, not a search problem."
+  ],
+  [
+   "code",
+   {
+    "label": "A mirror check next to a spec check",
+    "language": "python",
+    "source": "# Spec: return words shortest first; equal lengths may come back in any order.\nwords = [\"kiwi\", \"fig\", \"plum\", \"pear\"]\n\n# Mirror check: copies whatever the reference happened to output.\ndef test_mirror():\n    assert sort_by_len(words) == [\"fig\", \"kiwi\", \"plum\", \"pear\"]\n\n# Spec check: tests only what the spec promises.\ndef test_spec():\n    out = sort_by_len(words)\n    assert sorted(out) == sorted(words)                          # nothing lost or added\n    assert all(len(a) <= len(b) for a, b in zip(out, out[1:]))  # shortest first\n\n# An unstable sort returning [\"fig\", \"plum\", \"kiwi\", \"pear\"] fails the\n# mirror check and passes the spec check. Only the second one is right."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Tests that pass can still let the mutants walk",
+    "num": "04",
+    "id": "tests-that-pass-can-still-let-the-mutants-walk"
+   }
+  ],
+  [
+   "p",
+   "TestSuiteBench probes the other half of the oracle problem: does a suite actually catch bugs? It uses mutation testing. A mutant is a copy of the program with one deliberate fault planted in it. A test kills the mutant if it fails on it. The mutation score is `killed_mutants / total_mutants`. Here, «Each mutant is generated from a single requirement of the specification and refined to isolate that behavior»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPk11dGF0aW9uIHRlc3RpbmcgYWdhaW5zdCBhbiBhZ2VudC13cml0dGVuIHN1aXRlPC90aXRsZT4KICA8ZGVzYz5FYWNoIHNwZWMgcmVxdWlyZW1lbnQgeWllbGRzIGEgbXV0YW50LiBPbmUgbXV0YW50IGhpdHMgYSB0ZXN0IGFuZCBpcyBraWxsZWQ7IGFub3RoZXIgcGFzc2VzIHRocm91Z2ggYSBnYXAgaW4gdGhlIHN1aXRlIHdoZXJlIGFuIGlucHV0IGNvbWJpbmF0aW9uIHdhcyBuZXZlciB0cmllZCwgYW5kIHN1cnZpdmVzLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2FwIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2ZmN2I3MiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDwvbWFya2VyPgogICAgPHN5bWJvbCBpZD0iYnVnIiB2aWV3Qm94PSItMzAgLTMwIDYwIDYwIj4KICAgICAgPGVsbGlwc2UgY3g9IjAiIGN5PSIwIiByeD0iMjAiIHJ5PSIyNCIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPGxpbmUgeDE9Ii0yMCIgeTE9Ii04IiB4Mj0iLTMwIiB5Mj0iLTE0IiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8bGluZSB4MT0iMjAiIHkxPSItOCIgeDI9IjMwIiB5Mj0iLTE0IiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8bGluZSB4MT0iLTIwIiB5MT0iOCIgeDI9Ii0zMCIgeTI9IjE0IiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8bGluZSB4MT0iMjAiIHkxPSI4IiB4Mj0iMzAiIHkyPSIxNCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPGxpbmUgeDE9IjAiIHkxPSItMjQiIHgyPSIwIiB5Mj0iMjQiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8L3N5bWJvbD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHNwZWMgY2FyZCAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMTUwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjMwMCIgcng9IjE4IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjEwIi8+CiAgPHJlY3QgeD0iNTAiIHk9IjE1MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIzMDAiIHJ4PSIxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjIwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPnNwZWM8L3RleHQ+CiAgPHJlY3QgeD0iODAiIHk9IjIzMCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxMiIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuOCIvPgogIDxyZWN0IHg9IjgwIiB5PSIyNjIiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTIiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjUiLz4KICA8cmVjdCB4PSI4MCIgeT0iMjk0IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjEyIiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC41Ii8+CiAgPHJlY3QgeD0iODAiIHk9IjMyNiIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxMiIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuOCIvPgogIDxyZWN0IHg9IjgwIiB5PSIzNTgiIHdpZHRoPSIxMzAiIGhlaWdodD0iMTIiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjUiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjQwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPm9uZSBmYXVsdDwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjQzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnBlciByZXF1aXJlbWVudDwvdGV4dD4KCiAgPCEtLSBtdXRhbnRzIC0tPgogIDxsaW5lIHgxPSIzMDAiIHkxPSIyMzYiIHgyPSI0MDAiIHkyPSIyMzYiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGxpbmUgeDE9IjMwMCIgeTE9IjMzMiIgeDI9IjQwMCIgeTI9IjM4MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dXNlIGhyZWY9IiNidWciIHg9IjQwMCIgeT0iMjAwIiB3aWR0aD0iNzIiIGhlaWdodD0iNzIiLz4KICA8dXNlIGhyZWY9IiNidWciIHg9IjQwMCIgeT0iMzQ1IiB3aWR0aD0iNzIiIGhlaWdodD0iNzIiLz4KICA8dGV4dCB4PSI0MzYiIHk9IjE0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlM2IzNDEiPm11dGFudHM8L3RleHQ+CgogIDwhLS0gdGhlIHN1aXRlIGFzIGEgd2FsbCBvZiB0ZXN0cyAtLT4KICA8dGV4dCB4PSI2ODAiIHk9IjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+YWdlbnQtd3JpdHRlbiBzdWl0ZTwvdGV4dD4KICA8dGV4dCB4PSI2ODAiIHk9IjEwNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiMzZWNmOGUiPnBhc3NlcyBvbiB0aGUgcmVmZXJlbmNlPC90ZXh0PgogIDxyZWN0IHg9IjY2MCIgeT0iMTMwIiB3aWR0aD0iNDAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC44Ii8+CiAgPHJlY3QgeD0iNjYwIiB5PSIyMTAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjgiLz4KICA8cmVjdCB4PSI2NjAiIHk9IjI5MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iMTIiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuOCIvPgogIDxlbGxpcHNlIGN4PSI2ODAiIGN5PSIzODIiIHJ4PSI5MCIgcnk9IjU2IiBmaWxsPSJ1cmwoI2dhcCkiLz4KICA8cmVjdCB4PSI2NjAiIHk9IjQzNCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuOCIvPgogIDxyZWN0IHg9IjY2MCIgeT0iNTE0IiB3aWR0aD0iNDAiIGhlaWdodD0iNTAiIHJ4PSIxMiIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC44Ii8+CgogIDwhLS0ga2lsbGVkIHBhdGggLS0+CiAgPHBhdGggZD0iTTQ3OCwyMzYgTDY0MCwyMzYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FnKSIvPgogIDxjaXJjbGUgY3g9IjY1MiIgY3k9IjIzNiIgcj0iMTQiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMzUiLz4KICA8Y2lyY2xlIGN4PSI2NTIiIGN5PSIyMzYiIHI9IjI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC42Ii8+CiAgPGNpcmNsZSBjeD0iNzkwIiBjeT0iMjM2IiByPSIyMiIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxwYXRoIGQ9Ik03NzksMjM3IEw3ODcsMjQ2IEw4MDIsMjI3IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHRleHQgeD0iODMwIiB5PSIyNDUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjM2VjZjhlIj5raWxsZWQ6IGEgdGVzdCBmYWlsczwvdGV4dD4KCiAgPCEtLSBzdXJ2aXZpbmcgcGF0aCAtLT4KICA8cGF0aCBkPSJNNDc4LDM4MiBMMTAwMCwzODIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxMCA4IiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogIDx0ZXh0IHg9IjEwMjAiIHk9IjM5MSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPnN1cnZpdmVzPC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iNDM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2ZmN2I3MiI+dW50cmllZCBpbnB1dCBjb21iaW5hdGlvbjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Mutants from spec requirements hit a wall of tests; one is killed, one slips through a gap and survives.",
+    "caption": "A suite can pass on the reference and still leave a gap where an untried input combination lets a mutant live.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Now the surprise. Frontier agents stayed below 60% on mutation score, «despite their suites being largely valid», with 88% of their tests passing on the reference implementation. Meanwhile, implementations written from the same specs passed 82% of the reference tests. The authors draw the line bluntly: «agents can build software they cannot verify». Read that twice. The builder outruns the inspector."
+  ],
+  [
+   "p",
+   "Where do the gaps come from? The abstract says «generated test suites often lack relevant input combinations and are smaller than reference test suites». That's the mirror problem from a new angle. An agent tests the paths it just wrote, with the inputs it just imagined. A mutant hiding in an untried combination survives. We agree with the sceptics here, and not grudgingly."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The evidence each camp leans on, as the arXiv abstracts report it.",
+    "columns": [
+     "Benchmark",
+     "What the agent built",
+     "Reported result"
+    ],
+    "rows": [
+     [
+      "SpecGuardBench",
+      "Validation harness from a spec",
+      "Faithful on no more than 63% of tasks"
+     ],
+     [
+      "TestSuiteBench",
+      "Full test suite from a spec",
+      "Mutation scores below 60%"
+     ],
+     [
+      "TestSuiteBench",
+      "Implementation from the same spec",
+      "Passes 82% of reference tests"
+     ],
+     [
+      "DevEval+ (SpecForge)",
+      "Refined specs, fixed tests",
+      "94.9% solve rate with Claude-4.5-Sonnet"
+     ],
+     [
+      "SWE-rebench (CQ2-CARE)",
+      "Patches from whole-file context",
+      "43.7% and 46.7% of issues resolved"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Much of the damage starts in context and history",
+    "num": "05",
+    "id": "much-of-the-damage-starts-in-context-and-history"
+   }
+  ],
+  [
+   "p",
+   "A third camp says both sides argue about the wrong layer. Before an agent can judge code, it has to see it. A new arXiv paper on context selection says a patch needs the files that must change, «and their code exactly as written, since the model must reproduce the lines it edits». Its simple selector, CQ2-CARE, shows chosen files whole. With GPT-5.6 and Claude Opus 5 it resolves 43.7% and 46.7% of 300 issues."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPlNhbWUgbGF0ZXIgdGFzaywgdHdvIGhpc3RvcmllczwvdGl0bGU+CiAgPGRlc2M+QSBsYXRlciBtYWludGVuYW5jZSB0YXNrIHN0YXJ0cyBlaXRoZXIgZnJvbSBkZXZlbG9wZXIgcGF0Y2hlcyBvciBmcm9tIHRoZSBhZ2VudCdzIG93biBlYXJsaWVyIGNoYW5nZXMsIHdoaWNoIG9mdGVuIGxlYXZlIGVhcmxpZXIgdGVzdHMgZmFpbGluZy48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYyMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+U2FtZSBsYXRlciB0YXNrLCB0d28gc3RhcnRpbmcgcG9pbnRzPC90ZXh0PgoKICAgIDwhLS0gY29sdW1uIGxhYmVscyAtLT4KICAgIDx0ZXh0IHg9IjIxMCIgeT0iMTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5lYXJsaWVyIGNoYW5nZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjQ0MCIgeT0iMTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5lYXJsaWVyIGNoYW5nZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5sYXRlciB0YXNrPC90ZXh0PgoKICAgIDwhLS0gZGV2ZWxvcGVyIGhpc3Rvcnkgcm93IC0tPgogICAgPHRleHQgeD0iNjAiIHk9IjE5MCIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzdhYTJmZiI+RGV2ZWxvcGVyLUhpc3Rvcnk8L3RleHQ+CiAgICA8cmVjdCB4PSIxMzAiIHk9IjIxMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI3MCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMjEwIiB5PSIyNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPmRldiBwYXRjaDwvdGV4dD4KICAgIDxyZWN0IHg9IjM2MCIgeT0iMjEwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjcwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI0NDAiIHk9IjI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+ZGV2IHBhdGNoPC90ZXh0PgogICAgPGxpbmUgeDE9IjI5MCIgeTE9IjI0NSIgeDI9IjM1MiIgeTI9IjI0NSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICAgIDxsaW5lIHgxPSI1MjAiIHkxPSIyNDUiIHgyPSI2MDIiIHkyPSIyNDUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CgogICAgPCEtLSBhZ2VudCBoaXN0b3J5IHJvdyAtLT4KICAgIDx0ZXh0IHg9IjYwIiB5PSIzODAiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNhNzhiZmEiPkFnZW50LUhpc3Rvcnk8L3RleHQ+CiAgICA8cmVjdCB4PSIxMzAiIHk9IjQwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI3MCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjE1IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMjEwIiB5PSI0NDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPmFnZW50IHBhdGNoPC90ZXh0PgogICAgPHJlY3QgeD0iMzYwIiB5PSI0MDAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNzAiIHJ4PSIxNiIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjQ0MCIgeT0iNDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij5hZ2VudCBwYXRjaDwvdGV4dD4KICAgIDxsaW5lIHgxPSIyOTAiIHkxPSI0MzUiIHgyPSIzNTIiIHkyPSI0MzUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8bGluZSB4MT0iNTIwIiB5MT0iNDM1IiB4Mj0iNjAyIiB5Mj0iNDM1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogICAgPCEtLSBmYWlsaW5nIHRlc3QgYmFkZ2VzIC0tPgogICAgPGNpcmNsZSBjeD0iMjkwIiBjeT0iNDAwIiByPSIxNyIgZmlsbD0iIzEwMTQxYiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxsaW5lIHgxPSIyODMiIHkxPSIzOTMiIHgyPSIyOTciIHkyPSI0MDciIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxsaW5lIHgxPSIyOTciIHkxPSIzOTMiIHgyPSIyODMiIHkyPSI0MDciIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxjaXJjbGUgY3g9IjUyMCIgY3k9IjQwMCIgcj0iMTciIGZpbGw9IiMxMDE0MWIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8bGluZSB4MT0iNTEzIiB5MT0iMzkzIiB4Mj0iNTI3IiB5Mj0iNDA3IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8bGluZSB4MT0iNTI3IiB5MT0iMzkzIiB4Mj0iNTEzIiB5Mj0iNDA3IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8dGV4dCB4PSIzMjUiIHk9IjUxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2ZmN2I3MiI+aW5oZXJpdGVkIGZhaWxpbmcgdGVzdHM8L3RleHQ+CgogICAgPCEtLSBzaGFyZWQgbGF0ZXIgdGFzayAtLT4KICAgIDxyZWN0IHg9IjYxMCIgeT0iMjAwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjI5MCIgcng9IjE4IiBmaWxsPSIjZThlZGY1IiBvcGFjaXR5PSIwLjA2IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiA2Ii8+CiAgICA8cmVjdCB4PSI2MjAiIHk9IjIxMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI3MCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjkwIiB5PSIyNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPnRhc2s8L3RleHQ+CiAgICA8cmVjdCB4PSI2MjAiIHk9IjQwMCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI3MCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjkwIiB5PSI0NDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPnRhc2s8L3RleHQ+CiAgICA8dGV4dCB4PSI2OTAiIHk9IjM0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+c2FtZSBhZ2VudCw8L3RleHQ+CiAgICA8dGV4dCB4PSI2OTAiIHk9IjM3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+c2FtZSB0ZXN0czwvdGV4dD4KCiAgICA8IS0tIHJlc3VsdHMgLS0+CiAgICA8cmVjdCB4PSI4MjAiIHk9IjMwMCIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIyMTAiIHJ4PSIxOCIgZmlsbD0iI2ZmN2I3MiIgb3BhY2l0eT0iMC4xMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9Ijg0NSIgeT0iMzUwIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIj41LjYgcG9pbnRzPC90ZXh0PgogICAgPHRleHQgeD0iODQ1IiB5PSIzODIiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiPmxvd2VyIHJlc29sdXRpb248L3RleHQ+CiAgICA8dGV4dCB4PSI4NDUiIHk9IjQ0MCIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiI+MTQuMCBwb2ludHM8L3RleHQ+CiAgICA8dGV4dCB4PSI4NDUiIHk9IjQ3MiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+aWYgZWFybGllciB0ZXN0cyBtdXN0IHBhc3M8L3RleHQ+CgogICAgPHRleHQgeD0iNjAwIiB5PSI1ODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiPkluaGVyaXRlZCBjb2RlIHRoYXQgcGFzc2VzIGVhcmxpZXIgdGVzdHM6IHRoZSBnYXAgZGlzYXBwZWFyczwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "The same later task started from developer patches or from agent patches carrying failing tests, with the resolution gap.",
+    "caption": "SWE-Maintain's paired design: same agent, same tests, two histories, and a gap traced to inherited failures.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The diagnosis of the baselines is crisp: «retrievers often miss the files to edit, and compressors keep them but alter their text, so fewer patches apply». A compressed file is a paraphrase. You can't apply a diff to a paraphrase. At the same token budget, whole-file selection beat the best of three compressors by 6.3 points with either model. Context is not a side issue."
+  ],
+  [
+   "p",
+   "History matters too. SWE-Maintain starts each later task from either the developers' patches or the agent's own. It reports that «Agent-History reduces later-task resolution by 5.6 percentage points on average», and the gap reaches 14.0 points when earlier tests must pass. The cause is mundane: «the main downstream cost of agent-written changes lies in inherited test failures». Broken tests, passed forward."
+  ],
+  [
+   "p",
+   "EvoWeb, with 320 cumulative requests over 32 web applications, sees «runtime errors become more frequent over successive requests». We're not convinced this camp escapes the oracle question, though. Look at its own remedy. Inherited failures only show up because earlier tests catch them. Somebody had to write those tests well. Context explains why patches miss, and it never explains why checks copy the code."
+  ],
+  [
+   "h2",
+   {
+    "text": "Keep the answer key out of the agent's hands",
+    "num": "06",
+    "id": "keep-the-answer-key-out-of-the-agent-s-hands"
+   }
+  ],
+  [
+   "p",
+   "Here's where we come down. Let the agent run the loop, and keep the oracle outside it. The optimists' best result fits this view, since SpecForge's specs move and its tests stay put. The sceptics' best result explains the need: checks written beside the code copy the code. And the context camp is right about the plumbing. Plumbing still doesn't write oracles."
+  ],
+  [
+   "p",
+   "For you, that means a split of duties. Spec-derived tests, written by a person or by a separate pass that never sees the implementation, are the oracle. The agent may add tests, and you should keep the good ones. Judge those extras by mutation score, not pass rate. And follow the SWE-Maintain advice that «coding agents should preserve earlier behavior across changes». Block merges that leave old tests red."
+  ],
+  [
+   "p",
+   "What would change our mind? One result. Give an agent only the spec, with no reference implementation, and have its suite match the reference suite's mutation score on TestSuiteBench-style applications. Or show harness faithfulness far past 63% with checks written blind to the code. Either would mean the mirror habit can be trained away. In our view, that experiment matters more than the next solve rate."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What are AI coding agents?"
+  ],
+  [
+   "p",
+   "AI coding agents are language models in a loop that reads a repository, edits files, runs tests, and repeats until a task looks done. The loop is what separates them from autocomplete. Their weak spot is verification. On TestSuiteBench, agent suites stayed below 60% on mutation score, «despite their suites being largely valid», so a passing run says less than it seems."
+  ],
+  [
+   "h3",
+   "Can AI write its own unit tests?"
+  ],
+  [
+   "p",
+   "It can write tests that run, but those tests tend to be weak judges. On TestSuiteBench, frontier agents stayed below 60% on mutation score even though 88% of their tests passed on the reference implementation. SpecGuardBench adds that agent checks tend to mirror the implementation, so they reject correct alternatives the spec permits. Keep spec-derived tests as the oracle."
+  ],
+  [
+   "h3",
+   "Do coding agents make code harder to maintain?"
+  ],
+  [
+   "p",
+   "Mostly through the broken tests they leave behind, on one new benchmark. SWE-Maintain reports that «Agent-History reduces later-task resolution by 5.6 percentage points on average». When the inherited code still passed earlier tests and the next task was not already solved, the disadvantage disappeared. Requiring agents to keep earlier tests green targets the real cost."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "SpecGuardBench: Can Coding Agents Construct Reliable Validation Harnesses from Natural Language Specifications?",
+   "url": "https://arxiv.org/abs/2610.16870v1",
+   "posted": "2026-10-12"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "SpecForge: Recursive Self-Improvement for Coding Agents via Behavioral Specifications",
+   "url": "https://arxiv.org/abs/2610.15708v1",
+   "posted": "2026-10-11"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "TestSuiteBench: Coding Agents Struggle to Generate Strong Test Suites from Specifications",
+   "url": "https://arxiv.org/abs/2610.13065v1",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Skip the Compressor: Coding Agents Fix More Issues When They Pick Whole Files",
+   "url": "https://arxiv.org/abs/2610.21073v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Do Modifications Made by Coding Agents Make Subsequent Software Maintenance Harder?",
+   "url": "https://arxiv.org/abs/2610.14768v1",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "EvoWeb: A Benchmark for Coding Agents on Evolving Web Applications",
+   "url": "https://arxiv.org/abs/2610.16402v1",
+   "posted": "2026-10-12"
+  }
+ ],
+ "cite": {
+  "tests remain the primary evidence for judging whether their code is correct": 1,
+  "a 94.9% solve rate with Claude-4.5-Sonnet": 2,
+  "a 5.7-percentage-point average improvement over the strongest baseline": 2,
+  "an agent generates code from its current specifications, evaluates it with execution-verified tests, and refines the specifications based on observed failures": 2,
+  "Improving the specification of one entity can inadvertently degrade the correctness of others, a phenomenon we call output coupling.": 2,
+  "dependency-constrained entity selection prioritizes callee-before-caller refinement": 2,
+  "none constructs a harness scored as faithful on the benchmark's implementations for more than 63% of the tasks": 1,
+  "the agents show a clear tendency to write checks that mirror the reference implementation rather than the specification": 1,
+  "The bottleneck lies less in exploring test scenarios than in constructing checks that faithfully reflect the specification.": 1,
+  "Each mutant is generated from a single requirement of the specification and refined to isolate that behavior": 3,
+  "despite their suites being largely valid": 3,
+  "agents can build software they cannot verify": 3,
+  "generated test suites often lack relevant input combinations and are smaller than reference test suites": 3,
+  "and their code exactly as written, since the model must reproduce the lines it edits": 4,
+  "retrievers often miss the files to edit, and compressors keep them but alter their text, so fewer patches apply": 4,
+  "Agent-History reduces later-task resolution by 5.6 percentage points on average": 5,
+  "the main downstream cost of agent-written changes lies in inherited test failures": 5,
+  "runtime errors become more frequent over successive requests": 6,
+  "coding agents should preserve earlier behavior across changes": 5
+ },
+ "rel": [
+  [
+   "post:topic-synthesis-concept-interpretability",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-long-context",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:35:32+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.16870v1",
+   "arxiv:2610.14768v1",
+   "arxiv:2610.13065v1",
+   "arxiv:2610.21073v1",
+   "arxiv:2610.16402v1",
+   "arxiv:2610.15708v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "debate:concept/code-generation",
+  "format": "debate",
+  "reviewed_by": null
+ }
+}

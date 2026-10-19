@@ -321,6 +321,83 @@ def board_ordering_z() -> float:
     return float(z)
 
 
+@lru_cache(maxsize=1)
+def blog_live_settings() -> dict[str, dict[str, int]]:
+    """`contract/blog_live.yaml`: the numbers the blog's live pages run on.
+
+    NO DEFAULTS. Every key must be present and a positive whole number, or this
+    raises - a quiz that quietly fell back to some length nobody chose would
+    look exactly like one somebody did (rule 12)."""
+    raw = _read("blog_live.yaml")
+    need = {
+        "quiz": ("general_per_day", "board_per_day", "options", "margin_percent", "gap_days"),
+        "this_week": ("weeks_shown", "retiring_within_days", "models_listed"),
+    }
+    out: dict[str, dict[str, int]] = {}
+    for part, keys in need.items():
+        block = raw.get(part) if isinstance(raw, dict) else None
+        if not isinstance(block, dict):
+            raise ValueError(f"contract/blog_live.yaml: `{part}` is missing")
+        out[part] = {}
+        for key in keys:
+            v = block.get(key)
+            if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+                raise ValueError(
+                    f"contract/blog_live.yaml: {part}.{key} must be a positive whole "
+                    f"number, got {v!r}"
+                )
+            out[part][key] = v
+    return out
+
+
+@lru_cache(maxsize=1)
+def quiz_drafter_settings() -> dict:
+    """`contract/blog_live.yaml` `quiz_drafter`: which model drafts general quiz
+    questions, how many per call, and on which topics. No defaults (rule 12)."""
+    raw = _read("blog_live.yaml")
+    block = raw.get("quiz_drafter") if isinstance(raw, dict) else None
+    if not isinstance(block, dict):
+        raise ValueError("contract/blog_live.yaml: `quiz_drafter` is missing")
+    model, per_call, topics = block.get("model"), block.get("per_call"), block.get("topics")
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.model must name a model")
+    if isinstance(per_call, bool) or not isinstance(per_call, int) or not 1 <= per_call <= 20:
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.per_call must be 1 to 20")
+    if (
+        not isinstance(topics, list)
+        or not topics
+        or not all(isinstance(t, str) and t.strip() for t in topics)
+    ):
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.topics must be a list of topics")
+    return {"model": model.strip(), "per_call": per_call, "topics": [t.strip() for t in topics]}
+
+
+@lru_cache(maxsize=1)
+def blog_reference_settings() -> dict:
+    """`contract/blog_live.yaml` `known_issues` and `answers`: the known-issues
+    threshold and the person-ruled pairing of advertised features with board
+    topics (rule 10). No defaults (rule 12)."""
+    raw = _read("blog_live.yaml")
+    issues = (raw or {}).get("known_issues") or {}
+    n = issues.get("min_engineers")
+    if isinstance(n, bool) or not isinstance(n, int) or n < 1:
+        raise ValueError("contract/blog_live.yaml: known_issues.min_engineers must be 1 or more")
+    feats = ((raw or {}).get("answers") or {}).get("features")
+    if not isinstance(feats, list) or not feats:
+        raise ValueError("contract/blog_live.yaml: answers.features must be a list")
+    out = []
+    for f in feats:
+        key, label, slugs = f.get("key"), f.get("label"), f.get("board_slugs")
+        if key not in ("tools", "structured_output", "reasoning", "vision_input", "prompt_caching"):
+            raise ValueError(f"contract/blog_live.yaml: unknown feature {key!r}")
+        if not isinstance(label, str) or not isinstance(slugs, list):
+            raise ValueError(
+                f"contract/blog_live.yaml: feature {key} needs a label and board_slugs"
+            )
+        out.append({"key": key, "label": label, "board_slugs": [str(x) for x in slugs]})
+    return {"min_engineers": n, "features": out}
+
+
 def _read(name: str) -> dict:
     path = CONTRACT_DIR / name
     if not path.exists():

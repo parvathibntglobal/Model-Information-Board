@@ -1,0 +1,604 @@
+{
+ "slug": "evaluation-critique-capability-coding",
+ "status": "draft",
+ "tag": "Evaluation critique",
+ "feat": false,
+ "title": "Grok 4.7 Scored 71.0 on One Coding Benchmark and 26 on Another",
+ "dek": "Both numbers are true. That is the problem with asking which model is best at coding, and the reason to build a test only your own codebase can give.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "There is no best AI model for coding in the abstract: every score belongs to one benchmark, one effort setting and one prompt, so replay your own bugs and count accepted changes.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgZmlyc3QtcGxhY2UgbWVkYWwgaGVsZCB1cCBieSB0aHJlZSBoaWRkZW4gZ2VhcnMgbGFiZWxsZWQgcHJvbXB0LCBlZmZvcnQgYW5kIGhhcm5lc3M8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnb2xkIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJtZWRhbCIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmMWM4NjIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYjk4NjFmIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGcgaWQ9InRlZXRoIj4KICAgICAgPHJlY3QgeD0iLTE0IiB5PSItMTA0IiB3aWR0aD0iMjgiIGhlaWdodD0iMzAiIHJ4PSI2Ii8+CiAgICAgIDxyZWN0IHg9Ii0xNCIgeT0iLTEwNCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjMwIiByeD0iNiIgdHJhbnNmb3JtPSJyb3RhdGUoNDUpIi8+CiAgICAgIDxyZWN0IHg9Ii0xNCIgeT0iLTEwNCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjMwIiByeD0iNiIgdHJhbnNmb3JtPSJyb3RhdGUoOTApIi8+CiAgICAgIDxyZWN0IHg9Ii0xNCIgeT0iLTEwNCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjMwIiByeD0iNiIgdHJhbnNmb3JtPSJyb3RhdGUoMTM1KSIvPgogICAgICA8cmVjdCB4PSItMTQiIHk9Ii0xMDQiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzMCIgcng9IjYiIHRyYW5zZm9ybT0icm90YXRlKDE4MCkiLz4KICAgICAgPHJlY3QgeD0iLTE0IiB5PSItMTA0IiB3aWR0aD0iMjgiIGhlaWdodD0iMzAiIHJ4PSI2IiB0cmFuc2Zvcm09InJvdGF0ZSgyMjUpIi8+CiAgICAgIDxyZWN0IHg9Ii0xNCIgeT0iLTEwNCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjMwIiByeD0iNiIgdHJhbnNmb3JtPSJyb3RhdGUoMjcwKSIvPgogICAgICA8cmVjdCB4PSItMTQiIHk9Ii0xMDQiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzMCIgcng9IjYiIHRyYW5zZm9ybT0icm90YXRlKDMxNSkiLz4KICAgIDwvZz4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHJpYmJvbnMgZnJvbSBtZWRhbCBkb3duIHRvIHRoZSBnZWFycyAtLT4KICA8cGF0aCBkPSJNNTYwLDI1MCBMMzMwLDQzMCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjMgOSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIi8+CiAgPHBhdGggZD0iTTYwMCwyNjIgTDYwMCw0MjAiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtZGFzaGFycmF5PSIzIDkiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSIvPgogIDxwYXRoIGQ9Ik02NDAsMjUwIEw4NzAsNDMwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iMyA5IiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiLz4KCiAgPCEtLSBnZWFyOiBwcm9tcHQgLS0+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzAwLDQ4MCkiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuOSI+CiAgICA8dXNlIGhyZWY9IiN0ZWV0aCIvPgogICAgPGNpcmNsZSByPSI4MCIvPgogICAgPGNpcmNsZSByPSI0MCIgZmlsbD0iIzE1MWEyMyIvPgogIDwvZz4KICA8dGV4dCB4PSIzMDAiIHk9IjYwOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wcm9tcHQ8L3RleHQ+CgogIDwhLS0gZ2VhcjogZWZmb3J0IC0tPgogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDYwMCw0NzApIHJvdGF0ZSgyMikiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuOSI+CiAgICA8dXNlIGhyZWY9IiN0ZWV0aCIvPgogICAgPGNpcmNsZSByPSI4MCIvPgogICAgPGNpcmNsZSByPSI0MCIgZmlsbD0iIzE1MWEyMyIvPgogIDwvZz4KICA8dGV4dCB4PSI2MDAiIHk9IjYwOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5lZmZvcnQ8L3RleHQ+CgogIDwhLS0gZ2VhcjogaGFybmVzcyAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg5MDAsNDgwKSByb3RhdGUoMTApIiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjkiPgogICAgPHVzZSBocmVmPSIjdGVldGgiLz4KICAgIDxjaXJjbGUgcj0iODAiLz4KICAgIDxjaXJjbGUgcj0iNDAiIGZpbGw9IiMxNTFhMjMiLz4KICA8L2c+CiAgPHRleHQgeD0iOTAwIiB5PSI2MDgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+aGFybmVzczwvdGV4dD4KCiAgPCEtLSB0aGUgbWVkYWwsIHNwb3RsaXQgLS0+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMTcwIiByPSIxOTAiIGZpbGw9InVybCgjZ29sZCkiLz4KICA8cGF0aCBkPSJNNTQ4LDIwIEw2MDAsMTEwIEw2NTIsMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIxOCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgb3BhY2l0eT0iMC44Ii8+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMTc1IiByPSI5MiIgZmlsbD0idXJsKCNtZWRhbCkiLz4KICA8Y2lyY2xlIGN4PSI2MDAiIGN5PSIxNzUiIHI9IjcyIiBmaWxsPSJub25lIiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iNCIgb3BhY2l0eT0iMC4zNSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMTk3IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNjQiIGZvbnQtd2VpZ2h0PSI4MDAiIGZpbGw9IiMxMDE0MWIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPiMxPC90ZXh0Pgo8L3N2Zz4K",
+  "alt": "A gold first-place medal hangs above three gears labelled prompt, effort and harness that hold it up.",
+  "caption": "Behind every number one on a coding leaderboard sit a prompt, an effort setting and a harness that nobody prints beside it.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Looking for the best AI model for coding? Scores move with effort, prompt and harness. What coding benchmarks test, what they miss, and how to test your own.",
+ "keywords": [
+  "best AI model for coding",
+  "best LLM for coding",
+  "AI models for coding compared",
+  "best AI model",
+  "coding benchmarks",
+  "reasoning effort"
+ ],
+ "kicker": "Evaluation critique",
+ "tags": [
+  "Coding",
+  "Evaluation critique"
+ ],
+ "read": 12,
+ "decisions": [
+  "Weigh a coding score only with its benchmark, effort setting and harness named beside it.",
+  "Replay frozen prompts from your own bug log before switching coding models.",
+  "Track cost per accepted change, not cost per token.",
+  "Audit sampling settings, price rows and token caps before any model switch."
+ ],
+ "layout": "critique",
+ "arrangement": "a",
+ "special": {
+  "type": "probes",
+  "title": "What is measured, and what is missed",
+  "items": [
+   {
+    "measure": "DeepSWE v1.1 scores, such as Grok 4.7's 71.0",
+    "tests": "Fixing known bugs inside a code repository, at one stated effort setting",
+    "misses": "Long agent runs in a terminal, where the same model scored 26 percent on Terminal-Bench 4.0"
+   },
+   {
+    "measure": "Terminal-Bench 4.0 results",
+    "tests": "Steering a command-line shell through longer agentic tasks",
+    "misses": "Your codebase, your prompts and how often a person must re-explain the task"
+   },
+   {
+    "measure": "Arena coding ratings from blind votes",
+    "tests": "Which of two anonymous answers voters prefer on short prompts",
+    "misses": "Holding a plan across a long run, and the thin vote counts behind cheaper models"
+   },
+   {
+    "measure": "Scores run at max effort",
+    "tests": "A model's ceiling when the token budget allows it",
+    "misses": "Runs that exhaust the budget and return nothing, like the 128,000-token pelican"
+   },
+   {
+    "measure": "Per-token list price",
+    "tests": "What a provider charges for each token",
+    "misses": "Retries, tokenizer changes and cost per accepted change"
+   },
+   {
+    "measure": "One model judging another's answers",
+    "tests": "Agreement between two models' taste",
+    "misses": "Code that runs, passes your tests and survives human review"
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~12 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A coding leaderboard answers a question you never asked",
+    "num": "01",
+    "id": "a-coding-leaderboard-answers-a-question-you-never-asked"
+   }
+  ],
+  [
+   "p",
+   "Here is the claim, stated plainly: the best AI model for coding is whichever one tops this week's leaderboard. We think that is wrong. A leaderboard ranks models on someone else's tasks, at someone else's settings, with someone else's prompts. Your work is none of those. Our counter-claim is simple: a coding score is a reading taken under conditions, and the conditions decide more than the model."
+  ],
+  [
+   "p",
+   "Start with what a coding benchmark actually is. It is a fixed set of programming tasks, a harness that feeds them to a model, and a checker that marks each answer. The harness is the code wrapped around the model: its instructions, the tools it may call, the retries it gets. Change any piece and the number moves. That is no scandal. It is simply how measurement works."
+  ],
+  [
+   "p",
+   "Even launch coverage admits it. A dev.to rollout summary of GPT-6 Astra says that «Benchmarks do not guarantee identical results in a company's own tools or processes». The same write-up adds a sharper warning: «A faster model can accelerate a flawed process just as efficiently as a sound one.» Speed and scores are inputs to your decision. They are not your outcome, and they were never measured on your code."
+  ],
+  [
+   "h2",
+   {
+    "text": "The benchmark a launch deck cites is the one it already won",
+    "num": "02",
+    "id": "the-benchmark-a-launch-deck-cites-is-the-one-it-already-won"
+   }
+  ],
+  [
+   "p",
+   "Take Grok 4.7, the cleanest case this autumn. A dev.to roundup lists its launch numbers: 71.0 on DeepSWE v1.1, up from 65.2, and 46.3 on CursorBench 4.0, up from 40.4. DeepSWE grades fixing real bugs inside a code repository. CursorBench covers longer coding tasks. Those are honest gains. Stop reading there and you would call it a strong coding model at a fair price."
+  ],
+  [
+   "p",
+   "Then a harder agentic test arrived. On Terminal-Bench 4.0, where a model works through tasks in a command-line shell on its own, Grok 4.7 scored 26 percent. GPT-6 Astra hit 60 on the same test, and Claude Fable 5.1 hit 55. Even the cheap DeepSeek V4.1 Flash edged it out at 27. Same model, same month. The verdict flipped."
+  ],
+  [
+   "p",
+   "The roundup's author draws the lesson in one line: «The benchmark somebody cites is the argument they’re making.» We agree, and we would add a rule for buyers. Before you trust a launch chart, list the benchmarks it left out. Then go and find them. The missing column is very often the one where your own workload lives."
+  ],
+  [
+   "p",
+   "None of this makes the DeepSWE gain fake. It means the two tests measure different jobs. One rewards fixing a known bug in a repository. The other rewards steering a terminal through a longer, messier task with no one watching. A model can improve at the first and stay weak at the second. Your job decides which number deserves your weight."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Terminal-Bench 4.0 scores in percent, the agentic test left out of Grok 4.7's launch materials.",
+    "unit": "percent on Terminal-Bench 4.0",
+    "bars": [
+     {
+      "label": "Grok 4.7",
+      "value": 26.0
+     },
+     {
+      "label": "DeepSeek V4.1 Flash",
+      "value": 27.0
+     },
+     {
+      "label": "Claude Fable 5.1",
+      "value": 55.0
+     },
+     {
+      "label": "GPT-6 Astra",
+      "value": 60.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Every coding score belongs to one effort setting",
+    "num": "03",
+    "id": "every-coding-score-belongs-to-one-effort-setting"
+   }
+  ],
+  [
+   "p",
+   "Reasoning effort is a dial on many current models: how long the model may think before it answers. Higher effort usually means more tokens, more time and more money. A coding score without its effort setting is a lap time without the track. A dev.to launch analysis shows why, reporting that GPT-6 Luna «at max effort achieves 66.6% on DeepSWE v1.1, matching Claude Opus 5 at medium effort»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPlRoZSBzYW1lIHBlbGljYW4gdGVzdCBhdCB0d28gZWZmb3J0IHNldHRpbmdzOiB4aGlnaCBmaW5pc2hlcyBpbiA0MSBzZWNvbmRzLCBtYXggaGl0cyAxMjgsMDAwIHRva2VucyBhbmQgcmV0dXJucyBubyBTVkc8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJidXJuIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjk1Ii8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93UiIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAuNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvd0ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjQ1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjYmcpIi8+CiAgPHRleHQgeD0iNjAiIHk9IjY2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPlNhbWUgbW9kZWwsIHNhbWUgcHJvbXB0LCB0d28gZWZmb3J0IHNldHRpbmdzPC90ZXh0PgoKICA8IS0tIGxhbmU6IHhoaWdoIC0tPgogIDxyZWN0IHg9IjYwIiB5PSIxMTAiIHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjE5MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjkwIiB5PSIxNzAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNzAiIHJ4PSIxNCIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4xOCIvPgogIDx0ZXh0IHg9IjE2NSIgeT0iMjE2IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzdhYTJmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+eGhpZ2g8L3RleHQ+CiAgPHBhdGggZD0iTTI2MCwyMDUgTDU2MCwyMDUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIi8+CiAgPHRleHQgeD0iNDEwIiB5PSIxODYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NDEgc2Vjb25kczwvdGV4dD4KICA8dGV4dCB4PSI0MTAiIHk9IjI0NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI1IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj41Ljc0IGNlbnRzPC90ZXh0PgogIDwhLS0gb3V0cHV0IGNhcmQgd2l0aCBhIHRpbnkgZHJhd2luZyAtLT4KICA8Y2lyY2xlIGN4PSI3NjAiIGN5PSIyMDUiIHI9IjEwMCIgZmlsbD0idXJsKCNnbG93RykiLz4KICA8cmVjdCB4PSI2MTAiIHk9IjE0MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMzAiIHJ4PSIxNiIgZmlsbD0iIzEwMTQxYiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8Y2lyY2xlIGN4PSI2ODAiIGN5PSIyMzYiIHI9IjIyIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxjaXJjbGUgY3g9Ijc3MCIgY3k9IjIzNiIgcj0iMjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHBhdGggZD0iTTY4MCwyMzYgTDcxNSwyMDAgTDc3MCwyMzYgTTcxNSwyMDAgTDc0NSwyMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8ZWxsaXBzZSBjeD0iNzMyIiBjeT0iMTgwIiByeD0iMjYiIHJ5PSIxNCIgZmlsbD0iI2U4ZWRmNSIgb3BhY2l0eT0iMC44NSIvPgogIDxwYXRoIGQ9Ik03NTIsMTc2IEw3OTAsMTg0IEw3NTIsMTg2IHoiIGZpbGw9IiNlM2IzNDEiLz4KICA8dGV4dCB4PSIxMDEwIiB5PSIyMTQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U1ZHPC90ZXh0PgoKICA8IS0tIGxhbmU6IG1heCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMzQwIiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxOTAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSI5MCIgeT0iNDAwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9IiNmZjdiNzIiIG9wYWNpdHk9IjAuMTgiLz4KICA8dGV4dCB4PSIxNjUiIHk9IjQ0NiIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm1heDwvdGV4dD4KICA8IS0tIHRoaW5raW5nIGZpbGxzIHRvIHRoZSB3YWxsIC0tPgogIDxyZWN0IHg9IjI2MCIgeT0iNDEyIiB3aWR0aD0iNjIwIiBoZWlnaHQ9IjQ2IiByeD0iMTAiIGZpbGw9InVybCgjYnVybikiLz4KICA8dGV4dCB4PSI1NzAiIHk9IjM5NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI1IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50aGlua2luZywgdW50aWwgdGhlIGJ1ZGdldCBydW5zIG91dDwvdGV4dD4KICA8dGV4dCB4PSI1NzAiIHk9IjUwMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI1IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4xMjgsMDAwIHRva2VucywgJDEuMjg8L3RleHQ+CiAgPCEtLSB3YWxsIC0tPgogIDxyZWN0IHg9Ijg4NCIgeT0iMzcyIiB3aWR0aD0iMTQiIGhlaWdodD0iMTI4IiByeD0iNCIgZmlsbD0iI2UzYjM0MSIvPgogIDxjaXJjbGUgY3g9IjEwMTAiIGN5PSI0MzUiIHI9IjkwIiBmaWxsPSJ1cmwoI2dsb3dSKSIvPgogIDxwYXRoIGQ9Ik05ODAsNDA1IEwxMDQwLDQ2NSBNMTA0MCw0MDUgTDk4MCw0NjUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI4IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8dGV4dCB4PSIxMDEwIiB5PSI1MTAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bm8gU1ZHPC90ZXh0PgoKICA8dGV4dCB4PSI2MDAiIHk9IjU3NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI1IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BIHNjb3JlIGF0IG1heCBlZmZvcnQgY2FuIGJlIG1lYXN1cmluZyBhIGJ1ZzwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Two lanes: xhigh effort draws the pelican in 41 seconds; max effort burns 128,000 tokens into a wall and returns no SVG.",
+    "caption": "The same pelican test at two effort settings, where the higher setting produced nothing at all.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Read that sentence twice. A cheap model flat out ties an expensive model that is coasting. So which one is better at coding? The question has no answer until you fix the setting. The same analysis puts GPT-6 Sol at max effort on 68.8%, against Claude Fable 5 at 69.9%. Move either dial and that gap could close, widen or flip."
+  ],
+  [
+   "p",
+   "Higher effort is not even safe. One engineering blog runs a quick test that asks a model to draw a pelican riding a bicycle as SVG code. On Claude Sonnet 5.5, it found «the \"max\" thinking effort pelican thought for 128,000 tokens (at a cost of $1.28) before running out of tokens and failing to produce an SVG». The xhigh run cost 5.74 cents and took 41 seconds. It worked."
+  ],
+  [
+   "p",
+   "So a run at max effort can be measuring a bug rather than a skill. The same blog says Sonnet 5.5 «suffered from the same bug as Opus 5.5», which points to a fault at that setting and not a weak model. In our view, any coding comparison that omits effort, or runs everything at max, has left out its most important variable."
+  ],
+  [
+   "h2",
+   {
+    "text": "Blind voters keep picking models the launch charts left behind",
+    "num": "04",
+    "id": "blind-voters-keep-picking-models-the-launch-charts-left-behi"
+   }
+  ],
+  [
+   "p",
+   "Arena-style leaderboards try a different trick. Voters compare two anonymous answers and pick the better one, and ratings come from the votes. No version numbers, no launch hype. The dev.to roundup reports the result with some glee: «In the blind test, where nobody can see the version number, the crowd keeps reaching for the model everyone in the timeline already moved on from.»"
+  ],
+  [
+   "p",
+   "That older model is Claude Opus 4.6, roughly a year old, which the roundup says leads Instruction Following and Hard Prompts outright. Coding itself is led by claude-fable-5, at a rating of 1552, and newer releases sit below. Either the voters are wrong, or newness and everyday usefulness are different things. We suspect the second. Blind votes reward answers people can read and act on."
+  ],
+  [
+   "p",
+   "The same pattern shows up on Reddit. One poster there dropped from Opus 5 back to Opus 4.6 for a coding project, saying the older model's plans finally made sense despite Opus 5's better benchmark results. They fixed part of the problem with a plain-English output style. No benchmark could see this. The failure was about being understood, and benchmarks do not grade that."
+  ],
+  [
+   "p",
+   "There is a caveat worth taking seriously. Votes on thin samples are noisy. The roundup itself warns that «Coding is a great rating on thin votes» for its cheapest coding pick, and suggests a steadier alternative with far more votes behind it. Blind votes measure preference on short exchanges. They say little about a model holding a plan across a long agent run."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1voz6sm/downgraded_from_opus_5_to_opus_46_and_it_feels/",
+    "title": "Downgraded from Opus 5 to Opus 4.6 and it feels night and day",
+    "author": "Budget-Juggernaut-68",
+    "community": "ClaudeAI",
+    "caption": "A Reddit poster moves a coding project from Opus 5 back to Opus 4.6 because the older model's plans read clearly."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Benchmarks and users split hardest on the same models",
+    "num": "05",
+    "id": "benchmarks-and-users-split-hardest-on-the-same-models"
+   }
+  ],
+  [
+   "p",
+   "Here is the split in its sharpest form. On paper, Grok 4.7 improved at coding, and those DeepSWE and CursorBench gains are real. On Reddit, the same release drew bitter coding complaints. One poster there said it now forgets brackets in scripts and then insists they are present. Another Reddit poster said they kept re-explaining and refactoring, and their company pulled out of a planned contract."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPkdyb2sgNC43OiBsYXVuY2ggYmVuY2htYXJrcyByaXNlIHdoaWxlIHRoZSB0ZXN0IGxlZnQgb3V0LCBhbmQgdXNlcnMsIHBvaW50IGRvd248L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0ibWciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0ibXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NDAiIGZpbGw9InVybCgjYmcpIi8+CiAgPHRleHQgeD0iNjAwIiB5PSI2MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Hcm9rIDQuNywgb25lIHJlbGVhc2UsIHR3byB2ZXJkaWN0czwvdGV4dD4KCiAgPCEtLSBkaXZpZGVyIC0tPgogIDxsaW5lIHgxPSI2MDAiIHkxPSIxMDAiIHgyPSI2MDAiIHkyPSI2MDAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDgiLz4KCiAgPCEtLSBMRUZUOiBpbiB0aGUgbGF1bmNoIGRlY2sgLS0+CiAgPHRleHQgeD0iMzAwIiB5PSIxMjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+aW4gdGhlIGxhdW5jaCBkZWNrPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxNTAiIHdpZHRoPSI0ODAiIGhlaWdodD0iMTgwIiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSI2MCIgeT0iMTUwIiB3aWR0aD0iNDgwIiBoZWlnaHQ9IjE4MCIgcng9IjE4IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjkwIiB5PSIxOTYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZmlsbD0iIzk1YTFiNCI+RGVlcFNXRSB2MS4xPC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iMjcyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiM5NWExYjQiPjY1LjI8L3RleHQ+CiAgPHBhdGggZD0iTTIzMiwyNTggTDMzMCwyMjgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21nKSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMjUyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDgiIGZvbnQtd2VpZ2h0PSI4MDAiIGZpbGw9IiMzZWNmOGUiPjcxLjA8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIzNjAiIHdpZHRoPSI0ODAiIGhlaWdodD0iMTgwIiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMDgiLz4KICA8cmVjdCB4PSI2MCIgeT0iMzYwIiB3aWR0aD0iNDgwIiBoZWlnaHQ9IjE4MCIgcng9IjE4IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjkwIiB5PSI0MDYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZmlsbD0iIzk1YTFiNCI+Q3Vyc29yQmVuY2ggNC4wPC90ZXh0PgogIDx0ZXh0IHg9IjEyMCIgeT0iNDgyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiM5NWExYjQiPjQwLjQ8L3RleHQ+CiAgPHBhdGggZD0iTTIzMiw0NjggTDMzMCw0MzgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21nKSIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iNDYyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDgiIGZvbnQtd2VpZ2h0PSI4MDAiIGZpbGw9IiMzZWNmOGUiPjQ2LjM8L3RleHQ+CgogIDwhLS0gUklHSFQ6IGxlZnQgb3V0IC0tPgogIDx0ZXh0IHg9IjkwMCIgeT0iMTI0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmxlZnQgb3V0IG9mIHRoZSBkZWNrPC90ZXh0PgogIDxyZWN0IHg9IjY2MCIgeT0iMTUwIiB3aWR0aD0iNDgwIiBoZWlnaHQ9IjE4MCIgcng9IjE4IiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjA4Ii8+CiAgPHJlY3QgeD0iNjYwIiB5PSIxNTAiIHdpZHRoPSI0ODAiIGhlaWdodD0iMTgwIiByeD0iMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjkwIiB5PSIxOTYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZmlsbD0iIzk1YTFiNCI+VGVybWluYWwtQmVuY2ggNC4wLCBwZXJjZW50PC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMjcwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTYiIGZvbnQtd2VpZ2h0PSI4MDAiIGZpbGw9IiNmZjdiNzIiPjI2PC90ZXh0PgogIDx0ZXh0IHg9Ijc5MCIgeT0iMjY2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIGZpbGw9IiM5NWExYjQiPnZzIEdQVC02IEFzdHJhIGF0IDYwPC90ZXh0PgogIDxwYXRoIGQ9Ik0xMDgwLDIyMiBMMTA4MCwyOTIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21yKSIvPgoKICA8IS0tIHVzZXIgdm9pY2VzIGFzIHNwZWVjaCBidWJibGVzIC0tPgogIDxyZWN0IHg9IjY2MCIgeT0iMzYwIiB3aWR0aD0iNDgwIiBoZWlnaHQ9IjE4MCIgcng9IjE4IiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjA4Ii8+CiAgPHJlY3QgeD0iNjYwIiB5PSIzNjAiIHdpZHRoPSI0ODAiIGhlaWdodD0iMTgwIiByeD0iMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjkwIiB5PSI0MDYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZmlsbD0iIzk1YTFiNCI+aW4gZGFpbHkgdXNlLCBhZnRlciB0aGUgc3dpdGNoPC90ZXh0PgogIDxyZWN0IHg9IjY5MCIgeT0iNDI4IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ2IiByeD0iMjMiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODQwIiB5PSI0NTkiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmUtZXhwbGFpbmluZywgcmVmYWN0b3Jpbmc8L3RleHQ+CiAgPHJlY3QgeD0iNjkwIiB5PSI0ODQiIHdpZHRoPSI0MzAiIGhlaWdodD0iNDYiIHJ4PSIyMyIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5MDUiIHk9IjUxNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIzIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5mb3JnZXRzIGJyYWNrZXRzLCBpbnNpc3RzIHRoZXkgYXJlIHRoZXJlPC90ZXh0PgoKICA8dGV4dCB4PSI2MDAiIHk9IjYxMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI1IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Cb3RoIHNpZGVzIGFyZSB0cnVlLiBUaGV5IG1lYXN1cmUgZGlmZmVyZW50IGpvYnMuPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Grok 4.7: DeepSWE and CursorBench scores rise on the left; Terminal-Bench at 26 and user complaints sit on the right.",
+    "caption": "One release, two verdicts: the benchmarks in the launch deck rose while the test it left out, and its users, pointed down.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "MiniMax M3 splits the same way, inside a single Reddit thread. One poster ran it on 8 prompts with GPT 5.5 as the judge and ranked it level with GLM 5.1 and Kimi K2.6. Another spent two days on one simple task that GPT 5.5 then finished in about 10 minutes. A third liked it for Kotlin code in an Android app. Same model. Three verdicts."
+  ],
+  [
+   "p",
+   "Which side does the evidence favour? For Grok 4.7, we side with the users on agent work and with the benchmark on narrow bug fixing. Terminal-Bench, the harder agentic test, agrees with the complaints. For MiniMax M3, the split is the finding. A cheap model that shines on clean specs and stalls on messy ones is a real profile. It is not noise to average away."
+  ],
+  [
+   "p",
+   "Notice what a single number flattens. A Reddit poster summed up M3 as good for many coding-agent tasks when the spec is clean, but not a blind replacement for stronger models on complex design calls. That conditional is the useful part. A benchmark reports one figure per model. Your project lives where the spec is vague, the codebase is large and the model has to ask."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/grok/comments/1wva7e6/what_do_yall_think_about_grok_47_hows_it/",
+    "title": "What do y’all think about Grok 4.7? How’s it?",
+    "author": "Diamond_Mine0",
+    "community": "grok",
+    "caption": "A Reddit thread on Grok 4.7 where coding users describe regressions that its launch benchmarks did not show."
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/opencodeCLI/comments/1ttoa93/anyone_already_tested_minimax_m3/",
+    "title": "Anyone already tested MiniMax M3?",
+    "author": "Expert-Dig-1768",
+    "community": "opencodeCLI",
+    "caption": "A Reddit thread on MiniMax M3 where hands-on coding verdicts range from level with rivals to unusable on a simple task."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Your prompt is half of any coding test you run",
+    "num": "06",
+    "id": "your-prompt-is-half-of-any-coding-test-you-run"
+   }
+  ],
+  [
+   "p",
+   "We went through one Hacker News commenter's method for comparing coding models, and it is the best cheap evaluation in this whole debate. They write the prompt before solving the problem themselves: «I'd have a prompt in mind before I manually find the fix for subtle bugs, or plan out how I'd implement a feature.» Then they send that untouched prompt to every model they want to compare."
+  ],
+  [
+   "p",
+   "The trick is the order. Writing the prompt first stops you leaking the answer into it. You cannot accidentally describe a fix you have not found yet. Then you grade each model against the fix you made by hand, on a bug from your own codebase. Nobody else has that test. No model can have memorised it, and no launch deck can quote it."
+  ],
+  [
+   "p",
+   "Their result is the surprise: «To my surprise, the Claudes always perform better, and so, it seems like my prompting behaviour is either attuned to them». In other words, the tester suspects the test is tuned to the tester. We think that is an unusually honest reading, and probably right. Prompt habits grow around the model you use most, the way handwriting grows around one pen."
+  ],
+  [
+   "p",
+   "Their second finding cuts the other way. Given a prompt «with just the right detail», they found the top coding models «have no discernable difference», so they default to cheaper, faster ones. Two lessons follow. A vague prompt measures how well a model fills gaps. A precise prompt mostly measures cost and speed. Decide which kind your team really writes, then test with that kind."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "A prompt-first comparison you can run on your own bugs.",
+    "steps": [
+     "Pick a real bug before you fix it",
+     "Write the prompt you would send, then freeze it",
+     "Fix the bug yourself and keep the answer",
+     "Send the frozen prompt to each model unchanged",
+     "Grade each answer against your own fix",
+     "Repeat with a vague and a detailed prompt"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Switching coding models breaks plumbing that no benchmark touches",
+    "num": "07",
+    "id": "switching-coding-models-breaks-plumbing-that-no-benchmark-to"
+   }
+  ],
+  [
+   "p",
+   "Now follow one real model change through a codebase. A GitHub issue for a code-review tool planned to move its default from Claude Opus 4.6 to Claude Sonnet 5, to cut cost per review. The author's verdict on the plan: «This is not a model-string swap. Three blocking changes.» None of the three is about coding skill. Every one of them would have hurt customers."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCI+CiAgPHRpdGxlPlRoaW5raW5nIGFuZCB0aGUgYW5zd2VyIHNoYXJlIG9uZSA0MDk2LXRva2VuIGNhcCwgc28gYSBsb25nIHRoaW5rIGN1dHMgdGhlIEpTT04gYW5zd2VyIG9mZiBtaWQtb2JqZWN0PC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvd1IiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjQ1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI1NjAiIGZpbGw9InVybCgjYmcpIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPk9uZSBjYXAsIHR3byB0ZW5hbnRzPC90ZXh0PgogIDx0ZXh0IHg9IjExNDAiIHk9IjcwIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9ImVuZCI+bWF4VG9rZW5zUGVyQWdlbnQ6IDQwOTY8L3RleHQ+CgogIDwhLS0gdGhlIGNhcCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMTEwIiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8IS0tIHRoaW5raW5nIHRha2VzIG1vc3Qgb2YgaXQgKGNvbmNlcHR1YWwsIG5vdCB0byBzY2FsZSkgLS0+CiAgPHJlY3QgeD0iNzIiIHk9IjEyMiIgd2lkdGg9IjgyMCIgaGVpZ2h0PSI4NiIgcng9IjEyIiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjU1Ii8+CiAgPHRleHQgeD0iNDgyIiB5PSIxNzYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YWRhcHRpdmUgdGhpbmtpbmc8L3RleHQ+CiAgPHJlY3QgeD0iOTAwIiB5PSIxMjIiIHdpZHRoPSIyMjgiIGhlaWdodD0iODYiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC41NSIvPgogIDx0ZXh0IHg9IjEwMTQiIHk9IjE3NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5hbnN3ZXI8L3RleHQ+CgogIDwhLS0gYW5zd2VyIHpvb20gLS0+CiAgPHBhdGggZD0iTTkwMCwyMjAgTDEyMCwzMDAgTTExMjgsMjIwIEwxMDgwLDMwMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz4KICA8cmVjdCB4PSIxMjAiIHk9IjMwMCIgd2lkdGg9Ijk2MCIgaGVpZ2h0PSIxNTAiIHJ4PSIxOCIgZmlsbD0iIzEwMTQxYiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjM1NiIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiPnsgImZpbmRpbmdzIjogWyB7PC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iNDA2IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSI+ICAiZmlsZSI6ICJhdXRoLnRzIiwgImlzPC90ZXh0PgogIDwhLS0gdG9ybiBlZGdlIC0tPgogIDxjaXJjbGUgY3g9Ijc5MCIgY3k9IjM5NiIgcj0iOTAiIGZpbGw9InVybCgjZ2xvd1IpIi8+CiAgPHBhdGggZD0iTTcwMCwzMTYgTDcyNCwzNDAgTDcwMiwzNjQgTDcyNiwzODggTDcwNCw0MTIgTDcyOCw0MzYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHRleHQgeD0iOTAwIiB5PSIzNzIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y3V0IG9mZjwvdGV4dD4KICA8dGV4dCB4PSI5MDAiIHk9IjQxMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5taWQtb2JqZWN0PC90ZXh0PgoKICA8dGV4dCB4PSI2MDAiIHk9IjUxMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TaG93cyB1cCBhcyBhIHBhcnNlIGZhaWx1cmUsIG5vdCBhcyBhIG1vZGVsIGVycm9yPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A 4096-token cap mostly filled by thinking, leaving a short answer whose JSON is cut off mid-object.",
+    "caption": "When thinking and the answer share one cap, a smarter model can fail as a parse error that no coding benchmark would record.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The first was a hard error. The tool sent `temperature` on every request, and the issue says sampling settings «at non-default values are rejected on Sonnet 5». Temperature is a knob for how random the wording is. The second was quieter and worse. With no pricing row for the new model, «every SaaS review becomes free, with no error and no log line». Nobody would have noticed for weeks."
+  ],
+  [
+   "p",
+   "The third is the one a benchmark could never catch. On Sonnet 5, thinking runs by default and shares a 4096-token cap with the answer. The issue warns a long think can «truncate the JSON mid-object — surfacing as agent parse failures, not as an obvious model error». A smarter model inside a broken budget looks like a dumber one. Your dashboard would blame the model."
+  ],
+  [
+   "p",
+   "Then came the twist. A follow-up found that «production may not be running Opus 4.6 at all»; it was pinned to Sonnet 4 by a deployment setting. So the baseline everyone planned to compare against was the wrong model. Before you evaluate any coding model, confirm which one you are actually running today. It sounds silly. It happened, in a careful team, with a written plan."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What broke in one planned coding-model switch, and whether a coding benchmark would have seen it.",
+    "columns": [
+     "What changed",
+     "What users would see",
+     "Visible to a coding benchmark?"
+    ],
+    "rows": [
+     [
+      "Sampling settings sent on every request",
+      "Every review fails with a 400 error",
+      "No"
+     ],
+     [
+      "No pricing row for the new model",
+      "Reviews silently billed at nothing",
+      "No"
+     ],
+     [
+      "Thinking shares a 4096-token cap",
+      "JSON cut off mid-object, parse failures",
+      "No"
+     ],
+     [
+      "Newer tokenizer, roughly 1× to 1.35× the tokens",
+      "Bills drift from the old estimate",
+      "No"
+     ],
+     [
+      "Production pinned to a different model",
+      "The baseline compares the wrong model",
+      "No"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Cost per accepted change is the score that pays the bill",
+    "num": "08",
+    "id": "cost-per-accepted-change-is-the-score-that-pays-the-bill"
+   }
+  ],
+  [
+   "p",
+   "Every coding claim ends up as an invoice, so measure the thing the invoice charges for. The dev.to roundup says it bluntly: «Cost-per-token isn’t cost-per-task. The benchmark in the deck isn’t the benchmark that matters.» A cheap model that needs three attempts can cost more than a dear one that lands first time. A model that thinks itself out of tokens costs money for nothing."
+  ],
+  [
+   "p",
+   "Token counts move under you, too. The GitHub issue notes that the newer tokenizer, the part that chops text into billable tokens, means «The same text tokenizes to roughly 1×–1.35× as many tokens». So a headline 40% price cut became a saving of somewhere between 19% and 40%, depending on the prompts. Only a recount on real traffic settles it. Guessing does not."
+  ],
+  [
+   "p",
+   "Some evaluations already report cost beside the score, and those deserve your trust first. The dev.to launch analysis gives GPT-6 Sol's AutomationBench result as 33.2% «at $0.27 per task». A per-task cost is much closer to what you pay. It still assumes their harness, their effort setting and their retry policy. None of those are yours, so treat it as a starting estimate."
+  ],
+  [
+   "p",
+   "Then measure acceptance, not completion. An accepted change is one that passes your tests and survives review. The code-review issue names the bar we would use: «this is the product, so a cost win that degrades findings is not a win». Track cost per accepted change, retries per change and review time per change. Those three numbers are your real coding benchmark."
+  ],
+  [
+   "code",
+   {
+    "label": "Replaying frozen prompts from your own bug log, counting accepted changes (illustrative)",
+    "language": "python",
+    "source": "# Each case: a prompt written BEFORE you fixed the bug, plus your own fix.\n# Count what you pay for: accepted changes, not tokens.\nfor model in candidates:\n    spent, accepted, retries = 0.0, 0, 0\n    for case in bug_log:\n        for attempt in range(MAX_TRIES):\n            result = run(model, case.prompt, effort=case.effort)  # your harness\n            spent += result.cost\n            if passes_tests(result.patch) and reviewer_accepts(result.patch, case.fix):\n                accepted += 1\n                break\n            retries += 1\n    report(model,\n           cost_per_accepted=spent / max(accepted, 1),\n           accepted=accepted, retries=retries)"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Public scores still earn their place as a coarse first filter",
+    "num": "09",
+    "id": "public-scores-still-earn-their-place-as-a-coarse-first-filte"
+   }
+  ],
+  [
+   "p",
+   "Here is the strongest case for leaderboards, and it deserves a fair hearing. Your own replay is slow, small and bent by your prompting habits. Public benchmarks are cheap, repeatable and shared by everyone. When the gaps are large, they are probably real. Grok 4.7's 26 against GPT-6 Astra's 60 on Terminal-Bench 4.0 is far too wide to blame on noise."
+  ],
+  [
+   "p",
+   "The Hacker News tester's own result supports the concession. With a well-specified prompt, the top coding models looked alike to them, so a public ranking is a fair way to find that top band. We agree with that use. A leaderboard is a decent filter for the first cut, before you spend any of your own time. Use it to shortlist, then stop trusting it."
+  ],
+  [
+   "p",
+   "What the concession still cannot explain is most of the evidence above. It cannot say why blind voters keep favouring Claude Opus 4.6 over its successors. It cannot say why Grok 4.7 rose on DeepSWE while Reddit posters were re-explaining their code to it. And it says nothing about a 400 error, a missing price row or a JSON answer cut off mid-object."
+  ],
+  [
+   "p",
+   "So keep the leaderboard, and demote it. Treat a public coding score as a rumour with a method attached: useful for deciding what to test, useless for deciding what to ship. The deciding number comes from your own bugs, at your own effort setting, through your own plumbing. Nobody can publish that one for you, which is exactly why it is worth having."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is the best AI model for coding right now?"
+  ],
+  [
+   "p",
+   "There is no single best AI model for coding; the answer depends on the benchmark, the effort setting and your prompt. GPT-6 Astra led Terminal-Bench 4.0 at 60, while blind voters rated claude-fable-5 highest for coding. A Hacker News tester found that given a prompt «with just the right detail», top models «have no discernable difference», so cost and speed often decide."
+  ],
+  [
+   "h3",
+   "Are coding benchmarks reliable?"
+  ],
+  [
+   "p",
+   "Coding benchmarks are reliable for the narrow job they test, and weak beyond it. Grok 4.7 scored 71.0 on DeepSWE v1.1 and 26 percent on Terminal-Bench 4.0, because the two measure different work. Scores also shift with effort: GPT-6 Luna at max effort matched Claude Opus 5 at medium effort on DeepSWE v1.1. Always check the settings behind a number."
+  ],
+  [
+   "h3",
+   "How do I test an AI model for coding on my own codebase?"
+  ],
+  [
+   "p",
+   "Write the prompt before you fix a real bug, freeze it, then send it unchanged to each model and compare against your own fix. Count cost per accepted change, retries and review time, not tokens. Run each model at the effort setting you would really use, and confirm which model your production stack is actually calling."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "alifar",
+   "what": "Openai rolls out gpt 6 astra with faster computer use and wider deployment options",
+   "url": "https://dev.to/alifar/openai-rolls-out-gpt-6-astra-with-faster-computer-use-and-wider-deployment-options-193d",
+   "posted": "2026-09-09"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "eristoddle",
+   "what": "Grok 47 shipped even elon musk said it was mid",
+   "url": "https://dev.to/eristoddle/grok-47-shipped-even-elon-musk-said-it-was-mid-3f6g",
+   "posted": "2026-09-22"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "max_quimby",
+   "what": "Gpt 6 sol and luna landed heres what devday brings next",
+   "url": "https://dev.to/max_quimby/gpt-6-sol-and-luna-landed-heres-what-devday-brings-next-2f58",
+   "posted": "2026-09-29"
+  },
+  {
+   "n": 4,
+   "platform": "an engineering blog",
+   "who": "simonwillison.net",
+   "what": "Claude sonnet 5 5",
+   "url": "https://simonwillison.net/2026/Sep/28/claude-sonnet-5-5/",
+   "posted": "2026-09-29"
+  },
+  {
+   "n": 5,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=48630678",
+   "posted": "2026-06-22"
+  },
+  {
+   "n": 6,
+   "platform": "GitHub",
+   "who": "mergewatch/mergewatch.ai",
+   "what": "Issue #262",
+   "url": "https://github.com/mergewatch/mergewatch.ai/issues/262",
+   "posted": "2026-08-13"
+  }
+ ],
+ "cite": {
+  "Benchmarks do not guarantee identical results in a company's own tools or processes": 1,
+  "A faster model can accelerate a flawed process just as efficiently as a sound one.": 1,
+  "The benchmark somebody cites is the argument they’re making.": 2,
+  "at max effort achieves 66.6% on DeepSWE v1.1, matching Claude Opus 5 at medium effort": 3,
+  "the \"max\" thinking effort pelican thought for 128,000 tokens (at a cost of $1.28) before running out of tokens and failing to produce an SVG": 4,
+  "suffered from the same bug as Opus 5.5": 4,
+  "In the blind test, where nobody can see the version number, the crowd keeps reaching for the model everyone in the timeline already moved on from.": 2,
+  "Coding is a great rating on thin votes": 2,
+  "I'd have a prompt in mind before I manually find the fix for subtle bugs, or plan out how I'd implement a feature.": 5,
+  "To my surprise, the Claudes always perform better, and so, it seems like my prompting behaviour is either attuned to them": 5,
+  "with just the right detail": 5,
+  "have no discernable difference": 5,
+  "This is not a model-string swap. Three blocking changes.": 6,
+  "at non-default values are rejected on Sonnet 5": 6,
+  "every SaaS review becomes free, with no error and no log line": 6,
+  "truncate the JSON mid-object — surfacing as agent parse failures, not as an obvious model error": 6,
+  "production may not be running Opus 4.6 at all": 6,
+  "Cost-per-token isn’t cost-per-task. The benchmark in the deck isn’t the benchmark that matters.": 2,
+  "The same text tokenizes to roughly 1×–1.35× as many tokens": 6,
+  "at $0.27 per task": 3,
+  "this is the product, so a cost win that degrades findings is not a win": 6
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:18:19+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_a3e2eac1d551fcae",
+   "thread_context_cd3280bb725d7445",
+   "thread_context_a57aff1e2365ec2f",
+   "thread_context_3de3978fc53e80a0",
+   "thread_context_656e3fcf1bc18ecb",
+   "thread_context_b455276551d67fa3",
+   "thread_context_e6737bc2a47bab7b",
+   "thread_context_c341f5dfca9b9b34",
+   "thread_context_ee36d1b4f52aaaf3",
+   "thread_context_2c62cb94b672f4b5"
+  ],
+  "platforms": {
+   "X": 1,
+   "Reddit": 3,
+   "GitHub": 1,
+   "dev.to": 3,
+   "an engineering blog": 1,
+   "Hacker News": 1
+  },
+  "embedded": 3,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "evaluation-critique:capability/coding",
+  "format": "evaluation-critique",
+  "reviewed_by": null
+ }
+}

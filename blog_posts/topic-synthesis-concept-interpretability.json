@@ -1,0 +1,522 @@
+{
+ "slug": "topic-synthesis-concept-interpretability",
+ "status": "draft",
+ "tag": "Topic synthesis",
+ "feat": false,
+ "title": "Mechanistic Interpretability Finds the Shortcut Your Evals Walked Past",
+ "dek": "An X-ray model that reads the margin, features that move when you reword a prompt, refusal that slides along a direction. Interpretability is starting to catch what output checks cannot.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is mechanistic interpretability? It is locating the heads, features and circuits that compute a behaviour and proving it by intervention, and it already finds shortcuts and refusal shifts that output-level evals miss.",
+ "description": "What is mechanistic interpretability? Attention heads, sparse autoencoder features and circuits, and why internal audits catch shortcuts that evals miss.",
+ "keywords": [
+  "what is mechanistic interpretability",
+  "interpretability",
+  "sparse autoencoders",
+  "attention heads",
+  "circuit discovery",
+  "activation steering"
+ ],
+ "kicker": "Topic synthesis",
+ "tags": [
+  "interpretability",
+  "Topic synthesis"
+ ],
+ "read": 10,
+ "decisions": [
+  "Audit model internals before trusting a model that passes output evals",
+  "Monitor safety readouts and margins, not single features",
+  "Test feature combinations before steering with several at once",
+  "Tune a located circuit instead of the full model when one is known"
+ ],
+ "layout": "synthesis",
+ "arrangement": "a",
+ "special": {
+  "type": "glossary",
+  "title": "Terms in this piece",
+  "items": [
+   {
+    "term": "Mechanistic interpretability",
+    "meaning": "Finding which internal components of a network compute a behaviour, and confirming it by intervening on them."
+   },
+   {
+    "term": "Attention head",
+    "meaning": "A parallel unit inside a Transformer layer that decides which other positions each token or image patch draws information from."
+   },
+   {
+    "term": "Ablation",
+    "meaning": "Switching a component off, for example by zeroing a head's output, to see what changes downstream."
+   },
+   {
+    "term": "Sparse autoencoder (SAE)",
+    "meaning": "A small network trained to rewrite each activation as a few active features from a much larger learned dictionary."
+   },
+   {
+    "term": "Feature",
+    "meaning": "One direction in activation space, learned by an SAE, that ideally stands for a single concept."
+   },
+   {
+    "term": "Circuit",
+    "meaning": "A small connected group of heads and features that together implement one behaviour."
+   },
+   {
+    "term": "Steering",
+    "meaning": "Adding a feature's direction to a model's activations to push its behaviour one way."
+   },
+   {
+    "term": "AUROC",
+    "meaning": "A detection measure of how reliably failing cases rank above passing ones, with chance as the floor."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~10 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Mechanistic interpretability names the parts that do the work",
+    "num": "01",
+    "id": "mechanistic-interpretability-names-the-parts-that-do-the-wor"
+   }
+  ],
+  [
+   "p",
+   "Mechanistic interpretability is the practice of finding which internal parts of a neural network compute a behaviour, then proving it by changing those parts. Here is the moment that makes it urgent. A new arXiv paper on chest X-ray models found «a single attention head (L8H10) that functions as a dedicated annotation-reader on chest X-rays». It reads the stamped corner, not the lungs. Output-level testing never noticed."
+  ],
+  [
+   "p",
+   "That last part is the punchline. The model's answers looked fine. Its reasons were wrong. Interpretability looks at reasons directly, by reading activations, the intermediate vectors a network computes on the way to an answer. Evals see inputs and outputs. Interpretability sees the wiring in between, and that difference is why the field is suddenly useful to people who ship models."
+  ],
+  [
+   "p",
+   "This post follows that idea through attention heads, sparse features, editable circuits and refusal directions. The common thread is simple. Behaviour lives in specific, findable components. The split is over how cleanly those components separate, and that split matters if you hope to debug a model the way you debug code. Spoiler: you can, partly."
+  ],
+  [
+   "h2",
+   {
+    "text": "A single attention head carried the X-ray shortcut",
+    "num": "02",
+    "id": "a-single-attention-head-carried-the-x-ray-shortcut"
+   }
+  ],
+  [
+   "p",
+   "An attention head is one of the parallel units inside a Transformer layer that decides which other positions each token looks at. Vision Transformers cut an image into patches and treat them like tokens. So a head can learn to stare at the corner of a scan, where hospitals stamp annotations. That is exactly what this one did, «attending to corner text rather than lung pathology in 62% of 200 COVID-19 images»."
+  ],
+  [
+   "p",
+   "We went through the authors' method, and the order of steps is the lesson. First they located the head. Then they tested the cause: «Causal validation via inpainting confirms annotation content» drives it, not brightness or edges. Inpainting means painting the annotation out and filling the gap plausibly. The effect was clear, «increasing lung attention 1.52 times upon removal in affected images». Only then did they replicate it elsewhere."
+  ],
+  [
+   "quote",
+   "Mechanistic auditing finds what behavioural testing cannot."
+  ],
+  [
+   "p",
+   "Replication is where it got uncomfortable. The pattern held on NIH ChestX-ray14 at 79%, DeiT-Base at 88% and ViT-Large 16 at 80%. Fine-tuning made it worse, if anything. The authors report that «Full fine-tuning does not suppress the behaviour and may entrench it». After fine-tuning, «98.4% of spurious images remain spurious». The shortcut survived the very step you would reach for to fix it."
+  ],
+  [
+   "p",
+   "Now the twist. Ablating the head, which means zeroing its output, barely moved the predictions. The single-head result was p=0.340, and removing all three carriers gave p=0.532. The authors read this as «a causally verified annotation-reading circuit is completely invisible to output-level evaluation». We agree with the direction of that claim. We're less sure about the word completely, since a non-significant p-value is thin evidence of absence."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "How often the annotation-reading behaviour appeared in each setting the X-ray paper reports.",
+    "columns": [
+     "Model or setting",
+     "Reported rate"
+    ],
+    "rows": [
+     [
+      "ViT-Base 16, COVID-19 images",
+      "62%"
+     ],
+     [
+      "NIH ChestX-ray14",
+      "79%"
+     ],
+     [
+      "DeiT-Base",
+      "88%"
+     ],
+     [
+      "ViT-Large 16",
+      "80%"
+     ],
+     [
+      "Spurious images still spurious after full fine-tuning",
+      "98.4%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Sparse autoencoders split activations into nameable features",
+    "num": "03",
+    "id": "sparse-autoencoders-split-activations-into-nameable-features"
+   }
+  ],
+  [
+   "p",
+   "Heads are a natural unit, but most behaviour is smeared across many neurons at once. This is called superposition: a layer packs more concepts than it has dimensions. A sparse autoencoder, or SAE, is the standard workaround. It learns to rewrite each activation vector as a sum of a few active features from a much larger dictionary. Each feature, ideally, means one thing."
+  ],
+  [
+   "p",
+   "Mechanically, an encoder maps the activation to a wide, mostly-zero code, and a decoder rebuilds the activation from it. Training pushes two ways at once. Reconstruct well. Stay sparse. The sketch below is the whole idea in a few lines. If a feature fires on legal text and nowhere else, you can name it, steer with it, or watch it in production."
+  ],
+  [
+   "p",
+   "Recent SAE work from Haotian Ma and Ziye Mei pokes at a soft spot in that picture. One study notes that SAEs «represent model activations with sparse, linearly decoded features, but the downstream effects of those features need not compose additively». The other studies what happens when a prompt is reworded. Neither treats a feature as a clean on-off switch, and we think that caution is earned."
+  ],
+  [
+   "code",
+   {
+    "label": "A sparse autoencoder over one layer's activations, as illustrative pseudo-code",
+    "language": "python",
+    "source": "# Illustrative pattern, not a library API\ndef encode(x, W_enc, b_enc):\n    return relu(W_enc @ x + b_enc)      # wide code, mostly zeros\n\ndef decode(f, W_dec, b_dec):\n    return W_dec @ f + b_dec            # rebuild the activation\n\nf = encode(x, W_enc, b_enc)\nloss = sq_norm(x - decode(f, W_dec, b_dec)) + lam * l1_norm(f)\n#      reconstruct well                      stay sparse\n\n# Steering: nudge the activation along one feature's decoder column\nx_steered = x + alpha * W_dec[:, feature_id]"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How a sparse autoencoder turns one activation into features you can inspect or steer.",
+    "steps": [
+     "Take one layer's activation vector for a token",
+     "Encoder maps it to a wide, mostly-zero code",
+     "Each active unit is a candidate feature",
+     "Decoder rebuilds the activation from active features",
+     "Steer or ablate a feature and watch behaviour change"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Rewording a prompt can reshuffle the features",
+    "num": "04",
+    "id": "rewording-a-prompt-can-reshuffle-the-features"
+   }
+  ],
+  [
+   "p",
+   "Say you build a safety monitor on SAE features. A harmful request lights up a harmful-request feature, and your monitor flags it. Now the user rephrases the same request. A new arXiv paper on representation redistribution warns that «prompt transformations designed to preserve the underlying request can redistribute activity across them». Same intent, different features. Your monitor goes quiet."
+  ],
+  [
+   "p",
+   "A shift on its own means little. «A feature change observed on one transformed prompt need not recur», and «even a recurring change need not affect a downstream computation». So the authors built the redistribution sensitivity score, RSS, which «identifies large feature responses that recur in a consistent direction». They then checked those responses on variants held out of selection, which is the step that makes the result trustworthy."
+  ],
+  [
+   "p",
+   "The result held. «Across 27 pretrained SAEs spanning eight language models», the transformations produced a reproducible redistribution profile on the excluded variants. A readout here is a fixed linear probe on activations. In frozen safety readouts, a small support predicted failure nearly as well as full erosion: AUROCs of 0.935 and 0.958 with median supports of 20 and 19 features. Full erosion reached 0.965 and 0.964."
+  ],
+  [
+   "p",
+   "We like the restraint in their framing. RSS measures a change's contribution «without equating representation change with failure». We think that is the right default for anyone monitoring features. A feature moving is a clue, not a verdict. If you watch features for safety, watch the readout margin too, because the margin is what decides whether a moved feature flips the call."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Failure AUROC in two frozen safety readouts, small RSS support versus full erosion.",
+    "columns": [
+     "Safety readout",
+     "RSS support plus clean margin",
+     "Median features in support",
+     "Full erosion"
+    ],
+    "rows": [
+     [
+      "First readout",
+      "0.935",
+      "20",
+      "0.965"
+     ],
+     [
+      "Second readout",
+      "0.958",
+      "19",
+      "0.964"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Features rarely add up cleanly on their own",
+    "num": "05",
+    "id": "features-rarely-add-up-cleanly-on-their-own"
+   }
+  ],
+  [
+   "p",
+   "Here is the deeper problem. Suppose feature A pushes an output up and feature B pushes it up too. Turn both on and you expect the sum. Often you don't get it. The additivity study defines «SAE Additivity Residuals (SAR), which measure the behavioral variation left unexplained above a chosen interaction order». Order one means features act alone. Order two adds pairs."
+  ],
+  [
+   "p",
+   "The surprise cuts both ways. Learned SAE coordinates beat random rotations of the same subspace, with «lower first order residuals for the learned coordinates across all 18 model and behavior settings». So the dictionary is doing something real. «The coordinates are nevertheless not fully additive», though. Pairwise terms helped held-out ordering in every setting, and beat randomly chosen third-order terms of matched size."
+  ],
+  [
+   "p",
+   "The steering figures make it concrete. Steering means adding a feature's direction to the activations to push behaviour. In a combined steering experiment, «pairwise modeling raises rank fidelity from 0.5874 to 0.7790», and ordering error fell from 0.1444 to 0.0606. Rank fidelity asks if you predicted which feature combinations matter most. That jump is big."
+  ],
+  [
+   "p",
+   "We think this is the most practical warning for builders. If you plan to steer with several features at once, test the combination, not each feature alone. The authors put it plainly: «faithful joint explanations and interventions still require interactions beyond individual feature effects». A per-feature explanation of a joint behaviour will mislead you, and it will look tidy doing it."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Combined steering results from the SAE additivity study, before and after adding pairwise terms.",
+    "columns": [
+     "Metric",
+     "Without pairwise terms",
+     "With pairwise terms"
+    ],
+    "rows": [
+     [
+      "Rank fidelity, higher is better",
+      "0.5874",
+      "0.7790"
+     ],
+     [
+      "Ordering error, lower is better",
+      "0.1444",
+      "0.0606"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Circuits you can locate are circuits you can tune",
+    "num": "06",
+    "id": "circuits-you-can-locate-are-circuits-you-can-tune"
+   }
+  ],
+  [
+   "p",
+   "Interpretability is not only for auditing. A circuit is a small connected set of heads and features that together implement one behaviour. If you can find it, you can train just it. TITAN, from a new arXiv paper on low-resource translation, «restricts optimization to sparse, causally important circuits» for Hindi-to-Urdu and Hindi-to-Sindhi, «updating fewer than 5% of model parameters»."
+  ],
+  [
+   "p",
+   "The reported gains are large: «BLEU improvements of 33.75% on Hindi-to-Urdu and 45.86% on Hindi-to-Sindhi over the strongest multilingual baselines». BLEU measures word overlap with reference translations. The mechanism claim interests us more. They find that «multilingual translation is implemented through sparse, structured circuits» over a shared semantic space, with no detour through English."
+  ],
+  [
+   "p",
+   "A related arXiv paper on reinforcement learning fine-tuning gets somewhere similar without circuits at all. It ranks heads by gradient norm, the size of the training signal each head receives, and trains only the top ones. «tuning higher-ranked heads consistently outperforms tuning lower-ranked ones while often matching denser baselines». Splitting heads across tasks helps too, since «head partitioning improves retention while preserving adaptation to new tasks»."
+  ],
+  [
+   "p",
+   "Here is where we part ways with the tidy story. Gradient norm tells you a head is trainable, not what it computes. TITAN uses causal intervention, so its circuits carry a mechanism claim. The head-ranking work makes no such claim, and does not need one. In our view, call the first interpretability and the second smart sparsity. Both are useful."
+  ],
+  [
+   "h2",
+   {
+    "text": "Refusal sits on a direction that rewording can move",
+    "num": "07",
+    "id": "refusal-sits-on-a-direction-that-rewording-can-move"
+   }
+  ],
+  [
+   "p",
+   "Safety behaviour is internal too. A new arXiv paper on harmful code generation, SpecCloak, asked a narrow question. Does rewriting a malicious request as an engineering specification change refusal? It does. Across five open-weight models, «specification prompting substantially lowers refusal even when these keywords are retained». Stripping the risky keywords alone only partly reduced refusal."
+  ],
+  [
+   "p",
+   "The interpretability step is what makes this more than a jailbreak trick. The drop «accompanies consistent shifts toward code-output-related representations», and «interventions along condition-difference directions alter refusal behavior». A condition-difference direction is the average activation gap between the two phrasings. Push along it and refusal moves. That is causal evidence, the same standard the X-ray work held itself to."
+  ],
+  [
+   "p",
+   "The same finding powers an attack and a defense. The SpecCloak attack reached an average execution-verified success rate of 28.91% across eight target models. SpecReveal works by «combining natural-language intent reconstruction with dual-view detection without target-model fine-tuning», and flagged 96.88% of attacks in a separate prompt-detection test. We'd like to see that defense checked against the representation shift itself, not only against prompts."
+  ],
+  [
+   "h2",
+   {
+    "text": "Faithful explanations still lack a shared test",
+    "num": "08",
+    "id": "faithful-explanations-still-lack-a-shared-test"
+   }
+  ],
+  [
+   "p",
+   "Every result here is causal in some form: inpainting, ablation, steering, interventions along directions. That is real progress. What nobody has yet is a shared bar for when an explanation is complete. The X-ray head was verified causally and still invisible to outputs. The SAE features were real and still not additive. Both can be true at once."
+  ],
+  [
+   "p",
+   "Three gaps stand out. First, coverage: finding one circuit says nothing about how many others sit beside it. Second, composition: if pairwise terms matter, explanations grow fast as features multiply. Third, stability: a rephrased prompt can move the very features you were watching. Each gap makes a confident explanation easy to write and hard to trust."
+  ],
+  [
+   "p",
+   "What would settle it? Held-out variants, the way the RSS work tested on prompts it never selected from. Replication across architectures, as the X-ray authors did. Interventions on combinations, not single features. We think the field needs all three inside one shared benchmark, run on large production models, before anyone calls a model audited."
+  ],
+  [
+   "p",
+   "Until then, treat interpretability as a strong debugger and a weak certificate. Use it to find shortcuts and bent refusals that evals walk straight past. A clean feature report tells you what you looked at. It says nothing about the mechanism you never thought to look for, and that is the part still unsolved."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is mechanistic interpretability in simple terms?"
+  ],
+  [
+   "p",
+   "It is reverse-engineering a neural network: finding which internal parts compute a behaviour and proving it by changing them. The work locates candidate heads, features or circuits, then intervenes with ablation, inpainting or steering to see if behaviour moves. The goal is an explanation of how the model reaches an answer, beyond checking that the answer is right."
+  ],
+  [
+   "h3",
+   "What is a sparse autoencoder in interpretability?"
+  ],
+  [
+   "p",
+   "A sparse autoencoder is a small network that rewrites a model's activations as a few active features drawn from a large learned dictionary. Each feature ideally stands for one concept, so you can inspect, monitor or steer it. Recent work shows the catch: features can shift when a prompt is reworded, and their effects do not always add up."
+  ],
+  [
+   "h3",
+   "Can interpretability find problems that benchmarks miss?"
+  ],
+  [
+   "p",
+   "Yes, at least sometimes. In a study of chest X-ray Vision Transformers, one attention head read corner annotations instead of lung tissue, and ablating it barely changed outputs. Output-level evaluation could not see the shortcut. Interpretability found it by tracing attention and testing causes directly. The open question is how often such hidden mechanisms exist and how to find all of them."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Spurious Attention Heads in Vision Transformers: Mechanistic Identification of Annotation-Driven Bias in Medical Chest X-Ray Analysis",
+   "url": "https://arxiv.org/abs/2610.21638v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Behavioral Compositionality of Sparse Autoencoder Representations",
+   "url": "https://arxiv.org/abs/2610.21261v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Representation Redistribution in Sparse Autoencoders",
+   "url": "https://arxiv.org/abs/2610.21240v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Translation Circuit Discovery and Targeted Optimization for Low-Resource Multilingual Translation",
+   "url": "https://arxiv.org/abs/2610.21456v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Ranking and Partitioning of Attention Heads for Sparse and Continual Reinforcement Learning Fine-tuning",
+   "url": "https://arxiv.org/abs/2610.21336v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "SpecCloak: Probing Harmful Code Generation through Engineering Specifications",
+   "url": "https://arxiv.org/abs/2610.17907v1",
+   "posted": "2026-10-13"
+  }
+ ],
+ "cite": {
+  "a single attention head (L8H10) that functions as a dedicated annotation-reader on chest X-rays": 1,
+  "attending to corner text rather than lung pathology in 62% of 200 COVID-19 images": 1,
+  "Causal validation via inpainting confirms annotation content": 1,
+  "increasing lung attention 1.52 times upon removal in affected images": 1,
+  "Full fine-tuning does not suppress the behaviour and may entrench it": 1,
+  "98.4% of spurious images remain spurious": 1,
+  "a causally verified annotation-reading circuit is completely invisible to output-level evaluation": 1,
+  "Mechanistic auditing finds what behavioural testing cannot.": 1,
+  "represent model activations with sparse, linearly decoded features, but the downstream effects of those features need not compose additively": 2,
+  "prompt transformations designed to preserve the underlying request can redistribute activity across them": 3,
+  "A feature change observed on one transformed prompt need not recur": 3,
+  "even a recurring change need not affect a downstream computation": 3,
+  "identifies large feature responses that recur in a consistent direction": 3,
+  "Across 27 pretrained SAEs spanning eight language models": 3,
+  "without equating representation change with failure": 3,
+  "SAE Additivity Residuals (SAR), which measure the behavioral variation left unexplained above a chosen interaction order": 2,
+  "lower first order residuals for the learned coordinates across all 18 model and behavior settings": 2,
+  "The coordinates are nevertheless not fully additive": 2,
+  "pairwise modeling raises rank fidelity from 0.5874 to 0.7790": 2,
+  "faithful joint explanations and interventions still require interactions beyond individual feature effects": 2,
+  "restricts optimization to sparse, causally important circuits": 4,
+  "updating fewer than 5% of model parameters": 4,
+  "BLEU improvements of 33.75% on Hindi-to-Urdu and 45.86% on Hindi-to-Sindhi over the strongest multilingual baselines": 4,
+  "multilingual translation is implemented through sparse, structured circuits": 4,
+  "tuning higher-ranked heads consistently outperforms tuning lower-ranked ones while often matching denser baselines": 5,
+  "head partitioning improves retention while preserving adaptation to new tasks": 5,
+  "specification prompting substantially lowers refusal even when these keywords are retained": 6,
+  "accompanies consistent shifts toward code-output-related representations": 6,
+  "interventions along condition-difference directions alter refusal behavior": 6,
+  "combining natural-language intent reconstruction with dual-view detection without target-model fine-tuning": 6
+ },
+ "rel": [
+  [
+   "post:topic-explainer-concept-hallucination",
+   ""
+  ],
+  [
+   "post:topic-explainer-concept-tokenization",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:04:25+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21638v1",
+   "arxiv:2610.21456v1",
+   "arxiv:2610.21336v1",
+   "arxiv:2610.21240v1",
+   "arxiv:2610.17907v1",
+   "arxiv:2610.21261v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-synthesis:concept/interpretability",
+  "format": "topic-synthesis",
+  "reviewed_by": null
+ }
+}

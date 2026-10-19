@@ -198,7 +198,16 @@ def ending(record: dict, *, model_version_id: str) -> list[str]:
     verified = record.get("claims_verified")
     if verified is not None:
         back = f"{verified:,} claim(s) verified"
-        if record.get("claims_stored") is not None:
+        # BOARD ENTRIES FIRST, split by who they are about: `claims_stored` is
+        # the legacy table and 0 on every run since #502, so "N verified, 0
+        # stored" read as nothing kept. A record from before 2026-10-15 has no
+        # split and falls back to the old line.
+        if record.get("entries_stored") is not None:
+            back += (f", {record['entries_stored']:,} board entr(ies) stored - "
+                     f"{record.get('entries_about_model', 0):,} about this model, "
+                     f"{record.get('entries_about_others', 0):,} about other models "
+                     f"in the same threads")
+        elif record.get("claims_stored") is not None:
             back += f", {record['claims_stored']:,} stored"
         if record.get("cells_written"):
             back += f", {record['cells_written']:,} cell(s)"

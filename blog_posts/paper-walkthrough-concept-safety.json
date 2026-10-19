@@ -1,0 +1,418 @@
+{
+ "slug": "paper-walkthrough-concept-safety",
+ "status": "draft",
+ "tag": "Paper walkthrough",
+ "feat": false,
+ "title": "AI Safety at the Action Gate: Guardrails That Block for the Wrong Reasons",
+ "dek": "A new benchmark pairs the same agent action with and without permission, and finds many blocks are failed reviews. A second paper asks who pays for safety in the first place.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is prompt injection? Text that tricks an agent into actions nobody authorized. A new benchmark finds guardrails often block because their own review broke, and each fix shifts which valid requests get through.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+Cjx0aXRsZT5Ud28gaWRlbnRpY2FsIGFnZW50IGFjdGlvbnMgbWVldCBvbmUgZ3VhcmRyYWlsIGdhdGUsIG9uZSB3aXRoIGEgcmVhbCBrZXkgYW5kIG9uZSB3aXRoIGEgZm9yZ2VkIGtleTwvdGl0bGU+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwZDExMTciLz48L2xpbmVhckdyYWRpZW50PjxyYWRpYWxHcmFkaWVudCBpZD0iZ2wiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuNDUiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PG1hcmtlciBpZD0ibXciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiNlOGVkZjUiLz48L21hcmtlcj48bWFya2VyIGlkPSJtZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPjwvbWFya2VyPjxtYXJrZXIgaWQ9Im1yIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+PHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjZmY3YjcyIi8+PC9tYXJrZXI+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CjxlbGxpcHNlIGN4PSI2NDAiIGN5PSIzMTUiIHJ4PSIxNzAiIHJ5PSIyOTAiIGZpbGw9InVybCgjZ2wpIi8+CjxyZWN0IHg9IjYxMCIgeT0iNzAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI0OTAiIHJ4PSIxNiIgZmlsbD0iIzEwMTQxYiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiLz4KPGxpbmUgeDE9IjYyNCIgeTE9IjExMCIgeDI9IjY1NiIgeTI9IjExMCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNSIvPgo8bGluZSB4MT0iNjI0IiB5MT0iMTUwIiB4Mj0iNjU2IiB5Mj0iMTUwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CjxsaW5lIHgxPSI2MjQiIHkxPSIxOTAiIHgyPSI2NTYiIHkyPSIxOTAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjUiLz4KPGxpbmUgeDE9IjYyNCIgeTE9IjIzMCIgeDI9IjY1NiIgeTI9IjIzMCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNSIvPgo8bGluZSB4MT0iNjI0IiB5MT0iMjcwIiB4Mj0iNjU2IiB5Mj0iMjcwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CjxsaW5lIHgxPSI2MjQiIHkxPSIzMTAiIHgyPSI2NTYiIHkyPSIzMTAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjUiLz4KPGxpbmUgeDE9IjYyNCIgeTE9IjM1MCIgeDI9IjY1NiIgeTI9IjM1MCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNSIvPgo8bGluZSB4MT0iNjI0IiB5MT0iMzkwIiB4Mj0iNjU2IiB5Mj0iMzkwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CjxsaW5lIHgxPSI2MjQiIHkxPSI0MzAiIHgyPSI2NTYiIHkyPSI0MzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjUiLz4KPGxpbmUgeDE9IjYyNCIgeTE9IjQ3MCIgeDI9IjY1NiIgeTI9IjQ3MCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNSIvPgo8bGluZSB4MT0iNjI0IiB5MT0iNTEwIiB4Mj0iNjU2IiB5Mj0iNTEwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC41Ii8+CjxyZWN0IHg9IjkwIiB5PSIxNTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTIwIiByeD0iMTgiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxjaXJjbGUgY3g9IjE0NiIgY3k9IjIxMC4wIiByPSIyOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjQiLz4KPHRleHQgeD0iMTQ2IiB5PSIyMjEuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4kPC90ZXh0Pgo8cGF0aCBkPSJNMTg2IDIxMC4wIEwyNDAgMjEwLjAiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjbXcpIi8+CjxjaXJjbGUgY3g9IjMxMCIgY3k9IjIxMCIgcj0iMTQuMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiLz4KPGxpbmUgeDE9IjMyNC4wIiB5MT0iMjEwIiB4Mj0iMzY0LjAiIHkyPSIyMTAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGxpbmUgeDE9IjM1NC4wIiB5MT0iMjEwIiB4Mj0iMzU0LjAiIHkyPSIyMjIuMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8bGluZSB4MT0iMzQ0LjAiIHkxPSIyMTAiIHgyPSIzNDQuMCIgeTI9IjIxOS4wIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjMxMCIgY3k9IjIxMCIgcj0iNS4wIiBmaWxsPSIjM2VjZjhlIi8+CjxyZWN0IHg9IjkwIiB5PSIzNjAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTIwIiByeD0iMTgiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxjaXJjbGUgY3g9IjE0NiIgY3k9IjQyMC4wIiByPSIyOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjQiLz4KPHRleHQgeD0iMTQ2IiB5PSI0MzEuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4kPC90ZXh0Pgo8cGF0aCBkPSJNMTg2IDQyMC4wIEwyNDAgNDIwLjAiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjbXcpIi8+CjxjaXJjbGUgY3g9IjMxMCIgY3k9IjQyMCIgcj0iMTQuMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNSIvPgo8bGluZSB4MT0iMzI0LjAiIHkxPSI0MjAiIHgyPSIzNjQuMCIgeTI9IjQyMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWRhc2hhcnJheT0iNSA1Ii8+CjxsaW5lIHgxPSIzNTQuMCIgeTE9IjQyMCIgeDI9IjM1NC4wIiB5Mj0iNDMyLjAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNSIvPgo8bGluZSB4MT0iMzQ0LjAiIHkxPSI0MjAiIHgyPSIzNDQuMCIgeTI9IjQyOS4wIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtZGFzaGFycmF5PSI1IDUiLz4KPHBhdGggZD0iTTM5MCAyMTAgQzUwMCAyMTAgNTYwIDIxMCA2MDAgMjEwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik02ODAgMjEwIEM4MDAgMjEwIDkwMCAyMDAgMTA2MCAxOTAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjbWcpIi8+CjxwYXRoIGQ9Ik0zOTAgNDIwIEM0ODAgNDIwIDU0MCA0MjAgNTkwIDQyMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgbWFya2VyLWVuZD0idXJsKCNtcikiLz4KPGNpcmNsZSBjeD0iNTYwIiBjeT0iNDIwIiByPSIwIiBmaWxsPSJub25lIi8+CjxsaW5lIHgxPSI3MDAiIHkxPSIzOTUiIHgyPSI3NTAiIHkyPSI0NDUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGxpbmUgeDE9Ijc1MCIgeTE9IjM5NSIgeDI9IjcwMCIgeTI9IjQ0NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8Y2lyY2xlIGN4PSIxMTAwIiBjeT0iMTg4IiByPSIzMiIgZmlsbD0iIzEwMTQxYiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiLz4KPHBhdGggZD0iTTEwODYgMTg5IEwxMDk3IDIwMCBMMTExNiAxNzYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHRleHQgeD0iMjQwIiB5PSI1NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+c2FtZSBvcGVyYXRpb248L3RleHQ+Cjwvc3ZnPg==",
+  "alt": "Two identical payment actions approach one gate; the one with a solid key passes, the one with a dashed key is stopped.",
+  "caption": "The same operation with different permission is the test a guardrail has to pass.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is prompt injection, and do guardrails stop it for the right reasons? Two new AI safety papers on authorization checks and who pays for safety.",
+ "keywords": [
+  "what is prompt injection",
+  "AI safety and security",
+  "AI safety",
+  "AI guardrails",
+  "agent authorization",
+  "LLM guardrail evaluation"
+ ],
+ "kicker": "Paper walkthrough",
+ "tags": [
+  "AI safety",
+  "Paper walkthrough"
+ ],
+ "read": 7,
+ "decisions": [
+  "Log guardrail denials as reviewed or failed, never as one count.",
+  "Diff guardrail decisions per request after every format or model change.",
+  "Price a second reviewer in wrongly blocked valid requests before adding it.",
+  "Test guardrails with forged authorization evidence as well as missing evidence."
+ ],
+ "layout": "paper",
+ "arrangement": "b",
+ "special": {
+  "type": "results",
+  "title": "What was measured",
+  "items": [
+   {
+    "result": "Many blocked operations stem from failed reviews, not correct denials.",
+    "setup": "Guardrails placed in front of agent actions, with each decision scored for correctness, usability and resulting effect.",
+    "source": 2,
+    "ref": {
+     "title": "Same Operation, Different Permission: Evaluating Whether Guardrails Honor Authorization",
+     "url": "https://arxiv.org/abs/2610.16838v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Repairing the output format restores usable decisions but changes which authorized requests are honored.",
+    "setup": "The same requests tracked before and after a fix to the guardrail's output format.",
+    "source": 2,
+    "ref": {
+     "title": "Same Operation, Different Permission: Evaluating Whether Guardrails Honor Authorization",
+     "url": "https://arxiv.org/abs/2610.16838v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Adding a second reviewer removes some errors and also rejects valid authorization.",
+    "setup": "A second guardrail reviewer added to the pipeline, with each request tracked across the change.",
+    "source": 2,
+    "ref": {
+     "title": "Same Operation, Different Permission: Evaluating Whether Guardrails Honor Authorization",
+     "url": "https://arxiv.org/abs/2610.16838v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Downstream competition generally pushes downstream firms to invest more in safety than the industry-profit-optimal level.",
+    "setup": "A game-theoretic model of an AI supply chain with an upstream LLM provider and competing downstream firms.",
+    "source": 1,
+    "ref": {
+     "title": "Market Incentives for AI Safety Investment",
+     "url": "https://arxiv.org/abs/2610.21607v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "The upstream provider may underinvest, because it is not fully compensated for the surplus from safety investments.",
+    "setup": "The same model, comparing market-driven investment with the welfare-maximizing and industry-profit-maximizing levels.",
+    "source": 1,
+    "ref": {
+     "title": "Market Incentives for AI Safety Investment",
+     "url": "https://arxiv.org/abs/2610.21607v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Regulatory interventions shift participants' incentives, profits and the resulting level of model safety.",
+    "setup": "Different interventions analyzed inside the same model; the abstract does not say which works best.",
+    "source": 1,
+    "ref": {
+     "title": "Market Incentives for AI Safety Investment",
+     "url": "https://arxiv.org/abs/2610.21607v1",
+     "platform": "arXiv"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Authorization is the question a guardrail really answers",
+    "num": "01",
+    "id": "authorization-is-the-question-a-guardrail-really-answers"
+   }
+  ],
+  [
+   "p",
+   "A support agent with refund powers reads a ticket. Halfway down, the customer's own text tells it to refund the order and send the remaining balance to a new account. Nobody with authority approved that second part. The agent proposes the transfer anyway. It can't tell an instruction from data. Now something has to say no."
+  ],
+  [
+   "p",
+   "So what is prompt injection? It's an attack where text the model reads as data, such as a ticket, a web page or a tool result, carries instructions the model then follows. The usual defence is a guardrail: a checker, often another model, that reviews each action before it runs. Its real job is narrow. It must decide if this action, right now, is permitted."
+  ],
+  [
+   "p",
+   "A new arXiv paper on guardrails calls «deciding whether an action is authorized» a central safety problem for agents that «write code, move money and change records on behalf of users». Its authors add that «few evaluations ask whether their decisions follow authorization». We agree, and it reframes the topic. A guardrail that blocks everything is perfectly safe. It's also useless."
+  ],
+  [
+   "h2",
+   {
+    "text": "The same operation can be allowed or forbidden",
+    "num": "02",
+    "id": "the-same-operation-can-be-allowed-or-forbidden"
+   }
+  ],
+  [
+   "p",
+   "At the benchmark's core sits a contrast pair. Take one operation, our refund, and present it twice: once with valid authorization evidence, once without. A correct guardrail allows the first and blocks the second. The stated target is «blocking unauthorized actions while still allowing the same actions under valid permission». The action is identical. The answer isn't."
+  ],
+  [
+   "p",
+   "We went through how the benchmark is assembled. It «contrasts authorization evidence for the same operation in its language track», built from «expert-annotated natural-language scenarios with executed and verified operations». It also adds «externally sourced native-policy requests», which we take to mean requests governed by a system's own policy rules. Executed and verified is the part we like. Each operation really runs."
+  ],
+  [
+   "p",
+   "Scoring is three-sided. The benchmark «checks each decision for correctness, usability and resulting effect». Correctness asks if allow or deny was right. Usability asks if the decision could be acted on at all. Resulting effect asks what changed in the system. And it «tracks each request across guardrail changes», which turns out to be the most revealing design choice."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "One refund operation under three kinds of authorization evidence, and the decision a correct guardrail makes.",
+    "columns": [
+     "Request",
+     "Operation",
+     "Authorization evidence",
+     "Correct decision"
+    ],
+    "rows": [
+     [
+      "A",
+      "Refund the order to the card on file",
+      "Approval recorded by an authorized staff member",
+      "Allow"
+     ],
+     [
+      "B",
+      "Refund the order to the card on file",
+      "Approval claimed only inside the customer's text",
+      "Block"
+     ],
+     [
+      "C",
+      "Refund the order to the card on file",
+      "No approval anywhere",
+      "Block"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A blocked action is often a review that failed",
+    "num": "03",
+    "id": "a-blocked-action-is-often-a-review-that-failed"
+   }
+  ],
+  [
+   "p",
+   "Here's the headline finding, and it's a little embarrassing for the field. The experiments «show that many blocked operations stem from failed reviews, not correct denials». A failed review is a decision nobody really made. The guardrail ran, something broke, and the action stopped anyway. On a safety dashboard, that looks exactly like a win."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY4MCI+Cjx0aXRsZT5BIGJsb2NrZWQgY291bnQgbWl4ZXMgY29ycmVjdCBkZW5pYWxzIHdpdGggZmFpbGVkIHJldmlld3M8L3RpdGxlPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PC9saW5lYXJHcmFkaWVudD48bWFya2VyIGlkPSJtYSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgeiIgZmlsbD0iIzk1YTFiNCIvPjwvbWFya2VyPjxtYXJrZXIgaWQ9Im1nIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+PHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjM2VjZjhlIi8+PC9tYXJrZXI+PG1hcmtlciBpZD0ibXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiNmZjdiNzIiLz48L21hcmtlcj48bWFya2VyIGlkPSJtYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgeiIgZmlsbD0iIzdhYTJmZiIvPjwvbWFya2VyPjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjgwIiBmaWxsPSJ1cmwoI2JnKSIvPgo8cmVjdCB4PSI0MCIgeT0iMTUwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxjaXJjbGUgY3g9Ijc4IiBjeT0iMTk1IiByPSIxMS4yMDAwMDAwMDAwMDAwMDEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CjxsaW5lIHgxPSI4OS4yIiB5MT0iMTk1IiB4Mj0iMTIxLjIiIHkyPSIxOTUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGxpbmUgeDE9IjExMy4yIiB5MT0iMTk1IiB4Mj0iMTEzLjIiIHkyPSIyMDQuNiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8bGluZSB4MT0iMTA1LjIiIHkxPSIxOTUiIHgyPSIxMDUuMiIgeTI9IjIwMi4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9Ijc4IiBjeT0iMTk1IiByPSI0LjAiIGZpbGw9IiMzZWNmOGUiLz4KPHRleHQgeD0iMTQwIiB5PSIyMDQiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+dmFsaWQgcmVmdW5kPC90ZXh0Pgo8cmVjdCB4PSI0MCIgeT0iMzgwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxjaXJjbGUgY3g9Ijc4IiBjeT0iNDI1IiByPSIxMS4yMDAwMDAwMDAwMDAwMDEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtZGFzaGFycmF5PSI1IDUiLz4KPGxpbmUgeDE9Ijg5LjIiIHkxPSI0MjUiIHgyPSIxMjEuMiIgeTI9IjQyNSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWRhc2hhcnJheT0iNSA1Ii8+CjxsaW5lIHgxPSIxMTMuMiIgeTE9IjQyNSIgeDI9IjExMy4yIiB5Mj0iNDM0LjYiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNSIvPgo8bGluZSB4MT0iMTA1LjIiIHkxPSI0MjUiIHgyPSIxMDUuMiIgeTI9IjQzMi4yIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtZGFzaGFycmF5PSI1IDUiLz4KPHRleHQgeD0iMTQwIiB5PSI0MzQiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+Zm9yZ2VkIHJlZnVuZDwvdGV4dD4KPHJlY3QgeD0iMzgwIiB5PSIyMzAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTYwIiByeD0iMjAiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTQiLz4KPHJlY3QgeD0iMzgwIiB5PSIyMzAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTYwIiByeD0iMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9IjQ5MCIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPnJldmlld2VyPC90ZXh0Pgo8dGV4dCB4PSI0OTAiIHk9IjMzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiPnZlcmRpY3QgZm9ybWF0PC90ZXh0Pgo8cGF0aCBkPSJNMjcwIDE5NSBDMzMwIDE5NSAzNDAgMjcwIDM3NCAyODAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21nKSIvPgo8cGF0aCBkPSJNMjcwIDQyNSBDMzMwIDQyNSAzNDAgMzUwIDM3NCAzNDAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21yKSIvPgo8cGF0aCBkPSJNNjAwIDMxMCBDNjYwIDMxMCA2NTAgMTMwIDcyMCAxMzAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21nKSIvPgo8dGV4dCB4PSI3MzUiIHk9IjEzOCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj5hbGxvdzwvdGV4dD4KPHBhdGggZD0iTTYwMCAzMTAgQzY2MCAzMTAgNjUwIDMxMCA3MjAgMzEwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNtYikiLz4KPHRleHQgeD0iNzM1IiB5PSIzMTgiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3YWEyZmYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+ZGVueSwgcmV2aWV3ZWQ8L3RleHQ+CjxwYXRoIGQ9Ik02MDAgMzEwIEM2NjAgMzEwIDY1MCA0OTAgNzIwIDQ5MCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDgiIG1hcmtlci1lbmQ9InVybCgjbXIpIi8+Cjx0ZXh0IHg9IjczNSIgeT0iNDk4IiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPnVucGFyc2VkIHJlcGx5LCBkZW55PC90ZXh0Pgo8cGF0aCBkPSJNOTE1IDMxMCBMOTkwIDMxMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbWEpIi8+CjxwYXRoIGQ9Ik05ODUgNDgyIEMxMDYwIDQ3MCAxMDg1IDQyMCAxMDg1IDM1MiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbWEpIi8+CjxyZWN0IHg9IjEwMDAiIHk9IjI4MCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0Ii8+Cjx0ZXh0IHg9IjEwODUiIHk9IjMyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj5ibG9ja2VkPC90ZXh0Pgo8dGV4dCB4PSI2MDAiIHk9IjYzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj50d28gZGlmZmVyZW50IGV2ZW50cyBsYW5kIGluIG9uZSBudW1iZXI8L3RleHQ+Cjwvc3ZnPg==",
+    "alt": "Valid and forged refunds enter a reviewer; reviewed denials and unparsed replies both flow into one blocked box.",
+    "caption": "A fail-closed reviewer files real denials and broken reviews under the same blocked count.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "How does a review fail? The abstract points at output format. A common design has the reviewer model answer in a fixed structure, such as a small JSON verdict. If the reply doesn't parse, the wrapper fails closed and denies. That's a sane default. It also buries the failure inside your block count, as the sketch below shows."
+  ],
+  [
+   "p",
+   "Follow our refund pair through it. The forged request gets blocked, correctly. The valid request also gets blocked, because the reviewer's reply came back malformed. Your block rate looks great. Your customer gets no refund. We think every guardrail log should split denials into reviewed and failed. Without that split, a strict reviewer and a broken one look the same."
+  ],
+  [
+   "code",
+   {
+    "label": "A fail-closed guardrail wrapper that keeps failed reviews visible (illustrative)",
+    "language": "python",
+    "source": "import json\n\ndef review(action, evidence, call_reviewer):\n    raw = call_reviewer(action, evidence)   # the guardrail model's reply\n    try:\n        verdict = json.loads(raw)[\"decision\"]  # expects {\"decision\": \"allow\" | \"deny\"}\n    except (ValueError, KeyError, TypeError):\n        return {\"decision\": \"deny\", \"reason\": \"review_failed\"}   # fail closed\n    if verdict not in (\"allow\", \"deny\"):\n        return {\"decision\": \"deny\", \"reason\": \"review_failed\"}\n    return {\"decision\": verdict, \"reason\": \"reviewed\"}\n\n# Count reason=\"review_failed\" apart from reason=\"reviewed\",\n# or \"blocked\" quietly means two different things.\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Fixing the format moves the errors around",
+    "num": "04",
+    "id": "fixing-the-format-moves-the-errors-around"
+   }
+  ],
+  [
+   "p",
+   "The obvious repair is to fix the output format. The paper reports that «Repairing the output format restores usable decisions but changes which authorized requests are honored». Read that twice. The fix makes decisions usable. It doesn't make the same valid requests pass. So some requests flip one way, and others flip back."
+  ],
+  [
+   "p",
+   "That's why tracking each request across changes matters. An aggregate pass rate could stay flat and hide a full reshuffle underneath. Our valid refund might pass today and fail after the fix, with the headline number unmoved. If you only watch totals, you'll ship that regression without seeing it. Per-request diffs catch it."
+  ],
+  [
+   "p",
+   "Stacking guardrails has the same shape. The authors found that «adding a second reviewer removes some errors while rejecting valid authorization». Two reviewers in series act like an AND gate: an action runs only if both allow it. Each reviewer's false denials add up. You buy fewer wrongful allows with more wrongful blocks. In our view that trade needs a measured cost before it ships."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "A guardrail review pipeline and the points where its errors enter.",
+    "steps": [
+     "Agent proposes an action with its authorization evidence",
+     "Reviewer model reads the action and the evidence",
+     "Reviewer replies with a verdict in a fixed format",
+     "Parser reads the verdict; a failed parse defaults to deny",
+     "An optional second reviewer must also allow",
+     "The action runs or is denied"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The model provider may underinvest in safety",
+    "num": "05",
+    "id": "the-model-provider-may-underinvest-in-safety"
+   }
+  ],
+  [
+   "p",
+   "The second paper steps back from the gate to ask who pays for it. Safety, it argues, «depends not only on technical feasibility but also on the incentives of firms that develop and deploy these systems». The setting is a supply chain. An upstream LLM provider sells to competing downstream firms that build products on top."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+Cjx0aXRsZT5TYWZldHkgc3VycGx1cyBmbG93cyBkb3duc3RyZWFtLCBsaXR0bGUgb2YgaXQgcmV0dXJucyB0byB0aGUgdXBzdHJlYW0gcHJvdmlkZXI8L3RpdGxlPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PC9saW5lYXJHcmFkaWVudD48cmFkaWFsR3JhZGllbnQgaWQ9Imd2IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjQiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PG1hcmtlciBpZD0ibWEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiM5NWExYjQiLz48L21hcmtlcj48bWFya2VyIGlkPSJtZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPjwvbWFya2VyPjxtYXJrZXIgaWQ9Im1yIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+PHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjZmY3YjcyIi8+PC9tYXJrZXI+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NDAiIGZpbGw9InVybCgjYmcpIi8+CjxlbGxpcHNlIGN4PSI2MDAiIGN5PSIxMjAiIHJ4PSIzMDAiIHJ5PSIxMTAiIGZpbGw9InVybCgjZ3YpIi8+CjxyZWN0IHg9IjQyMCIgeT0iNjAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMTEwIiByeD0iMjAiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9IjYwMCIgeT0iMTA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPnVwc3RyZWFtIExMTSBwcm92aWRlcjwvdGV4dD4KPHRleHQgeD0iNjAwIiB5PSIxNDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+YmFzZSBtb2RlbCByb2J1c3RuZXNzPC90ZXh0Pgo8cmVjdCB4PSIxNDAiIHk9IjMzMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxMTAiIHJ4PSIyMCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTE5MCAzNTkgTDIxMiAzNjcgTDIxMiAzODcgQzIxMiA0MDEgMjAwIDQwOSAxOTAgNDE1IEMxODAgNDA5IDE2OCA0MDEgMTY4IDM4NyBMMTY4IDM2NyBaIiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjgiLz4KPHRleHQgeD0iMjMwIiB5PSIzNzgiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+cHJvZHVjdDwvdGV4dD4KPHRleHQgeD0iMjMwIiB5PSI0MTAiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+Z3VhcmRyYWlsPC90ZXh0Pgo8cGF0aCBkPSJNNjAwIDE3MiBDNjAwIDI1MCAyNjAgMjUwIDI2MCAzMjQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21hKSIvPgo8cmVjdCB4PSI0ODAiIHk9IjMzMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxMTAiIHJ4PSIyMCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTUzMCAzNTkgTDU1MiAzNjcgTDU1MiAzODcgQzU1MiA0MDEgNTQwIDQwOSA1MzAgNDE1IEM1MjAgNDA5IDUwOCA0MDEgNTA4IDM4NyBMNTA4IDM2NyBaIiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjgiLz4KPHRleHQgeD0iNTcwIiB5PSIzNzgiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+cHJvZHVjdDwvdGV4dD4KPHRleHQgeD0iNTcwIiB5PSI0MTAiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+Z3VhcmRyYWlsPC90ZXh0Pgo8cGF0aCBkPSJNNjAwIDE3MiBDNjAwIDI1MCA2MDAgMjUwIDYwMCAzMjQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21hKSIvPgo8cmVjdCB4PSI4MjAiIHk9IjMzMCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxMTAiIHJ4PSIyMCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTg3MCAzNTkgTDg5MiAzNjcgTDg5MiAzODcgQzg5MiA0MDEgODgwIDQwOSA4NzAgNDE1IEM4NjAgNDA5IDg0OCA0MDEgODQ4IDM4NyBMODQ4IDM2NyBaIiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjgiLz4KPHRleHQgeD0iOTEwIiB5PSIzNzgiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+cHJvZHVjdDwvdGV4dD4KPHRleHQgeD0iOTEwIiB5PSI0MTAiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+Z3VhcmRyYWlsPC90ZXh0Pgo8cGF0aCBkPSJNNjAwIDE3MiBDNjAwIDI1MCA5NDAgMjUwIDk0MCAzMjQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21hKSIvPgo8dGV4dCB4PSIxNDAiIHk9IjQ5MCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj5jb21wZXRpbmcgZG93bnN0cmVhbSBmaXJtczwvdGV4dD4KPHBhdGggZD0iTTYwMCA0NDYgTDYwMCA1MjAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI21nKSIvPgo8dGV4dCB4PSI2MDAiIHk9IjU1NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj5zdXJwbHVzIGZyb20gc2FmZXR5IGZsb3dzIGRvd248L3RleHQ+CjxwYXRoIGQ9Ik0xMDY1IDM4MCBDMTE1MCAzMDAgMTEwMCAxNDAgNzkwIDExOCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjQgMTIiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjbXIpIi8+Cjx0ZXh0IHg9IjEwMjUiIHk9IjIxMCIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj5ub3QgZnVsbHkgcGFpZCBiYWNrPC90ZXh0Pgo8L3N2Zz4=",
+    "alt": "An upstream provider feeds three downstream products with guardrails; benefit flows down, a dotted line back is thin.",
+    "caption": "In the market model, safety benefits flow downstream and the upstream provider is not fully paid for them.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Its method is a game-theoretic model, where each firm picks a safety investment to maximize its own profit. The paper derives the market outcome and compares it with two benchmarks, the welfare-maximizing and industry-profit-maximizing levels. The first result is mildly cheering. In the model, «downstream competition generally induces downstream firms to invest more in safety than the industry-profit-optimal level»."
+  ],
+  [
+   "p",
+   "The second result is the one that bites: «the upstream provider may underinvest relative to these benchmarks because it is not fully compensated for the surplus from safety investments». Map that onto our refund agent. The guardrail sits downstream, where competition rewards care. Resistance to injected instructions lives partly in the base model, upstream. That's exactly where the model says spending may fall short."
+  ],
+  [
+   "h2",
+   {
+    "text": "Neither paper puts a guardrail under live attack",
+    "num": "06",
+    "id": "neither-paper-puts-a-guardrail-under-live-attack"
+   }
+  ],
+  [
+   "p",
+   "Here's what's left unshown. The authorization benchmark tests if guardrails honor permission, as far as its abstract describes. It never says the evidence was adversarial. Prompt injection is adversarial evidence by definition: forged approvals, planted instructions, fake policy text. A guardrail could ace the contrast pairs and still fold when the permission is faked well."
+  ],
+  [
+   "p",
+   "The market paper is a model, not a measurement. It also analyzes «how different regulatory interventions affect the participants' incentives and profits», but the abstract doesn't say which intervention wins. We'd want its predictions checked against real safety spending. Until then, treat the upstream shortfall as a hypothesis with a clean mechanism behind it."
+  ],
+  [
+   "p",
+   "One experiment would settle it, and it's easy to state. Take the same-operation pairs and add a third arm, where the authorization evidence is forged inside retrieved text. Track each request across guardrail changes, as the benchmark already does. Report stops and let-throughs separately. The paper's closing line sets the bar: judge guardrails on «both the unauthorized actions they stop and the authorized actions they let through»."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is prompt injection in AI?"
+  ],
+  [
+   "p",
+   "Prompt injection is an attack where text an AI model reads as data carries instructions the model then follows. The text can hide in an email, a web page, a ticket or a tool result. For an agent that can act, the risk is an action nobody authorized, such as a transfer or a deleted record."
+  ],
+  [
+   "h3",
+   "How do AI guardrails stop prompt injection?"
+  ],
+  [
+   "p",
+   "A guardrail reviews each proposed action and blocks the ones that lack valid authorization. It is often a separate model placed in front of the agent's tools. A new benchmark finds «many blocked operations stem from failed reviews, not correct denials», so a high block rate can hide broken reviews as well as real catches."
+  ],
+  [
+   "h3",
+   "Why do companies underinvest in AI safety?"
+  ],
+  [
+   "p",
+   "One economic model says the provider at the top of the supply chain may underinvest because it does not capture the full benefit. In that game-theoretic paper, «the upstream provider may underinvest relative to these benchmarks because it is not fully compensated for the surplus from safety investments». Downstream firms facing competition tend to invest more."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Same Operation, Different Permission: Evaluating Whether Guardrails Honor Authorization",
+   "url": "https://arxiv.org/abs/2610.16838v1",
+   "posted": "2026-10-12"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Market Incentives for AI Safety Investment",
+   "url": "https://arxiv.org/abs/2610.21607v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "deciding whether an action is authorized": 1,
+  "write code, move money and change records on behalf of users": 1,
+  "few evaluations ask whether their decisions follow authorization": 1,
+  "blocking unauthorized actions while still allowing the same actions under valid permission": 1,
+  "contrasts authorization evidence for the same operation in its language track": 1,
+  "expert-annotated natural-language scenarios with executed and verified operations": 1,
+  "externally sourced native-policy requests": 1,
+  "checks each decision for correctness, usability and resulting effect": 1,
+  "tracks each request across guardrail changes": 1,
+  "show that many blocked operations stem from failed reviews, not correct denials": 1,
+  "Repairing the output format restores usable decisions but changes which authorized requests are honored": 1,
+  "adding a second reviewer removes some errors while rejecting valid authorization": 1,
+  "depends not only on technical feasibility but also on the incentives of firms that develop and deploy these systems": 2,
+  "downstream competition generally induces downstream firms to invest more in safety than the industry-profit-optimal level": 2,
+  "the upstream provider may underinvest relative to these benchmarks because it is not fully compensated for the surplus from safety investments": 2,
+  "how different regulatory interventions affect the participants' incentives and profits": 2,
+  "both the unauthorized actions they stop and the authorized actions they let through": 1,
+  "many blocked operations stem from failed reviews, not correct denials": 1
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:44:51+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21607v1",
+   "arxiv:2610.16838v1"
+  ],
+  "platforms": {
+   "arXiv": 2
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "paper-walkthrough:concept/safety",
+  "format": "paper-walkthrough",
+  "reviewed_by": null
+ }
+}

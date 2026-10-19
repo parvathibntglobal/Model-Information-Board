@@ -132,7 +132,23 @@ api-fields.json
 /model_only_sweep.jsonl
 /model_only_sweep_corrected.jsonl
 
-# GENERATED BLOG DRAFTS (2026-10-14). The generator writes into the checkout it
-# runs from, and a draft can carry Reddit and X embeds, which never go into this
-# repo. Approved posts live in the database (blog_post), not in files.
+# GENERATED BLOG POSTS (2026-10-14; reworded 2026-10-16 by anooj).
+#
+# blog_posts/  The generator writes a post file into the checkout it runs from,
+#              on every run. The directory stays ignored so a run never stages
+#              one by accident. Posts ARE committed, on purpose and by name
+#              (`git add -f blog_posts/<slug>.json`), once they are written.
+#              That includes posts carrying Reddit or X embeds: the
+#              official-embed form was agreed on 2026-10-13
+#              (contract/publication.yaml derived_posts.embed_only). An embed is
+#              the platform's own post address, rendered by the platform's own
+#              script; no Reddit or X text is quoted in our prose. The database
+#              (blog_post) remains the source of truth for each post's state:
+#              pending, approved or rejected.
+#
+# blog_packs/  NEVER committed. A writing pack holds the full text of every
+#              source discussion the post was written from (Reddit and X
+#              threads included), which is harvested platform content, not
+#              something we publish.
 blog_posts/
+blog_packs/

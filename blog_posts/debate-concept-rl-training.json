@@ -1,0 +1,452 @@
+{
+ "slug": "debate-concept-rl-training",
+ "status": "draft",
+ "tag": "Debate",
+ "feat": false,
+ "title": "Reinforcement Learning for LLMs Sharpens Answers and Can Shrink the Repertoire",
+ "dek": "Does RL post-training teach a model new skills, or trim it down to the answers that already scored? We give each camp its best evidence, then say where we land.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is reinforcement learning with verifiable rewards? Training on answers a program can check. It sharpens accuracy and can narrow the solutions a model finds; new skills appear when the reward carries new information.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjQ1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9ImJlYW0iIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iNjg2IiB5MT0iMCIgeDI9IjEwODAiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhNzhiZmEiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiLz48L2xpbmVhckdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9ImxlbnMiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4xNSIvPjxzdG9wIG9mZnNldD0iMC41IiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4xNSIvPjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgo8ZWxsaXBzZSBjeD0iNjQwIiBjeT0iMzE1IiByeD0iMjYwIiByeT0iMjYwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwyNjQuMCAzMDAsNjAuMCA0MjAsNjAuMCBTNTIwLDE2NS4wIDYyMCwxNjUuMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjQyMCIgY3k9IjYwIiByPSI3IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjkiLz4KPHBhdGggZD0iTTkwLDMxNSBDMjcwLDI3MC4zNzUgMzAwLDkxLjg3NSA0MjAsOTEuODc1IFM1MjAsMTgzLjc1IDYyMCwxODMuNzUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjciIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8Y2lyY2xlIGN4PSI0MjAiIGN5PSI5MiIgcj0iNyIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC45Ii8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwyNzYuNzUgMzAwLDEyMy43NSA0MjAsMTIzLjc1IFM1MjAsMjAyLjUgNjIwLDIwMi41IiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iNDIwIiBjeT0iMTI0IiByPSI3IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjkiLz4KPHBhdGggZD0iTTkwLDMxNSBDMjcwLDI4My4xMjUgMzAwLDE1NS42MjUgNDIwLDE1NS42MjUgUzUyMCwyMjEuMjUgNjIwLDIyMS4yNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjQyMCIgY3k9IjE1NiIgcj0iNyIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC45Ii8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwyODkuNSAzMDAsMTg3LjUgNDIwLDE4Ny41IFM1MjAsMjQwLjAgNjIwLDI0MC4wIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iNDIwIiBjeT0iMTg4IiByPSI3IiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjkiLz4KPHBhdGggZD0iTTkwLDMxNSBDMjcwLDI5NS44NzUgMzAwLDIxOS4zNzUgNDIwLDIxOS4zNzUgUzUyMCwyNTguNzUgNjIwLDI1OC43NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjQyMCIgY3k9IjIxOSIgcj0iNyIgZmlsbD0iIzk1YTFiNCIgb3BhY2l0eT0iMC45Ii8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwzMDIuMjUgMzAwLDI1MS4yNSA0MjAsMjUxLjI1IFM1MjAsMjc3LjUgNjIwLDI3Ny41IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iNDIwIiBjeT0iMjUxIiByPSI3IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjkiLz4KPHBhdGggZD0iTTkwLDMxNSBDMjcwLDMwOC42MjUgMzAwLDI4My4xMjUgNDIwLDI4My4xMjUgUzUyMCwyOTYuMjUgNjIwLDI5Ni4yNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjQyMCIgY3k9IjI4MyIgcj0iNyIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC45Ii8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwzMTUuMCAzMDAsMzE1LjAgNDIwLDMxNS4wIFM1MjAsMzE1LjAgNjIwLDMxNS4wIiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iNDIwIiBjeT0iMzE1IiByPSI3IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjkiLz4KPHBhdGggZD0iTTkwLDMxNSBDMjcwLDMyMS4zNzUgMzAwLDM0Ni44NzUgNDIwLDM0Ni44NzUgUzUyMCwzMzMuNzUgNjIwLDMzMy43NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjQyMCIgY3k9IjM0NyIgcj0iNyIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC45Ii8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwzMjcuNzUgMzAwLDM3OC43NSA0MjAsMzc4Ljc1IFM1MjAsMzUyLjUgNjIwLDM1Mi41IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iNDIwIiBjeT0iMzc5IiByPSI3IiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjkiLz4KPHBhdGggZD0iTTkwLDMxNSBDMjcwLDMzNC4xMjUgMzAwLDQxMC42MjUgNDIwLDQxMC42MjUgUzUyMCwzNzEuMjUgNjIwLDM3MS4yNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjQyMCIgY3k9IjQxMSIgcj0iNyIgZmlsbD0iIzk1YTFiNCIgb3BhY2l0eT0iMC45Ii8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwzNDAuNSAzMDAsNDQyLjUgNDIwLDQ0Mi41IFM1MjAsMzkwLjAgNjIwLDM5MC4wIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iNDIwIiBjeT0iNDQyIiByPSI3IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjkiLz4KPHBhdGggZD0iTTkwLDMxNSBDMjcwLDM0Ni44NzUgMzAwLDQ3NC4zNzUgNDIwLDQ3NC4zNzUgUzUyMCw0MDguNzUgNjIwLDQwOC43NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjQyMCIgY3k9IjQ3NCIgcj0iNyIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC45Ii8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwzNTMuMjUgMzAwLDUwNi4yNSA0MjAsNTA2LjI1IFM1MjAsNDI3LjUgNjIwLDQyNy41IiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iNDIwIiBjeT0iNTA2IiByPSI3IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjkiLz4KPHBhdGggZD0iTTkwLDMxNSBDMjcwLDM1OS42MjUgMzAwLDUzOC4xMjUgNDIwLDUzOC4xMjUgUzUyMCw0NDYuMjUgNjIwLDQ0Ni4yNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjQyMCIgY3k9IjUzOCIgcj0iNyIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC45Ii8+CjxwYXRoIGQ9Ik05MCwzMTUgQzI3MCwzNjYuMCAzMDAsNTcwLjAgNDIwLDU3MC4wIFM1MjAsNDY1LjAgNjIwLDQ2NS4wIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iNDIwIiBjeT0iNTcwIiByPSI3IiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjkiLz4KPGVsbGlwc2UgY3g9IjY0MCIgY3k9IjMxNSIgcng9IjQ2IiByeT0iMjAwIiBmaWxsPSJ1cmwoI2xlbnMpIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSI2NDAiIHk9IjMzMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ4IiBmb250LXdlaWdodD0iODAwIiBmaWxsPSIjZThlZGY1Ij5STDwvdGV4dD4KPHBhdGggZD0iTTY4NiwzMTUgTDEwNjYsMzE1IiBzdHJva2U9InVybCgjYmVhbSkiIHN0cm9rZS13aWR0aD0iMTYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNNjg2LDMxNSBMMTA2NiwzMTUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8Y2lyY2xlIGN4PSIxMTAwIiBjeT0iMzE1IiByPSIzMCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CjxwYXRoIGQ9Ik0xMDg2LDMxNSBMMTA5NywzMjYgTDExMTYsMzAzIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik02MjAsMTY1IEM3NjAsMTA1IDkwMCwxMzUgMTA2MCwxNjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjM1IiBzdHJva2UtZGFzaGFycmF5PSI2IDEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTYyMCw0NjUgQzc2MCw1MjUgOTAwLDQ5NSAxMDYwLDQ2NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuMzUiIHN0cm9rZS1kYXNoYXJyYXk9IjYgMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8Y2lyY2xlIGN4PSIxMDYwIiBjeT0iMTY1IiByPSI4IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjQ1Ii8+PGNpcmNsZSBjeD0iMTA2MCIgY3k9IjQ2NSIgcj0iOCIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC40NSIvPgo8Y2lyY2xlIGN4PSI5MCIgY3k9IjMxNSIgcj0iMTgiIGZpbGw9IiNlOGVkZjUiLz4KPC9zdmc+",
+  "alt": "A wide fan of solution paths enters a lens and leaves as one bright beam, with two faint paths slipping past.",
+  "caption": "RL post-training focuses a model on what scores, and the open question is what it loses on the way.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is reinforcement learning with verifiable rewards, and does it teach LLMs new skills or narrow them? A debate on diversity, teachers and contamination.",
+ "keywords": [
+  "what is reinforcement learning with verifiable rewards",
+  "reinforcement learning for language models",
+  "reinforcement learning for LLMs",
+  "RLVR",
+  "GRPO",
+  "pass@k diversity",
+  "RLVR data decontamination"
+ ],
+ "kicker": "Debate",
+ "tags": [
+  "reinforcement learning for LLMs",
+  "Debate"
+ ],
+ "read": 7,
+ "decisions": [
+  "Track pass@k and distinct strategies beside accuracy",
+  "Put outside knowledge into the reward when you want new skills",
+  "Audit a contamination screen before trusting its removals",
+  "Add a replay archive when several correct solutions matter"
+ ],
+ "layout": "debate",
+ "arrangement": "a",
+ "special": {
+  "type": "positions",
+  "title": "Two sides",
+  "items": [
+   {
+    "side": "RL only sharpens",
+    "case": "Verifiable rewards push probability onto answers the base model could already give, so accuracy rises and the range of correct solutions narrows.",
+    "weakness": "Tool choice learned from a tree teacher and a memory policy that transfers to unseen domains look like new behaviour."
+   },
+   {
+    "side": "RL teaches new skills",
+    "case": "With a teacher or task feedback in the reward, a 4B agent beat conventional ML baselines and a learned memory policy transferred to new executors.",
+    "weakness": "Those rewards import knowledge from outside, so they say little about what a bare pass/fail checker can teach."
+   },
+   {
+    "side": "Gains are leakage",
+    "case": "Benchmark overlap in RLVR math training data could inflate scores, so every reported gain needs a contamination screen.",
+    "weakness": "At cosine threshold 0.80, 52 of 59 sampled removals were false, and recall says nothing outside the candidate frame."
+   },
+   {
+    "side": "Keep diversity on purpose",
+    "case": "Pair GRPO with a replay loss on an elite archive, and pass@128 rises with up to 77% more distinct correct strategies.",
+    "weakness": "Shown on text-to-SQL, and the archive comes from the base model, so it preserves breadth instead of adding it."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "The real argument is about skills gained or skills trimmed",
+    "num": "01",
+    "id": "the-real-argument-is-about-skills-gained-or-skills-trimmed"
+   }
+  ],
+  [
+   "p",
+   "Put the question to people who train models and the answers split. One camp says RL post-training teaches a model to reason. The other says it mostly trims away answers the model could already give, keeping whichever ones score. Both camps have evidence, and they talk past each other. So here's the question we'll argue: does reinforcement learning add skills to a language model, or narrow the ones it had?"
+  ],
+  [
+   "p",
+   "First, the machinery. What is reinforcement learning with verifiable rewards? RLVR samples several answers to a prompt, runs a program that checks each one, and pushes probability toward the ones that pass. GRPO, group-relative policy optimisation, is the usual optimiser. It scores each answer against its siblings' average, so no separate value model is needed. The reward is cheap, honest and blunt."
+  ],
+  [
+   "p",
+   "Here's the example we'll carry through. Picture a text-to-SQL prompt asking for last month's top customers. Sampled many times, a base model writes it several ways: a join, a subquery, a window function. All pass the checker. Now suppose that after RL it writes the join every time. Accuracy is up. Did the model learn anything, or did it forget two good ideas?"
+  ],
+  [
+   "h2",
+   {
+    "text": "Sharpening is real, and diversity is what it costs",
+    "num": "02",
+    "id": "sharpening-is-real-and-diversity-is-what-it-costs"
+   }
+  ],
+  [
+   "p",
+   "The sharpening camp has a clean statement of its worry. A new arXiv paper on EliteReplay warns that RL post-training «can narrow the set of solutions the model can produce». The authors note that «Several approaches have attempted to address this behavior-sharpening effect». Their complaint about those fixes is pointed: they «often optimize metrics that do not reflect the diversity of correct solutions»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwLjI1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8bWFya2VyIGlkPSJhbSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPjwvbWFya2VyPgo8bWFya2VyIGlkPSJheSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2UzYjM0MSIvPjwvbWFya2VyPgo8bWFya2VyIGlkPSJhYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzdhYTJmZiIvPjwvbWFya2VyPgo8L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KPHRleHQgeD0iNDAiIHk9IjUyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlM2IzNDEiPmJlZm9yZSB0cmFpbmluZzwvdGV4dD4KPHRleHQgeD0iNDAiIHk9IjM3MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjN2FhMmZmIj5kdXJpbmcgdHJhaW5pbmc8L3RleHQ+CjxsaW5lIHgxPSI0MCIgeTE9IjMzMCIgeDI9IjExNjAiIHkyPSIzMzAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDgiLz4KPHJlY3QgeD0iNDAiIHk9IjkwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjExMCIgcng9IjE2IiBmaWxsPSIjOTVhMWI0IiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPHRleHQgeD0iMTc1LjAiIHk9IjE0NS4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjciIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPmZyb3plbiBiYXNlIG1vZGVsPC90ZXh0Pgo8dGV4dCB4PSIxNzUuMCIgeT0iMTc3LjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+cXVhbGl0eS1kaXZlcnNpdHkgc2VhcmNoPC90ZXh0Pgo8ZWxsaXBzZSBjeD0iNjEwIiBjeT0iMTcwIiByeD0iMjYwIiByeT0iMTQwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CjxyZWN0IHg9IjQyMCIgeT0iODAiIHdpZHRoPSIzODAiIGhlaWdodD0iMTkwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9IjYxMCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlM2IzNDEiPmVsaXRlIGFyY2hpdmU8L3RleHQ+CjxjaXJjbGUgY3g9IjQ5MCIgY3k9IjE2MCIgcj0iMjYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMSIvPgo8cG9seWdvbiBwb2ludHM9IjU1MCwxMzQgNTc2LDE4MiA1MjQsMTgyIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMyIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIG9wYWNpdHk9IjEiLz4KPHJlY3QgeD0iNTg3IiB5PSIxMzciIHdpZHRoPSI0NiIgaGVpZ2h0PSI0NiIgcng9IjYiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMSIvPgo8cG9seWdvbiBwb2ludHM9IjY3MCwxMzQgNjk2LDE2MCA2NzAsMTg2IDY0NCwxNjAiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgb3BhY2l0eT0iMSIvPgo8cG9seWdvbiBwb2ludHM9Ijc1NiwxNjAgNzQzLDE4MyA3MTcsMTgzIDcwNCwxNjAgNzE3LDEzNyA3NDMsMTM3IiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMyIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIG9wYWNpdHk9IjEiLz4KPHBhdGggZD0iTTMxMCwxNDUgTDQxMCwxNDUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CjxyZWN0IHg9IjQwIiB5PSI0MjAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTAwIiByeD0iMTYiIGZpbGw9IiM5NWExYjQiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8dGV4dCB4PSIxNzUuMCIgeT0iNDcwLjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNyIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSI+Y2hlY2tlciByZXdhcmQ8L3RleHQ+Cjx0ZXh0IHg9IjE3NS4wIiB5PSI1MDIuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5wYXNzIG9yIGZhaWw8L3RleHQ+CjxyZWN0IHg9IjQ0MCIgeT0iNDEwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPHRleHQgeD0iNjEwLjAiIHk9IjQ4MC4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjciIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPkdSUE8gdXBkYXRlPC90ZXh0Pgo8cGF0aCBkPSJNMzEwLDQ3MCBMNDMwLDQ3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMuNSIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhbSkiLz4KPHBhdGggZD0iTTYxMCwyNzIgTDYxMCw0MDAiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2F5KSIvPgo8dGV4dCB4PSI2MzAiIHk9IjM1MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZTNiMzQxIj5yZXBsYXkgbG9zczwvdGV4dD4KPHBhdGggZD0iTTc4MCw0NzAgTDg4MCw0NzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYWIpIi8+CjxyZWN0IHg9Ijg5MCIgeT0iMzkwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjE2MCIgcng9IjE4IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPGNpcmNsZSBjeD0iOTM1IiBjeT0iNDUwIiByPSIxOCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIxIi8+Cjxwb2x5Z29uIHBvaW50cz0iOTgwLDQzMiA5OTgsNDY0IDk2Miw0NjQiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgb3BhY2l0eT0iMSIvPgo8cmVjdCB4PSIxMDEwIiB5PSI0MzUiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgcng9IjYiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMSIvPgo8cG9seWdvbiBwb2ludHM9IjEwNzAsNDMyIDEwODgsNDUwIDEwNzAsNDY4IDEwNTIsNDUwIiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIG9wYWNpdHk9IjAuMzUiLz4KPHBvbHlnb24gcG9pbnRzPSIxMTMzLDQ1MCAxMTI0LDQ2NiAxMTA2LDQ2NiAxMDk3LDQ1MCAxMTA2LDQzNCAxMTI0LDQzNCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjMiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBvcGFjaXR5PSIxIi8+Cjx0ZXh0IHg9IjEwMjUiIHk9IjUyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIzIiBmaWxsPSIjM2VjZjhlIj5zdHJhdGVnaWVzIGtlcHQ8L3RleHQ+Cjwvc3ZnPg==",
+    "alt": "A frozen base model fills an archive with distinct solution shapes that replay into GRPO training beside the reward.",
+    "caption": "EliteReplay keeps diversity by replaying an archive gathered before training, not by asking the reward for it.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "quote",
+   "preserving more of the base model's solution diversity"
+  ],
+  [
+   "p",
+   "The measure that exposes it is pass@k. Sample k answers and count the task solved if any one passes. Single-sample accuracy rewards one reliable path. Pass@128 rewards a model that still has many. On text-to-SQL, EliteReplay «achieves a higher pass@128 than all baselines, producing up to 77% more distinct correct strategies than the strongest baselines». The diversity was there to save."
+  ],
+  [
+   "p",
+   "We retraced the recipe. Before training, the frozen base model is mined to «collect solutions that span distinct approaches», and the best go into an elite archive. Then «during training, GRPO is combined with a replay loss on this archive». So the model keeps practising strategies its reward alone would let wither. On ambiguous questions it «covers both interpretations nearly twice as often as the strongest baseline on AmbiQT»."
+  ],
+  [
+   "p",
+   "We think the sharpening camp is right about the default. A plain pass/fail reward has no term for variety. Nothing in it resists collapse. And notice what the fix needed: an outside source of diversity, gathered before training began. The reward never asked for it."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "EliteReplay against the strongest baselines on text-to-SQL and ambiguous questions.",
+    "columns": [
+     "Measure",
+     "EliteReplay result"
+    ],
+    "rows": [
+     [
+      "pass@128 on text-to-SQL",
+      "Higher than all baselines"
+     ],
+     [
+      "Distinct correct strategies",
+      "Up to 77% more than the strongest baselines"
+     ],
+     [
+      "Both readings of an ambiguous AmbiQT question",
+      "Covered nearly twice as often"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A teacher inside the reward can teach what a checker cannot",
+    "num": "03",
+    "id": "a-teacher-inside-the-reward-can-teach-what-a-checker-cannot"
+   }
+  ],
+  [
+   "p",
+   "Now the other camp's strongest card. A new arXiv paper on TIR-EC starts from an awkward fact about health-record prediction: «most existing LLMs still fall short of conventional ML methods like trees». The authors trace the gap to models that «do not select informative features» and misjudge what numbers imply for risk. That's not a formatting problem. It's missing skill."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY4MCI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjI1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8bWFya2VyIGlkPSJhbSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPjwvbWFya2VyPgo8bWFya2VyIGlkPSJhZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPjwvbWFya2VyPgo8bWFya2VyIGlkPSJhYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzdhYTJmZiIvPjwvbWFya2VyPgo8L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY4MCIgZmlsbD0idXJsKCNiZykiLz4KPHJlY3QgeD0iNDAiIHk9IjE1MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIxMzAiIHJ4PSIxOCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE2IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSIxNjUiIHk9IjIwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij40QiBhZ2VudDwvdGV4dD4KPHRleHQgeD0iMTY1IiB5PSIyNDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+dGhlIHBvbGljeTwvdGV4dD4KPHRleHQgeD0iNDcwIiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1Ij5mZWF0dXJlIGdyb3VwcyBhcyB0b29sczwvdGV4dD4KPHJlY3QgeD0iMzgwIiB5PSI5MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI1MiIgcng9IjI2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjx0ZXh0IHg9IjQ3MCIgeT0iMTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+Y2FsbCgpPC90ZXh0Pgo8cGF0aCBkPSJNMjkwLDIxNSBDMzMwLDIxNSAzNDAsMTE2IDM3NCwxMTYiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FiKSIvPgo8cmVjdCB4PSIzODAiIHk9IjE2MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI1MiIgcng9IjI2IiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDcwIiB5PSIxOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5za2lwPC90ZXh0Pgo8cmVjdCB4PSIzODAiIHk9IjIzMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI1MiIgcng9IjI2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjx0ZXh0IHg9IjQ3MCIgeT0iMjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+Y2FsbCgpPC90ZXh0Pgo8cGF0aCBkPSJNMjkwLDIxNSBDMzMwLDIxNSAzNDAsMjU2IDM3NCwyNTYiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FiKSIvPgo8cmVjdCB4PSIzODAiIHk9IjMwMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI1MiIgcng9IjI2IiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDcwIiB5PSIzMzQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5za2lwPC90ZXh0Pgo8ZWxsaXBzZSBjeD0iOTAwIiBjeT0iMTkwIiByeD0iMjIwIiByeT0iMTUwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CjxsaW5lIHgxPSI5MDAiIHkxPSI5MCIgeDI9IjgzMCIgeTI9IjE3MCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjkwMCIgeTE9IjkwIiB4Mj0iOTcwIiB5Mj0iMTcwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iODMwIiB5MT0iMTcwIiB4Mj0iNzkwIiB5Mj0iMjUwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iODMwIiB5MT0iMTcwIiB4Mj0iODcwIiB5Mj0iMjUwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iOTcwIiB5MT0iMTcwIiB4Mj0iOTMwIiB5Mj0iMjUwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iOTcwIiB5MT0iMTcwIiB4Mj0iMTAxMCIgeTI9IjI1MCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KPGNpcmNsZSBjeD0iOTAwIiBjeT0iOTAiIHI9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSI4MzAiIGN5PSIxNzAiIHI9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSI5NzAiIGN5PSIxNzAiIHI9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSI3OTAiIGN5PSIyNTAiIHI9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSI4NzAiIGN5PSIyNTAiIHI9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSI5MzAiIGN5PSIyNTAiIHI9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSIxMDEwIiBjeT0iMjUwIiByPSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iOTAwIiB5PSIzMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSI+dHJlZSB0ZWFjaGVyPC90ZXh0Pgo8cmVjdCB4PSI2NDAiIHk9IjM2MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSI5MDAiIHk9IjQwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI3IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1Ij5yZXdhcmQ8L3RleHQ+Cjx0ZXh0IHg9IjkwMCIgeT0iNDQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnJpZ2h0IHRvb2xzPyByaXNrIGNsb3NlIHRvIHRoZSBncmFkZWQgdGFyZ2V0PzwvdGV4dD4KPHBhdGggZD0iTTkwMCwzMjIgTDkwMCwzNTIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYWcpIi8+CjxwYXRoIGQ9Ik01NjUsMjQwIEM2MTAsMzAwIDYwMCw0MDAgNjMyLDQxMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CjxwYXRoIGQ9Ik02NDAsNDMwIEM0NTAsNDUwIDIyMCw0MjAgMTY1LDI5MiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMuNSIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KPHRleHQgeD0iMzMwIiB5PSI0NzAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzNlY2Y4ZSI+dXBkYXRlIHRoZSBwb2xpY3k8L3RleHQ+Cjx0ZXh0IHg9IjQwIiB5PSI1NDAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSI+cmV2ZXJzZSBjdXJyaWN1bHVtPC90ZXh0Pgo8cmVjdCB4PSIzMzAiIHk9IjUxMCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8cmVjdCB4PSIzNTAiIHk9IjUzMCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSIzNCIgcng9IjgiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4zNSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utb3BhY2l0eT0iMS4wIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNDU1IiB5PSI1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMS4wIj5za2lsbHMgaW4gcHJvbXB0PC90ZXh0Pgo8dGV4dCB4PSI0NTUiIHk9IjYwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5lYXJseTwvdGV4dD4KPHBhdGggZD0iTTU4Miw1NzAgTDYwNiw1NzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FtKSIvPgo8cmVjdCB4PSI2MTAiIHk9IjUxMCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8cmVjdCB4PSI2MzAiIHk9IjUzMCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSIzNCIgcng9IjgiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xNyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utb3BhY2l0eT0iMC41IiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNzM1IiB5PSI1NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC41Ij5za2lsbHMgaW4gcHJvbXB0PC90ZXh0Pgo8dGV4dCB4PSI3MzUiIHk9IjYwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5sYXRlcjwvdGV4dD4KPHBhdGggZD0iTTg2Miw1NzAgTDg4Niw1NzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FtKSIvPgo8cmVjdCB4PSI4OTAiIHk9IjUxMCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8cmVjdCB4PSI5MTAiIHk9IjUzMCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSIzNCIgcng9IjgiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4wNCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utb3BhY2l0eT0iMC4xMiIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjx0ZXh0IHg9IjEwMTUiIHk9IjU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjI1Ij5za2lsbHMgaW4gcHJvbXB0PC90ZXh0Pgo8dGV4dCB4PSIxMDE1IiB5PSI2MDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+ZW5kPC90ZXh0Pgo8dGV4dCB4PSI2MTgiIHk9IjI5MiIgdGV4dC1hbmNob3I9InN0YXJ0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnJvbGxvdXQ8L3RleHQ+Cjwvc3ZnPg==",
+    "alt": "An LLM agent calls feature-group tools, a tree teacher scores tool choice and risk, and prompt skills fade over training.",
+    "caption": "In TIR-EC the reward carries a tree teacher's knowledge, which is what lets RL teach a new skill.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "TIR-EC puts a teacher in the reward. The framework «exposes EHR feature groups as tools the LLM can call». A gradient-boosted tree, a classic tabular model, supplies «a reference set of informative tools and a graded risk target». So the reward says more than right or wrong. It says which evidence a good predictor would ask for, and how risky the case really is."
+  ],
+  [
+   "p",
+   "A reverse curriculum finishes the job. Clinical skills start in the prompt, and training «gradually removes the skills from the prompt during RL process». The headline: «our 4B agent achieves the highest macro F1 of all compared models». It also «selects more useful evidence with fewer tool calls». We agree this is more than sharpening. The tree knew something the model didn't, and RL carried it across."
+  ],
+  [
+   "p",
+   "The pattern repeats elsewhere. A new arXiv paper on EVA-Cap trains captions with GRPO against «three event-centric alignment targets: global event completeness, intra-event attribution, and inter-event synchronization». More structure in the reward gives the model more to learn. A single pass/fail bit has nowhere to put that structure."
+  ],
+  [
+   "code",
+   {
+    "label": "A teacher-informed reward, as illustrative pseudo-code",
+    "language": "python",
+    "source": "# Illustrative pattern, not TIR-EC's code\ndef reward(rollout, tree_teacher):\n    patient = rollout.patient\n    ref_tools = tree_teacher.informative_tools(patient)  # what a good predictor would ask for\n    target = tree_teacher.graded_risk(patient)           # how risky the case really is\n    tool_term = overlap(rollout.tools_called, ref_tools)\n    risk_term = -abs(rollout.predicted_risk - target)\n    return tool_term + risk_term   # more information than pass or fail"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How TIR-EC turns a tree teacher into a richer RL reward.",
+    "steps": [
+     "The LLM calls EHR feature groups as tools",
+     "A tree teacher names the informative tools",
+     "The tree teacher supplies a graded risk target",
+     "The reward scores tool choice and the risk estimate",
+     "A reverse curriculum removes skills from the prompt"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Transfer to unseen settings is the hardest thing to fake",
+    "num": "04",
+    "id": "transfer-to-unseen-settings-is-the-hardest-thing-to-fake"
+   }
+  ],
+  [
+   "p",
+   "MemComposer pushes the teaching case further. It's an RL-trained component that decides which past experiences an agent sees, «how many to select, and how to order them». Training uses ExPO, «a GRPO-based framework that evaluates assembled memory contexts through complete agent interactions». The reward is task success, earned by a frozen executor working with whatever memories the composer picked."
+  ],
+  [
+   "p",
+   "Two results matter for this debate. It beat the strongest baseline for each executor, «reducing average memory-token usage by 16.9% and 4.9%». And «The learned policy also transfers to unseen domains, executors, and memory banks». Pure sharpening predicts the opposite. A policy that only narrowed toward familiar wins should stumble on an unfamiliar executor."
+  ],
+  [
+   "p",
+   "We're not fully convinced, though. The composer is a small decision layer, not the whole model, and its tests come from one benchmark family. Still, a skeptic has to explain transfer. Narrowing explains a better score on the training mix. It struggles to explain a better score somewhere new."
+  ],
+  [
+   "h2",
+   {
+    "text": "Contamination is the skeptic's best card, and cleaning can misfire",
+    "num": "05",
+    "id": "contamination-is-the-skeptic-s-best-card-and-cleaning-can-mi"
+   }
+  ],
+  [
+   "p",
+   "The sharpest skeptic says some RL gains are leakage. If training problems overlap benchmark questions, a higher score may be memory. So RLVR math training sets get screened. A new arXiv paper on decontamination asks the uncomfortable follow-up: how reliable is the screen? It checks 1,673,514 training items against «six benchmarks containing 1,949 questions»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnciIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4yIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYyMCIgZmlsbD0idXJsKCNiZykiLz4KPHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iNzAwIiBoZWlnaHQ9IjU2MCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgo8cmVjdCB4PSI3NjAiIHk9IjMwIiB3aWR0aD0iNDEwIiBoZWlnaHQ9IjU2MCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgo8dGV4dCB4PSI3MCIgeT0iODgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+c2VtYW50aWMsIGNvc2luZSB0aHJlc2hvbGQgMC44MDwvdGV4dD4KPHRleHQgeD0iNzAiIHk9IjEyNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIzIiBmaWxsPSIjOTVhMWI0Ij5zYW1wbGVkIHJlbW92YWxzLCBvbmUgZG90IGVhY2g8L3RleHQ+CjxlbGxpcHNlIGN4PSIzODAiIGN5PSIzMjAiIHJ4PSIzMzAiIHJ5PSIxNzAiIGZpbGw9InVybCgjZ3IpIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjE5MCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMTU4IiBjeT0iMTkwIiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIyMTYiIGN5PSIxOTAiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjI3NCIgY3k9IjE5MCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMzMyIiBjeT0iMTkwIiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzOTAiIGN5PSIxOTAiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjQ0OCIgY3k9IjE5MCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iNTA2IiBjeT0iMTkwIiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI1NjQiIGN5PSIxOTAiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjYyMiIgY3k9IjE5MCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMTAwIiBjeT0iMjQ4IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxNTgiIGN5PSIyNDgiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjIxNiIgY3k9IjI0OCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMjc0IiBjeT0iMjQ4IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMzIiIGN5PSIyNDgiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjM5MCIgY3k9IjI0OCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iNDQ4IiBjeT0iMjQ4IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI1MDYiIGN5PSIyNDgiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjU2NCIgY3k9IjI0OCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iNjIyIiBjeT0iMjQ4IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxMDAiIGN5PSIzMDYiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjE1OCIgY3k9IjMwNiIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMjE2IiBjeT0iMzA2IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIyNzQiIGN5PSIzMDYiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjMzMiIgY3k9IjMwNiIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMzkwIiBjeT0iMzA2IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI0NDgiIGN5PSIzMDYiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjUwNiIgY3k9IjMwNiIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iNTY0IiBjeT0iMzA2IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI2MjIiIGN5PSIzMDYiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjM2NCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMTU4IiBjeT0iMzY0IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIyMTYiIGN5PSIzNjQiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjI3NCIgY3k9IjM2NCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMzMyIiBjeT0iMzY0IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzOTAiIGN5PSIzNjQiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjQ0OCIgY3k9IjM2NCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iNTA2IiBjeT0iMzY0IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI1NjQiIGN5PSIzNjQiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjYyMiIgY3k9IjM2NCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMTAwIiBjeT0iNDIyIiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxNTgiIGN5PSI0MjIiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjIxNiIgY3k9IjQyMiIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMjc0IiBjeT0iNDIyIiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMzIiIGN5PSI0MjIiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjM5MCIgY3k9IjQyMiIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iNDQ4IiBjeT0iNDIyIiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI1MDYiIGN5PSI0MjIiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjU2NCIgY3k9IjQyMiIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iNjIyIiBjeT0iNDIyIiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjc1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxMDAiIGN5PSI0ODAiIHI9IjIwIiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuNzUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjE1OCIgY3k9IjQ4MCIgcj0iMjAiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC43NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KPGNpcmNsZSBjeD0iMjE2IiBjeT0iNDgwIiByPSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8Y2lyY2xlIGN4PSIyNzQiIGN5PSI0ODAiIHI9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMi41Ii8+CjxjaXJjbGUgY3g9IjMzMiIgY3k9IjQ4MCIgcj0iMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPGNpcmNsZSBjeD0iMzkwIiBjeT0iNDgwIiByPSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8Y2lyY2xlIGN4PSI0NDgiIGN5PSI0ODAiIHI9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMi41Ii8+CjxjaXJjbGUgY3g9IjUwNiIgY3k9IjQ4MCIgcj0iMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPGNpcmNsZSBjeD0iNTY0IiBjeT0iNDgwIiByPSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8dGV4dCB4PSI3MCIgeT0iNTYwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjciIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNmZjdiNzIiPjUyIG9mIDU5IHdlcmUgZmFsc2UgcmVtb3ZhbHM8L3RleHQ+Cjx0ZXh0IHg9IjgwMCIgeT0iODgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+anVkZ2UtYWRqdWRpY2F0ZWQ8L3RleHQ+Cjx0ZXh0IHg9IjgwMCIgeT0iMTI2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjMiIGZpbGw9IiM5NWExYjQiPnNpeCBzYW1wbGVkIHJlbW92YWxzPC90ZXh0Pgo8Y2lyY2xlIGN4PSI4NjAiIGN5PSIyMzAiIHI9IjMyIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxjaXJjbGUgY3g9Ijk2MCIgY3k9IjIzMCIgcj0iMzIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KPGNpcmNsZSBjeD0iMTA2MCIgY3k9IjIzMCIgcj0iMzIiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KPGNpcmNsZSBjeD0iODYwIiBjeT0iMzMwIiByPSIzMiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjI1IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSI5NjAiIGN5PSIzMzAiIHI9IjMyIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxjaXJjbGUgY3g9IjEwNjAiIGN5PSIzMzAiIHI9IjMyIiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA2Ii8+Cjx0ZXh0IHg9IjEwNjAiIHk9IjM0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZTNiMzQxIj4/PC90ZXh0Pgo8dGV4dCB4PSI4MDAiIHk9IjQ4MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI1IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjM2VjZjhlIj56ZXJvIGNvbmZpcm1lZCBmYWxzZTwvdGV4dD4KPHRleHQgeD0iODAwIiB5PSI1MTgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZmlsbD0iI2UzYjM0MSI+b25lIHVucmVzb2x2ZWQ8L3RleHQ+Cjwvc3ZnPg==",
+    "alt": "Dots for sampled semantic removals, most marked false, beside six judge-policy removals with one unresolved.",
+    "caption": "The sampled removals show how a loose semantic threshold throws away good training items.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The result cuts against aggressive cleaning. Semantic matching flags a training item when its embedding sits close to a benchmark question's. «At cosine threshold 0.80, 52 of 59 sampled removals (88%) were confirmed false removals». The author is careful to add «this is not a demonstrated population rate». Even so, it's a warning. A loose filter throws away good problems by the bucket."
+  ],
+  [
+   "p",
+   "A judge-adjudicated policy, where a model rules on each candidate match, did far better: «98.1% resolved precision and 98.2% candidate-frame recall». One limit cuts both ways: «Recall does not measure contamination outside the candidate frame». So leakage can't be ruled out, and it can't be assumed either. In our view, the skeptic's card is real but unplayable without an audited screen."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Two RLVR decontamination policies, as the audit reports them.",
+    "columns": [
+     "Cleaning policy",
+     "Sampled removals",
+     "Precision and recall"
+    ],
+    "rows": [
+     [
+      "Semantic, cosine threshold 0.80",
+      "52 of 59 confirmed false",
+      "No grid threshold met the 90% precision target"
+     ],
+     [
+      "Judge-adjudicated",
+      "Zero confirmed false among six, one unresolved",
+      "98.1% resolved precision, 98.2% candidate-frame recall"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "RL teaches what the reward knows, and little more",
+    "num": "06",
+    "id": "rl-teaches-what-the-reward-knows-and-little-more"
+   }
+  ],
+  [
+   "p",
+   "Here's where we come down. RL post-training teaches roughly what its reward knows. A bare pass/fail checker knows only that an answer passed, so expect sharpening: higher accuracy, fewer strategies. A reward that carries a tree teacher's judgment, task success across whole interactions, or several alignment targets knows more. That's exactly where the new skills showed up."
+  ],
+  [
+   "p",
+   "Back to our SQL prompt. With a bare checker, the join wins and the window function fades. With an elite archive in the loss, both survive. Neither run tells you the model learned SQL. Only the second keeps the options a harder query might need. So track pass@k and distinct strategies beside accuracy, on tests cleaned by an audited screen."
+  ],
+  [
+   "p",
+   "What would change our mind? One result: plain binary-reward GRPO raising pass@k at large k above the base model, on benchmarks cleaned with an audited policy. That would mean a blunt reward can add solutions, not just reweight them. We haven't seen that result yet. We'd be glad to."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is reinforcement learning with verifiable rewards?"
+  ],
+  [
+   "p",
+   "It is RL post-training where a program checks each sampled answer and the model is pushed toward the ones that pass. The usual optimiser is GRPO, which scores answers against their group's average. It suits math or SQL, where correctness is checkable. Its weakness is bluntness: a pass/fail grade carries no information about variety or about which evidence mattered."
+  ],
+  [
+   "h3",
+   "Does reinforcement learning for LLMs reduce answer diversity?"
+  ],
+  [
+   "p",
+   "It can, and recent work calls it behavior sharpening. The EliteReplay authors write that such training «can narrow the set of solutions the model can produce». Their fix pairs GRPO with replay on an archive of distinct solutions, reaching a higher pass@128 than all baselines on text-to-SQL. Measure pass@k beside accuracy to see whether your own run is narrowing."
+  ],
+  [
+   "h3",
+   "How do you check RL training data for benchmark contamination?"
+  ],
+  [
+   "p",
+   "Screen training items against benchmark questions, then audit the screen itself. One audit found that «At cosine threshold 0.80, 52 of 59 sampled removals (88%) were confirmed false removals». A judge-adjudicated policy did far better on precision and recall. Remember that recall only covers the candidate frame the screen produced, so leakage outside it stays unmeasured."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "EliteReplay: Preserving Diverse Solutions in RL Post-Training via Quality-Diversity Search",
+   "url": "https://arxiv.org/abs/2610.22290v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Incentivizing Tool-Use Reinforcement Learning for Post-Arrival Emergency Care Prediction",
+   "url": "https://arxiv.org/abs/2610.21449v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "EVA-Cap: Optimizing Audiovisual Video Captioning via Event-Centric Alignment",
+   "url": "https://arxiv.org/abs/2610.22186v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "MemComposer: Learning to Assemble Memories for LLM Agents via Reinforcement Learning",
+   "url": "https://arxiv.org/abs/2610.21091v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "What Should We Remove? Evaluating the Reliability and Costs of RLVR Data Decontamination",
+   "url": "https://arxiv.org/abs/2610.21229v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "can narrow the set of solutions the model can produce": 1,
+  "Several approaches have attempted to address this behavior-sharpening effect": 1,
+  "often optimize metrics that do not reflect the diversity of correct solutions": 1,
+  "achieves a higher pass@128 than all baselines, producing up to 77% more distinct correct strategies than the strongest baselines": 1,
+  "collect solutions that span distinct approaches": 1,
+  "during training, GRPO is combined with a replay loss on this archive": 1,
+  "covers both interpretations nearly twice as often as the strongest baseline on AmbiQT": 1,
+  "preserving more of the base model's solution diversity": 1,
+  "most existing LLMs still fall short of conventional ML methods like trees": 2,
+  "do not select informative features": 2,
+  "exposes EHR feature groups as tools the LLM can call": 2,
+  "a reference set of informative tools and a graded risk target": 2,
+  "gradually removes the skills from the prompt during RL process": 2,
+  "our 4B agent achieves the highest macro F1 of all compared models": 2,
+  "selects more useful evidence with fewer tool calls": 2,
+  "three event-centric alignment targets: global event completeness, intra-event attribution, and inter-event synchronization": 3,
+  "how many to select, and how to order them": 4,
+  "a GRPO-based framework that evaluates assembled memory contexts through complete agent interactions": 4,
+  "reducing average memory-token usage by 16.9% and 4.9%": 4,
+  "The learned policy also transfers to unseen domains, executors, and memory banks": 4,
+  "six benchmarks containing 1,949 questions": 5,
+  "At cosine threshold 0.80, 52 of 59 sampled removals (88%) were confirmed false removals": 5,
+  "this is not a demonstrated population rate": 5,
+  "98.1% resolved precision and 98.2% candidate-frame recall": 5,
+  "Recall does not measure contamination outside the candidate frame": 5
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:42:43+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21671v1",
+   "arxiv:2610.21449v1",
+   "arxiv:2610.21229v1",
+   "arxiv:2610.21091v1",
+   "arxiv:2610.22290v1",
+   "arxiv:2610.22186v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "debate:concept/rl-training",
+  "format": "debate",
+  "reviewed_by": null
+ }
+}

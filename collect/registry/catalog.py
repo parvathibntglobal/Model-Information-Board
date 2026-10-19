@@ -54,6 +54,17 @@ def _listed_at(created: Any) -> datetime | None:
         return None
 
 
+def _date_or_none(v: Any):
+    """An ISO date from the feed, or None. A malformed value is None - never
+    a guessed date (rule 6)."""
+    from datetime import date
+
+    try:
+        return date.fromisoformat(str(v)[:10]) if v else None
+    except ValueError:
+        return None
+
+
 def _int_or_none(v: Any) -> int | None:
     return v if isinstance(v, int) and not isinstance(v, bool) else None
 
@@ -95,6 +106,8 @@ def parse_catalog(payload: Any) -> list[dict[str, Any]]:
                     (entry.get("top_provider") or {}).get("max_completion_tokens")
                 ),
                 "supported_parameters": [str(x) for x in entry.get("supported_parameters") or []],
+                "expiration_date": _date_or_none(entry.get("expiration_date")),
+                "knowledge_cutoff": _date_or_none(entry.get("knowledge_cutoff")),
                 "pricing": pricing,
             }
         )
@@ -115,8 +128,9 @@ def write_catalog(
         cur = conn.execute(
             "INSERT INTO model_catalog (canonical_id, provider, name, description, listed_at, "
             " input_modalities, output_modalities, context_length, price_in, price_out, "
-            " price_cached_read, pricing, max_output_tokens, supported_parameters, last_seen_at) "
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+            " price_cached_read, pricing, max_output_tokens, supported_parameters, "
+            " expiration_date, knowledge_cutoff, last_seen_at) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
             "ON CONFLICT (canonical_id) DO UPDATE SET provider = EXCLUDED.provider, "
             " name = EXCLUDED.name, description = EXCLUDED.description, "
             " listed_at = EXCLUDED.listed_at, input_modalities = EXCLUDED.input_modalities, "
@@ -125,6 +139,8 @@ def write_catalog(
             " price_out = EXCLUDED.price_out, price_cached_read = EXCLUDED.price_cached_read, "
             " pricing = EXCLUDED.pricing, max_output_tokens = EXCLUDED.max_output_tokens, "
             " supported_parameters = EXCLUDED.supported_parameters, "
+            " expiration_date = EXCLUDED.expiration_date, "
+            " knowledge_cutoff = EXCLUDED.knowledge_cutoff, "
             " last_seen_at = EXCLUDED.last_seen_at "
             "RETURNING (xmax = 0)",
             (
@@ -142,6 +158,8 @@ def write_catalog(
                 Jsonb(r["pricing"]),
                 r["max_output_tokens"],
                 r["supported_parameters"],
+                r["expiration_date"],
+                r["knowledge_cutoff"],
                 seen_at,
             ),
         ).fetchone()

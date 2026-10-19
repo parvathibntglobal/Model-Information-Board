@@ -1,0 +1,462 @@
+{
+ "slug": "paper-walkthrough-concept-continual-learning",
+ "status": "draft",
+ "tag": "Paper walkthrough",
+ "feat": false,
+ "title": "Continual Learning Without Amnesia: Fence the Weights, Vet the Memory",
+ "dek": "A reading-group walk through new work on keeping old skills: subspace tuning, isolated subnetworks, and an admission gate for agents that cannot touch their weights.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is catastrophic forgetting? Fine-tuning that overwrites old skills. New work limits where updates land, in weight directions or subnetworks, and vets what frozen agents remember.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjMyIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93YiIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMTYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogICAgPHN5bWJvbCBpZD0ibG9jayIgdmlld0JveD0iMCAwIDYwIDcwIj4KICAgICAgPHBhdGggZD0iTTE0IDMyIFYyMCBhMTYgMTYgMCAwIDEgMzIgMCBWMzIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgICAgIDxyZWN0IHg9IjYiIHk9IjMwIiB3aWR0aD0iNDgiIGhlaWdodD0iMzYiIHJ4PSI4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgICA8Y2lyY2xlIGN4PSIzMCIgY3k9IjQ2IiByPSI1IiBmaWxsPSIjN2FhMmZmIi8+CiAgICAgIDxyZWN0IHg9IjI4IiB5PSI0OCIgd2lkdGg9IjQiIGhlaWdodD0iMTAiIHJ4PSIyIiBmaWxsPSIjN2FhMmZmIi8+CiAgICA8L3N5bWJvbD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxlbGxpcHNlIGN4PSI2MDAiIGN5PSIzMTUiIHJ4PSI1MjAiIHJ5PSIyNjAiIGZpbGw9InVybCgjZ2xvd2IpIi8+CiAgPGcgdHJhbnNmb3JtPSJyb3RhdGUoLTE2IDYwMCAzMTUpIj4KICAgIDxlbGxpcHNlIGN4PSI2MDAiIGN5PSIzMTUiIHJ4PSI0MzAiIHJ5PSIxNTAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxlbGxpcHNlIGN4PSI2MDAiIGN5PSIzMTUiIHJ4PSIzMjAiIHJ5PSIxMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2Utb3BhY2l0eT0iMC4zNSIvPgogICAgPGVsbGlwc2UgY3g9IjYwMCIgY3k9IjMxNSIgcng9IjIxMCIgcnk9Ijc0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLW9wYWNpdHk9IjAuMjUiLz4KICAgIDxsaW5lIHgxPSIxNzAiIHkxPSIzMTUiIHgyPSIxMDMwIiB5Mj0iMzE1IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPGxpbmUgeDE9IjIzMCIgeTE9IjI4NSIgeDI9Ijk3MCIgeTI9IjI4NSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1vcGFjaXR5PSIwLjQ1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxsaW5lIHgxPSIyMzAiIHkxPSIzNDUiIHgyPSI5NzAiIHkyPSIzNDUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2Utb3BhY2l0eT0iMC40NSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8ZWxsaXBzZSBjeD0iNjAwIiBjeT0iMzE1IiByeD0iOTAiIHJ5PSIyMjAiIGZpbGw9InVybCgjZ2xvdykiLz4KICAgIDxsaW5lIHgxPSI2MDAiIHkxPSIxMTAiIHgyPSI2MDAiIHkyPSI1MjAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI0IDEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik02MDAgMTM1IEw2MDAgMjEwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICAgIDxwYXRoIGQ9Ik02MDAgMjQwIEw2MDAgMzAwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICAgIDxwYXRoIGQ9Ik02MDAgMzMwIEw2MDAgMzkwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICAgIDxwYXRoIGQ9Ik02MDAgNDIwIEw2MDAgNDk1IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNSIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICAgIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjMxNSIgcj0iOSIgZmlsbD0iI2U4ZWRmNSIvPgogIDwvZz4KICA8dXNlIGhyZWY9IiNsb2NrIiB4PSI5NiIgeT0iMzgwIiB3aWR0aD0iNzIiIGhlaWdodD0iODQiLz4KICA8dXNlIGhyZWY9IiNsb2NrIiB4PSIxMDMwIiB5PSIxNTAiIHdpZHRoPSI3MiIgaGVpZ2h0PSI4NCIvPgo8L3N2Zz4K",
+  "alt": "A weight matrix drawn as an ellipse: its long principal axes are locked, and new learning flows only along a thin minor axis",
+  "caption": "The shared idea: protect the directions that hold old skills and let new learning move only where it does no harm.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is catastrophic forgetting, and how do new continual learning papers stop it? Subspace tuning, subnetwork routing and vetted agent memory, explained.",
+ "keywords": [
+  "what is catastrophic forgetting",
+  "continual learning",
+  "continual learning in LLMs",
+  "subspace tuning",
+  "catastrophic forgetting fine-tuning",
+  "agent memory admission"
+ ],
+ "kicker": "Paper walkthrough",
+ "tags": [
+  "continual learning",
+  "Paper walkthrough"
+ ],
+ "read": 8,
+ "decisions": [
+  "Inspect how much of an SFT update lands on principal singular directions.",
+  "Prefer on-policy or subspace-restricted tuning when old skills must survive.",
+  "Gate agent memory on evidence before notes reach the context window.",
+  "Score every past task after each update, never only the newest one."
+ ],
+ "layout": "paper",
+ "arrangement": "a",
+ "special": {
+  "type": "results",
+  "title": "What was measured",
+  "items": [
+   {
+    "result": "Protecting as much as 99% of the weight subspace substantially improves retention and preserves strong target-task performance.",
+    "setup": "Subspace Tuning with SFT and self-distillation recipes, against prior orthogonal fine-tuning methods.",
+    "source": 3,
+    "ref": {
+     "title": "Towards Continual Learning: Mitigating Forgetting With Subspace Tuning",
+     "url": "https://arxiv.org/abs/2610.22293v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "2 to 4 times less KL drift than the baseline recipes.",
+    "setup": "SST keeps the tuned model close to its base distribution during fine-tuning.",
+    "source": 3,
+    "ref": {
+     "title": "Towards Continual Learning: Mitigating Forgetting With Subspace Tuning",
+     "url": "https://arxiv.org/abs/2610.22293v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Nearly eliminates forgetting in the large-model regime.",
+    "setup": "SST's effect strengthens with model and data size.",
+    "source": 3,
+    "ref": {
+     "title": "Towards Continual Learning: Mitigating Forgetting With Subspace Tuning",
+     "url": "https://arxiv.org/abs/2610.22293v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Highest average performance among the compared methods on five generative benchmarks.",
+    "setup": "CiMEO across 1.4 million sequential instructions covering programming, examination-style tasks and mathematical reasoning.",
+    "source": 1,
+    "ref": {
+     "title": "Functional Subnetwork Localization for Efficient Continual Learning in Large Language Models",
+     "url": "https://arxiv.org/abs/2610.21537v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Approximately 12 to 33% of entries harm future task performance when reused.",
+    "setup": "Entries produced by representative memory and experience-learning systems for fixed-parameter agents.",
+    "source": 2,
+    "ref": {
+     "title": "Reliable Knowledge Acquisition for Continual Learning Agents",
+     "url": "https://arxiv.org/abs/2610.21739v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Highest aggregate score on every backbone.",
+    "setup": "RIKA across six task streams from Continual Learning Bench and four model backbones.",
+    "source": 2,
+    "ref": {
+     "title": "Reliable Knowledge Acquisition for Continual Learning Agents",
+     "url": "https://arxiv.org/abs/2610.21739v1",
+     "platform": "arXiv"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Fine-tuning can erase the skills it was meant to keep",
+    "num": "01",
+    "id": "fine-tuning-can-erase-the-skills-it-was-meant-to-keep"
+   }
+  ],
+  [
+   "p",
+   "Picture a model that writes decent SQL. You fine-tune it on a few weeks of support tickets, and its tone improves. Then someone asks it for a query and gets nonsense. Nothing in the new examples mentioned SQL. The update simply trampled weights that held the skill. A new arXiv paper on subspace tuning puts the trade plainly: fine-tuning teaches new skills, «but it can destroy capabilities they already have»."
+  ],
+  [
+   "p",
+   "So what is catastrophic forgetting, mechanically? Gradient descent on task B never looks at task A's loss. Any weight that served A is fair game if moving it helps B. Continual learning is the problem of learning a stream of tasks in sequence without that damage. It's old, and it got urgent again once everyone started fine-tuning big models on narrow data."
+  ],
+  [
+   "p",
+   "Recent arXiv work attacks it from different sides. One line restricts which directions an update may move. Another restricts which parameters it may touch. A third gives up on weights entirely and asks what a frozen agent should be allowed to remember. Each is a fence. The interesting part is where each fence goes, and what it costs to put it there."
+  ],
+  [
+   "h2",
+   {
+    "text": "On-policy training forgets less because it skips the loud directions",
+    "num": "02",
+    "id": "on-policy-training-forgets-less-because-it-skips-the-loud-di"
+   }
+  ],
+  [
+   "p",
+   "Start with the subspace tuning paper, because its diagnosis is the cleanest. Singular value decomposition, or SVD, splits any weight matrix into directions ranked by how strongly they stretch their input. The top ones, the principal singular directions, carry most of what the matrix does. The authors point out that on-policy methods «avoid updating the principal singular directions of weight matrices and thus forget less»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYWciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjIwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8cmVjdCB4PSIzMCIgeT0iMzAiIHdpZHRoPSI1NTUiIGhlaWdodD0iNTYwIiByeD0iMTgiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4wNSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDxyZWN0IHg9IjYxNSIgeT0iMzAiIHdpZHRoPSI1NTUiIGhlaWdodD0iNTYwIiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjcwIiB5PSI4OCIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiI+U0ZUPC90ZXh0PgogICAgPHRleHQgeD0iNzAiIHk9IjEyNCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+dXBkYXRlcyBwaWxlIG9udG8gdGhlIHRvcCBkaXJlY3Rpb25zPC90ZXh0PgogICAgPHRleHQgeD0iNjU1IiB5PSI4OCIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSI+T24tcG9saWN5IGFuZCBTU1Q8L3RleHQ+CiAgICA8dGV4dCB4PSI2NTUiIHk9IjEyNCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+dXBkYXRlcyBzdGF5IGluIHRoZSBib3R0b20gc3Vic3BhY2U8L3RleHQ+CiAgPC9nPgogIDxnIHRyYW5zZm9ybT0icm90YXRlKC0xNCAzMDcgMzUwKSI+CiAgICA8ZWxsaXBzZSBjeD0iMzA3IiBjeT0iMzUwIiByeD0iMjIwIiByeT0iODAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGxpbmUgeDE9Ijg3IiB5MT0iMzUwIiB4Mj0iNTI3IiB5Mj0iMzUwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgOCIvPgogICAgPGxpbmUgeDE9IjMwNyIgeTE9IjI1MCIgeDI9IjMwNyIgeTI9IjQ1MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgOCIvPgogICAgPGxpbmUgeDE9IjMwNyIgeTE9IjM1MCIgeDI9IjUwMCIgeTI9IjM1MCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjciIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgPC9nPgogIDxnIHRyYW5zZm9ybT0icm90YXRlKC0xNCA4OTIgMzUwKSI+CiAgICA8ZWxsaXBzZSBjeD0iODkyIiBjeT0iMzUwIiByeD0iMjIwIiByeT0iODAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGxpbmUgeDE9IjY3MiIgeTE9IjM1MCIgeDI9IjExMTIiIHkyPSIzNTAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxMCA4Ii8+CiAgICA8bGluZSB4MT0iODkyIiB5MT0iMjUwIiB4Mj0iODkyIiB5Mj0iNDUwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiA4Ii8+CiAgICA8bGluZSB4MT0iODkyIiB5MT0iMzUwIiB4Mj0iODkyIiB5Mj0iMjYyIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNyIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICA8L2c+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0Ij4KICAgIDx0ZXh0IHg9IjcwIiB5PSI1MTIiIGZpbGw9IiM3YWEyZmYiPnByaW5jaXBhbCBkaXJlY3Rpb248L3RleHQ+CiAgICA8dGV4dCB4PSI3MCIgeT0iNTUwIiBmaWxsPSIjZThlZGY1Ij5tb3ZlcyBhIGxvdDogPHRzcGFuIGZpbGw9IiNmZjdiNzIiIGZvbnQtd2VpZ2h0PSI3MDAiPmZvcmdldHMgbW9yZTwvdHNwYW4+PC90ZXh0PgogICAgPHRleHQgeD0iNjU1IiB5PSI1MTIiIGZpbGw9IiM3YWEyZmYiPnByaW5jaXBhbCBkaXJlY3Rpb248L3RleHQ+CiAgICA8dGV4dCB4PSI2NTUiIHk9IjU1MCIgZmlsbD0iI2U4ZWRmNSI+aGVsZCBzdGlsbDogPHRzcGFuIGZpbGw9IiMzZWNmOGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmZvcmdldHMgbGVzczwvdHNwYW4+PC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==",
+    "alt": "SFT update arrow pushes along the principal axis in red; an on-policy update slides along the minor axis in green",
+    "caption": "SFT pushes along the principal singular directions, while on-policy updates mostly leave them alone.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Supervised fine-tuning, or SFT, does the opposite. It «concentrates updates along these directions and is susceptible to catastrophic forgetting». That gives a reason for a pattern the authors build on: reinforcement learning and on-policy distillation, which train on the model's own samples, forget less than SFT. Our reading is simple. On-policy data sits close to what the model already does, so its gradients mostly nudge the quiet directions."
+  ],
+  [
+   "p",
+   "We like this framing a lot. It turns forgetting into geometry you can inspect. You don't need a second task to see the risk coming. You can decompose an update and ask how much of it falls on the principal directions before you ever ship the checkpoint."
+  ],
+  [
+   "h2",
+   {
+    "text": "Subspace Tuning freezes the top singular directions outright",
+    "num": "03",
+    "id": "subspace-tuning-freezes-the-top-singular-directions-outright"
+   }
+  ],
+  [
+   "p",
+   "Subspace Tuning, or SST, turns the diagnosis into a hard rule. We retraced the method from the abstract. It «restricts each weight update to the bottom singular subspace, eliminating changes along the principal directions». Mechanically, you take the SVD of each weight matrix, build a projector onto the bottom directions, and pass every gradient through it before the optimizer step. The principal directions never move."
+  ],
+  [
+   "p",
+   "Two details make it usable. SST is «optimizer-agnostic and composes well with fine-tuning recipes including SFT and self-distillation», so it wraps your training loop without replacing it. It also carries «a simple refresh mechanism». We'd guess the refresh exists because weights drift during training, so yesterday's bottom directions may not stay quiet. The abstract doesn't spell that out."
+  ],
+  [
+   "p",
+   "Then comes the bold line. Protecting as much as 99% of the weight subspace, the authors write, «substantially improves retention while preserving strong target-task performance». Read that again. Nearly the whole subspace is frozen, and the model still learns the new task. That's the most surprising claim in the abstract, and we'd like it broken down layer by layer before we fully trust it."
+  ],
+  [
+   "code",
+   {
+    "label": "Projecting a gradient onto the bottom singular subspace (illustrative, not the authors' code)",
+    "language": "python",
+    "source": "# once per refresh: decompose the frozen reference weights\nU, S, Vh = torch.linalg.svd(W_ref, full_matrices=False)\nU_low = U[:, k:]            # bottom left-singular directions\nV_low = Vh[k:, :].T         # bottom right-singular directions\n\n# every step: strip the principal-direction components\nG = W.grad\nG_low = U_low @ (U_low.T @ G @ V_low) @ V_low.T\nW.grad.copy_(G_low)\noptimizer.step()            # any optimizer works on the projected grad"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "One training step under Subspace Tuning, as the abstract describes the method in outline.",
+    "steps": [
+     "Decompose each weight matrix with SVD",
+     "Mark the principal singular directions as protected",
+     "Compute the ordinary gradient for the new task",
+     "Project the gradient onto the bottom singular subspace",
+     "Let any optimizer apply the projected update",
+     "Refresh the subspace as training moves on"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Specialised subnetworks barely overlap inside a trained model",
+    "num": "04",
+    "id": "specialised-subnetworks-barely-overlap-inside-a-trained-mode"
+   }
+  ],
+  [
+   "p",
+   "A new arXiv paper on functional subnetworks starts from a different observation. Gradient attribution scores each parameter by how much it moves the loss on a given kind of input. With it, the authors «localize cognition-associated functional subnetworks exhibiting extremely low mutual overlap». In plain terms, the weights that matter for maths are mostly not the weights that matter for programming."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYWciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjYwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDx0ZXh0IHg9IjUwIiB5PSI2NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5PbmUgZXhhbXBsZSwgb25lIHN1Ym5ldHdvcms8L3RleHQ+CiAgPGcgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiPgogICAgPHJlY3QgeD0iNTAiIHk9IjE1MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI4NCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNzgiIHk9IjIwMSIgZmlsbD0iIzk1YTFiNCI+Y29kZSB0YXNrPC90ZXh0PgogICAgPHJlY3QgeD0iNTAiIHk9IjI4OCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI4NCIgcng9IjE0IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI3OCIgeT0iMzM5IiBmaWxsPSIjZThlZGY1Ij5nZW9tZXRyeSB0YXNrPC90ZXh0PgogICAgPHJlY3QgeD0iNTAiIHk9IjQyNiIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI4NCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNzgiIHk9IjQ3NyIgZmlsbD0iIzk1YTFiNCI+ZXhhbSB0YXNrPC90ZXh0PgogIDwvZz4KICA8cG9seWdvbiBwb2ludHM9IjQyMCwzMzAgNDcwLDI4MCA1MjAsMzMwIDQ3MCwzODAiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjQ3MCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNhNzhiZmEiPnJvdXRlcjwvdGV4dD4KICA8bGluZSB4MT0iMzA0IiB5MT0iMzMwIiB4Mj0iNDEyIiB5Mj0iMzMwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICA8cmVjdCB4PSI2MTAiIHk9IjExMCIgd2lkdGg9IjU1MCIgaGVpZ2h0PSI1MDAiIHJ4PSIyMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI2NDAiIHk9IjE1MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIj5tb2RlbCB3ZWlnaHRzPC90ZXh0PgogIDxyZWN0IHg9IjY0MCIgeT0iMTgwIiB3aWR0aD0iNDkwIiBoZWlnaHQ9IjExMCIgcng9IjE2IiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2NzAiIHk9IjIzMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI1IiBmaWxsPSIjOTVhMWI0Ij5wcm9ncmFtbWluZyByZWdpb248L3RleHQ+CiAgPHRleHQgeD0iNjcwIiB5PSIyNjYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+ZnJvemVuIHRoaXMgc3RlcDwvdGV4dD4KICA8ZWxsaXBzZSBjeD0iODg1IiBjeT0iMzY1IiByeD0iMzAwIiByeT0iOTAiIGZpbGw9InVybCgjZ2xvdykiLz4KICA8cmVjdCB4PSI2NDAiIHk9IjMxMCIgd2lkdGg9IjQ5MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjY3MCIgeT0iMzU4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPm1hdGhlbWF0aWNzIHJlZ2lvbjwvdGV4dD4KICA8dGV4dCB4PSI2NzAiIHk9IjM5NCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjM2VjZjhlIj5ncmFkaWVudHMgYW5kIG9wdGltaXplciBzdGF0ZTwvdGV4dD4KICA8cmVjdCB4PSI2NDAiIHk9IjQ0MCIgd2lkdGg9IjQ5MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgZmlsbC1vcGFjaXR5PSIwLjUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjcwIiB5PSI0OTAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZmlsbD0iIzk1YTFiNCI+ZXhhbWluYXRpb24gcmVnaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjY3MCIgeT0iNTI2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPmZyb3plbiB0aGlzIHN0ZXA8L3RleHQ+CiAgPGxpbmUgeDE9IjUyNiIgeTE9IjMzMCIgeDI9IjYzMCIgeTI9IjM2MiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYWcpIi8+CiAgPHBhdGggZD0iTTUyMCAzMTYgQyA1NzAgMjcwLCA1OTAgMjQwLCA2MzAgMjM2IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA4IiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgPHBhdGggZD0iTTUyMCAzNDQgQyA1NzAgNDAwLCA1OTAgNDgwLCA2MzAgNDk0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA4IiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgPHRleHQgeD0iNTAiIHk9IjY0NSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5SZWdpb25zIGJhcmVseSBvdmVybGFwLCBzbyBvbmUgdXBkYXRlIGxlYXZlcyB0aGUgb3RoZXJzIGludGFjdDwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Training examples tagged code, exam and maths are routed into three separate weight regions; only one region lights up",
+    "caption": "CiMEO sends each example to its own subnetwork, so gradients and optimizer state exist only in that region.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Their framework, CiMEO, puts that to work. It «routes each training example to its corresponding functional subnetwork, restricting parameter updates and optimizer states to selected regions». Follow one example through. A geometry problem arrives and gets tagged as maths. Only the maths subnetwork receives gradients. Adam's moment estimates, two extra numbers per weight, exist only for that region, which is where the memory saving comes from."
+  ],
+  [
+   "p",
+   "The results are solid on their own terms. Across «1.4 million sequential instructions», CiMEO «achieves the highest average performance among the compared methods on five generative benchmarks». We're not convinced the routing generalises yet, though. Who decides which subnetwork an unfamiliar task belongs to? The abstract doesn't say. A task that mixes skills would blur the tidy picture fast."
+  ],
+  [
+   "h2",
+   {
+    "text": "Frozen agents forget by remembering the wrong things",
+    "num": "05",
+    "id": "frozen-agents-forget-by-remembering-the-wrong-things"
+   }
+  ],
+  [
+   "p",
+   "Not every agent can update its weights. Build on a hosted model and learning from experience means writing notes into context. The RIKA paper frames it exactly: for fixed-parameter agents, learning «requires reusing prior task experience in context to improve performance and efficiency on future tasks». Forgetting isn't the main failure here. Pollution is."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY4MCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFtIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY4MCIgZmlsbD0idXJsKCNiZykiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+QW4gYWRtaXNzaW9uIGdhdGUgZm9yIGFnZW50IG1lbW9yeTwvdGV4dD4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHRleHQgeD0iNTAiIHk9IjE0MCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+dGFzayBzdHJlYW0gbm90ZXM8L3RleHQ+CiAgICA8cmVjdCB4PSI1MCIgeT0iMTcwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI3MiIgeT0iMjE0IiBmb250LXNpemU9IjIzIiBmaWxsPSIjZThlZGY1Ij5mYWN0PC90ZXh0PgogICAgPHJlY3QgeD0iNzAiIHk9IjI2MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iOTIiIHk9IjMwNCIgZm9udC1zaXplPSIyMyIgZmlsbD0iI2U4ZWRmNSI+Y29uY2VwdDwvdGV4dD4KICAgIDxyZWN0IHg9IjUwIiB5PSIzNTAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjcyIiB5PSIzOTQiIGZvbnQtc2l6ZT0iMjMiIGZpbGw9IiNlOGVkZjUiPnByb2NlZHVyZTwvdGV4dD4KICAgIDxyZWN0IHg9IjcwIiB5PSI0NDAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjkyIiB5PSI0ODQiIGZvbnQtc2l6ZT0iMjMiIGZpbGw9IiNlOGVkZjUiPm1ldGFjb2duaXRpb248L3RleHQ+CiAgPC9nPgogIDxsaW5lIHgxPSIzMzYiIHkxPSIzNDAiIHgyPSI0NTIiIHkyPSIzNDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSI0IiBtYXJrZXItZW5kPSJ1cmwoI2FtKSIvPgogIDxlbGxpcHNlIGN4PSI1NDAiIGN5PSIzNDAiIHJ4PSIxMjAiIHJ5PSIyMTAiIGZpbGw9InVybCgjZ2xvdykiLz4KICA8cmVjdCB4PSI0NzAiIHk9IjE3MCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjM0MCIgcng9IjEwIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMzUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHJlY3QgeD0iNTgyIiB5PSIxNzAiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzNDAiIHJ4PSIxMCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjM1IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxyZWN0IHg9IjQ1NiIgeT0iMTUwIiB3aWR0aD0iMTY4IiBoZWlnaHQ9IjI2IiByeD0iMTAiIGZpbGw9IiNhNzhiZmEiLz4KICA8dGV4dCB4PSI1NDAiIHk9IjU1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjYTc4YmZhIj5ldmlkZW5jZSBjaGVjazwvdGV4dD4KICA8bGluZSB4MT0iNjIwIiB5MT0iMjgwIiB4Mj0iNzU2IiB5Mj0iMjQ2IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KICA8cmVjdCB4PSI3NzAiIHk9IjEyMCIgd2lkdGg9IjM5MCIgaGVpZ2h0PSIyOTAiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjEiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iODAwIiB5PSIxNjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSI+YWdlbnQgY29udGV4dDwvdGV4dD4KICA8cmVjdCB4PSI4MDAiIHk9IjE5MCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI1NiIgcng9IjEwIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMiIvPgogIDx0ZXh0IHg9IjgyMCIgeT0iMjI3IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiPmJhY2tlZCBieSBpdHMgdGFzayB0cmFjZTwvdGV4dD4KICA8cmVjdCB4PSI4MDAiIHk9IjI2MiIgd2lkdGg9IjMzMCIgaGVpZ2h0PSI1NiIgcng9IjEwIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMiIvPgogIDx0ZXh0IHg9IjgyMCIgeT0iMjk5IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiPmNvbmZpcm1lZCBieSBsYXRlciBydW5zPC90ZXh0PgogIDxyZWN0IHg9IjgwMCIgeT0iMzM0IiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjU2IiByeD0iMTAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI2MjAiIHkxPSI0MjAiIHgyPSI3NTYiIHkyPSI0OTIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0IiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogIDxyZWN0IHg9Ijc3MCIgeT0iNDUwIiB3aWR0aD0iMzkwIiBoZWlnaHQ9IjE0MCIgcng9IjE4IiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjQ5NCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIj5oZWxkIG91dDwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjUzMiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZThlZGY1Ij5ubyBldmlkZW5jZSB5ZXQ8L3RleHQ+CiAgPHRleHQgeD0iNTAiIHk9IjY0MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5XaXRob3V0IGEgZ2F0ZSwgMTIgdG8gMzMlIG9mIHN0b3JlZCBlbnRyaWVzIGh1cnQgbGF0ZXIgdGFza3M8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Notes from a task stream queue at an evidence gate; backed notes enter the agent's context, unsupported ones are held out",
+    "caption": "RIKA's admission gate keeps unsupported notes out of context, the failure behind harmful memory entries.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The number that stopped us comes from an audit of existing memory systems. Between 12 and 33% of the entries they produced «harm future task performance when reused». So a memory that grows unchecked doesn't just fail to help. Some of what it stores actively steers the agent wrong on the next task."
+  ],
+  [
+   "p",
+   "RIKA's answer is an admission gate. It extracts «factual, conceptual, procedural, and metacognitive knowledge», then applies Evidence-based Knowledge Admission, which «uses source evidence and subsequent experience to govern which claims enter the task agent's context». Take one candidate note: a search tool needs dates in one exact format. It stays out of context until the original task trace supports it and later runs bear it out."
+  ],
+  [
+   "p",
+   "We agree with this premise more than with any other idea here. A memory store without admission control is a cache with no invalidation. The authors say RIKA «achieves the highest aggregate score on every backbone», across six task streams and four backbones. An aggregate hides which knowledge type earned the gain, and that's the breakdown we'd want next."
+  ],
+  [
+   "h2",
+   {
+    "text": "Every method buys retention by narrowing what can change",
+    "num": "06",
+    "id": "every-method-buys-retention-by-narrowing-what-can-change"
+   }
+  ],
+  [
+   "p",
+   "Line the methods up and a shared bet appears. SST narrows the directions an update may take. CiMEO narrows the parameters. RIKA narrows the claims that reach context. Each trades plasticity, the capacity to learn something new, for stability, the capacity to keep what's there. Same bargain, three different places to strike it."
+  ],
+  [
+   "p",
+   "The SST authors argue their side of the bargain improves with scale. The effect «strengthens with model and data size and nearly eliminates forgetting in the large-model regime». They also report 2 to 4 times «less KL drift than the baseline recipes». KL drift measures how far the tuned model's output distribution wanders from the base model's. Less drift is a decent proxy for less collateral damage."
+  ],
+  [
+   "p",
+   "Notice what the fences have in common, too. None of them needs a replay buffer of old task data, the classic continual-learning crutch. That matters when the old data is gone, private, or simply too big to keep mixing in. The catch is that every fence assumes the new task doesn't need what it protects."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Where each approach puts its fence, and what it reports in its abstract.",
+    "columns": [
+     "Method",
+     "What it restricts",
+     "Needs weight updates",
+     "Headline result"
+    ],
+    "rows": [
+     [
+      "SST",
+      "Update directions: bottom singular subspace only",
+      "Yes",
+      "2 to 4 times less KL drift than baseline recipes"
+     ],
+     [
+      "CiMEO",
+      "Parameters: one functional subnetwork per example",
+      "Yes",
+      "Highest average on five generative benchmarks"
+     ],
+     [
+      "RIKA",
+      "Context: only evidence-backed claims admitted",
+      "No",
+      "Highest aggregate score on every backbone"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "None of these results comes from a conflicting task sequence",
+    "num": "07",
+    "id": "none-of-these-results-comes-from-a-conflicting-task-sequence"
+   }
+  ],
+  [
+   "p",
+   "Here's what the abstracts leave unshown. Each method wins on its own benchmarks against its own baselines. SST reports retention and drift. CiMEO reports average performance across five benchmarks. RIKA reports an aggregate on Continual Learning Bench. The abstracts don't show what happens when a new task genuinely needs the protected directions, parameters or claims."
+  ],
+  [
+   "p",
+   "The experiment we'd want is easy to describe. Take one base model and a long task sequence where later tasks contradict earlier ones, say a library whose API changes midway. Train with plain SFT, SST and CiMEO, and run a frozen agent with and without RIKA's gate. After each step, score every past task. That accuracy matrix is the standard continual-learning readout, and it would show what each fence costs."
+  ],
+  [
+   "p",
+   "Until someone runs it, read each headline as a result about its own setup. We think the geometric story from SST is the likeliest to travel, because it also explains why on-policy training already forgets less. The admission result matters more for anyone shipping agents today. Neither has faced the contradiction test yet."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is catastrophic forgetting in LLMs?"
+  ],
+  [
+   "p",
+   "It is when fine-tuning on new data destroys skills the model already had. Gradient descent on the new task ignores the old task's loss, so shared weights get overwritten. A new arXiv paper on subspace tuning links the damage to direction: SFT «concentrates updates along these directions and is susceptible to catastrophic forgetting», meaning the principal singular directions of each weight matrix."
+  ],
+  [
+   "h3",
+   "How does continual learning work for AI agents with frozen weights?"
+  ],
+  [
+   "p",
+   "They learn by storing experience as notes and reusing it in context. The risk is bad notes. One audit found that 12 to 33% of entries from existing systems «harm future task performance when reused». The RIKA approach adds an admission step that «uses source evidence and subsequent experience to govern which claims enter the task agent's context»."
+  ],
+  [
+   "h3",
+   "Does reinforcement learning forget less than supervised fine-tuning?"
+  ],
+  [
+   "p",
+   "Yes, and the subspace tuning authors give a geometric reason. On-policy methods «avoid updating the principal singular directions of weight matrices and thus forget less», while SFT pushes updates along exactly those directions. Their method copies that behaviour on purpose, restricting updates to the bottom singular subspace so SFT-style recipes can keep old skills."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Towards Continual Learning: Mitigating Forgetting With Subspace Tuning",
+   "url": "https://arxiv.org/abs/2610.22293v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Functional Subnetwork Localization for Efficient Continual Learning in Large Language Models",
+   "url": "https://arxiv.org/abs/2610.21537v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Reliable Knowledge Acquisition for Continual Learning Agents",
+   "url": "https://arxiv.org/abs/2610.21739v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "but it can destroy capabilities they already have": 1,
+  "avoid updating the principal singular directions of weight matrices and thus forget less": 1,
+  "concentrates updates along these directions and is susceptible to catastrophic forgetting": 1,
+  "restricts each weight update to the bottom singular subspace, eliminating changes along the principal directions": 1,
+  "optimizer-agnostic and composes well with fine-tuning recipes including SFT and self-distillation": 1,
+  "a simple refresh mechanism": 1,
+  "substantially improves retention while preserving strong target-task performance": 1,
+  "localize cognition-associated functional subnetworks exhibiting extremely low mutual overlap": 2,
+  "routes each training example to its corresponding functional subnetwork, restricting parameter updates and optimizer states to selected regions": 2,
+  "1.4 million sequential instructions": 2,
+  "achieves the highest average performance among the compared methods on five generative benchmarks": 2,
+  "requires reusing prior task experience in context to improve performance and efficiency on future tasks": 3,
+  "harm future task performance when reused": 3,
+  "factual, conceptual, procedural, and metacognitive knowledge": 3,
+  "uses source evidence and subsequent experience to govern which claims enter the task agent's context": 3,
+  "achieves the highest aggregate score on every backbone": 3,
+  "strengthens with model and data size and nearly eliminates forgetting in the large-model regime": 1,
+  "less KL drift than the baseline recipes": 1
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:39:54+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21537v1",
+   "arxiv:2610.21739v1",
+   "arxiv:2610.22293v1"
+  ],
+  "platforms": {
+   "arXiv": 3
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "paper-walkthrough:concept/continual-learning",
+  "format": "paper-walkthrough",
+  "reviewed_by": null
+ }
+}

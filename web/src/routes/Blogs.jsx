@@ -8,6 +8,15 @@ import { loadEmbeds } from '../board/embeds'
 import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { blogIndex, blogPost } from '../seo/pages'
+import { DisagreeIndex, Wall } from '../blogs/Disagree'
+import { ReadNext } from '../blogs/Explore'
+import Directory from '../blogs/Directory'
+import Quiz from '../blogs/Quiz'
+import ThisWeek from '../blogs/ThisWeek'
+import { GlossaryEntry, GlossaryIndex } from '../blogs/Glossary'
+import { IssuesFor, IssuesIndex } from '../blogs/Issues'
+import { AnswersFor, AnswersIndex } from '../blogs/Answers'
+import '../styles/blog-live.css'
 
 /**
  * Blogs: posts the team examines before anything is published.
@@ -22,8 +31,40 @@ import { blogIndex, blogPost } from '../seo/pages'
  * approved from Admin → Blogs, so the "Generate 3 more posts" strip that sat
  * above this index is gone; this page only reads the drafts.
  */
+/**
+ * THE LIVE PAGES (2026-10-15) live under /blogs too, and are not posts: code
+ * renders them from the board (judge/blog_live.py), so nothing about them goes
+ * through the post store or its review.
+ *
+ *   /blogs/disagree                          where engineers disagree
+ *   /blogs/disagree/<jobs|capabilities>/<slug>/<model id>   one claim wall
+ *   /blogs/this-week[/<monday>]              this week in models
+ *   /blogs/quiz                              the daily quiz
+ *   /blogs/glossary[/<jobs|capabilities>/<slug>]   what a topic is
+ *   /blogs/directory                         every post, by model/topic/title/date
+ *   /blogs/issues[/<model id>]               known issues per model
+ *   /blogs/answers[/<model id>]              what a model supports
+ */
 export default function Blogs() {
   const rest = useParams()['*'] || ''
+  if (rest === 'disagree') return <DisagreeIndex />
+  if (rest.startsWith('disagree/')) return <Wall key={rest} rest={rest} />
+  if (rest === 'this-week') return <ThisWeek />
+  if (rest.startsWith('this-week/')) return <ThisWeek start={rest.slice('this-week/'.length)} />
+  if (rest === 'quiz') return <Quiz />
+  // THE REFERENCE FORMATS (judge/blog_reference.py), not articles either.
+  // THE POST DIRECTORY (2026-10-18): every post on one page, to find one.
+  if (rest === 'directory') return <Directory />
+  if (rest === 'glossary') return <GlossaryIndex />
+  if (rest.startsWith('glossary/')) return <GlossaryEntry key={rest} rest={rest} />
+  if (rest === 'issues') return <IssuesIndex />
+  if (rest.startsWith('issues/')) return <IssuesFor key={rest} rest={rest} />
+  if (rest === 'answers') return <AnswersIndex />
+  if (rest.startsWith('answers/')) return <AnswersFor key={rest} rest={rest} />
+  return <BlogPosts rest={rest} />
+}
+
+function BlogPosts({ rest }) {
   // OPENED FROM ADMIN -> BLOGS' PREVIEW: the reviewer must see a post that is
   // still awaiting review (hidden from the public index), and needs a way back
   // to where the review happens.
@@ -105,6 +146,7 @@ export default function Blogs() {
         </div>
       )}
       <BoardView html={html} key={rest} />
+      {rest && post && <ReadNext post={post} />}
     </>
   )
 }

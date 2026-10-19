@@ -103,6 +103,17 @@ use_basis_undertaking:
   asserted_by: anooj
   asserted_on: 2026-10-19
   review_valid_days: 30
+  #: RE-ASSERTED 2026-10-15 BY anooj, two days before the 2026-10-17 lapse, and
+  #: CHECKED rather than re-dated. All five conditions below were true that day:
+  #: every page still sits behind the sign-in, nobody outside the team holds an
+  #: account, the URL is not published or indexed, nothing is paid for, and no
+  #: derived post has been published outside the team (approved blog posts are
+  #: visible only behind the sign-in).
+  #:
+  #: TAKING THE SIGN-IN OFF VOIDS THIS BLOCK BY ITS OWN TERMS (`auth_walled`).
+  #: The basis that replaces it for public pages is Parvathi's to propose; until
+  #: every ruling accepts it, the launch stops every fetch. PROPOSED: contract/
+  #: needs a second reviewer before main.
 
   #: `conditions` must match this EXACTLY - same keys, same values. An unknown
   #: key voids, a missing key voids (rule 6). Unchanged mechanism; new facts.

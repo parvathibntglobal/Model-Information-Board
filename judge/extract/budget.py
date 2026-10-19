@@ -48,7 +48,9 @@ enforced on estimates and reported as measured is rule 7 with the two swapped.
 
 from __future__ import annotations
 
+import logging
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from judge.ask.cost import Pricing
@@ -223,6 +225,19 @@ class Budget:
     input_tokens: int = 0
     output_tokens: int = 0
     _by_model: dict[str, float] = field(default_factory=dict)
+    #: TODAY'S TOTAL FROM THE LEDGER, read before every call (2026-10-15).
+    #:
+    #: `spent_usd` is seeded once with today's total when a run starts and then
+    #: counts only THIS run. Two fetches started side by side from Admin each
+    #: took the same baseline and each believed it had the whole remaining cap
+    #: - together they could spend up to twice what was left. With this set,
+    #: the check uses the larger of this run's figure and the ledger's, which
+    #: records every call from every process. `spent_usd` is untouched, so the
+    #: run's own reported cost stays its own.
+    #:
+    #: None (the default) keeps the old single-run behaviour, for callers that
+    #: are not fetch runs.
+    shared_today: Callable[[], float] | None = None
 
     @classmethod
     def from_env(cls, pricing: Pricing = DEFAULT_PRICING) -> Budget | None:
@@ -273,9 +288,20 @@ class Budget:
         """Raise rather than overshoot. Spend cannot be undone."""
         if self.limit_usd is None:
             return
-        if self.spent_usd + self.estimated_next_call_usd > self.limit_usd:
+        spent = self.spent_usd
+        if self.shared_today is not None:
+            # A LEDGER THAT CANNOT BE READ leaves this run's own figure, which
+            # is what every run checked before 2026-10-15 - never a lower one.
+            try:
+                spent = max(spent, float(self.shared_today()))
+            except Exception:  # noqa: BLE001 - the cap check must not end a run
+                logging.getLogger(__name__).warning(
+                    "today's spend could not be re-read; checking this run's own figure",
+                    exc_info=True,
+                )
+        if spent + self.estimated_next_call_usd > self.limit_usd:
             raise BudgetExhausted(
-                spent_usd=self.spent_usd,
+                spent_usd=spent,
                 limit_usd=self.limit_usd,
                 completed=self.calls,
             )

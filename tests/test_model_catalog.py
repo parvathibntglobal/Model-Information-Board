@@ -122,7 +122,13 @@ def conn(test_dsn):
             {
                 "data": [
                     entry("acme/text-a", ["text"], created=1_790_000_000),
-                    entry("acme/text-r", ["text"], created=1_790_100_000),
+                    {
+                        **entry("acme/text-r", ["text"], created=1_790_100_000),
+                        "expiration_date": "2026-11-11",
+                        "knowledge_cutoff": "2026-02-16",
+                    },
+                    entry("acme/text-r:batch", ["text"], created=1_790_200_000),
+                    entry("acme/image-late", ["image"], created=1_790_200_000),
                     entry("acme/text-x:free", ["text"], prompt="0", completion="0"),
                     entry("acme/video-v", ["video"], prompt="0", completion="0"),
                     entry(
@@ -173,20 +179,22 @@ class TestTheView:
 
     def test_types_are_counted_from_the_feed(self, view):
         assert (
+            # image-i and image-late; text-a, text-r, text-r:batch, text-x:free, m1, m2
             view["types"]["video"] == 1
-            and view["types"]["image"] == 1
-            and view["types"]["text"] == 5
+            and view["types"]["image"] == 2
+            and view["types"]["text"] == 6
         )
 
     def test_new_releases_are_newest_listed_first(self, view):
         order = view["new_releases"]
         assert order.index("acme/text-r") < order.index("acme/text-a")
 
-    def test_reports_link_only_where_the_public_view_holds_some(self, view):
-        """`text-r` is reported only on Reddit, which the public view withholds -
-        its link would open an empty page."""
+    def test_a_model_reported_only_on_a_withheld_source_still_counts(self, view):
+        """`text-r` is reported only on Reddit. Since 2026-10-15 totals count every
+        source (contract/publication.yaml), so it has a reports page with counts -
+        and still no Reddit quote, link or name on it."""
         assert model(view, "acme/text-a")["reported"] is True
-        assert model(view, "acme/text-r")["reported"] is False
+        assert model(view, "acme/text-r")["reported"] is True
         assert model(view, "acme/text-r")["in_registry"] is True
         assert model(view, "acme/video-v")["in_registry"] is False
 
@@ -219,6 +227,10 @@ class TestTheEvidencePipelineNeverReadsIt:
             "collect/ops/chain.py",
             "judge/catalog.py",
             "judge/app.py",
+            # The blog's live pages (2026-10-15) read it for "This week in
+            # models" listings and hover previews. A read path for a page, not
+            # the evidence pipeline: nothing there extracts, counts or weights.
+            "judge/blog_live.py",
         }
 
     def test_the_nightly_chain_polls_it_without_depending_on_it(self):
@@ -242,16 +254,17 @@ def test_the_view_is_json():
 
 
 class TestVoicesOrderTheList:
-    def test_voices_are_distinct_people_on_the_public_view(self, view):
-        """au1 posted twice: one voice, two reports. au3 is on Reddit only."""
+    def test_voices_are_distinct_people_from_every_source(self, view):
+        """au1 posted twice: one voice, two reports. au3 is on Reddit only, and
+        counts: totals include every source (2026-10-15)."""
         m = model(view, "acme/text-a")
         assert (m["voices"], m["reports"]) == (2, 3)
-        assert model(view, "acme/text-r")["voices"] == 0
+        assert model(view, "acme/text-r")["voices"] == 1
 
     def test_a_type_with_no_voiced_model_stays_empty(self, view):
-        assert view["types_voiced"]["text"] == 1
+        assert view["types_voiced"]["text"] == 2
         assert view["types_voiced"]["video"] == 0 and view["types"]["video"] == 1
-        assert view["voiced"] == 1
+        assert view["voiced"] == 2
 
 
 class TestOneModelsPage:
@@ -289,3 +302,75 @@ def test_the_personas_say_they_are_illustrative():
     personas = (ROOT / "web" / "src" / "tokens" / "personas.js").read_text(encoding="utf-8")
     names = re.findall(r"name: '([^']+)'", personas)
     assert len(names) == len(set(names)) >= 5
+
+
+class TestLifecycle:
+    def test_the_feeds_dates_are_parsed(self):
+        [row] = parse_catalog(
+            {
+                "data": [
+                    {
+                        **entry("acme/t", ["text"]),
+                        "expiration_date": "2026-11-11",
+                        "knowledge_cutoff": "not a date",
+                    }
+                ]
+            }
+        )
+        assert str(row["expiration_date"]) == "2026-11-11"
+        assert row["knowledge_cutoff"] is None, "a malformed date is no date, never a guess"
+
+    def test_a_retirement_is_shown_with_its_source(self, conn):
+        from judge.catalog import catalog_model
+
+        lc = catalog_model(conn, "acme/text-r")["lifecycle"]
+        assert lc["retirements"] == [{"date": "2026-11-11", "source": "OpenRouter"}]
+        assert (
+            lc["knowledge_cutoff"] == "2026-02-16" and lc["knowledge_cutoff_source"] == "OpenRouter"
+        )
+
+    def test_two_readings_of_one_date_are_one_date(self, conn):
+        """The registry's retirement_date is OpenRouter's expiration_date read
+        by an earlier poll - one source, so an agreeing date shows once."""
+        from judge.catalog import catalog_model
+
+        conn.execute("UPDATE model_version SET retirement_date = '2026-11-11' WHERE id = 'mv_r'")
+        assert len(catalog_model(conn, "acme/text-r")["lifecycle"]["retirements"]) == 1
+        conn.execute("UPDATE model_version SET retirement_date = '2026-10-31' WHERE id = 'mv_r'")
+        sources = [
+            r["source"] for r in catalog_model(conn, "acme/text-r")["lifecycle"]["retirements"]
+        ]
+        assert sources == ["OpenRouter", "OpenRouter, an earlier reading"]
+
+    def test_no_date_is_none_announced_not_a_promise(self, conn):
+        from judge.catalog import catalog_model
+
+        assert catalog_model(conn, "acme/text-a")["lifecycle"]["retirements"] == []
+
+    def test_newer_from_provider_is_the_same_kind_and_no_variant(self, conn):
+        """`text-r:batch` is a variant and `image-late` writes images: neither
+        is a newer text model from this provider."""
+        from judge.catalog import catalog_model
+
+        newer = [
+            n["id"] for n in catalog_model(conn, "acme/text-a")["lifecycle"]["newer_from_provider"]
+        ]
+        assert newer == ["acme/text-r"]
+
+
+def test_caching_savings_are_null_without_a_rate_and_said_to_be_an_upper_bound():
+    """Folded into the workload table (2026-10-15): no cached-read rate is
+    "nothing to compute", never a saving of zero."""
+    cost = (ROOT / "web" / "src" / "tokens" / "cost.js").read_text(encoding="utf-8")
+    assert "savedPerMonth: full ? full.perMonth - cost.perMonth : null" in cost
+    workload = (ROOT / "web" / "src" / "tokens" / "Workload.jsx").read_text(encoding="utf-8")
+    assert "an upper" in workload and "no cache rate" in workload
+
+
+def test_the_one_finder_reads_the_catalogue_and_keeps_unpublished_prices_unknown():
+    """One finder since 2026-10-15. A price that is not per token is NULL to a
+    ceiling - "might match", never free and never ruled out."""
+    js = (ROOT / "web" / "src" / "finder" / "finder.js").read_text(encoding="utf-8")
+    assert "price_in: free ? 0 : perToken ? m.price_in : null" in js
+    page = (ROOT / "web" / "src" / "routes" / "ModelFinder.jsx").read_text(encoding="utf-8")
+    assert "modelCatalog()" in page and "ModalityFinder" not in page

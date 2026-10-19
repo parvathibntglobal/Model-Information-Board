@@ -39,6 +39,38 @@
 #   opening    what the first section opens on, per format
 #   closing    what the last section is, per format; a last heading that is a
 #              choice ("which", "when to use", "should you") is refused
+# WHO WRITES THE DRAFTS (2026-10-16, anooj). The team's review found no
+# journalistic improvement in the OpenRouter drafts, so until the prompt is
+# tuned the blog makes NO OpenRouter call at all - neither the essay nor the
+# pictures.
+#
+#   claude-code   code selects the subject and documents and writes a WRITING
+#                 PACK (`--pack N`: the prompt, the sources, the fact sheet and
+#                 the rules, no model call); Claude Code (Opus 5.5) writes the
+#                 post from it; `--ingest KEY` runs every check the model path
+#                 runs and stores a passing post as a pending draft. A person
+#                 approves it in Admin -> Blogs, as before.
+#   openrouter    the original path: GEN_MODEL on OpenRouter writes and repairs.
+#
+# Required; anything else refuses (rule 12). The pictures need an OpenRouter
+# image model, so a claude-code post has none until that changes.
+writer: claude-code
+
+# WHO A MODEL POST IS FOR (team, 2026-10-16): the thirty topic posts were
+# "impressive but very technical". Posts about the MODELS themselves - built
+# from what engineers report on the board - are written for a wider reader:
+# someone choosing, paying for or building on a model, not only a specialist.
+# Appended to every board post's brief by generate_sample_blogs.run_pack.
+# Required (rule 12): absent raises.
+model_post_reader: >-
+  READER: someone choosing, paying for or building with this model - a developer, a product
+  lead, a curious technical reader - not only an ML specialist. Lead with what the model is
+  good and bad at in everyday work, in plain words, before any mechanism. Explain every term
+  of art in a clause the first time (context window, tool call, reasoning effort, caching).
+  Prefer a concrete task ("summarising a long contract", "fixing a failing test") to an
+  abstraction. Keep formulas out; keep code to the one example the format asks for. Stay
+  warm, direct and opinionated - a knowledgeable friend, not a lab report.
+
 prose:
   sentence_median_max: 15
   sentence_max: 30
@@ -95,7 +127,9 @@ planner:
   min_models_topic: 3
   # How many candidates per subject kind the planner considers, most-evidenced
   # first. An internal ordering; nothing about it reaches a page.
-  candidates_per_kind: 25
+  # 40 from 2026-10-18 (was 25): a repeat-free batch ran out of top-25 subjects;
+  # Jev 1.13 and Grok 4.6 had fresh fetch data and sat just outside the window.
+  candidates_per_kind: 40
   # WHICH DISCUSSIONS A POST IS WRITTEN FROM (2026-10-13). Ranked by relevance
   # (generate_sample_blogs.rank_threads): naming more of the subject's models,
   # then more entries about them, then themes, then recency. A thread with
@@ -143,7 +177,7 @@ formats:
     special: findings
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
 
   - key: head-to-head
     name: Head-to-head
@@ -169,7 +203,7 @@ formats:
     special: picks
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     matrix_title: "When to use {a} vs {b}"
 
   - key: cost-teardown
@@ -197,7 +231,7 @@ formats:
     special: drivers
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5]}
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     matrix_title: "What moves the bill"
 
   - key: migration-guide
@@ -222,7 +256,7 @@ formats:
     special: steps
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: true, code: [1, 2], prices: true, visuals: [2, 5]}
+    blocks: {matrix: false, tree: true, code: [1, 2], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     tree_question: "Should this workload move between {a} and {b}, and in which direction?"
 
   - key: architecture-pattern
@@ -249,7 +283,7 @@ formats:
     special: layers
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: true, tree: false, code: [1, 2], prices: false, visuals: [2, 5]}
+    blocks: {matrix: true, tree: false, code: [1, 2], prices: false, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     matrix_title: "Pattern versus anti-pattern"
 
   - key: release-analysis
@@ -275,7 +309,7 @@ formats:
     special: claims
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: true, code: [0, 1], prices: true, visuals: [2, 5]}
+    blocks: {matrix: false, tree: true, code: [0, 1], prices: true, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
     tree_question: "Should your team adopt {a} now?"
 
   - key: evaluation-critique
@@ -301,4 +335,287 @@ formats:
     special: probes
     sections: [7, 10]
     words: [1850, 3450]
-    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 5]}
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 5], voices: 3, retrace: 1, figures: [2, 3]}
+
+  # ── TOPIC POSTS (2026-10-16): general AI, not one model ────────────────────
+  # Planned by `--topic-pack` from the blog's own harvest (blog_topics.yaml,
+  # judge/topics.py), never by the board planner: their subject is a topic
+  # ("RAG", "AI agents"), and their sources are the posts the harvest found on
+  # it. Several sources on one topic make a SYNTHESIS; one makes an EXPLAINER
+  # with a quiz. `voices` is how many different sources must be quoted, and
+  # `retrace` how many pieces of a writer's work the post walks through.
+
+  - key: topic-synthesis
+    name: Topic synthesis
+    subject: concept
+    layout: synthesis
+    derived_from: "team ask 2026-10-16: one article from several posts on one topic"
+    shape: >-
+      One article that brings several writers' recent work on this topic together: what
+      the idea is, where they agree, where they part ways, and what it means for someone
+      building with AI now.
+    voice: >-
+      An explainer's voice with a point of view: define a term the first time it appears,
+      then build on it. Medium paragraphs; each section moves the reader one step further
+      into the topic.
+    paragraphs: {per_section: [3, 5], words: [45, 85]}
+    heading_rules: >-
+      Each heading states one idea or claim about this topic in plain words, as a short
+      sentence a reader could quote. Never a question, never starting with "What", "Why"
+      or "How", and never a generic label such as "Introduction" or "Conclusion".
+    opening: >-
+      the plainest one-sentence answer to what this topic is, then the concrete moment that makes it matter now
+    closing: >-
+      what is still unsettled about this topic, and what would settle it
+    special: glossary
+    sources: [2, 6]
+    sections: [6, 9]
+    words: [1500, 3000]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [2, 4], voices: 2, retrace: 1, figures: [2, 3]}
+
+  - key: topic-explainer
+    name: Explainer
+    subject: concept
+    layout: explainer
+    derived_from: "team ask 2026-10-16: one post on a topic becomes an interactive explainer with a quiz"
+    shape: >-
+      An explainer that teaches this topic from one writer's recent post: the idea in plain
+      words, how it works step by step, what the post shows about it, and where it falls
+      short - ending with a short quiz so the reader can check what they took away.
+    voice: >-
+      A patient teacher's voice: short paragraphs, one idea each, a concrete example before
+      any abstraction. Talk to "you" directly.
+    paragraphs: {per_section: [2, 4], words: [40, 80]}
+    heading_rules: >-
+      Each heading names one step in understanding this topic as a short statement. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      the plainest one-sentence answer to what this topic is, with an everyday comparison
+    closing: >-
+      the limit of the idea: where it stops working, and what to read or try next
+    special: quiz
+    sources: [1, 3]
+    sections: [5, 7]
+    words: [900, 1800]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 1, retrace: 1, figures: [2, 3]}
+
+  # ── MORE TOPIC STYLES (2026-10-16, team ask: "ten articles of different
+  #    styles - not all with a quiz; for some include something else").
+  #    Each owns one interactive block and one page layout (views.js). ──────
+
+  - key: under-the-hood
+    name: Under the hood
+    subject: concept
+    layout: mechanism
+    derived_from: "team ask 2026-10-16: more technical topic posts"
+    shape: >-
+      A technical deep dive into how this technique actually works: the inputs, the
+      computation, the outputs, what it costs and where it breaks - followed by a lab the
+      reader can run to see it work.
+    voice: >-
+      An engineer walking a colleague through the machinery: precise, curious, a little
+      playful. One mechanism per section, built up in the order it runs.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading names one moving part or stage of the mechanism as a short noun phrase
+      or statement. Never a question, never starting with "What", "Why" or "How".
+    opening: >-
+      a concrete moment where this mechanism matters - what goes wrong without it, or the surprising thing it makes possible
+    closing: >-
+      the part of the mechanism nobody fully understands yet, and what a reader could measure to find out
+    special: lab
+    sources: [2, 5]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [1, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  - key: myth-vs-reality
+    name: Myth vs reality
+    subject: concept
+    layout: myths
+    derived_from: "team ask 2026-10-16: varied topic styles"
+    shape: >-
+      A myth-busting piece: the beliefs people repeat about this topic, set against what
+      recent research and engineering writing actually shows, one belief at a time.
+    voice: >-
+      Friendly and skeptical, like a colleague who has read the papers so you do not have
+      to. State the belief fairly before taking it apart; concede what is true in it.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading states the reality behind one belief as a short sentence. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      the most widely repeated belief about this topic, stated as people say it, then the first crack in it
+    closing: >-
+      the belief that might turn out to be true after all, and what evidence would settle it
+    special: myths
+    sources: [3, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  - key: research-radar
+    name: Research radar
+    subject: concept
+    layout: radar
+    derived_from: "team ask 2026-10-16: track new technology, concepts and topics"
+    shape: >-
+      A roundup of what is new on this topic right now: the fresh ideas and methods in
+      recent papers and posts, what each one does, and which ones are worth your attention.
+    voice: >-
+      A well-read guide pointing out what is interesting: brisk, specific, enthusiastic
+      where it is earned and blunt where an idea is thin. Each section covers one idea.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading names one idea or method and what it does, as a short statement. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      the single newest idea that changes how you would think about this topic, stated plainly
+    closing: >-
+      the thread that ties these ideas together, and the open problem none of them solves yet
+    special: radar
+    sources: [4, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 3, retrace: 1, figures: [2, 3]}
+
+  - key: debate
+    name: Debate
+    subject: concept
+    layout: debate
+    derived_from: "team ask 2026-10-16: varied topic styles"
+    shape: >-
+      A debate over one live question in this topic: the strongest case on each side, the
+      evidence each side leans on, and where we come down - and why.
+    voice: >-
+      A fair-minded host who enjoys an argument: give each side its best voice, then press
+      it. Take a clear position by the end, with its reasons.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading states one claim in the argument as a short sentence (it may be
+      contrarian). Never a question, never starting with "What", "Why" or "How".
+    opening: >-
+      the question being argued, stated as a real disagreement between people who know the field
+    closing: >-
+      where we come down, and the one result that would change our mind
+    special: positions
+    sources: [2, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  - key: field-guide
+    name: Field guide
+    subject: concept
+    layout: fieldguide
+    derived_from: "team ask 2026-10-16: varied topic styles"
+    shape: >-
+      A practical field guide to using this technique well: what it buys you, the decisions
+      you will face, the traps, and a checklist to run before you ship.
+    voice: >-
+      A seasoned practitioner's notes: concrete, second person, opinionated about defaults.
+      Each section is one decision or trap, with the reason behind the advice.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading is an instruction or a trap stated plainly (for example "Measure before
+      you compress"). Never a question, never starting with "What", "Why" or "How".
+    opening: >-
+      the most common way this technique goes wrong in a real system
+    closing: >-
+      the situation where you should not use this technique at all
+    special: checklist
+    sources: [2, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  - key: paper-walkthrough
+    name: Paper walkthrough
+    subject: concept
+    layout: paper
+    derived_from: "team ask 2026-10-16: fetch from arXiv, more technical"
+    shape: >-
+      A walkthrough of recent papers on this topic: the problem each tackles, the method in
+      plain technical terms, what they measured, and how much of it you should believe.
+    voice: >-
+      A reading-group leader who has read the papers closely: technical, precise about what
+      was and was not shown, generous about good ideas and honest about weak evidence.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading states one finding or idea from the papers as a short sentence. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      the problem these papers attack, made concrete with the failure it causes today
+    closing: >-
+      what the papers leave unshown, and the experiment that would settle it
+    special: results
+    sources: [2, 5]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  # ── TWO MORE TOPIC STYLES (2026-10-18, anooj shared a list of eight blog
+  #    formats; six already exist here: head-to-head, paper-walkthrough,
+  #    under-the-hood, myth-vs-reality, research-radar, field-guide). These two
+  #    reuse an existing page layout and block, so the web needs no change.
+  #    "Prompt & output autopsy" was NOT added: its bad output and its fixes
+  #    would have to be invented unless a source shows both, and a post may say
+  #    only what its sources say. ─────────────────────────────────────────────
+
+  - key: build-and-break
+    name: Build and break
+    subject: concept
+    layout: fieldguide
+    # Borrows field-guide's page and checklist block (no web change); the test
+    # tests/test_blog_topics.py checks the borrowed block is that format's.
+    reuses: field-guide
+    derived_from: "anooj 2026-10-18: Build & Break tutorial (goal, architecture, workflow, where it fails, fixes)"
+    shape: >-
+      A build-and-break walkthrough: the goal, the architecture people use to reach it, the
+      workflow step by step, then exactly where it fails in practice and the fix for each
+      failure - built from what the writers and engineers in the sources actually did.
+    voice: >-
+      A builder showing their scars: hands-on, second person, specific about the step that
+      broke and why. Every failure is tied to the condition that caused it.
+    paragraphs: {per_section: [2, 4], words: [40, 85]}
+    heading_rules: >-
+      Each heading names one build step or one failure and its fix, as a short statement
+      (for example "Retries double the bill when the tool times out"). Never a question,
+      never starting with "What", "Why" or "How".
+    opening: >-
+      the goal stated in one sentence, then the first place a straightforward build of it breaks
+    closing: >-
+      the failure nobody in the sources has fixed yet, and what a reader could try to fix it
+    special: checklist
+    sources: [2, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 2], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  - key: socio-technical
+    name: Socio-technical essay
+    subject: concept
+    layout: synthesis
+    reuses: topic-synthesis
+    derived_from: "anooj 2026-10-18: Socio-technical essay (observation, human impact, industry tension, outlook)"
+    shape: >-
+      An essay that zooms out from the code: an observation about how this technology is
+      being used, what it changes for the people doing the work, the tension it creates in
+      teams and the industry, and where that tension is heading.
+    voice: >-
+      A thoughtful essayist who still knows the engineering: grounded in what the sources
+      show people doing, humane, willing to name a trade-off without moralising.
+    paragraphs: {per_section: [2, 4], words: [45, 90]}
+    heading_rules: >-
+      Each heading states one observation or tension about people and this technology as a
+      short sentence a reader could quote. Never a question, never starting with "What",
+      "Why" or "How".
+    opening: >-
+      one concrete thing people are now doing differently because of this technology, as the sources show it
+    closing: >-
+      the tension that is still open, and what would show which way it resolves
+    special: glossary
+    sources: [2, 6]
+    sections: [5, 8]
+    words: [1200, 2400]
+    blocks: {matrix: false, tree: false, code: [0, 0], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}

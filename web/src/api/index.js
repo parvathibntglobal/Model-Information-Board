@@ -340,6 +340,17 @@ export const coveragePage = () => request('/coverage')
  */
 // `include='all'` is Admin -> Blogs: every draft with its review state. The
 // default is what a reader may see, filtered by the server (fails closed).
+// THE BLOG'S LIVE PAGES (2026-10-15): code over the board, public sources
+// only (judge/blog_live.py). Previews are cached: a hover asks for the same
+// card many times.
+export const liveDisagree = () => cached('live-disagree', () => request('/blog-live/disagree'), { ttl: BOARD_TTL_MS })
+export const liveWall = (section, slug, modelId) =>
+  request(`/blog-live/wall/${encodeURIComponent(section)}/${encodeURIComponent(slug)}/${modelPath(modelId)}`)
+export const liveWeek = (start) => request(`/blog-live/week${start ? `?start=${encodeURIComponent(start)}` : ''}`)
+export const liveQuiz = (day) => request(`/blog-live/quiz${day ? `?day=${encodeURIComponent(day)}` : ''}`)
+export const livePreview = (kind, id) =>
+  cached(`preview:${kind}:${id}`, () => request(`/blog-live/preview/${kind}/${modelPath(id)}`), { ttl: BOARD_TTL_MS })
+
 export const blogPosts = (include) => request(`/blog-posts${include ? `?include=${include}` : ''}`)
 
 /** Store this machine's draft files the database does not have yet, as pending. */
@@ -359,6 +370,31 @@ export const blogGenerationLog = (lines = 400) => request(`/blog-posts/generate/
 export const blogRuns = (limit = 20) => request(`/blog-posts/runs?limit=${limit}`)
 
 // Approve, reject or move back a stored post. A rejected post is kept, never shown.
+// THE BLOG'S REFERENCE FORMATS (judge/blog_reference.py): glossary, known
+// issues, answers. Code over the board and the catalogue, public sources only.
+export const refGlossary = () => cached('ref-glossary', () => request('/blog-ref/glossary'), { ttl: BOARD_TTL_MS })
+export const refGlossaryEntry = (section, slug) =>
+  request(`/blog-ref/glossary/${encodeURIComponent(section)}/${encodeURIComponent(slug)}`)
+export const refIssues = () => cached('ref-issues', () => request('/blog-ref/issues'), { ttl: BOARD_TTL_MS })
+export const refIssuesFor = (id) => request(`/blog-ref/issues/${modelPath(id)}`)
+export const refAnswers = () => cached('ref-answers', () => request('/blog-ref/answers'), { ttl: BOARD_TTL_MS })
+export const refAnswersFor = (id) => request(`/blog-ref/answers/${modelPath(id)}`)
+
+// THE QUIZ QUESTION BANK (judge/quiz_bank.py): drafted by a model, approved here.
+export const quizBank = (state = 'pending') => request(`/quiz-bank?state=${encodeURIComponent(state)}`)
+export const draftQuizQuestions = (topic) => request('/quiz-bank/draft', { method: 'POST', body: { topic } })
+export const reviewQuizQuestion = (id, decision, note) =>
+  request('/quiz-bank/review', { method: 'POST', body: { id, decision, note: note || null } })
+
+// HOW A POST IS MADE, AND THE WRITING PACKS (judge/blog_method.py, 2026-10-16).
+export const blogMethod = () => request('/blog-posts/method')
+export const blogPacks = () => request('/blog-posts/packs')
+export const startBlogPacks = (count = 3) => request('/blog-posts/packs', { method: 'POST', body: { count } })
+
+// THE BLOG'S TOPIC HARVEST (judge/topics.py, 2026-10-16): no model call.
+export const blogTopics = () => request('/blog-topics')
+export const startTopicHarvest = () => request('/blog-topics/harvest', { method: 'POST' })
+
 export const reviewBlogPost = (slug, decision, reason) =>
   request('/blog-posts/review', { method: 'POST', body: { slug, decision, reason: reason || null } })
 

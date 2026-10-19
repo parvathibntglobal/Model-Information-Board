@@ -212,7 +212,7 @@ export default function Compare() {
         <>
           <HeadToHead models={models} />
           <StickyNames models={models} />
-          {!fromReports && <FaceOff models={models} />}
+          <SameTest models={models} />
         </>
       )}
 
@@ -641,7 +641,10 @@ function Polarity({ split }) {
  * and merging them produced a table where most cells said "not reported".
  */
 function CommonAxes({ models }) {
-  const groups = SECTIONS.map(([section, heading]) => ({
+  // METRICS ARE NOT COUNTED HERE (2026-10-15): "Measured in the same test"
+  // shows their figures, where a count of entries per axis said nothing a
+  // reader could compare.
+  const groups = SECTIONS.filter(([section]) => section !== 'metrics').map(([section, heading]) => ({
     section, heading, ...sharedAxes(models, section),
   }))
   const shared = groups.reduce((s, g) => s + g.every.length, 0)
@@ -913,84 +916,124 @@ function StickyNames({ models }) {
   )
 }
 
-/* A quote that reads on its own: says something either way if it can, and is
-   short enough for a card. Chosen for length and phrasing only - never for
-   which model it favours. */
-function quoteFor(item) {
-  const qs = item?.quotes || []
-  const fits = (q) => q.quote && q.quote.length >= 40 && q.quote.length <= 220
-  return qs.find((q) => q.polarity !== 'neutral' && fits(q)) || qs.find(fits) || qs[0] || null
+/* ══════════════════════════════════════════════════════════════════════
+   MEASURED IN THE SAME TEST (2026-10-15). Replaces "In their words", the one
+   quote per model per section: one report of many cannot summarise a model,
+   and picking it - however fairly - was the page choosing what a model is.
+
+   A figure is comparable with another only when the same engineer measured
+   both models in the same test: same task, same setup, same unit. So a row
+   here is ONE POST that reports a measured figure for two or more of the
+   compared models on one axis, and the figures sit side by side exactly as
+   written. Nothing is parsed, averaged, converted or ranked (rule 3), and no
+   cell is highlighted as better.
+
+   LEFT OUT, AND SAID SO:
+     - figures from SEPARATE tests: "$0.17 per task" and "$14.50 per task"
+       came from different tasks, and side by side they read as a comparison
+       they are not;
+     - figures a post only QUOTES from a provider (basis 'stated' - list
+       prices, advertised context): claims, not measurements. Measured on the
+       local copy 2026-10-15, about half of all shown figures are of this
+       kind, some of them out of date.
+   ══════════════════════════════════════════════════════════════════════ */
+
+const PLATFORM = { devto: 'dev.to', hackernews: 'Hacker News', github: 'GitHub', blog: 'a blog', huggingface: 'Hugging Face' }
+const platformOf = (docId) => PLATFORM[String(docId || '').split(':')[0]] || 'the post'
+
+/** Posts that measured two or more of these models on one axis, by axis. */
+function sameTests(models) {
+  const byKey = new Map()
+  const quotedOnly = new Map()
+  models.forEach((m) => {
+    (m.reported?.discovered?.metrics || []).forEach((it) => {
+      (it.figures || []).forEach((f) => {
+        if (!f.document_id) return
+        const k = `${it.slug}|${f.document_id}`
+        const into = f.basis === 'reported' ? byKey : quotedOnly
+        if (!into.has(k)) into.set(k, { slug: it.slug, name: it.name || it.slug, unit: it.unit, doc: f.document_id, url: f.url, per: {} })
+        const row = into.get(k)
+        const vals = (row.per[m.model_version_id] ||= [])
+        if (!vals.includes(f.value)) vals.push(f.value)
+      })
+    })
+  })
+  const together = (map) => [...map.values()].filter((r) => Object.keys(r.per).length >= 2)
+  const bySlug = new Map()
+  together(byKey).forEach((t) => {
+    if (!bySlug.has(t.slug)) bySlug.set(t.slug, { slug: t.slug, name: t.name, unit: t.unit, tests: [] })
+    bySlug.get(t.slug).tests.push(t)
+  })
+  // Ordered by how many tests measured the axis - a count shown on each
+  // heading - then by name. Never by any figure.
+  const axes = [...bySlug.values()].sort((a, b) => b.tests.length - a.tests.length || a.name.localeCompare(b.name))
+  const quoted = new Set(together(quotedOnly).map((t) => t.doc)).size
+  return { axes, quoted }
 }
 
-/** How many reports one model has on one section: the count a quote is one of. */
-const reportsOn = (item) => item?.reports || (item?.quotes || []).length || 0
-
-const FACEOFF_ROWS = 4
-
-/** On the sections every model shares, one quote from each, side by side. */
-function FaceOff({ models }) {
-  const rows = [['best_for', 'Jobs'], ['capabilities', 'Capabilities']]
-    .flatMap(([section, heading]) => sharedAxes(models, section).every.map((a) => ({ ...a, heading })))
-    .slice(0, FACEOFF_ROWS)
-  if (!rows.length) return null
+function SameTest({ models }) {
+  const { axes, quoted } = sameTests(models)
+  const n = models.length
+  const some = n === 2 ? 'both' : 'two or more'
   return (
-    <div className="stack stack-2">
-      <span className="label">In their words</span>
-      {/* HOW THE QUOTES WERE CHOSEN, said on the page: without it a reader
-          cannot tell a picked quote from a fair one. The rule is quoteFor's. */}
-      <p className="faceoff-basis">
-        <span className="faceoff-i" aria-hidden="true">i</span>
+    <div className="stack stack-2" style={{ marginTop: 'var(--s4)' }}>
+      <span className="label">Measured in the same test</span>
+      <p className="st-basis">
+        <span className="st-i" aria-hidden="true">i</span>
         <span>
-          {/* SAYS WHAT THE CODE DOES (review of #508, item 8): sections every
-              model shares, jobs before capabilities, the first FACEOFF_ROWS -
-              not "the ones discussed most", and not "both" when there are three. */}
-          Up to {FACEOFF_ROWS} sections {models.length === 2 ? 'both models' : `all ${models.length} models`} were
-          discussed on — jobs first, then capabilities, in the order the board lists them. For each, the
-          first report on the board that says something clearly either way and fits on a card — chosen by
-          wording and length, never by which model it favours. Open a section to read every report.
+          Where one engineer measured {some} of these models in the same test, the figures can be read
+          against each other: same task, same setup. Each row is one test, the figures exactly as written,
+          linked to the post. Nothing is averaged, converted or ranked, and axes are ordered by how many
+          tests measured them. Figures from separate tests are left out, because they measured different things.
         </span>
       </p>
-      <div className="faceoff">
-        {rows.map((a) => {
-          const axisPath = Object.values(a.per).find((it) => it.board_path)?.board_path
-          return (
-            <div key={a.slug} className="faceoff-row">
-              <div className="faceoff-axis">
-                <span className="faceoff-k">{a.heading}</span>
-                {axisPath
-                  ? <Link to={`/board/${axisPath}`} className="mb-link">{a.name}</Link>
-                  : <span>{a.name}</span>}
-              </div>
-              <div className="faceoff-quotes" style={{ '--n': models.length }}>
-                {models.map((m) => {
-                  const q = quoteFor(a.per[m.model_version_id])
-                  return (
-                    <figure key={m.model_version_id} className="faceoff-q" data-polarity={q?.polarity || 'none'}>
-                      <span className="faceoff-model">{m.display_name}</span>
-                      {q ? (
-                        <>
-                          <blockquote>“{q.quote}”</blockquote>
-                          {/* ONE OF MANY, NOT A SOURCE (2026-10-15): the card
-                              names no platform and links to no post - it is one
-                              report among this model's on this section, and the
-                              count says how many. The section name above opens
-                              every one of them. */}
-                          <figcaption>
-                            <span className="faceoff-pol">{q.polarity}</span>
-                            {reportsOn(a.per[m.model_version_id]) > 1
-                              ? <> · one of {reportsOn(a.per[m.model_version_id])} reports</>
-                              : <> · the only report here</>}
-                          </figcaption>
-                        </>
-                      ) : <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>no quote recorded</span>}
-                    </figure>
-                  )
-                })}
-              </div>
+      {axes.length === 0 ? (
+        <p className="dim" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch', margin: 0, lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--text)' }}>No single test measured {some} of these models.</strong>{' '}
+          Figures measured in separate tests are not comparable, so they are not lined up here; each
+          model&apos;s page lists the figures measured for it.
+        </p>
+      ) : (
+        // ONE TABLE: the model names once, then a row per test - the axis, its
+        // unit and the post on the left, the figures under each model.
+        <div className="st-grid" style={{ '--n': n }}>
+          <div className="st-tr st-th">
+            <span>Axis · measured in</span>
+            {models.map((m) => <span key={m.model_version_id}>{shortName(m.display_name)}</span>)}
+          </div>
+          {axes.flatMap((a) => a.tests.map((t, k) => (
+            <div key={`${a.slug}|${t.doc}`} className="st-tr">
+              <span className="st-axis-cell">
+                <b>{a.name}</b>
+                {a.tests.length > 1 && <span className="dim tnum"> · test {k + 1} of {a.tests.length}</span>}
+                <span className="st-src">
+                  {a.unit && <>{a.unit} · </>}
+                  {t.url
+                    ? <a href={t.url} target="_blank" rel="noopener noreferrer">{platformOf(t.doc)} ↗</a>
+                    : platformOf(t.doc)}
+                </span>
+              </span>
+              {models.map((m) => {
+                const v = t.per[m.model_version_id]
+                return (
+                  <span key={m.model_version_id} className="st-cell">
+                    <span className="st-cell-name">{shortName(m.display_name)}</span>
+                    {v
+                      ? v.map((x) => <span key={x} className="st-fig">{x}</span>)
+                      : <span className="st-none">not in this test</span>}
+                  </span>
+                )
+              })}
             </div>
-          )
-        })}
-      </div>
+          )))}
+        </div>
+      )}
+      {quoted > 0 && (
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0 }}>
+          {quoted} {quoted === 1 ? 'post' : 'posts'} only quoted the providers&apos; own figures for these models
+          (list prices, advertised context) and {quoted === 1 ? 'is' : 'are'} left out: claims, not measurements.
+        </p>
+      )}
     </div>
   )
 }

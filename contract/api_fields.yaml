@@ -228,6 +228,11 @@ fields:
     routes:
     - /fetch/log
     state: consumed
+  emerging:
+    reviewed: false
+    routes:
+    - /blog-topics
+    state: consumed
   entries:
     reviewed: false
     routes:
@@ -279,6 +284,11 @@ fields:
     routes:
     - /ask/recommend
     state: no_consumer
+  harvest:
+    reviewed: false
+    routes:
+    - /blog-topics
+    state: consumed
   heartbeat_seconds:
     reviewed: false
     routes:
@@ -289,6 +299,11 @@ fields:
     routes:
     - /admin/usage
     state: no_consumer
+  items:
+    reviewed: false
+    routes:
+    - /quiz-bank
+    state: consumed
   jobs:
     reviewed: false
     routes:
@@ -355,6 +370,7 @@ fields:
   models:
     reviewed: false
     routes:
+    - /blog-topics
     - /compare
     - /models
     state: consumed
@@ -387,6 +403,16 @@ fields:
     - /admin/stages
     - /fetch/stop
     state: consumed
+  overview:
+    reviewed: false
+    routes:
+    - /blog-topics
+    state: consumed
+  packs:
+    reviewed: false
+    routes:
+    - /blog-posts/packs
+    state: consumed
   page:
     reviewed: false
     routes:
@@ -413,6 +439,11 @@ fields:
       rows count different units against different denominators - E2 counts 19,834 documents,
       E3 counts 6,629 threads - and `items_in`/`items_out`, which would have made it a funnel,
       are null on every stage. Both endpoints still emit the field and no page asks for it'
+  plan:
+    reviewed: false
+    routes:
+    - /blog-topics
+    state: consumed
   platforms:
     reviewed: false
     routes:
@@ -503,7 +534,8 @@ fields:
     reviewed: false
     routes:
     - /ask/recommend
-    state: no_consumer
+    - /quiz-bank
+    state: consumed
   report_counts_are_a_floor:
     reviewed: false
     routes:
@@ -543,6 +575,11 @@ fields:
     reviewed: false
     routes:
     - /admin/board-entries/rule
+    state: consumed
+  run:
+    reviewed: false
+    routes:
+    - /blog-posts/packs
     state: consumed
   run_id:
     reviewed: false
@@ -794,10 +831,15 @@ fields:
     - /documents/{document_id:path}/source
     state: consumed
   window_days:
-    reviewed: false
+    reviewed: true
     routes:
+    - /blog-topics
     - /changelog
-    state: no_consumer
+    state: consumed
+    why: >-
+      Read under /blog-topics by web/src/components/BlogTopics.jsx (the Topics
+      fold's "counted over the last N days"), 2026-10-16. The /changelog copy is
+      still unread; the state is per name, so it is recorded here rather than lost.
   with_entries:
     reviewed: false
     routes:

@@ -46,6 +46,37 @@ def withheld_sources() -> tuple[str, ...]:
 
 
 @lru_cache(maxsize=1)
+def totals_include_withheld() -> bool:
+    """Whether a public TOTAL counts rows from the withheld sources
+    (contract/publication.yaml `withheld_from_public.totals_include_withheld`).
+
+    true since 2026-10-15: "20 voices" counts every source, and nothing on a
+    page says how many came from which platform. Quotes, links, handles,
+    platform names and per-platform counts stay withheld whatever this says.
+    Must be a boolean; absent raises (rule 6) - a guess here would either hide
+    real evidence or publish a split the contract forbids.
+    """
+    from judge.config import _read
+
+    raw = _read("publication.yaml") or {}
+    value = (raw.get("withheld_from_public") or {}).get("totals_include_withheld")
+    if not isinstance(value, bool):
+        raise PublicationConfigError(
+            "contract/publication.yaml `withheld_from_public.totals_include_withheld` "
+            f"must be true or false, not {value!r}. Refusing rather than guessing "
+            "whether a public total may count the withheld sources."
+        )
+    return value
+
+
+def hidden_from_counts() -> tuple[str, ...]:
+    """The sources a public TOTAL leaves out: none when totals include every
+    source, the withheld list otherwise. For counts only - a quote, a link, a
+    handle or a platform name is filtered with `withheld_sources()` always."""
+    return () if totals_include_withheld() else withheld_sources()
+
+
+@lru_cache(maxsize=1)
 def derived_posts_may_draw_on_withheld() -> bool:
     """Whether a blog draft may be written from a withheld source.
 
@@ -243,7 +274,24 @@ def sql_public_document(doc_col: str) -> tuple[str, tuple]:
     the withheld list - unknown provenance is withheld, as in `withheld()`.
     Returns the SQL and its two parameters, in order.
     """
-    hidden = list(hidden_here())
+    return _sql_filter(doc_col, list(hidden_here()))
+
+
+def sql_counted_document(doc_col: str) -> tuple[str, tuple]:
+    """The same clause for a public TOTAL: keeps every row when totals include
+    every source (`totals_include_withheld`), whatever view the deployment runs.
+    Never use it for a quote, a link, a handle or a platform name."""
+    return _sql_filter(doc_col, list(hidden_from_counts()))
+
+
+def sql_shown_document(doc_col: str) -> tuple[str, tuple]:
+    """The same clause for anything that SHOWS a source - a quote, a link, a
+    platform name, a per-platform number - with the contract's withheld list
+    applied whatever view the deployment runs."""
+    return _sql_filter(doc_col, list(withheld_sources()))
+
+
+def _sql_filter(doc_col: str, hidden: list[str]) -> tuple[str, tuple]:
     clause = (
         " AND (cardinality(%s::text[]) = 0 OR EXISTS ("
         "SELECT 1 FROM document pub_d WHERE pub_d.id = " + doc_col +

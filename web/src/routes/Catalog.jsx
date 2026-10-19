@@ -230,7 +230,7 @@ export default function Catalog() {
           Listed by <a href="https://openrouter.ai/models" target="_blank" rel="noreferrer">OpenRouter</a>,
           read {fmtDate(view.polled_at.slice(0, 10))}: {view.listed} models from {view.providers.length} providers.
           A type is the output OpenRouter lists for a model; prices are its list prices. Voices and reports
-          count what engineers posted publicly, from the sources this site shows.
+          count what engineers posted publicly, from every source this site reads.
           {view.aliases_left_out ? ` ${view.aliases_left_out} "latest" aliases are left out, each a pointer to a model listed under its own name.` : ''}
         </p>
       )}

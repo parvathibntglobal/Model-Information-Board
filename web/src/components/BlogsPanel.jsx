@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { blogPosts, startBlogGeneration, blogGenerationStatus, blogGenerationLog, blogRuns, reviewBlogPost, storeBlogDrafts } from '../api'
+import { blogMethod, blogPosts, startBlogGeneration, blogGenerationStatus, blogGenerationLog, blogRuns, reviewBlogPost, storeBlogDrafts } from '../api'
+import { BlogMethod, WritingPacks } from './BlogMethod'
+import { BlogTopics } from './BlogTopics'
 import { Badge, Notice } from './ui'
 import { IconAlert, IconGrid } from './Icons'
 
@@ -187,7 +189,12 @@ export default function BlogsPanel() {
   // WHAT THE LAST CLICK DID, said once, so a saved decision is visible.
   const [reviewDone, setReviewDone] = useState(null)
   const [storeMsg, setStoreMsg] = useState(null)
+  // WHO WRITES, AND HOW (2026-10-16): judge/blog_method.py. While Claude Code
+  // writes, the Generate button (an OpenRouter run) is replaced by writing packs.
+  const [method, setMethod] = useState(null)
   const timer = useRef(null)
+  useEffect(() => { blogMethod().then(setMethod).catch(() => setMethod(null)) }, [])
+  const claude = method?.writer === 'claude-code'
 
   const load = useCallback(() => blogPosts('all')
     .then((d) => setPosts({ data: d, err: null }))
@@ -295,10 +302,16 @@ export default function BlogsPanel() {
 
       <div className="card-intro">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
-          Written by a language model from engineers&apos; public reports and checked in code. Generating plans
-          the next posts from the board&apos;s evidence;{' '}
-          <strong style={{ color: 'var(--text)' }}>it calls a paid model</strong> and runs only on a local
-          development backend, one run at a time. Posts are kept in the shared database, so everyone reviews
+          {claude ? (
+            <>Written by <strong style={{ color: 'var(--text)' }}>Claude Code</strong> from writing packs that code
+              prepares from engineers&apos; public reports, and checked in code by the same rules every draft faced.
+              No paid model is called while the prompt is being tuned.</>
+          ) : (
+            <>Written by a language model from engineers&apos; public reports and checked in code. Generating plans
+              the next posts from the board&apos;s evidence;{' '}
+              <strong style={{ color: 'var(--text)' }}>it calls a paid model</strong> and runs only on a local
+              development backend, one run at a time.</>
+          )}{' '}Posts are kept in the shared database, so everyone reviews
           the same ones, and a post reaches the Blogs page only once approved here.
         </p>
       </div>
@@ -322,14 +335,18 @@ export default function BlogsPanel() {
               <span aria-hidden="true">→</span>
             </Link>
             {/* THE PANEL'S MAIN ACTION, so it is the one filled button on it. */}
-            <button type="button" className="btn btn-primary blog-gen-btn" disabled={running} onClick={onGenerate}>
-              {running ? 'Generating…' : `Generate ${COUNT} more posts`}
-            </button>
+            {!claude && method && (
+              <button type="button" className="btn btn-primary blog-gen-btn" disabled={running} onClick={onGenerate}>
+                {running ? 'Generating…' : `Generate ${COUNT} more posts`}
+              </button>
+            )}
           </div>
         </div>
 
         {startErr && <Notice icon={<IconAlert />}>{startErr}</Notice>}
-        <RunStatus gen={gen} />
+        {claude ? <WritingPacks /> : <RunStatus gen={gen} />}
+        <BlogMethod method={method} />
+        <BlogTopics />
 
         {posts.err && <Notice icon={<IconAlert />}>The posts could not be read: {posts.err}</Notice>}
         {reviewErr && <Notice icon={<IconAlert />}>Could not record the decision for {reviewErr}</Notice>}

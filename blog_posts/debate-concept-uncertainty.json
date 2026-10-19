@@ -1,0 +1,466 @@
+{
+ "slug": "debate-concept-uncertainty",
+ "status": "draft",
+ "tag": "Debate",
+ "feat": false,
+ "title": "Ask the Model or Watch It Act: The LLM Calibration Fight Over Confidence",
+ "dek": "Stated confidence, repaired scores and repeated agent runs all claim to tell you when an answer is safe to accept. We put them in the same ring and pick a winner.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "One confidence score can only be repaired so far. For agents, agreement across repeated runs predicted success better than the model's stated confidence, so we trust behaviour first and audit the score.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPlNhaWQgYWdhaW5zdCBkaWQ6IHN0YXRlZCBjb25maWRlbmNlIHZlcnN1cyByZXBlYXRlZCBhZ2VudCBydW5zPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvd0wiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93UiIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAuNDUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBsZWZ0OiB0aGUgbW9kZWwncyBzdGF0ZWQgY29uZmlkZW5jZSAtLT4KICA8Y2lyY2xlIGN4PSIyOTAiIGN5PSIyNzAiIHI9IjIzMCIgZmlsbD0idXJsKCNnbG93TCkiLz4KICA8cGF0aCBkPSJNMTMwLDEzMCBoMzIwIGEyNCwyNCAwIDAgMSAyNCwyNCB2MTkwIGEyNCwyNCAwIDAgMSAtMjQsMjQgaC0xOTAgbC02MCw1NiBsOCwtNTYgaC03OCBhMjQsMjQgMCAwIDEgLTI0LC0yNCB2LTE5MCBhMjQsMjQgMCAwIDEgMjQsLTI0IHoiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8IS0tIGdhdWdlIGluc2lkZSBidWJibGUgLS0+CiAgPHBhdGggZD0iTTE5MCwzMTAgQTEwMCwxMDAgMCAwIDEgMzkwLDMxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNMTkwLDMxMCBBMTAwLDEwMCAwIDAgMSAzNzAsMjUwIiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMTgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxsaW5lIHgxPSIyOTAiIHkxPSIzMTAiIHgyPSIzNjIiIHkyPSIyNDYiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSIyOTAiIGN5PSIzMTAiIHI9IjExIiBmaWxsPSIjZThlZGY1Ii8+CiAgPHRleHQgeD0iMjkwIiB5PSIyMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+SSdtIHN1cmU8L3RleHQ+CiAgPHRleHQgeD0iMjkwIiB5PSI1NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI1MiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2E3OGJmYSIgbGV0dGVyLXNwYWNpbmc9IjYiPlNBSUQ8L3RleHQ+CgogIDwhLS0gZGl2aWRlciAtLT4KICA8bGluZSB4MT0iNjAwIiB5MT0iOTAiIHgyPSI2MDAiIHkyPSI1NjAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI2IDEwIi8+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzI1IiByPSIzNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjMzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjOTVhMWI0IiBmb250LXdlaWdodD0iNjAwIj52czwvdGV4dD4KCiAgPCEtLSByaWdodDogcmVwZWF0ZWQgcm9sbG91dHMgbWVyZ2luZyBhbmQgc3BsaXR0aW5nIC0tPgogIDxjaXJjbGUgY3g9IjkwMCIgY3k9IjMwMCIgcj0iMTIwIiBmaWxsPSJ1cmwoI2dsb3dSKSIvPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxwYXRoIGQ9Ik02OTAsMzAwIEM3NDAsMjQwIDc2MCwyNDAgODAwLDI1MCBTODcwLDI5MCA5MDAsMzAwIEM5NTAsMjUwIDk5MCwyMDAgMTA2MCwxODAiIHN0cm9rZT0iIzdhYTJmZiIvPgogICAgPHBhdGggZD0iTTY5MCwzMDAgQzc0MCwyODAgNzcwLDI2MCA4MDAsMjU2IFM4NzAsMjk2IDkwMCwzMDYgQzk1MCwyNjAgOTkwLDIxNSAxMDYwLDE5MCIgc3Ryb2tlPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjc1Ii8+CiAgICA8cGF0aCBkPSJNNjkwLDMwMCBDNzQwLDM0MCA3NzAsMzUwIDgwMCwzNDYgUzg3MCwzMTAgOTAwLDMwMCBDOTUwLDM1MCA5OTAsNDAwIDEwNjAsNDIwIiBzdHJva2U9IiM3YWEyZmYiIG9wYWNpdHk9IjAuOSIvPgogICAgPHBhdGggZD0iTTY5MCwzMDAgQzc0MCwzNjAgNzcwLDM1NiA4MDAsMzUyIFM4NzAsMzE2IDkwMCwzMDYgQzk1MCwzNjAgOTkwLDQxMCAxMDYwLDQzMCIgc3Ryb2tlPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjYiLz4KICA8L2c+CiAgPGNpcmNsZSBjeD0iNjkwIiBjeT0iMzAwIiByPSIxNCIgZmlsbD0iI2U4ZWRmNSIvPgogIDxjaXJjbGUgY3g9IjgwMCIgY3k9IjI1MiIgcj0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGNpcmNsZSBjeD0iODAwIiBjeT0iMzQ5IiByPSIxMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8Y2lyY2xlIGN4PSI5MDAiIGN5PSIzMDMiIHI9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iNSIvPgogIDwhLS0gb3V0Y29tZXMgLS0+CiAgPGNpcmNsZSBjeD0iMTA4MCIgY3k9IjE4NCIgcj0iMjYiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxwYXRoIGQ9Ik0xMDY4LDE4NSBsOSw5IGwxNywtMTkiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSIxMDgwIiBjeT0iNDI2IiByPSIyNiIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHBhdGggZD0iTTEwNjksNDE1IGwyMiwyMiBNMTA5MSw0MTUgbC0yMiwyMiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjkwMCIgeT0iNTQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlM2IzNDEiIGxldHRlci1zcGFjaW5nPSI2Ij5ESUQ8L3RleHQ+Cjwvc3ZnPgo=",
+  "alt": "A speech bubble with a confidence gauge faces a graph of repeated agent runs that split into a success and a failure.",
+  "caption": "The debate in one picture: what the model says about its confidence against what it does across repeated runs.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How confident are LLMs in their answers? We debate stated scores, probes and repeated agent runs, and say where we land on LLM calibration.",
+ "keywords": [
+  "how confident are LLMs in their answers",
+  "LLM calibration",
+  "Uncertainty and calibration",
+  "verbalized confidence",
+  "agent uncertainty quantification",
+  "selective prediction"
+ ],
+ "kicker": "Debate",
+ "tags": [
+  "LLM calibration",
+  "Debate"
+ ],
+ "read": 8,
+ "decisions": [
+  "Judge a confidence signal by the review decisions it drives, never by its calibration metric alone.",
+  "For tool-using agents, sample repeated runs and inspect the state where actions split.",
+  "Ship a recalibration only after a paired test shows it lowers held-out risk.",
+  "Use a label-free certificate to retire a score, never to approve one."
+ ],
+ "layout": "debate",
+ "arrangement": "b",
+ "special": {
+  "type": "positions",
+  "title": "Two sides",
+  "items": [
+   {
+    "side": "Fix the score",
+    "case": "One recalibrated confidence number is cheap, auditable and already wired into accept, review and regenerate decisions. Probe-anchored monotone repair, gated by a paired adoption test, makes it trustworthy.",
+    "weakness": "A score cannot repair errors it cannot see, and richer probe information is lost when it is squeezed back into one number."
+   },
+   {
+    "side": "Watch the behaviour",
+    "case": "Agreement across repeated agent runs, measured at shared decision states, predicted task success better than verbalized confidence and also shows where runs split.",
+    "weakness": "It costs several full runs, ranks without calibrating, and depends on a judgment about which states count as equivalent."
+   },
+   {
+    "side": "Audit without labels",
+    "case": "Logical coherence across related questions can certify that a predictor is miscalibrated with no ground truth at all.",
+    "weakness": "A certificate only bounds error from below, so a zero result means not refuted and cannot license trust."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Confidence can live in a score or in behaviour",
+    "num": "01",
+    "id": "confidence-can-live-in-a-score-or-in-behaviour"
+   }
+  ],
+  [
+   "p",
+   "How confident are LLMs in their answers, and where should you read that confidence from? People who build reliability tooling split hard here. One camp says confidence is a score: take the model's stated or computed number, recalibrate it, set a threshold. The other camp says a score is a lossy summary. Run the model again and watch what it does. Both camps arrived with fresh evidence."
+  ],
+  [
+   "p",
+   "Why should you care? A confidence number is rarely just shown to a user. It's a switch. A new arXiv paper on confidence repair puts the stakes plainly: «Confidence scores determine whether an LLM answer is accepted, reviewed, or regenerated». Get the switch wrong and you either flood reviewers or wave errors through. Calibration means stated confidence matches the real hit rate. That is the property the switch leans on."
+  ],
+  [
+   "p",
+   "So this post stages a fight between instruments. There's the scalar score, there's a probe that reads the model's internals, and there's consistency across rollouts, where a rollout is one full run of an agent on a task. A fourth voice audits all of them without labels. We give each its best case, then press it. Spoiler: behaviour wins, with conditions."
+  ],
+  [
+   "h2",
+   {
+    "text": "The scalar score is the interface everyone already ships",
+    "num": "02",
+    "id": "the-scalar-score-is-the-interface-everyone-already-ships"
+   }
+  ],
+  [
+   "p",
+   "Start with the scalar camp, because it owns the plumbing. Your model emits a raw confidence. It might be a token probability from the logits, the scores before softmax. It might be a number the model writes in text, called verbalized confidence. A recalibrator then maps that raw value to a probability you can threshold. One number in. One decision out."
+  ],
+  [
+   "p",
+   "The repair step is where the craft lives. Isotonic regression is the classic tool. It fits a monotone, stepwise map from raw score to observed accuracy, so the order of answers never changes. The RADAR paper extends it with a method «which learns a monotone map from correctness-probe predictions on unlabeled target prompts». A correctness probe is a small classifier on hidden states that guesses if an answer is right."
+  ],
+  [
+   "p",
+   "Here's the scalar camp's sharpest point. RADAR doesn't recalibrate and hope. It adds a gate that decides if a repair ships at all, and that gate is itself measured: «paired betting adopts candidates with lower held-out test risk in 42.95% of allocations, versus 15.09% for one-sided empirical Bernstein». The adoption test gets tested. We think that's the most mature idea in this whole argument."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The scalar pipeline: one raw score becomes one decision, with a repair gate and an audit around it.",
+    "steps": [
+     "Model emits a raw confidence score",
+     "Recalibrator maps the score to a probability",
+     "Adoption test decides if the repair ships",
+     "Threshold splits accept, review and regenerate",
+     "Audit hunts for errors the score cannot see"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "One number throws away what the probe knew",
+    "num": "03",
+    "id": "one-number-throws-away-what-the-probe-knew"
+   }
+  ],
+  [
+   "p",
+   "Now press it. The paper with the best scalar tooling also delivers the scalar's worst news. Its abstract opens with the limit: «scalar recalibration can only correct errors visible through the score itself». Picture two answers that both scored high, one right and one wrong. If nothing in the score separates them, no monotone map can pull them apart. The information simply isn't there."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPkEgcHJvYmUgc2VwYXJhdGVzIHJpZ2h0IGZyb20gd3JvbmcgYW5zd2VycywgdGhlIHNpbmdsZSBzY29yZSBkb2VzIG5vdDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MjAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDwhLS0gbGVmdDogcHJvYmUgc3BhY2UgLS0+CiAgICA8cmVjdCB4PSI1MCIgeT0iOTAiIHdpZHRoPSIzODAiIGhlaWdodD0iMzgwIiByeD0iMTgiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4wOCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjI0MCIgeT0iNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI2MDAiPldoYXQgdGhlIHByb2JlIHNlZXM8L3RleHQ+CiAgICA8bGluZSB4MT0iOTAiIHkxPSI0MzAiIHgyPSI0MDAiIHkyPSIxMzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDgiLz4KICAgIDxnIGZpbGw9IiMzZWNmOGUiPgogICAgICA8Y2lyY2xlIGN4PSIxMzAiIGN5PSIxODAiIHI9IjEzIi8+PGNpcmNsZSBjeD0iMTc1IiBjeT0iMjMwIiByPSIxMyIvPjxjaXJjbGUgY3g9IjEyMCIgY3k9IjI5MCIgcj0iMTMiLz4KICAgICAgPGNpcmNsZSBjeD0iMjEwIiBjeT0iMTYwIiByPSIxMyIvPjxjaXJjbGUgY3g9IjI0MCIgY3k9IjIxNSIgcj0iMTMiLz4KICAgIDwvZz4KICAgIDxnIGZpbGw9IiNmZjdiNzIiPgogICAgICA8Y2lyY2xlIGN4PSIzMDAiIGN5PSIzODAiIHI9IjEzIi8+PGNpcmNsZSBjeD0iMzUwIiBjeT0iMzIwIiByPSIxMyIvPjxjaXJjbGUgY3g9IjI2MCIgY3k9IjQyMCIgcj0iMTMiLz4KICAgICAgPGNpcmNsZSBjeD0iMzcwIiBjeT0iNDAwIiByPSIxMyIvPgogICAgPC9nPgogICAgPHRleHQgeD0iMjQwIiB5PSI1MTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPnJpZ2h0IGFuZCB3cm9uZyBzaXQgYXBhcnQ8L3RleHQ+CgogICAgPCEtLSBmdW5uZWwgLS0+CiAgICA8cGF0aCBkPSJNNDcwLDEzMCBMNjQwLDI1MCBMNjQwLDMxMCBMNDcwLDQzMCB6IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI1NTUiIHk9IjQ3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2E3OGJmYSI+c3F1ZWV6ZWQgdG88L3RleHQ+CiAgICA8dGV4dCB4PSI1NTUiIHk9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2E3OGJmYSI+b25lIG51bWJlcjwvdGV4dD4KICAgIDxsaW5lIHgxPSI2NDUiIHkxPSIyODAiIHgyPSI3MjAiIHkyPSIyODAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgoKICAgIDwhLS0gcmlnaHQ6IHRoZSBzY29yZSBsaW5lIC0tPgogICAgPHRleHQgeD0iOTUwIiB5PSI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+V2hhdCB0aGUgc2NvcmUgc2hvd3M8L3RleHQ+CiAgICA8bGluZSB4MT0iNzQwIiB5MT0iMjgwIiB4Mj0iMTE1MCIgeTI9IjI4MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHRleHQgeD0iNzQwIiB5PSIzMzAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmxvdzwvdGV4dD4KICAgIDx0ZXh0IHg9IjExNTAiIHk9IjMzMCIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+aGlnaDwvdGV4dD4KICAgIDxjaXJjbGUgY3g9IjEwMjAiIGN5PSIyNzAiIHI9IjcwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICA8Y2lyY2xlIGN4PSI4MDAiIGN5PSIyODAiIHI9IjEzIiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8Y2lyY2xlIGN4PSI4ODAiIGN5PSIyODAiIHI9IjEzIiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8Y2lyY2xlIGN4PSIxMDEwIiBjeT0iMjgwIiByPSIxNSIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPGNpcmNsZSBjeD0iMTAzMCIgY3k9IjI4MCIgcj0iMTUiIGZpbGw9IiNmZjdiNzIiIG9wYWNpdHk9IjAuOSIvPgogICAgPHBhdGggZD0iTTEwMjAsMjUwIEwxMDIwLDE3MCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXIpIiB0cmFuc2Zvcm09InJvdGF0ZSgxODAgMTAyMCAyMTApIi8+CiAgICA8dGV4dCB4PSIxMDIwIiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNmZjdiNzIiIGZvbnQtd2VpZ2h0PSI2MDAiPnNhbWUgc2NvcmUsPC90ZXh0PgogICAgPHRleHQgeD0iMTAyMCIgeT0iMTgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZmY3YjcyIiBmb250LXdlaWdodD0iNjAwIj5vcHBvc2l0ZSB0cnV0aDwvdGV4dD4KCiAgICA8IS0tIGJvdHRvbTogYW5ub3RhdGlvbiBib3ggLS0+CiAgICA8cmVjdCB4PSI3NDAiIHk9IjM5MCIgd2lkdGg9IjQxMCIgaGVpZ2h0PSIxNTAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9Ijk0NSIgeT0iNDQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5hIG1vbm90b25lIHJlcGFpciBtb3ZlczwvdGV4dD4KICAgIDx0ZXh0IHg9Ijk0NSIgeT0iNDc0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5ib3RoIGRvdHMgdG9nZXRoZXI8L3RleHQ+CiAgICA8dGV4dCB4PSI5NDUiIHk9IjUxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2UzYjM0MSI+aGlkZGVuIGJ5IHRoZSBzY29yZTwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Right and wrong answers sit apart in probe space, then collapse onto the same point on a single score line.",
+    "caption": "A probe can separate a right answer from a wrong one that a single score places side by side, and no monotone repair can split them.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "RADAR makes that precise with a risk decomposition under squared loss. Think of it as `risk = outcome noise + hidden information + mapping error`. The authors «decompose prediction risk into outcome noise, information hidden by the score, and mapping error», and note that «restricting repair to order-preserving maps additionally introduces a pooling gap». Recalibration only shrinks the mapping term. The middle term is the killer."
+  ],
+  [
+   "p",
+   "Then comes the line we keep rereading: «richer predictors can improve confidence estimation, but projecting their information back to a scalar score can lose these gains». The probe saw something real, and the funnel into one number spilled it. Code models show the same squeeze. A study of defect and vulnerability detectors found that calibrators «often improve calibration scores but do not consistently translate into better selective prediction behavior». Selective prediction means answering only above a confidence cutoff."
+  ],
+  [
+   "h2",
+   {
+    "text": "Repeated runs expose the step where an agent wavers",
+    "num": "04",
+    "id": "repeated-runs-expose-the-step-where-an-agent-wavers"
+   }
+  ],
+  [
+   "p",
+   "The behaviour camp starts from another instinct. Don't ask the agent how sure it is. Run it again and see if it repeats itself. The GraphACM paper's premise is that «Behavioral consistency across repeated executions provides an informative signal for assessing the reliability» of agents. Its complaint about older methods is specific: they «summarize consistency with a single task-level score». Sound familiar? It's the scalar problem again, one level up."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPlJlcGVhdGVkIGFnZW50IHJ1bnMgbWVyZ2VkIGludG8gb25lIGFjdGlvbiBncmFwaCwgc3BsaXR0aW5nIGF0IG9uZSBzaGFyZWQgc3RhdGU8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC40Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NDAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDwhLS0gc2hhcmVkIHRydW5rOiBydW5zIGRyYXduIGFzIHBhcmFsbGVsIHN0cmFuZHMgLS0+CiAgICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgICAgPHBhdGggZD0iTTE1MCwzMTIgTDM4MCwzMTIgTDYyMCwzMTIiIG9wYWNpdHk9IjAuOTUiLz4KICAgICAgPHBhdGggZD0iTTE1MCwzMjAgTDM4MCwzMjAgTDYyMCwzMjAiIG9wYWNpdHk9IjAuNzUiLz4KICAgICAgPHBhdGggZD0iTTE1MCwzMjggTDM4MCwzMjggTDYyMCwzMjgiIG9wYWNpdHk9IjAuNTUiLz4KICAgICAgPHBhdGggZD0iTTE1MCwzMzYgTDM4MCwzMzYgTDYyMCwzMzYiIG9wYWNpdHk9IjAuNCIvPgogICAgICA8IS0tIHNwbGl0IC0tPgogICAgICA8cGF0aCBkPSJNNjgwLDMxMiBDNzYwLDMwMCA4MDAsMjAwIDkwMCwxOTAiIG9wYWNpdHk9IjAuOTUiLz4KICAgICAgPHBhdGggZD0iTTY4MCwzMjAgQzc2MCwzMTAgODAwLDIxMCA5MDAsMTk4IiBvcGFjaXR5PSIwLjc1Ii8+CiAgICAgIDxwYXRoIGQ9Ik02ODAsMzI4IEM3NjAsMzQwIDgwMCw0NDAgOTAwLDQ1MCIgb3BhY2l0eT0iMC41NSIvPgogICAgICA8cGF0aCBkPSJNNjgwLDMzNiBDNzYwLDM1MCA4MDAsNDUwIDkwMCw0NTgiIG9wYWNpdHk9IjAuNCIvPgogICAgICA8cGF0aCBkPSJNOTQwLDE5NCBMMTA0MCwxOTQiLz4KICAgICAgPHBhdGggZD0iTTk0MCw0NTQgTDEwNDAsNDU0Ii8+CiAgICA8L2c+CiAgICA8IS0tIG5vZGVzIC0tPgogICAgPGNpcmNsZSBjeD0iMTUwIiBjeT0iMzI0IiByPSIyNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjMwMCIgeT0iMjkwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjY4IiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIzODAiIHk9IjMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+c2VhcmNoPC90ZXh0PgogICAgPGNpcmNsZSBjeD0iNjUwIiBjeT0iMzI0IiByPSI5MCIgZmlsbD0idXJsKCNnbG93KSIvPgogICAgPHJlY3QgeD0iNTY1IiB5PSIyOTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iNjgiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDx0ZXh0IHg9IjY1MCIgeT0iMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5waWNrIHNpemU8L3RleHQ+CiAgICA8cmVjdCB4PSI4NjAiIHk9IjE2MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSI2OCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iOTEwIiB5PSIyMDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIj5NPC90ZXh0PgogICAgPHJlY3QgeD0iODYwIiB5PSI0MjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iNjgiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjkxMCIgeT0iNDYzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSI+TDwvdGV4dD4KICAgIDxjaXJjbGUgY3g9IjEwNzUiIGN5PSIxOTQiIHI9IjI4IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwYXRoIGQ9Ik0xMDYyLDE5NSBsOSw5IGwxOCwtMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgIDxjaXJjbGUgY3g9IjEwNzUiIGN5PSI0NTQiIHI9IjI4IiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgIDxwYXRoIGQ9Ik0xMDYzLDQ0MiBsMjQsMjQgTTEwODcsNDQyIGwtMjQsMjQiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgICA8IS0tIGxhYmVscyAtLT4KICAgIDx0ZXh0IHg9IjE1MCIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij50YXNrPC90ZXh0PgogICAgPHRleHQgeD0iMzgwIiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiPmV2ZXJ5IHJ1biBhZ3JlZXM8L3RleHQ+CiAgICA8dGV4dCB4PSI2NTAiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2UzYjM0MSI+cnVucyBzcGxpdCBoZXJlPC90ZXh0PgogICAgPHRleHQgeD0iNjUwIiB5PSI0NTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlM2IzNDEiPmxvdyBub2RlIGNvbnNpc3RlbmN5PC90ZXh0PgogICAgPHRleHQgeD0iMTA3NSIgeT0iMTM0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIj5zdWNjZXNzPC90ZXh0PgogICAgPHRleHQgeD0iMTA3NSIgeT0iNTI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmY3YjcyIj5mYWlsdXJlPC90ZXh0PgoKICAgIDwhLS0gbGVnZW5kIC0tPgogICAgPGxpbmUgeDE9IjgwIiB5MT0iNTc0IiB4Mj0iMTUwIiB5Mj0iNTc0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTY2IiB5PSI1ODIiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmVhY2ggc3RyYW5kIGlzIG9uZSByb2xsb3V0OyBlcXVhbCBzdGF0ZXMgbWVyZ2UgaW50byBvbmUgbm9kZTwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Several agent runs share a search step, then split at a pick size node into one success and one failure.",
+    "caption": "Merging repeated runs into one graph shows the exact state where the agent wavers, which a task-level score cannot.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "We went through their method on one shopping task. Picture a WebShop-style agent run several times, logging every state and action. Then, in the authors' words, «we merge equivalent states into a directed, action-labeled graph, enabling action comparisons at shared decision states». Say every run issues the same search and opens the same product page. Then the runs split on which size to pick. That node lights up."
+  ],
+  [
+   "p",
+   "That's the clever part. A task-level score says the runs disagree somewhere. The graph says where. Node-level consistency is the agreement among actions taken from one shared state, and a global score rolls those up into a proxy for uncertainty. The stated aim is to «pinpoint where agent actions agree», which also shows where they don't. You get a debugger along with the gate."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative: consistency at shared states (a simple stand-in, not the paper's exact measure)",
+    "language": "python",
+    "source": "from collections import Counter, defaultdict\nfrom statistics import mean\n\ndef consistency(rollouts, canonical):\n    graph = defaultdict(list)        # merged state -> actions taken there\n    for run in rollouts:\n        for state, action in run:\n            graph[canonical(state)].append(action)\n\n    node = {s: max(Counter(a).values()) / len(a)\n            for s, a in graph.items() if len(a) > 1}   # shared states only\n    weakest = min(node, key=node.get)                    # where runs split\n    return mean(node.values()), weakest"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Agreement beats the model's own words on ranking and costs extra runs",
+    "num": "05",
+    "id": "agreement-beats-the-model-s-own-words-on-ranking-and-costs-e"
+   }
+  ],
+  [
+   "p",
+   "Here's the evidence that makes the behaviour camp so sure. Across ALFWorld, AppWorld and WebShop, the measure «achieves an average AUROC of 0.811 for task-success prediction». AUROC is the chance a random success outranks a random failure, so a coin flip scores half. The comparisons matter more. It beat «the strongest behavioral-consistency baseline (0.729) and verbalized confidence (0.769)». The model's own words came second."
+  ],
+  [
+   "p",
+   "Now press it. AUROC measures ranking, and ranking isn't calibration. A signal can sort successes above failures and still not tell you how often a consistent run succeeds. The abstract's wording is careful here: the measure is «positively associated with task success». That's a ranking claim. You'd still need a map from consistency to probability before it drives a threshold. Awkwardly, that's a scalar recalibration step."
+  ],
+  [
+   "p",
+   "Cost is the other soft spot. Every extra rollout is a full agent run, with its tokens, tool calls and latency. A single-run verbalized score is nearly free next to that. Merging equivalent states also hides a judgment call. Is a page with a different ad banner the same state? Get the canonical form wrong and the graph fragments or fuses. We're not convinced that's solved in general."
+  ],
+  [
+   "p",
+   "There's a subtler gap too. Disagreement across runs mixes two kinds of uncertainty. Aleatoric uncertainty is noise in the task itself, like an ambiguous instruction. Epistemic uncertainty is the model not knowing. Work on pairwise difference learning builds on «the decomposition of total uncertainty into aleatoric and epistemic components», and agent signals need that split. A vague task makes honest runs disagree. That isn't unreliability."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Average AUROC for predicting agent task success on ALFWorld, AppWorld and WebShop, as the GraphACM abstract reports it.",
+    "unit": "AUROC for task-success prediction",
+    "bars": [
+     {
+      "label": "Graph consistency (GraphACM)",
+      "value": 0.811
+     },
+     {
+      "label": "Verbalized confidence",
+      "value": 0.769
+     },
+     {
+      "label": "Strongest consistency baseline",
+      "value": 0.729
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Label-free certificates can only convict a predictor",
+    "num": "06",
+    "id": "label-free-certificates-can-only-convict-a-predictor"
+   }
+  ],
+  [
+   "p",
+   "The fourth voice doesn't back a signal at all. It asks a harder question. Can you catch bad calibration with no labels? A new arXiv paper on label-free certificates starts from the fact that «labels to check their calibration are often missing». Its lever is logical coherence. If a model gives high odds to an event and also to its negation, something is off. No ground truth needed."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCI+CiAgPHRpdGxlPkEgbGFiZWwtZnJlZSBjZXJ0aWZpY2F0ZSBib3VuZHMgY2FsaWJyYXRpb24gZXJyb3IgZnJvbSBiZWxvdyBvbmx5PC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYXhpcyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjAiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIwLjUiIHN0b3AtY29sb3I9IiNlM2IzNDEiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI1NjAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iNzAiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI2MDAiPkNhbGlicmF0aW9uIGVycm9yPC90ZXh0PgogICAgPHRleHQgeD0iMTAwIiB5PSIyMDAiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPm5vbmU8L3RleHQ+CiAgICA8dGV4dCB4PSIxMTAwIiB5PSIyMDAiIHRleHQtYW5jaG9yPSJlbmQiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPnNldmVyZTwvdGV4dD4KCiAgICA8IS0tIHJvdyBBOiBhIHBvc2l0aXZlIGNlcnRpZmljYXRlIC0tPgogICAgPHJlY3QgeD0iMTAwIiB5PSIxMjAiIHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjE2IiByeD0iOCIgZmlsbD0idXJsKCNheGlzKSIgb3BhY2l0eT0iMC41NSIvPgogICAgPHJlY3QgeD0iMTAwIiB5PSIxMDgiIHdpZHRoPSI1MjAiIGhlaWdodD0iNDAiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjIyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGxpbmUgeDE9IjYyMCIgeTE9IjkyIiB4Mj0iNjIwIiB5Mj0iMTY0IiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iMzYwIiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiM3YWEyZmYiIGZvbnQtd2VpZ2h0PSI2MDAiPmNlcnRpZmllZDogYXQgbGVhc3QgdGhpcyBiYWQ8L3RleHQ+CiAgICA8cGF0aCBkPSJNNjMwLDEyOCBMMTA5MCwxMjgiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI4IDEwIiBmaWxsPSJub25lIi8+CiAgICA8dGV4dCB4PSI4NjAiIHk9IjI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCI+dHJ1ZSBlcnJvciBpcyBzb21ld2hlcmUgaGVyZTwvdGV4dD4KCiAgICA8IS0tIHJvdyBCOiBhIHplcm8gY2VydGlmaWNhdGUgLS0+CiAgICA8dGV4dCB4PSIxMDAiIHk9IjM0MCIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+V2hlbiB0aGUgYm91bmQgaXMgemVybzwvdGV4dD4KICAgIDxyZWN0IHg9IjEwMCIgeT0iMzgwIiB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIxNiIgcng9IjgiIGZpbGw9InVybCgjYXhpcykiIG9wYWNpdHk9IjAuNTUiLz4KICAgIDxsaW5lIHgxPSIxMDAiIHkxPSIzNTIiIHgyPSIxMDAiIHkyPSI0MjQiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICA8cGF0aCBkPSJNMTE1LDM4OCBMMTA5MCwzODgiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI4IDEwIiBmaWxsPSJub25lIi8+CiAgICA8cmVjdCB4PSIzMDAiIHk9IjQ0MCIgd2lkdGg9IjYwMCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjQ5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2UzYjM0MSIgZm9udC13ZWlnaHQ9IjYwMCI+bm90IHJlZnV0ZWQsIHdoaWNoIGlzIG5vdCBjYWxpYnJhdGVkPC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==",
+    "alt": "A calibration error scale with a certified lower bound marked and the region beyond it left unknown.",
+    "caption": "A label-free certificate marks a floor on calibration error; the true error can sit anywhere above it, and a zero floor clears nothing.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The machinery is a betting game. Imagine a bettor whose stakes may only use certain features of the answers. A minimax theorem then gives the sharpest lower bound that bettor can prove on the calibration residual, meaning the leftover calibration error. In a preregistered study, «all seven confirmatory certificates were positive». Every confirmed test caught real miscalibration. That's a strong result."
+  ],
+  [
+   "p",
+   "And here's the catch, stated with admirable honesty: «A certificate shows only that calibration is at least this bad». A zero bound means not refuted. It doesn't mean fine. In our view this is the right posture for an auditor and the wrong one for a gate. It can tell you to stop trusting a score. It can't tell you to start."
+  ],
+  [
+   "h2",
+   {
+    "text": "Our verdict trusts repeated runs and keeps the score on probation",
+    "num": "07",
+    "id": "our-verdict-trusts-repeated-runs-and-keeps-the-score-on-prob"
+   }
+  ],
+  [
+   "p",
+   "So where do we land? For agents, we side with behaviour. The 0.811 against 0.769 gap is the most direct head-to-head on the table, and it points one way. A rollout graph also earns its cost twice. It predicts failure, and it shows you the state where failure enters. A scalar can't do that second job at all."
+  ],
+  [
+   "p",
+   "We're keeping the scalar, on probation. Single-answer chat with no tools has no trajectory to graph, so a score is all you've got. There, RADAR's discipline is the one to copy: repair, test if the repair should ship, then audit what remains. We agree with its blunt warning that «lower prediction risk need not yield better review decisions». Judge a score by the review queue it feeds."
+  ],
+  [
+   "p",
+   "What would change our minds? One result would. Show a single-run signal, verbalized or probed, that matches rollout consistency on task-success prediction for the same agents and tasks. If one run buys what several runs buy, the cost argument flips and the scalar camp takes agents too. Until then, run it again. Watch where it wavers."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Each confidence signal in this debate, what it costs you and where it breaks.",
+    "columns": [
+     "Signal",
+     "What it needs",
+     "What it tells you",
+     "Where it breaks"
+    ],
+    "rows": [
+     [
+      "Verbalized confidence",
+      "One run, no internals",
+      "The model's stated certainty",
+      "Ranked below graph consistency on agent tasks"
+     ],
+     [
+      "Recalibrated scalar",
+      "A probe or labels, plus an adoption test",
+      "A probability you can threshold",
+      "Cannot fix errors hidden from the score"
+     ],
+     [
+      "Rollout consistency graph",
+      "Several runs and a state-merging rule",
+      "Where actions split",
+      "Costly, and ranks without calibrating"
+     ],
+     [
+      "Label-free certificate",
+      "Logically related questions",
+      "A floor on miscalibration",
+      "A zero result means not refuted"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is LLM calibration?"
+  ],
+  [
+   "p",
+   "LLM calibration is how closely a model's stated confidence matches how often it is actually right. A recalibrator maps raw scores to better probabilities. The limit is that a scalar map «can only correct errors visible through the score itself», so a well-calibrated score and good accept-or-review decisions can still come apart."
+  ],
+  [
+   "h3",
+   "Can you trust an LLM's verbalized confidence?"
+  ],
+  [
+   "p",
+   "Partly: it is a cheap first signal, but repeated-run consistency ranked agent outcomes better on the tasks studied. On ALFWorld, AppWorld and WebShop, a graph-based consistency measure averaged 0.811 AUROC against 0.769 for verbalized confidence. Stated confidence still beat the strongest older consistency baseline at 0.729, so it deserves a place as a starting point."
+  ],
+  [
+   "h3",
+   "How do you measure uncertainty in an LLM agent?"
+  ],
+  [
+   "p",
+   "Run the agent several times on one task and compare its actions at the states the runs share. Merging equivalent states into an action-labeled graph shows where runs agree and where they split. A global consistency score can then predict success. It ranks outcomes, so it still needs mapping to a probability before it drives a threshold."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Are You Sure Your LLM Is Sure? Repairing and Auditing Confidence",
+   "url": "https://arxiv.org/abs/2610.22139v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Beyond Confidence: Rethinking Uncertainty Calibration in Deep Code Models",
+   "url": "https://arxiv.org/abs/2610.21248v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "GraphACM: Graph-based Action Consistency Measurement for Uncertainty Quantification in LLM Agents",
+   "url": "https://arxiv.org/abs/2610.22031v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Uncertainty Quantification in Pairwise Difference Learning for Classification",
+   "url": "https://arxiv.org/abs/2610.21554v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Sharp and Stable Label-Free Calibration Certificates from Logical Coherence",
+   "url": "https://arxiv.org/abs/2610.21567v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "Confidence scores determine whether an LLM answer is accepted, reviewed, or regenerated": 1,
+  "which learns a monotone map from correctness-probe predictions on unlabeled target prompts": 1,
+  "paired betting adopts candidates with lower held-out test risk in 42.95% of allocations, versus 15.09% for one-sided empirical Bernstein": 1,
+  "scalar recalibration can only correct errors visible through the score itself": 1,
+  "decompose prediction risk into outcome noise, information hidden by the score, and mapping error": 1,
+  "restricting repair to order-preserving maps additionally introduces a pooling gap": 1,
+  "richer predictors can improve confidence estimation, but projecting their information back to a scalar score can lose these gains": 1,
+  "often improve calibration scores but do not consistently translate into better selective prediction behavior": 2,
+  "Behavioral consistency across repeated executions provides an informative signal for assessing the reliability": 3,
+  "summarize consistency with a single task-level score": 3,
+  "we merge equivalent states into a directed, action-labeled graph, enabling action comparisons at shared decision states": 3,
+  "pinpoint where agent actions agree": 3,
+  "achieves an average AUROC of 0.811 for task-success prediction": 3,
+  "the strongest behavioral-consistency baseline (0.729) and verbalized confidence (0.769)": 3,
+  "positively associated with task success": 3,
+  "the decomposition of total uncertainty into aleatoric and epistemic components": 4,
+  "labels to check their calibration are often missing": 5,
+  "all seven confirmatory certificates were positive": 5,
+  "A certificate shows only that calibration is at least this bad": 5,
+  "lower prediction risk need not yield better review decisions": 1,
+  "can only correct errors visible through the score itself": 1
+ },
+ "rel": [
+  [
+   "post:topic-explainer-concept-tokenization",
+   ""
+  ],
+  [
+   "post:topic-synthesis-concept-interpretability",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:34:54+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21554v1",
+   "arxiv:2610.21383v1",
+   "arxiv:2610.22031v1",
+   "arxiv:2610.21567v1",
+   "arxiv:2610.21248v1",
+   "arxiv:2610.22139v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "debate:concept/uncertainty",
+  "format": "debate",
+  "reviewed_by": null
+ }
+}

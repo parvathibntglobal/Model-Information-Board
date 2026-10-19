@@ -1,0 +1,390 @@
+{
+ "slug": "debate-concept-agents",
+ "status": "draft",
+ "tag": "Debate",
+ "feat": false,
+ "title": "Who Should Fix Failing AI Agents: the Trainer or the Harness Builder?",
+ "dek": "Fresh arXiv work splits on where agent reliability lives. We give each camp its best case, press it hard, and say where we land.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "When AI agents fail, fix the system first: tools, inputs and a cheap drift watcher. Training the executor helps on gradable tasks, but field failures cluster where agents touch the world.",
+ "description": "What are AI agents, and when one fails, do you retrain the model or fix the harness? We weigh new arXiv evidence from both camps.",
+ "keywords": [
+  "what are AI agents",
+  "AI agents",
+  "agent failure taxonomy",
+  "goal drift",
+  "agentic code review cost",
+  "reinforcement learning for agents"
+ ],
+ "kicker": "Debate",
+ "tags": [
+  "AI agents",
+  "Debate"
+ ],
+ "read": 8,
+ "decisions": [
+  "Triage agent failures by layer before retraining anything",
+  "Refactor large, tangled files that agents review often",
+  "Put a cheap drift check ahead of any costly intervention",
+  "Reserve executor training for tasks with gradable outcomes"
+ ],
+ "layout": "debate",
+ "arrangement": "a",
+ "special": {
+  "type": "positions",
+  "title": "Two sides",
+  "items": [
+   {
+    "side": "Train the executor",
+    "case": "Outcome-graded reinforcement learning over long episodes teaches a model when to stop and what to try next; MLExpert lifted its base model's medal rate from 37.9% to 72.7%.",
+    "weakness": "It needs gradable, repeatable tasks and costly runs, and code review outcomes often arrive late or never."
+   },
+   {
+    "side": "Train a watcher",
+    "case": "A separate steering agent catches goal drift with a cheap check and a costly fix, and it transfers to unseen executors without retraining.",
+    "weakness": "Its evidence comes from information-seeking search, and drift in a review loop can look like diligence."
+   },
+   {
+    "side": "Fix the system",
+    "case": "Field failures concentrate on execution, tools, APIs and infrastructure, so a better model leaves the main hotspot untouched.",
+    "weakness": "Issue trackers favour easily filed crashes, and a taxonomy locates failures without preventing them."
+   },
+   {
+    "side": "Fix the inputs",
+    "case": "Each CodeHealth point was associated with 3.5% to 6.1% lower review token cost, and pull request size did not explain it.",
+    "weakness": "The effect is modest per point and runs through file size, so a cosmetic score gain buys little."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Two camps read the same agent crash differently",
+    "num": "01",
+    "id": "two-camps-read-the-same-agent-crash-differently"
+   }
+  ],
+  [
+   "p",
+   "Ask what are AI agents and you get a tidy answer: a model in a loop, calling tools until a goal is met. The fight starts one step later. When that loop fails, where does the fix go? One camp says train the model harder on long tasks. The other says the model is rarely the broken part. Both camps know the field, and both have fresh arXiv evidence."
+  ],
+  [
+   "p",
+   "Here's the case we'll follow all the way through. An agent writes a pull request. A review-and-fix pipeline of five agents reads it, comments and patches. The file it touches is long and tangled. So the pipeline loops, burns tokens and drifts off the point. Who failed here? The reviewer model, the loop, the tools, or the file itself?"
+  ],
+  [
+   "p",
+   "A new taxonomy of agent failures states the diagnostic problem bluntly: «the same user-visible symptom may originate from model behavior, workflow orchestration, external tools, infrastructure, or their interaction». That's our pull request in one line. The symptom is a slow, costly, wandering review. Its cause could sit in any layer. So the real debate is about where to spend effort first."
+  ],
+  [
+   "h2",
+   {
+    "text": "Training can teach a model the long game",
+    "num": "02",
+    "id": "training-can-teach-a-model-the-long-game"
+   }
+  ],
+  [
+   "p",
+   "Start with the strongest case for the model camp. A long agent run is a credit assignment problem. Credit assignment means spreading one reward back over the many steps that caused it. The MLExpert authors name the trap exactly: «feedback from each experiment reflects several preceding decisions». Get the credit wrong and the model learns from noise. Get it right and it learns strategy."
+  ],
+  [
+   "p",
+   "We went through how the MLExpert team handles it. Their method, Windowed Interaction RL, «treats the multi-turn decisions between successive experiment results as an execution window and assigns it a shared outcome-based reward». In plain terms, every action between two experiment results shares one grade. That grade comes from the outcome, not from a judge scoring each step. It's coarse. It's also honest about what feedback can tell you."
+  ],
+  [
+   "p",
+   "The payoff is large. Their 35B Mixture-of-Experts model «improves the average medal rate of the base model from 37.9% to 72.7%» on MLE-Bench Lite. Mixture-of-Experts means only a slice of the network runs for each token. For our pull request, the pitch writes itself. Train the reviewer on whole review episodes, graded by whether the fix landed. It would learn when to stop circling."
+  ],
+  [
+   "h2",
+   {
+    "text": "Supervision is also something a model can learn",
+    "num": "03",
+    "id": "supervision-is-also-something-a-model-can-learn"
+   }
+  ],
+  [
+   "p",
+   "The second camp sits halfway. It accepts that agents wander, and one team calls this goal drift, since «these systems are prone to deviating from the overall goal as execution unfolds». Their answer isn't a better executor. It's a second agent watching the first. The executor does the task. The steerer only watches and nudges."
+  ],
+  [
+   "p",
+   "The design is cheap by default. A steering agent splits its job, «deciding when to intervene with a low-cost fast path and how to intervene with a high-cost slow path». Both paths are trained with reinforcement learning using GRPO. Group-relative policy optimization scores each sampled answer against its siblings in a group, so no separate value model is needed. The expensive path runs only when the cheap one fires."
+  ],
+  [
+   "p",
+   "Here's the result that surprised us. The learned steerer «transfers to unseen executors, and supports controllable intervention frequency without retraining». For our pull request, that's attractive. You could bolt one steerer onto whichever reviewer model you run this quarter. When the review loop starts circling, the fast path flags it and the slow path writes a correction. One caveat: those experiments were on information-seeking search tasks, not code review."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative pattern: a steering watcher around an executor loop",
+    "language": "python",
+    "source": "# Illustrative only: names are placeholders, not a published API.\nfor step in range(max_steps):\n    action = executor.next_action(context)\n    result = tools.run(action)          # where field failures cluster\n    context.append(action, result)\n    if steerer.fast_check(context):     # cheap: has the run drifted?\n        note = steerer.slow_intervene(context)  # costly: write a correction\n        context.append_note(note)\n    if executor.is_done(context):\n        break"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The steering pattern: a cheap check on every step, a costly intervention only on drift.",
+    "steps": [
+     "Executor takes an action and calls a tool",
+     "Result joins the shared execution context",
+     "Fast path checks cheaply whether the run has drifted",
+     "No drift: the executor carries on unchanged",
+     "Drift: slow path writes a costly correction",
+     "Correction joins the context and the executor resumes"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Field failures cluster where agents touch tools",
+    "num": "04",
+    "id": "field-failures-cluster-where-agents-touch-tools"
+   }
+  ],
+  [
+   "p",
+   "Now the systems camp, whose evidence is hardest to wave away. Papers lean toward the mind, since «literature-derived failures emphasize planning, reasoning, learning, perception, and knowledge-related mechanisms». GitHub leans toward the hands. There, failures «concentrate on execution-stage, actuation-related, tool, API, and infrastructure failures». The taxonomy authors compared both sources and summed it up: «The dominant hotspot is iterative execution and actuation.»"
+  ],
+  [
+   "p",
+   "Read that against our pull request. A review loop that stalls might be a timeout on the test runner. It might be a tool returning a diff the agent can't parse. It might be a rate limit, retried in silence. None of those is a reasoning error. Retraining the reviewer can't repair a broken tool. It can only learn to cope with one."
+  ],
+  [
+   "p",
+   "That's why we find the authors' framing persuasive: «agentic workflow reliability should be treated as a systems problem rather than only a model-output problem». Note the word only. Nobody here claims the model is irrelevant. Our reading is blunter than theirs. Research has been staring at the mind, and deployments are bleeding at the hands."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Failures look different depending on who writes them down.",
+    "columns": [
+     "Where failures were reported",
+     "What they emphasise",
+     "Camp it strengthens"
+    ],
+    "rows": [
+     [
+      "Academic literature",
+      "Planning, reasoning, learning, perception, knowledge",
+      "Train the model"
+     ],
+     [
+      "GitHub issues",
+      "Execution, actuation, tools, APIs, infrastructure",
+      "Fix the system"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Inputs and stack choices move the token bill",
+    "num": "05",
+    "id": "inputs-and-stack-choices-move-the-token-bill"
+   }
+  ],
+  [
+   "p",
+   "The systems camp has a second exhibit, and it's about money. A pre-registered study sent 465 agent-authored pull requests through a «frozen five-agent review-and-fix pipeline» on three different models. Pre-registered means the hypotheses and analysis were fixed before any results came in. The finding was clean: «each CodeHealth point was associated with 3.5% to 6.1% lower token cost». CodeHealth is a code quality score calibrated against human maintainability."
+  ],
+  [
+   "p",
+   "So where did the extra tokens go? Into the review stage, where «agents iterated more on unhealthy code without writing more comments». That's our pull request, exactly. The reviewer reads the tangled file, rereads it, calls tools again, and says nothing new. Then the twist: «Adjusting for the size of the scored files absorbed the association». Big files carry the effect."
+  ],
+  [
+   "p",
+   "Stack choice tells a similar story. The MASTIF authors tested «3 LLMs, 3 protocols, and 4 agent implementation frameworks, against 300 Mind2Web benchmark tasks». Their conclusion is careful: «selecting a task-specific technology stack may result in gains of task completion rate». In our view, that hedge is earned. Still, notice the shape of the study. The model was one layer of three that they varied."
+  ],
+  [
+   "h2",
+   {
+    "text": "Each camp's best evidence has a soft spot",
+    "num": "06",
+    "id": "each-camp-s-best-evidence-has-a-soft-spot"
+   }
+  ],
+  [
+   "p",
+   "Time to press the training camp. Its authors designed «the Kaggle-MLE Factory to construct executable tasks and an interaction harness for model-directed experimentation». That's a lot of scaffolding before any learning starts. Code review has a gradable outcome only sometimes. Did the fix hold? Often nobody knows for weeks. We're not convinced a shared outcome reward survives that delay."
+  ],
+  [
+   "p",
+   "The steering camp's soft spot is scope. Its evidence comes from information-seeking search, where drift leaves obvious tracks. A search agent that wanders off topic is easy to catch. A reviewer looping on a tangled file looks busy and diligent. Can a fast path tell diligence from drift? We haven't seen that measured for code."
+  ],
+  [
+   "p",
+   "The systems camp has one too. A taxonomy tells you where failures live, not how to prevent them. And issue trackers favour what's easy to file: a crash, a timeout, a bad API response. A subtle planning mistake rarely earns a ticket. So the split between mind and hands may partly reflect who writes bug reports."
+  ],
+  [
+   "h2",
+   {
+    "text": "We back the system first and one learned watcher",
+    "num": "07",
+    "id": "we-back-the-system-first-and-one-learned-watcher"
+   }
+  ],
+  [
+   "p",
+   "Here's where we land. We think the systems camp is right about order of operations. Fix tools, timeouts and inputs first, because the GitHub evidence puts them on top. For our pull request, that means refactoring the tangled file, not polishing its score. The CodeHealth authors say the refactoring case holds «when it changes structure and file size, not only the score»."
+  ],
+  [
+   "p",
+   "Then add one learned part: the steerer. We agree with its authors that drift deserves a dedicated watcher, one that «supervises execution on the fly and steers the system back on track when drift occurs». The transfer result is the reason. A watcher that works across executors is a system component. It outlives the next model swap."
+  ],
+  [
+   "p",
+   "Full retraining of the executor comes last, for teams with gradable, repeatable tasks. One result would flip us. Show a trained executor that cuts execution-stage and tool failures in real repositories, counted the way the taxonomy counts them. Benchmark medals alone won't do it. Until that appears, our money stays on the harness, the inputs and a cheap watcher."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What are AI agents?"
+  ],
+  [
+   "p",
+   "AI agents are language models running in a loop that plans, calls tools, reads results and acts again until a goal is met. A new taxonomy lists the parts: agentic workflows «combine large language models with planning, memory, tools, execution environments, and iterative feedback». That last part, feedback, is where long runs get hard. Each result reflects many earlier decisions, so learning from it is slow."
+  ],
+  [
+   "h3",
+   "Why do AI agents fail in production?"
+  ],
+  [
+   "p",
+   "Deployed agents fail mostly at execution: tool calls, APIs and infrastructure, more than in reasoning. One failure taxonomy found that «The dominant hotspot is iterative execution and actuation.» Academic papers, by contrast, focus on planning and reasoning mistakes. That gap suggests you debug the harness first and the model second, since a better model cannot repair a broken tool."
+  ],
+  [
+   "h3",
+   "Does code quality affect the cost of agent code review?"
+  ],
+  [
+   "p",
+   "Yes, modestly: in one pre-registered study, each CodeHealth point was associated with 3.5% to 6.1% lower token cost. The review stage carried it, where «agents iterated more on unhealthy code without writing more comments». Adjusting for file size absorbed the association. So refactoring pays off when it changes structure and file length, not when it only nudges a score."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Why Agentic Workflows Fail: A Taxonomy Derived from Literature and Empirical Data",
+   "url": "https://arxiv.org/abs/2610.17418v1",
+   "posted": "2026-10-13"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "MLExpert: Towards a Generalist Agentic Model for Autonomous Machine Learning Engineering",
+   "url": "https://arxiv.org/abs/2610.22344v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Learning to Steer LLM Agents and Multi-Agent Systems",
+   "url": "https://arxiv.org/abs/2610.22316v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "CodeHealth Predicts the Token Cost of Agentic Code Review: A Pre-Registered Study of 465 Agent-Authored Pull Requests",
+   "url": "https://arxiv.org/abs/2610.21914v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "A Baseline Assessment for the Agentic Web Technology Stack",
+   "url": "https://arxiv.org/abs/2610.13703v1",
+   "posted": "2026-10-09"
+  }
+ ],
+ "cite": {
+  "the same user-visible symptom may originate from model behavior, workflow orchestration, external tools, infrastructure, or their interaction": 1,
+  "feedback from each experiment reflects several preceding decisions": 2,
+  "treats the multi-turn decisions between successive experiment results as an execution window and assigns it a shared outcome-based reward": 2,
+  "improves the average medal rate of the base model from 37.9% to 72.7%": 2,
+  "these systems are prone to deviating from the overall goal as execution unfolds": 3,
+  "deciding when to intervene with a low-cost fast path and how to intervene with a high-cost slow path": 3,
+  "transfers to unseen executors, and supports controllable intervention frequency without retraining": 3,
+  "literature-derived failures emphasize planning, reasoning, learning, perception, and knowledge-related mechanisms": 1,
+  "concentrate on execution-stage, actuation-related, tool, API, and infrastructure failures": 1,
+  "The dominant hotspot is iterative execution and actuation.": 1,
+  "agentic workflow reliability should be treated as a systems problem rather than only a model-output problem": 1,
+  "frozen five-agent review-and-fix pipeline": 4,
+  "each CodeHealth point was associated with 3.5% to 6.1% lower token cost": 4,
+  "agents iterated more on unhealthy code without writing more comments": 4,
+  "Adjusting for the size of the scored files absorbed the association": 4,
+  "3 LLMs, 3 protocols, and 4 agent implementation frameworks, against 300 Mind2Web benchmark tasks": 5,
+  "selecting a task-specific technology stack may result in gains of task completion rate": 5,
+  "the Kaggle-MLE Factory to construct executable tasks and an interaction harness for model-directed experimentation": 2,
+  "when it changes structure and file size, not only the score": 4,
+  "supervises execution on the fly and steers the system back on track when drift occurs": 3,
+  "combine large language models with planning, memory, tools, execution environments, and iterative feedback": 1
+ },
+ "rel": [
+  [
+   "post:release-analysis-z-ai-glm-5-3-flash",
+   ""
+  ],
+  [
+   "post:research-radar-concept-code-generation",
+   ""
+  ],
+  [
+   "post:topic-explainer-concept-agents",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:00:30+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22269v1",
+   "arxiv:2610.21914v1",
+   "arxiv:2610.17418v1",
+   "arxiv:2610.13703v1",
+   "arxiv:2610.22344v1",
+   "arxiv:2610.22316v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "debate:concept/agents",
+  "format": "debate",
+  "reviewed_by": null
+ }
+}

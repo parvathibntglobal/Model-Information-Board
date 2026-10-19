@@ -1,0 +1,590 @@
+{
+ "slug": "architecture-pattern-capability-function-calling",
+ "status": "draft",
+ "tag": "Architecture pattern",
+ "feat": false,
+ "title": "Function Calling Breaks at the Boundaries Between Components",
+ "dek": "The best AI model for function calling is only one part of a reliable system. Schema contracts, adapter behavior, preserved state, and execution controls decide whether tool calls survive production.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "The best AI model for function calling is the one that fits your tools, but production reliability comes from strict schemas, provider-aware adapters, preserved state, and validated execution.",
+ "cover": {
+  "src": "data:image/jpeg;base64,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",
+  "alt": "A completed tool action waits for a missing continuation signal.",
+  "caption": "A tool can act successfully even when its conversation turn fails.",
+  "generated_by": "google/gemini-2.5-flash-image",
+  "cut": "trimmed"
+ },
+ "description": "Find the best AI model for function calling by designing around schema fidelity, provider adapters, reasoning state, execution validation, and measured workload fit.",
+ "keywords": [
+  "best AI model for function calling",
+  "best LLM for function calling",
+  "AI models for function calling compared",
+  "function calling architecture",
+  "tool calling reliability",
+  "LLM production"
+ ],
+ "kicker": "Architecture pattern",
+ "tags": [
+  "Function calling",
+  "Architecture pattern"
+ ],
+ "read": 10,
+ "decisions": [
+  "Put required argument shape in schemas, not descriptions alone.",
+  "Keep provider-specific state and endpoint behavior inside adapters.",
+  "Validate authorization and preconditions before every side effect.",
+  "Rank models by accepted task cost and full-cycle reliability.",
+  "Fail closed on schema, routing, or continuation uncertainty."
+ ],
+ "layout": "blueprint",
+ "arrangement": "b",
+ "special": {
+  "type": "layers",
+  "title": "The layers",
+  "items": [
+   {
+    "layer": "Model and reasoning policy",
+    "role": "Generates candidate tool calls under task-specific settings.",
+    "failure_contained": "Overthinking, incomplete arguments, or weak task fit."
+   },
+   {
+    "layer": "Schema contract",
+    "role": "Defines valid call shapes and required fields.",
+    "failure_contained": "Guessed or structurally malformed arguments."
+   },
+   {
+    "layer": "Provider adapter and state",
+    "role": "Selects the endpoint and preserves provider-specific continuation data.",
+    "failure_contained": "Wrong API route, unsupported fields, or lost state."
+   },
+   {
+    "layer": "Execution gate",
+    "role": "Checks authority and preconditions before side effects.",
+    "failure_contained": "Unauthorized, invalid, or duplicate actions."
+   },
+   {
+    "layer": "Outcome verification",
+    "role": "Reconciles intended call, execution receipt, and observed effect.",
+    "failure_contained": "Silent partial success or false completion."
+   }
+  ]
+ },
+ "meta": [
+  "15 October 2026",
+  "~10 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "The call boundary",
+    "num": "01",
+    "id": "the-call-boundary"
+   }
+  ],
+  [
+   "p",
+   "A tool changed the inventory, then the response failed with HTTP 400. The game had already performed the action, but its harness dropped state needed by the next model turn. That is the failure this architecture must contain: a side effect can succeed even when the conversational exchange fails. Treating function calling as one model capability hides that boundary."
+  ],
+  [
+   "p",
+   "Two contracts meet at the call boundary. The model must emit arguments your application can validate, and the harness must preserve the provider-specific information required to continue. We agree with the engineer who wrote on GitHub that a missing `thought_signature` caused Gemini calls to fail after the action had run. The evidence points to state handling, not tool selection."
+  ],
+  [
+   "p",
+   "So we divide the system into a contract layer, a provider adapter, an execution gate, and an outcome verifier. Each owns a distinct failure class. A model comparison matters only after the harness sends the right request and can interpret the reply. Your architecture should make those distinctions observable instead of collapsing them into a generic model error."
+  ],
+  [
+   "code",
+   {
+    "label": "Tool-call boundary pattern",
+    "language": "text",
+    "source": "request -> provider adapter -> model tool call\n                         -> schema validation -> authorization\n                         -> execution -> result validation -> next turn"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Schema contract",
+    "num": "02",
+    "id": "schema-contract"
+   }
+  ],
+  [
+   "p",
+   "A schema contract turns a plausible answer into a usable call. A dev.to engineer compared two outputs for the same entity operation: one used canonical fields, and one returned a guessed shape that their patcher rejected. Their diagnosis was concise: «The tool schema is.». A prose description can guide generation, but the application needs machine-checkable requirements."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/jpeg;base64,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",
+    "alt": "Strict common schema branches reject a mismatched argument shape.",
+    "caption": "Schemas turn common tool arguments into a concrete contract.",
+    "generated_by": "google/gemini-2.5-flash-image",
+    "cut": "trimmed"
+   }
+  ],
+  [
+   "quote",
+   "The description is advice. The schema is the contract."
+  ],
+  [
+   "p",
+   "We retraced that engineer's migration from loose arguments to discriminated branches. Common object kinds received explicit required fields, and rare kinds kept a permissive fallback. «Nine of them account for roughly 85% of everything the model emits.» That is their workload, not a universal distribution. We agree with the selective approach: enforce the shapes that dominate your traffic, then keep runtime validation for the tail."
+  ],
+  [
+   "p",
+   "A strict union can fail before any model responds. The same dev.to write-up found that its fallback matched a specific branch too, violating `oneOf` semantics. The engineer warned, «a fallback branch is not automatically disjoint from the specific ones.» We agree: test schema validity with every provider you support, and keep a contract test that catches drift between application types and hand-written schemas."
+  ],
+  [
+   "p",
+   "The schema boundary should also reflect what you can actually maintain. The engineer avoided encoding every uncommon pattern because that would create a lasting maintenance burden. We would generate schemas from application types where practical; if you hand-write them, pin the relationship with tests. A schema can be strict and still wrong when its definition quietly drifts from the type your executor expects."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The tool-call architecture validates and authorizes arguments before execution, then verifies the result before continuing.",
+    "steps": [
+     "Build request through provider adapter",
+     "Extract call and preserve provider state",
+     "Validate schema and caller authority",
+     "Execute with idempotency protection",
+     "Verify effect and continue the turn"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Provider adapter",
+    "num": "03",
+    "id": "provider-adapter"
+   }
+  ],
+  [
+   "p",
+   "A provider adapter owns endpoint selection, model identifiers, and request-shape differences. A GitHub issue described Bedrock model IDs containing `gpt-6` being sent to Chat Completions instead of Responses. The issue states, «Function tools with reasoning_effort are not supported». The request failed before the model could call anything. This is a routing defect in the integration boundary."
+  ],
+  [
+   "p",
+   "We agree with that engineer's account: a display name or prefix is not a stable capability signal. The issue's proposed substring check fixed the reported prefixed IDs, but our architecture would put provider and model capability handling behind a tested adapter. Keep endpoint selection explicit where possible, and include prefixed deployment IDs in integration tests. A working bare model name does not validate a hosted alias."
+  ],
+  [
+   "p",
+   "Another GitHub issue found a parallel failure in BedrockConverse. Model registries omitted inference-profile IDs, and model-specific settings caused temperature and forced-tool-choice validation errors. The engineer described Fable 5.1's constraint: «Unlike Fable 5, Fable 5.1 rejects a forced `toolChoice` (`any`/`tool`), like Opus 5.5 and Sonnet 5.5.» A model's tool-call quality cannot compensate for an adapter that sends unsupported fields."
+  ],
+  [
+   "p",
+   "That boundary needs a compatibility matrix, not scattered name checks. Record provider, deployment identifier, endpoint, tool mode, and supported request fields as an explicit capability record. Test the combinations that production actually uses. This keeps a provider-specific exception from leaking into generic orchestration and gives you a clear place to update when aliases or model behavior change."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The recurring production failures belong to different boundaries and need different fixes.",
+    "columns": [
+     "Failure",
+     "Boundary",
+     "Containment"
+    ],
+    "rows": [
+     [
+      "Guessed argument fields",
+      "Schema",
+      "Strict common variants; runtime validation"
+     ],
+     [
+      "Wrong API endpoint",
+      "Provider adapter",
+      "Capability registry and alias tests"
+     ],
+     [
+      "Missing reasoning state",
+      "Conversation state",
+      "Provider-scoped preservation"
+     ],
+     [
+      "Repeated side effect",
+      "Execution gate",
+      "Idempotency and durable receipt"
+     ],
+     [
+      "Valid but wrong action",
+      "Outcome verification",
+      "Preconditions and reconciliation"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Conversation state",
+    "num": "04",
+    "id": "conversation-state"
+   }
+  ],
+  [
+   "p",
+   "Conversation state preserves the information needed to continue a tool cycle. The GitHub report about Gemini says the harness omitted `thought_signature`; the tool action could happen, but the returned exchange then failed. The same report says DeepSeek V4 Pro expects `reasoning_content`. These fields are not interchangeable decorations. Preserve provider response state through the tool result and into the next request."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/jpeg;base64,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",
+    "alt": "A harness preserves provider state alongside the tool result.",
+    "caption": "Continuation state must survive the trip through the harness.",
+    "generated_by": "google/gemini-2.5-flash-image",
+    "cut": "trimmed"
+   }
+  ],
+  [
+   "p",
+   "We agree with the engineer who modified the message and tool-call objects for Gemini. They wrote, «the simplest solution to solve the problem is to simply hand the LLM what it wants.» That fix reportedly stopped Gemini's errors, but the author could not confirm the DeepSeek fix and warned that other models might reject unneeded data. So keep state vendor-scoped, not in a universal message object that blindly broadcasts every field."
+  ],
+  [
+   "p",
+   "The harness must also distinguish action completion from turn completion. If an external operation succeeds but the continuation fails, record the operation result and avoid replaying it blindly. The report gives a concrete reason: the game performed a task switch even though the response failed. Our view is that idempotency and durable call records belong beside state preservation, because retries can otherwise repeat side effects."
+  ],
+  [
+   "p",
+   "Persist enough information to resume or reconcile a call after a process restart. Store the provider response metadata with the call identifier and execution receipt, subject to your retention policy. A transient in-memory object may work in a demo, but it gives production no reliable account of whether the operation ran before a timeout. Recovery should inspect the durable record before issuing another action."
+  ],
+  [
+   "h2",
+   {
+    "text": "Execution gate",
+    "num": "05",
+    "id": "execution-gate"
+   }
+  ],
+  [
+   "p",
+   "An execution gate validates meaning, not just syntax. A schema can require `entityName`, but it cannot prove the requested change is authorized or safe. The dev.to schema engineer noted that remaining failures involved «the model doesn't reach for one of our helpers when it should.» That is a content and prompt problem, not a field-shape defect. Keep policy checks outside generation."
+  ],
+  [
+   "p",
+   "We agree with the engineer's division of labor: schemas close structural gaps, while runtime checks contain domain errors. Their rare pattern kinds stayed loose and went through a runtime patcher. That compromise is sensible when the long tail costs more to encode than it earns. But never let permissive fallback mean permissive execution. Reject unknown operations or route them to a review path before side effects."
+  ],
+  [
+   "p",
+   "Tool choice also needs a policy boundary. A model may select a valid function that is inappropriate for the user's authority or current workflow. Validate caller permissions, argument ranges, target resources, and operation preconditions. Then log the validated call and its outcome. This layer does not make a model smarter; it limits what a mistaken or malformed call can change."
+  ],
+  [
+   "p",
+   "Keep the gate narrow and deterministic. It should not silently rewrite an argument into a different operation, because that hides the model's mistake and complicates audit. Return a structured rejection that the orchestrator can classify. Retry only when the rejection is recoverable and the retry cannot cross an authorization boundary."
+  ],
+  [
+   "h2",
+   {
+    "text": "Evaluation harness",
+    "num": "06",
+    "id": "evaluation-harness"
+   }
+  ],
+  [
+   "p",
+   "An evaluation harness measures complete tool cycles, not isolated JSON. The dev.to engineer tested three fixtures twice after tightening schemas; one previously failing rename case then emitted the canonical shape. They cautioned, «Three fixtures is not a benchmark.» We agree with that restraint. A fixture can expose a known defect, but it cannot rank models across your real tool inventory."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/jpeg;base64,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",
+    "alt": "A test harness validates calls before execution and checks outcomes afterward.",
+    "caption": "Evaluate the complete call cycle, including execution and verification.",
+    "generated_by": "google/gemini-2.5-flash-image",
+    "cut": "trimmed"
+   }
+  ],
+  [
+   "p",
+   "The same engineer reported that scores on an affected fixture moved from 0.50 to 0.85 on both models after fixing output constraints. That is useful evidence about the tool boundary, not proof of a universal model ranking. Their earlier failure came from a field shape; another failure came from truncating a required source field after lengthy reasoning. Those require different remedies."
+  ],
+  [
+   "p",
+   "Build cases for valid calls, malformed arguments, unavailable tools, provider errors, partial side effects, and continuation state. Measure completion, valid execution, retries, latency, and cost per accepted task. We disagree with ranking candidates from a single successful call: the GitHub adapter reports show that endpoint selection can decide whether a call reaches the model at all. Test the whole path."
+  ],
+  [
+   "p",
+   "Keep the evaluation tied to production traffic without exposing sensitive inputs unnecessarily. Version the tool schema and adapter configuration alongside each case. When a test fails, classify the boundary first: generation, schema, routing, state, authorization, or execution. That diagnosis stops you from buying a larger model to fix a request sent to the wrong endpoint."
+  ],
+  [
+   "h2",
+   {
+    "text": "Model and budget policy",
+    "num": "07",
+    "id": "model-and-budget-policy"
+   }
+  ],
+  [
+   "p",
+   "Model policy should follow measured task fit. A dev.to engineer using a LiteLLM switch put Kimi K3 first for a hard-reasoning role and reported «handles tool calls properly». The post also used GLM-5.3 as a backup for coding and other tasks. That is one person's routing experience, not a controlled comparison. We would use it to seed candidates, then validate them against your harness."
+  ],
+  [
+   "p",
+   "A different dev.to engineer found Qwen3.8 27B could drive a coding agent and produce useful tool sequences, but its reasoning default overthought simple requests. The author wrote, «Run Qwen 3.8 27B on low or even no reasoning levels at first.» This is a useful reminder: reasoning configuration can affect scope and latency. Do not treat a model name as the whole operating policy."
+  ],
+  [
+   "p",
+   "Price belongs in the decision only after acceptance and retries are measured. The registry lists DeepSeek V4.1 Flash at $0.03 input and $0.50 output per million tokens, while Claude Opus 5 is $5.00 and $25.00. Those rates alone cannot establish cost per completed tool workflow. Use a cheaper candidate when it clears your validity and safety thresholds; escalate only when observed failures justify the extra spend."
+  ],
+  [
+   "p",
+   "The best AI model for function calling is therefore conditional on your own call surface. Compare schema adherence, tool selection, continuation success, and verified outcomes under the same harness. Include reasoning settings in the evaluation because they can change verbosity and task scope. Select a default from accepted-work economics, then retain a clear escalation path for cases that fail observable checks."
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/k2sbhai/status/2105321770740047921",
+    "caption": "An X post advertises DeepSeek V4.1 Flash access with tool calling and free-token testing, useful as a candidate-discovery signal rather than reliability evidence."
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/MistralAI/comments/1wmfeul/glm53_now_available_in_mistral_vibe_code_for_pro/",
+    "title": "GLM-5.3 now available in Mistral Vibe Code for Pro, Team and Enterprise",
+    "author": "isidor_n",
+    "community": "MistralAI",
+    "caption": "A Reddit discussion reports GLM-5.3 in a hosted coding workflow and surfaces conflicting user reports about format compatibility, latency, usage limits, and cost."
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/Layton_Gott/status/2102224747928977764",
+    "caption": "An X post relays speculation about Opus 5.5 pricing and tool-agent improvements, which should be treated as a lead to verify rather than deployment evidence."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Residual failure boundary",
+    "num": "08",
+    "id": "residual-failure-boundary"
+   }
+  ],
+  [
+   "p",
+   "The residual boundary is change outside the model. A library update can alter endpoint routing; a new deployment alias can bypass a name check; a schema change can drift from application types. The GitHub reports show each kind of failure arriving before or around the tool call. Keep adapter compatibility tests and schema contract tests in release gates. Those tests contain known integration faults, not every future one."
+  ],
+  [
+   "p",
+   "Long reasoning can also crowd out the argument that matters. The schema engineer saw a call omit its `source` field after spending output on rationale, even though the response did not error. Length constraints and bounded output budgets helped that specific tool. We agree with prioritizing hard constraints over field order: the same engineer called order «a hint, not a contract.»"
+  ],
+  [
+   "p",
+   "No architecture eliminates a semantically wrong but valid action, an unavailable dependency, or an external system that changes after validation. Your final boundary is reconciliation: compare intended action, executed action, and verified result. Function calling is reliable only as far as those records let you detect and repair divergence. The model remains one component in that loop, not its authority."
+  ],
+  [
+   "p",
+   "A deployment can still fail in ways your fixtures do not represent. New tools, evolving permissions, unusual user inputs, and provider changes expand the failure surface. Keep a review path for high-impact operations and watch rejection, retry, and reconciliation signals. The pattern contains known classes of error; it does not turn generated intent into guaranteed correctness."
+  ],
+  [
+   "h2",
+   {
+    "text": "Pattern versus anti-pattern",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Proprietary structured arguments appear frequently",
+      "Precise schemas take maintenance; prose permits guessed fields.",
+      "Make common variants strict and test schema/type drift.",
+      "Schema-first tools; keep a runtime-validated fallback for rare variants."
+     ],
+     [
+      "Provider uses reasoning state in tool cycles",
+      "Dropping state breaks continuation; broadcasting it may upset another model.",
+      "Preserve and normalize state within provider-specific adapters.",
+      "Use a state-aware adapter for that provider and deployment."
+     ],
+     [
+      "Hosted model IDs carry prefixes",
+      "Name heuristics may select the wrong endpoint or request format.",
+      "Test deployment aliases and select endpoints through a capability registry.",
+      "Explicit Responses-compatible route for the affected GPT-6 deployments."
+     ],
+     [
+      "Tool calls cause external side effects",
+      "Retries improve recovery but may repeat completed actions.",
+      "Use idempotency keys, durable receipts, and post-action verification.",
+      "Gate execution through authorization and reconciliation."
+     ],
+     [
+      "Cheap model passes common tool tasks",
+      "Lower token rates can be offset by invalid calls and retries.",
+      "Compare cost per accepted task across representative fixtures.",
+      "Use the economical candidate as default only after acceptance tests."
+     ],
+     [
+      "Reasoning consumes output budget",
+      "More deliberation may improve hard tasks but omit required arguments.",
+      "Constrain field lengths and budget per tool; test truncation cases.",
+      "Lower reasoning for bounded tasks; escalate only on measured need."
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is the best AI model for function calling?"
+  ],
+  [
+   "p",
+   "There is no universal best AI model for function calling; choose the candidate that produces valid calls through your exact provider, schema, and execution harness. Practitioner reports show useful calls from different models, but also show endpoint routing and missing conversation state breaking tool cycles. Evaluate complete tasks, including validation, retries, side effects, and final results, before setting a production default."
+  ],
+  [
+   "h3",
+   "How do I make LLM function calling more reliable?"
+  ],
+  [
+   "p",
+   "Make function arguments explicit in the tool schema, then validate them before execution. Keep provider-specific endpoint selection and continuation state in adapters, and gate side effects with authorization and idempotency. Test malformed calls, truncated output, provider errors, and retries. Verify the external effect afterward, because a valid function call does not prove the requested operation completed correctly."
+  ],
+  [
+   "h3",
+   "Which is better for function calling, a strict schema or a detailed tool description?"
+  ],
+  [
+   "p",
+   "A strict schema is the stronger contract for argument shape; a tool description still explains intent and behavior. A dev.to engineer reported that a model guessed familiar field names when the actual structure appeared only in prose. Use both: define required fields and discriminated variants in the schema, describe domain meaning clearly, and retain runtime checks for rare or business-specific constraints."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "marc_kumiko",
+   "what": "The model obeys your schema not your description",
+   "url": "https://dev.to/marc_kumiko/the-model-obeys-your-schema-not-your-description-1cml",
+   "posted": "2026-09-19"
+  },
+  {
+   "n": 2,
+   "platform": "GitHub",
+   "who": "langchain-ai/langchain",
+   "what": "Issue #40810",
+   "url": "https://github.com/langchain-ai/langchain/issues/40810",
+   "posted": "2026-09-24"
+  },
+  {
+   "n": 3,
+   "platform": "GitHub",
+   "who": "run-llama/llama_index",
+   "what": "Issue #23366",
+   "url": "https://github.com/run-llama/llama_index/issues/23366",
+   "posted": "2026-10-05"
+  },
+  {
+   "n": 4,
+   "platform": "GitHub",
+   "who": "TartaricAcid/TouhouLittleMaid",
+   "what": "Issue #1140",
+   "url": "https://github.com/TartaricAcid/TouhouLittleMaid/issues/1140",
+   "posted": "2026-05-29"
+  },
+  {
+   "n": 5,
+   "platform": "dev.to",
+   "who": "rabbidraccoon",
+   "what": "Two more free ai brains for my no gpu laptop nvidia nim and ollama cloud",
+   "url": "https://dev.to/rabbidraccoon/two-more-free-ai-brains-for-my-no-gpu-laptop-nvidia-nim-and-ollama-cloud-7fj",
+   "posted": "2026-10-08"
+  },
+  {
+   "n": 6,
+   "platform": "an engineering blog",
+   "who": "simonwillison.net",
+   "what": "Qwen 38 27b",
+   "url": "https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "posted": "2026-08-17"
+  }
+ ],
+ "cite": {
+  "The tool schema is.": 1,
+  "Nine of them account for roughly 85% of everything the model emits.": 1,
+  "a fallback branch is not automatically disjoint from the specific ones.": 1,
+  "The description is advice. The schema is the contract.": 1,
+  "Function tools with reasoning_effort are not supported": 2,
+  "Unlike Fable 5, Fable 5.1 rejects a forced `toolChoice` (`any`/`tool`), like Opus 5.5 and Sonnet 5.5.": 3,
+  "the simplest solution to solve the problem is to simply hand the LLM what it wants.": 4,
+  "the model doesn't reach for one of our helpers when it should.": 1,
+  "Three fixtures is not a benchmark.": 1,
+  "handles tool calls properly": 5,
+  "Run Qwen 3.8 27B on low or even no reasoning levels at first.": 6,
+  "a hint, not a contract.": 1
+ },
+ "rel": [
+  [
+   "post:head-to-head-deepseek-deepseek-v4-flash-z-ai-glm-5",
+   "DeepSeek V4 Flash 0423 vs GLM 5: Route by Workload"
+  ],
+  [
+   "post:migration-guide-deepseek-deepseek-v4-flash-moonshotai-kimi-k2-5",
+   "DeepSeek V4 Flash 0423 and Kimi K2.5: A Safe Migration Guide"
+  ],
+  [
+   "post:release-analysis-openai-gpt-6-astra",
+   "GPT-6 Astra in Production: The Agent Is Better, the System Still Decides"
+  ]
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "generated_at": "2026-10-15T09:36:51+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_230028c4dce92ca0",
+   "thread_context_6b18276071eee6ee",
+   "thread_context_615b1212df6f8ead",
+   "thread_context_4852ae2535e24610",
+   "thread_context_d4a1af7dd6bec58e",
+   "thread_context_39422c06a3b460b7",
+   "thread_context_c54bffb63427c0a8",
+   "thread_context_61030dba8a7c6445",
+   "thread_context_196f28bff9ec11f3",
+   "thread_context_a3e2eac1d551fcae"
+  ],
+  "platforms": {
+   "dev.to": 3,
+   "GitHub": 3,
+   "an engineering blog": 1,
+   "X": 2,
+   "Reddit": 1
+  },
+  "embedded": 3,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "architecture-pattern:capability/function-calling",
+  "format": "architecture-pattern",
+  "reviewed_by": null
+ }
+}

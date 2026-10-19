@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '../components/ui'
-import { DAYS_PER_MONTH, workloadRows } from './cost'
+import { DAYS_PER_MONTH, fmtUsd, workloadRows } from './cost'
 import { Cost, Fit } from './cells'
 import { modelHref } from './links'
 import PersonaPicker from './PersonaPicker'
@@ -73,18 +73,20 @@ export default function Workload({ models, tokens, encodingNameFor, query, sort 
 
       <p className="dim tc-note">
         A month is {DAYS_PER_MONTH} days. The cached share is priced at the model's cached-read rate
-        where one is published; cache writes, which some providers charge extra for, are not included,
-        and neither are batch discounts.
+        where one is published, and "Saved by caching" is what that takes off the month - an upper
+        bound, since cache writes (which some providers charge extra for) and a cache's expiry are not
+        in the registry. Batch discounts are not included either.
         {cachedPct > 0 && noCache > 0 && ` ${noCache} of these models publish no cached-read rate, so their rows are priced without caching and marked.`}
       </p>
 
-      <div className="tc-table" role="table" aria-label="Monthly cost per model">
+      <div className={`tc-table${cachedPct > 0 ? ' tc-cached' : ''}`} role="table" aria-label="Monthly cost per model">
         <div className="tc-tr tc-th" role="row">
           <span role="columnheader">Model</span>
           <span role="columnheader">Fits?</span>
           <span role="columnheader">Per call</span>
           <span role="columnheader">Per day</span>
           <span role="columnheader">Per month</span>
+          {cachedPct > 0 && <span role="columnheader">Saved by caching</span>}
         </div>
         {shown.map((r) => (
           <div key={r.id} className="tc-tr" role="row">
@@ -104,6 +106,12 @@ export default function Workload({ models, tokens, encodingNameFor, query, sort 
             <Cost row={r} value={r.perCall} label="Per call" />
             <Cost row={r} value={r.perDay} label="Per day" />
             <Cost row={r} value={r.perMonth} label="Per month" strong />
+            {cachedPct > 0 && (
+              <span role="cell" className="tnum" title="Per month, against the same workload with no caching">
+                {r.savedPerMonth != null ? fmtUsd(r.savedPerMonth)
+                  : <span className="dim">{r.cache === 'none' ? 'no cache rate' : '—'}</span>}
+              </span>
+            )}
           </div>
         ))}
         {rows.priced.length === 0 && (

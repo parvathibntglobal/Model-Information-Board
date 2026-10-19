@@ -1152,6 +1152,10 @@ columns:
       reviewed: true
       state: read
       why: "OpenRouter's description, shown under the heading of a model's page (judge/catalog.py:catalog_model)"
+    expiration_date:
+      reviewed: true
+      state: read
+      why: "when OpenRouter stops serving the model; a model page's Lifecycle shows it as a retirement date (judge/catalog.py:_lifecycle). NULL is none announced"
     first_seen_at:
       reviewed: true
       state: defaulted
@@ -1160,6 +1164,10 @@ columns:
       reviewed: true
       state: read
       why: 'shown on each model card'
+    knowledge_cutoff:
+      reviewed: true
+      state: read
+      why: "the feed's training-data date; a model page shows it where the registry has none (judge/catalog.py:_lifecycle)"
     last_seen_at:
       reviewed: true
       state: read
@@ -1365,6 +1373,59 @@ columns:
     price_out:
       reviewed: false
       state: read
+  quiz_question:
+    answer_index:
+      reviewed: false
+      state: read
+      why: 'Which of the four options is right, as drafted. Written by judge/quiz_bank.py draft(), read by listing()/approved() - Admin -> Quiz marks it, the daily quiz checks answers against it. Migration 20261015T1400.'
+    difficulty:
+      reviewed: false
+      state: read
+      why: 'easy | medium | hard, as drafted. Written by judge/quiz_bank.py draft(), read by listing()/approved(); shown in Admin -> Quiz and in each question''s header. Migration 20261015T1400.'
+    explanation:
+      reviewed: false
+      state: read
+      why: 'Why the answer is right. Written by judge/quiz_bank.py draft(), read by listing()/approved(); the reviewer checks against it and the quiz shows it after answering. Migration 20261015T1400.'
+    generated_at:
+      reviewed: false
+      state: read
+      why: 'When the draft was stored. Defaulted by the database, read by judge/quiz_bank.py listing() for its order and shown in Admin -> Quiz. Migration 20261015T1400.'
+    id:
+      reviewed: false
+      state: read
+      why: 'qq_ + hash of the normalised question, so a re-draft is one row. Written by judge/quiz_bank.py draft(), read by every reader and by review(). Migration 20261015T1400.'
+    options:
+      reviewed: false
+      state: read
+      why: 'The four answer texts. Written by judge/quiz_bank.py draft(), read by listing()/approved(). Migration 20261015T1400.'
+    proposer_model:
+      reviewed: false
+      state: read
+      why: 'The model OpenRouter served for the draft. Written by judge/quiz_bank.py draft(), read by listing() and shown in Admin -> Quiz. Migration 20261015T1400.'
+    question:
+      reviewed: false
+      state: read
+      why: 'The question text. Written by judge/quiz_bank.py draft(), read by listing()/approved() and by draft() itself (the topic''s existing questions, so a new call does not repeat them). Migration 20261015T1400.'
+    review_note:
+      reviewed: false
+      state: read
+      why: 'A reviewer''s optional note. Written by judge/quiz_bank.py review(), read by listing() and shown in Admin -> Quiz. Migration 20261015T1400.'
+    reviewed_at:
+      reviewed: false
+      state: write_only
+      why: 'When a person decided. Written by judge/quiz_bank.py review(); nothing reads it yet. Its intended reader is a ''decided on'' line in Admin -> Quiz; the table''s CHECK already ties it to state. Migration 20261015T1400.'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'The drafting call that produced the row. Written by judge/quiz_bank.py draft(); nothing reads it yet. Its intended reader is a per-call view in Admin -> Quiz, beside the spend_ledger row for the same call. Migration 20261015T1400.'
+    state:
+      reviewed: false
+      state: read
+      why: 'pending | approved | rejected. Written by judge/quiz_bank.py draft() and review(), read by listing(), counts() and approved() - only approved rows reach the daily quiz. Migration 20261015T1400.'
+    topic:
+      reviewed: false
+      state: read
+      why: 'One of contract/blog_live.yaml quiz_drafter.topics. Written by judge/quiz_bank.py draft(), read by counts() (per topic) and approved() (one question per topic a day). Migration 20261015T1400.'
   rapidapi_quota:
     key_fingerprint:
       reviewed: true
@@ -1813,6 +1874,45 @@ columns:
         Writer unchanged: `judge/store/extractions.py:147`.
     thread_context_id:
       reviewed: false
+      state: read
+  topic_item:
+    authors:
+      reviewed: true
+      state: read
+      why: >-
+        Written by scripts/harvest_topics.py from arXiv's author list and a feed's
+        author field. Read by judge/topics.sources, and given to the writer in an
+        arXiv source's text by generate_sample_blogs.topic_docs ("Authors: ..."),
+        so a topic post can name a paper's authors (2026-10-16).
+    harvested_at:
+      reviewed: true
+      state: defaulted
+      why: >-
+        DEFAULT now() on insert; read by judge/topics.py overview for the
+        last harvest and for when collection began (trend_meaningful_from).
+    id:
+      reviewed: true
+      state: read
+    kind:
+      reviewed: true
+      state: read
+    published_at:
+      reviewed: true
+      state: read
+    source:
+      reviewed: true
+      state: read
+    summary:
+      reviewed: true
+      state: read
+    title:
+      reviewed: true
+      state: read
+    topics:
+      reviewed: true
+      state: read
+    url:
+      reviewed: true
       state: read
   watermark:
     cursor:

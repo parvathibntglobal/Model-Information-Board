@@ -1,0 +1,694 @@
+{
+ "slug": "field-report-deepseek-deepseek-v4-pro",
+ "status": "draft",
+ "tag": "Field report",
+ "feat": false,
+ "title": "DeepSeek V4 Pro Makes a Careful Auditor and an Uneven Implementer",
+ "dek": "Public tests cast DeepSeek V4 Pro as a careful planner and checker, and a shakier builder. Its price now moves with the clock and with the host you call.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "DeepSeek V4 Pro review in brief: trust it to plan and audit, check its code before you merge, and price it by hour and by host, since off-peak costs half.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgY2FyZWZ1bCBhdWRpdG9yIGJlc2lkZSBhbiB1bmV2ZW4gYnVpbGRlcjwvdGl0bGU+CiAgPGRlc2M+Q2xhaW0gY2FyZHMgZmxvdyBpbnRvIGEgZ2xvd2luZyBsZW5zIHRoYXQgbWFya3Mgb25lIGNhcmQgdmVyaWZpZWQgYW5kIGRyb3BzIHR3byBmYWxzZSBvbmVzLCB3aGlsZSBhIGRpbW1lciBjb2RlIHNoZWV0IG9uIHRoZSByaWdodCBjYXJyaWVzIHJlZCBlcnJvciBtYXJrcy48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjQyIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC42IiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMTAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImxlbnNmaWxsIiBjeD0iMC40IiBjeT0iMC4zNSIgcj0iMC43Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZThlZGY1IiBzdG9wLW9wYWNpdHk9IjAuMTYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMDYiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8Y2xpcFBhdGggaWQ9ImxlbnNjbGlwIj4KICAgICAgPGNpcmNsZSBjeD0iNDcwIiBjeT0iMjg1IiByPSIxNTAiLz4KICAgIDwvY2xpcFBhdGg+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGVsbGlwc2UgY3g9IjQ3MCIgY3k9IjI4NSIgcng9IjMzMCIgcnk9IjI5MCIgZmlsbD0idXJsKCNnbG93KSIvPgoKICA8IS0tIGluY29taW5nIGNsYWltIGNhcmRzLCBzdGFja2VkIC0tPgogIDxnIHRyYW5zZm9ybT0icm90YXRlKC04IDE5MCAyNTApIj4KICAgIDxyZWN0IHg9IjgwIiB5PSIxNzAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTMwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIxMDQiIHk9IjIwMCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMiIgcng9IjYiIGZpbGw9IiM5NWExYjQiIG9wYWNpdHk9IjAuNSIvPgogICAgPHJlY3QgeD0iMTA0IiB5PSIyMjgiIHdpZHRoPSIxNDAiIGhlaWdodD0iMTIiIHJ4PSI2IiBmaWxsPSIjOTVhMWI0IiBvcGFjaXR5PSIwLjM1Ii8+CiAgICA8cmVjdCB4PSIxMDQiIHk9IjI1NiIgd2lkdGg9IjkwIiBoZWlnaHQ9IjEyIiByeD0iNiIgZmlsbD0iIzk1YTFiNCIgb3BhY2l0eT0iMC4zNSIvPgogIDwvZz4KICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSg1IDE5MCAzMDApIj4KICAgIDxyZWN0IHg9Ijk2IiB5PSIyMzIiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTMwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSIxMjAiIHk9IjI2MiIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIxMiIgcng9IjYiIGZpbGw9IiM5NWExYjQiIG9wYWNpdHk9IjAuNSIvPgogICAgPHJlY3QgeD0iMTIwIiB5PSIyOTAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMTIiIHJ4PSI2IiBmaWxsPSIjOTVhMWI0IiBvcGFjaXR5PSIwLjM1Ii8+CiAgICA8cmVjdCB4PSIxMjAiIHk9IjMxOCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIxMiIgcng9IjYiIGZpbGw9IiM5NWExYjQiIG9wYWNpdHk9IjAuMzUiLz4KICA8L2c+CiAgPHBhdGggZD0iTTI5NiwyOTIgQzMyMCwyOTAgMzMwLDI4OCAzNDgsMjg2IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CgogIDwhLS0gdGhlIGxlbnMgLS0+CiAgPGxpbmUgeDE9IjU4MCIgeTE9IjM5NSIgeDI9IjY2OCIgeTI9IjQ4MyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8bGluZSB4MT0iNTgwIiB5MT0iMzk1IiB4Mj0iNjY4IiB5Mj0iNDgzIiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjUiLz4KICA8Y2lyY2xlIGN4PSI0NzAiIGN5PSIyODUiIHI9IjE1MCIgZmlsbD0iIzEwMTQxYiIvPgogIDxnIGNsaXAtcGF0aD0idXJsKCNsZW5zY2xpcCkiPgogICAgPHJlY3QgeD0iMzcwIiB5PSIyMDUiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTYwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMTIiLz4KICAgIDxyZWN0IHg9IjM3MCIgeT0iMjA1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE2MCIgcng9IjE2IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iMzk0IiB5PSIyMzQiIHdpZHRoPSIxMDQiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjZThlZGY1IiBvcGFjaXR5PSIwLjgiLz4KICAgIDxyZWN0IHg9IjM5NCIgeT0iMjY0IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjE0IiByeD0iNyIgZmlsbD0iI2U4ZWRmNSIgb3BhY2l0eT0iMC41NSIvPgogICAgPHJlY3QgeD0iMzk0IiB5PSIyOTQiIHdpZHRoPSI4MCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNlOGVkZjUiIG9wYWNpdHk9IjAuNTUiLz4KICAgIDxwYXRoIGQ9Ik00OTAsMzE4IEw1MTIsMzQwIEw1NTYsMjkwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iOSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPC9nPgogIDxjaXJjbGUgY3g9IjQ3MCIgY3k9IjI4NSIgcj0iMTUwIiBmaWxsPSJ1cmwoI2xlbnNmaWxsKSIvPgogIDxjaXJjbGUgY3g9IjQ3MCIgY3k9IjI4NSIgcj0iMTUwIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNyIvPgogIDxwYXRoIGQ9Ik0zNzAsMjAwIEExMzAsMTMwIDAgMCAxIDQ1MCwxNTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNSIvPgoKICA8IS0tIHJlamVjdGVkIGNhcmRzIGZhbGxpbmcgYXdheSAtLT4KICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSgxNCAzMzAgNTAwKSIgb3BhY2l0eT0iMC45Ij4KICAgIDxyZWN0IHg9IjI3NiIgeT0iNDYyIiB3aWR0aD0iMTEwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiIGZpbGw9IiNmZjdiNzIiIG9wYWNpdHk9IjAuMTIiLz4KICAgIDxyZWN0IHg9IjI3NiIgeT0iNDYyIiB3aWR0aD0iMTEwIiBoZWlnaHQ9Ijc0IiByeD0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cGF0aCBkPSJNMzE2LDQ4NCBMMzQ2LDUxNCBNMzQ2LDQ4NCBMMzE2LDUxNCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDwvZz4KICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSgtMTggMjAwIDUyMCkiIG9wYWNpdHk9IjAuNiI+CiAgICA8cmVjdCB4PSIxNjAiIHk9IjQ5MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjYyIiByeD0iMTIiIGZpbGw9IiNmZjdiNzIiIG9wYWNpdHk9IjAuMTAiLz4KICAgIDxyZWN0IHg9IjE2MCIgeT0iNDkwIiB3aWR0aD0iOTAiIGhlaWdodD0iNjIiIHJ4PSIxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxwYXRoIGQ9Ik0xOTMsNTA5IEwyMTcsNTMzIE0yMTcsNTA5IEwxOTMsNTMzIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPC9nPgogIDx0ZXh0IHg9IjQ3MCIgeT0iOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjQwIiBmaWxsPSIjZThlZGY1IiBmb250LXdlaWdodD0iNjAwIj5hdWRpdDwvdGV4dD4KCiAgPCEtLSB0aGUgZGltbWVyIGJ1aWxkIHNpZGUgLS0+CiAgPGcgb3BhY2l0eT0iMC43OCI+CiAgICA8cmVjdCB4PSI3OTAiIHk9IjE0MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIzMzAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxjaXJjbGUgY3g9IjgxOCIgY3k9IjE2NiIgcj0iNiIgZmlsbD0iIzk1YTFiNCIgb3BhY2l0eT0iMC42Ii8+CiAgICA8Y2lyY2xlIGN4PSI4NDAiIGN5PSIxNjYiIHI9IjYiIGZpbGw9IiM5NWExYjQiIG9wYWNpdHk9IjAuNCIvPgogICAgPGNpcmNsZSBjeD0iODYyIiBjeT0iMTY2IiByPSI2IiBmaWxsPSIjOTVhMWI0IiBvcGFjaXR5PSIwLjI1Ii8+CiAgICA8cmVjdCB4PSI4MTgiIHk9IjIwMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIxMyIgcng9IjYiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNzUiLz4KICAgIDxyZWN0IHg9Ijg0NiIgeT0iMjMyIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjEzIiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC42Ii8+CiAgICA8cGF0aCBkPSJNODQ2LDI1OCBxMTMsLTggMjYsMCB0MjYsMCB0MjYsMCB0MjYsMCB0MjYsMCB0MjYsMCB0MjYsMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9Ijg0NiIgeT0iMjc2IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEzIiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC42Ii8+CiAgICA8cmVjdCB4PSI4NzQiIHk9IjMwOCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxMyIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNiIvPgogICAgPHBhdGggZD0iTTg3NCwzMzQgcTEzLC04IDI2LDAgdDI2LDAgdDI2LDAgdDI2LDAgdDI2LDAgdDI2LDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cmVjdCB4PSI4NDYiIHk9IjM1MiIgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMyIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNiIvPgogICAgPHJlY3QgeD0iODE4IiB5PSIzODQiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTMiIHJ4PSI2IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjc1Ii8+CiAgICA8cGF0aCBkPSJNODE4LDQxMCBxMTMsLTggMjYsMCB0MjYsMCB0MjYsMCB0MjYsMCB0MjYsMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxjaXJjbGUgY3g9IjEwODAiIGN5PSIyMzgiIHI9IjkiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDxjaXJjbGUgY3g9IjEwODAiIGN5PSIzMTQiIHI9IjkiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDxjaXJjbGUgY3g9IjEwODAiIGN5PSIzOTAiIHI9IjkiIGZpbGw9IiNmZjdiNzIiLz4KICA8L2c+CiAgPHRleHQgeD0iOTUwIiB5PSI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9IiM5NWExYjQiIGZvbnQtd2VpZ2h0PSI2MDAiPmJ1aWxkPC90ZXh0PgogIDxsaW5lIHgxPSI3MDAiIHkxPSIxMzAiIHgyPSI3MDAiIHkyPSI1NDAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDEwIi8+Cjwvc3ZnPgo=",
+  "alt": "A glowing lens verifies claim cards and drops false ones, beside a dimmer code sheet marked with red errors.",
+  "caption": "The field picture of DeepSeek V4 Pro: sharp when it checks claims, less steady when it writes the code.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "DeepSeek V4 Pro review from field reports: a careful auditor and planner, an uneven implementer, and a price that shifts by hour and by host.",
+ "keywords": [
+  "DeepSeek V4 Pro review",
+  "DeepSeek V4 Pro pricing",
+  "is DeepSeek V4 Pro good for coding",
+  "DeepSeek V4 Pro in production",
+  "DeepSeek V4 Pro alternatives"
+ ],
+ "kicker": "Field report",
+ "tags": [
+  "DeepSeek V4 Pro 0423",
+  "Field report"
+ ],
+ "read": 10,
+ "decisions": [
+  "Use DeepSeek V4 Pro to plan and audit; review its code before merging.",
+  "Send batch work outside the 01:00–04:00 and 06:00–10:00 UTC peaks.",
+  "Check your host's output cap before relying on long reports.",
+  "Price heavy coding against your subscription, not just the token rate."
+ ],
+ "layout": "report",
+ "arrangement": "b",
+ "special": {
+  "type": "findings",
+  "title": "Findings",
+  "items": [
+   {
+    "finding": "DeepSeek V4 Pro produced the most trusted report in a Reddit code-audit comparison, but covered fewer areas than Sonnet 5.",
+    "status": "established"
+   },
+   {
+    "finding": "Off-peak API rates for DeepSeek V4 Pro are half the peak rates, from August 16, 2026.",
+    "status": "established"
+   },
+   {
+    "finding": "One host caps DeepSeek V4 Pro output at 16,384 tokens against an advertised 384,000.",
+    "status": "established"
+   },
+   {
+    "finding": "Builders pair DeepSeek V4 Pro as planner or auditor with a separate executor model.",
+    "status": "established"
+   },
+   {
+    "finding": "DeepSeek V4 Pro is a weaker implementer than MiniMax M3 across coding work in general.",
+    "status": "not established"
+   },
+   {
+    "finding": "Poor results through Ollama come from the host and not from the model.",
+    "status": "not established"
+   },
+   {
+    "finding": "Its per-token savings survive heavy agent use against a flat subscription.",
+    "status": "not established"
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~10 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "It reports fewer bugs and gets more of them right",
+    "num": "01",
+    "id": "it-reports-fewer-bugs-and-gets-more-of-them-right"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro wrote the most trusted code audit in a three-way test posted on Reddit. It won by reporting less. The poster gave it, Sonnet 5 and Gemini 3.7 Flash one long audit prompt. The target was a single large private repository. Each model had to prove its bugs, not guess them."
+  ],
+  [
+   "p",
+   "A code audit here means a written report: confirmed bugs, missing pieces and risky spots, each tied to evidence in the files. Two judge models checked the important claims against the code. Then they cross-examined each other's scoring. DeepSeek's report came out on top. Its edge was discipline. It kept confirmed bugs apart from hunches and said plainly where it could not measure something."
+  ],
+  [
+   "p",
+   "That discipline cost breadth. The Reddit poster found it looked at fewer areas than Sonnet 5. It also missed the deepest architectural problem, which Sonnet traced across several layers of code. Sonnet, in turn, promoted one wrong conclusion to a confirmed bug. Fewer findings, fewer false alarms."
+  ],
+  [
+   "p",
+   "We think this is the most useful single fact about the model. A false positive in an audit is expensive. Somebody loses an afternoon chasing a bug that isn't there. If you want a report you can act on directly, this test favours DeepSeek V4 Pro. It is one test on one codebase, as the poster says."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/DeepSeek/comments/1vnm51p/ive_tested_deep_seek_v4_pro_max_vs_gemini_flash/",
+    "title": "I've tested Deep Seek v4 pro (Max) vs Gemini Flash 3.7 (High) vs Sonnet 5 (Max)",
+    "author": "alinoanta21",
+    "community": "DeepSeek",
+    "caption": "A three-way audit of a large private repository, where judge models rated DeepSeek V4 Pro's report the most trustworthy."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "As a planner it refused to take the executor's word",
+    "num": "02",
+    "id": "as-a-planner-it-refused-to-take-the-executor-s-word"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro served as the planner in a long chip design project written up on dev.to. Its listed job was «Wrote the design plan, set strategy, independently re-audited signoff evidence». A second model, GLM-5.3, ran the design tools. A human broke ties. The finished chip passed every signoff check in the write-up."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPlBsYW5uZXIsIGV4ZWN1dG9yIGFuZCBodW1hbiBpbiB0aGUgY2hpcCBwcm9qZWN0PC90aXRsZT4KICA8ZGVzYz5UaGUgZXhlY3V0b3IgcnVucyB0aGUgZGVzaWduIHRvb2xzIGFuZCBjbGFpbXMgYSBwYXNzOyB0aGUgcGxhbm5lciBkb2VzIG5vdCBhY2NlcHQgdGhlIGNsYWltIGFuZCByZS1yZWFkcyB0aGUgcmF3IGxvZywgbGF5b3V0IGFuZCB3aXJpbmcgZmlsZXM7IGEgaHVtYW4gYWJvdmUgYnJlYWtzIHRpZXMuPC9kZXNjPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFiIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjN2FhMmZmIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImF2IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFnIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFtIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjYwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxlbGxpcHNlIGN4PSIyNjAiIGN5PSIzMzAiIHJ4PSIyNjAiIHJ5PSIyMjAiIGZpbGw9InVybCgjZ2xvdykiLz4KCiAgPCEtLSBodW1hbiAtLT4KICA8cmVjdCB4PSI0NzAiIHk9IjQwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijk2IiByeD0iMTgiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMTIiLz4KICA8cmVjdCB4PSI0NzAiIHk9IjQwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijk2IiByeD0iMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGNpcmNsZSBjeD0iNTIwIiBjeT0iODgiIHI9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjU1NiIgeT0iODIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+SHVtYW48L3RleHQ+CiAgPHRleHQgeD0iNTU2IiB5PSIxMTQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+YnJlYWtzIHRpZXM8L3RleHQ+CiAgPHBhdGggZD0iTTQ3MCwxMTAgQzM4MCwxMzAgMzIwLDE2MCAyOTAsMjA2IiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtZGFzaGFycmF5PSI2IDciIG9wYWNpdHk9IjAuOCIvPgogIDxwYXRoIGQ9Ik03MzAsMTEwIEM4MjAsMTMwIDg4MCwxNjAgOTEwLDIwNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNiA3IiBvcGFjaXR5PSIwLjgiLz4KCiAgPCEtLSBwbGFubmVyIC0tPgogIDxyZWN0IHg9IjkwIiB5PSIyMTIiIHdpZHRoPSIzNDAiIGhlaWdodD0iMTYwIiByeD0iMjAiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTQiLz4KICA8cmVjdCB4PSI5MCIgeT0iMjEyIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjE2MCIgcng9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIvPgogIDx0ZXh0IHg9IjI2MCIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtd2VpZ2h0PSI3MDAiPlBsYW5uZXI8L3RleHQ+CiAgPHRleHQgeD0iMjYwIiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIj5EZWVwU2VlayBWNCBQcm88L3RleHQ+CiAgPHRleHQgeD0iMjYwIiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+d3JpdGVzIHRoZSBwbGFuPC90ZXh0PgoKICA8IS0tIGV4ZWN1dG9yIC0tPgogIDxyZWN0IHg9Ijc3MCIgeT0iMjEyIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjE2MCIgcng9IjIwIiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjE0Ii8+CiAgPHJlY3QgeD0iNzcwIiB5PSIyMTIiIHdpZHRoPSIzNDAiIGhlaWdodD0iMTYwIiByeD0iMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHRleHQgeD0iOTQwIiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjcwMCI+RXhlY3V0b3I8L3RleHQ+CiAgPHRleHQgeD0iOTQwIiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjYTc4YmZhIj5HTE0tNS4zPC90ZXh0PgogIDx0ZXh0IHg9Ijk0MCIgeT0iMzUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnJ1bnMgdGhlIHRvb2xzPC90ZXh0PgoKICA8IS0tIHBsYW4gYXJyb3cgLS0+CiAgPHBhdGggZD0iTTQzMiwyNDAgTDc2NiwyNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FiKSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMjI2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3YWEyZmYiPnBsYW48L3RleHQ+CgogIDwhLS0gY2xhaW1lZCBwYXNzLCBibG9ja2VkIC0tPgogIDxwYXRoIGQ9Ik03NjgsMzMwIEw1NjAsMzMwIiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgOCIgbWFya2VyLWVuZD0idXJsKCNhdikiLz4KICA8cmVjdCB4PSI2MDAiIHk9IjMwMCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI0NCIgcng9IjEyIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPHRleHQgeD0iNjYwIiB5PSIzMzEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij5QQVNTPzwvdGV4dD4KICA8bGluZSB4MT0iNTI4IiB5MT0iMzAwIiB4Mj0iNTI4IiB5Mj0iMzYwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHRleHQgeD0iNDcwIiB5PSI0MDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2ZmN2I3MiI+Y2xhaW0gbm90IHRydXN0ZWQ8L3RleHQ+CgogIDwhLS0gZXZpZGVuY2Ugc3RhY2sgLS0+CiAgPGc+CiAgICA8cmVjdCB4PSI0NTIiIHk9IjUwMCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9IjQ0MCIgeT0iNDg4IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjExMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iNDI4IiB5PSI0NzYiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9IiMxMDE0MWIiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI1NzgiIHk9IjUyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1IiBmb250LXdlaWdodD0iNjAwIj5yYXcgZmlsZXM8L3RleHQ+CiAgICA8dGV4dCB4PSI1NzgiIHk9IjU1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmxvZ3MgwrcgR0RTIMK3IFNQRUY8L3RleHQ+CiAgPC9nPgogIDxwYXRoIGQ9Ik05NDAsMzc2IEM5NDAsNDcwIDg2MCw1MzAgNzYwLDUzNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXYpIi8+CiAgPHRleHQgeD0iMTAwMCIgeT0iNDcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNhNzhiZmEiPndyaXRlczwvdGV4dD4KICA8cGF0aCBkPSJNNDI0LDUzMCBDMzIwLDUyMCAyNjIsNDcwIDI2MCwzNzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBtYXJrZXItZW5kPSJ1cmwoI2FnKSIvPgogIDx0ZXh0IHg9IjE5NiIgeT0iNDcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiIGZvbnQtd2VpZ2h0PSI2MDAiPnJlLWF1ZGl0czwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Planner and executor models with a human above; the planner ignores the executor's pass and re-reads raw files.",
+    "caption": "The chip project's split: GLM-5.3 runs the tools, DeepSeek V4 Pro re-audits the raw files, a human breaks ties.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "quote",
+   "Conclusions must come from hard files, not the agent's word."
+  ],
+  [
+   "p",
+   "We went through that chip retrospective step by step, and its rule is blunt: «Never let AI be both player and referee.» The executor produced evidence. Then «the planner refuses to trust conclusions and digs into raw logs, raw GDS, raw SPEF for the proof chain». Raw logs are the tools' own output. GDS and SPEF are layout and wiring files."
+  ],
+  [
+   "p",
+   "That role matters because of the failure the author names. The danger, in the write-up's words, is an agent that «stops early and tells you it's done». An early test reported a pass. A deeper simulation then deadlocked, because most of the chip's memory cells had no defined starting state. The diagnosis: «AI tends to accept local evidence as a global conclusion.»"
+  ],
+  [
+   "p",
+   "We agree with this division of labour, and it fits the Reddit audit above. Checking is where DeepSeek V4 Pro looks strongest. The dev.to write-up never says how often the planner caught the executor. So its catch rate is unknown. The structure is the lesson here, and it transfers to any project."
+  ],
+  [
+   "h2",
+   {
+    "text": "Handed someone else's build plan, it left a pile of issues",
+    "num": "03",
+    "id": "handed-someone-else-s-build-plan-it-left-a-pile-of-issues"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro disappointed as an implementer in a build test posted on Reddit. The poster had GLM 5.2 write a build plan for an app. DeepSeek V4 Pro and MiniMax M3 each implemented it in a separate project. A third model, Opus 4.8, then audited both results."
+  ],
+  [
+   "p",
+   "The Reddit poster came away very disappointed with DeepSeek, citing a lot of issues in its build. MiniMax M3 cost about the same small amount and delivered mostly solid work. Implementing a plan faithfully is a different job from auditing. It means writing a lot of code that must match someone else's intent, file after file."
+  ],
+  [
+   "p",
+   "The same poster added a telling note. They still use DeepSeek V4 Pro for non-coding work and find it reliable for the price there. Coding is the job they no longer trust it with. That split, careful analyst and shaky builder, lines up with the audit and the chip project."
+  ],
+  [
+   "p",
+   "We're not convinced this shows a general coding weakness. One app, one plan and one auditor model leave plenty of room for noise. The plan came from another model, which may have left gaps. Still, the direction is consistent. Review its code harder than you review its analysis."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/DeepSeek/comments/1ufok23/deepseek_v4_pro_vs_minimax_m3_judge_is_opus_48/",
+    "title": "Deepseek V4 pro vs Minimax M3. Judge is Opus 4.8. Results are disappointing",
+    "author": "Decent-Rain5100",
+    "community": "DeepSeek",
+    "caption": "A build test where one plan was implemented by DeepSeek V4 Pro and by MiniMax M3, then audited by a third model."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Pro does the planning and a cheaper model does the typing",
+    "num": "04",
+    "id": "pro-does-the-planning-and-a-cheaper-model-does-the-typing"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro keeps turning up as the planner in mixed setups. In a Reddit thread, one user described running it through DeepSeek's official API inside an agent harness, the program that hands a model its tools and runs its loop. Pro handles the planning. DeepSeek V4 Flash, the smaller and cheaper sibling, writes the code."
+  ],
+  [
+   "p",
+   "That Reddit thread also holds the counterpoint. Another commenter on Reddit ran V4 Pro for months through a different host and found it worse than Kimi K2.6. They gave up on it. A reply argued that on hard tasks DeepSeek V4 Pro still wins, whatever the public rankings say."
+  ],
+  [
+   "p",
+   "Hacker News adds a product example. A company building agent products set its simpler starter kits, slides and spreadsheets among them, to this model. Their words: «default setup in the kit is set to Hermes + DeepSeek V4 Pro». The hardest kit went elsewhere: «Video editing is most sophisticated so it's CC + Opus 5.»"
+  ],
+  [
+   "p",
+   "In our view this pairing is the most sensible way to deploy the model today. Planning and checking produce short, high-value output. Implementation produces long output, where small slips pile up. Put DeepSeek V4 Pro where a careful read pays off, and let a cheaper executor type. Then check the typing."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Where DeepSeek V4 Pro sat in each reported setup, and what came back.",
+    "columns": [
+     "Role",
+     "Setup",
+     "What came back"
+    ],
+    "rows": [
+     [
+      "Code auditor",
+      "Same audit prompt as Sonnet 5 and Gemini 3.7 Flash",
+      "Most trusted report, narrower coverage"
+     ],
+     [
+      "Chip planner",
+      "Planner over a GLM-5.3 executor, a human breaks ties",
+      "Re-audited raw evidence; chip passed signoff"
+     ],
+     [
+      "Planner over Flash",
+      "Official API and an agent harness; Flash writes code",
+      "Preferred setup for a hard simulation project"
+     ],
+     [
+      "Implementer",
+      "Built an app from a GLM 5.2 plan",
+      "A lot of issues; MiniMax M3 did better"
+     ],
+     [
+      "Agent backend",
+      "Hermes harness behind simpler starter kits",
+      "Default for slides, sheets and dashboards"
+     ],
+     [
+      "Voice pipeline",
+      "Paired with a small speech-to-text model",
+      "Stayed within a 300ms added-latency budget"
+     ]
+    ]
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/LocalLLaMA/comments/1u2uje1/minimax_m3_open_weights_release_planned_for_friday/",
+    "title": "Minimax M3 open weights release planned for Friday",
+    "author": "rmhubbert",
+    "community": "LocalLLaMA",
+    "caption": "A thread where one user pairs V4 Pro for planning with V4 Flash for code, and another gave up on it through a different host."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Cheap per token can still lose to a flat subscription",
+    "num": "05",
+    "id": "cheap-per-token-can-still-lose-to-a-flat-subscription"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro's cost advantage is real in one setup and gone in another. It turns on how you pay. On Hacker News, a voice engineer put it at the strong end: «DeepSeek-V4-Pro plus a small dedicated STT beat an end-to-end frontier voice model on cost-per-minute by ~10x». STT means speech-to-text, the model that transcribes the caller."
+  ],
+  [
+   "p",
+   "Another Hacker News commenter landed at the opposite end. «I tried for example Deepseek V4 Pro for a bit (via API pricing)», they wrote, and found it cost more than a rival under a flat subscription. Their sticking point: «even though $1.7/Mtok is a lot less than 20$/Mtok». Mtok is shorthand for a million tokens."
+  ],
+  [
+   "quote",
+   "At that price difference, lots of things that are viable to do in whatever harness the subscription allows are simply impractical via API"
+  ],
+  [
+   "p",
+   "Both can be right, and the mechanism is simple. A subscription is a flat fee for a coding tool, with usage limits in place of a meter. API pricing is the meter. You pay for every token, including the ones an agent burns as it loops. Heavy agent use spins that meter fast."
+  ],
+  [
+   "p",
+   "We side with the voice engineer for pipelines and with the subscriber for interactive coding. A voice pipeline sends short, predictable requests, so the token rate decides the bill. A coding agent's token use is open-ended. There, a flat fee can beat any rate. Price your real workload before trusting a per-token comparison."
+  ],
+  [
+   "h2",
+   {
+    "text": "The bill now depends on the hour you send the request",
+    "num": "06",
+    "id": "the-bill-now-depends-on-the-hour-you-send-the-request"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro now has two prices, and the clock picks one. A Hacker News post laid out the change: «Off-peak rates are 50% of peak rates.» Peak hours run 01:00 to 04:00 and 06:00 to 10:00 UTC. Every other hour is off-peak. The schedule took effect on August 16, 2026."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY4MCI+Cjx0aXRsZT5QZWFrIGFuZCBvZmYtcGVhayBob3VycyBvbiB0aGUgVVRDIGNsb2NrPC90aXRsZT4KPGRlc2M+QSAyNC1ob3VyIGRpYWwgd2l0aCB0d28gcGVhayB3aW5kb3dzLCAwMTowMCB0byAwNDowMCBhbmQgMDY6MDAgdG8gMTA6MDAgVVRDLCBzaGFkZWQgYW1iZXI7IGV2ZXJ5IG90aGVyIGhvdXIgaXMgb2ZmLXBlYWsgaW4gZ3JlZW4sIGFuZCBhIGJhdGNoIGpvYiBpcyBtb3ZlZCBmcm9tIGEgcGVhayB3aW5kb3cgaW50byBvZmYtcGVhayB0aW1lLjwvZGVzYz4KPGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPjwvbGluZWFyR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwLjIyIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50PjxtYXJrZXIgaWQ9ImFnIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz48L21hcmtlcj48L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY4MCIgZmlsbD0idXJsKCNiZykiLz4KPGNpcmNsZSBjeD0iMzMwIiBjeT0iMzQwIiByPSIzMDAiIGZpbGw9InVybCgjZ2xvdykiLz4KPGNpcmNsZSBjeD0iMzMwIiBjeT0iMzQwIiByPSIyMTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSI1MCIvPgo8cGF0aCBkPSJNMzMwLjAsMTI1LjAgQTIxNSwyMTUgMCAwIDEgMzg1LjYsMTMyLjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0NiIgb3BhY2l0eT0iMC41NSIvPgo8cGF0aCBkPSJNNTE2LjIsMjMyLjUgQTIxNSwyMTUgMCAwIDEgNTQ1LjAsMzQwLjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0NiIgb3BhY2l0eT0iMC41NSIvPgo8cGF0aCBkPSJNNDM3LjUsNTI2LjIgQTIxNSwyMTUgMCAxIDEgMzMwLjAsMTI1LjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0NiIgb3BhY2l0eT0iMC41NSIvPgo8cGF0aCBkPSJNMzg1LjYsMTMyLjMgQTIxNSwyMTUgMCAwIDEgNTE2LjIsMjMyLjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0NiIvPgo8cGF0aCBkPSJNNTQ1LjAsMzQwLjAgQTIxNSwyMTUgMCAwIDEgNDM3LjUsNTI2LjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0NiIvPgo8bGluZSB4MT0iMzMwLjAiIHkxPSIxNDguMCIgeDI9IjMzMC4wIiB5Mj0iMTAyLjAiIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxsaW5lIHgxPSIzNzkuNyIgeTE9IjE1NC41IiB4Mj0iMzkxLjYiIHkyPSIxMTAuMSIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjQyNi4wIiB5MT0iMTczLjciIHgyPSI0NDkuMCIgeTI9IjEzMy45IiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iNDY1LjgiIHkxPSIyMDQuMiIgeDI9IjQ5OC4zIiB5Mj0iMTcxLjciIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxsaW5lIHgxPSI0OTYuMyIgeTE9IjI0NC4wIiB4Mj0iNTM2LjEiIHkyPSIyMjEuMCIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjUxNS41IiB5MT0iMjkwLjMiIHgyPSI1NTkuOSIgeTI9IjI3OC40IiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iNTIyLjAiIHkxPSIzNDAuMCIgeDI9IjU2OC4wIiB5Mj0iMzQwLjAiIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxsaW5lIHgxPSI1MTUuNSIgeTE9IjM4OS43IiB4Mj0iNTU5LjkiIHkyPSI0MDEuNiIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjQ5Ni4zIiB5MT0iNDM2LjAiIHgyPSI1MzYuMSIgeTI9IjQ1OS4wIiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iNDY1LjgiIHkxPSI0NzUuOCIgeDI9IjQ5OC4zIiB5Mj0iNTA4LjMiIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxsaW5lIHgxPSI0MjYuMCIgeTE9IjUwNi4zIiB4Mj0iNDQ5LjAiIHkyPSI1NDYuMSIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjM3OS43IiB5MT0iNTI1LjUiIHgyPSIzOTEuNiIgeTI9IjU2OS45IiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iMzMwLjAiIHkxPSI1MzIuMCIgeDI9IjMzMC4wIiB5Mj0iNTc4LjAiIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxsaW5lIHgxPSIyODAuMyIgeTE9IjUyNS41IiB4Mj0iMjY4LjQiIHkyPSI1NjkuOSIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjIzNC4wIiB5MT0iNTA2LjMiIHgyPSIyMTEuMCIgeTI9IjU0Ni4xIiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iMTk0LjIiIHkxPSI0NzUuOCIgeDI9IjE2MS43IiB5Mj0iNTA4LjMiIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxsaW5lIHgxPSIxNjMuNyIgeTE9IjQzNi4wIiB4Mj0iMTIzLjkiIHkyPSI0NTkuMCIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjE0NC41IiB5MT0iMzg5LjciIHgyPSIxMDAuMSIgeTI9IjQwMS42IiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iMTM4LjAiIHkxPSIzNDAuMCIgeDI9IjkyLjAiIHkyPSIzNDAuMCIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjE0NC41IiB5MT0iMjkwLjMiIHgyPSIxMDAuMSIgeTI9IjI3OC40IiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iMTYzLjciIHkxPSIyNDQuMCIgeDI9IjEyMy45IiB5Mj0iMjIxLjAiIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxsaW5lIHgxPSIxOTQuMiIgeTE9IjIwNC4yIiB4Mj0iMTYxLjciIHkyPSIxNzEuNyIgc3Ryb2tlPSIjMTAxNDFiIiBzdHJva2Utd2lkdGg9IjMiLz4KPGxpbmUgeDE9IjIzNC4wIiB5MT0iMTczLjciIHgyPSIyMTEuMCIgeTI9IjEzMy45IiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgo8bGluZSB4MT0iMjgwLjMiIHkxPSIxNTQuNSIgeDI9IjI2OC40IiB5Mj0iMTEwLjEiIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9IjQwMiIgeT0iOTQiIHRleHQtYW5jaG9yPSJzdGFydCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlM2IzNDEiPjAxOjAwPC90ZXh0Pgo8dGV4dCB4PSI1NTciIHk9IjIxOCIgdGV4dC1hbmNob3I9InN0YXJ0IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2UzYjM0MSI+MDQ6MDA8L3RleHQ+Cjx0ZXh0IHg9IjU5MyIgeT0iMzQ5IiB0ZXh0LWFuY2hvcj0ic3RhcnQiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZTNiMzQxIj4wNjowMDwvdGV4dD4KPHRleHQgeD0iNDU4IiB5PSI1ODciIHRleHQtYW5jaG9yPSJzdGFydCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlM2IzNDEiPjEwOjAwPC90ZXh0Pgo8dGV4dCB4PSIzMzAiIHk9IjMzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5VVEM8L3RleHQ+Cjx0ZXh0IHg9IjMzMCIgeT0iMzcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPm9uZSBkYXk8L3RleHQ+CjxwYXRoIGQ9Ik00NTYsNDEyIFEzNzAsMzgwIDI2OCw0NDYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtZGFzaGFycmF5PSI5IDciIG1hcmtlci1lbmQ9InVybCgjYWcpIi8+CjxyZWN0IHg9IjQyNiIgeT0iMzk0IiB3aWR0aD0iNjAiIGhlaWdodD0iMzYiIHJ4PSIxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KPHJlY3QgeD0iMjI4IiB5PSI0NDgiIHdpZHRoPSI2MCIgaGVpZ2h0PSIzNiIgcng9IjEwIiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjI1Ii8+CjxyZWN0IHg9IjIyOCIgeT0iNDQ4IiB3aWR0aD0iNjAiIGhlaWdodD0iMzYiIHJ4PSIxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KPHJlY3QgeD0iNzAwIiB5PSIxNTAiIHdpZHRoPSI1NiIgaGVpZ2h0PSIzNCIgcng9IjEwIiBmaWxsPSIjZTNiMzQxIi8+Cjx0ZXh0IHg9Ijc3NiIgeT0iMTc3IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPlBlYWs8L3RleHQ+Cjx0ZXh0IHg9Ijc3NiIgeT0iMjE1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmZ1bGwgcmF0ZTwvdGV4dD4KPHJlY3QgeD0iNzAwIiB5PSIyNzAiIHdpZHRoPSI1NiIgaGVpZ2h0PSIzNCIgcng9IjEwIiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjU1Ii8+Cjx0ZXh0IHg9Ijc3NiIgeT0iMjk3IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPk9mZi1wZWFrPC90ZXh0Pgo8dGV4dCB4PSI3NzYiIHk9IjMzNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij41MCUgb2YgcGVhazwvdGV4dD4KPGxpbmUgeDE9IjcwMCIgeTE9IjM5MCIgeDI9IjExMzAiIHkyPSIzOTAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxyZWN0IHg9IjcwMCIgeT0iNDMwIiB3aWR0aD0iNjAiIGhlaWdodD0iMzYiIHJ4PSIxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KPHBhdGggZD0iTTc3Miw0NDggTDgyOCw0NDgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBtYXJrZXItZW5kPSJ1cmwoI2FnKSIvPgo8cmVjdCB4PSI4NDAiIHk9IjQzMCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjM2IiByeD0iMTAiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMjUiLz4KPHJlY3QgeD0iODQwIiB5PSI0MzAiIHdpZHRoPSI2MCIgaGVpZ2h0PSIzNiIgcng9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSI3MDAiIHk9IjUxMiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1Ij5CYXRjaCBqb2JzIHdhaXQgZm9yPC90ZXh0Pgo8dGV4dCB4PSI3MDAiIHk9IjU0OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1Ij5vZmYtcGVhayBob3Vycy48L3RleHQ+Cjx0ZXh0IHg9IjcwMCIgeT0iNTkyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPkxpdmUgY2hhdCBjYW5ub3QgbW92ZS48L3RleHQ+Cjwvc3ZnPg==",
+    "alt": "A 24-hour UTC dial with peak windows from 01:00 to 04:00 and 06:00 to 10:00 shaded, and a batch job moved off-peak.",
+    "caption": "Two peak windows on the UTC clock; batch work moved outside them pays half.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The same post spells out the upshot: «For batchable workloads, scheduling outside those two UTC windows cuts token costs in half.» Batchable means work nobody is waiting on, like overnight document runs or bulk audits. Interactive chat can't move. A nightly job can, and the scheduler below shows the idea in a few lines."
+  ],
+  [
+   "p",
+   "The change also raised the base rates. Another Hacker News commenter summed it up and kept perspective: «Even after the increase, DeepSeek remains cheap relative to major frontier models.» The steepest jump hit cached input. Caching here means the provider keeps a prompt prefix you resend, such as a fixed system prompt, and bills it at a discount."
+  ],
+  [
+   "p",
+   "We think teams should treat the price as a moving part. A dev.to roundup of model hosting made the same point about the whole family: «prices went up for the first time». Put the peak windows in your scheduler. Re-check the rate card before each budget cycle, and keep the switch easy."
+  ],
+  [
+   "code",
+   {
+    "label": "Hold batchable jobs until the off-peak window (illustrative)",
+    "language": "python",
+    "source": "from datetime import datetime, timezone\n\n# Peak windows from the published schedule, in UTC hours (end exclusive).\nPEAK_WINDOWS = [(1, 4), (6, 10)]\n\ndef is_peak(now=None):\n    hour = (now or datetime.now(timezone.utc)).hour\n    return any(start <= hour < end for start, end in PEAK_WINDOWS)\n\ndef submit(job, queue_for_later, send_now):\n    # Batchable work waits for off-peak; interactive work never waits.\n    if job.batchable and is_peak():\n        queue_for_later(job)\n    else:\n        send_now(job)\n"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "DeepSeek V4 Pro API rates in USD per 1M tokens from August 16, 2026, as posted on Hacker News.",
+    "columns": [
+     "Period",
+     "Cache hit input",
+     "Cache miss input",
+     "Output"
+    ],
+    "rows": [
+     [
+      "Off-peak",
+      "$0.022",
+      "$0.66",
+      "$1.98"
+     ],
+     [
+      "Peak",
+      "$0.044",
+      "$1.32",
+      "$3.96"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The same weights act differently depending on who serves them",
+    "num": "07",
+    "id": "the-same-weights-act-differently-depending-on-who-serves-the"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro's answers can be cut short by the host. A dev.to roundup of providers found this: «And DeepInfra caps DeepSeek V4 Pro output at 16,384 tokens against an advertised 384,000». An output cap is the longest answer an endpoint will return. A long audit report simply stops there."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPk9uZSBzZXQgb2Ygd2VpZ2h0cywgdGhyZWUgc2VydmluZyBwYXRoczwvdGl0bGU+CiAgPGRlc2M+QW4gb3BlbiB3ZWlnaHRzIGZpbGUgZmVlZHMgdGhlIG9mZmljaWFsIEFQSSwgYSBob3N0IHRoYXQgY2FwcyBvdXRwdXQsIGFuZCBvdGhlciBob3N0czsgb24gdGhlIGNhcHBlZCBob3N0LCBzZXJ2ZWQgb3V0cHV0IG9mIDE2LDM4NCB0b2tlbnMgaXMgZHJhd24gdG8gc2NhbGUgYWdhaW5zdCB0aGUgYWR2ZXJ0aXNlZCAzODQsMDAwLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMzIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhbSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZWxsaXBzZSBjeD0iMTY1IiBjeT0iMzIwIiByeD0iMjAwIiByeT0iMjAwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CgogIDwhLS0gd2VpZ2h0cyAtLT4KICA8cmVjdCB4PSI1MCIgeT0iMjQ0IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjE1MiIgcng9IjIwIiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjE2Ii8+CiAgPHJlY3QgeD0iNTAiIHk9IjI0NCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxNTIiIHJ4PSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8dGV4dCB4PSIxNjUiIHk9IjMwNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZThlZGY1IiBmb250LXdlaWdodD0iNzAwIj5vcGVuIHdlaWdodHM8L3RleHQ+CiAgPHRleHQgeD0iMTY1IiB5PSIzNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIj5NSVQgbGljZW5jZTwvdGV4dD4KCiAgPHBhdGggZD0iTTI4NCwyOTAgQzM1MCwyMjAgMzYwLDE1MCA0MTIsMTQwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhbSkiLz4KICA8cGF0aCBkPSJNMjg0LDMyMCBMNDEyLDMyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPHBhdGggZD0iTTI4NCwzNTAgQzM1MCw0MjAgMzYwLDQ5MCA0MTIsNTAwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhbSkiLz4KCiAgPCEtLSBob3N0cyAtLT4KICA8cmVjdCB4PSI0MjAiIHk9IjkyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMTIiLz4KICA8cmVjdCB4PSI0MjAiIHk9IjkyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNTUwIiB5PSIxNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+T2ZmaWNpYWwgQVBJPC90ZXh0PgoKICA8cmVjdCB4PSI0MjAiIHk9IjI3MiIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI5NiIgcng9IjE2IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjEyIi8+CiAgPHJlY3QgeD0iNDIwIiB5PSIyNzIiIHdpZHRoPSIyNjAiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI1NTAiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiBmb250LXdlaWdodD0iNjAwIj5DYXBwZWQgaG9zdDwvdGV4dD4KCiAgPHJlY3QgeD0iNDIwIiB5PSI0NTIiIHdpZHRoPSIyNjAiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xMiIvPgogIDxyZWN0IHg9IjQyMCIgeT0iNDUyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNTUwIiB5PSI1MTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgZm9udC13ZWlnaHQ9IjYwMCI+T3RoZXIgaG9zdHM8L3RleHQ+CgogIDwhLS0gbGFuZSAxIC0tPgogIDx0ZXh0IHg9IjczMCIgeT0iMTM0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPm93biBwcmljZSwgb3duIGxpbWl0czwvdGV4dD4KICA8dGV4dCB4PSI3MzAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIj5wZWFrIGFuZCBvZmYtcGVhayByYXRlczwvdGV4dD4KCiAgPCEtLSBsYW5lIDI6IG91dHB1dCBjYXAgZHJhd24gdG8gc2NhbGUgLS0+CiAgPHRleHQgeD0iNzMwIiB5PSIyNjgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+YWR2ZXJ0aXNlZCBvdXRwdXQgdG9rZW5zPC90ZXh0PgogIDxyZWN0IHg9IjczMCIgeT0iMjgwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI2IiByeD0iNiIgZmlsbD0iIzk1YTFiNCIgb3BhY2l0eT0iMC4zNSIvPgogIDx0ZXh0IHg9IjExMzAiIHk9IjI2OCIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiPjM4NCwwMDA8L3RleHQ+CiAgPHRleHQgeD0iNzMwIiB5PSIzNTIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+c2VydmVkIG9uIHRoaXMgaG9zdDwvdGV4dD4KICA8cmVjdCB4PSI3MzAiIHk9IjM2NCIgd2lkdGg9IjE3IiBoZWlnaHQ9IjI2IiByeD0iNCIgZmlsbD0iI2UzYjM0MSIvPgogIDx0ZXh0IHg9Ijc2MiIgeT0iMzg2IiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2UzYjM0MSI+MTYsMzg0PC90ZXh0PgoKICA8IS0tIGxhbmUgMyAtLT4KICA8dGV4dCB4PSI3MzAiIHk9IjQ5NCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5kaWZmZXJlbnQgcHJpY2UgcGVyIGhvc3Q8L3RleHQ+CiAgPHRleHQgeD0iNzMwIiB5PSI1MzAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2E3OGJmYSI+cXVhbGl0eSByZXBvcnRzIHZhcnk8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMTEwMCIgY3k9IjUwMiIgcj0iMjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTEwMCIgeT0iNTE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZpbGw9IiNhNzhiZmEiIGZvbnQtd2VpZ2h0PSI3MDAiPj88L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "One weights file feeding three hosts; one host narrows output from 384,000 to 16,384 tokens, drawn to scale.",
+    "caption": "The same open weights reach you through hosts that set their own price, limits and quality.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Weights are the trained model file itself. The same roundup lists the licence for this family as permissive: «DeepSeek V4 checkpoints. Same freedom.» So any host can serve the model, at its own price and with its own limits. The roundup's summary of the result: «Identical weights, wildly different prices.»"
+  ],
+  [
+   "p",
+   "Quality may differ by host as well. A Reddit commenter who ran V4 Pro through Ollama and its cloud service found both poor, and stopped. Ollama is a tool for running open models locally or on its hosted service. The happier commenter in that thread called DeepSeek's official API instead."
+  ],
+  [
+   "p",
+   "We think the serving path deserves as much scrutiny as the model name. Nobody showed the host caused those bad results. Still, a capped output, a different prompt template or a compressed copy of the weights would all look like a worse model. «Verify the endpoint before you architect around long context.» That roundup line is the right habit."
+  ],
+  [
+   "h2",
+   {
+    "text": "It stayed inside a tight latency budget in a voice pipeline",
+    "num": "08",
+    "id": "it-stayed-inside-a-tight-latency-budget-in-a-voice-pipeline"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro was fast enough for live voice in one Hacker News setup. The engineer kept the whole chain «inside a 300ms added-latency budget». Added latency is the delay the model adds on top of transcription and speech. On a phone call, that gap is the awkward pause before the agent answers."
+  ],
+  [
+   "p",
+   "Speed also showed in the Reddit audit test. DeepSeek V4 Pro finished its report in 12 minutes. Gemini 3.7 Flash took 7, and Sonnet 5 took 28. The fastest report was also the least reliable one. Raw speed did not buy quality there."
+  ],
+  [
+   "p",
+   "We agree latency looks like a strength, with one caveat. Each data point comes from a single setup with its own host and prompt. A voice turn is short. A long agent loop, full of tool calls that run code or search files, is a different test. Nobody has timed one of those yet."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Minutes each model took to finish the same repository audit in a Reddit comparison.",
+    "unit": "minutes to finish the audit report",
+    "bars": [
+     {
+      "label": "Gemini 3.7 Flash",
+      "value": 7.0
+     },
+     {
+      "label": "DeepSeek V4 Pro",
+      "value": 12.0
+     },
+     {
+      "label": "Sonnet 5",
+      "value": 28.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Coding reliability and the best serving path remain unsettled",
+    "num": "09",
+    "id": "coding-reliability-and-the-best-serving-path-remain-unsettle"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Pro's coding record splits by role, and nobody has shown why. As an auditor it was careful. As an implementer it disappointed. The cause is not established. The host, the harness and the quality of the plan all varied between those two tests."
+  ],
+  [
+   "p",
+   "Version matters too. A Hacker News thread already discusses a dated 0813 release of DeepSeek V4 Pro. A write-up that never names its snapshot leaves its finding undated. A result from spring may not hold for a later checkpoint. That gap alone could explain part of the disagreement."
+  ],
+  [
+   "p",
+   "The evidence that would settle it is easy to describe. Give one build plan to DeepSeek V4 Pro on the official API and on another host. Repeat each run several times and audit the results blind. Then rerun the audit comparison on a second codebase. Until someone does, the role split stays a strong hunch."
+  ],
+  [
+   "p",
+   "Two more questions stay open. The billing trade-off against flat subscriptions has no measured workload behind it, only one commenter's experience. And the planner role has no catch rate anywhere. How often did Pro actually stop a wrong pass? A count like that would turn a good story into evidence."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Is DeepSeek V4 Pro good for coding?"
+  ],
+  [
+   "p",
+   "It looks good at reviewing code and shakier at writing it, going by public tests. In a Reddit audit comparison its bug report was the most trustworthy, though it covered less ground. In a separate Reddit build test, its implementation of a plan drew a lot of issues. Pair it with code review, or let it plan while another model implements."
+  ],
+  [
+   "h3",
+   "How much does DeepSeek V4 Pro cost at peak hours?"
+  ],
+  [
+   "p",
+   "On DeepSeek's own API, peak hours cost the full rate and off-peak hours cost half. Peak runs 01:00 to 04:00 and 06:00 to 10:00 UTC, from August 16, 2026. At peak, cache-miss input is $1.32 and output is $3.96 per 1M tokens. Other hosts serve the same weights at their own prices and limits."
+  ],
+  [
+   "h3",
+   "What are good alternatives to DeepSeek V4 Pro?"
+  ],
+  [
+   "p",
+   "It depends on the job, because public tests favour different models for different roles. In a Reddit audit, Sonnet 5 dug deeper but raised a false alarm. In a Reddit build test, MiniMax M3 implemented a plan more reliably. A Reddit thread also describes pairing Pro with the cheaper DeepSeek V4 Flash, which writes the code."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "DeepSeek V4 Pro 0423",
+      "$0.9553",
+      "$1.91",
+      "$0.0796"
+     ],
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "DeepSeek V4 Flash 0423",
+      "$0.091",
+      "$0.182",
+      "$0.0182"
+     ],
+     [
+      "Gemini 3.7 Flash",
+      "$0.75",
+      "$3.75",
+      "$0.075"
+     ],
+     [
+      "Qwen3.8 27B",
+      "$0.24",
+      "$2.20",
+      "$0.05"
+     ],
+     [
+      "MiniMax M3",
+      "$0.30",
+      "$1.20",
+      "$0.06"
+     ],
+     [
+      "GLM 5.3",
+      "$0.03",
+      "$4.80",
+      "$0.029"
+     ],
+     [
+      "MiniMax M2.7",
+      "$0.30",
+      "$1.20",
+      "$0.06"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "cdragon123code",
+   "what": "I spent 1 billion tokens making a real chip with ai and found its true limits",
+   "url": "https://dev.to/cdragon123code/i-spent-1-billion-tokens-making-a-real-chip-with-ai-and-found-its-true-limits-3750",
+   "posted": "2026-08-27"
+  },
+  {
+   "n": 2,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49335595",
+   "posted": "2026-08-18"
+  },
+  {
+   "n": 3,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49332751",
+   "posted": "2026-08-17"
+  },
+  {
+   "n": 4,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49432879",
+   "posted": "2026-08-25"
+  },
+  {
+   "n": 5,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49274600",
+   "posted": "2026-08-12"
+  },
+  {
+   "n": 6,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49287881",
+   "posted": "2026-08-13"
+  },
+  {
+   "n": 7,
+   "platform": "dev.to",
+   "who": "klukyanov",
+   "what": "The local llm weight classes september 2026 what actually fits on your machine",
+   "url": "https://dev.to/klukyanov/the-local-llm-weight-classes-september-2026-what-actually-fits-on-your-machine-128d",
+   "posted": "2026-09-06"
+  }
+ ],
+ "cite": {
+  "Wrote the design plan, set strategy, independently re-audited signoff evidence": 1,
+  "Never let AI be both player and referee.": 1,
+  "the planner refuses to trust conclusions and digs into raw logs, raw GDS, raw SPEF for the proof chain": 1,
+  "stops early and tells you it's done": 1,
+  "AI tends to accept local evidence as a global conclusion.": 1,
+  "Conclusions must come from hard files, not the agent's word.": 1,
+  "default setup in the kit is set to Hermes + DeepSeek V4 Pro": 2,
+  "Video editing is most sophisticated so it's CC + Opus 5.": 2,
+  "DeepSeek-V4-Pro plus a small dedicated STT beat an end-to-end frontier voice model on cost-per-minute by ~10x": 3,
+  "I tried for example Deepseek V4 Pro for a bit (via API pricing)": 4,
+  "even though $1.7/Mtok is a lot less than 20$/Mtok": 4,
+  "At that price difference, lots of things that are viable to do in whatever harness the subscription allows are simply impractical via API": 4,
+  "Off-peak rates are 50% of peak rates.": 5,
+  "For batchable workloads, scheduling outside those two UTC windows cuts token costs in half.": 5,
+  "Even after the increase, DeepSeek remains cheap relative to major frontier models.": 6,
+  "prices went up for the first time": 7,
+  "And DeepInfra caps DeepSeek V4 Pro output at 16,384 tokens against an advertised 384,000": 7,
+  "DeepSeek V4 checkpoints. Same freedom.": 7,
+  "Identical weights, wildly different prices.": 7,
+  "Verify the endpoint before you architect around long context.": 7,
+  "inside a 300ms added-latency budget": 3
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:11:49+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_f5f7844d914c7203",
+   "thread_context_9712a568ec86b5e8",
+   "thread_context_d97ce5356f28d05e",
+   "thread_context_b387881618311ce6",
+   "thread_context_a282bb10f5232107",
+   "thread_context_7fc3865248d6037f",
+   "thread_context_279d71d7d7f7dd89",
+   "thread_context_5d71adaa9a1865e0",
+   "thread_context_9471fd8b411ca28a",
+   "thread_context_bd6c8ed1b5ca7f2c"
+  ],
+  "platforms": {
+   "dev.to": 2,
+   "Reddit": 3,
+   "Hacker News": 5
+  },
+  "embedded": 3,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-report:deepseek/deepseek-v4-pro",
+  "format": "field-report",
+  "reviewed_by": null
+ }
+}

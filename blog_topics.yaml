@@ -1,0 +1,398 @@
+# THE BLOG'S TOPIC HARVEST (2026-10-16, anooj): general AI, not only models.
+#
+# The first blog read only board entries - what engineers said about MODELS -
+# so a reader searching "what is a System 1 model?" or "what is RAG?" found
+# nothing here. This file drives a second, separate harvest for the blog:
+#
+#   arxiv     the newest papers in the categories below, from the official API
+#             (contract/sources.yaml `arxiv-api-terms`, its rate guidance)
+#   feeds     every blog feed contract/sources.yaml already reviews (robots and
+#             terms checked per feed, the same gate the evidence harvest uses)
+#
+# What is stored is what the publisher syndicates - a title, the abstract or
+# the feed summary, the authors, the date and the link - never a full article
+# (scripts/harvest_topics.py, table topic_item). No model is called.
+#
+# TOPICS ARE CURATED, NOT COMPUTED (rule 10): which phrases count as one topic
+# is a person's ruling. The harvest lists EMERGING TERMS - phrases recurring in
+# recent titles that no topic covers - for a person (or Claude Code, proposing)
+# to adopt as a new topic below. That is how this list follows the field.
+#
+# Required keys; absent raises (rule 12): judge/topics.py.
+
+arxiv:
+  # The categories the blog follows (team, 2026-10-16): AI, machine learning,
+  # computation and language, software engineering. Queried ONE AT A TIME, so
+  # a busy category cannot crowd a quieter one (cs.SE) out of the newest pages.
+  categories: [cs.AI, cs.LG, cs.CL, cs.SE]
+  # Pages of the newest submissions per category per harvest (50 papers a page,
+  # one request every 3 seconds as arXiv asks).
+  pages_per_category: 3
+
+# THE PLATFORM ARMS (2026-10-18, anooj: "arXiv, Hacker News, dev.to and Hugging
+# Face have free APIs - track these subjects there"). Each topic's own `terms`
+# are the queries: the first `queries_per_topic` of them, so the list order is
+# the priority. Through the same gated adapters the model fetch uses
+# (contract/sources.yaml rulings; Hugging Face daily papers sit outside its ruling's
+# wording until docs/proposals/huggingface-papers-in-topic-harvest.md is
+# reviewed). Items older than `window_days` are not stored. Required: absent
+# raises (scripts/harvest_topics.py).
+platforms:
+  queries_per_topic: 2
+  window_days: 30
+  hackernews: {per_query: 20, min_points: 3}
+  devto: {per_query: 15}
+  # Hugging Face: the papers it FEATURES each day, one request a day of the
+  # window - not a keyword search (relevance-ordered; 25 of 750 hits in window).
+  huggingface_papers: {daily: true}
+
+window_days: 14          # a topic's items are counted over this many days
+synthesis_min_items: 2   # this many items on one topic -> one combined article
+emerging:
+  min_items: 3           # a phrase must recur in this many recent titles
+  window_days: 30
+  max_terms: 25
+
+# WHAT A TOPIC POST MAY BE WRITTEN FROM (generate_sample_blogs.py --topic-pack).
+posts:
+  # ARXIV IS A SOURCE OF A POST (anooj, 2026-10-16): the team read arXiv's API
+  # terms - publishing is allowed with the acknowledgement below on the page.
+  # What is quoted is the abstract the API returns (arXiv's metadata), with the
+  # paper's title and a link to its abstract page; never the PDF.
+  # ⚠ contract/sources.yaml `arxiv-api-terms` still reads
+  # internal-development-only. Its update is proposed in
+  # docs/proposals/arxiv-in-blog-posts.md (contract/, two eyes) and must land
+  # BEFORE a post quoting arXiv is approved for the public page. Required.
+  arxiv_as_source: true
+  # Shown on every post that draws on an arXiv source (views.js). Required
+  # while arxiv_as_source is true.
+  arxiv_acknowledgement: "Thank you to arXiv for use of its open access interoperability."
+  # WHICH SOURCES A POST TAKES FIRST (generate_sample_blogs.topic_docs). A
+  # topic term in the TITLE counts most, then in the summary; an item that
+  # also names one of these focus terms ranks higher, because the blog is about
+  # language models and the field around them. A WEIGHT, NOT A GATE (rule 8):
+  # nothing is dropped for lacking one. Measured 2026-10-16 before this: a debate
+  # on AI agents drew robot-pursuit papers, and an interpretability post drew
+  # two quantum-circuit papers through the word "circuits".
+  focus_terms: [language model, language models, LLM, LLMs, transformer, transformers, chatbot,
+                foundation model, foundation models, GPT, coding agent, coding agents, AI agent, AI agents,
+                LLM agent, LLM agents, reasoning model, reasoning models]
+  # Sources are taken from this many days back, newest first - an explainer of
+  # RAG may rest on a good post from last month.
+  source_window_days: 120
+  max_sources: 6
+  # A source with less text than this is skipped for a post (2026-10-18): a
+  # Hacker News story with no comments yet, a one-line blurb. Required.
+  min_source_chars: 400
+  # THE BOARD BRIDGE (2026-10-18, anooj: "combine the model fetch data with the
+  # blogs, only where there is a genuine connection"). A topic post may also be
+  # written from engineer discussions on the model board - but only a thread
+  # whose VERIFIED quotes match this topic's own `terms` at least
+  # `min_matching_quotes` times, so one passing word does not make a link. The
+  # link is decided by that regex, in code, never by the writer. Reddit and X
+  # threads are left out (they may appear only as embeds, contract/
+  # publication.yaml), so a bridged thread is always quotable with a link.
+  # Bridged threads take slots within the format's source range, never more
+  # than `max_threads`, and never all of them. Required: absent raises.
+  board_bridge: {max_threads: 2, min_matching_quotes: 2}
+
+# key: a stable slug. name: what a reader sees. short: how a title names it.
+# search: the primary search keyword a topic post is written to (checked in code).
+# terms: matched case-insensitively
+# on whole words in the title and summary. A topic can be added at any time;
+# items are re-matched on every harvest.
+topics:
+  - key: rag
+    name: Retrieval-augmented generation (RAG)
+    short: "RAG"
+    search: "what is RAG"
+    terms: [retrieval-augmented, retrieval augmented, RAG, GraphRAG]
+  - key: agents
+    name: AI agents
+    short: "AI agents"
+    search: "what are AI agents"
+    terms: [AI agent, AI agents, agentic, multi-agent, autonomous agent, autonomous agents]
+  - key: tool-use
+    name: Tool use and MCP
+    short: "tool use"
+    search: "what is MCP"
+    terms: [tool use, tool calling, function calling, model context protocol, MCP]
+  - key: reasoning-models
+    name: Reasoning models (System 1 and System 2)
+    short: "reasoning models"
+    search: "System 1 vs System 2 AI"
+    terms: [reasoning model, reasoning models, chain-of-thought, chain of thought, test-time compute,
+            inference-time compute, System 2, System 1, thinking model, slow thinking]
+  - key: superintelligence
+    name: AGI and superintelligence
+    short: "superintelligence"
+    search: "what is artificial superintelligence"
+    terms: [superintelligence, artificial superintelligence, ASI, AGI, artificial general intelligence]
+  - key: alignment
+    name: Alignment and preference training
+    short: "AI alignment"
+    search: "what is AI alignment"
+    terms: [alignment, RLHF, DPO, preference optimization, reward model, reward models, constitutional AI]
+  - key: interpretability
+    name: Interpretability
+    short: "interpretability"
+    search: "what is mechanistic interpretability"
+    terms: [interpretability, mechanistic interpretability, sparse autoencoder, sparse autoencoders,
+            circuit discovery, attention heads, steering vector, steering vectors, probing]
+  - key: safety
+    name: AI safety and security
+    short: "AI safety"
+    search: "what is prompt injection"
+    terms: [AI safety, jailbreak, jailbreaks, prompt injection, red teaming, red-teaming, guardrails]
+  - key: evals
+    name: Evaluation and benchmarks
+    short: "LLM evaluation"
+    search: "how to evaluate LLMs"
+    terms: [benchmark, benchmarks, evaluation, evals, LLM-as-a-judge, LLM as a judge]
+  - key: multimodal
+    name: Multimodal models
+    short: "multimodal models"
+    search: "what is a multimodal model"
+    terms: [multimodal, vision-language, VLM, text-to-image, video generation, speech recognition,
+            text-to-speech]
+  - key: long-context
+    name: Long context
+    short: "long context"
+    search: "what is a context window"
+    terms: [long context, long-context, context window, context length]
+  - key: efficiency
+    name: Inference efficiency
+    short: "inference efficiency"
+    search: "how to make LLM inference faster"
+    terms: [quantization, distillation, pruning, speculative decoding, KV cache, inference efficiency, model compression,
+            low-bit, sparse activation, activation sparsity]
+  - key: moe
+    name: Mixture of experts
+    short: "mixture of experts"
+    search: "what is mixture of experts"
+    terms: [mixture of experts, mixture-of-experts, MoE]
+  - key: small-models
+    name: Small and on-device models
+    short: "small language models"
+    search: "what is a small language model"
+    terms: [small language model, small language models, SLM, on-device]
+  - key: fine-tuning
+    name: Fine-tuning
+    short: "fine-tuning"
+    search: "what is fine-tuning an LLM"
+    terms: [fine-tuning, fine tuning, LoRA, QLoRA, PEFT, instruction tuning]
+  - key: synthetic-data
+    name: Synthetic data
+    short: "synthetic data"
+    search: "what is synthetic data for LLMs"
+    terms: [synthetic data, data curation, data contamination]
+  - key: scaling
+    name: Scaling laws
+    short: "scaling laws"
+    search: "what are scaling laws"
+    terms: [scaling law, scaling laws, compute-optimal]
+  - key: world-models
+    name: World models
+    short: "world models"
+    search: "what is a world model in AI"
+    terms: [world model, world models]
+  - key: robotics
+    name: Robotics and embodied AI
+    short: "embodied AI"
+    search: "what is embodied AI"
+    terms: [robotics, embodied, robot learning, vision-language-action, VLA model, VLA models, humanoid, dexterous manipulation]
+  - key: code-generation
+    name: Code generation and coding agents
+    short: "coding agents"
+    search: "what are AI coding agents"
+    terms: [code generation, coding agent, coding agents, software engineering agent, SWE-bench, program synthesis]
+  - key: embeddings
+    name: Embeddings and vector search
+    short: "embeddings"
+    search: "what are embeddings"
+    terms: [embedding model, embedding models, vector search, vector database, dense retrieval]
+  - key: prompting
+    name: Prompting and in-context learning
+    short: "prompt engineering"
+    search: "what is in-context learning"
+    terms: [prompt engineering, in-context learning, few-shot, prompt optimization]
+  - key: hallucination
+    name: Hallucination and factuality
+    short: "hallucination"
+    search: "why do LLMs hallucinate"
+    terms: [hallucination, hallucinations, factuality, faithfulness, grounded generation]
+  - key: memory
+    name: Memory for language models
+    short: "agent memory"
+    search: "how does memory work in AI agents"
+    terms: [agent memory, long-term memory, memory-augmented]
+  - key: diffusion
+    name: Diffusion models
+    short: "diffusion models"
+    search: "what is a diffusion model"
+    terms: [diffusion model, diffusion models, diffusion language model, diffusion language models, masked diffusion]
+  - key: architectures
+    name: Beyond the transformer
+    short: "state space models"
+    search: "what is a state space model"
+    terms: [state space model, state space models, SSM, Mamba, linear attention, recurrent]
+  - key: open-weights
+    name: Open-weight models
+    short: "open-weight models"
+    search: "what is an open-weight model"
+    terms: [open-weight, open weights, open-source model, open-source models, open source LLM]
+  - key: ai-policy
+    name: AI policy and regulation
+    short: "AI regulation"
+    search: "what is the EU AI Act"
+    terms: [EU AI Act, AI regulation, AI policy, AI governance]
+  # ── added 2026-10-16 with cs.SE and the team ask to track technology,
+  #    concepts and methods more closely ─────────────────────────────────────
+  - key: rl-training
+    name: Reinforcement learning for language models
+    short: "reinforcement learning for LLMs"
+    search: "what is reinforcement learning with verifiable rewards"
+    terms: [reinforcement learning, RLVR, verifiable rewards, GRPO, PPO, policy optimization, reward hacking]
+  - key: computer-use
+    name: Computer-use, GUI and web agents
+    short: "computer-use agents"
+    search: "what is a computer use agent"
+    terms: [computer use, computer-use, computer-using agent, computer-using agents, GUI agent, GUI agents, GUI interaction,
+            web agent, web agents, browser agent, browser agents, OS agent, OS agents]
+  - key: context-engineering
+    name: Context engineering
+    short: "context engineering"
+    search: "what is context engineering"
+    terms: [context engineering, context management, context compression, prompt compression]
+  - key: serving
+    name: LLM serving
+    short: "LLM serving"
+    search: "how does LLM serving work"
+    terms: [LLM serving, inference serving, vLLM, SGLang, TensorRT-LLM, continuous batching, PagedAttention, disaggregated serving,
+            inference engine, inference engines]
+  - key: tokenization
+    name: Tokenization
+    short: "tokenization"
+    search: "what is tokenization in LLMs"
+    terms: [tokenizer, tokenizers, tokenization, byte-level model, byte-level models, tokenizer-free]
+  - key: software-testing
+    name: LLMs for testing, repair and code review
+    short: "LLM test generation"
+    search: "can LLMs write unit tests"
+    terms: [program repair, test generation, unit test generation, bug localization, fault localization,
+            vulnerability detection, code review, static analysis]
+  - key: ai-for-science
+    name: AI for science
+    short: "AI for science"
+    search: "how is AI used in scientific discovery"
+    terms: [AI for science, scientific discovery, protein design, materials discovery, drug discovery]
+  - key: uncertainty
+    name: Uncertainty and calibration
+    short: "LLM calibration"
+    search: "how confident are LLMs in their answers"
+    terms: [uncertainty quantification, calibration, confidence estimation, selective prediction]
+  - key: continual-learning
+    name: Continual learning
+    short: "continual learning"
+    search: "what is catastrophic forgetting"
+    terms: [continual learning, catastrophic forgetting, lifelong learning]
+  - key: graph-learning
+    name: Graph neural networks
+    short: "graph neural networks"
+    search: "what is a graph neural network"
+    terms: [graph neural network, graph neural networks, GNN, GNNs, graph learning]
+
+  # ── added 2026-10-18 (anooj: "our blog should include every such innovative
+  #    advancement"). Gaps from the 30-day audit of unmatched items, and the
+  #    subjects suggested that day. ORDINARY WORDS ARE NOT TERMS (rule 10): a
+  #    term is a phrase that only means this topic, or the topic misfiles.
+  - key: agent-security
+    name: Agent security
+    short: "agent security"
+    search: "how to secure AI agents"
+    terms: [agent security, indirect prompt injection, tool poisoning, malicious skill, malicious skills,
+            agent sandbox, sandboxed agent, data exfiltration, agent hijacking]
+  - key: multi-agent
+    name: Multi-agent systems
+    short: "multi-agent systems"
+    search: "what is a multi-agent system"
+    terms: [multi-agent system, multi-agent systems, agent swarm, agent swarms, agent orchestration,
+            agent collaboration, multi-agent collaboration]
+  - key: agent-protocols
+    name: Agent protocols and identity
+    short: "agent protocols"
+    search: "what is the A2A protocol"
+    terms: [A2A protocol, agent-to-agent, Agent2Agent, agent protocol, agent identity, agent skills,
+            AGENTS.md, agent interoperability]
+  - key: self-improving
+    name: Self-improving agents
+    short: "self-improving agents"
+    search: "what is a self-improving AI agent"
+    terms: [self-improving, self-improvement, recursive self-improvement, self-evolving, self-rewriting]
+  - key: local-ai
+    name: Local and on-device AI
+    short: "local LLMs"
+    search: "how to run an LLM locally"
+    terms: [local LLM, local LLMs, run locally, on-device, Ollama, llama.cpp, LM Studio, edge inference]
+  - key: ai-hardware
+    name: AI hardware and accelerators
+    short: "AI hardware"
+    search: "what hardware runs AI models"
+    terms: [AI accelerator, AI accelerators, AI chip, AI chips, TPU, TPUs, inference chip, GPU cluster,
+            hardware co-design]
+  - key: time-series
+    name: Time-series foundation models
+    short: "time-series foundation models"
+    search: "what is a time series foundation model"
+    terms: [time series foundation model, time-series foundation model, time series forecasting,
+            time-series forecasting, time-series reasoning]
+  - key: video-generation
+    name: Video generation
+    short: "AI video generation"
+    search: "how does AI video generation work"
+    terms: [video generation, text-to-video, video diffusion, video model, video models, world simulator]
+  - key: image-generation
+    name: Image generation and editing
+    short: "AI image generation"
+    search: "how does AI image generation work"
+    terms: [image generation, text-to-image, image editing, image editor model]
+  - key: voice-ai
+    name: Voice and audio AI
+    short: "voice AI"
+    search: "how do AI voice agents work"
+    terms: [speech recognition, text-to-speech, voice agent, voice agents, speech model, speech models,
+            audio model, audio language model, realtime voice, audio watermarking]
+  - key: deception
+    name: Deception, sycophancy and honesty
+    short: "AI deception"
+    search: "can AI models be deceptive"
+    terms: [sycophancy, sycophantic, AI deception, deceptive behavior, scheming, LLM honesty, model honesty,
+            reward hacking]
+
+  # ── PROJECTS (2026-10-18): named open-source agents and tools, tracked as
+  #    topics until a tracked-projects list exists. Only their own names count. ──
+  - key: openclaw
+    name: OpenClaw
+    short: "OpenClaw"
+    search: "what is OpenClaw"
+    terms: [OpenClaw, Clawdbot, Moltbot, NemoClaw, ClawHub]
+  - key: hermes-agent
+    name: Hermes Agent
+    short: "Hermes Agent"
+    search: "what is Hermes Agent"
+    terms: [Hermes Agent, hermes-agent]
+  - key: claude-code
+    name: Claude Code
+    short: "Claude Code"
+    search: "what is Claude Code"
+    terms: [Claude Code]
+  - key: codex
+    name: OpenAI Codex
+    short: "OpenAI Codex"
+    search: "what is OpenAI Codex"
+    terms: [OpenAI Codex, Codex CLI]
+  - key: deerflow
+    name: DeerFlow
+    short: "DeerFlow"
+    search: "what is DeerFlow"
+    terms: [DeerFlow]

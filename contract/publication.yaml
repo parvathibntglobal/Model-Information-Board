@@ -10,10 +10,19 @@
 # shown on our public platform's board. We may still collect from them for
 # internal work. Derived blog posts are the one exception, below.
 #
-# WHAT "WITHHELD" MEANS ON THE BOARD: no quote, no link, no handle, and no
-# count that includes them. A public page built only from the other sources must
-# SAY that some sources are not shown (rule 4) - an absence we cause must not
-# read as one we found.
+# WHAT "WITHHELD" MEANS ON THE BOARD: no quote, no link, no handle, no
+# platform name, and NO PER-PLATFORM COUNT. A public page that leaves out a
+# withheld source's quotes must SAY that some sources are not quoted (rule 4) -
+# an absence we cause must not read as one we found.
+#
+# TOTALS INCLUDE EVERY SOURCE (amended 2026-10-15 by anooj; proposed, needs the
+# second reviewer like the rest of this file). Was "no count that includes
+# them". A model with 20 voices, 10 of them from Reddit, shows "20 voices" and
+# nothing about Reddit: the total is ours, the split is not shown. A count is
+# not publication (contract/sources.yaml, "What counts as publication": "'7
+# voices, 2 platforms' is a count and publishes nothing quotable"). What stays
+# withheld is anything that would let a reader tell which platform a figure or
+# a quote came from.
 #
 # DERIVED POSTS ARE THE EXCEPTION (decided by anooj, 2026-10-05) - see
 # `derived_posts` below.
@@ -42,7 +51,8 @@ withheld_from_public:
   # Whether a public TOTAL (voices, reports, entries, models) counts rows from
   # the sources above. true since 2026-10-15 (approved 2026-10-19): totals
   # include every source, and no page shows a per-platform count. Must be true
-  # or false - absent raises (rule 6, rule 12) once judge/publication.py reads it.
+  # or false - absent raises (rule 6, rule 12): judge/publication.py
+  # `totals_include_withheld`.
   totals_include_withheld: true
 
 derived_posts:

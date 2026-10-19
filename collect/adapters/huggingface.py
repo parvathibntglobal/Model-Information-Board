@@ -124,6 +124,7 @@ DOCUMENT_SOURCE = "huggingface"
 
 BASE_URL = "https://huggingface.co/api"
 MODEL_SEARCH_PATH = "/models"
+DAILY_PAPERS_PATH = "/daily_papers"  # topic harvest only; see daily_papers
 DISCUSSIONS_PATH = "/models/{repo}/discussions"
 DISCUSSION_PATH = "/models/{repo}/discussions/{num}"
 
@@ -409,6 +410,43 @@ class HuggingFaceHarvester:
             return run
         run.repos_matched = [_repo_of(item) for item in payload if isinstance(item, dict)]
         return run
+
+    # ── papers: the blog's topic harvest (2026-10-18) ────────────────────
+
+    def daily_papers(self, day: str, *, run: HfRun | None = None) -> list[dict[str, Any]]:
+        """The papers Hugging Face features on `day` (YYYY-MM-DD), with upvotes.
+
+        FOR THE BLOG'S TOPIC HARVEST, not the model fetch. Each item is an arXiv
+        paper as Hugging Face lists it (`paper.id` is the arXiv id) with its
+        abstract, authors, date and community upvotes. One request a day: a
+        30-day window is 30 requests. Papers SEARCH was tried first on
+        2026-10-18 and dropped - relevance-ordered, it returned 750 hits of
+        which 25 were inside the window, and drew 56 HTTP 429s.
+
+        ⚠ OUTSIDE THE CURRENT RULING'S WORDING. `huggingface-api-terms` names
+          "repo search and the discussions endpoints"; `/api/daily_papers` is
+          the same documented JSON API but not one of those two. The amendment
+          is proposed in docs/proposals/huggingface-papers-in-topic-harvest.md
+          (contract/ gets two eyes). The gate here is the one every call
+          passes; nothing about it was loosened.
+        """
+        run = run if run is not None else HfRun(query=f"daily:{day}", started_at=self._clock())
+        response = self._get(DAILY_PAPERS_PATH, {"date": day}, run)
+        run.search_calls += 1
+        if response is None:
+            return []
+        stored = self._store.put(response.content, namespace=RAW)
+        run.discovery_refs.append(stored.ref)
+        run.pages_stored += 1
+        try:
+            payload = response.json()
+        except ValueError:
+            run.http_errors += 1
+            log.error("huggingface: daily papers for %s is not JSON", day)
+            return []
+        if not isinstance(payload, list):
+            return []
+        return [x for x in payload if isinstance(x, dict) and isinstance(x.get("paper"), dict)]
 
     # ── level 2: discussions on one repo ─────────────────────────────────
 

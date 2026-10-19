@@ -1,0 +1,402 @@
+{
+ "slug": "debate-concept-superintelligence",
+ "status": "draft",
+ "tag": "Debate",
+ "feat": false,
+ "title": "Superintelligence Has Speed Limits, and They May Sit Too High to Help",
+ "dek": "One camp expects self-improving AI to explode. The other says weak links bend the curve. We give both their best case, then argue the floor is real and still too high.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is artificial superintelligence? AI that beats the best humans at nearly all cognitive work. The real fight is speed: whether self-improvement explodes, or weak links bend it into a curve that still outruns us.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+Cjx0aXRsZT5BIHNlbGYtaW1wcm92ZW1lbnQgbG9vcCBsYXVuY2hpbmcgYSBjdXJ2ZSB0aGF0IGZvcmtzPC90aXRsZT4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwZDExMTciLz48L2xpbmVhckdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9ImciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuNSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnZiIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlOGVkZjUiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2U4ZWRmNSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD4KPG1hcmtlciBpZD0ibXYiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjQiIG1hcmtlckhlaWdodD0iNCIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiNhNzhiZmEiLz48L21hcmtlcj4KPG1hcmtlciBpZD0ibXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjQiIG1hcmtlckhlaWdodD0iNCIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiNmZjdiNzIiLz48L21hcmtlcj4KPC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CjxjaXJjbGUgY3g9IjI4MCIgY3k9IjQwMCIgcj0iMTkwIiBmaWxsPSJ1cmwoI2cpIi8+CjxwYXRoIGQ9Ik0zNzUgNDAwIEE5NSA5NSAwIDAgMSAxODUgNDAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgbWFya2VyLWVuZD0idXJsKCNtdikiLz4KPHBhdGggZD0iTTE4NSA0MDAgQTk1IDk1IDAgMCAxIDM2NyAzNzIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI212KSIgb3BhY2l0eT0iMC43NSIvPgo8Y2lyY2xlIGN4PSIyODAiIGN5PSI0MDAiIHI9IjM0IiBmaWxsPSIjMTAxNDFiIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgo8Y2lyY2xlIGN4PSIyODAiIGN5PSI0MDAiIHI9IjEwIiBmaWxsPSIjZThlZGY1Ii8+CjxwYXRoIGQ9Ik0zNzUgNDAwIEM0ODAgNDAwIDYwMCAzODAgNzIwIDMzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8Y2lyY2xlIGN4PSI3MjAiIGN5PSIzMzAiIHI9IjYwIiBmaWxsPSJ1cmwoI2dmKSIvPgo8Y2lyY2xlIGN4PSI3MjAiIGN5PSIzMzAiIHI9IjkiIGZpbGw9IiNlOGVkZjUiLz4KPGxpbmUgeDE9IjkwMCIgeTE9IjQwIiB4Mj0iOTAwIiB5Mj0iNTkwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiAxMCIgb3BhY2l0eT0iMC40NSIvPgo8cGF0aCBkPSJNNzIwIDMzMCBDODAwIDMwMCA4NzAgMjIwIDg4OCA3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1kYXNoYXJyYXk9IjE0IDEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjbXIpIi8+CjxsaW5lIHgxPSI3MDAiIHkxPSIxNjAiIHgyPSIxMTYwIiB5Mj0iMTYwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiAxMCIgb3BhY2l0eT0iMC41Ii8+CjxwYXRoIGQ9Ik03MjAgMzMwIEM4MjAgMjcwIDkwMCAxODAgMTAwMCAxNzIgUzExMjAgMTY2IDExNTAgMTY2IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPg==",
+  "alt": "A glowing feedback loop launches a curve that forks into a dashed vertical spike and a curve flattening under a ceiling.",
+  "caption": "The self-improvement loop launches one trajectory, and the debate is over which branch it takes.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is artificial superintelligence, and could self-improvement make it arrive fast? Both sides of the takeoff debate, and where we come down.",
+ "keywords": [
+  "what is artificial superintelligence",
+  "AGI and superintelligence",
+  "superintelligence",
+  "recursive self-improvement",
+  "intelligence explosion",
+  "AI takeoff speed"
+ ],
+ "kicker": "Debate",
+ "tags": [
+  "superintelligence",
+  "Debate"
+ ],
+ "read": 7,
+ "decisions": [
+  "Track generation time as the key variable in any takeoff forecast.",
+  "Treat a logistic takeoff as dangerous when it is compressed in time.",
+  "Test agents' self-built procedures against supplied scaffolding before assuming progress.",
+  "Define risk signals and trigger rules before anyone needs them."
+ ],
+ "layout": "debate",
+ "arrangement": "b",
+ "special": {
+  "type": "positions",
+  "title": "Two sides",
+  "items": [
+   {
+    "side": "Fast takeoff",
+    "case": "Once AI does AI research, each generation shortens the next, so growth turns super-exponential and outpaces any human response.",
+    "weakness": "It assumes generation time keeps shrinking, while slow links like chip fabrication and training runs set a floor."
+   },
+   {
+    "side": "Weak links",
+    "case": "Every feedback loop waits on its slowest part, so a floor on generation time bends growth into a logistic curve.",
+    "weakness": "A logistic compressed in time still delivers a decade of progress each year, fast enough to outrun institutions."
+   },
+   {
+    "side": "Not yet, on current evidence",
+    "case": "Tested coding agents still need developer-supplied procedures, so the loop's first link looks weak today.",
+    "weakness": "It describes current models on a few environments and says little about how fast that changes."
+   },
+   {
+    "side": "Pace it with instruments",
+    "case": "Nobody knows how close danger is, so build signals, triggers and exit rules now and make any slowdown precise.",
+    "weakness": "Signals for self-improvement speed are not yet defined, and coordination between rivals is hard to sustain."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Recursive self-improvement is a loop with a clock in it",
+    "num": "01",
+    "id": "recursive-self-improvement-is-a-loop-with-a-clock-in-it"
+   }
+  ],
+  [
+   "p",
+   "Here's the argument that splits people who think hard about AI. Once models can do AI research, does progress explode past any human response? Or do bottlenecks bend it into a curve we can still steer? Both camps are serious. Both have read the same arguments. They disagree about one variable, and it's a clock."
+  ],
+  [
+   "p",
+   "First, terms. Artificial general intelligence, or AGI, usually means a system that matches skilled humans across most cognitive work. Artificial superintelligence goes further: a system that beats the best humans at nearly everything, including AI research itself. That last item is the hinge. A system that improves its own successor creates a feedback loop. The name for it is recursive self-improvement, or RSI."
+  ],
+  [
+   "p",
+   "The loop has a period. Call it the generation time: how long it takes to train, test and ship the next model. Each turn of the loop can make the next turn shorter. If turns keep shrinking toward zero, growth goes vertical. If they bottom out, growth stays finite. Everything below is a fight about that floor."
+  ],
+  [
+   "h2",
+   {
+    "text": "The explosion case rests on a shrinking generation time",
+    "num": "02",
+    "id": "the-explosion-case-rests-on-a-shrinking-generation-time"
+   }
+  ],
+  [
+   "p",
+   "Start with the strongest case for a fast takeoff. Today, humans do the research, so human speed sets the generation time. Toby Ord's phase model, as the Import AI newsletter summarises it, has a stage where «RSI drives the generation time down towards machine speeds». Growth then outpaces anything humans managed. It turns super-exponential, meaning the growth rate itself keeps climbing."
+  ],
+  [
+   "p",
+   "The mechanism is easy to write down. Let capability be `A`, and let each generation raise it. If generation time shrinks as `A` grows, the steps arrive faster as they get bigger. Picture a compiler that compiles faster versions of itself, except each version also writes better compilers. Nothing in that sketch stops on its own. That's the scary part."
+  ],
+  [
+   "p",
+   "We think this case deserves more respect than its critics give it. It needs no magic. It needs only that AI research be work AI can do, and that doing it shortens the cycle. Both are open questions, not fantasies. The toy loop below lets you watch each version of the story, by changing one floor and one ceiling."
+  ],
+  [
+   "code",
+   {
+    "label": "A toy self-improvement loop with a floor on generation time (illustrative, not a forecast)",
+    "language": "python",
+    "source": "def run(gens=40, floor=3.0, ceiling=1000.0):\n    capability, t = 1.0, 0.0\n    for g in range(gens):\n        gen_time = max(floor, 24.0 / capability)   # smarter models shorten the cycle\n        t += gen_time\n        capability += capability * (1 - capability / ceiling)  # gains shrink near a limit\n        print(f\"gen {g:2d}  month {t:6.1f}  capability {capability:7.1f}\")\n\nrun()                              # floor and ceiling: an S-curve\nrun(floor=0.0, ceiling=1e12)       # no floor, no ceiling: the explosion story\n"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The recursive self-improvement loop that the fast-takeoff case relies on.",
+    "steps": [
+     "Current models speed up AI research",
+     "Research produces a more capable next generation",
+     "More capable models shorten the generation time",
+     "The loop turns faster each time around",
+     "A weak link binds and growth bends toward a plateau"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Every loop has a weak link that sets its floor",
+    "num": "03",
+    "id": "every-loop-has-a-weak-link-that-sets-its-floor"
+   }
+  ],
+  [
+   "p",
+   "Now the other side. Ord's own answer is that the clock has a floor: «It seems highly unlikely that generation times can be brought arbitrarily close to zero». Training runs take time. Chips take longer. He expects generation time to «bottom out at some unyielding finite limit», ending the stretch of singular growth. A floor on the period caps the speed."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+Cjx0aXRsZT5OZXN0ZWQgZmVlZGJhY2sgbG9vcHMsIHRoZSBzbG93ZXN0IG9uZSBzZXRzIHRoZSBwYWNlPC90aXRsZT4KPGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPjwvbGluZWFyR3JhZGllbnQ+CjxyYWRpYWxHcmFkaWVudCBpZD0iZ3kiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAuMyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD4KPG1hcmtlciBpZD0ibWIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjQiIG1hcmtlckhlaWdodD0iNCIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiM3YWEyZmYiLz48L21hcmtlcj4KPG1hcmtlciBpZD0ibXZ2IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjciIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI0IiBtYXJrZXJIZWlnaHQ9IjQiIG9yaWVudD0iYXV0byI+PHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjYTc4YmZhIi8+PC9tYXJrZXI+CjxtYXJrZXIgaWQ9Im15IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjciIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI0IiBtYXJrZXJIZWlnaHQ9IjQiIG9yaWVudD0iYXV0byI+PHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjZTNiMzQxIi8+PC9tYXJrZXI+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NDAiIGZpbGw9InVybCgjYmcpIi8+CjxjaXJjbGUgY3g9Ijg2MCIgY3k9IjMwMCIgcj0iMjUwIiBmaWxsPSJ1cmwoI2d5KSIvPgo8cGF0aCBkPSJNMTA0Ni45IDMzNC4wIEExOTAgMTkwIDAgMCAxIDY3My4xIDMzNC4wIiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI215KSIvPgo8cGF0aCBkPSJNNjczLjEgMjY2LjAgQTE5MCAxOTAgMCAwIDEgMTA0Ni45IDI2Ni4wIiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI215KSIvPgo8cGF0aCBkPSJNNTc4LjIgMzE5LjcgQTExMCAxMTAgMCAwIDEgNDMyLjkgNDAzLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjbXZ2KSIvPgo8cGF0aCBkPSJNMzk4LjggMzgzLjkgQTExMCAxMTAgMCAwIDEgMzk4LjggMjE2LjEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjbXZ2KSIvPgo8cGF0aCBkPSJNNDMyLjkgMTk2LjQgQTExMCAxMTAgMCAwIDEgNTc4LjIgMjgwLjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjbXZ2KSIvPgo8cGF0aCBkPSJNMjU0LjEgMzA5LjggQTU1IDU1IDAgMCAxIDIyNi4xIDM0OC40IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI21iKSIvPgo8cGF0aCBkPSJNMjA3LjQgMzU0LjUgQTU1IDU1IDAgMCAxIDE2Mi4wIDMzOS44IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI21iKSIvPgo8cGF0aCBkPSJNMTUwLjQgMzIzLjggQTU1IDU1IDAgMCAxIDE1MC40IDI3Ni4yIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI21iKSIvPgo8cGF0aCBkPSJNMTYyLjAgMjYwLjIgQTU1IDU1IDAgMCAxIDIwNy40IDI0NS41IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI21iKSIvPgo8cGF0aCBkPSJNMjI2LjEgMjUxLjYgQTU1IDU1IDAgMCAxIDI1NC4xIDI5MC4yIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI21iKSIvPgo8bGluZSB4MT0iMjU3IiB5MT0iMzAwIiB4Mj0iMzU4IiB5Mj0iMzAwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iNCIvPgo8bGluZSB4MT0iNTgyIiB5MT0iMzAwIiB4Mj0iNjY4IiB5Mj0iMzAwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iNCIvPgo8dGV4dCB4PSIyMDAiIHk9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzdhYTJmZiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj5zZWNvbmRzPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjQzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj5iZXR0ZXIgc2NhZmZvbGRzPC90ZXh0Pgo8dGV4dCB4PSI0NzAiIHk9IjQ1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2E3OGJmYSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj5tb250aHM8L3RleHQ+Cjx0ZXh0IHg9IjQ3MCIgeT0iNDg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPmJldHRlciBwcmV0cmFpbmluZzwvdGV4dD4KPHRleHQgeD0iODYwIiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlM2IzNDEiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+ZGVjYWRlczwvdGV4dD4KPHRleHQgeD0iODYwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+c3VjY2Vzc29yIHRvIEVVViBsaXRob2dyYXBoeTwvdGV4dD4KPHRleHQgeD0iNjAwIiB5PSI1OTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+dGhlIHNsb3dlc3QgbG9vcCBzZXRzIHRoZSBwYWNlIG9mIHRoZSB3aG9sZSBjaGFpbjwvdGV4dD4KPC9zdmc+",
+    "alt": "Three linked loops grow from a small fast loop for scaffolds to a large slow loop for chip fabrication.",
+    "caption": "Nested feedback loops run on very different clocks, and the slowest one sets the pace.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The weak-link argument is a chain argument. RSI isn't one loop. It's many loops nested inside each other, and Ord lists cycles «ranging from decades (e.g., designing a successor to EUV lithography) to months (e.g., designing better pretraining) to seconds (e.g., designing better scaffolds)». Speeding up the fast loops helps little if every turn waits on the slow one. Lithography doesn't care how clever your scaffolds are."
+  ],
+  [
+   "p",
+   "Then come hard limits on intelligence itself. «Even an optimal reasoner would be neither omniscient nor omnipotent», Ord writes. Data runs short in domains nobody wrote down. Hardware sits below physical limits. Stack these, and his phases end where «the trajectory departs from its exponential and is revealed to be a logistic». A logistic is an S-curve. Fast middle, flat top."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The phases of an intelligence explosion in Ord's model, as summarised in Import AI.",
+    "columns": [
+     "Phase",
+     "What drives growth",
+     "Shape of the curve"
+    ],
+    "rows": [
+     [
+      "0",
+      "Human-only research",
+      "Exponential"
+     ],
+     [
+      "1",
+      "RSI pushes generation time toward machine speeds",
+      "Super-exponential"
+     ],
+     [
+      "2",
+      "Fully automated RSI starts to saturate",
+      "Faster exponential, bending"
+     ],
+     [
+      "3",
+      "Approach to the inflection point and plateau",
+      "Logistic"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A logistic curve can still outrun an institution",
+    "num": "04",
+    "id": "a-logistic-curve-can-still-outrun-an-institution"
+   }
+  ],
+  [
+   "p",
+   "Here's where the weak-link camp gets less comfort than it wants. Ord himself warns that his argument «doesn’t mean RSI is safe or that AI R&D will move at a manageable pace». His example is stark. If the human-only path is `A(t)` and RSI compresses it to `A(10t)`, «we’d be getting a decade of human-only progress each year». No singularity required."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+Cjx0aXRsZT5UaGUgc2FtZSBsb2dpc3RpYyBjdXJ2ZSwgd2l0aCB0aW1lIGNvbXByZXNzZWQ8L3RpdGxlPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PC9saW5lYXJHcmFkaWVudD4KPG1hcmtlciBpZD0ibWEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiM5NWExYjQiLz48L21hcmtlcj48L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYyMCIgZmlsbD0idXJsKCNiZykiLz4KPGxpbmUgeDE9IjEzMCIgeTE9IjUyMCIgeDI9IjExNjAiIHkyPSI1MjAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI21hKSIvPgo8bGluZSB4MT0iMTMwIiB5MT0iNTIwIiB4Mj0iMTMwIiB5Mj0iOTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI21hKSIvPgo8dGV4dCB4PSIxMTMwIiB5PSI1NjQiIHRleHQtYW5jaG9yPSJlbmQiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+dGltZTwvdGV4dD4KPHRleHQgeD0iOTIiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwIDkyIDMzMCkiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+Y2FwYWJpbGl0eTwvdGV4dD4KPHBvbHlsaW5lIHBvaW50cz0iMTMwLjAsNTE5LjEgMTMyLjUsNTE5LjEgMTM1LjAsNTE5LjEgMTM3LjUsNTE5LjAgMTQwLjAsNTE5LjAgMTQyLjUsNTE5LjAgMTQ1LjAsNTE4LjkgMTQ3LjUsNTE4LjkgMTUwLjAsNTE4LjkgMTUyLjUsNTE4LjkgMTU1LjAsNTE4LjggMTU3LjUsNTE4LjggMTYwLjAsNTE4LjggMTYyLjUsNTE4LjcgMTY1LjAsNTE4LjcgMTY3LjUsNTE4LjcgMTcwLjAsNTE4LjYgMTcyLjUsNTE4LjYgMTc1LjAsNTE4LjUgMTc3LjUsNTE4LjUgMTgwLjAsNTE4LjUgMTgyLjUsNTE4LjQgMTg1LjAsNTE4LjQgMTg3LjUsNTE4LjMgMTkwLjAsNTE4LjMgMTkyLjUsNTE4LjIgMTk1LjAsNTE4LjIgMTk3LjUsNTE4LjEgMjAwLjAsNTE4LjEgMjAyLjUsNTE4LjAgMjA1LjAsNTE4LjAgMjA3LjUsNTE3LjkgMjEwLjAsNTE3LjkgMjEyLjUsNTE3LjggMjE1LjAsNTE3LjcgMjE3LjUsNTE3LjcgMjIwLjAsNTE3LjYgMjIyLjUsNTE3LjUgMjI1LjAsNTE3LjUgMjI3LjUsNTE3LjQgMjMwLjAsNTE3LjMgMjMyLjUsNTE3LjMgMjM1LjAsNTE3LjIgMjM3LjUsNTE3LjEgMjQwLjAsNTE3LjAgMjQyLjUsNTE2LjkgMjQ1LjAsNTE2LjkgMjQ3LjUsNTE2LjggMjUwLjAsNTE2LjcgMjUyLjUsNTE2LjYgMjU1LjAsNTE2LjUgMjU3LjUsNTE2LjQgMjYwLjAsNTE2LjMgMjYyLjUsNTE2LjIgMjY1LjAsNTE2LjEgMjY3LjUsNTE2LjAgMjcwLjAsNTE1LjkgMjcyLjUsNTE1LjggMjc1LjAsNTE1LjYgMjc3LjUsNTE1LjUgMjgwLjAsNTE1LjQgMjgyLjUsNTE1LjMgMjg1LjAsNTE1LjEgMjg3LjUsNTE1LjAgMjkwLjAsNTE0LjkgMjkyLjUsNTE0LjcgMjk1LjAsNTE0LjYgMjk3LjUsNTE0LjQgMzAwLjAsNTE0LjMgMzAyLjUsNTE0LjEgMzA1LjAsNTE0LjAgMzA3LjUsNTEzLjggMzEwLjAsNTEzLjYgMzEyLjUsNTEzLjQgMzE1LjAsNTEzLjMgMzE3LjUsNTEzLjEgMzIwLjAsNTEyLjkgMzIyLjUsNTEyLjcgMzI1LjAsNTEyLjUgMzI3LjUsNTEyLjMgMzMwLjAsNTEyLjEgMzMyLjUsNTExLjkgMzM1LjAsNTExLjYgMzM3LjUsNTExLjQgMzQwLjAsNTExLjIgMzQyLjUsNTEwLjkgMzQ1LjAsNTEwLjcgMzQ3LjUsNTEwLjQgMzUwLjAsNTEwLjIgMzUyLjUsNTA5LjkgMzU1LjAsNTA5LjYgMzU3LjUsNTA5LjQgMzYwLjAsNTA5LjEgMzYyLjUsNTA4LjggMzY1LjAsNTA4LjUgMzY3LjUsNTA4LjIgMzcwLjAsNTA3LjggMzcyLjUsNTA3LjUgMzc1LjAsNTA3LjIgMzc3LjUsNTA2LjggMzgwLjAsNTA2LjUgMzgyLjUsNTA2LjEgMzg1LjAsNTA1LjcgMzg3LjUsNTA1LjQgMzkwLjAsNTA1LjAgMzkyLjUsNTA0LjYgMzk1LjAsNTA0LjIgMzk3LjUsNTAzLjcgNDAwLjAsNTAzLjMgNDAyLjUsNTAyLjkgNDA1LjAsNTAyLjQgNDA3LjUsNTAxLjkgNDEwLjAsNTAxLjUgNDEyLjUsNTAxLjAgNDE1LjAsNTAwLjUgNDE3LjUsNDk5LjkgNDIwLjAsNDk5LjQgNDIyLjUsNDk4LjkgNDI1LjAsNDk4LjMgNDI3LjUsNDk3LjggNDMwLjAsNDk3LjIgNDMyLjUsNDk2LjYgNDM1LjAsNDk2LjAgNDM3LjUsNDk1LjMgNDQwLjAsNDk0LjcgNDQyLjUsNDk0LjAgNDQ1LjAsNDkzLjQgNDQ3LjUsNDkyLjcgNDUwLjAsNDkyLjAgNDUyLjUsNDkxLjIgNDU1LjAsNDkwLjUgNDU3LjUsNDg5LjcgNDYwLjAsNDg5LjAgNDYyLjUsNDg4LjIgNDY1LjAsNDg3LjQgNDY3LjUsNDg2LjUgNDcwLjAsNDg1LjcgNDcyLjUsNDg0LjggNDc1LjAsNDgzLjkgNDc3LjUsNDgzLjAgNDgwLjAsNDgyLjEgNDgyLjUsNDgxLjEgNDg1LjAsNDgwLjIgNDg3LjUsNDc5LjIgNDkwLjAsNDc4LjIgNDkyLjUsNDc3LjEgNDk1LjAsNDc2LjEgNDk3LjUsNDc1LjAgNTAwLjAsNDczLjkgNTAyLjUsNDcyLjggNTA1LjAsNDcxLjYgNTA3LjUsNDcwLjUgNTEwLjAsNDY5LjMgNTEyLjUsNDY4LjAgNTE1LjAsNDY2LjggNTE3LjUsNDY1LjUgNTIwLjAsNDY0LjIgNTIyLjUsNDYyLjkgNTI1LjAsNDYxLjYgNTI3LjUsNDYwLjIgNTMwLjAsNDU4LjggNTMyLjUsNDU3LjQgNTM1LjAsNDU1LjkgNTM3LjUsNDU0LjQgNTQwLjAsNDUyLjkgNTQyLjUsNDUxLjQgNTQ1LjAsNDQ5LjggNTQ3LjUsNDQ4LjIgNTUwLjAsNDQ2LjYgNTUyLjUsNDQ1LjAgNTU1LjAsNDQzLjMgNTU3LjUsNDQxLjYgNTYwLjAsNDM5LjkgNTYyLjUsNDM4LjEgNTY1LjAsNDM2LjQgNTY3LjUsNDM0LjUgNTcwLjAsNDMyLjcgNTcyLjUsNDMwLjkgNTc1LjAsNDI5LjAgNTc3LjUsNDI3LjAgNTgwLjAsNDI1LjEgNTgyLjUsNDIzLjEgNTg1LjAsNDIxLjEgNTg3LjUsNDE5LjEgNTkwLjAsNDE3LjEgNTkyLjUsNDE1LjAgNTk1LjAsNDEyLjkgNTk3LjUsNDEwLjcgNjAwLjAsNDA4LjYgNjAyLjUsNDA2LjQgNjA1LjAsNDA0LjIgNjA3LjUsNDAyLjAgNjEwLjAsMzk5LjcgNjEyLjUsMzk3LjUgNjE1LjAsMzk1LjIgNjE3LjUsMzkyLjkgNjIwLjAsMzkwLjUgNjIyLjUsMzg4LjIgNjI1LjAsMzg1LjggNjI3LjUsMzgzLjQgNjMwLjAsMzgxLjAgNjMyLjUsMzc4LjUgNjM1LjAsMzc2LjEgNjM3LjUsMzczLjYgNjQwLjAsMzcxLjEgNjQyLjUsMzY4LjYgNjQ1LjAsMzY2LjEgNjQ3LjUsMzYzLjYgNjUwLjAsMzYxLjEgNjUyLjUsMzU4LjUgNjU1LjAsMzU2LjAgNjU3LjUsMzUzLjQgNjYwLjAsMzUwLjggNjYyLjUsMzQ4LjIgNjY1LjAsMzQ1LjYgNjY3LjUsMzQzLjAgNjcwLjAsMzQwLjQgNjcyLjUsMzM3LjggNjc1LjAsMzM1LjIgNjc3LjUsMzMyLjYgNjgwLjAsMzMwLjAgNjgyLjUsMzI3LjQgNjg1LjAsMzI0LjggNjg3LjUsMzIyLjIgNjkwLjAsMzE5LjYgNjkyLjUsMzE3LjAgNjk1LjAsMzE0LjQgNjk3LjUsMzExLjggNzAwLjAsMzA5LjIgNzAyLjUsMzA2LjYgNzA1LjAsMzA0LjAgNzA3LjUsMzAxLjUgNzEwLjAsMjk4LjkgNzEyLjUsMjk2LjQgNzE1LjAsMjkzLjkgNzE3LjUsMjkxLjQgNzIwLjAsMjg4LjkgNzIyLjUsMjg2LjQgNzI1LjAsMjgzLjkgNzI3LjUsMjgxLjUgNzMwLjAsMjc5LjAgNzMyLjUsMjc2LjYgNzM1LjAsMjc0LjIgNzM3LjUsMjcxLjggNzQwLjAsMjY5LjUgNzQyLjUsMjY3LjEgNzQ1LjAsMjY0LjggNzQ3LjUsMjYyLjUgNzUwLjAsMjYwLjMgNzUyLjUsMjU4LjAgNzU1LjAsMjU1LjggNzU3LjUsMjUzLjYgNzYwLjAsMjUxLjQgNzYyLjUsMjQ5LjMgNzY1LjAsMjQ3LjEgNzY3LjUsMjQ1LjAgNzcwLjAsMjQyLjkgNzcyLjUsMjQwLjkgNzc1LjAsMjM4LjkgNzc3LjUsMjM2LjkgNzgwLjAsMjM0LjkgNzgyLjUsMjMzLjAgNzg1LjAsMjMxLjAgNzg3LjUsMjI5LjEgNzkwLjAsMjI3LjMgNzkyLjUsMjI1LjUgNzk1LjAsMjIzLjYgNzk3LjUsMjIxLjkgODAwLjAsMjIwLjEgODAyLjUsMjE4LjQgODA1LjAsMjE2LjcgODA3LjUsMjE1LjAgODEwLjAsMjEzLjQgODEyLjUsMjExLjggODE1LjAsMjEwLjIgODE3LjUsMjA4LjYgODIwLjAsMjA3LjEgODIyLjUsMjA1LjYgODI1LjAsMjA0LjEgODI3LjUsMjAyLjYgODMwLjAsMjAxLjIgODMyLjUsMTk5LjggODM1LjAsMTk4LjQgODM3LjUsMTk3LjEgODQwLjAsMTk1LjggODQyLjUsMTk0LjUgODQ1LjAsMTkzLjIgODQ3LjUsMTkyLjAgODUwLjAsMTkwLjcgODUyLjUsMTg5LjUgODU1LjAsMTg4LjQgODU3LjUsMTg3LjIgODYwLjAsMTg2LjEgODYyLjUsMTg1LjAgODY1LjAsMTgzLjkgODY3LjUsMTgyLjkgODcwLjAsMTgxLjggODcyLjUsMTgwLjggODc1LjAsMTc5LjggODc3LjUsMTc4LjkgODgwLjAsMTc3LjkgODgyLjUsMTc3LjAgODg1LjAsMTc2LjEgODg3LjUsMTc1LjIgODkwLjAsMTc0LjMgODkyLjUsMTczLjUgODk1LjAsMTcyLjYgODk3LjUsMTcxLjggOTAwLjAsMTcxLjAgOTAyLjUsMTcwLjMgOTA1LjAsMTY5LjUgOTA3LjUsMTY4LjggOTEwLjAsMTY4LjAgOTEyLjUsMTY3LjMgOTE1LjAsMTY2LjYgOTE3LjUsMTY2LjAgOTIwLjAsMTY1LjMgOTIyLjUsMTY0LjcgOTI1LjAsMTY0LjAgOTI3LjUsMTYzLjQgOTMwLjAsMTYyLjggOTMyLjUsMTYyLjIgOTM1LjAsMTYxLjcgOTM3LjUsMTYxLjEgOTQwLjAsMTYwLjYgOTQyLjUsMTYwLjEgOTQ1LjAsMTU5LjUgOTQ3LjUsMTU5LjAgOTUwLjAsMTU4LjUgOTUyLjUsMTU4LjEgOTU1LjAsMTU3LjYgOTU3LjUsMTU3LjEgOTYwLjAsMTU2LjcgOTYyLjUsMTU2LjMgOTY1LjAsMTU1LjggOTY3LjUsMTU1LjQgOTcwLjAsMTU1LjAgOTcyLjUsMTU0LjYgOTc1LjAsMTU0LjMgOTc3LjUsMTUzLjkgOTgwLjAsMTUzLjUgOTgyLjUsMTUzLjIgOTg1LjAsMTUyLjggOTg3LjUsMTUyLjUgOTkwLjAsMTUyLjIgOTkyLjUsMTUxLjggOTk1LjAsMTUxLjUgOTk3LjUsMTUxLjIgMTAwMC4wLDE1MC45IDEwMDIuNSwxNTAuNiAxMDA1LjAsMTUwLjQgMTAwNy41LDE1MC4xIDEwMTAuMCwxNDkuOCAxMDEyLjUsMTQ5LjYgMTAxNS4wLDE0OS4zIDEwMTcuNSwxNDkuMSAxMDIwLjAsMTQ4LjggMTAyMi41LDE0OC42IDEwMjUuMCwxNDguNCAxMDI3LjUsMTQ4LjEgMTAzMC4wLDE0Ny45IDEwMzIuNSwxNDcuNyAxMDM1LjAsMTQ3LjUgMTAzNy41LDE0Ny4zIDEwNDAuMCwxNDcuMSAxMDQyLjUsMTQ2LjkgMTA0NS4wLDE0Ni43IDEwNDcuNSwxNDYuNiAxMDUwLjAsMTQ2LjQgMTA1Mi41LDE0Ni4yIDEwNTUuMCwxNDYuMCAxMDU3LjUsMTQ1LjkgMTA2MC4wLDE0NS43IDEwNjIuNSwxNDUuNiAxMDY1LjAsMTQ1LjQgMTA2Ny41LDE0NS4zIDEwNzAuMCwxNDUuMSAxMDcyLjUsMTQ1LjAgMTA3NS4wLDE0NC45IDEwNzcuNSwxNDQuNyAxMDgwLjAsMTQ0LjYgMTA4Mi41LDE0NC41IDEwODUuMCwxNDQuNCAxMDg3LjUsMTQ0LjIgMTA5MC4wLDE0NC4xIDEwOTIuNSwxNDQuMCAxMDk1LjAsMTQzLjkgMTA5Ny41LDE0My44IDExMDAuMCwxNDMuNyAxMTAyLjUsMTQzLjYgMTEwNS4wLDE0My41IDExMDcuNSwxNDMuNCAxMTEwLjAsMTQzLjMgMTExMi41LDE0My4yIDExMTUuMCwxNDMuMSAxMTE3LjUsMTQzLjEgMTEyMC4wLDE0My4wIDExMjIuNSwxNDIuOSAxMTI1LjAsMTQyLjggMTEyNy41LDE0Mi43IDExMzAuMCwxNDIuNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBvbHlsaW5lIHBvaW50cz0iMTMwLjAsNTE5LjEgMTMyLjUsNTE4LjggMTM1LjAsNTE4LjUgMTM3LjUsNTE4LjAgMTQwLjAsNTE3LjMgMTQyLjUsNTE2LjUgMTQ1LjAsNTE1LjQgMTQ3LjUsNTE0LjAgMTUwLjAsNTEyLjEgMTUyLjUsNTA5LjYgMTU1LjAsNTA2LjUgMTU3LjUsNTAyLjQgMTYwLjAsNDk3LjIgMTYyLjUsNDkwLjUgMTY1LjAsNDgyLjEgMTY3LjUsNDcxLjYgMTcwLjAsNDU4LjggMTcyLjUsNDQzLjMgMTc1LjAsNDI1LjEgMTc3LjUsNDA0LjIgMTgwLjAsMzgxLjAgMTgyLjUsMzU2LjAgMTg1LjAsMzMwLjAgMTg3LjUsMzA0LjAgMTkwLjAsMjc5LjAgMTkyLjUsMjU1LjggMTk1LjAsMjM0LjkgMTk3LjUsMjE2LjcgMjAwLjAsMjAxLjIgMjAyLjUsMTg4LjQgMjA1LjAsMTc3LjkgMjA3LjUsMTY5LjUgMjEwLjAsMTYyLjggMjEyLjUsMTU3LjYgMjE1LjAsMTUzLjUgMjE3LjUsMTUwLjQgMjIwLjAsMTQ3LjkgMjIyLjUsMTQ2LjAgMjI1LjAsMTQ0LjYgMjI3LjUsMTQzLjUgMjMwLjAsMTQyLjcgMjMyLjUsMTQyLjcgMjM1LjAsMTQyLjcgMjM3LjUsMTQyLjcgMjQwLjAsMTQyLjcgMjQyLjUsMTQyLjcgMjQ1LjAsMTQyLjcgMjQ3LjUsMTQyLjcgMjUwLjAsMTQyLjcgMjUyLjUsMTQyLjcgMjU1LjAsMTQyLjcgMjU3LjUsMTQyLjcgMjYwLjAsMTQyLjcgMjYyLjUsMTQyLjcgMjY1LjAsMTQyLjcgMjY3LjUsMTQyLjcgMjcwLjAsMTQyLjcgMjcyLjUsMTQyLjcgMjc1LjAsMTQyLjcgMjc3LjUsMTQyLjcgMjgwLjAsMTQyLjcgMjgyLjUsMTQyLjcgMjg1LjAsMTQyLjcgMjg3LjUsMTQyLjcgMjkwLjAsMTQyLjcgMjkyLjUsMTQyLjcgMjk1LjAsMTQyLjcgMjk3LjUsMTQyLjcgMzAwLjAsMTQyLjcgMzAyLjUsMTQyLjcgMzA1LjAsMTQyLjcgMzA3LjUsMTQyLjcgMzEwLjAsMTQyLjcgMzEyLjUsMTQyLjcgMzE1LjAsMTQyLjcgMzE3LjUsMTQyLjcgMzIwLjAsMTQyLjcgMzIyLjUsMTQyLjcgMzI1LjAsMTQyLjcgMzI3LjUsMTQyLjcgMzMwLjAsMTQyLjcgMzMyLjUsMTQyLjcgMzM1LjAsMTQyLjcgMzM3LjUsMTQyLjcgMzQwLjAsMTQyLjcgMzQyLjUsMTQyLjcgMzQ1LjAsMTQyLjcgMzQ3LjUsMTQyLjcgMzUwLjAsMTQyLjcgMzUyLjUsMTQyLjcgMzU1LjAsMTQyLjcgMzU3LjUsMTQyLjcgMzYwLjAsMTQyLjcgMzYyLjUsMTQyLjcgMzY1LjAsMTQyLjcgMzY3LjUsMTQyLjcgMzcwLjAsMTQyLjcgMzcyLjUsMTQyLjcgMzc1LjAsMTQyLjcgMzc3LjUsMTQyLjcgMzgwLjAsMTQyLjcgMzgyLjUsMTQyLjcgMzg1LjAsMTQyLjcgMzg3LjUsMTQyLjcgMzkwLjAsMTQyLjcgMzkyLjUsMTQyLjcgMzk1LjAsMTQyLjcgMzk3LjUsMTQyLjcgNDAwLjAsMTQyLjcgNDAyLjUsMTQyLjcgNDA1LjAsMTQyLjcgNDA3LjUsMTQyLjcgNDEwLjAsMTQyLjcgNDEyLjUsMTQyLjcgNDE1LjAsMTQyLjcgNDE3LjUsMTQyLjcgNDIwLjAsMTQyLjcgNDIyLjUsMTQyLjcgNDI1LjAsMTQyLjcgNDI3LjUsMTQyLjcgNDMwLjAsMTQyLjcgNDMyLjUsMTQyLjcgNDM1LjAsMTQyLjcgNDM3LjUsMTQyLjcgNDQwLjAsMTQyLjcgNDQyLjUsMTQyLjcgNDQ1LjAsMTQyLjcgNDQ3LjUsMTQyLjcgNDUwLjAsMTQyLjcgNDUyLjUsMTQyLjcgNDU1LjAsMTQyLjcgNDU3LjUsMTQyLjcgNDYwLjAsMTQyLjcgNDYyLjUsMTQyLjcgNDY1LjAsMTQyLjcgNDY3LjUsMTQyLjcgNDcwLjAsMTQyLjcgNDcyLjUsMTQyLjcgNDc1LjAsMTQyLjcgNDc3LjUsMTQyLjcgNDgwLjAsMTQyLjcgNDgyLjUsMTQyLjcgNDg1LjAsMTQyLjcgNDg3LjUsMTQyLjcgNDkwLjAsMTQyLjcgNDkyLjUsMTQyLjcgNDk1LjAsMTQyLjcgNDk3LjUsMTQyLjcgNTAwLjAsMTQyLjcgNTAyLjUsMTQyLjcgNTA1LjAsMTQyLjcgNTA3LjUsMTQyLjcgNTEwLjAsMTQyLjcgNTEyLjUsMTQyLjcgNTE1LjAsMTQyLjcgNTE3LjUsMTQyLjcgNTIwLjAsMTQyLjcgNTIyLjUsMTQyLjcgNTI1LjAsMTQyLjcgNTI3LjUsMTQyLjcgNTMwLjAsMTQyLjcgNTMyLjUsMTQyLjcgNTM1LjAsMTQyLjcgNTM3LjUsMTQyLjcgNTQwLjAsMTQyLjcgNTQyLjUsMTQyLjcgNTQ1LjAsMTQyLjcgNTQ3LjUsMTQyLjcgNTUwLjAsMTQyLjcgNTUyLjUsMTQyLjcgNTU1LjAsMTQyLjcgNTU3LjUsMTQyLjcgNTYwLjAsMTQyLjcgNTYyLjUsMTQyLjcgNTY1LjAsMTQyLjcgNTY3LjUsMTQyLjcgNTcwLjAsMTQyLjcgNTcyLjUsMTQyLjcgNTc1LjAsMTQyLjcgNTc3LjUsMTQyLjcgNTgwLjAsMTQyLjcgNTgyLjUsMTQyLjcgNTg1LjAsMTQyLjcgNTg3LjUsMTQyLjcgNTkwLjAsMTQyLjcgNTkyLjUsMTQyLjcgNTk1LjAsMTQyLjcgNTk3LjUsMTQyLjcgNjAwLjAsMTQyLjcgNjAyLjUsMTQyLjcgNjA1LjAsMTQyLjcgNjA3LjUsMTQyLjcgNjEwLjAsMTQyLjcgNjEyLjUsMTQyLjcgNjE1LjAsMTQyLjcgNjE3LjUsMTQyLjcgNjIwLjAsMTQyLjcgNjIyLjUsMTQyLjcgNjI1LjAsMTQyLjcgNjI3LjUsMTQyLjcgNjMwLjAsMTQyLjcgNjMyLjUsMTQyLjcgNjM1LjAsMTQyLjcgNjM3LjUsMTQyLjcgNjQwLjAsMTQyLjcgNjQyLjUsMTQyLjcgNjQ1LjAsMTQyLjcgNjQ3LjUsMTQyLjcgNjUwLjAsMTQyLjcgNjUyLjUsMTQyLjcgNjU1LjAsMTQyLjcgNjU3LjUsMTQyLjcgNjYwLjAsMTQyLjcgNjYyLjUsMTQyLjcgNjY1LjAsMTQyLjcgNjY3LjUsMTQyLjcgNjcwLjAsMTQyLjcgNjcyLjUsMTQyLjcgNjc1LjAsMTQyLjcgNjc3LjUsMTQyLjcgNjgwLjAsMTQyLjcgNjgyLjUsMTQyLjcgNjg1LjAsMTQyLjcgNjg3LjUsMTQyLjcgNjkwLjAsMTQyLjcgNjkyLjUsMTQyLjcgNjk1LjAsMTQyLjcgNjk3LjUsMTQyLjcgNzAwLjAsMTQyLjcgNzAyLjUsMTQyLjcgNzA1LjAsMTQyLjcgNzA3LjUsMTQyLjcgNzEwLjAsMTQyLjcgNzEyLjUsMTQyLjcgNzE1LjAsMTQyLjcgNzE3LjUsMTQyLjcgNzIwLjAsMTQyLjcgNzIyLjUsMTQyLjcgNzI1LjAsMTQyLjcgNzI3LjUsMTQyLjcgNzMwLjAsMTQyLjcgNzMyLjUsMTQyLjcgNzM1LjAsMTQyLjcgNzM3LjUsMTQyLjcgNzQwLjAsMTQyLjcgNzQyLjUsMTQyLjcgNzQ1LjAsMTQyLjcgNzQ3LjUsMTQyLjcgNzUwLjAsMTQyLjcgNzUyLjUsMTQyLjcgNzU1LjAsMTQyLjcgNzU3LjUsMTQyLjcgNzYwLjAsMTQyLjcgNzYyLjUsMTQyLjcgNzY1LjAsMTQyLjcgNzY3LjUsMTQyLjcgNzcwLjAsMTQyLjcgNzcyLjUsMTQyLjcgNzc1LjAsMTQyLjcgNzc3LjUsMTQyLjcgNzgwLjAsMTQyLjcgNzgyLjUsMTQyLjcgNzg1LjAsMTQyLjcgNzg3LjUsMTQyLjcgNzkwLjAsMTQyLjcgNzkyLjUsMTQyLjcgNzk1LjAsMTQyLjcgNzk3LjUsMTQyLjcgODAwLjAsMTQyLjcgODAyLjUsMTQyLjcgODA1LjAsMTQyLjcgODA3LjUsMTQyLjcgODEwLjAsMTQyLjcgODEyLjUsMTQyLjcgODE1LjAsMTQyLjcgODE3LjUsMTQyLjcgODIwLjAsMTQyLjcgODIyLjUsMTQyLjcgODI1LjAsMTQyLjcgODI3LjUsMTQyLjcgODMwLjAsMTQyLjcgODMyLjUsMTQyLjcgODM1LjAsMTQyLjcgODM3LjUsMTQyLjcgODQwLjAsMTQyLjcgODQyLjUsMTQyLjcgODQ1LjAsMTQyLjcgODQ3LjUsMTQyLjcgODUwLjAsMTQyLjcgODUyLjUsMTQyLjcgODU1LjAsMTQyLjcgODU3LjUsMTQyLjcgODYwLjAsMTQyLjcgODYyLjUsMTQyLjcgODY1LjAsMTQyLjcgODY3LjUsMTQyLjcgODcwLjAsMTQyLjcgODcyLjUsMTQyLjcgODc1LjAsMTQyLjcgODc3LjUsMTQyLjcgODgwLjAsMTQyLjcgODgyLjUsMTQyLjcgODg1LjAsMTQyLjcgODg3LjUsMTQyLjcgODkwLjAsMTQyLjcgODkyLjUsMTQyLjcgODk1LjAsMTQyLjcgODk3LjUsMTQyLjcgOTAwLjAsMTQyLjcgOTAyLjUsMTQyLjcgOTA1LjAsMTQyLjcgOTA3LjUsMTQyLjcgOTEwLjAsMTQyLjcgOTEyLjUsMTQyLjcgOTE1LjAsMTQyLjcgOTE3LjUsMTQyLjcgOTIwLjAsMTQyLjcgOTIyLjUsMTQyLjcgOTI1LjAsMTQyLjcgOTI3LjUsMTQyLjcgOTMwLjAsMTQyLjcgOTMyLjUsMTQyLjcgOTM1LjAsMTQyLjcgOTM3LjUsMTQyLjcgOTQwLjAsMTQyLjcgOTQyLjUsMTQyLjcgOTQ1LjAsMTQyLjcgOTQ3LjUsMTQyLjcgOTUwLjAsMTQyLjcgOTUyLjUsMTQyLjcgOTU1LjAsMTQyLjcgOTU3LjUsMTQyLjcgOTYwLjAsMTQyLjcgOTYyLjUsMTQyLjcgOTY1LjAsMTQyLjcgOTY3LjUsMTQyLjcgOTcwLjAsMTQyLjcgOTcyLjUsMTQyLjcgOTc1LjAsMTQyLjcgOTc3LjUsMTQyLjcgOTgwLjAsMTQyLjcgOTgyLjUsMTQyLjcgOTg1LjAsMTQyLjcgOTg3LjUsMTQyLjcgOTkwLjAsMTQyLjcgOTkyLjUsMTQyLjcgOTk1LjAsMTQyLjcgOTk3LjUsMTQyLjcgMTAwMC4wLDE0Mi43IDEwMDIuNSwxNDIuNyAxMDA1LjAsMTQyLjcgMTAwNy41LDE0Mi43IDEwMTAuMCwxNDIuNyAxMDEyLjUsMTQyLjcgMTAxNS4wLDE0Mi43IDEwMTcuNSwxNDIuNyAxMDIwLjAsMTQyLjcgMTAyMi41LDE0Mi43IDEwMjUuMCwxNDIuNyAxMDI3LjUsMTQyLjcgMTAzMC4wLDE0Mi43IDEwMzIuNSwxNDIuNyAxMDM1LjAsMTQyLjcgMTAzNy41LDE0Mi43IDEwNDAuMCwxNDIuNyAxMDQyLjUsMTQyLjcgMTA0NS4wLDE0Mi43IDEwNDcuNSwxNDIuNyAxMDUwLjAsMTQyLjcgMTA1Mi41LDE0Mi43IDEwNTUuMCwxNDIuNyAxMDU3LjUsMTQyLjcgMTA2MC4wLDE0Mi43IDEwNjIuNSwxNDIuNyAxMDY1LjAsMTQyLjcgMTA2Ny41LDE0Mi43IDEwNzAuMCwxNDIuNyAxMDcyLjUsMTQyLjcgMTA3NS4wLDE0Mi43IDEwNzcuNSwxNDIuNyAxMDgwLjAsMTQyLjcgMTA4Mi41LDE0Mi43IDEwODUuMCwxNDIuNyAxMDg3LjUsMTQyLjcgMTA5MC4wLDE0Mi43IDEwOTIuNSwxNDIuNyAxMDk1LjAsMTQyLjcgMTA5Ny41LDE0Mi43IDExMDAuMCwxNDIuNyAxMTAyLjUsMTQyLjcgMTEwNS4wLDE0Mi43IDExMDcuNSwxNDIuNyAxMTEwLjAsMTQyLjcgMTExMi41LDE0Mi43IDExMTUuMCwxNDIuNyAxMTE3LjUsMTQyLjcgMTEyMC4wLDE0Mi43IDExMjIuNSwxNDIuNyAxMTI1LjAsMTQyLjcgMTEyNy41LDE0Mi43IDExMzAuMCwxNDIuNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHRleHQgeD0iMTAwMCIgeT0iMTgwIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjN2FhMmZmIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSI+QSh0KTwvdGV4dD4KPHRleHQgeD0iMjIyIiB5PSIyMTUiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNhNzhiZmEiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIj5BKDEwdCk8L3RleHQ+CjxwYXRoIGQ9Ik01MjAgMzAwIEM0MjAgMzAwIDMwMCAzMDAgMjI1IDMwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgOCIgbWFya2VyLWVuZD0idXJsKCNtYSkiLz4KPHRleHQgeD0iNTQwIiB5PSIyOTIiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+c2FtZSBzaGFwZSwgdGltZSBzcXVlZXplZDwvdGV4dD4KPHRleHQgeD0iMjIyIiB5PSIyNTIiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+YSBkZWNhZGUgb2YgcHJvZ3Jlc3MgZWFjaCB5ZWFyPC90ZXh0Pgo8L3N2Zz4=",
+    "alt": "Two S-curves with the same height: a wide one labelled A(t) and a steep one labelled A(10t) near the start.",
+    "caption": "Compressing time leaves the curve's shape intact, which is why a floor on speed is cold comfort.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Notice what changed. The curve's shape didn't move at all. Only the time axis got squeezed. A logistic that tops out far above human level is still a superintelligence. It just arrives on a schedule. And regulators, courts and standards bodies run on human clocks. A decade of progress per calendar year leaves them reading last decade's map."
+  ],
+  [
+   "p",
+   "So we disagree with anyone who reads Ord as reassurance. The floor on generation time rules out infinite speed. It doesn't rule out speed that matters. For the policy question, a finite logistic and a true explosion can look identical from inside a legislature. The debate about the limit is real. It just isn't the debate that decides the stakes."
+  ],
+  [
+   "h2",
+   {
+    "text": "Today's agents still lean on procedures we hand them",
+    "num": "05",
+    "id": "today-s-agents-still-lean-on-procedures-we-hand-them"
+   }
+  ],
+  [
+   "p",
+   "Is there present-day evidence for either side? One thread runs through agent research. A new arXiv paper on coding agents starts from the explosion camp's premise: «Stronger language models may increasingly construct useful procedures for themselves, reducing the advantage of developer-supplied scaffolding». Scaffolding is the code around a model that plans, retries and resets. Self-built scaffolding would be RSI in miniature."
+  ],
+  [
+   "p",
+   "We went through the experiment's design. One general agent ran with unchanged code, prompts and tools across ARC-AGI-3, AGI Maze and Terminal-Bench. It stayed below an ARC-AGI-3-specific reference agent. Handing reset decisions to a scripted controller helped: «This small change recovers part of the specialized agent's advantage». Worse, «additional tutorial experience can reduce performance». More help made it worse."
+  ],
+  [
+   "p",
+   "The author's conclusion is blunt: «Supplied procedures still matter for the models tested here». The gap is «the distinction between having information and tools available and using them effectively». We think that's the most useful sentence in this whole debate. Self-improvement needs a model that turns what it knows into a working procedure. On this evidence, the tested agents can't do that reliably yet."
+  ],
+  [
+   "h2",
+   {
+    "text": "Steering needs instruments before it needs brakes",
+    "num": "06",
+    "id": "steering-needs-instruments-before-it-needs-brakes"
+   }
+  ],
+  [
+   "p",
+   "If speed is the real stake, the practical question is steering. A RAND strategy paper, summarised in Import AI, ties the response to distance from danger: «If danger is close, strategies that buy time, build defenses, and invest in resiliency should be favored». The trouble is that nobody can read that distance today. You can't brake for a wall you can't see."
+  ],
+  [
+   "p",
+   "A pacing research agenda, covered in the same issue, makes the point concrete. «The world will pace progress one way or another», its authors write. Without tools, they warn, it happens «through improvised reactions overfit to prior expectations». Their questions read like an engineering spec. «What signals of emerging risk are being tracked?» «Who holds the authority to decide that a trigger condition has been met?»"
+  ],
+  [
+   "p",
+   "In our view, this is where the takeoff debate should cash out. Generation time is measurable. Benchmarks for self-built procedures exist. A trigger needs a signal, and both camps should want the same signals. The newsletter's car analogy lands here, since today's approach looks like «spending all your resources on making the car go faster and upgrading the engine». Brakes come later."
+  ],
+  [
+   "h2",
+   {
+    "text": "The floor is real, and it probably sits too high to help",
+    "num": "07",
+    "id": "the-floor-is-real-and-it-probably-sits-too-high-to-help"
+   }
+  ],
+  [
+   "p",
+   "Here's where we come down. On the narrow question, the weak-link camp wins. A hard floor on generation time makes true singular growth unlikely, and Ord's limits convince us. On the question that matters, it loses. A logistic squeezed into fewer years still outruns institutions. So superintelligence is a speed problem for us, and an infinity problem for nobody."
+  ],
+  [
+   "p",
+   "One result would change our mind. Run a self-improving agent through a framework like EnvTraverse, built for «testing whether further environment-independent changes improve performance in some environments without degrading it in others». Suppose agents start writing procedures that beat developer scaffolding everywhere, with no regressions. Then the loop's first link is real. The explosion camp's premise goes live."
+  ],
+  [
+   "p",
+   "The reverse result matters too. If self-built procedures keep stalling, and tutorial experience keeps hurting, the first link is weaker than either camp assumes. That buys time, not safety. Watch generation time, watch self-built scaffolding against supplied scaffolding, and watch token cost per gain. Those signals tell you which story you're living in."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is artificial superintelligence?"
+  ],
+  [
+   "p",
+   "Artificial superintelligence is AI that outperforms the best humans at nearly all cognitive work, including AI research. That last part matters most. A system that can improve its own successor starts a feedback loop, and how fast that loop turns is the core of the takeoff debate between fast and gradual camps."
+  ],
+  [
+   "h3",
+   "What is the difference between AGI and superintelligence?"
+  ],
+  [
+   "p",
+   "AGI usually means human-level ability across most tasks, and superintelligence means clearly beyond the best humans. The step between them is where recursive self-improvement would act. If AGI can do AI research, each model can help build the next. The gap could then close quickly or slowly, depending on how short each generation can get."
+  ],
+  [
+   "h3",
+   "Can an intelligence explosion actually happen?"
+  ],
+  [
+   "p",
+   "A truly unbounded explosion looks unlikely, but a very fast takeoff remains possible. Toby Ord argues «It seems highly unlikely that generation times can be brought arbitrarily close to zero», which bends growth into a logistic curve. He also warns that compressed progress, «a decade of human-only progress each year», would bring many of the same dangers."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "an engineering blog",
+   "who": "jack-clark.net",
+   "what": "Import AI 473: The US’s superintelligence strategy; human brain in a mouse skull; and machine hermeneutics",
+   "url": "https://jack-clark.net/2026/09/21/import-ai-473-the-uss-superintelligence-strategy-human-brain-in-a-mouse-skull-and-machine-hermeneutics/",
+   "posted": "2026-09-21"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Improving Environment-Agnostic Coding Agents: The Role of Scaffolding",
+   "url": "https://arxiv.org/abs/2610.22289v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "RSI drives the generation time down towards machine speeds": 1,
+  "It seems highly unlikely that generation times can be brought arbitrarily close to zero": 1,
+  "bottom out at some unyielding finite limit": 1,
+  "ranging from decades (e.g., designing a successor to EUV lithography) to months (e.g., designing better pretraining) to seconds (e.g., designing better scaffolds)": 1,
+  "Even an optimal reasoner would be neither omniscient nor omnipotent": 1,
+  "the trajectory departs from its exponential and is revealed to be a logistic": 1,
+  "doesn’t mean RSI is safe or that AI R&D will move at a manageable pace": 1,
+  "we’d be getting a decade of human-only progress each year": 1,
+  "Stronger language models may increasingly construct useful procedures for themselves, reducing the advantage of developer-supplied scaffolding": 2,
+  "This small change recovers part of the specialized agent's advantage": 2,
+  "additional tutorial experience can reduce performance": 2,
+  "Supplied procedures still matter for the models tested here": 2,
+  "the distinction between having information and tools available and using them effectively": 2,
+  "If danger is close, strategies that buy time, build defenses, and invest in resiliency should be favored": 1,
+  "The world will pace progress one way or another": 1,
+  "through improvised reactions overfit to prior expectations": 1,
+  "What signals of emerging risk are being tracked?": 1,
+  "Who holds the authority to decide that a trigger condition has been met?": 1,
+  "spending all your resources on making the car go faster and upgrading the engine": 1,
+  "testing whether further environment-independent changes improve performance in some environments without degrading it in others": 2,
+  "a decade of human-only progress each year": 1
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:40:18+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22289v1",
+   "blog:jack-clark.net|https://jack-clark.net/2026/09/21/import-ai-473-the-uss-superintelligence-strategy-human-brain-in-a-mouse-skull-and-machine-hermeneutics/"
+  ],
+  "platforms": {
+   "arXiv": 1,
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "debate:concept/superintelligence",
+  "format": "debate",
+  "reviewed_by": null
+ }
+}

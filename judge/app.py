@@ -958,7 +958,7 @@ def faq_page() -> dict:
     # shown (review of #508, item 6).
     from judge import publication
 
-    platforms = evidence_platforms(tuple(publication.hidden_here()))
+    platforms = evidence_platforms(tuple(publication.withheld_sources()))
     listed = ", ".join(platforms[:-1]) + f" and {platforms[-1]}" if len(platforms) > 1 \
         else (platforms[0] if platforms else "no platform")
 
@@ -1252,8 +1252,12 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
         # them, and the platform split below would name them outright.
         from judge import publication
 
-        pub_sql, pub_args = publication.sql_public_document("board_entry.document_id")
-        pub_sql_b, pub_args_b = publication.sql_public_document("b.document_id")
+        # TOTALS COUNT EVERY SOURCE; THE PER-PLATFORM LIST NAMES NONE OF THE
+        # WITHHELD ONES, whatever the deployment's view (contract/publication.yaml,
+        # 2026-10-15). `platforms` is the only per-platform figure here.
+        pub_sql, pub_args = publication.sql_counted_document("board_entry.document_id")
+        pub_sql_b, pub_args_b = publication.sql_counted_document("b.document_id")
+        shown_sql_b, shown_args_b = publication.sql_shown_document("b.document_id")
         for m in found:
             rows = conn.execute(
                 "SELECT polarity, count(*), count(DISTINCT document_id) "
@@ -1286,9 +1290,9 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
                 "JOIN document d ON d.id = b.document_id "
                 "WHERE b.model_version_id = %s "
                 "  AND b.ruling IS DISTINCT FROM 'declined' "
-                + pub_sql_b +
+                + shown_sql_b +
                 "GROUP BY d.source ORDER BY 2 DESC",
-                (m["model_version_id"], *pub_args_b),
+                (m["model_version_id"], *shown_args_b),
             ).fetchall()
             replies = conn.execute(
                 "SELECT count(DISTINCT d.id) FROM board_entry b "
@@ -2383,6 +2387,122 @@ def model_catalog_entry(model_id: str) -> dict:
     return found
 
 
+# THE BLOG'S LIVE PAGES (2026-10-15): claim walls, where engineers disagree,
+# this week in models, the daily quiz and hover previews. Code over the board,
+# public sources only, no model call - see `judge/blog_live.py`.
+
+
+@app.get("/blog-live/disagree")
+def blog_live_disagree() -> dict:
+    from judge.blog_live import contested
+
+    with _conn() as conn:
+        return contested(conn)
+
+
+@app.get("/blog-live/wall/{section}/{slug}/{model_id:path}")
+def blog_live_wall(section: str, slug: str, model_id: str) -> dict:
+    from judge.blog_live import wall
+
+    with _conn() as conn:
+        found = wall(conn, section, slug, model_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="no public report for this model on this topic")
+    return found
+
+
+@app.get("/blog-live/week")
+def blog_live_week(start: str | None = None) -> dict:
+    from judge.blog_live import week
+
+    with _conn() as conn:
+        found = week(conn, start)
+    if found is None:
+        raise HTTPException(status_code=404, detail="that week is not one this page offers")
+    return found
+
+
+@app.get("/blog-live/quiz")
+def blog_live_quiz(day: str | None = None) -> dict:
+    from judge.blog_live import quiz
+
+    with _conn() as conn:
+        found = quiz(conn, day)
+    if found is None:
+        raise HTTPException(status_code=404, detail="no quiz for that day")
+    return found
+
+
+@app.get("/blog-live/preview/{kind}/{ident:path}")
+def blog_live_preview(kind: str, ident: str) -> dict:
+    from judge.blog_live import preview
+
+    with _conn() as conn:
+        found = preview(conn, kind, ident)
+    if found is None:
+        raise HTTPException(status_code=404, detail="nothing public to preview")
+    return found
+
+
+# THE BLOG'S REFERENCE FORMATS (2026-10-15): a glossary, known issues per
+# model, and "does X support Y" answers. Not articles - see
+# judge/blog_reference.py.
+
+
+def _or_404(found, what: str):
+    if found is None:
+        raise HTTPException(status_code=404, detail=what)
+    return found
+
+
+@app.get("/blog-ref/glossary")
+def blog_ref_glossary() -> dict:
+    from judge.blog_reference import glossary_index
+
+    with _conn() as conn:
+        return glossary_index(conn)
+
+
+@app.get("/blog-ref/glossary/{section}/{slug}")
+def blog_ref_glossary_entry(section: str, slug: str) -> dict:
+    from judge.blog_reference import glossary_entry
+
+    with _conn() as conn:
+        return _or_404(glossary_entry(conn, section, slug), "no description for that topic")
+
+
+@app.get("/blog-ref/issues")
+def blog_ref_issues() -> dict:
+    from judge.blog_reference import issues_index
+
+    with _conn() as conn:
+        return issues_index(conn)
+
+
+@app.get("/blog-ref/issues/{model_id:path}")
+def blog_ref_issues_for(model_id: str) -> dict:
+    from judge.blog_reference import issues_for
+
+    with _conn() as conn:
+        return _or_404(issues_for(conn, model_id), "no public report for that model")
+
+
+@app.get("/blog-ref/answers")
+def blog_ref_answers() -> dict:
+    from judge.blog_reference import answers_index
+
+    with _conn() as conn:
+        return answers_index(conn)
+
+
+@app.get("/blog-ref/answers/{model_id:path}")
+def blog_ref_answers_for(model_id: str) -> dict:
+    from judge.blog_reference import answers_for
+
+    with _conn() as conn:
+        return _or_404(answers_for(conn, model_id), "no such model")
+
+
 @app.get("/board")
 def board_page() -> dict:
     """The three board sections, as the classifier DISCOVERED them.
@@ -2601,8 +2721,125 @@ def blog_posts_review(req: BlogReviewRequest) -> dict:
         raise HTTPException(status_code=503, detail=str(e)) from None
 
 
+# THE QUIZ QUESTION BANK (2026-10-15): a model drafts general questions, a
+# person approves them here, and the daily quiz shows approved ones only.
+# See judge/quiz_bank.py.
+
+
+@app.get("/quiz-bank")
+def quiz_bank_list(state: str = "pending") -> dict:
+    from judge import quiz_bank
+
+    if state not in ("pending", "approved", "rejected"):
+        raise HTTPException(status_code=400, detail="state must be pending, approved or rejected")
+    with _conn() as conn:
+        return {"counts": quiz_bank.counts(conn), "items": quiz_bank.listing(conn, state)}
+
+
+class QuizDraftRequest(BaseModel):
+    topic: str
+
+
+@app.post("/quiz-bank/draft")
+def quiz_bank_draft(req: QuizDraftRequest) -> dict:
+    """One paid call on one topic. What comes back is stored `pending`."""
+    from judge import quiz_bank
+
+    try:
+        with _conn() as conn:
+            return quiz_bank.draft(conn, req.topic)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    except quiz_bank.DrafterUnavailable as e:
+        raise HTTPException(status_code=502, detail=str(e)) from None
+
+
+class QuizReviewRequest(BaseModel):
+    id: str
+    decision: str
+    note: str | None = None
+
+
+@app.post("/quiz-bank/review")
+def quiz_bank_review(req: QuizReviewRequest) -> dict:
+    from judge import quiz_bank
+
+    try:
+        with _conn() as conn:
+            found = quiz_bank.review(conn, req.id, req.decision, req.note)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    if found is None:
+        raise HTTPException(status_code=404, detail="no such question")
+    return found
+
+
 class BlogGenerateRequest(BaseModel):
     count: int = 3
+
+
+# HOW A POST IS MADE, AND THE WRITING PACKS (2026-10-16): the pipeline, the
+# rules the checker applies, and the packs Claude Code writes from. See
+# judge/blog_method.py. Preparing packs calls no model.
+
+
+@app.get("/blog-posts/method")
+def blog_posts_method() -> dict:
+    from judge import blog_method
+
+    out = blog_method.method()
+    try:
+        out["prompt"] = _blog_prompt_parts()
+    except Exception as e:  # noqa: BLE001 - the method still shows without the prompt
+        out["prompt"] = {"unreadable": _safe_detail(e)}
+    return out
+
+
+@app.get("/blog-posts/packs")
+def blog_posts_packs() -> dict:
+    from judge import blog_method
+
+    return {"packs": blog_method.packs(), "run": blog_method.pack_status()}
+
+
+@app.post("/blog-posts/packs")
+def blog_posts_start_packs(req: BlogGenerateRequest) -> dict:
+    from judge import blog_method
+
+    try:
+        return blog_method.start_pack(req.count)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+
+# THE BLOG'S TOPIC HARVEST (2026-10-16): what the field is writing about, for
+# the blog only - judge/topics.py and scripts/harvest_topics.py. No model.
+
+
+@app.get("/blog-topics")
+def blog_topics_view() -> dict:
+    from judge import blog_method, topics
+
+    with _conn() as conn:
+        return {
+            "overview": topics.overview(conn),
+            "emerging": topics.emerging(conn),
+            "models": topics.model_mentions(conn),
+            "plan": topics.plan(conn),
+            "harvest": blog_method.topic_harvest_status(),
+        }
+
+
+@app.post("/blog-topics/harvest")
+def blog_topics_harvest() -> dict:
+    from judge import blog_method
+
+    try:
+        return blog_method.start_topic_harvest()
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
 
 
 @app.post("/blog-posts/generate")
@@ -2613,6 +2850,9 @@ def blog_posts_generate(req: BlogGenerateRequest) -> dict:
     at a time. Returns at once; poll GET /blog-posts/generate for progress.
     The run is `generate_sample_blogs.py --plan N --status` - see
     `judge/blog_posts.py` for why it is a subprocess.
+
+    PAUSED WHILE CLAUDE CODE WRITES (blog_formats.yaml `writer`, 2026-10-16):
+    `start_generation` refuses with 409 before a run starts.
     """
     from judge import blog_posts, blog_runs
 

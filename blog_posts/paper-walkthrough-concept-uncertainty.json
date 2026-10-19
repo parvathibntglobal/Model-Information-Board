@@ -1,0 +1,480 @@
+{
+ "slug": "paper-walkthrough-concept-uncertainty",
+ "status": "draft",
+ "tag": "Paper walkthrough",
+ "feat": false,
+ "title": "When LLM Calibration Improves and the Accept-or-Review Call Gets No Better",
+ "dek": "A close reading of new arXiv work on confidence: repairing scores, auditing them, measuring agents by their rollouts, and grading calibration with no labels.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "LLM calibration can improve on paper and leave your accept-or-review gate no better. Judge confidence by the decisions it drives, audit what recalibration misses, and use rollout consistency for agents.",
+ "description": "How confident are LLMs in their answers? New calibration papers show why a better-calibrated score can still make worse accept-or-review calls.",
+ "keywords": [
+  "how confident are LLMs in their answers",
+  "Uncertainty and calibration",
+  "LLM calibration",
+  "selective prediction",
+  "confidence recalibration",
+  "agent uncertainty quantification"
+ ],
+ "kicker": "Paper walkthrough",
+ "tags": [
+  "LLM calibration",
+  "Paper walkthrough"
+ ],
+ "read": 9,
+ "decisions": [
+  "Judge a recalibration by review outcomes, not ECE alone",
+  "Test a confidence repair before deploying it",
+  "Use rollout consistency to find the risky agent step",
+  "Treat label-free certificates as alarms, never clearances"
+ ],
+ "layout": "paper",
+ "arrangement": "a",
+ "special": {
+  "type": "results",
+  "title": "What was measured",
+  "items": [
+   {
+    "result": "Average AUROC of 0.811 for task-success prediction, above the strongest behavioural-consistency baseline (0.729) and verbalized confidence (0.769).",
+    "setup": "Global action-consistency score from merged rollout graphs, across three LLMs on ALFWorld, AppWorld and WebShop.",
+    "source": 2,
+    "ref": {
+     "title": "GraphACM: Graph-based Action Consistency Measurement for Uncertainty Quantification in LLM Agents",
+     "url": "https://arxiv.org/abs/2610.22031v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Paired betting adopted candidates with lower held-out test risk in 42.95% of allocations, versus 15.09% for one-sided empirical Bernstein.",
+    "setup": "RADAR's adoption step, over 47,400 replayed raw-score allocations.",
+    "source": 5,
+    "ref": {
+     "title": "Are You Sure Your LLM Is Sure? Repairing and Auditing Confidence",
+     "url": "https://arxiv.org/abs/2610.22139v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Standard post-hoc calibrators often improved calibration scores without consistently improving selective prediction.",
+    "setup": "Seven code models and three post-hoc calibration methods on defect prediction and vulnerability detection.",
+    "source": 4,
+    "ref": {
+     "title": "Beyond Confidence: Rethinking Uncertainty Calibration in Deep Code Models",
+     "url": "https://arxiv.org/abs/2610.21248v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "All seven confirmatory label-free calibration certificates were positive; the eighth pair did not pass the pilot.",
+    "setup": "Preregistered study of four predictors, with bounds derived from logical coherence and no labels.",
+    "source": 3,
+    "ref": {
+     "title": "Sharp and Stable Label-Free Calibration Certificates from Logical Coherence",
+     "url": "https://arxiv.org/abs/2610.21567v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Late-block Block Influence was 20.7-55.5% higher for Hindi, Marathi and Tamil than for English.",
+    "setup": "Depth-pruning calibration text in each language, across three small multilingual models.",
+    "source": 1,
+    "ref": {
+     "title": "Calibration Language Shapes Block-Influence Pruning in Multilingual Language Models",
+     "url": "https://arxiv.org/abs/2610.21383v1",
+     "platform": "arXiv"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A well-calibrated score can still wave bad answers through",
+    "num": "01",
+    "id": "a-well-calibrated-score-can-still-wave-bad-answers-through"
+   }
+  ],
+  [
+   "p",
+   "Picture a support pipeline. An LLM drafts an answer and attaches a confidence score. High score, it ships. Middle score, a human reviews it. Low score, the model regenerates. So how confident are LLMs in their answers, and can that number carry the gate? Today's failure is quiet. A wrong answer arrives with a high score, and nobody looks."
+  ],
+  [
+   "p",
+   "Calibration is the promise behind that gate. A calibrated model that claims a given confidence is right about that often. The usual yardstick is expected calibration error, `ECE = Σ_bins (n_bin / N) · |accuracy(bin) − confidence(bin)|`, a weighted gap between claimed and actual hit rates. One new arXiv paper opens on exactly our gate: «Confidence scores determine whether an LLM answer is accepted, reviewed, or regenerated»."
+  ],
+  [
+   "p",
+   "We'll follow that one gate through the whole post. Each section takes one weak point. First, repairing the score and deciding to ship the repair. Then code models, where the top of the score range blurs. Then agents, which have no single answer to score. Then grading calibration with no labels at all. And finally, a pruning paper that uses the same word for something else."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The confidence gate this post follows, from raw score to audit.",
+    "steps": [
+     "LLM drafts an answer with a raw confidence score",
+     "Recalibration maps the raw score to a probability",
+     "High band: the answer ships without review",
+     "Middle band: a human reviews the answer",
+     "Low band: the model regenerates",
+     "Audit looks for errors that still slip through"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Recalibration only fixes what the score can see",
+    "num": "02",
+    "id": "recalibration-only-fixes-what-the-score-can-see"
+   }
+  ],
+  [
+   "p",
+   "Start with RADAR, from a new arXiv paper on repairing and auditing confidence. Its core move is a decomposition. Under squared loss, the authors split prediction risk into «outcome noise, information hidden by the score, and mapping error». Outcome noise is irreducible. Mapping error is what recalibration fixes. The middle term is the trap."
+  ],
+  [
+   "p",
+   "Back to our gate. Suppose two answers get the same raw score. One is a factual lookup, the other is arithmetic. If the model is reliably worse at arithmetic, the score hides that. Isotonic regression, the standard fix, fits a non-decreasing curve from raw score to observed accuracy. It never reorders answers. So it can't pull those two apart."
+  ],
+  [
+   "p",
+   "For the repair, the authors propose PAIC, which «learns a monotone map from correctness-probe predictions on unlabeled target prompts». A correctness probe is a small classifier that predicts if an answer is right. The neat part is the error budget. PAIC's excess risk «depends on the probe's score-conditional bias and fitting error rather than its overall accuracy». A mediocre probe can still anchor a good map."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative pattern: a probe-anchored monotone map feeding a three-band gate",
+    "language": "python",
+    "source": "# Illustrative only: not the PAIC authors' code. Names are placeholders.\nfrom sklearn.isotonic import IsotonicRegression\n\n# Fit raw scores to a probe's correctness predictions on unlabelled target prompts.\nmapper = IsotonicRegression(out_of_bounds=\"clip\")\nmapper.fit(raw_scores, probe_predictions)\n\ndef route(raw_score, accept_at, review_at):\n    p = float(mapper.predict([raw_score]).item())\n    if p >= accept_at:\n        return \"accept\"\n    if p >= review_at:\n        return \"review\"\n    return \"regenerate\""
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A repair has to earn its deployment",
+    "num": "03",
+    "id": "a-repair-has-to-earn-its-deployment"
+   }
+  ],
+  [
+   "p",
+   "RADAR's second idea is the one we'd borrow first. Shipping a recalibration is its own statistical decision. The authors «derive a paired procedure with finite-sample control of false improvements». Finite-sample control means the false-alarm rate holds at your real sample size, not just in some limit. Skip this step and you ship a repair that won a lucky split."
+  ],
+  [
+   "p",
+   "We retraced how they score that step. Across «47,400 replayed raw-score allocations», paired betting adopted a candidate with lower held-out test risk in 42.95% of allocations. The comparison test, one-sided empirical Bernstein, managed 15.09%. Empirical Bernstein bounds are classic and conservative. Conservative tests rarely ship anything. A betting test treats evidence as a wager that grows with each favourable sample."
+  ],
+  [
+   "p",
+   "Then comes the audit. A «prompt-clustered kernel test that detects feature-aligned residual errors» hunts for mistakes the repair left behind. Clustering by prompt matters. Several answers to one prompt aren't independent, and treating them as independent invents patterns out of noise. For our gate, the audit is what tells you arithmetic still slips through."
+  ],
+  [
+   "p",
+   "Here's the line that should worry anyone running our gate: «lower prediction risk need not yield better review decisions». We agree, and we think it's the most useful sentence in the paper. Risk is averaged over every answer. Your review queue only cares about answers near the threshold. Improve the average and you can still shuffle wrong cases across the line."
+  ],
+  [
+   "h2",
+   {
+    "text": "Code models blur at the high-confidence end",
+    "num": "04",
+    "id": "code-models-blur-at-the-high-confidence-end"
+   }
+  ],
+  [
+   "p",
+   "A new arXiv paper on deep code models tests the same worry on defect prediction and vulnerability detection. Its authors ask «whether existing measurement metrics, including confidence scores and uncertainty metrics, are effective for guiding selective prediction». Selective prediction means the model answers only when confident and defers the rest. You judge it by the error rate on what it keeps."
+  ],
+  [
+   "p",
+   "The first finding lands squarely on our gate: «even strong uncertainty signals can remain poorly calibrated and provide limited separation at the high-confidence end». That's where an auto-accept threshold lives. If right and wrong answers bunch together at the top, no threshold splits them. Then the twist. Calibrators «often improve calibration scores but do not consistently translate into better selective prediction behavior»."
+  ],
+  [
+   "p",
+   "So a lower ECE can arrive with no better accept-or-defer calls. We find this convincing because RADAR reaches the same place from theory, and this study arrives from measurement. Its authors argue that «calibrated scores must be evaluated together with selective-prediction quality and retained-region risk». Retained-region risk is the error rate among the answers you keep. Report it beside ECE, always."
+  ],
+  [
+   "h2",
+   {
+    "text": "Agent uncertainty shows up across repeated rollouts",
+    "num": "05",
+    "id": "agent-uncertainty-shows-up-across-repeated-rollouts"
+   }
+  ],
+  [
+   "p",
+   "Agents break the gate differently. There's no single answer to score, just a long trail of actions. The GraphACM authors start from repetition: «Behavioral consistency across repeated executions provides an informative signal». Run the same task several times. If the agent does the same thing each time, it's probably on solid ground. If it scatters, worry."
+  ],
+  [
+   "p",
+   "The catch is comparing like with like. Two rollouts can split at the first step and never meet again. GraphACM's answer: «we merge equivalent states into a directed, action-labeled graph, enabling action comparisons at shared decision states». Each merged state becomes a node. Edges are actions taken from it. Where every rollout takes one edge, consistency is high. Where they fan out, you've found the shaky decision."
+  ],
+  [
+   "p",
+   "On ALFWorld, AppWorld and WebShop, the global consistency score reaches «an average AUROC of 0.811 for task-success prediction». AUROC is the chance a random success outranks a random failure, so a coin flip gets one half. The strongest consistency baseline scored 0.729. Verbalized confidence, the model simply saying how sure it is, scored 0.769."
+  ],
+  [
+   "p",
+   "We like this paper for a reason beyond the headline. It pins doubt to one decision state, so you know which step to guard. That's what a scalar score can't give you. The cost is real, though. Every estimate needs several full rollouts of the task. On a long agent run, that multiplies your bill before anything ships."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Signals for predicting agent task success, averaged across three LLMs on ALFWorld, AppWorld and WebShop.",
+    "columns": [
+     "Signal",
+     "Average AUROC for task success"
+    ],
+    "rows": [
+     [
+      "Global action consistency from merged rollout graphs",
+      "0.811"
+     ],
+     [
+      "Verbalized confidence",
+      "0.769"
+     ],
+     [
+      "Strongest behavioural-consistency baseline",
+      "0.729"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Label-free certificates bound calibration from below",
+    "num": "06",
+    "id": "label-free-certificates-bound-calibration-from-below"
+   }
+  ],
+  [
+   "p",
+   "Everything so far needs labels somewhere. A new arXiv paper on calibration certificates starts from that pain: «labels to check their calibration are often missing». The lever is logical coherence. Ask a model for the chance of A, of B, and of A or B. If those answers can't all hold together, the model is miscalibrated somewhere. No label needed."
+  ],
+  [
+   "p",
+   "The machinery is a betting game. A bettor places stakes against the predictor's answers, and a minimax theorem yields «the sharp label-free lower bound on the corresponding calibration residual». A calibration residual is the leftover gap between stated and true probabilities. Sharp bounds jump when answers shift slightly. Smooth, Lipschitz-limited stakes trade a little sharpness for a bound that holds steady."
+  ],
+  [
+   "p",
+   "The preregistered check is small and clean: «all seven confirmatory certificates were positive». Read the guarantee carefully. «A certificate shows only that calibration is at least this bad». It can convict a model. It can't acquit one. For our gate, that makes a certificate an alarm, never a green light."
+  ],
+  [
+   "h2",
+   {
+    "text": "Pruning calibration is a different animal",
+    "num": "07",
+    "id": "pruning-calibration-is-a-different-animal"
+   }
+  ],
+  [
+   "p",
+   "One more paper shares the word and not the idea. In pruning, calibration means the sample text used to decide which layers to cut. Block Influence ranks Transformer blocks «from their input-output cosine change», and that ranking shifts with the sample's language. Late-block BI came out «20.7-55.5% higher for the three Indian languages than for English»."
+  ],
+  [
+   "p",
+   "Why does it belong here? It's the same lesson in a different costume. A measurement taken on one population quietly decides behaviour on another. The authors put it carefully: English-only BI «systematically misses late-layer activity for Indian-language text». Swap the language for your eval set and the target text for your production traffic. Our confidence gate has the same shape."
+  ],
+  [
+   "h2",
+   {
+    "text": "The missing experiment runs on a real review queue",
+    "num": "08",
+    "id": "the-missing-experiment-runs-on-a-real-review-queue"
+   }
+  ],
+  [
+   "p",
+   "Here's what these walkthroughs leave unshown. Nobody reports the full gate end to end. Recalibrate, test the repair, audit it, then count what actually happened downstream. The code-model study gets closest, with retained-region risk. RADAR warns about review decisions in theory. Still missing is the count that matters to an operator."
+  ],
+  [
+   "p",
+   "The experiment we'd want is easy to state. Take one production gate with accept, review and regenerate bands. Apply a probe-anchored repair, a consistency graph for agent tasks, and a certificate as an alarm. Then report two numbers for each: wrong answers auto-accepted, and human reviews spent. If ECE drops and neither number moves, ECE was the wrong target."
+  ],
+  [
+   "p",
+   "We think it'll show what the code-model study hints at. Better ECE, same queue. That's a guess, and we'd happily be wrong. Until someone runs it, treat a confidence score as evidence about the gate, never as the gate itself."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What each method needs, and what it cannot tell you about the gate.",
+    "columns": [
+     "Method",
+     "Needs",
+     "Cannot show"
+    ],
+    "rows": [
+     [
+      "Probe-anchored isotonic repair",
+      "A correctness probe and unlabelled target prompts",
+      "Errors the scalar score hides"
+     ],
+     [
+      "Post-hoc calibrators on code models",
+      "Labelled validation answers",
+      "Better accept-or-defer behaviour on their own"
+     ],
+     [
+      "Rollout consistency graph",
+      "Several full rollouts per task",
+      "A cheap single-run estimate"
+     ],
+     [
+      "Label-free certificate",
+      "Logically related questions",
+      "That a model is well calibrated"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How confident are LLMs in their answers?"
+  ],
+  [
+   "p",
+   "Their confidence is often less trustworthy than it looks, and the gap shows up exactly where decisions are made. A code-model study found that even strong signals give «limited separation at the high-confidence end». For agents, verbalized confidence reached an average AUROC of 0.769 for predicting task success, below a consistency measure built from repeated rollouts at 0.811."
+  ],
+  [
+   "h3",
+   "What is LLM calibration?"
+  ],
+  [
+   "p",
+   "LLM calibration means a model's stated confidence matches how often it is actually right. A model that says it is fairly sure across many answers should be right about that often. Expected calibration error measures the gap. A low gap helps, but one new paper warns that «lower prediction risk need not yield better review decisions», so check the decisions too."
+  ],
+  [
+   "h3",
+   "Can you measure calibration without labels?"
+  ],
+  [
+   "p",
+   "Partly: you can show a model is miscalibrated without labels, but not that it is well calibrated. Label-free certificates use logical coherence between related answers to bound calibration error from below. The author is explicit that «A certificate shows only that calibration is at least this bad». A zero result means the model was not refuted, nothing more."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Are You Sure Your LLM Is Sure? Repairing and Auditing Confidence",
+   "url": "https://arxiv.org/abs/2610.22139v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Beyond Confidence: Rethinking Uncertainty Calibration in Deep Code Models",
+   "url": "https://arxiv.org/abs/2610.21248v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "GraphACM: Graph-based Action Consistency Measurement for Uncertainty Quantification in LLM Agents",
+   "url": "https://arxiv.org/abs/2610.22031v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Sharp and Stable Label-Free Calibration Certificates from Logical Coherence",
+   "url": "https://arxiv.org/abs/2610.21567v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Calibration Language Shapes Block-Influence Pruning in Multilingual Language Models",
+   "url": "https://arxiv.org/abs/2610.21383v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "Confidence scores determine whether an LLM answer is accepted, reviewed, or regenerated": 1,
+  "outcome noise, information hidden by the score, and mapping error": 1,
+  "learns a monotone map from correctness-probe predictions on unlabeled target prompts": 1,
+  "depends on the probe's score-conditional bias and fitting error rather than its overall accuracy": 1,
+  "derive a paired procedure with finite-sample control of false improvements": 1,
+  "47,400 replayed raw-score allocations": 1,
+  "prompt-clustered kernel test that detects feature-aligned residual errors": 1,
+  "lower prediction risk need not yield better review decisions": 1,
+  "whether existing measurement metrics, including confidence scores and uncertainty metrics, are effective for guiding selective prediction": 2,
+  "even strong uncertainty signals can remain poorly calibrated and provide limited separation at the high-confidence end": 2,
+  "often improve calibration scores but do not consistently translate into better selective prediction behavior": 2,
+  "calibrated scores must be evaluated together with selective-prediction quality and retained-region risk": 2,
+  "Behavioral consistency across repeated executions provides an informative signal": 3,
+  "we merge equivalent states into a directed, action-labeled graph, enabling action comparisons at shared decision states": 3,
+  "an average AUROC of 0.811 for task-success prediction": 3,
+  "labels to check their calibration are often missing": 4,
+  "the sharp label-free lower bound on the corresponding calibration residual": 4,
+  "all seven confirmatory certificates were positive": 4,
+  "A certificate shows only that calibration is at least this bad": 4,
+  "from their input-output cosine change": 5,
+  "20.7-55.5% higher for the three Indian languages than for English": 5,
+  "systematically misses late-layer activity for Indian-language text": 5,
+  "limited separation at the high-confidence end": 2
+ },
+ "rel": [
+  [
+   "post:research-radar-concept-code-generation",
+   ""
+  ],
+  [
+   "post:topic-explainer-concept-agents",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:03:22+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21383v1",
+   "arxiv:2610.22031v1",
+   "arxiv:2610.21567v1",
+   "arxiv:2610.21248v1",
+   "arxiv:2610.22139v1"
+  ],
+  "platforms": {
+   "arXiv": 5
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "paper-walkthrough:concept/uncertainty",
+  "format": "paper-walkthrough",
+  "reviewed_by": null
+ }
+}

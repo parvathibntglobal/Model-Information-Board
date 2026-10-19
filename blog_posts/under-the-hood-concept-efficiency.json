@@ -1,0 +1,493 @@
+{
+ "slug": "under-the-hood-concept-efficiency",
+ "status": "draft",
+ "tag": "Under the hood",
+ "feat": false,
+ "title": "Inference Efficiency at Prefill: When a KV Cache Hit Loses to Recompute",
+ "dek": "Reuse the work or shrink the worker: those are the two big levers. We take both apart, starting with a cache hit that made serving slower.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "How to make LLM inference faster: skip work you already did, or shrink the model doing it. Measure both, because a remote KV cache hit can lose to recomputing the prompt.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgbG9uZyBmZXRjaCBwaXBlIGZyb20gYSByZW1vdGUgY2FjaGUgdmVyc3VzIGEgdGlnaHQgcmVjb21wdXRlIGxvb3AgYXJvdW5kIGEgR1BVPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuNDIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InN0b3JlZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhcnJHIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjYiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI1IiBtYXJrZXJIZWlnaHQ9IjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJWIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjYiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI0IiBtYXJrZXJIZWlnaHQ9IjQiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2E3OGJmYSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBmYWludCBncmlkIC0tPgogIDxnIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIxIiBvcGFjaXR5PSIwLjUiPgogICAgPGxpbmUgeDE9IjAiIHkxPSIxNTciIHgyPSIxMjAwIiB5Mj0iMTU3Ii8+CiAgICA8bGluZSB4MT0iMCIgeTE9IjMxNSIgeDI9IjEyMDAiIHkyPSIzMTUiLz4KICAgIDxsaW5lIHgxPSIwIiB5MT0iNDcyIiB4Mj0iMTIwMCIgeTI9IjQ3MiIvPgogICAgPGxpbmUgeDE9IjMwMCIgeTE9IjAiIHgyPSIzMDAiIHkyPSI2MzAiLz4KICAgIDxsaW5lIHgxPSI2MDAiIHkxPSIwIiB4Mj0iNjAwIiB5Mj0iNjMwIi8+CiAgICA8bGluZSB4MT0iOTAwIiB5MT0iMCIgeDI9IjkwMCIgeTI9IjYzMCIvPgogIDwvZz4KCiAgPCEtLSByZW1vdGUgc3RvcmUgLS0+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iNDUwIiByPSIxOTAiIGZpbGw9InVybCgjc3RvcmVnbG93KSIvPgogIDxnPgogICAgPHJlY3QgeD0iMTEwIiB5PSIzOTAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTQwIiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjIyIi8+CiAgICA8ZWxsaXBzZSBjeD0iMjAwIiBjeT0iNTMwIiByeD0iOTAiIHJ5PSIyNiIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4zMCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxsaW5lIHgxPSIxMTAiIHkxPSIzOTAiIHgyPSIxMTAiIHkyPSI1MzAiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8bGluZSB4MT0iMjkwIiB5MT0iMzkwIiB4Mj0iMjkwIiB5Mj0iNTMwIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTExMCw0MzcgQTkwLDI2IDAgMCAwIDI5MCw0MzciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjciLz4KICAgIDxwYXRoIGQ9Ik0xMTAsNDg0IEE5MCwyNiAwIDAgMCAyOTAsNDg0IiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC43Ii8+CiAgICA8ZWxsaXBzZSBjeD0iMjAwIiBjeT0iMzkwIiByeD0iOTAiIHJ5PSIyNiIgZmlsbD0iIzJhMjQ0MCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8L2c+CgogIDwhLS0gdGhlIGxvbmcgZmV0Y2ggcGlwZSAtLT4KICA8cGF0aCBkPSJNMjAwLDM2NCBMMjAwLDE1MCBRMjAwLDExMCAyNDAsMTEwIEw2MDAsMTEwIFE2NDAsMTEwIDY0MCwxNTAgTDY0MCwyNzUgUTY0MCwzMTUgNjgwLDMxNSBMNzA2LDMxNSIKICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMjYiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIG9wYWNpdHk9IjAuMTgiLz4KICA8cGF0aCBkPSJNMjAwLDM2NCBMMjAwLDE1MCBRMjAwLDExMCAyNDAsMTEwIEw2MDAsMTEwIFE2NDAsMTEwIDY0MCwxNTAgTDY0MCwyNzUgUTY0MCwzMTUgNjgwLDMxNSBMNzAwLDMxNSIKICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iMTYgMTIiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjYXJyVikiLz4KICA8IS0tIEtWIGJsb2NrcyB0cmF2ZWxsaW5nIGluIHRoZSBwaXBlIC0tPgogIDxnIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuOSI+CiAgICA8cmVjdCB4PSIxODkiIHk9IjI1MCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjIyIiByeD0iNSIvPgogICAgPHJlY3QgeD0iMjgwIiB5PSI5OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjIyIiByeD0iNSIvPgogICAgPHJlY3QgeD0iNTMwIiB5PSI5OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjIyIiByeD0iNSIvPgogICAgPHJlY3QgeD0iNjI5IiB5PSIyMDAiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgcng9IjUiLz4KICA8L2c+CiAgPHRleHQgeD0iMjUwIiB5PSI4OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjYzliOGZmIj5mZXRjaDwvdGV4dD4KCiAgPCEtLSB0aGUgZml4ZWQgcGVyLWhpdCBnYXRlIC0tPgogIDxyZWN0IHg9IjQwNCIgeT0iNjIiIHdpZHRoPSIzMiIgaGVpZ2h0PSI5NiIgcng9IjgiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuOSIvPgogIDxnIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSI1IiBvcGFjaXR5PSIwLjU1Ij4KICAgIDxsaW5lIHgxPSI0MDYiIHkxPSI4MiIgeDI9IjQzNCIgeTI9IjcwIi8+CiAgICA8bGluZSB4MT0iNDA2IiB5MT0iMTA0IiB4Mj0iNDM0IiB5Mj0iOTIiLz4KICAgIDxsaW5lIHgxPSI0MDYiIHkxPSIxMjYiIHgyPSI0MzQiIHkyPSIxMTQiLz4KICAgIDxsaW5lIHgxPSI0MDYiIHkxPSIxNDgiIHgyPSI0MzQiIHkyPSIxMzYiLz4KICA8L2c+CiAgPHRleHQgeD0iNDIwIiB5PSIyMTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZTNiMzQxIj5UMDwvdGV4dD4KCiAgPCEtLSBHUFUgZ2xvdyBhbmQgY2hpcCAtLT4KICA8Y2lyY2xlIGN4PSI4MzAiIGN5PSIzMTUiIHI9IjI1MCIgZmlsbD0idXJsKCNnbG93KSIvPgogIDxyZWN0IHg9IjcyMCIgeT0iMjA1IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjIyMCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxnIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiPgogICAgPGxpbmUgeDE9Ijc2MCIgeTE9IjE5MCIgeDI9Ijc2MCIgeTI9IjIwNSIvPjxsaW5lIHgxPSI4MDAiIHkxPSIxOTAiIHgyPSI4MDAiIHkyPSIyMDUiLz4KICAgIDxsaW5lIHgxPSI4NDAiIHkxPSIxOTAiIHgyPSI4NDAiIHkyPSIyMDUiLz48bGluZSB4MT0iODgwIiB5MT0iMTkwIiB4Mj0iODgwIiB5Mj0iMjA1Ii8+CiAgICA8bGluZSB4MT0iOTIwIiB5MT0iMTkwIiB4Mj0iOTIwIiB5Mj0iMjA1Ii8+CiAgICA8bGluZSB4MT0iNzYwIiB5MT0iNDI1IiB4Mj0iNzYwIiB5Mj0iNDQwIi8+PGxpbmUgeDE9IjgwMCIgeTE9IjQyNSIgeDI9IjgwMCIgeTI9IjQ0MCIvPgogICAgPGxpbmUgeDE9Ijg0MCIgeTE9IjQyNSIgeDI9Ijg0MCIgeTI9IjQ0MCIvPjxsaW5lIHgxPSI4ODAiIHkxPSI0MjUiIHgyPSI4ODAiIHkyPSI0NDAiLz4KICAgIDxsaW5lIHgxPSI5MjAiIHkxPSI0MjUiIHgyPSI5MjAiIHkyPSI0NDAiLz4KICAgIDxsaW5lIHgxPSI5NDAiIHkxPSIyNDUiIHgyPSI5NTUiIHkyPSIyNDUiLz48bGluZSB4MT0iOTQwIiB5MT0iMjg1IiB4Mj0iOTU1IiB5Mj0iMjg1Ii8+CiAgICA8bGluZSB4MT0iOTQwIiB5MT0iMzI1IiB4Mj0iOTU1IiB5Mj0iMzI1Ii8+PGxpbmUgeDE9Ijk0MCIgeTE9IjM2NSIgeDI9Ijk1NSIgeTI9IjM2NSIvPgogICAgPGxpbmUgeDE9Ijk0MCIgeTE9IjQwNSIgeDI9Ijk1NSIgeTI9IjQwNSIvPgogIDwvZz4KICA8Zz4KICAgIDxyZWN0IHg9Ijc0NSIgeT0iMjMwIiB3aWR0aD0iMzgiIGhlaWdodD0iMzgiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjg1Ii8+CiAgICA8cmVjdCB4PSI3OTMiIHk9IjIzMCIgd2lkdGg9IjM4IiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4zNSIvPgogICAgPHJlY3QgeD0iODQxIiB5PSIyMzAiIHdpZHRoPSIzOCIgaGVpZ2h0PSIzOCIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuODUiLz4KICAgIDxyZWN0IHg9Ijg4OSIgeT0iMjMwIiB3aWR0aD0iMjgiIGhlaWdodD0iMzgiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjM1Ii8+CiAgICA8cmVjdCB4PSI3NDUiIHk9IjI3OCIgd2lkdGg9IjM4IiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4zNSIvPgogICAgPHJlY3QgeD0iNzkzIiB5PSIyNzgiIHdpZHRoPSIzOCIgaGVpZ2h0PSIzOCIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuODUiLz4KICAgIDxyZWN0IHg9Ijg0MSIgeT0iMjc4IiB3aWR0aD0iMzgiIGhlaWdodD0iMzgiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjM1Ii8+CiAgICA8cmVjdCB4PSI4ODkiIHk9IjI3OCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC44NSIvPgogICAgPHJlY3QgeD0iNzQ1IiB5PSIzMjYiIHdpZHRoPSIzOCIgaGVpZ2h0PSIzOCIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuODUiLz4KICAgIDxyZWN0IHg9Ijc5MyIgeT0iMzI2IiB3aWR0aD0iMzgiIGhlaWdodD0iMzgiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjg1Ii8+CiAgICA8cmVjdCB4PSI4NDEiIHk9IjMyNiIgd2lkdGg9IjM4IiBoZWlnaHQ9IjM4IiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4zNSIvPgogICAgPHJlY3QgeD0iODg5IiB5PSIzMjYiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzOCIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuODUiLz4KICAgIDxyZWN0IHg9Ijc0NSIgeT0iMzc0IiB3aWR0aD0iMzgiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjM1Ii8+CiAgICA8cmVjdCB4PSI3OTMiIHk9IjM3NCIgd2lkdGg9IjM4IiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC44NSIvPgogICAgPHJlY3QgeD0iODQxIiB5PSIzNzQiIHdpZHRoPSIzOCIgaGVpZ2h0PSIzMiIgcng9IjYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuODUiLz4KICAgIDxyZWN0IHg9Ijg4OSIgeT0iMzc0IiB3aWR0aD0iMjgiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjM1Ii8+CiAgPC9nPgoKICA8IS0tIHRpZ2h0IHJlY29tcHV0ZSBsb29wIC0tPgogIDxwYXRoIGQ9Ik04NDIsMTUwIEExNjUsMTY1IDAgMCAxIDg0Miw0ODAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjYXJyRykiLz4KICA8cGF0aCBkPSJNODE4LDQ4MCBBMTY1LDE2NSAwIDAgMSA2OTAsNDIwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjQ1Ii8+CiAgPHRleHQgeD0iMTAyMCIgeT0iMzI2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiMzZWNmOGUiPnJlY29tcHV0ZTwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A long dashed pipe from a remote store, blocked by an amber gate, races a tight green recompute loop around a GPU chip.",
+  "caption": "A cache hit travels the long way round and pays a toll at the gate; recompute never leaves the chip.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How to make LLM inference faster, from the inside: the cost model behind KV cache reuse, why a hit can lose to recompute, and what distillation keeps.",
+ "keywords": [
+  "how to make LLM inference faster",
+  "Inference efficiency",
+  "KV cache reuse",
+  "prefill latency",
+  "knowledge distillation",
+  "on-policy distillation"
+ ],
+ "kicker": "Under the hood",
+ "tags": [
+  "inference efficiency",
+  "Under the hood"
+ ],
+ "read": 9,
+ "decisions": [
+  "Model a remote KV hit as fixed cost plus transfer before enabling the tier.",
+  "Load cached prefixes asynchronously so a slow fetch never blocks the GPU.",
+  "Recompute short prompts instead of fetching them.",
+  "Judge a distilled student by batch-one latency on the device, not parameter count.",
+  "Start distillation with output matching; add transfer terms only when ablations pay."
+ ],
+ "layout": "mechanism",
+ "arrangement": "a",
+ "special": {
+  "type": "lab",
+  "title": "Try it yourself",
+  "items": [
+   {
+    "step": "Save a prefix cache to disk",
+    "how": "In a notebook, load a small open model and run a long prompt with caching on. Save the attention cache your framework returns to a file.",
+    "look_for": "A file whose size grows in step with prompt length. Size divided by tokens is your own s, the bytes of KV per token."
+   },
+   {
+    "step": "Race a load against a recompute",
+    "how": "For short, medium and long prompts, time loading the saved cache back onto the device, then time a fresh prefill of the same prompt. Repeat each a few times and keep the median.",
+    "look_for": "Short prompts recompute faster than they load. Somewhere along the lengths, the order flips."
+   },
+   {
+    "step": "Fit the two-term model",
+    "how": "Plot load time against prompt length and fit a straight line. Read off the intercept and compare the slope with your prefill time per token.",
+    "look_for": "An intercept above zero: your own T0, the floor that no faster disk or network removes."
+   },
+   {
+    "step": "Block the loop on purpose",
+    "how": "Write a tiny simulator where requests arrive at a steady rate and each needs a load, then compute. First make compute wait for every load; then let loads overlap compute.",
+    "look_for": "In blocking mode, waits climb without levelling off as compute sits idle. The overlapped mode stays flat."
+   },
+   {
+    "step": "Distil a toy student",
+    "how": "Train a wide network on a synthetic regression task. Then train a much smaller one on its predictions with a plain output-matching loss, and a second one with an added hidden-state term.",
+    "look_for": "The output-matched student lands close to its teacher. The extra term may add little, echoing the grid ablation."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Prefill builds the attention cache, and reuse skips it",
+    "num": "01",
+    "id": "prefill-builds-the-attention-cache-and-reuse-skips-it"
+   }
+  ],
+  [
+   "p",
+   "Picture a long-context serving cluster where someone switches on a shared cache tier. Median latency doesn't budge. Then the tail explodes. A new arXiv paper on remote KV tiers reports that enabling one «left median time-to-first-token unchanged but raised the 16k-token p99 from 3.96 s to 17.3 s». If you came here asking how to make LLM inference faster, start with that trap. The obvious speedup made the slowest requests slower."
+  ],
+  [
+   "p",
+   "First, what's being cached? Prefill is the model's first pass over your prompt. At every layer, attention computes a key vector and a value vector for each token. Those vectors are the KV cache, the state the model needs to keep generating. Decode then reads that cache to emit one token at a time. Prefill is heavy, parallel matrix work. Decode is lighter per step but sequential."
+  ],
+  [
+   "p",
+   "Prefix caching exploits one simple fact. Two requests that share a prompt prefix share its keys and values exactly. So you store them once and skip prefill for the shared part next time. The paper calls this «a standard way to cut prefill cost in long-context LLM serving». The newer twist is where the cache lives. It moves off the GPU into a remote tier that every engine can read. That's where the arithmetic gets interesting."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The request path when a shared remote tier backs each engine's KV cache.",
+    "steps": [
+     "Request arrives and the engine looks up its longest cached prefix",
+     "On a hit, fetch stored keys and values from the remote tier",
+     "On a miss, run prefill and compute keys and values",
+     "Write new prefix blocks back to the shared tier",
+     "Decode reads the cache and emits tokens one at a time"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A two-term cost model for every cache hit",
+    "num": "02",
+    "id": "a-two-term-cost-model-for-every-cache-hit"
+   }
+  ],
+  [
+   "p",
+   "Here's the worked example we'll follow to the end. On an isolated engine replaying production traffic, the author found that «a remote hit took 0.88 s against 0.31 s to recompute the prompt». Read that twice. Fetching precomputed state was slower than computing it from scratch. Nothing was broken in the usual sense. The cache returned correct bytes, just too slowly to matter."
+  ],
+  [
+   "p",
+   "Why would a fetch lose to arithmetic? The paper's answer is a model with two terms. A hit pays a fixed engine cost, then a transfer cost that grows with prompt length. Recompute pays only a length term. Write `n` for tokens, `s` for KV bytes per token, `B` for tier bandwidth and `R` for recompute speed in tokens per second. A hit wins only when `T0 + n·s/B` beats `n/R`."
+  ],
+  [
+   "p",
+   "Drop the fixed cost for a moment and you get a break-even bandwidth. The paper states it as «B* = sR (2.53 GB/s for this model and GPU)». Now put the fixed cost back. The paper measures «a fixed per-hit engine cost (T0 ~ 0.33 s)» and concludes that «hits on prompts shorter than about 17k tokens cannot beat recompute at any bandwidth». We think that line belongs on a sticky note above every serving stack. A faster network can't rescue a short prompt."
+  ],
+  [
+   "code",
+   {
+    "label": "The two-term hit model as a few lines of Python (illustrative, our reading of the paper)",
+    "language": "python",
+    "source": "def hit_seconds(n_tokens, kv_bytes_per_token, bandwidth, t0):\n    # fixed engine cost, then bytes over the wire\n    return t0 + n_tokens * kv_bytes_per_token / bandwidth\n\ndef recompute_seconds(n_tokens, tokens_per_second):\n    # prefill the prompt again on the GPU\n    return n_tokens / tokens_per_second\n\ndef worth_fetching(n_tokens, s, bandwidth, t0, r):\n    if bandwidth <= s * r:        # below B* = sR every hit loses\n        return False\n    return hit_seconds(n_tokens, s, bandwidth, t0) < recompute_seconds(n_tokens, r)\n\n# Even with infinite bandwidth a hit still costs t0, so any prompt\n# shorter than t0 * r tokens is cheaper to recompute.\n"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "One remote hit, one recompute and the fixed per-hit engine cost, in seconds, from the isolated-engine replay.",
+    "unit": "seconds",
+    "bars": [
+     {
+      "label": "Remote KV hit",
+      "value": 0.88
+     },
+     {
+      "label": "Recompute the prompt",
+      "value": 0.31
+     },
+     {
+      "label": "Fixed per-hit engine cost",
+      "value": 0.33
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Synchronous loads that starve the GPUs",
+    "num": "03",
+    "id": "synchronous-loads-that-starve-the-gpus"
+   }
+  ],
+  [
+   "p",
+   "The slow hit was only half the damage. The other half was queueing. With synchronous loading, an engine waits for each fetch to finish before doing anything else. On a stream full of hits, that means requests stack up behind the network. The paper puts the result bluntly: «synchronous loading turned a hit-heavy stream into an unstable queue: p99 83.32 s with the GPUs 7% busy»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPlN5bmNocm9ub3VzIEtWIGxvYWRzIGxlYXZlIEdQVXMgaWRsZSBhcyByZXF1ZXN0cyBxdWV1ZTsgc2hhcmRlZCBhc3luY2hyb25vdXMgbG9hZHMga2VlcCB0aGVtIGJ1c3k8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjciIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJHIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjciIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJBIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjciIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI1IiBtYXJrZXJIZWlnaHQ9IjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2UzYjM0MSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBST1cgQTogc3luY2hyb25vdXMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMTE0MCIgaGVpZ2h0PSIyNzAiIHJ4PSIxOCIgZmlsbD0iI2ZmN2I3MiIgb3BhY2l0eT0iMC4wNiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utb3BhY2l0eT0iMC4zNSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjAiIHk9Ijc2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPnN5bmNocm9ub3VzIGxvYWQ8L3RleHQ+CgogIDwhLS0gcGlsZSBvZiB3YWl0aW5nIHJlcXVlc3RzIC0tPgogIDxnIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIj4KICAgIDxyZWN0IHg9IjYwIiB5PSIxMjAiIHdpZHRoPSIxNTAiIGhlaWdodD0iNTYiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgb3BhY2l0eT0iMC45Ii8+CiAgICA8cmVjdCB4PSI3MiIgeT0iMTMyIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjU2IiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIG9wYWNpdHk9IjAuOSIvPgogICAgPHJlY3QgeD0iODQiIHk9IjE0NCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI1NiIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBvcGFjaXR5PSIwLjkiLz4KICAgIDxyZWN0IHg9Ijk2IiB5PSIxNTYiIHdpZHRoPSIxNTAiIGhlaWdodD0iNTYiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgb3BhY2l0eT0iMC45Ii8+CiAgICA8cmVjdCB4PSIxMDgiIHk9IjE2OCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI1NiIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0Ii8+CiAgPC9nPgogIDx0ZXh0IHg9IjYwIiB5PSIyNjgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+cmVxdWVzdHMgd2FpdDwvdGV4dD4KCiAgPGxpbmUgeDE9IjI3MiIgeTE9IjE5NiIgeDI9IjMxOCIgeTI9IjE5NiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDwhLS0gYmxvY2tpbmcgbG9hZCAtLT4KICA8cmVjdCB4PSIzMzAiIHk9IjE0MCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxMTIiIHJ4PSIxNCIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8cGF0aCBkPSJNMzgwLDE2MCBMNDMwLDE2MCBMNDA1LDE5NiBMNDMwLDIzMiBMMzgwLDIzMiBMNDA1LDE5NiBaIiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjg1Ii8+CiAgPHRleHQgeD0iNDA1IiB5PSIxMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2UzYjM0MSI+S1YgZmV0Y2g8L3RleHQ+CiAgPGxpbmUgeDE9IjQ5MiIgeTE9IjE5NiIgeDI9IjUzOCIgeTI9IjE5NiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8IS0tIGlkbGUgR1BVcyAtLT4KICA8ZyBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLW9wYWNpdHk9IjAuNDUiIGZpbGw9IiMxNTFhMjMiPgogICAgPHJlY3QgeD0iNTUyIiB5PSIxNDAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI4MCIgcng9IjgiLz4KICAgIDxyZWN0IHg9IjYwMiIgeT0iMTQwIiB3aWR0aD0iNDAiIGhlaWdodD0iODAiIHJ4PSI4Ii8+CiAgICA8cmVjdCB4PSI2NTIiIHk9IjE0MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjgwIiByeD0iOCIvPgogICAgPHJlY3QgeD0iNzAyIiB5PSIxNDAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI4MCIgcng9IjgiLz4KICAgIDxyZWN0IHg9Ijc1MiIgeT0iMTQwIiB3aWR0aD0iNDAiIGhlaWdodD0iODAiIHJ4PSI4Ii8+CiAgICA8cmVjdCB4PSI4MDIiIHk9IjE0MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjgwIiByeD0iOCIvPgogICAgPHJlY3QgeD0iODUyIiB5PSIxNDAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI4MCIgcng9IjgiLz4KICAgIDxyZWN0IHg9IjkwMiIgeT0iMTQwIiB3aWR0aD0iNDAiIGhlaWdodD0iODAiIHJ4PSI4Ii8+CiAgPC9nPgogIDwhLS0gYnVzeSBzaGFyZTogNyUgb2YgdGhlIHRyYWNrIC0tPgogIDxyZWN0IHg9IjU1MiIgeT0iMjM2IiB3aWR0aD0iMzkwIiBoZWlnaHQ9IjE2IiByeD0iOCIgZmlsbD0iIzJjMzU0NCIvPgogIDxyZWN0IHg9IjU1MiIgeT0iMjM2IiB3aWR0aD0iMjciIGhlaWdodD0iMTYiIHJ4PSI4IiBmaWxsPSIjZmY3YjcyIi8+CiAgPHRleHQgeD0iNTUyIiB5PSIyODQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+R1BVcyA3JSBidXN5PC90ZXh0PgoKICA8dGV4dCB4PSIxMDYwIiB5PSIxOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+cDk5PC90ZXh0PgogIDx0ZXh0IHg9IjEwNjAiIHk9IjIzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPjgzLjMyIHM8L3RleHQ+CgogIDwhLS0gUk9XIEI6IHNoYXJkZWQgKyBhc3luY2hyb25vdXMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjM0MCIgd2lkdGg9IjExNDAiIGhlaWdodD0iMjcwIiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMDYiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMzUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYwIiB5PSIzODYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSI+c2hhcmRlZCwgYXN5bmNocm9ub3VzIGxvYWQ8L3RleHQ+CgogIDxnIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIj4KICAgIDxyZWN0IHg9IjEwOCIgeT0iNDc4IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjU2IiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiLz4KICA8L2c+CiAgPHRleHQgeD0iNjAiIHk9IjU3OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5zaG9ydCBxdWV1ZTwvdGV4dD4KCiAgPCEtLSBwZXItcmFuayBmZXRjaCBsYW5lcyBydW5uaW5nIGJlc2lkZSBjb21wdXRlIC0tPgogIDxnIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjkiIHN0cm9rZS1kYXNoYXJyYXk9IjE0IDgiPgogICAgPGxpbmUgeDE9IjI3MiIgeTE9IjQ1MiIgeDI9IjUzMCIgeTI9IjQ1MiIgbWFya2VyLWVuZD0idXJsKCNhcnJBKSIvPgogICAgPGxpbmUgeDE9IjI3MiIgeTE9IjQ3NCIgeDI9IjUzMCIgeTI9IjQ3NCIgbWFya2VyLWVuZD0idXJsKCNhcnJBKSIvPgogICAgPGxpbmUgeDE9IjI3MiIgeTE9IjQ5NiIgeDI9IjUzMCIgeTI9IjQ5NiIgbWFya2VyLWVuZD0idXJsKCNhcnJBKSIvPgogICAgPGxpbmUgeDE9IjI3MiIgeTE9IjUxOCIgeDI9IjUzMCIgeTI9IjUxOCIgbWFya2VyLWVuZD0idXJsKCNhcnJBKSIvPgogIDwvZz4KICA8dGV4dCB4PSI0MDAiIHk9IjU3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZTNiMzQxIj5vbmUgbGFuZSBwZXIgcmFuazwvdGV4dD4KCiAgPGcgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC43NSI+CiAgICA8cmVjdCB4PSI1NTIiIHk9IjQ0MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjgwIiByeD0iOCIvPgogICAgPHJlY3QgeD0iNjAyIiB5PSI0NDAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI4MCIgcng9IjgiLz4KICAgIDxyZWN0IHg9IjY1MiIgeT0iNDQwIiB3aWR0aD0iNDAiIGhlaWdodD0iODAiIHJ4PSI4Ii8+CiAgICA8cmVjdCB4PSI3MDIiIHk9IjQ0MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjgwIiByeD0iOCIvPgogICAgPHJlY3QgeD0iNzUyIiB5PSI0NDAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI4MCIgcng9IjgiLz4KICAgIDxyZWN0IHg9IjgwMiIgeT0iNDQwIiB3aWR0aD0iNDAiIGhlaWdodD0iODAiIHJ4PSI4Ii8+CiAgICA8cmVjdCB4PSI4NTIiIHk9IjQ0MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjgwIiByeD0iOCIvPgogICAgPHJlY3QgeD0iOTAyIiB5PSI0NDAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI4MCIgcng9IjgiLz4KICA8L2c+CiAgPHRleHQgeD0iNTUyIiB5PSI1NzIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+Y29tcHV0ZSBvdmVybGFwcyB0aGUgZmV0Y2g8L3RleHQ+CgogIDx0ZXh0IHg9IjEwNjAiIHk9IjQ5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5wOTk8L3RleHQ+CiAgPHRleHQgeD0iMTA2MCIgeT0iNTM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIzOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSI+MC42NyBzPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Top row: requests pile behind a blocking KV fetch, GPUs idle at 7% busy. Bottom row: parallel lanes feed busy GPUs.",
+    "caption": "Synchronous loading parks the GPUs behind the network; sharded, asynchronous loads let compute overlap the fetch.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "That last figure is the tell. Your accelerators are nearly idle, yet the slowest requests wait over a minute. An unstable queue is one where work arrives faster than it leaves, so waiting time has no ceiling. Each blocked load adds its delay to everyone behind it. A utilisation graph would show a calm, underused cluster. Your callers would see a hung one."
+  ],
+  [
+   "p",
+   "Asynchronous loading changes the shape. The engine keeps computing other requests while bytes arrive, and only schedules a request once its prefix has landed. Same bandwidth, same hit, very different queue. We think this is the cheapest lesson in the paper. Before you buy a faster tier, make sure a slow fetch can't block the GPU."
+  ],
+  [
+   "h2",
+   {
+    "text": "Sharding the remote tier by rank",
+    "num": "04",
+    "id": "sharding-the-remote-tier-by-rank"
+   }
+  ],
+  [
+   "p",
+   "We retraced the author's fixes in the order they apply. The model runs prefill context parallelism, which splits one long prompt across several GPUs called ranks. Each rank holds its own slice of the KV cache. So the first fix is to «shard the MLA KV store across PCP ranks», letting each rank fetch only its slice. MLA, multi-head latent attention, already compresses keys and values into a smaller latent."
+  ],
+  [
+   "p",
+   "The second fix is almost boring. Give each rank its own server instance, with no coordination between them. That change «raises GET bandwidth 6.3x to 10.76 GB/s». Hold that beside the break-even figure from the cost model and you see why it matters. The tier went from losing to winning. Then come asynchronous loads, plus fixes for «three client bugs that caused unbounded stalls»."
+  ],
+  [
+   "p",
+   "Look at where it lands. On the hit-heavy stream, with «98.5% of prompt tokens served from the remote tier», p99 fell from 83.32 s to 0.67 s. Prefill throughput rose 14%, and 34% alongside an upstream kernel fix. In our view the lesson is about order more than this one stack. Model the hit first. Then engineer it."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The remote-tier figures that decide whether a hit pays, and what each one means for you.",
+    "columns": [
+     "Quantity",
+     "Value",
+     "What it tells you"
+    ],
+    "rows": [
+     [
+      "Break-even bandwidth B*",
+      "2.53 GB/s",
+      "Below it, every hit loses"
+     ],
+     [
+      "Fixed per-hit cost T0",
+      "about 0.33 s",
+      "A floor no network removes"
+     ],
+     [
+      "Shortest prompt that can win",
+      "about 17k tokens",
+      "Shorter hits lose at any bandwidth"
+     ],
+     [
+      "Partitioned GET bandwidth",
+      "10.76 GB/s",
+      "Comfortably past break-even"
+     ],
+     [
+      "p99 on the hit-heavy stream",
+      "83.32 s to 0.67 s",
+      "After sharding and asynchronous loads"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A smaller student trained on the teacher's outputs",
+    "num": "05",
+    "id": "a-smaller-student-trained-on-the-teacher-s-outputs"
+   }
+  ],
+  [
+   "p",
+   "The second lever is blunter. Instead of skipping work, make every forward pass cheaper by shrinking the model. Knowledge distillation trains a small student to imitate a large teacher. The loss compares the student's outputs with the teacher's, and sometimes their hidden states too. You pay once at training time. You collect the saving on every request after that."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPkEgZGVlcCB0ZWFjaGVyIGRpc3RpbGxlZCBpbnRvIGEgc2hhbGxvdyBzdHVkZW50IHRocm91Z2ggb3V0cHV0LCBsYXRlbnQsIGF0dGVudGlvbiBhbmQgcGh5c2ljcyB0ZXJtczwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InNnIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC4yMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFHIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjciIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI1IiBtYXJrZXJIZWlnaHQ9IjUiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhQiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI3IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYVIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjYwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHRlYWNoZXI6IDEyIGxheWVycyAtLT4KICA8dGV4dCB4PSIyMjAiIHk9IjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPnRlYWNoZXI8L3RleHQ+CiAgPGcgZmlsbD0iIzdhYTJmZiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiPgogICAgPHJlY3QgeD0iOTAiIHk9IjkyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iMTI3IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iMTYyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iMTk3IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iMjMyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iMjY3IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iMzAyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iMzM3IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iMzcyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iNDA3IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iNDQyIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgICA8cmVjdCB4PSI5MCIgeT0iNDc3IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMwIi8+CiAgPC9nPgogIDx0ZXh0IHg9IjIyMCIgeT0iNTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzdhYTJmZiI+MjAuMU08L3RleHQ+CiAgPHRleHQgeD0iMjIwIiB5PSI1OTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+MTIgbGF5ZXJzPC90ZXh0PgoKICA8IS0tIHN0dWRlbnQ6IDYgbGF5ZXJzIC0tPgogIDxjaXJjbGUgY3g9Ijk5MCIgY3k9IjMwMCIgcj0iMTkwIiBmaWxsPSJ1cmwoI3NnKSIvPgogIDx0ZXh0IHg9Ijk5MCIgeT0iMTY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPnN0dWRlbnQ8L3RleHQ+CiAgPGcgZmlsbD0iIzNlY2Y4ZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiPgogICAgPHJlY3QgeD0iOTIwIiB5PSIxOTIiIHdpZHRoPSIxNDAiIGhlaWdodD0iMzAiIHJ4PSI4IiBmaWxsLW9wYWNpdHk9IjAuMzIiLz4KICAgIDxyZWN0IHg9IjkyMCIgeT0iMjI3IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMyIi8+CiAgICA8cmVjdCB4PSI5MjAiIHk9IjI2MiIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIzMCIgcng9IjgiIGZpbGwtb3BhY2l0eT0iMC4zMiIvPgogICAgPHJlY3QgeD0iOTIwIiB5PSIyOTciIHdpZHRoPSIxNDAiIGhlaWdodD0iMzAiIHJ4PSI4IiBmaWxsLW9wYWNpdHk9IjAuMzIiLz4KICAgIDxyZWN0IHg9IjkyMCIgeT0iMzMyIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjMwIiByeD0iOCIgZmlsbC1vcGFjaXR5PSIwLjMyIi8+CiAgICA8cmVjdCB4PSI5MjAiIHk9IjM2NyIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIzMCIgcng9IjgiIGZpbGwtb3BhY2l0eT0iMC4zMiIvPgogIDwvZz4KICA8dGV4dCB4PSI5OTAiIHk9IjQ0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMzZWNmOGUiPjAuNjJNPC90ZXh0PgogIDx0ZXh0IHg9Ijk5MCIgeT0iNDg2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPjYgbGF5ZXJzPC90ZXh0PgoKICA8IS0tIHRyYW5zZmVyIHRlcm1zIC0tPgogIDxwYXRoIGQ9Ik0zNjIsMTEwIEM1NjAsMTEwIDcwMCwyMDcgOTAyLDIwNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjkiIG1hcmtlci1lbmQ9InVybCgjYUcpIi8+CiAgPHRleHQgeD0iNTYwIiB5PSIxMDQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSI+b3V0cHV0IG1hdGNoPC90ZXh0PgogIDx0ZXh0IHg9IjU2MCIgeT0iMTM2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiMzZWNmOGUiPmNhcnJpZXMgdGhlIGdhaW48L3RleHQ+CgogIDxwYXRoIGQ9Ik0zNjIsMjgyIEM1NjAsMjgyIDcyMCwyNzcgOTAyLDI3NyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYUIpIi8+CiAgPHRleHQgeD0iNTIwIiB5PSIyNjYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2M3ZDZmZiI+bGF0ZW50IHN0YXRlPC90ZXh0PgoKICA8cGF0aCBkPSJNMzYyLDM3MiBDNTYwLDM3MiA3MjAsMzQ3IDkwMiwzNDciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FCKSIvPgogIDx0ZXh0IHg9IjUyMCIgeT0iMzUwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNjN2Q2ZmYiPmF0dGVudGlvbjwvdGV4dD4KCiAgPHBhdGggZD0iTTM2Miw0NzAgQzU4MCw0NzAgNzQwLDQwMCA5MDIsMzg1IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMTIgOSIgbWFya2VyLWVuZD0idXJsKCNhUikiLz4KICA8ZyBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxsaW5lIHgxPSI2NjAiIHkxPSI0MjAiIHgyPSI2OTAiIHkyPSI0NTAiLz4KICAgIDxsaW5lIHgxPSI2OTAiIHkxPSI0MjAiIHgyPSI2NjAiIHkyPSI0NTAiLz4KICA8L2c+CiAgPHRleHQgeD0iNDMwIiB5PSI1MTIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmN2I3MiI+cGh5c2ljcyByZXNpZHVhbDwvdGV4dD4KICA8dGV4dCB4PSI0MzAiIHk9IjU0MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZmY3YjcyIj5oYXJtZnVsIGluIHRoaXMgZm9ybTwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "A 12-layer teacher feeds a 6-layer student by four arrows; output match is thick, physics residual crossed out.",
+    "caption": "In the grid ablation, plain output matching carried the gain and the physics-residual term hurt.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A new arXiv paper on power-grid models shows the whole recipe. Its authors «distil a 20.1M-parameter, 12-layer GridFM teacher into a 0.62M-parameter, 6-layer student». The target is harsh: inference «at batch size one and within a single synchrophasor (PMU) reporting frame». The objective keeps the original masked loss and adds transfer terms for outputs, physics residuals, latent states and attention. Then they ablate all eight combinations."
+  ],
+  [
+   "p",
+   "Two results surprised us. First, «every distilled student is more accurate than its teacher on reactive-power dispatch». A student beating its teacher sounds wrong until you recall the teacher is also just an approximation. Second, the fancy term hurt. «The physics-residual term, in the layer-aggregated form used here, is consistently harmful». Meanwhile «The gain is largely carried by the output matching term». Plain imitation did the heavy lifting."
+  ],
+  [
+   "p",
+   "Distillation can also merge models. A speech paper trains one encoder from four frozen teachers, for meaning, speaker, language and emotion. It reports «performance close to dedicated single-task students while requiring only a single shared encoder». For serving, that's one model resident in memory where you'd have kept four. And teacher outputs aren't free: a post on simonwillison.net relays that «distillation accounted for 5 per cent to 7 per cent of revenue» at one lab."
+  ],
+  [
+   "h2",
+   {
+    "text": "Gated shifts from a reinforcement-learned teacher",
+    "num": "06",
+    "id": "gated-shifts-from-a-reinforcement-learned-teacher"
+   }
+  ],
+  [
+   "p",
+   "Distillation gets subtler when the teacher learned its skill through reinforcement learning. The Waypoint-OPD paper starts from policy-shift distillation, which «reuses the difference between a teacher's log probabilities before and after reinforcement learning (RL)». In plain terms, take each token the student generates. Ask how much RL raised or lowered the teacher's preference for it. That difference becomes the student's training signal."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPlRoZSB3YXlwb2ludCBnYXRlIGtlZXBzIGFuIGVuZHBvaW50IHNoaWZ0IHdoZW4gZWFybHkgYW5kIGxhdGUgc2hpZnRzIGFncmVlIGFuZCBzdXBwcmVzc2VzIGl0IHdoZW4gdGhleSByZXZlcnNlPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFHIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjciIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhUiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI3IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYU0iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iNyIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjQwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHRoZSBSTCBydW4gLS0+CiAgPGxpbmUgeDE9IjIwMCIgeTE9IjEwMCIgeDI9IjEwMDAiIHkyPSIxMDAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8Y2lyY2xlIGN4PSIyMDAiIGN5PSIxMDAiIHI9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxjaXJjbGUgY3g9IjYwMCIgY3k9IjEwMCIgcj0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGNpcmNsZSBjeD0iMTAwMCIgY3k9IjEwMCIgcj0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHRleHQgeD0iMjAwIiB5PSI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0Ij5iZWZvcmUgUkw8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjYTc4YmZhIj53YXlwb2ludDwvdGV4dD4KICA8dGV4dCB4PSIxMDAwIiB5PSI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjN2FhMmZmIj5hZnRlciBSTDwvdGV4dD4KCiAgPCEtLSBsZWZ0IHBhbmVsOiBhZ3JlZW1lbnQgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjE3MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSI0MzAiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4wNiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utb3BhY2l0eT0iMC40IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI4MCIgeT0iMjE0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMzZWNmOGUiPnNoaWZ0cyBhZ3JlZTwvdGV4dD4KICA8bGluZSB4MT0iMTAwIiB5MT0iMjUwIiB4Mj0iMTAwIiB5Mj0iNTIwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxsaW5lIHgxPSIxMDAiIHkxPSI1MjAiIHgyPSI1MjAiIHkyPSI1MjAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTEyIiB5PSIyNjgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+cHJlZmVyZW5jZTwvdGV4dD4KICA8Y2lyY2xlIGN4PSIxNTAiIGN5PSI0NzAiIHI9IjkiIGZpbGw9IiM5NWExYjQiLz4KICA8Y2lyY2xlIGN4PSIzMTAiIGN5PSIzOTAiIHI9IjkiIGZpbGw9IiNhNzhiZmEiLz4KICA8Y2lyY2xlIGN4PSI0NzAiIGN5PSIzMDAiIHI9IjkiIGZpbGw9IiM3YWEyZmYiLz4KICA8bGluZSB4MT0iMTU4IiB5MT0iNDY2IiB4Mj0iMjk2IiB5Mj0iMzk3IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgbWFya2VyLWVuZD0idXJsKCNhRykiLz4KICA8bGluZSB4MT0iMzE4IiB5MT0iMzg1IiB4Mj0iNDU2IiB5Mj0iMzA4IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgbWFya2VyLWVuZD0idXJsKCNhRykiLz4KICA8dGV4dCB4PSIxOTYiIHk9IjQxMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZThlZGY1Ij5lYXJseTwvdGV4dD4KICA8dGV4dCB4PSIzNzIiIHk9IjMyNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZThlZGY1Ij5sYXRlPC90ZXh0PgogIDxyZWN0IHg9IjE1MCIgeT0iNTQ0IiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjQwIiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMjIiLz4KICA8dGV4dCB4PSIzMTAiIHk9IjU3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjM2VjZjhlIj5rZWVwIHRoZSBzaGlmdDwvdGV4dD4KCiAgPCEtLSByaWdodCBwYW5lbDogcmV2ZXJzYWwgLS0+CiAgPHJlY3QgeD0iNjMwIiB5PSIxNzAiIHdpZHRoPSI1MjAiIGhlaWdodD0iNDMwIiByeD0iMTgiIGZpbGw9IiNmZjdiNzIiIG9wYWNpdHk9IjAuMDYiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLW9wYWNpdHk9IjAuNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjYwIiB5PSIyMTQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiI+c2hpZnRzIHJldmVyc2U8L3RleHQ+CiAgPGxpbmUgeDE9IjY4MCIgeTE9IjI1MCIgeDI9IjY4MCIgeTI9IjUyMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8bGluZSB4MT0iNjgwIiB5MT0iNTIwIiB4Mj0iMTEwMCIgeTI9IjUyMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI2OTIiIHk9IjI2OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5wcmVmZXJlbmNlPC90ZXh0PgogIDxjaXJjbGUgY3g9IjczMCIgY3k9IjQ3MCIgcj0iOSIgZmlsbD0iIzk1YTFiNCIvPgogIDxjaXJjbGUgY3g9Ijg5MCIgY3k9IjMyMCIgcj0iOSIgZmlsbD0iI2E3OGJmYSIvPgogIDxjaXJjbGUgY3g9IjEwNTAiIGN5PSI0MzAiIHI9IjkiIGZpbGw9IiM3YWEyZmYiLz4KICA8bGluZSB4MT0iNzM3IiB5MT0iNDYyIiB4Mj0iODgwIiB5Mj0iMzMwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgbWFya2VyLWVuZD0idXJsKCNhRykiLz4KICA8bGluZSB4MT0iODk4IiB5MT0iMzI2IiB4Mj0iMTAzOCIgeTI9IjQyMiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYVIpIi8+CiAgPGxpbmUgeDE9IjczOCIgeTE9IjQ2OCIgeDI9IjEwMzYiIHkyPSI0MzMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDgiIG1hcmtlci1lbmQ9InVybCgjYU0pIi8+CiAgPHRleHQgeD0iNzYwIiB5PSIzODQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+ZWFybHk8L3RleHQ+CiAgPHRleHQgeD0iOTgwIiB5PSIzNTYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+bGF0ZTwvdGV4dD4KICA8dGV4dCB4PSI4NTAiIHk9IjQ5NCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5lbmRwb2ludDwvdGV4dD4KICA8cmVjdCB4PSI3MzAiIHk9IjU0NCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI0MCIgcng9IjEyIiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjIyIi8+CiAgPHRleHQgeD0iODkwIiB5PSI1NzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiI+c3VwcHJlc3MgaXQ8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Two panels plot a token's preference across three RL checkpoints: rising twice is kept, rising then falling is suppressed.",
+    "caption": "The waypoint checkpoint reveals whether the endpoint shift came from steady agreement or from a reversal.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "It's called on-policy because the prefixes are the student's own. The catch is that an endpoint hides its path. The authors point out that «The same endpoint shift can result from early and late shifts that reinforce or partially cancel each other». So they score each prefix with a middle checkpoint from the same run. Agreeing shifts pass. Reversing shifts get suppressed."
+  ],
+  [
+   "p",
+   "What does the extra check cost? The method «requires only one additional frozen-teacher scoring pass». The teachers were Qwen3-4B models, and the students were bigger: 8B, 14B and a 30B-A3B mixture of experts. Across all six settings the gated method «achieves the highest domain-average score among the compared distillation methods». We'd take that trade. One more frozen forward pass is cheap insurance against teaching a reversal."
+  ],
+  [
+   "code",
+   {
+    "label": "A sign-agreement gate on the endpoint shift (illustrative sketch of the idea)",
+    "language": "python",
+    "source": "def gated_shift(lp_before, lp_mid, lp_after):\n    \"\"\"Log-probs of one student-chosen token under three teacher checkpoints.\"\"\"\n    early = lp_mid - lp_before        # what RL changed before the waypoint\n    late = lp_after - lp_mid          # what it changed after\n    endpoint = lp_after - lp_before   # what plain policy-shift distillation uses\n    agree = (early > 0) == (late > 0)\n    return endpoint if agree else 0.0 # suppress shifts that reversed\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The untimed student and the unmapped crossover",
+    "num": "07",
+    "id": "the-untimed-student-and-the-unmapped-crossover"
+   }
+  ],
+  [
+   "p",
+   "Here's the part nobody has nailed down. The grid student is smaller and shallower, but it hasn't been clocked on an edge device. Its authors call it «a candidate for subsequent edge-device benchmarking». Parameter count is a proxy for speed, not a stopwatch. At batch size one, memory traffic and kernel launches can dominate. Fewer weights may help less than you'd hope."
+  ],
+  [
+   "p",
+   "The cache crossover is unmapped too. It depends on `s`, `R` and `T0`, and all three move with your model, attention design and hardware. The paper's figures hold «for this model and GPU», and nothing wider. A model without latent attention stores fatter keys and values per token. Its crossover could sit somewhere else entirely."
+  ],
+  [
+   "p",
+   "Even the grid paper's harmful term is only half explained. The authors blame it on averaging, «which we attribute to the spatial averaging it applies to a bus-level residual field». That's a hypothesis, and a testable one. Would a per-bus version of the same term help? Nobody knows yet."
+  ],
+  [
+   "p",
+   "You can measure all of this yourself. Time remote hits and recomputes at several prompt lengths and fit a line. The intercept is your `T0`, and the slope gives your effective bandwidth. For a distilled student, time batch-one latency on the target device. Then ablate the loss terms. Keep only the ones that earn their place."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is inference efficiency in LLMs?"
+  ],
+  [
+   "p",
+   "Inference efficiency is how much compute, memory and time a model spends to answer each request. The two big levers are reusing work, such as cached attention keys and values, and shrinking the model through distillation. Both need measuring on your own traffic, because a reuse that looks free can still add latency in the slowest requests."
+  ],
+  [
+   "h3",
+   "Is a KV cache hit always faster than recomputing the prompt?"
+  ],
+  [
+   "p",
+   "No. A remote hit pays a fixed engine cost plus a transfer cost, and recompute pays only compute. A paper on remote KV tiers found that «hits on prompts shorter than about 17k tokens cannot beat recompute at any bandwidth» for its model and GPU. The crossover moves with your model and hardware, so time both on your own stack."
+  ],
+  [
+   "h3",
+   "Does knowledge distillation make LLM inference faster?"
+  ],
+  [
+   "p",
+   "It makes each forward pass cheaper by shrinking the model, but speed still has to be timed on the target device. A power-grid paper distilled a 20.1M-parameter teacher into a 0.62M-parameter student and named edge benchmarking as the next step. A smaller model is a promise of speed. The stopwatch is the proof."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "When the KV Cache Is Slower Than the GPU: Scaling Remote KV Tiers for Context-Parallel Prefill",
+   "url": "https://arxiv.org/abs/2610.21500v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Physics-Aware Distillation of a Grid Foundation Model for Real-Time Edge Inference",
+   "url": "https://arxiv.org/abs/2610.21833v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Learning Speech Attribute Representations via Multi-Teacher Distillation",
+   "url": "https://arxiv.org/abs/2610.21941v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "an engineering blog",
+   "who": "simonwillison.net",
+   "what": "Anthropic tells investors quarterly revenue up nearly 50% to $16.8bn ahead of IPO",
+   "url": "https://simonwillison.net/2026/Oct/15/anthropic-tells-investors/",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Waypoint-OPD: Transferring RL-Induced Policy Shifts via Gated On-Policy Distillation",
+   "url": "https://arxiv.org/abs/2610.21601v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "left median time-to-first-token unchanged but raised the 16k-token p99 from 3.96 s to 17.3 s": 1,
+  "a standard way to cut prefill cost in long-context LLM serving": 1,
+  "a remote hit took 0.88 s against 0.31 s to recompute the prompt": 1,
+  "B* = sR (2.53 GB/s for this model and GPU)": 1,
+  "a fixed per-hit engine cost (T0 ~ 0.33 s)": 1,
+  "hits on prompts shorter than about 17k tokens cannot beat recompute at any bandwidth": 1,
+  "synchronous loading turned a hit-heavy stream into an unstable queue: p99 83.32 s with the GPUs 7% busy": 1,
+  "shard the MLA KV store across PCP ranks": 1,
+  "raises GET bandwidth 6.3x to 10.76 GB/s": 1,
+  "three client bugs that caused unbounded stalls": 1,
+  "98.5% of prompt tokens served from the remote tier": 1,
+  "distil a 20.1M-parameter, 12-layer GridFM teacher into a 0.62M-parameter, 6-layer student": 2,
+  "at batch size one and within a single synchrophasor (PMU) reporting frame": 2,
+  "every distilled student is more accurate than its teacher on reactive-power dispatch": 2,
+  "The physics-residual term, in the layer-aggregated form used here, is consistently harmful": 2,
+  "The gain is largely carried by the output matching term": 2,
+  "performance close to dedicated single-task students while requiring only a single shared encoder": 3,
+  "distillation accounted for 5 per cent to 7 per cent of revenue": 4,
+  "reuses the difference between a teacher's log probabilities before and after reinforcement learning (RL)": 5,
+  "The same endpoint shift can result from early and late shifts that reinforce or partially cancel each other": 5,
+  "requires only one additional frozen-teacher scoring pass": 5,
+  "achieves the highest domain-average score among the compared distillation methods": 5,
+  "a candidate for subsequent edge-device benchmarking": 2,
+  "for this model and GPU": 1,
+  "which we attribute to the spatial averaging it applies to a bus-level residual field": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:37:11+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21833v1",
+   "arxiv:2610.21601v1",
+   "arxiv:2610.21500v1",
+   "arxiv:2610.21941v1",
+   "blog:simonwillison.net|https://simonwillison.net/2026/Oct/15/anthropic-tells-investors/"
+  ],
+  "platforms": {
+   "arXiv": 4,
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "under-the-hood:concept/efficiency",
+  "format": "under-the-hood",
+  "reviewed_by": null
+ }
+}

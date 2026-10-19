@@ -376,7 +376,13 @@ class TestTheSchemaSaysWhatItIsFor:
     def test_the_stage_set_stays_closed(self):
         # Closed to the callers rule 2 names: extraction, the Ask box, and the
         # blog generator (2026-10-06; recorded outside the cap, 20261007T0900).
-        assert "spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog'))" in self._tables()
+        # 'quiz' - the quiz question drafter, the blog's draft-then-approve
+        # shape - was ADDED 2026-10-15 by anooj (20261015T1400) and is
+        # PROPOSED: it needs the same agreement the blog generator had.
+        assert (
+            "spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog', 'quiz'))"
+            in self._tables()
+        )
 
     def test_the_fetch_log_keeps_sequence_not_just_time(self):
         # Timestamps here are second-resolution and several lines share one.
