@@ -1091,6 +1091,25 @@ def _counts_only(value):
     return value
 
 
+def _no_platform_split(payload: dict) -> dict:
+    """HOW MANY PLATFORMS, NOT WHICH OR HOW MUCH (2026-10-19).
+
+    `reported.polarity.platforms` lists documents per source. The page shows
+    only the number of platforms, but a per-source count on a public endpoint
+    is a per-platform split, which the use-basis undertaking rules out
+    (contract/sources.yaml: `per_platform_counts_shown: false`). So a caller
+    who has not signed in gets one entry per platform with the source and its
+    count emptied: the length, which the page reads, survives; the split does
+    not. Signed-in callers are unchanged."""
+    for m in payload.get("models") or []:
+        polarity = (m.get("reported") or {}).get("polarity") or {}
+        if isinstance(polarity.get("platforms"), list):
+            polarity["platforms"] = [
+                {"source": None, "documents": None} for _ in polarity["platforms"]
+            ]
+    return payload
+
+
 @app.get("/compare")
 def compare_page(ids: str = "", request: Request = None) -> dict:
     """Two or three models side by side — registry facts and counted evidence.
@@ -1112,7 +1131,7 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
 
         with publication.forced_public():
             payload = compare_page(ids)
-        return _counts_only(payload)
+        return _no_platform_split(_counts_only(payload))
 
     from judge.pages.roster import RosterReader
     from judge.store.board_entries import evidence_for_model

@@ -234,3 +234,24 @@ def test_an_anonymous_comparison_carries_counts_and_no_words():
     assert fig["url"] is None and fig["document_id"] is None and fig["value"] == "$5"
     assert out["models"][0]["reported"]["polarity"] == {"positive": 3, "negative": 1}
     assert "it worked" not in str(out)
+
+
+def test_an_anonymous_comparison_says_how_many_platforms_but_not_which():
+    """No per-platform split on a public endpoint (contract/sources.yaml:
+    `per_platform_counts_shown: false`): the number of platforms survives,
+    because the page shows it; which ones, and how many documents each, do not."""
+    from judge.app import _no_platform_split
+
+    payload = {"models": [{"reported": {"polarity": {
+        "positive": 3,
+        "platforms": [
+            {"source": "hackernews", "documents": 36},
+            {"source": "devto", "documents": 12},
+        ],
+    }}}]}
+    out = _no_platform_split(payload)
+    platforms = out["models"][0]["reported"]["polarity"]["platforms"]
+    assert len(platforms) == 2
+    assert platforms == [{"source": None, "documents": None}] * 2
+    assert out["models"][0]["reported"]["polarity"]["positive"] == 3
+    assert "hackernews" not in str(out) and "36" not in str(out)
