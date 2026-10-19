@@ -1,0 +1,5365 @@
+{
+ "source": "model-board-keywords-on-site.xlsx",
+ "built": "2026-10-19",
+ "exported_at": "2026-10-19T06:34:45+00:00",
+ "placements": [
+  "Title",
+  "Meta description",
+  "H1",
+  "H2",
+  "H3",
+  "Link text",
+  "Button",
+  "Image alt",
+  "Body text",
+  "Navigation",
+  "Footer",
+  "Structured data"
+ ],
+ "tabs": [
+  {
+   "tab": "Home",
+   "path": "/",
+   "title": "Best AI model for the job | Model Information Board",
+   "description": "Compare AI models on what engineers report in production — by job, capability and metric, in their exact words. Find the best LLM for coding agents, RAG or code review, open source included.",
+   "h1": "Find the best AI model for the job, counted from the engineers who use it.",
+   "h2_count": 6,
+   "h3_count": 10,
+   "note": null,
+   "keywords": 70
+  },
+  {
+   "tab": "Blogs",
+   "path": "/blogs",
+   "title": "Notes on AI models | Model Information Board",
+   "description": "Long-form notes on AI models, written from what engineers report in production.",
+   "h1": "How AI models behave in production",
+   "h2_count": 0,
+   "h3_count": 26,
+   "note": null,
+   "keywords": 39
+  },
+  {
+   "tab": "Tools",
+   "path": "/tools",
+   "title": "AI model tools: model picker, specs and token counter",
+   "description": "Find which AI models engineers reported working for your job, what each model advertises, and what your prompt would cost on each one.",
+   "h1": "Pick, price and filter AI models",
+   "h2_count": 3,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 5
+  },
+  {
+   "tab": "Tools · Best AI model picker",
+   "path": "/model-picker",
+   "title": "Best AI model picker: the best model for the job, or a…",
+   "description": "Find the best AI model for your job, or a cheaper alternative to the one you use, from what engineers reported working - beside what each model costs.",
+   "h1": "Best AI model picker",
+   "h2_count": 0,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 5
+  },
+  {
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "title": "Find an AI model by spec | Model Information Board",
+   "description": "Filter AI models by what each provider advertises: tool calling, vision, structured output, prompt caching, context window and price per token.",
+   "h1": "Find a model by spec",
+   "h2_count": 1,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 21
+  },
+  {
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "title": "LLM token counter and cost calculator",
+   "description": "Count the tokens in a prompt or an answer in your browser, then see what that text costs to send or generate on each AI model at its list price.",
+   "h1": "LLM token counter",
+   "h2_count": 1,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 20
+  },
+  {
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "title": "All AI models by provider and type | Model Information Board",
+   "description": "Every AI model, from every provider: text, image, video, speech, audio, transcription and decision models.",
+   "h1": "All models",
+   "h2_count": 1,
+   "h3_count": 97,
+   "note": null,
+   "keywords": 48
+  },
+  {
+   "tab": "Models · New releases",
+   "path": "/catalog/new",
+   "title": "New AI model releases | Model Information Board",
+   "description": "The AI models listed most recently, newest first, with their prices, context and type.",
+   "h1": "New releases",
+   "h2_count": 3,
+   "h3_count": 40,
+   "note": null,
+   "keywords": 4
+  },
+  {
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "title": "Compare AI models | Model Information Board",
+   "description": "Put two or three AI models side by side on what engineers report about each.",
+   "h1": "Compare models side by side",
+   "h2_count": 0,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 18
+  },
+  {
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "title": "Models: what engineers report about each AI model",
+   "description": "Every AI model on our registry that engineers have reported on in real use, with what it has been discussed for.",
+   "h1": "Models",
+   "h2_count": 2,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 14
+  },
+  {
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "title": "Models: what engineers report about each AI model",
+   "description": "Every AI model on our registry that engineers have reported on in real use, with what it has been discussed for.",
+   "h1": "Models",
+   "h2_count": 2,
+   "h3_count": 0,
+   "note": "Same title and content as /reports",
+   "keywords": 14
+  },
+  {
+   "tab": "Models · Most reported · by job",
+   "path": "/reports/jobs",
+   "title": "Jobs: what engineers report | Model Information Board",
+   "description": "What people used AI models for, such as coding agents or summarising documents, and which models they reported on for each.",
+   "h1": "Jobs",
+   "h2_count": 2,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 2
+  },
+  {
+   "tab": "Models · Most reported · by capability",
+   "path": "/reports/capabilities",
+   "title": "Capabilities: what engineers report",
+   "description": "Specific abilities people reported working or failing, such as reasoning, tool use, vision or long context.",
+   "h1": "Capabilities",
+   "h2_count": 2,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 3
+  },
+  {
+   "tab": "Models · Most reported · by metric",
+   "path": "/reports/metrics",
+   "title": "Metrics: what engineers report | Model Information Board",
+   "description": "Figures people measured themselves, such as speed, cost or benchmark results, counted by the reports that gave them.",
+   "h1": "Metrics",
+   "h2_count": 2,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 4
+  },
+  {
+   "tab": "Discussions",
+   "path": "/discussions",
+   "title": "Discussions: readers' experiences with AI models",
+   "description": "Readers' own experiences with AI models, jobs, capabilities and metrics, shown beside the reports and never added to the counts.",
+   "h1": "From readers",
+   "h2_count": 0,
+   "h3_count": 0,
+   "note": null,
+   "keywords": 1
+  }
+ ],
+ "rows": [
+  {
+   "keyword": "ai agents",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 25,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "deepseek v4",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 3,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "rag",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Meta description",
+    "Link text",
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "ai leaderboard",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E1×G13",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Leaderboard / live tracker",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Board · hub",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "ai model rankings",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E1×G13",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Leaderboard / live tracker",
+   "slots": "ENTITY + MODIFIER",
+   "legality": "◆",
+   "target": "Models · index",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "ai summarization",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "best ai model",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 6,
+   "combo": "E4×C3",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Use case / job-to-be-done + Best / top listicle",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Landing",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Title",
+    "H1",
+    "H2",
+    "Button",
+    "Body text",
+    "Footer",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "chatbot arena",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E1×G13",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Leaderboard / live tracker",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Board · hub",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude api pricing",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×M2",
+   "categories": "Entity / Application + Commercial & Cost",
+   "subcategories": "Named model / version + Cost",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude haiku 4.5",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 6,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "claude vs gemini",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "coding agent",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "coding agents",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Meta description",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 flash",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 pro",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini api pricing",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×M2",
+   "categories": "Entity / Application + Commercial & Cost",
+   "subcategories": "Named model / version + Cost",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "llm arena",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E1×G13",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Leaderboard / live tracker",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Board · hub",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "llm leaderboard",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 4,
+   "combo": "E1×G13",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Leaderboard / live tracker",
+   "slots": "ENTITY + MODIFIER",
+   "legality": "◆",
+   "target": "Models · index",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "llm rankings",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E1×G13",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Leaderboard / live tracker",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Board · hub",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "local llm",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 3,
+   "combo": "E8×C2",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named vendor / competitor / brand + Alternatives",
+   "slots": "ENTITY + MODIFIER",
+   "legality": "✓",
+   "target": "Models · index",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "open source llm",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E20×T10",
+   "categories": "Entity / Application + Trust, Risk & Compliance",
+   "subcategories": "Named model / version + Licence & usage rights",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "openai api pricing",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×M2",
+   "categories": "Entity / Application + Commercial & Cost",
+   "subcategories": "Named model / version + Cost",
+   "slots": "ENTITY + MODIFIER",
+   "legality": "◆",
+   "target": "Board · Metrics",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "opus vs sonnet",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E20×O10",
+   "categories": "Entity / Application + Objection & Sentiment",
+   "subcategories": "Named model / version + Upgrade refusal",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 3,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text",
+    "Footer",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "best llm for coding",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E4×C3",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Use case / job-to-be-done + Best / top listicle",
+   "slots": "ENTITY + MODIFIER",
+   "legality": "◆",
+   "target": "Board · Best for",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Meta description",
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "best open source llm",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E4×C3",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Use case / job-to-be-done + Best / top listicle",
+   "slots": "ENTITY + MODIFIER",
+   "legality": "◆",
+   "target": "Board · Best for",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "cheapest llm api",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E12×Q12",
+   "categories": "Entity / Application + Qualifiers",
+   "subcategories": "Metric / KPI + Threshold / numeric constraint",
+   "slots": "ENTITY + QUALIFIER",
+   "legality": null,
+   "target": "Board · Metrics",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "code review ai",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "compare ai models",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Meta description",
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "model drift",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×N10",
+   "categories": "Entity / Application + Time & Change",
+   "subcategories": "Named model / version + Silent regression & drift",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "open weight models",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×T10",
+   "categories": "Entity / Application + Trust, Risk & Compliance",
+   "subcategories": "Named model / version + Licence & usage rights",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "self hosted llm",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E8×C2",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named vendor / competitor / brand + Alternatives",
+   "slots": "ENTITY + MODIFIER",
+   "legality": "✓",
+   "target": "Models · index",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "structured output",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Capabilities",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "cheapest llm",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×M2",
+   "categories": "Entity / Application + Commercial & Cost",
+   "subcategories": "Named model / version + Cost",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": null,
+   "volume": "100 – 1K",
+   "volume_floor": 100,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "did claude get worse",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20×N10",
+   "categories": "Entity / Application + Time & Change",
+   "subcategories": "Named model / version + Silent regression & drift",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": null,
+   "volume": "100 – 1K",
+   "volume_floor": 100,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "best llm",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E1×C3",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Core entity + Best / top listicle",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Landing",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Meta description",
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "best open source llm for coding",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 6,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1 vs claude opus 5",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.6",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.8",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 8,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 9,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "claude sonnet",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 5,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5.5",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 4,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "compare ai models side by side",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "context window",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 4,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "gemini 3.7 flash",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.2",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 4,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.3",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 10,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.3 flash",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.3 review",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.6",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.6 luna",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "gpt 6 astra",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 3,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text",
+    "Footer"
+   ]
+  },
+  {
+   "keyword": "gpt-5.6 sol",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt-6 sol",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "grok 4.6",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "kimi k3",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "llm for coding agents",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 0,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": "—",
+   "target": "Board · Best for",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Meta description"
+   ]
+  },
+  {
+   "keyword": "minimax m2.7",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "minimax m3",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 9,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "minimax m3 review",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "openrouter",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": "Blogs · guide",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "qwen3.8 27b",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "token counter",
+   "tab": "Home",
+   "path": "/",
+   "body_count": 2,
+   "combo": "E1×G3",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Calculator",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Asset · tool/download",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text",
+    "Footer",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 28,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 8,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "best ai model",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 9,
+   "combo": "E4×C3",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Use case / job-to-be-done + Best / top listicle",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Landing",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 12,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 6,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "coding agent",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 2,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "coding agents",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 flash",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 8,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude opus 5 review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "100 – 1K",
+   "volume_floor": 100,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5 review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": "E20×O8",
+   "categories": "Entity / Application + Objection & Sentiment",
+   "subcategories": "Named model / version + Community opinion",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": null,
+   "volume": "100 – 1K",
+   "volume_floor": 100,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "opus 5 vs sonnet 5",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": null,
+   "volume": "100 – 1K",
+   "volume_floor": 100,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "Benchmarks",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "agentic tool use",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "best ai model for coding",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 2,
+   "combo": "E1×C3×Q1",
+   "categories": "Entity / Application + Comparison & Alternatives + Qualifiers",
+   "subcategories": "Core entity + Best / top listicle + Audience",
+   "slots": "ENTITY + MODIFIER + QUALIFIER",
+   "legality": "◆",
+   "target": "Board · Best for",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "best ai model for coding agents",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 2,
+   "combo": "E4×C3",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Use case / job-to-be-done + Best / top listicle",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude fable 5",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 11,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1 vs claude opus 5",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 2,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.6",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.8",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 8,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5 review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 2,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 11,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 4.6",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5.5",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 flash review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 2,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.8 flash",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.8 flash review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.3",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.3 review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.6",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 10,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 11,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6 astra",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 11,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6 astra review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": "◆",
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt-5.6 sol",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 10,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt-5.6 sol review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 1,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "minimax m3",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 4,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "minimax m3 review",
+   "tab": "Blogs",
+   "path": "/blogs",
+   "body_count": 2,
+   "combo": "E20×C7",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + Reviews & ratings",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 6,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 5,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku 4.5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 flash",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 3,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 pro",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3 flash",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude fable 5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.6",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.8",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 4,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 4.6",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5.5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4.1 flash",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.1 pro",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.7 flash",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.8 flash",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.2",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.3",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 3,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "glm 5.3 flash",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.6",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 4,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.6 luna",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 3,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6 astra",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt-5.6 sol",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt-6 sol",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "grok 4.5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "grok 4.6",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "grok 4.7",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "kimi k2.5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "kimi k2.6",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "kimi k2.7",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "kimi k3",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "minimax m2.5",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "minimax m2.7",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "minimax m3",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "nano banana 2",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "openrouter",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 3,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": "Blogs · guide",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "qwen3.8 27b",
+   "tab": "Models · All models",
+   "path": "/catalog",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Models · New releases",
+   "path": "/catalog/new",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude haiku",
+   "tab": "Models · New releases",
+   "path": "/catalog/new",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6",
+   "tab": "Models · New releases",
+   "path": "/catalog/new",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "H3",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "openrouter",
+   "tab": "Models · New releases",
+   "path": "/catalog/new",
+   "body_count": 3,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": "Blogs · guide",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 6,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku 4.5",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 flash",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 1,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text",
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "compare ai models",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Title"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.6",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.8 flash",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.6",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6 astra",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt-5.6 sol",
+   "tab": "Models · Compare models",
+   "path": "/compare",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Discussions",
+   "path": "/discussions",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 6,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 5,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku 4.5",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 flash",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 3,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 pro",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "structured output",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 41,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Capabilities",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Meta description",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude fable 5",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.6",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.8",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 4,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 4.6",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5.5",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "context window",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Meta description",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "openrouter",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 2,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": "Blogs · guide",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "prompt caching",
+   "tab": "Tools · Model specs finder",
+   "path": "/model-finder",
+   "body_count": 41,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": "Cost explainer / Board · Metrics",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Meta description",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Tools · Best AI model picker",
+   "path": "/model-picker",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "best ai model",
+   "tab": "Tools · Best AI model picker",
+   "path": "/model-picker",
+   "body_count": 2,
+   "combo": "E4×C3",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Use case / job-to-be-done + Best / top listicle",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Landing",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Title",
+    "Meta description",
+    "H1",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "coding agents",
+   "tab": "Tools · Best AI model picker",
+   "path": "/model-picker",
+   "body_count": 3,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Tools · Best AI model picker",
+   "path": "/model-picker",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Tools · Best AI model picker",
+   "path": "/model-picker",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 flash",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.8 flash",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.6",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6 astra",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt-5.6 sol",
+   "tab": "Models · Most reported",
+   "path": "/reports",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Models · Most reported · by capability",
+   "path": "/reports/capabilities",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "function calling",
+   "tab": "Models · Most reported · by capability",
+   "path": "/reports/capabilities",
+   "body_count": 1,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Capabilities",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "agentic tool use",
+   "tab": "Models · Most reported · by capability",
+   "path": "/reports/capabilities",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "coding agents",
+   "tab": "Models · Most reported · by job",
+   "path": "/reports/jobs",
+   "body_count": 3,
+   "combo": "E4",
+   "categories": "Entity / Application",
+   "subcategories": "Use case / job-to-be-done",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Board · Best for",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Meta description",
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Models · Most reported · by job",
+   "path": "/reports/jobs",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Models · Most reported · by metric",
+   "path": "/reports/metrics",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "cost per million tokens",
+   "tab": "Models · Most reported · by metric",
+   "path": "/reports/metrics",
+   "body_count": 1,
+   "combo": "E12×Q12",
+   "categories": "Entity / Application + Qualifiers",
+   "subcategories": "Metric / KPI + Threshold / numeric constraint",
+   "slots": "ENTITY + QUALIFIER",
+   "legality": "—",
+   "target": "Board · Metrics",
+   "volume": "100 – 1K",
+   "volume_floor": 100,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "tokens per second",
+   "tab": "Models · Most reported · by metric",
+   "path": "/reports/metrics",
+   "body_count": 1,
+   "combo": "E12×Q12",
+   "categories": "Entity / Application + Qualifiers",
+   "subcategories": "Metric / KPI + Threshold / numeric constraint",
+   "slots": "ENTITY + QUALIFIER",
+   "legality": "—",
+   "target": "Board · Metrics",
+   "volume": "100 – 1K",
+   "volume_floor": 100,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "context window",
+   "tab": "Models · Most reported · by metric",
+   "path": "/reports/metrics",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 2,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "deepseek v4 flash",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gemini 3.8 flash",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 5.6",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt 6 astra",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "gpt-5.6 sol",
+   "tab": "Models · Most reported · models",
+   "path": "/reports/models",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Button",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 6,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · index",
+   "volume": "100K – 1M",
+   "volume_floor": 100000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku 4.5",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "claude fable 5",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude fable 5.1",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude haiku",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.6",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 4.8",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude opus 5.5",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 4,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 4.6",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "claude sonnet 5.5",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "elevenlabs v3",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": "E20",
+   "categories": "Entity / Application",
+   "subcategories": "Named model / version",
+   "slots": "ENTITY",
+   "legality": null,
+   "target": "Models · detail",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "llm token counter",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Title",
+    "H1",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "openrouter",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": "Blogs · guide",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "token counter",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 2,
+   "combo": "E1×G3",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Calculator",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Asset · tool/download",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Title",
+    "H1",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "token counter llm",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "tokenizer",
+   "tab": "Tools · Token counter",
+   "path": "/token-counter",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "best ai model",
+   "tab": "Tools",
+   "path": "/tools",
+   "body_count": 1,
+   "combo": "E4×C3",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Use case / job-to-be-done + Best / top listicle",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Landing",
+   "volume": "10K – 100K",
+   "volume_floor": 10000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "ai model comparison",
+   "tab": "Tools",
+   "path": "/tools",
+   "body_count": 0,
+   "combo": "E20×C1",
+   "categories": "Entity / Application + Comparison & Alternatives",
+   "subcategories": "Named model / version + X vs Y",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Models · compare",
+   "volume": "1K – 10K",
+   "volume_floor": 1000,
+   "volume_source": "Planner volumes (measured)",
+   "placements": [
+    "Structured data"
+   ]
+  },
+  {
+   "keyword": "context window",
+   "tab": "Tools",
+   "path": "/tools",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "token counter",
+   "tab": "Tools",
+   "path": "/tools",
+   "body_count": 2,
+   "combo": "E1×G3",
+   "categories": "Entity / Application + Format & Asset",
+   "subcategories": "Core entity + Calculator",
+   "slots": "ENTITY + MODIFIER",
+   "legality": null,
+   "target": "Asset · tool/download",
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Title",
+    "Link text",
+    "Body text"
+   ]
+  },
+  {
+   "keyword": "tokenizer",
+   "tab": "Tools",
+   "path": "/tools",
+   "body_count": 1,
+   "combo": null,
+   "categories": null,
+   "subcategories": null,
+   "slots": null,
+   "legality": null,
+   "target": null,
+   "volume": null,
+   "volume_floor": null,
+   "volume_source": null,
+   "placements": [
+    "Body text"
+   ]
+  }
+ ]
+}

@@ -2924,6 +2924,17 @@ def admin_scheduler() -> dict:
         return scheduler_status.overview(conn)
 
 
+@app.get("/admin/seo-keywords")
+def admin_seo_keywords() -> dict:
+    """Keywords dashboard: which SEO keywords sit on which public page and where
+    (title, H1, links, body...), with their category, combination and measured
+    volume. A dated snapshot from seo/keywords_on_site.json; reads no database.
+    Signed-in only - not a public read. See judge/keywords_on_site.py."""
+    from judge import keywords_on_site
+
+    return keywords_on_site.load()
+
+
 @app.get("/changelog")
 def changelog_page(days: int = 30) -> dict:
     """FR-27. What changed, and whether it was us or the world."""
