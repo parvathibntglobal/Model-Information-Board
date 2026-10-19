@@ -36,7 +36,10 @@ def _configured(monkeypatch):
 
 #: Any route behind the gate that answers without a database. `/capabilities`
 #: played this part until it was removed 2026-10-08 (no page called it).
-GATED = "/faq"
+# `/faq` played this part until 2026-10-15, when it became a public read
+# (judge/gate.py: PUBLIC_READ_PATHS). `/admin/settings` answers without a
+# database too, and stays behind the gate.
+GATED = "/admin/settings"
 
 
 def _client() -> TestClient:

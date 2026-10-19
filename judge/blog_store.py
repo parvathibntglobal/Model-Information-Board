@@ -151,7 +151,9 @@ def published(conn) -> list[dict]:
         "                   ORDER BY decided_at DESC LIMIT 1) a ON true "
         "WHERE p.state = 'approved'",
     )
-    return _order([{**doc, "published_at": at.isoformat() if at else None}
+    from judge.publication import public_post
+
+    return _order([public_post({**doc, "published_at": at.isoformat() if at else None})
                    for doc, at in rows])
 
 
@@ -165,9 +167,11 @@ def for_review(conn) -> list[dict]:
         "LEFT JOIN LATERAL (SELECT reason, decided_at FROM blog_post_review "
         "                   WHERE slug = p.slug ORDER BY decided_at DESC LIMIT 1) r ON true",
     )
-    return _order([
+    from judge.publication import with_credits
+
+    return _order([with_credits(
         {**doc, "review": state, "run_id": run_id, "stored_at": stored_at.isoformat(),
-         "review_reason": reason, "decided_at": decided_at.isoformat() if decided_at else None}
+         "review_reason": reason, "decided_at": decided_at.isoformat() if decided_at else None})
         for doc, state, run_id, stored_at, reason, decided_at in rows])
 
 

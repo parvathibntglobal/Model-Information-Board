@@ -140,7 +140,7 @@ export default function Landing() {
             <span className="eyebrow">Models and comparisons</span>
             <h2>Every AI model, compared on the evidence</h2>
           </div>
-          <Link to="/reports/models" className="go-badge go-models" aria-label="Open all AI models">Models <span aria-hidden="true">→</span></Link>
+          <Link to="/catalog" className="go-badge go-models" aria-label="Open all models">Models <span aria-hidden="true">→</span></Link>
         </div>
         {/* SIX TURNING CARDS (2026-10-15): Compare, then the Models menu's
             entries, read from the published pages (components/ModelsShowcase.jsx). */}

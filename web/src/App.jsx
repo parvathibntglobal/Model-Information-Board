@@ -72,8 +72,12 @@ function ScrollToTop() {
 }
 
 /**
- * Route guard. Everything sits behind the front door; unauthenticated visitors
- * are sent to /login and returned to where they were headed once they are in.
+ * Route guard - FOR THE SIGNED-IN SURFACES ONLY (2026-10-15, Parvathi): the
+ * Board, the old model pages (/models) and Admin. Every published page - home,
+ * Blogs, Tools and the three tools, the Models pages, Compare, Discussions,
+ * FAQ - opens without signing in, and reads the backend's public endpoints
+ * (judge/gate.py: PUBLIC_READ_PATHS). A visitor who opens a guarded page is
+ * sent to /login and returned there once signed in.
  *
  * This is a demo gate — see src/auth.js. A guard in the client protects the
  * *view*, never the data; the backend must reject unauthenticated requests on
@@ -111,33 +115,34 @@ export default function App() {
       <main>
         <Suspense fallback={PAGE_LOADING}>
         <Routes>
-          {/* signing in drops you on the landing page */}
+          {/* signing in returns you to the guarded page you asked for, or the
+              Models list - the first of the signed-in surfaces */}
           <Route
             path="/login"
-            element={session ? <Navigate to="/" replace /> : <Login onSignedIn={setSession} />}
+            element={session ? <Navigate to={loc.state?.from || '/models'} replace /> : <Login onSignedIn={setSession} />}
           />
 
-          <Route path="/"        element={<Require session={session}><Landing /></Require>} />
+          <Route path="/"        element={<Landing />} />
           <Route path="/board/*" element={<Require session={session}><Board /></Require>} />
-          <Route path="/blogs/*" element={<Require session={session}><Blogs /></Require>} />
-          <Route path="/tools"       element={<Require session={session}><Tools /></Require>} />
-          <Route path="/model-picker" element={<Require session={session}><ModelPicker /></Require>} />
+          <Route path="/blogs/*" element={<Blogs />} />
+          <Route path="/tools"       element={<Tools />} />
+          <Route path="/model-picker" element={<ModelPicker />} />
           {/* the tool was briefly "AI model finder" here; an old link still opens it */}
           <Route path="/ai-model-finder" element={<MovedTo path="/model-picker" />} />
-          <Route path="/reports/*"   element={<Require session={session}><Reports /></Require>} />
-          <Route path="/catalog/*"   element={<Require session={session}><Catalog /></Require>} />
-          <Route path="/discussions" element={<Require session={session}><Discussions /></Require>} />
+          <Route path="/reports/*"   element={<Reports />} />
+          <Route path="/catalog/*"   element={<Catalog />} />
+          <Route path="/discussions" element={<Discussions />} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           {/* BEFORE `/models/*`, and outside it. The comparison is entered from
               the models list, but its own URL is `/compare?ids=…`: a model id
               contains a slash (`anthropic/claude-fable-5-1`), so a path segment
               could not carry two of them, and the SEO plan's comparison
               keywords all target /compare. */}
-          <Route path="/compare"    element={<Require session={session}><Compare /></Require>} />
+          <Route path="/compare"    element={<Compare />} />
           {/* Entered from the models list, beside Compare; top-level paths for the
               same reason as /compare - `/models/*` is a model id. */}
-          <Route path="/token-counter" element={<Require session={session}><TokenCounter /></Require>} />
-          <Route path="/model-finder"  element={<Require session={session}><ModelFinder /></Require>} />
+          <Route path="/token-counter" element={<TokenCounter />} />
+          <Route path="/model-finder"  element={<ModelFinder />} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />

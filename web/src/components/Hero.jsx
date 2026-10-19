@@ -115,6 +115,11 @@ export default function Hero({ children }) {
       {children}
 
       <nav className="hero-strip" aria-label="Popular searches">
+        {/* A LABEL FOR THE CHIPS (2026-10-15), styled like the picker's
+            "Search by:". "Popular" is earned: every chip is a measured keyword
+            (Planner bands, 10K-1M a month). Hidden from screen readers, which
+            already hear the nav's name. */}
+        <span className="hero-lab" aria-hidden="true">Popular searches:</span>
         <div className="hero-set">
           {CHIPS.map((c) => (
             <Link key={c.label} to={c.to} className="chip">{c.label} →</Link>

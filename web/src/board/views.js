@@ -1254,6 +1254,8 @@ function sourcesBlock(p){
     `<li id="es-src-${esc(x.n)}"><span class="plat">${esc(x.platform)}</span>
       <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.what)}</a>${x.who ? ` by ${esc(x.who)}` : ''}${x.posted ? ` · ${esc(x.posted)}` : ''}</li>`).join('')}</ol>
     <p class="es-note">Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.</p>${
+    // arXiv's acknowledgement, attached by the server to every post that cites
+    // an arXiv paper (judge/publication.py with_credits, 2026-10-19).
     p.acknowledgement ? `<p class="es-note es-ack">${esc(p.acknowledgement)}</p>` : ''}</section>`;
 }
 
