@@ -19,7 +19,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PATH = ROOT / "seo" / "keywords_on_site.json"
 
 #: Workbook columns the dashboard leaves out (decided 2026-10-19).
-EXCLUDED_COLUMNS = ("Found in SEO workbook sheet(s)", "Demand estimate (SEO workbook, not measured)")
+EXCLUDED_COLUMNS = (
+    "Found in SEO workbook sheet(s)",
+    "Demand estimate (SEO workbook, not measured)",
+)
 
 
 def load(path: Path = PATH) -> dict[str, Any]:

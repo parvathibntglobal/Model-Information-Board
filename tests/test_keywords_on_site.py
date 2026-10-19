@@ -17,8 +17,12 @@ def test_a_missing_snapshot_says_so_instead_of_failing(tmp_path):
 
 def test_the_snapshot_is_served_as_written(tmp_path):
     f = tmp_path / "k.json"
-    f.write_text(json.dumps({"tabs": [{"path": "/"}], "rows": [{"keyword": "rag", "path": "/"}], "placements": ["Title"]}),
-                 encoding="utf-8")
+    snapshot = {
+        "tabs": [{"path": "/"}],
+        "rows": [{"keyword": "rag", "path": "/"}],
+        "placements": ["Title"],
+    }
+    f.write_text(json.dumps(snapshot), encoding="utf-8")
     data = keywords_on_site.load(f)
     assert data["available"] is True and data["rows"][0]["keyword"] == "rag"
 
@@ -38,7 +42,8 @@ def test_the_dashboard_is_not_a_public_read():
     """It lives behind the sign-in, like the rest of Admin."""
     from starlette.requests import Request
 
-    req = Request({"type": "http", "method": "GET", "path": "/admin/seo-keywords", "query_string": b"", "headers": []})
+    req = Request({"type": "http", "method": "GET", "path": "/admin/seo-keywords",
+                   "query_string": b"", "headers": []})
     assert not gate.is_public_read(req)
     with pytest.MonkeyPatch.context() as m:
         m.setenv("API_TOKEN", "s3cret")

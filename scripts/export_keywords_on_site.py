@@ -36,11 +36,19 @@ PLACEMENTS = ["Title", "Meta description", "H1", "H2", "H3", "Link text", "Butto
               "Body text", "Navigation", "Footer", "Structured data"]
 # workbook header -> JSON key
 ROW_KEYS = {
-    "Keyword": "keyword", "Tab": "tab", "URL path": "path", "Times in body text": "body_count",
-    "Combo code": "combo", "Categories (master matrix)": "categories",
-    "Sub-categories (master matrix)": "subcategories", "Slot roles": "slots", "Legality": "legality",
-    "Target page (SEO workbook)": "target", "Search volume / month (Keyword Planner band)": "volume",
-    "Volume band floor": "volume_floor", "Volume source": "volume_source",
+    "Keyword": "keyword",
+    "Tab": "tab",
+    "URL path": "path",
+    "Times in body text": "body_count",
+    "Combo code": "combo",
+    "Categories (master matrix)": "categories",
+    "Sub-categories (master matrix)": "subcategories",
+    "Slot roles": "slots",
+    "Legality": "legality",
+    "Target page (SEO workbook)": "target",
+    "Search volume / month (Keyword Planner band)": "volume",
+    "Volume band floor": "volume_floor",
+    "Volume source": "volume_source",
 }
 TAB_KEYS = {"Tab": "tab", "URL path": "path", "Title": "title", "Meta description": "description",
             "H1": "h1", "H2 count": "h2_count", "H3 count": "h3_count", "Note": "note"}
@@ -51,7 +59,7 @@ def _rows(ws):
     head = [str(h).strip() if h is not None else "" for h in next(it)]
     for r in it:
         if any(v not in (None, "") for v in r):
-            yield dict(zip(head, r))
+            yield dict(zip(head, r, strict=False))
 
 
 def build(xlsx: Path) -> dict:
