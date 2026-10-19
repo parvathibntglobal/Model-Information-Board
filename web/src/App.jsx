@@ -2,7 +2,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
-import HoverPreview from './components/HoverPreview'
 import Landing from './routes/Landing'
 import Login from './routes/Login'
 import { getSession, signOut } from './auth'
@@ -154,7 +153,8 @@ export default function App() {
       </main>
 
       {onHome && <Footer />}
-      {session && !onLogin && <HoverPreview />}
+      {/* HOVER PREVIEWS OFF (2026-10-19, anooj): components/HoverPreview.jsx
+          is kept; mounting it here again turns them back on. */}
     </>
   )
 }
