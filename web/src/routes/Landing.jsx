@@ -20,7 +20,9 @@ const GIVES = [
   'People, each counted once, not posts',
   'Working, failing and neutral kept apart',
   'Every statement checked against its source',
-  'No scores, no paid placement',
+  // "No scores" dropped 2026-10-19: CLAUDE.md rule 3 now permits one score,
+  // the category score on Compare (#540), so the promise would be false there.
+  'No paid placement, free to use',
 ]
 
 // The closing call to action (reworked 2026-10-15 for the public pages): a line
@@ -65,7 +67,7 @@ function ClosingCta() {
           ))}
         </span>
       </h2>
-      <p className="muted">Counted from what engineers reported in real work. No scores, no paid placement.</p>
+      <p className="muted">Counted from what engineers reported in real work. No paid placement.</p>
       <div className="closing-actions" onMouseLeave={() => setHeld(false)}>
         {CLOSING.map((c, n) => (
           <Link key={c.to} to={c.to} className={`btn btn-lg closing-btn l${n}${n === i ? ' on' : ''}`}
