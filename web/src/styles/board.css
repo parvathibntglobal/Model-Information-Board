@@ -584,6 +584,15 @@
 .essay .es-pop span{color:var(--es-muted)}
 .essay .es-pop .go{color:var(--es-accent);margin-top:.25rem}
 .essay .es-num{text-decoration:underline dotted var(--es-muted);text-underline-offset:3px;cursor:help}
+/* A model with a card and no public page to link (no canonical id). */
+.essay span.es-ent:not(.off){position:relative;text-decoration:underline dotted var(--es-accent);text-underline-offset:3px;cursor:help}
+.essay span.es-ent:not(.off):hover .es-pop,.essay span.es-ent:not(.off):focus .es-pop{display:flex;flex-direction:column;gap:.15rem}
+/* "A vs B" -> /compare, and a two-model post's link to its comparison (2026-10-19). */
+.essay a.es-vs{color:inherit;text-decoration:underline solid var(--es-accent);text-underline-offset:3px}
+.essay a.es-vs:hover,.essay a.es-vs:focus{color:var(--es-accent);outline:none}
+.essay .es-cmp{margin:-1rem 0 1.8rem;font:500 .86rem var(--es-mono)}
+.essay .es-cmp a{color:var(--es-accent);text-decoration:none}
+.essay .es-cmp a:hover,.essay .es-cmp a:focus{text-decoration:underline;outline:none}
 .essay q.es-iq[title]{cursor:help}
 .es-steps .box{flex:0 0 .8rem;height:.8rem;margin-top:.3rem;border:1px solid var(--es-accent);border-radius:3px}
 .layout-runbook .es-pre{border-left:3px solid var(--es-accent)}
