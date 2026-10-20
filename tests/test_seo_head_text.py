@@ -43,9 +43,10 @@ def _heads(out):
 
 def test_every_page_has_its_own_title(out):
     # Pairs that are the SAME page by design are left out: A-vs-B and B-vs-A,
-    # and a missing post (which falls back to the index head).
+    # a missing post (which falls back to the index head), and /reports/models,
+    # which is /reports.
     titles = [h["title"] for k, h in _heads(out).items()
-              if k not in ("compareBA", "postMissing", "hubDefault") and h]
+              if k not in ("compareBA", "postMissing", "hubDefault", "reportsModels") and h]
     assert all(titles)
     assert len(set(titles)) == len(titles)
 
@@ -167,3 +168,11 @@ def test_a_dated_page_says_when_it_last_changed(out):
     assert s["pageUndated"] is None
     assert s["modelDated"]["dateModified"] == "2026-10-05T12:00:00+00:00"
     assert "WebPage" in s["inSectionDated"]
+
+
+def test_reports_models_and_the_hub_are_one_page(out):
+    """/reports opens on the Models section, so /reports/models names the hub as
+    its canonical instead of competing with it (2026-10-20)."""
+    assert out["reportsHub"]["canonical"] == "/reports"
+    assert out["reportsModels"]["canonical"] == "/reports"
+    assert out["reportsJobs"]["canonical"] == "/reports/jobs"

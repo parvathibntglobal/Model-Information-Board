@@ -54,7 +54,10 @@ def test_open_needs_both_keys(out):
 
 def test_open_robots_disallows_private_pages_and_names_the_sitemap(out):
     robots = out["robotsOpen"].splitlines()
-    assert {"Disallow: /admin", "Disallow: /login", "Disallow: /compare"} <= set(robots)
+    assert {"Disallow: /admin", "Disallow: /login", "Disallow: /board", "Disallow: /models",
+            "Disallow: /seo-keywords"} <= set(robots)
+    # Compare is a public tool since 2026-10-20: crawlable, noindex per comparison
+    assert "Disallow: /compare" not in robots
     assert "Sitemap: https://board.example/sitemap.xml" in robots
     assert "Disallow: /" not in robots
 
@@ -65,15 +68,21 @@ def test_the_sitemap_is_valid_xml_with_structural_and_indexable_pages(out):
     assert len(locs) == len(set(locs))                       # each once
     for p in out["structural"]:
         assert f"https://board.example{p}" in locs
-    assert "https://board.example/board/jobs/code-review" in locs
-    assert "https://board.example/models/anthropic/claude-opus-4.6" in locs
-    assert "https://board.example/board?tab=cap&x=1" in locs   # escaped in XML, intact once parsed
+    assert "https://board.example/reports/jobs/code-review" in locs
+    assert "https://board.example/catalog/model/anthropic/claude-opus-4.6" in locs
+    # escaped in XML, intact once parsed
+    assert "https://board.example/catalog?type=text&x=1" in locs
+    assert "https://board.example/compare" in locs
 
 
 def test_the_sitemap_never_lists_a_private_page_or_a_non_path(out):
     root = ET.fromstring(out["sitemap"])
     locs = [u.find(f"{NS}loc").text for u in root.findall(f"{NS}url")]
-    assert not any(x.endswith(("/compare", "/admin", "/login")) for x in locs)
+    # the signed-in pages, at any depth, never reach the sitemap
+    assert not any(x.endswith(("/admin", "/login", "/seo-keywords")) for x in locs)
+    paths = [x.replace("https://board.example", "", 1) for x in locs]
+    for q in ("/board", "/models"):
+        assert not any(p == q or p.startswith((q + "/", q + "?")) for p in paths)
     assert not any("not-a-path" in x for x in locs)
 
 
@@ -92,8 +101,8 @@ def test_a_real_date_becomes_lastmod_and_nothing_else_does(out):
     that has one. A malformed value and an undated path get none (no build
     time standing in for a date nobody recorded)."""
     xml = out["sitemapDated"]
-    dated = "<loc>https://board.example/board/jobs/code-review</loc><lastmod>2026-10-06</lastmod>"
+    dated = "<loc>https://board.example/reports/jobs/code-review</loc><lastmod>2026-10-06</lastmod>"
     assert dated in xml
-    assert "<loc>https://board.example/models/acme/model-t</loc></url>" in xml
-    assert "<loc>https://board.example/board</loc></url>" in xml
+    assert "<loc>https://board.example/catalog/model/acme/model-t</loc></url>" in xml
+    assert "<loc>https://board.example/blogs</loc></url>" in xml
     assert xml.count("<lastmod>") == 1

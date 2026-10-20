@@ -9,11 +9,23 @@
  * are public, never a side effect of setting a URL.
  */
 
-/** Pages that exist for anyone, whatever the evidence: always in the sitemap. */
-export const STRUCTURAL_PATHS = ['/', '/board', '/board?tab=cap', '/board?tab=met', '/models', '/blogs']
+/**
+ * Pages that exist for anyone, whatever the evidence: always in the sitemap.
+ * THE PUBLIC PAGES (2026-10-20). Until then this named /board and /models,
+ * which have been signed-in since 2026-10-15, and left out every public page.
+ * Kept in step with contract/indexing.yaml's `always` list.
+ */
+export const STRUCTURAL_PATHS = [
+  '/', '/blogs', '/tools', '/model-picker', '/model-finder', '/token-counter',
+  '/catalog', '/catalog/new', '/compare', '/reports', '/reports/jobs', '/reports/capabilities', '/reports/metrics',
+]
 
-/** Never in a sitemap, and disallowed in robots.txt when open. */
-export const PRIVATE_PATHS = ['/admin', '/login', '/compare']
+/**
+ * Never in a sitemap, and disallowed in robots.txt when open: the signed-in
+ * pages. /compare left this list on 2026-10-20 - it is a public tool now; a
+ * comparison of named models stays noindex through its own head instead.
+ */
+export const PRIVATE_PATHS = ['/admin', '/login', '/board', '/models', '/seo-keywords', '/keywords']
 
 export function siteOf(siteUrl, publicSite) {
   const site = (siteUrl || '').trim().replace(/\/+$/, '')

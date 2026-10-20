@@ -72,6 +72,17 @@ def indexable_pages(conn: Any) -> dict:
     {"pages", "indexable"}}, "rules": {...}}. `voices` is None for kinds with
     no evidence threshold. Paths are the canonical paths the frontend writes
     (web/src/seo/pages.js), so a page can test its own canonical against them.
+
+    THE PUBLIC ADDRESSES (2026-10-20). The board's own pages (`/board/...`,
+    `/models/...`) are signed-in since 2026-10-15 and noindex, so listing them
+    told search engines about login walls while every public page fell to
+    noindex - `noindexFor` keeps a page indexable only when its canonical is
+    here. The same evidence now admits the public page that shows it:
+
+        section           /reports/{jobs|capabilities|metrics}/:slug
+        model             /catalog/model/:canonical and /reports/models/:canonical
+        model_in_section  counted for the tally only - no public page shows one
+                          model inside one section
     """
     from judge import blog_store, publication
     from judge.store.board_entries import board_sections, evidence_for_model
@@ -95,8 +106,8 @@ def indexable_pages(conn: Any) -> dict:
                 tallies["section"]["indexable"] += 1
                 # LASTMOD: when the newest entry on the page was added, over the
                 # same public rows the page shows. Absent rather than invented.
-                out.append({"path": f"/board/{seg}/{item['slug']}", "kind": "section", "voices": v,
-                            "lastmod": item.get("updated_at")})
+                out.append({"path": f"/reports/{seg}/{item['slug']}", "kind": "section",
+                            "voices": v, "lastmod": item.get("updated_at")})
             for m in item.get("models") or []:
                 # THE READABLE ID IN THE ADDRESS (`anthropic/claude-opus-4.6`), the
                 # same one the board links use; the internal key only as a fallback.
@@ -108,12 +119,10 @@ def indexable_pages(conn: Any) -> dict:
                 when = m.get("updated_at")
                 if when and (mkey_lastmod.get(m.get("model_key")) or "") < when:
                     mkey_lastmod[m.get("model_key")] = when
+                # Tallied, not listed: the drill-down lives only on the signed-in board.
                 tallies["model_in_section"]["pages"] += 1
                 if mv >= need["model_in_section"]:
                     tallies["model_in_section"]["indexable"] += 1
-                    out.append({"path": f"/board/{seg}/{item['slug']}/{mkey}",
-                                "kind": "model_in_section", "voices": mv,
-                                "lastmod": m.get("updated_at")})
 
     # MODEL PAGES, by canonical id (SEO item 2: one URL per model). Only models
     # with any board entry can reach the threshold; the rest count as pages
@@ -131,8 +140,11 @@ def indexable_pages(conn: Any) -> dict:
         v = evidence_for_model(conn, mv_id, hidden=hidden, with_voices=True)["voices"]
         if v >= need["model"]:
             tallies["model"]["indexable"] += 1
-            out.append({"path": f"/models/{canonical}", "kind": "model", "voices": v,
-                        "lastmod": mkey_lastmod.get(mv_id)})
+            # Two public pages show one model: its catalogue page (price, specs,
+            # voices) and its Most reported page (what engineers report).
+            for path in (f"/catalog/model/{canonical}", f"/reports/models/{canonical}"):
+                out.append({"path": path, "kind": "model", "voices": v,
+                            "lastmod": mkey_lastmod.get(mv_id)})
 
     # Approved posts only. A store that cannot be read raises
     # (`blog_store.StoreUnreadable`), so a failure is not read as "no posts".

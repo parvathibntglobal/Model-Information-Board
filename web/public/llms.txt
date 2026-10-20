@@ -1,0 +1,26 @@
+# Model Information Board
+
+> What engineers report about AI models in production, counted by job, capability and metric, beside each model's list price, context window and features. Free tools to pick a model, find one by spec and price a prompt.
+
+The board reads public posts by engineers about AI models, files each report under the job it was about (for example coding agents, code review, RAG), the capability it shows (for example reasoning, long context) or the metric it gives (for example cost per million tokens, time to first token), and counts the reports: how many say a model worked, did not, or neither. Model prices and specs are the providers' own published figures.
+
+## Models
+
+- [All AI models](/catalog): every listed model by provider and type, with list prices and context window
+- [New AI model releases](/catalog/new): the most recently listed models, newest first
+- [Compare AI models](/compare): up to three models side by side
+- [Most reported](/reports): what engineers report about each AI model
+- [Most reported, by job](/reports/jobs): which models engineers report working for each job
+- [Most reported, by capability](/reports/capabilities)
+- [Most reported, by metric](/reports/metrics)
+
+## Tools
+
+- [Best AI model picker](/model-picker): models engineers reported working for a job, a capability or a metric
+- [Model specs finder](/model-finder): filter models by context window, price and features
+- [Token counter](/token-counter): count a prompt's tokens and price it on several models
+
+## Reading
+
+- [Blogs](/blogs): posts on AI models, written from the reports
+- [Discussions](/discussions): readers' own experiences with AI models, shown beside the reports and never added to the counts

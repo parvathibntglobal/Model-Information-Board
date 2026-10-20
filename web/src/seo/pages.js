@@ -241,7 +241,9 @@ export function reportsIndex(section = null, item = null) {
   return {
     title: fullTitle(section.key === 'models' ? 'Models: what engineers report about each AI model' : `${section.title}: what engineers report`),
     description: clip(section.lede),
-    canonical: base,
+    // /reports/models IS /reports - the hub opens on the Models section - so both
+    // name one canonical and search engines see one page, not two (2026-10-20).
+    canonical: section.key === 'models' ? '/reports' : base,
     breadcrumbs: [{ name: 'AI models', path: '/reports' }, ...(section.key === 'models' ? [] : [{ name: section.title, path: base }])],
   }
 }

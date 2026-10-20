@@ -14,11 +14,12 @@ process.stdout.write(JSON.stringify({
   },
   robotsClosed: robotsTxt({ site: '', open: false }),
   robotsOpen: robotsTxt({ site, open: true }),
-  sitemap: sitemapXml(site, ['/board/jobs/code-review', '/board', '/compare', '/admin', '/login',
-    '/models/anthropic/claude-opus-4.6', '/board?tab=cap&x=1', 'not-a-path']),
-  sitemapDated: sitemapXml(site, ['/board/jobs/code-review', '/models/acme/model-t', '/board'], {
-    '/board/jobs/code-review': '2026-10-06T13:00:39+05:30',
-    '/models/acme/model-t': 'not a date',
+  sitemap: sitemapXml(site, ['/reports/jobs/code-review', '/board', '/board/jobs/code-review', '/compare',
+    '/admin', '/login', '/models/anthropic/claude-opus-4.6', '/seo-keywords',
+    '/catalog/model/anthropic/claude-opus-4.6', '/catalog?type=text&x=1', 'not-a-path']),
+  sitemapDated: sitemapXml(site, ['/reports/jobs/code-review', '/catalog/model/acme/model-t', '/blogs'], {
+    '/reports/jobs/code-review': '2026-10-06T13:00:39+05:30',
+    '/catalog/model/acme/model-t': 'not a date',
   }),
   structural: STRUCTURAL_PATHS,
   readPaths: {

@@ -42,18 +42,25 @@
 # search engine is invited to list. A wrong `noindex` costs a page its search
 # listing (recoverable, visible in /seo/indexable); a wrong `index` puts a
 # one-comment page in front of searchers as if it were a finding.
+#
+# THE PUBLIC ADDRESSES (proposed 2026-10-20, branch seo/parvathi). The board's
+# own pages - /board and /models - have been signed-in since 2026-10-15, so the
+# lists below now name the PUBLIC pages that show the same evidence. Before
+# this, `always` named two login walls and every public page outside it fell to
+# noindex the moment the site opened (web/src/seo/pages.js: noindexFor).
+# The thresholds are unchanged.
 # ============================================================================
 
 version: 1
 
 pages:
-  # /board/{jobs|capabilities|metrics}/:slug
+  # /reports/{jobs|capabilities|metrics}/:slug
   section:
     min_voices: 2
-  # /board/{jobs|capabilities|metrics}/:slug/:model
+  # one model inside one section: tallied only - no public page shows it
   model_in_section:
     min_voices: 2
-  # /models/:canonical_id
+  # /catalog/model/:canonical_id and /reports/models/:canonical_id
   model:
     min_voices: 2
 
@@ -61,19 +68,29 @@ pages:
 # visitor needs them to find the pages above.
 always:
   - /
-  - /board
-  - /board?tab=cap
-  - /board?tab=met
-  - /models
   - /blogs
+  - /tools
+  - /model-picker
+  - /model-finder
+  - /token-counter
+  - /catalog
+  - /catalog/new
+  - /compare
+  - /reports
+  - /reports/jobs
+  - /reports/capabilities
+  - /reports/metrics
 
 # Blog posts: approved posts only (judge/blog_store.py). A pending or rejected
 # post is never indexable, whatever this file says elsewhere.
 blog_posts: approved_only
 
-# Never indexable, at any evidence level. /compare is combinatorial (every pair
-# and triple of models) and would multiply thin pages; the others are private.
+# Never indexable, at any evidence level: the signed-in pages. The bare
+# /compare tool page is listed above; a comparison of named models
+# (/compare?ids=...) is combinatorial and stays off this list, so it is noindex.
 never:
-  - /compare
   - /login
   - /admin
+  - /board
+  - /models
+  - /seo-keywords

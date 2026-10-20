@@ -7,8 +7,9 @@ What is pinned:
      server counted withheld sources and would have indexed a page whose only
      public evidence was one person. 816 section pages counted as 966.
   2. a page needs `min_voices` DISTINCT voices: one person twice is one voice;
-  3. section pages, drill-downs and model pages appear at the paths the
-     frontend writes as their canonical (web/src/seo/pages.js);
+  3. section pages and model pages appear at the PUBLIC paths the frontend
+     writes as their canonical (web/src/seo/pages.js) - /reports/... and
+     /catalog/model/... - never at the signed-in /board or /models (2026-10-20);
   4. structural pages are always listed, never-pages never are, and only
      approved blog posts count;
   5. a missing threshold raises instead of defaulting (rule 12).
@@ -89,34 +90,40 @@ class TestCountedOnThePublicView:
         monkeypatch.setenv("PUBLICATION_VIEW", "internal")
         paths = _paths(conn)
         # three voices internally, one publicly: NOT indexable
-        assert "/board/capabilities/long-context" not in paths
+        assert "/reports/capabilities/long-context" not in paths
 
     def test_the_public_server_agrees(self, conn):
-        assert "/board/capabilities/long-context" not in _paths(conn)
+        assert "/reports/capabilities/long-context" not in _paths(conn)
 
 
 class TestTheThreshold:
     def test_two_public_voices_is_indexable(self, conn):
         paths = _paths(conn)
-        assert paths["/board/capabilities/tool-use"]["voices"] == 2
-        # THE READABLE ID, not the internal key: the drill-down address names
-        # the model the way the board links do (2026-10-13).
-        assert "/board/capabilities/tool-use/acme/model-t" in paths
-        assert "/board/capabilities/tool-use/mv_t" not in paths
+        assert paths["/reports/capabilities/tool-use"]["voices"] == 2
 
-    def test_an_indexable_board_page_carries_its_lastmod(self, conn):
-        """Every indexable section and model-in-section path carries when its
-        newest public entry was added, for the sitemap's <lastmod>."""
+    def test_no_drill_down_is_listed(self, conn):
+        """One model inside one section has no public page; it is tallied, not listed."""
         paths = _paths(conn)
-        assert paths["/board/capabilities/tool-use"].get("lastmod")
-        assert paths["/board/capabilities/tool-use/acme/model-t"].get("lastmod")
+        assert not any(p.count("/") > 3 and p.startswith("/reports/capabilities/") for p in paths)
+        assert seo.indexable_pages(conn)["tallies"]["model_in_section"]["indexable"] == 1
+
+    def test_an_indexable_section_page_carries_its_lastmod(self, conn):
+        """Every indexable section path carries when its newest public entry was
+        added, for the sitemap's <lastmod>."""
+        assert _paths(conn)["/reports/capabilities/tool-use"].get("lastmod")
 
     def test_one_person_twice_is_one_voice(self, conn):
-        assert "/board/capabilities/code-review" not in _paths(conn)
+        assert "/reports/capabilities/code-review" not in _paths(conn)
 
-    def test_the_model_page_is_its_canonical_url(self, conn):
+    def test_the_model_has_its_two_public_pages(self, conn):
         # Public voices across the whole model: a1, a2, a3, a6 = 4.
-        assert _paths(conn)["/models/acme/model-t"]["voices"] == 4
+        paths = _paths(conn)
+        assert paths["/catalog/model/acme/model-t"]["voices"] == 4
+        assert paths["/reports/models/acme/model-t"]["voices"] == 4
+
+    def test_no_signed_in_page_is_listed(self, conn):
+        """/board and /models are behind the sign-in since 2026-10-15."""
+        assert not any(p.startswith(("/board", "/models")) for p in _paths(conn))
 
     def test_tallies_carry_their_denominator(self, conn):
         t = seo.indexable_pages(conn)["tallies"]
@@ -127,8 +134,18 @@ class TestTheThreshold:
 class TestTheLists:
     def test_structural_pages_always_and_never_pages_never(self, conn):
         paths = _paths(conn)
-        assert {"/board", "/models", "/blogs"} <= set(paths)
-        assert "/compare" not in paths and "/login" not in paths and "/admin" not in paths
+        assert {"/", "/blogs", "/tools", "/catalog", "/catalog/new", "/compare", "/reports",
+                "/reports/jobs", "/token-counter", "/model-picker", "/model-finder"} <= set(paths)
+        assert not {"/login", "/admin", "/board", "/models", "/seo-keywords"} & set(paths)
+
+    def test_the_contract_lists_match_the_sitemap_lists(self):
+        """contract/indexing.yaml `always` and web/seo-build.js STRUCTURAL_PATHS
+        name the same pages, so the sitemap and the noindex rule cannot disagree."""
+        import re
+        web = pathlib.Path(__file__).resolve().parents[1] / "web"
+        src = (web / "seo-build.js").read_text(encoding="utf-8")
+        block = src.split("export const STRUCTURAL_PATHS = [", 1)[1].split("]", 1)[0]
+        assert set(re.findall(r"'([^']+)'", block)) == set(seo.rules()["always"])
 
     def test_only_approved_posts(self, conn):
         paths = _paths(conn)
