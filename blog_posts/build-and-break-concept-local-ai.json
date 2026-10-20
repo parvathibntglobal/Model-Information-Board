@@ -1,0 +1,519 @@
+{
+ "slug": "build-and-break-concept-local-ai",
+ "status": "draft",
+ "tag": "Build and break",
+ "feat": false,
+ "title": "Local LLMs Crawl Until Every Layer Can See the Hardware",
+ "dek": "One word every two seconds and a fan like a jet engine: that's a local model stuck on the wrong layer. Here's the build, where it breaks, and the fix for each break.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "How to run an LLM locally: hand the container the GPU, tune kernels to your chip, keep inputs compact and start tools early. Each layer can quietly throw away speed you paid for.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+V2hlcmUgYSBsb2NhbCBMTE0gYnVpbGQgYnJlYWtzLCBsYXllciBieSBsYXllcjwvdGl0bGU+CiAgPGRlc2M+QSBzdGFjayBmcm9tIGJvdHRvbSB0byB0b3A6IGNoaXAgYW5kIGRyaXZlcnMsIGNvbnRhaW5lciBydW50aW1lLCBjb21wdXRlIGtlcm5lbHMsIG1vZGVsIGNvbnRleHQsIHRvb2xzIGFuZCBhcHAuIEVhY2ggbGF5ZXIgY2FycmllcyBpdHMgYnJlYWsgYW5kIGZpeDogdGhlIGNvbnRhaW5lciBjYW5ub3Qgc2VlIHRoZSBHUFUsIGdlbmVyaWMga2VybmVscyBpZ25vcmUgdGhlIGNoaXAsIHJhdyBzZW5zb3IgdGV4dCBmbG9vZHMgdGhlIGNvbnRleHQsIHRvb2xzIHdhaXQgdW50aWwgc3BlZWNoIGVuZHMuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI2OCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiPkxvY2FsIExMTXMgYnJlYWsgYmV0d2VlbiBsYXllcnM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkZpeCB0aGVtIGluIG9yZGVyLCBmcm9tIHRoZSBoYXJkd2FyZSB1cDwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjE0MCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSI3MiIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijg1IiB5PSIxODUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Ub29scyBhbmQgYXBwPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIyMjUiIHdpZHRoPSI0MjAiIGhlaWdodD0iNzIiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI4NSIgeT0iMjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+TW9kZWwgY29udGV4dDwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzEwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjcyIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODUiIHk9IjM1NSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvbXB1dGUga2VybmVsczwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzk1IiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjcyIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODUiIHk9IjQ0MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvbnRhaW5lciBydW50aW1lPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSI0ODAiIHdpZHRoPSI0MjAiIGhlaWdodD0iNzIiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI4NSIgeT0iNTI1IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+Q2hpcCBhbmQgZHJpdmVyczwvdGV4dD4KCiAgPHRleHQgeD0iNTIwIiB5PSIxNzAiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5CcmVhazogdG9vbHMgc3RhcnQgb25seSBhZnRlciBzcGVlY2ggZW5kczwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjE5NiIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPkZpeDogcHJlZGljdCBhbmQgcnVuIHRoZW0gZWFybHksIHRoZW4gdmFsaWRhdGU8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSIyNTUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5CcmVhazogcmF3IHNlbnNvciB0ZXh0IGZsb29kcyBhIHBob25lJ3MgY29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjI4MSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPkZpeDogaW5qZWN0IGVuY29kZWQgd2luZG93cyBhcyBlbWJlZGRpbmdzPC90ZXh0PgogIDx0ZXh0IHg9IjUyMCIgeT0iMzQwIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+QnJlYWs6IGdlbmVyaWMga2VybmVscyBpZ25vcmUgeW91ciBjaGlwPC90ZXh0PgogIDx0ZXh0IHg9IjUyMCIgeT0iMzY2IiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+Rml4OiB0dW5lIG9uIGZpcnN0IGxvYWQsIGNhY2hlIHRoZSByZXN1bHQ8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSI0MjUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5CcmVhazogdGhlIHBvZCBjYW5ub3Qgc2VlIHRoZSBHUFU8L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSI0NTEiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5GaXg6IHRvb2xraXQsIGRldmljZSBwbHVnaW4sIEdQVSByZXF1ZXN0PC90ZXh0PgogIDx0ZXh0IHg9IjUyMCIgeT0iNTEwIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+QnJlYWs6IGEgbWlzc2luZyBkcml2ZXIgZmFpbHMgcXVpZXRseTwvdGV4dD4KICA8dGV4dCB4PSI1MjAiIHk9IjUzNiIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPkZpeDogY2hlY2sgdGhlIGhvc3QgYmVmb3JlIGFueSBtYW5pZmVzdDwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjU5NSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPlN0aWxsIG9wZW46IHR1bmVkIGtlcm5lbHMgb24gc2hhcmVkIEdQVSBzbGljZXM8L3RleHQ+Cjwvc3ZnPgo=",
+  "alt": "A local LLM stack from chip to app, marked with the break at each layer and its fix.",
+  "caption": "Every slowdown in this build comes from one layer failing to see what the layer below offers.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How to run an LLM locally without the slowdowns: a GPU the container can't see, generic kernels, sensor data that floods context, tools that wait.",
+ "keywords": [
+  "how to run an LLM locally",
+  "local and on-device AI",
+  "Ollama GPU passthrough K3s",
+  "local LLM inference speed",
+  "on-device LLM privacy",
+  "speculative tool execution"
+ ],
+ "kicker": "Build and break",
+ "tags": [
+  "local LLMs",
+  "Build and break"
+ ],
+ "read": 8,
+ "decisions": [
+  "Prove the container can see the GPU before you tune anything above it.",
+  "Benchmark tuned kernels against defaults on the node and GPU slice you will actually serve from.",
+  "Feed sensor data to on-device models as embeddings once text serialisation overflows the context.",
+  "Start predictable tool calls during speech, and validate each cached result before use."
+ ],
+ "layout": "fieldguide",
+ "arrangement": "a",
+ "special": {
+  "type": "checklist",
+  "title": "Before you ship",
+  "items": [
+   {
+    "check": "Run nvidia-smi on the host before touching any manifest.",
+    "why": "A missing driver makes every layer above it fail quietly."
+   },
+   {
+    "check": "Confirm the Ollama pod requests a GPU and the device plugin reports one.",
+    "why": "Without both, the pod lands on CPU math and crawls without any error."
+   },
+   {
+    "check": "Put containerd changes in the K3s template file, never in config.toml.",
+    "why": "K3s rewrites config.toml on restart, and your runtime setting disappears."
+   },
+   {
+    "check": "Measure time-to-first-token at the context length you will really serve.",
+    "why": "KV-cache traffic grows with context and hides behind short test prompts."
+   },
+   {
+    "check": "Benchmark a tuned engine against defaults on the exact node and GPU slice.",
+    "why": "Tuned kernels can mispredict on shifting quotas or shared MIG slices."
+   },
+   {
+    "check": "Budget first-load kernel tuning into deploys and autoscaling.",
+    "why": "Tuning takes 45 to 90 seconds on first load, before the cache helps."
+   },
+   {
+    "check": "Compare a phone port with its reference token by token under greedy decoding.",
+    "why": "A port can drift numerically and still produce plausible text."
+   },
+   {
+    "check": "Count the tokens a raw sensor window costs before sending it as text.",
+    "why": "Serialised samples can overflow a small model's context or memory."
+   },
+   {
+    "check": "Validate each speculatively fetched tool result before injecting it.",
+    "why": "A user's mid-sentence correction can make a prefetched result wrong."
+   },
+   {
+    "check": "Test on-device weight protection against an attacker who solves for the key.",
+    "why": "Output-only obfuscation can leave the secret uniquely recoverable."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "The easy install works until the cluster hides your GPU",
+    "num": "01",
+    "id": "the-easy-install-works-until-the-cluster-hides-your-gpu"
+   }
+  ],
+  [
+   "p",
+   "The goal is simple: run an LLM locally, on hardware you own, so your data and latency stay yours. The first break comes fast. One builder put Ollama on a lightweight K3s cluster behind Open WebUI and asked it a question. A word appeared every two seconds. The CPU fan roared and system memory hit 100% [3]."
+  ],
+  [
+   "p",
+   "So how do you run an LLM locally without that crawl? Think in layers. At the bottom sit drivers and the chip. Above them, a serving engine like Ollama runs quantised weights through compute kernels, the small routines that do the matrix math. On top sits your app: an assistant, a voice agent, a memory store. Each layer can break on its own [2, 3, 1, 4]."
+  ],
+  [
+   "p",
+   "We think that framing is the whole lesson of this build. None of the failures below is the model's fault. Each comes from one layer failing to see what the layer beneath it offers. Fix them in order, from the hardware up."
+  ],
+  [
+   "h2",
+   {
+    "text": "K3s hides the GPU until you build a three-layer bridge",
+    "num": "02",
+    "id": "k3s-hides-the-gpu-until-you-build-a-three-layer-bridge"
+   }
+  ],
+  [
+   "p",
+   "Start with the crawl. On bare-metal macOS or Windows with CUDA drivers, Ollama finds the GPU and offloads layers to VRAM on its own. Kubernetes is different. K3s bundles containerd, which sandboxes containers from the host's physical PCI devices. The Ollama process can't see the NVIDIA device nodes. With no CUDA runtime in the pod, it falls back to CPU matrix math [3]."
+  ],
+  [
+   "p",
+   "That fallback is expensive. CPU inference on a 7B or 13B model keeps shuttling data between system RAM and the CPU cache. Threads contend, the chip throttles from heat, and speed drops far below the 50 to 80 tokens per second the author expects from GPU memory. Nothing errors. It just gets slow [3]."
+  ],
+  [
+   "p",
+   "The fix stacks three pieces on working drivers. First, confirm the host driver with `nvidia-smi`. Next, install the NVIDIA Container Toolkit, which lets containerd hand host GPUs to containers. Then deploy the NVIDIA device plugin, which reports GPU count to the K3s scheduler. Finally, the Ollama pod asks for one GPU in its resource limits [3]."
+  ],
+  [
+   "p",
+   "One trap waits in step two. K3s rewrites its containerd `config.toml` every time the service restarts. Edit that file directly and your runtime change vanishes on the next reboot. The author's fix is the template mechanism: put your settings in `config.toml.tmpl` beside it. Short fix. Easy to miss [3]."
+  ],
+  [
+   "code",
+   {
+    "label": "The GPU request in the Ollama pod spec, as the K3s walkthrough's architecture shows it",
+    "language": "yaml",
+    "source": "# Ollama container, inside the K3s pod spec\nresources:\n  limits:\n    nvidia.com/gpu: \"1\"   # schedulable only where the device plugin reports a GPU\n\n# Host check before any manifest:\n#   nvidia-smi   -> device name, driver version, CUDA capability"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The bridge that lets an Ollama pod on K3s reach the GPU, from the kernel up.",
+    "steps": [
+     "Host drivers load and expose the NVIDIA device nodes",
+     "Container Toolkit injects CUDA libraries into containerd",
+     "Device plugin reports GPU count to the K3s scheduler",
+     "Ollama pod requests one GPU in its resource limits",
+     "Ollama sees the device and offloads layers to VRAM"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Generic kernels leave speed on the table on every chip",
+    "num": "03",
+    "id": "generic-kernels-leave-speed-on-the-table-on-every-chip"
+   }
+  ],
+  [
+   "p",
+   "Now the GPU is visible. Is it fast? A post comparing Magnitude with Ollama argues it often isn't. Ollama ships GGML kernels compiled ahead of time for broad x86 and ARM profiles. An M2 Max, an RTX 4090 and an AMD 7950X all run the same matrix routines. Each chip's SIMD width, cache layout and memory bandwidth get ignored [2]."
+  ],
+  [
+   "p",
+   "Magnitude instead measures matrix ops, attention and memory transfers on your own silicon at first load. Then it compiles kernels for that exact machine. The author tested Llama-3.1-8B-Instruct at Q4_K_M quantisation on those three machines. The script timed time-to-first-token at 2K, 4K and 8K context, plus throughput over 512 generated tokens. Each setting ran repeatedly, and the script kept medians [2]."
+  ],
+  [
+   "p",
+   "At 8K context, time-to-first-token on the RTX 4090 fell from 180ms with Ollama to 85ms with Magnitude. Throughput rose from 52.1 to 119.3 tokens per second. On the M2 Max, it went from 420ms to 210ms, and on the CPU-only 7950X from 1840ms to 950ms. These are one author's runs. We'd want an independent rerun before planning capacity around them [2]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Time-to-first-token at 8K context for Llama-3.1-8B-Instruct, Ollama against Magnitude, in milliseconds (one author's runs).",
+    "unit": "milliseconds to first token at 8K context",
+    "bars": [
+     {
+      "label": "M2 Max, Ollama",
+      "value": 420.0
+     },
+     {
+      "label": "M2 Max, Magnitude",
+      "value": 210.0
+     },
+     {
+      "label": "RTX 4090, Ollama",
+      "value": 180.0
+     },
+     {
+      "label": "RTX 4090, Magnitude",
+      "value": 85.0
+     },
+     {
+      "label": "7950X CPU, Ollama",
+      "value": 1840.0
+     },
+     {
+      "label": "7950X CPU, Magnitude",
+      "value": 950.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Long contexts thrash the KV cache when memory layout stays fixed",
+    "num": "04",
+    "id": "long-contexts-thrash-the-kv-cache-when-memory-layout-stays-f"
+   }
+  ],
+  [
+   "p",
+   "Why such gaps? The author points at memory, not math. The KV cache holds a key and a value for every token already processed. At long contexts it gets rewritten constantly. Past 8K tokens, cache thrashing can cut throughput by 40% when a static allocator ignores your real VRAM and RAM split [2]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+V2FsbCB0aW1lIHNwZW50IGNvcHlpbmcgS1YtY2FjaGUgZGF0YSBhdCA4SyBjb250ZXh0PC90aXRsZT4KICA8ZGVzYz5Qcm9maWxpbmcgYXQgOEsgY29udGV4dDogbWVtb3J5IGNvcGllcyBmb3IgS1YtY2FjaGUgdXBkYXRlcyB0b29rIDIyIHBlcmNlbnQgb2YgT2xsYW1hJ3Mgd2FsbCB0aW1lLiBNYWduaXR1ZGUncyBrZXJuZWwgZnVzZXMgY2FjaGUgd3JpdGVzIGludG8gYXR0ZW50aW9uLCBhbmQgdHJhbnNmZXIgb3ZlcmhlYWQgZHJvcHBlZCB0byA0IHBlcmNlbnQuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRoZSBjYWNoZSBjb3B5IGlzIHRoZSBoaWRkZW4gY29zdCBhdCA4SyBjb250ZXh0PC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDYiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5QZXJjZW50IG9mIHdhbGwgdGltZSBzcGVudCBtb3ZpbmcgS1YtY2FjaGUgZGF0YSwgb25lIGF1dGhvcidzIHByb2ZpbGU8L3RleHQ+CgogIDxsaW5lIHgxPSIzNjAiIHkxPSIxNzAiIHgyPSIzNjAiIHkyPSI0MzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjAiIHk9IjIzNSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPk9sbGFtYTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMjYyIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+c2VwYXJhdGUgY29weSBwZXIgdXBkYXRlPC90ZXh0PgogIDxyZWN0IHg9IjM2MCIgeT0iMjA1IiB3aWR0aD0iMzc0IiBoZWlnaHQ9IjYwIiBmaWxsPSIjZmY3YjcyIi8+CiAgPHRleHQgeD0iNzUwIiB5PSIyNDUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIj4yMiU8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIzNjUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5NYWduaXR1ZGU8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM5MiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPndyaXRlcyBmdXNlZCBpbnRvIGF0dGVudGlvbjwvdGV4dD4KICA8cmVjdCB4PSIzNjAiIHk9IjMzNSIgd2lkdGg9IjY4IiBoZWlnaHQ9IjYwIiBmaWxsPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iNDQ1IiB5PSIzNzUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIj40JTwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjQ4MCIgd2lkdGg9IjEwODAiIGhlaWdodD0iMTAwIiByeD0iMTQiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODUiIHk9IjUyMCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlRoZSBLViBjYWNoZSBzdG9yZXMgYSBrZXkgYW5kIGEgdmFsdWUgZm9yIGV2ZXJ5IHRva2VuIGFscmVhZHkgcmVhZC48L3RleHQ+CiAgPHRleHQgeD0iODUiIHk9IjU1MiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPkxvbmdlciBjb250ZXh0LCBtb3JlIHVwZGF0ZXMsIG1vcmUgY29weWluZzogdGVzdCBhdCB0aGUgbGVuZ3RoIHlvdSB3aWxsIHNlcnZlLjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Share of wall time spent copying KV-cache data at 8K context: 22% with Ollama, 4% with Magnitude's fused kernel.",
+    "caption": "Fusing cache writes into attention cut the copy overhead the profiler found at 8K context.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Profiling made it concrete. At 8K context, Ollama spent 22% of wall time copying memory with `cudaMemcpy` while it updated the KV cache. Magnitude's tuned kernel fuses cache writes into the attention computation, and transfer overhead fell to 4%. On the M2, it detected a bandwidth ceiling of 100GB/s and switched to a lower-precision accumulator. The post claims no accuracy loss. It shows no accuracy test [2]."
+  ],
+  [
+   "code",
+   {
+    "label": "Kernel caching and a context cap, as the Magnitude post's Modelfile sets them",
+    "language": "dockerfile",
+    "source": "FROM llama-3.1-8b-instruct-q4km.gguf\n\n# cap context for a latency target\nPARAMETER num_ctx 8192\n\n# tune on first load, then reuse the compiled kernels across restarts\nPARAMETER magnitude.tune_on_load true\nPARAMETER magnitude.cache_kernels true"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Raw sensor text overflows a phone, so encode it as embeddings",
+    "num": "05",
+    "id": "raw-sensor-text-overflows-a-phone-so-encode-it-as-embeddings"
+   }
+  ],
+  [
+   "p",
+   "Move from a server to a phone and the bottleneck becomes context. Phones and wearables now collect physiological time series, like heart and brain signals. Writing raw samples into the prompt as text exhausts the context and memory budget of a small on-device model. Summarising them into statistics squeezes out the timing that matters. Sending them to the cloud moves sensitive data off the phone [5]."
+  ],
+  [
+   "p",
+   "The PocketTSLM team took a third route. Their port of OpenTSLM SoftPrompt runs fully on a consumer smartphone. It encodes time-series windows and injects them as embeddings, skipping text tokens entirely. In their benchmark, that used about 12 times fewer time-series tokens and cut prefill cost. With longer windows, the text baselines ran out of phone context or memory [5]."
+  ],
+  [
+   "p",
+   "The port itself needed proof. A numerical parity protocol checked that the Swift port and a Python reference on Apple's MLX produced identical greedy-decoded tokens. Answers also matched a PyTorch reference, though rationale wording could differ. We like this discipline a lot. A port can drift and still sound fluent [5]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Three ways to get phone sensor data into a small language model, and where each one breaks.",
+    "columns": [
+     "Approach",
+     "What the model receives",
+     "Where it breaks"
+    ],
+    "rows": [
+     [
+      "Cloud model",
+      "Raw signals sent off the phone",
+      "Sensitive data leaves the device, plus latency and per-query cost"
+     ],
+     [
+      "Summary statistics",
+      "Aggregated features",
+      "Temporal structure gets squeezed out"
+     ],
+     [
+      "Raw samples as text",
+      "Serialised numbers as tokens",
+      "Exceeds the phone's context or memory at longer windows"
+     ],
+     [
+      "Soft prompt",
+      "Encoded windows as embeddings",
+      "About 12 times fewer time-series tokens in one benchmark"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A voice agent waits on its tools unless it starts them early",
+    "num": "06",
+    "id": "a-voice-agent-waits-on-its-tools-unless-it-starts-them-early"
+   }
+  ],
+  [
+   "p",
+   "Voice adds a clock. A typical tool-using speech assistant runs speech recognition, then the LLM, then the tool, in series. Tool latency only starts once the user stops talking and the model names its tool calls. On a phone, that wait is the pause your user hears [1]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+U2VyaWFsIHZlcnN1cyBzcGVjdWxhdGl2ZSB0b29sIGV4ZWN1dGlvbiBpbiBhbiBvbi1kZXZpY2Ugdm9pY2UgYWdlbnQ8L3RpdGxlPgogIDxkZXNjPlRvcCB0aW1lbGluZTogc3BlZWNoLCB0aGVuIHRoZSBMTE0sIHRoZW4gdGhlIHRvb2wsIHRoZW4gYXVkaW8uIEJvdHRvbSB0aW1lbGluZTogYSBwcmVkaWN0b3IgcmVhZHMgdGhlIHBhcnRpYWwgdHJhbnNjcmlwdCBhbmQgcnVucyB0aGUgdG9vbCBkdXJpbmcgc3BlZWNoLCBjYWNoZXMgdGhlIHJlc3VsdCwgdmFsaWRhdGVzIGl0LCBhbmQgaW5qZWN0cyBpdCBpbnRvIHRoZSBMTE0gcHJvbXB0LCBzbyBhdWRpbyBzdGFydHMgc29vbmVyLiBNZWRpYW4gdGltZS10by1maXJzdC1hdWRpbyBmZWxsIGZyb20gNS43OSB0byA0LjYwIHNlY29uZHMuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0YXJ0IHRoZSB0b29sIHdoaWxlIHRoZSB1c2VyIGlzIHN0aWxsIHRhbGtpbmc8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlNjaGVtYXRpYyB0aW1lbGluZXM7IHRoZSBtZWFzdXJlZCBtZWRpYW5zIGFyZSBvbiB0aGUgcmlnaHQ8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIxNzUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5TZXJpYWw8L3RleHQ+CiAgPHJlY3QgeD0iMjAwIiB5PSIxNTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+dXNlciBzcGVha2luZzwvdGV4dD4KICA8cmVjdCB4PSI1MDUiIHk9IjE1MCIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTc1IiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5MTE08L3RleHQ+CiAgPHJlY3QgeD0iNjUwIiB5PSIxNTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjczNSIgeT0iMTc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+dG9vbCBjYWxsPC90ZXh0PgogIDxyZWN0IHg9IjgyNSIgeT0iMTUwIiB3aWR0aD0iNzAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iODYwIiB5PSIxNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxMjE2MWUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2IiBmb250LXdlaWdodD0iNzAwIj5hdWRpbzwvdGV4dD4KICA8dGV4dCB4PSI5NDAiIHk9IjE2OCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPm1lZGlhbiA1Ljc5IHM8L3RleHQ+CiAgPHRleHQgeD0iOTQwIiB5PSIxOTIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1Ij5zcHJlYWQgMy40OSBzPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iMzMwIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+U3BlY3VsYXRpdmU8L3RleHQ+CiAgPHJlY3QgeD0iMjAwIiB5PSIzMDUiIHdpZHRoPSIzMDAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjM1MCIgeT0iMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+dXNlciBzcGVha2luZzwvdGV4dD4KICA8cmVjdCB4PSIzMzAiIHk9IjM2NSIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDE1IiB5PSIzOTMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij5wcmVkaWN0ZWQgdG9vbCBydW5zPC90ZXh0PgogIDxyZWN0IHg9IjUwNSIgeT0iMzA1IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1NzUiIHk9IjMzMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPkxMTTwvdGV4dD4KICA8cmVjdCB4PSI2NTAiIHk9IjMwNSIgd2lkdGg9IjcwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzNlY2Y4ZSIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iMzMzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMTIxNjFlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiIgZm9udC13ZWlnaHQ9IjcwMCI+YXVkaW88L3RleHQ+CiAgPHRleHQgeD0iOTQwIiB5PSIzMjMiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5tZWRpYW4gNC42MCBzPC90ZXh0PgogIDx0ZXh0IHg9Ijk0MCIgeT0iMzQ3IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSI+c3ByZWFkIDIuODEgczwvdGV4dD4KICA8bGluZSB4MT0iNTAwIiB5MT0iMzg3IiB4Mj0iNTYwIiB5Mj0iMzUyIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNSA0Ii8+CiAgPHRleHQgeD0iNTEwIiB5PSI0MzIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1Ij5jYWNoZWQgcmVzdWx0LCB2YWxpZGF0ZWQsIGluamVjdGVkPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iNDgwIiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI4NSIgeT0iNTIwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+QSBzZWxmLWNvcnJlY3Rpb24gbWlkLXNlbnRlbmNlIGNhbiBzcG9pbCBhIGd1ZXNzLCBzbyBvbmx5IHN0aWxsLXZhbGlkIHJlc3VsdHMgZ28gaW4uPC90ZXh0PgogIDx0ZXh0IHg9Ijg1IiB5PSI1NTIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5UaGUgTExNIGNhbiBzdGlsbCBjYWxsIHRvb2xzIGl0c2VsZiwgc28gdGhlIHdvcnN0IGNhc2UgaXMgdGhlIHNlcmlhbCBwaXBlbGluZS48L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Two timelines: tools run after speech ends in the serial pipeline, and during speech in the speculative one.",
+    "caption": "Starting tools from partial transcripts moved median time-to-first-audio from 5.79 to 4.60 seconds.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "As a final safeguard, the LLM retains the ability to issue tool calls directly, ensuring that the latency of our framework is upper-bounded by the baseline serial execution pipeline in the worst case.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "A paper on speculative tool execution starts tools before the user finishes. A Predictor module guesses tool calls from partial transcripts, runs them and caches the results. Those cached results then go into the LLM prompt. A rule-based check injects only results that are still valid, since people correct themselves mid-sentence [1]."
+  ],
+  [
+   "p",
+   "On a working Android assistant, median time-to-first-audio fell from 5.79 to 4.60 seconds. The standard deviation shrank from 3.49 to 2.81 seconds. We value that second figure most. Steadier delays make an assistant feel dependable [1]."
+  ],
+  [
+   "p",
+   "The same layer bites app builders differently. Halo, an iOS assistant, keeps its wiki-style memory and on-device RAG on the phone. Its builder says Apple limits App Intents to a handful of app categories. So Halo bundles shortcuts and runs its own local iMessage sync. It can also use LLM subscriptions you already pay for, so check where each request goes [4]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Output-only weight obfuscation hands an attacker the key",
+    "num": "07",
+    "id": "output-only-weight-obfuscation-hands-an-attacker-the-key"
+   }
+  ],
+  [
+   "p",
+   "Shipping a model to a device ships its weights too. That invites reverse engineering and theft of a proprietary model. Trusted Execution Environments, or TEEs, isolate part of the inference in hardware. Most TEE-based schemes obfuscate the parameters with matrix transforms applied only on the output side [6]."
+  ],
+  [
+   "p",
+   "The BiShield-TEE authors found that this one-sided design leaks. The secret is uniquely determined, so an attacker can solve for the structure of the true key. Under their attacks, two representative methods, GroupCover and ArrowCloak, kept negligible protection. Attackers recovered near-complete model functionality [6]."
+  ],
+  [
+   "p",
+   "Their fix obfuscates input and output dimensions together. That creates many equally valid candidate keys, so the true one hides among them. In their experiments, attack accuracy stayed at the full-shielding black-box baseline, with faster inference than earlier methods on real hardware. We agree with the diagnosis. One paper's experiments are a start, not a deployed standard [6]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Tuned kernels on shared GPU slices remain the unsolved break",
+    "num": "08",
+    "id": "tuned-kernels-on-shared-gpu-slices-remain-the-unsolved-break"
+   }
+  ],
+  [
+   "p",
+   "Here's the failure nobody has fixed. Magnitude's tuning assumes the hardware stays put. Put it in a VM with shifting CPU quotas, or on shared MIG slices of a GPU. Tuned kernels can then mispredict and trail Ollama's defaults. That's exactly where the K3s build above lands once a team shares its GPUs [2, 3]."
+  ],
+  [
+   "p",
+   "The costs stack, too. First load spends 45 to 90 seconds tuning, though later starts reuse cached kernels. If you swap in 20 or more models an hour, tuning overhead outweighs the per-request gain. So the fastest local setup and the most flexible one pull apart [2]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "If you're running in a VM with fluctuating CPU quotas or shared GPU slices (Kubernetes with MIG), the tuned kernels can mispredict and underperform Ollama's conservative but robust defaults.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "What could you try? Benchmark tuned and default kernels on each node, inside the slice it actually gets. Key cached kernels to that slice profile, and retune when the scheduler moves the pod. Keep the default engine as a fallback when tuned numbers slip. Then publish what you find. Nobody has yet."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How do you run an LLM locally?"
+  ],
+  [
+   "p",
+   "Install a serving engine such as Ollama, load a quantised model, and make sure the engine can reach your GPU. On bare-metal macOS or Windows with drivers in place, Ollama finds the GPU and offloads layers by itself. Inside a container, you must pass the GPU through, or inference falls back to the CPU [2, 3]."
+  ],
+  [
+   "h3",
+   "Why are local LLMs slow on Kubernetes?"
+  ],
+  [
+   "p",
+   "Usually the container cannot see the GPU. K3s runs containerd sandboxed from host hardware, so Ollama falls back to CPU math. One write-up describes a word every two seconds with memory at 100%. The fix chains host drivers, the NVIDIA Container Toolkit, the device plugin and a GPU request in the pod [3]."
+  ],
+  [
+   "h3",
+   "Can you run an LLM on a phone without sending data to the cloud?"
+  ],
+  [
+   "p",
+   "Yes, for some tasks. PocketTSLM runs a time-series language model entirely on a consumer smartphone, with no health data sent during inference. It feeds sensor windows in as embeddings, using about 12 times fewer time-series tokens than text. Halo keeps an assistant's memory on the iPhone itself [5, 4]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Hiding Tool Latency in On-Device Cascaded Voice Agent through Speculative Execution",
+   "url": "https://huggingface.co/papers/2610.07641",
+   "posted": "2026-10-06"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "dave_mille",
+   "what": "Magnitude vs Ollama: Hardware-Tuned Kernels Cut Inference Latency in Half",
+   "url": "https://dev.to/dave_mille/magnitude-vs-ollama-hardware-tuned-kernels-cut-inference-latency-in-half-1flk",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "zidane1688",
+   "what": "Why Your Ollama LLMs Are Running Painfully Slow on K3s",
+   "url": "https://dev.to/zidane1688/why-your-ollama-llms-are-running-painfully-slow-on-k3s-bh",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 4,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Show HN: Halo – A Personal AI with On-Device Harness, Memory and Browser Agent",
+   "url": "https://news.ycombinator.com/item?id=49969988",
+   "posted": "2026-10-06"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "PocketTSLM: Deploying an On-Device Soft-Prompt Time-Series Language Model for Privacy-Preserving Smartphone Reasoning",
+   "url": "https://arxiv.org/abs/2610.21308v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "BiShield-TEE: On the (In-)Security of Unilateral Weight Obfuscation in On-Device TEE-Shielded LLM Partition",
+   "url": "https://arxiv.org/abs/2610.21565v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T02:04:39+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "devto:4869155",
+   "arxiv:2610.21565v1",
+   "arxiv:2610.21308v1",
+   "devto:4869698",
+   "hfpapers:2610.07641",
+   "hackernews:49969988"
+  ],
+  "platforms": {
+   "dev.to": 2,
+   "arXiv": 2,
+   "Hugging Face": 1,
+   "Hacker News": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "build-and-break:concept/local-ai",
+  "format": "build-and-break",
+  "reviewed_by": null
+ }
+}

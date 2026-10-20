@@ -112,38 +112,39 @@ class TestThePageDoesNotPrintADatabaseIdAtTheReader:
         A check that silently changes what it covers is worse than one that
         covers less, because it keeps passing either way.
         """
-        heads = _theads(jsx(COMPARE))
-        # ONE TABLE SINCE 2026-10-15, when the per-model counted table came off
-        # the page; the check still covers every header there is.
-        assert len(heads) >= 1, f"expected a header on the compare table, found {len(heads)}"
+        # ⚠ NO <thead> SINCE 2026-10-19: the shared-axes table came off and
+        # both tables now are grids whose header is a `st-th` row. The check
+        # moves with them and still covers every header there is - a check
+        # that silently stops covering a table is the defect this docstring
+        # describes.
+        src = jsx(COMPARE)
+        heads = [h.split("</div>")[0] for h in src.split('className="st-tr st-th"')[1:]]
+        assert len(heads) >= 2, f"expected the scores and specs headers, found {len(heads)}"
         for i, head in enumerate(heads):
-            assert "m.canonical_id &&" in head, (
-                f"table {i} names its models without the provider's id"
+            assert "shortName(m.display_name)" in head, f"grid header {i} does not name its models"
+            assert ">{m.model_version_id}" not in head, (
+                f"grid header {i} prints the internal database id at the reader"
             )
-            assert "m.model_version_id}" + chr(10) not in head, (
-                f"table {i} prints the internal database id at the reader"
-            )
+        assert "_theads" in globals()  # the <thead> reader stays for any table that returns
 
     def test_the_payload_carries_it(self):
         src = APP.read_text(encoding="utf-8")
         assert '"canonical_id": m.get("canonical_id"),' in src
 
 
-class TestTheProvidersSpecSheetIsNotOnThisPage:
-    def test_the_spec_block_is_gone_entirely(self):
-        """⚠ RENAMING IT WAS MY SECOND WRONG ANSWER. First I reworded the
-        heading, then I made the block conditional, and both kept a provider's
-        published numbers in a table beside counted reports.
-
-        This board's evidence comes from engineers writing about models they
-        used. A spec sheet is the one thing on the page nobody reported, and a
-        heading cannot hold that line — a table is a table, and the two halves
-        looked equally like findings."""
+class TestTheProvidersSpecSheetIsLabelled:
+    def test_the_spec_block_is_back_and_labelled(self):
+        """⚠ REVERSED 2026-10-19, at the product owner's request: price and
+        specs replace the metrics block. The reason it came off still stands -
+        a spec sheet beside counted reports reads as a finding - so what is
+        pinned now is the label that holds that line, below the scores and
+        apart from them, and that a missing value says so (rule 6)."""
         src = jsx(COMPARE)
-        assert "the provider's claim about itself" not in src
-        assert "Specification" not in src
-        for row in ("Cost per Mtok", "Context window", "Max output", "Cached read"):
-            assert row not in src, f"the spec row {row!r} is still rendered"
+        assert "function PriceAndSpecs" in src and "<PriceAndSpecs models={models} />" in src
+        assert "not measured here" in src
+        for row in ("Input price", "Output price", "Cached input", "Context window", "Max output"):
+            assert f"'{row}'" in src, f"the spec row {row!r} is missing"
+        assert src.index("<CategoryScores") < src.index("<PriceAndSpecs")
 
     def test_the_advertised_data_is_still_in_the_payload(self):
         """Removed from the page, not from the API. The model pages still

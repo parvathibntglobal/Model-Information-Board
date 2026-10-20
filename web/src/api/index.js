@@ -556,6 +556,8 @@ export const adminScheduler = () => request('/admin/scheduler')
 // Keywords dashboard: which SEO keywords sit on which public page, and where. A dated snapshot.
 // (Not `adminKeywords` above - that is the search terms each platform is sent.)
 export const adminSeoKeywords = () => request('/admin/seo-keywords')
+// Keyword plan: which keywords to use on which public page, and pages/tools worth adding.
+export const adminSeoKeywordPlan = () => request('/admin/seo-keyword-plan')
 
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`

@@ -1253,10 +1253,11 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
         #   the board and counting them would put them back in through an
         #   arithmetic side door.
         polarity = {}
+        categories = {}
         # WITHHELD SOURCES ARE NOT COUNTED on a public view
         # (contract/publication.yaml): a count that includes them is data from
         # them, and the platform split below would name them outright.
-        from judge import publication
+        from judge import category_scores, publication
 
         # TOTALS COUNT EVERY SOURCE; THE PER-PLATFORM LIST NAMES NONE OF THE
         # WITHHELD ONES, whatever the deployment's view (contract/publication.yaml,
@@ -1320,6 +1321,12 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
             #   `best_for` model-axis pairs have zero positive reports, and
             #   this page still lists them under a heading that recommends.
             #   See #469, which groups on exactly that.
+            # THE CATEGORY SCORE (CLAUDE.md rule 3, second exception;
+            # contract/category_scores.yaml): eight scores, each with the
+            # counts it was computed from, which the page always shows beside it.
+            categories[m["model_version_id"]] = category_scores.scores_for(
+                conn, [m["model_version_id"], m.get("canonical_id")]
+            )
             polarity[m["model_version_id"]] = {
                 "platforms": [{"source": src, "documents": n} for src, n in platforms],
                 # REPLIES SEPARATELY, because a comment under somebody else's
@@ -1399,6 +1406,7 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
                 "state": (m.get("evidence") or {}).get("state", "unreported"),
                 "reports": (m.get("evidence") or {}).get("reports", 0),
                 "polarity": polarity.get(m["model_version_id"], {}),
+                "categories": categories.get(m["model_version_id"], []),
                 # ⚠ REMOVED, NOT LEFT UNREAD (rule 9). This carried
                 #   `cell.capability_key` - the CLOSED twelve from the first
                 #   plan - and the compare page's "Discussed under" row read
@@ -1447,6 +1455,9 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
         "models": models,
         "missing": missing,
         "unsourced": [{"row": k, "why": v} for k, v in COMPARE_UNSOURCED.items()],
+        # The rule the scores were computed under, from the contract, so the
+        # page states the minimum rather than typing it a second time.
+        "category_method": category_scores.method(),
         "summary": (
             f"{len(models)} models, compared on what engineers reported about them. "
             f"Every figure here is counted - entries, documents, how each one was "
@@ -2894,6 +2905,14 @@ def blog_posts_method() -> dict:
     from judge import blog_method
 
     out = blog_method.method()
+    # THE NEWSROOM RULES every post is written and checked by (blog_rules.yaml,
+    # 2026-10-20), shown in Admin -> Blogs beside how a post is made.
+    try:
+        from judge import blog_rules
+
+        out["newsroom"] = blog_rules.rules()
+    except Exception as e:  # noqa: BLE001 - the method still shows without the rules
+        out["newsroom"] = {"available": False, "reason": _safe_detail(e)}
     try:
         out["prompt"] = _blog_prompt_parts()
     except Exception as e:  # noqa: BLE001 - the method still shows without the prompt
@@ -3039,6 +3058,17 @@ def admin_seo_keywords() -> dict:
     from judge import keywords_on_site
 
     return keywords_on_site.load()
+
+
+@app.get("/admin/seo-keyword-plan")
+def admin_seo_keyword_plan() -> dict:
+    """Keyword plan: which SEO keywords to use on which public page, with their
+    monthly searches (Keyword Planner band, or an estimate from one), and the
+    pages and tools worth adding. A dated file from seo/keyword_plan.json;
+    reads no database. Signed-in only. See judge/keyword_plan.py."""
+    from judge import keyword_plan
+
+    return keyword_plan.load()
 
 
 @app.get("/changelog")

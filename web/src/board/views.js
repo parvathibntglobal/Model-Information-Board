@@ -8,6 +8,7 @@
 // (#431), so the render has to be executable.
 import { DB } from './db.js'
 import { goAttrs } from './links.js'
+import { nameIndex, nameKey, namePattern, shortName } from './modelnames.js'
 import { sourceName } from '../sourceName.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
@@ -1202,7 +1203,15 @@ function vBlogs(){
 // QUOTE CREDITS (re-reviewed 2026-10-13): a post carries `cite` (fragment ->
 // number) and `sources` (platform, who, what, link). Set by vPost while it
 // renders, keyed by the ESCAPED fragment because essayText matches after esc().
-let CITE = null, SRC = null;
+let CITE = null, SRC = null, REPORTED = false;
+// A REPORTED POST (blog_rules.yaml, 2026-10-20) cites [n] after each reported
+// fact; the number links to its reference. Only on reported posts, and only a
+// number the post's reference list has: "messages[0]" in an older post stays text.
+function refMarks(g){
+  const ns = g.split(/\s*,\s*/).map(Number);
+  if(!REPORTED || !SRC || !ns.every(n => SRC[n])) return null;
+  return `<sup class="es-cite es-refnum">${ns.map(n => `<a href="#es-src-${n}" aria-label="Reference ${n}">${n}</a>`).join(',')}</sup>`;
+}
 function citeMark(q){
   const n = CITE && CITE[q];
   return n ? `<sup class="es-cite"><a href="#es-src-${n}" aria-label="Source ${n}">${n}</a></sup>` : '';
@@ -1212,6 +1221,7 @@ function essayText(v){
     .replace(/`([^`]+)`/g,'<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
     .replace(/«([^»]+)»/g,(m,q)=>`<q class="es-iq">${q}</q>${citeMark(q)}`)
+    .replace(/\s?\[(\d+(?:\s*,\s*\d+)*)\]/g,(m,g)=>refMarks(g) || m)
     .replace(/\{E\d+\}/g,'');
 }
 
@@ -1247,10 +1257,13 @@ function embedBlock(v){
 function sourcesBlock(p){
   const s = (p.sources || []).filter(x => /^https:\/\//.test(x.url || ''));
   if(!s.length) return '';
-  return `<section class="es-sources"><h2>Sources</h2><ol>${s.map(x =>
+  const reported = p.style === 'reported';
+  return `<section class="es-sources"><h2>${reported ? 'References' : 'Sources'}</h2><ol>${s.map(x =>
     `<li id="es-src-${esc(x.n)}"><span class="plat">${esc(x.platform)}</span>
       <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.what)}</a>${x.who ? ` by ${esc(x.who)}` : ''}${x.posted ? ` · ${esc(x.posted)}` : ''}</li>`).join('')}</ol>
-    <p class="es-note">Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.</p>${
+    <p class="es-note">${reported
+      ? 'Reported in our own words, with each fact numbered to its reference. A highlighted sentence was matched to its source word for word, in code. Embedded posts are shown by their own platform.'
+      : 'Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.'}</p>${
     // arXiv's acknowledgement, attached by the server to every post that cites
     // an arXiv paper (judge/publication.py with_credits, 2026-10-19).
     p.acknowledgement ? `<p class="es-note es-ack">${esc(p.acknowledgement)}</p>` : ''}</section>`;
@@ -1289,6 +1302,14 @@ function essayBlock([t,v]){
     <blockquote>${esc(v)}</blockquote>
     <div class="src">${src ? `Copied exactly from <a href="${esc(src.url)}" rel="nofollow noopener" target="_blank">${esc(src.what)}</a>. Not the writer's words.`
       : "Copied exactly from a public engineering discussion this post was written from. Not the writer's words."}</div></figure>`;
+  }
+  // A WHOLE SENTENCE FROM A SOURCE (reported posts): copied word for word and
+  // checked in code; its reference says where it came from.
+  if(t==='highlight'){
+    const src = SRC && SRC[v.n];
+    return `<figure class="es-highlight"><blockquote>${esc(v.text)}</blockquote>
+    <figcaption>${src ? `Word for word from <a href="${esc(src.url)}" rel="nofollow noopener" target="_blank">${esc(src.what)}</a>, ${esc(src.platform)}${src.who ? ` · ${esc(src.who)}` : ''} <a class="es-hl-ref" href="#es-src-${esc(v.n)}">[${esc(v.n)}]</a>`
+      : 'Word for word from a source listed below.'}</figcaption></figure>`;
   }
   if(t==='embed') return embedBlock(v);
   // The tag already says "Illustrative"; a label that opens with it would read twice.
@@ -1658,39 +1679,33 @@ function probeList(sp){
 /* ---------- interactive posts, phase 1 (docs/proposals/interactive-blogs.md) ----------
  * OPT-IN PER POST: `"interactive": true`. Three things, none of them typed by the
  * model that wrote the post:
- *   entity links  a tracked model's name links to its page; first mention per
- *                 paragraph, longest name first, so "GPT-6.1 Sol Pro" is never
- *                 split into "GPT-6.1 Sol" (rule 10: the whole identifier)
+ *   entity links  a model's name links to its PUBLIC page (/catalog/model/...);
+ *                 first mention per paragraph, longest name first, so "GPT-6.1
+ *                 Sol Pro" is never split into "GPT-6.1 Sol" (rule 10: the whole
+ *                 identifier). Every registry model, by its display name or its
+ *                 vendor-dropped one - board/modelnames.js. "A vs B" links to
+ *                 /compare with both.
  *   model cards   on hover or focus: list price, context, board entries - read
- *                 from /models?tracked=1 when the page loads (DB.blogModels), so
- *                 they are today's figures, not the post's
+ *                 from /models when the page loads (DB.blogModels), so they are
+ *                 today's figures, not the post's
  *   provenance    a verbatim «» fragment says it is quoted; a $ figure outside a
  *                 quote says it is the list price at generation (the generator
  *                 refuses any number found in neither the sources nor the price
  *                 sheet, which is what makes that sentence true)
  */
 const rxEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-function shortName(m){
-  const d = String(m.display_name || m.canonical_id || '');
-  const i = d.indexOf(': ');
-  return (i >= 0 ? d.slice(i + 2) : d).trim();
-}
+// WHICH WRITTEN NAME MEANS WHICH MODEL: board/modelnames.js. Every model in the
+// registry (DB.blogModels, loaded by routes/Blogs.jsx), under its display name
+// and its vendor-dropped name ("Opus 5.5"), separators folded, and a name that
+// fits two models linked to neither.
 let _ents = null;
 function entityIndex(){
   const ms = DB.blogModels || [];
   if(_ents && _ents.src === ms) return _ents;
-  const byName = new Map();
-  for(const m of ms){
-    const n = shortName(m);
-    if(n.length >= 4 && !byName.has(n.toLowerCase())) byName.set(n.toLowerCase(), m);
-  }
-  return (_ents = { src: ms, byName });
+  return (_ents = { src: ms, ...nameIndex(ms) });
 }
-// A boundary at both ends, and a name must not run on into a version: "GPT-6"
-// never matches inside "GPT-6.1". Longest first, so "GPT-6.1 Sol Pro" is never
-// split into "GPT-6.1 Sol".
-const namesRx = names => names.length ? new RegExp(`(?<![\\w.\\-])(${[...names]
-  .sort((a, b) => b.length - a.length).map(rxEsc).join('|')})(?![\\w\\-]|\\.\\d)`, 'gi') : null;
+// "A vs B", "A vs. B", "A versus B": one link to the comparison of the two.
+const VS = '(\\s+(?:vs\\.?|versus)\\s+)';
 const usd = v => v == null ? null : `$${Number(v) < 1 ? String(+Number(v).toFixed(4)) : Number(v).toFixed(2)}`;
 function modelCard(m, text){
   // Rule 6: an absent figure says it is absent - never $0, never blank.
@@ -1700,10 +1715,22 @@ function modelCard(m, text){
     ? `${Number(m.advertised_context).toLocaleString('en-US')}-token context` : 'Context window not published';
   const n = m.board && m.board.entries != null ? m.board.entries : null;
   const rep = n == null ? 'Board entries not counted' : `${n} board ${n === 1 ? 'entry' : 'entries'}`;
-  // The canonical id when the row has one, so the link is the readable URL (SEO item 2).
-  return `<a class="es-ent" tabindex="0"${goAttrs(`model:${m.canonical_id || m.model_version_id}`)}>${text}`
-    + `<span class="es-pop" role="tooltip"><b>${esc(shortName(m))}</b><span>${esc(price)}</span>`
-    + `<span>${esc(ctx)}</span><span>${esc(rep)}</span><span class="go">Open the model page →</span></span></a>`;
+  const pop = `<span class="es-pop" role="tooltip"><b>${esc(shortName(m))}</b><span>${esc(price)}</span>`
+    + `<span>${esc(ctx)}</span><span>${esc(rep)}</span>`;
+  // THE PUBLIC MODEL PAGE (links.js `catmodel`), never `/models/*`, which is
+  // behind the sign-in. A model is linked only when the catalog has its page
+  // (DB.blogCatalogIds, from /model-catalog): 28 of 270 registry models had
+  // none on 2026-10-19, and an internal id never does. Until that list loads,
+  // or if it cannot, every name keeps its card and no link - a link that may
+  // 404 is not drawn on the chance that it would not (rule 12).
+  if(!hasPage(m)) return `<span class="es-ent" tabindex="0">${text}${pop}</span></span>`;
+  return `<a class="es-ent" tabindex="0"${goAttrs(`catmodel:${m.canonical_id}`)}>${text}`
+    + `${pop}<span class="go">Open the model page →</span></span></a>`;
+}
+const hasPage = m => Boolean(m.canonical_id && DB.blogCatalogIds && DB.blogCatalogIds.has(m.canonical_id));
+/** "A vs B" as one link to /compare, when both are distinct models with public pages. */
+function compareLink(a, b, text){
+  return `<a class="es-vs"${goAttrs(`compare:${a.canonical_id},${b.canonical_id}`)}>${text}</a>`;
 }
 const QUOTE_TIP = 'Quoted verbatim from a practitioner report this post was written from';
 // A MODEL THE POST PRICES BUT THE BOARD DOES NOT TRACK - GLM 5 in the
@@ -1715,16 +1742,28 @@ function sheetCard(r, text, asOf){
   const price = String(r.pin).startsWith('$') && String(r.pout).startsWith('$')
     ? `${r.pin} in · ${r.pout} out per 1M tokens${asOf ? ` (list price, ${asOf})` : ''}` : 'No list price published';
   return `<span class="es-ent off" tabindex="0">${text}<span class="es-pop" role="tooltip"><b>${esc(r.name)}</b>`
-    + `<span>${esc(loaded ? 'Not tracked on the board: no reports are collected for it here yet.'
-      : 'The board model list did not load, so whether it is tracked is unknown.')}</span>`
+    + `<span>${esc(loaded ? 'Not in the model registry here: no reports are collected for it yet.'
+      : 'The board model list did not load, so whether it is in the registry is unknown.')}</span>`
     + `<span>${esc(price)}</span></span></span>`;
 }
 function interactivize(html, p, rows = []){
-  const { byName } = entityIndex();
+  const { byKey, ambiguous, forms } = entityIndex();
   const asOf = String((p.provenance && p.provenance.generated_at) || '').slice(0, 10);
-  const extra = new Map(rows.filter(r => r.name.length >= 4 && !byName.has(r.name.toLowerCase()))
-    .map(r => [r.name.toLowerCase(), r]));
-  const rx = namesRx([...byName.keys(), ...extra.keys()]);
+  // A price-sheet name the registry does not hold. NOT one the registry holds
+  // twice: that model is tracked, the text just does not say which one, and
+  // its card would wrongly say "not tracked".
+  const extra = new Map(rows.map(r => [nameKey(r.name), r])
+    .filter(([k]) => k.length >= 4 && !byKey.has(k) && !ambiguous.has(k)));
+  const pat = namePattern([...forms, ...[...extra.values()].map(r => r.name)]);
+  // A pair first, then a single name, in ONE pass, so a link is never drawn
+  // inside another one.
+  const rx = pat ? new RegExp(`(${pat})${VS}(${pat})|(${pat})`, 'gi') : null;
+  const one = (m0) => {
+    const k = nameKey(m0);
+    if(seen.has(k) || !(byKey.has(k) || extra.has(k))) return m0;
+    seen.add(k);
+    return byKey.has(k) ? modelCard(byKey.get(k), m0) : sheetCard(extra.get(k), m0, asOf);
+  };
   const priceTip = esc(`List price from the model registry when this post was generated`
     + `${asOf ? ` (${asOf})` : ''}. Hover the model name for today's price.`);
   // A <label> is skipped like a heading: a link inside a filter pill or a
@@ -1752,11 +1791,16 @@ function interactivize(html, p, rows = []){
     if(!seg || inCode || inLink || inHead || inLabel) return seg;
     let out = inQ ? seg : seg.replace(/\$\d[\d,]*(?:\.\d+)?/g,
       m=>`<span class="es-num" tabindex="0" title="${priceTip}">${m}</span>`);
-    if(rx) out = out.replace(rx, m0=>{
-      const k = m0.toLowerCase();
-      if(seen.has(k) || !(byName.has(k) || extra.has(k))) return m0;
-      seen.add(k);
-      return byName.has(k) ? modelCard(byName.get(k), m0) : sheetCard(extra.get(k), m0, asOf);
+    if(rx) out = out.replace(rx, (m0, a, mid, b, single)=>{
+      if(single !== undefined) return one(single);
+      const ma = byKey.get(nameKey(a)), mb = byKey.get(nameKey(b));
+      // Every pair is linked, even after its names were linked once in the
+      // paragraph: the comparison is a different page from either model's.
+      if(ma && mb && ma !== mb && ma.canonical_id && mb.canonical_id){
+        seen.add(nameKey(a)); seen.add(nameKey(b));
+        return compareLink(ma, mb, m0);
+      }
+      return one(a) + mid + one(b);
     });
     return out;
   }).join('');
@@ -1804,6 +1848,7 @@ function vPost(slug){
   _mx = 0; _qz = 0;
   CITE = Object.fromEntries(Object.entries(p.cite || {}).map(([k, n]) => [esc(k), n]));
   SRC = Object.fromEntries((p.sources || []).map(s => [s.n, s]));
+  REPORTED = p.style === 'reported';
   CARDED = new Set();
 
   // THE TOOLS - the matrix and the tree - go where the format puts them, and
@@ -1925,6 +1970,13 @@ function vPost(slug){
   const mode = `<div class="es-mode"><span class="es-readtime">${mins} min read</span>
     <p>Dotted names open a model card. <q class="es-iq">Quoted</q> words are an engineer's, copied exactly.</p></div>`;
 
+  // A POST ABOUT TWO MODELS OPENS THE COMPARISON OF THEM (2026-10-19). Only
+  // when both names in the title (or the picks) resolve to two different models
+  // with public pages; "Humans vs Machines" resolves to nothing and gets none.
+  const [va, vb] = vsNames(p).map(n => entityIndex().byKey.get(nameKey(n)));
+  const cmp = va && vb && va !== vb && va.canonical_id && vb.canonical_id
+    ? `<p class="es-cmp"><a${goAttrs(`compare:${va.canonical_id},${vb.canonical_id}`)}>Compare ${
+      esc(shortName(va))} and ${esc(shortName(vb))} side by side →</a></p>` : '';
   const toc = [...secs.filter(s => s.head.id).map(s => [`es-${s.head.id}`, s.head.text]),
     ...(parts.matrix ? [['es-matrix', parts.matrix.head.text]] : []), ...(parts.tree ? [['es-decision', 'Decision tree']] : [])]
     .map(([id, t]) => `<li><a data-toc="${esc(id)}">${essayText(t)}</a></li>`).join('');
@@ -1957,7 +2009,7 @@ function vPost(slug){
       ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
     <div class="es-layout">
       <article class="es-article">
-        ${cover ? essayBlock(['image', { ...cover, cover: true }]) : ''}${mode}${main}
+        ${cover ? essayBlock(['image', { ...cover, cover: true }]) : ''}${mode}${cmp}${main}
         ${sourcesBlock(p)}
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
@@ -1979,7 +2031,7 @@ function vPost(slug){
       </aside>
     </div>
   </div></div>`;
-  CITE = null; SRC = null; CARDED = null;
+  CITE = null; SRC = null; CARDED = null; REPORTED = false;
   return page;
 }
 export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel, vBlogs, vPost }

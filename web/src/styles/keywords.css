@@ -38,3 +38,21 @@
 .kw-filter-on input,.kw-filter-on select{border-color:color-mix(in srgb,var(--info) 60%,transparent)}
 .kw-hint{font-size:var(--fs-xs)}
 .kw-clear{height:32px}
+/* two tabs: Keywords on our pages | Keyword plan (2026-10-19) */
+.kw-tabbar{padding-top:var(--s3)}
+.kw-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border)}
+.kw-tab{all:unset;cursor:pointer;padding:10px 14px;font-size:var(--fs-sm);color:var(--text-2);border-bottom:2px solid transparent;margin-bottom:-1px}
+.kw-tab:hover,.kw-tab:focus-visible{color:var(--text)}
+.kw-tab-on{color:var(--text);border-bottom-color:var(--text);font-weight:600}
+.kw-method{font-size:var(--fs-xs);color:var(--text-2)}
+.kw-method summary{cursor:pointer}
+.kw-shares{width:100%;min-width:0}
+.kw-shares td,.kw-shares th{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top;text-align:left}
+.kw-chip-none{opacity:.55}
+.kw-filters-search input{height:34px;width:280px;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:var(--surface);color:var(--text);padding:0 10px;font:inherit;font-size:var(--fs-xs)}
+.kw-variant{color:var(--text-3)}
+.kw-linkbtn{all:unset;cursor:pointer;color:var(--text);text-decoration:underline dotted var(--border-strong);text-underline-offset:3px}
+.kw-linkbtn:hover,.kw-linkbtn:focus-visible{text-decoration-style:solid}
+.kw-new{font-size:10.5px;font-family:var(--font-mono);color:var(--warn)}
+.kw-target{font-size:var(--fs-sm);color:var(--text-2);text-align:right}

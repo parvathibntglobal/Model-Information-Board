@@ -1,0 +1,535 @@
+{
+ "slug": "topic-synthesis-concept-ai-for-science",
+ "status": "draft",
+ "tag": "Topic synthesis",
+ "feat": false,
+ "title": "AI for Science Moves at the Speed of Its Slowest Check",
+ "dek": "Models now propose molecules, experiments and research findings. What they are worth depends on the test that grades each guess, from a score to a yeast lab to a human trial.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "How is AI used in scientific discovery? As the proposer in a guess-and-check loop. The checker sets the pace and the trust, from a score to a yeast lab to a clinical trial.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+QUkgZm9yIHNjaWVuY2UgcnVucyBvbiBhIHByb3Bvc2UtYW5kLWNoZWNrIGxvb3A8L3RpdGxlPgogIDxkZXNjPkEgbW9kZWwgcHJvcG9zZXMgY2FuZGlkYXRlczsgYSBjaGVja2VyIGdyYWRlcyB0aGVtIGFuZCB0aGUgZ3JhZGUgZmVlZHMgdGhlIG5leHQgcHJvcG9zYWwuIFRoZSBjaGVja2VyIGNhbiBiZSBhIHNjb3JlLCBoZWxkLWJhY2sgZmluZGluZ3MsIGEgd2V0IGxhYiBvciBhIGNsaW5pY2FsIHRyaWFsLCBmcm9tIGZhc3QgdG8gc2xvdy48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycmciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCI+QUkgZm9yIHNjaWVuY2U6IHRoZSBjaGVja2VyIHNldHMgdGhlIHBhY2U8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwOCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlRoZSBtb2RlbCBwcm9wb3NlcyBjaGVhcGx5OyBlYWNoIGtpbmQgb2YgY2hlY2sgY29zdHMgbW9yZSB0aW1lIGFuZCBlYXJucyBtb3JlIHRydXN0PC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMjIwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjEyMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE5MCIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjcwMCI+TW9kZWwgcHJvcG9zZXM8L3RleHQ+CiAgPHRleHQgeD0iMTkwIiB5PSIzMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5oeXBvdGhlc2lzLCBtb2xlY3VsZSwgY29kZTwvdGV4dD4KCiAgPGxpbmUgeDE9IjMyMCIgeTE9IjI4MCIgeDI9IjQyMCIgeTI9IjI4MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8cmVjdCB4PSI0MzAiIHk9IjE1MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI2MiIgcng9IjEwIiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ1MCIgeT0iMTg5IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+U2NvcmluZyBmdW5jdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI3NzAiIHk9IjE4OSIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPnNlY29uZHM8L3RleHQ+CgogIDxyZWN0IHg9IjQzMCIgeT0iMjI0IiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjYyIiByeD0iMTAiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDUwIiB5PSIyNjMiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5IZWxkLWJhY2sgZmluZGluZ3M8L3RleHQ+CiAgPHRleHQgeD0iNzcwIiB5PSIyNjMiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij5vbmUgcnVuPC90ZXh0PgoKICA8cmVjdCB4PSI0MzAiIHk9IjI5OCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI2MiIgcng9IjEwIiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiNlOGMyNmIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ1MCIgeT0iMzM3IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+V2V0LWxhYiBleHBlcmltZW50PC90ZXh0PgogIDx0ZXh0IHg9Ijc3MCIgeT0iMzM3IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+cGh5c2ljYWwgdGltZTwvdGV4dD4KCiAgPHJlY3QgeD0iNDMwIiB5PSIzNzIiIHdpZHRoPSIzNjAiIGhlaWdodD0iNjIiIHJ4PSIxMCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0NTAiIHk9IjQxMSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkNsaW5pY2FsIHRyaWFsPC90ZXh0PgogIDx0ZXh0IHg9Ijc3MCIgeT0iNDExIiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+eWVhcnM8L3RleHQ+CgogIDxsaW5lIHgxPSI4MzAiIHkxPSIxNjAiIHgyPSI4MzAiIHkyPSI0MjUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8dGV4dCB4PSI4NTAiIHk9IjIwMCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPnNsb3dlcjwvdGV4dD4KICA8dGV4dCB4PSI4NTAiIHk9IjIyNSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPmhhcmRlciB0byBmb29sPC90ZXh0PgoKICA8cGF0aCBkPSJNNjEwLDQzNCBMNjEwLDUwMCBMMTkwLDUwMCBMMTkwLDM0NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYXJyZykiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjUzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPlRoZSBncmFkZSBzaGFwZXMgdGhlIG5leHQgcHJvcG9zYWw8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSI1NjAiIHdpZHRoPSIxMTAwIiBoZWlnaHQ9IjQ2IiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjYxMCIgeT0iNTkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+UmVhZCBhbnkgZGlzY292ZXJ5IGNsYWltIGJ5IGFza2luZyB3aGljaCBjaGVja2VyIGdyYWRlZCBpdDwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A model proposes candidates into a loop whose checker can be a score, held-back findings, a wet lab or a clinical trial.",
+  "caption": "The same propose-and-check loop runs everywhere; what changes is how slow and how honest the checker is.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How is AI used in scientific discovery? A model proposes and a checker decides. We trace that loop from code search to yeast labs to drug trials.",
+ "keywords": [
+  "how is AI used in scientific discovery",
+  "AI for science",
+  "AI scientific discovery agents",
+  "AI drug discovery",
+  "autonomous lab",
+  "LLM evolutionary search"
+ ],
+ "kicker": "Topic synthesis",
+ "tags": [
+  "AI for science",
+  "Topic synthesis"
+ ],
+ "read": 10,
+ "decisions": [
+  "Before trusting an AI-for-science result, name the checker that graded it.",
+  "Treat gains in predicted scores as hypotheses until a physical test confirms them.",
+  "Add retrieval to a search loop only if the model can judge its own knowledge gap.",
+  "Fix the answer key before the run, as held-back papers do, so the agent cannot shape it."
+ ],
+ "layout": "synthesis",
+ "arrangement": "a",
+ "special": {
+  "type": "glossary",
+  "title": "Terms in this piece",
+  "items": [
+   {
+    "term": "Evolutionary search",
+    "meaning": "A loop where a model writes candidate solutions, a scorer grades them, and the best ones seed the next round."
+   },
+   {
+    "term": "Retrieval gate",
+    "meaning": "A step where the model judges what it does not know and decides to fetch new documents, reuse old ones or go without."
+   },
+   {
+    "term": "Rediscovery criteria",
+    "meaning": "The separate findings of a held-back paper, used to score how much of it an agent can work out again."
+   },
+   {
+    "term": "Closed-loop lab",
+    "meaning": "A lab where software proposes experiments, robots run them, and the results feed straight back into the next proposal."
+   },
+   {
+    "term": "Generative chemistry",
+    "meaning": "Models that design new candidate molecules aimed at several goals at once, such as binding strength and ease of synthesis."
+   },
+   {
+    "term": "Context of use",
+    "meaning": "A regulatory idea that the proof a model must supply grows with how much a decision relies on it."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "20 October 2026",
+  "~10 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "AI for science is a loop of guesses and checks",
+    "num": "01",
+    "id": "ai-for-science-is-a-loop-of-guesses-and-checks"
+   }
+  ],
+  [
+   "p",
+   "AI for science means letting a model propose hypotheses, molecules or experiments, then testing each one against something real. The test can be a score, a simulation, a robot lab or a trial in people. This autumn, an agent system called Station rebuilt 62.7% of the findings in conference papers it was never shown. A university lab ran the same kind of loop on brewer's yeast [1, 2]."
+  ],
+  [
+   "p",
+   "So how is AI used in scientific discovery today? Mostly as the proposer inside a search loop. A model suggests a candidate. A checker grades it, and the grade shapes the next suggestion. The model is the cheap, fast part. The checker sets the pace, the cost and how far you can trust what comes out."
+  ],
+  [
+   "p",
+   "That gives us our one piece of advice, stated up front. When you read an AI-for-science claim, find the checker first. A rediscovery score, a docking run and a Phase III trial are very different bars. Builders using LLMs for research face the same choice in miniature. Your evaluator decides what your agent learns to produce [1, 3, 4]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The checker behind each kind of AI-for-science result in this post, and what a pass actually means.",
+    "columns": [
+     "Checker",
+     "Where it appears",
+     "What a pass means"
+    ],
+    "rows": [
+     [
+      "Scoring function",
+      "EvoDuet's 21 optimisation tasks",
+      "A candidate beat a numeric score"
+     ],
+     [
+      "Held-back findings",
+      "Station's rebuilt ICLR papers",
+      "Agents matched known criteria"
+     ],
+     [
+      "Docking simulation",
+      "The SwarmRSI blog post",
+      "Predicted potency went up"
+     ],
+     [
+      "Wet-lab experiment",
+      "The Chalmers yeast system",
+      "A physical result came back"
+     ],
+     [
+      "Clinical trial",
+      "Rentosertib's Phase IIa study",
+      "Patients' lung function changed"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Protein structure became something you look up",
+    "num": "02",
+    "id": "protein-structure-became-something-you-look-up"
+   }
+  ],
+  [
+   "p",
+   "The field's anchor is AlphaFold, which predicts a protein's three-dimensional shape from its amino acid sequence. Working that shape out with X-ray crystallography could take months or years. AlphaFold does it in minutes. Its public database now offers over 200 million predicted structures. Its builders shared the 2024 Nobel Prize in Chemistry [3]."
+  ],
+  [
+   "p",
+   "Why should a drug hunter care about shape? Most drugs act by binding to a protein target, a key meeting a lock. Know the exact lock, and chemists can design the key instead of guessing. AlphaFold 3 widened the view to proteins meeting DNA, RNA and small molecules. Prediction is now the floor. Design is where the action moved [3]."
+  ],
+  [
+   "p",
+   "Generative chemistry is the next layer. Like an image generator, these models emit candidate structures, but they juggle several goals at once. The goals cover how tightly a molecule binds and how selectively it hits the target. They also weigh how stable it stays and how easily it can be made. Insilico Medicine built rentosertib this way, with AI picking both the target and the molecule. Target to preclinical candidate took about 18 months [3]."
+  ],
+  [
+   "p",
+   "We think structure prediction is the cleanest success in the field, and the reason is the checker. Its answers can be graded against shapes solved in the lab. That is a hard, well-defined target. Most science offers no such tidy answer key, which is why the rest of this post gets messier."
+  ],
+  [
+   "h2",
+   {
+    "text": "Evolutionary search stalls when the model runs out of facts",
+    "num": "03",
+    "id": "evolutionary-search-stalls-when-the-model-runs-out-of-facts"
+   }
+  ],
+  [
+   "p",
+   "Now the loop in its pure software form. In evolutionary search, an LLM writes candidate solutions, a scorer grades them, and the best seed the next round. The team behind a method called EvoDuet found this loop can stall. Progress sometimes needs outside knowledge the model lacks. A plain web search tool helps less than you'd hope, because it keeps returning the same pages [5]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+VHdvIGNvdXBsZWQgc2VhcmNoZXMgYmVoaW5kIGEgcmV0cmlldmFsIGdhdGU8L3RpdGxlPgogIDxkZXNjPkEgcmV0cmlldmFsIGdhdGUgY2hvb3NlcyB0byBmZXRjaCwgcmV1c2Ugb3Igc2tpcCBkb2N1bWVudHMuIEluc2lkZSwgcXVlcmllcyBnZXQgcmV3cml0dGVuIGFuZCBwYWdlcyBnZXQgcmFua2VkOyBvdXRzaWRlLCBjYW5kaWRhdGVzIGFyZSBnZW5lcmF0ZWQsIHNjb3JlZCBhbmQgbG9nZ2VkIGZvciBsYXRlciByb3VuZHMuPC9kZXNjPgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlYXJjaCBmb3IgYW5zd2VycywgYW5kIGZvciB0aGUgcmVhZGluZyBiZWhpbmQgdGhlbTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA2IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+TW9kZWwgd2VpZ2h0cyBzdGF5IGZyb3plbjsgcXVlcmllcyBhbmQgc29sdXRpb25zIGV2b2x2ZSB0b2dldGhlcjwvdGV4dD4KCiAgPHJlY3QgeD0iNDcwIiB5PSIxNDAiIHdpZHRoPSIyNjAiIGhlaWdodD0iOTAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZThjMjZiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlJldHJpZXZhbCBnYXRlPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMjA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+ZmV0Y2gsIHJldXNlIG9yIHNraXA8L3RleHQ+CgogIDxyZWN0IHg9IjgwIiB5PSIyOTAiIHdpZHRoPSI0NDAiIGhlaWdodD0iMjAwIiByeD0iMTYiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzAwIiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM3YWEyZmYiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Jbm5lciBsb29wPC90ZXh0PgogIDx0ZXh0IHg9IjMwMCIgeT0iMzc1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+UmVmaW5lIHNlYXJjaCBxdWVyaWVzPC90ZXh0PgogIDx0ZXh0IHg9IjMwMCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+UmFuayBkb2N1bWVudHMgYnkgdGhlIHNjb3JlPC90ZXh0PgogIDx0ZXh0IHg9IjMwMCIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+dGhleSBhcmUgcHJlZGljdGVkIHRvIHlpZWxkPC90ZXh0PgoKICA8cmVjdCB4PSI2ODAiIHk9IjI5MCIgd2lkdGg9IjQ0MCIgaGVpZ2h0PSIyMDAiIHJ4PSIxNiIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5MDAiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E3OGJmYSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPk91dGVyIGxvb3A8L3RleHQ+CiAgPHRleHQgeD0iOTAwIiB5PSIzNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5HZW5lcmF0ZSBjYW5kaWRhdGVzIGluIHBhcmFsbGVsPC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+U2NvcmUgZWFjaCBjYW5kaWRhdGU8L3RleHQ+CiAgPHRleHQgeD0iOTAwIiB5PSI0NDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5SZWNvcmQgb3V0Y29tZXMgZm9yIGxhdGVyIHNlYXJjaGVzPC90ZXh0PgoKICA8cGF0aCBkPSJNNTIwLDIwMCBMMzAwLDIwMCBMMzAwLDI4NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI1MjAiIHkxPSIzOTAiIHgyPSI2NzUiIHkyPSIzOTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8dGV4dCB4PSI1OTgiIHk9IjM3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPmRvY3VtZW50czwvdGV4dD4KICA8cGF0aCBkPSJNOTAwLDQ5MCBMOTAwLDU0MCBMMzAwLDU0MCBMMzAwLDQ5NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iNTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+c2NvcmVkIG91dGNvbWVzIGd1aWRlIHRoZSBuZXh0IHF1ZXJpZXM8L3RleHQ+CiAgPHBhdGggZD0iTTkwMCwyODUgTDkwMCwxODUgTDczNSwxODUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8dGV4dCB4PSI5MTUiIHk9IjI0MCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPm5leHQgcm91bmQ8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Two linked loops: an inner loop refines search queries and ranks documents, an outer loop generates and scores candidates.",
+    "caption": "EvoDuet couples a search for reading material with the search for solutions, behind a retrieval gate.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "EvoDuet evolves the search queries alongside the solutions, with the model's weights frozen. Each round opens with a retrieval gate. The model judges its own knowledge gap, then fetches new documents, reuses saved ones or skips retrieval. An inner loop rewrites queries and ranks documents by the scores they are predicted to yield [5]."
+  ],
+  [
+   "p",
+   "An outer loop then generates candidates in parallel from the fetched pages. It records every scored outcome so later searches can use it. Think of it as two coupled searches. One hunts for answers. The other hunts for reading material that leads to better answers. The sketch below shows the shape, not the authors' code [5]."
+  ],
+  [
+   "p",
+   "With GPT-5.6-Luna, normalised discovery gain over OpenEvolve rose from 74.1% to 78.0% across 21 tasks. With Gemini-3.8-Flash it climbed from 61.3% to 82.3%. The small Qwen3.5-9B model saw no benefit. The best runs beat earlier best-known scores on eight tasks and tied them on three more [5]."
+  ],
+  [
+   "p",
+   "We read that small model as the most useful result. Retrieval only pays when the model can tell what it is missing. A model that cannot judge its own gap gives the gate nothing sound to act on. That is our inference, not the authors' claim."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative sketch of a two-loop search with a retrieval gate (not EvoDuet's code)",
+    "language": "python",
+    "source": "def evolve(task, model, store, rounds):\n    population = [model.propose(task, docs=[])]\n    for _ in range(rounds):\n        choice = model.assess_gap(task, population)   # retrieval gate\n        if choice == \"retrieve\":\n            queries = model.refine_queries(task, population)   # inner loop\n            docs = rank_by_predicted_score(search(queries), task)\n            store.add(docs)\n        elif choice == \"reuse\":\n            docs = store.best_for(task)\n        else:\n            docs = []\n        children = parallel_map(lambda d: model.propose(task, docs=d), docs)  # outer loop\n        scored = [(c, task.score(c)) for c in children]\n        store.record(docs, scored)   # later searches learn from outcomes\n        population = keep_best(population, scored)\n    return best(population)"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Normalised discovery gain over 21 tasks before and after adding EvoDuet to OpenEvolve, in percent.",
+    "unit": "percent normalised discovery gain",
+    "bars": [
+     {
+      "label": "GPT-5.6-Luna, OpenEvolve",
+      "value": 74.1
+     },
+     {
+      "label": "GPT-5.6-Luna, with EvoDuet",
+      "value": 78.0
+     },
+     {
+      "label": "Gemini-3.8-Flash, OpenEvolve",
+      "value": 61.3
+     },
+     {
+      "label": "Gemini-3.8-Flash, with EvoDuet",
+      "value": 82.3
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Open-ended research needs a reason to keep exploring",
+    "num": "04",
+    "id": "open-ended-research-needs-a-reason-to-keep-exploring"
+   }
+  ],
+  [
+   "p",
+   "Optimisation tasks come with a score. Real research usually does not. The authors of a new paper on Station go after that gap. Station is an open-world environment where several agents act out a small scientific community. To keep exploration alive without interim metrics, the authors added a Supervisor and periodic Meta Reflection [1]."
+  ],
+  [
+   "p",
+   "The test design is the clever part. The authors took three oral papers from ICLR and gave agents only each paper's main research question. Results stayed hidden, and web access was switched off. Each paper's findings were split into separate criteria. The score was how many criteria the agents found again [1]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Together, these results indicate that a suitable environment can enable agents to autonomously make meaningful progress in open-ended scientific discovery.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "Station recovered 62.7% of the criteria on average. Codex Multiagent-v2 reached 15.4%, and AI Scientist-v2 landed between 14.4% and 20.6%. In ablations, the two mechanisms worked best together, improving coverage and continuity. On two tasks with no answer paper, some agent findings closely matched results published after the knowledge cutoff [1]."
+  ],
+  [
+   "p",
+   "We like this design because it fixes the checker before the run starts. A held-back paper is an answer key the agents cannot peek at. Still, rediscovery is a narrower bar than discovery. Matching known criteria shows a loop can find what people already found. It says less about finding the unexpected."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Share of findings from held-back ICLR papers that each agent system rediscovered, in percent of criteria.",
+    "unit": "percent of criteria rediscovered",
+    "bars": [
+     {
+      "label": "Station",
+      "value": 62.7
+     },
+     {
+      "label": "AI Scientist-v2, high end",
+      "value": 20.6
+     },
+     {
+      "label": "Codex Multiagent-v2",
+      "value": 15.4
+     },
+     {
+      "label": "AI Scientist-v2, low end",
+      "value": 14.4
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A wet lab puts an honest clock inside the loop",
+    "num": "05",
+    "id": "a-wet-lab-puts-an-honest-clock-inside-the-loop"
+   }
+  ],
+  [
+   "p",
+   "Researchers at Chalmers University of Technology took the loop off the screen. Their system proposes hypotheses, plans experiments, runs them on lab automation and reads the data that comes back. It was shown in systems biology, on brewer's yeast. Language models and automated reasoning drive physical bench work in one closed cycle [2]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+QSBjbG9zZWQgbG9vcCBpbiBhIHJlYWwgbGFib3JhdG9yeTwvdGl0bGU+CiAgPGRlc2M+Rm91ciBzdGFnZXMgaW4gYSBjeWNsZTogZ2VuZXJhdGUgYSBoeXBvdGhlc2lzLCBkZXNpZ24gdGhlIGV4cGVyaW1lbnQsIHJ1biBpdCBvbiBsYWIgYXV0b21hdGlvbiwgaW50ZXJwcmV0IHRoZSBkYXRhLiBIdW1hbnMgc2V0IGRpcmVjdGlvbiwganVkZ2UgbWVhbmluZyBhbmQga2VlcCBldGhpY2FsIG92ZXJzaWdodC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIGxvb3AgbGVhdmVzIHRoZSBzY3JlZW48L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPkEgc3lzdGVtcy1iaW9sb2d5IGRlbW9uc3RyYXRpb24gb24gYnJld2VyJ3MgeWVhc3Q8L3RleHQ+CgogIDxyZWN0IHg9IjEyMCIgeT0iMTYwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iMjAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+SHlwb3RoZXNpczwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPmZyb20gc2NpZW50aWZpYyBrbm93bGVkZ2U8L3RleHQ+CgogIDxyZWN0IHg9IjU2MCIgeT0iMTYwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjcxMCIgeT0iMjAyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RXhwZXJpbWVudCBkZXNpZ248L3RleHQ+CiAgPHRleHQgeD0iNzEwIiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij50aWVkIHRvIHRoZSBoeXBvdGhlc2lzPC90ZXh0PgoKICA8cmVjdCB4PSI1NjAiIHk9IjM3MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZThjMjZiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI3MTAiIHk9IjQxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkF1dG9tYXRlZCBsYWIgcnVuPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+cGh5c2ljYWwgdGltZSwgcmVhbCBkYXRhPC90ZXh0PgoKICA8cmVjdCB4PSIxMjAiIHk9IjM3MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyNzAiIHk9IjQxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkludGVycHJldCBhbmQgcmVmaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjI3MCIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+dXBkYXRlIHdoYXQgaXQga25vd3M8L3RleHQ+CgogIDxsaW5lIHgxPSI0MjAiIHkxPSIyMTAiIHgyPSI1NTUiIHkyPSIyMTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iNzEwIiB5MT0iMjYwIiB4Mj0iNzEwIiB5Mj0iMzY1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjU2MCIgeTE9IjQyMCIgeDI9IjQyNSIgeTI9IjQyMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSIyNzAiIHkxPSIzNzAiIHgyPSIyNzAiIHkyPSIyNjUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KCiAgPHJlY3QgeD0iOTIwIiB5PSIxNjAiIHdpZHRoPSIyMzAiIGhlaWdodD0iMzEwIiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KICA8dGV4dCB4PSIxMDM1IiB5PSIyMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5QZW9wbGUga2VlcDwvdGV4dD4KICA8dGV4dCB4PSIxMDM1IiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5yZXNlYXJjaCBkaXJlY3Rpb248L3RleHQ+CiAgPHRleHQgeD0iMTAzNSIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+c3RyYXRlZ2ljIGp1ZGdlbWVudDwvdGV4dD4KICA8dGV4dCB4PSIxMDM1IiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5ldGhpY2FsIG92ZXJzaWdodDwvdGV4dD4KICA8dGV4dCB4PSIxMDM1IiB5PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5maW5hbCBpbnRlcnByZXRhdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjU0MCIgd2lkdGg9IjEwOTAiIGhlaWdodD0iNTAiIHJ4PSIxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iNjA1IiB5PSI1NzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5TbG93ZXIgdGhhbiBhIHNjb3JlLCBhbmQgbXVjaCBoYXJkZXIgdG8gZm9vbDwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "A four-step cycle of hypothesis, experiment design, automated lab run and data interpretation, with humans setting direction.",
+    "caption": "The Chalmers system closes the loop in a real lab, while people keep the direction and the oversight.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "It remains a systems-biology demonstration in yeast, not evidence that an autonomous lab can independently handle every scientific domain or research problem.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "What changes when the checker is a living culture? Each turn of the loop now waits for a physical experiment to finish. The Journal of the Royal Society Interface published the study, with partners from Gothenburg and Cambridge. Media coverage has called the robot researcher Eve. Nobody can fake a yeast result [2]."
+  ],
+  [
+   "p",
+   "The humans did not leave. Chalmers frames the system as a way to speed routine cycles, not a replacement for researchers. People still set direction, judge the meaning of results and keep ethical oversight. The write-up also flags open questions about other organisms, scale and lab governance [2]."
+  ],
+  [
+   "p",
+   "We think this is the most important recent demo, precisely because it is slow. A scoring function can be gamed by a clever enough search. A physical measurement is much harder to fool. That trade, speed for honesty, is the central tension of the whole field."
+  ],
+  [
+   "h2",
+   {
+    "text": "Clinical trials remain the check nobody can compress",
+    "num": "06",
+    "id": "clinical-trials-remain-the-check-nobody-can-compress"
+   }
+  ],
+  [
+   "p",
+   "Drug discovery shows where the loop finally reaches people. A Tufts estimate puts the cost of bringing one drug to market at about $2.6 billion, failures included. Only 11.83% of drugs entering clinical testing win approval. A typical drug takes 10 to 15 years to develop. The bulk of the spending goes on candidates that fail late [3]."
+  ],
+  [
+   "p",
+   "The pitch for AI has two halves. Shrink early discovery from years to months. Then drop weak candidates before the costly trials begin. Recursion's REC-7735 won clearance of its Investigational New Drug filing within 10 months of its first chemical hit. That is fast. It is also still the early part [3]."
+  ],
+  [
+   "p",
+   "Trial data is starting to arrive. Rentosertib's Phase IIa study in idiopathic pulmonary fibrosis enrolled 71 patients. On the 60 mg daily dose, lung capacity rose by a mean of 98.4 mL over 12 weeks. Patients on placebo lost 20.3 mL. The drug has since moved into Phase III [3]."
+  ],
+  [
+   "p",
+   "Regulators are shaping the checker as well. FDA draft guidance from January 2025 turns on a concept called context of use. The heavier a decision leans on an AI output, the stronger the proof that model must supply. Then, in January 2026, American and European regulators jointly issued ten principles for AI in drug development [3]."
+  ],
+  [
+   "p",
+   "We share the post's own caution here. The industry has not yet shown that AI raises approval rates at scale. Faster early steps are real and worth having. But a loop moves at the speed of its slowest check. In medicine, that check takes years [3]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Big discovery claims deserve the same scrutiny as molecules",
+    "num": "07",
+    "id": "big-discovery-claims-deserve-the-same-scrutiny-as-molecules"
+   }
+  ],
+  [
+   "p",
+   "Not every report meets that standard. One developer blog post describes SwarmRSI, a swarm of language-model agents that propose and test hypotheses. It credits the system with cutting a drug discovery cycle from six months to three weeks. It also cites $12 M in saved research spending and a reference swarm of 512 agents [4]."
+  ],
+  [
+   "p",
+   "Read it closely, though. The case study opens by asking you to imagine a biotech startup. The headline 27% gain is in predicted potency, scored by docking simulations. Two of three synthesised candidates then showed activity in vitro, the post says. It also treats a growth figure of 1.12 as crossing a critical threshold [4]."
+  ],
+  [
+   "p",
+   "We would not build on these numbers yet. An imagined scenario cannot carry a real cost saving. A gain in predicted potency is the simulator grading its own proposals. And one ratio for runaway self-improvement hides every assumption in its formula. The lesson is the familiar one. Ask what did the checking."
+  ],
+  [
+   "p",
+   "A Hacker News thread about an Anthropic discovery claim raised the same doubt from another angle. One commenter wondered if models are simply running a very good search over existing human thought. Another said pharma staff they know reach these models only through AWS Bedrock, because of data trust. That search-or-discovery question applies to every loop in this post [6]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Novelty is the test every discovery loop still owes us",
+    "num": "08",
+    "id": "novelty-is-the-test-every-discovery-loop-still-owes-us"
+   }
+  ],
+  [
+   "p",
+   "Here is what remains open. First comes novelty. Station's matches with post-cutoff results hint that agents can reach findings they never saw. Yet that evidence rests on two tasks, and the criteria came from human work. A larger set of tasks with no answer key would tell us far more [1]."
+  ],
+  [
+   "p",
+   "Second comes transfer. EvoDuet helped two large models and did nothing for a small one. Where that line sits for other models and tasks is not yet known. The Chalmers team still has to show its loop works beyond yeast and beyond one workflow. Both are testable. Neither is tested yet [5, 2]."
+  ],
+  [
+   "p",
+   "Third come the slow checks. Trial readouts over the next two to three years will show if AI-designed drugs succeed more often or merely arrive sooner. Rentosertib's Phase III result is one to watch. Until then, speed in early discovery is a promise, not a payoff [3]."
+  ],
+  [
+   "p",
+   "Our bet is that progress will track the checkers. Where a field has a fast, hard-to-fool test, AI loops will race ahead. Where the only test is a patient in a trial, they will wait like everyone else. What would settle it? Approval rates for AI-designed drugs, and findings no paper predicted."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How is AI used in scientific discovery?"
+  ],
+  [
+   "p",
+   "AI is mostly used as the proposer in a guess-and-check loop. A model suggests a molecule, a solution or a hypothesis, and a checker grades it. EvoDuet pairs an LLM with a scorer across 21 optimisation tasks. At Chalmers, the checker is a robotic yeast lab. In drug discovery, the final checker is a clinical trial [5, 2, 3]."
+  ],
+  [
+   "h3",
+   "What is AI for science?"
+  ],
+  [
+   "p",
+   "AI for science is the use of machine learning models to speed up research steps such as predicting structures, designing molecules and planning experiments. AlphaFold predicts protein shapes from sequences in minutes. Generative chemistry models then design candidate drugs for several goals at once. Newer agent systems try to run whole research loops, from question to result [3, 1, 2]."
+  ],
+  [
+   "h3",
+   "Can AI make scientific discoveries on its own?"
+  ],
+  [
+   "p",
+   "Not yet in any proven, general way. Station rediscovered 62.7% of findings from held-back papers, and some agent results matched work published after its knowledge cutoff. The Chalmers lab ran its own experiments on yeast, but humans still set direction and oversight. Rediscovery and narrow demos are a long way from open, unguided discovery [1, 2]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Can AI Agents Make Open-Ended Scientific Discovery? Evidence from Station",
+   "url": "https://huggingface.co/papers/2610.08927",
+   "posted": "2026-10-06"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "alifar",
+   "what": "Chalmers Robot Researcher Shows How AI Can Run the Scientific Discovery Loop",
+   "url": "https://dev.to/alifar/chalmers-robot-researcher-shows-how-ai-can-run-the-scientific-discovery-loop-51gk",
+   "posted": "2026-10-16"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "the_daily_flare",
+   "what": "AI Drug Discovery in 2026: How Artificial Intelligence Is Changing Medicine",
+   "url": "https://dev.to/the_daily_flare/ai-drug-discovery-in-2026-how-artificial-intelligence-is-changing-medicine-59kd",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 4,
+   "platform": "dev.to",
+   "who": "amrithesh_dev",
+   "what": "How SwarmRSI Cut Drug Discovery From 6 Months to 3 Weeks – The AI Revolution You Can’t Miss",
+   "url": "https://dev.to/amrithesh_dev/how-swarmrsi-cut-drug-discovery-from-6-months-to-3-weeks-the-ai-revolution-you-cant-miss-2hho",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "EvoDuet: Bilevel Co-Evolution of Web Searching and Task Solving for Scientific Discovery",
+   "url": "https://huggingface.co/papers/2609.40340",
+   "posted": "2026-09-30"
+  },
+  {
+   "n": 6,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Did Anthropic's A.I. Really Make a Scientific Discovery on Its Own?",
+   "url": "https://news.ycombinator.com/item?id=49870911",
+   "posted": "2026-09-28"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T02:07:04+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "hfpapers:2610.08927",
+   "hfpapers:2609.40340",
+   "devto:4868866",
+   "devto:4861767",
+   "devto:4857823",
+   "hackernews:49870911"
+  ],
+  "platforms": {
+   "Hugging Face": 2,
+   "dev.to": 3,
+   "Hacker News": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-synthesis:concept/ai-for-science",
+  "format": "topic-synthesis",
+  "reviewed_by": null
+ }
+}

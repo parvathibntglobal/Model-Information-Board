@@ -1,0 +1,505 @@
+{
+ "slug": "topic-synthesis-concept-video-generation",
+ "status": "draft",
+ "tag": "Topic synthesis",
+ "feat": false,
+ "title": "AI Video Generation Looks Right Frame by Frame and Loses the Plot",
+ "dek": "Video models denoise a compressed latent one chunk at a time. New papers show the hard part is no longer a good frame but a clip that keeps its goal.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "How does AI video generation work? A diffusion model removes noise from a compressed latent, often chunk by chunk. The hard part now is keeping one goal across the whole clip.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+RXZlcnkgZnJhbWUgcGFzc2VzLCB0aGUgY2xpcCBtaXNzZXMgaXRzIGdvYWw8L3RpdGxlPgogIDxkZXNjPkZpdmUgZ2VuZXJhdGVkIGZyYW1lcywgZWFjaCBtYXJrZWQgcGxhdXNpYmxlLiBBIG1pZGRsZSBzdGVwIGlzIHNraXBwZWQsIHNvIHRoZSBsYXRlciBmcmFtZXMgbGFjayB0aGUgc3RhdGUgdGhleSBuZWVkIGFuZCB0aGUgZ29hbCBpcyBub3QgcmVhY2hlZC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCI+QUkgdmlkZW8gZ2VuZXJhdGlvbjogcmlnaHQgZnJhbWVzLCBsb3N0IHBsb3Q8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwOCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkdvYWw6IG9wZW4gdGhlIGphciwgcG91ciwgY2xvc2UgaXQ8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIxODAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTUwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTU1IiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5yZWFjaDwvdGV4dD4KICA8dGV4dCB4PSIxNTUiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPnBsYXVzaWJsZTwvdGV4dD4KCiAgPHJlY3QgeD0iMjg1IiB5PSIxODAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTUwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzgwIiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5ncmFzcCBqYXI8L3RleHQ+CiAgPHRleHQgeD0iMzgwIiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5wbGF1c2libGU8L3RleHQ+CgogIDxyZWN0IHg9IjUxMCIgeT0iMTgwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjE1MCIgcng9IjEyIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iOCA2Ii8+CiAgPHRleHQgeD0iNjA1IiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5vcGVuIGxpZDwvdGV4dD4KICA8dGV4dCB4PSI2MDUiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPnNraXBwZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjczNSIgeT0iMTgwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjE1MCIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjgzMCIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+cG91cjwvdGV4dD4KICA8dGV4dCB4PSI4MzAiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPnBsYXVzaWJsZTwvdGV4dD4KCiAgPHJlY3QgeD0iOTYwIiB5PSIxODAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTUwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTA1NSIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+Y2xvc2U8L3RleHQ+CiAgPHRleHQgeD0iMTA1NSIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+cGxhdXNpYmxlPC90ZXh0PgoKICA8bGluZSB4MT0iMjUwIiB5MT0iMjU1IiB4Mj0iMjgwIiB5Mj0iMjU1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjQ3NSIgeTE9IjI1NSIgeDI9IjUwNSIgeTI9IjI1NSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI3MDAiIHkxPSIyNTUiIHgyPSI3MzAiIHkyPSIyNTUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iOTI1IiB5MT0iMjU1IiB4Mj0iOTU1IiB5Mj0iMjU1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CgogIDxwYXRoIGQ9Ik02MDUsMzMwIEw2MDUsNDAwIEw4MzAsNDAwIEw4MzAsMzM1IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjcxNyIgeT0iNDM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+cG91cmluZyBuZWVkcyBhbiBvcGVuIGxpZCB0aGF0IG5ldmVyIGV4aXN0ZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSI0ODAiIHdpZHRoPSIxMDkwIiBoZWlnaHQ9IjkwIiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjA1IiB5PSI1MTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5DbGlwIGp1ZGdlZCBhcyBhIHdob2xlOiBnb2FsIG5vdCBtZXQ8L3RleHQ+CiAgPHRleHQgeD0iNjA1IiB5PSI1NTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5GcmFtZSBxdWFsaXR5IGlzIGEgZmxvb3IsIG5vdCBhIGZpbmlzaCBsaW5lPC90ZXh0Pgo8L3N2Zz4K",
+  "alt": "A strip of generated frames, each marked plausible, where a middle step is skipped and the final goal is not reached.",
+  "caption": "Every frame can pass on its own while the clip as a whole misses its goal.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How does AI video generation work? A diffusion model denoises a compressed latent chunk by chunk. New papers tackle cost, drift, goals and testing.",
+ "keywords": [
+  "how does AI video generation work",
+  "video generation",
+  "AI video generation",
+  "video diffusion models",
+  "autoregressive video models",
+  "video model drift"
+ ],
+ "kicker": "Topic synthesis",
+ "tags": [
+  "AI video generation",
+  "Topic synthesis"
+ ],
+ "read": 9,
+ "decisions": [
+  "Judge a video model on whole-task completion, not on how good single frames look.",
+  "When compressing latents, optimise for the generator that reads them, not reconstruction alone.",
+  "For long rollouts, keep cached state close to how it looked in training.",
+  "Validate any automatic video judge on unfamiliar scenes before using it as a reward."
+ ],
+ "layout": "synthesis",
+ "arrangement": "a",
+ "special": {
+  "type": "glossary",
+  "title": "Terms in this piece",
+  "items": [
+   {
+    "term": "Latent",
+    "meaning": "A compressed block of numbers that stands for a video, which the model edits instead of raw pixels."
+   },
+   {
+    "term": "Diffusion Transformer (DiT)",
+    "meaning": "A transformer that removes noise from a latent step by step, treating patches of it as tokens."
+   },
+   {
+    "term": "KV cache",
+    "meaning": "Saved attention keys and values from earlier steps, reused so the model need not recompute them."
+   },
+   {
+    "term": "Drift",
+    "meaning": "The slow decay of a long clip as colours, textures and motion move away from where they started."
+   },
+   {
+    "term": "Conditioning",
+    "meaning": "Whatever the generator receives besides noise to guide it, such as a prompt, an image or a rendered view."
+   },
+   {
+    "term": "Teacher forcing",
+    "meaning": "Training on the true earlier frames instead of the model's own earlier guesses."
+   },
+   {
+    "term": "Post-training",
+    "meaning": "Further training or steering applied after pretraining so a model follows intent and constraints."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "20 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "AI video generation turns noise into a clip inside a compressed space",
+    "num": "01",
+    "id": "ai-video-generation-turns-noise-into-a-clip-inside-a-compres"
+   }
+  ],
+  [
+   "p",
+   "AI video generation starts from random noise and removes it, step by step, until a clip appears. The model does this work in a compressed space, steered by a prompt or a starting image. A decoder then turns the result into frames. Here's the catch. Testers of everyday hand tasks found clips that look fine yet skip whole steps [2]."
+  ],
+  [
+   "p",
+   "That failure runs through this whole post. Each frame can be plausible while the clip misses its point. Recent papers attack the gap from several sides: cheaper latents, steadier long rollouts, goal-aware generation and sharper tests. A new survey maps the post-training methods that try to bend these models toward what people want [3, 4, 5, 2, 6]."
+  ],
+  [
+   "p",
+   "Why should LLM builders care? The parts are familiar. Autoregressive video models predict the next chunk much as a language model predicts the next token. They keep a KV cache, a store of attention keys and values from earlier steps. Their drift looks a lot like an LLM losing track in a long context. That comparison is ours, not the papers' [4, 5]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Compression decides how much video a model can afford",
+    "num": "02",
+    "id": "compression-decides-how-much-video-a-model-can-afford"
+   }
+  ],
+  [
+   "p",
+   "Follow one short clip from prompt to pixels. First, a video autoencoder squeezes the frames into a latent, a compact block of numbers. A Diffusion Transformer, or DiT, then denoises that latent, treating its patches as tokens. Fewer tokens mean a faster DiT. Last, the decoder expands the clean latent back into frames [3]."
+  ],
+  [
+   "p",
+   "So why not compress harder? The GRACE authors spell out the trap. Heavier compression hurts reconstruction, and winning it back takes more channels, which slows DiT training. Worse, the new latent no longer matches what the pretrained DiT learned. You either retrain from scratch or pay heavily to adapt it [3]."
+  ],
+  [
+   "p",
+   "GRACE keeps the original encoder's latent frozen as a base. On top, it learns a residual latent that holds the detail heavier compression throws away. Training pulls the compressed latent toward the original one inside the frozen DiT's own feature space. A light fine-tune follows. The base then gets denoised before the residual [3]."
+  ],
+  [
+   "p",
+   "The payoff is large. On Wan2.1-I2V-14B, GRACE cut the token count by 8x and latency by 11.1x at 480x832x81. Quality on VBench matched the pipeline before compression. We like the principle even more than the speedup. Compress for the generator that will read the latent, not for reconstruction alone [3]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "One clip's path through a latent video diffusion pipeline, from frames to tokens to denoised output.",
+    "steps": [
+     "Autoencoder compresses training frames into a latent",
+     "The latent is split into patch tokens",
+     "Generation starts from noise in that latent space",
+     "The DiT removes noise over many steps, guided by the prompt",
+     "The decoder expands the clean latent back into frames"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Long clips drift when cached entries leave their training range",
+    "num": "03",
+    "id": "long-clips-drift-when-cached-entries-leave-their-training-ra"
+   }
+  ],
+  [
+   "p",
+   "Short clips are now the easy part. Long ones drift. Colours and textures shift, and motion slowly fades. Autoregressive video models build a long clip in chunks, each one conditioned on cached keys and values from earlier chunks. Most fixes so far choose or edit the cached entries, an approach called KV conditioning [4]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+V3JpdGluZyB0aGUgY2FjaGUgdGhlIHdheSB0cmFpbmluZyB3cm90ZSBpdDwvdGl0bGU+CiAgPGRlc2M+VG9wIHJvdzogZWFjaCBuZXcgY2h1bmsncyBjYWNoZSBlbnRyeSBpcyBidWlsdCB3aGlsZSBhdHRlbmRpbmcgdG8gb2xkZXIgZW50cmllcywgc28gZXJyb3JzIGNvbXBvdW5kIGFuZCBlbnRyaWVzIGRyaWZ0LiBCb3R0b20gcm93OiBlYWNoIGNodW5rIGlzIGNhY2hlZCBvbiBpdHMgb3duIGFuZCBzdGF5cyBpbiByYW5nZS48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCI+V2hlcmUgbG9uZyB2aWRlbyBkcmlmdCBzdGFydHM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPlRoZSBwcm9ibGVtIGlzIGhvdyBjYWNoZSBlbnRyaWVzIGFyZSB3cml0dGVuLCBub3Qgb25seSB3aGljaCBvbmVzIGFyZSByZWFkPC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iMTc1IiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VXN1YWwgcm9sbG91dDwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMTk1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTUwIiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5jaHVuayBBPC90ZXh0PgogIDxyZWN0IHg9IjI3MCIgeT0iMTk1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2U4YzI2YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzYwIiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5jaHVuayBCPC90ZXh0PgogIDxyZWN0IHg9IjQ4MCIgeT0iMTk1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2ZmOWY0MyIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTcwIiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5jaHVuayBDPC90ZXh0PgogIDxyZWN0IHg9IjY5MCIgeT0iMTk1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzgwIiB5PSIyNDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5jaHVuayBEPC90ZXh0PgogIDxwYXRoIGQ9Ik0xNTAsMTk1IEMyMDAsMTUwIDMxMCwxNTAgMzYwLDE5NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBkPSJNMzYwLDE5NSBDNDEwLDE1MCA1MjAsMTUwIDU3MCwxOTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBhdGggZD0iTTU3MCwxOTUgQzYyMCwxNTAgNzMwLDE1MCA3ODAsMTk1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjkxMCIgeT0iMjM1IiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+ZWFjaCBlbnRyeSBidWlsdCBvbjwvdGV4dD4KICA8dGV4dCB4PSI5MTAiIHk9IjI2MiIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPm9sZGVyIGVudHJpZXM6IGRyaWZ0PC90ZXh0PgoKICA8dGV4dCB4PSI2MCIgeT0iMzc1IiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2VsZi1jYWNoaW5nPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIzOTUiIHdpZHRoPSIxODAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjQ0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPmNodW5rIEE8L3RleHQ+CiAgPHJlY3QgeD0iMjcwIiB5PSIzOTUiIHdpZHRoPSIxODAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIzNjAiIHk9IjQ0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPmNodW5rIEI8L3RleHQ+CiAgPHJlY3QgeD0iNDgwIiB5PSIzOTUiIHdpZHRoPSIxODAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1NzAiIHk9IjQ0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPmNodW5rIEM8L3RleHQ+CiAgPHJlY3QgeD0iNjkwIiB5PSIzOTUiIHdpZHRoPSIxODAiIGhlaWdodD0iOTAiIHJ4PSIxMCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI3ODAiIHk9IjQ0NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPmNodW5rIEQ8L3RleHQ+CiAgPHRleHQgeD0iOTEwIiB5PSI0MzUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5lYWNoIGVudHJ5IGNhY2hlZCBhbG9uZTo8L3RleHQ+CiAgPHRleHQgeD0iOTEwIiB5PSI0NjIiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij53aW5kb3cgc3RheXMgaW4gcmFuZ2U8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSI1NDAiIHdpZHRoPSIxMDkwIiBoZWlnaHQ9IjUwIiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjYwNSIgeT0iNTcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+R2VuZXJhdGlvbiBtYXkgc3RpbGwgcmVhZCB0aGUgd2luZG93OyBvbmx5IHRoZSB3cml0aW5nIG9mIGVudHJpZXMgY2hhbmdlczwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Two rolling caches: one where entries attend to older entries and drift, one where each chunk is cached on its own.",
+    "caption": "Self-caching keeps every entry in the window shaped the way training shaped it.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The ID-Forcing authors argue that is not enough. KV conditioning assumes the cache still looks like training data. Past the training horizon, nothing enforces that. Entries written during a long rollout can drift out of distribution themselves, which the authors call the KV-provenance problem. Choosing which entries to read cannot help once every entry is off [4]."
+  ],
+  [
+   "p",
+   "Their fix works at the point of writing. With self-caching, each chunk enters the cache without attending to older entries. The rolling window then matches the setup the model saw in training. They report minute-scale video from models trained on short horizons, with standard benchmark scores holding up. On their drift metrics and a user study, drift fell well below earlier methods [4]."
+  ],
+  [
+   "p",
+   "We find this the most portable idea here. LLM engineers fight a cousin of it when long contexts push a model past its training. The lesson travels. Keep the model's working state looking like its training state, and it behaves as it did in training. The sketch below shows the shape of the loop."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative sketch of chunked generation with self-caching (not ID-Forcing's code)",
+    "language": "python",
+    "source": "window = RollingKVCache(max_chunks=train_window)   # same size as in training\nvideo = []\nfor step in range(num_chunks):\n    noise = sample_noise(chunk_shape)\n    # generation may read the cached window\n    chunk = denoise(model, noise, prompt, context=window)\n    # self-caching: write this chunk's keys and values as if it stood alone,\n    # the way training built them, so the cache never drifts out of range\n    kv = model.build_kv(chunk, context=None)\n    window.push(kv)            # the oldest chunk falls out of the window\n    video.append(decode(chunk))"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Two ways to fight drift in autoregressive video, and the assumption each one rests on.",
+    "columns": [
+     "Approach",
+     "What it changes",
+     "What it assumes",
+     "Where it breaks"
+    ],
+    "rows": [
+     [
+      "KV conditioning",
+      "Which cached entries are read, or how they are edited",
+      "Cached entries still look like training data",
+      "Past the training horizon"
+     ],
+     [
+      "Self-caching (ID-Forcing)",
+      "How each chunk's entries are written",
+      "The window can match the training setup",
+      "Not yet tested outside its own benchmarks"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Next-chunk prediction is short-sighted by design",
+    "num": "04",
+    "id": "next-chunk-prediction-is-short-sighted-by-design"
+   }
+  ],
+  [
+   "p",
+   "Drift is one failure. Aimlessness is another. The ProAR authors note that next-chunk prediction leaves autoregressive models purely reactive. That hurts most when a clip must reach a set outcome through valid middle states. Picture a clip meant to show a puzzle being solved. Each frame looks plausible, and the puzzle never gets solved [5]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+QSBnb2FsIGZyYW1lIHRoYXQgc3RlZXJzIGJ1dCBjYW5ub3QgYmUgc3RlZXJlZDwvdGl0bGU+CiAgPGRlc2M+VGhlIG1vZGVsIHByZWRpY3RzIGEgZ29hbCBmcmFtZSBmaXJzdC4gVGhyb3VnaCBhbiBhc3ltbWV0cmljIGF0dGVudGlvbiBtYXNrLCBtaWRkbGUgZnJhbWVzIHJlYWQgZnJvbSB0aGUgZ29hbCBmcmFtZSwgYnV0IHRoZSBnb2FsIGZyYW1lIGRvZXMgbm90IHJlYWQgZnJvbSB0aGVtLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFycmciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIj5GaXggdGhlIGRlc3RpbmF0aW9uLCB0aGVuIGZpbGwgdGhlIHBhdGg8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPkEgb25lLXdheSBhdHRlbnRpb24gbWFzayBrZWVwcyB0aGUgZ29hbCBmcmFtZSBzdGFibGU8L3RleHQ+CgogIDxyZWN0IHg9IjkwMCIgeT0iMTcwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjEzMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjEwMTUiIHk9IjIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkdvYWwgZnJhbWU8L3RleHQ+CiAgPHRleHQgeD0iMTAxNSIgeT0iMjU3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+cHJlZGljdGVkIGZpcnN0PC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iNDAwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjExMCIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE1NSIgeT0iNDYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+c3RhcnQ8L3RleHQ+CiAgPHJlY3QgeD0iMzAwIiB5PSI0MDAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTEwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMzk1IiB5PSI0NjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5taWRkbGUgY2h1bms8L3RleHQ+CiAgPHJlY3QgeD0iNTQwIiB5PSI0MDAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTEwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjM1IiB5PSI0NjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5taWRkbGUgY2h1bms8L3RleHQ+CiAgPHJlY3QgeD0iNzgwIiB5PSI0MDAiIHdpZHRoPSIxOTAiIGhlaWdodD0iMTEwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODc1IiB5PSI0NjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5taWRkbGUgY2h1bms8L3RleHQ+CgogIDxsaW5lIHgxPSIyNTAiIHkxPSI0NTUiIHgyPSIyOTUiIHkyPSI0NTUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iNDkwIiB5MT0iNDU1IiB4Mj0iNTM1IiB5Mj0iNDU1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjczMCIgeTE9IjQ1NSIgeDI9Ijc3NSIgeTI9IjQ1NSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8bGluZSB4MT0iOTMwIiB5MT0iMzAwIiB4Mj0iNDIwIiB5Mj0iMzk1IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnJnKSIvPgogIDxsaW5lIHgxPSI5NjAiIHkxPSIzMDAiIHgyPSI2NTAiIHkyPSIzOTUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycmcpIi8+CiAgPGxpbmUgeDE9Ijk5MCIgeTE9IjMwMCIgeDI9Ijg4MCIgeTI9IjM5NSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyZykiLz4KICA8dGV4dCB4PSI1NjAiIHk9IjMwMCIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPm1pZGRsZSBmcmFtZXMgcmVhZCB0aGUgZ29hbDwvdGV4dD4KICA8dGV4dCB4PSI5MDAiIHk9IjM0NSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPm5vIHBhdGggYmFjazwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjU1MCIgd2lkdGg9IjEwOTAiIGhlaWdodD0iNDYiIHJ4PSIxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iNjA1IiB5PSI1ODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5BIHRyYWluaW5nLW9ubHkgcHJlZGljdG9yIGFsc28gcHVsbHMgZWFjaCBzdGF0ZSB0b3dhcmQgdGhlIG1vdGlvbiB0aGF0IGNvbWVzIG5leHQ8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "A predicted goal frame sends attention to middle frames through a one-way mask; middle frames cannot change the goal.",
+    "caption": "ProAR anchors generation on a predicted goal frame that the middle frames can read but not alter.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "ProAR adds two pieces. First, it predicts a goal frame inside the autoregressive loop. An asymmetric attention mask lets that goal frame steer the middle frames, but the middle frames cannot disturb it. Second, a self-alignment objective nudges the current hidden states to anticipate the motion that comes next [5]."
+  ],
+  [
+   "p",
+   "That second piece leans on teacher forcing, which trains on the true earlier frames instead of the model's own guesses. Clean future representations come out of one forward pass. A small predictor, used only during training, pulls current states toward them. With just 25% of the usual training steps, ProAR outdid standard baselines trained to completion [5]."
+  ],
+  [
+   "p",
+   "We see a clear echo of reasoning in language models. Fix the destination first, then fill in the path. ProAR does that with frames instead of words. Its gains were shown on visual reasoning benchmarks the authors picked. We'd want results beyond those before calling the method general [5]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Conditioning trades sharp texture for sound structure",
+    "num": "05",
+    "id": "conditioning-trades-sharp-texture-for-sound-structure"
+   }
+  ],
+  [
+   "p",
+   "Conditioning is whatever you hand the diffusion model besides noise. LEGO shows how much that choice matters. Its task is tough: turn a third-person recording into a first-person view. The two cameras barely overlap, so most of the target view was never filmed [1]."
+  ],
+  [
+   "p",
+   "Leading methods estimate depth, lift the video into a point cloud and re-render it from the wearer's camera. Every pixel lands at exactly one new spot. Texture survives, but each depth error turns into misplaced content. LEGO skips the lifting. A fine-tuned view-synthesis transformer renders the first-person view directly and works out correspondence on its own [1]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "The synthesizer thus supplies view structure, and the diffusion model its detail.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "The trade is deliberate. Averaging each region over likely source spots keeps structure and blurs fine texture. The authors argue a diffusion model is good at restoring detail, so its condition should favour structure over sharpness. A confidence map hides shaky regions and steers the early, layout-forming denoising steps. LEGO beat the explicit pipeline and worked on new collections of footage without retraining [1]."
+  ],
+  [
+   "p",
+   "We think this is the best design rule in the set. Give the generator what it is bad at, and leave it what it is good at. Prompt writers using LLMs know the move. Supply the facts and the structure, then let the model write the prose."
+  ],
+  [
+   "h2",
+   {
+    "text": "Benchmarks now catch the steps a good-looking clip skips",
+    "num": "06",
+    "id": "benchmarks-now-catch-the-steps-a-good-looking-clip-skips"
+   }
+  ],
+  [
+   "p",
+   "Video models are being explored as world simulators for robots that plan and learn. That takes more than pretty frames. A model must predict how a scene changes when a hand acts on it. The Ego2Act benchmark tests exactly that, with 2,640 videos drawn from 110 real-world tasks [2]."
+  ],
+  [
+   "p",
+   "Each test gives a model a starting scene image and a high-level goal. The model must produce a first-person clip of a hand finishing the task. To grade at scale, the authors built Ego2ActJudge, an automatic grader that needs no reference video. It matched human judgement better than baseline graders on task completion and physical plausibility [2]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Our findings reveal that models' generated simulations often skip or partially execute steps, leaving later steps missing dependent states, which leads to unfulfilled goal.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "The findings are blunt. Generated clips often skip a step or only half perform it. Later steps then lack the state they depend on, and the goal is never met. Models also stumbled on fine physical detail during complex handling of objects. That is the plot-losing failure from the top of this post, now measured [2]."
+  ],
+  [
+   "p",
+   "We'd treat any video model pitched as a simulator with care until it clears tests like this one. An automatic grader carries its own errors too. Beating baseline graders on agreement with people is a relative result. It tells you the judge improved, not that it is always right [2]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Post-training is where video models learn to follow intent",
+    "num": "07",
+    "id": "post-training-is-where-video-models-learn-to-follow-intent"
+   }
+  ],
+  [
+   "p",
+   "Pretraining gives video models strong priors, yet they often miss what the user meant. They lose coherence over time or break physical and safety constraints. A new survey treats post-training as the remedy: adapting a pretrained model without starting over. In our reading, it is the playbook that turned base LLMs into assistants, applied to motion [6]."
+  ],
+  [
+   "p",
+   "The survey sorts methods into four families. Supervised fine-tuning trains on curated examples. Self-training and distillation learn from the model's own output or a teacher's. Preference- and reward-based methods optimise against a judge of quality. Inference-time methods steer generation without touching the weights [6]."
+  ],
+  [
+   "p",
+   "Video brings trouble that text never had. Errors pile up over time. Motion and appearance are tangled together. Goals compete, and labels for temporal properties are scarce. A reward model for text can read a whole answer at once. A reward for video has to judge motion as it unfolds [6]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The four families of video post-training in the survey, with the closest idea from LLM training.",
+    "columns": [
+     "Family",
+     "What it changes",
+     "Closest LLM idea"
+    ],
+    "rows": [
+     [
+      "Supervised fine-tuning",
+      "Weights, from curated example clips",
+      "Instruction tuning on curated answers"
+     ],
+     [
+      "Self-training and distillation",
+      "Weights, from the model's own or a teacher's output",
+      "Distilling a large model into a small one"
+     ],
+     [
+      "Preference- and reward-based",
+      "Weights, against a judge of quality",
+      "Reward models and preference tuning"
+     ],
+     [
+      "Inference-time",
+      "The sampling process, not the weights",
+      "Steering decoding at run time"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Rewarding a whole clip is the problem nobody has cracked",
+    "num": "08",
+    "id": "rewarding-a-whole-clip-is-the-problem-nobody-has-cracked"
+   }
+  ],
+  [
+   "p",
+   "Here is what remains open. The survey lists scalable reward design and long-horizon consistency among its open challenges. Both run through the other papers too. ID-Forcing steadies long clips at the cache, not by rewarding the clip. ProAR adds a goal, yet tests it on benchmarks of its own choosing [6, 4, 5]."
+  ],
+  [
+   "p",
+   "Evaluation is the other gap. Ego2Act shows models skipping steps, and its judge tracks people better than earlier judges. Nobody yet knows how that judge holds up on unfamiliar kinds of scenes. A reference-free judge that errs quietly would teach a reward-trained model the wrong habits. That risk is real [2]."
+  ],
+  [
+   "p",
+   "What would settle it? A judge validated on scenes it never saw, then used as a reward, with gains that hold on held-out tasks. Pair that with stable minute-scale rollouts and goal frames, and video simulators start to earn trust. Until then, we read frame quality as a floor, not a finish line [4, 5]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How does AI video generation work?"
+  ],
+  [
+   "p",
+   "A diffusion model starts from noise in a compressed latent space and removes it step by step, guided by a prompt or image. An autoencoder makes that latent, and a Diffusion Transformer treats its patches as tokens. Autoregressive models build long clips chunk by chunk, reusing cached keys and values from earlier chunks. A decoder then turns the result into frames [3, 4]."
+  ],
+  [
+   "h3",
+   "Why do AI generated videos drift in long clips?"
+  ],
+  [
+   "p",
+   "Long clips drift because the model's cached state moves away from anything it saw in training. Autoregressive video models condition each chunk on cached keys and values, and past the training horizon those entries can go out of distribution. Colours and textures shift, and motion fades. Self-caching writes each chunk as if it stood alone, which kept drift down [4]."
+  ],
+  [
+   "h3",
+   "Can video generation models be used as world simulators?"
+  ],
+  [
+   "p",
+   "Not reliably yet for multi-step physical tasks. The Ego2Act benchmark asked models to show a hand completing real-world tasks across 2,640 videos. Generated clips often skipped or half performed steps, so later steps lacked what they needed and goals went unmet. Models also struggled with fine physical detail during complex object handling [2]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "LEGO: A Lifting-Free Approach for Exocentric-to-Egocentric Video Generation",
+   "url": "https://huggingface.co/papers/2610.12442",
+   "posted": "2026-10-08"
+  },
+  {
+   "n": 2,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Ego2Act: Evaluating Goal-Directed Manipulation in Egocentric Video Generation",
+   "url": "https://huggingface.co/papers/2610.01092",
+   "posted": "2026-10-01"
+  },
+  {
+   "n": 3,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "GRACE: Generation-aware latent compression for efficient video generation",
+   "url": "https://huggingface.co/papers/2610.10524",
+   "posted": "2026-10-07"
+  },
+  {
+   "n": 4,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "In-Distribution Forcing for Long Video Generation at Test Time",
+   "url": "https://huggingface.co/papers/2610.03120",
+   "posted": "2026-10-02"
+  },
+  {
+   "n": 5,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "ProAR: Learning Prospective Reasoning with Autoregressive Video Models",
+   "url": "https://huggingface.co/papers/2610.03664",
+   "posted": "2026-10-02"
+  },
+  {
+   "n": 6,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Video Generation Models: A Survey of Post-Training and Alignment",
+   "url": "https://huggingface.co/papers/2610.00812",
+   "posted": "2026-09-30"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T02:05:43+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "hfpapers:2610.12442",
+   "hfpapers:2610.10524",
+   "hfpapers:2610.03120",
+   "hfpapers:2610.03664",
+   "hfpapers:2610.01092",
+   "hfpapers:2610.00812"
+  ],
+  "platforms": {
+   "Hugging Face": 6
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-synthesis:concept/video-generation",
+  "format": "topic-synthesis",
+  "reviewed_by": null
+ }
+}
