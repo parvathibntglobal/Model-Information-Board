@@ -1,0 +1,192 @@
+# THE NEWSROOM RULES: how every post on this board is reported and written.
+#
+# One file, three readers:
+#   generate_sample_blogs.py   checks every code-checked rule when a post is
+#                              ingested, and refuses a post that breaks one;
+#   the writing pack           gives the writer these rules as its brief;
+#   Admin -> Blogs             shows them, marked "checked by code" or
+#                              "editor's rule" (judge/blog_rules.py).
+#
+# A threshold lives here and nowhere else: the checker reads it, and a rule it
+# needs that is missing here is refused, not defaulted (CLAUDE.md rule 12).
+#
+# Adopted 2026-10-20 (anooj): posts are REPORTED - written in the reporter's
+# own words, with numbered references - not assembled from quotations.
+
+style: reported
+
+#: The thresholds the checks below read.
+limits:
+  sentence_average_words: 16     # a post's sentences average this many words or fewer
+  sentence_max_words: 25         # no sentence is longer than this
+  whether_max_per_post: 2        # "whether" at most this many times in a post
+  paragraph_max_sentences: 6     # no paragraph runs longer than this
+  copied_run_words: 8            # this many words in a row from a source, outside a highlight, is copying
+  highlight_min_words: 8         # a highlighted sentence is at least this long ...
+  highlight_max_words: 45        # ... and at most this long
+  highlights_max_per_post: 2
+
+sections:
+  - name: Sourcing and attribution
+    rules:
+      - id: own-words
+        rule: Report in your own words.
+        detail: >-
+          Say what a source found, measured or argued as the reporter would tell it to a colleague.
+          Never stitch a post together from other people's phrases. No partial quotes: a fragment of
+          someone's sentence is never placed in quotation marks or guillemets.
+        checked: code
+      - id: no-copied-runs
+        rule: Do not copy a source's sentences into the story.
+        detail: >-
+          Outside a highlight box, no run of {copied_run_words} or more words may match a source word
+          for word. Rewrite it.
+        checked: code
+      - id: reference-every-claim
+        rule: Every reported fact carries its reference.
+        detail: >-
+          A sentence that says what an engineer, team, writer or researcher found, reported or measured
+          ends that claim with its reference number, like [3]. Every section cites at least one source.
+          A paragraph that gives a figure cites where the figure came from.
+        checked: code
+      - id: references-at-the-end
+        rule: References are listed at the end, numbered as cited.
+        detail: >-
+          Each reference names the platform, the title, the author where known, the date and a link.
+          A number in the text points to exactly one reference.
+        checked: code
+      - id: whole-sentence-highlights
+        rule: Quote only a whole sentence, and only in a highlight box.
+        detail: >-
+          When a source's own words matter, give one complete sentence, copied word for word, in a
+          highlight box: it starts where the source's sentence starts and ends where it ends. At most
+          {highlights_max_per_post} per post, {highlight_min_words} to {highlight_max_words} words each.
+          Never from Reddit or X.
+        checked: code
+      - id: reddit-x-embedded
+        rule: Reddit and X posts appear only as their own embeds.
+        detail: >-
+          Their words are never quoted or listed as references. The post itself is embedded, showing its
+          author and date as the platform shows them, with a one-sentence caption in our words. In the
+          text, credit the platform: "a Reddit poster reported ...".
+        checked: code
+      - id: figures-verified
+        rule: Every figure is checked against its source.
+        detail: >-
+          A number appears in a source or in the price registry, or it does not appear. Figures are
+          written as digits, never as words, so every one can be checked.
+        checked: code
+      - id: no-own-arithmetic
+        rule: State the figures; do not compute new ones.
+        detail: >-
+          No ratios, multiples or "doubled" that the sources do not state themselves.
+        checked: code
+      - id: our-experience-from-notes
+        rule: First-person experience comes only from our own notes.
+        detail: >-
+          "We tried", "we measured" and the like retell a note in the brief and carry its figure. If
+          there is no note, there is no first-person experience.
+        checked: code
+      - id: arxiv-credit
+        rule: arXiv is acknowledged on every post that cites it.
+        detail: The acknowledgement is attached when the post is served.
+        checked: code
+
+  - name: Fairness and judgement
+    rules:
+      - id: report-then-judge
+        rule: Keep reporting and opinion apart.
+        detail: >-
+          First say what was reported, with its reference. Then, separately and as "we", say what we make
+          of it and why. A reader can always tell which is which.
+        checked: editor
+      - id: take-positions
+        rule: Take positions, with reasons from the evidence.
+        detail: Agree or disagree with claims and say why. Disagree with claims, never mock people.
+        checked: editor
+      - id: no-intent
+        rule: Do not attribute intent to a vendor.
+        detail: Say what a model or company did, not what it meant to do.
+        checked: code
+      - id: silence-is-not-failure
+        rule: An absence of reports is not a finding.
+        detail: >-
+          Nobody writing about something says nothing about how well it works. Say so, never imply it.
+        checked: editor
+      - id: no-counting-people
+        rule: Do not count people or posts in prose.
+        detail: Counts belong on the board's pages, where they are measured. A story names who reported, not how many.
+        checked: code
+
+  - name: Language
+    rules:
+      - id: short-sentences
+        rule: Keep sentences short.
+        detail: >-
+          A post's sentences average {sentence_average_words} words or fewer, and none runs past
+          {sentence_max_words}. One idea per sentence.
+        checked: code
+      - id: whether-sparingly
+        rule: Use "whether" sparingly.
+        detail: At most {whether_max_per_post} times in a post. Ask the question directly, or say "if".
+        checked: code
+      - id: short-paragraphs
+        rule: Keep paragraphs short.
+        detail: No paragraph runs past {paragraph_max_sentences} sentences.
+        checked: code
+      - id: plain-words
+        rule: Prefer plain words, and define a term the first time it appears.
+        detail: Jargon is explained in a clause, not assumed.
+        checked: editor
+      - id: active-voice
+        rule: Name who did what.
+        detail: Active voice by default. "Engineers moved traffic", not "traffic was moved".
+        checked: editor
+      - id: no-inputs-talk
+        rule: Never talk about the material behind the story.
+        detail: >-
+          No "according to the sources", "the threads show" or "the fact sheet". Report what happened
+          and cite it.
+        checked: code
+      - id: no-handles-or-links
+        rule: No handles, subreddits or links in the text.
+        detail: The embed and the reference list carry those.
+        checked: code
+
+  - name: Structure
+    rules:
+      - id: lede-answers
+        rule: The first paragraph answers the reader's question.
+        detail: The lede says what we found, for whom it matters, and the one thing to do about it.
+        checked: editor
+      - id: headline
+        rule: Headlines are short, specific and unique on the board.
+        detail: >-
+          No question headlines, no headline that repeats another post's wording or shape, and the
+          subject named in it.
+        checked: code
+      - id: headings
+        rule: Section headings say something.
+        detail: A heading is a short statement, never a question, and never one already used on the board.
+        checked: code
+      - id: length-and-shape
+        rule: Each format keeps its length and shape.
+        detail: >-
+          Sections, paragraphs per section, reading length, code examples, tables and figures follow the
+          format's own limits (blog_formats.yaml).
+        checked: code
+      - id: faq
+        rule: Questions people ask get short, direct answers.
+        detail: The FAQ answers each question in a few sentences, as a search result would quote it.
+        checked: code
+
+  - name: Review and publication
+    rules:
+      - id: human-approval
+        rule: A person approves every post before it is published.
+        detail: Drafts wait in Admin -> Blogs until someone on the team approves them.
+        checked: process
+      - id: byline
+        rule: Every post says who wrote it and how it was checked.
+        detail: The byline names the writer (Claude Code) and that every reference, highlight and figure was checked in code.
+        checked: code

@@ -1,0 +1,449 @@
+{
+ "slug": "myth-vs-reality-concept-synthetic-data",
+ "status": "draft",
+ "tag": "Myth vs reality",
+ "feat": false,
+ "title": "Synthetic Data Caught Real Attacks and Still Needs a Real Anchor",
+ "dek": "Invented data trained a detector that found real intrusions. Recursive model-written data can also erase the rare cases you care about. Here is how both are true.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is synthetic data for LLMs? Training examples a program or model invents. It can teach real skills, but only when built from real measurements and mixed with real data that guards the rare cases.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+VHJhaW4gb24gYW4gaW52ZW50ZWQgd29ybGQsIHRlc3Qgb24gcmVhbCBsb2dzPC90aXRsZT4KICA8ZGVzYz5BIGNvbmZpZyBkZXNjcmliZXMgYW4gaW52ZW50ZWQgY29ycG9yYXRlIG5ldHdvcmsgd2l0aCBhIHN0YWdlZCBhdHRhY2s7IHNtYWxsIG5ldXJhbCBuZXR3b3JrcyB0cmFpbiBvbiB0aGF0IHdvcmxkIG9ubHk7IHRoZXkgYXJlIHRoZW4gdGVzdGVkIG9uIDEuNjUgYmlsbGlvbiByZWFsIGF1dGhlbnRpY2F0aW9uIGV2ZW50cyBhbmQgcmFuayAzLjYgbWlsbGlvbiB3aW5kb3dzIGJ5IHN1c3BpY2lvbi48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz48L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCI+U3ludGhldGljIGRhdGE6IGludmVudGVkIHdvcmxkLCByZWFsIGV4YW08L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwOCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPk5vdCBvbmUgcmVhbCByb3cgaW4gdHJhaW5pbmc7IGV2ZXJ5IHRlc3Qgcm93IGlzIHJlYWw8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjIwMCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIyMzAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyMTAiIHk9IjI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjMiIGZvbnQtd2VpZ2h0PSI3MDAiPkludmVudGVkIG5ldHdvcms8L3RleHQ+CiAgPHRleHQgeD0iMjEwIiB5PSIyNzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij4xMzUtbGluZSBjb25maWc8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMTQwIiBjeT0iMzQwIiByPSIxNCIgZmlsbD0iIzdhYTJmZiIvPgogIDxjaXJjbGUgY3g9IjIxMCIgY3k9IjMyMCIgcj0iMTQiIGZpbGw9IiM3YWEyZmYiLz4KICA8Y2lyY2xlIGN4PSIyODAiIGN5PSIzNDUiIHI9IjE0IiBmaWxsPSIjN2FhMmZmIi8+CiAgPGNpcmNsZSBjeD0iMTc1IiBjeT0iMzk1IiByPSIxNCIgZmlsbD0iI2ZmN2I3MiIvPgogIDxjaXJjbGUgY3g9IjI1MCIgY3k9IjM5NSIgcj0iMTQiIGZpbGw9IiM3YWEyZmYiLz4KICA8bGluZSB4MT0iMTQwIiB5MT0iMzQwIiB4Mj0iMjEwIiB5Mj0iMzIwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIyMTAiIHkxPSIzMjAiIHgyPSIyODAiIHkyPSIzNDUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjE3NSIgeTE9IjM5NSIgeDI9IjI1MCIgeTI9IjM5NSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8bGluZSB4MT0iMTc1IiB5MT0iMzk1IiB4Mj0iMjgwIiB5Mj0iMzQ1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxyZWN0IHg9IjQ1MCIgeT0iMjUwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjEzMCIgcng9IjE2IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjU5MCIgeT0iMzAzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZm9udC13ZWlnaHQ9IjcwMCI+U21hbGwgZGV0ZWN0b3JzPC90ZXh0PgogIDx0ZXh0IHg9IjU5MCIgeT0iMzM2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+dHJhaW5lZCBvbiBpbnZlbnRlZCBkYXRhPC90ZXh0PgogIDxyZWN0IHg9IjgyMCIgeT0iMjAwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjIzMCIgcng9IjE2IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmMmNjNjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijk4MCIgeT0iMjQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZm9udC13ZWlnaHQ9IjcwMCI+UmVhbCBsb2dzPC90ZXh0PgogIDx0ZXh0IHg9Ijk4MCIgeT0iMjg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjJjYzYwIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+MS42NSBiaWxsaW9uPC90ZXh0PgogIDx0ZXh0IHg9Ijk4MCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+YXV0aGVudGljYXRpb24gZXZlbnRzPC90ZXh0PgogIDx0ZXh0IHg9Ijk4MCIgeT0iMzY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+My42IG1pbGxpb24gd2luZG93czwvdGV4dD4KICA8dGV4dCB4PSI5ODAiIHk9IjM5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnJhbmtlZCBieSBzdXNwaWNpb248L3RleHQ+CiAgPGxpbmUgeDE9IjM2MCIgeTE9IjMxNSIgeDI9IjQ0NSIgeTI9IjMxNSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI3MzAiIHkxPSIzMTUiIHgyPSI4MTUiIHkyPSIzMTUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8dGV4dCB4PSI2MCIgeT0iNTQwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+VGhlIGF0dGFjayBpcyBnZW5lcmF0ZWQgZnJvbSBpdHMgZGVmaW5pdGlvbjogYW4gYWNjb3VudCBsb2dnaW5nIGluIHNvbWV3aGVyZSBuZXcsIGZyb20gc29tZXdoZXJlIG5ldzwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "An invented network config trains small detectors, which are then tested on 1.65 billion real login events.",
+  "caption": "Train on an invented world, then sit the exam on real logs: the synthetic-data test in one picture.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is synthetic data for LLMs, and does it work? We test seven common beliefs against a security detector, a collapse study and a speech recipe.",
+ "keywords": [
+  "what is synthetic data for LLMs",
+  "synthetic data",
+  "model collapse",
+  "synthetic training data",
+  "fine-tuning data curation",
+  "replay mix fine-tuning"
+ ],
+ "kicker": "Myth vs reality",
+ "tags": [
+  "synthetic data",
+  "Myth vs reality"
+ ],
+ "read": 8,
+ "decisions": [
+  "Measure the real data before writing a generator.",
+  "Keep a slice of real or old data in every fine-tuning batch.",
+  "Track rare-case recall apart from average accuracy.",
+  "Filter out examples a model can never learn, and keep the hard ones.",
+  "Test synthetic-trained models on a held-out real set you never tuned on."
+ ],
+ "layout": "myths",
+ "arrangement": "a",
+ "special": {
+  "type": "myths",
+  "title": "Myth or not",
+  "items": [
+   {
+    "myth": "A model trained on synthetic data will fail on real inputs.",
+    "reality": "A detector trained only on an invented network ranked real attacks near the top of 3.6 million real windows [1].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "With synthetic data you can skip studying the real data.",
+    "reality": "The generator only worked after its author measured the real logs and found the true signal was new connections [1].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Training on model-written text makes a model collapse.",
+    "reality": "Recursive training with little human data can erode rare cases, though the clearest figures come from one firm's thinly described simulation [3].",
+    "verdict": "partly true"
+   },
+   {
+    "myth": "If average accuracy holds, the synthetic data is fine.",
+    "reality": "In that simulation, rare-case recall fell much faster than domain precision, so the average hid the damage [3].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Fine-tuning on new data alone keeps the old skills.",
+    "reality": "A replay mix of old-language data kept English and Arabic error rates nearly flat while a dialect improved [2].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "More data beats cleaner data.",
+    "reality": "Removing clips the model could never learn, while keeping hard accents, shaped the speech recipe's outcome [2].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Synthetic data can fully replace real labelled data.",
+    "reality": "It nearly did for an attack with a computable definition, but no head-to-head test on the same split exists yet [1].",
+    "verdict": "partly true"
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A detector trained only on invented logins found real attacks",
+    "num": "01",
+    "id": "a-detector-trained-only-on-invented-logins-found-real-attack"
+   }
+  ],
+  [
+   "p",
+   "Synthetic data is fake data, so a model trained on it will fall apart on real inputs. You hear that belief everywhere. The first crack comes from an unlikely place: a security detector that never saw a real attack in training [1]. Its author built an invented corporate network, staged an attack inside it, and trained small neural networks on that world alone [1]."
+  ],
+  [
+   "p",
+   "First, the term. Synthetic data for LLMs, and for models generally, means training examples that a program or another model generates instead of people. Teams now ask frontier models to write whole fine-tuning sets [3]. The detector case uses a config-driven generator instead. The principle is the same. The examples are invented, so their value depends on what the inventor knew."
+  ],
+  [
+   "p",
+   "Then came the exam. The networks then faced real login records from Los Alamos National Laboratory [1]. That log holds 1.65 billion events, and a red-team exercise is marked inside it [1]. They ranked 3.6 million windows by suspicion, and the very top of that list was mostly real attacks [1]. A plain threshold counter needed vastly more false alarms to reach the same attacks [1]."
+  ],
+  [
+   "p",
+   "So the belief is a myth, at least for this kind of problem. We find the result striking, and its author is careful with it. On AUC, a standard measure of ranking quality, the detectors scored within the span reported by research groups that trained on real labelled data [1]. The author also warns that the two cannot be compared head-on [1]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Good generators start with measuring the real data",
+    "num": "02",
+    "id": "good-generators-start-with-measuring-the-real-data"
+   }
+  ],
+  [
+   "p",
+   "The second belief follows from the first. If data can be invented, you can skip the slow work of studying the real thing. The detector project shows the opposite [1]. Its author spent half a day measuring the real logs before writing any generator config [1]. The problem turned out to be a different one from the one first pictured [1]."
+  ],
+  [
+   "p",
+   "Three measurements shaped everything after [1]. The account most used in the attack was also the busiest ordinary administrator, so account names carried no signal [1]. Counting distinct accounts per machine failed too, because the attacker's foothold looked just like a small server [1]. The real signal was novelty: a login between an account and a machine that had never met [1]."
+  ],
+  [
+   "p",
+   "The numbers make the case. In normal activity, the median share of new connections per window was 0.0000, and so was the 90th percentile [1]. People take the same routes every day. Lateral movement is different. It means an attacker hopping from one captured machine to the next with stolen logins, so it is made almost entirely of new routes [1]."
+  ],
+  [
+   "p",
+   "Only then did the author write the generator. The key move was to produce the attack's definition, not to imitate its look [1]. The whole invented world fits in a 135-line config [1]. We think this is the real lesson. Synthetic data is compressed knowledge about the world, and it is only as good as that knowledge."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The loop the detector's author used to build and repair a synthetic world.",
+    "steps": [
+     "Measure the real data first",
+     "Write the phenomenon's definition as a config",
+     "Generate an invented world from it",
+     "Train small networks on that world only",
+     "Test on real logs never used in training",
+     "Trace an error to what the world lacks, then add it"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Recursive training on model output can erode a model",
+    "num": "03",
+    "id": "recursive-training-on-model-output-can-erode-a-model"
+   }
+  ],
+  [
+   "p",
+   "Now the belief that scares fine-tuning teams. Train a model on text another model wrote, the story goes, and it will collapse. There is real substance here. An advisory firm, Logic42, describes model collapse as a lasting statistical decay [3]. It sets in when each model generation learns from the output of the one before [3]."
+  ],
+  [
+   "p",
+   "The firm says it watched enterprise teams try this over the past 12 months to save on labelling costs [3]. Within three fine-tuning generations, it reports, their models forgot rare edge cases and drifted into repetitive boilerplate [3]. Its explanation is simple. A model can only sample from what it learned, so each round trims rare tokens a little more [3]."
+  ],
+  [
+   "p",
+   "Its own simulation ran five recursive cycles of supervised fine-tuning, or SFT, and LoRA, a light fine-tuning method [3]. The training set was 100,000 synthetic support tickets written by a frontier model [3]. By the fourth generation, with no human data left, the hallucination rate reached 52.4% [3]."
+  ],
+  [
+   "p",
+   "We call this partly true. The direction is plausible and the mechanism is sound. Yet the write-up names no model, no test set and no method for scoring rare cases, and it ends by selling an assessment [3]. Treat its exact figures as one firm's demonstration, not a measured law."
+  ],
+  [
+   "h2",
+   {
+    "text": "Averages hide the damage until the rare cases are gone",
+    "num": "04",
+    "id": "averages-hide-the-damage-until-the-rare-cases-are-gone"
+   }
+  ],
+  [
+   "p",
+   "Here is a quieter belief. If overall accuracy holds up after a synthetic fine-tune, the data must be fine. The same table argues the reverse [3]. By the third generation, domain precision fell from 94.6% to 68.1% [3]. Over the same rounds, recall on rare cases fell from 88.2% to 29.3% [3]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+UmFyZSBjYXNlcyB2YW5pc2ggYmVmb3JlIHRoZSBhdmVyYWdlIGRvZXM8L3RpdGxlPgogIDxkZXNjPkxvZ2ljNDIncyByZWN1cnNpdmUgZmluZS10dW5pbmcgc2ltdWxhdGlvbjogZG9tYWluIHByZWNpc2lvbiBnb2VzIDk0LjYsIDkxLjIsIDgzLjUsIDY4LjEsIDQ0LjMgcGVyY2VudCBvdmVyIGdlbmVyYXRpb25zIDAgdG8gNCwgd2hpbGUgcmFyZS10YWlsIHJlY2FsbCBnb2VzIDg4LjIsIDcyLjQsIDUxLjAsIDI5LjMsIDExLjIgcGVyY2VudC48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjY1IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+VGhlIHRhaWwgZ29lcyBmaXJzdDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTAwIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+UGVyY2VudCwgYnkgbW9kZWwgZ2VuZXJhdGlvbiwgaW4gb25lIGZpcm0ncyByZWN1cnNpdmUgZmluZS10dW5pbmcgc2ltdWxhdGlvbjwvdGV4dD4KICA8bGluZSB4MT0iMTQwIiB5MT0iNTAwIiB4Mj0iMTA4MCIgeTI9IjUwMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMTQwIiB5MT0iMTQwIiB4Mj0iMTQwIiB5Mj0iNTAwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iNTA1IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+MCU8L3RleHQ+CiAgPHRleHQgeD0iMTMwIiB5PSIxNDUiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij4xMDAlPC90ZXh0PgogIDx0ZXh0IHg9IjIwMCIgeT0iNTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+R2VuIDA8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI1MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5HZW4gMTwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjUzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPkdlbiAyPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iNTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+R2VuIDM8L3RleHQ+CiAgPHRleHQgeD0iMTAwMCIgeT0iNTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+R2VuIDQ8L3RleHQ+CiAgPHBvbHlsaW5lIHBvaW50cz0iMjAwLDE1OS40IDQwMCwxNzEuNyA2MDAsMTk5LjQgODAwLDI1NC44IDEwMDAsMzQwLjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHBvbHlsaW5lIHBvaW50cz0iMjAwLDE4Mi41IDQwMCwyMzkuNCA2MDAsMzE2LjQgODAwLDM5NC41IDEwMDAsNDU5LjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMTU5LjQiIHI9IjYiIGZpbGw9IiM3YWEyZmYiLz48Y2lyY2xlIGN4PSI0MDAiIGN5PSIxNzEuNyIgcj0iNiIgZmlsbD0iIzdhYTJmZiIvPjxjaXJjbGUgY3g9IjYwMCIgY3k9IjE5OS40IiByPSI2IiBmaWxsPSIjN2FhMmZmIi8+PGNpcmNsZSBjeD0iODAwIiBjeT0iMjU0LjgiIHI9IjYiIGZpbGw9IiM3YWEyZmYiLz48Y2lyY2xlIGN4PSIxMDAwIiBjeT0iMzQwLjUiIHI9IjYiIGZpbGw9IiM3YWEyZmYiLz4KICA8Y2lyY2xlIGN4PSIyMDAiIGN5PSIxODIuNSIgcj0iNiIgZmlsbD0iI2ZmN2I3MiIvPjxjaXJjbGUgY3g9IjQwMCIgY3k9IjIzOS40IiByPSI2IiBmaWxsPSIjZmY3YjcyIi8+PGNpcmNsZSBjeD0iNjAwIiBjeT0iMzE2LjQiIHI9IjYiIGZpbGw9IiNmZjdiNzIiLz48Y2lyY2xlIGN4PSI4MDAiIGN5PSIzOTQuNSIgcj0iNiIgZmlsbD0iI2ZmN2I3MiIvPjxjaXJjbGUgY3g9IjEwMDAiIGN5PSI0NTkuNyIgcj0iNiIgZmlsbD0iI2ZmN2I3MiIvPgogIDx0ZXh0IHg9IjIwMCIgeT0iMTQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjN2FhMmZmIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+OTQuNiU8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIyNDMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM3YWEyZmYiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij42OC4xJTwvdGV4dD4KICA8dGV4dCB4PSIxMDAwIiB5PSIzMjkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM3YWEyZmYiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij40NC4zJTwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPjg4LjIlPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iNDIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+MjkuMyU8L3RleHQ+CiAgPHRleHQgeD0iMTAwMCIgeT0iNDg3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+MTEuMiU8L3RleHQ+CiAgPHRleHQgeD0iNDIwIiB5PSIxNjAiIGZpbGw9IiM3YWEyZmYiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5IiBmb250LXdlaWdodD0iNzAwIj5kb21haW4gcHJlY2lzaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjQyMCIgeT0iMjc1IiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSIgZm9udC13ZWlnaHQ9IjcwMCI+cmFyZS10YWlsIHJlY2FsbDwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Two lines over five model generations: domain precision falls slowly, rare-tail recall falls much faster.",
+    "caption": "In Logic42's simulation, the rare cases vanished long before the average looked bad.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Rare-tail recall is the share of unusual cases the model still gets right. In fraud detection, medical diagnosis and compliance, the firm argues, the value sits almost entirely in those cases [3]. An average across all inputs is dominated by common cases. So it can look healthy long after the tail has gone."
+  ],
+  [
+   "p",
+   "We agree with this point, whatever you make of the exact numbers. It also matches the detector story, where the whole signal lived in rare new connections [1]. If you fine-tune on generated data, build a test set of rare cases first. Then watch it after every round, apart from the average."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Rare-tail recall in Logic42's recursive fine-tuning simulation, in percent, by model generation.",
+    "unit": "percent of rare cases recalled",
+    "bars": [
+     {
+      "label": "Gen 0 (human baseline)",
+      "value": 88.2
+     },
+     {
+      "label": "Gen 1",
+      "value": 72.4
+     },
+     {
+      "label": "Gen 2",
+      "value": 51.0
+     },
+     {
+      "label": "Gen 3",
+      "value": 29.3
+     },
+     {
+      "label": "Gen 4 (pure recursive)",
+      "value": 11.2
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Keeping a slice of old data protects the old skills",
+    "num": "05",
+    "id": "keeping-a-slice-of-old-data-protects-the-old-skills"
+   }
+  ],
+  [
+   "p",
+   "Another common assumption: fine-tune on the new data, and the model keeps everything it already knew. A speech recipe from NVIDIA shows the risk [2]. Its target was Saudi Arabic dialects in the Nemotron 3.5 speech recognition model [2]. Training on the dialect alone can lift it and weaken other languages, the recipe warns [2]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTYwIj4KICA8dGl0bGU+S2VlcCBhIHNsaWNlIG9mIG9sZCwgcmVhbCBkYXRhIGluIGV2ZXJ5IGJhdGNoPC90aXRsZT4KICA8ZGVzYz5OVklESUEncyBzcGVlY2ggcmVjaXBlIG1peGVkIHJvdWdobHkgOTAgcGVyY2VudCBTYXVkaSBBcmFiaWMgc3BlZWNoIHdpdGggNyBwZXJjZW50IEVuZ2xpc2g7IExvZ2ljNDIgc2F5cyBpdHMgZGVzaWducyBrZWVwIGF0IGxlYXN0IDI1IHBlcmNlbnQgY2VydGlmaWVkIGh1bWFuIGRhdGEgaW4gZXZlcnkgdHJhaW5pbmcgYmF0Y2guPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjU2MCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI2NSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPlR3byBndWFyZHMsIG9uZSBpZGVhOiBrZWVwIGEgcmVhbCBhbmNob3I8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwMCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPlNoYXJlIG9mIGEgdHJhaW5pbmcgbWl4LCBhcyBlYWNoIHdyaXRlLXVwIGRlc2NyaWJlcyBpdDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTc1IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RGlhbGVjdCBmaW5lLXR1bmUgKHJlcGxheSBtaXgpPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIxOTUiIHdpZHRoPSI5MDAiIGhlaWdodD0iNjAiIGZpbGw9IiM3YWEyZmYiLz4KICA8cmVjdCB4PSI5NjAiIHk9IjE5NSIgd2lkdGg9IjcwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iNTEwIiB5PSIyMzMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMxMjE2MWUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5hYm91dCA5MCUgU2F1ZGkgQXJhYmljIHNwZWVjaDwvdGV4dD4KICA8dGV4dCB4PSIxMDQ1IiB5PSIyMzMiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj43JSBFbmdsaXNoPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzMzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5TeW50aGV0aWMgdGV4dCBmaW5lLXR1bmUgKGFuY2hvciBydWxlKTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzUwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjM2VjZjhlIi8+CiAgPHJlY3QgeD0iMzEwIiB5PSIzNTAiIHdpZHRoPSI3NTAiIGhlaWdodD0iNjAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KICA8dGV4dCB4PSIxODUiIHk9IjM4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzEyMTYxZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiIGZvbnQtd2VpZ2h0PSI3MDAiPmF0IGxlYXN0IDI1JSBodW1hbjwvdGV4dD4KICA8dGV4dCB4PSI2ODUiIHk9IjM4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPnRoZSByZXN0IG1heSBiZSBzeW50aGV0aWM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjQ4MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPkdyZWVuOiB0aGUgb2xkIG9yIHJlYWwgZGF0YSB0aGF0IHByb3RlY3RzIHNraWxscyB0aGUgbW9kZWwgYWxyZWFkeSBoYWQ8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Two training mixes: about 90% dialect with 7% English kept, and a batch with at least 25% human data.",
+    "caption": "Both the speech recipe and the collapse guard keep a slice of old, real data in every batch.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The fix is a replay mix, which keeps old-language data in training. The recipe used roughly 90% Saudi Arabic speech and 7% English [2]. Word error rate, or WER, on Najdi and Hijazi speech fell from 55.05% to 29.96% [2]. English WER on the FLEURS test only moved from 11.04% to 10.42% [2]."
+  ],
+  [
+   "p",
+   "Logic42 proposes the same kind of guard for synthetic text. It says its designs require at least 25% certified human data in every training batch [3]. We think these are one idea in two settings. Whatever new data you add, generated or collected, keep a real anchor in the mix. Then measure the old skills after every run."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Word error rate before and after NVIDIA's dialect fine-tune with a replay mix.",
+    "columns": [
+     "Test",
+     "WER before",
+     "WER after"
+    ],
+    "rows": [
+     [
+      "SADA Najdi and Hijazi",
+      "55.05%",
+      "29.96%"
+     ],
+     [
+      "FLEURS English",
+      "11.04%",
+      "10.42%"
+     ],
+     [
+      "FLEURS Arabic",
+      "12.67%",
+      "11.41%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Throwing data away is where the quality comes from",
+    "num": "06",
+    "id": "throwing-data-away-is-where-the-quality-comes-from"
+   }
+  ],
+  [
+   "p",
+   "The last practical belief is about volume. Generate or collect more, and quality will follow. The speech recipe points the other way [2]. Its structural checks kept 103,559 of 125,490 utterances, which is 82.5% of what it began with [2]. They removed clips the model could never learn, and they kept hard accents and noisy audio [2]."
+  ],
+  [
+   "p",
+   "One detail is a gift for anyone running filters. The dialect recordings mark inaudible speech with an annotation the model has no token for [2]. Every such clip guarantees an error, so it goes. Meanwhile an off-the-shelf UTMOS audio-quality cut-off at 3.0 would have thrown out nearly all of the clips [2]. Check the distribution before you trust a default cut-off."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Remove the structurally unlearnable material, keep the hard accents.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "In our view, this is the most transferable lesson in all of this work. A synthetic generator is a filter too, applied before the data exists. The detector's author found a tidy loop [1]. Each error pointed at one machine, that machine pointed at something the invented world lacked, and two config lines fixed it [1]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Synthetic-only training may hold where the target has a definition",
+    "num": "07",
+    "id": "synthetic-only-training-may-hold-where-the-target-has-a-defi"
+   }
+  ],
+  [
+   "p",
+   "Which belief might survive? The boldest one: that synthetic data can stand in for real labels completely. For lateral movement, it nearly did [1]. Defenders have no labelled examples of attacks on their own network, so invention was the only route [1]. And the attack has a definition a config can express: an account logging in somewhere new, from somewhere new [1]."
+  ],
+  [
+   "p",
+   "That is the condition we would watch. Problems with a computable definition may suit synthetic-only training. Problems defined by taste, style or rare human judgement look much harder, and the collapse warnings point the same way [3]. We are not convinced any single result settles it yet."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Synthetic data here isn't a shortcut, it's the only way - if it works at all.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "What evidence would settle it? A head-to-head test on the same held-out split, with the same metric, against a model trained on real labels. The detector's author kept a held-out set of 3,600,398 windows untouched during development [1]. Run that kind of exam on LLM fine-tunes, score rare cases separately, and this belief finally gets a fair trial."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "what is synthetic data for LLMs?"
+  ],
+  [
+   "p",
+   "Synthetic data for LLMs is training data that a program or another model writes instead of people. Teams use frontier models to generate fine-tuning sets and save on labelling costs [3]. It can work: a detector trained only on an invented network found real attacks among 1.65 billion real login events [1]. Its value depends on how well the generator captures the real problem."
+  ],
+  [
+   "h3",
+   "does synthetic data cause model collapse?"
+  ],
+  [
+   "p",
+   "It can, when models train on each other's output round after round with little real data left. One advisory firm's simulation showed rare-case recall falling from 88.2% to 29.3% by the third generation [3]. Its write-up gives few method details, so treat the figures as a warning about the mechanism, not as a measured law."
+  ],
+  [
+   "h3",
+   "how much real data should you keep when fine-tuning?"
+  ],
+  [
+   "p",
+   "There is no single number, but keep some. Logic42 says its designs require at least 25% certified human data per training batch [3]. NVIDIA's speech recipe kept about 7% English in its mix, and English error barely moved as the target dialect improved [2]. Measure the old skills after every run to check the anchor is enough."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "nick_liapin",
+   "what": "Looking for lateral movement with a neural network trained on synthetic data",
+   "url": "https://dev.to/nick_liapin/looking-for-lateral-movement-with-a-neural-network-trained-on-synthetic-data-3h3n",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "neticslabs",
+   "what": "Dialect Fine-Tuning Starts With Data Curation: What NVIDIA's Nemotron Recipe Shows",
+   "url": "https://dev.to/neticslabs/dialect-fine-tuning-starts-with-data-curation-what-nvidias-nemotron-recipe-shows-ahj",
+   "posted": "2026-10-17"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "asifmiqbal",
+   "what": "Synthetic Data Poisoning: The Model Collapse Threat in Enterprise Fine-Tuning",
+   "url": "https://dev.to/asifmiqbal/synthetic-data-poisoning-the-model-collapse-threat-in-enterprise-fine-tuning-3799",
+   "posted": "2026-10-16"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:26:42+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "devto:4870262",
+   "devto:4862829",
+   "devto:4867762"
+  ],
+  "platforms": {
+   "dev.to": 3
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "myth-vs-reality:concept/synthetic-data",
+  "format": "myth-vs-reality",
+  "reviewed_by": null
+ }
+}

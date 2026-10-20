@@ -1,0 +1,406 @@
+{
+ "slug": "socio-technical-concept-superintelligence",
+ "status": "draft",
+ "tag": "Socio-technical essay",
+ "feat": false,
+ "title": "Superintelligence Gets Written Into Law While Agents Still Need a Script",
+ "dek": "Lawmakers are drawing a legal line around a machine nobody has built. Engineers, meanwhile, spend their days handing agents procedures the agents can't yet write.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is artificial superintelligence? A US bill defines it as cognition beyond ours across most domains. Yet today's agents still need hand-written procedures to do well.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+VHdvIHBpY3R1cmVzIG9mIHN1cGVyaW50ZWxsaWdlbmNlPC90aXRsZT4KICA8ZGVzYz5MZWZ0IHBhbmVsOiB0aGUgYmlsbCdzIHBpY3R1cmUsIGNvZ25pdGlvbiBiZXlvbmQgYSBodW1hbidzIGFjcm9zcyBtb3N0IGRvbWFpbnMsIGEgY29tcHV0ZSB0aHJlc2hvbGQgcmVzZXQgZXZlcnkgeWVhciwgYW5kIGEgYmFuLiBSaWdodCBwYW5lbDogdGhlIGFnZW50IG9uIHRoZSBkZXNrLCBhIG1vZGVsIGluc2lkZSBoYW5kLXdyaXR0ZW4gc2NhZmZvbGRpbmcgdGhhdCB0ZWxscyBpdCB3aGVuIHRvIHJlcG9ydCwgcmVzZXQgYW5kIGhhbmQgYmFjayBjb250cm9sLiBBIGdhcCBzZXBhcmF0ZXMgdGhlIHR3by48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCI+U3VwZXJpbnRlbGxpZ2VuY2U6IHRoZSBsYXcgYW5kIHRoZSBkZXNrPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5PbmUgcGljdHVyZSBpcyB3cml0dGVuIGludG8gYSBiaWxsLiBUaGUgb3RoZXIgcnVucyBpbiB5b3VyIHRlcm1pbmFsLjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjE1MCIgd2lkdGg9IjQ4MCIgaGVpZ2h0PSI0MDAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5MCIgeT0iMTk1IiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+SW4gdGhlIGJpbGw8L3RleHQ+CiAgPHRleHQgeD0iOTAiIHk9IjI0NSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkNvZ25pdGlvbiBiZXlvbmQgYSBodW1hbidzPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIyNzIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5hY3Jvc3MgbW9zdCBkb21haW5zPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIzMjIiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5PciBwb3dlciB0byBkaXNlbXBvd2VyIGh1bWFuaXR5PC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIzNzIiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5BIGNvbXB1dGUgdGhyZXNob2xkPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIzOTkiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5yZXNldCBldmVyeSB5ZWFyPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSI0NDkiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5QZXJtYW5lbnQgYmFuPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSI1MTAiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5BIGxpbmUgZHJhd24gYmVmb3JlIGFueW9uZSBjcm9zc2VkIGl0PC90ZXh0PgoKICA8cmVjdCB4PSI2NjAiIHk9IjE1MCIgd2lkdGg9IjQ4MCIgaGVpZ2h0PSI0MDAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2OTAiIHk9IjE5NSIgZmlsbD0iIzdhYTJmZiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPk9uIHRoZSBkZXNrPC90ZXh0PgogIDxyZWN0IHg9IjY5MCIgeT0iMjI1IiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjI1MCIgcng9IjEyIiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iOCA2Ii8+CiAgPHRleHQgeD0iNzEwIiB5PSIyNTgiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5oYW5kLXdyaXR0ZW4gc2NhZmZvbGRpbmc8L3RleHQ+CiAgPHJlY3QgeD0iODAwIiB5PSIzMDAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5MDAiIHk9IjM0OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vZGVsPC90ZXh0PgogIDx0ZXh0IHg9IjcxMCIgeT0iNDIwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+cmVwb3J0IGRpZmZpY3VsdGllczwvdGV4dD4KICA8dGV4dCB4PSI5MDAiIHk9IjQyMCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnJlc2V0IGJ5IHNjcmlwdDwvdGV4dD4KICA8dGV4dCB4PSI3MTAiIHk9IjQ1MiIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmhhbmQgY29udHJvbCBiYWNrPC90ZXh0PgogIDx0ZXh0IHg9IjY5MCIgeT0iNTEwIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+U3RpbGwgbmVlZHMgcHJvY2VkdXJlcyBzb21lb25lIHN1cHBsaWVkPC90ZXh0PgoKICA8dGV4dCB4PSI2MDAiIHk9IjM0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiPj88L3RleHQ+CiAgPGxpbmUgeDE9IjU2MCIgeTE9IjM3MCIgeDI9IjY0MCIgeTI9IjM3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjQgNiIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iNDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+dGhlIGdhcDwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "On the left, a bill's definition of superintelligence; on the right, an agent leaning on a hand-written script.",
+  "caption": "The law describes a system beyond us, while the agents on our desks still lean on procedures someone wrote.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is artificial superintelligence? A US bill now defines it, and new research shows today's agents still need hand-written procedures to do well.",
+ "keywords": [
+  "what is artificial superintelligence",
+  "AGI and superintelligence",
+  "superintelligence ban bill",
+  "AI agent scaffolding",
+  "ARC-AGI-3",
+  "recursive self-improvement"
+ ],
+ "kicker": "Socio-technical essay",
+ "tags": [
+  "superintelligence",
+  "Socio-technical essay"
+ ],
+ "read": 7,
+ "decisions": [
+  "Treat hand-written agent procedures as load-bearing code, and test them like code.",
+  "Move rules an agent keeps misapplying, such as resets, into a scripted controller.",
+  "Track token cost beside every score gain from a prompt change.",
+  "Check memory across sessions before trusting an agent with long-running work."
+ ],
+ "layout": "synthesis",
+ "arrangement": "b",
+ "special": {
+  "type": "glossary",
+  "title": "Terms in this piece",
+  "items": [
+   {
+    "term": "Artificial superintelligence",
+    "meaning": "An AI system whose cognitive ability goes beyond a human's across most domains, as one US bill frames it."
+   },
+   {
+    "term": "AGI",
+    "meaning": "Artificial general intelligence: broad, human-level ability across many kinds of task."
+   },
+   {
+    "term": "Scaffolding",
+    "meaning": "The code, prompts and control logic a developer wraps around a model to turn it into an agent."
+   },
+   {
+    "term": "Recursive self-improvement",
+    "meaning": "A system improving itself, so that each better version helps build the next one."
+   },
+   {
+    "term": "Scripted controller",
+    "meaning": "Plain code that makes one decision for an agent, such as when to reset, instead of leaving it to the model."
+   },
+   {
+    "term": "ARC-AGI-3",
+    "meaning": "A test environment of puzzle-like games used to measure how well general agents adapt."
+   },
+   {
+    "term": "Token-based cost",
+    "meaning": "What a run costs as measured by the tokens the model reads and writes."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Superintelligence has moved from forum argument to bill text",
+    "num": "01",
+    "id": "superintelligence-has-moved-from-forum-argument-to-bill-text"
+   }
+  ],
+  [
+   "p",
+   "Lawmakers are now drafting definitions of a machine nobody has built. A US Senate bill from Bernie Sanders would permanently ban artificial superintelligence and create a Department of AI [2, 3]. It describes the banned thing as any system whose cognitive ability goes beyond a human's, or one capable of planning humanity's destruction or disempowerment [2]. So what is artificial superintelligence? Here, it's a capability line drawn before anyone has crossed it. Violators could face prison [3]."
+  ],
+  [
+   "p",
+   "The bill reaches for compute as well as capability [3]. It covers any system trained above a fixed amount of computing power. A new Secretary of AI would have to move that line every year, as training methods get more efficient [3]. It also bans systems that show human-surpassing cognition across most domains, or that could easily be modified to show it [3]. That last clause is the hard one. Who decides what counts as easy?"
+  ],
+  [
+   "p",
+   "We think this shift matters for people who build with models today. A word that once lived in essays now carries legal weight. Engineers may soon be asked where their system sits against a definition like this one. Nobody has a test for it. On Hacker News, commenters split over whether the bill even aims at the right target [2, 3]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Builders hold the definition up against the models on their desks",
+    "num": "02",
+    "id": "builders-hold-the-definition-up-against-the-models-on-their-"
+   }
+  ],
+  [
+   "p",
+   "One Hacker News commenter called the bill's definition a big miss [2]. Their point was blunt. On some tasks, models from a year earlier already outdid the typical human, at least at recalling a wide range of facts [2]. If exceeding human cognition is the line, a rote-memory test crosses it today. The same commenter argued that a ban would leave licensed governments and corporations using the technology while ordinary users lose it [2]."
+  ],
+  [
+   "p",
+   "A different Hacker News commenter argued from the progress curve instead [4]. GPT-2 was a curiosity in 2019, in their telling, and GPT-4 arrived three and a half years later [4]. GPT-6 followed after a similar gap, and the commenter called it a working peer to a mathematician or a chemist [4]. Assume no plateau, they wrote, and general superintelligence lands in another three and a half years [4]. Recursive self-improvement would follow, within the limits of compute [4]."
+  ],
+  [
+   "p",
+   "Someone else on Hacker News doubted the whole path [5]. Today's models don't learn from experience, they wrote, and memories carried between chats were a coin flip in their own use [5]. Their view was that LLMs won't reach AGI without a radical change in how such systems are built [5]. We think this is the observation that matters most for daily work. It describes a system that forgets your instruction."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Four working pictures of superintelligence, and the test each one implies.",
+    "columns": [
+     "Who",
+     "The picture",
+     "The test it implies"
+    ],
+    "rows": [
+     [
+      "Senate bill, capability clause",
+      "Cognition beyond a human's across most domains, or power to disempower humanity",
+      "Capability evaluations nobody has agreed on"
+     ],
+     [
+      "Senate bill, compute clause",
+      "Training compute above a threshold reset every year",
+      "Count the training operations"
+     ],
+     [
+      "Progress optimist on Hacker News",
+      "Expert-level skill everywhere, then recursive self-improvement",
+      "Extrapolate the curve and look for a plateau"
+     ],
+     [
+      "Skeptic on Hacker News",
+      "Out of reach for LLMs without learning from experience",
+      "Memory that persists and gets used across sessions"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Hand-written scaffolding still decides how far an agent gets",
+    "num": "03",
+    "id": "hand-written-scaffolding-still-decides-how-far-an-agent-gets"
+   }
+  ],
+  [
+   "p",
+   "Set the forum aside and look at a lab result. A new arXiv paper by Sergey Rodionov asks a pointed question [1]. If stronger models can build useful procedures for themselves, why does scaffolding from developers keep its advantage [1]? Scaffolding means the code, prompts and control logic wrapped around a model. It decides when the agent acts, resets, stops or asks for help."
+  ],
+  [
+   "p",
+   "The setup is clean. A Codex-based agent ran under two prompt variants that were nearly identical, on ARC-AGI-3, AGI Maze and Terminal-Bench [1]. Code, prompts and general tools stayed the same in every environment. Only the environment's own details changed, fed in as input [1]. One variant added an instruction to report difficulties and hand control back for automatic continuation [1]. That small edit raised mean scores on ARC-AGI-3 and AGI Maze [1]."
+  ],
+  [
+   "p",
+   "Terminal-Bench moved only a little, and in mixed directions [1]. The general agent also stayed below a reference agent built for ARC-AGI-3, even with GPT-5.6 Sol underneath [1]. That reference added no new game rules or solutions. It prescribed organisation and control [1]. Structure made the difference, and knowledge did not."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The scaffolding experiment, from one unchanged agent to the gap that remained.",
+    "steps": [
+     "One Codex-based agent, same code and tools everywhere",
+     "Environment details arrive only as input",
+     "Variant adds: report difficulties, hand control back",
+     "Mean scores rise on ARC-AGI-3 and AGI Maze",
+     "Terminal-Bench shows small, mixed changes",
+     "Still below the reference agent built for ARC-AGI-3"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Having the tools is a different skill from using them well",
+    "num": "04",
+    "id": "having-the-tools-is-a-different-skill-from-using-them-well"
+   }
+  ],
+  [
+   "p",
+   "The paper's next move is the interesting one. The author handed reset decisions to a scripted controller [1]. That controller followed a convention the agent had already been told [1]. So the model knew the rule. It just didn't apply it reliably. Moving that one decision into code won back part of the specialised agent's lead [1]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+TW92aW5nIHRoZSByZXNldCBkZWNpc2lvbiBvdXQgb2YgdGhlIG1vZGVsPC90aXRsZT4KICA8ZGVzYz5CZWZvcmU6IHRoZSBtb2RlbCBvYnNlcnZlcyB0aGUgZW52aXJvbm1lbnQsIGRlY2lkZXMgYWN0aW9ucyBhbmQgYWxzbyBkZWNpZGVzIHdoZW4gdG8gcmVzZXQsIG9mdGVuIG1pc2FwcGx5aW5nIGEgY29udmVudGlvbiBpdCB3YXMgZ2l2ZW4uIEFmdGVyOiBhIHNjcmlwdGVkIGNvbnRyb2xsZXIgYXBwbGllcyB0aGF0IHNhbWUgY29udmVudGlvbiBmb3IgcmVzZXRzLCBhbmQgdGhlIG1vZGVsIGtlZXBzIGV2ZXJ5IG90aGVyIGRlY2lzaW9uLiBQYXJ0IG9mIHRoZSBzcGVjaWFsaXNlZCBhZ2VudCdzIGxlYWQgaXMgcmVjb3ZlcmVkLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIj5Lbm93aW5nIGEgcnVsZSBpcyBub3QgYXBwbHlpbmcgaXQ8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlNhbWUgYWdlbnQsIHNhbWUgY29udmVudGlvbiwgb25lIGRlY2lzaW9uIG1vdmVkIGludG8gY29kZTwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjE3MCIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkJlZm9yZTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMTkwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iMjQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RW52aXJvbm1lbnQ8L3RleHQ+CiAgPHJlY3QgeD0iMzYwIiB5PSIxOTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTAwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTEwIiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5Nb2RlbDwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjI2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmFjdHMgYW5kIGRlY2lkZXMgcmVzZXRzPC90ZXh0PgogIDxsaW5lIHgxPSIyODAiIHkxPSIyNDAiIHgyPSIzNTQiIHkyPSIyNDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8dGV4dCB4PSI3MjAiIHk9IjIzMiIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPnRoZSBjb252ZW50aW9uIHdhcyBpbiB0aGUgcHJvbXB0LDwvdGV4dD4KICA8dGV4dCB4PSI3MjAiIHk9IjI2MCIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPmJ1dCByZXNldHMgd2VyZSBhcHBsaWVkIHVucmVsaWFibHk8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIzNzAiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5BZnRlcjwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzkwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iNDQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RW52aXJvbm1lbnQ8L3RleHQ+CiAgPHJlY3QgeD0iMzYwIiB5PSIzOTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTAwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTEwIiB5PSI0MzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5Nb2RlbDwvdGV4dD4KICA8dGV4dCB4PSI1MTAiIHk9IjQ2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmFjdHM8L3RleHQ+CiAgPHJlY3QgeD0iNzQwIiB5PSIzOTAiIHdpZHRoPSIzMjAiIGhlaWdodD0iMTAwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iOTAwIiB5PSI0MzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5TY3JpcHRlZCBjb250cm9sbGVyPC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iNDYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+YXBwbGllcyB0aGUgcmVzZXQgcnVsZTwvdGV4dD4KICA8bGluZSB4MT0iMjgwIiB5MT0iNDQwIiB4Mj0iMzU0IiB5Mj0iNDQwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjY2MCIgeTE9IjQ0MCIgeDI9IjczNCIgeTI9IjQ0MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8dGV4dCB4PSI2MCIgeT0iNTcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+UmVzdWx0OiBwYXJ0IG9mIHRoZSBzcGVjaWFsaXNlZCBhZ2VudCdzIGFkdmFudGFnZSBjYW1lIGJhY2suPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "An agent loop where the reset decision moves from the model to a scripted controller following a known rule.",
+    "caption": "Moving one rule the model already knew into code won back part of the specialised agent's lead.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "Together, these findings highlight the distinction between having information and tools available and using them effectively.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "Then comes a surprise. In a separate AGI Maze experiment, extra tutorial experience made the agent perform worse [1]. More information did not buy better play. For a builder, that is a warning about stuffing context with every guide you have. The paper's conclusion is that supplied procedures still matter for the models it tested [1]."
+  ],
+  [
+   "p",
+   "The gains carry a price. They came with higher token-based cost, and the experiments cannot separate smarter use of information from simply more inference [1]. We like that the abstract says so plainly. In our view, it's the honest shape of most agent results today. Better scores and bigger bills arrive together. The mechanism stays blurred."
+  ],
+  [
+   "h2",
+   {
+    "text": "Engineers now work between a doom label and a fragile agent",
+    "num": "05",
+    "id": "engineers-now-work-between-a-doom-label-and-a-fragile-agent"
+   }
+  ],
+  [
+   "p",
+   "Picture an engineer in the middle of this. In the morning, they add a line telling an agent to report when it is stuck [1]. In the afternoon, they read a bill that treats the same class of system as a possible threat to humanity [2]. Both concern models like GPT-6 and its peers [4]. Neither tells them what to build next."
+  ],
+  [
+   "p",
+   "The vocabulary adds friction. A Hacker News commenter tied the bill to a recent political push to rename AI itself as superintelligence [3]. A reply argued that the scary name works as a prop for heavy regulation, with exemptions for big AI firms [3]. We don't share the cynicism. The worry about exemptions is fair, though. A compute line that moves every year will be argued over by whoever trains near it [3]."
+  ],
+  [
+   "p",
+   "Policy researchers sound less certain than either camp. The Import AI newsletter summarised RAND's view that the best US strategy keeps all options open [6]. Its stated reason is that nobody yet knows what is optimal [6]. We agree with that posture. A ban and a race both assume a confidence the evidence doesn't give."
+  ],
+  [
+   "h2",
+   {
+    "text": "The open question is how long hand-built scaffolding keeps paying",
+    "num": "06",
+    "id": "the-open-question-is-how-long-hand-built-scaffolding-keeps-p"
+   }
+  ],
+  [
+   "p",
+   "Here is the tension that stays open. The progress optimists picture models that soon improve themselves [4]. The bill pictures cognition beyond ours across most domains [3]. The scaffolding paper finds models that still need someone to supply procedures [1]. All three can hold for now. The gap between them is where today's engineering work lives."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+VGhlIGdhcCB0byB3YXRjaDwvdGl0bGU+CiAgPGRlc2M+QSBoYW5kLWJ1aWx0IHJlZmVyZW5jZSBhZ2VudCBmb3IgQVJDLUFHSS0zIHNpdHMgYWJvdmUgYSBnZW5lcmFsIGFnZW50LiBUaGUgZ2VuZXJhbCBhZ2VudCByb3NlIGFmdGVyIG9uZSBpbnN0cnVjdGlvbiBjaGFuZ2UgYnV0IHN0YXlzIGJlbG93LiBUaGUgc3BhY2UgYmV0d2VlbiB0aGVtIGlzIHRoZSBnYXAgdG8gd2F0Y2g6IGlmIGl0IGNsb3NlcyB3aXRob3V0IGVudmlyb25tZW50LXNwZWNpZmljIGVuZ2luZWVyaW5nLCB0aGUgb3B0aW1pc3RzIGdhaW4gZ3JvdW5kOyBpZiBpdCBob2xkcyBhcyBtb2RlbHMgc2NhbGUsIHRoZSBza2VwdGljcyBkby48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJnIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRoZSBnYXAgdG8gd2F0Y2ggb24gQVJDLUFHSS0zPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDYiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5Qb3NpdGlvbnMgYXJlIHNjaGVtYXRpYzsgbm8gc2NvcmVzIGFyZSBkcmF3bjwvdGV4dD4KCiAgPGxpbmUgeDE9IjEyMCIgeTE9IjU0MCIgeDI9IjEyMCIgeTI9IjE1MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPmJldHRlcjwvdGV4dD4KCiAgPHJlY3QgeD0iMjAwIiB5PSIxOTAiIHdpZHRoPSI0MjAiIGhlaWdodD0iNzAiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyMjUiIHk9IjIyMiIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPkhhbmQtYnVpbHQgcmVmZXJlbmNlIGFnZW50PC90ZXh0PgogIDx0ZXh0IHg9IjIyNSIgeT0iMjQ3IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+cHJlc2NyaWJlcyBvcmdhbmlzYXRpb24gYW5kIGNvbnRyb2w8L3RleHQ+CgogIDxyZWN0IHg9IjIwMCIgeT0iNDQwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMjI1IiB5PSI0NzIiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5HZW5lcmFsIGFnZW50LCBmaXJzdCB2YXJpYW50PC90ZXh0PgogIDx0ZXh0IHg9IjIyNSIgeT0iNDk3IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+c2FtZSBjb2RlIGV2ZXJ5d2hlcmU8L3RleHQ+CgogIDxyZWN0IHg9IjIwMCIgeT0iMzQwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMjI1IiB5PSIzNzIiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5HZW5lcmFsIGFnZW50LCB3aXRoIHJlcG9ydC1hbmQtcmV0dXJuPC90ZXh0PgogIDx0ZXh0IHg9IjIyNSIgeT0iMzk3IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+bWVhbiBzY29yZSByb3NlLCBzdGlsbCBiZWxvdzwvdGV4dD4KICA8bGluZSB4MT0iNjQwIiB5MT0iNDcwIiB4Mj0iNjQwIiB5Mj0iMzg0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnJnKSIvPgoKICA8cmVjdCB4PSIyMDAiIHk9IjI3MCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSI2MCIgcng9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNyA2Ii8+CiAgPHRleHQgeD0iNDEwIiB5PSIzMDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj50aGUgZ2FwPC90ZXh0PgoKICA8dGV4dCB4PSI3MDAiIHk9IjI1MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkNsb3NlcyB3aXRoIG5vIGVudmlyb25tZW50LXNwZWNpZmljPC90ZXh0PgogIDx0ZXh0IHg9IjcwMCIgeT0iMjc4IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+ZW5naW5lZXJpbmc6IG9wdGltaXN0cyBnYWluIGdyb3VuZDwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjM2MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkhvbGRzIGFzIG1vZGVscyBzY2FsZTo8L3RleHQ+CiAgPHRleHQgeD0iNzAwIiB5PSIzODgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5za2VwdGljcyBnYWluIGdyb3VuZDwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "A general agent sits below a hand-built reference agent; the space between them is marked as the gap to watch.",
+    "caption": "If this gap closes without environment-specific engineering, the optimists gain ground; if it holds, the skeptics do.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "What would settle it? Watch the distance between general agents and hand-built references on tests like ARC-AGI-3 [1]. If that distance closes with no environment-specific engineering, the optimists gain ground. If it holds while models scale, the skeptics do [5]. The paper ships its EnvTraverse framework and a baseline agent, so others can run exactly that check [1]."
+  ],
+  [
+   "p",
+   "Memory is the second signal. The skeptic's complaint was that models don't learn from experience and drop carried-over memories [5]. A model that kept and used what it learned across sessions would answer that complaint directly. Until one does, we think superintelligence names a forecast. Scaffolding names the present."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is artificial superintelligence?"
+  ],
+  [
+   "p",
+   "Artificial superintelligence usually means an AI system whose cognitive ability goes beyond a human's across most domains. A proposed US Senate bill defines it that way, and adds systems able to plan humanity's destruction or disempowerment [2, 3]. No agreed test exists for that line. Current agents still rely on procedures their developers supply [1]."
+  ],
+  [
+   "h3",
+   "Is superintelligence possible with LLMs?"
+  ],
+  [
+   "p",
+   "Nobody knows yet. A Hacker News commenter projects general superintelligence within three and a half years if progress does not plateau [4]. A skeptic on the same site argues LLMs cannot get there, since they don't learn from experience [5]. A new arXiv paper finds today's agents still gain from hand-written procedures, which is evidence about now, not about the ceiling [1]."
+  ],
+  [
+   "h3",
+   "What would the superintelligence ban bill do?"
+  ],
+  [
+   "p",
+   "It would permanently prohibit artificial superintelligence and set up a Department of AI [2]. It covers systems trained above a compute threshold that a Secretary of AI must update each year [3]. It also bans systems showing human-surpassing cognition across most domains, or easily modified to show it, and violators could face prison [3]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Improving Environment-Agnostic Coding Agents: The Role of Scaffolding",
+   "url": "https://arxiv.org/abs/2610.22289v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Proposed bill to ban artificial superintelligence and create Department of AI",
+   "url": "https://news.ycombinator.com/item?id=49828049",
+   "posted": "2026-09-24"
+  },
+  {
+   "n": 3,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Bernie Sanders proposes to ban 'superintelligence' and put violators in prison",
+   "url": "https://news.ycombinator.com/item?id=49818975",
+   "posted": "2026-09-23"
+  },
+  {
+   "n": 4,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Michael I. Jordan on AI: \"Superintelligence is science fiction\"",
+   "url": "https://news.ycombinator.com/item?id=50045682",
+   "posted": "2026-10-11"
+  },
+  {
+   "n": 5,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "I expect rapid progress but not towards general superintelligence",
+   "url": "https://news.ycombinator.com/item?id=50030611",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 6,
+   "platform": "an engineering blog",
+   "who": "jack-clark.net",
+   "what": "Import AI 473: The US’s superintelligence strategy; human brain in a mouse skull; and machine hermeneutics",
+   "url": "https://jack-clark.net/2026/09/21/import-ai-473-the-uss-superintelligence-strategy-human-brain-in-a-mouse-skull-and-machine-hermeneutics/",
+   "posted": "2026-09-21"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:28:56+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22289v1",
+   "hackernews:50045682",
+   "hackernews:50030611",
+   "hackernews:49828049",
+   "hackernews:49818975",
+   "blog:jack-clark.net|https://jack-clark.net/2026/09/21/import-ai-473-the-uss-superintelligence-strategy-human-brain-in-a-mouse-skull-and-machine-hermeneutics/"
+  ],
+  "platforms": {
+   "arXiv": 1,
+   "Hacker News": 4,
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "socio-technical:concept/superintelligence",
+  "format": "socio-technical",
+  "reviewed_by": null
+ }
+}

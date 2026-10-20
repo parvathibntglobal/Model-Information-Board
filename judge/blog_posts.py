@@ -40,7 +40,10 @@ REQUIRED = ("slug", "title", "dek", "tag", "by", "lead", "meta", "body", "proven
 #: as nothing, which reads as a shorter post rather than a broken one.
 #: `visual` (a table, chart or diagram) and `image` (an AI-generated picture)
 #: joined on 2026-10-13 with the generator that writes them.
-BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree", "visual", "image", "embed"}
+#: `highlight` (one whole sentence from a source, in a reported post) joined on
+#: 2026-10-20 with the reported style (blog_rules.yaml).
+BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree", "visual", "image", "embed",
+               "highlight"}
 
 
 def posts_dir() -> Path | None:
@@ -67,6 +70,14 @@ def _problem(doc: Any) -> str | None:
     for i, block in enumerate(doc["body"]):
         if not (isinstance(block, list) and len(block) == 2 and block[0] in BLOCK_TYPES):
             return f"body[{i}] is not one of {sorted(BLOCK_TYPES)}"
+        if block[0] == "highlight":
+            v = block[1]
+            if not (isinstance(v, dict) and isinstance(v.get("text"), str) and v["text"].strip()
+                    and isinstance(v.get("n"), int)):
+                return f"body[{i}] is a highlight without its text and reference number"
+            if v["n"] not in {s.get("n") for s in doc.get("sources") or [] if isinstance(s, dict)}:
+                return (f"body[{i}] is a highlight citing reference {v['n']}, "
+                        "which the post does not list")
     return None
 
 

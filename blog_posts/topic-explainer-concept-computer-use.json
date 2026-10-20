@@ -1,0 +1,409 @@
+{
+ "slug": "topic-explainer-concept-computer-use",
+ "status": "draft",
+ "tag": "Explainer",
+ "feat": false,
+ "title": "Computer-Use Agents Learn When to Click and When to Script",
+ "dek": "A new desktop agent trains clicks and code into one policy. Here is how that works, what it scored, and where agents still stall.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is a computer use agent? A model that runs a computer through screenshots and actions. The newest learn when to click and when to run code, but hand-offs and specialist software still trip them.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+T25lIHBvbGljeSBjaG9vc2VzIGJldHdlZW4gYSBjbGljayBhbmQgYSBzY3JpcHQ8L3RpdGxlPgogIDxkZXNjPkEgaHlicmlkIGNvbXB1dGVyLXVzZSBhZ2VudCByZWFkcyB0aGUgc2NyZWVuIGFuZCB0aGUgdGFzaywgcGlja3MgYSBHVUkgYWN0aW9uIG9yIGEgY29kZSBhY3Rpb24gZnJvbSBvbmUgYWN0aW9uIHNwYWNlLCBhbmQgYW4gZXZhbHVhdG9yIGNoZWNrcyBvbmx5IHRoZSBmaW5hbCBzdGF0ZS48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz48L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCI+Q29tcHV0ZXItdXNlIGFnZW50czogY2xpY2sgb3Igc2NyaXB0PzwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA4IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+T25lIHRyYWluZWQgcG9saWN5IHBpY2tzIHRoZSBtb3ZlIGF0IGV2ZXJ5IHN0ZXA7IG9ubHkgdGhlIGVuZCBzdGF0ZSBpcyBncmFkZWQ8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjIzMCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNjcmVlbiArIHRhc2s8L3RleHQ+CiAgPHRleHQgeD0iMTc1IiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5zY3JlZW5zaG90IGVhY2ggdHVybjwvdGV4dD4KICA8cmVjdCB4PSIzNjAiIHk9IjIzMCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0NzUiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPk9uZSBwb2xpY3k8L3RleHQ+CiAgPHRleHQgeD0iNDc1IiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5vbmUgYWN0aW9uIHNwYWNlPC90ZXh0PgogIDxyZWN0IHg9IjY4MCIgeT0iMTYwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjExMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijc5NSIgeT0iMjA3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+R1VJIGFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI3OTUiIHk9IjIzOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmNsaWNrLCB0eXBlLCBzY3JvbGw8L3RleHQ+CiAgPHJlY3QgeD0iNjgwIiB5PSIzMTAiIHdpZHRoPSIyMzAiIGhlaWdodD0iMTEwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2YyY2M2MCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzk1IiB5PSIzNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5Db2RlIGFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI3OTUiIHk9IjM4OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnJ1biBhIHNjcmlwdDwvdGV4dD4KICA8cmVjdCB4PSI5NzAiIHk9IjIzMCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMDY1IiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5FdmFsdWF0b3I8L3RleHQ+CiAgPHRleHQgeD0iMTA2NSIgeT0iMzEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+Y2hlY2tzIGZpbmFsIHN0YXRlPC90ZXh0PgogIDxsaW5lIHgxPSIyOTAiIHkxPSIyOTAiIHgyPSIzNTUiIHkyPSIyOTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iNTkwIiB5MT0iMjc1IiB4Mj0iNjc1IiB5Mj0iMjIwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjU5MCIgeTE9IjMwNSIgeDI9IjY3NSIgeTI9IjM2MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI5MTAiIHkxPSIyMjAiIHgyPSI5NjUiIHkyPSIyNzUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iOTEwIiB5MT0iMzYwIiB4Mj0iOTY1IiB5Mj0iMzA1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHBhdGggZD0iTTEwNjUsMzUwIEMxMDY1LDUwMCA0NzUsNTAwIDQ3NSwzNTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDx0ZXh0IHg9Ijc3MCIgeT0iNDkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+bmV3IHNjcmVlbnNob3QsIG5leHQgc3RlcDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNTgwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+T1MtSGVsaXgtMjdCLVJMOiA2Ni40NCUgc3VjY2VzcyBvbiBPU1dvcmxkLVZlcmlmaWVkPC90ZXh0Pgo8L3N2Zz4K",
+  "alt": "One policy reads the screen and the task, then picks a GUI action or a code action; an evaluator checks the final state.",
+  "caption": "A hybrid computer-use agent picks a click or a script at each step, and only the end state is graded.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is a computer use agent? A model that runs a computer through its screen. See how clicks, code and RL training fit together.",
+ "keywords": [
+  "what is a computer use agent",
+  "computer-use agents",
+  "Computer-use, GUI and web agents",
+  "GUI agents",
+  "OSWorld benchmark",
+  "agent reinforcement learning"
+ ],
+ "kicker": "Explainer",
+ "tags": [
+  "computer-use agents",
+  "Explainer"
+ ],
+ "read": 7,
+ "decisions": [
+  "Give an agent clicks and code only if it was trained to choose between them.",
+  "Grade agent tasks by the final machine state, not by the route taken.",
+  "Weigh RL updates per action step when actions differ a lot in length.",
+  "Make agents check sub-agent reports against the screen.",
+  "Test that agents release locks and hand off work when they finish."
+ ],
+ "layout": "explainer",
+ "arrangement": "b",
+ "special": {
+  "type": "quiz",
+  "title": "Check what you took away",
+  "items": [
+   {
+    "question": "Why did the OS-Helix team train the choice between clicks and code into the model?",
+    "options": [
+     "Prompts cannot describe any tools to a model",
+     "Adding a code tool through the prompt made a GUI agent worse in their early tests",
+     "Code actions are forbidden on Ubuntu desktops"
+    ],
+    "answer": 1,
+    "explanation": "Their early experiments showed a GUI agent got worse when a code tool was simply added, so they made the routing a learned skill."
+   },
+   {
+    "question": "What does an OS-Helix task evaluator look at?",
+    "options": [
+     "How many clicks the agent made",
+     "That the agent avoided writing code",
+     "The final state the machine ends in"
+    ],
+    "answer": 2,
+    "explanation": "The evaluator inspects the end state, so a solution built from clicks and one built from a script can be graded the same way."
+   },
+   {
+    "question": "What problem does balancing the RL update by action step solve?",
+    "options": [
+     "Long code actions drowning out the signal from short clicks",
+     "The need for any evaluator during training",
+     "Screenshots that arrive too slowly"
+    ],
+    "answer": 0,
+    "explanation": "Counting per token lets long scripts dominate; counting per step gives each action one share of the update."
+   },
+   {
+    "question": "Which pattern did the CLASHarness benchmark report?",
+    "options": [
+     "Stronger models followed misleading sub-agents more often",
+     "Finding an inconsistency was easier than fixing the system state",
+     "Conflicts never involved shared files"
+    ],
+    "answer": 1,
+    "explanation": "Agents could often spot a conflict, but repairing the state cost them task success, and closing actions failed most."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A computer-use agent drives the screen like a remote helper",
+    "num": "01",
+    "id": "a-computer-use-agent-drives-the-screen-like-a-remote-helper"
+   }
+  ],
+  [
+   "p",
+   "A computer use agent is a model that runs a computer through its screen, like a remote helper borrowing your mouse. It sees what you would see. Then it clicks, types and scrolls. Teams build these agents on vision-language models, or VLMs, which take in images and text together [3]. The appeal is reach. Any app with a window becomes something the model can use."
+  ],
+  [
+   "p",
+   "The loop is simple to state. The agent captures a screenshot of the current desktop. The model reads it next to the task and emits one action, such as a click at a point or a keystroke. The computer changes, a fresh screenshot arrives, and the cycle repeats. The full record of screens and actions is a trajectory, and evaluation harnesses log it for later study [3]."
+  ],
+  [
+   "p",
+   "Where does it break? A screen is a slow, narrow window onto a computer. The OS-Helix authors argue that real desktop work also means handling files, scripts and system state efficiently [1]. That tension drives the paper we follow through this post. It is a new arXiv study of an agent that mixes clicking with code [1]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The basic loop a computer-use agent runs, one action per turn.",
+    "steps": [
+     "Capture a screenshot of the desktop",
+     "Model reads the screen and the task",
+     "Model emits one action: click, type or code",
+     "The computer's state changes",
+     "Repeat until the task ends",
+     "An evaluator checks the final state"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Clicks and code belong in one action space",
+    "num": "02",
+    "id": "clicks-and-code-belong-in-one-action-space"
+   }
+  ],
+  [
+   "p",
+   "The OS-Helix team starts from a blunt observation. Desktop work mixes reading an interface with changing things underneath it [1]. Renaming a whole folder of photos takes endless clicks, and a short script does it in one go. Checking that a chart looks right needs eyes, not code. A useful agent needs both moves."
+  ],
+  [
+   "p",
+   "So why not hand a GUI agent, one that works a graphical user interface, a code tool and let it choose? The team tried exactly that in early experiments. The agent got worse [1]. Their reading is that picking between clicks and code cannot be bolted on through the prompt. It has to be learned from training data that mixes both kinds of action [1]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "In our preliminary experiments, naively adding a code tool degrades a GUI agent, revealing that GUI/code routing must be internalized through training on high-quality hybrid data.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "OS-Helix therefore puts GUI actions and code execution into a single action space, the menu of moves a model can pick from at each step [1]. One policy, the trained model that maps a screen to an action, makes every choice. In our view, this is the right call. A prompt can list tools, but it cannot teach timing, and timing is the whole skill here."
+  ],
+  [
+   "h2",
+   {
+    "text": "Verifiable tasks come before any training run",
+    "num": "03",
+    "id": "verifiable-tasks-come-before-any-training-run"
+   }
+  ],
+  [
+   "p",
+   "A hybrid agent needs examples of hybrid work, and those are scarce. The team built them by pairing desktop applications with authentic files, a step it calls application-artifact composition [1]. Each pairing becomes a runnable Ubuntu state [1]. Picture a spreadsheet app opened on a genuine spreadsheet, not an empty window."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTYwIj4KICA8dGl0bGU+SG93IE9TLUhlbGl4IGJ1aWxkcyBjaGVja2FibGUgdGFza3MgYW5kIHRyYWlucyBvbiB0aGVtPC90aXRsZT4KICA8ZGVzYz5EZXNrdG9wIGFwcHMgYXJlIHBhaXJlZCB3aXRoIHJlYWwgZmlsZXMgdG8gbWFrZSBVYnVudHUgc3RhdGVzOyBpbnN0cnVjdGlvbnMgYW5kIGV2YWx1YXRvcnMgYXJlIGdlbmVyYXRlZCBzZXBhcmF0ZWx5OyB0aGUgcG9saWN5IGdldHMgYW4gU0ZUIGNvbGQgc3RhcnQsIHRoZW4gb25saW5lIFJMIHdpdGggc3RlcC1iYWxhbmNlZCB3ZWlnaHRpbmcuPC9kZXNjPgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjU2MCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPkNoZWNrYWJsZSB0YXNrcyBmaXJzdCwgdHJhaW5pbmcgc2Vjb25kPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5UaGUgT1MtSGVsaXggcGlwZWxpbmUsIGFzIGl0cyBhdXRob3JzIGRlc2NyaWJlIGl0PC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSIxNzAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTIwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTY1IiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5BcHAgKyByZWFsIGZpbGVzPC90ZXh0PgogIDx0ZXh0IHg9IjE2NSIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+cnVubmFibGUgVWJ1bnR1IHN0YXRlPC90ZXh0PgogIDxyZWN0IHg9IjMzMCIgeT0iMTcwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjEyMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ1NSIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGFzayArIGV2YWx1YXRvcjwvdGV4dD4KICA8dGV4dCB4PSI0NTUiIHk9IjI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPndyaXR0ZW4gYXBhcnQ8L3RleHQ+CiAgPHJlY3QgeD0iNjIwIiB5PSIxNzAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTIwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzQ1IiB5PSIyMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5TRlQgY29sZCBzdGFydDwvdGV4dD4KICA8dGV4dCB4PSI3NDUiIHk9IjI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmZpbHRlcmVkIGh5YnJpZCBkYXRhPC90ZXh0PgogIDxyZWN0IHg9IjkxMCIgeT0iMTcwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjEyMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmMmNjNjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjEwMzUiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPk9ubGluZSBSTDwvdGV4dD4KICA8dGV4dCB4PSIxMDM1IiB5PSIyNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5saXZlIGRlc2t0b3BzPC90ZXh0PgogIDxsaW5lIHgxPSIyOTAiIHkxPSIyMzAiIHgyPSIzMjUiIHkyPSIyMzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iNTgwIiB5MT0iMjMwIiB4Mj0iNjE1IiB5Mj0iMjMwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9Ijg3MCIgeTE9IjIzMCIgeDI9IjkwNSIgeTI9IjIzMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDx0ZXh0IHg9IjQ1NSIgeT0iMzQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+R3JhZGVzIHRoZSBlbmQgc3RhdGUsPC90ZXh0PgogIDx0ZXh0IHg9IjQ1NSIgeT0iMzY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+Y2xpY2tzIG9yIGNvZGUgYWxpa2U8L3RleHQ+CiAgPHJlY3QgeD0iNzkwIiB5PSIzMzAiIHdpZHRoPSIzNzAiIGhlaWdodD0iMTcwIiByeD0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iOTc1IiB5PSIzNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5IiBmb250LXdlaWdodD0iNzAwIj5TdGVwLWJhbGFuY2VkIHdlaWdodGluZzwvdGV4dD4KICA8cmVjdCB4PSI4MjAiIHk9IjM5MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjI2IiBmaWxsPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iODcyIiB5PSI0MTAiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij5jbGljayBzdGVwOiBvbmUgc2hhcmU8L3RleHQ+CiAgPHJlY3QgeD0iODIwIiB5PSI0MzYiIHdpZHRoPSIxNjAiIGhlaWdodD0iMjYiIGZpbGw9IiNmMmNjNjAiLz4KICA8dGV4dCB4PSI5OTIiIHk9IjQ1NiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPmxvbmcgc2NyaXB0OiBvbmUgc2hhcmU8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Apps paired with real files make Ubuntu states; tasks and evaluators are written apart; SFT then online RL train the policy.",
+    "caption": "OS-Helix builds checkable tasks first, then trains with a cold start and step-balanced online RL.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Next comes the clever part. Separate pipelines write the instruction and the evaluator, the code that inspects the final state [1]. The evaluator only looks at where the machine ended up. So it does not care if the agent clicked or scripted its way there [1]. That is what makes mixed solutions gradable at scale."
+  ],
+  [
+   "p",
+   "Training then runs in two phases [1]. Supervised fine-tuning, or SFT, on filtered hybrid data gives the policy a cold start. Online reinforcement learning, or RL, follows inside live desktop environments [1]. In RL the model improves from rewards on its own attempts, which are called rollouts."
+  ],
+  [
+   "p",
+   "The RL step hides a subtle trap. Clicks are short in tokens, while a code action can run long. Weigh every token equally and long scripts swamp the signal from clicks. The team's fix, Step-balanced GSPO, sums the importance weight per action step instead of per raw token [1]. An importance weight is the correction that rescales a sample drawn from an older policy."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative pattern: weighting an RL update by step instead of by token",
+    "language": "python",
+    "source": "# Illustrative only; not the paper's code.\n# Token level: a long script contributes many terms, a click very few.\ndef token_level(steps):\n    terms = [tok.ratio * step.advantage for step in steps for tok in step.tokens]\n    return mean(terms)\n\n# Step level: each action counts once, however long it is.\ndef step_level(steps):\n    terms = [mean(tok.ratio for tok in step.tokens) * step.advantage for step in steps]\n    return mean(terms)"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "OSWorld results put the trained agent at 66.44% success",
+    "num": "04",
+    "id": "osworld-results-put-the-trained-agent-at-66-44-success"
+   }
+  ],
+  [
+   "p",
+   "So how well does it work? The team reports results on OSWorld-Verified, a desktop benchmark [1]. OS-Helix-27B and OS-Helix-35B-A3B beat their matched Qwen3.5 hybrid baselines by 35.0% and 33.7%, in relative terms [1]. The RL-trained 27B model then improves by 42.9% and reaches 66.44% success [1]."
+  ],
+  [
+   "p",
+   "Read those numbers with care. A relative improvement is measured against the baseline's own score. It is not the same thing as percentage points. Of the figures above, only 66.44% is a plain success rate [1]. The paper's summary leaves out the baselines' own scores, so the gains cannot be turned into points here. We think that gap matters, because a big relative gain on a weak baseline can still leave a low score."
+  ],
+  [
+   "p",
+   "Ablations are experiments that remove one ingredient at a time. Here they point the same way, crediting learned coordination, verifiable supervision and step-balanced optimisation [1]. The team also reports cross-platform transfer to WindowsAgentArena, a Windows test bed [1]. We read the transfer as the strongest hint that the routing skill is real, not a quirk of one test."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "OS-Helix results on OSWorld-Verified as the authors report them.",
+    "columns": [
+     "Model",
+     "Compared with",
+     "Reported result"
+    ],
+    "rows": [
+     [
+      "OS-Helix-27B",
+      "matched Qwen3.5 hybrid baseline",
+      "35.0% relative improvement"
+     ],
+     [
+      "OS-Helix-35B-A3B",
+      "matched Qwen3.5 hybrid baseline",
+      "33.7% relative improvement"
+     ],
+     [
+      "OS-Helix-27B-RL",
+      "after online RL",
+      "42.9% improvement, 66.44% success"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Other agents can feed a computer-use agent stale facts",
+    "num": "05",
+    "id": "other-agents-can-feed-a-computer-use-agent-stale-facts"
+   }
+  ],
+  [
+   "p",
+   "Real deployments rarely run one agent alone. A second paper, CLASHarness, tests what happens when peers disagree [2]. Sub-agents may report an outdated state, give clashing orders, or fight over shared files and permissions [2]. Its benchmark holds 600 multi-round tasks built around such conflicts [2]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDUyMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTIwIj4KICA8dGl0bGU+V2hlcmUgbXVsdGktYWdlbnQgY29uZmxpY3RzIHRyaXAgY29tcHV0ZXItdXNlIGFnZW50czwvdGl0bGU+CiAgPGRlc2M+VGhyZWUgc3RhZ2VzIG9mIGhhbmRsaW5nIGEgY29uZmxpY3QgYmV0d2VlbiBhZ2VudHM6IHNwb3R0aW5nIGl0LCBmaXhpbmcgdGhlIHN5c3RlbSBzdGF0ZSwgYW5kIGNsb3NpbmcgdXAuIEV2ZW4gZnJvbnRpZXIgbW9kZWxzIGZhaWwgb3ZlciA1OCBwZXJjZW50IG9mIGNsb3NpbmcgYWN0aW9ucy48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz48L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTIwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+QSBjb25mbGljdCBnZXRzIGhhcmRlciBhdCBldmVyeSBzdGFnZTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA1IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+V2hhdCB0aGUgQ0xBU0hhcm5lc3MgYmVuY2htYXJrIHJlcG9ydHMgYWNyb3NzIGZyb250aWVyIG1vZGVsczwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMTcwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE0MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjIxMCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZm9udC13ZWlnaHQ9IjcwMCI+U3BvdCB0aGUgY29uZmxpY3Q8L3RleHQ+CiAgPHRleHQgeD0iMjEwIiB5PSIyNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5hZ2VudHMgb2Z0ZW4gbWFuYWdlPC90ZXh0PgogIDxyZWN0IHg9IjQ1MCIgeT0iMTcwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE0MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmMmNjNjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMjI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZm9udC13ZWlnaHQ9IjcwMCI+Rml4IHRoZSBzdGF0ZTwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnN1Y2Nlc3MgZHJvcHM8L3RleHQ+CiAgPHJlY3QgeD0iODQwIiB5PSIxNzAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTQwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iOTkwIiB5PSIyMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIzIiBmb250LXdlaWdodD0iNzAwIj5DbG9zZSB1cDwvdGV4dD4KICA8dGV4dCB4PSI5OTAiIHk9IjI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnJlbGVhc2UgbG9ja3MsIGhhbmQgb2ZmPC90ZXh0PgogIDxsaW5lIHgxPSIzNjAiIHkxPSIyNDAiIHgyPSI0NDUiIHkyPSIyNDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iNzUwIiB5MT0iMjQwIiB4Mj0iODM1IiB5Mj0iMjQwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHRleHQgeD0iOTkwIiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ0IiBmb250LXdlaWdodD0iNzAwIj5vdmVyIDU4JTwvdGV4dD4KICA8dGV4dCB4PSI5OTAiIHk9IjQxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPm9mIGNsb3NpbmcgYWN0aW9ucyBmYWlsZWQ8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjM4MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPldlYWtlciBtb2RlbHMgZm9sbG93IGEgbWlzbGVhZGluZyBzdWItYWdlbnQ7PC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI0MDgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5zdHJvbmdlciBvbmVzIGNoZWNrIHRoZSBzY3JlZW4gZm9yIHRoZW1zZWx2ZXMuPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Three stages of a conflict: spot it, fix the state, close up. Closing up is where the most failures land.",
+    "caption": "In multi-agent conflicts, the last step of releasing locks and handing off work fails most often.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "Third, coordination protocols remain a universal bottleneck: even frontier models fail over 58% of closing actions, often forgetting to release shared locks or hand off tasks.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "The construction matters for trusting the scores. The pipeline fixes the decisive visual facts before it renders a scene [2]. It then compiles code and semantic graders from reference runs that were actually executed. That makes every task solvable by design [2]. Free-form LLM generation, the authors warn, drifts and leaks answers instead [2]."
+  ],
+  [
+   "p",
+   "Across 15 frontier models, three weak spots showed up [2]. Weaker models followed misleading sub-agent reports, and stronger ones checked the screen for themselves [2]. Spotting an inconsistency proved easier than repairing the system state [2]. Closing up was worst of all. Even frontier models failed over 58% of closing actions, such as releasing a shared lock [2]."
+  ],
+  [
+   "p",
+   "We think the closing-action result is the one to take home. An agent that finishes the work but never hands it back leaves a mess for the next agent. Your harness should check that release step on its own, not assume it."
+  ],
+  [
+   "h2",
+   {
+    "text": "Scientific software marks where today's agents stall",
+    "num": "06",
+    "id": "scientific-software-marks-where-today-s-agents-stall"
+   }
+  ],
+  [
+   "p",
+   "Specialist tools are a harder test. OSWorld-Science gives agents 146 tasks in scientific software, from molecule drawing to pathology images, statistics and physics simulation [3]. Experts proposed the tasks. Execution-based evaluators inspect the outputs, such as segmentation masks and plots, and give partial credit for incomplete work [3]."
+  ],
+  [
+   "p",
+   "The verdict is sobering. Across 12 VLMs, the authors found that even the strongest current models, run in a strong harness, still struggle with key scientific questions [3]. They also studied language, reasoning effort and context length as factors [3]. A good harness, it seems, cannot paper over an unfamiliar interface."
+  ],
+  [
+   "p",
+   "So where does the hybrid idea stop? It helps on desktop chores with a checkable end state [1]. It says little about hand-offs between agents or about specialist screens, where fresh failures show up [2, 3]. Nobody has yet reported how these agents fare on your own apps. To try one, start with tasks whose final state a script can verify, and read the CLASHarness paper before you add a second agent."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "what is a computer use agent?"
+  ],
+  [
+   "p",
+   "A computer use agent is an AI model that operates a computer through its screen, clicking, typing and scrolling like a person. It is usually built on a vision-language model, which reads screenshots and text together [3]. Newer agents such as OS-Helix can also run code in the same action space, choosing at each step between a click and a script [1]."
+  ],
+  [
+   "h3",
+   "how do computer use agents work?"
+  ],
+  [
+   "p",
+   "They run a loop of seeing and acting. Each turn, the model reads a screenshot and the task, then emits one action, such as a click or a keystroke. The screen changes and the loop repeats until the task ends. Benchmarks log each run as a trajectory and check the final state of the machine [1, 3]."
+  ],
+  [
+   "h3",
+   "are computer use agents reliable yet?"
+  ],
+  [
+   "p",
+   "Not for every job yet. On OSWorld-Verified, the RL-trained OS-Helix model reached 66.44% success [1]. In a multi-agent conflict benchmark, even frontier models failed over 58% of closing actions, such as releasing shared locks [2]. Scientific software also remains hard for current models, even inside a strong harness [3]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "OS-Helix: Unifying GUI Interaction and Code Execution in Native Computer-Using Agents",
+   "url": "https://arxiv.org/abs/2610.22234v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "CLASHarness: Benchmarking Multi-Agent Conflict in Computer Use via a Controllable and Verifiable Generation Pipeline",
+   "url": "https://huggingface.co/papers/2610.19128",
+   "posted": "2026-10-13"
+  },
+  {
+   "n": 3,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "OSWorld-Science: A Benchmark of Computer Use Agents for Learning and Using Scientific Software",
+   "url": "https://huggingface.co/papers/2609.39903",
+   "posted": "2026-09-30"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:26:41+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22234v1",
+   "hfpapers:2610.19128",
+   "hfpapers:2609.39903"
+  ],
+  "platforms": {
+   "arXiv": 1,
+   "Hugging Face": 2
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-explainer:concept/computer-use",
+  "format": "topic-explainer",
+  "reviewed_by": null
+ }
+}

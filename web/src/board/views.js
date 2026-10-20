@@ -1203,7 +1203,15 @@ function vBlogs(){
 // QUOTE CREDITS (re-reviewed 2026-10-13): a post carries `cite` (fragment ->
 // number) and `sources` (platform, who, what, link). Set by vPost while it
 // renders, keyed by the ESCAPED fragment because essayText matches after esc().
-let CITE = null, SRC = null;
+let CITE = null, SRC = null, REPORTED = false;
+// A REPORTED POST (blog_rules.yaml, 2026-10-20) cites [n] after each reported
+// fact; the number links to its reference. Only on reported posts, and only a
+// number the post's reference list has: "messages[0]" in an older post stays text.
+function refMarks(g){
+  const ns = g.split(/\s*,\s*/).map(Number);
+  if(!REPORTED || !SRC || !ns.every(n => SRC[n])) return null;
+  return `<sup class="es-cite es-refnum">${ns.map(n => `<a href="#es-src-${n}" aria-label="Reference ${n}">${n}</a>`).join(',')}</sup>`;
+}
 function citeMark(q){
   const n = CITE && CITE[q];
   return n ? `<sup class="es-cite"><a href="#es-src-${n}" aria-label="Source ${n}">${n}</a></sup>` : '';
@@ -1213,6 +1221,7 @@ function essayText(v){
     .replace(/`([^`]+)`/g,'<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
     .replace(/«([^»]+)»/g,(m,q)=>`<q class="es-iq">${q}</q>${citeMark(q)}`)
+    .replace(/\s?\[(\d+(?:\s*,\s*\d+)*)\]/g,(m,g)=>refMarks(g) || m)
     .replace(/\{E\d+\}/g,'');
 }
 
@@ -1248,10 +1257,13 @@ function embedBlock(v){
 function sourcesBlock(p){
   const s = (p.sources || []).filter(x => /^https:\/\//.test(x.url || ''));
   if(!s.length) return '';
-  return `<section class="es-sources"><h2>Sources</h2><ol>${s.map(x =>
+  const reported = p.style === 'reported';
+  return `<section class="es-sources"><h2>${reported ? 'References' : 'Sources'}</h2><ol>${s.map(x =>
     `<li id="es-src-${esc(x.n)}"><span class="plat">${esc(x.platform)}</span>
       <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.what)}</a>${x.who ? ` by ${esc(x.who)}` : ''}${x.posted ? ` · ${esc(x.posted)}` : ''}</li>`).join('')}</ol>
-    <p class="es-note">Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.</p>${
+    <p class="es-note">${reported
+      ? 'Reported in our own words, with each fact numbered to its reference. A highlighted sentence was matched to its source word for word, in code. Embedded posts are shown by their own platform.'
+      : 'Every quote was matched to its source word for word, in code. Embedded posts are shown by their own platform.'}</p>${
     // arXiv's acknowledgement, attached by the server to every post that cites
     // an arXiv paper (judge/publication.py with_credits, 2026-10-19).
     p.acknowledgement ? `<p class="es-note es-ack">${esc(p.acknowledgement)}</p>` : ''}</section>`;
@@ -1290,6 +1302,14 @@ function essayBlock([t,v]){
     <blockquote>${esc(v)}</blockquote>
     <div class="src">${src ? `Copied exactly from <a href="${esc(src.url)}" rel="nofollow noopener" target="_blank">${esc(src.what)}</a>. Not the writer's words.`
       : "Copied exactly from a public engineering discussion this post was written from. Not the writer's words."}</div></figure>`;
+  }
+  // A WHOLE SENTENCE FROM A SOURCE (reported posts): copied word for word and
+  // checked in code; its reference says where it came from.
+  if(t==='highlight'){
+    const src = SRC && SRC[v.n];
+    return `<figure class="es-highlight"><blockquote>${esc(v.text)}</blockquote>
+    <figcaption>${src ? `Word for word from <a href="${esc(src.url)}" rel="nofollow noopener" target="_blank">${esc(src.what)}</a>, ${esc(src.platform)}${src.who ? ` · ${esc(src.who)}` : ''} <a class="es-hl-ref" href="#es-src-${esc(v.n)}">[${esc(v.n)}]</a>`
+      : 'Word for word from a source listed below.'}</figcaption></figure>`;
   }
   if(t==='embed') return embedBlock(v);
   // The tag already says "Illustrative"; a label that opens with it would read twice.
@@ -1828,6 +1848,7 @@ function vPost(slug){
   _mx = 0; _qz = 0;
   CITE = Object.fromEntries(Object.entries(p.cite || {}).map(([k, n]) => [esc(k), n]));
   SRC = Object.fromEntries((p.sources || []).map(s => [s.n, s]));
+  REPORTED = p.style === 'reported';
   CARDED = new Set();
 
   // THE TOOLS - the matrix and the tree - go where the format puts them, and
@@ -2010,7 +2031,7 @@ function vPost(slug){
       </aside>
     </div>
   </div></div>`;
-  CITE = null; SRC = null; CARDED = null;
+  CITE = null; SRC = null; CARDED = null; REPORTED = false;
   return page;
 }
 export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel, vBlogs, vPost }

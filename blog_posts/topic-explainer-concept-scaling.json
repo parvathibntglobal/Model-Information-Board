@@ -1,0 +1,400 @@
+{
+ "slug": "topic-explainer-concept-scaling",
+ "status": "draft",
+ "tag": "Explainer",
+ "feat": false,
+ "title": "Scaling Laws Are Learning to Count Loops, Experts and Pixels",
+ "dek": "A scaling law turns a compute budget into a predicted loss. New papers stretch the old curve to cover looped layers, sparse experts and models that read raw pixels.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What are scaling laws? Fitted curves that predict how training loss falls as you add parameters, data and compute. You use them to plan a big run from small ones.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+QSBzY2FsaW5nIGxhdyBpcyBhIHN0cmFpZ2h0IGxpbmUgb24gYSBsb2ctbG9nIHBsb3Q8L3RpdGxlPgogIDxkZXNjPkxvc3MgZnJvbSBhIHN3ZWVwIG9mIHNtYWxsIHRyYWluaW5nIHJ1bnMgZmFsbHMgYWxvbmcgYSBzdHJhaWdodCBsaW5lIG9uIGxvZy1sb2cgYXhlczsgdGhlIGZpdHRlZCBsaW5lIGlzIGV4dGVuZGVkIHRvIGZvcmVjYXN0IHRoZSBsb3NzIG9mIGEgbXVjaCBsYXJnZXIgcnVuIGJlZm9yZSBpdCBpcyB0cmFpbmVkLjwvZGVzYz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIj5TY2FsaW5nIGxhd3M6IGZpdCBzbWFsbCwgZm9yZWNhc3QgYmlnPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5UcmFpbmluZyBsb3NzIGFnYWluc3QgY29tcHV0ZSwgYm90aCBheGVzIG9uIGEgbG9nIHNjYWxlPC90ZXh0PgogIDxsaW5lIHgxPSIxNDAiIHkxPSI1NDAiIHgyPSIxMTIwIiB5Mj0iNTQwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSIxNDAiIHkxPSIxNjAiIHgyPSIxNDAiIHkyPSI1NDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjMwIiB5PSI1ODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5jb21wdXRlIChsb2cgc2NhbGUpPC90ZXh0PgogIDx0ZXh0IHg9IjkwIiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5IiB0cmFuc2Zvcm09InJvdGF0ZSgtOTAgOTAgMzUwKSI+bG9zcyAobG9nIHNjYWxlKTwvdGV4dD4KICA8bGluZSB4MT0iMTgwIiB5MT0iMjAwIiB4Mj0iNjQwIiB5Mj0iMzcwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxsaW5lIHgxPSI2NDAiIHkxPSIzNzAiIHgyPSIxMDQwIiB5Mj0iNTE4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iMTIgOSIvPgogIDxjaXJjbGUgY3g9IjIwMCIgY3k9IjIxMiIgcj0iMTAiIGZpbGw9IiMzZWNmOGUiLz4KICA8Y2lyY2xlIGN4PSIyOTAiIGN5PSIyNDAiIHI9IjEwIiBmaWxsPSIjM2VjZjhlIi8+CiAgPGNpcmNsZSBjeD0iMzgwIiBjeT0iMjc5IiByPSIxMCIgZmlsbD0iIzNlY2Y4ZSIvPgogIDxjaXJjbGUgY3g9IjQ3MCIgY3k9IjMwMyIgcj0iMTAiIGZpbGw9IiMzZWNmOGUiLz4KICA8Y2lyY2xlIGN4PSI1NjAiIGN5PSIzNDUiIHI9IjEwIiBmaWxsPSIjM2VjZjhlIi8+CiAgPGNpcmNsZSBjeD0iMTA0MCIgY3k9IjUxOCIgcj0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2YyY2M2MCIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHRleHQgeD0iMzMwIiB5PSIyMDAiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5zbWFsbCBydW5zIHlvdSBjYW4gYWZmb3JkPC90ZXh0PgogIDx0ZXh0IHg9IjEwMzAiIHk9IjQ4MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iI2YyY2M2MCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPmZvcmVjYXN0IGZvciB0aGUgYmlnIHJ1bjwvdGV4dD4KICA8dGV4dCB4PSI3MDAiIHk9IjMzMCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPmV4dGVuZGVkIGZpdDwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "On a log-log plot, losses from small training runs fall on a straight line that is extended to forecast a large run.",
+  "caption": "A scaling law is a straight line on a log-log plot, fitted on small runs and extended to a big one.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What are scaling laws? Fitted curves that predict a model's loss from size, data and compute. Here is how they work and where new papers stretch them.",
+ "keywords": [
+  "what are scaling laws",
+  "scaling laws",
+  "compute-optimal training",
+  "mixture of experts scaling",
+  "looped transformers",
+  "encoder-free multimodal models"
+ ],
+ "kicker": "Explainer",
+ "tags": [
+  "scaling laws",
+  "Explainer"
+ ],
+ "read": 6,
+ "decisions": [
+  "Fit a law on small runs before committing a large training budget.",
+  "Treat a forecast crossover as a hypothesis until a run confirms it.",
+  "Count memory as well as compute when weighing looped against wider models.",
+  "Check that a reported gain was measured on the tasks you care about."
+ ],
+ "layout": "explainer",
+ "arrangement": "b",
+ "special": {
+  "type": "quiz",
+  "title": "Check what you took away",
+  "items": [
+   {
+    "question": "Why do scaling laws show up as straight lines?",
+    "options": [
+     "Loss falls along a power law, which is straight on a log-log plot",
+     "Loss falls by the same amount for every extra parameter",
+     "Researchers only plot the largest runs"
+    ],
+    "answer": 0,
+    "explanation": "A power law turns into a straight line when both axes are logarithmic, which is what makes it easy to extend."
+   },
+   {
+    "question": "What decision is a classic scaling law mainly used for?",
+    "options": [
+     "Choosing a learning-rate schedule",
+     "Splitting a fixed compute budget between model size and training data",
+     "Picking which benchmark to report"
+    ],
+    "answer": 1,
+    "explanation": "The fitted curve shows which mix of parameters and tokens gives the lowest predicted loss for a given budget."
+   },
+   {
+    "question": "What does looping a transformer's layers buy you?",
+    "options": [
+     "More stored parameters at the same depth",
+     "Fewer tokens needed in training",
+     "More depth without adding new parameters"
+    ],
+    "answer": 2,
+    "explanation": "Running the same layers again adds computation depth while the weights in memory stay the same."
+   },
+   {
+    "question": "How should you treat the forecast that encoder-free models catch up at large compute?",
+    "options": [
+     "As a fitted prediction that a large run still has to confirm",
+     "As a measured result from a finished frontier run",
+     "As proof that vision encoders are never useful"
+    ],
+    "answer": 0,
+    "explanation": "The catch-up point comes from extending fitted curves, so it is a forecast until someone trains at that scale."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "20 October 2026",
+  "~6 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A scaling law predicts the loss before you pay for it",
+    "num": "01",
+    "id": "a-scaling-law-predicts-the-loss-before-you-pay-for-it"
+   }
+  ],
+  [
+   "p",
+   "A scaling law is a fitted curve that predicts how good a model gets before you train it. Think of a fuel-economy sticker for compute. You put in a budget. It tells you roughly what loss to expect. Loss here means the model's average error at predicting the next token on text it has not seen."
+  ],
+  [
+   "p",
+   "Its shape is simple. Training loss falls predictably as model size, data size and compute grow, and the fall follows a power law [3]. On a log-log plot, where both axes count in powers of ten, that curve becomes a straight line [3]. Straight lines are easy to extend. That is the whole trick."
+  ],
+  [
+   "p",
+   "Why does this matter for the models you use? Any big training run has a fixed compute budget. A recent explainer, Scaling Laws, Carefully, frames the law as a tool for one decision [3]. How should that budget split between parameters and training data [3]? Get the split wrong and you pay full price for a weaker model."
+  ],
+  [
+   "h2",
+   {
+    "text": "Small runs are fitted first, then the line is extended",
+    "num": "02",
+    "id": "small-runs-are-fitted-first-then-the-line-is-extended"
+   }
+  ],
+  [
+   "p",
+   "Fitting a law follows a routine. You train a sweep of small models at different sizes and data amounts. You record each one's loss on held-out text. Then you fit a formula to those points and read off the loss for a run you cannot yet afford."
+  ],
+  [
+   "p",
+   "A common shape for the formula is `L(N, D) = E + A / N^alpha + B / D^beta`. Here `N` is parameter count, `D` is training tokens, and `E` is the floor no amount of scale removes. The two exponents say how fast each kind of scale pays off. Model size, data size and compute are exactly the inputs that explainer names [3]."
+  ],
+  [
+   "p",
+   "Compute-optimal is the word for the best split. Hold compute fixed, then slide budget between `N` and `D` until predicted loss bottoms out [3]. We think this is the most useful idea in the field for a builder. It turns an argument about taste into a curve you can check."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative pattern: fit a loss curve to small runs and extrapolate",
+    "language": "python",
+    "source": "# Illustrative only: fit a scaling law to a sweep of small runs.\nfrom scipy.optimize import curve_fit\n\ndef law(x, E, A, alpha, B, beta):\n    N, D = x\n    return E + A / N**alpha + B / D**beta\n\n# sizes, tokens, losses come from your own small training runs\nparams, _ = curve_fit(law, (sizes, tokens), losses, p0=first_guess)\npredicted_loss = law((big_N, big_D), *params)"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How a scaling law is built and used, from small runs to a forecast.",
+    "steps": [
+     "Train a sweep of small models",
+     "Vary parameter count and training tokens",
+     "Record each run's held-out loss",
+     "Fit a power-law formula to the points",
+     "Extend the line to the target budget",
+     "Pick the size and data split with lowest predicted loss"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Looped experts add two new knobs to the curve",
+    "num": "03",
+    "id": "looped-experts-add-two-new-knobs-to-the-curve"
+   }
+  ],
+  [
+   "p",
+   "Classic laws know only size and data. Real architectures have more dials. A new arXiv paper by Yanbei Chen, Anirudh Goyal and Raghuraman Krishnamoorthi looks at two of them [1]. Looping runs the same layers more than once, buying depth without new parameters. Mixture of Experts, or MoE, stores many expert blocks but activates only a few per token [1]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU4MCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTgwIj4KICA8dGl0bGU+QSBsb29wZWQgbWl4dHVyZS1vZi1leHBlcnRzIGJsb2NrPC90aXRsZT4KICA8ZGVzYz5Ub2tlbnMgcGFzcyB0aHJvdWdoIHRoZSBzYW1lIGJsb2NrIG9mIGV4cGVydCBsYXllcnMgbW9yZSB0aGFuIG9uY2U7IG9uIGVhY2ggcGFzcyBhIHJvdXRlciBhY3RpdmF0ZXMgb25seSBhIGZldyBleHBlcnRzLiBMb29waW5nIGFkZHMgZGVwdGggd2l0aG91dCBuZXcgd2VpZ2h0cywgYW5kIHNwYXJzaXR5IGFkZHMgY2FwYWNpdHkgd2l0aG91dCBtb3JlIGFjdGl2ZSBjb21wdXRlLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPjwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI1ODAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIj5Ud28ga25vYnMgaW4gb25lIGJsb2NrOiBsb29wcyBhbmQgZXhwZXJ0czwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA1IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+VGhlIHNhbWUgd2VpZ2h0cyBydW4gYWdhaW4gZm9yIGRlcHRoOyBhIHJvdXRlciB3YWtlcyBvbmx5IGEgZmV3IGV4cGVydHMgcGVyIHRva2VuPC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIyNTAiIHdpZHRoPSIxODAiIGhlaWdodD0iOTAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNTAiIHk9IjMwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRva2VucyBpbjwvdGV4dD4KICA8cmVjdCB4PSIzMzAiIHk9IjE3MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSIyNTAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI1OTAiIHk9IjIwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPlNoYXJlZCBleHBlcnQgYmxvY2s8L3RleHQ+CiAgPHJlY3QgeD0iMzYwIiB5PSIyMzUiIHdpZHRoPSIxNDAiIGhlaWdodD0iNTYiIHJ4PSIxMCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0MzAiIHk9IjI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPlJvdXRlcjwvdGV4dD4KICA8cmVjdCB4PSI1NDAiIHk9IjIzMCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzNlY2Y4ZSIvPgogIDxyZWN0IHg9IjYyMCIgeT0iMjMwIiB3aWR0aD0iNjAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiLz4KICA8cmVjdCB4PSI3MDAiIHk9IjIzMCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzNlY2Y4ZSIvPgogIDxyZWN0IHg9Ijc4MCIgeT0iMjMwIiB3aWR0aD0iNTAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiLz4KICA8cmVjdCB4PSI1NDAiIHk9IjI5MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0Ii8+CiAgPHJlY3QgeD0iNjIwIiB5PSIyOTAiIHdpZHRoPSI2MCIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIvPgogIDxyZWN0IHg9IjcwMCIgeT0iMjkwIiB3aWR0aD0iNjAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiLz4KICA8cmVjdCB4PSI3ODAiIHk9IjI5MCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0Ii8+CiAgPHRleHQgeD0iNjg1IiB5PSIzNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5ncmVlbiA9IGV4cGVydHMgYWN0aXZlIHRoaXMgcGFzczwvdGV4dD4KICA8cmVjdCB4PSI5NDAiIHk9IjI1MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI5MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjEwNDAiIHk9IjMwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPk91dHB1dDwvdGV4dD4KICA8bGluZSB4MT0iMjQwIiB5MT0iMjk1IiB4Mj0iMzI1IiB5Mj0iMjk1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9Ijg1MCIgeTE9IjI5NSIgeDI9IjkzNSIgeTI9IjI5NSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxwYXRoIGQ9Ik04MDAsNDIwIEM4MDAsNTAwIDM4MCw1MDAgMzgwLDQyNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjJjYzYwIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDciIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDx0ZXh0IHg9IjU5MCIgeT0iNTI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjJjYzYwIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+bG9vcDogcnVuIHRoZSBzYW1lIGJsb2NrIGFnYWluPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A block of expert layers is run several times in a loop, with a router choosing a few experts on each pass.",
+    "caption": "A looped MoE reuses the same expert layers for extra depth instead of storing new ones.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "Yet existing scaling laws model recurrence or sparsity in isolation.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "Until now, the authors say, laws treated looping and sparsity one at a time [1]. Their Loop Scaling Laws model both together, alongside size and data [1]. The core is a bounded mapping that turns loops into extra effective parameters. Sparsity raises how much each loop is worth [1]."
+  ],
+  [
+   "p",
+   "These new laws predict held-out loss for looped models more accurately than earlier alternatives, the team reports [1]. They also reduce to the standard dense and MoE laws as special cases [1]. That second property matters. A law that contains the old ones cannot quietly contradict the fits that came before it."
+  ],
+  [
+   "h2",
+   {
+    "text": "Looping pays off on reasoning at matched compute",
+    "num": "04",
+    "id": "looping-pays-off-on-reasoning-at-matched-compute"
+   }
+  ],
+  [
+   "p",
+   "Downstream numbers are the reason to care. Sparsity delivered about 3x active-parameter efficiency, the team reports [1]. Recurrence gave about 2x total-parameter efficiency on reasoning [1]. Scaling both at once pushed the performance frontier further still [1]."
+  ],
+  [
+   "p",
+   "Their headline test ran on trillion-token training. Both sides got equal training compute. A looped MoE, with its loop count set by the law, matched a non-looped MoE about 2x larger on reasoning benchmarks [1]. Looping also allows test-time scaling, meaning extra passes at inference when a question is hard [1]."
+  ],
+  [
+   "p",
+   "Here is our read. The memory story is the real prize. A looped model keeps fewer weights in memory and spends more compute per token instead. In our view, that trade suits serving setups where memory, not compute, is the tight limit. Note the scope, though: the 2x figures are on reasoning, not on every task [1]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What each scaling axis bought in the looped MoE paper, as its authors report.",
+    "columns": [
+     "Axis",
+     "What it changes",
+     "Reported effect"
+    ],
+    "rows": [
+     [
+      "Sparsity (MoE)",
+      "more stored capacity, same active compute",
+      "about 3x active-parameter efficiency"
+     ],
+     [
+      "Recurrence (looping)",
+      "more depth, same parameters",
+      "about 2x total-parameter efficiency on reasoning"
+     ],
+     [
+      "Both together",
+      "loop count set by the fitted law",
+      "matched a non-looped MoE about 2x larger on reasoning"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Dropping the vision encoder moves the optimal model size",
+    "num": "05",
+    "id": "dropping-the-vision-encoder-moves-the-optimal-model-size"
+   }
+  ],
+  [
+   "p",
+   "Scaling laws also settle architecture fights. Most multimodal models lean on a pretrained visual encoder, a separate network that turns images into features [2]. Encoder-free models skip it and learn straight from raw pixels [2]. The open question was how the two compare as budgets grow."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+RW5jb2Rlci1mcmVlIG1vZGVscyBhcmUgZm9yZWNhc3QgdG8gY2F0Y2ggdXAgb24gbXVsdGltb2RhbCBsb3NzPC90aXRsZT4KICA8ZGVzYz5BIHNjaGVtYXRpYyBvZiB0d28gbXVsdGltb2RhbCBsb3NzIGN1cnZlcyBhZ2FpbnN0IGNvbXB1dGU6IGVuY29kZXItZnJlZSBtb2RlbHMgc3RhcnQgd2l0aCBoaWdoZXIgbG9zcyBhbmQgdGhlaXIgZml0dGVkIGN1cnZlIGlzIGZvcmVjYXN0IHRvIG1lZXQgdGhlIGVuY29kZXItYmFzZWQgY3VydmUgbmVhciAxMF4yMiBGTE9Qcy48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+V2l0aG91dCBhIHZpc2lvbiBlbmNvZGVyOiBiZWhpbmQgZWFybHksIGxldmVsIGxhdGVyPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5TY2hlbWF0aWMgb2YgbXVsdGltb2RhbCBsb3NzIGFnYWluc3QgdHJhaW5pbmcgY29tcHV0ZTsgdGhlIG1lZXRpbmcgcG9pbnQgaXMgYSBmb3JlY2FzdDwvdGV4dD4KICA8bGluZSB4MT0iMTQwIiB5MT0iNTEwIiB4Mj0iMTEyMCIgeTI9IjUxMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8bGluZSB4MT0iMTQwIiB5MT0iMTUwIiB4Mj0iMTQwIiB5Mj0iNTEwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYzMCIgeT0iNTU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+dHJhaW5pbmcgY29tcHV0ZTwvdGV4dD4KICA8dGV4dCB4PSI5NSIgeT0iMzMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwIDk1IDMzMCkiPm11bHRpbW9kYWwgbG9zczwvdGV4dD4KICA8cGF0aCBkPSJNMTgwLDI1MCBDNDIwLDMyMCA2NDAsMzgwIDg4MCw0MjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHBhdGggZD0iTTE4MCwxNzUgQzQyMCwyOTAgNjQwLDM3MCA4ODAsNDIwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxwYXRoIGQ9Ik04ODAsNDIwIEM5NjAsNDMzIDEwMzAsNDQyIDExMDAsNDUwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgOCIvPgogIDxsaW5lIHgxPSI4ODAiIHkxPSIxNjAiIHgyPSI4ODAiIHkyPSI1MTAiIHN0cm9rZT0iI2YyY2M2MCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiLz4KICA8dGV4dCB4PSI4OTAiIHk9IjE5MCIgZmlsbD0iI2YyY2M2MCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPmZvcmVjYXN0IGNhdGNoLXVwPC90ZXh0PgogIDx0ZXh0IHg9Ijg5MCIgeT0iMjE4IiBmaWxsPSIjZjJjYzYwIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+bmVhciAxMF4yMiBGTE9QczwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjE2MCIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiIGZvbnQtd2VpZ2h0PSI3MDAiPmVuY29kZXItZnJlZTwvdGV4dD4KICA8dGV4dCB4PSIyMDAiIHk9IjI5MCIgZmlsbD0iIzdhYTJmZiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiIGZvbnQtd2VpZ2h0PSI3MDAiPndpdGggYSBwcmV0cmFpbmVkIGVuY29kZXI8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Two loss curves: encoder-free starts higher on multimodal loss and is forecast to meet encoder-based near 10^22 FLOPs.",
+    "caption": "On multimodal loss, encoder-free models start behind and are forecast to catch up with more compute.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "Overall, our results indicate that the advantage of the visual prior provided by a pretrained encoder diminishes with scale, positioning encoder-free architectures as a promising direction for multimodal pretraining.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "A new arXiv paper compares their laws directly [2]. Removing the encoder shifts the compute-optimal split toward larger models for the multimodal objective. For text the split barely moves [2]. On text loss, the two designs trace almost the same frontier. On multimodal loss, encoder-free models trail at small scale [2]."
+  ],
+  [
+   "p",
+   "Then comes the surprise. The authors predict encoder-free models catch up at around 10^22 FLOPs, which they call well within practical pretraining budgets [2]. Inside the model, the language layers take over the encoder's job. Visual tokens attend to each other in both directions, vision work moves to earlier layers, and expert routing for images grows more concentrated [2]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Every scaling law stops at the edge of its fit",
+    "num": "06",
+    "id": "every-scaling-law-stops-at-the-edge-of-its-fit"
+   }
+  ],
+  [
+   "p",
+   "A scaling law is a description of past runs, not a law of nature. The explainer calls it an empirical finding, which is the honest label [3]. It predicts loss. Loss is not the same as passing your evals."
+  ],
+  [
+   "p",
+   "Both new papers show the limits plainly. The encoder-free catch-up is a prediction from a fitted curve, not a run anyone has finished [2]. We are not convinced it should steer a pretraining plan until a model at that scale confirms it. The looped gains are measured on reasoning benchmarks, so other tasks are still open [1]."
+  ],
+  [
+   "p",
+   "What should you read or try next? Start with that careful walk through the basics [3]. Then fit a tiny law of your own on a few small runs, and watch where it misses. The misses teach more than the line."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "what are scaling laws in AI?"
+  ],
+  [
+   "p",
+   "Scaling laws are fitted curves that predict a model's training loss from its size, its data and its compute. Loss falls along a power law as each grows, so the curve looks straight when both axes are logarithmic [3]. Teams fit the curve on small runs and use it to choose how to split a large budget between parameters and data [3]."
+  ],
+  [
+   "h3",
+   "what does compute optimal mean for LLMs?"
+  ],
+  [
+   "p",
+   "Compute-optimal means the split of a fixed compute budget between model size and training data that gives the lowest predicted loss. The split can move with the architecture. One study found that removing the vision encoder shifts the best multimodal split toward larger models, while the text split barely changes [2]."
+  ],
+  [
+   "h3",
+   "do scaling laws work for mixture of experts models?"
+  ],
+  [
+   "p",
+   "Yes, and newer laws go further. A recent paper fits one law across looping, sparsity, size and data, and it reduces to the standard dense and MoE laws as special cases [1]. The authors report about 3x active-parameter efficiency from sparsity and about 2x total-parameter efficiency on reasoning from looping [1]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Scaling Laws for Looped Mixture of Experts",
+   "url": "https://huggingface.co/papers/2609.40316",
+   "posted": "2026-09-30"
+  },
+  {
+   "n": 2,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "How Far Are We from Removing the Visual Encoder? Scaling Laws for Encoder-Free Multimodal Pretraining",
+   "url": "https://huggingface.co/papers/2609.35457",
+   "posted": "2026-09-28"
+  },
+  {
+   "n": 3,
+   "platform": "an engineering blog",
+   "who": "lilianweng.github.io",
+   "what": "Scaling Laws, Carefully",
+   "url": "https://lilianweng.github.io/posts/2026-06-24-scaling-laws/",
+   "posted": "2026-06-24"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:26:42+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "hfpapers:2609.40316",
+   "hfpapers:2609.35457",
+   "blog:lilianweng.github.io|https://lilianweng.github.io/posts/2026-06-24-scaling-laws/"
+  ],
+  "platforms": {
+   "Hugging Face": 2,
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-explainer:concept/scaling",
+  "format": "topic-explainer",
+  "reviewed_by": null
+ }
+}

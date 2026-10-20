@@ -226,3 +226,8 @@
 @media (max-width:640px){
   .dir-meta{justify-content:flex-start}
 }
+
+/* Admin -> Blogs: the newsroom rules (blog_rules.yaml, 2026-10-20) */
+.nr-list{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:10px}
+.nr-list li p{margin:4px 0 0;font-size:var(--fs-xs);color:var(--text-2);max-width:80ch;line-height:1.55}
+.nr-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:var(--fs-sm)}
