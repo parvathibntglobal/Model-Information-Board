@@ -17,6 +17,7 @@ import ModelProposal from '../components/ModelProposal'
 import SchedulerPanel from '../components/SchedulerPanel'
 import BlogsPanel from '../components/BlogsPanel'
 import QuizPanel from '../components/QuizPanel'
+import DiscussionsPanel from '../components/DiscussionsPanel'
 import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
@@ -297,6 +298,12 @@ const SECTIONS = [
     title: 'Quiz',
     blurb: 'General questions for the daily quiz, drafted by a model and approved here',
     render: () => <QuizPanel />,
+  },
+  {
+    id: 'discussions',
+    title: 'Discussions',
+    blurb: 'Readers’ posts from the Discussions page, held for review',
+    render: () => <DiscussionsPanel />,
   },
   {
     id: 'prompts',

@@ -246,12 +246,18 @@ export function reportsIndex(section = null, item = null) {
   }
 }
 
+/**
+ * `/discussions` (2026-10-20): readers' own experience with AI models, by
+ * topic. INDEXABLE NOW - the page carries its topics and their copy whether or
+ * not any post has been approved yet, so it is never an empty result. Measured
+ * keywords only (contract/discussions.yaml names them per topic).
+ */
 export function discussionsIndex() {
   return {
-    title: fullTitle("Discussions: readers' experiences with AI models"),
-    description: "Readers' own experiences with AI models, jobs, capabilities and metrics, shown beside the reports and never added to the counts.",
+    title: fullTitle('AI model discussions: LLM comparison from real work'),
+    description: 'Discuss AI models with engineers: the best LLM for coding, AI agents, RAG, local and open source LLMs, API pricing and Claude vs Gemini - from real work.',
     canonical: '/discussions',
-    noindex: true,
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Discussions', path: '/discussions' }],
   }
 }
 

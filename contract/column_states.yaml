@@ -696,6 +696,51 @@ columns:
       reviewed: true
       state: write_only
       why: members including the canonical. Written for audit; the gate reads voices, never this
+  discussion_post:
+    parent_id:
+      reviewed: false
+      state: read
+      why: 'The post a reply answers; NULL for a post that opens a discussion. Written by judge/discussions.py submit() for a reply, read by public_view() to thread replies under their post and by listing() for Admin -> Discussions. Migration 20261020T1000.'
+    author_name:
+      reviewed: false
+      state: read
+      why: 'The reader''s display name, as typed - required in code since 2026-10-20 (judge/discussions.py check), so NULL only predates that. Written by judge/discussions.py submit(), read by public_view()/listing(); shown with the post ("A reader" when NULL) and in Admin -> Discussions. Migration 20261020T1000.'
+    body:
+      reviewed: false
+      state: read
+      why: 'The post''s text. Written by judge/discussions.py submit() after check(), read by public_view()/listing(); printed as text on /discussions and in Admin -> Discussions. Migration 20261020T1000.'
+    created_at:
+      reviewed: false
+      state: read
+      why: 'When the reader posted. Defaulted by the database, read by judge/discussions.py listing() for its order and shown in Admin -> Discussions. Migration 20261020T1000.'
+    id:
+      reviewed: false
+      state: read
+      why: 'dp_ + random hex. Written by judge/discussions.py submit(), read by every reader and by review(). Migration 20261020T1000.'
+    model_id:
+      reviewed: false
+      state: read
+      why: 'Optional canonical id of the model the post is about. Written by judge/discussions.py submit(), read by public_view()/listing(); the page shows the model''s name beside the post. Migration 20261020T1000.'
+    review_note:
+      reviewed: false
+      state: read
+      why: 'Why a reviewer decided as they did. Written by judge/discussions.py review(), read by listing() for Admin -> Discussions; never sent to the public page. Migration 20261020T1000.'
+    reviewed_at:
+      reviewed: false
+      state: read
+      why: 'When a person approved or rejected the post; NULL while pending (CHECK). Written by judge/discussions.py review(), read by public_view() for its order and shown as the post''s date. Migration 20261020T1000.'
+    state:
+      reviewed: false
+      state: read
+      why: 'pending | approved | rejected. Written by judge/discussions.py review() (pending by default), read by public_view() - approved only - and listing(). Migration 20261020T1000.'
+    title:
+      reviewed: false
+      state: read
+      why: 'The post''s title. Written by judge/discussions.py submit() after check(), read by public_view()/listing(). Migration 20261020T1000.'
+    topic:
+      reviewed: false
+      state: read
+      why: 'One of contract/discussions.yaml topics[].slug, checked in code. Written by judge/discussions.py submit(), read by public_view() to file each post under its topic and by listing(). Migration 20261020T1000.'
   document:
     author_id:
       reviewed: false

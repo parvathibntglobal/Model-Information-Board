@@ -386,6 +386,17 @@ export const draftQuizQuestions = (topic) => request('/quiz-bank/draft', { metho
 export const reviewQuizQuestion = (id, decision, note) =>
   request('/quiz-bank/review', { method: 'POST', body: { id, decision, note: note || null } })
 
+// THE DISCUSSIONS PAGE (judge/discussions.py, 2026-10-20). The page reads the
+// topics and APPROVED posts and posts without a token (the one public write);
+// what a reader posts is stored pending until Admin -> Discussions approves it.
+export const discussionsPage = () => request('/discussions')
+export const postDiscussion = (post) => request('/discussions/posts', { method: 'POST', body: post })
+export const discussionsReview = (state = 'pending') =>
+  request(`/discussions/review?state=${encodeURIComponent(state)}`)
+export const reviewDiscussion = (id, decision, note) =>
+  request('/discussions/review', { method: 'POST', body: { id, decision, note: note || null } })
+export const deleteDiscussion = (id) => request('/discussions/delete', { method: 'POST', body: { id } })
+
 // HOW A POST IS MADE, AND THE WRITING PACKS (judge/blog_method.py, 2026-10-16).
 export const blogMethod = () => request('/blog-posts/method')
 export const blogPacks = () => request('/blog-posts/packs')

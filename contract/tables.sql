@@ -1856,3 +1856,36 @@ CREATE TABLE IF NOT EXISTS topic_item (
 
 CREATE INDEX IF NOT EXISTS topic_item_published_idx ON topic_item (published_at);
 CREATE INDEX IF NOT EXISTS topic_item_topics_idx ON topic_item USING gin (topics);
+
+-- READERS' DISCUSSION POSTS (2026-10-20): stored pending, shown only once a
+-- person approves them in Admin -> Discussions; never added to any count. See
+-- contract/migrations/20261020T1000_discussion_post.sql.
+CREATE TABLE IF NOT EXISTS discussion_post (
+  -- dp_ + random hex. A post is not deduplicated by its text.
+  id            text PRIMARY KEY,
+  -- One of contract/discussions.yaml `topics[].slug`, checked in code.
+  topic         text NOT NULL,
+  -- The post this answers; NULL for a post that opens a discussion. A reply
+  -- takes its parent's topic.
+  parent_id     text REFERENCES discussion_post (id) ON DELETE CASCADE,
+  -- A post's title; NULL exactly for a reply (CHECK below).
+  title         text,
+  body          text NOT NULL,
+  -- The display name, required in code since 2026-10-20 (judge/discussions.py);
+  -- the column stays nullable, so a NULL can only predate that.
+  author_name   text,
+  -- Optional canonical id of the model the post is about.
+  model_id      text,
+  state         text NOT NULL DEFAULT 'pending',
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  reviewed_at   timestamptz,
+  review_note   text,
+  CONSTRAINT discussion_post_state_ck CHECK (state IN ('pending', 'approved', 'rejected')),
+  -- A decision has a time; a pending post has none.
+  CONSTRAINT discussion_post_reviewed_ck CHECK ((state = 'pending') = (reviewed_at IS NULL)),
+  -- A post has a title and no parent; a reply has a parent and no title.
+  CONSTRAINT discussion_post_reply_ck CHECK ((parent_id IS NULL) = (title IS NOT NULL))
+);
+
+CREATE INDEX IF NOT EXISTS discussion_post_state_idx ON discussion_post (state, created_at DESC);
+CREATE INDEX IF NOT EXISTS discussion_post_parent_idx ON discussion_post (parent_id);
