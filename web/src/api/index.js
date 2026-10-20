@@ -372,6 +372,10 @@ export const blogRuns = (limit = 20) => request(`/blog-posts/runs?limit=${limit}
 // Approve, reject or move back a stored post. A rejected post is kept, never shown.
 // THE BLOG'S REFERENCE FORMATS (judge/blog_reference.py): glossary, known
 // issues, answers. Code over the board and the catalogue, public sources only.
+// THE AI GLOSSARY (2026-10-20): reviewed copy from glossary.yaml, public.
+export const glossaryTerms = () => cached('glossary-terms', () => request('/glossary-terms'), { ttl: BOARD_TTL_MS })
+export const glossaryTerm = (slug) =>
+  cached(`glossary-term:${slug}`, () => request(`/glossary-terms/${encodeURIComponent(slug)}`), { ttl: BOARD_TTL_MS })
 export const refGlossary = () => cached('ref-glossary', () => request('/blog-ref/glossary'), { ttl: BOARD_TTL_MS })
 export const refGlossaryEntry = (section, slug) =>
   request(`/blog-ref/glossary/${encodeURIComponent(section)}/${encodeURIComponent(slug)}`)

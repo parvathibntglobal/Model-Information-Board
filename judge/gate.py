@@ -102,7 +102,7 @@ def auth_state() -> dict[str, object]:
 EXEMPT_PATHS = frozenset({"/health", "/auth/login"})
 
 #: THE PUBLIC READS (2026-10-15, Parvathi): what the published pages - home,
-#: Models, the tools, Compare, Blogs, FAQ - read, reachable WITHOUT a token so
+#: Models, the tools, Compare, Blogs, FAQ, the glossary - read, reachable WITHOUT a token so
 #: a visitor who has not signed in can use them. The sign-in wall now guards
 #: only the signed-in surfaces: the Board, the old model pages and Admin.
 #:
@@ -119,9 +119,11 @@ EXEMPT_PATHS = frozenset({"/health", "/auth/login"})
 #: write, every admin route - is unchanged: it needs a token.
 PUBLIC_READ_PATHS = frozenset({
     "/reports", "/model-catalog", "/faq", "/models", "/freshness",
-    "/seo/indexable", "/blog-posts", "/compare",
+    "/seo/indexable", "/blog-posts", "/compare", "/glossary-terms",
 })
-PUBLIC_READ_PREFIXES = ("/model-catalog/",)
+#: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
+#: from glossary.yaml, no quote, link or handle from any source.
+PUBLIC_READ_PREFIXES = ("/model-catalog/", "/glossary-terms/")
 
 
 def is_public_read(request: Request) -> bool:
