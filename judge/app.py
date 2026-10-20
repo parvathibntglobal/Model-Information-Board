@@ -42,7 +42,13 @@ from judge.ask.understand import (
 )
 from judge.config import capabilities
 from judge.extract.client import OpenRouterClient
-from judge.gate import auth_state, rate_limit_ask, rate_limit_login, require_token
+from judge.gate import (
+    auth_state,
+    rate_limit_ask,
+    rate_limit_discussion,
+    rate_limit_login,
+    require_token,
+)
 from judge.writeguard import describe, is_read_only_dsn
 
 #: How many rows a list endpoint returns when the caller does not say.
@@ -2812,6 +2818,106 @@ def quiz_bank_review(req: QuizReviewRequest) -> dict:
     if found is None:
         raise HTTPException(status_code=404, detail="no such question")
     return found
+
+
+# THE DISCUSSIONS PAGE (2026-10-20, Parvathi): readers post their experience
+# with AI models; every post is stored pending and appears only once approved
+# here in Admin. Never added to any count. See judge/discussions.py.
+
+
+@app.get("/discussions")
+def discussions_page() -> dict:
+    """The public page: topics from contract/discussions.yaml, each with its
+    APPROVED posts. A public read (judge/gate.py)."""
+    from judge import discussions
+
+    with _conn() as conn:
+        return discussions.public_view(conn)
+
+
+class DiscussionPostRequest(BaseModel):
+    topic: str = ""
+    title: str = ""
+    body: str = ""
+    author_name: str | None = None
+    model_id: str | None = None
+    #: A reply names the post it answers (2026-10-20); a new post leaves it out.
+    parent_id: str | None = None
+    #: The honeypot: hidden on the page, so only a bot fills it.
+    website: str | None = None
+
+
+@app.post(
+    "/discussions/posts",
+    dependencies=[Depends(rate_limit_discussion)],
+)
+def discussions_post(req: DiscussionPostRequest) -> dict:
+    """A reader's post, checked and stored `pending`. The one public write
+    (judge/gate.py PUBLIC_WRITE_PATHS); rate-limited per address. Refused
+    with the reason (422) and nothing stored when it breaks a limit."""
+    from judge import discussions
+
+    # CHECKED BEFORE A CONNECTION IS OPENED: a refused post - most spam - never
+    # reaches the database, and the reason does not depend on it being up.
+    post = req.model_dump()
+    try:
+        discussions.check(post)
+    except discussions.PostRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    try:
+        with _conn() as conn:
+            return discussions.submit(conn, post)
+    except discussions.PostRefused as e:
+        # a reply to a post that cannot take one - known only once read
+        raise HTTPException(status_code=422, detail=str(e)) from None
+
+
+@app.get("/discussions/review")
+def discussions_review_list(state: str = "pending") -> dict:
+    """Admin -> Discussions: one state's posts and the counts. Needs a token."""
+    from judge import discussions
+
+    try:
+        with _conn() as conn:
+            return discussions.listing(conn, state)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+class DiscussionReviewRequest(BaseModel):
+    id: str
+    decision: str
+    note: str | None = None
+
+
+@app.post("/discussions/review")
+def discussions_review(req: DiscussionReviewRequest) -> dict:
+    """Approve, reject or move back one post. Needs a token."""
+    from judge import discussions
+
+    try:
+        with _conn() as conn:
+            found = discussions.review(conn, req.id, req.decision, req.note)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    if found is None:
+        raise HTTPException(status_code=404, detail="no such post")
+    return found
+
+
+class DiscussionDeleteRequest(BaseModel):
+    id: str
+
+
+@app.post("/discussions/delete")
+def discussions_delete(req: DiscussionDeleteRequest) -> dict:
+    """Remove one post permanently. Needs a token (not a public write)."""
+    from judge import discussions
+
+    with _conn() as conn:
+        if not discussions.delete(conn, req.id):
+            raise HTTPException(status_code=404, detail="no such post")
+    return {"id": req.id, "state": "deleted"}
 
 
 class BlogGenerateRequest(BaseModel):

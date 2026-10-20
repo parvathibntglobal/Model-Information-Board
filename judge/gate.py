@@ -119,11 +119,22 @@ EXEMPT_PATHS = frozenset({"/health", "/auth/login"})
 #: write, every admin route - is unchanged: it needs a token.
 PUBLIC_READ_PATHS = frozenset({
     "/reports", "/model-catalog", "/faq", "/models", "/freshness",
-    "/seo/indexable", "/blog-posts", "/compare", "/glossary-terms",
+    "/seo/indexable", "/blog-posts", "/compare",
+    # 2026-10-20: the Discussions page - topics and APPROVED posts only
+    # (judge/discussions.py public_view; the review queue is /discussions/review).
+    "/discussions",
+    # 2026-10-20: the glossary index (judge/glossary.py) - reviewed copy, no source text.
+    "/glossary-terms",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.
 PUBLIC_READ_PREFIXES = ("/model-catalog/", "/glossary-terms/")
+
+#: THE ONE PUBLIC WRITE (2026-10-20, Parvathi): a reader posting to the
+#: Discussions page. POST only, rate-limited per address (rate_limit_discussion),
+#: and what it writes is stored `pending` - shown to nobody until a person
+#: approves it in Admin. Every other write still needs a token.
+PUBLIC_WRITE_PATHS = frozenset({"/discussions/posts"})
 
 
 def is_public_read(request: Request) -> bool:
@@ -135,6 +146,11 @@ def is_public_read(request: Request) -> bool:
         return False
     # the approved posts only; drafts and the review queue still need a token
     return path != "/blog-posts" or request.query_params.get("include", "public") == "public"
+
+
+def is_public_write(request: Request) -> bool:
+    """True for the one write a caller with no token may make."""
+    return request.method == "POST" and request.url.path in PUBLIC_WRITE_PATHS
 
 
 def require_token(
@@ -151,7 +167,7 @@ def require_token(
     # or expired one is treated as no token here rather than refused: a stale
     # session in a browser must not break the public pages.
     request.state.anonymous = False
-    if is_public_read(request):
+    if is_public_read(request) or is_public_write(request):
         supplied_public = ""
         if authorization and authorization.lower().startswith("bearer "):
             supplied_public = authorization[7:].strip()
@@ -305,6 +321,70 @@ def rate_limit_login(request: Request) -> None:
                 headers={"Retry-After": str(retry)},
             )
         seen.append(now)
+
+
+def rate_limit_discussion(request: Request) -> None:
+    """A reader may post a few times an hour from one address, no more.
+
+    The one public write (PUBLIC_WRITE_PATHS) is the one an anonymous script
+    can hammer, so it gets its own bucket: posting cannot exhaust the sign-in
+    allowance, and the other way round. The default is the contract's
+    (contract/discussions.yaml `limits.posts_per_hour`); DISCUSSION_RATE_PER_HOUR
+    overrides it, and 0 turns it off deliberately.
+    """
+    default = 5
+    try:
+        from judge.discussions import settings
+
+        default = settings()["limits"]["posts_per_hour"]
+    except Exception:  # noqa: BLE001 - an unreadable contract must not open the door wider
+        pass
+    limit = _int_env("DISCUSSION_RATE_PER_HOUR", default)
+    if limit <= 0:
+        return
+
+    # WHO IS POSTING. Hosted, every request reaches us from the platform's
+    # proxy, so the socket peer is the same for every reader and one bucket
+    # would throttle the whole site to `limit` posts an hour. The RIGHTMOST
+    # X-Forwarded-For entry is the one the proxy itself appended - the reader
+    # can forge entries to its left, never that one. With no header (a local
+    # run, no proxy) it is the socket peer, as for the other limiters.
+    forwarded = [h.strip() for h in (request.headers.get("x-forwarded-for") or "").split(",")
+                 if h.strip()]
+    who = forwarded[-1] if forwarded else (request.client.host if request.client else "unknown")
+    key = f"discussion:{who}"
+    # AND A CEILING FOR THE WHOLE SITE, so a flood is bounded even if the
+    # per-address key is wrong somewhere. DISCUSSION_RATE_TOTAL_PER_HOUR.
+    total_key, total_limit = "discussion:*", _int_env("DISCUSSION_RATE_TOTAL_PER_HOUR", 100)
+    now = time.monotonic()
+    cutoff = now - _WINDOW_SECONDS
+
+    with _hits_lock:
+        everyone = _hits.setdefault(total_key, deque())
+        while everyone and everyone[0] < cutoff:
+            everyone.popleft()
+        if total_limit > 0 and len(everyone) >= total_limit:
+            retry = int(everyone[0] - cutoff) + 1
+            raise HTTPException(
+                status_code=429,
+                detail="Posting is busy right now. Try again in a few minutes.",
+                headers={"Retry-After": str(retry)},
+            )
+        seen = _hits.setdefault(key, deque())
+        while seen and seen[0] < cutoff:
+            seen.popleft()
+        if len(seen) >= limit:
+            retry = int(seen[0] - cutoff) + 1
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"{limit} posts an hour from one address is the limit. "
+                    f"Try again in {(retry + 59) // 60} min."
+                ),
+                headers={"Retry-After": str(retry)},
+            )
+        seen.append(now)
+        everyone.append(now)
 
 
 def _int_env(name: str, default: int) -> int:

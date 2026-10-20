@@ -36,7 +36,25 @@ const ART = Object.fromEntries(
     { eager: true, query: '?url', import: 'default' }))
     .map(([path, url]) => [path.split('/').pop().replace(/\.[^.]+$/, ''), url]),
 )
-const artFor = (p) => (typeof p.image === 'string' && p.image) || ART[p.slug] || null
+// THE POST'S OWN PICTURE (2026-10-20): its `cover`, else the first `image`
+// block in its body - the rule the Blogs page uses (board/views.js `coverOf`),
+// with the same check (`pictureSrc`): only an embedded JPEG/PNG/WebP, or an SVG
+// marked as a drawn figure, so nothing outside the post is ever loaded. Before
+// this the strip read only `image` and blog-art/, so posts written since showed
+// a drawn text cover with their title cut off.
+const pictureSrc = (v) => {
+  const src = String((v && v.src) || '')
+  const ok = v && v.kind === 'figure'
+    ? /^data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+$/.test(src)
+    : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(src)
+  return ok ? src : ''
+}
+const ownPicture = (p) => {
+  if (p.cover && pictureSrc(p.cover)) return p.cover
+  return (p.body || []).find((b) => b[0] === 'image' && pictureSrc(b[1]))?.[1] || null
+}
+const artFor = (p) => (typeof p.image === 'string' && p.image) || ART[p.slug] || pictureSrc(ownPicture(p)) || null
+const artAlt = (p) => ownPicture(p)?.alt || `Picture from the post: ${p.title}`
 
 function written(p) {
   const t = Date.parse(p?.provenance?.generated_at || '')
@@ -185,9 +203,10 @@ function Card({ p, hidden }) {
   return (
     <Link to={`/blogs/${encodeURIComponent(p.slug)}`} className="bs-card"
           aria-hidden={hidden || undefined} tabIndex={hidden ? -1 : undefined}>
-      <div className="bs-img">
+      {/* a photo fills the card; a drawn figure is shown whole */}
+      <div className={`bs-img${artFor(p) && !String(artFor(p)).startsWith('data:image/svg') ? ' bs-photo' : ''}`}>
         {artFor(p)
-          ? <><img src={artFor(p)} alt={`Picture from the post: ${p.title}`} loading="lazy" /><span className="bs-badge">From the post</span></>
+          ? <><img src={artFor(p)} alt={artAlt(p)} loading="lazy" /><span className="bs-badge">From the post</span></>
           : coverFor(p)}
       </div>
       <div className="bs-body">

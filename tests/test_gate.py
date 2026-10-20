@@ -208,7 +208,7 @@ def test_the_public_list_names_only_reads_that_were_checked():
     (judge/gate.py); a new one has to be checked the same way."""
     assert {
         "/reports", "/model-catalog", "/faq", "/models", "/freshness",
-        "/seo/indexable", "/blog-posts", "/compare",
+        "/seo/indexable", "/blog-posts", "/compare", "/discussions",
         # 2026-10-20: the glossary - reviewed copy from glossary.yaml, no source text
         "/glossary-terms",
     } == gate.PUBLIC_READ_PATHS

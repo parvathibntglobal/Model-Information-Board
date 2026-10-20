@@ -59,7 +59,7 @@ const COMPARE_MAX = 3
 // `Free only` went - a filter whose criterion is invisible.
 //
 // `Largest context` stays, because the context window is still on the row.
-// NO SORT CONTROL, AND SO NO SORT.
+// NO SORT CONTROL, AND SO NO SORT.  (Superseded 2026-10-20 - see SORTS below.)
 //
 // `Name` and `Largest context` were the last two, after the price sorts went
 // with the price column. Removing the control without removing the sort would
@@ -71,6 +71,27 @@ const COMPARE_MAX = 3
 // lead the page. Re-sorting alphabetically in the browser would have thrown
 // that away for no reason a reader asked for.
 
+
+// SORTING IS BACK, BY WHAT THE ROW SHOWS (2026-10-20, Parvathi): two orders,
+// each by a figure on the row, so the list never rearranges for a reason the
+// reader cannot see - the objection that removed the old sorts above.
+//
+//   Most reported   the count on each row's board badge ("N on the board"),
+//                   most first; a count, so ordering by it is allowed
+//                   (CLAUDE.md rule 3). Ties, and models with none, by name.
+//   Name A-Z        the model's display name.
+//
+// Price is still not a sort: it is not on the row, and cheapest-first is a
+// recommendation this page does not make.
+const SORTS = [
+  ['reported', 'Most reported'],
+  ['name', 'Name A–Z'],
+]
+const byName = (a, b) => String(a.display_name || '').localeCompare(String(b.display_name || ''))
+const SORT_FN = {
+  reported: (a, b) => (b.board?.entries || 0) - (a.board?.entries || 0) || byName(a, b),
+  name: byName,
+}
 
 /* ------------------------------------------------------------------ search */
 
@@ -146,6 +167,7 @@ export default function Models() {
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
   const [query, setQuery] = useState('')
+  const [sort, setSort] = useState('reported')
 
   // ── COMPARE SELECTION ────────────────────────────────────────────────────
   // Held here rather than in a URL param: it is a transient choice being made,
@@ -199,9 +221,9 @@ export default function Models() {
 
   const shown = useMemo(() => {
     if (!roster) return []
-    let out = matches(roster, query)
-    return out
-  }, [roster, query])
+    const out = matches(roster, query)
+    return [...out].sort(SORT_FN[sort] || SORT_FN.reported)
+  }, [roster, query, sort])
 
 
   return (
@@ -333,8 +355,16 @@ export default function Models() {
           )}
 
           <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-            {/* The sort chips were here. With no control the count is the only
-                child of this row, and `space-between` puts it where it was. */}
+            {/* THE SORT, by a figure each row shows (SORTS, above). */}
+            <div className="row" role="group" aria-label="Sort models" style={{ gap: 8, alignItems: 'center' }}>
+              <span className="label">Sort</span>
+              {SORTS.map(([k, label]) => (
+                <button key={k} type="button" className={`chip${sort === k ? ' chip-on' : ''}`}
+                        aria-pressed={sort === k} onClick={() => setSort(k)}>
+                  {label}
+                </button>
+              ))}
+            </div>
 
             <span className="label">
               {shown.length === roster.length
