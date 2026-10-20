@@ -1,0 +1,500 @@
+{
+ "slug": "field-guide-concept-multi-agent",
+ "status": "draft",
+ "tag": "Field guide",
+ "feat": false,
+ "title": "Multi-Agent Systems Wander Off Course Unless Something Watches the Goal",
+ "dek": "Teams of LLM agents reach further than one model, and they drift further too. A field guide to the watcher, the workflow spec, the reuse rule and the paper trail.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is a multi-agent system? Several LLM agents with their own roles and tools splitting one task. Its classic failure is goal drift, so give the team a cheap watcher, a written spec and exact-match reuse.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+QSBzdGVlcmluZyBhZ2VudCBwdWxscyBhIGRyaWZ0aW5nIG11bHRpLWFnZW50IHJ1biBiYWNrIHRvIGl0cyBnb2FsPC90aXRsZT4KICA8ZGVzYz5BIHRlYW0gb2YgYWdlbnRzIG1vdmVzIHN0ZXAgYnkgc3RlcCBhd2F5IGZyb20gdGhlIGdvYWwgbGluZS4gQSBzdGVlcmluZyBhZ2VudCB3YXRjaGVzIHRoZSBleGVjdXRpb24gY29udGV4dCwgdXNlcyBhIGNoZWFwIGZhc3QgcGF0aCB0byBkZWNpZGUgd2hlbiB0byBhY3QgYW5kIGEgY29zdGx5IHNsb3cgcGF0aCB0byBkZWNpZGUgaG93LCBhbmQgbnVkZ2VzIHRoZSBydW4gYmFjay48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycmciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCI+TXVsdGktYWdlbnQgc3lzdGVtcyBkcmlmdDsgYSB3YXRjaGVyIHN0ZWVycyB0aGVtIGJhY2s8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwOCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkNoZWFwIGNoZWNrIG9uIHdoZW4gdG8gc3RlcCBpbiwgZXhwZW5zaXZlIHJlYXNvbmluZyBvbmx5IG9uIGhvdzwvdGV4dD4KCiAgPGxpbmUgeDE9IjgwIiB5MT0iMjMwIiB4Mj0iMTEyMCIgeTI9IjIzMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDgiLz4KICA8dGV4dCB4PSIxMTIwIiB5PSIyMTUiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5IiBmb250LXdlaWdodD0iNzAwIj50aGUgZ29hbDwvdGV4dD4KCiAgPGNpcmNsZSBjeD0iMTIwIiBjeT0iMjMwIiByPSIyMiIgZmlsbD0iIzdhYTJmZiIvPgogIDxjaXJjbGUgY3g9IjI5MCIgY3k9IjI2MiIgcj0iMjIiIGZpbGw9IiM3YWEyZmYiLz4KICA8Y2lyY2xlIGN4PSI0NjAiIGN5PSIzMTAiIHI9IjIyIiBmaWxsPSIjN2FhMmZmIi8+CiAgPGNpcmNsZSBjeD0iNjMwIiBjeT0iMzcyIiByPSIyMiIgZmlsbD0iI2ZmN2I3MiIvPgogIDxsaW5lIHgxPSIxNDIiIHkxPSIyMzQiIHgyPSIyNjYiIHkyPSIyNTgiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iMzEyIiB5MT0iMjY4IiB4Mj0iNDM2IiB5Mj0iMzAzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjQ4MiIgeTE9IjMxNyIgeDI9IjYwNiIgeTI9IjM2NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDx0ZXh0IHg9IjYzMCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+ZHJpZnQgZGV0ZWN0ZWQ8L3RleHQ+CgogIDxwYXRoIGQ9Ik02NTIsMzY2IEM3NjAsMzMwIDgyMCwyNzAgOTAwLDI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYXJyZykiLz4KICA8Y2lyY2xlIGN4PSI5MzAiIGN5PSIyMzIiIHI9IjIyIiBmaWxsPSIjN2FhMmZmIi8+CiAgPGNpcmNsZSBjeD0iMTA4MCIgY3k9IjIzMCIgcj0iMjIiIGZpbGw9IiM3YWEyZmYiLz4KICA8bGluZSB4MT0iOTUyIiB5MT0iMjMxIiB4Mj0iMTA1NiIgeTI9IjIzMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8cmVjdCB4PSI2MCIgeT0iNDcwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjExMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjMxMCIgeT0iNTEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+RmFzdCBwYXRoOiB3aGVuPzwvdGV4dD4KICA8dGV4dCB4PSIzMTAiIHk9IjU0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPmxvdyBjb3N0LCBydW5zIG9uIGV2ZXJ5IGNoZWNrPC90ZXh0PgogIDxyZWN0IHg9IjY0MCIgeT0iNDcwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjExMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijg5MCIgeT0iNTEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+U2xvdyBwYXRoOiBob3c/PC90ZXh0PgogIDx0ZXh0IHg9Ijg5MCIgeT0iNTQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+aGlnaCBjb3N0LCB3cml0ZXMgdGhlIGludGVydmVudGlvbjwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A team of agents drifting below a goal line, then pulled back by a steering agent with fast and slow paths.",
+  "caption": "A cheap check decides when to step in; the expensive reasoning runs only when drift shows.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is a multi-agent system, and how do you keep one on task? A field guide to goal drift, workflow specs, safe result reuse and audit trails.",
+ "keywords": [
+  "what is a multi-agent system",
+  "multi-agent systems",
+  "LLM multi-agent workflow",
+  "goal drift in AI agents",
+  "agent orchestration",
+  "steering agent"
+ ],
+ "kicker": "Field guide",
+ "tags": [
+  "multi-agent systems",
+  "Field guide"
+ ],
+ "read": 8,
+ "decisions": [
+  "Which roles, inputs and tool permissions each agent gets, written as data",
+  "How often a watcher may step in, and how much each check may cost",
+  "What counts as an exact match before a stored result is reused",
+  "Which outputs must carry a reason or a source",
+  "When a task stays with a single agent"
+ ],
+ "layout": "fieldguide",
+ "arrangement": "a",
+ "special": {
+  "type": "checklist",
+  "title": "Before you ship",
+  "items": [
+   {
+    "check": "Write each agent's role, inputs, tools and goal into a spec the runtime reads.",
+    "why": "Catches agents that quietly gain tools or lose sight of the goal."
+   },
+   {
+    "check": "Run a cheap drift check during long runs and log every intervention.",
+    "why": "Catches a team that finishes confidently on the wrong question."
+   },
+   {
+    "check": "Use a separately prompted judge to score each run.",
+    "why": "Catches an agent approving its own plan."
+   },
+   {
+    "check": "Limit each refinement round to one validated edit.",
+    "why": "Catches broad rewrites that break components that already worked."
+   },
+   {
+    "check": "Key stored results on the full resolved request and execution context.",
+    "why": "Catches a cached answer reused for a different question."
+   },
+   {
+    "check": "Require a reason with every decision and a source with every extracted value.",
+    "why": "Catches answers nobody can audit or correct."
+   },
+   {
+    "check": "Remove one agent in a test run and watch what breaks.",
+    "why": "Catches a team that collapses when a single member fails."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Put a watcher on the goal",
+    "num": "01",
+    "id": "put-a-watcher-on-the-goal"
+   }
+  ],
+  [
+   "p",
+   "Picture a team of agents that starts on a research question, calls tools for an hour, and ends up answering a different one. A new arXiv paper calls this goal drift: the system strays from its overall aim as the run goes on [3]. It wastes execution resources and produces outcomes nobody wanted [3]. Plan for this failure first."
+  ],
+  [
+   "p",
+   "So what is a multi-agent system? It is several LLM-driven agents, each with a role and tools, passing work between them to finish one task [3, 1]. That structure adds reach. In our view, it also adds places to drift. Every handoff restates the goal in another agent's words, and small slips add up over a long run."
+  ],
+  [
+   "p",
+   "The paper's answer is a steering agent that supervises the run live and pulls it back when drift shows [3]. It reads the execution context and splits its job in two. A cheap fast path decides when to step in, and a costly slow path decides how [3]. Both paths train together with RL, mixing a pairwise ranking objective with GRPO [3]."
+  ],
+  [
+   "p",
+   "On information-seeking search tasks, the watcher improved both performance and efficiency for single agents and for teams [3]. It also handled out-of-domain tasks and unseen executors, and its intervention rate can be tuned without retraining [3]. We like the split most. A watcher that ran the expensive check on every step could cost more than the drift it prevents."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How a steering agent supervises a running team without paying for deep reasoning on every step.",
+    "steps": [
+     "Executor agents act and call tools",
+     "The steering agent reads the execution context",
+     "Fast path asks cheaply: is the run drifting?",
+     "If not, the run continues untouched",
+     "If so, the slow path writes an intervention",
+     "The team resumes, pointed back at the goal"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Declare roles, inputs and tool permissions up front",
+    "num": "02",
+    "id": "declare-roles-inputs-and-tool-permissions-up-front"
+   }
+  ],
+  [
+   "p",
+   "Good workflows are hard to design ahead of time [1]. The authors of a subtitle translation system hit the same wall from the other side. Many agent systems, they note, run static workflows that ignore scene complexity and production context [4]. You still need a starting shape. The useful question is which parts of it must be explicit."
+  ],
+  [
+   "p",
+   "Inherit-MAS shows one explicit shape [1]. A meta-model writes a workflow of worker agents, each with a declared role, the messages it may receive and the tools it may use [1]. A judge, prompted separately, scores each executed candidate and diagnoses what went wrong [1]. That separation matters. An agent grading its own plan is a weak check."
+  ],
+  [
+   "p",
+   "Write the shape down as data instead of prose buried in a prompt. A spec you can diff is a spec you can review, and per-agent tool lists can be enforced by the runtime. We would add one field: the goal each agent serves, in one line. That gives a watcher like the steering agent something concrete to compare against [3]."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative workflow spec: roles, inputs, tools and a separate judge",
+    "language": "yaml",
+    "source": "workflow: cited-answer\ngoal: answer the user's question with cited evidence\nagents:\n  searcher:\n    role: find candidate sources\n    inputs: [goal, query_plan]\n    tools: [web_search]\n  reader:\n    role: extract claims with their locations\n    inputs: [searcher.results]\n    tools: [fetch_page]\n  writer:\n    role: draft the answer from extracted claims only\n    inputs: [reader.claims, goal]\n    tools: []\njudge:\n  prompt: separate        # never the writer's own prompt\n  returns: [score, diagnosed_deficiency]"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Evolve the workflow by small, validated edits",
+    "num": "03",
+    "id": "evolve-the-workflow-by-small-validated-edits"
+   }
+  ],
+  [
+   "p",
+   "Test-time evolution tunes a workflow from execution feedback, and it hides a trap [1]. Broad revisions can break components that already worked [1]. So in Inherit-MAS, each ordinary round starts from the latest completed candidate [1]. It may drop nodes the judge found unhelpful. Then it applies one validated edit aimed at the diagnosed weakness [1]."
+  ],
+  [
+   "p",
+   "A subtitle system called SMART evolves just as narrowly [4]. During a test-time training phase, it translates a subset of sentences and builds series-level memory [4]. A judge-refiner loop scores candidates and turns written critiques into new agent prompts and routing policies, leaving the underlying LLMs untouched [4]. The evolved setup then translates the rest of the series [4]."
+  ],
+  [
+   "p",
+   "Across all 15 language directions in its Subtitle Arena, SMART had the top overall MQM score [4]. MQM grades a translation by its weighted errors, so a lower penalty is better. SMART's average penalty came in 6.9% under the best competing agent system [4]. On the public MuSC benchmark, it led all four language pairs and scored 4.50 out of 5 with human raters [4]. Small edits under a strict judge compound."
+  ],
+  [
+   "h2",
+   {
+    "text": "Reuse a stored result only on an exact match",
+    "num": "04",
+    "id": "reuse-a-stored-result-only-on-an-exact-match"
+   }
+  ],
+  [
+   "p",
+   "Re-running unchanged requests after every edit burns tokens for nothing [1]. Inherit-MAS adds execution inheritance, so a new candidate can reuse stored results from earlier runs [1]. The guard is strict. Reuse happens only when the full resolved request and the whole execution context match [1]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+UmV1c2luZyBhIHN0b3JlZCBhZ2VudCByZXN1bHQgb25seSBvbiBhbiBleGFjdCBtYXRjaDwvdGl0bGU+CiAgPGRlc2M+QSB3b3JrZXIgbm9kZSByZXNvbHZlcyBpdHMgZnVsbCByZXF1ZXN0IGFuZCBleGVjdXRpb24gY29udGV4dC4gSWYgYm90aCBtYXRjaCBhIHN0b3JlZCBydW4gZXhhY3RseSwgaXQgaW5oZXJpdHMgdGhlIHN0b3JlZCByZXN1bHQgYW5kIG1ha2VzIG5vIG1vZGVsIG9yIHRvb2wgY2FsbDsgb3RoZXJ3aXNlIGl0IHJ1bnMgYW5kIHN0b3JlcyB0aGUgbmV3IHJlc3VsdC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycmciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+SW5oZXJpdCBhIHJlc3VsdCBvbmx5IHdoZW4gZXZlcnl0aGluZyBtYXRjaGVzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5FeGVjdXRpb24gaW5oZXJpdGFuY2UgYmV0d2VlbiByZWZpbmVtZW50IHJvdW5kcyBvZiBhbiBhZ2VudCB3b3JrZmxvdzwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjIzMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyMDAiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlJlc29sdmUgdGhlIG5vZGU8L3RleHQ+CiAgPHRleHQgeD0iMjAwIiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5mdWxsIHJlcXVlc3QgKyBjb250ZXh0PC90ZXh0PgoKICA8bGluZSB4MT0iMzQwIiB5MT0iMjkwIiB4Mj0iNDU1IiB5Mj0iMjkwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2MDAsMTkwIDc0MCwyOTAgNjAwLDM5MCA0NjAsMjkwIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMjg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RXhhY3QgbWF0Y2g8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSIzMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5pbiB0aGUgc3RvcmU/PC90ZXh0PgoKICA8bGluZSB4MT0iNzQwIiB5MT0iMjkwIiB4Mj0iODM1IiB5Mj0iMjAwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnJnKSIvPgogIDxyZWN0IHg9Ijg0MCIgeT0iMTQwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjExMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijk5MCIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+WWVzOiBpbmhlcml0IHJlc3VsdDwvdGV4dD4KICA8dGV4dCB4PSI5OTAiIHk9IjIxNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPm5vIG1vZGVsIG9yIHRvb2wgY2FsbDwvdGV4dD4KCiAgPGxpbmUgeDE9Ijc0MCIgeTE9IjI5MCIgeDI9IjgzNSIgeTI9IjM4MCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJycikiLz4KICA8cmVjdCB4PSI4NDAiIHk9IjMzMCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5OTAiIHk9IjM3NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPk5vOiBydW4gdGhlIG5vZGU8L3RleHQ+CiAgPHRleHQgeD0iOTkwIiB5PSI0MDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij50aGVuIHN0b3JlIHRoZSBuZXcgcmVzdWx0PC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iNTA1IiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSI1MCIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjUzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPkEgbmVhciBtYXRjaCBpcyBhIGRpZmZlcmVudCBxdWVzdGlvbiwgc28gaXQgcnVucyBhZ2FpbjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Flow: resolve a node's request and context; on an exact match inherit the stored result, otherwise run and store.",
+    "caption": "Execution inheritance skips a model call only when the whole request and context match.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "When the new candidate executes, execution inheritance inherits eligible stored results only if the complete resolved request and execution context match, avoiding redundant model and tool calls.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "Against the same controller with inheritance switched off, worker-token use fell 29.1% on WorkBench and 34.6% on HotpotQA [1]. Total token use fell 5.3% and 18.1% [1]. With GPT-4o-mini workers, the system completed 55.4% of WorkBench tasks and hit 49.7% joint F1 on HotpotQA FullWiki [1]. It beat EvoAgent, EvoMAS and TacoMAS, and did so again with Qwen3-32B workers [1]."
+  ],
+  [
+   "p",
+   "Notice the gap between worker and total savings. We suspect the rest of the bill sits in parts that never get cached, such as the meta-model and the judge. We think the exact-match rule is the right default. A loose match saves more on paper. It also quietly reuses an answer to a different question."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative exact-match reuse for a worker node",
+    "language": "python",
+    "source": "def reuse_key(request, context):\n    # resolve everything first: inputs, upstream outputs, tool and model ids\n    blob = canonical_json({\"request\": resolve(request), \"context\": context})\n    return stable_hash(blob)\n\ndef run_node(node, request, context, store):\n    key = reuse_key(request, context)\n    if key in store:\n        return store[key]          # exact match: inherit, no model or tool call\n    result = node.execute(request, context)\n    store[key] = result\n    return result"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Token use saved by execution inheritance against the same controller with it switched off, in percent.",
+    "unit": "percent fewer tokens",
+    "bars": [
+     {
+      "label": "WorkBench, worker tokens",
+      "value": 29.1
+     },
+     {
+      "label": "HotpotQA, worker tokens",
+      "value": 34.6
+     },
+     {
+      "label": "WorkBench, total tokens",
+      "value": 5.3
+     },
+     {
+      "label": "HotpotQA, total tokens",
+      "value": 18.1
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Make every agent leave a reason behind",
+    "num": "05",
+    "id": "make-every-agent-leave-a-reason-behind"
+   }
+  ],
+  [
+   "p",
+   "Some agent work is judged on its paper trail. Systematic literature reviews follow PRISMA, a process of screening studies and then extracting evidence from the ones kept [2]. LLM deep research tools can search and summarise, yet they leave no record of excluded studies or of where each value came from [2]. For a review, that missing trail is disqualifying."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+UmV2aWV3UGlsb3QncyBiZXN0IHNjcmVlbmluZyBhbmQgZXh0cmFjdGlvbiBGMSBvbiBleHBlcnQgcmV2aWV3czwvdGl0bGU+CiAgPGRlc2M+QmVzdCByZXBvcnRlZCBzY29yZXMgb24gZXhwZXJ0IHJldmlld3M6IDAuNzc2IG1hY3JvIEYxIGZvciBzY3JlZW5pbmcsIDAuNzg4IEYxIGZvciBleHRyYWN0aW9uLCB3aXRoIGEgcmVhc29uIGtlcHQgZm9yIGV2ZXJ5IGNhbGwuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPkFuIGF1ZGl0IHRyYWlsIGFuZCBhIHVzYWJsZSBzY29yZSwgdG9nZXRoZXI8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPkJlc3QgcmVwb3J0ZWQgRjEgb24gZXBpZGVtaW9sb2dpY2FsIGV4cGVydCByZXZpZXdzIChoaWdoZXIgaXMgYmV0dGVyKTwvdGV4dD4KCiAgPGxpbmUgeDE9IjIwMCIgeTE9IjQ3MCIgeDI9IjEwMDAiIHkyPSI0NzAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMzAwIiB5PSIxNjAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzEwIiBmaWxsPSIjN2FhMmZmIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIxNDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj51cCB0byAwLjc3NjwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjUwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlNjcmVlbmluZywgbWFjcm8gRjE8L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSI1MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5lYWNoIGRlY2lzaW9uIGhhcyBhIHJlYXNvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNzAwIiB5PSIxNTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iMzE1IiBmaWxsPSIjYTc4YmZhIi8+CiAgPHRleHQgeD0iODAwIiB5PSIxMzkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj51cCB0byAwLjc4ODwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjUwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkV4dHJhY3Rpb24gRjE8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSI1MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5lYWNoIHZhbHVlIHBvaW50cyB0byB3aGVyZSBpdCB3YXMgZm91bmQ8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Bars: best screening score 0.776 macro F1 and best extraction score 0.788 F1 on expert reviews.",
+    "caption": "The review system kept a reason for every call and still posted usable scores.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "Each screening decision comes with its reason and each extracted value with its source.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "ReviewPilot, a conversational multi-agent system, runs the PRISMA workflow from screening to extraction [2]. Researchers adjust criteria and schemas by talking to it, and a project memory keeps their settings and revisions [2]. Each screening call ships with its reason. Each extracted number points back to where it was found [2]."
+  ],
+  [
+   "p",
+   "On epidemiological expert reviews, it outscored AgentSLR and a single-prompt LLM, with each of three underlying LLMs [2]. Its best screening result was 0.776 macro F1, and its best extraction result was 0.788 F1 [2]. F1 balances precision, the share of picks that were right, against recall, the share of right answers found. We think the trail matters more than the score. A reviewer can fix a wrong answer that cites its source."
+  ],
+  [
+   "h2",
+   {
+    "text": "Train the bidding along with the skills",
+    "num": "06",
+    "id": "train-the-bidding-along-with-the-skills"
+   }
+  ],
+  [
+   "p",
+   "Most agent teams run inside a fixed orchestration, and their members are trained apart from how the team is organised [5]. A new paper on market-based post-training, MPT, learns both at once in decentralised swarms [5]. Each agent places a bid to take part. The bids decide who acts and how the team's result becomes local training credit [5]. No central coordinator is needed [5]."
+  ],
+  [
+   "p",
+   "The authors tested it on deep research, robot navigation and embodied crafting [5]. It beat monolithic post-training, and the agents' participation shifted as they learned [5]. With the same action policies, learned self-orchestration beat other coordination schemes [5]. Larger swarms adapted faster to related tasks and lost less when agents dropped out [5]."
+  ],
+  [
+   "p",
+   "We find the dropout result the most practical. A team that degrades gently when one member fails is easier to run than one with a single coordinator to lose. The catch is training. Bids only turn into credit when the outcome can be scored, and plenty of business tasks have no clean score."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Four ways to decide which agent acts, and what each one lets adapt.",
+    "columns": [
+     "Style",
+     "Who decides who acts",
+     "What adapts",
+     "Example"
+    ],
+    "rows": [
+     [
+      "Fixed workflow",
+      "The designer, in advance",
+      "Nothing at run time",
+      "Static subtitle pipelines"
+     ],
+     [
+      "Evolved workflow",
+      "A meta-model and a judge",
+      "Nodes and one edit per round",
+      "Inherit-MAS"
+     ],
+     [
+      "Supervised run",
+      "Executors, with a steering agent",
+      "When and how to intervene",
+      "Steering agent"
+     ],
+     [
+      "Market",
+      "The agents' own bids",
+      "Skills and participation together",
+      "MPT"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Give an agent a model of the one across the table",
+    "num": "07",
+    "id": "give-an-agent-a-model-of-the-one-across-the-table"
+   }
+  ],
+  [
+   "p",
+   "Agents that deal with people or other agents must reason about what the partner knows and plans, often without seeing everything [6]. Current systems lean on prompt design, memory or end-to-end shaping [6]. They rarely learn a reusable picture of the partner's state [6]. A new paper on mental models adds that picture explicitly."
+  ],
+  [
+   "p",
+   "Its agents carry a latent model of their counterpart [6]. From the history so far, they guess its hidden beliefs, its intentions and how it will likely react [6]. The model is a recursive Theory-of-Mind representation with first- and second-order structure [6]. In plain terms, it tracks what the partner believes and what the partner believes about you. A reward model conditioned on those beliefs scores candidate moves, and a policy learns from it [6]."
+  ],
+  [
+   "p",
+   "Across language-only and multimodal benchmarks, the authors report better interaction quality and Theory-of-Mind scores than base agentic systems [6]. We would reach for this in negotiation or customer support, where the partner holds facts you lack. For cooperating workers that share one state, there is little hidden to infer."
+  ],
+  [
+   "h2",
+   {
+    "text": "Stay with one agent when the task has no seams",
+    "num": "08",
+    "id": "stay-with-one-agent-when-the-task-has-no-seams"
+   }
+  ],
+  [
+   "p",
+   "Not every task wants a team. Every extra agent adds handoffs, tokens and another place for the goal to drift [3, 1]. The steering agent helped single agents too, so supervision does not require a crowd [3]. If one model can hold the whole task and its tools in one pass, splitting it buys coordination cost and little else."
+  ],
+  [
+   "p",
+   "The published wins came from tasks with real seams [4, 5, 2]. Think of whole TV series that need consistent terms, review pipelines that need an audit trail, or swarms that must survive a dropout. A short, self-contained job has none of those. Give it one agent, a clear goal and a check at the end. Add a second agent when a seam appears."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is a multi-agent system in AI?"
+  ],
+  [
+   "p",
+   "A multi-agent system is a set of LLM-driven agents, each with its own role and tools, that split one task and pass work between them. One recent design has a meta-model write the workflow, declaring each worker's role, inputs and tool permissions [1]. A separate judge then scores each run and names what went wrong [1]."
+  ],
+  [
+   "h3",
+   "What is goal drift in AI agents?"
+  ],
+  [
+   "p",
+   "Goal drift is when an agent or a team of agents strays from the overall goal as a long run unfolds. It wastes compute and produces unwanted results [3]. One fix adds a steering agent that watches the run [3]. A cheap check decides when to step in, and a costlier one decides how [3]."
+  ],
+  [
+   "h3",
+   "Are multi-agent systems better than a single LLM?"
+  ],
+  [
+   "p",
+   "Sometimes, on tasks with real seams. A multi-agent review tool beat a single-prompt LLM on screening and extraction, and it left a reason for every decision [2]. A subtitle system beat rival agent systems on long series that need consistent terms [4]. On short, self-contained jobs, extra agents mostly add handoffs and tokens."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Inherit-MAS: Test-Time Evolution of Multi-Agent Systems through Workflow and Execution Inheritance",
+   "url": "https://huggingface.co/papers/2610.02396",
+   "posted": "2026-10-01"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "ReviewPilot: A Multi-Agent System for Screening and Data Extraction in Systematic Reviews",
+   "url": "https://arxiv.org/abs/2610.21042v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Learning to Steer LLM Agents and Multi-Agent Systems",
+   "url": "https://arxiv.org/abs/2610.22316v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Breaking Babel: A Self-Evolving Multi-Agent System for Long-Form Subtitle Translation",
+   "url": "https://huggingface.co/papers/2609.38660",
+   "posted": "2026-09-29"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Learning Self-Orchestration in Decentralized Agent Swarms",
+   "url": "https://arxiv.org/abs/2610.22322v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 6,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Mental-Models for Multi-Agent Systems",
+   "url": "https://huggingface.co/papers/2610.12453",
+   "posted": "2026-10-08"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:27:42+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22316v1",
+   "hfpapers:2609.38660",
+   "arxiv:2610.22322v1",
+   "arxiv:2610.21042v1",
+   "hfpapers:2610.12453",
+   "hfpapers:2610.02396"
+  ],
+  "platforms": {
+   "arXiv": 3,
+   "Hugging Face": 3
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-guide:concept/multi-agent",
+  "format": "field-guide",
+  "reviewed_by": null
+ }
+}

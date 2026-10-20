@@ -1,0 +1,439 @@
+{
+ "slug": "myth-vs-reality-concept-open-weights",
+ "status": "draft",
+ "tag": "Myth vs reality",
+ "feat": false,
+ "title": "Open-Weight Models Hand You the Weights and Every Duty That Comes With Them",
+ "dek": "Downloadable weights are real freedom. They do not settle the licence, the privacy question, the compliance work or the bill. Here is where seven common beliefs land.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is an open-weight model? One whose trained weights you can download and run yourself. That gives you control, but the licence, privacy, compliance and cost still depend on how you run it.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+V2hhdCBhbiBvcGVuLXdlaWdodCBtb2RlbCBoYW5kcyB5b3UsIGFuZCB3aGF0IHN0YXlzIHlvdXJzPC90aXRsZT4KICA8ZGVzYz5BbiBvcGVuLXdlaWdodCBtb2RlbCBnaXZlcyB5b3UgYSBkb3dubG9hZGFibGUgd2VpZ2h0cyBmaWxlLiBUaGUgdHJhaW5pbmcgZGF0YSBhbmQgY29kZSBtYXkgc3RheSBjbG9zZWQsIHRoZSBsaWNlbmNlIG1heSByZXN0cmljdCB1c2UsIGFuZCBydW5uaW5nIGl0IGxlYXZlcyB5b3Ugd2l0aCB0aGUgaG9zdGluZywgdGhlIGxvZ3MsIHRoZSBjb21wbGlhbmNlIGR1dGllcyBhbmQgdGhlIGJpbGwuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiPk9wZW4td2VpZ2h0IG1vZGVsczogdGhlIGZpbGUgaXMgb25seSB0aGUgc3RhcnQ8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwOCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPldoYXQgeW91IGRvd25sb2FkLCB3aGF0IHlvdSBtYXkgbm90IGdldCwgYW5kIHdoYXQgeW91IHRha2Ugb248L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjE3MCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSIzNjAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyMjUiIHk9IjIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiPllvdSBnZXQ8L3RleHQ+CiAgPHJlY3QgeD0iMTEwIiB5PSIyNTAiIHdpZHRoPSIyMzAiIGhlaWdodD0iOTAiIHJ4PSIxMiIgZmlsbD0iIzEyMTYxZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIyMjUiIHk9IjMwMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPndlaWdodHMgZmlsZTwvdGV4dD4KICA8dGV4dCB4PSIyMjUiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPnJ1biBpdCBvbiBoYXJkd2FyZTwvdGV4dD4KICA8dGV4dCB4PSIyMjUiIHk9IjQxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPnlvdSBjb250cm9sPC90ZXh0PgogIDxyZWN0IHg9IjQzNSIgeT0iMTcwIiB3aWR0aD0iMzMwIiBoZWlnaHQ9IjM2MCIgcng9IjE2IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmMmNjNjAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iMjE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjJjYzYwIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjcwMCI+WW91IG1heSBub3QgZ2V0PC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+dHJhaW5pbmcgZGF0YTwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjMzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPnRyYWluaW5nIGNvZGU8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5mcmVlIGNvbW1lcmNpYWwgdXNlPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iNDMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+cmVhZCB0aGUgbGljZW5jZTwvdGV4dD4KICA8cmVjdCB4PSI4MTAiIHk9IjE3MCIgd2lkdGg9IjMzMCIgaGVpZ2h0PSIzNjAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5NzUiIHk9IjIxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiPllvdSB0YWtlIG9uPC90ZXh0PgogIDx0ZXh0IHg9Ijk3NSIgeT0iMjgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+aG9zdGluZyBhbmQgc2VjdXJpdHk8L3RleHQ+CiAgPHRleHQgeD0iOTc1IiB5PSIzMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5wcm9tcHQgbG9ncyBhbmQgZXJhc3VyZTwvdGV4dD4KICA8dGV4dCB4PSI5NzUiIHk9IjM4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPmRhdGEtY29udHJvbGxlciBkdXRpZXM8L3RleHQ+CiAgPHRleHQgeD0iOTc1IiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj50aGUgbW9udGhseSBiaWxsPC90ZXh0Pgo8L3N2Zz4K",
+  "alt": "An open-weight model gives you the weights file; the licence, the data duties, the hosting and the bill remain yours.",
+  "caption": "Downloading the weights is the start of the job: licence, privacy, compliance and cost come with them.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is an open-weight model? One whose weights you can download and run. We test seven beliefs about licences, privacy, GDPR, cost and performance.",
+ "keywords": [
+  "what is an open-weight model",
+  "open-weight models",
+  "open weights vs open source",
+  "self-hosting LLM GDPR",
+  "local LLM hardware",
+  "open-weight vs closed models"
+ ],
+ "kicker": "Myth vs reality",
+ "tags": [
+  "open-weight models",
+  "Myth vs reality"
+ ],
+ "read": 8,
+ "decisions": [
+  "Check every model's licence before you ship it.",
+  "Start self-hosting with a small model on CPU and scale up only when needed.",
+  "Keep personal data out of prompts sent to any hosted provider.",
+  "Set retention and erasure rules for prompt logs on day one.",
+  "Compare API and self-hosting costs on your own traffic."
+ ],
+ "layout": "myths",
+ "arrangement": "a",
+ "special": {
+  "type": "myths",
+  "title": "Myth or not",
+  "items": [
+   {
+    "myth": "Open-weight means open source, so you can use it any way you like.",
+    "reality": "Open-weight describes what you can download; weight licences vary and some restrict commercial use or redistribution [2].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "You need a rack of GPUs to run your own model.",
+    "reality": "An 8B model quantised to four bits needs about 6 GB and runs on a laptop CPU; local tools already ship on 3B and 4b models [2, 4, 3].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Open-weight models can't keep up with closed frontier models.",
+    "reality": "On one security benchmark, an open-weight model matched the top closed models at under a tenth of the cost, given enough turns [1].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Self-hosting makes you GDPR compliant.",
+    "reality": "It removes the outside processor and transfer questions, but you stay the data controller with every duty that brings [2].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Open weights keep your data private.",
+    "reality": "Only when you run them yourself; a hosted open-weight API still passes prompts to an outside provider [5].",
+    "verdict": "partly true"
+   },
+   {
+    "myth": "Open-weight models are always cheaper to run.",
+    "reality": "At low volume a per-token API is usually cheaper than a monthly server plus your time [2].",
+    "verdict": "myth"
+   },
+   {
+    "myth": "Open-weight models will beat closed ones outright.",
+    "reality": "With the message cap relaxed, open models took the top rewards on one benchmark, but one domain does not settle it [1].",
+    "verdict": "partly true"
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Downloadable weights still come with a licence",
+    "num": "01",
+    "id": "downloadable-weights-still-come-with-a-licence"
+   }
+  ],
+  [
+   "p",
+   "Open-weight means open source, so you can use it any way you like. That is the belief you hear most. It is also the first to crack. A recent GDPR guide for self-hosters says plainly that open-weight describes the technology, and the licence is a separate legal matter [2]."
+  ],
+  [
+   "p",
+   "So what is an open-weight model? It is a model whose trained weights, the numbers it learned during training, you can download and run yourself. Think of getting the finished engine without the factory. You may not get the training data or the training code. And some weight licences restrict commercial use or redistribution [2]."
+  ],
+  [
+   "p",
+   "The same guide tells you to check the licence of every model you ship, because commercial terms vary [2]. It points EU teams to Mistral's open-weight models, since the company is European [2]. Ollama's library also carries Gemma 3, Qwen 3 and Llama 4 [2]. Ollama is a tool that serves models on your own machine [2]."
+  ],
+  [
+   "p",
+   "We call this belief a myth. In our view, the licence check belongs in the same review as the security check. Doing it after launch is how a side project turns into a legal problem."
+  ],
+  [
+   "h2",
+   {
+    "text": "Small open models run on an ordinary laptop",
+    "num": "02",
+    "id": "small-open-models-run-on-an-ordinary-laptop"
+   }
+  ],
+  [
+   "p",
+   "A second belief: running your own model takes a rack of GPUs. For small models, it does not. The GDPR guide sizes an 8B model, quantised to four bits per weight to save memory, at about 6 GB [2]. That fits any modern VPS or a laptop CPU [2]. A 32B model needs about 20 GB, and a 70B model needs a GPU server [2]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTYwIj4KICA8dGl0bGU+TWVtb3J5IG5lZWRlZCB0byBydW4gcXVhbnRpc2VkIG9wZW4td2VpZ2h0IG1vZGVsczwvdGl0bGU+CiAgPGRlc2M+Um91Z2ggc2l6aW5nIGZyb20gb25lIHNlbGYtaG9zdGluZyBndWlkZSBmb3IgZm91ci1iaXQgcXVhbnRpc2VkIG1vZGVsczogYWJvdXQgNiBHQiBmb3IgYW4gOEIgbW9kZWwsIGFib3V0IDIwIEdCIGZvciBhIDMyQiBtb2RlbCwgYW5kIGFib3V0IDQwIHRvIDQ4IEdCIGZvciBhIDcwQiBtb2RlbC48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTYwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjY1IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+U21hbGwgb3BlbiBtb2RlbHMgZml0IG9yZGluYXJ5IGhhcmR3YXJlPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDAiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5SQU0gb3IgVlJBTSBuZWVkZWQgZm9yIGZvdXItYml0IHF1YW50aXNlZCBtb2RlbHMsIGluIEdCLCBhcyBvbmUgZ3VpZGUgc2l6ZXMgdGhlbTwvdGV4dD4KICA8bGluZSB4MT0iMjYwIiB5MT0iMTQwIiB4Mj0iMjYwIiB5Mj0iNDcwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjI0MCIgeT0iMjA1IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiI+OEI8L3RleHQ+CiAgPHJlY3QgeD0iMjYwIiB5PSIxNzUiIHdpZHRoPSIxMDUiIGhlaWdodD0iNTAiIGZpbGw9IiMzZWNmOGUiLz4KICA8dGV4dCB4PSIzODAiIHk9IjIwOCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPmFib3V0IDYgR0I8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIyMDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5sYXB0b3AgQ1BVIG9yIGFueSBtb2Rlcm4gVlBTPC90ZXh0PgogIDx0ZXh0IHg9IjI0MCIgeT0iMzA1IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiI+MzJCPC90ZXh0PgogIDxyZWN0IHg9IjI2MCIgeT0iMjc1IiB3aWR0aD0iMzUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjN2FhMmZmIi8+CiAgPHRleHQgeD0iNjI1IiB5PSIzMDgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5hYm91dCAyMCBHQjwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjMwOCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPmhpZ2gtUkFNIGRlZGljYXRlZCBzZXJ2ZXI8L3RleHQ+CiAgPHRleHQgeD0iMjQwIiB5PSI0MDUiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIj43MEI8L3RleHQ+CiAgPHJlY3QgeD0iMjYwIiB5PSIzNzUiIHdpZHRoPSI3MDAiIGhlaWdodD0iNTAiIGZpbGw9IiNmMmNjNjAiLz4KICA8cmVjdCB4PSI5NjAiIHk9IjM3NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI1MCIgZmlsbD0iI2YyY2M2MCIgb3BhY2l0eT0iMC40NSIvPgogIDx0ZXh0IHg9IjI3NSIgeT0iNDA4IiBmaWxsPSIjMTIxNjFlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+YWJvdXQgNDDigJM0OCBHQiBvbiBhIEdQVSBzZXJ2ZXI8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Bars of memory needed: about 6 GB for an 8B model, about 20 GB for 32B, about 40 to 48 GB for 70B.",
+    "caption": "Small quantised open models fit ordinary hardware; the largest need a GPU server.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Builders are shipping on that small end. An invoice tool for freelancers runs Qwen 2.5 3B locally to pull out vendor, dates, tax and totals [3]. A bounty-hunting agent runs Gemma 3 at the 4b size, with an embedding model, on the user's own machine [4]. Neither one needs a hosted AI API for inference [4, 3]."
+  ],
+  [
+   "p",
+   "Scope is the catch. The guide suggests starting with an 8B model on CPU for summaries, classification and structured extraction [2]. Scale up only when speed or quality forces it [2]. The invoice tool's author lists its limits openly: no OCR for scanned PDFs, and a person must check every extracted field [3]. We think that is the right posture for small local models."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Rough memory needs for four-bit quantised open-weight models, as one self-hosting guide sizes them.",
+    "columns": [
+     "Model size",
+     "RAM or VRAM needed",
+     "Realistic hardware"
+    ],
+    "rows": [
+     [
+      "8B",
+      "about 6 GB",
+      "any modern VPS or laptop CPU"
+     ],
+     [
+      "32B",
+      "about 20 GB",
+      "high-RAM dedicated server"
+     ],
+     [
+      "70B",
+      "about 40–48 GB",
+      "GPU server"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "An open model can match closed leaders when the run is long enough",
+    "num": "03",
+    "id": "an-open-model-can-match-closed-leaders-when-the-run-is-long-"
+   }
+  ],
+  [
+   "p",
+   "Now the performance belief: open models trail the closed frontier, full stop. A new arXiv study tests that on CTI-REALM, a benchmark where a security agent turns a threat report into a working detection [1]. The agent works by querying a live store of security logs. The authors ran open and closed models under one harness, scorer and judge panel [1]."
+  ],
+  [
+   "p",
+   "Their headline result is blunt. Their best open-weight entry drew level with the top closed models for under a tenth of the cost, given enough turns [1]. The catch was the benchmark's own cap on agent messages. A task that hits the cap scores zero on every checkpoint, even ones it had already passed [1]. So capped results partly measure who finishes in time."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Our main finding is that an open-weight model can match the strongest closed models at less than a tenth of their cost, provided it is given enough turns.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "At the published cap, the leading open and closed models could not be told apart [1]. With the cap relaxed, the cut-off models recovered, and open-weight models took the highest rewards [1]. Price proved a poor guide too. Models with similar rewards differed in cost by over an order of magnitude [1]. We call the belief a myth here, with one caveat: this is one benchmark in one domain."
+  ],
+  [
+   "h2",
+   {
+    "text": "Self-hosting shrinks the GDPR questions without removing them",
+    "num": "04",
+    "id": "self-hosting-shrinks-the-gdpr-questions-without-removing-the"
+   }
+  ],
+  [
+   "p",
+   "Here is the belief that sells servers: host the model yourself and GDPR stops being your problem. Part of it holds. With no outside processor seeing prompts, there is no vendor processing agreement and no transfer mechanism to manage for inference traffic [2]. A server inside the EU keeps the data in the EU [2]."
+  ],
+  [
+   "p",
+   "But you remain the data controller [2]. The impact assessment, the lawful basis and the AI Act duties still apply [2]. Prompt logs and chat histories hold personal data, so they need a retention period and must honour erasure requests [2]. A breach on your model host starts the 72-hour clock to notify your regulator [2]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Self-hosting is not a compliance cheat code — it is a smaller blast radius.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "Two risks travel with the weights themselves. If scraped personal data went into training, the model may have memorised it, and you inherit that exposure as the deployer [2]. Made-up personal details about real people in outputs still count as data you processed [2]. We agree with the guide's framing. Self-hosting makes the problem smaller. It does not make it disappear."
+  ],
+  [
+   "h2",
+   {
+    "text": "Privacy depends on who runs the weights",
+    "num": "05",
+    "id": "privacy-depends-on-who-runs-the-weights"
+   }
+  ],
+  [
+   "p",
+   "A close cousin of that belief: if a model is open-weight, your data is private. That depends entirely on where the weights run. A hosted API for open-weight models shows the gap [5]. Its operator says the proxy never stores prompt or answer text, only counts such as tokens and credits [5]. Your prompt still reaches the outside provider running the model, which the operator cannot audit [5]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTYwIj4KICA8dGl0bGU+V2hlcmUgYSBwcm9tcHQgZ29lcyBkZXBlbmRzIG9uIHdobyBydW5zIHRoZSB3ZWlnaHRzPC90aXRsZT4KICA8ZGVzYz5Ud28gcGF0aHMuIEhvc3RlZDogeW91ciBhcHAgc2VuZHMgYSBwcm9tcHQgdG8gYSBwcm94eSB0aGF0IHJlY29yZHMgb25seSB0b2tlbiBhbmQgY3JlZGl0IGNvdW50cywgdGhlbiBvbiB0byBhbiBvdXRzaWRlIHByb3ZpZGVyIHJ1bm5pbmcgdGhlIHdlaWdodHMsIHdob3NlIHJldGVudGlvbiB0aGUgcHJveHkgY2Fubm90IGF1ZGl0LiBMb2NhbDogdGhlIHByb21wdCBzdGF5cyBvbiB5b3VyIG1hY2hpbmUuPC9kZXNjPgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+PC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjU2MCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI2NSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPk9wZW4gd2VpZ2h0cywgdHdvIHZlcnkgZGlmZmVyZW50IHByaXZhY3kgc3RvcmllczwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTAwIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+VGhlIHNhbWUgb3BlbiBtb2RlbCwgaG9zdGVkIGJ5IHNvbWVvbmUgZWxzZSBvciBydW4gb24geW91ciBvd24gbWFjaGluZTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMjM1IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMjkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+WW91ciBhcHA8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIxNjAiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5Ib3N0ZWQgcm91dGU8L3RleHQ+CiAgPHJlY3QgeD0iMzMwIiB5PSIxNzUiIHdpZHRoPSIzMDAiIGhlaWdodD0iOTAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI0ODAiIHk9IjIxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPlByb3h5PC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMjQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+a2VlcHMgdG9rZW4gYW5kIGNyZWRpdCBjb3VudHM8L3RleHQ+CiAgPHJlY3QgeD0iNzAwIiB5PSIxNzUiIHdpZHRoPSI0MzAiIGhlaWdodD0iOTAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5MTUiIHk9IjIxMyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPk91dHNpZGUgcHJvdmlkZXIgcnVucyB0aGUgd2VpZ2h0czwvdGV4dD4KICA8dGV4dCB4PSI5MTUiIHk9IjI0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPndoYXQgaXQga2VlcHMgY2Fubm90IGJlIGF1ZGl0ZWQ8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzMzUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5Mb2NhbCByb3V0ZTwvdGV4dD4KICA8cmVjdCB4PSIzMzAiIHk9IjM1MCIgd2lkdGg9IjgwMCIgaGVpZ2h0PSI5MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjczMCIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+V2VpZ2h0cyBydW4gb24geW91ciBtYWNoaW5lPC90ZXh0PgogIDx0ZXh0IHg9IjczMCIgeT0iNDE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+dGhlIHByb21wdCBuZXZlciBsZWF2ZXMgaXQ8L3RleHQ+CiAgPGxpbmUgeDE9IjI2MCIgeTE9IjI3MCIgeDI9IjMyNSIgeTI9IjIyNSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI2MzAiIHkxPSIyMjAiIHgyPSI2OTUiIHkyPSIyMjAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iMjYwIiB5MT0iMzA1IiB4Mj0iMzI1IiB5Mj0iMzkwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+Cjwvc3ZnPgo=",
+    "alt": "Two paths for a prompt: through a hosted proxy to an outside provider, or kept on a local machine.",
+    "caption": "Privacy follows where the weights run, not the fact that they are open.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "That operator's own advice is to keep passwords, keys and personal data out of requests [5]. Compare the local tools. The bounty agent embeds a user's commit history on the device, so private code never reaches a cloud API [4]. The invoice tool runs inference locally, which gives users more control over their invoice data [3]."
+  ],
+  [
+   "p",
+   "Pinned weights are a related promise. The bounty agent's author argues that open models let you pin exact weights, so scores stay stable, unlike hosted models that change silently [4]. Serving still varies. On Hacker News, a model-router team said open models bought through a shared marketplace vary in quality by provider [6]. It puts weak providers on cooldown [6]. Our verdict: partly true, and only on hardware you control."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "Where a prompt goes when an open-weight model is hosted by someone else, and when it runs locally.",
+    "steps": [
+     "Your app sends a prompt",
+     "Hosted route: a proxy records only token and credit counts",
+     "The prompt reaches the provider running the weights",
+     "That provider's retention cannot be audited by the proxy",
+     "Local route: the prompt never leaves your machine"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Self-hosting pays off only at the right volume",
+    "num": "06",
+    "id": "self-hosting-pays-off-only-at-the-right-volume"
+   }
+  ],
+  [
+   "p",
+   "Open weights are free, so running them must be cheaper. Not always. The GDPR guide notes that cloud APIs bill per token, while self-hosting bills per month plus your time [2]. At low volume, it says, the API is usually cheaper [2]. Its GPU example, a server for 70B-class models, costs €999 a month [2]."
+  ],
+  [
+   "p",
+   "Hosted open-weight APIs blur the line further. One such service sells 9.99 € a month of credits [5]. On GLM-5.3 that covers about 6 million input tokens [5]. On its cheapest default model, the same money covers about 37 million [5]. Caching matters as well. In one 24-hour window, 114.5 million of its 122.6 million input tokens were cached [5]."
+  ],
+  [
+   "p",
+   "Cached input on that default model costs a fifth of fresh input, which helps agent loops that resend long context [5]. Owned hardware makes a different case. The bounty agent's author argues students should not spend $20 a month on API credits when open weights run on machines they already own [4]. We think both are right for their users. Run the numbers on your own traffic first, as the guide advises [2]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Open models may lead outright once benchmarks stop truncating them",
+    "num": "07",
+    "id": "open-models-may-lead-outright-once-benchmarks-stop-truncatin"
+   }
+  ],
+  [
+   "p",
+   "Which belief might come true? The boldest one: open-weight models will simply beat the closed frontier. The CTI-REALM study points that way, with open models on top once the message cap was relaxed [1]. It also found that different models led different stages of the task [1]. No single model, open or closed, won every step."
+  ],
+  [
+   "p",
+   "What would settle it? Results reported with and without the turn cap, side by side [1]. A cost figure next to every score, since price proved a poor guide [1]. And scores on what the agent actually submits, such as running its detection queries against the answer key [1]. The study adds stage-level metrics of exactly that kind [1]."
+  ],
+  [
+   "p",
+   "We are not convinced one benchmark settles the matter. It covers one domain, security detection, and the cap finding shows how much a harness can shape a ranking [1]. If more studies with uncapped runs and cost columns land the same way, this belief moves from hope to fact."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "what is an open-weight model?"
+  ],
+  [
+   "p",
+   "An open-weight model is one whose trained weights you can download and run on your own hardware. It is not the same as open source: training data and code may stay closed, and some weight licences restrict commercial use or redistribution [2]. Small ones run on ordinary machines. An 8B model quantised to four bits needs about 6 GB of memory [2]."
+  ],
+  [
+   "h3",
+   "is self-hosting an LLM GDPR compliant?"
+  ],
+  [
+   "p",
+   "Not on its own. Self-hosting in the EU removes the outside processor and the data transfer questions for inference traffic [2]. You remain the data controller, so the impact assessment, lawful basis, log retention, erasure requests and the 72-hour breach clock all still apply [2]. It shrinks the compliance work without removing it."
+  ],
+  [
+   "h3",
+   "are open-weight models as good as closed models?"
+  ],
+  [
+   "p",
+   "Sometimes, and the test setup matters. In one security benchmark, an open-weight model matched the strongest closed models at under a tenth of their cost when given enough turns [1]. Under the benchmark's message cap, the leaders could not be told apart, because the cap zeroed out tasks that ran long [1]. One domain is not the whole picture."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Unconstrained CTI-REALM with Open-Weights",
+   "url": "https://arxiv.org/abs/2610.14180v1",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "ali_82f3409ed625e8ba8515b",
+   "what": "Self-Hosting Open-Weight LLMs in the EU: A GDPR Checklist",
+   "url": "https://dev.to/ali_82f3409ed625e8ba8515b/self-hosting-open-weight-llms-in-the-eu-a-gdpr-checklist-48a5",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "pyla_neeraja_7c1a2a759925",
+   "what": "InvoicePilot AI: Local-First Invoice Extraction with Open-Weight AI",
+   "url": "https://dev.to/pyla_neeraja_7c1a2a759925/invoicepilot-ai-local-first-invoice-extraction-with-open-weight-ai-3dee",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 4,
+   "platform": "dev.to",
+   "who": "subhranshu_dash_b9fd16496",
+   "what": "Paydirt: How I Built an Open-Weight AI Agent to Turn GitHub Bounties into a Real Side Hustle",
+   "url": "https://dev.to/subhranshu_dash_b9fd16496/paydirt-how-i-built-an-open-weight-ai-agent-to-turn-github-bounties-into-a-real-side-hustle-4k9g",
+   "posted": "2026-10-17"
+  },
+  {
+   "n": 5,
+   "platform": "dev.to",
+   "who": "vainamoinen",
+   "what": "One API key, three dialects: open-weight LLMs in your tools",
+   "url": "https://dev.to/vainamoinen/one-api-key-three-dialects-open-weight-llms-in-your-tools-16d2",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 6,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Show HN: Open-source model routing for coding agents at Astra-level performance",
+   "url": "https://news.ycombinator.com/item?id=49911500",
+   "posted": "2026-09-30"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:26:43+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "devto:4870010",
+   "devto:4871515",
+   "devto:4868460",
+   "arxiv:2610.14180v1",
+   "hackernews:49911500",
+   "devto:4871828"
+  ],
+  "platforms": {
+   "dev.to": 4,
+   "arXiv": 1,
+   "Hacker News": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "myth-vs-reality:concept/open-weights",
+  "format": "myth-vs-reality",
+  "reviewed_by": null
+ }
+}

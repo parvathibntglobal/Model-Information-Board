@@ -15,6 +15,54 @@ import '../styles/blog-live.css'
 
 const WHO = { code: ['code', 'mute'], writer: ['writer', 'warn'], person: ['person', 'pass'] }
 
+/** Badge tone per kind of rule (judge/blog_rules.py CHECKED). */
+const RULE_TONE = { code: 'pass', editor: 'warn', process: 'mute' }
+
+/**
+ * THE NEWSROOM RULES (blog_rules.yaml, 2026-10-20): every rule a post is
+ * reported and written by, open by default. "Checked by code" rules refuse a
+ * post at ingest; editor's rules are for the reviewer approving it. The
+ * thresholds come filled in from the file the checker reads, so this list and
+ * the checks cannot disagree.
+ */
+export function NewsroomRules({ rules }) {
+  if (!rules) return null
+  if (!rules.available) {
+    return <Notice icon={<IconAlert />}>The newsroom rules could not be read: {rules.reason}</Notice>
+  }
+  const c = rules.counts || {}
+  return (
+    <details className="fold" open>
+      <summary>
+        <span className="label">Newsroom rules</span>
+        <span className="dim" style={{ fontSize: 11 }}>
+          {c.code} checked by code · {c.editor} editor&apos;s rules · {c.process} process · style: {rules.style}
+        </span>
+      </summary>
+      <div className="stack stack-3" style={{ paddingTop: 'var(--s2)' }}>
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '80ch', margin: 0 }}>
+          Every post is reported in the reporter&apos;s own words, with a numbered reference after each reported fact
+          and the references listed at the end. A rule checked by code refuses a post that breaks it before it can
+          reach this list; an editor&apos;s rule is for the person approving it.
+        </p>
+        {rules.sections.map((s) => (
+          <div key={s.name} className="stack stack-1">
+            <span className="label">{s.name}</span>
+            <ol className="nr-list">
+              {s.rules.map((r) => (
+                <li key={r.id}>
+                  <div className="nr-head"><b>{r.rule}</b> <Badge tone={RULE_TONE[r.checked]}>{r.label}</Badge></div>
+                  {r.detail && <p>{r.detail}</p>}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
 export function BlogMethod({ method }) {
   if (!method) return null
   const p = method.prompt || {}

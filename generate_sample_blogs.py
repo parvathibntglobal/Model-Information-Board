@@ -826,7 +826,7 @@ def user_message(post, docs, facts) -> str:
         # sources, and an embed-only platform is never quoted - so the writer
         # must know which is which before it writes a word.
         how = ("EMBED ONLY - never quote; describe it and list it in `embeds`" if d["source"] in embed_only
-               else "quote exactly in «»; the page credits it")
+               else REPORTED_HOW if newsroom_style() == "reported" else "quote exactly in «»; the page credits it")
         parts += [f"\n<<<DISCUSSION {i} - posted on {platform_name(d['source'])} - {how}>>>", d["text"],
                   f"<<<END DISCUSSION {i}>>>"]
     parts.append("\nWrite the essay now by calling publish_essay.")
@@ -1117,10 +1117,246 @@ LEGACY_RULES = {"sections": (5, 7), "matrix": True, "tree": True, "code": (1, 99
                 "voices": 3, "retrace": 1}
 
 
+# ── the reported style (2026-10-20, anooj) ──────────────────────────────────
+#
+# A post is REPORTED: the writer tells what sources found in their own words,
+# cites each with a reference number like [3], and lists the references at the
+# end. A source's own words appear only as ONE WHOLE SENTENCE in a highlight
+# box (never a fragment), and Reddit and X only as their own embeds. The rules
+# and their thresholds are blog_rules.yaml; the checks below read them there.
+
+NEWSROOM_FILE = ROOT / "blog_rules.yaml"
+#: A reference marker: [3], or [2, 5] for two sources.
+REF = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+#: The limits blog_rules.yaml must state; none is defaulted (rule 12).
+NEWSROOM_LIMITS = ("sentence_average_words", "sentence_max_words", "whether_max_per_post",
+                   "paragraph_max_sentences", "copied_run_words", "highlight_min_words",
+                   "highlight_max_words", "highlights_max_per_post")
+_WORD = re.compile(r"[A-Za-z0-9][A-Za-z0-9'’.\-/+%$]*")
+
+
+def newsroom() -> dict:
+    """blog_rules.yaml, checked: a missing limit raises rather than defaults."""
+    if not NEWSROOM_FILE.exists():
+        raise BuildError(f"{NEWSROOM_FILE.name} is missing: the newsroom rules are the writer's brief")
+    cfg = yaml.safe_load(NEWSROOM_FILE.read_text(encoding="utf-8")) or {}
+    limits = cfg.get("limits") or {}
+    missing = [k for k in NEWSROOM_LIMITS if not isinstance(limits.get(k), int)]
+    if missing:
+        raise BuildError(f"{NEWSROOM_FILE.name}: limits missing or not a whole number: {', '.join(missing)}")
+    return cfg
+
+
+def newsroom_style() -> str:
+    return str(newsroom().get("style") or "quoted")
+
+
+def newsroom_rules_text(cfg: dict | None = None) -> str:
+    """The rules as the writer reads them, thresholds filled in."""
+    cfg = cfg or newsroom()
+    lim = cfg["limits"]
+    out = ["NEWSROOM RULES - every post follows these; the code-checked ones are checked when the post is "
+           "ingested, and a post that breaks one is refused."]
+    for sec in cfg.get("sections") or []:
+        out.append(f"\n{sec['name'].upper()}")
+        for r in sec.get("rules") or []:
+            detail = " ".join(str(r.get("detail") or "").split()).format(**lim)
+            out.append(f"- {r['rule']} {detail}")
+    return "\n".join(out)
+
+
+REPORTED_HOW = ("cite it as [n] in your own words; one whole sentence from it may go in `highlights`")
+REPORTED_WRITING = """HOW TO WRITE THIS POST (the reported style):
+- Write every sentence in your own words. Never put a fragment of a source's sentence in «» or quotation marks.
+- After each reported fact, add the source's number in square brackets: "Engineers moved batch jobs off it after the price change [2]." Two sources: [2, 5]. The number is the DISCUSSION or SOURCE number below.
+- A Reddit or X discussion (EMBED ONLY) is never cited with a number and never quoted: describe it in your own words, name the platform in the sentence ("a Reddit poster reported ..."), and list it in `embeds`.
+- When a source's exact words matter, put ONE WHOLE SENTENCE from it in `highlights`: {"section": <0-based section index>, "discussion": <number>, "text": "<the sentence, copied exactly, start to full stop>"}. Not from an EMBED ONLY discussion.
+- Leave `pull_quote` out; highlights replace it."""
+
+
+def reported_system(system: str) -> str:
+    """A system prompt with its quoting instructions replaced by the newsroom rules.
+
+    The quoted style's bullets that ask for «verbatim» fragments, pull quotes or
+    a number of quoted voices are dropped - left in, they contradict the rules
+    below them line by line."""
+    keep = [ln for ln in system.splitlines()
+            if "«" not in ln and "pull quote" not in ln.lower() and "verbatim" not in ln.lower()]
+    return "\n".join(keep).rstrip() + "\n\n" + REPORTED_WRITING + "\n\n" + newsroom_rules_text()
+
+
+def reported_schema(params: dict) -> dict:
+    """The output schema for the reported style: `highlights` in, `pull_quote` out."""
+    p = json.loads(json.dumps(params))
+    sec = p["properties"]["sections"]["items"]["properties"]
+    sec.pop("pull_quote", None)
+    sec["paragraphs"]["description"] = ("Plain text in your own words. `backticks` for code, **bold** sparingly, "
+                                        "[n] after each reported fact (n = discussion or source number). No «».")
+    p["properties"]["highlights"] = {
+        "type": "array", "description": "0 to 2 whole sentences, each copied exactly from one source.",
+        "items": {"type": "object", "required": ["section", "discussion", "text"],
+                  "properties": {"section": {"type": "integer", "description": "0-based section index"},
+                                 "discussion": {"type": "integer", "description": "the source's number"},
+                                 "text": {"type": "string", "description": "one whole sentence, word for word"}}}}
+    return p
+
+
+def _sentences(text: str) -> list[str]:
+    """Sentences of prose: references and code removed; "5.5" and "e.g." do not end one."""
+    t = REF.sub("", re.sub(r"`[^`]*`", "x", text))
+    t = re.sub(r"\b(e\.g|i\.e|vs|etc|approx)\.", r"\1", t, flags=re.I)
+    return [s.strip() for s in re.split(r"(?<=[.!?])[\"')\]]*\s+(?=[\"'(]?[A-Z0-9])", t) if s.strip()]
+
+
+def _words(s: str) -> list[str]:
+    return _WORD.findall(s)
+
+
+def _shingles(text: str, n: int) -> set[tuple[str, ...]]:
+    w = [x.lower().strip(".,;:!?'\"()") for x in _words(text)]
+    return {tuple(w[i:i + n]) for i in range(len(w) - n + 1)}
+
+
+def _whole_sentence_in(text: str, doc: str) -> bool:
+    """Is `text` one whole sentence of `doc`, word for word: it starts where a
+    sentence of the source starts and ends where that sentence ends?"""
+    t = norm(text)
+    if not t or not re.search(r"[.!?][\"'”’)]?$", t) or not (t[0].isupper() or t[0].isdigit()):
+        return False
+    # Two readings of the source. `norm` folds every newline into a space, so in
+    # the flat one a sentence opening a line under a title with no full stop
+    # (an abstract under its heading) has a title word before it, and it was
+    # refused - measured 2026-10-20 on the computer-use pack's source 1. The
+    # per-line reading keeps the line starts; the flat one finds a sentence
+    # that wraps across lines.
+    flat = norm(doc)
+    lines = "\n".join(norm(line) for line in doc.splitlines())
+    for d in (flat, lines):
+        start = 0
+        while (i := d.find(t, start)) >= 0:
+            before = d[:i].rstrip(" ")
+            if not before or before[-1] in ".!?:\n\"'”’)":
+                return True
+            start = i + 1
+    return False
+
+
+def reported_violations(essay: dict, doc_texts: list[str], doc_sources: list[str],
+                        embed_only: tuple[str, ...], facts_text: str = "", need_refs: int = 1,
+                        cfg: dict | None = None) -> list[str]:
+    """Every code-checked newsroom rule a reported post must pass (blog_rules.yaml)."""
+    lim = (cfg or newsroom())["limits"]
+    v: list[str] = []
+    n_docs = len(doc_texts)
+    embedded = {i + 1 for i, s in enumerate(doc_sources) if s in embed_only}
+    embed_platforms = {platform_name(doc_sources[e["discussion"] - 1]).lower()
+                       for e in essay.get("embeds") or [] if isinstance(e, dict)
+                       and isinstance(e.get("discussion"), int) and 1 <= e["discussion"] <= n_docs}
+    run = lim["copied_run_words"]
+    copied = set()
+    for t in doc_texts:
+        copied |= _shingles(t, run)
+    cited: set[int] = set()
+    all_prose = []
+    for path, text in prose_fields(essay):
+        if not text:
+            continue
+        all_prose.append(text)
+        for frag in GUILLEMET.findall(text):
+            v.append(f"own-words: {path}: «{frag[:70]}» is a partial quote - report it in your own words, "
+                     "or give the whole sentence as a highlight")
+        for m in REF.finditer(text):
+            for n in (int(x) for x in m.group(1).split(",")):
+                if not 1 <= n <= n_docs:
+                    v.append(f"reference-every-claim: {path}: [{n}] is not a source number (1 to {n_docs})")
+                elif n in embedded:
+                    v.append(f"reddit-x-embedded: {path}: [{n}] cites a {platform_name(doc_sources[n - 1])} "
+                             "post - those are embedded, never cited; name the platform in the sentence instead")
+                else:
+                    cited.add(n)
+        hit = _shingles(text, run) & copied
+        if hit:
+            v.append(f"no-copied-runs: {path}: {run}+ words copied from a source: "
+                     f"«{' '.join(next(iter(hit)))}» - rewrite it in your own words")
+        for sent in re.split(r"(?<=[.!?])\s+", text):
+            m = ATTRIBUTION.search(sent)
+            if m and not REF.search(sent) and not any(names_platform(sent, p) for p in embed_platforms):
+                v.append(f"reference-every-claim: {path}: credits a source ({m.group(0)!r}) without a "
+                         f"reference number: {sent[:110]!r}")
+    for i, s in enumerate(essay.get("sections") or []):
+        if s.get("pull_quote"):
+            v.append(f"whole-sentence-highlights: sections[{i}].pull_quote: pull quotes are gone - give a "
+                     "whole sentence in `highlights` instead")
+        paras = s.get("paragraphs") or []
+        if paras and not any(REF.search(p) for p in paras) and not any(
+                isinstance(e, dict) and e.get("section") == i for e in essay.get("embeds") or []):
+            v.append(f"reference-every-claim: sections[{i}] cites no source - every section reports something")
+        for j, p in enumerate(paras):
+            if not REF.search(p):
+                for num in NUMBER.findall(REF.sub("", p)):
+                    bare = num.strip("$%").replace(",", "")
+                    in_docs = any(re.search(rf"(?<![\d.]){re.escape(bare)}(?![\d])", t) for t in doc_texts)
+                    in_facts = re.search(rf"(?<![\d.]){re.escape(bare)}(?![\d])", facts_text)
+                    if in_docs and not in_facts and len(bare.strip(".")) > 1:
+                        v.append(f"reference-every-claim: sections[{i}].paragraphs[{j}]: the figure {num} "
+                                 "comes from a source - cite it")
+                        break
+            if len(_sentences(p)) > lim["paragraph_max_sentences"]:
+                v.append(f"short-paragraphs: sections[{i}].paragraphs[{j}] has {len(_sentences(p))} sentences; "
+                         f"at most {lim['paragraph_max_sentences']}")
+    eligible = n_docs - len(embedded)
+    floor = min(need_refs, eligible)
+    if len(cited) < floor:
+        v.append(f"reference-every-claim: cites {len(cited)} source(s); report from at least {floor}")
+    hl = essay.get("highlights") or []
+    if len(hl) > lim["highlights_max_per_post"]:
+        v.append(f"whole-sentence-highlights: {len(hl)} highlights; at most {lim['highlights_max_per_post']}")
+    for k, h in enumerate(hl):
+        n, text, sec = (h or {}).get("discussion"), str((h or {}).get("text") or ""), (h or {}).get("section")
+        if not isinstance(n, int) or not 1 <= n <= n_docs:
+            v.append(f"whole-sentence-highlights: highlights[{k}].discussion {n!r} is not a source number")
+            continue
+        if n in embedded:
+            v.append(f"whole-sentence-highlights: highlights[{k}] is from {platform_name(doc_sources[n - 1])}, "
+                     "which is embedded, never quoted")
+        if not isinstance(sec, int) or not 0 <= sec < len(essay.get("sections") or []):
+            v.append(f"whole-sentence-highlights: highlights[{k}].section {sec!r} is not a section index")
+        nw = len(_words(text))
+        if not lim["highlight_min_words"] <= nw <= lim["highlight_max_words"]:
+            v.append(f"whole-sentence-highlights: highlights[{k}] has {nw} words; "
+                     f"{lim['highlight_min_words']} to {lim['highlight_max_words']}")
+        if not _whole_sentence_in(text, doc_texts[n - 1]):
+            v.append(f"whole-sentence-highlights: highlights[{k}] is not one whole sentence of source {n}, "
+                     f"word for word, start to full stop: {text[:90]!r}")
+    body = [p for s in essay.get("sections") or [] for p in s.get("paragraphs") or []]
+    body += [str(qa.get("answer") or "") for qa in essay.get("faq") or []]
+    body += [essay.get("dek", ""), essay.get("tldr", "")]
+    sents = [s for p in body for s in _sentences(p)]
+    if sents:
+        avg = sum(len(_words(s)) for s in sents) / len(sents)
+        if avg > lim["sentence_average_words"]:
+            v.append(f"short-sentences: sentences average {avg:.1f} words; at most "
+                     f"{lim['sentence_average_words']}")
+        for s in sents:
+            if len(_words(s)) > lim["sentence_max_words"]:
+                v.append(f"short-sentences: a {len(_words(s))}-word sentence (at most "
+                         f"{lim['sentence_max_words']}): {s[:120]!r}")
+    n_whether = sum(len(re.findall(r"\bwhether\b", t, re.I)) for t in all_prose)
+    if n_whether > lim["whether_max_per_post"]:
+        v.append(f"whether-sparingly: \"whether\" appears {n_whether} times; at most "
+                 f"{lim['whether_max_per_post']}")
+    return v
+
+
 def check(essay: dict, context: str, rules: dict | None = None, experiences: str = "",
           seo: dict | None = None, doc_texts: list[str] | None = None,
-          doc_sources: list[str] | None = None, embed_only: tuple[str, ...] = ()) -> list[str]:
+          doc_sources: list[str] | None = None, embed_only: tuple[str, ...] = (),
+          facts_text: str = "") -> list[str]:
     rules = rules or LEGACY_RULES
+    # THE REPORTED STYLE (2026-10-20, blog_rules.yaml): the quote rules below
+    # step aside - a «fragment» is itself a violation there - and
+    # reported_violations checks the newsroom rules instead.
+    reported = rules.get("style") == "reported"
     # EMBEDDED POSTS ARE THEIR AUTHORS' WORDS ON THE PAGE. Which platforms are
     # embedded decides which credits need no «» (the credit rule and the embed
     # rule fought for nine repairs running until this, 2026-10-13).
@@ -1167,12 +1403,12 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
         v.append(f"{path}: «{frag[:90]}» is not verbatim in any discussion — {hint}")
 
     for path, text in prose_fields(essay):
-        for frag in GUILLEMET.findall(text):
+        for frag in ([] if reported else GUILLEMET.findall(text)):
             verbatim(path, frag)
         for span in OTHER_QUOTE.findall(GUILLEMET.sub("", text)):
             if len(span.split()) >= 3:
                 v.append(f"{path}: quotation marks around \"{span[:70]}\" — use «» with exact words, or remove the marks")
-        for num in NUMBER.findall(GUILLEMET.sub("", text)):
+        for num in NUMBER.findall(REF.sub("", GUILLEMET.sub("", text))):
             bare = num.strip("$%").replace(",", "")
             if not re.search(rf"(?<![\d.]){re.escape(bare)}(?![\d])", ctx_nums):
                 v.append(f"{path}: the number {num} appears in no discussion and not in the fact sheet")
@@ -1196,7 +1432,7 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
             m = ATTRIBUTION.search(sent)
             if m and embedded_platforms and any(names_platform(sent, p) for p in embedded_platforms):
                 m = None
-            if m and _QMARK not in sent:
+            if m and _QMARK not in sent and not reported:
                 # NAME THE WAY OUT OF THE OTHER RULE TOO. Measured 2026-10-13:
                 # in 10 Luna runs that failed the embed rule, the quote often
                 # arrived as the "fix" for this one - a sentence describing an
@@ -1212,7 +1448,7 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
         if "code" in s and s["code"] not in (None, {}) and not isinstance(s["code"], dict):
             v.append(f"sections[{i}].code: must be one object with `label` and `source`, not a "
                      f"{type(s['code']).__name__}; give at most one example here")
-        if s.get("pull_quote"):
+        if s.get("pull_quote") and not reported:
             verbatim(f"sections[{i}].pull_quote", s["pull_quote"])
         plo, phi = rules.get("per_section", (3, 99))
         n_par = len(s.get("paragraphs", []))
@@ -1263,6 +1499,10 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
         # HOW MANY VOICES, AND HOW MUCH RETRACING, IS THE FORMAT'S (2026-10-16):
         # an explainer written from one post cannot quote three. A rules dict
         # built before the keys existed carries the floors every format had.
+        if reported:
+            v += reported_violations(essay, doc_texts, doc_sources or [], embed_only, facts_text,
+                                     need_refs=rules.get("voices", LEGACY_RULES["voices"]))
+            return v
         v += voices_violations(essay, doc_texts, need=rules.get("voices", LEGACY_RULES["voices"]),
                                embedded=embedded)
         v += retrace_violations(essay, min_count=rules.get("retrace", LEGACY_RULES["retrace"]),
@@ -2940,9 +3180,34 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         embed_blocks.setdefault(e["section"], []).append(
             ["embed", {**official_embed(d["source"], d["url"]), "caption": GUILLEMET.sub(r"\1", e["caption"])}])
 
+    def cited(n: int) -> int:
+        """A reference to source `n` of the pack -> its number in `sources`."""
+        d = docs[n - 1]
+        if d["source"] in embed_only:
+            raise BuildError(f"export: [{n}] cites an embed-only source ({d['source']}); the check should "
+                             "have refused this draft")
+        if not d.get("url"):
+            raise BuildError(f"export: source {n} has no URL to credit (rule 12)")
+        k = next((x["n"] for x in sources if x["url"] == d["url"]), None)
+        if k is None:
+            k = len(sources) + 1
+            credit = credit_of(d["source"], d["url"])
+            if d.get("title"):
+                credit["what"] = d["title"]
+            sources.append({"n": k, **credit,
+                            "posted": d["posted"].date().isoformat() if d.get("posted") else None})
+        return k
+
     def text(t: str) -> str:
         # «fragment» stays marked so the page can style it as a quotation.
-        return GUILLEMET.sub(lambda m: f"\u00ab{verified(m.group(1))}\u00bb", t)
+        t = GUILLEMET.sub(lambda m: f"\u00ab{verified(m.group(1))}\u00bb", t)
+        # [n] (a pack's source number) becomes [k], the post's reference number.
+        return REF.sub(lambda m: "[" + ", ".join(str(cited(int(x))) for x in m.group(1).split(",")) + "]", t)
+
+    highlights: dict[int, list] = {}
+    for h in essay.get("highlights") or []:
+        highlights.setdefault(h["section"], []).append(
+            ["highlight", {"text": h["text"], "n": cited(h["discussion"])}])
 
     # Headings carry the essay layout's number and anchor, so the page can build
     # its "In this essay" contents from the body rather than from a second list.
@@ -2967,6 +3232,10 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
                                            "kind": il.get("kind", "illustration")}])
         if s.get("pull_quote"):
             paras.insert(min(2, len(paras)), ["quote", verified(s["pull_quote"])])
+        # A WHOLE SENTENCE FROM A SOURCE, in its box, after the section's
+        # second paragraph (the reported style, blog_rules.yaml).
+        for hb in highlights.get(n - 1, []):
+            paras.insert(min(2, len(paras)), hb)
         body += paras
         if has_code(s):
             body.append(["code", {"label": s["code"]["label"], "language": s["code"].get("language", ""),
@@ -3057,6 +3326,10 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         # number in `sources`. Embedded posts credit themselves.
         "sources": sources,
         "cite": cite,
+        # THE WRITING STYLE (blog_rules.yaml): "reported" posts cite [n] in the
+        # text and quote only whole sentences in highlight boxes; views.js
+        # words the reference list's note by it.
+        "style": (post.get("rules") or {}).get("style") or "quoted",
         "rel": [[f"post:{slug}", title] for slug, title in rel_posts],
         # READ BY vPost's "How this draft was made" block (rule 9). No platform
         # and no per-document source field: thread ids only.
@@ -3069,7 +3342,10 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
             "platforms": {platform_name(k): sum(d["source"] == k for d in docs)
                           for k in dict.fromkeys(d["source"] for d in docs)},
             "embedded": sum(len(b) for b in embed_blocks.values()),
-            "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+            "checks": ("the newsroom rules: own words, a reference on every reported fact, whole-sentence "
+                       "highlights, figures, sentence length and banned phrasing - passed"
+                       if (post.get("rules") or {}).get("style") == "reported"
+                       else "verbatim quotes, figures, attributions and banned phrasing - passed"),
             # STYLE NOTES LEFT FOR THE REVIEWER (advisory after one repair,
             # 2026-10-13). Read by Admin -> Blogs' reviewer; never on the page.
             "style_notes": rec.get("style_notes") or [],
@@ -3878,6 +4154,15 @@ def _jsonable(x):
 
 
 def write_pack(post: dict, docs: list[dict], facts: list[dict]) -> Path:
+    # THE HOUSE STYLE (blog_rules.yaml `style`): a reported post's pack carries
+    # the newsroom rules in place of the quoting instructions, and its schema
+    # takes `highlights` instead of `pull_quote`. --ingest reads the style back
+    # from the pack, so a post is checked in the style it was written in.
+    if newsroom_style() == "reported":
+        post.setdefault("rules", {})["style"] = "reported"
+        post["system"] = reported_system(post.get("system", SYSTEM))
+        post["tool"] = {**post["tool"], "function": {**post["tool"]["function"],
+                        "parameters": reported_schema(post["tool"]["function"]["parameters"])}}
     d = PACKS / post["key"]
     d.mkdir(parents=True, exist_ok=True)
     pack = {
@@ -3984,10 +4269,11 @@ def ingest(key: str, dsn: str) -> None:
             raise json.JSONDecodeError("not an object", "", 0)
         context = "\n".join(x["text"] for x in docs) + "\n" + fact_lines(facts)
         attach_figures(essay, d)
+        every = post.get("names") or rules.get("style") == "reported"
         violations = check(essay, context, rules, post.get("experience_text", ""), post.get("seo"),
-                           [x["text"] for x in docs] if post.get("names") else None,
-                           [x["source"] for x in docs] if post.get("names") else None,
-                           tuple(post.get("embed_only") or ()))
+                           [x["text"] for x in docs] if every else None,
+                           [x["source"] for x in docs] if every else None,
+                           tuple(post.get("embed_only") or ()), facts_text=fact_lines(facts))
     except json.JSONDecodeError as e:
         essay, violations = None, [f"essay.json is not a JSON object: {e}"]
     gate = [x for x in violations if not is_style(x)]
@@ -4315,8 +4601,10 @@ def topic_user_message(post, docs) -> str:
             how = ("an engineer discussion from the model board, about "
                    + ", ".join(bridge["models"]) + f"; {bridge['matching_quotes']} of its verified "
                    "quotes are on this topic - use it to show how the topic plays out with real models")
-        parts += [f"\n<<<SOURCE {i} - \"{d['title']}\" - {site}, {when} - {how}; quote exactly in «», "
-                  f"the page credits it>>>", d["text"], f"<<<END SOURCE {i}>>>"]
+        credit = (REPORTED_HOW if newsroom_style() == "reported"
+                  else "quote exactly in «», the page credits it")
+        parts += [f"\n<<<SOURCE {i} - \"{d['title']}\" - {site}, {when} - {how}; {credit}>>>",
+                  d["text"], f"<<<END SOURCE {i}>>>"]
     parts.append("\nWrite the essay now by calling publish_essay.")
     return "\n".join(parts)
 

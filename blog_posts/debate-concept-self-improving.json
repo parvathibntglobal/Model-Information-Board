@@ -1,0 +1,449 @@
+{
+ "slug": "debate-concept-self-improving",
+ "status": "draft",
+ "tag": "Debate",
+ "feat": false,
+ "title": "Self-Improving Agents Get Better Only as Far as Their Check Can See",
+ "dek": "An 8-day run says an agent can improve itself on work it never saw. A harness study says such loops mostly memorise their exam. We weigh both and side with the gate.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is a self-improving AI agent? One that rewrites itself and keeps what scores better. The gains are real, but they reach only as far as the check deciding each keep.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+V2hpY2ggc2NvcmVib2FyZCBjb3VudHMgZm9yIGEgc2VsZi1pbXByb3ZpbmcgYWdlbnQ8L3RpdGxlPgogIDxkZXNjPkEgbG9vcCBvZiBwcm9wb3NlLCBjaGVjayBhbmQga2VlcCBmZWVkcyB0d28gc2NvcmVib2FyZHMuIE9uIHRoZSB0YXNrcyB0aGUgbG9vcCBzZWxlY3RzIGFnYWluc3QsIHRoZSByZWd1bGFyaXNlZCBSUlNJIGxvb3AgZ2FpbmVkIHVwIHRvIDE0LjEgcG9pbnRzLiBPbiBmaXZlIGJlbmNobWFya3MgaXQgbmV2ZXIgc2VsZWN0ZWQgYWdhaW5zdCwgaXQgZ2FpbmVkIHVwIHRvIDQuNyBwb2ludHMuPC9kZXNjPgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiPlNlbGYtaW1wcm92aW5nIGFnZW50czogdHdvIHNjb3JlYm9hcmRzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5UaGUgYXJndW1lbnQgaXMgb3ZlciB3aGljaCBvbmUgdGVsbHMgeW91IHRoZSBhZ2VudCBnb3QgYmV0dGVyPC90ZXh0PgoKICA8Y2lyY2xlIGN4PSIyNzAiIGN5PSIzNjAiIHI9IjE1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDgiLz4KICA8cmVjdCB4PSIxOTAiIHk9IjIwMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NiIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iMjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+UHJvcG9zZTwvdGV4dD4KICA8cmVjdCB4PSIzMjAiIHk9IjM4MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NiIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+Q2hlY2s8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjM4MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NiIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE0MCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+S2VlcDwvdGV4dD4KICA8dGV4dCB4PSIyNzAiIHk9IjU2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPmVhY2gga2VwdCByZXdyaXRlIGlzIGVkaXRlZCBuZXh0PC90ZXh0PgoKICA8bGluZSB4MT0iNTAwIiB5MT0iMzAwIiB4Mj0iNjQwIiB5Mj0iMjUwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjUwMCIgeTE9IjQyMCIgeDI9IjY0MCIgeTI9IjQ1MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8cmVjdCB4PSI2NTAiIHk9IjE3MCIgd2lkdGg9IjQ5MCIgaGVpZ2h0PSIxNTAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2ODAiIHk9IjIxMCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPlRhc2tzIHRoZSBsb29wIHNlbGVjdHMgYWdhaW5zdDwvdGV4dD4KICA8dGV4dCB4PSI2ODAiIHk9IjI4MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDYiIGZvbnQtd2VpZ2h0PSI3MDAiPnVwIHRvIDE0LjE8L3RleHQ+CiAgPHRleHQgeD0iOTM1IiB5PSIyODAiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIj5wb2ludHM8L3RleHQ+CgogIDxyZWN0IHg9IjY1MCIgeT0iMzgwIiB3aWR0aD0iNDkwIiBoZWlnaHQ9IjE1MCIgcng9IjE2IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjY4MCIgeT0iNDIwIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+QmVuY2htYXJrcyBpdCBuZXZlciBzZWxlY3RlZCBhZ2FpbnN0PC90ZXh0PgogIDx0ZXh0IHg9IjY4MCIgeT0iNDkwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NiIgZm9udC13ZWlnaHQ9IjcwMCI+dXAgdG8gNC43PC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iNDkwIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiI+cG9pbnRzPC90ZXh0PgoKICA8dGV4dCB4PSI2NTAiIHk9IjU4MCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPlJlZ3VsYXJpc2VkIFJSU0kgbG9vcCwgYmVzdCBnYWlucyByZXBvcnRlZDwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A self-improving loop feeding two scoreboards: up to 14.1 points on its selection split, up to 4.7 on new benchmarks.",
+  "caption": "The debate is over which scoreboard counts: the tasks a loop selects against, or the ones it never saw.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is a self-improving AI agent, and do its gains survive new tasks? The case for the loop, the case for overfitting, and where we land.",
+ "keywords": [
+  "what is a self-improving AI agent",
+  "self-improving agents",
+  "recursive self-improvement",
+  "agent harness evolution",
+  "AIDE^2",
+  "overfitting in agent loops"
+ ],
+ "kicker": "Debate",
+ "tags": [
+  "self-improving agents",
+  "Debate"
+ ],
+ "read": 8,
+ "decisions": [
+  "Hold back a task set the loop never sees during selection, and judge every keep on it.",
+  "Make the keep check dense enough to catch behaviour changes before you let a loop run.",
+  "Cap how many edits one candidate may bundle, and prune edits that cost more than they earn.",
+  "Refine callees before callers when a loop edits shared code or its documentation."
+ ],
+ "layout": "debate",
+ "arrangement": "a",
+ "special": {
+  "type": "positions",
+  "title": "Two sides",
+  "items": [
+   {
+    "side": "The loop transfers",
+    "case": "AIDE^2's discovered agent matched or beat a human-built research agent on four held-out benchmarks, one of them out of distribution, and its reward hacking fell during the run [1].",
+    "weakness": "It is a single 8-day run, and the held-out benchmarks were chosen by the same team that built the loop."
+   },
+   {
+    "side": "The loop memorises",
+    "case": "Harness evolution can post large in-distribution gains that shrink or vanish on new benchmarks; even RRSI's regularised loop gained up to 14.1 points on its split and up to 4.7 out of distribution [2].",
+    "weakness": "Its own numbers show transfer that shrinks without reaching zero, so the case is about size, not existence."
+   },
+   {
+    "side": "The check is the real bottleneck",
+    "case": "Repository tests rejected 25.3% of behaviour-changing rewrites, against 59.9% for a small evolved suite at a 4.0% false-alarm rate [4].",
+    "weakness": "Rejection rates show what a check catches, and leave open how much better the surviving agent does on new work."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Researchers split on what a self-improving loop actually learns",
+    "num": "01",
+    "id": "researchers-split-on-what-a-self-improving-loop-actually-lea"
+   }
+  ],
+  [
+   "p",
+   "Can an agent that rewrites its own code get better at work it has never seen? Or does it just learn the test it was graded on? Researchers building these loops disagree, and the argument is live [1, 2]. One team reports gains that carry over to new domains [1]. A separate group warns that such gains often shrink or vanish once the tasks change [2]."
+  ],
+  [
+   "p",
+   "So what is a self-improving AI agent? It's an agent that edits part of itself and keeps the edits that score better. That part might be its code, prompts, tools, memory or weights [1, 2, 3]. Every kept change then becomes the base for the next round [1]. Three pieces do the work. A proposer suggests a change, a check scores it, and a keep rule decides."
+  ],
+  [
+   "highlight",
+   {
+    "text": "When an AI research agent's own code is the object of optimization, each accepted rewrite becomes the agent that the next round edits.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "Most of these loops leave the model itself frozen. They rewrite the harness around it instead: prompts, control flow, tools, memory and context handling [2]. That is the layer you already tune by hand around Claude or GPT models. If a loop can tune it for you, it saves real engineering time. If it only tunes for its own benchmark, it quietly costs you."
+  ],
+  [
+   "h2",
+   {
+    "text": "An eight-day run is the optimists' best evidence",
+    "num": "02",
+    "id": "an-eight-day-run-is-the-optimists-best-evidence"
+   }
+  ],
+  [
+   "p",
+   "The strongest case for the loop comes from AIDE^2, a system that improves a frontier AI research agent [1]. The agent edits its own source, tests each edited copy on AI research tasks, and keeps the best performers on hidden evaluations [1]. Left alone for 8 days, it found seven improvements in a row [1]. One changed its search policy. Others added memory that compresses the agent's swelling context [1]."
+  ],
+  [
+   "p",
+   "The gains held up away from home. On four held-out benchmarks, the best discovered agent matched or beat a strong human-built research agent [1]. Those benchmarks covered machine learning engineering, heuristic algorithms and physics-based weather forecasting [1]. The weather task sat outside the distribution of the selection tasks [1]. That is exactly the transfer the skeptics doubt."
+  ],
+  [
+   "p",
+   "There's a bonus result. On a separate held-out task family, reward hacking fell from 55% to 32% over the run [1]. Reward hacking means satisfying the grader without doing the task. The loop never optimised for that directly [1]. Its final rate sat 7 percentage points below the human-engineered agent [1]. We think it is the most persuasive number in this whole debate."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Reward hacking on a held-out task family during the AIDE^2 run, in percent of tasks.",
+    "unit": "percent of tasks with reward hacking",
+    "bars": [
+     {
+      "label": "Start of the run",
+      "value": 55.0
+     },
+     {
+      "label": "End of the run",
+      "value": 32.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The skeptics' sharpest point is that loops memorise their own exam",
+    "num": "03",
+    "id": "the-skeptics-sharpest-point-is-that-loops-memorise-their-own"
+   }
+  ],
+  [
+   "p",
+   "Now the other side. A paper on regularised recursive self-improvement, called RRSI, starts from a warning [2]. When a loop proposes and selects harness edits again and again, it can memorise its training tasks [2]. The result looks great in distribution and shrinks, or disappears, on fresh benchmarks [2]. Every loop selects against some task set. So every loop carries this risk."
+  ],
+  [
+   "p",
+   "The paper's fix is to constrain both halves of the loop [2]. The proposer gets an edit budget that tightens over time, capping how many edits one candidate may bundle [2]. It is also nudged toward trajectories the evolution history hasn't explored [2]. On the selection side, a critic screens out benchmark-specific proposals. A pruner drops changes that are too small, too costly or no longer useful [2]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "However, such recursive evolution may overfit by memorizing the training tasks, showing large in-distribution gains that shrink or even vanish on out-of-distribution benchmarks.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "Even with those guards, the gap is stark. RRSI's best gain on its own evolution split was 14.1 points, across eight benchmarks in all [2]. On five benchmarks outside that distribution, its best was 4.7 [2]. Its harness also ran on 30% fewer policy tokens than the version evolved without regularisation [2]. Transfer happened. It was a slice of the headline."
+  ],
+  [
+   "p",
+   "So who wins this round? We press the optimists first. AIDE^2's held-out benchmarks were still picked by its own authors, and its evidence is a single run [1]. The skeptics need pressing too. RRSI's own numbers show positive transfer, not zero [2]. Our reading is shrinkage, not collapse."
+  ],
+  [
+   "h2",
+   {
+    "text": "A loop is only as good as the check that says keep",
+    "num": "04",
+    "id": "a-loop-is-only-as-good-as-the-check-that-says-keep"
+   }
+  ],
+  [
+   "p",
+   "Both camps lean on one assumption, even when they leave it unsaid. A self-evolving agent is only as good as the check its rewrites must pass [4]. A paper on test suites as improvement signals makes this its whole argument [4]. Judging a rewrite by running the agent is costly and subjective. A repository's own tests are cheap but far too sparse [4]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+SG93IG11Y2ggYSBrZWVwIGNoZWNrIGNhdGNoZXM8L3RpdGxlPgogIDxkZXNjPlNoYXJlIG9mIGJlaGF2aW91ci1jaGFuZ2luZyByZXdyaXRlcyByZWplY3RlZDogdGhlIHJlcG9zaXRvcnkncyBvd24gdGVzdHMgcmVqZWN0IDI1LjMgcGVyY2VudDsgYSBzbWFsbCBzdWl0ZSBldm9sdmVkIGJ5IFRlU2VhcmNoIHJlamVjdHMgNTkuOSBwZXJjZW50LCB3aXRoIGEgNC4wIHBlcmNlbnQgZmFsc2UtYWxhcm0gcmF0ZSBhbmQgMy41IHNlY29uZHMgcGVyIGRlY2lzaW9uLjwvZGVzYz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgZ2F0ZSBkZWNpZGVzIHdoYXQgdGhlIGxvb3Aga2VlcHM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNiIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlBlcmNlbnQgb2YgYmVoYXZpb3VyLWNoYW5naW5nIHJld3JpdGVzIHJlamVjdGVkPC90ZXh0PgoKICA8bGluZSB4MT0iMzgwIiB5MT0iMTYwIiB4Mj0iMzgwIiB5Mj0iNDcwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjYwIiB5PSIyMzUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5SZXBvc2l0b3J5J3Mgb3duIHRlc3RzPC90ZXh0PgogIDxyZWN0IHg9IjM4MCIgeT0iMjAwIiB3aWR0aD0iMTg1IiBoZWlnaHQ9IjYwIiBmaWxsPSIjZmY3YjcyIi8+CiAgPHRleHQgeD0iNTgwIiB5PSIyNDAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIj4yNS4zJTwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjM3NSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNtYWxsIGV2b2x2ZWQgc3VpdGU8L3RleHQ+CiAgPHJlY3QgeD0iMzgwIiB5PSIzNDAiIHdpZHRoPSI0MzgiIGhlaWdodD0iNjAiIGZpbGw9IiMzZWNmOGUiLz4KICA8dGV4dCB4PSI4MzUiIHk9IjM4MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiPjU5LjklPC90ZXh0PgoKICA8bGluZSB4MT0iMzgwIiB5MT0iNDcwIiB4Mj0iMTExMiIgeTI9IjQ3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPHRleHQgeD0iNjAiIHk9IjU2MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlRoZSBldm9sdmVkIHN1aXRlOiA0LjAlIGZhbHNlIGFsYXJtcywgMy41IHMgcGVyIGRlY2lzaW9uPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI1OTIiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5FdmVyeXRoaW5nIGEgZ2F0ZSBtaXNzZXMgYmVjb21lcyB0aGUgYWdlbnQgdGhlIG5leHQgcm91bmQgZWRpdHM8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Two gates: repository tests reject 25.3% of behaviour-changing rewrites, an evolved small suite rejects 59.9%.",
+    "caption": "A denser keep check stops far more behaviour-changing rewrites, at a 4.0% false-alarm rate and 3.5 seconds a decision.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "How sparse? The repository's tests rejected only 25.3% of rewrites that changed behaviour [4]. Most behaviour changes sailed through. The authors' tool, TeSearch, evolves test suites that are small and strong at once, using a quality-diversity search [4]. Used as the keep check, its suites rejected 59.9% of behaviour-changing rewrites [4]. False alarms ran at 4.0%, and each decision took 3.5 seconds [4]."
+  ],
+  [
+   "p",
+   "The mechanism deserves a sentence. TeSearch treats suite size as a behaviour descriptor, so it chases quality at every size [4]. It also learns a transition kernel that steadies the LLM's noisy edits during search [4]. Across 129 real-world modules and three backbones, it produced the best suites of any method compared [4]. We agree with its premise completely. A sparse check lets a loop drift unseen."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative keep loop: a dense check first, then tasks the loop never selected on",
+    "language": "python",
+    "source": "agent = baseline\nfor rnd in range(rounds):\n    cand = proposer.edit(agent, history, max_edits=budget(rnd))\n    if not dense_suite.passes(cand):        # catches behaviour changes\n        history.log(cand, \"rejected by suite\")\n        continue\n    if heldout.score(cand) <= heldout.score(agent):\n        history.log(cand, \"no held-out gain\")\n        continue                             # tasks never used in selection\n    agent = cand                             # the next round edits this one"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Fixing one part of a codebase can quietly break another",
+    "num": "05",
+    "id": "fixing-one-part-of-a-codebase-can-quietly-break-another"
+   }
+  ],
+  [
+   "p",
+   "SpecForge adds a harder wrinkle for coding agents [5]. Its loop leaves weights and prompts alone. It refines behavioural specifications, plain-language docs saying what each function or class should do [5]. The agent writes code from its current specs and runs execution-verified tests. Then it rewrites the specs based on what failed [5]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+T3V0cHV0IGNvdXBsaW5nIGluIGEgc3BlYy1yZWZpbmluZyBsb29wPC90aXRsZT4KICA8ZGVzYz5MZWZ0OiB0aGUgbG9vcCByZWZpbmVzIHRoZSBzcGVjIG9mIGEgY2FsbGVlLCBhbmQgdGhlIGNhbGxlciB0aGF0IGRlcGVuZHMgb24gaXQgc3RhcnRzIGZhaWxpbmcsIHRoZW4gZml4aW5nIHRoZSBjYWxsZXIgYnJlYWtzIHNvbWV0aGluZyBlbHNlLiBSaWdodDogcmVmaW5pbmcgY2FsbGVlcyBiZWZvcmUgY2FsbGVycywgd2hpbGUga2VlcGluZyBzZXZlcmFsIHNwZWMgdmVyc2lvbnMgYWxpdmUsIGF2b2lkcyB0aGUgd2hhY2stYS1tb2xlLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIj5PdXRwdXQgY291cGxpbmc6IGEgbG9jYWwgZml4LCBhIHJlbW90ZSBicmVhazwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA2IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+U3BlY3MgZGVzY3JpYmUgZW50aXRpZXMgdGhhdCBkZXBlbmQgb24gZWFjaCBvdGhlcjwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjE2NSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPldoYWNrLWEtbW9sZTwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMTkwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjgwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTcwIiB5PSIyMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5wYXJzZSgpPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMjUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+c3BlYyBmaXhlZDwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMzMwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjgwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTcwIiB5PSIzNjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5sb2FkX2NvbmZpZygpPC90ZXh0PgogIDx0ZXh0IHg9IjE3MCIgeT0iMzkyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+Y2FsbGVyIG5vdyBmYWlsczwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iNDcwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjgwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTcwIiB5PSI1MDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5zdGFydF9zZXJ2ZXIoKTwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjUzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPmJyZWFrcyBhZnRlciB0aGUgbmV4dCBmaXg8L3RleHQ+CiAgPGxpbmUgeDE9IjE3MCIgeTE9IjI3MCIgeDI9IjE3MCIgeTI9IjMyNCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSIxNzAiIHkxPSI0MTAiIHgyPSIxNzAiIHkyPSI0NjQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8dGV4dCB4PSIzMTAiIHk9IjM3NSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmxvY2FsIHdpbiw8L3RleHQ+CiAgPHRleHQgeD0iMzEwIiB5PSI0MDAiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5yZW1vdGUgcmVncmVzc2lvbjwvdGV4dD4KCiAgPGxpbmUgeDE9IjU2MCIgeTE9IjE1MCIgeDI9IjU2MCIgeTI9IjU4MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPHRleHQgeD0iNjIwIiB5PSIxNjUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5TcGVjRm9yZ2UncyB0aHJlZSBtb3ZlczwvdGV4dD4KICA8cmVjdCB4PSI2MjAiIHk9IjE5MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSI5MCIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjY0NSIgeT0iMjI4IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+Q2FsbGVlcyBiZWZvcmUgY2FsbGVyczwvdGV4dD4KICA8dGV4dCB4PSI2NDUiIHk9IjI1OCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmZvbGxvdyB0aGUgZGVwZW5kZW5jeSBvcmRlcjwvdGV4dD4KICA8cmVjdCB4PSI2MjAiIHk9IjMwMCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSI5MCIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjY0NSIgeT0iMzM4IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+S2VlcCBzZXZlcmFsIHNwZWMgdmVyc2lvbnMgYWxpdmU8L3RleHQ+CiAgPHRleHQgeD0iNjQ1IiB5PSIzNjgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5QYXJldG8tZ3VpZGVkLCBubyBlYXJseSBjb21taXRtZW50PC90ZXh0PgogIDxyZWN0IHg9IjYyMCIgeT0iNDEwIiB3aWR0aD0iNTIwIiBoZWlnaHQ9IjkwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjQ1IiB5PSI0NDgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5WYXJ5IHRoZSBmYWlsdXJlcyBlYWNoIGZpeCBzZWVzPC90ZXh0PgogIDx0ZXh0IHg9IjY0NSIgeT0iNDc4IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+ZGlmZmVyZW50IHN1YnNldHMgb2YgZmFpbGluZyB0ZXN0czwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjU2MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPkRldkV2YWwrOiA5NC45JSBzb2x2ZSByYXRlIHdpdGggQ2xhdWRlLTQuNS1Tb25uZXQ8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Fixing one function's spec breaks its caller; refining callees before callers stops the whack-a-mole.",
+    "caption": "Output coupling: a local spec fix can break a dependent entity, so SpecForge refines callees first.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The trouble is that code entities depend on each other. Improving one entity's spec can degrade the correctness of others, which the authors call output coupling [5]. Fix the parser's doc and its caller breaks. Fix the caller and something else slips. Local wins cause regressions elsewhere, so progress stalls [5]."
+  ],
+  [
+   "p",
+   "SpecForge answers with three mechanisms [5]. Pareto-guided state selection keeps complementary spec versions alive, so the search avoids committing too early. Entity selection follows dependencies and refines callees before callers. Error-diversified expansion tries several refinements, each built from a different subset of failing tests [5]. On DevEval+, it reached a 94.9% solve rate with Claude-4.5-Sonnet, and averaged 5.7 points over the strongest baseline [5]."
+  ],
+  [
+   "p",
+   "The specs also travelled. They helped on cross-language translation and new-feature work, beating the requirement documents the benchmark itself shipped [5]. For this debate, that's a point to the optimists. It also shows the skeptics' worry is mechanical. A loop that edits shared parts can hide a regression in the part it never tested."
+  ],
+  [
+   "h2",
+   {
+    "text": "The improver itself is now up for rewriting",
+    "num": "06",
+    "id": "the-improver-itself-is-now-up-for-rewriting"
+   }
+  ],
+  [
+   "p",
+   "Two newer loops push the recursion a level deeper. RSIFlow diagnoses performance bottlenecks from agent trajectories and environment feedback [6]. It then runs an improvement workflow aimed at the failing component [6]. A meta-agent distils the outcomes into skills and principles, and evolves its own harness to run the next round better [6]. On six benchmarks with two different backbone models, it reports the best average on every one [6]."
+  ],
+  [
+   "p",
+   "ClawLoop goes all the way down to the weights [3]. It cycles through three phases with no external teacher model [3]. Task synthesis builds training tasks and raises their difficulty based on diagnosis. Training updates the agent with SFT, RL or both. Diagnosis turns rollout behaviour into a capability report that steers the next batch of tasks [3]."
+  ],
+  [
+   "p",
+   "With Qwen3.6-27B driving the loop, ClawLoop posted steady gains on SkillsBench, Claw-Eval-Live and ClawGym-Bench [3]. Its refined tasks also lifted smaller Qwen3.5-4B and 9B models on every benchmark [3]. We think that transfer test is clever. It checks the data, apart from the model that made it. Neither abstract shows how much gain survives on tasks no one selected for."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Five loops, the layer each one rewrites, and the evidence each offers beyond its own selection tasks.",
+    "columns": [
+     "Loop",
+     "What it rewrites",
+     "What decides a keep",
+     "Evidence beyond the loop"
+    ],
+    "rows": [
+     [
+      "AIDE^2",
+      "Its own research-agent code",
+      "Best results on hidden evaluations",
+      "Four held-out benchmarks, one out of distribution"
+     ],
+     [
+      "RRSI",
+      "Harness components",
+      "A critic and a pruner",
+      "Up to 4.7 points on five out-of-distribution benchmarks"
+     ],
+     [
+      "SpecForge",
+      "Behavioural specifications",
+      "Execution-verified tests",
+      "Specs helped translation and new-feature work"
+     ],
+     [
+      "RSIFlow",
+      "Improvement workflows and its own meta-harness",
+      "Bottleneck diagnosis from trajectories",
+      "Best average on six benchmarks"
+     ],
+     [
+      "ClawLoop",
+      "Model weights through SFT or RL",
+      "A capability report from rollouts",
+      "Its tasks lifted smaller Qwen3.5 models"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Our verdict: the loop is real, and the check sets its ceiling",
+    "num": "07",
+    "id": "our-verdict-the-loop-is-real-and-the-check-sets-its-ceiling"
+   }
+  ],
+  [
+   "p",
+   "Here is where we come down. We side with the optimists on the core claim. Agents can improve themselves, and part of the gain reaches new work [1, 5, 3]. We side with the skeptics on size. In the one study that reports both, held-out gains ran well below the selection gains [2]."
+  ],
+  [
+   "p",
+   "The deciding variable is the check. A sparse check lets a loop keep rewrites that quietly change behaviour [4]. A dense one, plus tasks held out from selection, gives you a loop worth running [1, 4]. If you build one, spend your first week on the gate. The proposer can wait."
+  ],
+  [
+   "p",
+   "What would change our mind? An independent rerun of a loop like AIDE^2, with held-out gains that vanish once someone else picks the hidden evaluations [1]. That result would mean the selection did the improving, and the agent didn't. Until someone runs it, we back the loop with a strong gate."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is a self-improving AI agent?"
+  ],
+  [
+   "p",
+   "A self-improving AI agent rewrites part of itself, such as its code, prompts, tools or weights, and keeps the versions that score better [1, 2]. Each kept rewrite becomes the starting point for the next round [1]. Most current systems leave the base model frozen and change the harness around it [2]."
+  ],
+  [
+   "h3",
+   "Do self-improving agents overfit to their benchmarks?"
+  ],
+  [
+   "p",
+   "They can. One paper on harness evolution found large gains on training tasks that shrink or vanish out of distribution [2]. Its regularised loop still gained up to 14.1 points on its own split and up to 4.7 points on five out-of-distribution benchmarks [2]. Holding tasks out of selection is the main defence."
+  ],
+  [
+   "h3",
+   "How do you test a self-improving agent's changes?"
+  ],
+  [
+   "p",
+   "Run every rewrite through a check dense enough to catch behaviour changes, then score survivors on tasks the loop never saw [1, 4]. In one study, a repository's own tests rejected only 25.3% of behaviour-changing rewrites [4]. An evolved small test suite rejected 59.9%, with a 4.0% false-alarm rate [4]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Recursive self-improvement of AI research agents",
+   "url": "https://huggingface.co/papers/2609.26457",
+   "posted": "2026-09-22"
+  },
+  {
+   "n": 2,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "RRSI: Regularized Recursive Self-Improvement of Agent Harnesses",
+   "url": "https://huggingface.co/papers/2609.24972",
+   "posted": "2026-09-21"
+  },
+  {
+   "n": 3,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "ClawLoop: Self-Improving Agents via Harness-Native Training Loop",
+   "url": "https://huggingface.co/papers/2610.14118",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Small but Mighty: Test Suites as Improvement Signals for Self-Evolving Agents",
+   "url": "https://arxiv.org/abs/2610.15964v1",
+   "posted": "2026-10-12"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "SpecForge: Recursive Self-Improvement for Coding Agents via Behavioral Specifications",
+   "url": "https://arxiv.org/abs/2610.15708v1",
+   "posted": "2026-10-11"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "RSIFlow: Adaptive Self-Improvement Workflows with an Evolving Meta-Agent",
+   "url": "https://arxiv.org/abs/2610.21791v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:28:57+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21791v1",
+   "hfpapers:2609.26457",
+   "hfpapers:2609.24972",
+   "arxiv:2610.15964v1",
+   "arxiv:2610.15708v1",
+   "hfpapers:2610.14118"
+  ],
+  "platforms": {
+   "arXiv": 3,
+   "Hugging Face": 3
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "debate:concept/self-improving",
+  "format": "debate",
+  "reviewed_by": null
+ }
+}

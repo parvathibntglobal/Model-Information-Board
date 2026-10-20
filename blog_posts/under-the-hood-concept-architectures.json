@@ -1,0 +1,440 @@
+{
+ "slug": "under-the-hood-concept-architectures",
+ "status": "draft",
+ "tag": "Under the hood",
+ "feat": false,
+ "title": "State Space Models Run on a Fixed-Size State, and Recall Pays for It",
+ "dek": "A state space model folds every token into one box that never grows. New papers enlarge the box, park evidence beside it, and even pass it between models.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is a state space model? A sequence model that folds each token into a fixed-size state, so memory stays flat at any length. The cost is recall, and new papers attack exactly that.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+QSB0cmFuc2Zvcm1lciBrZWVwcyBldmVyeSBwYWdlOyBhIHN0YXRlIHNwYWNlIG1vZGVsIGtlZXBzIG9uZSBmaXhlZCBib3g8L3RpdGxlPgogIDxkZXNjPlRvcDogYSBLViBjYWNoZSB0aGF0IGFkZHMgb25lIHJvdyBwZXIgdG9rZW4gYW5kIGtlZXBzIGdyb3dpbmcuIEJvdHRvbTogYSByZWN1cnJlbnQgc3RhdGUgb2YgZml4ZWQgc2l6ZSB0aGF0IGV2ZXJ5IHRva2VuIGlzIGZvbGRlZCBpbnRvLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIj5TdGF0ZSBzcGFjZSBtb2RlbHM6IGEgZml4ZWQgYm94IGZvciB0aGUgcGFzdDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA4IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+RmxhdCBtZW1vcnkgcGVyIHRva2VuLCBwYWlkIGZvciBpbiB3aGF0IHRoZSBib3ggY2FuIHJlY2FsbDwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjE3NSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlRyYW5zZm9ybWVyPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIyMDMiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5vbmUga2V5IGFuZCB2YWx1ZSBwZXIgdG9rZW48L3RleHQ+CiAgPHJlY3QgeD0iMzMwIiB5PSIxNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzdhYTJmZiIvPgogIDxyZWN0IHg9IjM3NSIgeT0iMTYwIiB3aWR0aD0iNDAiIGhlaWdodD0iNjAiIGZpbGw9IiM3YWEyZmYiLz4KICA8cmVjdCB4PSI0MjAiIHk9IjE2MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjN2FhMmZmIi8+CiAgPHJlY3QgeD0iNDY1IiB5PSIxNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzdhYTJmZiIvPgogIDxyZWN0IHg9IjUxMCIgeT0iMTYwIiB3aWR0aD0iNDAiIGhlaWdodD0iNjAiIGZpbGw9IiM3YWEyZmYiLz4KICA8cmVjdCB4PSI1NTUiIHk9IjE2MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjN2FhMmZmIi8+CiAgPHJlY3QgeD0iNjAwIiB5PSIxNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzdhYTJmZiIvPgogIDxyZWN0IHg9IjY0NSIgeT0iMTYwIiB3aWR0aD0iNDAiIGhlaWdodD0iNjAiIGZpbGw9IiM3YWEyZmYiLz4KICA8cmVjdCB4PSI2OTAiIHk9IjE2MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjN2FhMmZmIi8+CiAgPHJlY3QgeD0iNzM1IiB5PSIxNjAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI2MCIgZmlsbD0iIzdhYTJmZiIvPgogIDxyZWN0IHg9Ijc4MCIgeT0iMTYwIiB3aWR0aD0iNDAiIGhlaWdodD0iNjAiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNiIvPgogIDxyZWN0IHg9IjgyNSIgeT0iMTYwIiB3aWR0aD0iNDAiIGhlaWdodD0iNjAiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNCIvPgogIDxsaW5lIHgxPSI4ODAiIHkxPSIxOTAiIHgyPSIxMTEwIiB5Mj0iMTkwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgOCIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHRleHQgeD0iMTAwMCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+a2VlcHMgZ3Jvd2luZzwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjM1NSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlN0YXRlIHNwYWNlIG1vZGVsPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIzODMiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5ldmVyeSB0b2tlbiBmb2xkZWQgaW50byBvbmUgc3RhdGU8L3RleHQ+CiAgPHJlY3QgeD0iMzMwIiB5PSIzMzUiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIvPgogIDxyZWN0IHg9IjM4MCIgeT0iMzM1IiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSI2IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiLz4KICA8cmVjdCB4PSI0MzAiIHk9IjMzNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0Ii8+CiAgPHJlY3QgeD0iNDgwIiB5PSIzMzUiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIvPgogIDx0ZXh0IHg9IjQyNSIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+dG9rZW5zLCBvbmUgYXQgYSB0aW1lPC90ZXh0PgogIDxsaW5lIHgxPSI1MzAiIHkxPSIzNTUiIHgyPSI2ODAiIHkyPSIzNTUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8cmVjdCB4PSI2OTAiIHk9IjI5MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIxMzAiIHJ4PSIxMCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI3NTUiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPnN0YXRlPC90ZXh0PgogIDx0ZXh0IHg9Ijc1NSIgeT0iMzc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+Zml4ZWQgc2l6ZTwvdGV4dD4KICA8dGV4dCB4PSIxMDAwIiB5PSIzNDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5zYW1lIHNpemUgYXQgYW55IGxlbmd0aDwvdGV4dD4KICA8dGV4dCB4PSIxMDAwIiB5PSIzNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5vbGQgZGV0YWlsIGdldHMgb3ZlcndyaXR0ZW48L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSI1MzUiIHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjU2IiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iNTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+QmlnZ2VyIHN0YXRlcywgc2lkZSBzdG9yZXMgYW5kIHBvcnRhYmxlIHN0YXRlcyBhcmUgYWxsIHdheXMgdG8gc29mdGVuIHRoYXQgdHJhZGU8L3RleHQ+Cjwvc3ZnPgo=",
+  "alt": "A transformer's KV cache adds a block per token and keeps growing; a state space model folds tokens into one fixed box.",
+  "caption": "The whole design comes down to one box that never grows, and what it forgets as a result.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is a state space model? How a fixed-size recurrent state replaces the KV cache, where recall breaks, and four new fixes beyond the transformer.",
+ "keywords": [
+  "what is a state space model",
+  "Beyond the transformer",
+  "state space models",
+  "linear attention",
+  "Gated DeltaNet",
+  "recurrent language models",
+  "looped transformer"
+ ],
+ "kicker": "Under the hood",
+ "tags": [
+  "state space models",
+  "Under the hood"
+ ],
+ "read": 8,
+ "decisions": [
+  "Test exact recall at your real context length before swapping attention layers for recurrent ones.",
+  "Give a recurrent model an exact side store when the task needs verbatim lookup.",
+  "Reach for recurrent depth when the task tracks changing state, such as counters or permutations.",
+  "Treat state handoff between models as research, not as plumbing you can ship."
+ ],
+ "layout": "mechanism",
+ "arrangement": "b",
+ "special": {
+  "type": "lab",
+  "title": "Try it yourself",
+  "items": [
+   {
+    "step": "Write the recurrence",
+    "how": "In a notebook, implement the gated delta step shown above with numpy and a small key dimension.",
+    "look_for": "A state matrix whose shape never changes, however many tokens you feed it."
+   },
+   {
+    "step": "Store and query pairs",
+    "how": "Generate random unit-length keys and values, write them one by one, then read each back using its own key as the query.",
+    "look_for": "Near-perfect recall for a few pairs, falling away as the pair count approaches the key dimension."
+   },
+   {
+    "step": "Grow the state",
+    "how": "Raise the key dimension and run the same store-and-query test again.",
+    "look_for": "Recall holds for more pairs before it starts to slide."
+   },
+   {
+    "step": "Add a note bank",
+    "how": "Keep an exact dictionary of the keys and values beside the state, and read from it when a query closely matches a stored key.",
+    "look_for": "Recall returns to near perfect, paid for with memory that grows with what you store."
+   },
+   {
+    "step": "Compare with a KV cache",
+    "how": "Track memory for a softmax-attention version that keeps every key and value it has seen.",
+    "look_for": "Its memory climbs with every token, and the recurrent state stays flat."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "One fixed-size state is the whole bet",
+    "num": "01",
+    "id": "one-fixed-size-state-is-the-whole-bet"
+   }
+  ],
+  [
+   "p",
+   "Feed a Gated DeltaNet model 1M tokens and ask it to find planted facts. Across six RULER retrieval tasks, its mean accuracy was 1.7% [2]. Gated DeltaNet is a linear-attention model, a close cousin of state space models like Mamba. It runs cheaply at any length. It also lost almost everything you asked it to find. So what is a state space model, and why does it forget?"
+  ],
+  [
+   "p",
+   "Start with the transformer. It keeps a key and a value for every token it has read. Memory grows with the context, and each new token looks back over all of it. A recurrent model does something else. It reads one token at a time and compresses the history into a memory state of fixed size [1]. Inference time per token stays constant [1]."
+  ],
+  [
+   "p",
+   "That fixed size is the trade. You get flat memory and flat cost per token. You give up exact recall, because a box that never grows cannot hold a growing past word for word. One research team frames the tension well: a single state has to drive the current computation and also preserve old information [2]. We think every idea below is a way to soften that trade."
+  ],
+  [
+   "h2",
+   {
+    "text": "The state update is an outer product and a gate",
+    "num": "02",
+    "id": "the-state-update-is-an-outer-product-and-a-gate"
+   }
+  ],
+  [
+   "p",
+   "Here is the core step of linear attention, the simplest member of the family. Each token produces a query, a key and a value vector. The model writes the outer product of key and value into a matrix-valued state [1]. Picture a grid indexed by key dimension one way and value dimension the other. To read, the model multiplies that grid by the query."
+  ],
+  [
+   "p",
+   "Ordinary RNNs carry a vector as their hidden state [1]. Linear attention upgrades it to a matrix [1]. The authors of a new arXiv paper on triadic attention credit that larger state for much of its comeback [1]. The write is cheap, too. It needs nothing beyond the key and value projections the model already has [1]."
+  ],
+  [
+   "p",
+   "Two refinements keep the grid from silting up. Data-dependent forgetting is a learned gate that decays the old state before each write. The delta rule reads what the state already predicts for this key, then writes only the correction. Gated DeltaNet, as the name says, uses both. Training need not crawl token by token either, since chunkwise-parallel training handles blocks of tokens at once [1]."
+  ],
+  [
+   "code",
+   {
+    "label": "One token of a gated delta-rule recurrence (illustrative numpy)",
+    "language": "python",
+    "source": "import numpy as np\n\ndef gated_delta_step(S, q, k, v, gate, beta):\n    \"\"\"S: (d_v, d_k) state; q, k: (d_k,); v: (d_v,); gate, beta are scalars in (0, 1).\"\"\"\n    S = gate * S                           # forget a little of the past\n    pred = S @ k                           # what the state already says about k\n    S = S + beta * np.outer(v - pred, k)   # write only the correction\n    y = S @ q                              # read with the query\n    return S, y                            # S has the same shape forever"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "One token's trip through a gated delta-rule state update.",
+    "steps": [
+     "Project the token into a query, a key and a value",
+     "Decay the old state with a learned gate",
+     "Ask the state what it predicts for the new key",
+     "Write the correction as an outer product",
+     "Read the updated state with the query"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Bigger states buy more recall",
+    "num": "03",
+    "id": "bigger-states-buy-more-recall"
+   }
+  ],
+  [
+   "p",
+   "If the state is the memory, its size caps what the model can recall. Triadic linear attention takes that literally [1]. Each write combines two keys and a value into one outer product, stored in a 3D tensor [1]. Reading contracts both key axes against two queries [1]. Think of it as stacking many grids, with the second key choosing the layer."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+RnJvbSBhIG1hdHJpeCBzdGF0ZSB0byBhIHRoaXJkLW9yZGVyIHRlbnNvciBzdGF0ZTwvdGl0bGU+CiAgPGRlc2M+TGluZWFyIGF0dGVudGlvbiB3cml0ZXMga2V5IHRpbWVzIHZhbHVlIGludG8gYSBtYXRyaXguIFRyaWFkaWMgbGluZWFyIGF0dGVudGlvbiB3cml0ZXMga2V5LCBzZWNvbmQga2V5IGFuZCB2YWx1ZSBpbnRvIGEgM0QgdGVuc29yLCByZWFkIHdpdGggdHdvIHF1ZXJpZXMuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPk1ha2luZyB0aGUgYm94IGJpZ2dlciB3aXRob3V0IG1hbnkgbmV3IHdlaWdodHM8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPlRoZSB3cml0ZSBpcyBhbiBvdXRlciBwcm9kdWN0OyB0cmlhZGljIGF0dGVudGlvbiBhZGRzIG9uZSBtb3JlIGF4aXM8L3RleHQ+CgogIDx0ZXh0IHg9IjMwMCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+TGluZWFyIGF0dGVudGlvbjwvdGV4dD4KICA8cmVjdCB4PSIyMDAiIHk9IjIwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGxpbmUgeDE9IjI1MCIgeTE9IjIwMCIgeDI9IjI1MCIgeTI9IjQwMCIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPGxpbmUgeDE9IjMwMCIgeTE9IjIwMCIgeDI9IjMwMCIgeTI9IjQwMCIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPGxpbmUgeDE9IjM1MCIgeTE9IjIwMCIgeDI9IjM1MCIgeTI9IjQwMCIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPGxpbmUgeDE9IjIwMCIgeTE9IjI1MCIgeDI9IjQwMCIgeTI9IjI1MCIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPGxpbmUgeDE9IjIwMCIgeTE9IjMwMCIgeDI9IjQwMCIgeTI9IjMwMCIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPGxpbmUgeDE9IjIwMCIgeTE9IjM1MCIgeDI9IjQwMCIgeTI9IjM1MCIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iMzAwIiB5PSI0MzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5heGlzOiBrZXk8L3RleHQ+CiAgPHRleHQgeD0iMTgwIiB5PSIzMDUiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij52YWx1ZTwvdGV4dD4KICA8dGV4dCB4PSIzMDAiIHk9IjQ3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPndyaXRlOiB2YWx1ZSDiipcga2V5PC90ZXh0PgogIDx0ZXh0IHg9IjMwMCIgeT0iNTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+cmVhZDogc3RhdGUgwrcgcXVlcnk8L3RleHQ+CgogIDx0ZXh0IHg9Ijg1MCIgeT0iMTcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+VHJpYWRpYyBsaW5lYXIgYXR0ZW50aW9uPC90ZXh0PgogIDxwb2x5Z29uIHBvaW50cz0iNzYwLDI0MCA5NDAsMjQwIDEwMDAsMTkwIDgyMCwxOTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI5NDAsMjQwIDEwMDAsMTkwIDEwMDAsMzcwIDk0MCw0MjAiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iNzYwIiB5PSIyNDAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9Ijg1MCIgeT0iNDUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+YXhpczoga2V5PC90ZXh0PgogIDx0ZXh0IHg9Ijc0MCIgeT0iMzM1IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+dmFsdWU8L3RleHQ+CiAgPHRleHQgeD0iMTAxMCIgeT0iMjcwIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+c2Vjb25kIGtleTwvdGV4dD4KICA8dGV4dCB4PSI4NTAiIHk9IjQ4NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPndyaXRlOiB2YWx1ZSDiipcga2V5IOKKlyBrZXkyPC90ZXh0PgogIDx0ZXh0IHg9Ijg1MCIgeT0iNTE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+cmVhZDogY29udHJhY3QgYm90aCBrZXkgYXhlcyB3aXRoIHR3byBxdWVyaWVzPC90ZXh0PgoKICA8dGV4dCB4PSI2MDAiIHk9IjU2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPlRoZSBuZXcgYXhpcyBncm93cyB0aGUgc3RhdGU7IHRoZSBjb3N0IGluIHdlaWdodHMgaXMgdHdvIGV4dHJhIHByb2plY3Rpb25zPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A square matrix state written by value times key, beside a cube-shaped state that adds a second key axis.",
+    "caption": "Triadic linear attention adds one axis to the state and pays for it with two projections.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "The memory state size is a crucial factor in their performance, as exemplified by the strong performance and resurgence of linear attention, which extends the vector-valued hidden states of ordinary RNNs to matrix-valued hidden states.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "The cost is small. A second key with E dimensions grows the state E-fold, for just two extra projections [1]. The authors added it to Gated DeltaNet and to scalar-gated linear attention [1]. Both improved at long-context language modelling and recall [1]. They also beat other methods that enlarge the state [1]. The method still works with forgetting gates and the delta rule [1]."
+  ],
+  [
+   "p",
+   "We like this result because it isolates one variable. The update rule stays put; only the shape of the box changes. The abstract gives no figures, though. So how far recall climbs is unknown from here. Our expectation is that it narrows the gap to full attention. Closing it would need recall that no fixed box can promise."
+  ],
+  [
+   "h2",
+   {
+    "text": "A note bank stores what the state cannot",
+    "num": "04",
+    "id": "a-note-bank-stores-what-the-state-cannot"
+   }
+  ],
+  [
+   "p",
+   "The second fix stops asking the state to remember everything. NoteBank, from a new arXiv paper, adds a sparse episodic memory beside the recurrent state [2]. It archives chosen text before anyone knows what will be asked [2]. Writing and addressing reuse the backbone's own features [2]. At question time, retrieved passages are replayed through the model's normal forward pass [2]."
+  ],
+  [
+   "p",
+   "It needs no outside embedding model, no trained retriever and no separate reader, and nothing is retrained [2]. At 1M tokens, Gated DeltaNet's mean accuracy on six RULER retrieval tasks rose from 1.7% to 70.3% [2]. The authors saw no significant retrieval drop between 4K and 1M tokens [2]. The added compute was at most 0.025% of analytical FLOPs [2]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "We challenge this presumed ceiling: recurrent computation need not bear the full burden of long-term storage.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "Storage is the striking part. The archived context needs about 1/2,600 of the storage of a transformer's full multi-head KV cache [2]. That comparison holds width, depth and precision equal [2]. Gains held from 1.3B recurrent backbones up to Mamba-2-8B and a post-trained Qwen3.5-9B [2]. In our view this is the most practical idea here. It admits the state is lossy and keeps the evidence somewhere exact."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Mean accuracy on six RULER retrieval tasks at 1M tokens, in percent.",
+    "unit": "percent mean accuracy",
+    "bars": [
+     {
+      "label": "Gated DeltaNet alone",
+      "value": 1.7
+     },
+     {
+      "label": "Gated DeltaNet with NoteBank",
+      "value": 70.3
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Hybrid models can hand their state to a sibling",
+    "num": "05",
+    "id": "hybrid-models-can-hand-their-state-to-a-sibling"
+   }
+  ],
+  [
+   "p",
+   "Hybrid models stack attention layers, which keep a KV cache, with recurrent layers, which keep a state. Qwen3.5 is built that way [3]. A new arXiv paper called LatentPort asks a pointed question. Can a small model pass its live memory to a bigger one, so the bigger one never rereads the prompt [3]?"
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+QSBoeWJyaWQgbW9kZWwgaGFuZHMgaXRzIGxpdmUgc3RhdGUgdG8gYSBsYXJnZXIgc2libGluZzwvdGl0bGU+CiAgPGRlc2M+VGhlIFF3ZW4zLjUgNEIgbW9kZWwgcmVhZHMgdGhlIGNvbnRleHQ7IGl0cyB0cmFuc2xhdGVkIEtWIGNhY2hlIHBsdXMgY29waWVkIHJlY3VycmVudCBhbmQgY29udm9sdXRpb24gc3RhdGUgZ28gdG8gdGhlIDlCIG1vZGVsLCB3aGljaCBjb250aW51ZXMgd2l0aG91dCByZXJlYWRpbmcgdGhlIHByZWZpeC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+SGFuZGluZyBvdmVyIG1lbW9yeSBpbnN0ZWFkIG9mIHJlcmVhZGluZzwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA1IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+T25lIHRlc3RlZCBkaXJlY3Rpb246IFF3ZW4zLjUgNEIgdG8gOUIsIDRLLXRva2VuIGNvbnRpbnVhdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjIwMCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxNDAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjI1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPjRCIG1vZGVsPC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMjg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+cmVhZHMgdGhlIGNvbnRleHQgb25jZTwvdGV4dD4KCiAgPHJlY3QgeD0iNDAwIiB5PSIxNjAiIHdpZHRoPSIzODAiIGhlaWdodD0iMjIwIiByeD0iMTQiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTkwIiB5PSIyMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5TdGF0ZSBwYWNrYWdlPC90ZXh0PgogIDxyZWN0IHg9IjQzMCIgeT0iMjIwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjU5MCIgeT0iMjQ2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+YXR0ZW50aW9uIEtWLCB0cmFuc2xhdGVkPC90ZXh0PgogIDxyZWN0IHg9IjQzMCIgeT0iMjcwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iNTkwIiB5PSIyOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5HYXRlZCBEZWx0YU5ldCBzdGF0ZSwgY29waWVkPC90ZXh0PgogIDxyZWN0IHg9IjQzMCIgeT0iMzIwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iNTkwIiB5PSIzNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5jb252b2x1dGlvbiBzdGF0ZSwgY29waWVkPC90ZXh0PgoKICA8cmVjdCB4PSI4OTAiIHk9IjIwMCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIxNDAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMDE1IiB5PSIyNTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj45QiBtb2RlbDwvdGV4dD4KICA8dGV4dCB4PSIxMDE1IiB5PSIyODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5jb250aW51ZXMsIHplcm8gcHJlZml4PC90ZXh0PgogIDx0ZXh0IHg9IjEwMTUiIHk9IjMwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnRva2VucyByZXByb2Nlc3NlZDwvdGV4dD4KCiAgPGxpbmUgeDE9IjI5MCIgeTE9IjI3MCIgeDI9IjM5NSIgeTI9IjI3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI3ODAiIHkxPSIyNzAiIHgyPSI4ODUiIHkyPSIyNzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KCiAgPHJlY3QgeD0iNjAiIHk9IjQzMCIgd2lkdGg9IjEwODAiIGhlaWdodD0iMTEwIiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iNDcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+S1YgYWxvbmUgbGVmdCBhIGxhcmdlIGdhcC4gQWRkaW5nIHRoZSByZWN1cnJlbnQgc3RhdGUgY3V0IGxvc3MgYnkgMC43NDcgbmF0cyBwZXIgdG9rZW4uPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iNTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+Tm90IHlldCBzaG93bjogZnJlZSBnZW5lcmF0aW9uLCB0aGUgcmV2ZXJzZSBkaXJlY3Rpb24sIG90aGVyIG1vZGVsIHBhaXJzPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A 4B model passes translated KV plus copied recurrent and convolution state to a 9B model that skips rereading.",
+    "caption": "The recurrent part of the state, not the KV cache, closed most of the handoff gap.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The author tested one matched pair, Qwen3.5 4B handing off to 9B [3]. Translating the attention KV cache alone left a large gap [3]. Adding the Gated DeltaNet state cut next-token loss by 0.747 nats per token, and all 64 PG19 documents improved [3]. Nats measure log-loss, so lower is better. A 434,176-parameter correction brought loss within 0.076 nats per token of the native 9B [3]."
+  ],
+  [
+   "p",
+   "Copying the recurrent state directly beat the learned mappings the author tried [3]. That hints the two sizes keep state in partly compatible coordinates [3]. The author lists the limits plainly: one direction, one pair, 4K continuation, and no 16K run [3]. We count it as a proof of possibility. A general state interface remains unproven, as the paper itself says [3]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Recurrence can also run through depth",
+    "num": "06",
+    "id": "recurrence-can-also-run-through-depth"
+   }
+  ],
+  [
+   "p",
+   "Transformers have a recurrence problem of their own. Tracking state needs an update at every input, yet a transformer gives each token the same fixed depth [4]. The Recurrent Looped Transformer divides its layers in two [4]. A causal encoder runs over tokens in parallel, and a decoder runs recurrently [4]. Each token's decoder pass takes the encoder output plus the last decoder state from the token before [4]."
+  ],
+  [
+   "p",
+   "So the computation path lengthens with the sequence, at a fixed cost per token [4]. Trained on at most 40 bits, two splits got parity right on inputs of 256 bits, scoring 100% on every seed [4]. An eight-layer transformer stayed at chance [4]. On modular arithmetic past the training lengths, the looped model reached up to 93% against 33% [4]."
+  ],
+  [
+   "p",
+   "The feedback carries the whole effect. Removing it dropped parity and permutation tracking to chance at every split [4]. Updating feedback once per four-token chunk kept 64-bit parity at 99%, but cut length-64 permutation tracking from 100% to 20% [4]. Vision has a cousin: one block applied repeatedly matched DeiT III accuracy with about 70% fewer stored parameters [5]. We read both as one lesson. Depth that loops can track what fixed depth cannot."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Recurrent Looped Transformer against an eight-layer transformer on state-tracking tasks.",
+    "columns": [
+     "Task",
+     "Looped transformer",
+     "Eight-layer transformer"
+    ],
+    "rows": [
+     [
+      "Parity out to 256 bits, trained on at most 40",
+      "100% in every seed",
+      "Chance"
+     ],
+     [
+      "Swap-based permutation tracking, beyond training length",
+      "97% final-state accuracy",
+      "Under 1%"
+     ],
+     [
+      "Modular arithmetic beyond training lengths",
+      "Up to 93%",
+      "33%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Recall under a fixed state is still unmeasured",
+    "num": "07",
+    "id": "recall-under-a-fixed-state-is-still-unmeasured"
+   }
+  ],
+  [
+   "p",
+   "The open question is how far a fixed state can go without help. Triadic attention improves recall, but its abstract gives no numbers to size the gain [1]. NoteBank recovers recall by stepping outside the state [2]. LatentPort moved state between models, yet free generation after a handoff is still unshown [3]."
+  ],
+  [
+   "p",
+   "Speed is the other gap. NoteBank reports a tiny FLOP overhead, but its abstract gives no wall-clock latency for replay at 1M tokens [2]. The looped model's wins come from algorithmic tasks over three seeds, not from language modelling [4]. Nobody here has shown a fixed state holding exact recall at long range by itself."
+  ],
+  [
+   "p",
+   "You can measure the core trade on a laptop. Write random key-value pairs into a small linear-attention state, then query them back. Plot recall against the number of pairs for two state sizes. Then add an exact lookup beside the state and watch recall return. That curve shows you where a fixed box starts losing things."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is a state space model?"
+  ],
+  [
+   "p",
+   "A state space model is a sequence model that folds each new token into a fixed-size state. Memory and cost per token stay flat at any length. Linear attention and Gated DeltaNet belong to the same recurrent family [1]. The price is recall. At 1M tokens, one Gated DeltaNet model averaged 1.7% on six RULER retrieval tasks [2]."
+  ],
+  [
+   "h3",
+   "Are state space models better than transformers?"
+  ],
+  [
+   "p",
+   "They are cheaper at long lengths and weaker at exact recall, so neither wins outright. A fixed state keeps memory flat, where a transformer's KV cache grows with every token. Recurrence also helps with state tracking. One looped design solved parity out to 256 bits where a plain transformer stayed at chance [4]."
+  ],
+  [
+   "h3",
+   "How does linear attention work in recurrent models?"
+  ],
+  [
+   "p",
+   "Linear attention writes the outer product of each key and value into a matrix state, then reads it by multiplying with a query [1]. That turns attention into a recurrence with fixed memory. A learned gate can decay old content, and the delta rule writes only the correction to what the state already predicts [1]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Triadic Linear Attention: Three-Dimensional Recurrent States for Long-Context Sequence Modeling",
+   "url": "https://huggingface.co/papers/2609.36529",
+   "posted": "2026-09-29"
+  },
+  {
+   "n": 2,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "History Replays Itself: Unleashing Long-Context Capability in Linear Attention",
+   "url": "https://huggingface.co/papers/2610.15715",
+   "posted": "2026-10-11"
+  },
+  {
+   "n": 3,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "LatentPort: Beyond KV Cache - Cross-Model Transfer of Recurrent Memory in Hybrid Language Models: A 4B-to-9B Hybrid-State Handoff Without Target Prefix Replay",
+   "url": "https://huggingface.co/papers/2609.25053",
+   "posted": "2026-09-07"
+  },
+  {
+   "n": 4,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Recurrent Looped Transformer",
+   "url": "https://huggingface.co/papers/2610.07591",
+   "posted": "2026-10-06"
+  },
+  {
+   "n": 5,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "One Block, Multiple Depths: Recurrent Vision Transformers with Depth-Programmed Experts",
+   "url": "https://huggingface.co/papers/2610.12448",
+   "posted": "2026-10-08"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:26:41+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "hfpapers:2609.36529",
+   "hfpapers:2610.15715",
+   "hfpapers:2609.25053",
+   "hfpapers:2610.12448",
+   "hfpapers:2610.07591"
+  ],
+  "platforms": {
+   "Hugging Face": 5
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "under-the-hood:concept/architectures",
+  "format": "under-the-hood",
+  "reviewed_by": null
+ }
+}

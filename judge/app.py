@@ -2799,6 +2799,14 @@ def blog_posts_method() -> dict:
     from judge import blog_method
 
     out = blog_method.method()
+    # THE NEWSROOM RULES every post is written and checked by (blog_rules.yaml,
+    # 2026-10-20), shown in Admin -> Blogs beside how a post is made.
+    try:
+        from judge import blog_rules
+
+        out["newsroom"] = blog_rules.rules()
+    except Exception as e:  # noqa: BLE001 - the method still shows without the rules
+        out["newsroom"] = {"available": False, "reason": _safe_detail(e)}
     try:
         out["prompt"] = _blog_prompt_parts()
     except Exception as e:  # noqa: BLE001 - the method still shows without the prompt

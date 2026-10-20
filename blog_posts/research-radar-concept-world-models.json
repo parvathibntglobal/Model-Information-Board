@@ -1,0 +1,515 @@
+{
+ "slug": "research-radar-concept-world-models",
+ "status": "draft",
+ "tag": "Research radar",
+ "feat": false,
+ "title": "World Models Are Becoming the Checker That LLM Agents Lack",
+ "dek": "New world models predict what an action will do before anyone runs it. The freshest ones read graphs, worldbooks and an agent's own reasoning, not just pixels.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is a world model in AI? A model that predicts what an action will do before it runs. The newest ones check LLM agents' plans, and some adapt to unseen physics.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+V29ybGQgbW9kZWxzIHByZWRpY3QgYmVmb3JlIHRoZSBhZ2VudCBhY3RzPC90aXRsZT4KICA8ZGVzYz5BbiBhZ2VudCBwcm9wb3NlcyBhbiBhY3Rpb24uIEEgd29ybGQgbW9kZWwgcHJlZGljdHMgdGhlIHJlc3VsdDogYSBncmFwaCwgYSBsYXRlbnQsIGEgd29ybGRib29rIG9yIGEgbW9kZWwgb2YgdGhlIGFnZW50J3Mgb3duIHN0YXRlLiBWYWxpZCBhY3Rpb25zIHJlYWNoIHRoZSB3b3JsZDsgaW52YWxpZCBvbmVzIGdvIGJhY2suPC9kZXNjPgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJnIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2ZmN2I3MiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiPldvcmxkIG1vZGVsczogdHJ5IGl0IGluIHRoZSBoZWFkIGZpcnN0PC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5UaGUgbmV3ZXN0IG9uZXMgc2l0IGJldHdlZW4gYW4gTExNIGFnZW50IGFuZCB0aGUgcmVhbCB3b3JsZDwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjI0MCIgd2lkdGg9IjIzMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNzUiIHk9IjI5MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiPkxMTSBhZ2VudDwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjMyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnByb3Bvc2VzIGFuIGFjdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iNDAwIiB5PSIxNzAiIHdpZHRoPSIzODAiIGhlaWdodD0iMjYwIiByeD0iMTYiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNTkwIiB5PSIyMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM3YWEyZmYiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIj5Xb3JsZCBtb2RlbDwvdGV4dD4KICA8dGV4dCB4PSI1OTAiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnByZWRpY3RzIHRoZSByZXN1bHQ8L3RleHQ+CiAgPHJlY3QgeD0iNDI1IiB5PSIyNjIiIHdpZHRoPSIxNjAiIGhlaWdodD0iNTYiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iNTA1IiB5PSIyOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5ncmFwaDwvdGV4dD4KICA8cmVjdCB4PSI2MDAiIHk9IjI2MiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2ODAiIHk9IjI5NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmVudmlyb25tZW50IGxhdGVudDwvdGV4dD4KICA8cmVjdCB4PSI0MjUiIHk9IjMzMiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI1MDUiIHk9IjM2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPndvcmxkYm9vazwvdGV4dD4KICA8cmVjdCB4PSI2MDAiIHk9IjMzMiIgd2lkdGg9IjE2MCIgaGVpZ2h0PSI1NiIgcng9IjgiIGZpbGw9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2ODAiIHk9IjM2NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmFnZW50J3Mgb3duIHN0YXRlPC90ZXh0PgoKICA8cmVjdCB4PSI5MDAiIHk9IjI0MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMDIwIiB5PSIyOTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIj5SZWFsIHdvcmxkPC90ZXh0PgogIDx0ZXh0IHg9IjEwMjAiIHk9IjMyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnJvYm90LCByb2FkLCB0b29sczwvdGV4dD4KCiAgPGxpbmUgeDE9IjI5MCIgeTE9IjMwMCIgeDI9IjM5NSIgeTI9IjMwMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI3ODAiIHkxPSIzMDAiIHgyPSI4OTUiIHkyPSIzMDAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycmcpIi8+CiAgPHRleHQgeD0iODM4IiB5PSIyODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij52YWxpZDwvdGV4dD4KICA8cGF0aCBkPSJNNTkwLDQzMCBMNTkwLDQ5MCBMMTc1LDQ5MCBMMTc1LDM2NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJycikiLz4KICA8dGV4dCB4PSIzODAiIHk9IjUyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPnZpb2xhdGlvbjogcmVwYWlyIG9yIHJlcGxhbjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjU1NSIgd2lkdGg9IjEwODAiIGhlaWdodD0iNDYiIHJ4PSIxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iNjAwIiB5PSI1ODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5PcGVuIHByb2JsZW06IG5vdGhpbmcgeWV0IGNoZWNrcyB0aGUgd29ybGQgbW9kZWwgaXRzZWxmPC90ZXh0Pgo8L3N2Zz4K",
+  "alt": "An agent's proposed action goes to a world model that predicts the result; only safe, valid actions reach the real world.",
+  "caption": "The new world models sit between an agent and the world, predicting consequences before anything runs.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is a world model in AI? A model that predicts what an action will do. Six new papers use them to check robot plans, agent steps and driving orders.",
+ "keywords": [
+  "what is a world model in AI",
+  "world models",
+  "world models for LLM agents",
+  "graph world model",
+  "robotic world models",
+  "language world models"
+ ],
+ "kicker": "Research radar",
+ "tags": [
+  "world models",
+  "Research radar"
+ ],
+ "read": 7,
+ "decisions": [
+  "Put a cheap consequence check between an LLM's plan and any real action.",
+  "Send only errors that need judgement back to the LLM; repair the mechanical ones in code.",
+  "Judge any simulator by whether its lessons hold when replayed against the real system.",
+  "Treat a world model's prediction as a hint until its error rate is measured."
+ ],
+ "layout": "radar",
+ "arrangement": "a",
+ "special": {
+  "type": "radar",
+  "title": "On the radar",
+  "items": [
+   {
+    "item": "GAVEL graph world model",
+    "what": "A graph of objects, preconditions and effects that checks and repairs an LLM's robot plan before execution.",
+    "why": "It lifted single-task success from 41.2% to 91.8% with a compact model, and the pattern carries to software agents.",
+    "stage": "early results",
+    "source": 1,
+    "ref": {
+     "title": "GAVEL: Graph World Models for Verified and Efficient Long-Horizon LLM Task Planning",
+     "url": "https://huggingface.co/papers/2609.19315",
+     "platform": "Hugging Face"
+    }
+   },
+   {
+    "item": "T2-Z environment latents",
+    "what": "A learnable latent that adapts a frozen robotic world model to unseen physics at test time.",
+    "why": "It adapts without retraining, from as little as one interaction trajectory.",
+    "stage": "early results",
+    "source": 6,
+    "ref": {
+     "title": "T2-z: Test-Time Optimization of Environment Latents for Robotic World Models",
+     "url": "https://arxiv.org/abs/2610.22364v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Trace2Env worldbook",
+    "what": "A training-free world model agent that simulates a lost environment from its old interaction traces.",
+    "why": "Plans made against it held up better when rerun on the real system.",
+    "stage": "early results",
+    "source": 3,
+    "ref": {
+     "title": "From Traces to Agentic Worlds: Agentic Language World Models for Interactive Environment Simulation",
+     "url": "https://huggingface.co/papers/2610.06100",
+     "platform": "Hugging Face"
+    }
+   },
+   {
+    "item": "AEWM and EditAct",
+    "what": "A world model of the agent's own reasoning that judges and rewrites noisy steps during real execution.",
+    "why": "It attacks stale assumptions in agent history, a failure tool-output simulators ignore.",
+    "stage": "early results",
+    "source": 5,
+    "ref": {
+     "title": "Agent-Editing World Model: Rethinking World Modeling for LLM Agents",
+     "url": "https://huggingface.co/papers/2609.28416",
+     "platform": "Hugging Face"
+    }
+   },
+   {
+    "item": "Navigation-conditioned dreaming",
+    "what": "A driving world model that imagines following a spoken instruction exactly before the car obeys.",
+    "why": "Against the best SimLingo variant, collisions after unsafe orders fell from 60 to 38.",
+    "stage": "early results",
+    "source": 2,
+    "ref": {
+     "title": "SafeDriveVLA: Navigation-Conditioned World Model Dreaming for Conflict-Aware End-to-End Autonomous Driving",
+     "url": "https://huggingface.co/papers/2610.20609",
+     "platform": "Hugging Face"
+    }
+   },
+   {
+    "item": "Spatial Memory Intelligence",
+    "what": "A multimodal language model that clusters, prunes, retrieves and filters a video world model's spatial memory.",
+    "why": "Long video worlds lose spatial consistency as memory grows, and this hands curation to a model that understands space.",
+    "stage": "new idea",
+    "source": 4,
+    "ref": {
+     "title": "Spatial Memory Intelligence: Endowing World Models with Understanding-Driven Long-Term Memory",
+     "url": "https://huggingface.co/papers/2610.02521",
+     "platform": "Hugging Face"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A world model learns hidden physics from a single try",
+    "num": "01",
+    "id": "a-world-model-learns-hidden-physics-from-a-single-try"
+   }
+  ],
+  [
+   "p",
+   "The newest idea: a robot's world model can work out the hidden rules of an unfamiliar setting at test time. Friction, mass and house rules are invisible in a camera frame [2]. A method called T2-Z learns a small environment latent for them. Its ablations show it can infer that latent from a single interaction trajectory [2]."
+  ],
+  [
+   "p",
+   "First, the basics. A world model predicts what the world will look like after an action. It lets an agent try a move in its head before trying it for real. Video world models predict future frames [3]. Language world models predict text observations, such as what a tool will return [4, 5]."
+  ],
+  [
+   "p",
+   "Why should LLM builders care? Agents keep failing on consequences, not on words. Plans ignore physical limits, and stale assumptions linger in history [1, 5]. Our read of this month's papers is simple. World models are turning into checkers that sit between an LLM and the world. That idea runs through every item below."
+  ],
+  [
+   "h2",
+   {
+    "text": "GAVEL checks an LLM's plan against a graph before the robot moves",
+    "num": "02",
+    "id": "gavel-checks-an-llm-s-plan-against-a-graph-before-the-robot-"
+   }
+  ],
+  [
+   "p",
+   "GAVEL is the clearest case of a world model as a checker [1]. LLM plans for long robot tasks often break embodiment limits, fail to recover from errors and struggle when objects are out of sight [1]. GAVEL builds an explicit graph of object relations, action preconditions and effects. It also keeps probabilistic beliefs about where unseen objects might be [1]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+VmVyaWZ5LCByZXBhaXIsIG9yIHJlcGxhbjwvdGl0bGU+CiAgPGRlc2M+RWFjaCBwbGFubmVkIGFjdGlvbiBpcyBwcmVkaWN0ZWQgYnkgYSBncmFwaCB3b3JsZCBtb2RlbC4gQSB2YWxpZCBhY3Rpb24gZXhlY3V0ZXMuIEEgdmlvbGF0aW9uIHdpdGggYSBtZWNoYW5pY2FsIGZpeCBpcyByZXBhaXJlZCBmcm9tIHRoZSBncmFwaC4gT25seSBlcnJvcnMgbmVlZGluZyBzZW1hbnRpYyByZWFzb25pbmcgZ28gYmFjayB0byB0aGUgTExNLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIj5UaGUgTExNIG9ubHkgaGVhcnMgYWJvdXQgdGhlIGhhcmQgZXJyb3JzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDYiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5BIGdyYXBoIG9mIG9iamVjdHMsIHByZWNvbmRpdGlvbnMgYW5kIGVmZmVjdHMgY2hlY2tzIGV2ZXJ5IHN0ZXA8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIyNTAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTEwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTcwIiB5PSIyOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5OZXh0IHBsYW5uZWQ8L3RleHQ+CiAgPHRleHQgeD0iMTcwIiB5PSIzMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5hY3Rpb248L3RleHQ+CgogIDxyZWN0IHg9IjM0MCIgeT0iMjUwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjExMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ2MCIgeT0iMjk4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+R3JhcGggcHJlZGljdHM8L3RleHQ+CiAgPHRleHQgeD0iNDYwIiB5PSIzMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5jb25zZXF1ZW5jZXMsIHZpb2xhdGlvbnM8L3RleHQ+CgogIDxsaW5lIHgxPSIyODAiIHkxPSIzMDUiIHgyPSIzMzUiIHkyPSIzMDUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KCiAgPHJlY3QgeD0iNjgwIiB5PSIxNTAiIHdpZHRoPSI0NjAiIGhlaWdodD0iOTAiIHJ4PSIxMiIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5MTAiIHk9IjE5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPlZhbGlkOiBleGVjdXRlPC90ZXh0PgogIDx0ZXh0IHg9IjkxMCIgeT0iMjE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+bm8gbW9kZWwgY2FsbCBuZWVkZWQ8L3RleHQ+CgogIDxyZWN0IHg9IjY4MCIgeT0iMjYwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjkwIiByeD0iMTIiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iI2U4YzI2YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iOTEwIiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGMyNmIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5NZWNoYW5pY2FsIGZpeDogcmVwYWlyIGZyb20gZ3JhcGg8L3RleHQ+CiAgPHRleHQgeD0iOTEwIiB5PSIzMjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij50aGUgY29ycmVjdGlvbiBmb2xsb3dzIGZyb20gdGhlIG1vZGVsPC90ZXh0PgoKICA8cmVjdCB4PSI2ODAiIHk9IjM3MCIgd2lkdGg9IjQ2MCIgaGVpZ2h0PSI5MCIgcng9IjEyIiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjkxMCIgeT0iNDEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+U2VtYW50aWMgZXJyb3I6IExMTSByZXBsYW5zPC90ZXh0PgogIDx0ZXh0IHg9IjkxMCIgeT0iNDM4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+anVkZ2VtZW50IHRoZSBncmFwaCBjYW5ub3Qgc3VwcGx5PC90ZXh0PgoKICA8cGF0aCBkPSJNNTgwLDI5MCBMNjMwLDE5NSBMNjc1LDE5NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI1ODAiIHkxPSIzMDUiIHgyPSI2NzUiIHkyPSIzMDUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8cGF0aCBkPSJNNTgwLDMyMCBMNjMwLDQxNSBMNjc1LDQxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8cmVjdCB4PSI2MCIgeT0iNTIwIiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSI2MCIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjU1NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPlNpbmdsZS10YXNrIHN1Y2Nlc3Mgd2l0aCBRd2VuMy04QjogNDEuMiUgd2l0aG91dCwgOTEuOCUgd2l0aDwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "An action is predicted by a graph; it runs if valid, gets repaired if the fix is mechanical, or goes back to the LLM.",
+    "caption": "GAVEL keeps the LLM for semantic errors and fixes mechanical ones from the graph itself.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "This model can predict the consequences of LLM-generated actions before execution, detect violations, and repair those whose corrections follow directly from the world model.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "Before any action runs, the graph predicts its consequences and flags violations [1]. If the fix follows straight from the graph, GAVEL repairs the step itself. The LLM is called to replan only for errors that need semantic reasoning [1]. For multi-task orders, it reorders remaining subtasks by where objects probably are, to cut search cost [1]."
+  ],
+  [
+   "p",
+   "The numbers are large. On BEHAVIOR-1K with Qwen3-8B, single-task success rose from 41.2% to 91.8% [1]. Multi-task success went from 19.9% to 92.6% [1]. Belief reasoning trimmed travel distance by about 5.4% against a static variant [1]. We think this is the most practical idea here, because you can copy the pattern without a robot."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative verify-then-act loop in the spirit of GAVEL (not its code)",
+    "language": "python",
+    "source": "def run_plan(plan, world, llm):\n    for action in plan:\n        predicted = world.predict(action)              # consequences before execution\n        problem = world.violation(action, predicted)   # unmet precondition, wrong object\n        if problem is None:\n            world.execute(action)\n        elif world.can_repair(problem):\n            world.execute(world.repair(action, problem))   # fix follows from the graph\n        else:\n            new_plan = llm.replan(world.state(), problem)  # only semantic errors reach the LLM\n            return run_plan(new_plan, world, llm)"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Task success on BEHAVIOR-1K with Qwen3-8B, before and with GAVEL's graph world model, in percent.",
+    "unit": "percent task success",
+    "bars": [
+     {
+      "label": "Single task, without GAVEL",
+      "value": 41.2
+     },
+     {
+      "label": "Single task, with GAVEL",
+      "value": 91.8
+     },
+     {
+      "label": "Multi-task, without GAVEL",
+      "value": 19.9
+     },
+     {
+      "label": "Multi-task, with GAVEL",
+      "value": 92.6
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "T2-Z fits an environment latent while the world model stays frozen",
+    "num": "03",
+    "id": "t2-z-fits-an-environment-latent-while-the-world-model-stays-"
+   }
+  ],
+  [
+   "p",
+   "Back to that opening idea, in more detail. T2-Z attaches a learnable environment latent to a robotic world model [2]. The latent captures what varies between settings, without being told which factors exist or what values they take [2]. Training alternates. One stage learns general dynamics with latents fixed, and the other freezes the model and tunes the latents [2]."
+  ],
+  [
+   "p",
+   "At test time the world model stays frozen. A fresh latent gets optimised from one or more interactions in the new setting [2]. Across 7 simulated settings and 4 real robot tasks, object prediction error fell from 15.20 to 7.00 [2]. Action success rose from 33.73% to 72.96% [2]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Ablations further show that T2-Z can efficiently infer environment latents from as little as a single test-time interaction trajectory.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "We like this a lot. It is test-time adaptation without touching weights, which is cheap and safe to roll back. The LLM parallel is in-context learning, where a model adapts from a few examples in the prompt. Here the adaptation lives in a compact latent instead. That is a cleaner thing to inspect."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "T2-Z's reported results across 7 simulated settings and 4 real robot tasks.",
+    "columns": [
+     "Measure",
+     "Without T2-Z",
+     "With T2-Z"
+    ],
+    "rows": [
+     [
+      "Object prediction error",
+      "15.20",
+      "7.00"
+     ],
+     [
+      "Action success",
+      "33.73%",
+      "72.96%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Trace2Env rebuilds a lost environment from its old interaction logs",
+    "num": "04",
+    "id": "trace2env-rebuilds-a-lost-environment-from-its-old-interacti"
+   }
+  ],
+  [
+   "p",
+   "Agents need realistic environments for training and evaluation, yet the original system is often unavailable [4]. Trace2Env takes a different route. Instead of rebuilding executable software, a world model agent plays the environment for the task agent [4]. It needs no training. It needs only historical interaction traces [4]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+RnJvbSBvbGQgbG9ncyB0byBhIHN0YW5kLWluIGVudmlyb25tZW50PC90aXRsZT4KICA8ZGVzYz5IaXN0b3JpY2FsIGludGVyYWN0aW9uIHRyYWNlcyBhcmUgdHVybmVkIGludG8gYSB3b3JsZGJvb2sgb2Ygc2NoZW1hcywgZXZpZGVuY2UgYW5kIGJlaGF2aW91ci4gQSB3b3JsZCBtb2RlbCBhZ2VudCByZWFkcyBpdCwgcGx1cyBlcGlzb2RpYyBzdGF0ZSwgdG8gYW5zd2VyIGVhY2ggYWN0aW9uIG9mIGEgdGFzayBhZ2VudC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCI+QSBtb2RlbCBwbGF5cyB0aGUgc3lzdGVtIG5vYm9keSBjYW4gcnVuPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDYiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5ObyB0cmFpbmluZzogb25seSB0aGUgdHJhY2VzIHRoZSBvbGQgc3lzdGVtIGxlZnQgYmVoaW5kPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMTkwIiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjE0MCIgcng9IjE0IiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiNlOGMyNmIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE3MCIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+T2xkIHRyYWNlczwvdGV4dD4KICA8dGV4dCB4PSIxNzAiIHk9IjI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmxvZ2dlZCBpbnRlcmFjdGlvbnM8L3RleHQ+CgogIDxyZWN0IHg9IjM0MCIgeT0iMTcwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE4MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ4MCIgeT0iMjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTc4YmZhIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCI+V29ybGRib29rPC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+ZW52aXJvbm1lbnQgc2NoZW1hczwvdGV4dD4KICA8dGV4dCB4PSI0ODAiIHk9IjI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmdyb3VuZGVkIGV2aWRlbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjQ4MCIgeT0iMzE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+bGVhcm5lZCBiZWhhdmlvdXI8L3RleHQ+CgogIDxyZWN0IHg9IjY4MCIgeT0iMTcwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE4MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMjM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+V29ybGQgbW9kZWw8L3RleHQ+CiAgPHRleHQgeD0iODAwIiB5PSIyNjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5hZ2VudDwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPnBsdXMgZXBpc29kaWMgc3RhdGU8L3RleHQ+CgogIDxyZWN0IHg9Ijk4MCIgeT0iMTkwIiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjE0MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjEwNjUiIHk9IjI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPlRhc2s8L3RleHQ+CiAgPHRleHQgeD0iMTA2NSIgeT0iMjc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+YWdlbnQ8L3RleHQ+CgogIDxsaW5lIHgxPSIyODAiIHkxPSIyNjAiIHgyPSIzMzUiIHkyPSIyNjAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iNjIwIiB5MT0iMjYwIiB4Mj0iNjc1IiB5Mj0iMjYwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9Ijk3NSIgeTE9IjIzNSIgeDI9IjkyNSIgeTI9IjIzNSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI5MjUiIHkxPSIyOTAiIHgyPSI5NzUiIHkyPSIyOTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8dGV4dCB4PSI5NTAiIHk9IjIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiPmFjdGlvbjwvdGV4dD4KICA8dGV4dCB4PSI5NTAiIHk9IjMxNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiPnJlc3VsdDwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjQyMCIgd2lkdGg9IjEwOTAiIGhlaWdodD0iMTEwIiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KICA8dGV4dCB4PSI2MDUiIHk9IjQ2MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPlRoZSB0ZXN0IHRoYXQgbWF0dGVyczogcmVwbGF5IGluIHRoZSByZWFsIHN5c3RlbTwvdGV4dD4KICA8dGV4dCB4PSI2MDUiIHk9IjQ5NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPmFjdGlvbnMgcGxhbm5lZCBhZ2FpbnN0IHRoZSBzdGFuZC1pbiBzdGF5ZWQgdmFsaWQgbW9yZSBvZnRlbjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Old interaction traces become a worldbook; a world model agent uses it and episodic state to answer a task agent.",
+    "caption": "Trace2Env turns logs into a worldbook so a model can stand in for a system nobody can run.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "From those traces it builds a worldbook: environment schemas, grounded evidence and learned behavioural knowledge [4]. At run time, the world model agent consults the worldbook and a persistent episodic state [4]. From those it infers each action's observation and its lasting effects. That persistent state is the important part. Plain prompt-based simulators forget what earlier actions changed."
+  ],
+  [
+   "p",
+   "Across nine environments, Trace2Env beat prompt-based language world models on next-observation fidelity and long-run consistency [4]. When agent actions planned against it were rerun on the real system, more of them still worked [4]. We think replay validity is the right test. A simulator is only useful if its lessons survive contact with the real thing."
+  ],
+  [
+   "h2",
+   {
+    "text": "AEWM models the agent's reasoning instead of its tool output",
+    "num": "05",
+    "id": "aewm-models-the-agent-s-reasoning-instead-of-its-tool-output"
+   }
+  ],
+  [
+   "p",
+   "Here is the contrarian entry. The AEWM authors argue that predicting tool responses is of little value when real feedback is available anyway [5]. They target a different problem: task-state contamination. Unsupported assumptions and outdated plans linger in an agent's history and skew later decisions [5]. So their world model predicts how reasoning and actions shape task progress [5]."
+  ],
+  [
+   "p",
+   "Two parts do the work. An Action Judge labels each decision Critical, Exploratory or Noisy [5]. State Revision then edits noisy reasoning and action steps from the same observed history [5]. EditAct combines both with real execution, changing the state that later decisions rest on [5]. It does not just leave a critique in the transcript."
+  ],
+  [
+   "p",
+   "AEWM scored 70.5% macro-F1 on the authors' Action Judge benchmark, 10.6 points above the strongest frontier baseline [5]. On six benchmarks, using three different agent backbones, EditAct lifted average scores by 3.2 to 6.7 points [5]. Fine-tuning on verified EditAct trajectories beat Self-RFT by 2.2 to 2.6 points [5]. The gains are modest, but the idea is the boldest here."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How EditAct changes an agent's state instead of leaving a critique behind.",
+    "steps": [
+     "The agent proposes a reasoning and action step",
+     "Action Judge labels it Critical, Exploratory or Noisy",
+     "State Revision rewrites a Noisy step from the same history",
+     "The revised step runs against the real environment",
+     "Later decisions build on the cleaned state"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "SafeDriveVLA dreams the instruction to see if obeying is safe",
+    "num": "06",
+    "id": "safedrivevla-dreams-the-instruction-to-see-if-obeying-is-saf"
+   }
+  ],
+  [
+   "p",
+   "Driving models that take free-form language open a new risk [6]. A careless driver might ask for something unsafe, and a malicious one might do it deliberately [6]. The SafeDriveVLA authors found existing driving models weak on both fronts. SimLingo completed no language-instructed lane change in closed loop [6]."
+  ],
+  [
+   "p",
+   "Their fix splits the decision. The model first predicts a three-level compliance mode, so conflict reasoning is separate from steering [6]. A world model then dreams what happens if the car follows the instruction exactly [6]. Earlier world models rolled out expert or planned actions instead. Dreaming the instruction itself shows when obeying would be safe [6]."
+  ],
+  [
+   "p",
+   "SafeDriveVLA reached a Driving Score of 88.16 and a 68.64% success rate on Bench2Drive [6]. Against the best SimLingo variant, it lifted closed-loop language following by 49.3% [6]. Collisions under unsafe instructions fell from 60 to 38 [6]. We read that as progress, not as solved. That still leaves 38 collisions."
+  ],
+  [
+   "h2",
+   {
+    "text": "Spatial Memory Intelligence lets a language model curate a video world's memory",
+    "num": "07",
+    "id": "spatial-memory-intelligence-lets-a-language-model-curate-a-v"
+   }
+  ],
+  [
+   "p",
+   "Video world models predict future frames from user actions and past memory [3]. As memory grows long and tangled, keeping spatial context straight gets hard [3]. Spatial Memory Intelligence hands that job to a multimodal language model that understands space [3]. It uses four operations: spatial clustering, sparsifying within clusters, action-aware retrieval and filtering out unreliable entries [3]."
+  ],
+  [
+   "p",
+   "The authors report sparser memory, steadier generation and better spatial consistency across several backbones [3]. The abstract gives no figures, so we cannot say how large. We file this as a new idea worth watching. It is also a neat reversal, with the language model managing memory for the video model."
+  ],
+  [
+   "h2",
+   {
+    "text": "Verification is the common thread, and the world model is the unchecked part",
+    "num": "08",
+    "id": "verification-is-the-common-thread-and-the-world-model-is-the"
+   }
+  ],
+  [
+   "p",
+   "Step back and a pattern shows. GAVEL checks a plan before execution [1]. SafeDriveVLA checks an instruction before obeying it [6]. AEWM checks the agent's own reasoning before it compounds [5]. Even Trace2Env is graded by how well its predictions survive replay [4]. World models are becoming the verifier in the loop."
+  ],
+  [
+   "p",
+   "That raises the open problem none of these papers solves. Who checks the world model? GAVEL repairs only what follows directly from its graph, so a wrong graph means a confident wrong repair [1]. T2-Z's latent is learned without labels, so its errors are hard to name [2]. A verifier with silent errors is worse than none."
+  ],
+  [
+   "p",
+   "What would settle it? World models that report their own uncertainty, scored against real outcomes they did not predict. Trace2Env's replay test points the way [4]. Until that exists, we would treat any world model as a strong hint, not as ground truth."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is a world model in AI?"
+  ],
+  [
+   "p",
+   "A world model is a model that predicts what the world will look like after an action. Agents use it to test a move before making it. Video world models predict future frames [3]. Graph world models predict an action's preconditions and effects [1]. Language world models predict text observations for LLM agents [4]."
+  ],
+  [
+   "h3",
+   "How are world models used with LLM agents?"
+  ],
+  [
+   "p",
+   "Mostly as checkers and simulators around the agent. GAVEL checks an LLM's robot plan against a graph and repairs simple errors before execution [1]. Trace2Env simulates a lost environment from old logs so agents can train against it [4]. AEWM judges and edits an agent's own reasoning steps before they skew later decisions [5]."
+  ],
+  [
+   "h3",
+   "Can world models help robots adapt to new environments?"
+  ],
+  [
+   "p",
+   "Yes, early results say they can, without retraining the model. T2-Z keeps the world model frozen and tunes a small environment latent from test-time interactions [2]. Across simulated and real robot tasks, action success rose from 33.73% to 72.96% [2]. Its ablations show a single interaction trajectory can be enough [2]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "GAVEL: Graph World Models for Verified and Efficient Long-Horizon LLM Task Planning",
+   "url": "https://huggingface.co/papers/2609.19315",
+   "posted": "2026-09-16"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "T2-z: Test-Time Optimization of Environment Latents for Robotic World Models",
+   "url": "https://arxiv.org/abs/2610.22364v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Spatial Memory Intelligence: Endowing World Models with Understanding-Driven Long-Term Memory",
+   "url": "https://huggingface.co/papers/2610.02521",
+   "posted": "2026-10-01"
+  },
+  {
+   "n": 4,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "From Traces to Agentic Worlds: Agentic Language World Models for Interactive Environment Simulation",
+   "url": "https://huggingface.co/papers/2610.06100",
+   "posted": "2026-10-05"
+  },
+  {
+   "n": 5,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Agent-Editing World Model: Rethinking World Modeling for LLM Agents",
+   "url": "https://huggingface.co/papers/2609.28416",
+   "posted": "2026-09-23"
+  },
+  {
+   "n": 6,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "SafeDriveVLA: Navigation-Conditioned World Model Dreaming for Conflict-Aware End-to-End Autonomous Driving",
+   "url": "https://huggingface.co/papers/2610.20609",
+   "posted": "2026-10-14"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T01:26:40+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "hfpapers:2609.19315",
+   "hfpapers:2610.20609",
+   "hfpapers:2610.06100",
+   "hfpapers:2610.02521",
+   "hfpapers:2609.28416",
+   "arxiv:2610.22364v1"
+  ],
+  "platforms": {
+   "Hugging Face": 5,
+   "arXiv": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "research-radar:concept/world-models",
+  "format": "research-radar",
+  "reviewed_by": null
+ }
+}

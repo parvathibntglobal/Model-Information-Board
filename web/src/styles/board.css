@@ -666,6 +666,13 @@
 .essay .es-ai{display:inline-block;margin-left:.2rem;padding:.05rem .45rem;border:1px solid var(--es-line2);border-radius:999px;font:500 .68rem var(--es-mono);letter-spacing:.04em;color:var(--es-dim)}
 
 /* The quote box says whose words it holds. */
+/* A reported post's highlight: one whole sentence from a source, word for word (2026-10-20). */
+.es-highlight{margin:1.6rem 0;padding:1.1rem 1.3rem;background:var(--es-panel);border:1px solid var(--es-line);border-radius:12px}
+.es-highlight blockquote{margin:0;font-size:1.12rem;line-height:1.55;color:var(--es-text)}
+.es-highlight figcaption{margin-top:.6rem;font-size:.78rem;color:var(--es-muted)}
+.es-highlight figcaption a{color:var(--es-accent)}
+.es-refnum{margin-left:.1em}
+.es-highlight figcaption a.es-hl-ref{font-family:var(--es-mono);text-decoration:none}
 .es-voice{margin:1.6rem 0;padding:1rem 1.25rem 1.05rem;background:var(--es-panel);border:1px solid var(--es-line);border-left:3px solid var(--es-accent2);border-radius:0 12px 12px 0}
 .es-voice .who{font:600 .68rem var(--es-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent2);margin-bottom:.45rem}
 .es-voice blockquote{margin:0;font-size:1.08rem;line-height:1.55;font-style:italic;color:var(--es-text)}
