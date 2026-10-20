@@ -2092,3 +2092,6 @@ a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:
 .hc[data-verdict="working"] .hc-axis{background:var(--pass-dim);color:var(--pass)}
 .hc[data-verdict="mixed"] .hc-axis{background:var(--warn-dim);color:var(--warn)}
 .hc[data-verdict="problems"] .hc-axis{background:var(--fail-dim);color:var(--fail)}
+/* the post's own photo fills the card (2026-10-20); figures keep `contain` */
+.bs-img.bs-photo{padding:0}
+.bs-img.bs-photo img{object-fit:cover}
