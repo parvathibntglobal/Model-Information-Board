@@ -85,7 +85,7 @@
   ],
   [
    "p",
-   "AI for science means letting a model propose hypotheses, molecules or experiments, then testing each one against something real. The test can be a score, a simulation, a robot lab or a trial in people. This autumn, an agent system called Station rebuilt 62.7% of the findings in conference papers it was never shown [1]. A university lab ran the same kind of loop on brewer's yeast [2]."
+   "AI for science means letting a model propose hypotheses, molecules or experiments, then testing each one against something real. The test can be a score, a simulation, a robot lab or a trial in people. This autumn, an agent system called Station rebuilt 62.7% of the findings in conference papers it was never shown. A university lab ran the same kind of loop on brewer's yeast [1, 2]."
   ],
   [
    "p",
@@ -93,7 +93,7 @@
   ],
   [
    "p",
-   "That gives us our one piece of advice, stated up front. When you read an AI-for-science claim, find the checker first. A rediscovery score, a docking run and a Phase III trial are very different bars [1, 3, 4]. Builders using LLMs for research face the same choice in miniature. Your evaluator decides what your agent learns to produce."
+   "That gives us our one piece of advice, stated up front. When you read an AI-for-science claim, find the checker first. A rediscovery score, a docking run and a Phase III trial are very different bars. Builders using LLMs for research face the same choice in miniature. Your evaluator decides what your agent learns to produce [1, 3, 4]."
   ],
   [
    "visual",
@@ -144,15 +144,15 @@
   ],
   [
    "p",
-   "The field's anchor is AlphaFold, which predicts a protein's three-dimensional shape from its amino acid sequence [3]. Working that shape out with X-ray crystallography could take months or years. AlphaFold does it in minutes [3]. Its public database now offers over 200 million predicted structures [3]. Its builders shared the 2024 Nobel Prize in Chemistry [3]."
+   "The field's anchor is AlphaFold, which predicts a protein's three-dimensional shape from its amino acid sequence. Working that shape out with X-ray crystallography could take months or years. AlphaFold does it in minutes. Its public database now offers over 200 million predicted structures. Its builders shared the 2024 Nobel Prize in Chemistry [3]."
   ],
   [
    "p",
-   "Why should a drug hunter care about shape? Most drugs act by binding to a protein target, a key meeting a lock [3]. Know the exact lock, and chemists can design the key instead of guessing. AlphaFold 3 widened the view to proteins meeting DNA, RNA and small molecules [3]. Prediction is now the floor. Design is where the action moved."
+   "Why should a drug hunter care about shape? Most drugs act by binding to a protein target, a key meeting a lock. Know the exact lock, and chemists can design the key instead of guessing. AlphaFold 3 widened the view to proteins meeting DNA, RNA and small molecules. Prediction is now the floor. Design is where the action moved [3]."
   ],
   [
    "p",
-   "Generative chemistry is the next layer. Like an image generator, these models emit candidate structures, but they juggle several goals at once [3]. The goals cover how tightly a molecule binds and how selectively it hits the target [3]. They also weigh how stable it stays and how easily it can be made [3]. Insilico Medicine built rentosertib this way, with AI picking both the target and the molecule [3]. Target to preclinical candidate took about 18 months [3]."
+   "Generative chemistry is the next layer. Like an image generator, these models emit candidate structures, but they juggle several goals at once. The goals cover how tightly a molecule binds and how selectively it hits the target. They also weigh how stable it stays and how easily it can be made. Insilico Medicine built rentosertib this way, with AI picking both the target and the molecule. Target to preclinical candidate took about 18 months [3]."
   ],
   [
    "p",
@@ -168,7 +168,7 @@
   ],
   [
    "p",
-   "Now the loop in its pure software form. In evolutionary search, an LLM writes candidate solutions, a scorer grades them, and the best seed the next round. The team behind a method called EvoDuet found this loop can stall [5]. Progress sometimes needs outside knowledge the model lacks. A plain web search tool helps less than you'd hope, because it keeps returning the same pages [5]."
+   "Now the loop in its pure software form. In evolutionary search, an LLM writes candidate solutions, a scorer grades them, and the best seed the next round. The team behind a method called EvoDuet found this loop can stall. Progress sometimes needs outside knowledge the model lacks. A plain web search tool helps less than you'd hope, because it keeps returning the same pages [5]."
   ],
   [
    "image",
@@ -183,15 +183,15 @@
   ],
   [
    "p",
-   "EvoDuet evolves the search queries alongside the solutions, with the model's weights frozen [5]. Each round opens with a retrieval gate. The model judges its own knowledge gap, then fetches new documents, reuses saved ones or skips retrieval [5]. An inner loop rewrites queries and ranks documents by the scores they are predicted to yield [5]."
+   "EvoDuet evolves the search queries alongside the solutions, with the model's weights frozen. Each round opens with a retrieval gate. The model judges its own knowledge gap, then fetches new documents, reuses saved ones or skips retrieval. An inner loop rewrites queries and ranks documents by the scores they are predicted to yield [5]."
   ],
   [
    "p",
-   "An outer loop then generates candidates in parallel from the fetched pages [5]. It records every scored outcome so later searches can use it [5]. Think of it as two coupled searches. One hunts for answers. The other hunts for reading material that leads to better answers. The sketch below shows the shape, not the authors' code."
+   "An outer loop then generates candidates in parallel from the fetched pages. It records every scored outcome so later searches can use it. Think of it as two coupled searches. One hunts for answers. The other hunts for reading material that leads to better answers. The sketch below shows the shape, not the authors' code [5]."
   ],
   [
    "p",
-   "With GPT-5.6-Luna, normalised discovery gain over OpenEvolve rose from 74.1% to 78.0% across 21 tasks [5]. With Gemini-3.8-Flash it climbed from 61.3% to 82.3% [5]. The small Qwen3.5-9B model saw no benefit [5]. The best runs beat earlier best-known scores on eight tasks and tied them on three more [5]."
+   "With GPT-5.6-Luna, normalised discovery gain over OpenEvolve rose from 74.1% to 78.0% across 21 tasks. With Gemini-3.8-Flash it climbed from 61.3% to 82.3%. The small Qwen3.5-9B model saw no benefit. The best runs beat earlier best-known scores on eight tasks and tied them on three more [5]."
   ],
   [
    "p",
@@ -241,11 +241,11 @@
   ],
   [
    "p",
-   "Optimisation tasks come with a score. Real research usually does not. The authors of a new paper on Station go after that gap [1]. Station is an open-world environment where several agents act out a small scientific community [1]. To keep exploration alive without interim metrics, the authors added a Supervisor and periodic Meta Reflection [1]."
+   "Optimisation tasks come with a score. Real research usually does not. The authors of a new paper on Station go after that gap. Station is an open-world environment where several agents act out a small scientific community. To keep exploration alive without interim metrics, the authors added a Supervisor and periodic Meta Reflection [1]."
   ],
   [
    "p",
-   "The test design is the clever part. The authors took three oral papers from ICLR and gave agents only each paper's main research question [1]. Results stayed hidden, and web access was switched off [1]. Each paper's findings were split into separate criteria. The score was how many criteria the agents found again [1]."
+   "The test design is the clever part. The authors took three oral papers from ICLR and gave agents only each paper's main research question. Results stayed hidden, and web access was switched off. Each paper's findings were split into separate criteria. The score was how many criteria the agents found again [1]."
   ],
   [
    "highlight",
@@ -256,7 +256,7 @@
   ],
   [
    "p",
-   "Station recovered 62.7% of the criteria on average [1]. Codex Multiagent-v2 reached 15.4%, and AI Scientist-v2 landed between 14.4% and 20.6% [1]. In ablations, the two mechanisms worked best together, improving coverage and continuity [1]. On two tasks with no answer paper, some agent findings closely matched results published after the knowledge cutoff [1]."
+   "Station recovered 62.7% of the criteria on average. Codex Multiagent-v2 reached 15.4%, and AI Scientist-v2 landed between 14.4% and 20.6%. In ablations, the two mechanisms worked best together, improving coverage and continuity. On two tasks with no answer paper, some agent findings closely matched results published after the knowledge cutoff [1]."
   ],
   [
    "p",
@@ -298,7 +298,7 @@
   ],
   [
    "p",
-   "Researchers at Chalmers University of Technology took the loop off the screen [2]. Their system proposes hypotheses, plans experiments, runs them on lab automation and reads the data that comes back [2]. It was shown in systems biology, on brewer's yeast [2]. Language models and automated reasoning drive physical bench work in one closed cycle [2]."
+   "Researchers at Chalmers University of Technology took the loop off the screen. Their system proposes hypotheses, plans experiments, runs them on lab automation and reads the data that comes back. It was shown in systems biology, on brewer's yeast. Language models and automated reasoning drive physical bench work in one closed cycle [2]."
   ],
   [
    "image",
@@ -320,11 +320,11 @@
   ],
   [
    "p",
-   "What changes when the checker is a living culture? Each turn of the loop now waits for a physical experiment to finish. The Journal of the Royal Society Interface published the study, with partners from Gothenburg and Cambridge [2]. Media coverage has called the robot researcher Eve [2]. Nobody can fake a yeast result."
+   "What changes when the checker is a living culture? Each turn of the loop now waits for a physical experiment to finish. The Journal of the Royal Society Interface published the study, with partners from Gothenburg and Cambridge. Media coverage has called the robot researcher Eve. Nobody can fake a yeast result [2]."
   ],
   [
    "p",
-   "The humans did not leave. Chalmers frames the system as a way to speed routine cycles, not a replacement for researchers [2]. People still set direction, judge the meaning of results and keep ethical oversight [2]. The write-up also flags open questions about other organisms, scale and lab governance [2]."
+   "The humans did not leave. Chalmers frames the system as a way to speed routine cycles, not a replacement for researchers. People still set direction, judge the meaning of results and keep ethical oversight. The write-up also flags open questions about other organisms, scale and lab governance [2]."
   ],
   [
    "p",
@@ -340,23 +340,23 @@
   ],
   [
    "p",
-   "Drug discovery shows where the loop finally reaches people. A Tufts estimate puts the cost of bringing one drug to market at about $2.6 billion, failures included [3]. Only 11.83% of drugs entering clinical testing win approval [3]. Development usually spans 10 to 15 years [3]. Most of that money goes on candidates that fail late."
+   "Drug discovery shows where the loop finally reaches people. A Tufts estimate puts the cost of bringing one drug to market at about $2.6 billion, failures included. Only 11.83% of drugs entering clinical testing win approval. A typical drug takes 10 to 15 years to develop. The bulk of the spending goes on candidates that fail late [3]."
   ],
   [
    "p",
-   "The pitch for AI has two halves [3]. Shrink early discovery from years to months. Then drop weak candidates before the costly trials begin [3]. Recursion's REC-7735 won clearance of its Investigational New Drug filing within 10 months of its first chemical hit [3]. That is fast. It is also still the early part."
+   "The pitch for AI has two halves. Shrink early discovery from years to months. Then drop weak candidates before the costly trials begin. Recursion's REC-7735 won clearance of its Investigational New Drug filing within 10 months of its first chemical hit. That is fast. It is also still the early part [3]."
   ],
   [
    "p",
-   "Trial data is starting to arrive. Rentosertib's Phase IIa study in idiopathic pulmonary fibrosis enrolled 71 patients [3]. On the 60 mg daily dose, lung capacity rose by a mean of 98.4 mL over 12 weeks [3]. Patients on placebo lost 20.3 mL [3]. The drug has since moved into Phase III [3]."
+   "Trial data is starting to arrive. Rentosertib's Phase IIa study in idiopathic pulmonary fibrosis enrolled 71 patients. On the 60 mg daily dose, lung capacity rose by a mean of 98.4 mL over 12 weeks. Patients on placebo lost 20.3 mL. The drug has since moved into Phase III [3]."
   ],
   [
    "p",
-   "Regulators are shaping the checker as well. FDA draft guidance from January 2025 turns on a concept called context of use [3]. The heavier a decision leans on an AI output, the stronger the proof that model must supply [3]. Then, in January 2026, American and European regulators jointly issued ten principles for AI in drug development [3]."
+   "Regulators are shaping the checker as well. FDA draft guidance from January 2025 turns on a concept called context of use. The heavier a decision leans on an AI output, the stronger the proof that model must supply. Then, in January 2026, American and European regulators jointly issued ten principles for AI in drug development [3]."
   ],
   [
    "p",
-   "We share the post's own caution here. The industry has not yet shown that AI raises approval rates at scale [3]. Faster early steps are real and worth having. But a loop moves at the speed of its slowest check. In medicine, that check takes years."
+   "We share the post's own caution here. The industry has not yet shown that AI raises approval rates at scale. Faster early steps are real and worth having. But a loop moves at the speed of its slowest check. In medicine, that check takes years [3]."
   ],
   [
    "h2",
@@ -368,11 +368,11 @@
   ],
   [
    "p",
-   "Not every report meets that standard. One developer blog post describes SwarmRSI, a swarm of language-model agents that propose and test hypotheses [4]. It credits the system with cutting a drug discovery cycle from six months to three weeks [4]. It also cites $12 M in saved research spending and a reference swarm of 512 agents [4]."
+   "Not every report meets that standard. One developer blog post describes SwarmRSI, a swarm of language-model agents that propose and test hypotheses. It credits the system with cutting a drug discovery cycle from six months to three weeks. It also cites $12 M in saved research spending and a reference swarm of 512 agents [4]."
   ],
   [
    "p",
-   "Read it closely, though. The case study opens by asking you to imagine a biotech startup [4]. The headline 27% gain is in predicted potency, scored by docking simulations [4]. Two of three synthesised candidates then showed activity in vitro, the post says [4]. It also treats a growth figure of 1.12 as crossing a critical threshold [4]."
+   "Read it closely, though. The case study opens by asking you to imagine a biotech startup. The headline 27% gain is in predicted potency, scored by docking simulations. Two of three synthesised candidates then showed activity in vitro, the post says. It also treats a growth figure of 1.12 as crossing a critical threshold [4]."
   ],
   [
    "p",
@@ -380,7 +380,7 @@
   ],
   [
    "p",
-   "A Hacker News thread about an Anthropic discovery claim raised the same doubt from another angle [6]. One commenter wondered if models are simply running a very good search over existing human thought [6]. Another said pharma staff they know reach these models only through AWS Bedrock, because of data trust [6]. That search-or-discovery question applies to every loop in this post."
+   "A Hacker News thread about an Anthropic discovery claim raised the same doubt from another angle. One commenter wondered if models are simply running a very good search over existing human thought. Another said pharma staff they know reach these models only through AWS Bedrock, because of data trust. That search-or-discovery question applies to every loop in this post [6]."
   ],
   [
    "h2",
@@ -392,15 +392,15 @@
   ],
   [
    "p",
-   "Here is what remains open. First comes novelty. Station's matches with post-cutoff results hint that agents can reach findings they never saw [1]. Yet that evidence rests on two tasks, and the criteria came from human work [1]. A larger set of tasks with no answer key would tell us far more."
+   "Here is what remains open. First comes novelty. Station's matches with post-cutoff results hint that agents can reach findings they never saw. Yet that evidence rests on two tasks, and the criteria came from human work. A larger set of tasks with no answer key would tell us far more [1]."
   ],
   [
    "p",
-   "Second comes transfer. EvoDuet helped two large models and did nothing for a small one [5]. Where that line sits for other models and tasks is not yet known. The Chalmers team still has to show its loop works beyond yeast and beyond one workflow [2]. Both are testable. Neither is tested yet."
+   "Second comes transfer. EvoDuet helped two large models and did nothing for a small one. Where that line sits for other models and tasks is not yet known. The Chalmers team still has to show its loop works beyond yeast and beyond one workflow. Both are testable. Neither is tested yet [5, 2]."
   ],
   [
    "p",
-   "Third come the slow checks. Trial readouts over the next two to three years will show if AI-designed drugs succeed more often or merely arrive sooner [3]. Rentosertib's Phase III result is one to watch [3]. Until then, speed in early discovery is a promise, not a payoff."
+   "Third come the slow checks. Trial readouts over the next two to three years will show if AI-designed drugs succeed more often or merely arrive sooner. Rentosertib's Phase III result is one to watch. Until then, speed in early discovery is a promise, not a payoff [3]."
   ],
   [
    "p",
@@ -420,7 +420,7 @@
   ],
   [
    "p",
-   "AI is mostly used as the proposer in a guess-and-check loop. A model suggests a molecule, a solution or a hypothesis, and a checker grades it. EvoDuet pairs an LLM with a scorer across 21 optimisation tasks [5]. At Chalmers, the checker is a robotic yeast lab [2]. In drug discovery, the final checker is a clinical trial [3]."
+   "AI is mostly used as the proposer in a guess-and-check loop. A model suggests a molecule, a solution or a hypothesis, and a checker grades it. EvoDuet pairs an LLM with a scorer across 21 optimisation tasks. At Chalmers, the checker is a robotic yeast lab. In drug discovery, the final checker is a clinical trial [5, 2, 3]."
   ],
   [
    "h3",
@@ -428,7 +428,7 @@
   ],
   [
    "p",
-   "AI for science is the use of machine learning models to speed up research steps such as predicting structures, designing molecules and planning experiments. AlphaFold predicts protein shapes from sequences in minutes [3]. Generative chemistry models then design candidate drugs for several goals at once [3]. Newer agent systems try to run whole research loops, from question to result [1, 2]."
+   "AI for science is the use of machine learning models to speed up research steps such as predicting structures, designing molecules and planning experiments. AlphaFold predicts protein shapes from sequences in minutes. Generative chemistry models then design candidate drugs for several goals at once. Newer agent systems try to run whole research loops, from question to result [3, 1, 2]."
   ],
   [
    "h3",
@@ -436,7 +436,7 @@
   ],
   [
    "p",
-   "Not yet in any proven, general way. Station rediscovered 62.7% of findings from held-back papers, and some agent results matched work published after its knowledge cutoff [1]. The Chalmers lab ran its own experiments on yeast, but humans still set direction and oversight [2]. Rediscovery and narrow demos are a long way from open, unguided discovery."
+   "Not yet in any proven, general way. Station rediscovered 62.7% of findings from held-back papers, and some agent results matched work published after its knowledge cutoff. The Chalmers lab ran its own experiments on yeast, but humans still set direction and oversight. Rediscovery and narrow demos are a long way from open, unguided discovery [1, 2]."
   ]
  ],
  "sources": [
@@ -510,7 +510,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:37+00:00",
+  "generated_at": "2026-10-20T02:07:04+00:00",
   "rechecked_from": null,
   "documents": [
    "hfpapers:2610.08927",

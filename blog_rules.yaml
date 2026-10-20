@@ -45,9 +45,16 @@ sections:
       - id: reference-every-claim
         rule: Every reported fact carries its reference.
         detail: >-
-          A sentence that says what an engineer, team, writer or researcher found, reported or measured
-          ends that claim with its reference number, like [3]. Every section cites at least one source.
-          A paragraph that gives a figure cites where the figure came from.
+          A paragraph that says what an engineer, team, writer or researcher found, reported or measured
+          carries the reference for it. Every section cites at least one source. A paragraph that gives
+          a figure cites where the figure came from.
+        checked: code
+      - id: cite-once-per-paragraph
+        rule: Cite once per paragraph, at its end.
+        detail: >-
+          One reference mark closes the paragraph and lists every source it drew on, like [3] or [2, 5].
+          No numbers after each sentence: the reader gets the source without the clutter, and the
+          reference list at the end carries the detail.
         checked: code
       - id: references-at-the-end
         rule: References are listed at the end, numbered as cited.

@@ -93,15 +93,15 @@
   ],
   [
    "p",
-   "A coding agent removes a response field that looks unused. Local tests pass and the diff is tiny. Then an older mobile client breaks, because it still reads that field [1]. Its support promise sat in a separate migration plan the agent never opened [1]. This is the classic context failure. The fact existed, and nothing carried it to the task."
+   "A coding agent removes a response field that looks unused. Local tests pass and the diff is tiny. Then an older mobile client breaks, because it still reads that field. Its support promise sat in a separate migration plan the agent never opened. This is the classic context failure. The fact existed, and nothing carried it to the task [1]."
   ],
   [
    "p",
-   "The engineering post that tells this story finds two gaps in it [1]. The workflow never handed over the compatibility requirement, and no test checked it [1]. A longer prompt might stop the next slip. Context engineering asks something harder. How does every task that needs this rule receive it, at the version that applies, with a plan for missing evidence [1]?"
+   "The engineering post that tells this story finds two gaps in it. The workflow never handed over the compatibility requirement, and no test checked it. A longer prompt might stop the next slip. Context engineering asks something harder. How does every task that needs this rule receive it, at the version that applies, with a plan for missing evidence [1]?"
   ],
   [
    "p",
-   "Before you add anything, work out which gap you hit. The same post sorts failures into kinds, each with its own repair [1]. A rule nobody published needs an authoritative home. One that exists but went unfound needs a better discovery path. Stale guidance needs scope and versioning, and clashing sources need an owner to rule [1]. An agent that grasped the rule and still broke it has a verification problem [1]."
+   "Before you add anything, work out which gap you hit. The same post sorts failures into kinds, each with its own repair. A rule nobody published needs an authoritative home. One that exists but went unfound needs a better discovery path. Stale guidance needs scope and versioning, and clashing sources need an owner to rule. An agent that grasped the rule and still broke it has a verification problem [1]."
   ],
   [
    "visual",
@@ -146,11 +146,11 @@
   ],
   [
    "p",
-   "The fix proposed for the API case is a context contract [1]. Think of it as a short record of what one workflow needs, where each input lives, and what happens when an input is absent [1]. Its author calls it a working framework, not an industry standard [1]. The record covers authority, scope, version, ownership, access and verification [1]. That list is short on purpose."
+   "The fix proposed for the API case is a context contract. Think of it as a short record of what one workflow needs, where each input lives, and what happens when an input is absent. Its author calls it a working framework, not an industry standard. The record covers authority, scope, version, ownership, access and verification. That list is short on purpose [1]."
   ],
   [
    "p",
-   "For a public field removal, authority is the approved compatibility policy. Scope names the services and mobile releases it covers. Version ties the work to a commit and a migration decision. The API owner settles doubt alongside the mobile owner, and consumer contract tests decide when removal may proceed [1]. Notice what is absent. Nothing in it says to write a better prompt."
+   "For a public field removal, authority is the approved compatibility policy. Scope names the services and mobile releases it covers. Version ties the work to a commit and a migration decision. The API owner settles doubt alongside the mobile owner, and consumer contract tests decide when removal may proceed. Notice what is absent. Nothing in it says to write a better prompt [1]."
   ],
   [
    "highlight",
@@ -161,7 +161,7 @@
   ],
   [
    "p",
-   "The sharpest clause is about doubt. If nobody can establish which client versions are supported, the task logs that and asks the owner before deleting anything [1]. If a source is down, the workflow names the blocked decision and carries on with safe work [1]. It must never patch the hole with the agent's own recollection [1]. We think this clause earns the contract its keep."
+   "The sharpest clause is about doubt. If nobody can establish which client versions are supported, the task logs that and asks the owner before deleting anything. If a source is down, the workflow names the blocked decision and carries on with safe work. It must never patch the hole with the agent's own recollection. We think this clause earns the contract its keep [1]."
   ],
   [
    "code",
@@ -181,7 +181,7 @@
   ],
   [
    "p",
-   "The same post sorts context by lifespan into session state, task evidence and durable guidance [1]. Each one goes stale on its own schedule. Durable guidance holds recurring, non-obvious constraints, kept beside the code they govern, with an owner who reviews them [1]. Its sample rule tells the agent to read the policy and run the contract suite before dropping any public field [1]. That beats a directory listing."
+   "The same post sorts context by lifespan into session state, task evidence and durable guidance. Each one goes stale on its own schedule. Durable guidance holds recurring, non-obvious constraints, kept beside the code they govern, with an owner who reviews them. Its sample rule tells the agent to read the policy and run the contract suite before dropping any public field. That beats a directory listing [1]."
   ],
   [
    "image",
@@ -196,11 +196,11 @@
   ],
   [
    "p",
-   "Task evidence is the packet for one decision. For the field removal it holds the request, acceptance criteria, checked-out revision, policy, proof of supported clients and verification commands [1]. Here is the subtle part. The agent must not quietly swap the goal from deleting the field to keeping it [1]. An open, justified deferral can be the right result [1]."
+   "Task evidence is the packet for one decision. For the field removal it holds the request, acceptance criteria, checked-out revision, policy, proof of supported clients and verification commands. Here is the subtle part. The agent must not quietly swap the goal from deleting the field to keeping it. An open, justified deferral can be the right result [1]."
   ],
   [
    "p",
-   "Session state is the handoff between runs. It should record exact failures, the checks already run, changed files, repository state, open questions and the next step [1]. Keep observations apart from verdicts. A failing legacy test is a fact, but calling that test obsolete needs evidence [1]. Before an agent resumes, confirm the working tree still matches the note [1]."
+   "Session state is the handoff between runs. It should record exact failures, the checks already run, changed files, repository state, open questions and the next step. Keep observations apart from verdicts. A failing legacy test is a fact, but calling that test obsolete needs evidence. Before an agent resumes, confirm the working tree still matches the note [1]."
   ],
   [
    "h2",
@@ -212,15 +212,15 @@
   ],
   [
    "p",
-   "Context lives in two places, and the split sets your bill. A recent arXiv survey separates compute-active memory, which takes part in the model's computation, from compute-inactive memory, which sits outside it [2]. On the active side sits the KV cache, the stored keys and values for every token the model has read. Docs, indexes and notes sit on the inactive side. They cost little until loaded."
+   "Context lives in two places, and the split sets your bill. A recent arXiv survey separates compute-active memory, which takes part in the model's computation, from compute-inactive memory, which sits outside it. On the active side sits the KV cache, the stored keys and values for every token the model has read. Docs, indexes and notes sit on the inactive side. They cost little until loaded [2]."
   ],
   [
    "p",
-   "Moving a fact between the sides is a named operation. The survey lists eviction, recall, offloading, consolidation, writing, forgetting, materialization and retrieval-and-injection, and prices them in one budgeted cost account [2]. Its core claim fits the API story well. The hard part, it argues, is picking what enters expensive inference, at what moment and in what shape [2]. Shrinking the volume is the easy half."
+   "Moving a fact between the sides is a named operation. The survey lists eviction, recall, offloading, consolidation, writing, forgetting, materialization and retrieval-and-injection, and prices them in one budgeted cost account. Its core claim fits the API story well. The hard part, it argues, is picking what enters expensive inference, at what moment and in what shape. Shrinking the volume is the easy half [2]."
   ],
   [
    "p",
-   "So time your loading. The contract post says to preload the constraints a plan needs and to fetch implementation detail as the task narrows [1]. Plain text search works for symbol names and error strings [1]. Semantic retrieval finds related ideas phrased differently, yet a high relevance score grants no authority [1]. Return every result with its source and version or fetch time, and check access before the agent sees it [1]."
+   "So time your loading. The contract post says to preload the constraints a plan needs and to fetch implementation detail as the task narrows. Plain text search works for symbol names and error strings. Semantic retrieval finds related ideas phrased differently, yet a high relevance score grants no authority. Return every result with its source and version or fetch time, and check access before the agent sees it [1]."
   ],
   [
    "code",
@@ -255,7 +255,7 @@
   ],
   [
    "p",
-   "Today a harness usually curates context, meaning the software around the model picks what it sees. A paper on Context Language Models moves that job into the model [3]. It treats the context as a file and lets the model rewrite that file freely, so it learns what to keep [3]. In a team of agents, each agent's context becomes its own file [3]."
+   "Today a harness usually curates context, meaning the software around the model picks what it sees. A paper on Context Language Models moves that job into the model. It treats the context as a file and lets the model rewrite that file freely, so it learns what to keep. In a team of agents, each agent's context becomes its own file [3]."
   ],
   [
    "image",
@@ -270,11 +270,11 @@
   ],
   [
    "p",
-   "The reported gains are large. Built zero-shot from existing models, the approach beat leading context-management strategies [3]. On BrowseComp-Plus it reached 11.4% higher accuracy and spent 21.5% fewer FLOPs, the count of arithmetic operations a run costs [3]. On a 12-hour EdgeBench task it scored 5% higher and used 59% fewer FLOPs [3]. An online RL method also lifted Qwen3.5-9B by 47.6% on BrowseComp-Plus [3]."
+   "The reported gains are large. Built zero-shot from existing models, the approach beat leading context-management strategies. On BrowseComp-Plus it reached 11.4% higher accuracy and spent 21.5% fewer FLOPs, the count of arithmetic operations a run costs. On a 12-hour EdgeBench task it scored 5% higher and used 59% fewer FLOPs. An online RL method also lifted Qwen3.5-9B by 47.6% on BrowseComp-Plus [3]."
   ],
   [
    "p",
-   "We find this the most interesting result here, and the least settled. These figures come from the abstract, which does not spell out the setups behind them [3]. A model that curates its own file also decides authority by itself. The compatibility rule from the API story still needs an owner, a version and a test [1]. Treat self-managed context as a smart cache policy. It does not replace the contract."
+   "We find this the most interesting result here, and the least settled. These figures come from the abstract, which does not spell out the setups behind them. A model that curates its own file also decides authority by itself. The compatibility rule from the API story still needs an owner, a version and a test. Treat self-managed context as a smart cache policy. It does not replace the contract [3, 1]."
   ],
   [
    "h2",
@@ -286,11 +286,11 @@
   ],
   [
    "p",
-   "A rule written in a prompt is a request. The contract post moves every constraint that can be enforced into tests and technical controls [1]. Contract tests exercise the response shape that clients rely on. Dependency checks hold module boundaries, and the execution environment enforces tool permissions [1]. In the API case, a consumer contract test would have stopped the deletion cold."
+   "A rule written in a prompt is a request. The contract post moves every constraint that can be enforced into tests and technical controls. Contract tests exercise the response shape that clients rely on. Dependency checks hold module boundaries, and the execution environment enforces tool permissions. In the API case, a consumer contract test would have stopped the deletion cold [1]."
   ],
   [
    "p",
-   "Retrieved content needs the same caution. The post treats documents and tickets as evidence with a defined authority [1]. Instructions buried inside them must not widen permissions or approve unrelated actions [1]. That is prompt injection, where text the agent reads tries to act as a command. A written instruction cannot hold that line alone, the post warns [1]. We agree, and we would review it first."
+   "Retrieved content needs the same caution. The post treats documents and tickets as evidence with a defined authority. Instructions buried inside them must not widen permissions or approve unrelated actions. That is prompt injection, where text the agent reads tries to act as a command. A written instruction cannot hold that line alone, the post warns. We agree, and we would review it first [1]."
   ],
   [
    "h2",
@@ -302,11 +302,11 @@
   ],
   [
    "p",
-   "A repository instruction file, such as AGENTS.md, is the obvious first move. The evidence on it is thin. One arXiv evaluation found that automatically generated files gave no statistically significant gain in resolved tasks [1]. They also raised average inference costs by about 20–23% [1]. We read that as a warning about volume. More text cost money and bought nothing anyone could measure."
+   "A repository instruction file, such as AGENTS.md, is the obvious first move. The evidence on it is thin. One arXiv evaluation found that automatically generated files gave no statistically significant gain in resolved tasks. They also raised average inference costs by about 20–23%. We read that as a warning about volume. More text cost money and bought nothing anyone could measure [1]."
   ],
   [
    "p",
-   "A second arXiv study spanned 10 repositories and 124 pull-request tasks, with one agent configuration [1]. Instruction files lowered median runtime and output tokens there [1]. Correctness sat outside its scope; a manual pass over 50 sampled tasks only screened for clearly incomplete or irrelevant output [1]. Faster is not the same as cheaper per accepted change. Neither study tests the contract idea itself [1]."
+   "A second arXiv study spanned 10 repositories and 124 pull-request tasks, with one agent configuration. Instruction files lowered median runtime and output tokens there. Correctness sat outside its scope; a manual pass over 50 sampled tasks only screened for clearly incomplete or irrelevant output. Faster is not the same as cheaper per accepted change. Neither study tests the contract idea itself [1]."
   ],
   [
    "highlight",
@@ -317,7 +317,7 @@
   ],
   [
    "p",
-   "So measure what you ship. The contract post suggests one recurring workflow, a baseline on representative tasks, then one focused change [1]. Hold starting states, permissions and model settings steady, and record the model version and harness [1]. Track correct completions, violations, reviewer corrections, elapsed time, model cost and upkeep effort [1]. Then fold the cost of every rejected attempt into each accepted change [1]."
+   "So measure what you ship. The contract post suggests one recurring workflow, a baseline on representative tasks, then one focused change. Hold starting states, permissions and model settings steady, and record the model version and harness. Track correct completions, violations, reviewer corrections, elapsed time, model cost and upkeep effort. Then fold the cost of every rejected attempt into each accepted change [1]."
   ],
   [
    "h2",
@@ -329,11 +329,11 @@
   ],
   [
    "p",
-   "Context engineering pays off when the same knowledge must reach many tasks. For a one-off script, a throwaway prototype or a question that fits in one prompt, contracts, indexes and owners are pure overhead. The contract post itself says to expand only when the observed gain justifies the ongoing work [1]. If nothing repeats, nothing can be gained. Write the prompt and move on."
+   "Context engineering pays off when the same knowledge must reach many tasks. For a one-off script, a throwaway prototype or a question that fits in one prompt, contracts, indexes and owners are pure overhead. The contract post itself says to expand only when the observed gain justifies the ongoing work. If nothing repeats, nothing can be gained. Write the prompt and move on [1]."
   ],
   [
    "p",
-   "Skip the machinery, too, when a test can carry the constraint alone. A consumer contract test on the response shape needs no retrieval and no memory [1]. And do not buy a bigger window as a shortcut. The survey argues that longer windows leave the compute, storage and selection pressures in place [2]. Build the plumbing only once a correction keeps coming back in review [1]."
+   "Skip the machinery, too, when a test can carry the constraint alone. A consumer contract test on the response shape needs no retrieval and no memory. And do not buy a bigger window as a shortcut. The survey argues that longer windows leave the compute, storage and selection pressures in place. Build the plumbing only once a correction keeps coming back in review [1, 2]."
   ],
   [
    "h2",
@@ -349,7 +349,7 @@
   ],
   [
    "p",
-   "Context engineering is the work of choosing, supplying and maintaining the information an AI agent uses as a task moves along [1]. It spans the prompt, repository files, retrieval, memory and handoff notes. The key point is that data an agent could reach is not the same as data it has actually loaded [1]. So the job includes deciding what enters the window, and when."
+   "Context engineering is the work of choosing, supplying and maintaining the information an AI agent uses as a task moves along. It spans the prompt, repository files, retrieval, memory and handoff notes. The key point is that data an agent could reach is not the same as data it has actually loaded. So the job includes deciding what enters the window, and when [1]."
   ],
   [
    "h3",
@@ -357,7 +357,7 @@
   ],
   [
    "p",
-   "No. Prompt engineering shapes the instructions, and context engineering governs every input around them. A prompt states the task; repository context, retrieval and memory supply the rest [1]. Context engineering also asks who owns each fact, which version applies and what the agent does when a fact is missing [1]. A better prompt can fix one run, and a contract fixes the workflow."
+   "No. Prompt engineering shapes the instructions, and context engineering governs every input around them. A prompt states the task; repository context, retrieval and memory supply the rest. Context engineering also asks who owns each fact, which version applies and what the agent does when a fact is missing. A better prompt can fix one run, and a contract fixes the workflow [1]."
   ],
   [
    "h3",
@@ -365,7 +365,7 @@
   ],
   [
    "p",
-   "No. A bigger window adds capacity, but authority, relevance and freshness still need decisions [1]. A recent survey argues that growing the window leaves the compute, storage and selection pressures of inference in place [2]. Every token you load also takes room in the KV cache. The real choice is which facts deserve a place, and at what moment."
+   "No. A bigger window adds capacity, but authority, relevance and freshness still need decisions. A recent survey argues that growing the window leaves the compute, storage and selection pressures of inference in place. Every token you load also takes room in the KV cache. The real choice is which facts deserve a place, and at what moment [1, 2]."
   ]
  ],
  "sources": [
@@ -415,7 +415,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:27:40+00:00",
+  "generated_at": "2026-10-20T02:04:49+00:00",
   "rechecked_from": null,
   "documents": [
    "devto:4871232",

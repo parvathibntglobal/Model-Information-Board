@@ -102,7 +102,7 @@
   ],
   [
    "p",
-   "A computer use agent is a model that runs a computer through its screen, like a remote helper borrowing your mouse. It sees what you would see. Then it clicks, types and scrolls. Teams build these agents on vision-language models, or VLMs, which take in images and text together [3]. The appeal is reach. Any app with a window becomes something the model can use."
+   "A computer use agent is a model that runs a computer through its screen, like a remote helper borrowing your mouse. It sees what you would see. Then it clicks, types and scrolls. Teams build these agents on vision-language models, or VLMs, which take in images and text together. The appeal is reach. Any app with a window becomes something the model can use [3]."
   ],
   [
    "p",
@@ -110,7 +110,7 @@
   ],
   [
    "p",
-   "Where does it break? A screen is a slow, narrow window onto a computer. The OS-Helix authors argue that real desktop work also means handling files, scripts and system state efficiently [1]. That tension drives the paper we follow through this post. It is a new arXiv study of an agent that mixes clicking with code [1]."
+   "Where does it break? A screen is a slow, narrow window onto a computer. The OS-Helix authors argue that real desktop work also means handling files, scripts and system state efficiently. That tension drives the paper we follow through this post. It is a new arXiv study of an agent that mixes clicking with code [1]."
   ],
   [
    "visual",
@@ -137,11 +137,11 @@
   ],
   [
    "p",
-   "The OS-Helix team starts from a blunt observation. Desktop work mixes reading an interface with changing things underneath it [1]. Renaming a whole folder of photos takes endless clicks, and a short script does it in one go. Checking that a chart looks right needs eyes, not code. A useful agent needs both moves."
+   "The OS-Helix team starts from a blunt observation. Desktop work mixes reading an interface with changing things underneath it. Renaming a whole folder of photos takes endless clicks, and a short script does it in one go. Checking that a chart looks right needs eyes, not code. A useful agent needs both moves [1]."
   ],
   [
    "p",
-   "So why not hand a GUI agent, one that works a graphical user interface, a code tool and let it choose? The team tried exactly that in early experiments. The agent got worse [1]. Their reading is that picking between clicks and code cannot be bolted on through the prompt. It has to be learned from training data that mixes both kinds of action [1]."
+   "So why not hand a GUI agent, one that works a graphical user interface, a code tool and let it choose? The team tried exactly that in early experiments. The agent got worse. Their reading is that picking between clicks and code cannot be bolted on through the prompt. It has to be learned from training data that mixes both kinds of action [1]."
   ],
   [
    "highlight",
@@ -152,7 +152,7 @@
   ],
   [
    "p",
-   "OS-Helix therefore puts GUI actions and code execution into a single action space, the menu of moves a model can pick from at each step [1]. One policy, the trained model that maps a screen to an action, makes every choice. In our view, this is the right call. A prompt can list tools, but it cannot teach timing, and timing is the whole skill here."
+   "OS-Helix therefore puts GUI actions and code execution into a single action space, the menu of moves a model can pick from at each step. One policy, the trained model that maps a screen to an action, makes every choice. In our view, this is the right call. A prompt can list tools, but it cannot teach timing, and timing is the whole skill here [1]."
   ],
   [
    "h2",
@@ -164,7 +164,7 @@
   ],
   [
    "p",
-   "A hybrid agent needs examples of hybrid work, and those are scarce. The team built them by pairing desktop applications with authentic files, a step it calls application-artifact composition [1]. Each pairing becomes a runnable Ubuntu state [1]. Picture a spreadsheet app opened on a genuine spreadsheet, not an empty window."
+   "A hybrid agent needs examples of hybrid work, and those are scarce. The team built them by pairing desktop applications with authentic files, a step it calls application-artifact composition. Each pairing becomes a runnable Ubuntu state. Picture a spreadsheet app opened on a genuine spreadsheet, not an empty window [1]."
   ],
   [
    "image",
@@ -179,15 +179,15 @@
   ],
   [
    "p",
-   "Next comes the clever part. Separate pipelines write the instruction and the evaluator, the code that inspects the final state [1]. The evaluator only looks at where the machine ended up. So it does not care if the agent clicked or scripted its way there [1]. That is what makes mixed solutions gradable at scale."
+   "Next comes the clever part. Separate pipelines write the instruction and the evaluator, the code that inspects the final state. The evaluator only looks at where the machine ended up. So it does not care if the agent clicked or scripted its way there. That is what makes mixed solutions gradable at scale [1]."
   ],
   [
    "p",
-   "Training then runs in two phases [1]. Supervised fine-tuning, or SFT, on filtered hybrid data gives the policy a cold start. Online reinforcement learning, or RL, follows inside live desktop environments [1]. In RL the model improves from rewards on its own attempts, which are called rollouts."
+   "Training then runs in two phases. Supervised fine-tuning, or SFT, on filtered hybrid data gives the policy a cold start. Online reinforcement learning, or RL, follows inside live desktop environments. In RL the model improves from rewards on its own attempts, which are called rollouts [1]."
   ],
   [
    "p",
-   "The RL step hides a subtle trap. Clicks are short in tokens, while a code action can run long. Weigh every token equally and long scripts swamp the signal from clicks. The team's fix, Step-balanced GSPO, sums the importance weight per action step instead of per raw token [1]. An importance weight is the correction that rescales a sample drawn from an older policy."
+   "The RL step hides a subtle trap. Clicks are short in tokens, while a code action can run long. Weigh every token equally and long scripts swamp the signal from clicks. The team's fix, Step-balanced GSPO, sums the importance weight per action step instead of per raw token. An importance weight is the correction that rescales a sample drawn from an older policy [1]."
   ],
   [
    "code",
@@ -207,15 +207,15 @@
   ],
   [
    "p",
-   "So how well does it work? The team reports results on OSWorld-Verified, a desktop benchmark [1]. OS-Helix-27B and OS-Helix-35B-A3B beat their matched Qwen3.5 hybrid baselines by 35.0% and 33.7%, in relative terms [1]. The RL-trained 27B model then improves by 42.9% and reaches 66.44% success [1]."
+   "So how well does it work? The team reports results on OSWorld-Verified, a desktop benchmark. OS-Helix-27B and OS-Helix-35B-A3B beat their matched Qwen3.5 hybrid baselines by 35.0% and 33.7%, in relative terms. The RL-trained 27B model then improves by 42.9% and reaches 66.44% success [1]."
   ],
   [
    "p",
-   "Read those numbers with care. A relative improvement is measured against the baseline's own score. It is not the same thing as percentage points. Of the figures above, only 66.44% is a plain success rate [1]. The paper's summary leaves out the baselines' own scores, so the gains cannot be turned into points here. We think that gap matters, because a big relative gain on a weak baseline can still leave a low score."
+   "Read those numbers with care. A relative improvement is measured against the baseline's own score. It is not the same thing as percentage points. Of the figures above, only 66.44% is a plain success rate. The paper's summary leaves out the baselines' own scores, so the gains cannot be turned into points here. We think that gap matters, because a big relative gain on a weak baseline can still leave a low score [1]."
   ],
   [
    "p",
-   "Ablations are experiments that remove one ingredient at a time. Here they point the same way, crediting learned coordination, verifiable supervision and step-balanced optimisation [1]. The team also reports cross-platform transfer to WindowsAgentArena, a Windows test bed [1]. We read the transfer as the strongest hint that the routing skill is real, not a quirk of one test."
+   "Ablations are experiments that remove one ingredient at a time. Here they point the same way, crediting learned coordination, verifiable supervision and step-balanced optimisation. The team also reports cross-platform transfer to WindowsAgentArena, a Windows test bed. We read the transfer as the strongest hint that the routing skill is real, not a quirk of one test [1]."
   ],
   [
    "visual",
@@ -256,7 +256,7 @@
   ],
   [
    "p",
-   "Real deployments rarely run one agent alone. A second paper, CLASHarness, tests what happens when peers disagree [2]. Sub-agents may report an outdated state, give clashing orders, or fight over shared files and permissions [2]. Its benchmark holds 600 multi-round tasks built around such conflicts [2]."
+   "Real deployments rarely run one agent alone. A second paper, CLASHarness, tests what happens when peers disagree. Sub-agents may report an outdated state, give clashing orders, or fight over shared files and permissions. Its benchmark holds 600 multi-round tasks built around such conflicts [2]."
   ],
   [
    "image",
@@ -278,11 +278,11 @@
   ],
   [
    "p",
-   "The construction matters for trusting the scores. The pipeline fixes the decisive visual facts before it renders a scene [2]. It then compiles code and semantic graders from reference runs that were actually executed. That makes every task solvable by design [2]. Free-form LLM generation, the authors warn, drifts and leaks answers instead [2]."
+   "The construction matters for trusting the scores. The pipeline fixes the decisive visual facts before it renders a scene. It then compiles code and semantic graders from reference runs that were actually executed. That makes every task solvable by design. Free-form LLM generation, the authors warn, drifts and leaks answers instead [2]."
   ],
   [
    "p",
-   "Across 15 frontier models, three weak spots showed up [2]. Weaker models followed misleading sub-agent reports, and stronger ones checked the screen for themselves [2]. Spotting an inconsistency proved easier than repairing the system state [2]. Closing up was worst of all. Even frontier models failed over 58% of closing actions, such as releasing a shared lock [2]."
+   "Across 15 frontier models, three weak spots showed up. Weaker models followed misleading sub-agent reports, and stronger ones checked the screen for themselves. Spotting an inconsistency proved easier than repairing the system state. Closing up was worst of all. Even frontier models failed over 58% of closing actions, such as releasing a shared lock [2]."
   ],
   [
    "p",
@@ -298,15 +298,15 @@
   ],
   [
    "p",
-   "Specialist tools are a harder test. OSWorld-Science gives agents 146 tasks in scientific software, from molecule drawing to pathology images, statistics and physics simulation [3]. Experts proposed the tasks. Execution-based evaluators inspect the outputs, such as segmentation masks and plots, and give partial credit for incomplete work [3]."
+   "Specialist tools are a harder test. OSWorld-Science gives agents 146 tasks in scientific software, from molecule drawing to pathology images, statistics and physics simulation. Experts proposed the tasks. Execution-based evaluators inspect the outputs, such as segmentation masks and plots, and give partial credit for incomplete work [3]."
   ],
   [
    "p",
-   "The verdict is sobering. Across 12 VLMs, the authors found that even the strongest current models, run in a strong harness, still struggle with key scientific questions [3]. They also studied language, reasoning effort and context length as factors [3]. A good harness, it seems, cannot paper over an unfamiliar interface."
+   "The verdict is sobering. Across 12 VLMs, the authors found that even the strongest current models, run in a strong harness, still struggle with key scientific questions. They also studied language, reasoning effort and context length as factors. A good harness, it seems, cannot paper over an unfamiliar interface [3]."
   ],
   [
    "p",
-   "So where does the hybrid idea stop? It helps on desktop chores with a checkable end state [1]. It says little about hand-offs between agents or about specialist screens, where fresh failures show up [2, 3]. Nobody has yet reported how these agents fare on your own apps. To try one, start with tasks whose final state a script can verify, and read the CLASHarness paper before you add a second agent."
+   "So where does the hybrid idea stop? It helps on desktop chores with a checkable end state. It says little about hand-offs between agents or about specialist screens, where fresh failures show up. Nobody has yet reported how these agents fare on your own apps. To try one, start with tasks whose final state a script can verify, and read the CLASHarness paper before you add a second agent [1, 2, 3]."
   ],
   [
    "h2",
@@ -322,7 +322,7 @@
   ],
   [
    "p",
-   "A computer use agent is an AI model that operates a computer through its screen, clicking, typing and scrolling like a person. It is usually built on a vision-language model, which reads screenshots and text together [3]. Newer agents such as OS-Helix can also run code in the same action space, choosing at each step between a click and a script [1]."
+   "A computer use agent is an AI model that operates a computer through its screen, clicking, typing and scrolling like a person. It is usually built on a vision-language model, which reads screenshots and text together. Newer agents such as OS-Helix can also run code in the same action space, choosing at each step between a click and a script [3, 1]."
   ],
   [
    "h3",
@@ -338,7 +338,7 @@
   ],
   [
    "p",
-   "Not for every job yet. On OSWorld-Verified, the RL-trained OS-Helix model reached 66.44% success [1]. In a multi-agent conflict benchmark, even frontier models failed over 58% of closing actions, such as releasing shared locks [2]. Scientific software also remains hard for current models, even inside a strong harness [3]."
+   "Not for every job yet. On OSWorld-Verified, the RL-trained OS-Helix model reached 66.44% success. In a multi-agent conflict benchmark, even frontier models failed over 58% of closing actions, such as releasing shared locks. Scientific software also remains hard for current models, even inside a strong harness [1, 2, 3]."
   ]
  ],
  "sources": [
@@ -388,7 +388,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:41+00:00",
+  "generated_at": "2026-10-20T02:05:24+00:00",
   "rechecked_from": null,
   "documents": [
    "arxiv:2610.22234v1",

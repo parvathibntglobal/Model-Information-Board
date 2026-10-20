@@ -29,7 +29,7 @@
   "voice AI",
   "Field guide"
  ],
- "read": 9,
+ "read": 8,
  "decisions": [
   "How many calls one process may carry",
   "Which CPU signal pages the on-call: throttling or average use",
@@ -80,7 +80,7 @@
  "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
  "meta": [
   "20 October 2026",
-  "~9 min read",
+  "~8 min read",
   "Draft — not reviewed"
  ],
  "body": [
@@ -94,19 +94,19 @@
   ],
   [
    "p",
-   "A caller says one sentence and hears two replies. That is the classic voice AI failure, and one engineering team traced it to a starved process [1]. Their agent runs a fixed relay [1]. Voice activity detection (VAD) spots speech, speech-to-text (STT) transcribes it, an LLM answers, and text-to-speech (TTS) speaks the answer back [1]."
+   "A caller says one sentence and hears two replies. That is the classic voice AI failure, and one engineering team traced it to a starved process. Their agent runs a fixed relay. Voice activity detection (VAD) spots speech, speech-to-text (STT) transcribes it, an LLM answers, and text-to-speech (TTS) speaks the answer back [1]."
   ],
   [
    "p",
-   "That relay is how AI voice agents work, and VAD decides when a turn ends. In this stack it is Silero, an ONNX model scoring short audio chunks, plus a silence timer called `stop_secs` [1]. Once the speech score stays under a threshold for that long, the transcript goes to the LLM [1]. Here is the catch. The timer runs on wall-clock time [1]."
+   "That relay is how AI voice agents work, and VAD decides when a turn ends. In this stack it is Silero, an ONNX model scoring short audio chunks, plus a silence timer called `stop_secs`. Once the speech score stays under a threshold for that long, the transcript goes to the LLM. Here is the catch. The timer runs on wall-clock time [1]."
   ],
   [
    "p",
-   "Under a tight CPU limit, audio chunks arrive late, and late chunks look like silence [1]. The kernel bills CPU in 100 ms slices against the quota, so short spikes get throttled even when the average looks idle [1]. VAD then ends the turn mid-sentence. The rest arrives as a second turn, and the caller gets two answers [1]."
+   "Under a tight CPU limit, audio chunks arrive late, and late chunks look like silence. The kernel bills CPU in 100 ms slices against the quota, so short spikes get throttled even when the average looks idle. VAD then ends the turn mid-sentence. The rest arrives as a second turn, and the caller gets two answers [1]."
   ],
   [
    "p",
-   "The team first patched it with a longer STT timeout, then spent months loosening VAD thresholds [1]. Some of that tuning, the author admits, was compensating for a starved process [1]. We think this is the lesson worth stealing. Before you tune a turn detector, prove it gets its CPU on time."
+   "The team first patched it with a longer STT timeout, then spent months loosening VAD thresholds. Some of that tuning, the author admits, was compensating for a starved process. We think this is the lesson worth stealing. Before you tune a turn detector, prove it gets its CPU on time [1]."
   ],
   [
    "visual",
@@ -133,15 +133,15 @@
   ],
   [
    "p",
-   "The author's first suspect was Python's global interpreter lock, the GIL, which lets only one thread run Python code at a time [1]. Measurements cleared it. Resampling and VAD inference run in C and C++ underneath, release the GIL and use two cores happily [1]. The real limit was the pod's CPU budget. Extra threads simply spend that budget faster [1]."
+   "The author's first suspect was Python's global interpreter lock, the GIL, which lets only one thread run Python code at a time. Measurements cleared it. Resampling and VAD inference run in C and C++ underneath, release the GIL and use two cores happily. The real limit was the pod's CPU budget. Extra threads simply spend that budget faster [1]."
   ],
   [
    "p",
-   "Each call held a WebRTC peer, two vendor WebSockets and one SSE stream [1]. It also ran an ONNX model that scored the audio roughly 30 times each second [1]. Most CPU went into speech traffic: chunking and sending audio to STT, parsing transcripts, cutting TTS audio into 20 ms frames and encoding Opus [1]. No single stage is heavy. Each one is a spike."
+   "Each call held a WebRTC peer, two vendor WebSockets and one SSE stream. It also ran an ONNX model that scored the audio roughly 30 times each second. Most CPU went into speech traffic: chunking and sending audio to STT, parsing transcripts, cutting TTS audio into 20 ms frames and encoding Opus. No single stage is heavy. Each one is a spike [1]."
   ],
   [
    "p",
-   "So average CPU lies here. The author recommends tracking throttled periods as a share of all CPU periods, because dashboards flatten spikes into a calm line [1]. Their load tester simulates whole calls, with real STT and mocked TTS and LLM that keep measured vendor latencies [1]. An instant mock, they warn, inflates a pod's apparent capacity several times over [1]."
+   "So average CPU lies here. The author recommends tracking throttled periods as a share of all CPU periods, because dashboards flatten spikes into a calm line. Their load tester simulates whole calls, with real STT and mocked TTS and LLM that keep measured vendor latencies. An instant mock, they warn, inflates a pod's apparent capacity several times over [1]."
   ],
   [
    "code",
@@ -161,7 +161,7 @@
   ],
   [
    "p",
-   "Memory told a stranger story. Over two days, three pods climbed in a staircase that never stepped down [1]. Python asyncio code does not spawn OS threads by the score, so something native did [1]. The Daily WebRTC client, wrapped by a Python library, starts roughly ten OS threads for each call. Only its `release()` method frees them [1]."
+   "Memory told a stranger story. Over two days, three pods climbed in a staircase that never stepped down. Python asyncio code does not spawn OS threads by the score, so something native did. The Daily WebRTC client, wrapped by a Python library, starts roughly ten OS threads for each call. Only its `release()` method frees them [1]."
   ],
   [
    "image",
@@ -176,11 +176,11 @@
   ],
   [
    "p",
-   "Under load, teardown timed out and fell back to cancelling the Python task [1]. Cancelling the coroutine never called `release()`. The Python object was collected, but the native threads and audio buffers stayed [1]. Worse, the gauge of active transports dropped to zero once the reference went away [1]. The metric said clean. The kernel saw a growing pile of OS threads."
+   "Under load, teardown timed out and fell back to cancelling the Python task. Cancelling the coroutine never called `release()`. The Python object was collected, but the native threads and audio buffers stayed. Worse, the gauge of active transports dropped to zero once the reference went away. The metric said clean. The kernel saw a growing pile of OS threads [1]."
   ],
   [
    "p",
-   "The fixes that failed are instructive. A bigger memory limit only slowed the crash, and a Python heap profiler saw nothing because the leak was native [1]. Forced garbage collection and a different allocator could not free what nothing had released [1]. The real fix was small. Shield the release call from cancellation, and drop the transport entry only after it finishes [1]."
+   "The fixes that failed are instructive. A bigger memory limit only slowed the crash, and a Python heap profiler saw nothing because the leak was native. Forced garbage collection and a different allocator could not free what nothing had released. The real fix was small. Shield the release call from cancellation, and drop the transport entry only after it finishes [1]."
   ],
   [
    "h2",
@@ -192,11 +192,11 @@
   ],
   [
    "p",
-   "The team's comparison pinned all three problems on one variable: how many calls a pod carried [1]. VAD jitter grew faster than linearly with calls per pod, and STT and TTS load grew linearly [1]. The native leak grew with every call the pod had ever served [1]. So the design changed. A pod would serve one call and then exit, like a game server [1]."
+   "The team's comparison pinned all three problems on one variable: how many calls a pod carried. VAD jitter grew faster than linearly with calls per pod, and STT and TTS load grew linearly. The native leak grew with every call the pod had ever served. So the design changed. A pod would serve one call and then exit, like a game server [1]."
   ],
   [
    "p",
-   "With one call per process, nothing can leak between calls, and VAD never competes with a neighbour's TTS [1]. Routing becomes trivial, because each call uses the pod it was handed [1]. Even the earlier consistent-hashing work only mattered because each pod kept state for several calls at once [1]. The hard part moves to scheduling fresh processes fast enough, which the follow-up post builds on Agones and Karpenter [1]."
+   "With one call per process, nothing can leak between calls, and VAD never competes with a neighbour's TTS. Routing becomes trivial, because each call uses the pod it was handed. Even the earlier consistent-hashing work only mattered because each pod kept state for several calls at once. The hard part moves to scheduling fresh processes fast enough, which the follow-up post builds on Agones and Karpenter [1]."
   ],
   [
    "highlight",
@@ -252,7 +252,7 @@
   ],
   [
    "p",
-   "Tool calls add a second wait. A typical speech assistant runs recognition, then the LLM, then any external tool, one after another [2]. So the tool's delay starts only after the user stops and the LLM has chosen a call [2]. A new arXiv paper on on-device voice agents starts the tool earlier [2]."
+   "Tool calls add a second wait. A typical speech assistant runs recognition, then the LLM, then any external tool, one after another. So the tool's delay starts only after the user stops and the LLM has chosen a call. A new arXiv paper on on-device voice agents starts the tool earlier [2]."
   ],
   [
    "image",
@@ -274,15 +274,15 @@
   ],
   [
    "p",
-   "A Predictor module reads partial ASR hypotheses, the running guesses a recogniser makes mid-utterance [2]. It anticipates tool calls, runs them speculatively and caches the results [2]. When the turn ends, valid cached outputs go into the LLM prompt [2]. A rule-based check drops results that a self-correction made stale, and the LLM can still call tools itself [2]."
+   "A Predictor module reads partial ASR hypotheses, the running guesses a recogniser makes mid-utterance. It anticipates tool calls, runs them speculatively and caches the results. When the turn ends, valid cached outputs go into the LLM prompt. A rule-based check drops results that a self-correction made stale, and the LLM can still call tools itself [2]."
   ],
   [
    "p",
-   "On a fully built Android assistant, live measurements showed median time-to-first-audio falling from 5.79 s to 4.60 s [2]. The standard deviation shrank from 3.49 s to 2.81 s, so waits became more predictable [2]. We value the worst-case bound more than the median gain. A speed layer that cannot make things slower is easy to ship."
+   "On a fully built Android assistant, live measurements showed median time-to-first-audio falling from 5.79 s to 4.60 s. The standard deviation shrank from 3.49 s to 2.81 s, so waits became more predictable. We value the worst-case bound more than the median gain. A speed layer that cannot make things slower is easy to ship [2]."
   ],
   [
    "p",
-   "Acting on partial speech has a gentler use, too. A paper on Bangla speech pairs a transformer transcriber with a BiLSTM attention model that completes sentences people with dementia leave unfinished [3]. In both cases, a model guesses the rest of an utterance. Both need a clean way to back out when the guess is wrong."
+   "Acting on partial speech has a gentler use, too. A paper on Bangla speech pairs a transformer transcriber with a BiLSTM attention model that completes sentences people with dementia leave unfinished. In both cases, a model guesses the rest of an utterance. Both need a clean way to back out when the guess is wrong [3]."
   ],
   [
    "h2",
@@ -294,15 +294,15 @@
   ],
   [
    "p",
-   "Word error rate counts mistakes. It never asks what they break. A new arXiv paper on ASR metrics points out that errors of similar size can do very different damage to the situation the speech describes [4]. Judging that needs an understanding of what the speech sets up or tries to achieve [4]."
+   "Word error rate counts mistakes. It never asks what they break. A new arXiv paper on ASR metrics points out that errors of similar size can do very different damage to the situation the speech describes. Judging that needs an understanding of what the speech sets up or tries to achieve [4]."
   ],
   [
    "p",
-   "LLM judges can make that call, but they add cost and scoring variability [4]. The SITAR metric moves the judgment offline. Its framework rolls situational severity and cumulative extent into one bounded score [4]. Using limited offline LLM help to build training targets, the authors train a small BERT-family regressor [4]. It scores a reference and hypothesis pair in one forward pass [4]."
+   "LLM judges can make that call, but they add cost and scoring variability. The SITAR metric moves the judgment offline. Its framework rolls situational severity and cumulative extent into one bounded score. Using limited offline LLM help to build training targets, the authors train a small BERT-family regressor. It scores a reference and hypothesis pair in one forward pass [4]."
   ],
   [
    "p",
-   "The authors report that SITAR tracks broad capability scaling and adds diagnostic signal that sits apart from existing metrics [4]. They pitch it as a complement to current ASR metrics, and we agree with that framing [4]. For a voice agent, add your own critical phrases too. Amounts, names and negations are where one wrong word costs most."
+   "The authors report that SITAR tracks broad capability scaling and adds diagnostic signal that sits apart from existing metrics. They pitch it as a complement to current ASR metrics, and we agree with that framing. For a voice agent, add your own critical phrases too. Amounts, names and negations are where one wrong word costs most [4]."
   ],
   [
    "h2",
@@ -314,15 +314,15 @@
   ],
   [
    "p",
-   "The speaking side has its own risks. The Gemini 3.8 text-to-speech release, discussed on Hacker News, offered voice replication from a 30-second sample [5]. The announcement paired it with consent verification, SynthID watermarking and C2PA credentials [5]. Commenters argued that local tools already clone voices well and that a local pass could strip such marks [5]. One described fine-tuning Qwen3-TTS 1.7B on about 12 minutes of recordings using an RTX 3090 [5]."
+   "The speaking side has its own risks. The Gemini 3.8 text-to-speech release, discussed on Hacker News, offered voice replication from a 30-second sample. The announcement paired it with consent verification, SynthID watermarking and C2PA credentials. Commenters argued that local tools already clone voices well and that a local pass could strip such marks. One described fine-tuning Qwen3-TTS 1.7B on about 12 minutes of recordings using an RTX 3090 [5]."
   ],
   [
    "p",
-   "Detection has a quieter failure. A new arXiv paper on zero-bit audio watermarking, which only answers marked or unmarked, studies what happens when versions change [6]. Real deployments update embedders and detectors and split them apart [6]. A new detector can then miss content marked by older embedders. It can also raise false positives on embedders it was never meant to recognise [6]."
+   "Detection has a quieter failure. A new arXiv paper on zero-bit audio watermarking, which only answers marked or unmarked, studies what happens when versions change. Real deployments update embedders and detectors and split them apart. A new detector can then miss content marked by older embedders. It can also raise false positives on embedders it was never meant to recognise [6]."
   ],
   [
    "p",
-   "The authors train each new detector against a chain of frozen legacy embedders, sampled by performance [6]. That coupling causes embedder collapse, which badly hurts the true negative rate against embedders outside the chain [6]. An Angular Diversity Loss pushes each new embedder into its own region of the output space [6]. Together, they restore near-perfect true negative rates without hurting detection or audio quality [6]. We read this as API versioning. Test every detector against every embedder you shipped."
+   "The authors train each new detector against a chain of frozen legacy embedders, sampled by performance. That coupling causes embedder collapse, which badly hurts the true negative rate against embedders outside the chain. An Angular Diversity Loss pushes each new embedder into its own region of the output space. Together, they restore near-perfect true negative rates without hurting detection or audio quality. We read this as API versioning. Test every detector against every embedder you shipped [6]."
   ],
   [
    "h2",
@@ -334,11 +334,11 @@
   ],
   [
    "p",
-   "Voice is slow to skim. Even with speculation, the Android assistant's median wait before the first audio was 4.60 s [2]. Listeners on Hacker News also complained that leading voices exaggerate emotion and wander from the prompt [5]. Some just wanted a plain, restrained computer voice [5]. For tables, codes, prices and anything a user must compare or copy, text on a screen wins."
+   "Voice is slow to skim. Even with speculation, the Android assistant's median wait before the first audio was 4.60 s. Listeners on Hacker News also complained that leading voices exaggerate emotion and wander from the prompt. Some just wanted a plain, restrained computer voice. For tables, codes, prices and anything a user must compare or copy, text on a screen wins [2, 5]."
   ],
   [
    "p",
-   "Skip voice, too, when you cannot establish consent for a voice you plan to clone [5]. And skip it when nobody on your team can own a realtime process, because the failures above lived in CPU quotas and native threads [1]. A chat box is not glamorous. It rarely gives anyone two answers to one sentence."
+   "Skip voice, too, when you cannot establish consent for a voice you plan to clone. And skip it when nobody on your team can own a realtime process, because the failures above lived in CPU quotas and native threads. A chat box is not glamorous. It rarely gives anyone two answers to one sentence [5, 1]."
   ],
   [
    "h2",
@@ -354,7 +354,7 @@
   ],
   [
    "p",
-   "Most run a relay of components. Voice activity detection decides when you stopped talking, speech-to-text transcribes the turn, an LLM writes a reply, and text-to-speech speaks it [1]. Tools usually run after the LLM picks them, which adds delay [2]. Each hop adds latency, and the turn detector's silence timer is often the most fragile part [1]."
+   "Most run a relay of components. Voice activity detection decides when you stopped talking, speech-to-text transcribes the turn, an LLM writes a reply, and text-to-speech speaks it. Tools usually run after the LLM picks them, which adds delay. Each hop adds latency, and the turn detector's silence timer is often the most fragile part [1, 2]."
   ],
   [
    "h3",
@@ -362,7 +362,7 @@
   ],
   [
    "p",
-   "Often because the turn detector saw a gap that was really late audio. One team found that CPU throttling delayed audio chunks, so the silence timer ended the turn mid-sentence [1]. The second half then arrived as a new turn and got its own reply [1]. Watch CPU throttling before you retune the detector."
+   "Often because the turn detector saw a gap that was really late audio. One team found that CPU throttling delayed audio chunks, so the silence timer ended the turn mid-sentence. The second half then arrived as a new turn and got its own reply. Watch CPU throttling before you retune the detector [1]."
   ],
   [
    "h3",
@@ -370,7 +370,7 @@
   ],
   [
    "p",
-   "Start slow work before the user finishes speaking. One on-device assistant predicted tool calls from partial transcripts and ran them early [2]. Its median time to first audio fell from 5.79 s to 4.60 s, and the LLM could still call tools itself as a fallback [2]. Keeping each call in its own process also stops neighbours stealing CPU [1]."
+   "Start slow work before the user finishes speaking. One on-device assistant predicted tool calls from partial transcripts and ran them early. Its median time to first audio fell from 5.79 s to 4.60 s, and the LLM could still call tools itself as a fallback. Keeping each call in its own process also stops neighbours stealing CPU [2, 1]."
   ]
  ],
  "sources": [
@@ -444,7 +444,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:27:34+00:00",
+  "generated_at": "2026-10-20T02:04:58+00:00",
   "rechecked_from": null,
   "documents": [
    "arxiv:2610.21440v1",

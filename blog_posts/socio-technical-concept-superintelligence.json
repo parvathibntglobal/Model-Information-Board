@@ -89,11 +89,11 @@
   ],
   [
    "p",
-   "Lawmakers are now drafting definitions of a machine nobody has built. A US Senate bill from Bernie Sanders would permanently ban artificial superintelligence and create a Department of AI [2, 3]. It describes the banned thing as any system whose cognitive ability goes beyond a human's, or one capable of planning humanity's destruction or disempowerment [2]. So what is artificial superintelligence? Here, it's a capability line drawn before anyone has crossed it. Violators could face prison [3]."
+   "Lawmakers are now drafting definitions of a machine nobody has built. A US Senate bill from Bernie Sanders would permanently ban artificial superintelligence and create a Department of AI. It describes the banned thing as any system whose cognitive ability goes beyond a human's, or one capable of planning humanity's destruction or disempowerment. So what is artificial superintelligence? Here, it's a capability line drawn before anyone has crossed it. Violators could face prison [2, 3]."
   ],
   [
    "p",
-   "The bill reaches for compute as well as capability [3]. It covers any system trained above a fixed amount of computing power. A new Secretary of AI would have to move that line every year, as training methods get more efficient [3]. It also bans systems that show human-surpassing cognition across most domains, or that could easily be modified to show it [3]. That last clause is the hard one. Who decides what counts as easy?"
+   "The bill reaches for compute as well as capability. It covers any system trained above a fixed amount of computing power. A new Secretary of AI would have to move that line every year, as training methods get more efficient. It also bans systems that show human-surpassing cognition across most domains, or that could easily be modified to show it. That last clause is the hard one. Who decides what counts as easy [3]?"
   ],
   [
    "p",
@@ -109,15 +109,15 @@
   ],
   [
    "p",
-   "One Hacker News commenter called the bill's definition a big miss [2]. Their point was blunt. On some tasks, models from a year earlier already outdid the typical human, at least at recalling a wide range of facts [2]. If exceeding human cognition is the line, a rote-memory test crosses it today. The same commenter argued that a ban would leave licensed governments and corporations using the technology while ordinary users lose it [2]."
+   "One Hacker News commenter called the bill's definition a big miss. Their point was blunt. On some tasks, models from a year earlier already outdid the typical human, at least at recalling a wide range of facts. If exceeding human cognition is the line, a rote-memory test crosses it today. The same commenter argued that a ban would leave licensed governments and corporations using the technology while ordinary users lose it [2]."
   ],
   [
    "p",
-   "A different Hacker News commenter argued from the progress curve instead [4]. GPT-2 was a curiosity in 2019, in their telling, and GPT-4 arrived three and a half years later [4]. GPT-6 followed after a similar gap, and the commenter called it a working peer to a mathematician or a chemist [4]. Assume no plateau, they wrote, and general superintelligence lands in another three and a half years [4]. Recursive self-improvement would follow, within the limits of compute [4]."
+   "A different Hacker News commenter argued from the progress curve instead. GPT-2 was a curiosity in 2019, in their telling, and GPT-4 arrived three and a half years later. GPT-6 followed after a similar gap, and the commenter called it a working peer to a mathematician or a chemist. Assume no plateau, they wrote, and general superintelligence lands in another three and a half years. Recursive self-improvement would follow, within the limits of compute [4]."
   ],
   [
    "p",
-   "Someone else on Hacker News doubted the whole path [5]. Today's models don't learn from experience, they wrote, and memories carried between chats were a coin flip in their own use [5]. Their view was that LLMs won't reach AGI without a radical change in how such systems are built [5]. We think this is the observation that matters most for daily work. It describes a system that forgets your instruction."
+   "Someone else on Hacker News doubted the whole path. Today's models don't learn from experience, they wrote, and memories carried between chats were a coin flip in their own use. Their view was that LLMs won't reach AGI without a radical change in how such systems are built. We think this is the observation that matters most for daily work. It describes a system that forgets your instruction [5]."
   ],
   [
    "visual",
@@ -163,15 +163,15 @@
   ],
   [
    "p",
-   "Set the forum aside and look at a lab result. A new arXiv paper by Sergey Rodionov asks a pointed question [1]. If stronger models can build useful procedures for themselves, why does scaffolding from developers keep its advantage [1]? Scaffolding means the code, prompts and control logic wrapped around a model. It decides when the agent acts, resets, stops or asks for help."
+   "Set the forum aside and look at a lab result. A new arXiv paper by Sergey Rodionov asks a pointed question. If stronger models can build useful procedures for themselves, why does scaffolding from developers keep its advantage? Scaffolding means the code, prompts and control logic wrapped around a model. It decides when the agent acts, resets, stops or asks for help [1]."
   ],
   [
    "p",
-   "The setup is clean. A Codex-based agent ran under two prompt variants that were nearly identical, on ARC-AGI-3, AGI Maze and Terminal-Bench [1]. Code, prompts and general tools stayed the same in every environment. Only the environment's own details changed, fed in as input [1]. One variant added an instruction to report difficulties and hand control back for automatic continuation [1]. That small edit raised mean scores on ARC-AGI-3 and AGI Maze [1]."
+   "The setup is clean. A Codex-based agent ran under two prompt variants that were nearly identical, on ARC-AGI-3, AGI Maze and Terminal-Bench. Code, prompts and general tools stayed the same in every environment. Only the environment's own details changed, fed in as input. One variant added an instruction to report difficulties and hand control back for automatic continuation. That small edit raised mean scores on ARC-AGI-3 and AGI Maze [1]."
   ],
   [
    "p",
-   "Terminal-Bench moved only a little, and in mixed directions [1]. The general agent also stayed below a reference agent built for ARC-AGI-3, even with GPT-5.6 Sol underneath [1]. That reference added no new game rules or solutions. It prescribed organisation and control [1]. Structure made the difference, and knowledge did not."
+   "Terminal-Bench moved only a little, and in mixed directions. The general agent also stayed below a reference agent built for ARC-AGI-3, even with GPT-5.6 Sol underneath. That reference added no new game rules or solutions. It prescribed organisation and control. Structure made the difference, and knowledge did not [1]."
   ],
   [
    "visual",
@@ -198,7 +198,7 @@
   ],
   [
    "p",
-   "The paper's next move is the interesting one. The author handed reset decisions to a scripted controller [1]. That controller followed a convention the agent had already been told [1]. So the model knew the rule. It just didn't apply it reliably. Moving that one decision into code won back part of the specialised agent's lead [1]."
+   "The paper's next move is the interesting one. The author handed reset decisions to a scripted controller. That controller followed a convention the agent had already been told. So the model knew the rule. It just didn't apply it reliably. Moving that one decision into code won back part of the specialised agent's lead [1]."
   ],
   [
    "image",
@@ -220,11 +220,11 @@
   ],
   [
    "p",
-   "Then comes a surprise. In a separate AGI Maze experiment, extra tutorial experience made the agent perform worse [1]. More information did not buy better play. For a builder, that is a warning about stuffing context with every guide you have. The paper's conclusion is that supplied procedures still matter for the models it tested [1]."
+   "Then comes a surprise. In a separate AGI Maze experiment, extra tutorial experience made the agent perform worse. More information did not buy better play. For a builder, that is a warning about stuffing context with every guide you have. The paper's conclusion is that supplied procedures still matter for the models it tested [1]."
   ],
   [
    "p",
-   "The gains carry a price. They came with higher token-based cost, and the experiments cannot separate smarter use of information from simply more inference [1]. We like that the abstract says so plainly. In our view, it's the honest shape of most agent results today. Better scores and bigger bills arrive together. The mechanism stays blurred."
+   "The gains carry a price. They came with higher token-based cost, and the experiments cannot separate smarter use of information from simply more inference. We like that the abstract says so plainly. In our view, it's the honest shape of most agent results today. Better scores and bigger bills arrive together. The mechanism stays blurred [1]."
   ],
   [
    "h2",
@@ -236,15 +236,15 @@
   ],
   [
    "p",
-   "Picture an engineer in the middle of this. In the morning, they add a line telling an agent to report when it is stuck [1]. In the afternoon, they read a bill that treats the same class of system as a possible threat to humanity [2]. Both concern models like GPT-6 and its peers [4]. Neither tells them what to build next."
+   "Picture an engineer in the middle of this. In the morning, they add a line telling an agent to report when it is stuck. In the afternoon, they read a bill that treats the same class of system as a possible threat to humanity. Both concern models like GPT-6 and its peers. Neither tells them what to build next [1, 2, 4]."
   ],
   [
    "p",
-   "The vocabulary adds friction. A Hacker News commenter tied the bill to a recent political push to rename AI itself as superintelligence [3]. A reply argued that the scary name works as a prop for heavy regulation, with exemptions for big AI firms [3]. We don't share the cynicism. The worry about exemptions is fair, though. A compute line that moves every year will be argued over by whoever trains near it [3]."
+   "The vocabulary adds friction. A Hacker News commenter tied the bill to a recent political push to rename AI itself as superintelligence. A reply argued that the scary name works as a prop for heavy regulation, with exemptions for big AI firms. We don't share the cynicism. The worry about exemptions is fair, though. A compute line that moves every year will be argued over by whoever trains near it [3]."
   ],
   [
    "p",
-   "Policy researchers sound less certain than either camp. The Import AI newsletter summarised RAND's view that the best US strategy keeps all options open [6]. Its stated reason is that nobody yet knows what is optimal [6]. We agree with that posture. A ban and a race both assume a confidence the evidence doesn't give."
+   "Policy researchers sound less certain than either camp. The Import AI newsletter summarised RAND's view that the best US strategy keeps all options open. Its stated reason is that nobody yet knows what is optimal. We agree with that posture. A ban and a race both assume a confidence the evidence doesn't give [6]."
   ],
   [
    "h2",
@@ -256,7 +256,7 @@
   ],
   [
    "p",
-   "Here is the tension that stays open. The progress optimists picture models that soon improve themselves [4]. The bill pictures cognition beyond ours across most domains [3]. The scaffolding paper finds models that still need someone to supply procedures [1]. All three can hold for now. The gap between them is where today's engineering work lives."
+   "Here is the tension that stays open. The progress optimists picture models that soon improve themselves. The bill pictures cognition beyond ours across most domains. The scaffolding paper finds models that still need someone to supply procedures. All three can hold for now. The gap between them is where today's engineering work lives [4, 3, 1]."
   ],
   [
    "image",
@@ -271,11 +271,11 @@
   ],
   [
    "p",
-   "What would settle it? Watch the distance between general agents and hand-built references on tests like ARC-AGI-3 [1]. If that distance closes with no environment-specific engineering, the optimists gain ground. If it holds while models scale, the skeptics do [5]. The paper ships its EnvTraverse framework and a baseline agent, so others can run exactly that check [1]."
+   "What would settle it? Watch the distance between general agents and hand-built references on tests like ARC-AGI-3. If that distance closes with no environment-specific engineering, the optimists gain ground. If it holds while models scale, the skeptics do. The paper ships its EnvTraverse framework and a baseline agent, so others can run exactly that check [1, 5]."
   ],
   [
    "p",
-   "Memory is the second signal. The skeptic's complaint was that models don't learn from experience and drop carried-over memories [5]. A model that kept and used what it learned across sessions would answer that complaint directly. Until one does, we think superintelligence names a forecast. Scaffolding names the present."
+   "Memory is the second signal. The skeptic's complaint was that models don't learn from experience and drop carried-over memories. A model that kept and used what it learned across sessions would answer that complaint directly. Until one does, we think superintelligence names a forecast. Scaffolding names the present [5]."
   ],
   [
    "h2",
@@ -291,7 +291,7 @@
   ],
   [
    "p",
-   "Artificial superintelligence usually means an AI system whose cognitive ability goes beyond a human's across most domains. A proposed US Senate bill defines it that way, and adds systems able to plan humanity's destruction or disempowerment [2, 3]. No agreed test exists for that line. Current agents still rely on procedures their developers supply [1]."
+   "Artificial superintelligence usually means an AI system whose cognitive ability goes beyond a human's across most domains. A proposed US Senate bill defines it that way, and adds systems able to plan humanity's destruction or disempowerment. No agreed test exists for that line. Current agents still rely on procedures their developers supply [2, 3, 1]."
   ],
   [
    "h3",
@@ -299,7 +299,7 @@
   ],
   [
    "p",
-   "Nobody knows yet. A Hacker News commenter projects general superintelligence within three and a half years if progress does not plateau [4]. A skeptic on the same site argues LLMs cannot get there, since they don't learn from experience [5]. A new arXiv paper finds today's agents still gain from hand-written procedures, which is evidence about now, not about the ceiling [1]."
+   "Nobody knows yet. A Hacker News commenter projects general superintelligence within three and a half years if progress does not plateau. A skeptic on the same site argues LLMs cannot get there, since they don't learn from experience. A new arXiv paper finds today's agents still gain from hand-written procedures, which is evidence about now, not about the ceiling [4, 5, 1]."
   ],
   [
    "h3",
@@ -307,7 +307,7 @@
   ],
   [
    "p",
-   "It would permanently prohibit artificial superintelligence and set up a Department of AI [2]. It covers systems trained above a compute threshold that a Secretary of AI must update each year [3]. It also bans systems showing human-surpassing cognition across most domains, or easily modified to show it, and violators could face prison [3]."
+   "It would permanently prohibit artificial superintelligence and set up a Department of AI. It covers systems trained above a compute threshold that a Secretary of AI must update each year. It also bans systems showing human-surpassing cognition across most domains, or easily modified to show it, and violators could face prison [2, 3]."
   ]
  ],
  "sources": [
@@ -381,7 +381,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:28:56+00:00",
+  "generated_at": "2026-10-20T02:05:19+00:00",
   "rechecked_from": null,
   "documents": [
    "arxiv:2610.22289v1",

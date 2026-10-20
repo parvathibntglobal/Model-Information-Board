@@ -87,15 +87,15 @@
   ],
   [
    "p",
-   "Feed a Gated DeltaNet model 1M tokens and ask it to find planted facts. Across six RULER retrieval tasks, its mean accuracy was 1.7% [2]. Gated DeltaNet is a linear-attention model, a close cousin of state space models like Mamba. It runs cheaply at any length. It also lost almost everything you asked it to find. So what is a state space model, and why does it forget?"
+   "Feed a Gated DeltaNet model 1M tokens and ask it to find planted facts. Across six RULER retrieval tasks, its mean accuracy was 1.7%. Gated DeltaNet is a linear-attention model, a close cousin of state space models like Mamba. It runs cheaply at any length. It also lost almost everything you asked it to find. So what is a state space model, and why does it forget [2]?"
   ],
   [
    "p",
-   "Start with the transformer. It keeps a key and a value for every token it has read. Memory grows with the context, and each new token looks back over all of it. A recurrent model does something else. It reads one token at a time and compresses the history into a memory state of fixed size [1]. Inference time per token stays constant [1]."
+   "Start with the transformer. It keeps a key and a value for every token it has read. Memory grows with the context, and each new token looks back over all of it. A recurrent model does something else. It reads one token at a time and compresses the history into a memory state of fixed size. Inference time per token stays constant [1]."
   ],
   [
    "p",
-   "That fixed size is the trade. You get flat memory and flat cost per token. You give up exact recall, because a box that never grows cannot hold a growing past word for word. One research team frames the tension well: a single state has to drive the current computation and also preserve old information [2]. We think every idea below is a way to soften that trade."
+   "That fixed size is the trade. You get flat memory and flat cost per token. You give up exact recall, because a box that never grows cannot hold a growing past word for word. One research team frames the tension well: a single state has to drive the current computation and also preserve old information. We think every idea below is a way to soften that trade [2]."
   ],
   [
    "h2",
@@ -107,11 +107,11 @@
   ],
   [
    "p",
-   "Here is the core step of linear attention, the simplest member of the family. Each token produces a query, a key and a value vector. The model writes the outer product of key and value into a matrix-valued state [1]. Picture a grid indexed by key dimension one way and value dimension the other. To read, the model multiplies that grid by the query."
+   "Here is the core step of linear attention, the simplest member of the family. Each token produces a query, a key and a value vector. The model writes the outer product of key and value into a matrix-valued state. Picture a grid indexed by key dimension one way and value dimension the other. To read, the model multiplies that grid by the query [1]."
   ],
   [
    "p",
-   "Ordinary RNNs carry a vector as their hidden state [1]. Linear attention upgrades it to a matrix [1]. The authors of a new arXiv paper on triadic attention credit that larger state for much of its comeback [1]. The write is cheap, too. It needs nothing beyond the key and value projections the model already has [1]."
+   "Ordinary RNNs carry a vector as their hidden state. Linear attention upgrades it to a matrix. The authors of a new arXiv paper on triadic attention credit that larger state for much of its comeback. The write is cheap, too. It needs nothing beyond the key and value projections the model already has [1]."
   ],
   [
    "p",
@@ -149,7 +149,7 @@
   ],
   [
    "p",
-   "If the state is the memory, its size caps what the model can recall. Triadic linear attention takes that literally [1]. Each write combines two keys and a value into one outer product, stored in a 3D tensor [1]. Reading contracts both key axes against two queries [1]. Think of it as stacking many grids, with the second key choosing the layer."
+   "If the state is the memory, its size caps what the model can recall. Triadic linear attention takes that literally. Each write combines two keys and a value into one outer product, stored in a 3D tensor. Reading contracts both key axes against two queries. Think of it as stacking many grids, with the second key choosing the layer [1]."
   ],
   [
    "image",
@@ -171,7 +171,7 @@
   ],
   [
    "p",
-   "The cost is small. A second key with E dimensions grows the state E-fold, for just two extra projections [1]. The authors added it to Gated DeltaNet and to scalar-gated linear attention [1]. Both improved at long-context language modelling and recall [1]. They also beat other methods that enlarge the state [1]. The method still works with forgetting gates and the delta rule [1]."
+   "The cost is small. A second key with E dimensions grows the state E-fold, for just two extra projections. The authors added it to Gated DeltaNet and to scalar-gated linear attention. Both improved at long-context language modelling and recall. They also beat other methods that enlarge the state. The method still works with forgetting gates and the delta rule [1]."
   ],
   [
    "p",
@@ -187,11 +187,11 @@
   ],
   [
    "p",
-   "The second fix stops asking the state to remember everything. NoteBank, from a new arXiv paper, adds a sparse episodic memory beside the recurrent state [2]. It archives chosen text before anyone knows what will be asked [2]. Writing and addressing reuse the backbone's own features [2]. At question time, retrieved passages are replayed through the model's normal forward pass [2]."
+   "The second fix stops asking the state to remember everything. NoteBank, from a new arXiv paper, adds a sparse episodic memory beside the recurrent state. It archives chosen text before anyone knows what will be asked. Writing and addressing reuse the backbone's own features. At question time, retrieved passages are replayed through the model's normal forward pass [2]."
   ],
   [
    "p",
-   "It needs no outside embedding model, no trained retriever and no separate reader, and nothing is retrained [2]. At 1M tokens, Gated DeltaNet's mean accuracy on six RULER retrieval tasks rose from 1.7% to 70.3% [2]. The authors saw no significant retrieval drop between 4K and 1M tokens [2]. The added compute was at most 0.025% of analytical FLOPs [2]."
+   "It needs no outside embedding model, no trained retriever and no separate reader, and nothing is retrained. At 1M tokens, Gated DeltaNet's mean accuracy on six RULER retrieval tasks rose from 1.7% to 70.3%. The authors saw no significant retrieval drop between 4K and 1M tokens. The added compute was at most 0.025% of analytical FLOPs [2]."
   ],
   [
    "highlight",
@@ -202,7 +202,7 @@
   ],
   [
    "p",
-   "Storage is the striking part. The archived context needs about 1/2,600 of the storage of a transformer's full multi-head KV cache [2]. That comparison holds width, depth and precision equal [2]. Gains held from 1.3B recurrent backbones up to Mamba-2-8B and a post-trained Qwen3.5-9B [2]. In our view this is the most practical idea here. It admits the state is lossy and keeps the evidence somewhere exact."
+   "Storage is the striking part. The archived context needs about 1/2,600 of the storage of a transformer's full multi-head KV cache. That comparison holds width, depth and precision equal. Gains held from 1.3B recurrent backbones up to Mamba-2-8B and a post-trained Qwen3.5-9B. In our view this is the most practical idea here. It admits the state is lossy and keeps the evidence somewhere exact [2]."
   ],
   [
    "visual",
@@ -232,7 +232,7 @@
   ],
   [
    "p",
-   "Hybrid models stack attention layers, which keep a KV cache, with recurrent layers, which keep a state. Qwen3.5 is built that way [3]. A new arXiv paper called LatentPort asks a pointed question. Can a small model pass its live memory to a bigger one, so the bigger one never rereads the prompt [3]?"
+   "Hybrid models stack attention layers, which keep a KV cache, with recurrent layers, which keep a state. Qwen3.5 is built that way. A new arXiv paper called LatentPort asks a pointed question. Can a small model pass its live memory to a bigger one, so the bigger one never rereads the prompt [3]?"
   ],
   [
    "image",
@@ -247,11 +247,11 @@
   ],
   [
    "p",
-   "The author tested one matched pair, Qwen3.5 4B handing off to 9B [3]. Translating the attention KV cache alone left a large gap [3]. Adding the Gated DeltaNet state cut next-token loss by 0.747 nats per token, and all 64 PG19 documents improved [3]. Nats measure log-loss, so lower is better. A 434,176-parameter correction brought loss within 0.076 nats per token of the native 9B [3]."
+   "The author tested one matched pair, Qwen3.5 4B handing off to 9B. Translating the attention KV cache alone left a large gap. Adding the Gated DeltaNet state cut next-token loss by 0.747 nats per token, and all 64 PG19 documents improved. Nats measure log-loss, so lower is better. A 434,176-parameter correction brought loss within 0.076 nats per token of the native 9B [3]."
   ],
   [
    "p",
-   "Copying the recurrent state directly beat the learned mappings the author tried [3]. That hints the two sizes keep state in partly compatible coordinates [3]. The author lists the limits plainly: one direction, one pair, 4K continuation, and no 16K run [3]. We count it as a proof of possibility. A general state interface remains unproven, as the paper itself says [3]."
+   "Copying the recurrent state directly beat the learned mappings the author tried. That hints the two sizes keep state in partly compatible coordinates. The author lists the limits plainly: one direction, one pair, 4K continuation, and no 16K run. We count it as a proof of possibility. A general state interface remains unproven, as the paper itself says [3]."
   ],
   [
    "h2",
@@ -263,15 +263,15 @@
   ],
   [
    "p",
-   "Transformers have a recurrence problem of their own. Tracking state needs an update at every input, yet a transformer gives each token the same fixed depth [4]. The Recurrent Looped Transformer divides its layers in two [4]. A causal encoder runs over tokens in parallel, and a decoder runs recurrently [4]. Each token's decoder pass takes the encoder output plus the last decoder state from the token before [4]."
+   "Transformers have a recurrence problem of their own. Tracking state needs an update at every input, yet a transformer gives each token the same fixed depth. The Recurrent Looped Transformer divides its layers in two. A causal encoder runs over tokens in parallel, and a decoder runs recurrently. Each token's decoder pass takes the encoder output plus the last decoder state from the token before [4]."
   ],
   [
    "p",
-   "So the computation path lengthens with the sequence, at a fixed cost per token [4]. Trained on at most 40 bits, two splits got parity right on inputs of 256 bits, scoring 100% on every seed [4]. An eight-layer transformer stayed at chance [4]. On modular arithmetic past the training lengths, the looped model reached up to 93% against 33% [4]."
+   "So the computation path lengthens with the sequence, at a fixed cost per token. Trained on at most 40 bits, two splits got parity right on inputs of 256 bits, scoring 100% on every seed. An eight-layer transformer stayed at chance. On modular arithmetic past the training lengths, the looped model reached up to 93% against 33% [4]."
   ],
   [
    "p",
-   "The feedback carries the whole effect. Removing it dropped parity and permutation tracking to chance at every split [4]. Updating feedback once per four-token chunk kept 64-bit parity at 99%, but cut length-64 permutation tracking from 100% to 20% [4]. Vision has a cousin: one block applied repeatedly matched DeiT III accuracy with about 70% fewer stored parameters [5]. We read both as one lesson. Depth that loops can track what fixed depth cannot."
+   "The feedback carries the whole effect. Removing it dropped parity and permutation tracking to chance at every split. Updating feedback once per four-token chunk kept 64-bit parity at 99%, but cut length-64 permutation tracking from 100% to 20%. Vision has a cousin: one block applied repeatedly matched DeiT III accuracy with about 70% fewer stored parameters. We read both as one lesson. Depth that loops can track what fixed depth cannot [4, 5]."
   ],
   [
    "visual",
@@ -312,11 +312,11 @@
   ],
   [
    "p",
-   "The open question is how far a fixed state can go without help. Triadic attention improves recall, but its abstract gives no numbers to size the gain [1]. NoteBank recovers recall by stepping outside the state [2]. LatentPort moved state between models, yet free generation after a handoff is still unshown [3]."
+   "The open question is how far a fixed state can go without help. Triadic attention improves recall, but its abstract gives no numbers to size the gain. NoteBank recovers recall by stepping outside the state. LatentPort moved state between models, yet free generation after a handoff is still unshown [1, 2, 3]."
   ],
   [
    "p",
-   "Speed is the other gap. NoteBank reports a tiny FLOP overhead, but its abstract gives no wall-clock latency for replay at 1M tokens [2]. The looped model's wins come from algorithmic tasks over three seeds, not from language modelling [4]. Nobody here has shown a fixed state holding exact recall at long range by itself."
+   "Speed is the other gap. NoteBank reports a tiny FLOP overhead, but its abstract gives no wall-clock latency for replay at 1M tokens. The looped model's wins come from algorithmic tasks over three seeds, not from language modelling. Nobody here has shown a fixed state holding exact recall at long range by itself [2, 4]."
   ],
   [
    "p",
@@ -336,7 +336,7 @@
   ],
   [
    "p",
-   "A state space model is a sequence model that folds each new token into a fixed-size state. Memory and cost per token stay flat at any length. Linear attention and Gated DeltaNet belong to the same recurrent family [1]. The price is recall. At 1M tokens, one Gated DeltaNet model averaged 1.7% on six RULER retrieval tasks [2]."
+   "A state space model is a sequence model that folds each new token into a fixed-size state. Memory and cost per token stay flat at any length. Linear attention and Gated DeltaNet belong to the same recurrent family. The price is recall. At 1M tokens, one Gated DeltaNet model averaged 1.7% on six RULER retrieval tasks [1, 2]."
   ],
   [
    "h3",
@@ -352,7 +352,7 @@
   ],
   [
    "p",
-   "Linear attention writes the outer product of each key and value into a matrix state, then reads it by multiplying with a query [1]. That turns attention into a recurrence with fixed memory. A learned gate can decay old content, and the delta rule writes only the correction to what the state already predicts [1]."
+   "Linear attention writes the outer product of each key and value into a matrix state, then reads it by multiplying with a query. That turns attention into a recurrence with fixed memory. A learned gate can decay old content, and the delta rule writes only the correction to what the state already predicts [1]."
   ]
  ],
  "sources": [
@@ -418,7 +418,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:41+00:00",
+  "generated_at": "2026-10-20T02:05:47+00:00",
   "rechecked_from": null,
   "documents": [
    "hfpapers:2609.36529",

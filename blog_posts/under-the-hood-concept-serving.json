@@ -87,7 +87,7 @@
   ],
   [
    "p",
-   "Picture a coding agent holding 64k tokens of history and asking one more question. On a Mac M4 Pro, llama.cpp decoded that kind of request at 30 tokens per second [3]. Magnitude, a new open-source engine, reported 57 on the same test [3]. Same model, same laptop. So how does LLM serving work, and where does a gap like that come from? Mostly from how the engine moves memory."
+   "Picture a coding agent holding 64k tokens of history and asking one more question. On a Mac M4 Pro, llama.cpp decoded that kind of request at 30 tokens per second. Magnitude, a new open-source engine, reported 57 on the same test. Same model, same laptop. So how does LLM serving work, and where does a gap like that come from? Mostly from how the engine moves memory [3]."
   ],
   [
    "p",
@@ -95,7 +95,7 @@
   ],
   [
    "p",
-   "The phases strain different parts of the chip. The authors of a new arXiv paper on quantization spell it out [2]. Cheap low-precision math speeds up prompt reading, and small weights ease memory traffic during generation [2]. Prefill is one big matrix multiply. Decode is mostly a memory read with a little math attached. We think every serving trick makes more sense once you know which phase it targets."
+   "The phases strain different parts of the chip. The authors of a new arXiv paper on quantization spell it out. Cheap low-precision math speeds up prompt reading, and small weights ease memory traffic during generation. Prefill is one big matrix multiply. Decode is mostly a memory read with a little math attached. We think every serving trick makes more sense once you know which phase it targets [2]."
   ],
   [
    "h2",
@@ -129,11 +129,11 @@
   ],
   [
    "p",
-   "Engines handle that growth very differently. One commenter running DeepSeek models saw the context cache take roughly 50GB in one stack [3]. A dedicated engine needed about 5GB, because it supported the compressed cache format [3]. Magnitude stores keys at 8-bit and values at 4-bit [3]. Its team says the cache then needs less than half its old memory, and decode gets quicker too [3]."
+   "Engines handle that growth very differently. One commenter running DeepSeek models saw the context cache take roughly 50GB in one stack. A dedicated engine needed about 5GB, because it supported the compressed cache format. Magnitude stores keys at 8-bit and values at 4-bit. Its team says the cache then needs less than half its old memory, and decode gets quicker too [3]."
   ],
   [
    "p",
-   "A memory budget in a config file will not save you either. A benchmark of 9 Apple Silicon serving engines found stacks that finished every request as memory crept toward the physical limit [1]. Throughput sagged along the way [1]. Nothing crashed, so nothing alerted. In our view this is the most useful warning in the whole topic. A completed run can still be a sick one."
+   "A memory budget in a config file will not save you either. A benchmark of 9 Apple Silicon serving engines found stacks that finished every request as memory crept toward the physical limit. Throughput sagged along the way. Nothing crashed, so nothing alerted. In our view this is the most useful warning in the whole topic. A completed run can still be a sick one [1]."
   ],
   [
    "code",
@@ -153,15 +153,15 @@
   ],
   [
    "p",
-   "With a single user, a GPU spends most of decode waiting on memory. Batching fixes that by decoding many sequences in one pass over the weights. The weights get read once and serve every sequence in the batch. On Qwen3-0.6B, vllm-metal was the one Apple Silicon engine whose throughput grew strongly from 1 concurrent request to 16 [1]. CUDA vLLM and SGLang scaled even better on the same prompts [1]."
+   "With a single user, a GPU spends most of decode waiting on memory. Batching fixes that by decoding many sequences in one pass over the weights. The weights get read once and serve every sequence in the batch. On Qwen3-0.6B, vllm-metal was the one Apple Silicon engine whose throughput grew strongly from 1 concurrent request to 16. CUDA vLLM and SGLang scaled even better on the same prompts [1]."
   ],
   [
    "p",
-   "The catch is the newcomer. A fresh prompt needs a long prefill, and running sessions want their next token now. Engines that pack prefill and decode work into one step keep both moving. On larger dense and MoE models, the packed path in vllm-metal held first-token latency below omlx under concurrent load [1]. First-token latency is the pause you feel before anything streams."
+   "The catch is the newcomer. A fresh prompt needs a long prefill, and running sessions want their next token now. Engines that pack prefill and decode work into one step keep both moving. On larger dense and MoE models, the packed path in vllm-metal held first-token latency below omlx under concurrent load. First-token latency is the pause you feel before anything streams [1]."
   ],
   [
    "p",
-   "Datacenter engines tune this trade for crowds. The Magnitude founders argue that vLLM and SGLang give up single-session speed to win batched throughput, so they built for one desktop instead [3]. We think both camps are right about their own workload. A shared endpoint lives on concurrency. A laptop agent lives on one fast stream over a long context."
+   "Datacenter engines tune this trade for crowds. The Magnitude founders argue that vLLM and SGLang give up single-session speed to win batched throughput, so they built for one desktop instead. We think both camps are right about their own workload. A shared endpoint lives on concurrency. A laptop agent lives on one fast stream over a long context [3]."
   ],
   [
    "code",
@@ -181,15 +181,15 @@
   ],
   [
    "p",
-   "Agents resend the same system prompt and history on every turn. Prefix caching notices that the start of a request matches cached blocks and skips that prefill. Magnitude lets concurrent sessions share prefix caches, an idea it borrows from radix attention in SGLang [3]. It also places those blocks next to each other in memory, so one session does not slow down [3]."
+   "Agents resend the same system prompt and history on every turn. Prefix caching notices that the start of a request matches cached blocks and skips that prefill. Magnitude lets concurrent sessions share prefix caches, an idea it borrows from radix attention in SGLang. It also places those blocks next to each other in memory, so one session does not slow down [3]."
   ],
   [
    "p",
-   "Eviction runs the other way. A sparse attention method drops or compresses cache entries it predicts will not matter. SparseEngine, from a new arXiv paper, builds a whole engine around that idea and hosts 15 methods in four categories [4]. Its Chain Cache resumes an eviction method from history kept from an earlier request [4]. Its prefix-cache pruning removes chosen history regions and still matches the logical prefix [4]."
+   "Eviction runs the other way. A sparse attention method drops or compresses cache entries it predicts will not matter. SparseEngine, from a new arXiv paper, builds a whole engine around that idea and hosts 15 methods in four categories. Its Chain Cache resumes an eviction method from history kept from an earlier request. Its prefix-cache pruning removes chosen history regions and still matches the logical prefix [4]."
   ],
   [
    "p",
-   "With eviction on, the authors report over 10x higher throughput [4]. On agent benchmarks, whole runs finished over 2x faster [4]. They also claim over 2.5x faster decoding than vLLM at matched concurrency, with method quality kept intact [4]. We have only the abstract. So the depth of that quality check is unknown, and it is the first thing we would read in the full paper."
+   "With eviction on, the authors report over 10x higher throughput. On agent benchmarks, whole runs finished over 2x faster. They also claim over 2.5x faster decoding than vLLM at matched concurrency, with method quality kept intact. We have only the abstract. So the depth of that quality check is unknown, and it is the first thing we would read in the full paper [4]."
   ],
   [
    "visual",
@@ -216,11 +216,11 @@
   ],
   [
    "p",
-   "Quantization stores numbers in fewer bits. Weight-only quantization shrinks the weights but keeps the arithmetic precise. Activation quantization lowers the precision of the math too. A new arXiv paper on disaggregated quantization picks a separate format for each phase [2]. On Qwen 3 and Gemma 3, dropping activation quantization only during decode raised accuracy on decode-heavy tasks at no extra inference cost [2]."
+   "Quantization stores numbers in fewer bits. Weight-only quantization shrinks the weights but keeps the arithmetic precise. Activation quantization lowers the precision of the math too. A new arXiv paper on disaggregated quantization picks a separate format for each phase. On Qwen 3 and Gemma 3, dropping activation quantization only during decode raised accuracy on decode-heavy tasks at no extra inference cost [2]."
   ],
   [
    "p",
-   "The authors then train a separate prefill checkpoint in a compute-native format [2]. With released Qwen3.8-27B decoders, an NVFP4 prefiller raised 1-bit scores on MMLU-Pro by 32.5 points [2]. On MMMU-Pro the gain was 35.3 points [2]. The decode checkpoint stayed untouched [2]. To fit both on one device, they stream the prefill weights from SSD and spread that loading over the prompt [2]."
+   "The authors then train a separate prefill checkpoint in a compute-native format. With released Qwen3.8-27B decoders, an NVFP4 prefiller raised 1-bit scores on MMLU-Pro by 32.5 points. On MMMU-Pro the gain was 35.3 points. The decode checkpoint stayed untouched. To fit both on one device, they stream the prefill weights from SSD and spread that loading over the prompt [2]."
   ],
   [
    "highlight",
@@ -231,7 +231,7 @@
   ],
   [
    "p",
-   "On the same 27B model, the offloaded prefill gave a 1.78x speedup in time to first token at an 8K prompt in llama.cpp [2]. At the low end, the Magnitude team warned that going below 4-bit quickly hurt thinking, tool calls and coherence in their tests [3]. Our read is that precision has become a per-phase budget. A single bit width per model is the old picture."
+   "On the same 27B model, the offloaded prefill gave a 1.78x speedup in time to first token at an 8K prompt in llama.cpp. At the low end, the Magnitude team warned that going below 4-bit quickly hurt thinking, tool calls and coherence in their tests. Our read is that precision has become a per-phase budget. A single bit width per model is the old picture [2, 3]."
   ],
   [
    "visual",
@@ -270,7 +270,7 @@
   ],
   [
    "p",
-   "The bottom layer is the kernel, the small GPU program behind each operation. A kernel written for one chip can leave another chip half idle. Magnitude writes kernels with open parameters and tunes them on your device before the model runs [3]. Its team says tuning takes about a minute for each newly downloaded model [3]."
+   "The bottom layer is the kernel, the small GPU program behind each operation. A kernel written for one chip can leave another chip half idle. Magnitude writes kernels with open parameters and tunes them on your device before the model runs. Its team says tuning takes about a minute for each newly downloaded model [3]."
   ],
   [
    "image",
@@ -285,11 +285,11 @@
   ],
   [
    "p",
-   "Their headline test put Moby Dick into a 64k context and asked for the last section back, using Qwen 3.6 35B A3B at 4-bit [3]. On an M4 Pro, decode rose from 30 to 57 tokens per second and prefill from 466 to 507 [3]. On a DGX Spark, decode went from 49 to 58 and prefill from 2,033 to 2,507 [3]. Per-agent memory fell 28% and 27% [3]."
+   "Their headline test put Moby Dick into a 64k context and asked for the last section back, using Qwen 3.6 35B A3B at 4-bit. On an M4 Pro, decode rose from 30 to 57 tokens per second and prefill from 466 to 507. On a DGX Spark, decode went from 49 to 58 and prefill from 2,033 to 2,507. Per-agent memory fell 28% and 27% [3]."
   ],
   [
    "p",
-   "Users pushed back within hours. One saw llama.cpp decode 20-30% faster on an RTX 5070 Ti [3]. Another, on an M5 Max, found llama.cpp roughly 2x faster at both prefill and decode [3]. The team pointed to new M5 matrix-multiply hardware its kernels may not use yet [3]. We take a narrow lesson from this. Speed belongs to an engine, a chip and a model together."
+   "Users pushed back within hours. One saw llama.cpp decode 20-30% faster on an RTX 5070 Ti. Another, on an M5 Max, found llama.cpp roughly 2x faster at both prefill and decode. The team pointed to new M5 matrix-multiply hardware its kernels may not use yet. We take a narrow lesson from this. Speed belongs to an engine, a chip and a model together [3]."
   ],
   [
    "h2",
@@ -301,15 +301,15 @@
   ],
   [
    "p",
-   "An agent turn is more than decode. It also calls tools, and each call adds plumbing. One engineer timed a local MCP loop running Qwen2.5-Coder-7B on an RTX 4090 [5]. The stdio pipe round trip took 0.82 ms per call [5]. Reading a 45KB file on the server side took 1.84 ms [5]."
+   "An agent turn is more than decode. It also calls tools, and each call adds plumbing. One engineer timed a local MCP loop running Qwen2.5-Coder-7B on an RTX 4090. The stdio pipe round trip took 0.82 ms per call. Reading a 45KB file on the server side took 1.84 ms [5]."
   ],
   [
    "p",
-   "The model's own steps dwarfed that. Evaluating the prompt and deciding on the tool took 124.6 ms [5]. Injecting the result and writing the final answer took 312.4 ms [5]. By that author's count, protocol overhead came to 0.41% of total latency [5]. Notice what the second step is. It is a fresh prefill over the tool output, followed by decode."
+   "The model's own steps dwarfed that. Evaluating the prompt and deciding on the tool took 124.6 ms. Injecting the result and writing the final answer took 312.4 ms. By that author's count, protocol overhead came to 0.41% of total latency. Notice what the second step is. It is a fresh prefill over the tool output, followed by decode [5]."
   ],
   [
    "p",
-   "So the waiting in an agent loop is serving time. Every tool result lands in the cache, and every turn pays prefill on whatever the prefix cache missed. A Hacker News commenter made the same point from the other side: agents doze between tool calls, then wake needing their full context [3]. We agree, and it is why cache reuse matters more than raw token speed for agents."
+   "So the waiting in an agent loop is serving time. Every tool result lands in the cache, and every turn pays prefill on whatever the prefix cache missed. A Hacker News commenter made the same point from the other side: agents doze between tool calls, then wake needing their full context. We agree, and it is why cache reuse matters more than raw token speed for agents [3]."
   ],
   [
    "visual",
@@ -347,11 +347,11 @@
   ],
   [
    "p",
-   "Two parts of this machine remain open. The first is the partly cold context. A Hacker News commenter asked how an engine treats a session whose cache sits idle during a tool call [3]. Keep it resident, compress it, or move it out? We have not seen anyone answer that with numbers."
+   "Two parts of this machine remain open. The first is the partly cold context. A Hacker News commenter asked how an engine treats a session whose cache sits idle during a tool call. Keep it resident, compress it, or move it out? We have not seen anyone answer that with numbers [3]."
   ],
   [
    "p",
-   "The second is fidelity under cache compression. The Magnitude team says a retrieval benchmark built on RULER shows no loss from its quantized cache, and the benchmark code is public [3]. SparseEngine claims method quality holds under eviction [4]. On Apple Silicon, only 3 of 9 stacks passed the completion, fidelity and model-coverage gates together [1]. Neither engine summary gives quality figures at 100-200K tokens, where one commenter saw engines fall behind simple baselines [3]."
+   "The second is fidelity under cache compression. The Magnitude team says a retrieval benchmark built on RULER shows no loss from its quantized cache, and the benchmark code is public. SparseEngine claims method quality holds under eviction. On Apple Silicon, only 3 of 9 stacks passed the completion, fidelity and model-coverage gates together. Neither engine summary gives quality figures at 100-200K tokens, where one commenter saw engines fall behind simple baselines [3, 4, 1]."
   ],
   [
    "p",
@@ -371,7 +371,7 @@
   ],
   [
    "p",
-   "LLM serving runs each request in two phases. Prefill reads the prompt and builds a key-value cache, then decode writes tokens one at a time. Prefill is limited by arithmetic and decode by memory traffic, which is why one paper gives each phase its own number format [2]. Engines then batch requests, share cached prefixes and evict cache entries to fit more sessions in memory [4, 3]."
+   "LLM serving runs each request in two phases. Prefill reads the prompt and builds a key-value cache, then decode writes tokens one at a time. Prefill is limited by arithmetic and decode by memory traffic, which is why one paper gives each phase its own number format. Engines then batch requests, share cached prefixes and evict cache entries to fit more sessions in memory [2, 4, 3]."
   ],
   [
    "h3",
@@ -387,7 +387,7 @@
   ],
   [
    "p",
-   "Decode is slower per token because it produces one token at a time and must read the weights and cache for each one. Prefill handles the whole prompt in parallel. In one launch benchmark on a Mac M4 Pro, an engine prefilled at 507 tokens per second [3]. It decoded at 57 on the same 64k-context test [3]."
+   "Decode is slower per token because it produces one token at a time and must read the weights and cache for each one. Prefill handles the whole prompt in parallel. In one launch benchmark on a Mac M4 Pro, an engine prefilled at 507 tokens per second. It decoded at 57 on the same 64k-context test [3]."
   ]
  ],
  "sources": [
@@ -453,7 +453,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:40+00:00",
+  "generated_at": "2026-10-20T02:05:57+00:00",
   "rechecked_from": null,
   "documents": [
    "hfpapers:2609.39068",

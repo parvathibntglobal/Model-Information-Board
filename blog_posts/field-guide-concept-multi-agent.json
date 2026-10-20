@@ -90,19 +90,19 @@
   ],
   [
    "p",
-   "Picture a team of agents that starts on a research question, calls tools for an hour, and ends up answering a different one. A new arXiv paper calls this goal drift: the system strays from its overall aim as the run goes on [3]. It wastes execution resources and produces outcomes nobody wanted [3]. Plan for this failure first."
+   "Picture a team of agents that starts on a research question, calls tools for an hour, and ends up answering a different one. A new arXiv paper calls this goal drift: the system strays from its overall aim as the run goes on. It wastes execution resources and produces outcomes nobody wanted. Plan for this failure first [3]."
   ],
   [
    "p",
-   "So what is a multi-agent system? It is several LLM-driven agents, each with a role and tools, passing work between them to finish one task [3, 1]. That structure adds reach. In our view, it also adds places to drift. Every handoff restates the goal in another agent's words, and small slips add up over a long run."
+   "So what is a multi-agent system? It is several LLM-driven agents, each with a role and tools, passing work between them to finish one task. That structure adds reach. In our view, it also adds places to drift. Every handoff restates the goal in another agent's words, and small slips add up over a long run [3, 1]."
   ],
   [
    "p",
-   "The paper's answer is a steering agent that supervises the run live and pulls it back when drift shows [3]. It reads the execution context and splits its job in two. A cheap fast path decides when to step in, and a costly slow path decides how [3]. Both paths train together with RL, mixing a pairwise ranking objective with GRPO [3]."
+   "The paper's answer is a steering agent that supervises the run live and pulls it back when drift shows. It reads the execution context and splits its job in two. A cheap fast path decides when to step in, and a costly slow path decides how. Both paths train together with RL, mixing a pairwise ranking objective with GRPO [3]."
   ],
   [
    "p",
-   "On information-seeking search tasks, the watcher improved both performance and efficiency for single agents and for teams [3]. It also handled out-of-domain tasks and unseen executors, and its intervention rate can be tuned without retraining [3]. We like the split most. A watcher that ran the expensive check on every step could cost more than the drift it prevents."
+   "On information-seeking search tasks, the watcher improved both performance and efficiency for single agents and for teams. It also handled out-of-domain tasks and unseen executors, and its intervention rate can be tuned without retraining. We like the split most. A watcher that ran the expensive check on every step could cost more than the drift it prevents [3]."
   ],
   [
    "visual",
@@ -129,11 +129,11 @@
   ],
   [
    "p",
-   "Good workflows are hard to design ahead of time [1]. The authors of a subtitle translation system hit the same wall from the other side. Many agent systems, they note, run static workflows that ignore scene complexity and production context [4]. You still need a starting shape. The useful question is which parts of it must be explicit."
+   "Good workflows are hard to design ahead of time. The authors of a subtitle translation system hit the same wall from the other side. Many agent systems, they note, run static workflows that ignore scene complexity and production context. You still need a starting shape. The useful question is which parts of it must be explicit [1, 4]."
   ],
   [
    "p",
-   "Inherit-MAS shows one explicit shape [1]. A meta-model writes a workflow of worker agents, each with a declared role, the messages it may receive and the tools it may use [1]. A judge, prompted separately, scores each executed candidate and diagnoses what went wrong [1]. That separation matters. An agent grading its own plan is a weak check."
+   "Inherit-MAS shows one explicit shape. A meta-model writes a workflow of worker agents, each with a declared role, the messages it may receive and the tools it may use. A judge, prompted separately, scores each executed candidate and diagnoses what went wrong. That separation matters. An agent grading its own plan is a weak check [1]."
   ],
   [
    "p",
@@ -157,15 +157,15 @@
   ],
   [
    "p",
-   "Test-time evolution tunes a workflow from execution feedback, and it hides a trap [1]. Broad revisions can break components that already worked [1]. So in Inherit-MAS, each ordinary round starts from the latest completed candidate [1]. It may drop nodes the judge found unhelpful. Then it applies one validated edit aimed at the diagnosed weakness [1]."
+   "Test-time evolution tunes a workflow from execution feedback, and it hides a trap. Broad revisions can break components that already worked. So in Inherit-MAS, each ordinary round starts from the latest completed candidate. It may drop nodes the judge found unhelpful. Then it applies one validated edit aimed at the diagnosed weakness [1]."
   ],
   [
    "p",
-   "A subtitle system called SMART evolves just as narrowly [4]. During a test-time training phase, it translates a subset of sentences and builds series-level memory [4]. A judge-refiner loop scores candidates and turns written critiques into new agent prompts and routing policies, leaving the underlying LLMs untouched [4]. The evolved setup then translates the rest of the series [4]."
+   "A subtitle system called SMART evolves just as narrowly. During a test-time training phase, it translates a subset of sentences and builds series-level memory. A judge-refiner loop scores candidates and turns written critiques into new agent prompts and routing policies, leaving the underlying LLMs untouched. The evolved setup then translates the rest of the series [4]."
   ],
   [
    "p",
-   "Across all 15 language directions in its Subtitle Arena, SMART had the top overall MQM score [4]. MQM grades a translation by its weighted errors, so a lower penalty is better. SMART's average penalty came in 6.9% under the best competing agent system [4]. On the public MuSC benchmark, it led all four language pairs and scored 4.50 out of 5 with human raters [4]. Small edits under a strict judge compound."
+   "Across all 15 language directions in its Subtitle Arena, SMART had the top overall MQM score. MQM grades a translation by its weighted errors, so a lower penalty is better. SMART's average penalty sat 6.9% below the strongest rival agent system. It also led all four language pairs on MuSC, a public benchmark, and scored 4.50 out of 5 with human raters. Small edits under a strict judge compound [4]."
   ],
   [
    "h2",
@@ -177,7 +177,7 @@
   ],
   [
    "p",
-   "Re-running unchanged requests after every edit burns tokens for nothing [1]. Inherit-MAS adds execution inheritance, so a new candidate can reuse stored results from earlier runs [1]. The guard is strict. Reuse happens only when the full resolved request and the whole execution context match [1]."
+   "Re-running unchanged requests after every edit burns tokens for nothing. Inherit-MAS adds execution inheritance, so a new candidate can reuse stored results from earlier runs. The guard is strict. Reuse happens only when the full resolved request and the whole execution context match [1]."
   ],
   [
    "image",
@@ -199,7 +199,7 @@
   ],
   [
    "p",
-   "Against the same controller with inheritance switched off, worker-token use fell 29.1% on WorkBench and 34.6% on HotpotQA [1]. Total token use fell 5.3% and 18.1% [1]. With GPT-4o-mini workers, the system completed 55.4% of WorkBench tasks and hit 49.7% joint F1 on HotpotQA FullWiki [1]. It beat EvoAgent, EvoMAS and TacoMAS, and did so again with Qwen3-32B workers [1]."
+   "Against the same controller with inheritance switched off, worker-token use fell 29.1% on WorkBench and 34.6% on HotpotQA. Total token use fell 5.3% and 18.1%. With GPT-4o-mini workers, the system completed 55.4% of WorkBench tasks and hit 49.7% joint F1 on HotpotQA FullWiki. It beat EvoAgent, EvoMAS and TacoMAS, and did so again with Qwen3-32B workers [1]."
   ],
   [
    "p",
@@ -249,7 +249,7 @@
   ],
   [
    "p",
-   "Some agent work is judged on its paper trail. Systematic literature reviews follow PRISMA, a process of screening studies and then extracting evidence from the ones kept [2]. LLM deep research tools can search and summarise, yet they leave no record of excluded studies or of where each value came from [2]. For a review, that missing trail is disqualifying."
+   "Some agent work is judged on its paper trail. Systematic literature reviews follow PRISMA, a process of screening studies and then extracting evidence from the ones kept. LLM deep research tools can search and summarise, yet they leave no record of excluded studies or of where each value came from. For a review, that missing trail is disqualifying [2]."
   ],
   [
    "image",
@@ -271,11 +271,11 @@
   ],
   [
    "p",
-   "ReviewPilot, a conversational multi-agent system, runs the PRISMA workflow from screening to extraction [2]. Researchers adjust criteria and schemas by talking to it, and a project memory keeps their settings and revisions [2]. Each screening call ships with its reason. Each extracted number points back to where it was found [2]."
+   "ReviewPilot, a conversational multi-agent system, runs the PRISMA workflow from screening to extraction. Researchers adjust criteria and schemas by talking to it, and a project memory keeps their settings and revisions. Each screening call ships with its reason. Each extracted number points back to where it was found [2]."
   ],
   [
    "p",
-   "On epidemiological expert reviews, it outscored AgentSLR and a single-prompt LLM, with each of three underlying LLMs [2]. Its best screening result was 0.776 macro F1, and its best extraction result was 0.788 F1 [2]. F1 balances precision, the share of picks that were right, against recall, the share of right answers found. We think the trail matters more than the score. A reviewer can fix a wrong answer that cites its source."
+   "On epidemiological expert reviews, it outscored AgentSLR and a single-prompt LLM, with each of three underlying LLMs. Its best screening result was 0.776 macro F1, and its best extraction result was 0.788 F1. F1 balances precision, the share of picks that were right, against recall, the share of right answers found. We think the trail matters more than the score. A reviewer can fix a wrong answer that cites its source [2]."
   ],
   [
    "h2",
@@ -287,11 +287,11 @@
   ],
   [
    "p",
-   "Most agent teams run inside a fixed orchestration, and their members are trained apart from how the team is organised [5]. A new paper on market-based post-training, MPT, learns both at once in decentralised swarms [5]. Each agent places a bid to take part. The bids decide who acts and how the team's result becomes local training credit [5]. No central coordinator is needed [5]."
+   "Most agent teams run inside a fixed orchestration, and their members are trained apart from how the team is organised. A new paper on market-based post-training, MPT, learns both at once in decentralised swarms. Each agent places a bid to take part. The bids decide who acts and how the team's result becomes local training credit. No central coordinator is needed [5]."
   ],
   [
    "p",
-   "The authors tested it on deep research, robot navigation and embodied crafting [5]. It beat monolithic post-training, and the agents' participation shifted as they learned [5]. With the same action policies, learned self-orchestration beat other coordination schemes [5]. Larger swarms adapted faster to related tasks and lost less when agents dropped out [5]."
+   "The authors tested it on deep research, robot navigation and embodied crafting. It beat monolithic post-training, and the agents' participation shifted as they learned. With the same action policies, learned self-orchestration beat other coordination schemes. Larger swarms adapted faster to related tasks and lost less when agents dropped out [5]."
   ],
   [
    "p",
@@ -346,15 +346,15 @@
   ],
   [
    "p",
-   "Agents that deal with people or other agents must reason about what the partner knows and plans, often without seeing everything [6]. Current systems lean on prompt design, memory or end-to-end shaping [6]. They rarely learn a reusable picture of the partner's state [6]. A new paper on mental models adds that picture explicitly."
+   "Agents that deal with people or other agents must reason about what the partner knows and plans, often without seeing everything. Current systems lean on prompt design, memory or end-to-end shaping. They rarely learn a reusable picture of the partner's state. A new paper on mental models adds that picture explicitly [6]."
   ],
   [
    "p",
-   "Its agents carry a latent model of their counterpart [6]. From the history so far, they guess its hidden beliefs, its intentions and how it will likely react [6]. The model is a recursive Theory-of-Mind representation with first- and second-order structure [6]. In plain terms, it tracks what the partner believes and what the partner believes about you. A reward model conditioned on those beliefs scores candidate moves, and a policy learns from it [6]."
+   "Its agents carry a latent model of their counterpart. From the history so far, they guess its hidden beliefs, its intentions and how it will likely react. The model is a recursive Theory-of-Mind representation with first- and second-order structure. In plain terms, it tracks what the partner believes and what the partner believes about you. A reward model conditioned on those beliefs scores candidate moves, and a policy learns from it [6]."
   ],
   [
    "p",
-   "Across language-only and multimodal benchmarks, the authors report better interaction quality and Theory-of-Mind scores than base agentic systems [6]. We would reach for this in negotiation or customer support, where the partner holds facts you lack. For cooperating workers that share one state, there is little hidden to infer."
+   "Across language-only and multimodal benchmarks, the authors report better interaction quality and Theory-of-Mind scores than base agentic systems. We would reach for this in negotiation or customer support, where the partner holds facts you lack. For cooperating workers that share one state, there is little hidden to infer [6]."
   ],
   [
    "h2",
@@ -366,11 +366,11 @@
   ],
   [
    "p",
-   "Not every task wants a team. Every extra agent adds handoffs, tokens and another place for the goal to drift [3, 1]. The steering agent helped single agents too, so supervision does not require a crowd [3]. If one model can hold the whole task and its tools in one pass, splitting it buys coordination cost and little else."
+   "Not every task wants a team. Every extra agent adds handoffs, tokens and another place for the goal to drift. The steering agent helped single agents too, so supervision does not require a crowd. If one model can hold the whole task and its tools in one pass, splitting it buys coordination cost and little else [3, 1]."
   ],
   [
    "p",
-   "The published wins came from tasks with real seams [4, 5, 2]. Think of whole TV series that need consistent terms, review pipelines that need an audit trail, or swarms that must survive a dropout. A short, self-contained job has none of those. Give it one agent, a clear goal and a check at the end. Add a second agent when a seam appears."
+   "The published wins came from tasks with real seams. Think of whole TV series that need consistent terms, review pipelines that need an audit trail, or swarms that must survive a dropout. A short, self-contained job has none of those. Give it one agent, a clear goal and a check at the end. Add a second agent when a seam appears [4, 5, 2]."
   ],
   [
    "h2",
@@ -386,7 +386,7 @@
   ],
   [
    "p",
-   "A multi-agent system is a set of LLM-driven agents, each with its own role and tools, that split one task and pass work between them. One recent design has a meta-model write the workflow, declaring each worker's role, inputs and tool permissions [1]. A separate judge then scores each run and names what went wrong [1]."
+   "A multi-agent system is a set of LLM-driven agents, each with its own role and tools, that split one task and pass work between them. One recent design has a meta-model write the workflow, declaring each worker's role, inputs and tool permissions. A separate judge then scores each run and names what went wrong [1]."
   ],
   [
    "h3",
@@ -394,7 +394,7 @@
   ],
   [
    "p",
-   "Goal drift is when an agent or a team of agents strays from the overall goal as a long run unfolds. It wastes compute and produces unwanted results [3]. One fix adds a steering agent that watches the run [3]. A cheap check decides when to step in, and a costlier one decides how [3]."
+   "Goal drift is when an agent or a team of agents strays from the overall goal as a long run unfolds. It wastes compute and produces unwanted results. One fix adds a steering agent that watches the run. A cheap check decides when to step in, and a costlier one decides how [3]."
   ],
   [
    "h3",
@@ -402,7 +402,7 @@
   ],
   [
    "p",
-   "Sometimes, on tasks with real seams. A multi-agent review tool beat a single-prompt LLM on screening and extraction, and it left a reason for every decision [2]. A subtitle system beat rival agent systems on long series that need consistent terms [4]. On short, self-contained jobs, extra agents mostly add handoffs and tokens."
+   "Sometimes, on tasks with real seams. A multi-agent review tool beat a single-prompt LLM on screening and extraction, and it left a reason for every decision. A subtitle system beat rival agent systems on long series that need consistent terms. On short, self-contained jobs, extra agents mostly add handoffs and tokens [2, 4]."
   ]
  ],
  "sources": [
@@ -476,7 +476,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:27:42+00:00",
+  "generated_at": "2026-10-20T02:06:33+00:00",
   "rechecked_from": null,
   "documents": [
    "arxiv:2610.22316v1",

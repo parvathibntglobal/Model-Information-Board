@@ -133,15 +133,15 @@
   ],
   [
    "p",
-   "The newest idea: a robot's world model can work out the hidden rules of an unfamiliar setting at test time. Friction, mass and house rules are invisible in a camera frame [2]. A method called T2-Z learns a small environment latent for them. Its ablations show it can infer that latent from a single interaction trajectory [2]."
+   "The newest idea: a robot's world model can work out the hidden rules of an unfamiliar setting at test time. Friction, mass and house rules are invisible in a camera frame. A method called T2-Z learns a small environment latent for them. Its ablations show it can infer that latent from a single interaction trajectory [2]."
   ],
   [
    "p",
-   "First, the basics. A world model predicts what the world will look like after an action. It lets an agent try a move in its head before trying it for real. Video world models predict future frames [3]. Language world models predict text observations, such as what a tool will return [4, 5]."
+   "First, the basics. A world model predicts what the world will look like after an action. It lets an agent try a move in its head before trying it for real. Video world models predict future frames. Language world models predict text observations, such as what a tool will return [3, 4, 5]."
   ],
   [
    "p",
-   "Why should LLM builders care? Agents keep failing on consequences, not on words. Plans ignore physical limits, and stale assumptions linger in history [1, 5]. Our read of this month's papers is simple. World models are turning into checkers that sit between an LLM and the world. That idea runs through every item below."
+   "Why should LLM builders care? Agents keep failing on consequences, not on words. Plans ignore physical limits, and stale assumptions linger in history. Our read of this month's papers is simple. World models are turning into checkers that sit between an LLM and the world. That idea runs through every item below [1, 5]."
   ],
   [
    "h2",
@@ -153,7 +153,7 @@
   ],
   [
    "p",
-   "GAVEL is the clearest case of a world model as a checker [1]. LLM plans for long robot tasks often break embodiment limits, fail to recover from errors and struggle when objects are out of sight [1]. GAVEL builds an explicit graph of object relations, action preconditions and effects. It also keeps probabilistic beliefs about where unseen objects might be [1]."
+   "GAVEL is the clearest case of a world model as a checker. LLM plans for long robot tasks often break embodiment limits, fail to recover from errors and struggle when objects are out of sight. GAVEL builds an explicit graph of object relations, action preconditions and effects. It also keeps probabilistic beliefs about where unseen objects might be [1]."
   ],
   [
    "image",
@@ -175,11 +175,11 @@
   ],
   [
    "p",
-   "Before any action runs, the graph predicts its consequences and flags violations [1]. If the fix follows straight from the graph, GAVEL repairs the step itself. The LLM is called to replan only for errors that need semantic reasoning [1]. For multi-task orders, it reorders remaining subtasks by where objects probably are, to cut search cost [1]."
+   "Before any action runs, the graph predicts its consequences and flags violations. If the fix follows straight from the graph, GAVEL repairs the step itself. The LLM is called to replan only for errors that need semantic reasoning. For multi-task orders, it reorders remaining subtasks by where objects probably are, to cut search cost [1]."
   ],
   [
    "p",
-   "The numbers are large. On BEHAVIOR-1K with Qwen3-8B, single-task success rose from 41.2% to 91.8% [1]. Multi-task success went from 19.9% to 92.6% [1]. Belief reasoning trimmed travel distance by about 5.4% against a static variant [1]. We think this is the most practical idea here, because you can copy the pattern without a robot."
+   "The numbers are large. On BEHAVIOR-1K with Qwen3-8B, single-task success rose from 41.2% to 91.8%. Multi-task success went from 19.9% to 92.6%. Belief reasoning trimmed travel distance by about 5.4% against a static variant. We think this is the most practical idea here, because you can copy the pattern without a robot [1]."
   ],
   [
    "code",
@@ -225,11 +225,11 @@
   ],
   [
    "p",
-   "Back to that opening idea, in more detail. T2-Z attaches a learnable environment latent to a robotic world model [2]. The latent captures what varies between settings, without being told which factors exist or what values they take [2]. Training alternates. One stage learns general dynamics with latents fixed, and the other freezes the model and tunes the latents [2]."
+   "Back to that opening idea, in more detail. T2-Z attaches a learnable environment latent to a robotic world model. The latent captures what varies between settings, without being told which factors exist or what values they take. Training alternates. One stage learns general dynamics with latents fixed, and the other freezes the model and tunes the latents [2]."
   ],
   [
    "p",
-   "At test time the world model stays frozen. A fresh latent gets optimised from one or more interactions in the new setting [2]. Across 7 simulated settings and 4 real robot tasks, object prediction error fell from 15.20 to 7.00 [2]. Action success rose from 33.73% to 72.96% [2]."
+   "At test time the world model stays frozen. A fresh latent gets optimised from one or more interactions in the new setting. Across 7 simulated settings and 4 real robot tasks, object prediction error fell from 15.20 to 7.00. Action success rose from 33.73% to 72.96% [2]."
   ],
   [
    "highlight",
@@ -276,7 +276,7 @@
   ],
   [
    "p",
-   "Agents need realistic environments for training and evaluation, yet the original system is often unavailable [4]. Trace2Env takes a different route. Instead of rebuilding executable software, a world model agent plays the environment for the task agent [4]. It needs no training. It needs only historical interaction traces [4]."
+   "Agents need realistic environments for training and evaluation, yet the original system is often unavailable. Trace2Env takes a different route. Instead of rebuilding executable software, a world model agent plays the environment for the task agent. It needs no training. It needs only historical interaction traces [4]."
   ],
   [
    "image",
@@ -291,11 +291,11 @@
   ],
   [
    "p",
-   "From those traces it builds a worldbook: environment schemas, grounded evidence and learned behavioural knowledge [4]. At run time, the world model agent consults the worldbook and a persistent episodic state [4]. From those it infers each action's observation and its lasting effects. That persistent state is the important part. Plain prompt-based simulators forget what earlier actions changed."
+   "From those traces it builds a worldbook: environment schemas, grounded evidence and learned behavioural knowledge. At run time, the world model agent consults the worldbook and a persistent episodic state. From those it infers each action's observation and its lasting effects. That persistent state is the important part. Plain prompt-based simulators forget what earlier actions changed [4]."
   ],
   [
    "p",
-   "Across nine environments, Trace2Env beat prompt-based language world models on next-observation fidelity and long-run consistency [4]. When agent actions planned against it were rerun on the real system, more of them still worked [4]. We think replay validity is the right test. A simulator is only useful if its lessons survive contact with the real thing."
+   "Across nine environments, Trace2Env beat prompt-based language world models on next-observation fidelity and long-run consistency. When agent actions planned against it were rerun on the real system, more of them still worked. We think replay validity is the right test. A simulator is only useful if its lessons survive contact with the real thing [4]."
   ],
   [
    "h2",
@@ -307,15 +307,15 @@
   ],
   [
    "p",
-   "Here is the contrarian entry. The AEWM authors argue that predicting tool responses is of little value when real feedback is available anyway [5]. They target a different problem: task-state contamination. Unsupported assumptions and outdated plans linger in an agent's history and skew later decisions [5]. So their world model predicts how reasoning and actions shape task progress [5]."
+   "Here is the contrarian entry. The AEWM authors argue that predicting tool responses is of little value when real feedback is available anyway. They target a different problem: task-state contamination. Unsupported assumptions and outdated plans linger in an agent's history and skew later decisions. So their world model predicts how reasoning and actions shape task progress [5]."
   ],
   [
    "p",
-   "Two parts do the work. An Action Judge labels each decision Critical, Exploratory or Noisy [5]. State Revision then edits noisy reasoning and action steps from the same observed history [5]. EditAct combines both with real execution, changing the state that later decisions rest on [5]. It does not just leave a critique in the transcript."
+   "Two parts do the work. An Action Judge labels each decision Critical, Exploratory or Noisy. State Revision then edits noisy reasoning and action steps from the same observed history. EditAct combines both with real execution, changing the state that later decisions rest on. It does not just leave a critique in the transcript [5]."
   ],
   [
    "p",
-   "AEWM scored 70.5% macro-F1 on the authors' Action Judge benchmark, 10.6 points above the strongest frontier baseline [5]. On six benchmarks, using three different agent backbones, EditAct lifted average scores by 3.2 to 6.7 points [5]. Fine-tuning on verified EditAct trajectories beat Self-RFT by 2.2 to 2.6 points [5]. The gains are modest, but the idea is the boldest here."
+   "AEWM scored 70.5% macro-F1 on the authors' Action Judge benchmark, 10.6 points above the strongest frontier baseline. On six benchmarks, using three different agent backbones, EditAct lifted average scores by 3.2 to 6.7 points. Fine-tuning on verified EditAct trajectories beat Self-RFT by 2.2 to 2.6 points. The gains are modest, but the idea is the boldest here [5]."
   ],
   [
    "visual",
@@ -341,15 +341,15 @@
   ],
   [
    "p",
-   "Driving models that take free-form language open a new risk [6]. A careless driver might ask for something unsafe, and a malicious one might do it deliberately [6]. The SafeDriveVLA authors found existing driving models weak on both fronts. SimLingo completed no language-instructed lane change in closed loop [6]."
+   "Driving models that take free-form language open a new risk. A careless driver might ask for something unsafe, and a malicious one might do it deliberately. The SafeDriveVLA authors found existing driving models weak on both fronts. SimLingo completed no language-instructed lane change in closed loop [6]."
   ],
   [
    "p",
-   "Their fix splits the decision. The model first predicts a three-level compliance mode, so conflict reasoning is separate from steering [6]. A world model then dreams what happens if the car follows the instruction exactly [6]. Earlier world models rolled out expert or planned actions instead. Dreaming the instruction itself shows when obeying would be safe [6]."
+   "Their fix splits the decision. The model first predicts a three-level compliance mode, so conflict reasoning is separate from steering. A world model then dreams what happens if the car follows the instruction exactly. Earlier world models rolled out expert or planned actions instead. Dreaming the instruction itself shows when obeying would be safe [6]."
   ],
   [
    "p",
-   "SafeDriveVLA reached a Driving Score of 88.16 and a 68.64% success rate on Bench2Drive [6]. Against the best SimLingo variant, it lifted closed-loop language following by 49.3% [6]. Collisions under unsafe instructions fell from 60 to 38 [6]. We read that as progress, not as solved. That still leaves 38 collisions."
+   "SafeDriveVLA reached a Driving Score of 88.16 and a 68.64% success rate on Bench2Drive. Against the best SimLingo variant, it lifted closed-loop language following by 49.3%. Collisions under unsafe instructions fell from 60 to 38. We read that as progress, not as solved. That still leaves 38 collisions [6]."
   ],
   [
    "h2",
@@ -361,11 +361,11 @@
   ],
   [
    "p",
-   "Video world models predict future frames from user actions and past memory [3]. As memory grows long and tangled, keeping spatial context straight gets hard [3]. Spatial Memory Intelligence hands that job to a multimodal language model that understands space [3]. It uses four operations: spatial clustering, sparsifying within clusters, action-aware retrieval and filtering out unreliable entries [3]."
+   "Video world models predict future frames from user actions and past memory. As memory grows long and tangled, keeping spatial context straight gets hard. Spatial Memory Intelligence hands that job to a multimodal language model that understands space. It uses four operations: spatial clustering, sparsifying within clusters, action-aware retrieval and filtering out unreliable entries [3]."
   ],
   [
    "p",
-   "The authors report sparser memory, steadier generation and better spatial consistency across several backbones [3]. The abstract gives no figures, so we cannot say how large. We file this as a new idea worth watching. It is also a neat reversal, with the language model managing memory for the video model."
+   "The authors report sparser memory, steadier generation and better spatial consistency across several backbones. The abstract gives no figures, so we cannot say how large. We file this as a new idea worth watching. It is also a neat reversal, with the language model managing memory for the video model [3]."
   ],
   [
    "h2",
@@ -377,15 +377,15 @@
   ],
   [
    "p",
-   "Step back and a pattern shows. GAVEL checks a plan before execution [1]. SafeDriveVLA checks an instruction before obeying it [6]. AEWM checks the agent's own reasoning before it compounds [5]. Even Trace2Env is graded by how well its predictions survive replay [4]. World models are becoming the verifier in the loop."
+   "Step back and a pattern shows. GAVEL checks a plan before execution. SafeDriveVLA checks an instruction before obeying it. AEWM checks the agent's own reasoning before it compounds. Even Trace2Env is graded by how well its predictions survive replay. World models are becoming the verifier in the loop [1, 6, 5, 4]."
   ],
   [
    "p",
-   "That raises the open problem none of these papers solves. Who checks the world model? GAVEL repairs only what follows directly from its graph, so a wrong graph means a confident wrong repair [1]. T2-Z's latent is learned without labels, so its errors are hard to name [2]. A verifier with silent errors is worse than none."
+   "That raises the open problem none of these papers solves. Who checks the world model? GAVEL repairs only what follows directly from its graph, so a wrong graph means a confident wrong repair. T2-Z's latent is learned without labels, so its errors are hard to name. A verifier with silent errors is worse than none [1, 2]."
   ],
   [
    "p",
-   "What would settle it? World models that report their own uncertainty, scored against real outcomes they did not predict. Trace2Env's replay test points the way [4]. Until that exists, we would treat any world model as a strong hint, not as ground truth."
+   "What would settle it? World models that report their own uncertainty, scored against real outcomes they did not predict. Trace2Env's replay test points the way. Until that exists, we would treat any world model as a strong hint, not as ground truth [4]."
   ],
   [
    "h2",
@@ -401,7 +401,7 @@
   ],
   [
    "p",
-   "A world model is a model that predicts what the world will look like after an action. Agents use it to test a move before making it. Video world models predict future frames [3]. Graph world models predict an action's preconditions and effects [1]. Language world models predict text observations for LLM agents [4]."
+   "A world model is a model that predicts what the world will look like after an action. Agents use it to test a move before making it. Video world models predict future frames. Graph world models predict an action's preconditions and effects. Language world models predict text observations for LLM agents [3, 1, 4]."
   ],
   [
    "h3",
@@ -409,7 +409,7 @@
   ],
   [
    "p",
-   "Mostly as checkers and simulators around the agent. GAVEL checks an LLM's robot plan against a graph and repairs simple errors before execution [1]. Trace2Env simulates a lost environment from old logs so agents can train against it [4]. AEWM judges and edits an agent's own reasoning steps before they skew later decisions [5]."
+   "Mostly as checkers and simulators around the agent. GAVEL checks an LLM's robot plan against a graph and repairs simple errors before execution. Trace2Env simulates a lost environment from old logs so agents can train against it. AEWM judges and edits an agent's own reasoning steps before they skew later decisions [1, 4, 5]."
   ],
   [
    "h3",
@@ -417,7 +417,7 @@
   ],
   [
    "p",
-   "Yes, early results say they can, without retraining the model. T2-Z keeps the world model frozen and tunes a small environment latent from test-time interactions [2]. Across simulated and real robot tasks, action success rose from 33.73% to 72.96% [2]. Its ablations show a single interaction trajectory can be enough [2]."
+   "Yes, early results say they can, without retraining the model. T2-Z keeps the world model frozen and tunes a small environment latent from test-time interactions. Across simulated and real robot tasks, action success rose from 33.73% to 72.96%. Its ablations show a single interaction trajectory can be enough [2]."
   ]
  ],
  "sources": [
@@ -491,7 +491,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:40+00:00",
+  "generated_at": "2026-10-20T02:05:12+00:00",
   "rechecked_from": null,
   "documents": [
    "hfpapers:2609.19315",
