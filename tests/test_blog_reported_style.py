@@ -268,3 +268,24 @@ def test_the_store_accepts_a_highlight_with_its_reference():
     assert "does not list" in blog_posts._problem(post)
     post["body"] = [["highlight", {"n": 1}]]
     assert "without its text" in blog_posts._problem(post)
+
+
+# ── where a draft is stored ─────────────────────────────────────────────────
+
+
+def test_ingest_stores_drafts_in_the_shared_database():
+    dsn = "postgresql://u:secret@shared.example:5432/board"
+    assert g.drafts_dsn({"BLOG_DRAFTS_DATABASE_URL": dsn, "DATABASE_URL": "local"}) == dsn
+
+
+def test_ingest_never_falls_back_to_the_local_database():
+    """A fallback to DATABASE_URL would store the draft where only the writer
+    can see it, and look like success (rule 12)."""
+    with pytest.raises(g.BuildError, match="BLOG_DRAFTS_DATABASE_URL is not set"):
+        g.drafts_dsn({"DATABASE_URL": "postgresql://postgres@localhost:5433/x"})
+
+
+def test_the_store_line_names_the_database_and_never_the_password():
+    assert g.db_where("postgresql://u:secret@shared.example:5432/board?ssl=1") == (
+        "shared.example:5432/board"
+    )

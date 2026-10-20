@@ -268,7 +268,7 @@ def clean(name: str) -> str:
 #: Every setting this script reads. A launcher's environment supplies these
 #: whether or not a `.env` file sits beside the script.
 _SETTINGS = ("OPENROUTER_API_KEY", "OPENROUTER_BASE_URL", "USER_AGENT", "RAW_STORE_PATH",
-             "BLOG_POSTS_DIR", "DATABASE_URL", "STAGING_DATABASE_URL")
+             "BLOG_POSTS_DIR", "DATABASE_URL", "STAGING_DATABASE_URL", "BLOG_DRAFTS_DATABASE_URL")
 
 
 def env() -> dict[str, str]:
@@ -4122,7 +4122,8 @@ def spend(record: dict) -> tuple[float | None, int, int]:
 #                 blog_packs/<key>/pack.json   what --ingest checks against
 #   (Claude Code writes blog_packs/<key>/essay.json)
 #   --ingest KEY  run every check the model path runs, on that essay, and
-#                 store a passing post as a PENDING draft. A person approves it
+#                 store a passing post as a PENDING draft in the shared
+#                 database (BLOG_DRAFTS_DATABASE_URL). A person approves it
 #                 in Admin -> Blogs, as before. A failing one writes
 #                 checks.txt beside it and stores nothing.
 #
@@ -4313,8 +4314,36 @@ def ingest(key: str, dsn: str) -> None:
     with psycopg.connect(dsn, connect_timeout=20) as conn:
         stored = blog_store.store_drafts(conn, [json.loads(out.read_text(encoding="utf-8"))])
         conn.commit()
-    print(f"[{key}] wrote {out.relative_to(ROOT)}; store: "
+    print(f"[{key}] wrote {out.relative_to(ROOT)}; store ({db_where(dsn)}): "
           + ", ".join(f"{k} {len(v)}" for k, v in stored.items()), flush=True)
+
+
+def db_where(dsn: str) -> str:
+    """host:port/database of a DSN, without its credentials - so a run says
+    WHICH database it stored in, and never prints a password."""
+    return dsn.rsplit("@", 1)[-1].split("?", 1)[0]
+
+
+def drafts_dsn(E: dict[str, str]) -> str:
+    """Where --ingest stores a passing draft: BLOG_DRAFTS_DATABASE_URL.
+
+    THE SHARED DATABASE, NOT THIS MACHINE'S (2026-10-20). A pack reads its
+    sources from DATABASE_URL, which on a writing machine is the local
+    Postgres; until this date the draft was stored there too, so the 20
+    reported posts sat in a database only one machine could see, and the
+    reviewer approving them could not. Drafts now go to the database the
+    team reviews in (Admin -> Blogs on the deployment).
+
+    No fallback to DATABASE_URL: falling back would succeed on exactly the
+    wrong input - a local database - and look like a stored draft (rule 12).
+    """
+    dsn = E.get("BLOG_DRAFTS_DATABASE_URL")
+    if not dsn:
+        raise BuildError(
+            "BLOG_DRAFTS_DATABASE_URL is not set. --ingest stores drafts in the shared database "
+            "the team reviews in; set it in .env (it is not DATABASE_URL, which on a writing "
+            "machine is the local Postgres the packs read)")
+    return dsn
 
 
 # ── topic posts: general AI, from the blog's own harvest (2026-10-16) ────────
@@ -4711,15 +4740,16 @@ def main() -> None:
     GEN_MODEL = args.model
     os.chdir(ROOT)
     E = env()
-    # PACKS AND INGEST USE THIS BACKEND'S OWN DATABASE (2026-10-16): the pack is
-    # reviewed and stored where Admin -> Blogs reads, and they need no model.
-    if args.pack is not None or args.ingest or args.topic_pack:
+    # PACKS READ THIS BACKEND'S OWN DATABASE (2026-10-16); they need no model.
+    # INGEST STORES IN THE SHARED ONE (2026-10-20, `drafts_dsn`), where the
+    # team reviews drafts.
+    if args.ingest:
+        ingest(args.ingest, drafts_dsn(E))
+        return
+    if args.pack is not None or args.topic_pack:
         local = E.get("DATABASE_URL")
         if not local:
-            raise BuildError("DATABASE_URL is not set; packs and ingest read and store there")
-        if args.ingest:
-            ingest(args.ingest, local)
-            return
+            raise BuildError("DATABASE_URL is not set; packs read their sources there")
         if args.topic_pack:
             if len(args.topic_pack) > 2 or (len(args.topic_pack) == 2 and not args.topic_pack[1].isdigit()):
                 raise BuildError("--topic-pack takes a topic key, or 'auto' and a count")

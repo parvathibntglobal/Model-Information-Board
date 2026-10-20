@@ -83,7 +83,8 @@ STAGES = [
     {"step": "Store it as a draft",
      "who": "code",
      "what": "The post is rendered in the page's shape, every quote numbered to its source, and "
-             "stored as pending in the shared post table.",
+             "stored as pending in the shared database the team reviews in "
+             "(BLOG_DRAFTS_DATABASE_URL), never only on the writer's machine.",
      "where": "export_post, judge/blog_store.store_drafts"},
     {"step": "Approve or reject",
      "who": "person",
