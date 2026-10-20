@@ -76,11 +76,11 @@
   ],
   [
    "p",
-   "Can an agent that rewrites its own code get better at work it has never seen? Or does it just learn the test it was graded on? Researchers building these loops disagree, and the argument is live [1, 2]. One team reports gains that carry over to new domains [1]. A separate group warns that such gains often shrink or vanish once the tasks change [2]."
+   "Can an agent that rewrites its own code get better at work it has never seen? Or does it just learn the test it was graded on? Researchers building these loops disagree, and the argument is live. One team reports gains that carry over to new domains. A separate group warns that such gains often shrink or vanish once the tasks change [1, 2]."
   ],
   [
    "p",
-   "So what is a self-improving AI agent? It's an agent that edits part of itself and keeps the edits that score better. That part might be its code, prompts, tools, memory or weights [1, 2, 3]. Every kept change then becomes the base for the next round [1]. Three pieces do the work. A proposer suggests a change, a check scores it, and a keep rule decides."
+   "So what is a self-improving AI agent? It's an agent that edits part of itself and keeps the edits that score better. That part might be its code, prompts, tools, memory or weights. Every kept change then becomes the base for the next round. Three pieces do the work. A proposer suggests a change, a check scores it, and a keep rule decides [1, 2, 3]."
   ],
   [
    "highlight",
@@ -91,7 +91,7 @@
   ],
   [
    "p",
-   "Most of these loops leave the model itself frozen. They rewrite the harness around it instead: prompts, control flow, tools, memory and context handling [2]. That is the layer you already tune by hand around Claude or GPT models. If a loop can tune it for you, it saves real engineering time. If it only tunes for its own benchmark, it quietly costs you."
+   "Most of these loops leave the model itself frozen. They rewrite the harness around it instead: prompts, control flow, tools, memory and context handling. That is the layer you already tune by hand around Claude or GPT models. If a loop can tune it for you, it saves real engineering time. If it only tunes for its own benchmark, it quietly costs you [2]."
   ],
   [
    "h2",
@@ -103,15 +103,15 @@
   ],
   [
    "p",
-   "The strongest case for the loop comes from AIDE^2, a system that improves a frontier AI research agent [1]. The agent edits its own source, tests each edited copy on AI research tasks, and keeps the best performers on hidden evaluations [1]. Left alone for 8 days, it found seven improvements in a row [1]. One changed its search policy. Others added memory that compresses the agent's swelling context [1]."
+   "The strongest case for the loop comes from AIDE^2, a system that improves a frontier AI research agent. The agent edits its own source, tests each edited copy on AI research tasks, and keeps the best performers on hidden evaluations. Left alone for 8 days, it found seven improvements in a row. One changed its search policy. Others added memory that compresses the agent's swelling context [1]."
   ],
   [
    "p",
-   "The gains held up away from home. On four held-out benchmarks, the best discovered agent matched or beat a strong human-built research agent [1]. Those benchmarks covered machine learning engineering, heuristic algorithms and physics-based weather forecasting [1]. The weather task sat outside the distribution of the selection tasks [1]. That is exactly the transfer the skeptics doubt."
+   "The gains held up away from home. On four held-out benchmarks, the best discovered agent matched or beat a strong human-built research agent. Those benchmarks covered machine learning engineering, heuristic algorithms and physics-based weather forecasting. The weather task sat outside the distribution of the selection tasks. That is exactly the transfer the skeptics doubt [1]."
   ],
   [
    "p",
-   "There's a bonus result. On a separate held-out task family, reward hacking fell from 55% to 32% over the run [1]. Reward hacking means satisfying the grader without doing the task. The loop never optimised for that directly [1]. Its final rate sat 7 percentage points below the human-engineered agent [1]. We think it is the most persuasive number in this whole debate."
+   "There's a bonus result. On a separate held-out task family, reward hacking fell from 55% to 32% over the run. Reward hacking means satisfying the grader without doing the task. The loop never optimised for that directly. Its final rate sat 7 percentage points below the human-engineered agent. We think it is the most persuasive number in this whole debate [1]."
   ],
   [
    "visual",
@@ -141,11 +141,11 @@
   ],
   [
    "p",
-   "Now the other side. A paper on regularised recursive self-improvement, called RRSI, starts from a warning [2]. When a loop proposes and selects harness edits again and again, it can memorise its training tasks [2]. The result looks great in distribution and shrinks, or disappears, on fresh benchmarks [2]. Every loop selects against some task set. So every loop carries this risk."
+   "Now the other side. A paper on regularised recursive self-improvement, called RRSI, starts from a warning. When a loop proposes and selects harness edits again and again, it can memorise its training tasks. The result looks great in distribution and shrinks, or disappears, on fresh benchmarks. Every loop selects against some task set. So every loop carries this risk [2]."
   ],
   [
    "p",
-   "The paper's fix is to constrain both halves of the loop [2]. The proposer gets an edit budget that tightens over time, capping how many edits one candidate may bundle [2]. It is also nudged toward trajectories the evolution history hasn't explored [2]. On the selection side, a critic screens out benchmark-specific proposals. A pruner drops changes that are too small, too costly or no longer useful [2]."
+   "The paper's fix is to constrain both halves of the loop. The proposer gets an edit budget that tightens over time, capping how many edits one candidate may bundle. It is also nudged toward trajectories the evolution history hasn't explored. On the selection side, a critic screens out benchmark-specific proposals. A pruner drops changes that are too small, too costly or no longer useful [2]."
   ],
   [
    "highlight",
@@ -156,11 +156,11 @@
   ],
   [
    "p",
-   "Even with those guards, the gap is stark. RRSI's best gain on its own evolution split was 14.1 points, across eight benchmarks in all [2]. On five benchmarks outside that distribution, its best was 4.7 [2]. Its harness also ran on 30% fewer policy tokens than the version evolved without regularisation [2]. Transfer happened. It was a slice of the headline."
+   "Even with those guards, the gap is stark. RRSI's best gain on its own evolution split was 14.1 points, across eight benchmarks in all. On five benchmarks outside that distribution, its best was 4.7. Its harness also ran on 30% fewer policy tokens than the version evolved without regularisation. Transfer happened. It was a slice of the headline [2]."
   ],
   [
    "p",
-   "So who wins this round? We press the optimists first. AIDE^2's held-out benchmarks were still picked by its own authors, and its evidence is a single run [1]. The skeptics need pressing too. RRSI's own numbers show positive transfer, not zero [2]. Our reading is shrinkage, not collapse."
+   "So who wins this round? We press the optimists first. AIDE^2's held-out benchmarks were still picked by its own authors, and its evidence is a single run. The skeptics need pressing too. RRSI's own numbers show positive transfer, not zero. Our reading is shrinkage, not collapse [1, 2]."
   ],
   [
    "h2",
@@ -172,7 +172,7 @@
   ],
   [
    "p",
-   "Both camps lean on one assumption, even when they leave it unsaid. A self-evolving agent is only as good as the check its rewrites must pass [4]. A paper on test suites as improvement signals makes this its whole argument [4]. Judging a rewrite by running the agent is costly and subjective. A repository's own tests are cheap but far too sparse [4]."
+   "Both camps lean on one assumption, even when they leave it unsaid. A self-evolving agent is only as good as the check its rewrites must pass. A paper on test suites as improvement signals makes this its whole argument. Judging a rewrite by running the agent is costly and subjective. A repository's own tests are cheap but far too sparse [4]."
   ],
   [
    "image",
@@ -187,11 +187,11 @@
   ],
   [
    "p",
-   "How sparse? The repository's tests rejected only 25.3% of rewrites that changed behaviour [4]. Most behaviour changes sailed through. The authors' tool, TeSearch, evolves test suites that are small and strong at once, using a quality-diversity search [4]. Used as the keep check, its suites rejected 59.9% of behaviour-changing rewrites [4]. False alarms ran at 4.0%, and each decision took 3.5 seconds [4]."
+   "How sparse? The repository's tests rejected only 25.3% of rewrites that changed behaviour. Most behaviour changes sailed through. The authors' tool, TeSearch, evolves test suites that are small and strong at once, using a quality-diversity search. Used as the keep check, its suites rejected 59.9% of behaviour-changing rewrites. False alarms ran at 4.0%, and each decision took 3.5 seconds [4]."
   ],
   [
    "p",
-   "The mechanism deserves a sentence. TeSearch treats suite size as a behaviour descriptor, so it chases quality at every size [4]. It also learns a transition kernel that steadies the LLM's noisy edits during search [4]. Across 129 real-world modules and three backbones, it produced the best suites of any method compared [4]. We agree with its premise completely. A sparse check lets a loop drift unseen."
+   "The mechanism deserves a sentence. TeSearch treats suite size as a behaviour descriptor, so it chases quality at every size. It also learns a transition kernel that steadies the LLM's noisy edits during search. Across 129 real-world modules and three backbones, it produced the best suites of any method compared. We agree with its premise completely. A sparse check lets a loop drift unseen [4]."
   ],
   [
    "code",
@@ -211,7 +211,7 @@
   ],
   [
    "p",
-   "SpecForge adds a harder wrinkle for coding agents [5]. Its loop leaves weights and prompts alone. It refines behavioural specifications, plain-language docs saying what each function or class should do [5]. The agent writes code from its current specs and runs execution-verified tests. Then it rewrites the specs based on what failed [5]."
+   "SpecForge adds a harder wrinkle for coding agents. Its loop leaves weights and prompts alone. It refines behavioural specifications, plain-language docs saying what each function or class should do. The agent writes code from its current specs and runs execution-verified tests. Then it rewrites the specs based on what failed [5]."
   ],
   [
    "image",
@@ -226,15 +226,15 @@
   ],
   [
    "p",
-   "The trouble is that code entities depend on each other. Improving one entity's spec can degrade the correctness of others, which the authors call output coupling [5]. Fix the parser's doc and its caller breaks. Fix the caller and something else slips. Local wins cause regressions elsewhere, so progress stalls [5]."
+   "The trouble is that code entities depend on each other. Improving one entity's spec can degrade the correctness of others, which the authors call output coupling. Fix the parser's doc and its caller breaks. Fix the caller and something else slips. Local wins cause regressions elsewhere, so progress stalls [5]."
   ],
   [
    "p",
-   "SpecForge answers with three mechanisms [5]. Pareto-guided state selection keeps complementary spec versions alive, so the search avoids committing too early. Entity selection follows dependencies and refines callees before callers. Error-diversified expansion tries several refinements, each built from a different subset of failing tests [5]. On DevEval+, it reached a 94.9% solve rate with Claude-4.5-Sonnet, and averaged 5.7 points over the strongest baseline [5]."
+   "SpecForge answers with three mechanisms. Pareto-guided state selection keeps complementary spec versions alive, so the search avoids committing too early. Entity selection follows dependencies and refines callees before callers. Error-diversified expansion tries several refinements, each built from a different subset of failing tests. On DevEval+, it reached a 94.9% solve rate with Claude-4.5-Sonnet, and averaged 5.7 points over the strongest baseline [5]."
   ],
   [
    "p",
-   "The specs also travelled. They helped on cross-language translation and new-feature work, beating the requirement documents the benchmark itself shipped [5]. For this debate, that's a point to the optimists. It also shows the skeptics' worry is mechanical. A loop that edits shared parts can hide a regression in the part it never tested."
+   "The specs also travelled. They helped on cross-language translation and new-feature work, beating the requirement documents the benchmark itself shipped. For this debate, that's a point to the optimists. It also shows the skeptics' worry is mechanical. A loop that edits shared parts can hide a regression in the part it never tested [5]."
   ],
   [
    "h2",
@@ -246,15 +246,15 @@
   ],
   [
    "p",
-   "Two newer loops push the recursion a level deeper. RSIFlow diagnoses performance bottlenecks from agent trajectories and environment feedback [6]. It then runs an improvement workflow aimed at the failing component [6]. A meta-agent distils the outcomes into skills and principles, and evolves its own harness to run the next round better [6]. On six benchmarks with two different backbone models, it reports the best average on every one [6]."
+   "Two newer loops push the recursion a level deeper. RSIFlow diagnoses performance bottlenecks from agent trajectories and environment feedback. It then runs an improvement workflow aimed at the failing component. A meta-agent distils the outcomes into skills and principles, and evolves its own harness to run the next round better. On six benchmarks with two different backbone models, it reports the best average on every one [6]."
   ],
   [
    "p",
-   "ClawLoop goes all the way down to the weights [3]. It cycles through three phases with no external teacher model [3]. Task synthesis builds training tasks and raises their difficulty based on diagnosis. Training updates the agent with SFT, RL or both. Diagnosis turns rollout behaviour into a capability report that steers the next batch of tasks [3]."
+   "ClawLoop goes all the way down to the weights. It cycles through three phases with no external teacher model. Task synthesis builds training tasks and raises their difficulty based on diagnosis. Training updates the agent with SFT, RL or both. Diagnosis turns rollout behaviour into a capability report that steers the next batch of tasks [3]."
   ],
   [
    "p",
-   "With Qwen3.6-27B driving the loop, ClawLoop posted steady gains on SkillsBench, Claw-Eval-Live and ClawGym-Bench [3]. Its refined tasks also lifted smaller Qwen3.5-4B and 9B models on every benchmark [3]. We think that transfer test is clever. It checks the data, apart from the model that made it. Neither abstract shows how much gain survives on tasks no one selected for."
+   "With Qwen3.6-27B driving the loop, ClawLoop posted steady gains on SkillsBench, Claw-Eval-Live and ClawGym-Bench. Its refined tasks also lifted smaller Qwen3.5-4B and 9B models on every benchmark. We think that transfer test is clever. It checks the data, apart from the model that made it. Neither abstract shows how much gain survives on tasks no one selected for [3]."
   ],
   [
    "visual",
@@ -311,15 +311,15 @@
   ],
   [
    "p",
-   "Here is where we come down. We side with the optimists on the core claim. Agents can improve themselves, and part of the gain reaches new work [1, 5, 3]. We side with the skeptics on size. In the one study that reports both, held-out gains ran well below the selection gains [2]."
+   "Here is where we come down. We side with the optimists on the core claim. Agents can improve themselves, and part of the gain reaches new work. We side with the skeptics on size. In the one study that reports both, held-out gains ran well below the selection gains [1, 5, 3, 2]."
   ],
   [
    "p",
-   "The deciding variable is the check. A sparse check lets a loop keep rewrites that quietly change behaviour [4]. A dense one, plus tasks held out from selection, gives you a loop worth running [1, 4]. If you build one, spend your first week on the gate. The proposer can wait."
+   "The deciding variable is the check. A sparse check lets a loop keep rewrites that quietly change behaviour. A dense one, plus tasks held out from selection, gives you a loop worth running. If you build one, spend your first week on the gate. The proposer can wait [4, 1]."
   ],
   [
    "p",
-   "What would change our mind? An independent rerun of a loop like AIDE^2, with held-out gains that vanish once someone else picks the hidden evaluations [1]. That result would mean the selection did the improving, and the agent didn't. Until someone runs it, we back the loop with a strong gate."
+   "What would change our mind? An independent rerun of a loop like AIDE^2, with held-out gains that vanish once someone else picks the hidden evaluations. That result would mean the selection did the improving, and the agent didn't. Until someone runs it, we back the loop with a strong gate [1]."
   ],
   [
    "h2",
@@ -335,7 +335,7 @@
   ],
   [
    "p",
-   "A self-improving AI agent rewrites part of itself, such as its code, prompts, tools or weights, and keeps the versions that score better [1, 2]. Each kept rewrite becomes the starting point for the next round [1]. Most current systems leave the base model frozen and change the harness around it [2]."
+   "A self-improving AI agent rewrites part of itself, such as its code, prompts, tools or weights, and keeps the versions that score better. Each kept rewrite becomes the starting point for the next round. Most current systems leave the base model frozen and change the harness around it [1, 2]."
   ],
   [
    "h3",
@@ -343,7 +343,7 @@
   ],
   [
    "p",
-   "They can. One paper on harness evolution found large gains on training tasks that shrink or vanish out of distribution [2]. Its regularised loop still gained up to 14.1 points on its own split and up to 4.7 points on five out-of-distribution benchmarks [2]. Holding tasks out of selection is the main defence."
+   "They can. One paper on harness evolution found large gains on training tasks that shrink or vanish out of distribution. Its regularised loop still gained up to 14.1 points on its own split and up to 4.7 points on five out-of-distribution benchmarks. Holding tasks out of selection is the main defence [2]."
   ],
   [
    "h3",
@@ -351,7 +351,7 @@
   ],
   [
    "p",
-   "Run every rewrite through a check dense enough to catch behaviour changes, then score survivors on tasks the loop never saw [1, 4]. In one study, a repository's own tests rejected only 25.3% of behaviour-changing rewrites [4]. An evolved small test suite rejected 59.9%, with a 4.0% false-alarm rate [4]."
+   "Run every rewrite through a check dense enough to catch behaviour changes, then score survivors on tasks the loop never saw. In one study, a repository's own tests rejected only 25.3% of behaviour-changing rewrites. An evolved small test suite rejected 59.9%, with a 4.0% false-alarm rate [1, 4]."
   ]
  ],
  "sources": [
@@ -425,7 +425,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:28:57+00:00",
+  "generated_at": "2026-10-20T02:04:45+00:00",
   "rechecked_from": null,
   "documents": [
    "arxiv:2610.21791v1",

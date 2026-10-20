@@ -87,7 +87,7 @@
   ],
   [
    "p",
-   "A security team traced a JWT flaw through a web service. Their write-up put the cosine similarity between the public route handler and the vulnerable decode routine at about 0.12 [3]. A pure vector search would call that pair unrelated. Yet a call path ran from the route to the flaw in a few hops [3]. That gap is the clearest way into what embeddings are."
+   "A security team traced a JWT flaw through a web service. Their write-up put the cosine similarity between the public route handler and the vulnerable decode routine at about 0.12. A pure vector search would call that pair unrelated. Yet a call path ran from the route to the flaw in a few hops. That gap is the clearest way into what embeddings are [3]."
   ],
   [
    "p",
@@ -95,7 +95,7 @@
   ],
   [
    "p",
-   "That one score carries a lot. It sits under question answering, search by meaning and retrieval-augmented generation [1]. It also has a fixed shape, and the shape decides what a search can find. We think many retrieval failures start right there, before any language model reads the results. Let's follow one query through the machine and see where it bends."
+   "That one score carries a lot. It sits under question answering, search by meaning and retrieval-augmented generation. It also has a fixed shape, and the shape decides what a search can find. We think many retrieval failures start right there, before any language model reads the results. Let's follow one query through the machine and see where it bends [1]."
   ],
   [
    "h2",
@@ -111,7 +111,7 @@
   ],
   [
    "p",
-   "Notice what the score cannot see. It compares two points. It has no idea of direction, order, or which item calls which. A crypto-forensics builder makes the point with wallets [2]. Similarity can link a laundering phrase to a mixer's name, but it cannot show that money moved between two addresses [2]. For documentation search, the same builder says vectors work fine [2]."
+   "Notice what the score cannot see. It compares two points. It has no idea of direction, order, or which item calls which. A crypto-forensics builder makes the point with wallets. Similarity can link a laundering phrase to a mixer's name, but it cannot show that money moved between two addresses. For documentation search, the same builder says vectors work fine [2]."
   ],
   [
    "code",
@@ -146,7 +146,7 @@
   ],
   [
    "p",
-   "A new arXiv paper models dense retrieval as low-rank bilinear scoring, `score = q^T W d` [1]. Here q and d are the query and document vectors. If one projection embeds both sides, W comes out positive-semidefinite [1]. The score is then symmetric, so a question and its answer must sit close in one geometry. Separate projections per side can realise any low-rank operator [1]."
+   "A new arXiv paper models dense retrieval as low-rank bilinear scoring, `score = q^T W d`. Here q and d are the query and document vectors. If one projection embeds both sides, W comes out positive-semidefinite. The score is then symmetric, so a question and its answer must sit close in one geometry. Separate projections per side can realise any low-rank operator [1]."
   ],
   [
    "image",
@@ -168,11 +168,11 @@
   ],
   [
    "p",
-   "So why not always go dual? Extra freedom costs data. The authors prove dual has lower risk exactly when the squared directional signal outweighs the cost of its added degrees of freedom [1]. In their grids, shared won 13 of 16 cells at a sample size of 32 [1]. Dual won all 32 cells at 1024 and at 2048 [1]."
+   "So why not always go dual? Extra freedom costs data. The authors prove dual has lower risk exactly when the squared directional signal outweighs the cost of its added degrees of freedom. In their grids, shared won 13 of 16 cells at a sample size of 32. Dual won all 32 cells at 1024 and at 2048 [1]."
   ],
   [
    "p",
-   "The edge also tracks phrasing. As query rotation rose from 0 to 90 degrees, dual's mean NDCG@10 advantage over shared grew steeply [1]. All 168 comparable risk curves moved toward dual as training data grew [1]. Their selector, CARS, cut held-out regret by 49-96% against both fixed choices [1]. It picked the right geometry with 90.1% mean accuracy [1]. We find this the most useful result here for anyone building search."
+   "The edge also tracks phrasing. As query rotation rose from 0 to 90 degrees, dual's mean NDCG@10 advantage over shared grew steeply. All 168 comparable risk curves moved toward dual as training data grew. Their selector, CARS, cut held-out regret by 49-96% against both fixed choices. It picked the right geometry with 90.1% mean accuracy. We find this the most useful result here for anyone building search [1]."
   ],
   [
    "code",
@@ -221,7 +221,7 @@
   ],
   [
    "p",
-   "Two hackathon write-ups took this lesson to graph databases. The security team modelled code, dependencies, endpoints and owners as nodes and edges [3]. Reachability became a path query. Can a public endpoint reach the flawed function through up to four call hops [3]? They report that query ran in under 30 milliseconds on their cloud instance [3]."
+   "Two hackathon write-ups took this lesson to graph databases. The security team modelled code, dependencies, endpoints and owners as nodes and edges. Reachability became a path query. Can a public endpoint reach the flawed function through up to four call hops? They report that query ran in under 30 milliseconds on their cloud instance [3]."
   ],
   [
    "image",
@@ -243,11 +243,11 @@
   ],
   [
    "p",
-   "The forensics builder did the same with wallets [2]. The query walks up to four transfer edges from a flagged source to the target wallet [2]. It drops transfers under $10 and skips paths through exchange hot wallets [2]. Each source's weight decays by a factor of 0.6 per hop [2]. It returned in 4 milliseconds in testing, and the builder warns that this figure will vary [2]."
+   "The forensics builder did the same with wallets. The query walks up to four transfer edges from a flagged source to the target wallet. It drops transfers under $10 and skips paths through exchange hot wallets. Each source's weight decays by a factor of 0.6 per hop. It returned in 4 milliseconds in testing, and the builder warns that this figure will vary [2]."
   ],
   [
    "p",
-   "We back the mechanism and doubt some of the numbers. The security write-up headlines a 39.7x speedup across sessions [3]. Most of it comes from skipping a 6,035 ms pytest run by matching a cached hash on the warm run [3]. That measures a cache, not graph retrieval. The forensics builder's closing advice is the sound one: pair vectors for meaning with graphs for links [2]."
+   "We back the mechanism and doubt some of the numbers. The security write-up headlines a 39.7x speedup across sessions. Most of it comes from skipping a 6,035 ms pytest run by matching a cached hash on the warm run. That measures a cache, not graph retrieval. The forensics builder's closing advice is the sound one: pair vectors for meaning with graphs for links [3, 2]."
   ],
   [
    "h2",
@@ -259,11 +259,11 @@
   ],
   [
    "p",
-   "Embeddings also earn their keep as candidate generators. A new arXiv paper tackles subsumption errors in CASTON, an ontology for the casting domain [4]. A subsumption error places a class under the wrong parent concept. The workflow fine-tunes an ontology embedding model on CASTON [4]. That model then picks a limited set of suspect axioms, plus possible replacements for each [4]."
+   "Embeddings also earn their keep as candidate generators. A new arXiv paper tackles subsumption errors in CASTON, an ontology for the casting domain. A subsumption error places a class under the wrong parent concept. The workflow fine-tunes an ontology embedding model on CASTON. That model then picks a limited set of suspect axioms, plus possible replacements for each [4]."
   ],
   [
    "p",
-   "A language model reads each candidate and suggests a repair [4]. The default setup paired the fine-tuned OnT model with Qwen3-8B [4]. Both domain experts approved every one of the six replacements it marked high-confidence [4]. The authors call it a small expert evaluation, and it is [4]. Still, the division of labour is the lesson. Geometry narrows the search cheaply, and the model reasons only where geometry flagged trouble."
+   "A language model reads each candidate and suggests a repair. The default setup paired the fine-tuned OnT model with Qwen3-8B. Both domain experts approved every one of the six replacements it marked high-confidence. The authors call it a small expert evaluation, and it is. Still, the division of labour is the lesson. Geometry narrows the search cheaply, and the model reasons only where geometry flagged trouble [4]."
   ],
   [
    "h2",
@@ -275,11 +275,11 @@
   ],
   [
    "p",
-   "The heaviest fix wraps the retriever in a reasoning loop. A new arXiv paper runs a language model and a retriever together in a ReAct loop [5]. The model searches, reads, rethinks the query and searches again. With the same embedding model, this beat standard retrieval by 8.7 points of nDCG@10 [5]. That metric scores how well the top ten results are ordered, weighting the first ones most."
+   "The heaviest fix wraps the retriever in a reasoning loop. A new arXiv paper runs a language model and a retriever together in a ReAct loop. The model searches, reads, rethinks the query and searches again. With the same embedding model, this beat standard retrieval by 8.7 points of nDCG@10. That metric scores how well the top ten results are ordered, weighting the first ones most [5]."
   ],
   [
    "p",
-   "It also travelled well. Specialised retrieval methods struggled out of domain, but the same agent pipeline held its own on two public leaderboards, ViDoRe v3 and BRIGHT [5]. The bill is steep, though. An average query took 107.4 seconds, against 0.67 seconds for standard retrieval [5]. Each query also consumed 764.1K input tokens and 5.8K output tokens [5]."
+   "It also travelled well. Specialised retrieval methods struggled out of domain, but the same agent pipeline held its own on two public leaderboards, ViDoRe v3 and BRIGHT. The bill is steep, though. An average query took 107.4 seconds, against 0.67 seconds for standard retrieval. Each query also consumed 764.1K input tokens and 5.8K output tokens [5]."
   ],
   [
    "p",
@@ -313,15 +313,15 @@
   ],
   [
    "p",
-   "Three things remain open. First, nobody can yet tell you the right geometry for your own collection in advance. The theory says it turns on directional signal and data size, and CARS estimates that signal from training pairs [1]. The experiments spanned several data collections and embedding models, but not your query mix [1]."
+   "Three things remain open. First, nobody can yet tell you the right geometry for your own collection in advance. The theory says it turns on directional signal and data size, and CARS estimates that signal from training pairs. The experiments spanned several data collections and embedding models, but not your query mix [1]."
   ],
   [
    "p",
-   "Second, the agent loop needs a cheaper form, and its own authors call for exactly that [5]. Third, the graph projects report speed and not retrieval quality [3, 2]. Neither write-up scores its answers against a vector baseline on the same questions [3, 2]. So the size of the graph advantage on real queries is still a guess."
+   "Second, the agent loop needs a cheaper form, and its own authors call for exactly that. Third, the graph projects report speed and not retrieval quality. Neither write-up scores its answers against a vector baseline on the same questions. So the size of the graph advantage on real queries is still a guess [5, 3, 2]."
   ],
   [
    "p",
-   "You can measure the first one this week. Take a set of real queries with known good documents. Score them with one shared projection and with separate query and document heads. Compare NDCG@10, the metric the geometry study used, as you add training pairs [1]. Where the two curves cross is your answer."
+   "You can measure the first one this week. Take a set of real queries with known good documents. Score them with one shared projection and with separate query and document heads. Compare NDCG@10, the metric the geometry study used, as you add training pairs. Where the two curves cross is your answer [1]."
   ],
   [
    "h2",
@@ -337,7 +337,7 @@
   ],
   [
    "p",
-   "Embeddings are lists of numbers a model assigns to text so that similar meanings land close together. Vector search embeds a query the same way and returns the nearest stored items, usually by cosine similarity [3]. They capture meaning well and miss structure, such as which function calls which, or which wallet paid which [3, 2]."
+   "Embeddings are lists of numbers a model assigns to text so that similar meanings land close together. Vector search embeds a query the same way and returns the nearest stored items, usually by cosine similarity. They capture meaning well and miss structure, such as which function calls which, or which wallet paid which [3, 2]."
   ],
   [
    "h3",
@@ -345,7 +345,7 @@
   ],
   [
    "p",
-   "Vector search ranks items by how close their embeddings are, so it finds similar meaning. Graph search follows explicit edges, so it can show a path exists, such as funds moving through up to four wallets [2]. Builders who tried both suggest combining them: vectors for meaning, graphs for relationships [2]."
+   "Vector search ranks items by how close their embeddings are, so it finds similar meaning. Graph search follows explicit edges, so it can show a path exists, such as funds moving through up to four wallets. Builders who tried both suggest combining them: vectors for meaning, graphs for relationships [2]."
   ],
   [
    "h3",
@@ -353,7 +353,7 @@
   ],
   [
    "p",
-   "It depends on how much training data you have. A shared projection tends to win with little data, and separate projections win as data grows. In one study, shared won 13 of 16 cells at a sample size of 32 [1]. Dual projections won all 32 cells at 1024 and 2048 [1]."
+   "It depends on how much training data you have. A shared projection tends to win with little data, and separate projections win as data grows. In one study, shared won 13 of 16 cells at a sample size of 32. Dual projections won all 32 cells at 1024 and 2048 [1]."
   ]
  ],
  "sources": [
@@ -419,7 +419,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:42+00:00",
+  "generated_at": "2026-10-20T02:05:51+00:00",
   "rechecked_from": null,
   "documents": [
    "arxiv:2610.21466v1",

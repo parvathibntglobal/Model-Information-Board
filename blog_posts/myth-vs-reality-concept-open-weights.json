@@ -29,7 +29,7 @@
   "open-weight models",
   "Myth vs reality"
  ],
- "read": 8,
+ "read": 7,
  "decisions": [
   "Check every model's licence before you ship it.",
   "Start self-hosting with a small model on CPU and scale up only when needed.",
@@ -83,7 +83,7 @@
  "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
  "meta": [
   "20 October 2026",
-  "~8 min read",
+  "~7 min read",
   "Draft — not reviewed"
  ],
  "body": [
@@ -105,7 +105,7 @@
   ],
   [
    "p",
-   "The same guide tells you to check the licence of every model you ship, because commercial terms vary [2]. It points EU teams to Mistral's open-weight models, since the company is European [2]. Ollama's library also carries Gemma 3, Qwen 3 and Llama 4 [2]. Ollama is a tool that serves models on your own machine [2]."
+   "The same guide tells you to check the licence of every model you ship, because commercial terms vary. It points EU teams to Mistral's open-weight models, since the company is European. Ollama's library also carries Gemma 3, Qwen 3 and Llama 4. Ollama is a tool that serves models on your own machine [2]."
   ],
   [
    "p",
@@ -121,7 +121,7 @@
   ],
   [
    "p",
-   "A second belief: running your own model takes a rack of GPUs. For small models, it does not. The GDPR guide sizes an 8B model, quantised to four bits per weight to save memory, at about 6 GB [2]. That fits any modern VPS or a laptop CPU [2]. A 32B model needs about 20 GB, and a 70B model needs a GPU server [2]."
+   "A second belief: running your own model takes a rack of GPUs. For small models, it does not. The GDPR guide sizes an 8B model, quantised to four bits per weight to save memory, at about 6 GB. That fits any modern VPS or a laptop CPU. A 32B model needs about 20 GB, and a 70B model needs a GPU server [2]."
   ],
   [
    "image",
@@ -136,11 +136,11 @@
   ],
   [
    "p",
-   "Builders are shipping on that small end. An invoice tool for freelancers runs Qwen 2.5 3B locally to pull out vendor, dates, tax and totals [3]. A bounty-hunting agent runs Gemma 3 at the 4b size, with an embedding model, on the user's own machine [4]. Neither one needs a hosted AI API for inference [4, 3]."
+   "Builders are shipping on that small end. An invoice tool for freelancers runs Qwen 2.5 3B locally to pull out vendor, dates, tax and totals. A bounty-hunting agent runs Gemma 3 at the 4b size, with an embedding model, on the user's own machine. Neither one needs a hosted AI API for inference [3, 4]."
   ],
   [
    "p",
-   "Scope is the catch. The guide suggests starting with an 8B model on CPU for summaries, classification and structured extraction [2]. Scale up only when speed or quality forces it [2]. The invoice tool's author lists its limits openly: no OCR for scanned PDFs, and a person must check every extracted field [3]. We think that is the right posture for small local models."
+   "Scope is the catch. The guide suggests starting with an 8B model on CPU for summaries, classification and structured extraction. Scale up only when speed or quality forces it. The invoice tool's author lists its limits openly: no OCR for scanned PDFs, and a person must check every extracted field. We think that is the right posture for small local models [2, 3]."
   ],
   [
    "visual",
@@ -181,11 +181,11 @@
   ],
   [
    "p",
-   "Now the performance belief: open models trail the closed frontier, full stop. A new arXiv study tests that on CTI-REALM, a benchmark where a security agent turns a threat report into a working detection [1]. The agent works by querying a live store of security logs. The authors ran open and closed models under one harness, scorer and judge panel [1]."
+   "Now the performance belief: open models trail the closed frontier, full stop. A new arXiv study tests that on CTI-REALM, a benchmark where a security agent turns a threat report into a working detection. The agent works by querying a live store of security logs. The authors ran open and closed models under one harness, scorer and judge panel [1]."
   ],
   [
    "p",
-   "Their headline result is blunt. Their best open-weight entry drew level with the top closed models for under a tenth of the cost, given enough turns [1]. The catch was the benchmark's own cap on agent messages. A task that hits the cap scores zero on every checkpoint, even ones it had already passed [1]. So capped results partly measure who finishes in time."
+   "Their headline result is blunt. Their best open-weight entry drew level with the top closed models for under a tenth of the cost, given enough turns. The catch was the benchmark's own cap on agent messages. A task that hits the cap scores zero on every checkpoint, even ones it had already passed. So capped results partly measure who finishes in time [1]."
   ],
   [
    "highlight",
@@ -196,7 +196,7 @@
   ],
   [
    "p",
-   "At the published cap, the leading open and closed models could not be told apart [1]. With the cap relaxed, the cut-off models recovered, and open-weight models took the highest rewards [1]. Price proved a poor guide too. Models with similar rewards differed in cost by over an order of magnitude [1]. We call the belief a myth here, with one caveat: this is one benchmark in one domain."
+   "At the published cap, the leading open and closed models could not be told apart. With the cap relaxed, the cut-off models recovered, and open-weight models took the highest rewards. Price proved a poor guide too. Models with similar rewards differed in cost by over an order of magnitude. We call the belief a myth here, with one caveat: this is one benchmark in one domain [1]."
   ],
   [
    "h2",
@@ -208,11 +208,11 @@
   ],
   [
    "p",
-   "Here is the belief that sells servers: host the model yourself and GDPR stops being your problem. Part of it holds. With no outside processor seeing prompts, there is no vendor processing agreement and no transfer mechanism to manage for inference traffic [2]. A server inside the EU keeps the data in the EU [2]."
+   "Here is the belief that sells servers: host the model yourself and GDPR stops being your problem. Part of it holds. With no outside processor seeing prompts, there is no vendor processing agreement and no transfer mechanism to manage for inference traffic. A server inside the EU keeps the data in the EU [2]."
   ],
   [
    "p",
-   "But you remain the data controller [2]. The impact assessment, the lawful basis and the AI Act duties still apply [2]. Prompt logs and chat histories hold personal data, so they need a retention period and must honour erasure requests [2]. A breach on your model host starts the 72-hour clock to notify your regulator [2]."
+   "But you remain the data controller. The impact assessment, the lawful basis and the AI Act duties still apply. Prompt logs and chat histories hold personal data, so they need a retention period and must honour erasure requests. A breach on your model host starts the 72-hour clock to notify your regulator [2]."
   ],
   [
    "highlight",
@@ -223,7 +223,7 @@
   ],
   [
    "p",
-   "Two risks travel with the weights themselves. If scraped personal data went into training, the model may have memorised it, and you inherit that exposure as the deployer [2]. Made-up personal details about real people in outputs still count as data you processed [2]. We agree with the guide's framing. Self-hosting makes the problem smaller. It does not make it disappear."
+   "Two risks travel with the weights themselves. If scraped personal data went into training, the model may have memorised it, and you inherit that exposure as the deployer. Made-up personal details about real people in outputs still count as data you processed. We agree with the guide's framing. Self-hosting makes the problem smaller. It does not make it disappear [2]."
   ],
   [
    "h2",
@@ -235,7 +235,7 @@
   ],
   [
    "p",
-   "A close cousin of that belief: if a model is open-weight, your data is private. That depends entirely on where the weights run. A hosted API for open-weight models shows the gap [5]. Its operator says the proxy never stores prompt or answer text, only counts such as tokens and credits [5]. Your prompt still reaches the outside provider running the model, which the operator cannot audit [5]."
+   "A close cousin of that belief: if a model is open-weight, your data is private. That depends entirely on where the weights run. A hosted API for open-weight models shows the gap. Its operator says the proxy never stores prompt or answer text, only usage figures like token and credit counts. The prompt itself still travels to the outside provider running the model, which the operator cannot audit [5]."
   ],
   [
    "image",
@@ -250,11 +250,11 @@
   ],
   [
    "p",
-   "That operator's own advice is to keep passwords, keys and personal data out of requests [5]. Compare the local tools. The bounty agent embeds a user's commit history on the device, so private code never reaches a cloud API [4]. The invoice tool runs inference locally, which gives users more control over their invoice data [3]."
+   "That operator's own advice is to keep passwords, keys and personal data out of requests. Compare the local tools. The bounty agent embeds a user's commit history on the device, so private code never reaches a cloud API. The invoice tool runs inference locally, which gives users more control over their invoice data [5, 4, 3]."
   ],
   [
    "p",
-   "Pinned weights are a related promise. The bounty agent's author argues that open models let you pin exact weights, so scores stay stable, unlike hosted models that change silently [4]. Serving still varies. On Hacker News, a model-router team said open models bought through a shared marketplace vary in quality by provider [6]. It puts weak providers on cooldown [6]. Our verdict: partly true, and only on hardware you control."
+   "Pinned weights are a related promise. The bounty agent's author argues that open models let you pin exact weights, so scores stay stable, unlike hosted models that change silently. Serving still varies. On Hacker News, a model-router team said open models bought through a shared marketplace vary in quality by provider. It puts weak providers on cooldown. Our verdict: partly true, and only on hardware you control [4, 6]."
   ],
   [
    "visual",
@@ -280,15 +280,15 @@
   ],
   [
    "p",
-   "Open weights are free, so running them must be cheaper. Not always. The GDPR guide notes that cloud APIs bill per token, while self-hosting bills per month plus your time [2]. At low volume, it says, the API is usually cheaper [2]. Its GPU example, a server for 70B-class models, costs €999 a month [2]."
+   "Open weights are free, so running them must be cheaper. Not always. The GDPR guide notes that cloud APIs bill per token, while self-hosting means a monthly bill and your own hours. For light use, it says, the API usually costs less. Its GPU example, a server for 70B-class models, costs €999 a month [2]."
   ],
   [
    "p",
-   "Hosted open-weight APIs blur the line further. One such service sells 9.99 € a month of credits [5]. On GLM-5.3 that covers about 6 million input tokens [5]. On its cheapest default model, the same money covers about 37 million [5]. Caching matters as well. In one 24-hour window, 114.5 million of its 122.6 million input tokens were cached [5]."
+   "Hosted open-weight APIs blur the line further. One such service sells 9.99 € a month of credits. On GLM-5.3 that covers about 6 million input tokens. On its cheapest default model, the same money covers about 37 million. Caching matters as well. In one 24-hour window, 114.5 million of its 122.6 million input tokens were cached [5]."
   ],
   [
    "p",
-   "Cached input on that default model costs a fifth of fresh input, which helps agent loops that resend long context [5]. Owned hardware makes a different case. The bounty agent's author argues students should not spend $20 a month on API credits when open weights run on machines they already own [4]. We think both are right for their users. Run the numbers on your own traffic first, as the guide advises [2]."
+   "Cached input on that default model costs a fifth of fresh input, which helps agent loops that resend long context. Owned hardware makes a different case. The bounty agent's author argues students should not spend $20 a month on API credits when open weights run on machines they already own. We think both are right for their users. Run the numbers on your own traffic first, as the guide advises [5, 4, 2]."
   ],
   [
    "h2",
@@ -300,15 +300,15 @@
   ],
   [
    "p",
-   "Which belief might come true? The boldest one: open-weight models will simply beat the closed frontier. The CTI-REALM study points that way, with open models on top once the message cap was relaxed [1]. It also found that different models led different stages of the task [1]. No single model, open or closed, won every step."
+   "Which belief might come true? The boldest one: open-weight models will simply beat the closed frontier. The CTI-REALM study points that way, with open models on top once the message cap was relaxed. It also found that different models led different stages of the task. No single model, open or closed, won every step [1]."
   ],
   [
    "p",
-   "What would settle it? Results reported with and without the turn cap, side by side [1]. A cost figure next to every score, since price proved a poor guide [1]. And scores on what the agent actually submits, such as running its detection queries against the answer key [1]. The study adds stage-level metrics of exactly that kind [1]."
+   "What would settle it? Results reported with and without the turn cap, side by side. A cost figure next to every score, since price proved a poor guide. And scores on what the agent actually submits, such as running its detection queries against the answer key. The study adds stage-level metrics of exactly that kind [1]."
   ],
   [
    "p",
-   "We are not convinced one benchmark settles the matter. It covers one domain, security detection, and the cap finding shows how much a harness can shape a ranking [1]. If more studies with uncapped runs and cost columns land the same way, this belief moves from hope to fact."
+   "We are not convinced one benchmark settles the matter. It covers one domain, security detection, and the cap finding shows how much a harness can shape a ranking. If more studies with uncapped runs and cost columns land the same way, this belief moves from hope to fact [1]."
   ],
   [
    "h2",
@@ -324,7 +324,7 @@
   ],
   [
    "p",
-   "An open-weight model is one whose trained weights you can download and run on your own hardware. It is not the same as open source: training data and code may stay closed, and some weight licences restrict commercial use or redistribution [2]. Small ones run on ordinary machines. An 8B model quantised to four bits needs about 6 GB of memory [2]."
+   "An open-weight model is one whose trained weights you can download and run on your own hardware. It is not the same as open source: training data and code may stay closed, and some weight licences restrict commercial use or redistribution. Small ones run on ordinary machines. An 8B model quantised to four bits needs about 6 GB of memory [2]."
   ],
   [
    "h3",
@@ -332,7 +332,7 @@
   ],
   [
    "p",
-   "Not on its own. Self-hosting in the EU removes the outside processor and the data transfer questions for inference traffic [2]. You remain the data controller, so the impact assessment, lawful basis, log retention, erasure requests and the 72-hour breach clock all still apply [2]. It shrinks the compliance work without removing it."
+   "Not on its own. Self-hosting in the EU removes the outside processor and the data transfer questions for inference traffic. You remain the data controller, so the impact assessment, lawful basis, log retention, erasure requests and the 72-hour breach clock all still apply. It shrinks the compliance work without removing it [2]."
   ],
   [
    "h3",
@@ -340,7 +340,7 @@
   ],
   [
    "p",
-   "Sometimes, and the test setup matters. In one security benchmark, an open-weight model matched the strongest closed models at under a tenth of their cost when given enough turns [1]. Under the benchmark's message cap, the leaders could not be told apart, because the cap zeroed out tasks that ran long [1]. One domain is not the whole picture."
+   "Sometimes, and the test setup matters. In one security benchmark, an open-weight model matched the strongest closed models at under a tenth of their cost when given enough turns. Under the benchmark's message cap, the leaders could not be told apart, because the cap zeroed out tasks that ran long. One domain is not the whole picture [1]."
   ]
  ],
  "sources": [
@@ -414,7 +414,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:43+00:00",
+  "generated_at": "2026-10-20T02:06:37+00:00",
   "rechecked_from": null,
   "documents": [
    "devto:4870010",

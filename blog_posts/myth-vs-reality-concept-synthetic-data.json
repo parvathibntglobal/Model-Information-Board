@@ -97,19 +97,19 @@
   ],
   [
    "p",
-   "Synthetic data is fake data, so a model trained on it will fall apart on real inputs. You hear that belief everywhere. The first crack comes from an unlikely place: a security detector that never saw a real attack in training [1]. Its author built an invented corporate network, staged an attack inside it, and trained small neural networks on that world alone [1]."
+   "Synthetic data is fake data, so a model trained on it will fall apart on real inputs. You hear that belief everywhere. The first crack comes from an unlikely place: a security detector that never saw a real attack in training. Its author built an invented corporate network, staged an attack inside it, and trained small neural networks on that world alone [1]."
   ],
   [
    "p",
-   "First, the term. Synthetic data for LLMs, and for models generally, means training examples that a program or another model generates instead of people. Teams now ask frontier models to write whole fine-tuning sets [3]. The detector case uses a config-driven generator instead. The principle is the same. The examples are invented, so their value depends on what the inventor knew."
+   "First, the term. Synthetic data for LLMs, and for models generally, means training examples that a program or another model generates instead of people. Teams now ask frontier models to write whole fine-tuning sets. The detector case uses a config-driven generator instead. The principle is the same. The examples are invented, so their value depends on what the inventor knew [3]."
   ],
   [
    "p",
-   "Then came the exam. The networks then faced real login records from Los Alamos National Laboratory [1]. That log holds 1.65 billion events, and a red-team exercise is marked inside it [1]. They ranked 3.6 million windows by suspicion, and the very top of that list was mostly real attacks [1]. A plain threshold counter needed vastly more false alarms to reach the same attacks [1]."
+   "Then came the exam. The networks then faced real login records from Los Alamos National Laboratory. That log holds 1.65 billion events, and a red-team exercise is marked inside it. They ranked 3.6 million windows by suspicion, and the very top of that list was mostly real attacks. A plain threshold counter needed vastly more false alarms to reach the same attacks [1]."
   ],
   [
    "p",
-   "So the belief is a myth, at least for this kind of problem. We find the result striking, and its author is careful with it. On AUC, a standard measure of ranking quality, the detectors scored within the span reported by research groups that trained on real labelled data [1]. The author also warns that the two cannot be compared head-on [1]."
+   "So the belief is a myth, at least for this kind of problem. We find the result striking, and its author is careful with it. On AUC, a standard measure of ranking quality, the detectors scored within the span reported by research groups that trained on real labelled data. The author also warns that the two cannot be compared head-on [1]."
   ],
   [
    "h2",
@@ -121,19 +121,19 @@
   ],
   [
    "p",
-   "The second belief follows from the first. If data can be invented, you can skip the slow work of studying the real thing. The detector project shows the opposite [1]. Its author spent half a day measuring the real logs before writing any generator config [1]. The problem turned out to be a different one from the one first pictured [1]."
+   "The second belief follows from the first. If data can be invented, you can skip the slow work of studying the real thing. The detector project shows the opposite. Its author spent half a day measuring the real logs before writing any generator config. The problem turned out to be a different one from the one first pictured [1]."
   ],
   [
    "p",
-   "Three measurements shaped everything after [1]. The account most used in the attack was also the busiest ordinary administrator, so account names carried no signal [1]. Counting distinct accounts per machine failed too, because the attacker's foothold looked just like a small server [1]. The real signal was novelty: a login between an account and a machine that had never met [1]."
+   "Three measurements shaped everything after. The account most used in the attack was also the busiest ordinary administrator, so account names carried no signal. Counting distinct accounts per machine failed too, because the attacker's foothold looked just like a small server. The real signal was novelty: a login between an account and a machine that had never met [1]."
   ],
   [
    "p",
-   "The numbers make the case. In normal activity, the median share of new connections per window was 0.0000, and so was the 90th percentile [1]. People take the same routes every day. Lateral movement is different. It means an attacker hopping from one captured machine to the next with stolen logins, so it is made almost entirely of new routes [1]."
+   "The numbers make the case. In normal activity, the median share of new connections per window was 0.0000, and so was the 90th percentile. People take the same routes every day. Lateral movement is different. It means an attacker hopping from one captured machine to the next with stolen logins, so it is made almost entirely of new routes [1]."
   ],
   [
    "p",
-   "Only then did the author write the generator. The key move was to produce the attack's definition, not to imitate its look [1]. The whole invented world fits in a 135-line config [1]. We think this is the real lesson. Synthetic data is compressed knowledge about the world, and it is only as good as that knowledge."
+   "Only then did the author write the generator. The key move was to produce the attack's definition, not to imitate its look. The whole invented world fits in a 135-line config. We think this is the real lesson. Synthetic data is compressed knowledge about the world, and it is only as good as that knowledge [1]."
   ],
   [
    "visual",
@@ -160,19 +160,19 @@
   ],
   [
    "p",
-   "Now the belief that scares fine-tuning teams. Train a model on text another model wrote, the story goes, and it will collapse. There is real substance here. An advisory firm, Logic42, describes model collapse as a lasting statistical decay [3]. It sets in when each model generation learns from the output of the one before [3]."
+   "Now the belief that scares fine-tuning teams. Train a model on text another model wrote, the story goes, and it will collapse. There is real substance here. An advisory firm, Logic42, describes model collapse as a lasting statistical decay. It sets in when each model generation learns from the output of the one before [3]."
   ],
   [
    "p",
-   "The firm says it watched enterprise teams try this over the past 12 months to save on labelling costs [3]. Within three fine-tuning generations, it reports, their models forgot rare edge cases and drifted into repetitive boilerplate [3]. Its explanation is simple. A model can only sample from what it learned, so each round trims rare tokens a little more [3]."
+   "The firm says it watched enterprise teams try this over the past 12 months to save on labelling costs. Within three fine-tuning generations, it reports, their models forgot rare edge cases and drifted into repetitive boilerplate. Its explanation is simple. A model can only sample from what it learned, so each round trims rare tokens a little more [3]."
   ],
   [
    "p",
-   "Its own simulation ran five recursive cycles of supervised fine-tuning, or SFT, and LoRA, a light fine-tuning method [3]. The training set was 100,000 synthetic support tickets written by a frontier model [3]. By the fourth generation, with no human data left, the hallucination rate reached 52.4% [3]."
+   "Its own simulation ran five recursive cycles of supervised fine-tuning, or SFT, and LoRA, a light fine-tuning method. The training set was 100,000 synthetic support tickets written by a frontier model. By the fourth generation, with no human data left, the hallucination rate reached 52.4% [3]."
   ],
   [
    "p",
-   "We call this partly true. The direction is plausible and the mechanism is sound. Yet the write-up names no model, no test set and no method for scoring rare cases, and it ends by selling an assessment [3]. Treat its exact figures as one firm's demonstration, not a measured law."
+   "We call this partly true. The direction is plausible and the mechanism is sound. Yet the write-up names no model, no test set and no method for scoring rare cases, and it ends by selling an assessment. Treat its exact figures as one firm's demonstration, not a measured law [3]."
   ],
   [
    "h2",
@@ -184,7 +184,7 @@
   ],
   [
    "p",
-   "Here is a quieter belief. If overall accuracy holds up after a synthetic fine-tune, the data must be fine. The same table argues the reverse [3]. By the third generation, domain precision fell from 94.6% to 68.1% [3]. Over the same rounds, recall on rare cases fell from 88.2% to 29.3% [3]."
+   "Here is a quieter belief. If overall accuracy holds up after a synthetic fine-tune, the data must be fine. The same table argues the reverse. By the third generation, domain precision fell from 94.6% to 68.1%. Over the same rounds, recall on rare cases fell from 88.2% to 29.3% [3]."
   ],
   [
    "image",
@@ -199,11 +199,11 @@
   ],
   [
    "p",
-   "Rare-tail recall is the share of unusual cases the model still gets right. In fraud detection, medical diagnosis and compliance, the firm argues, the value sits almost entirely in those cases [3]. An average across all inputs is dominated by common cases. So it can look healthy long after the tail has gone."
+   "Rare-tail recall is the share of unusual cases the model still gets right. In fraud detection, medical diagnosis and compliance, the firm argues, the value sits almost entirely in those cases. An average across all inputs is dominated by common cases. So it can look healthy long after the tail has gone [3]."
   ],
   [
    "p",
-   "We agree with this point, whatever you make of the exact numbers. It also matches the detector story, where the whole signal lived in rare new connections [1]. If you fine-tune on generated data, build a test set of rare cases first. Then watch it after every round, apart from the average."
+   "We agree with this point, whatever you make of the exact numbers. It also matches the detector story, where the whole signal lived in rare new connections. If you fine-tune on generated data, build a test set of rare cases first. Then watch it after every round, apart from the average [1]."
   ],
   [
    "visual",
@@ -245,7 +245,7 @@
   ],
   [
    "p",
-   "Another common assumption: fine-tune on the new data, and the model keeps everything it already knew. A speech recipe from NVIDIA shows the risk [2]. Its target was Saudi Arabic dialects in the Nemotron 3.5 speech recognition model [2]. Training on the dialect alone can lift it and weaken other languages, the recipe warns [2]."
+   "Another common assumption: fine-tune on the new data, and the model keeps everything it already knew. A speech recipe from NVIDIA shows the risk. Its target was Saudi Arabic dialects in the Nemotron 3.5 speech recognition model. Training on the dialect alone can lift it and weaken other languages, the recipe warns [2]."
   ],
   [
    "image",
@@ -260,11 +260,11 @@
   ],
   [
    "p",
-   "The fix is a replay mix, which keeps old-language data in training. The recipe used roughly 90% Saudi Arabic speech and 7% English [2]. Word error rate, or WER, on Najdi and Hijazi speech fell from 55.05% to 29.96% [2]. English WER on the FLEURS test only moved from 11.04% to 10.42% [2]."
+   "The fix is a replay mix, which keeps old-language data in training. The recipe used roughly 90% Saudi Arabic speech and 7% English. Word error rate, or WER, on Najdi and Hijazi speech fell from 55.05% to 29.96%. English WER on the FLEURS test only moved from 11.04% to 10.42% [2]."
   ],
   [
    "p",
-   "Logic42 proposes the same kind of guard for synthetic text. It says its designs require at least 25% certified human data in every training batch [3]. We think these are one idea in two settings. Whatever new data you add, generated or collected, keep a real anchor in the mix. Then measure the old skills after every run."
+   "Logic42 proposes the same kind of guard for synthetic text. It says its designs require at least 25% certified human data in every training batch. We think these are one idea in two settings. Whatever new data you add, generated or collected, keep a real anchor in the mix. Then measure the old skills after every run [3]."
   ],
   [
    "visual",
@@ -305,11 +305,11 @@
   ],
   [
    "p",
-   "The last practical belief is about volume. Generate or collect more, and quality will follow. The speech recipe points the other way [2]. Its structural checks kept 103,559 of 125,490 utterances, which is 82.5% of what it began with [2]. They removed clips the model could never learn, and they kept hard accents and noisy audio [2]."
+   "The last practical belief is about volume. Generate or collect more, and quality will follow. The speech recipe points the other way. Its structural checks kept 103,559 of 125,490 utterances, which is 82.5% of what it began with. They removed clips the model could never learn, and they kept hard accents and noisy audio [2]."
   ],
   [
    "p",
-   "One detail is a gift for anyone running filters. The dialect recordings mark inaudible speech with an annotation the model has no token for [2]. Every such clip guarantees an error, so it goes. Meanwhile an off-the-shelf UTMOS audio-quality cut-off at 3.0 would have thrown out nearly all of the clips [2]. Check the distribution before you trust a default cut-off."
+   "One detail is a gift for anyone running filters. The dialect recordings mark inaudible speech with an annotation the model has no token for. Every such clip guarantees an error, so it goes. Meanwhile an off-the-shelf UTMOS audio-quality cut-off at 3.0 would have thrown out nearly all of the clips. Check the distribution before you trust a default cut-off [2]."
   ],
   [
    "highlight",
@@ -320,7 +320,7 @@
   ],
   [
    "p",
-   "In our view, this is the most transferable lesson in all of this work. A synthetic generator is a filter too, applied before the data exists. The detector's author found a tidy loop [1]. Each error pointed at one machine, that machine pointed at something the invented world lacked, and two config lines fixed it [1]."
+   "In our view, this is the most transferable lesson in all of this work. A synthetic generator is a filter too, applied before the data exists. The detector's author found a tidy loop. Each error pointed at one machine, that machine pointed at something the invented world lacked, and two config lines fixed it [1]."
   ],
   [
    "h2",
@@ -332,11 +332,11 @@
   ],
   [
    "p",
-   "Which belief might survive? The boldest one: that synthetic data can stand in for real labels completely. For lateral movement, it nearly did [1]. Defenders have no labelled examples of attacks on their own network, so invention was the only route [1]. And the attack has a definition a config can express: an account logging in somewhere new, from somewhere new [1]."
+   "Which belief might survive? The boldest one: that synthetic data can stand in for real labels completely. For lateral movement, it nearly did. Defenders have no labelled examples of attacks on their own network, so invention was the only route. And the attack has a definition a config can express: an account logging in somewhere new, from somewhere new [1]."
   ],
   [
    "p",
-   "That is the condition we would watch. Problems with a computable definition may suit synthetic-only training. Problems defined by taste, style or rare human judgement look much harder, and the collapse warnings point the same way [3]. We are not convinced any single result settles it yet."
+   "That is the condition we would watch. Problems with a computable definition may suit synthetic-only training. Problems defined by taste, style or rare human judgement look much harder, and the collapse warnings point the same way. We are not convinced any single result settles it yet [3]."
   ],
   [
    "highlight",
@@ -347,7 +347,7 @@
   ],
   [
    "p",
-   "What evidence would settle it? A head-to-head test on the same held-out split, with the same metric, against a model trained on real labels. The detector's author kept a held-out set of 3,600,398 windows untouched during development [1]. Run that kind of exam on LLM fine-tunes, score rare cases separately, and this belief finally gets a fair trial."
+   "What evidence would settle it? A head-to-head test on the same held-out split, with the same metric, against a model trained on real labels. The detector's author kept a held-out set of 3,600,398 windows untouched during development. Run that kind of exam on LLM fine-tunes, score rare cases separately, and this belief finally gets a fair trial [1]."
   ],
   [
    "h2",
@@ -363,7 +363,7 @@
   ],
   [
    "p",
-   "Synthetic data for LLMs is training data that a program or another model writes instead of people. Teams use frontier models to generate fine-tuning sets and save on labelling costs [3]. It can work: a detector trained only on an invented network found real attacks among 1.65 billion real login events [1]. Its value depends on how well the generator captures the real problem."
+   "Synthetic data for LLMs is training data that a program or another model writes instead of people. Teams use frontier models to generate fine-tuning sets and save on labelling costs. It can work: a detector trained only on an invented network found real attacks among 1.65 billion real login events. Its value depends on how well the generator captures the real problem [3, 1]."
   ],
   [
    "h3",
@@ -371,7 +371,7 @@
   ],
   [
    "p",
-   "It can, when models train on each other's output round after round with little real data left. One advisory firm's simulation showed rare-case recall falling from 88.2% to 29.3% by the third generation [3]. Its write-up gives few method details, so treat the figures as a warning about the mechanism, not as a measured law."
+   "It can, when models train on each other's output round after round with little real data left. One advisory firm's simulation showed rare-case recall falling from 88.2% to 29.3% by the third generation. Its write-up gives few method details, so treat the figures as a warning about the mechanism, not as a measured law [3]."
   ],
   [
    "h3",
@@ -379,7 +379,7 @@
   ],
   [
    "p",
-   "There is no single number, but keep some. Logic42 says its designs require at least 25% certified human data per training batch [3]. NVIDIA's speech recipe kept about 7% English in its mix, and English error barely moved as the target dialect improved [2]. Measure the old skills after every run to check the anchor is enough."
+   "There is no single number, but keep some. Logic42 says its designs require at least 25% certified human data per training batch. NVIDIA's speech recipe kept about 7% English in its mix, and English error barely moved as the target dialect improved. Measure the old skills after every run to check the anchor is enough [3, 2]."
   ]
  ],
  "sources": [
@@ -429,7 +429,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:42+00:00",
+  "generated_at": "2026-10-20T02:05:05+00:00",
   "rechecked_from": null,
   "documents": [
    "devto:4870262",

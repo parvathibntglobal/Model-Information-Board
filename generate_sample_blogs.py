@@ -1128,6 +1128,8 @@ LEGACY_RULES = {"sections": (5, 7), "matrix": True, "tree": True, "code": (1, 99
 NEWSROOM_FILE = ROOT / "blog_rules.yaml"
 #: A reference marker: [3], or [2, 5] for two sources.
 REF = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+#: What may follow a paragraph's one reference mark: its closing punctuation.
+END_OF_UNIT = re.compile(r"[.!?:;)\"'”’]*\s*$")
 #: The limits blog_rules.yaml must state; none is defaulted (rule 12).
 NEWSROOM_LIMITS = ("sentence_average_words", "sentence_max_words", "whether_max_per_post",
                    "paragraph_max_sentences", "copied_run_words", "highlight_min_words",
@@ -1168,7 +1170,7 @@ def newsroom_rules_text(cfg: dict | None = None) -> str:
 REPORTED_HOW = ("cite it as [n] in your own words; one whole sentence from it may go in `highlights`")
 REPORTED_WRITING = """HOW TO WRITE THIS POST (the reported style):
 - Write every sentence in your own words. Never put a fragment of a source's sentence in «» or quotation marks.
-- After each reported fact, add the source's number in square brackets: "Engineers moved batch jobs off it after the price change [2]." Two sources: [2, 5]. The number is the DISCUSSION or SOURCE number below.
+- Cite once per paragraph: end each paragraph that reports something with ONE mark listing every source it drew on, before the final full stop: "... moved batch jobs off it after the price change [2]." Two sources: [2, 5]. No marks inside the paragraph. The number is the DISCUSSION or SOURCE number below.
 - A Reddit or X discussion (EMBED ONLY) is never cited with a number and never quoted: describe it in your own words, name the platform in the sentence ("a Reddit poster reported ..."), and list it in `embeds`.
 - When a source's exact words matter, put ONE WHOLE SENTENCE from it in `highlights`: {"section": <0-based section index>, "discussion": <number>, "text": "<the sentence, copied exactly, start to full stop>"}. Not from an EMBED ONLY discussion.
 - Leave `pull_quote` out; highlights replace it."""
@@ -1191,7 +1193,8 @@ def reported_schema(params: dict) -> dict:
     sec = p["properties"]["sections"]["items"]["properties"]
     sec.pop("pull_quote", None)
     sec["paragraphs"]["description"] = ("Plain text in your own words. `backticks` for code, **bold** sparingly, "
-                                        "[n] after each reported fact (n = discussion or source number). No «».")
+                                        "one [n] or [n, m] at the END of each paragraph that reports, listing every source "
+                                        "it used (n = discussion or source number). No marks mid-paragraph. No «».")
     p["properties"]["highlights"] = {
         "type": "array", "description": "0 to 2 whole sentences, each copied exactly from one source.",
         "items": {"type": "object", "required": ["section", "discussion", "text"],
@@ -1265,7 +1268,15 @@ def reported_violations(essay: dict, doc_texts: list[str], doc_sources: list[str
         for frag in GUILLEMET.findall(text):
             v.append(f"own-words: {path}: «{frag[:70]}» is a partial quote - report it in your own words, "
                      "or give the whole sentence as a highlight")
-        for m in REF.finditer(text):
+        marks = list(REF.finditer(text))
+        # CITE ONCE, AT THE END (2026-10-20): a number after every sentence
+        # read as clutter on the page, so a paragraph carries one mark, last,
+        # listing every source it drew on.
+        if len(marks) > 1 or (marks and not END_OF_UNIT.match(text[marks[-1].end():])):
+            v.append(f"cite-once-per-paragraph: {path}: {len(marks)} reference mark(s)"
+                     f"{'' if len(marks) > 1 else ' not at the end'} - give ONE mark at the end "
+                     "of the paragraph listing every source it used, like [2] or [2, 5]")
+        for m in marks:
             for n in (int(x) for x in m.group(1).split(",")):
                 if not 1 <= n <= n_docs:
                     v.append(f"reference-every-claim: {path}: [{n}] is not a source number (1 to {n_docs})")
@@ -1278,9 +1289,11 @@ def reported_violations(essay: dict, doc_texts: list[str], doc_sources: list[str
         if hit:
             v.append(f"no-copied-runs: {path}: {run}+ words copied from a source: "
                      f"«{' '.join(next(iter(hit)))}» - rewrite it in your own words")
-        for sent in re.split(r"(?<=[.!?])\s+", text):
+        # The paragraph's one mark covers every claim in it; a paragraph that
+        # credits a source and carries no mark at all is the violation.
+        for sent in re.split(r"(?<=[.!?])\s+", text) if not marks else ():
             m = ATTRIBUTION.search(sent)
-            if m and not REF.search(sent) and not any(names_platform(sent, p) for p in embed_platforms):
+            if m and not any(names_platform(sent, p) for p in embed_platforms):
                 v.append(f"reference-every-claim: {path}: credits a source ({m.group(0)!r}) without a "
                          f"reference number: {sent[:110]!r}")
     for i, s in enumerate(essay.get("sections") or []):

@@ -101,11 +101,11 @@
   ],
   [
    "p",
-   "The goal is simple: run an LLM locally, on hardware you own, so your data and latency stay yours. The first break comes fast. One builder put Ollama on a lightweight K3s cluster behind Open WebUI and asked it a question [3]. A word appeared every two seconds. The CPU fan roared and system memory hit 100% [3]."
+   "The goal is simple: run an LLM locally, on hardware you own, so your data and latency stay yours. The first break comes fast. One builder put Ollama on a lightweight K3s cluster behind Open WebUI and asked it a question. A word appeared every two seconds. The CPU fan roared and system memory hit 100% [3]."
   ],
   [
    "p",
-   "So how do you run an LLM locally without that crawl? Think in layers. At the bottom sit drivers and the chip. Above them, a serving engine like Ollama runs quantised weights through compute kernels, the small routines that do the matrix math [2, 3]. On top sits your app: an assistant, a voice agent, a memory store [1, 4]. Each layer can break on its own."
+   "So how do you run an LLM locally without that crawl? Think in layers. At the bottom sit drivers and the chip. Above them, a serving engine like Ollama runs quantised weights through compute kernels, the small routines that do the matrix math. On top sits your app: an assistant, a voice agent, a memory store. Each layer can break on its own [2, 3, 1, 4]."
   ],
   [
    "p",
@@ -121,19 +121,19 @@
   ],
   [
    "p",
-   "Start with the crawl. On bare-metal macOS or Windows with CUDA drivers, Ollama finds the GPU and offloads layers to VRAM on its own [3]. Kubernetes is different. K3s bundles containerd, which sandboxes containers from the host's physical PCI devices [3]. The Ollama process can't see the NVIDIA device nodes. With no CUDA runtime in the pod, it falls back to CPU matrix math [3]."
+   "Start with the crawl. On bare-metal macOS or Windows with CUDA drivers, Ollama finds the GPU and offloads layers to VRAM on its own. Kubernetes is different. K3s bundles containerd, which sandboxes containers from the host's physical PCI devices. The Ollama process can't see the NVIDIA device nodes. With no CUDA runtime in the pod, it falls back to CPU matrix math [3]."
   ],
   [
    "p",
-   "That fallback is expensive. CPU inference on a 7B or 13B model keeps shuttling data between system RAM and the CPU cache [3]. Threads contend, the chip throttles from heat, and speed drops far below the 50 to 80 tokens per second the author expects from GPU memory [3]. Nothing errors. It just gets slow."
+   "That fallback is expensive. CPU inference on a 7B or 13B model keeps shuttling data between system RAM and the CPU cache. Threads contend, the chip throttles from heat, and speed drops far below the 50 to 80 tokens per second the author expects from GPU memory. Nothing errors. It just gets slow [3]."
   ],
   [
    "p",
-   "The fix stacks three pieces on working drivers [3]. First, confirm the host driver with `nvidia-smi`. Next, install the NVIDIA Container Toolkit, which lets containerd hand host GPUs to containers. Then deploy the NVIDIA device plugin, which reports GPU count to the K3s scheduler. Finally, the Ollama pod asks for one GPU in its resource limits [3]."
+   "The fix stacks three pieces on working drivers. First, confirm the host driver with `nvidia-smi`. Next, install the NVIDIA Container Toolkit, which lets containerd hand host GPUs to containers. Then deploy the NVIDIA device plugin, which reports GPU count to the K3s scheduler. Finally, the Ollama pod asks for one GPU in its resource limits [3]."
   ],
   [
    "p",
-   "One trap waits in step two. K3s rewrites its containerd `config.toml` every time the service restarts [3]. Edit that file directly and your runtime change vanishes on the next reboot. The author's fix is the template mechanism: put your settings in `config.toml.tmpl` beside it [3]. Short fix. Easy to miss."
+   "One trap waits in step two. K3s rewrites its containerd `config.toml` every time the service restarts. Edit that file directly and your runtime change vanishes on the next reboot. The author's fix is the template mechanism: put your settings in `config.toml.tmpl` beside it. Short fix. Easy to miss [3]."
   ],
   [
    "code",
@@ -167,15 +167,15 @@
   ],
   [
    "p",
-   "Now the GPU is visible. Is it fast? A post comparing Magnitude with Ollama argues it often isn't [2]. Ollama ships GGML kernels compiled ahead of time for broad x86 and ARM profiles [2]. An M2 Max, an RTX 4090 and an AMD 7950X all run the same matrix routines. Each chip's SIMD width, cache layout and memory bandwidth get ignored [2]."
+   "Now the GPU is visible. Is it fast? A post comparing Magnitude with Ollama argues it often isn't. Ollama ships GGML kernels compiled ahead of time for broad x86 and ARM profiles. An M2 Max, an RTX 4090 and an AMD 7950X all run the same matrix routines. Each chip's SIMD width, cache layout and memory bandwidth get ignored [2]."
   ],
   [
    "p",
-   "Magnitude instead measures matrix ops, attention and memory transfers on your own silicon at first load [2]. Then it compiles kernels for that exact machine. The author tested Llama-3.1-8B-Instruct at Q4_K_M quantisation on those three machines [2]. The script timed time-to-first-token at 2K, 4K and 8K context, plus throughput over 512 generated tokens [2]. Each setting ran repeatedly, and the script kept medians [2]."
+   "Magnitude instead measures matrix ops, attention and memory transfers on your own silicon at first load. Then it compiles kernels for that exact machine. The author tested Llama-3.1-8B-Instruct at Q4_K_M quantisation on those three machines. The script timed time-to-first-token at 2K, 4K and 8K context, plus throughput over 512 generated tokens. Each setting ran repeatedly, and the script kept medians [2]."
   ],
   [
    "p",
-   "At 8K context, time-to-first-token on the RTX 4090 fell from 180ms with Ollama to 85ms with Magnitude [2]. Throughput rose from 52.1 to 119.3 tokens per second [2]. On the M2 Max, it went from 420ms to 210ms, and on the CPU-only 7950X from 1840ms to 950ms [2]. These are one author's runs. We'd want an independent rerun before planning capacity around them."
+   "At 8K context, time-to-first-token on the RTX 4090 fell from 180ms with Ollama to 85ms with Magnitude. Throughput rose from 52.1 to 119.3 tokens per second. On the M2 Max, it went from 420ms to 210ms, and on the CPU-only 7950X from 1840ms to 950ms. These are one author's runs. We'd want an independent rerun before planning capacity around them [2]."
   ],
   [
    "visual",
@@ -221,7 +221,7 @@
   ],
   [
    "p",
-   "Why such gaps? The author points at memory, not math [2]. The KV cache holds a key and a value for every token already processed. At long contexts it gets rewritten constantly. Past 8K tokens, cache thrashing can cut throughput by 40% when a static allocator ignores your real VRAM and RAM split [2]."
+   "Why such gaps? The author points at memory, not math. The KV cache holds a key and a value for every token already processed. At long contexts it gets rewritten constantly. Past 8K tokens, cache thrashing can cut throughput by 40% when a static allocator ignores your real VRAM and RAM split [2]."
   ],
   [
    "image",
@@ -236,7 +236,7 @@
   ],
   [
    "p",
-   "Profiling made it concrete. At 8K context, Ollama spent 22% of wall time copying memory with `cudaMemcpy` while it updated the KV cache [2]. Magnitude's tuned kernel fuses cache writes into the attention computation, and transfer overhead fell to 4% [2]. On the M2, it detected a bandwidth ceiling of 100GB/s and switched to a lower-precision accumulator [2]. The post claims no accuracy loss. It shows no accuracy test."
+   "Profiling made it concrete. At 8K context, Ollama spent 22% of wall time copying memory with `cudaMemcpy` while it updated the KV cache. Magnitude's tuned kernel fuses cache writes into the attention computation, and transfer overhead fell to 4%. On the M2, it detected a bandwidth ceiling of 100GB/s and switched to a lower-precision accumulator. The post claims no accuracy loss. It shows no accuracy test [2]."
   ],
   [
    "code",
@@ -256,15 +256,15 @@
   ],
   [
    "p",
-   "Move from a server to a phone and the bottleneck becomes context. Phones and wearables now collect physiological time series, like heart and brain signals [5]. Writing raw samples into the prompt as text exhausts the context and memory budget of a small on-device model [5]. Summarising them into statistics squeezes out the timing that matters. Sending them to the cloud moves sensitive data off the phone [5]."
+   "Move from a server to a phone and the bottleneck becomes context. Phones and wearables now collect physiological time series, like heart and brain signals. Writing raw samples into the prompt as text exhausts the context and memory budget of a small on-device model. Summarising them into statistics squeezes out the timing that matters. Sending them to the cloud moves sensitive data off the phone [5]."
   ],
   [
    "p",
-   "The PocketTSLM team took a third route [5]. Their port of OpenTSLM SoftPrompt runs fully on a consumer smartphone. It encodes time-series windows and injects them as embeddings, skipping text tokens entirely [5]. In their benchmark, that used about 12 times fewer time-series tokens and cut prefill cost [5]. With longer windows, the text baselines ran out of phone context or memory [5]."
+   "The PocketTSLM team took a third route. Their port of OpenTSLM SoftPrompt runs fully on a consumer smartphone. It encodes time-series windows and injects them as embeddings, skipping text tokens entirely. In their benchmark, that used about 12 times fewer time-series tokens and cut prefill cost. With longer windows, the text baselines ran out of phone context or memory [5]."
   ],
   [
    "p",
-   "The port itself needed proof. A numerical parity protocol checked that the Swift port and a Python reference on Apple's MLX produced identical greedy-decoded tokens [5]. Answers also matched a PyTorch reference, though rationale wording could differ [5]. We like this discipline a lot. A port can drift and still sound fluent."
+   "The port itself needed proof. A numerical parity protocol checked that the Swift port and a Python reference on Apple's MLX produced identical greedy-decoded tokens. Answers also matched a PyTorch reference, though rationale wording could differ. We like this discipline a lot. A port can drift and still sound fluent [5]."
   ],
   [
    "visual",
@@ -310,7 +310,7 @@
   ],
   [
    "p",
-   "Voice adds a clock. A typical tool-using speech assistant runs speech recognition, then the LLM, then the tool, in series [1]. Tool latency only starts once the user stops talking and the model names its tool calls [1]. On a phone, that wait is the pause your user hears."
+   "Voice adds a clock. A typical tool-using speech assistant runs speech recognition, then the LLM, then the tool, in series. Tool latency only starts once the user stops talking and the model names its tool calls. On a phone, that wait is the pause your user hears [1]."
   ],
   [
    "image",
@@ -332,15 +332,15 @@
   ],
   [
    "p",
-   "A paper on speculative tool execution starts tools before the user finishes [1]. A Predictor module guesses tool calls from partial transcripts, runs them and caches the results [1]. Those cached results then go into the LLM prompt. A rule-based check injects only results that are still valid, since people correct themselves mid-sentence [1]."
+   "A paper on speculative tool execution starts tools before the user finishes. A Predictor module guesses tool calls from partial transcripts, runs them and caches the results. Those cached results then go into the LLM prompt. A rule-based check injects only results that are still valid, since people correct themselves mid-sentence [1]."
   ],
   [
    "p",
-   "On a working Android assistant, median time-to-first-audio fell from 5.79 to 4.60 seconds [1]. The standard deviation shrank from 3.49 to 2.81 seconds [1]. We value that second figure most. Steadier delays make an assistant feel dependable."
+   "On a working Android assistant, median time-to-first-audio fell from 5.79 to 4.60 seconds. The standard deviation shrank from 3.49 to 2.81 seconds. We value that second figure most. Steadier delays make an assistant feel dependable [1]."
   ],
   [
    "p",
-   "The same layer bites app builders differently. Halo, an iOS assistant, keeps its wiki-style memory and on-device RAG on the phone [4]. Its builder says Apple limits App Intents to a handful of app categories [4]. So Halo bundles shortcuts and runs its own local iMessage sync [4]. It can also use LLM subscriptions you already pay for, so check where each request goes [4]."
+   "The same layer bites app builders differently. Halo, an iOS assistant, keeps its wiki-style memory and on-device RAG on the phone. Its builder says Apple limits App Intents to a handful of app categories. So Halo bundles shortcuts and runs its own local iMessage sync. It can also use LLM subscriptions you already pay for, so check where each request goes [4]."
   ],
   [
    "h2",
@@ -352,15 +352,15 @@
   ],
   [
    "p",
-   "Shipping a model to a device ships its weights too. That invites reverse engineering and theft of a proprietary model [6]. Trusted Execution Environments, or TEEs, isolate part of the inference in hardware. Most TEE-based schemes obfuscate the parameters with matrix transforms applied only on the output side [6]."
+   "Shipping a model to a device ships its weights too. That invites reverse engineering and theft of a proprietary model. Trusted Execution Environments, or TEEs, isolate part of the inference in hardware. Most TEE-based schemes obfuscate the parameters with matrix transforms applied only on the output side [6]."
   ],
   [
    "p",
-   "The BiShield-TEE authors found that this one-sided design leaks [6]. The secret is uniquely determined, so an attacker can solve for the structure of the true key. Under their attacks, two representative methods, GroupCover and ArrowCloak, kept negligible protection [6]. Attackers recovered near-complete model functionality [6]."
+   "The BiShield-TEE authors found that this one-sided design leaks. The secret is uniquely determined, so an attacker can solve for the structure of the true key. Under their attacks, two representative methods, GroupCover and ArrowCloak, kept negligible protection. Attackers recovered near-complete model functionality [6]."
   ],
   [
    "p",
-   "Their fix obfuscates input and output dimensions together [6]. That creates many equally valid candidate keys, so the true one hides among them. In their experiments, attack accuracy stayed at the full-shielding black-box baseline, with faster inference than earlier methods on real hardware [6]. We agree with the diagnosis. One paper's experiments are a start, not a deployed standard."
+   "Their fix obfuscates input and output dimensions together. That creates many equally valid candidate keys, so the true one hides among them. In their experiments, attack accuracy stayed at the full-shielding black-box baseline, with faster inference than earlier methods on real hardware. We agree with the diagnosis. One paper's experiments are a start, not a deployed standard [6]."
   ],
   [
    "h2",
@@ -372,11 +372,11 @@
   ],
   [
    "p",
-   "Here's the failure nobody has fixed. Magnitude's tuning assumes the hardware stays put [2]. Put it in a VM with shifting CPU quotas, or on shared MIG slices of a GPU. Tuned kernels can then mispredict and trail Ollama's defaults [2]. That's exactly where the K3s build above lands once a team shares its GPUs [3]."
+   "Here's the failure nobody has fixed. Magnitude's tuning assumes the hardware stays put. Put it in a VM with shifting CPU quotas, or on shared MIG slices of a GPU. Tuned kernels can then mispredict and trail Ollama's defaults. That's exactly where the K3s build above lands once a team shares its GPUs [2, 3]."
   ],
   [
    "p",
-   "The costs stack, too. First load spends 45 to 90 seconds tuning, though later starts reuse cached kernels [2]. If you swap in 20 or more models an hour, tuning overhead outweighs the per-request gain [2]. So the fastest local setup and the most flexible one pull apart."
+   "The costs stack, too. First load spends 45 to 90 seconds tuning, though later starts reuse cached kernels. If you swap in 20 or more models an hour, tuning overhead outweighs the per-request gain. So the fastest local setup and the most flexible one pull apart [2]."
   ],
   [
    "highlight",
@@ -403,7 +403,7 @@
   ],
   [
    "p",
-   "Install a serving engine such as Ollama, load a quantised model, and make sure the engine can reach your GPU [2, 3]. On bare-metal macOS or Windows with drivers in place, Ollama finds the GPU and offloads layers by itself [3]. Inside a container, you must pass the GPU through, or inference falls back to the CPU [3]."
+   "Install a serving engine such as Ollama, load a quantised model, and make sure the engine can reach your GPU. On bare-metal macOS or Windows with drivers in place, Ollama finds the GPU and offloads layers by itself. Inside a container, you must pass the GPU through, or inference falls back to the CPU [2, 3]."
   ],
   [
    "h3",
@@ -411,7 +411,7 @@
   ],
   [
    "p",
-   "Usually the container cannot see the GPU. K3s runs containerd sandboxed from host hardware, so Ollama falls back to CPU math [3]. One write-up describes a word every two seconds with memory at 100% [3]. The fix chains host drivers, the NVIDIA Container Toolkit, the device plugin and a GPU request in the pod [3]."
+   "Usually the container cannot see the GPU. K3s runs containerd sandboxed from host hardware, so Ollama falls back to CPU math. One write-up describes a word every two seconds with memory at 100%. The fix chains host drivers, the NVIDIA Container Toolkit, the device plugin and a GPU request in the pod [3]."
   ],
   [
    "h3",
@@ -419,7 +419,7 @@
   ],
   [
    "p",
-   "Yes, for some tasks. PocketTSLM runs a time-series language model entirely on a consumer smartphone, with no health data sent during inference [5]. It feeds sensor windows in as embeddings, using about 12 times fewer time-series tokens than text [5]. Halo keeps an assistant's memory on the iPhone itself [4]."
+   "Yes, for some tasks. PocketTSLM runs a time-series language model entirely on a consumer smartphone, with no health data sent during inference. It feeds sensor windows in as embeddings, using about 12 times fewer time-series tokens than text. Halo keeps an assistant's memory on the iPhone itself [5, 4]."
   ]
  ],
  "sources": [
@@ -493,7 +493,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:28:49+00:00",
+  "generated_at": "2026-10-20T02:04:39+00:00",
   "rechecked_from": null,
   "documents": [
    "devto:4869155",

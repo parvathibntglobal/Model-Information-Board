@@ -105,11 +105,11 @@
   ],
   [
    "p",
-   "Its shape is simple. Training loss falls predictably as model size, data size and compute grow, and the fall follows a power law [3]. On a log-log plot, where both axes count in powers of ten, that curve becomes a straight line [3]. Straight lines are easy to extend. That is the whole trick."
+   "Its shape is simple. Training loss falls predictably as model size, data size and compute grow, and the fall follows a power law. On a log-log plot, where both axes count in powers of ten, that curve becomes a straight line. Straight lines are easy to extend. That is the whole trick [3]."
   ],
   [
    "p",
-   "Why does this matter for the models you use? Any big training run has a fixed compute budget. A recent explainer, Scaling Laws, Carefully, frames the law as a tool for one decision [3]. How should that budget split between parameters and training data [3]? Get the split wrong and you pay full price for a weaker model."
+   "Why does this matter for the models you use? Any big training run has a fixed compute budget. A recent explainer, Scaling Laws, Carefully, frames the law as a tool for one decision. How should that budget split between parameters and training data? Get the split wrong and you pay full price for a weaker model [3]."
   ],
   [
    "h2",
@@ -129,7 +129,7 @@
   ],
   [
    "p",
-   "Compute-optimal is the word for the best split. Hold compute fixed, then slide budget between `N` and `D` until predicted loss bottoms out [3]. We think this is the most useful idea in the field for a builder. It turns an argument about taste into a curve you can check."
+   "Compute-optimal is the word for the best split. Hold compute fixed, then slide budget between `N` and `D` until predicted loss bottoms out. We think this is the most useful idea in the field for a builder. It turns an argument about taste into a curve you can check [3]."
   ],
   [
    "code",
@@ -164,7 +164,7 @@
   ],
   [
    "p",
-   "Classic laws know only size and data. Real architectures have more dials. A new arXiv paper by Yanbei Chen, Anirudh Goyal and Raghuraman Krishnamoorthi looks at two of them [1]. Looping runs the same layers more than once, buying depth without new parameters. Mixture of Experts, or MoE, stores many expert blocks but activates only a few per token [1]."
+   "Classic laws know only size and data. Real architectures have more dials. A new arXiv paper by Yanbei Chen, Anirudh Goyal and Raghuraman Krishnamoorthi looks at two of them. Looping runs the same layers more than once, buying depth without new parameters. Mixture of Experts, or MoE, stores many expert blocks but activates only a few per token [1]."
   ],
   [
    "image",
@@ -186,11 +186,11 @@
   ],
   [
    "p",
-   "Until now, the authors say, laws treated looping and sparsity one at a time [1]. Their Loop Scaling Laws model both together, alongside size and data [1]. The core is a bounded mapping that turns loops into extra effective parameters. Sparsity raises how much each loop is worth [1]."
+   "Until now, the authors say, laws treated looping and sparsity one at a time. Their Loop Scaling Laws model both together, alongside size and data. The core is a bounded mapping that turns loops into extra effective parameters. Sparsity raises how much each loop is worth [1]."
   ],
   [
    "p",
-   "These new laws predict held-out loss for looped models more accurately than earlier alternatives, the team reports [1]. They also reduce to the standard dense and MoE laws as special cases [1]. That second property matters. A law that contains the old ones cannot quietly contradict the fits that came before it."
+   "These new laws predict held-out loss for looped models more accurately than earlier alternatives, the team reports. They also reduce to the standard dense and MoE laws as special cases. That second property matters. A law that contains the old ones cannot quietly contradict the fits that came before it [1]."
   ],
   [
    "h2",
@@ -202,11 +202,11 @@
   ],
   [
    "p",
-   "Downstream numbers are the reason to care. Sparsity delivered about 3x active-parameter efficiency, the team reports [1]. Recurrence gave about 2x total-parameter efficiency on reasoning [1]. Scaling both at once pushed the performance frontier further still [1]."
+   "Downstream numbers are the reason to care. Sparsity delivered about 3x active-parameter efficiency, the team reports. Recurrence gave about 2x total-parameter efficiency on reasoning. Scaling both at once pushed the performance frontier further still [1]."
   ],
   [
    "p",
-   "Their headline test ran on trillion-token training. Both sides got equal training compute. A looped MoE, with its loop count set by the law, matched a non-looped MoE about 2x larger on reasoning benchmarks [1]. Looping also allows test-time scaling, meaning extra passes at inference when a question is hard [1]."
+   "Their headline test ran on trillion-token training. Both sides got equal training compute. A looped MoE, with its loop count set by the law, matched a non-looped MoE about 2x larger on reasoning benchmarks. Looping also allows test-time scaling, meaning extra passes at inference when a question is hard [1]."
   ],
   [
    "p",
@@ -251,7 +251,7 @@
   ],
   [
    "p",
-   "Scaling laws also settle architecture fights. Most multimodal models lean on a pretrained visual encoder, a separate network that turns images into features [2]. Encoder-free models skip it and learn straight from raw pixels [2]. The open question was how the two compare as budgets grow."
+   "Scaling laws also settle architecture fights. Most multimodal models lean on a pretrained visual encoder, a separate network that turns images into features. Encoder-free models skip it and learn straight from raw pixels. The open question was how the two compare as budgets grow [2]."
   ],
   [
    "image",
@@ -273,11 +273,11 @@
   ],
   [
    "p",
-   "A new arXiv paper compares their laws directly [2]. Removing the encoder shifts the compute-optimal split toward larger models for the multimodal objective. For text the split barely moves [2]. On text loss, the two designs trace almost the same frontier. On multimodal loss, encoder-free models trail at small scale [2]."
+   "A new arXiv paper compares their laws directly. Removing the encoder shifts the compute-optimal split toward larger models for the multimodal objective. For text the split barely moves. On text loss, the two designs trace almost the same frontier. On multimodal loss, encoder-free models trail at small scale [2]."
   ],
   [
    "p",
-   "Then comes the surprise. The authors predict encoder-free models catch up at around 10^22 FLOPs, which they call well within practical pretraining budgets [2]. Inside the model, the language layers take over the encoder's job. Visual tokens attend to each other in both directions, vision work moves to earlier layers, and expert routing for images grows more concentrated [2]."
+   "Then comes the surprise. The authors predict encoder-free models catch up at around 10^22 FLOPs, which they call well within practical pretraining budgets. Inside the model, the language layers take over the encoder's job. Visual tokens attend to each other in both directions, vision work moves to earlier layers, and expert routing for images grows more concentrated [2]."
   ],
   [
    "h2",
@@ -289,15 +289,15 @@
   ],
   [
    "p",
-   "A scaling law is a description of past runs, not a law of nature. The explainer calls it an empirical finding, which is the honest label [3]. It predicts loss. Loss is not the same as passing your evals."
+   "A scaling law is a description of past runs, not a law of nature. The explainer calls it an empirical finding, which is the honest label. It predicts loss. Loss is not the same as passing your evals [3]."
   ],
   [
    "p",
-   "Both new papers show the limits plainly. The encoder-free catch-up is a prediction from a fitted curve, not a run anyone has finished [2]. We are not convinced it should steer a pretraining plan until a model at that scale confirms it. The looped gains are measured on reasoning benchmarks, so other tasks are still open [1]."
+   "Both new papers show the limits plainly. The encoder-free catch-up is a prediction from a fitted curve, not a run anyone has finished. We are not convinced it should steer a pretraining plan until a model at that scale confirms it. The looped gains are measured on reasoning benchmarks, so other tasks are still open [2, 1]."
   ],
   [
    "p",
-   "What should you read or try next? Start with that careful walk through the basics [3]. Then fit a tiny law of your own on a few small runs, and watch where it misses. The misses teach more than the line."
+   "What should you read or try next? Start with that careful walk through the basics. Then fit a tiny law of your own on a few small runs, and watch where it misses. The misses teach more than the line [3]."
   ],
   [
    "h2",
@@ -313,7 +313,7 @@
   ],
   [
    "p",
-   "Scaling laws are fitted curves that predict a model's training loss from its size, its data and its compute. Loss falls along a power law as each grows, so the curve looks straight when both axes are logarithmic [3]. Teams fit the curve on small runs and use it to choose how to split a large budget between parameters and data [3]."
+   "Scaling laws are fitted curves that predict a model's training loss from its size, its data and its compute. Loss falls along a power law as each grows, so the curve looks straight when both axes are logarithmic. Teams fit the curve on small runs and use it to choose how to split a large budget between parameters and data [3]."
   ],
   [
    "h3",
@@ -329,7 +329,7 @@
   ],
   [
    "p",
-   "Yes, and newer laws go further. A recent paper fits one law across looping, sparsity, size and data, and it reduces to the standard dense and MoE laws as special cases [1]. The authors report about 3x active-parameter efficiency from sparsity and about 2x total-parameter efficiency on reasoning from looping [1]."
+   "Yes, and newer laws go further. A recent paper fits one law across looping, sparsity, size and data, and it reduces to the standard dense and MoE laws as special cases. The authors report about 3x active-parameter efficiency from sparsity and about 2x total-parameter efficiency on reasoning from looping [1]."
   ]
  ],
  "sources": [
@@ -379,7 +379,7 @@
   "served_as": [
    "anthropic/claude-opus-5.5 (Claude Code)"
   ],
-  "generated_at": "2026-10-20T01:26:42+00:00",
+  "generated_at": "2026-10-20T02:05:30+00:00",
   "rechecked_from": null,
   "documents": [
    "hfpapers:2609.40316",
