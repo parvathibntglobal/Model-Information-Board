@@ -80,9 +80,25 @@ export function webPage(site, head) {
   }
 }
 
+/** A glossary term (2026-10-20): schema.org DefinedTerm, in the glossary's set. */
+export function definedTerm(site, t) {
+  if (!site || !t || !t.name || !t.path) return null
+  const out = {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTerm',
+    name: t.name,
+    description: t.description,
+    url: abs(site, t.path),
+    inDefinedTermSet: { '@type': 'DefinedTermSet', name: 'Glossary', url: abs(site, '/glossary') },
+  }
+  if (t.aka && t.aka.length) out.alternateName = t.aka
+  return out
+}
+
 /** Everything a head asks for, built for `site`; [] when closed or nothing applies. */
 export function structuredFor(site, head) {
   if (!site || !head) return []
-  return [breadcrumbList(site, head.breadcrumbs), article(site, head.article), webPage(site, head)]
+  return [breadcrumbList(site, head.breadcrumbs), article(site, head.article), webPage(site, head),
+    definedTerm(site, head.definedTerm)]
     .filter(Boolean)
 }

@@ -102,7 +102,7 @@ def auth_state() -> dict[str, object]:
 EXEMPT_PATHS = frozenset({"/health", "/auth/login"})
 
 #: THE PUBLIC READS (2026-10-15, Parvathi): what the published pages - home,
-#: Models, the tools, Compare, Blogs, FAQ - read, reachable WITHOUT a token so
+#: Models, the tools, Compare, Blogs, FAQ, the glossary - read, reachable WITHOUT a token so
 #: a visitor who has not signed in can use them. The sign-in wall now guards
 #: only the signed-in surfaces: the Board, the old model pages and Admin.
 #:
@@ -123,8 +123,12 @@ PUBLIC_READ_PATHS = frozenset({
     # 2026-10-20: the Discussions page - topics and APPROVED posts only
     # (judge/discussions.py public_view; the review queue is /discussions/review).
     "/discussions",
+    # 2026-10-20: the glossary index (judge/glossary.py) - reviewed copy, no source text.
+    "/glossary-terms",
 })
-PUBLIC_READ_PREFIXES = ("/model-catalog/",)
+#: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
+#: from glossary.yaml, no quote, link or handle from any source.
+PUBLIC_READ_PREFIXES = ("/model-catalog/", "/glossary-terms/")
 
 #: THE ONE PUBLIC WRITE (2026-10-20, Parvathi): a reader posting to the
 #: Discussions page. POST only, rate-limited per address (rate_limit_discussion),

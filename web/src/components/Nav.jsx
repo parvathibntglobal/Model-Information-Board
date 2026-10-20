@@ -6,7 +6,12 @@ import { MODEL_TYPES } from '../catalog/types'
 // wall for now; which of these open to the public is decided later.
 const LINKS = [
   { to: '/', label: 'Home', end: true },
-  { to: '/blogs', label: 'Blogs' },
+  // BLOGS, A HOVER MENU (2026-10-20): the posts and the glossary - the
+  // short definitions a reader looks up for the basics.
+  { to: '/blogs', label: 'Blogs', items: [
+    { to: '/blogs', label: 'Blog posts' },
+    { to: '/glossary', label: 'Glossary' },
+  ] },
   // HOVER MENUS. The label still opens its own page on click; hovering lists
   // what is inside it, the way the demo's sections are split.
   { to: '/tools', label: 'Tools', items: [

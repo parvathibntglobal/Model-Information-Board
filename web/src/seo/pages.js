@@ -304,6 +304,31 @@ export function liveQuiz() {
   }
 }
 
+/**
+ * THE AI GLOSSARY (2026-10-20): `/glossary` and `/glossary/<slug>`. A term's
+ * title is the keyword plan's definition shape (seo/keyword_plan.yaml,
+ * `definition`): "What is {concept}? Meaning and example".
+ */
+export function aiGlossaryHead() {
+  return {
+    title: fullTitle('Glossary: LLM and AI terms, defined in a paragraph'),
+    description: 'Plain definitions of the terms you meet when choosing, prompting and running AI models, from tokens and context windows to agents, RAG and quantization.',
+    canonical: '/glossary',
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Glossary', path: '/glossary' }],
+  }
+}
+export function aiGlossaryTermHead(t) {
+  if (!t) return aiGlossaryHead()
+  const path = `/glossary/${t.slug}`
+  return {
+    title: fullTitle(`What is ${t.term}? Meaning and example`),
+    description: clip(t.teaser),
+    canonical: path,
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Glossary', path: '/glossary' }, { name: t.term, path }],
+    definedTerm: { name: t.term, description: t.definition, path, aka: t.aka || [] },
+  }
+}
+
 /** The blog's reference formats (2026-10-15): glossary, known issues, answers. */
 const shortOf = (n) => String(n || '').split(':').slice(-1)[0].trim()
 export function glossaryHead() {
