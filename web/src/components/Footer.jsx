@@ -39,6 +39,7 @@ const MODELS = [
 const SITE = [
   { t: 'Home', to: '/' },
   { t: 'Blogs', to: '/blogs' },
+  { t: 'Glossary', to: '/glossary' },
   { t: 'Tools', to: '/tools' },
   { t: 'Discussions', to: '/discussions' },
   { t: 'FAQ', href: '/#faq' },

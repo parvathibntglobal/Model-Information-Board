@@ -44,6 +44,7 @@ function page(load) {
 
 const Board = page(() => import('./routes/Board'))
 const Blogs = page(() => import('./routes/Blogs'))
+const Glossary = page(() => import('./routes/Glossary'))
 const Tools = page(() => import('./routes/Tools'))
 const ModelPicker = page(() => import('./routes/ModelPicker'))
 const Reports = page(() => import('./routes/Reports'))
@@ -125,6 +126,7 @@ export default function App() {
           <Route path="/"        element={<Landing />} />
           <Route path="/board/*" element={<Require session={session}><Board /></Require>} />
           <Route path="/blogs/*" element={<Blogs />} />
+          <Route path="/glossary/*" element={<Glossary />} />
           <Route path="/tools"       element={<Tools />} />
           <Route path="/model-picker" element={<ModelPicker />} />
           {/* the tool was briefly "AI model finder" here; an old link still opens it */}

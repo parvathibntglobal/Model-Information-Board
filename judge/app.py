@@ -2461,6 +2461,35 @@ def blog_live_preview(kind: str, ident: str) -> dict:
     return found
 
 
+# THE AI GLOSSARY (2026-10-20): one short paragraph per concept, from
+# glossary.yaml (judge/glossary.py). No database: the terms are reviewed copy
+# in the repository. A file that fails its checks is a 503 naming every
+# problem, never a partial list (rule 12).
+
+
+def _glossary(fn, *args):
+    from judge import glossary
+
+    try:
+        return fn(*args)
+    except glossary.GlossaryError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@app.get("/glossary-terms")
+def glossary_terms() -> dict:
+    from judge import glossary
+
+    return _glossary(glossary.index)
+
+
+@app.get("/glossary-terms/{slug}")
+def glossary_term(slug: str) -> dict:
+    from judge import glossary
+
+    return _or_404(_glossary(glossary.entry, slug), "the glossary has no such term")
+
+
 # THE BLOG'S REFERENCE FORMATS (2026-10-15): a glossary, known issues per
 # model, and "does X support Y" answers. Not articles - see
 # judge/blog_reference.py.
