@@ -80,6 +80,10 @@ always:
   - /reports/jobs
   - /reports/capabilities
   - /reports/metrics
+  - /glossary
+
+# Glossary term pages (/glossary/:slug) are listed from glossary.yaml by
+# judge/seo.py: reviewed copy, no evidence threshold.
 
 # Blog posts: approved posts only (judge/blog_store.py). A pending or rejected
 # post is never indexable, whatever this file says elsewhere.

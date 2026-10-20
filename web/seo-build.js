@@ -18,6 +18,7 @@
 export const STRUCTURAL_PATHS = [
   '/', '/blogs', '/tools', '/model-picker', '/model-finder', '/token-counter',
   '/catalog', '/catalog/new', '/compare', '/reports', '/reports/jobs', '/reports/capabilities', '/reports/metrics',
+  '/glossary',
 ]
 
 /**

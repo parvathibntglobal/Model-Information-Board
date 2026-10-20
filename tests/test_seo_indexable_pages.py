@@ -147,6 +147,17 @@ class TestTheLists:
         block = src.split("export const STRUCTURAL_PATHS = [", 1)[1].split("]", 1)[0]
         assert set(re.findall(r"'([^']+)'", block)) == set(seo.rules()["always"])
 
+    def test_the_glossary_and_every_term_are_listed(self, conn):
+        """The glossary is reviewed copy (glossary.yaml): its index and each term
+        page are indexable, with no evidence threshold (2026-10-20)."""
+        from judge import glossary
+
+        paths = _paths(conn)
+        assert "/glossary" in paths
+        slugs = [t["slug"] for t in glossary.load()]
+        assert slugs and all(f"/glossary/{s}" in paths for s in slugs)
+        assert all(paths[f"/glossary/{s}"]["kind"] == "glossary_term" for s in slugs)
+
     def test_only_approved_posts(self, conn):
         paths = _paths(conn)
         assert "/blogs/approved-post" in paths

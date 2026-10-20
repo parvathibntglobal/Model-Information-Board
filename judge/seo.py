@@ -83,6 +83,8 @@ def indexable_pages(conn: Any) -> dict:
         model             /catalog/model/:canonical and /reports/models/:canonical
         model_in_section  counted for the tally only - no public page shows one
                           model inside one section
+        glossary_term     /glossary/:slug - every term in glossary.yaml, which is
+                          reviewed copy, so no evidence threshold applies
     """
     from judge import blog_store, publication
     from judge.store.board_entries import board_sections, evidence_for_model
@@ -152,6 +154,14 @@ def indexable_pages(conn: Any) -> dict:
         if post.get("slug"):
             out.append({"path": f"/blogs/{post['slug']}", "kind": "blog_post", "voices": None,
                         "lastmod": post.get("published_at")})
+
+    # GLOSSARY TERMS (2026-10-20): reviewed copy in glossary.yaml, one page each.
+    # A file that fails its checks raises (glossary.GlossaryError) instead of
+    # silently listing no terms - the same rule as an unreadable blog store.
+    from judge import glossary
+
+    for term in glossary.load():
+        out.append({"path": f"/glossary/{term['slug']}", "kind": "glossary_term", "voices": None})
 
     never = set(r["never"])
     paths = sorted((p for p in out if p["path"] not in never), key=lambda p: p["path"])

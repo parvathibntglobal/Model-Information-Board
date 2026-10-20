@@ -23,4 +23,5 @@ The board reads public posts by engineers about AI models, files each report und
 ## Reading
 
 - [Blogs](/blogs): posts on AI models, written from the reports
+- [AI glossary](/glossary): one short paragraph on each AI model term, from tokens to retrieval-augmented generation
 - [Discussions](/discussions): readers' own experiences with AI models, shown beside the reports and never added to the counts
