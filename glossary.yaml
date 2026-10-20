@@ -124,7 +124,7 @@ terms:
 
   - slug: attention-mechanism
     term: "Attention mechanism"
-    aka: ["attention"]
+    aka: ["attention", "self-attention"]
     category: foundations
     teaser: "The part of a transformer that lets each token look at the other tokens and decide which ones matter for its meaning."
     definition: >-
@@ -462,7 +462,7 @@ terms:
 
   - slug: few-shot-prompting
     term: "Few-shot prompting"
-    aka: []
+    aka: ["few-shot learning"]
     category: prompting
     teaser: "Putting a handful of worked examples in a prompt so the model copies their pattern on a new input."
     definition: >-
@@ -477,7 +477,7 @@ terms:
 
   - slug: zero-shot-prompting
     term: "Zero-shot prompting"
-    aka: []
+    aka: ["zero-shot learning"]
     category: prompting
     teaser: "Asking a model to do a task from instructions alone, with no worked examples in the prompt."
     definition: >-
@@ -1907,7 +1907,7 @@ terms:
 
   - slug: jailbreak
     term: "Jailbreak"
-    aka: []
+    aka: ["adversarial prompting"]
     category: safety
     teaser: "A prompt crafted to get a model to ignore its safety training and produce content it would normally refuse."
     definition: >-
@@ -2394,3 +2394,517 @@ terms:
       request, not an enforcement mechanism. Well-behaved crawlers follow it, but nothing technically
       stops one that chooses not to.
     related: [answer-engine-optimization, machine-readable-content, synthetic-data, pretraining]
+
+  - slug: gpt
+    term: "GPT"
+    aka: ["generative pre-trained transformer"]
+    category: foundations
+    teaser: "A family name and a design idea for models that are pretrained to predict the next token and then tuned for use."
+    definition: >-
+      GPT stands for generative pre-trained transformer, both a model family from OpenAI and a general
+      design. The design uses only the decoder half of the original transformer. Such a model is first
+      pretrained on a large body of text to predict the next token. It is then tuned further, often with
+      human feedback, to follow instructions and hold a conversation. Most chat models from most labs
+      share this decoder-only shape, whatever they are called. Readers meet the acronym in model names,
+      API identifiers and price lists. ChatGPT is a product built on top of GPT models, not the models
+      themselves. So a report about ChatGPT may reflect app settings, tools or a hidden system prompt
+      rather than the bare model. When choosing through an API, check which exact model version a report
+      actually used.
+    related: [transformer, pretraining, post-training, language-modeling, large-language-model]
+
+  - slug: bert
+    term: "BERT"
+    aka: ["bidirectional encoder representations from transformers"]
+    category: foundations
+    teaser: "An early encoder-only transformer from Google, still common for embeddings, classification and reranking."
+    definition: >-
+      BERT, short for bidirectional encoder representations from transformers, is an encoder-only model
+      family released by Google in 2018. It reads a whole passage at once, so each word is understood from
+      the words on both sides. It was pretrained by hiding some tokens and asking the model to fill them
+      in. BERT does not generate free text the way a chat model does. Instead it turns text into vectors
+      or labels that other code can use. Many embedding models, classifiers and rerankers in retrieval
+      pipelines descend from it. These models are small and cheap to run next to a large chat model. A
+      common mistake is to expect BERT to answer questions in prose like a decoder-only model. It is the
+      right tool for sorting and matching text, not for writing it.
+    related: [masked-language-model, embeddings, reranking, transformer, gpt]
+
+  - slug: t5
+    term: "T5"
+    aka: ["text-to-text transfer transformer"]
+    category: foundations
+    teaser: "A Google encoder-decoder transformer family that frames every task as turning input text into output text."
+    definition: >-
+      T5, the text-to-text transfer transformer, is a model family from Google that uses both halves of
+      the transformer. An encoder reads the input, and a decoder writes the output one token at a time.
+      Every task is framed the same way, as text in and text out. Translation, summarising and
+      classification all become a matter of writing the right answer string. This sits between
+      encoder-only models like BERT and decoder-only chat models like GPT. T5 variants are still used for
+      embeddings, reranking and narrow tasks such as summarising. They are often small enough to fine-tune
+      and serve on modest hardware. Do not assume a T5 model follows open-ended instructions as a modern
+      chat model does. Unless it was tuned for instructions, it expects the task formats it was trained
+      on.
+    related: [transformer, bert, gpt, multi-task-learning, transfer-learning]
+
+  - slug: masked-language-model
+    term: "Masked language model"
+    aka: ["masked token prediction"]
+    category: foundations
+    teaser: "A model trained to fill in hidden tokens using the words on both sides, the approach behind BERT."
+    definition: >-
+      A masked language model is trained to guess tokens that have been hidden inside a passage. During
+      training, some tokens are swapped for a blank marker. The model sees the words before and after each
+      blank and learns to fill it in. Because it reads in both directions, it builds a strong sense of
+      what each word means in context. BERT and its descendants are the best-known examples. Readers meet
+      these models inside embedding services, classifiers and rerankers rather than chat apps. The
+      objective differs from next-token prediction, which only looks at earlier text. That is why a masked
+      model is not built to write long answers. Pick one when the job is to compare or label text, not to
+      generate it.
+    related: [bert, language-modeling, embeddings, pretraining]
+
+  - slug: language-modeling
+    term: "Language modeling"
+    aka: ["causal language modeling", "next-token prediction"]
+    category: foundations
+    teaser: "Predicting the next token from the tokens before it, the training goal behind every chat model."
+    definition: >-
+      Language modeling is the task of predicting the next token given all the tokens that came before it.
+      A model learns it by reading huge amounts of text and adjusting itself after each wrong guess. At
+      run time it repeats the step, adding one token at a time until the answer is done. Every chat model
+      is trained this way first, then tuned to follow instructions. Settings like temperature and top-p
+      only change how the next token is picked from the predictions. This explains why output tokens are
+      produced in sequence and why long answers take longer. It also explains hallucination in part, since
+      the model writes what is likely, not what is checked. A fluent answer is therefore not evidence that
+      the answer is correct. Grounding a prompt in supplied sources helps keep likely text close to true
+      text.
+    related: [token, pretraining, logits, sampling, hallucination]
+
+  - slug: lm-head
+    term: "LM head"
+    aka: ["language model head"]
+    category: foundations
+    teaser: "The final layer of a language model that turns its internal state into a score for every token in the vocabulary."
+    definition: >-
+      An LM head, or language model head, is the last layer that turns the internal state of a model into
+      next-token scores. It produces one score for every token the tokenizer knows. These raw scores are
+      called logits. A softmax step turns them into probabilities, and a sampler then picks a token. Some
+      APIs expose these values as log probabilities, which helps with scoring and calibration. Engineers
+      meet the term when fine-tuning, when swapping in a classification head, or when reading model code.
+      In many models the head shares its weights with the token embedding table. The head does not decide
+      on its own what the model says. Decoding settings such as temperature and top-k shape the final
+      choice.
+    related: [logits, log-probabilities, token-embedding, tokenizer, sampling]
+
+  - slug: token-embedding
+    term: "Token embedding"
+    aka: []
+    category: foundations
+    teaser: "The vector a model looks up for each token before any processing begins, learned during training."
+    definition: >-
+      A token embedding is the list of numbers a model assigns to each token in its vocabulary. When text
+      arrives, the tokenizer splits it into tokens and each token is swapped for its vector. These vectors
+      are learned during training, so similar tokens end up with similar numbers. The rest of the model
+      then mixes them with attention to build meaning from context. Readers meet the idea when reading
+      about tokenizers, vocabulary size or model internals. A token embedding is not the same as the text
+      embedding an embeddings API returns. That API returns one vector for a whole passage, built after
+      the full model has run. Confusing the two leads to wrong guesses about what a search index stores.
+      For retrieval, use a model built and documented for text embeddings.
+    related: [embeddings, tokenizer, token, lm-head, attention-mechanism]
+
+  - slug: model-checkpoint
+    term: "Model checkpoint"
+    aka: ["checkpoint"]
+    category: foundations
+    teaser: "A saved copy of the weights of a model at one point in training, which can be loaded, served or trained further."
+    definition: >-
+      A model checkpoint is a saved snapshot of the weights of a model at a given moment in training.
+      Training runs save checkpoints often, so work can resume after a crash. Labs also release chosen
+      checkpoints as the model people actually download or call. A fine-tune starts from one checkpoint
+      and produces a new one. Readers meet checkpoints on model hubs, in dated API model names and in
+      research papers. Two checkpoints with the same family name can behave quite differently. A report
+      about one dated version may not hold for a later one. That is why the board ties each report to a
+      specific model version where it can. Before relying on a claim, check which checkpoint the writer
+      was using.
+    related: [open-weights, fine-tuning, model-hub, model-drift, gguf]
+
+  - slug: multilingual-llm
+    term: "Multilingual LLM"
+    aka: []
+    category: foundations
+    teaser: "A large language model trained to read and write in many languages, though rarely equally well in each."
+    definition: >-
+      A multilingual LLM is a large language model trained on text in many languages, not just one. It can
+      answer, translate and summarise across those languages within a single model. Its skill in each
+      language follows how much text in that language it saw during training. Tokenizers also matter,
+      since some scripts split into many more tokens than others. More tokens for the same message means
+      higher cost and less room in the context window. Readers meet the term in model cards that list
+      supported languages. A listed language is a claim by the provider, not a measured level of quality.
+      Reports from engineers working in that language are a better guide than a list. Test on real prompts
+      in each language you serve before committing.
+    related: [large-language-model, tokenizer, training-data, model-card, inference-cost]
+
+  - slug: model-hub
+    term: "Model hub"
+    aka: ["model zoo"]
+    category: foundations
+    teaser: "A site that hosts downloadable models with their cards, files and licences, with Hugging Face the best-known."
+    definition: >-
+      A model hub is a website that hosts downloadable models together with their cards, files and
+      licences. Hugging Face is the best-known example. Model zoo is an older name for the same idea,
+      often tied to one framework. Each entry usually holds weights, a tokenizer, configuration files and
+      a model card. Engineers use hubs to find open-weights models, fine-tunes and quantised versions to
+      run locally. Many uploads come from third parties rather than the original lab. A name that looks
+      official is no guarantee of who made the files. Check the uploader, the licence and the card before
+      building on a download. Downloaded code can also run on your machine, so treat unknown repositories
+      with care.
+    related: [model-card, open-weights, model-checkpoint, gguf, local-llm]
+
+  - slug: training-data
+    term: "Training data"
+    aka: ["pretraining data"]
+    category: foundations
+    teaser: "The text and other material a model learned from, which sets what it knows and when its knowledge stops."
+    definition: >-
+      Training data is the material a model learned from, mostly text and sometimes images, audio or code.
+      Pretraining data is the large first batch, gathered from the web, books, code and other sources.
+      Later stages add smaller curated sets for instruction following and safety. The newest date in the
+      data sets the knowledge cutoff, past which the model knows nothing on its own. What the data covers
+      also shapes which languages, domains and styles the model handles well. Labs rarely publish their
+      full training data, so outsiders often have to infer it. Licensing and consent for that data remain
+      open legal and ethical questions. Test questions can leak into the data, which makes benchmark
+      scores look better than real skill. Treat a strong score on a public test with care until it holds
+      on your own tasks.
+    related: [pretraining, knowledge-cutoff, benchmark-contamination, synthetic-data, model-card]
+
+  - slug: model-catalog
+    term: "Model catalog"
+    aka: []
+    category: foundations
+    teaser: "A listing of available models with their providers, prices, context limits and features, as published by sellers."
+    definition: >-
+      A model catalog is a published list of available models with their providers, prices, context limits
+      and features. Aggregators, cloud platforms and model providers each keep one. Engineers use catalogs
+      to compare per-token prices and check support for tools, images or structured output. The board
+      reads catalog data to show what each model costs and what it claims to support. Every entry in a
+      catalog is a claim by the provider, not a measurement of how the model performs. A listed feature
+      may work poorly, and a long context limit may not mean reliable recall. Missing fields are common,
+      and a blank should not be read as a no. Catalogs also change often as prices drop and models are
+      retired. Pair the listing with what engineers report from real use before choosing.
+    related: [llm-provider, inference-cost, context-window, model-card, ai-gateway]
+
+  - slug: transfer-learning
+    term: "Transfer learning"
+    aka: []
+    category: training
+    teaser: "Reusing what a model learned on one broad task as the starting point for a different, narrower one."
+    definition: >-
+      Transfer learning is reusing knowledge a model gained on one task to help it on another. A model
+      pretrained on broad text already knows grammar, facts and common patterns. Fine-tuning it on a
+      small, specific dataset is far cheaper than training from scratch. Every modern chat model relies on
+      this, since pretraining comes first and tuning comes after. Engineers meet it when adapting an open
+      model to their domain with methods like LoRA. Prompting with a few examples is a lighter cousin that
+      changes no weights at all. Transfer works best when the new task resembles what the model has
+      already seen. A narrow fine-tune can also erode skills the base model had. Check general behaviour
+      as well as the target task after any tuning.
+    related: [fine-tuning, pretraining, lora, foundation-model, few-shot-prompting]
+
+  - slug: multi-task-learning
+    term: "Multi-task learning"
+    aka: []
+    category: training
+    teaser: "Training one model on several tasks at once so that skills learned for each can help the others."
+    definition: >-
+      Multi-task learning is training a single model on several tasks at the same time. The tasks share
+      most of the model, so patterns learned for one can help another. T5 is a well-known example, since
+      it framed many tasks as text in and text out. Instruction tuning for chat models works in a similar
+      spirit, mixing many kinds of request. The result is one model that can handle a wide spread of jobs
+      from a prompt alone. For a team, that can mean serving one model instead of several narrow ones.
+      Tasks can also pull against each other, so one improves while another slips. Balancing the mix of
+      training data is the hard part. A general model may still lose to a small specialist on a single
+      narrow task.
+    related: [t5, transfer-learning, fine-tuning, post-training, training-data]
+
+  - slug: hyperparameters
+    term: "Hyperparameters"
+    aka: ["hyperparameter tuning"]
+    category: training
+    teaser: "Settings chosen by people before or during training, such as learning rate, rather than learned by the model."
+    definition: >-
+      Hyperparameters are the settings people choose for training, as opposed to the weights a model
+      learns. Examples include the learning rate, batch size, number of passes over the data and LoRA
+      rank. Hyperparameter tuning means trying different values and keeping what works best on held-out
+      data. Engineers meet them when fine-tuning through a provider or with open tools. Poor choices can
+      make a fine-tune forget general skills or fail to learn the new task. Each extra trial costs
+      compute, so tuning adds directly to the bill. Sampling settings such as temperature are sometimes
+      loosely called hyperparameters too. Those only change how text is generated, not what the model has
+      learned. Keep a record of the values used so a result can be reproduced later.
+    related: [fine-tuning, lora, parameters, temperature, llm-evaluation]
+
+  - slug: model-compression
+    term: "Model compression"
+    aka: []
+    category: training
+    teaser: "Making a model smaller or cheaper to run through methods like quantization, distillation and pruning."
+    definition: >-
+      Model compression is any method that makes a trained model smaller, faster or cheaper to run.
+      Quantization stores weights with fewer bits each. Distillation trains a smaller student model to
+      copy a larger teacher. Pruning removes weights or whole parts that contribute little. These methods
+      let models run on laptops, phones or cheaper servers. Many low-priced or local options are
+      compressed versions of a larger model. Compression usually costs some quality, and the loss is
+      uneven across tasks. A model can look fine on chat and still slip on maths, code or rare languages.
+      Test a compressed version on your own tasks rather than trusting the name it shares.
+    related: [quantization, distillation, small-language-model, local-llm, gguf]
+
+  - slug: interpretability
+    term: "Interpretability"
+    aka: ["mechanistic interpretability"]
+    category: evaluation
+    teaser: "Research into what actually happens inside a model when it produces an answer."
+    definition: >-
+      Interpretability is research into how a model computes its outputs, by studying its internal
+      workings. Mechanistic interpretability tries to map specific internal features and circuits to
+      behaviours. Researchers probe activations, trace which parts respond to which inputs, and test by
+      switching parts off. The work can help explain why a model makes a certain error or carries a
+      certain bias. Much of it is done on open-weights models, since it needs access to the internals.
+      Engineers choosing a hosted model mostly meet it through published research and model cards. A
+      common mistake is to treat a model explaining itself in text as interpretability. A written
+      explanation is just more generated output, and it may not reflect the real computation.
+      Chain-of-thought text can help with debugging, but it is not a view inside the model.
+    related: [chain-of-thought, open-weights, alignment, ai-safety, model-card]
+
+  - slug: ai-bias
+    term: "AI bias"
+    aka: ["LLM bias"]
+    category: evaluation
+    teaser: "Systematic skews in model outputs, learned from data or tuning, that favour some groups, views or answers over others."
+    definition: >-
+      AI bias is a systematic skew in what a model produces, as opposed to random error. It is usually
+      learned from training data that over-represents some groups, languages or viewpoints. Tuning steps
+      such as RLHF can add skews of their own, reflecting the preferences of the raters. It shows up as
+      stereotyped wording, uneven quality across languages, or different answers for different names.
+      Models used as judges can also favour answers that resemble their own style. Teams test for it by
+      sending matched prompts that differ in one detail and comparing the outputs. A model that does well
+      on a general benchmark can still be skewed on your task. Switching to a cheaper model can change the
+      skew too, so retest before you switch.
+    related: [training-data, rlhf, llm-evaluation, llm-as-a-judge, alignment]
+
+  - slug: prompt-ab-testing
+    term: "Prompt A/B testing"
+    aka: []
+    category: evaluation
+    teaser: "Comparing two versions of a prompt on the same inputs or on live traffic to see which one gives better results."
+    definition: >-
+      Prompt A/B testing compares two versions of a prompt to find out which one works better. The
+      versions may differ in wording, examples, instructions or the model they are sent to. Offline, both
+      versions run over the same saved inputs and the outputs are scored side by side. Online, live
+      traffic is split between them and outcomes such as user ratings are tracked. Scoring can use human
+      review, exact checks, or a model acting as judge. Model outputs vary from run to run, so a small
+      sample can show a difference that is only noise. Change one thing at a time, or you cannot tell
+      which change mattered. The same method answers a cost question: whether a cheaper model with a
+      better prompt can match a pricier one.
+    related: [prompt-engineering, llm-evaluation, golden-dataset, llm-as-a-judge, prompt-management]
+
+  - slug: prompt-template
+    term: "Prompt template"
+    aka: ["prompt templating"]
+    category: prompting
+    teaser: "A reusable prompt with placeholders that code fills in with the details of each request."
+    definition: >-
+      A prompt template is a reusable prompt with named placeholders that are filled in for each request.
+      The fixed part holds instructions, format rules and examples. The placeholders take the parts that
+      change, such as a user question or retrieved documents. Code or a templating library substitutes the
+      values before the prompt is sent to the model. Templates keep prompts consistent across calls and
+      make them easier to review and version. A stable opening section also suits prompt caching, which
+      reuses the processed start of a prompt. A common risk is inserting untrusted text straight into a
+      template. That text can carry instructions the model may follow, which is how prompt injection gets
+      in. Mark inserted content clearly and keep instructions separate from it.
+    related: [prompt, system-prompt, prompt-management, prompt-caching, prompt-injection]
+
+  - slug: prompt-management
+    term: "Prompt management"
+    aka: ["PromptOps", "prompt versioning"]
+    category: prompting
+    teaser: "Storing, versioning and reviewing prompts outside the code, and tracing each output back to the prompt that made it."
+    definition: >-
+      Prompt management is the practice of storing, versioning and reviewing prompts as assets in their
+      own right. PromptOps is the operational name for the same work. Prompts live outside application
+      code, in files or a registry, each with a version number. A change to a prompt goes through review,
+      much like a change to code. Each logged output records the prompt version and the model that
+      produced it. That link lets a team see when a quality drop started and roll back to an earlier
+      version. It also matters when switching models, since a prompt tuned for one model may behave
+      differently on another. A common misconception is that prompts are just text and need no process. A
+      one-word edit can change outputs as much as a code change can.
+    related: [prompt-template, prompt-ab-testing, llmops, observability, model-drift]
+
+  - slug: query-expansion
+    term: "Query expansion"
+    aka: []
+    category: retrieval
+    teaser: "Adding related terms or rephrasings to a search query so retrieval finds relevant passages it would otherwise miss."
+    definition: >-
+      Query expansion widens a search query with related terms, synonyms or rephrasings before retrieval
+      runs. It helps when a user words a question differently from the documents that answer it. Classic
+      methods add synonyms or terms taken from the top results of a first search. In LLM systems, a model
+      often rewrites the question into several variants, and each one is searched. Another approach has
+      the model draft a hypothetical answer and searches with that instead. The results are merged and
+      usually reranked before they reach the main model. Each rewrite is an extra model call, so it adds
+      cost and latency to every question. Expansion can also drift from what was asked and pull in
+      passages on the wrong topic. Many teams use a small, cheap model for the rewriting step, since it is
+      a narrow task.
+    related: [retrieval-augmented-generation, semantic-search, hybrid-search, reranking, query-routing]
+
+  - slug: llm-provider
+    term: "LLM provider"
+    aka: ["model provider"]
+    category: inference
+    teaser: "A company or platform that serves language models through an API and bills for their use."
+    definition: >-
+      An LLM provider is a company or platform that runs language models and serves them through an API.
+      Some providers build their own models and serve only those. Others host open-weights models that
+      were built elsewhere. The same open model can be offered by several providers at different prices,
+      speeds and rate limits. Providers can also differ in context length, quantization and supported
+      features such as tool calling. Aggregators sit in front of many providers and route each request to
+      one of them. So two calls to the same model name may not behave identically. When comparing prices,
+      check which provider and which version of the model a figure refers to.
+    related: [llm-api, open-weights, ai-gateway, quantization, inference-cost]
+
+  - slug: llm-api
+    term: "LLM API"
+    aka: ["inference API"]
+    category: inference
+    teaser: "The HTTP interface a program uses to send text to a hosted model and get its reply, billed by the token."
+    definition: >-
+      An LLM API is the HTTP interface a program uses to send input to a hosted model and receive its
+      output. A request carries messages, a model name and settings such as temperature and max tokens.
+      The reply carries the generated text plus a count of the input and output tokens used. Billing is
+      per token, and output tokens are usually priced higher than input tokens. Providers enforce rate
+      limits on requests and on tokens per minute. Many APIs also offer streaming, tool calling,
+      structured output and cheaper batch modes. Several providers copy a common request format, which
+      makes switching models easier. A shared format does not guarantee identical behaviour, since
+      features and limits can still differ.
+    related: [llm-provider, token, rate-limit, streaming, batch-api]
+
+  - slug: llmops
+    term: "LLMOps"
+    aka: ["large language model operations"]
+    category: inference
+    teaser: "The practices for running language model applications in production, from prompts and evaluation to monitoring and cost."
+    definition: >-
+      LLMOps, short for large language model operations, covers the work of running LLM applications in
+      production. It borrows from MLOps but shifts the focus, since most teams call hosted models rather
+      than train their own. Typical concerns are prompt versioning, evaluation, monitoring, cost tracking
+      and incident response. Teams log each request with its prompt, model, token counts and latency. They
+      run evaluation sets before changing a prompt or swapping a model. They also watch for drift when a
+      provider updates a model behind the same name. A common gap is monitoring uptime and speed but not
+      answer quality. A system can respond quickly and cheaply while quietly giving worse answers.
+    related: [observability, prompt-management, llm-evaluation, model-drift, model-serving]
+
+  - slug: model-serving
+    term: "Model serving"
+    aka: []
+    category: inference
+    teaser: "Running a trained model behind an endpoint so applications can send it requests and get answers back."
+    definition: >-
+      Model serving is running a trained model behind an endpoint so applications can send it requests.
+      The serving layer loads the weights onto hardware, usually GPUs, and handles incoming traffic. It
+      groups requests into batches to keep the hardware busy. For language models it also manages the KV
+      cache and streams tokens back as they are produced. Dedicated inference servers handle much of this
+      work for open-weights models. Teams using a hosted API leave serving to the provider. Teams hosting
+      their own model take on the hardware, scaling and uptime themselves. A frequent mistake is comparing
+      only hardware rental against API prices. Idle capacity, engineering time and on-call work belong in
+      that comparison too.
+    related: [inference, kv-cache, throughput, autoscaling, llm-provider]
+
+  - slug: load-balancing
+    term: "Load balancing"
+    aka: []
+    category: inference
+    teaser: "Spreading requests across servers, API keys, regions or providers so no single one becomes a bottleneck."
+    definition: >-
+      Load balancing spreads incoming requests across several backends so that no single one is
+      overloaded. For self-hosted models, the backends are servers or GPUs running copies of the model.
+      For hosted models, they can be API keys, regions or entirely different providers. Simple balancers
+      rotate through the backends in turn. Smarter ones send each request to the backend with the most
+      spare capacity or remaining rate limit. An AI gateway often handles this in front of several
+      providers. Balancing across providers can mix models that answer differently, even under the same
+      model name. It can also weaken prompt caching, since a cached prefix usually lives with one backend.
+      Splitting traffic across many keys just to dodge a rate limit may break the terms of service.
+    related: [ai-gateway, rate-limit, fault-tolerance, prompt-caching, autoscaling]
+
+  - slug: autoscaling
+    term: "Autoscaling"
+    aka: []
+    category: inference
+    teaser: "Adding or removing serving capacity automatically as traffic rises and falls."
+    definition: >-
+      Autoscaling adds or removes serving capacity automatically as demand changes. A controller watches
+      signals such as queue length, GPU use or request rate. When load rises it starts more model
+      replicas, and when load falls it shuts some down. This matters most for self-hosted models, where
+      idle GPUs cost money whether or not they serve anything. Hosted APIs scale on the provider side, so
+      their users mostly meet rate limits instead. Language models are slow to scale up, because large
+      weights take time to load onto new hardware. Scaling to zero saves money, but the first request
+      after a quiet spell waits for a cold start. Teams often keep a minimum number of replicas warm to
+      avoid that wait.
+    related: [model-serving, load-balancing, latency, inference-cost, throughput]
+
+  - slug: fault-tolerance
+    term: "Fault tolerance"
+    aka: ["model fallback"]
+    category: inference
+    teaser: "Keeping an LLM application working through provider outages, timeouts and rate limits."
+    definition: >-
+      Fault tolerance is the ability of an LLM application to keep working when a model provider fails.
+      Common failures are outages, timeouts, rate limit errors and malformed responses. Retries with
+      backoff handle brief errors by waiting a little longer before each new attempt. A model fallback
+      sends the request to a second model or provider when the first one keeps failing. Timeouts stop a
+      stuck call from holding up the user indefinitely. Actions with side effects should be idempotent, so
+      a retried call does not send an email twice. The fallback model may answer differently, so test it
+      on your task in advance. A fallback that quietly returns worse answers can hide a failure rather
+      than handle it.
+    related: [rate-limit, idempotency, ai-gateway, load-balancing, observability]
+
+  - slug: llm-cost-optimization
+    term: "LLM cost optimization"
+    aka: []
+    category: inference
+    teaser: "Cutting what an LLM application spends on model calls without losing the quality the task needs."
+    definition: >-
+      LLM cost optimization is reducing what an application spends on model calls while keeping the
+      quality it needs. One lever is choosing a cheaper model for the tasks it handles well. Routing sends
+      easy requests to small models and saves large ones for hard requests. Prompt caching cuts the cost
+      of a long, repeated opening such as a system prompt. Batch APIs offer lower prices for work that can
+      wait. Trimming context and capping output length reduce the tokens billed on every call. The
+      cheapest model per token is not always the cheapest per finished task. If it fails more often,
+      retries, longer outputs and human review can cost more than a pricier model. Measure cost per
+      successful result, not cost per call.
+    related: [inference-cost, prompt-caching, batch-api, query-routing, small-language-model]
+
+  - slug: llm-data-privacy
+    term: "LLM data privacy"
+    aka: []
+    category: safety
+    teaser: "What happens to the prompts and data you send to a model provider, and how to keep sensitive data out."
+    definition: >-
+      LLM data privacy concerns what happens to the data in prompts and outputs sent to a model provider.
+      Providers may log requests for a period, for abuse monitoring or debugging. Some may use customer
+      data to train future models, depending on the plan and settings. Many offer business terms that
+      exclude training use, and some offer zero data retention. Those terms can differ between the
+      consumer app and the API of the same company. Teams also keep personal data out of prompts by
+      masking or removing it before sending. Running a local or self-hosted model keeps the data on
+      hardware you control. A common misconception is that opting out of training means nothing is stored.
+      Read the retention terms separately, since they answer a different question.
+    related: [pii-detection, local-llm, llm-provider, model-governance, on-device-ai]
+
+  - slug: model-governance
+    term: "Model governance"
+    aka: []
+    category: safety
+    teaser: "The policies and records that control which models an organisation uses, for what, and with what oversight."
+    definition: >-
+      Model governance is the set of policies and records that control which models an organisation uses
+      and how. It covers approving models and providers before use, often with a review of how they handle
+      data. It keeps an inventory of where each model runs and which version is in use. It sets rules for
+      testing, human oversight and incident reporting. Logs and audit trails show which model and prompt
+      produced a given output. Regulators and customers may ask for records of this kind. Governance also
+      applies when switching to a cheaper model, since the new model needs the same approval and testing.
+      A common gap is governing the models a team trains while ignoring the APIs it calls.
+    related: [llm-data-privacy, decision-audit-trail, model-card, llmops, ai-safety]
