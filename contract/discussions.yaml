@@ -1,0 +1,99 @@
+# The Discussions page: its topics, and the limits on what a reader may post.
+#
+# 2026-10-20 (Parvathi). Readers post their own experience with AI models. A
+# post is stored `pending` and appears only once a person approves it in
+# Admin -> Discussions (judge/discussions.py). Discussions are shown beside the
+# reports and are NEVER added to the counts: nothing here is evidence the board
+# counts, and no extractor reads it.
+#
+# WHY CONFIG AND NOT JSX (rule 5): the topic names and blurbs are editorial
+# copy that changes without a deploy, and they are the page's keywords - one
+# reviewable file, read by the API and served to the page.
+#
+# KEYWORDS ARE MEASURED ONLY: Google Keyword Planner bands in
+# seo/excel files/model-board-seo-category-selection.xlsx, sheet "Planner
+# volumes (measured)". Each topic names the ones it carries.
+#
+# ABSENT IS NOT PERMISSIVE (rule 6): a missing topic list or limit raises; the
+# API never guesses what a reader may post.
+
+version: 1
+updated: 2026-10-20
+
+# A post must name one of these. `slug` is stored with the post and in the
+# page anchor (#topic-<slug>), so renaming a slug orphans its posts - change
+# `name` and `blurb` freely, never `slug`.
+topics:
+  - slug: coding
+    name: Coding and coding agents
+    # KEYWORDS: best llm for coding, best coding llm, coding agent(s), ai coding
+    # agent, code review ai, best coding agent
+    blurb: >-
+      Which AI coding agent held up on your codebase, and which one did not? The
+      best LLM for coding depends on the job: refactors, code review, tests,
+      long agent loops.
+  - slug: agents
+    name: AI agents and tool use
+    # KEYWORDS: ai agents, llm agent, multi agent systems, function calling
+    blurb: >-
+      Building AI agents, multi agent systems or an LLM agent that calls tools?
+      Share where function calling worked, where loops stalled and what fixed it.
+  - slug: rag
+    name: RAG and long context
+    # KEYWORDS: rag, retrieval augmented generation, document parsing, claude
+    # context window, data extraction
+    blurb: >-
+      Retrieval augmented generation, document parsing and data extraction in
+      production: which models kept to the sources, and how far the context
+      window really stretched.
+  - slug: compare
+    name: Model comparisons
+    # KEYWORDS: llm comparison, compare ai models, ai model comparison, claude vs
+    # gemini, opus vs sonnet, openai vs anthropic, claude vs deepseek
+    blurb: >-
+      Claude vs Gemini, Opus vs Sonnet, OpenAI vs Anthropic: an LLM comparison
+      from your own runs, on the same task, says more than any ranking.
+  - slug: local
+    name: Local and open-source LLMs
+    # KEYWORDS: local llm, best local llm, open source llm, best open source llm,
+    # open weight models, self hosted llm, is deepseek open source
+    blurb: >-
+      Running a local LLM or a self hosted LLM? Tell others which open source
+      LLM and open weight models were enough, on what hardware.
+  - slug: pricing
+    name: API pricing and cost
+    # KEYWORDS: openai api pricing, claude api pricing, gemini api pricing,
+    # deepseek pricing, cheapest llm api, free llm api
+    blurb: >-
+      What a model really cost you: OpenAI API pricing, Claude API pricing,
+      Gemini API pricing, and whether the cheapest LLM API did the job.
+  - slug: prompting
+    name: Prompt engineering
+    # KEYWORDS: prompt engineering, structured output, fine tuning llm
+    blurb: >-
+      Prompt engineering that made a difference: structured output, system
+      prompts, and when fine tuning an LLM beat a better prompt.
+  - slug: drift
+    name: Model changes and drift
+    # KEYWORDS: model drift
+    blurb: >-
+      Did a model get worse, or just different? Model drift is only clear when
+      several people report the same change - say what changed and when.
+
+# What a post may hold. Checked in code before anything is stored; a post that
+# breaks one is refused with the reason, and nothing is saved.
+limits:
+  title_min: 8
+  title_max: 120
+  body_min: 30
+  body_max: 4000
+  # A reply to a post (2026-10-20) may be shorter than a post.
+  reply_min: 10
+  # The name is REQUIRED (2026-10-20, Parvathi): every post is signed.
+  name_min: 2
+  name_max: 40
+  # Links in the body. More than this reads as advertising.
+  links_max: 2
+  # Posts one address may submit in an hour (judge/gate.py:
+  # rate_limit_discussion). DISCUSSION_RATE_PER_HOUR overrides it.
+  posts_per_hour: 5

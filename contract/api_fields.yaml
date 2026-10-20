@@ -299,6 +299,11 @@ fields:
     routes:
     - /admin/usage
     state: no_consumer
+  id:
+    reviewed: false
+    routes:
+    - /discussions/delete
+    state: consumed
   items:
     reviewed: false
     routes:
@@ -689,6 +694,7 @@ fields:
   state:
     reviewed: false
     routes:
+    - /discussions/delete
     - /documents/{document_id:path}/source
     state: consumed
   status:
