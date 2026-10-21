@@ -41,11 +41,28 @@ paraphrase:
   reasoning_effort: none
   # Bump when the prompt or the checks change: a paraphrase written under an
   # older version is re-drafted, never silently kept as current.
+  #
+  # KEPT AT p1 THROUGH ONE CHANGE (2026-10-21): the longer limit and the
+  # main-points line for a report with many excerpts only widen what may be
+  # written. Every paraphrase stored under p1 passes the checks as they stand,
+  # so re-drafting 4,058 of them would buy nothing. A change that narrows the
+  # checks or changes what a paraphrase says still bumps it.
   prompt_version: "p1"
-  # Reports per call. One call is one batch; a refused item is re-asked once.
+  # Reports per call. One call is one batch.
   per_call: 20
+  # Calls per batch: the first, and re-asks of only what was refused, each
+  # given the refused text and the reason - for a copy, the exact phrase. Was
+  # one re-ask: on 2026-10-21 that left 664 of 3,884 reports refused (562 for
+  # copying), listed with their source and no text.
+  attempts: 4
   # The longest paraphrase stored, in characters.
   max_chars: 320
+  # ...and for a report with at least `many_excerpts` excerpts, which cannot say
+  # its main points in 320 (2026-10-21: the last 44 of 4,102 unparaphrased
+  # reports had a median of 8.5 excerpts, up to 29). Those are also told to
+  # cover the main points and leave a figure out rather than change it.
+  many_excerpts: 6
+  max_chars_many_excerpts: 480
   # THE PARAPHRASE CHECK: the longest run of consecutive words it may share
   # with the excerpts it was written from. Over this, it is a quote in
   # disguise - which for Reddit and X is exactly what the embed-only rule

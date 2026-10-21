@@ -87,10 +87,10 @@ function CountsLine({ counts }) {
   )
 }
 
-function Feed({ id, section, slug, polarity, setParam }) {
+function Feed({ id, section, slug, category, polarity, setParam }) {
   const [state, setState] = useState({ head: null, items: [], page: 1, err: null, loading: true })
   const [fresh, setFresh] = useState(null)
-  const filter = useMemo(() => ({ section, slug, polarity }), [section, slug, polarity])
+  const filter = useMemo(() => ({ section, slug, category, polarity }), [section, slug, category, polarity])
   const known = useRef(new Set())
 
   const load = useCallback(() => {
@@ -252,6 +252,9 @@ export default function Evidence() {
   const [sp, setSp] = useSearchParams()
   const section = sp.get('section') || null
   const slug = sp.get('slug') || null
+  // ONE OF COMPARE'S CATEGORY SCORES (coding, agents...), from a score row. Its
+  // own filter: the API refuses it with a section, so a section wins nothing here.
+  const category = sp.get('category') || null
   const polarity = POLARITIES.includes(sp.get('polarity')) ? sp.get('polarity') : null
   const tab = sp.get('tab') === 'summary' ? 'summary' : 'feed'
 
@@ -262,11 +265,11 @@ export default function Evidence() {
     if (!id) return undefined
     let alive = true
     setBase(null)
-    evidenceFeed(id, { section, slug })
+    evidenceFeed(id, { section, slug, category })
       .then((d) => alive && setBase(d))
       .catch((e) => alive && setBase({ notFound: e.status === 404, err: e.message, model: { label: id, canonical: id } }))
     return () => { alive = false }
-  }, [id, section, slug])
+  }, [id, section, slug, category])
   const model = base && !base.err ? base.model : null
   const filterName = base && !base.err ? base.filter.name : null
 
@@ -303,12 +306,18 @@ export default function Evidence() {
           {base && base.err ? <p className="ev-dim">{base.notFound ? 'There is no model at this address.' : base.err}</p> : (
             <>
               {base ? <CountsLine counts={base.counts} /> : <div className="skel" style={{ height: 22, maxWidth: 520 }} />}
-              {(section || polarity) && (
+              {(section || category || polarity) && (
                 <div className="ev-filters" aria-label="Active filters">
                   {section && (
                     <button type="button" className="chip chip-on" onClick={() => setParam({ section: null, slug: null })}
                             aria-label={`Remove the filter ${SECTION_LABEL[section] || section}: ${filterName || slug || ''}`}>
                       {SECTION_LABEL[section] || section}{slug ? `: ${filterName || slug}` : ''} <span className="x">×</span>
+                    </button>
+                  )}
+                  {category && (
+                    <button type="button" className="chip chip-on" onClick={() => setParam({ category: null })}
+                            aria-label={`Remove the filter category: ${filterName || category}`}>
+                      Category: {filterName || category} <span className="x">×</span>
                     </button>
                   )}
                   {polarity && (
@@ -324,7 +333,7 @@ export default function Evidence() {
                 <button type="button" className={tab === 'summary' ? 'on' : ''} onClick={() => setParam({ tab: 'summary' })}>Summary</button>
               </nav>
               {tab === 'feed'
-                ? <Feed id={id} section={section} slug={slug} polarity={polarity} setParam={setParam} />
+                ? <Feed id={id} section={section} slug={slug} category={category} polarity={polarity} setParam={setParam} />
                 : <Summary id={id} />}
               <p className="ev-note">
                 Each report is paraphrased by a language model from the excerpts we verified, and checked in code for

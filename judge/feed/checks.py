@@ -58,8 +58,16 @@ def numbers(text: str) -> set[str]:
 
 def longest_shared_run(text: str, excerpts: list[str]) -> int:
     """The longest run of consecutive words `text` shares with any excerpt."""
+    return len(longest_shared_phrase(text, excerpts).split())
+
+
+def longest_shared_phrase(text: str, excerpts: list[str]) -> str:
+    """That run itself, as words - what a retry is told not to reuse. Saying
+    only "copies 7 words" left the model to guess which seven, and it often
+    wrote them again (2026-10-21: 1,433 of 3,884 reports needed a retry and
+    562 were still refused for copying after it)."""
     a = words(text)
-    best = 0
+    best, end = 0, 0
     for excerpt in excerpts:
         b = words(excerpt)
         if not a or not b:
@@ -67,15 +75,15 @@ def longest_shared_run(text: str, excerpts: list[str]) -> int:
         # Longest common substring over word lists, O(len(a) * len(b)). A
         # paraphrase is <= ~60 words and a report's excerpts a few hundred.
         prev = [0] * (len(b) + 1)
-        for x in a:
+        for i, x in enumerate(a, 1):
             cur = [0] * (len(b) + 1)
             for j, y in enumerate(b, 1):
                 if x == y:
                     cur[j] = prev[j - 1] + 1
                     if cur[j] > best:
-                        best = cur[j]
+                        best, end = cur[j], i
             prev = cur
-    return best
+    return " ".join(a[end - best:end])
 
 
 def identity_problem(text: str) -> str | None:
@@ -97,24 +105,34 @@ def unsourced_numbers(text: str, sources: list[str]) -> list[str]:
 
 
 def paraphrase_problem(
-    text: str, excerpts: list[str], model_label: str, *, max_chars: int, max_copied_words: int
+    text: str, excerpts: list[str], model_label: str, *, max_chars: int, max_copied_words: int,
+    topics: list[str] = (),
 ) -> str | None:
     """Why a paraphrase is refused, or None. The model's own name is allowed
-    to carry its version number, and nothing else may add one."""
+    to carry its version number, and nothing else may add one.
+
+    `topics` are the names the report's entries are filed under ("3D
+    modeling"), which the prompt shows and the page shows as tags. A number in
+    one may be repeated (2026-10-21: the last two unparaphrased reports were
+    refused for the "3" of their own topic, "3D modeling", while their excerpts
+    read "Fable 5.1 one shotted this"). Copying is still checked against the
+    excerpts alone - a topic name is ours, not the author's words."""
     text = (text or "").strip()
     if not text:
         return "empty"
     if len(text) > max_chars:
-        return f"longer than {max_chars} characters"
+        return f"longer than {max_chars} characters (it was {len(text)})"
     problem = identity_problem(text)
     if problem:
         return problem
-    extra = unsourced_numbers(text, [*excerpts, model_label])
+    extra = unsourced_numbers(text, [*excerpts, *topics, model_label])
     if extra:
         return f"adds a number not in the excerpts ({', '.join(extra)})"
-    run = longest_shared_run(text, excerpts)
+    phrase = longest_shared_phrase(text, excerpts)
+    run = len(phrase.split())
     if run > max_copied_words:
-        return f"copies {run} consecutive words from the source (limit {max_copied_words})"
+        return (f"copies {run} consecutive words from the source (limit {max_copied_words}): "
+                f"“{phrase}”")
     return None
 
 

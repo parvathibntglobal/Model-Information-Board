@@ -116,26 +116,34 @@ function FeedLink({ to, title, className = 'ev-open', style, children }) {
 }
 
 // ── pictures ────────────────────────────────────────────────────────────────
-function VChart({ s }) {
+// `to(polarity)`, when given, makes each count open that side's reports in the
+// evidence feed; the picture then holds links, so it is a group, not an img.
+function VChart({ s, to }) {
   const vals = [['pos', 'positive', s.positive], ['neg', 'negative', s.negative], ['neu', 'neutral', s.neutral]]
+  const num = (word, v) => (to && v > 0
+    ? <FeedLink to={to(word)} title={`Open the ${v} ${word} ${v === 1 ? 'report' : 'reports'} behind this count`}>{v}</FeedLink>
+    : v)
   const nz = vals.filter((v) => v[2] > 0)
   if (nz.length === 1) {
     const [c, word, v] = nz[0]
     const col = c === 'pos' ? 'var(--pass)' : c === 'neg' ? 'var(--fail)' : 'var(--neutral)'
     return (
-      <div className="rp-oneline" role="img" aria-label={`All ${v} reports ${word}`}>
+      <div className="rp-oneline" role={to ? 'group' : 'img'} aria-label={`All ${v} reports ${word}`}>
         <div className="rp-line" style={{ background: col }} />
-        <div className="rp-cap" style={{ color: c === 'neu' ? 'var(--rp-text-1)' : col }}>All {plural(v, 'report')} {word}</div>
+        <div className="rp-cap" style={{ color: c === 'neu' ? 'var(--rp-text-1)' : col }}>
+          {to ? <FeedLink to={to(word)} title={`Open the ${plural(v, 'report')} behind this count`}>All {plural(v, 'report')} {word}</FeedLink>
+            : <>All {plural(v, 'report')} {word}</>}
+        </div>
       </div>
     )
   }
   const max = Math.max(1, ...vals.map((v) => v[2]))
   return (
     <>
-      <div className="rp-vchart" role="img" aria-label={`${s.positive} positive, ${s.negative} negative, ${s.neutral} neutral`}>
-        {vals.map(([c, , v]) => (
+      <div className="rp-vchart" role={to ? 'group' : 'img'} aria-label={`${s.positive} positive, ${s.negative} negative, ${s.neutral} neutral`}>
+        {vals.map(([c, word, v]) => (
           <div key={c} className={`rp-vcol rp-v-${v ? c : 'zero'}`}>
-            <span className="rp-val">{v}</span>
+            <span className="rp-val">{num(word, v)}</span>
             <span className="rp-vb" style={{ height: v ? Math.max(6, (72 * v) / max) : 2 }} />
           </div>
         ))}
@@ -297,6 +305,7 @@ function ModelView({ v, id, min, multi, open, back }) {
           <h2>{shortName(r)}</h2>
           {r.canonical && <div className="rp-mid">{r.canonical}</div>}
         </div>
+        <Link to={evidencePath(modelId(r))} className="ev-open">Every report on {shortName(r)} →</Link>
       </div>
       <div className="rp-chips">
         {KINDS.map((k) => { const n = r.axes[k.id].length; return <span key={k.id} className="rp-chip">{n} {n === 1 ? k.one : k.label.toLowerCase()}</span> })}
@@ -317,9 +326,12 @@ function ModelView({ v, id, min, multi, open, back }) {
                        onKeyDown={(e) => { if (e.key === 'Enter') open(k.tab, axis.slug) }}>
                     <div className="rp-t-name">{axis.name}</div>
                     <div className={`rp-phrase rp-ph-${ph.c}`}>{ph.t}</div>
-                    <VChart s={m.split} />
+                    <VChart s={m.split} to={(p) => evidencePath(modelId(r), { section: SECTION_OF_KIND[k.id], slug: axis.slug, polarity: p })} />
                     <div className="rp-nums">
-                      <span><b>{m.voices}</b> voices</span>
+                      <FeedLink to={evidencePath(modelId(r), { section: SECTION_OF_KIND[k.id], slug: axis.slug })}
+                                title={`Read the reports these ${m.voices} voices wrote on ${axis.name}`}>
+                        <b>{m.voices}</b> voices
+                      </FeedLink>
                       <FeedLink to={evidencePath(modelId(r), { section: SECTION_OF_KIND[k.id], slug: axis.slug })}
                                 title={`Read the ${m.reports} reports on ${axis.name} for ${shortName(r)}`}>
                         <b>{m.reports}</b> reports

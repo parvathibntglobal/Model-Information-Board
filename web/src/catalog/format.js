@@ -19,10 +19,13 @@ export const SECTION_OF_KIND = { job: 'best_for', capability: 'capability', metr
  * capability or metric, a polarity for one side of a split. The list is then
  * the reports that number counted - which is the whole point of the link.
  */
-export const evidencePath = (id, { section, slug, polarity } = {}) => {
+// `category` is one of Compare's category scores (contract/category_scores.yaml):
+// its own filter, never combined with a section - the API refuses both at once.
+export const evidencePath = (id, { section, slug, category, polarity } = {}) => {
   const q = new URLSearchParams()
-  if (section) q.set('section', section)
-  if (section && slug) q.set('slug', slug)
+  if (category) q.set('category', category)
+  else if (section) q.set('section', section)
+  if (!category && section && slug) q.set('slug', slug)
   if (polarity) q.set('polarity', polarity)
   const qs = q.toString()
   return `/evidence/${id.split('/').map(encodeURIComponent).join('/')}${qs ? `?${qs}` : ''}`

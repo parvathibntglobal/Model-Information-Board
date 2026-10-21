@@ -395,8 +395,9 @@ export const reviewQuizQuestion = (id, decision, note) =>
 // The two reads are public; the drafts and their review need a token.
 // NOT CACHED: this is the page that says "live", and a refetch on focus that
 // came back from a cache would say it falsely.
-export const evidenceFeed = (model, { section, slug, polarity, page } = {}) => {
+export const evidenceFeed = (model, { section, slug, category, polarity, page } = {}) => {
   const q = new URLSearchParams({ model })
+  if (category) q.set('category', category)
   if (section) q.set('section', section)
   if (slug) q.set('slug', slug)
   if (polarity) q.set('polarity', polarity)

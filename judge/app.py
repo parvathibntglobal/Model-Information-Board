@@ -2827,7 +2827,8 @@ def quiz_bank_review(req: QuizReviewRequest) -> dict:
 
 @app.get("/feed")
 def evidence_feed(model: str, section: str | None = None, slug: str | None = None,
-                  polarity: str | None = None, page: int = 1) -> dict:
+                  category: str | None = None, polarity: str | None = None,
+                  page: int = 1) -> dict:
     """One page of a model's reports, newest posted first, narrowed the way the
     count the reader came from was. A public read (judge/gate.py): paraphrases,
     tags, dates and sources only - never a quote."""
@@ -2838,7 +2839,7 @@ def evidence_feed(model: str, section: str | None = None, slug: str | None = Non
     try:
         with _conn() as conn:
             return items.feed(conn, model, section=section or None, slug=slug or None,
-                              polarity=polarity or None, page=page,
+                              category=category or None, polarity=polarity or None, page=page,
                               per_page=cfg["page"]["per_page"],
                               prompt_version=cfg["paraphrase"]["prompt_version"])
     except items.UnknownModel:

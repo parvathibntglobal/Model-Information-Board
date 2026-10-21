@@ -472,7 +472,10 @@ def evidence_feed_settings() -> dict:
             "reasoning_effort": effort(p, "paraphrase"),
             "prompt_version": text(p, "paraphrase", "prompt_version"),
             "per_call": count(p, "paraphrase", "per_call", 1, 50),
+            "attempts": count(p, "paraphrase", "attempts", 1, 6),
             "max_chars": count(p, "paraphrase", "max_chars", 80, 1000),
+            "many_excerpts": count(p, "paraphrase", "many_excerpts", 2, 100),
+            "max_chars_many_excerpts": count(p, "paraphrase", "max_chars_many_excerpts", 80, 1000),
             "max_copied_words": count(p, "paraphrase", "max_copied_words", 2, 20),
         },
         "summary": {

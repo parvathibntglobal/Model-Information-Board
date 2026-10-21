@@ -5,6 +5,7 @@ import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { answersHead, answersForHead } from '../seo/pages'
 import { answersPath, day, engineers, issuesPath, modelHref, reports, shortName, wallPath } from './live'
+import { evidencePath } from '../catalog/format'
 
 /**
  * ANSWERS (2026-10-15): "Does <model> support <feature>?" - the questions
@@ -118,7 +119,18 @@ export function AnswersFor({ rest }) {
                 ) : (
                   <>
                     <p className="qa-rep">
-                      <b>Reported:</b> {engineers(a.working)} {reports(a.working)} it working, {a.problems} {reports(a.problems)} problems
+                      {/* LINKED ONLY WHEN ONE TOPIC IS BEHIND THE COUNT: several
+                          topics have no single feed filter, so no link (never a
+                          guess). Engineers here; the feed lists their reports on
+                          that side. Neutral mentions are a different population. */}
+                      <b>Reported:</b> {a.topics.length === 1 && a.working > 0
+                        ? <Link to={evidencePath(d.model.id, { section: 'capability', slug: a.topics[0].slug, polarity: 'positive' })}
+                                className="ev-open" title={`Open the reports these ${engineers(a.working)} wrote`}>{engineers(a.working)}</Link>
+                        : engineers(a.working)} {reports(a.working)} it working,{' '}
+                      {a.topics.length === 1 && a.problems > 0
+                        ? <Link to={evidencePath(d.model.id, { section: 'capability', slug: a.topics[0].slug, polarity: 'negative' })}
+                                className="ev-open" title={`Open the reports these ${a.problems} engineers wrote`}>{a.problems}</Link>
+                        : a.problems} {reports(a.problems)} problems
                       {a.neutral ? `, ${a.neutral} mention it` : ''}.
                     </p>
                     {[a.sample_working, a.sample_problems].filter(Boolean).map((q, k) => (

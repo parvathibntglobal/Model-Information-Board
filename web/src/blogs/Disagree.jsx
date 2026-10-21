@@ -5,6 +5,7 @@ import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { liveDisagree as disagreeHead, liveWall as wallHead } from '../seo/pages'
 import { SECTION_OF, day, engineers, glossaryPath, modelHref, shortName, topicHref, wallPath, problems as problemsOf, reports } from './live'
+import { evidencePath } from '../catalog/format'
 
 /**
  * WHERE ENGINEERS DISAGREE, AND ONE CLAIM WALL (2026-10-15).
@@ -151,13 +152,24 @@ function QuoteCard({ q }) {
   )
 }
 
-function Side({ title, tone, quotes, count, empty }) {
+// THE REPORTS BEHIND A SIDE (2026-10-21): the evidence feed for this model on
+// this job or capability, one side. These counts are ENGINEERS; the feed lists
+// the reports those engineers wrote on that side - the same people, counted as
+// reports there. Neutral is not linked: here it is any neutral mention, in the
+// feed a report that took no side, and those are different populations.
+function SideCount({ to, n }) {
+  return n > 0 && to
+    ? <Link to={to} className="ev-open" title={`Open the reports these ${engineers(n)} wrote`}>{engineers(n)}</Link>
+    : <>{engineers(n)}</>
+}
+
+function Side({ title, tone, quotes, count, empty, to }) {
   // A COUNT WITH NO QUOTE IS NOT "NOBODY". Totals count every source; quotes
   // come only from sources shown publicly, so a side can have reports and no
   // quote - and must say that, not "nobody" (rule 4).
   return (
     <section className={`lv-side lv-side-${tone}`}>
-      <h2>{title} <span>{engineers(count)}</span></h2>
+      <h2>{title} <span><SideCount to={to} n={count} /></span></h2>
       {quotes.length === 0
         ? <p className="lv-none">{count > 0
           ? `${engineers(count)} counted here, from posts that are not quoted on public pages.`
@@ -188,6 +200,7 @@ export function Wall({ rest }) {
   if (state.notFound) return <NotFound what="page" back={{ to: '/blogs/disagree', label: 'Where engineers disagree' }} />
   const w = state.w
   const name = w ? shortName(w.model.name) : ''
+  const feed = (polarity) => (w ? evidencePath(w.model.id, { section: w.section, slug: w.slug, polarity }) : null)
   return (
     <div className="shell lv-page">
       <Crumb><Link to="/blogs/disagree">Where engineers disagree</Link><span>/</span><span>{name || '…'}</span></Crumb>
@@ -199,8 +212,8 @@ export function Wall({ rest }) {
             <span className="lv-kicker">{w.section === 'best_for' ? 'Job' : 'Capability'} · claim and counter-claim</span>
             <h1>{name} on {w.topic}</h1>
             <p className="lv-sub">
-              <b className="lv-pos">{engineers(w.working)}</b> {reports(w.working)} it working ·{' '}
-              <b className="lv-neg">{engineers(w.problems)}</b> {reports(w.problems)} problems
+              <b className="lv-pos"><SideCount to={feed('positive')} n={w.working} /></b> {reports(w.working)} it working ·{' '}
+              <b className="lv-neg"><SideCount to={feed('negative')} n={w.problems} /></b> {reports(w.problems)} problems
               {w.neutral > 0 && <> · {engineers(w.neutral)} neutral</>}
             </p>
             {w.about && <p className="lv-about">{w.about}</p>}
@@ -212,9 +225,9 @@ export function Wall({ rest }) {
           </header>
           <div className="lv-wall">
             <Side title="Reports of it working" tone="pos" quotes={w.quotes.positive} count={w.working}
-                  empty="Nobody has reported it working on this." />
+                  empty="Nobody has reported it working on this." to={feed('positive')} />
             <Side title="Reports of problems" tone="neg" quotes={w.quotes.negative} count={w.problems}
-                  empty="Nobody has reported problems with this." />
+                  empty="Nobody has reported problems with this." to={feed('negative')} />
           </div>
           {w.quotes.neutral.length > 0 && (
             <section className="lv-side lv-side-neu">

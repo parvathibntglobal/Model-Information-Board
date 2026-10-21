@@ -40,6 +40,9 @@ P_SETTINGS = {
     "per_call": 20,
     "max_chars": 320,
     "max_copied_words": 6,
+    "attempts": 2,
+    "many_excerpts": 6,
+    "max_chars_many_excerpts": 480,
 }
 S_SETTINGS = {
     "model": "deepseek/deepseek-v4-flash",
@@ -607,3 +610,75 @@ def test_a_measured_figure_is_flagged_and_a_version_is_not():
         "60 tokens per second",
         "82.02%",
     ]
+
+
+def test_a_re_ask_carries_the_refused_text_and_the_copied_phrase(conn):
+    """Told only "copies 7 words", the model guessed which seven and often
+    wrote them again. The re-ask names the phrase and shows what was refused."""
+    units = [u for u in paraphrase.pending(conn, "p1")[0] if u["document_id"] == "d2"]
+    copy = "Tool calls kept coming back with malformed JSON arguments."
+    copied = {"paraphrases": [{"id": "R1", "text": copy}]}
+    fixed = {"paraphrases": [{"id": "R1", "text": "Describes broken JSON arguments on 4.1."}]}
+    model = FakeModel(copied, copied, fixed)
+    report = paraphrase.run(conn, units, {**P_SETTINGS, "attempts": 3}, call=model)
+    assert report["stored"] == 1 and report["calls"] == 3 and report["asked_again"] == 1
+    second = model.asked[1]["user"]
+    assert "Tool calls kept coming back with malformed JSON arguments." in second
+    assert "“tool calls kept coming back with malformed json arguments”" in second
+    assert "different words" in second
+
+
+def test_the_copy_refusal_names_the_phrase():
+    problem = checks.paraphrase_problem(
+        "The author says tool calls kept coming back with malformed JSON arguments.",
+        [QUOTES["d2"]], "Acme A 4.1", max_chars=320, max_copied_words=6)
+    assert problem.endswith("“tool calls kept coming back with malformed json arguments”")
+
+
+def test_a_compare_category_and_the_feed_agree(conn):
+    """Compare's category score and the feed's category filter count the same
+    reports with the same polarity: same filing (`filer`), same metric-is-
+    neutral rule (`counted_polarity`). An entry filed nowhere (`tool_use`, d3's
+    second row) counts in no category on either side."""
+    from judge.category_scores import scores_for
+
+    scores = {c["key"]: c for c in scores_for(conn, ["mv_a", "acme/text-a"])}
+    for key in ("agents", "reasoning"):
+        out = _feed(conn, category=key)
+        c = scores[key]
+        assert out["counts"]["reports"] == c["reports"], key
+        split = out["counts"]["reports_by_polarity"]
+        assert (split["positive"], split["negative"], split["both"], split["neutral"]) == (
+            c["positive"], c["negative"], c["both"], c["neutral"]), key
+        assert out["filter"]["name"] == c["name"]
+
+
+def test_a_category_is_its_own_filter(conn):
+    with pytest.raises(ValueError):
+        _feed(conn, category="agents", section="capability")
+    with pytest.raises(ValueError):
+        _feed(conn, category="no-such-category")
+
+
+def test_the_last_attempt_asks_for_the_gist_under_the_same_checks(conn):
+    """After the re-asks, the last try asks for one short sentence with no
+    number and no name - and it is checked exactly like the others."""
+    units = [u for u in paraphrase.pending(conn, "p1")[0] if u["document_id"] == "d2"]
+    bad = {"paraphrases": [{"id": "R1", "text": "Broken JSON in 40% of calls."}]}
+    gist = {"paraphrases": [{"id": "R1", "text": "Reports broken tool arguments, a complaint."}]}
+    model = FakeModel(bad, bad, gist)
+    report = paraphrase.run(conn, units, {**P_SETTINGS, "attempts": 3}, call=model)
+    assert report["stored"] == 1
+    assert "Last try for R1" in model.asked[2]["user"]
+    assert "Last try" not in model.asked[1]["user"]
+
+
+def test_a_number_in_the_reports_own_topic_may_be_repeated():
+    """The prompt shows the topic each excerpt is filed under; "3D modeling"
+    is not an invented figure. Copying is still judged on the excerpts."""
+    excerpts = ["Fable 5.1 one shotted this"]
+    text = "Reports that Fable 5.1 finished a 3D modeling task in one attempt."
+    assert checks.paraphrase_problem(text, excerpts, "Claude Fable 5.1", max_chars=320,
+                                     max_copied_words=6) is not None
+    assert checks.paraphrase_problem(text, excerpts, "Claude Fable 5.1", max_chars=320,
+                                     max_copied_words=6, topics=["3D modeling"]) is None

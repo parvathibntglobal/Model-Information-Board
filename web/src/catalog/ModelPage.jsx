@@ -123,10 +123,11 @@ function Voices({ m }) {
           {top.map(({ a, row }) => {
             const s = row.split || {}
             const at = { section: SECTION_OF_KIND[a.kind], slug: a.slug }
-            const side = (k, cls) => (
+            // A zero opens nothing: an empty list says less than the 0 does.
+            const side = (k, cls) => (s[k] ? (
               <Link to={evidencePath(m.id, { ...at, polarity: k })} className={`${cls} ev-open`}
-                    title={`Read the ${s[k] || 0} ${k} reports on ${a.name}`}>{s[k] || 0}</Link>
-            )
+                    title={`Read the ${s[k]} ${k} reports on ${a.name}`}>{s[k]}</Link>
+            ) : <span className={cls}>0</span>)
             return (
               <li key={`${a.kind}:${a.slug}`}>
                 <span className="mp2-kind">{KIND_LABEL[a.kind] || a.kind}</span>
@@ -139,7 +140,10 @@ function Voices({ m }) {
                     {side('positive', 'p')}{side('negative', 'n')}{side('neutral', 'z')}
                   </span>
                 )}
-                <span className="mp2-v">{row.voices} {row.voices === 1 ? 'voice' : 'voices'}</span>
+                <Link to={evidencePath(m.id, at)} className="mp2-v ev-open"
+                      title={`Read the reports these ${row.voices} voices wrote on ${a.name}`}>
+                  {row.voices} {row.voices === 1 ? 'voice' : 'voices'}
+                </Link>
               </li>
             )
           })}

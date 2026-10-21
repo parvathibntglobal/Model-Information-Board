@@ -73,7 +73,7 @@ def model_entries(conn, model: dict) -> list[dict]:
     rows = conn.execute(
         "SELECT be.id, be.section, COALESCE(be.ruling_target, be.slug), be.name, "
         "       be.unit, be.value_verbatim, be.quote, be.polarity, be.document_id, "
-        "       d.source, d.url, d.author_id, d.created_at "
+        "       d.source, d.url, d.author_id, d.created_at, be.parent_proposed "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "WHERE (be.model_version_id = %s OR be.model_version_id = %s) "
         "  AND be.ruling IS DISTINCT FROM 'declined'",
@@ -94,6 +94,7 @@ def model_entries(conn, model: dict) -> list[dict]:
             "url": r[10],
             "author_id": r[11],
             "posted_at": r[12],
+            "parent_proposed": r[13],
         }
         for r in rows
     ]
@@ -144,6 +145,26 @@ def _narrow(entries: list[dict], section: str | None, slug: str | None) -> list[
             continue
         out.append(e)
     return out
+
+
+def _in_category(entries: list[dict], category: str) -> tuple[list[dict], str]:
+    """Entries filed under one Compare category, with the polarity that
+    category counts them with, and its name. The SAME functions the score
+    uses (judge/category_scores.py `filer`, `counted_polarity`)."""
+    from judge.category_scores import counted_polarity, filer
+    from judge.config import category_scores, slug_parents
+
+    cfg = category_scores()
+    names = {c["key"]: c["name"] for c in cfg["categories"]}
+    if category not in names:
+        raise ValueError(f"category must be one of {', '.join(names)}")
+    file = filer(cfg, slug_parents())
+    out = [
+        {**e, "polarity": counted_polarity(e["section"], e["polarity"], cfg)}
+        for e in entries
+        if file(e["section"], e["slug"], e.get("parent_proposed")) == category
+    ]
+    return out, names[category]
 
 
 def _matches(polarity: str | None, report_pol: str) -> bool:
@@ -218,12 +239,21 @@ def feed(
     *,
     section: str | None = None,
     slug: str | None = None,
+    category: str | None = None,
     polarity: str | None = None,
     page: int = 1,
     per_page: int,
     prompt_version: str,
 ) -> dict:
-    """One page of the feed. Raises `UnknownModel` and `ValueError` on a bad filter."""
+    """One page of the feed. Raises `UnknownModel` and `ValueError` on a bad filter.
+
+    `category` is one of Compare's category scores (contract/category_scores.yaml):
+    the reports filed under it by `category_scores.filer`, polarity counted
+    as that score counts it - a metric entry is neutral there - so "Coding:
+    3 negative" on Compare opens exactly those 3 reports.
+    """
+    if category is not None and (section or slug):
+        raise ValueError("a category is its own filter; give it without a section or slug")
     if section is not None and section not in SECTIONS:
         raise ValueError(f"section must be one of {', '.join(SECTIONS)}")
     if slug and not section:
@@ -235,7 +265,11 @@ def feed(
 
     terms = publication.evidence_feed_terms()
     model = resolve_model(conn, model_id)
-    narrowed = _narrow(model_entries(conn, model), section, slug)
+    category_name = None
+    if category is not None:
+        narrowed, category_name = _in_category(model_entries(conn, model), category)
+    else:
+        narrowed = _narrow(model_entries(conn, model), section, slug)
     reports = by_report(narrowed)
     counts = _counts(reports)
 
@@ -257,7 +291,7 @@ def feed(
     # A PARAPHRASE IS CURRENT ONLY FOR THE EXCERPTS IT WAS WRITTEN FROM. It
     # describes the whole report (every entry of the document about this
     # model), not the narrowed slice, so its digest is over the full set.
-    full = by_report(model_entries(conn, model)) if section else reports
+    full = by_report(model_entries(conn, model)) if (section or category) else reports
     paraphrases = {}
     embeds = {}
     if doc_ids:
@@ -324,10 +358,12 @@ def feed(
         ).fetchall()
         paraphrased = sum(1 for d, digest in stored if current_digests.get(d) == digest)
 
-    name = next((e["name"] for e in narrowed if e["name"]), slug) if section else None
+    name = (category_name if category else
+            next((e["name"] for e in narrowed if e["name"]), slug) if section else None)
     return {
         "model": model,
-        "filter": {"section": section, "slug": slug, "name": name, "polarity": polarity},
+        "filter": {"section": section, "slug": slug, "category": category, "name": name,
+                   "polarity": polarity},
         "counts": counts,
         # RULE 4: how many of these reports have no current paraphrase, so a
         # thin page reads as "not written yet", never as "not reported".

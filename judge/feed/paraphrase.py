@@ -41,7 +41,8 @@ A report is one post or comment by one person. You are given the excerpts our
 pipeline took from it, each tagged with the topic it was filed under and the
 reaction (positive, negative or neutral) it was filed with.
 
-For every report write ONE or TWO plain sentences, at most 45 words:
+For every report write ONE or TWO plain sentences, at most 45 words (unless the
+report says it has many excerpts - then up to three sentences on its main points):
 - Say what the author reported about {model}: what they used it for, what
   happened, and any condition they named (task, setup, version, size, cost).
 - Keep the reaction as the excerpts show it. Do not soften a complaint or
@@ -159,16 +160,52 @@ def _report_block(rid: str, unit: dict) -> str:
     return "\n".join(lines)
 
 
-def _ask(units: list[dict], settings: dict, run_id: str, call: Callable, retry_reasons=None):
+def max_chars(unit: dict, settings: dict) -> int:
+    """A report with many excerpts gets the longer limit (contract)."""
+    if len(unit["entries"]) >= settings["many_excerpts"]:
+        return settings["max_chars_many_excerpts"]
+    return settings["max_chars"]
+
+
+#: THE LAST ATTEMPT ASKS FOR THE GIST (2026-10-21). After the re-asks, what
+#: was still refused was the densest reports - a dozen benchmark figures, long
+#: benchmark names - restated in full and failing on length, on copying a name,
+#: or on a figure the model brought in from outside the excerpts. One short
+#: sentence with no number and no name passes those checks by construction and
+#: still says what the author reported and how they reacted. It is the same
+#: checks, not looser ones: a gist that copies or adds a number is refused too.
+GIST = (
+    "\n(Last try for {rid}: write ONE short sentence, under 200 characters, giving "
+    "only the gist - what the author reported about {model} and how they reacted. "
+    "No numbers, no product or benchmark names other than {model}, and none of "
+    "the excerpts' wording.)"
+)
+
+
+def _ask(units: list[dict], settings: dict, run_id: str, call: Callable, retry_reasons=None,
+         *, gist: bool = False):
     label = units[0]["model_label"]
     ids = {f"R{i}": u for i, u in enumerate(units, 1)}
     blocks = []
     for rid, u in ids.items():
         block = _report_block(rid, u)
-        if retry_reasons and rid in retry_reasons:
+        if gist:
+            blocks.append(block + GIST.format(rid=rid, model=label))
+            continue
+        if len(u["entries"]) >= settings["many_excerpts"]:
             block += (
-                f"\n(Your previous paraphrase of {rid} was refused: {retry_reasons[rid]}. "
-                "Write it again within the rules.)"
+                f"\n(This report has {len(u['entries'])} excerpts. Cover its main points in up to "
+                f"{settings['max_chars_many_excerpts']} characters; leave a figure out rather "
+                "than round, total or convert it.)"
+            )
+        if retry_reasons and rid in retry_reasons:
+            # THE REFUSAL AND THE REFUSED TEXT, so the model can fix the one
+            # thing wrong rather than start over and hit another rule.
+            previous, problem = retry_reasons[rid]
+            block += (
+                f"\nYour previous paraphrase of {rid} was: {previous}\n"
+                f"It was refused: {problem}. Rewrite it within the rules"
+                + (" - say that part in different words." if "copies" in problem else ".")
             )
         blocks.append(block)
     user = f"Model: {label}\n\n" + "\n\n".join(blocks)
@@ -235,14 +272,17 @@ def run(
     for model_key, mine in by_model.items():
         for start in range(0, len(mine), settings["per_call"]):
             batch = mine[start : start + settings["per_call"]]
-            reasons: dict[str, str] = {}
+            reasons: dict[str, tuple[str, str]] = {}
             todo = batch
-            for attempt in (1, 2):
+            # UP TO `attempts` CALLS PER BATCH (contract/evidence_feed.yaml), each
+            # re-asking only what was refused, with the refused text and the reason.
+            for attempt in range(1, settings["attempts"] + 1):
+                last = attempt == settings["attempts"]
                 try:
                     report["calls"] += 1
-                    ids, got, served = _ask(
-                        todo, settings, run_id, call, reasons if attempt == 2 else None
-                    )
+                    # The gist only once the full paraphrase has had its re-asks.
+                    ids, got, served = _ask(todo, settings, run_id, call, reasons or None,
+                                            gist=last and attempt >= 3)
                 except FeedModelUnavailable as e:
                     report["failed_calls"].append(f"{model_key}: {e}")
                     break
@@ -256,23 +296,24 @@ def run(
                             text,
                             [e["quote"] or "" for e in unit["entries"]],
                             unit["model_label"],
-                            max_chars=settings["max_chars"],
+                            max_chars=max_chars(unit, settings),
                             max_copied_words=settings["max_copied_words"],
+                            topics=[e["name"] or e["slug"] or "" for e in unit["entries"]],
                         )
                     )
                     if problem is None:
                         _store(conn, unit, text, served, settings, run_id)
                         report["stored"] += 1
-                    elif attempt == 1:
+                    elif not last:
                         retry.append(unit)
-                        report["asked_again"] += 1
+                        if attempt == 1:
+                            report["asked_again"] += 1
+                        next_reasons[f"R{len(retry)}"] = (text or "(none returned)", problem)
                     else:
                         # GROUPED BY KIND: "copies 7 ..." and "copies 9 ..." are
                         # one reason, counted once per report.
                         reason = re.sub(r"\d+", "N", problem.split(" (")[0])
                         report["refused"][reason] = report["refused"].get(reason, 0) + 1
-                    if problem is not None and attempt == 1:
-                        next_reasons[f"R{len(retry)}"] = problem
                 if commit:
                     conn.commit()
                 if not retry:
