@@ -98,7 +98,7 @@ def indexable_pages(conn: Any) -> dict:
                           reported on; an empty type page is not invited
     """
     from judge import blog_store, publication
-    from judge.store.board_entries import board_sections, evidence_for_model
+    from judge.store.board_entries import board_sections, voices_by_model
 
     r = rules()
     need = r["min_voices"]
@@ -174,11 +174,16 @@ def indexable_pages(conn: Any) -> dict:
     catalogue = catalog_view(conn)
     listed = {m["id"] for m in catalogue.get("models") or []}
 
+    # ONE QUERY FOR EVERY MODEL'S VOICES (#552, item 12). This asked
+    # `evidence_for_model` once per model - two queries each - which was most of
+    # the ~13 s the list took. `voices_by_model` applies the same gates and is
+    # held equal to it, model by model, in tests/test_seo_indexable_pages.py.
+    voices = voices_by_model(conn, hidden=hidden)
     for mv_id, canonical in registry:
         tallies["model"]["pages"] += 1
         if mv_id not in with_entries or not canonical:
             continue
-        v = evidence_for_model(conn, mv_id, hidden=hidden, with_voices=True)["voices"]
+        v = voices.get(mv_id, 0)
         if v >= need["model"]:
             tallies["model"]["indexable"] += 1
             # Public pages that show one model: its catalogue page (price, specs,

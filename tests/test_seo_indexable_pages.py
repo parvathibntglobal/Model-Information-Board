@@ -314,3 +314,37 @@ def test_the_export_is_the_scripts_file_from_the_same_cached_list(monkeypatch):
     clock[0] += 10
     assert app.seo_indexable(export=True)["generated_at"] == first["generated_at"]
     assert app.seo_indexable() == {"paths": ["/a", "/b"]}
+
+
+def test_one_query_counts_the_voices_evidence_for_model_counts(conn):
+    """#552 item 12: `voices_by_model` replaced one `evidence_for_model` call
+    per model. They must agree model by model, on every gate that decides a
+    voice: withheld source, declined row, a metric figure withheld by
+    `metric_withholding`, a row with no author, and a second model."""
+    from judge.store.board_entries import evidence_for_model, voices_by_model
+
+    conn.execute("INSERT INTO model_version (id, canonical_id, provider, sources, provenance) "
+                 "VALUES ('mv_u', 'acme/model-u', 'acme', '{}', 'polled')")
+    conn.execute(_AUTHOR, ("a9", "devto", "a9"))
+    for doc, author in (("d9", "a9"), ("d10", None)):
+        conn.execute(_DOC, (doc, "devto", doc, f"https://example.test/{doc}", f"r{doc}",
+                            f"h{doc}", author))
+    entry = ("INSERT INTO board_entry (id, section, slug, name, definition, model_version_id, "
+             "document_id, quote, quote_verified, polarity, proposer_model, pipeline_version, "
+             "unit, value_verbatim, basis, ruling, reviewed_at) VALUES "
+             "(%s, %s, %s, 'N', 'Def.', %s, %s, %s, true, 'positive', 'm', 'v1', "
+             "%s, %s, %s, %s, %s)")
+    rows = [
+        ("x1", "capability", "tool-use", "mv_u", "d9", "works", None, None, None, None),
+        ("x2", "capability", "tool-use", "mv_t", "d9", "declined", None, None, "declined", "now"),
+        ("x3", "metric", "latency", "mv_t", "d9", "fast enough", "ms", "120", None, None),
+        ("x4", "capability", "tool-use", "mv_t", "d10", "no author", None, None, None, None),
+    ]
+    for r in rows:
+        basis = "reported" if r[1] == "metric" else None
+        conn.execute(entry, (*r[:8], basis, r[8], None if r[9] is None else "2026-10-21T00:00:00Z"))
+    for hidden in (list(publication.withheld_sources()), []):
+        batched = voices_by_model(conn, hidden=hidden)
+        for mv in ("mv_t", "mv_u"):
+            one = evidence_for_model(conn, mv, hidden=hidden, with_voices=True)["voices"]
+            assert batched.get(mv, 0) == one, (mv, hidden)

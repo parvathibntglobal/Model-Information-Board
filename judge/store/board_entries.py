@@ -2054,6 +2054,43 @@ def unrule_entries(conn, *, section: str, slug: str) -> int:
     return cur.rowcount
 
 
+def voices_by_model(conn, *, hidden: list[str]) -> dict[str, int]:
+    """{registry id: distinct voices} for every model at once - what
+    `evidence_for_model(conn, id, hidden=hidden, with_voices=True)["voices"]`
+    returns for one model, for all of them in ONE query (#552, item 12).
+
+    judge/seo.py asked once per model, two queries each with the either-shape
+    join, ~13 s for the index list on a local database. Same rows, same gates:
+    non-declined, the source gate in SQL, `metric_withholding` in Python - the
+    same function, not the rule written twice - and only the three sections.
+    A row is filed under `v.id` when the registry join resolves it (either id
+    shape) and under its raw id when it does not, which is the model
+    `evidence_for_model` would have matched it for.
+    tests/test_seo_indexable_pages.py holds the two equal model by model.
+    """
+    rows = conn.execute(
+        "SELECT COALESCE(v.id, be.model_version_id), be.section,"
+        "       COALESCE(be.ruling_target, be.slug), be.unit, be.value_verbatim,"
+        "       be.quote, d.author_id "
+        "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
+        "LEFT JOIN model_version v "
+        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
+        "WHERE be.ruling IS DISTINCT FROM 'declined' "
+        "  AND (cardinality(%s::text[]) = 0 "
+        "       OR (d.source IS NOT NULL AND NOT d.source = ANY(%s::text[])))",
+        (list(hidden), list(hidden)),
+    ).fetchall()
+    voices: dict[str, set] = {}
+    for key, section, slug, unit, value, quote, author_id in rows:
+        if section not in SECTIONS or not author_id:
+            continue
+        if metric_withholding({"section": section, "slug": slug, "unit": unit,
+                               "value_verbatim": value, "quote": quote}) is not None:
+            continue
+        voices.setdefault(key, set()).add(author_id)
+    return {k: len(v) for k, v in voices.items()}
+
+
 def evidence_for_model(conn, model_version_id: str, *, limit: int | None = None,
                        hidden: list[str] | None = None, with_voices: bool = False) -> dict:
     """Every discovered section this model was named in, with the quotes.
