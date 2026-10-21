@@ -27,8 +27,10 @@ missing one raises (rule 12).
 
 from __future__ import annotations
 
+import itertools
 from collections import Counter
 from typing import Any
+from urllib.parse import quote
 
 #: board section key -> the URL segment the frontend routes on.
 SEGMENT = {"best_for": "jobs", "capability": "capabilities", "metric": "metrics"}
@@ -52,6 +54,7 @@ def rules() -> dict:
             "never": [str(p) for p in raw["never"]],
             "blog_posts": str(raw["blog_posts"]),
             "model_type_min_models": int(raw["model_types"]["min_reported_models"]),
+            "compare_min_voices": int(raw["compare_pairs"]["min_voices"]),
         }
     except (KeyError, TypeError, ValueError) as exc:
         raise IndexingContractError(
@@ -61,6 +64,9 @@ def rules() -> dict:
     for kind, n in out["min_voices"].items():
         if n < 1:
             raise IndexingContractError(f"`pages.{kind}.min_voices` must be at least 1, not {n}.")
+    if out["compare_min_voices"] < 1:
+        raise IndexingContractError(
+            f"`compare_pairs.min_voices` must be at least 1, not {out['compare_min_voices']}.")
     if out["model_type_min_models"] < 1:
         raise IndexingContractError(
             "`model_types.min_reported_models` must be at least 1, not "
@@ -91,6 +97,8 @@ def indexable_pages(conn: Any) -> dict:
                           /alternatives/:name (the picker's alternatives to it)
         model_in_section  counted for the tally only - no public page shows one
                           model inside one section
+        compare_pair      /compare/:a-vs-:b (2026-10-21) - two models that both
+                          have `compare_pairs.min_voices` in one shared section
         glossary_term     /glossary/:slug - every term in glossary.yaml, which is
                           reviewed copy, so no evidence threshold applies
         model_type        /ai-models/:type (2026-10-21) - one type's list (image,
@@ -110,6 +118,17 @@ def indexable_pages(conn: Any) -> dict:
     # mostly from sources it may not quote is thin to a search engine - so the
     # threshold counts the quotable (public) voices only, as before.
     sections = board_sections(conn, hide_source=publication.withheld_publicly)
+    # The catalogue, read once through its own view (only its modules name its
+    # table): which models have an /ai-models page, which names two providers
+    # share, and how many reported models each type shows.
+    from judge.catalog import catalog_view
+
+    catalogue = catalog_view(conn)
+    listed = {m["id"] for m in catalogue.get("models") or []}
+    registered = {c for (c,) in conn.execute(
+        "SELECT canonical_id FROM model_version WHERE canonical_id IS NOT NULL").fetchall()}
+    # COMPARISON PAIRS: in each section, the models with enough public voices.
+    pairs: set[tuple[str, str]] = set()
     mkey_lastmod: dict[str, str] = {}
     # Models with a job or capability entry: what the picker can find
     # alternatives for (it reads no metrics - web/src/routes/ModelPicker.jsx).
@@ -129,6 +148,11 @@ def indexable_pages(conn: Any) -> dict:
                 if seg == "jobs":
                     out.append({"path": f"/best-ai-model/{item['slug']}", "kind": "section",
                                 "voices": v, "lastmod": item.get("updated_at")})
+            strong = sorted({
+                m.get("model_canonical") for m in item.get("models") or []
+                if int(m.get("voices") or 0) >= r["compare_min_voices"]
+                and m.get("model_canonical") in listed and m.get("model_canonical") in registered})
+            pairs.update(itertools.combinations(strong, 2))
             for m in item.get("models") or []:
                 # THE READABLE ID IN THE ADDRESS (`anthropic/claude-opus-4.6`), the
                 # same one the board links use; the internal key only as a fallback.
@@ -167,12 +191,7 @@ def indexable_pages(conn: Any) -> dict:
 
     # A MODEL'S /ai-models PAGE EXISTS ONLY FOR WHAT THE CATALOGUE LISTS
     # (judge/catalog.py; anything else is a 404 there). A registry model with
-    # reports but no listing keeps its reviews page. Read through the
-    # catalogue's own view - only its modules name its table.
-    from judge.catalog import catalog_view
-
-    catalogue = catalog_view(conn)
-    listed = {m["id"] for m in catalogue.get("models") or []}
+    # reports but no listing keeps its reviews page. `listed` is read above.
 
     # ONE QUERY FOR EVERY MODEL'S VOICES (#552, item 12). This asked
     # `evidence_for_model` once per model - two queries each - which was most of
@@ -209,6 +228,23 @@ def indexable_pages(conn: Any) -> dict:
     for t, n in voiced.items():
         if n >= r["model_type_min_models"]:
             out.append({"path": f"/ai-models/{t}", "kind": "model_type", "voices": None})
+
+    # COMPARISONS, by the address the page names as its canonical
+    # (web/src/compare/path.js `canonicalComparePath`): each model by its own
+    # name, `provider--model` where two catalogued providers share it, the two
+    # sorted, joined by `-vs-`.
+    shared = Counter(i.split("/", 1)[1] for i in listed if "/" in i)
+
+    def address_name(canonical: str) -> str:
+        name = canonical.split("/", 1)[1]
+        return name if shared[name] == 1 else canonical.replace("/", "--", 1)
+
+    for a, b in sorted(pairs):
+        if "/" not in a or "/" not in b:
+            continue
+        names = sorted((address_name(a), address_name(b)))
+        out.append({"path": f"/compare/{quote(names[0], safe='')}-vs-{quote(names[1], safe='')}",
+                    "kind": "compare_pair", "voices": None})
 
     # Approved posts only. A store that cannot be read raises
     # (`blog_store.StoreUnreadable`), so a failure is not read as "no posts".

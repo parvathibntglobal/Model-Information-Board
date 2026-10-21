@@ -2356,8 +2356,6 @@ def seo_indexable(export: bool = False) -> dict:
     build (web/seo-build.js `readPaths`, vite.config.js `seoFiles` for the
     sitemap's <lastmod>), not a page, so the pages keep the short answer.
     """
-    from judge import seo
-
     # KEPT FOR A FEW MINUTES (2026-10-20). Every public page asks for this on
     # load, and working it out reads each model's evidence one query at a time
     # (board_entries.evidence_for_model) plus the glossary file - ~13 s on the
@@ -2366,15 +2364,12 @@ def seo_indexable(export: bool = False) -> dict:
     # one answer serves everyone for _INDEXABLE_TTL_S. A failure is not kept.
     # The return stays a literal so scripts/audit_api_fields.py can read the
     # field it emits (contract/api_fields.yaml declares `paths`).
-    now = time.monotonic()
-    with _indexable_lock:
-        if _indexable_cache and now - _indexable_cache[0] < _INDEXABLE_TTL_S:
-            result, generated_at = _indexable_cache[1], _indexable_cache[2]
-        else:
-            with _conn() as conn:
-                result = seo.indexable_pages(conn)
-            generated_at = datetime.now(UTC).isoformat(timespec="seconds")
-            _indexable_cache[:] = [now, result, generated_at]
+    #
+    # NOBODY WAITS ON A REFRESH (review of #552, item 4). Only the first call
+    # works the list out while it waits; once there is a list, an old one is
+    # answered at once and ONE background refresh replaces it. A refresh that
+    # fails keeps the old list, and the next call tries again.
+    result, generated_at = _indexable_current()
     paths = [p["path"] for p in result["paths"]]
     if export:
         # What the build reads of scripts/export_indexable_paths.py's file, and
@@ -2391,8 +2386,50 @@ def seo_indexable(export: bool = False) -> dict:
 
 
 _INDEXABLE_TTL_S = 300
+#: [worked out at (monotonic), result, generated_at] - empty until the first answer.
 _indexable_cache: list = []
 _indexable_lock = threading.Lock()
+#: The background refresh in flight, if any (one at a time).
+_indexable_refresh: list = []
+
+
+def _indexable_work() -> list:
+    """Work the list out once: the cache entry, not yet stored."""
+    from judge import seo
+
+    with _conn() as conn:
+        result = seo.indexable_pages(conn)
+    return [time.monotonic(), result, datetime.now(UTC).isoformat(timespec="seconds")]
+
+
+def _indexable_refresh_now() -> None:
+    try:
+        entry = _indexable_work()
+        with _indexable_lock:
+            _indexable_cache[:] = entry
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "seo: refreshing /seo/indexable failed; the previous list stays")
+    finally:
+        with _indexable_lock:
+            _indexable_refresh.clear()
+
+
+def _indexable_current() -> tuple[dict, str]:
+    """The current list and when it was worked out; see `seo_indexable`."""
+    with _indexable_lock:
+        entry = list(_indexable_cache)
+        if entry and time.monotonic() - entry[0] >= _INDEXABLE_TTL_S and not _indexable_refresh:
+            thread = threading.Thread(target=_indexable_refresh_now,
+                                      name="seo-indexable-refresh", daemon=True)
+            _indexable_refresh.append(thread)
+            thread.start()
+        if entry:
+            return entry[1], entry[2]
+        # The first answer: worked out here, under the lock, so callers that
+        # arrive together wait for one computation rather than each doing it.
+        _indexable_cache[:] = _indexable_work()
+        return _indexable_cache[1], _indexable_cache[2]
 
 
 @app.get("/freshness")

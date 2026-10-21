@@ -183,32 +183,68 @@ class TestTheContract:
             seo.rules()
 
 
-def test_the_indexable_list_is_worked_out_once_for_a_few_minutes(monkeypatch):
-    """Every public page asks for /seo/indexable on load, and working it out is
-    slow (one evidence query per model). The endpoint keeps its answer for
-    _INDEXABLE_TTL_S, and a new answer is worked out once that has passed."""
+def _cached_endpoint(monkeypatch, fake):
     import contextlib
 
     from judge import app
 
+    monkeypatch.setattr(seo, "indexable_pages", fake)
+    monkeypatch.setattr(app, "_conn", lambda: contextlib.nullcontext(None))
+    monkeypatch.setattr(app, "_indexable_cache", [])
+    monkeypatch.setattr(app, "_indexable_refresh", [])
+    clock = [1000.0]
+    monkeypatch.setattr(app.time, "monotonic", lambda: clock[0])
+    return app, clock
+
+
+def _wait_for_refresh(app):
+    for thread in list(app._indexable_refresh):
+        thread.join(timeout=5)
+
+
+def test_the_indexable_list_is_worked_out_once_for_a_few_minutes(monkeypatch):
+    """Every public page asks for /seo/indexable on load, and working it out is
+    slow (one evidence query per model). The endpoint keeps its answer for
+    _INDEXABLE_TTL_S. Once that has passed, the next call still answers at once
+    with the old list and ONE background refresh replaces it (review of #552,
+    item 4) - nobody waits on a refresh."""
     calls = []
 
     def fake(conn):
         calls.append(1)
         return {"paths": [{"path": f"/p{len(calls)}"}]}
 
-    monkeypatch.setattr(seo, "indexable_pages", fake)
-    monkeypatch.setattr(app, "_conn", lambda: contextlib.nullcontext(None))
-    monkeypatch.setattr(app, "_indexable_cache", [])
-    clock = [1000.0]
-    monkeypatch.setattr(app.time, "monotonic", lambda: clock[0])
-
+    app, clock = _cached_endpoint(monkeypatch, fake)
     assert app.seo_indexable() == {"paths": ["/p1"]}
     assert app.seo_indexable() == {"paths": ["/p1"]}
     assert len(calls) == 1
     clock[0] += app._INDEXABLE_TTL_S + 1
-    assert app.seo_indexable() == {"paths": ["/p2"]}
+    assert app.seo_indexable() == {"paths": ["/p1"]}   # old list, at once
+    _wait_for_refresh(app)
     assert len(calls) == 2
+    assert app.seo_indexable() == {"paths": ["/p2"]}   # the refreshed one
+
+
+def test_a_failed_refresh_keeps_the_old_list(monkeypatch):
+    """A refresh that raises leaves the previous list in place, and the next
+    call past the deadline tries again."""
+    calls = []
+
+    def flaky(conn):
+        calls.append(1)
+        if len(calls) == 2:
+            raise RuntimeError("database away")
+        return {"paths": [{"path": f"/p{len(calls)}"}]}
+
+    app, clock = _cached_endpoint(monkeypatch, flaky)
+    assert app.seo_indexable() == {"paths": ["/p1"]}
+    clock[0] += app._INDEXABLE_TTL_S + 1
+    assert app.seo_indexable() == {"paths": ["/p1"]}
+    _wait_for_refresh(app)
+    # the refresh failed: the old list is kept, and this call started a retry
+    assert app.seo_indexable() == {"paths": ["/p1"]}
+    _wait_for_refresh(app)
+    assert app.seo_indexable() == {"paths": ["/p3"]}
 
 
 def test_a_model_type_page_is_listed_once_it_shows_enough_reported_models(conn, monkeypatch):
@@ -348,3 +384,50 @@ def test_one_query_counts_the_voices_evidence_for_model_counts(conn):
         for mv in ("mv_t", "mv_u"):
             one = evidence_for_model(conn, mv, hidden=hidden, with_voices=True)["voices"]
             assert batched.get(mv, 0) == one, (mv, hidden)
+
+
+def test_a_comparison_is_listed_when_both_models_share_enough_voices(conn, monkeypatch):
+    """compare_pairs (review of #552, item 9, option A): /compare/<a>-vs-<b> is
+    listed when both models have `compare_pairs.min_voices` public voices in
+    one shared section, both catalogued and registered - by the canonical the
+    page names (names sorted). A model below the line, or one the catalogue
+    does not list, forms no pair."""
+    from judge import catalog
+    from judge.store import board_entries
+
+    for mv, canon in (("mv_b", "zeta/model-b"), ("mv_c", "acme/model-c"), ("mv_d", "acme/model-d")):
+        conn.execute("INSERT INTO model_version (id, canonical_id, provider, sources, provenance) "
+                     "VALUES (%s, %s, 'x', '{}', 'polled')", (mv, canon))
+    conn.commit()
+    need = seo.rules()["compare_min_voices"]
+
+    def m(canon, voices):
+        return {"model_canonical": canon, "model_key": canon, "voices": voices}
+
+    sections = {"capability": [{"slug": "tool-use", "voices": 9, "models": [
+        m("acme/model-t", need), m("zeta/model-b", need + 3),
+        m("acme/model-c", need - 1),    # below the line
+        m("acme/model-d", need)]}]}     # not catalogued
+    monkeypatch.setattr(board_entries, "board_sections", lambda c, hide_source=None: sections)
+    catalogued = [{"id": "acme/model-t"}, {"id": "zeta/model-b"}, {"id": "acme/model-c"}]
+    monkeypatch.setattr(catalog, "catalog_view",
+                        lambda c: {"models": catalogued, "types_voiced": {}})
+    listed = seo.indexable_pages(conn)["paths"]
+    pairs = sorted(p["path"] for p in listed if p["kind"] == "compare_pair")
+    assert pairs == ["/compare/model-b-vs-model-t"]
+
+
+def test_the_comparison_threshold_is_required(monkeypatch):
+    from judge import config
+
+    real = config._read
+
+    def without(name):
+        data = dict(real(name) or {})
+        if name == "indexing.yaml":
+            data.pop("compare_pairs", None)
+        return data
+
+    monkeypatch.setattr(config, "_read", without)
+    with pytest.raises(seo.IndexingContractError):
+        seo.rules()

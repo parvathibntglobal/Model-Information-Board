@@ -38,7 +38,7 @@ def out() -> dict:
 def _heads(out):
     # `noindex` and `structured` hold other cases, not page heads.
     return {k: v for k, v in out.items()
-            if isinstance(v, dict) and k not in ("noindex", "structured", "compare")}
+            if isinstance(v, dict) and k not in ("noindex", "structured", "compare", "sharedName")}
 
 
 def test_every_page_has_its_own_title(out):
@@ -252,3 +252,24 @@ def test_a_models_alternatives_are_a_page_of_their_own(out):
     assert h["title"].startswith("GPT-6 Astra alternatives")
     assert h["breadcrumbs"][-1] == {"name": "GPT-6 Astra alternatives",
                                      "path": "/alternatives/gpt-6-astra"}
+
+
+def test_a_long_model_list_is_capped(out):
+    """ItemList keeps the first ITEM_LIST_MAX items (review of #552): every
+    model in one script block helps no search engine."""
+    s = out["structured"]
+    lst = s["longList"]
+    assert s["ITEM_LIST_MAX"] == 100
+    assert lst["numberOfItems"] == 100 and len(lst["itemListElement"]) == 100
+    assert lst["itemListElement"][0]["name"] == "M0" and lst["itemListElement"][-1]["name"] == "M99"
+
+
+def test_a_name_two_providers_share_is_written_in_full(out):
+    """review of #552, item 3: `resolveSlugs` refuses an ambiguous bare name, so
+    once the catalogue shows two providers using one name, a comparison writes
+    that model as `provider--model` - in its link and its canonical - and the
+    address resolves back to the same ids. A unique name stays bare."""
+    s = out["sharedName"]
+    assert s["path"] == "/compare/acme--twin-vs-grok-4.6"
+    assert s["canon"] == "/compare/acme--twin-vs-grok-4.6"
+    assert s["back"] == {"ids": ["acme/twin", "x-ai/grok-4.6"], "unknown": []}

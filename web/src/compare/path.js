@@ -30,6 +30,29 @@ export const isReadable = (id) => typeof id === 'string' && /^[^/\s,]+\/[^/\s,]+
 /** The model's own name: the part of its id after the provider. */
 export const slugOf = (id) => id.split('/')[1]
 
+/**
+ * NAMES TWO PROVIDERS SHARE (review of #552, item 3). The bare name would be
+ * refused as ambiguous by `resolveSlugs`, so a shared one is written as
+ * `provider--model` - the rule judge/seo.py's `alt_slug` uses for the
+ * alternatives pages. The catalogue reader (api/index.js `modelCatalog`)
+ * records them; until it has, every name is taken as unique, which it is for
+ * all 648 catalogued models today.
+ */
+const SHARED = new Set()
+export function markSharedNames(models) {
+  const seen = new Map()
+  for (const m of models || []) {
+    if (!m || !isReadable(m.id)) continue
+    const name = slugOf(m.id)
+    seen.set(name, (seen.get(name) || 0) + 1)
+  }
+  SHARED.clear()
+  for (const [name, n] of seen) if (n > 1) SHARED.add(name)
+}
+
+/** The model's name in an address: its own, or `provider--model` when shared. */
+export const addressNameOf = (id) => (SHARED.has(slugOf(id)) ? id.replace('/', FULL) : slugOf(id))
+
 const query = (from) => (from === 'reports' ? 'from=reports' : '')
 
 /** Where a comparison of `ids` lives. `from: 'reports'` keeps the counts-only view. */
@@ -37,7 +60,7 @@ export function comparePath(ids, { from } = {}) {
   const list = (ids || []).map((s) => String(s).trim()).filter(Boolean)
   const q = query(from)
   if (list.length >= 2 && list.every(isReadable)) {
-    return `/compare/${list.map((id) => encodeURIComponent(slugOf(id))).join(SEP)}${q ? `?${q}` : ''}`
+    return `/compare/${list.map((id) => encodeURIComponent(addressNameOf(id))).join(SEP)}${q ? `?${q}` : ''}`
   }
   if (!list.length) return `/compare${q ? `?${q}` : ''}`
   return `/compare?ids=${encodeURIComponent(list.join(','))}${q ? `&${q}` : ''}`
@@ -47,7 +70,7 @@ export function comparePath(ids, { from } = {}) {
 export function canonicalComparePath(ids) {
   const list = (ids || []).filter(Boolean)
   if (list.length >= 2 && list.every(isReadable)) {
-    return `/compare/${list.map(slugOf).sort().map(encodeURIComponent).join(SEP)}`
+    return `/compare/${list.map(addressNameOf).sort().map(encodeURIComponent).join(SEP)}`
   }
   return list.length >= 2 ? `/compare?ids=${[...list].sort().join(',')}` : '/compare'
 }

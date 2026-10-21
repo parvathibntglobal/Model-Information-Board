@@ -24,9 +24,18 @@ const compare = {
   unknown: cmp.resolveSlugs(['grok-9', 'twin'], catalog),
   fullId: cmp.resolveSlugs(['acme--twin'], catalog),
 }
+// A NAME TWO PROVIDERS SHARE (review of #552, item 3): written as provider--model.
+cmp.markSharedNames([{ id: 'acme/twin' }, { id: 'zeta/twin' }, { id: 'x-ai/grok-4.6' }])
+const shared = {
+  path: cmp.comparePath(['acme/twin', 'x-ai/grok-4.6']),
+  canon: cmp.canonicalComparePath(['x-ai/grok-4.6', 'acme/twin']),
+  back: cmp.resolveSlugs(cmp.parsePair(cmp.comparePath(['acme/twin', 'x-ai/grok-4.6']).split('/')[2]), catalog),
+}
+cmp.markSharedNames([])
 
 const out = {
   compare,
+  sharedName: shared,
   hub: pages.boardHub('cap'),
   hubDefault: pages.boardHub(undefined),
   job: pages.boardSection('jobs', job),
@@ -91,6 +100,8 @@ const out = {
       typeList: sd.structuredFor(site, pages.catalogIndex('image', [{ name: 'Flux 2', path: '/ai-models/bfl/flux-2' },
         { name: 'Nano Banana 2', path: '/ai-models/google/nano-banana-2' }])),
       emptyList: sd.structuredFor(site, pages.catalogIndex('video', [])).map((x) => x['@type']),
+      longList: sd.itemList(site, { name: 'All', items: Array.from({ length: 250 }, (_, i) => ({ name: `M${i}`, path: `/ai-models/p/m${i}` })) }),
+      ITEM_LIST_MAX: sd.ITEM_LIST_MAX,
       reviewCrumbs: pages.reportsIndex({ key: 'jobs', title: 'Jobs', lede: 'L.' }).breadcrumbs,
       closedTool: sd.structuredFor('', pages.tokenCounter()),
     }

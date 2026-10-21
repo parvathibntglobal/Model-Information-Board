@@ -85,6 +85,16 @@ always:
   - /glossary
   - /methodology
 
+# A comparison of two models (/compare/<a>-vs-<b>; review of #552, item 9,
+# option A): listed when BOTH models have at least this many distinct public
+# voices in one shared job, capability or metric - the count every threshold
+# here uses (pages.section.min_voices). Both must be in the catalogue and the
+# registry, so the page can open. Three-way comparisons are never listed.
+# Measured 2026-10-21 on the local database: 2 -> 727 pairs (46 models),
+# 3 -> 418, 5 -> 177. Each listed pair is a pre-rendered page at build time.
+compare_pairs:
+  min_voices: 2
+
 # One type of model (/ai-models/image, /ai-models/video...; 2026-10-21): the
 # models of that type engineers reported on. A type with too few of them is a
 # near-empty list, so it is invited only once it shows this many.

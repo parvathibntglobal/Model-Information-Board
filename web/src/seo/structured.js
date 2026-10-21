@@ -123,10 +123,15 @@ export function webApplication(site, head) {
  * All models or one type, the newest releases, the models or jobs a reviews
  * page ranks. `list.items` is [{ name, path }]; nothing is listed that the
  * page does not show, and an empty list writes nothing.
+ *
+ * THE FIRST ITEM_LIST_MAX ONLY (review of #552): All models would otherwise
+ * put every model in one script block, and a search engine gains nothing from
+ * the length. `numberOfItems` counts what is listed here.
  */
+export const ITEM_LIST_MAX = 100
 export function itemList(site, list) {
   if (!site || !list || !Array.isArray(list.items)) return null
-  const items = list.items.filter((it) => it && it.name && it.path)
+  const items = list.items.filter((it) => it && it.name && it.path).slice(0, ITEM_LIST_MAX)
   if (!items.length) return null
   const out = {
     '@context': 'https://schema.org',
