@@ -437,3 +437,51 @@ class TestABatchSurchargeIsNotADiscount:
         result = PollResult(RETRIEVED, 2, (self._pair("0.000000003", "0.000000112"),
                                            self._pair("0.000001", "0.0000005")), 2)
         assert result.batch_ratios_refused == (("acme/model-x", pytest.approx(37.333)),)
+
+
+# ── a value no column can hold ────────────────────────────────────────────
+
+
+def _with_prompt_price(feed, model_id, per_token):
+    """The fixture with one entry's prompt price replaced, nothing else."""
+    import copy
+
+    out = copy.deepcopy(feed)
+    entry(out, model_id)["pricing"]["prompt"] = per_token
+    return out
+
+
+def test_an_overflowing_price_drops_that_model_and_keeps_the_rest(feed):
+    """2026-10-04: one `numeric field overflow` rolled back the whole poll and
+    every price stayed where it was. $2/token is $2,000,000 per 1M - out of
+    `numeric(12,6)` - and must cost one model, not all of them."""
+    from collect.registry.openrouter import drop_unstorable
+
+    parsed = parse_models(_with_prompt_price(feed, "anthropic/claude-opus-5", "2"),
+                          retrieved_at=RETRIEVED)
+    kept, dropped = drop_unstorable(parsed)
+
+    assert dropped == ("anthropic/claude-opus-5: price_in",)
+    assert "anthropic/claude-opus-5" not in {m.canonical_id for m in kept.models}
+    assert len(kept.models) == len(parsed.models) - 1
+
+
+@pytest.mark.parametrize("value,fits", [
+    (999_999.999999, True),
+    (999_999.9999996, False),   # rounds to 1,000,000.000000 in numeric(12,6)
+    (1_000_000.0, False),
+    (0.0, True),
+    (None, True),               # absent is absent, not out of range
+])
+def test_the_bound_is_the_column_type_after_rounding(value, fits):
+    from collect.registry.openrouter import unstorable
+
+    assert (unstorable({"price_in": value}) == ()) is fits
+
+
+def test_a_feed_with_nothing_out_of_range_drops_nothing(result):
+    from collect.registry.openrouter import drop_unstorable
+
+    kept, dropped = drop_unstorable(result)
+    assert dropped == ()
+    assert kept.models == result.models

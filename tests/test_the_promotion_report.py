@@ -98,5 +98,5 @@ class TestItIsReadOnlyAndPosted:
         assert "python scripts/promotion_report.py --out promotion.md" in wf
         assert 'gh issue comment "$PROMOTION_ISSUE" --body-file promotion.md' in wf
         assert "promotion report not posted: vars.PROMOTION_ISSUE is not set" in wf
-        poll = wf.index("Poll the registry and refresh the window")
+        poll = wf.index("Poll the registry and the catalogue, and refresh the window")
         assert poll < wf.index("python scripts/promotion_report.py --out")

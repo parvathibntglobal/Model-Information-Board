@@ -167,9 +167,24 @@ def write_catalog(
     return {"listed": len(rows), "added": added, "updated": len(rows) - added}
 
 
-def poll_catalog(conn, client) -> dict[str, int]:
-    """GET the whole list and write it. Raises when the feed cannot be read."""
+def poll_catalog(conn, client) -> tuple[dict[str, int], tuple[str, ...]]:
+    """GET the whole list and write it: `(counts, "id: columns" not written)`.
+    Raises when the feed cannot be read.
+
+    A row with a value its column cannot hold is left out and named rather than
+    allowed to overflow the whole write (`openrouter.unstorable`); its existing
+    row keeps its old price and an older `last_seen_at`, so the caller must say so.
+    """
+    from collect.registry.openrouter import unstorable
+
     response = client.get(CATALOG_URL)
     if response.status_code != 200:
         raise UnreadableFeed(f"HTTP {response.status_code} from {CATALOG_URL}")
-    return write_catalog(conn, parse_catalog(response.json()))
+    rows, dropped = [], []
+    for row in parse_catalog(response.json()):
+        columns = unstorable(row)
+        if columns:
+            dropped.append(f"{row['canonical_id']}: {', '.join(columns)}")
+        else:
+            rows.append(row)
+    return write_catalog(conn, rows), tuple(sorted(dropped))

@@ -119,6 +119,10 @@ def render(d: dict, *, catalogue_size: int, registry_size: int) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out")
+    ap.add_argument("--only-if-changed", action="store_true",
+                    help="write --out only when there are arrivals, departures or "
+                         "expiration changes: the poll runs twice a day, and an "
+                         "empty diff each time buries the ones that matter")
     args = ap.parse_args()
 
     import psycopg
@@ -139,6 +143,10 @@ def main() -> int:
             "SELECT canonical_id, provenance, retirement_date FROM model_version").fetchall()}
     d = compute_diff(catalogue, registry, load_tombstones(), base_id)
     report = render(d, catalogue_size=len(catalogue), registry_size=len(registry))
+    changed = any(d[k] for k in ("arrivals", "pro_arrivals", "departures", "expiring"))
+    if args.only_if_changed and not changed:
+        print("registry diff: no arrivals, departures or expiration changes; --out not written")
+        return 0
     if args.out:
         Path(args.out).write_text(report, encoding="utf-8")
     print(report)

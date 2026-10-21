@@ -149,7 +149,7 @@ export default function ThisWeek({ start }) {
               <p className={`lv-note${ph.differs_now > 0 ? ' lv-warn' : ''}`}>
                 The price history's last recorded change is {ph.last_change ? day(ph.last_change) : 'not recorded'}.{' '}
                 {ph.differs_now > 0
-                  ? `Today's catalogue (read ${day(ph.catalogue_read)}) shows a different price from that history for ${ph.differs_now} of ${ph.compared} models, so changes after that date are notFound here - not absent.`
+                  ? `Today's catalogue (read ${day(ph.catalogue_read)}) shows a different price from that history for ${ph.differs_now} of ${ph.compared} models, so changes after that date are not recorded here yet - not absent.`
                   : `Today's catalogue matches the last recorded price for all ${ph.compared} models compared.`}
               </p>
             )}
