@@ -838,7 +838,7 @@
 .es-mcards{margin:2.4rem 0 1rem}
 .es-mcards .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem}
 .es-mcards .mc{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
-.es-mcards h4{margin:0 0 .5rem;font-size:.98rem;color:var(--es-text)}
+.es-mcards h3{margin:0 0 .5rem;font-size:.98rem;color:var(--es-text)}
 .es-mcards p{font-size:.86rem !important;line-height:1.5;margin:.35rem 0 !important}
 .es-mcards p b{display:block;font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase}
 .es-mcards p.bad b{color:var(--es-warn)}
@@ -851,7 +851,7 @@
 .es-claimw{margin:0 0 2rem}
 .es-claimw .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.8rem}
 .es-claimw .cl{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
-.es-claimw .cl h4{margin:.6rem 0 .4rem;font-size:.95rem;color:var(--es-text)}
+.es-claimw .cl h3{margin:.6rem 0 .4rem;font-size:.95rem;color:var(--es-text)}
 .es-claimw .cl p{font-size:.85rem !important;margin:0 !important;line-height:1.5}
 .es-claimw .stamp{display:inline-block;font:700 .66rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;padding:.2rem .5rem;border:2px solid;border-radius:4px;transform:rotate(-2deg)}
 .es-claimw .c-ok .stamp{color:var(--es-good)}
@@ -982,7 +982,7 @@
 .es-radar .stage{font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-warn)}
 .es-radar .s2 .stage{color:var(--es-good)}
 .es-radar .s0 .stage{color:var(--es-accent2)}
-.es-radar h4{margin:.4rem 0 .3rem;font-size:.98rem;color:var(--es-text)}
+.es-radar h3{margin:.4rem 0 .3rem;font-size:.98rem;color:var(--es-text)}
 .es-radar p{font-size:.86rem !important;margin:0 0 .4rem !important;line-height:1.5}
 .es-radar p.why{color:var(--es-muted) !important}
 .es-radar:has(.f0:checked) .rd:not(.s0),.es-radar:has(.f1:checked) .rd:not(.s1),.es-radar:has(.f2:checked) .rd:not(.s2){display:none}
@@ -990,7 +990,7 @@
 .es-sides .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem}
 .es-sides .side{padding:1.1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line2)}
 .es-sides .n{font:700 1.4rem var(--es-mono);color:var(--es-accent)}
-.es-sides h4{margin:.3rem 0 .4rem;color:var(--es-text)}
+.es-sides h3{margin:.3rem 0 .4rem;font-size:1em;color:var(--es-text)}
 .es-sides p{font-size:.9rem !important;line-height:1.55}
 .es-sides summary{cursor:pointer;font:600 .7rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-warn);margin-top:.4rem}
 .es-results{margin:0 0 2rem;border-left:3px solid var(--es-accent);padding-left:1rem}
