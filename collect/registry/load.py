@@ -29,6 +29,7 @@ from collect.registry.aliases import (
     all_alias_rows,
     check_no_collisions,
     check_spelling_coverage,
+    normalize,
     spelling_gaps,
 )
 from collect.registry.models import SeedModel
@@ -334,8 +335,16 @@ def _changed_fields(existing: dict[str, Any], incoming: dict[str, Any]) -> list[
     return changed
 
 
-def _upsert_model(conn: psycopg.Connection[Any], row: dict[str, Any]) -> tuple[str, list[str]]:
-    """Insert or update one `model_version`. Returns (verdict, changed columns)."""
+def _upsert_model(
+    conn: psycopg.Connection[Any], row: dict[str, Any]
+) -> tuple[str, list[str], str]:
+    """Insert or update one `model_version`. Returns (verdict, changed columns,
+    the row's own id).
+
+    The id comes back from the database (#457), the poll's pattern from #454:
+    the upsert matches on `canonical_id`, so an existing row keeps the id it
+    was written with, and `row["id"]` is only what a NEW row would get.
+    """
     from psycopg.rows import dict_row
     from psycopg.types.json import Json
 
@@ -368,16 +377,20 @@ def _upsert_model(conn: psycopg.Connection[Any], row: dict[str, Any]) -> tuple[s
     ]
     assignments = ", ".join(f"{c} = EXCLUDED.{c}" for c in updatable)
 
-    conn.execute(
+    returned = conn.execute(
         f"INSERT INTO model_version ({columns}) VALUES ({placeholders}) "
-        f"ON CONFLICT (canonical_id) DO UPDATE SET {assignments}, updated_at = now()",
+        f"ON CONFLICT (canonical_id) DO UPDATE SET {assignments}, updated_at = now() "
+        f"RETURNING id",
         params,
-    )
+    ).fetchone()
+    if returned is None:  # an upsert always returns its row; absence is a defect
+        raise RuntimeError(f"upsert returned no row for {row['canonical_id']}")
+    row_id = returned[0]
 
     if existing is None:
-        return "inserted", []
+        return "inserted", [], row_id
     changed = _changed_fields(existing, row)
-    return ("updated" if changed else "unchanged"), changed
+    return ("updated" if changed else "unchanged"), changed, row_id
 
 
 def _record_prices(conn: psycopg.Connection[Any], row: dict[str, Any]):
@@ -485,7 +498,7 @@ def _record_event(
     return event_id
 
 
-def _write_price_tiers(conn: psycopg.Connection[Any], model: SeedModel) -> int:
+def _write_price_tiers(conn: psycopg.Connection[Any], model: SeedModel, mv_id: str) -> int:
     """Replace this model's tier bands with what the seed file declares.
 
     Delete-then-insert rather than upsert, because a provider changing its
@@ -501,7 +514,7 @@ def _write_price_tiers(conn: psycopg.Connection[Any], model: SeedModel) -> int:
     if not model.price_tiers:
         return 0
 
-    mv_id = model_version_id(model.canonical_id)
+    # `mv_id` is the row's own id from the upsert, not a recomputation (#457).
     conn.execute("DELETE FROM price_tier WHERE model_version_id = %s", (mv_id,))
 
     for tier in model.price_tiers:
@@ -619,6 +632,19 @@ def _close_at(existing_from: date | None, incoming_from: date | None) -> date:
     return max(existing_from, incoming_from)
 
 
+class UnmatchableAliasError(ValueError):
+    """An alias whose `normalized` no mention can ever produce (#458)."""
+
+    def __init__(self, alias: AliasRow) -> None:
+        self.alias = alias
+        super().__init__(
+            f"refusing alias {alias.surface!r} for {alias.model_version_id}: "
+            f"normalized {alias.normalized!r} is not its own normalize() "
+            f"({normalize(alias.normalized)!r}), so no mention can match it. "
+            "Build the row through `alias_rows`, which normalises."
+        )
+
+
 def _sync_alias(conn: psycopg.Connection[Any], alias: AliasRow) -> str:
     """Append one alias, closing any live row it supersedes (FR-4).
 
@@ -633,8 +659,20 @@ def _sync_alias(conn: psycopg.Connection[Any], alias: AliasRow) -> str:
     ever updated and nothing is ever deleted.
 
     Returns ``inserted``, ``unchanged`` or ``replaced``.
+
+    Raises `UnmatchableAliasError` on a `normalized` that is empty or is not
+    its own `normalize()` (#458).
     """
     from psycopg.rows import dict_row
+
+    # ⚠ A KEY NO MENTION CAN PRODUCE IS REFUSED, NOT WRITTEN (#458). Resolution
+    #   matches `normalize(mention)` against `normalized`, and `normalize`
+    #   strips every separator - so `'gpt 6 astra'` and `'claude fable 51'`,
+    #   both live on staging (2 of 106 live rows, counted 2026-09-28), match nothing
+    #   while still carrying search variants. Append-only (FR-4) means a bad
+    #   row cannot be fixed in place, only closed, so the check is here.
+    if not alias.normalized or alias.normalized != normalize(alias.normalized):
+        raise UnmatchableAliasError(alias)
 
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
@@ -730,8 +768,10 @@ def load_seed(
     if strict_spelling:
         check_spelling_coverage(seed.models)
 
-    aliases = all_alias_rows(seed.models)
-    check_no_collisions(aliases)
+    # Built here for the collision check only, which compares canonical ids and
+    # windows and never reads `model_version_id`. The rows WRITTEN are rebuilt
+    # below on the ids the upsert returned (#457).
+    check_no_collisions(all_alias_rows(seed.models))
 
     # Pre-flight, so the refusal can name every affected row rather than
     # whichever one the loop reached first.
@@ -748,9 +788,13 @@ def load_seed(
         missing_spellings={g.canonical_id: g.missing for g in spelling_gaps(seed.models)},
     )
 
+    #: canonical id -> the row's own id, as the upsert returned it (#457).
+    row_ids: dict[str, str] = {}
     for model in seed.models:
         row = model_row(model, provenance=provenance, as_of=as_of, policy=policy)
-        verdict, changed = _upsert_model(conn, row)
+        verdict, changed, row_id = _upsert_model(conn, row)
+        # Prices and events below key on `row["id"]`, so it becomes the real one.
+        row["id"] = row_ids[model.canonical_id] = row_id
 
         if verdict == "inserted":
             report.models_inserted += 1
@@ -791,9 +835,11 @@ def load_seed(
             report.events.append(("price-change", detail))
 
     for model in seed.models:
-        report.price_tiers_written += _write_price_tiers(conn, model)
+        report.price_tiers_written += _write_price_tiers(
+            conn, model, row_ids[model.canonical_id]
+        )
 
-    for alias in aliases:
+    for alias in all_alias_rows(seed.models, model_version_ids=row_ids):
         verdict = _sync_alias(conn, alias)
         if verdict == "inserted":
             report.aliases_inserted += 1

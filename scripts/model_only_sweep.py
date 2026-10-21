@@ -192,6 +192,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--pages", type=int, default=7)
     parser.add_argument("--sort", default="RELEVANCE")
+    # Gitignored and local only since 2026-10-08 (it holds Reddit titles and links).
     parser.add_argument("--out", default="model_only_sweep.jsonl")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(

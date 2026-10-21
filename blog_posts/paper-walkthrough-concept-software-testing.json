@@ -1,0 +1,481 @@
+{
+ "slug": "paper-walkthrough-concept-software-testing",
+ "status": "draft",
+ "tag": "Paper walkthrough",
+ "feat": false,
+ "title": "LLM Test Generation Starts With Many Cheap Drafts",
+ "dek": "A reading-group walk through new papers on parallel test drafts, security repair inside the reasoning stream, bug-hunting review agents, design-aware review and the token bill of messy code.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "Can LLMs write unit tests? Merged parallel drafts plus agentic gap-filling reach more than 99.9% line and branch coverage, but nobody has yet shown those suites catch real, human-verified bugs.",
+ "description": "Can LLMs write unit tests worth keeping? A close reading of new papers on parallel test drafts, in-stream security repair and bug-hunting review agents.",
+ "keywords": [
+  "can LLMs write unit tests",
+  "LLMs for testing, repair and code review",
+  "LLM test generation",
+  "mutation testing",
+  "AI code review agents",
+  "secure code generation"
+ ],
+ "kicker": "Paper walkthrough",
+ "tags": [
+  "LLM test generation",
+  "Paper walkthrough"
+ ],
+ "read": 8,
+ "decisions": [
+  "Seed agentic test generation with merged parallel drafts",
+  "Track mutation score beside line and branch coverage",
+  "Scan reasoning drafts with security rules before delivery",
+  "Judge review agents by bugs caught in their top comments",
+  "Count file size when budgeting agent review tokens"
+ ],
+ "layout": "paper",
+ "arrangement": "b",
+ "special": {
+  "type": "results",
+  "title": "What was measured",
+  "items": [
+   {
+    "result": "More than 99.9% line and branch coverage and a mutation score of 98.6% on average",
+    "setup": "Testuary after both agentic phases, compared with search and LLM-based test generation baselines",
+    "source": 3,
+    "ref": {
+     "title": "Testuary: Agentic Test Generation with Zero-Shot Parallelism",
+     "url": "https://arxiv.org/abs/2610.14808v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Secure and functionally correct runs rise from below 15% to 72.8%--98.1%",
+    "setup": "SecReason on CWEval and SecCodeBench tasks where unassisted generation introduces vulnerabilities",
+    "source": 4,
+    "ref": {
+     "title": "SecReason: Vulnerability Detection and In-Stream Self-Repair for LLM Code Generation",
+     "url": "https://arxiv.org/abs/2610.14453v2",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Best agent catches 71.9% of bugs among its top-5 review suggestions, up from 47.7%",
+    "setup": "CRBugBench review tasks mined from repository history, over five months of model evolution",
+    "source": 5,
+    "ref": {
+     "title": "(When) Should a Software Factory be Lights-off? Benchmarking Code Review Agents on Bug Detection",
+     "url": "https://arxiv.org/abs/2610.13668v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Exploration-nudging prompts gain up to 5.8% performance at 10% higher cost",
+    "setup": "Scaling review compute on CRBugBench through prompt changes",
+    "source": 5,
+    "ref": {
+     "title": "(When) Should a Software Factory be Lights-off? Benchmarking Code Review Agents on Bug Detection",
+     "url": "https://arxiv.org/abs/2610.13668v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "DesignLore reaches an F1 of 0.259 against 0.213 for the strongest baseline, a 21.6% relative improvement",
+    "setup": "Design trade-off detection on DesignReviewBench, built from real patch-review histories",
+    "source": 1,
+    "ref": {
+     "title": "Benchmarking and Enhancing Design-Aware Code Review in the Linux Kernel",
+     "url": "https://arxiv.org/abs/2610.21925v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Each CodeHealth point was associated with 3.5% to 6.1% lower token cost",
+    "setup": "465 agent-authored PRs from 246 repositories, a frozen five-agent review-and-fix pipeline, three LLMs",
+    "source": 2,
+    "ref": {
+     "title": "CodeHealth Predicts the Token Cost of Agentic Code Review: A Pre-Registered Study of 465 Agent-Authored Pull Requests",
+     "url": "https://arxiv.org/abs/2610.21914v1",
+     "platform": "arXiv"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Passing tests is a low bar for generated code",
+    "num": "01",
+    "id": "passing-tests-is-a-low-bar-for-generated-code"
+   }
+  ],
+  [
+   "p",
+   "Picture the failure. A model writes a request handler, every unit test goes green, and the patch ships with an injection hole in it. A new arXiv paper on secure code generation names the mechanism: vulnerabilities «can persist into production when verification focuses on functional correctness». Green means the code did what the tests asked. Nothing more."
+  ],
+  [
+   "p",
+   "The pressure behind that failure is review load. A new arXiv paper on review agents opens with the observation that «software developers are spending more time reviewing code than writing code». So the question splits three ways. Can models write the tests? Can they review the diff? And can they fix what they find before a human looks?"
+  ],
+  [
+   "p",
+   "This walkthrough takes each in turn. Testuary covers test generation, and SecReason covers repair inside the reasoning stream. CRBugBench and DesignLore cover review, and a CodeHealth study prices review in tokens. We'll say what each measured. We'll also say where we'd stop believing it, and what experiment would change our minds."
+  ],
+  [
+   "h2",
+   {
+    "text": "Parallel zero-shot drafts give agents a better start",
+    "num": "02",
+    "id": "parallel-zero-shot-drafts-give-agents-a-better-start"
+   }
+  ],
+  [
+   "p",
+   "Testuary starts from a complaint about agentic test generators. Its authors note that they «improve a given test suite incrementally, so a weak starting point may lead to many iterations or insufficient tests». An agent here means a model in a loop: run the tests, read coverage, write more. A bad first suite costs you many laps."
+  ],
+  [
+   "p",
+   "We retraced the pipeline stage by stage. Testuary first «generates multiple test suites through independent, parallel zero-shot requests, checks and repairs them deterministically». Zero-shot means one prompt, no examples, no loop. Deterministic repair means plain code does the fixing, with no model call. Then it «combines them into a single suite with a novel structural merging approach». Agents only arrive after that."
+  ],
+  [
+   "p",
+   "Merging parallel drafts creates duplicates, so the next stage prunes them. «A runtime-weighted set-cover reduction removes redundant tests without losing covered lines, branches, or killed mutants». Set cover picks the cheapest group of tests that still covers every goal. Here, cost is runtime. A mutant is a copy of the code with one small deliberate change, and a test kills it by failing."
+  ],
+  [
+   "p",
+   "Finally, «two agentic phases target the remaining gaps in coverage and mutation score». Mutation score is `killed_mutants / total_mutants`, a rough proxy for bug-noticing power. We like this ordering a lot. Cheap breadth comes first. Expensive iteration comes last, and it's aimed only at the gaps the drafts left."
+  ],
+  [
+   "code",
+   {
+    "label": "A greedy sketch of runtime-weighted set cover (our illustration, not Testuary's code)",
+    "language": "python",
+    "source": "def reduce_suite(tests):\n    # each test covers goals: lines, branches and killed mutants\n    left = set().union(*(t.covers for t in tests))\n    kept = []\n    for _ in tests:\n        if not left:\n            break\n        # most new coverage per second of runtime wins\n        best = max(tests, key=lambda t: len(t.covers & left) / t.runtime)\n        kept.append(best)\n        left -= best.covers\n    return kept"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Near-total coverage leaves the believability question open",
+    "num": "03",
+    "id": "near-total-coverage-leaves-the-believability-question-open"
+   }
+  ],
+  [
+   "p",
+   "Headline numbers first. After both agentic phases, Testuary «achieves on average more than 99.9% line and branch coverage as well as a mutation score of 98.6%». The surprise sits one stage earlier: «The non-agentic first phase alone already significantly outperforms the current state-of-the-art». No loop at all. It already wins."
+  ],
+  [
+   "p",
+   "Cost moves the right way too. «Testuary needs fewer model requests and its test suites are on average smaller and faster» than the compared agentic approach. That's the set-cover stage paying for itself. Smaller suites also run faster on every commit, which is a cost you pay forever."
+  ],
+  [
+   "p",
+   "So how much should you believe? We'd trust the coverage figures, since coverage is mechanical and hard to fake. Mutation score is softer. Synthetic mutants aren't real bugs. The abstract doesn't say which projects were tested or how large they were. In our view, near-perfect scores on code of unknown size are hard to carry over to a sprawling service."
+  ],
+  [
+   "h2",
+   {
+    "text": "Security repair can happen inside the reasoning stream",
+    "num": "04",
+    "id": "security-repair-can-happen-inside-the-reasoning-stream"
+   }
+  ],
+  [
+   "p",
+   "SecReason attacks the vulnerability problem from an odd angle. Existing defenses act before generation (security prompts), during it (constrained decoding) or after it (post-hoc repair). The authors spot a gap: «Reasoning LLMs draft code early in their streamed chain of thought». That draft sits in the reasoning trace before any answer is delivered. No existing defense inspects it."
+  ],
+  [
+   "p",
+   "Think of a scanner riding the token stream. It works by «checking each statement as it is emitted and tracing dataflows across the accumulated code». When a rule trips, «SecReason interrupts generation, inserts an in-stream warning, and resumes decoding». In pseudo-code: `on each statement: if rule_fires(stmt, flows): inject(warning); keep decoding`. The model repairs its own draft without regenerating the answer."
+  ],
+  [
+   "p",
+   "Its reported jump is large. On tasks where unassisted generation introduces vulnerabilities, runs delivering secure and functionally correct code rise from below 15% to 72.8%--98.1% on CWEval and SecCodeBench. It also spends fewer tokens than post-hoc repair. We think the in-stream idea is the real contribution. Fixing a draft mid-thought beats rewriting the answer."
+  ],
+  [
+   "p",
+   "Two cautions. The gain is a conditional rate, measured on tasks where the baseline already failed. And a rule scanner only catches what its rules describe, so new vulnerability classes need new rules. Misfires get handled, at least partly: «when security rules misfire on secure code, it limits the functional regressions from false warnings». Limits, not removes."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How in-stream security repair works inside a reasoning trace.",
+    "steps": [
+     "Reasoning model drafts code inside its chain of thought",
+     "Scanner checks each emitted statement and tracks dataflows",
+     "A security rule fires on a risky statement",
+     "Generation pauses and an in-stream warning is inserted",
+     "Decoding resumes and the model repairs its own draft",
+     "Final answer delivered without regenerating the full response"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Review agents now catch most bugs in their top comments",
+    "num": "05",
+    "id": "review-agents-now-catch-most-bugs-in-their-top-comments"
+   }
+  ],
+  [
+   "p",
+   "CRBugBench measures bug detection by review agents directly. Its pipeline mines bugs from repository history, then the authors «pair each bug with its introducing PR to form a review task». The agent sees the PR that introduced the bug. Did it flag it? The benchmark holds «1,000 review tasks across 98 open-source GitHub repositories», plus 800 tasks from industry repositories."
+  ],
+  [
+   "p",
+   "The headline is strong. The best agent «catches 71.9% of bugs» among its top-5 review suggestions, up from 47.7% over five months of model evolution. That cutoff matters. A reviewer who flags every line catches everything and helps nobody, so ranking is part of the skill."
+  ],
+  [
+   "p",
+   "Weak spots are specific. The authors found that «agents remain less effective on complex changes and bugs requiring non-local reasoning». They also saw «sharp performance drops on proprietary industry repositories where project context is more often needed». Prompting helps a little: «exploration-nudging prompts gain up to 5.8% performance at 10% higher cost». We're not convinced that closes the industry gap. Context looks like the missing input."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Review agents on bug detection: what CRBugBench reports.",
+    "columns": [
+     "Condition",
+     "Reported figure"
+    ],
+    "rows": [
+     [
+      "Open-source review tasks",
+      "1,000 across 98 repositories"
+     ],
+     [
+      "Industry review tasks",
+      "800"
+     ],
+     [
+      "Best agent, bugs caught in top-5 review suggestions",
+      "71.9%"
+     ],
+     [
+      "Earlier model, five months before",
+      "47.7%"
+     ],
+     [
+      "Gain from exploration-nudging prompts",
+      "up to 5.8%"
+     ],
+     [
+      "Extra cost of those prompts",
+      "10%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Design trade-offs remain the hardest thing to review",
+    "num": "06",
+    "id": "design-trade-offs-remain-the-hardest-thing-to-review"
+   }
+  ],
+  [
+   "p",
+   "Bugs are the easier half of review. A new arXiv paper on Linux kernel review targets the other half: spotting design trade-offs, comparing alternatives and checking fit with project constraints. Its benchmark, DesignReviewBench, comes from real patch-review histories. The verdict is blunt: «design-aware review remains challenging for current coding agents»."
+  ],
+  [
+   "p",
+   "DesignLore's answer is retrieval with structure. It «extracts design decisions from historical review discussions, organizes them into an adaptive design taxonomy», then pulls relevant past decisions into new reviews. Think of it as retrieval-augmented generation, fetching relevant text into the prompt, over old review threads indexed by design concern. Old arguments become memory."
+  ],
+  [
+   "p",
+   "Those numbers are honest and small. The paper reports «the strongest baseline achieving an F1 of only 0.213 on design trade-off detection», against 0.259 for DesignLore, a 21.6% relative improvement. F1 is the harmonic mean of precision and recall. We agree the relative gain is real. Still, an absolute F1 of 0.259 leaves design review mostly unsolved."
+  ],
+  [
+   "h2",
+   {
+    "text": "Messy code makes review agents burn more tokens",
+    "num": "07",
+    "id": "messy-code-makes-review-agents-burn-more-tokens"
+   }
+  ],
+  [
+   "p",
+   "Here's a paper that measures the bill. In a pre-registered study, meaning the analysis was fixed before results came in, the authors write that «we sampled 465 agent-authored PRs from 246 repositories». Then «A frozen five-agent review-and-fix pipeline processed every PR with three different LLMs». CodeHealth is a quality metric «calibrated against human maintainability»."
+  ],
+  [
+   "p",
+   "Underneath sits a mixed model, fitted per LLM: `log(tokens) ~ CodeHealth + log(footprint) + repo_random_intercept`. A random intercept gives each repository its own baseline cost. The finding: «each CodeHealth point was associated with 3.5% to 6.1% lower token cost». Size isn't the hidden cause either, since «CodeHealth was unrelated to PR footprint, so PR size does not explain the association»."
+  ],
+  [
+   "p",
+   "Where the cost comes from is the fun part. Exploratory analyses found «agents iterated more on unhealthy code without writing more comments». More laps, same output. Then a twist stated openly: «Adjusting for the size of the scored files absorbed the association, which we interpret as mediation by file size». We think that sharpens the refactoring advice. It pays «when it changes structure and file size, not only the score»."
+  ],
+  [
+   "h2",
+   {
+    "text": "Bug-finding power is the measurement still missing",
+    "num": "08",
+    "id": "bug-finding-power-is-the-measurement-still-missing"
+   }
+  ],
+  [
+   "p",
+   "Here's what these papers leave unshown. Testuary's abstract reports coverage and mutation score, with no figure for real bugs caught. SecReason reports secure-and-correct runs on rule-checkable tasks. CRBugBench reports real, human-verified bugs, but for reviewers, not tests. Nobody has joined the two halves yet."
+  ],
+  [
+   "p",
+   "Designing that experiment is easy. Take CRBugBench's mined bugs, each paired with its introducing PR. Generate a Testuary-style suite on the commit before the PR, then apply the buggy change. Count how often a generated test fails. That's bug-finding power measured directly, with coverage left out of it."
+  ],
+  [
+   "p",
+   "One trap to watch. Generated tests assert what the code does today, so they encode current behaviour, bugs included. Generate them before the bug lands and they guard. Generate them after, and they may bless it. We'd want any follow-up to report both orderings, side by side."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Can LLMs write unit tests with good coverage?"
+  ],
+  [
+   "p",
+   "Yes, at least on the benchmarks reported so far. Testuary merges parallel zero-shot drafts, prunes them with set cover, then runs agentic phases, and it «achieves on average more than 99.9% line and branch coverage as well as a mutation score of 98.6%». A figure for real, human-verified bugs caught has not been reported."
+  ],
+  [
+   "h3",
+   "How does LLM test generation work?"
+  ],
+  [
+   "p",
+   "A model reads the code under test, writes tests, and coverage gaps feed back into another attempt. Testuary changes the start with independent zero-shot suites, deterministic checks and repairs, a structural merge, and runtime-weighted set-cover pruning. Only then do «two agentic phases target the remaining gaps in coverage and mutation score»."
+  ],
+  [
+   "h3",
+   "Are AI code review agents good at finding bugs?"
+  ],
+  [
+   "p",
+   "They're getting good at visible bugs and still struggle where context matters. On CRBugBench, the best agent «catches 71.9% of bugs» among its top-5 review suggestions, up from 47.7%. The same study saw «sharp performance drops on proprietary industry repositories where project context is more often needed», and design trade-offs remain harder still."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "SecReason: Vulnerability Detection and In-Stream Self-Repair for LLM Code Generation",
+   "url": "https://arxiv.org/abs/2610.14453v2",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "(When) Should a Software Factory be Lights-off? Benchmarking Code Review Agents on Bug Detection",
+   "url": "https://arxiv.org/abs/2610.13668v1",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Testuary: Agentic Test Generation with Zero-Shot Parallelism",
+   "url": "https://arxiv.org/abs/2610.14808v1",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Benchmarking and Enhancing Design-Aware Code Review in the Linux Kernel",
+   "url": "https://arxiv.org/abs/2610.21925v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "CodeHealth Predicts the Token Cost of Agentic Code Review: A Pre-Registered Study of 465 Agent-Authored Pull Requests",
+   "url": "https://arxiv.org/abs/2610.21914v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "can persist into production when verification focuses on functional correctness": 1,
+  "software developers are spending more time reviewing code than writing code": 2,
+  "improve a given test suite incrementally, so a weak starting point may lead to many iterations or insufficient tests": 3,
+  "generates multiple test suites through independent, parallel zero-shot requests, checks and repairs them deterministically": 3,
+  "combines them into a single suite with a novel structural merging approach": 3,
+  "A runtime-weighted set-cover reduction removes redundant tests without losing covered lines, branches, or killed mutants": 3,
+  "two agentic phases target the remaining gaps in coverage and mutation score": 3,
+  "achieves on average more than 99.9% line and branch coverage as well as a mutation score of 98.6%": 3,
+  "The non-agentic first phase alone already significantly outperforms the current state-of-the-art": 3,
+  "Testuary needs fewer model requests and its test suites are on average smaller and faster": 3,
+  "Reasoning LLMs draft code early in their streamed chain of thought": 1,
+  "checking each statement as it is emitted and tracing dataflows across the accumulated code": 1,
+  "SecReason interrupts generation, inserts an in-stream warning, and resumes decoding": 1,
+  "when security rules misfire on secure code, it limits the functional regressions from false warnings": 1,
+  "pair each bug with its introducing PR to form a review task": 2,
+  "1,000 review tasks across 98 open-source GitHub repositories": 2,
+  "catches 71.9% of bugs": 2,
+  "agents remain less effective on complex changes and bugs requiring non-local reasoning": 2,
+  "sharp performance drops on proprietary industry repositories where project context is more often needed": 2,
+  "exploration-nudging prompts gain up to 5.8% performance at 10% higher cost": 2,
+  "design-aware review remains challenging for current coding agents": 4,
+  "extracts design decisions from historical review discussions, organizes them into an adaptive design taxonomy": 4,
+  "the strongest baseline achieving an F1 of only 0.213 on design trade-off detection": 4,
+  "we sampled 465 agent-authored PRs from 246 repositories": 5,
+  "A frozen five-agent review-and-fix pipeline processed every PR with three different LLMs": 5,
+  "calibrated against human maintainability": 5,
+  "each CodeHealth point was associated with 3.5% to 6.1% lower token cost": 5,
+  "CodeHealth was unrelated to PR footprint, so PR size does not explain the association": 5,
+  "agents iterated more on unhealthy code without writing more comments": 5,
+  "Adjusting for the size of the scored files absorbed the association, which we interpret as mediation by file size": 5,
+  "when it changes structure and file size, not only the score": 5
+ },
+ "rel": [
+  [
+   "post:topic-explainer-concept-hallucination",
+   ""
+  ],
+  [
+   "post:topic-explainer-concept-tokenization",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:03:57+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21925v1",
+   "arxiv:2610.21914v1",
+   "arxiv:2610.14808v1",
+   "arxiv:2610.14453v2",
+   "arxiv:2610.13668v1"
+  ],
+  "platforms": {
+   "arXiv": 5
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "paper-walkthrough:concept/software-testing",
+  "format": "paper-walkthrough",
+  "reviewed_by": null
+ }
+}

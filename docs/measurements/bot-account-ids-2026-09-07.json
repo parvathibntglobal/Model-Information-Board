@@ -1,5 +1,6 @@
 {
   "measured_at": "2026-09-07",
+  "source_removed": "_github_comments.json was removed from the repository 2026-10-08 (GitHub handles); it is in history at 3e78e52.",
   "population": "33 accounts carrying 'bot' in the login, out of 1099 distinct accounts over 2016 comments in _github_comments.json. That export is the GitHub COMMENT fetch and not the 6,502-document corpus, so these are not corpus-wide figures.",
   "method": "GET /users/{login}, one per account, 2026-09-07",
   "type_and_suffix_disagreements": 0,

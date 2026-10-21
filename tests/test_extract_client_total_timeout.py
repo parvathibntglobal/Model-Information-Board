@@ -160,17 +160,24 @@ class TestANormalCallIsUntouched:
         assert completion.input_tokens == 10
 
     def test_the_cap_is_configurable(self, monkeypatch):
+        # Read when the client is built, so no reload is needed (#436): a
+        # reload replaced this module's classes and broke other files' tests.
         monkeypatch.setenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "42")
-        import importlib
+        assert OpenRouterClient(api_key="k").total_timeout_seconds == 42
+        monkeypatch.delenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", raising=False)
+        assert OpenRouterClient(api_key="k").total_timeout_seconds == 1200
 
-        from judge.extract import client as module
-
-        importlib.reload(module)
-        try:
-            assert module.OpenRouterClient(api_key="k").total_timeout_seconds == 42
-        finally:
-            monkeypatch.delenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", raising=False)
-            importlib.reload(module)
+    def test_the_other_two_settings_are_read_when_built_too(self, monkeypatch):
+        # The output ceiling and reasoning effort had the same import-time
+        # default; set after import, they must still take effect (#436).
+        monkeypatch.setenv("EXTRACT_MAX_OUTPUT_TOKENS", "777")
+        monkeypatch.setenv("EXTRACT_REASONING_EFFORT", "low")
+        client = OpenRouterClient(api_key="k")
+        assert (client.max_output_tokens, client.reasoning_effort) == (777, "low")
+        monkeypatch.delenv("EXTRACT_MAX_OUTPUT_TOKENS", raising=False)
+        monkeypatch.delenv("EXTRACT_REASONING_EFFORT", raising=False)
+        client = OpenRouterClient(api_key="k")
+        assert (client.max_output_tokens, client.reasoning_effort) == (16384, "none")
 
 
 class TestAStopReachesInsideTheCall:

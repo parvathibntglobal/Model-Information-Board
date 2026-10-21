@@ -183,6 +183,8 @@ def _form_table(failures, posts, variants) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    # Local only since 2026-10-08: regenerate it with scripts/model_only_sweep.py,
+    # or read it from history at 9ef9e55. It is no longer in the repository.
     parser.add_argument("--jsonl", default="model_only_sweep.jsonl")
     parser.add_argument("--hours", type=int, default=8)
     parser.add_argument("--examples", type=int, default=7)

@@ -447,9 +447,60 @@ def _poll_registry_stage(context) -> StageResult:
     from collect.registry.tombstones import apply_tombstones, load_tombstones
 
     result, tombstoned = apply_tombstones(result, load_tombstones())
+    # A VALUE NO COLUMN CAN HOLD, BEFORE THE WRITE. One overflowing price rolled
+    # back the whole upsert on 2026-10-04. Now the rest are written and the
+    # stage still ends in ERROR naming the model, whose row keeps its old price.
+    # An ERROR returned by the stage itself commits its writes (`_rollback_if_aborted`).
+    from collect.registry.openrouter import drop_unstorable
+
+    result, unstorable = drop_unstorable(result)
     counts = write_model_versions(conn, result)
-    return StageResult(OK, counts={"models": len(result.models),
-                                   "tombstoned_skipped": len(tombstoned), **counts})
+    # A `:batch` sibling priced ABOVE its base is not a discount, so
+    # `batch_discount` stays NULL for it (collect/registry/openrouter.py). Said
+    # on the stage line - a NULL there must not read as "no batch tier".
+    refused = result.batch_ratios_refused
+    details = []
+    if unstorable:
+        details.append("NOT WRITTEN, value out of column range (row keeps its old "
+                       "price): " + "; ".join(unstorable))
+    if refused:
+        details.append("batch_discount left NULL (batch priced above base): "
+                       + ", ".join(f"{mid} x{ratio}" for mid, ratio in refused))
+    return StageResult(
+        ERROR if unstorable else OK,
+        detail=" | ".join(details),
+        counts={"models": len(result.models), "tombstoned_skipped": len(tombstoned),
+                "unstorable_skipped": len(unstorable),
+                "batch_ratio_refused": len(refused), **counts},
+    )
+
+
+def _poll_catalog_stage(context) -> StageResult:
+    """OpenRouter's whole list, every output type, into `model_catalog` - the
+    Models pages' New releases come from here. Nothing downstream needs it: a
+    failure here starves those pages of new listings and nothing else."""
+    from collect.registry.catalog import poll_catalog
+    from collect.registry.openrouter import UnreadableFeed
+
+    conn = context.get("conn")
+    if conn is None:
+        return StageResult(REFUSED, "no database connection",
+                           starves="the Models pages keep yesterday's listing")
+    if not context.get("client"):
+        return StageResult(REFUSED, "no HTTP client supplied",
+                           starves="the Models pages keep yesterday's listing")
+    try:
+        counts, unstorable = poll_catalog(conn, context["client"])
+    except UnreadableFeed as e:
+        return StageResult(ERROR, str(e), starves="the Models pages keep yesterday's listing")
+    if unstorable:
+        return StageResult(
+            ERROR,
+            "NOT WRITTEN, value out of column range (row keeps its old price): "
+            + "; ".join(unstorable),
+            counts={**counts, "unstorable_skipped": len(unstorable)},
+        )
+    return StageResult(OK, counts=counts)
 
 
 def _recompute_window_stage(context) -> StageResult:
@@ -752,6 +803,7 @@ def default_stages() -> list[Stage]:
     return [
         Stage("preflight", run=_preflight_stage),
         Stage("poll-registry", run=_poll_registry_stage, needs=("preflight",)),
+        Stage("poll-catalog", run=_poll_catalog_stage, needs=("preflight",)),
         Stage("recompute-window", run=_recompute_window_stage, needs=("preflight",)),
         # BEFORE anything that could produce a claim. An empty `capability`
         # table does not degrade extraction, it refuses every insert at the

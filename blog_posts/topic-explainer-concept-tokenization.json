@@ -1,0 +1,390 @@
+{
+ "slug": "topic-explainer-concept-tokenization",
+ "status": "draft",
+ "tag": "Explainer",
+ "feat": false,
+ "title": "Tokenization Decides What a Model Can Spell and What You Pay",
+ "dek": "Every prompt is cut into vocabulary pieces before a model sees a single character. Here is how those cuts are made, why your token count depends on them, and where the idea stops working.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is tokenization in LLMs? It splits text into pieces from a fixed vocabulary, it sets how many tokens you pay for, and nobody yet has a cheap metric that reliably spots a good tokenizer.",
+ "description": "What is tokenization in LLMs? How BPE builds a vocabulary, why token counts depend on the tokenizer, and what a Tagalog experiment reveals.",
+ "keywords": [
+  "what is tokenization in LLMs",
+  "tokenization",
+  "byte pair encoding",
+  "BPE tokenizer",
+  "token count",
+  "tokenizer metrics"
+ ],
+ "kicker": "Explainer",
+ "tags": [
+  "tokenization",
+  "Explainer"
+ ],
+ "read": 7,
+ "decisions": [
+  "Record which tokenizer produced every token count you report.",
+  "Compare token IDs, not totals, when boundaries matter.",
+  "Test clever segmentation ideas against a scrambled control.",
+  "Don't trust one intrinsic metric to rank tokenizers."
+ ],
+ "layout": "explainer",
+ "arrangement": "b",
+ "special": {
+  "type": "quiz",
+  "title": "Check what you took away",
+  "items": [
+   {
+    "question": "Why can't standard BPE produce a single token for the Tagalog root inside sumulat?",
+    "options": [
+     "The root is too rare in the training text",
+     "Merges only join adjacent pieces, and the infix splits the root apart",
+     "BPE vocabularies cannot hold Tagalog characters",
+     "The root is longer than any token is allowed to be"
+    ],
+    "answer": 1,
+    "explanation": "BPE builds tokens by fusing neighbours. An infix sits inside the root, so the root's parts are never adjacent and no merge can join them."
+   },
+   {
+    "question": "During BPE training, which pair gets merged next?",
+    "options": [
+     "The most frequent adjacent pair in the training text",
+     "The longest substring that appears anywhere",
+     "A pair picked by a grammar rule"
+    ],
+    "answer": 0,
+    "explanation": "BPE is pure counting: it merges whichever neighbouring pair occurs most often, then counts again."
+   },
+   {
+    "question": "A tool prints a token count for your prompt. What must you know before trusting it?",
+    "options": [
+     "How fast the tool ran",
+     "Which tokenizer produced the count",
+     "The sampling temperature of the model"
+    ],
+    "answer": 1,
+    "explanation": "Different tokenizers split the same text differently, so a count only describes the tokenizer that made it, as ttok's old default showed."
+   },
+   {
+    "question": "What did the scrambled-morpheme control in the Tagalog study suggest?",
+    "options": [
+     "Correct morphology caused most of the gain",
+     "A randomised pseudo-infix did about as well, so correctness added no detectable gain",
+     "Scrambling made the tokenizer impossible to invert"
+    ],
+    "answer": 1,
+    "explanation": "Scrambling moved the gain by less than the noise between seeds, so the benefit came from the structure of the split, not from linguistic accuracy."
+   },
+   {
+    "question": "What is the problem with intrinsic tokenizer metrics such as fertility?",
+    "options": [
+     "They are too expensive to compute",
+     "None of them consistently predicts downstream model performance",
+     "They only work for English"
+    ],
+    "answer": 1,
+    "explanation": "Across many models and languages, no existing intrinsic metric reliably predicted benchmark results, so a cheap proxy for tokenizer quality is still missing."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Tokens are the pieces a model actually reads",
+    "num": "01",
+    "id": "tokens-are-the-pieces-a-model-actually-reads"
+   }
+  ],
+  [
+   "p",
+   "Tokenization in LLMs is the step that cuts your text into small reusable pieces, called tokens, before the model sees any of it. Picture a printer's type case stocked with fused blocks for common words and single characters for everything else. The model never sees your letters. It sees a sequence of integer IDs, one per piece."
+  ],
+  [
+   "p",
+   "Follow one word through. Say you type unbelievable. A typical tokenizer might split it into un, believ and able. Each piece maps to an ID in a fixed vocabulary, the list of every piece the tokenizer knows. Each ID then picks a row from an embedding table, a learned vector per token. Those vectors are what attention works on."
+  ],
+  [
+   "p",
+   "Output runs the same path backwards. At each step the model produces logits, one raw score per vocabulary entry. A softmax turns them into probabilities, one token is picked, and its piece is appended to the text. So the vocabulary is both the model's alphabet and its menu. Anything it says gets spelled from those pieces."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The path text takes into a model and back out as a token.",
+    "steps": [
+     "Raw text arrives as bytes",
+     "The tokenizer applies its learned merges",
+     "Each piece maps to a vocabulary ID",
+     "IDs select rows of the embedding table",
+     "The model outputs logits over the whole vocabulary",
+     "The chosen ID decodes back into a text piece"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Byte pair encoding grows its vocabulary one merge at a time",
+    "num": "02",
+    "id": "byte-pair-encoding-grows-its-vocabulary-one-merge-at-a-time"
+   }
+  ],
+  [
+   "p",
+   "Where does the vocabulary come from? Most LLM tokenizers use byte pair encoding, or BPE. Start with every word split into single characters. Count every adjacent pair across a big pile of training text. Merge the most frequent pair into a new token. Repeat until the vocabulary reaches its target size. The ordered list of merges is the tokenizer."
+  ],
+  [
+   "p",
+   "Watch it on a toy example. Suppose newest and widest are common in the training text, and low and lower show up too. The pair e+s appears in both newest and widest, so it merges first into es. Next es+t becomes est. Then l+o and lo+w build low. Now lower splits as low, e and r. Nobody told BPE about suffixes. It found est because est is frequent."
+  ],
+  [
+   "p",
+   "That's the entire algorithm: counting and merging, with no neural network involved. Modern versions start from raw bytes, so no input is ever unknown. The catch is that merges only ever join neighbours. BPE can glue adjacent characters. It can't glue pieces that sit apart inside a word. Hold that thought, because a Tagalog experiment turns it into a clean test."
+  ],
+  [
+   "code",
+   {
+    "label": "A toy BPE trainer: count adjacent pairs, merge the most frequent, repeat",
+    "language": "python",
+    "source": "from collections import Counter\n\ndef train_bpe(words, num_merges):\n    vocab = Counter(tuple(w) for w in words)   # each word starts as characters\n    merges = []\n    for _ in range(num_merges):\n        pairs = Counter()\n        for word, freq in vocab.items():\n            for a, b in zip(word, word[1:]):\n                pairs[(a, b)] += freq\n        if not pairs:\n            break\n        best = max(pairs, key=pairs.get)       # most frequent neighbours\n        merges.append(best)\n        vocab = Counter({merge(w, best): f for w, f in vocab.items()})\n    return merges                              # the ordered merges ARE the tokenizer\n\ndef merge(word, pair):\n    out, i = [], 0\n    while i < len(word):\n        if word[i:i + 2] == pair:\n            out.append(word[i] + word[i + 1]); i += 2\n        else:\n            out.append(word[i]); i += 1\n    return tuple(out)"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A token count belongs to the tokenizer that produced it",
+    "num": "03",
+    "id": "a-token-count-belongs-to-the-tokenizer-that-produced-it"
+   }
+  ],
+  [
+   "p",
+   "Here's where tokenization stops being theory and starts costing money. You pay per token, and context limits are measured in tokens. Different tokenizers split the same text differently. So a token count means nothing without the tokenizer beside it. A post on simonwillison.net about the ttok counting tool shows this with a small, very relatable bug."
+  ],
+  [
+   "p",
+   "We went through the release story step by step. The author upgraded to ttok 0.4 and «piped a file into the new version». Then came the catch: it had been «defaulting to the GPT-4 tokenizer when it should very clearly default to GPT-5/GPT-6 instead». Nothing crashed. The numbers just quietly described another model's vocabulary. Fixing the default became «a reasonable excuse to finally ship a 1.0»."
+  ],
+  [
+   "p",
+   "A second question hides here. Does GPT-6 even share the GPT-5 tokenizer? The post is careful: the vendor «haven't actually confirmed that GPT-6 uses the same tokenizer as the GPT-5 family yet». The evidence is an experiment in a commit, where «All seven GPT models (5.5, 5.6 Sol/Terra/Luna, 6 Astra/Sol/Luna) report 44,794 tokens»."
+  ],
+  [
+   "p",
+   "We agree with the post's caution: likely the same tokenizer, not certainly. Matching counts on all 31 fixtures is strong evidence of a shared vocabulary. It doesn't show that every split is identical. Two tokenizers could agree on totals and still cut differently. For a counting tool, that's fine. For anything that depends on exact token boundaries, compare the IDs."
+  ],
+  [
+   "h2",
+   {
+    "text": "Infixes break the contiguity that merges rely on",
+    "num": "04",
+    "id": "infixes-break-the-contiguity-that-merges-rely-on"
+   }
+  ],
+  [
+   "p",
+   "Tagalog makes the merge problem concrete. It marks voice with infixes, pieces inserted inside the root. The example from a new arXiv paper on morphological tokenization is «s-um-ulat 'wrote', s-in-ulat 'was written'». The root is split open by the infix. So, as the authors put it, «no sequence of BPE merges can recover it»."
+  ],
+  [
+   "p",
+   "Their fix, MorphAustro-Tok, «emits the root as a contiguous unit followed by a positional infix token». So sumulat becomes the root plus a marker for um. The comparison is a matched BPE baseline at several fertility levels, where fertility means tokens per word. The gains are 0.84, 1.49 and 3.40 chrF++ points. That's a character-level overlap score for translation."
+  ],
+  [
+   "p",
+   "Now the surprise. Does it help because the segmentation is linguistically correct? A scrambled control keeps the morph count and invertibility but randomises the pseudo-infix. Scrambling moved the gain «by less than between-seed dispersion at both controlled levels». Put plainly, wrong morphology worked about as well. The authors «detect no contribution from morphological correctness at this scale»."
+  ],
+  [
+   "p",
+   "We think that's the most interesting result here. The win seems to come from the structure of the split, not from getting the linguistics right. Token count doesn't explain it either. That's a humbling lesson for anyone designing a clever tokenizer from a grammar book. Build the scrambled control first."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What the Tagalog study ruled in and ruled out about MorphAustro-Tok's gain.",
+    "columns": [
+     "Question",
+     "Result"
+    ],
+    "rows": [
+     [
+      "Gain over matched BPE",
+      "0.84, 1.49 and 3.40 mean sentence-level chrF++ points"
+     ],
+     [
+      "Does correct morphology matter?",
+      "Scrambling moves the gain by less than between-seed dispersion"
+     ],
+     [
+      "Does token count explain it?",
+      "No: count grows as segmentation coarsens"
+     ],
+     [
+      "Does capacity explain it?",
+      "No: the scrambled arm carries more parameters and scores lower"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Intrinsic tokenizer metrics miss downstream quality",
+    "num": "05",
+    "id": "intrinsic-tokenizer-metrics-miss-downstream-quality"
+   }
+  ],
+  [
+   "p",
+   "So can you judge a tokenizer before training a model on it? The usual answer is intrinsic metrics, numbers computed on the tokenizer alone. Fertility is one. Compression, meaning characters per token, is another. A full training run per candidate tokenizer is expensive. A cheap proxy that worked would be gold."
+  ],
+  [
+   "p",
+   "A new arXiv paper puts that hope to a hard test. It analyses «approximately 200 language models trained on nine different languages», then checks each metric against benchmark results. The finding is blunt: «none consistently predicts downstream performance across model families, tasks, and languages». Read the title again. No single feature does the job."
+  ],
+  [
+   "p",
+   "The authors do offer a linguistically grounded metric that captures «aspects of tokenizer quality that existing metrics miss». They hedge it honestly too, noting its «predictive power is likely to vary across model families, languages, and tasks». We're not convinced any single number will settle this. The Tagalog result points the same way. What helps depends on the language and the task."
+  ],
+  [
+   "h2",
+   {
+    "text": "The idea stops at the edges of a fixed vocabulary",
+    "num": "06",
+    "id": "the-idea-stops-at-the-edges-of-a-fixed-vocabulary"
+   }
+  ],
+  [
+   "p",
+   "Tokenization has hard limits, and you've now met three of them. A count is only valid for one tokenizer, as ttok's stale default showed. Merges can't reach pieces that sit apart, as Tagalog infixes showed. And no cheap metric yet tells you which tokenizer trains the better model. Those are separate gaps."
+  ],
+  [
+   "p",
+   "So where does that leave you? Treat every token figure as tokenizer-specific, and write down which tokenizer produced it. When text crosses languages, expect counts and quality to shift in ways one metric won't predict. For exact boundaries, compare token IDs, not totals. These habits cost nothing."
+  ],
+  [
+   "p",
+   "What should you read or try next? Pipe one of your own prompts through a token counter, then switch tokenizers and compare the splits. Read the Tagalog paper's control design, because a scrambled arm is a pattern worth stealing for any clever preprocessing idea. Then watch for the new metrics. In our view, one that predicted model quality across languages would change how tokenizers get built."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is tokenization in LLMs?"
+  ],
+  [
+   "p",
+   "Tokenization in LLMs is the step that splits text into pieces from a fixed vocabulary and maps each piece to an integer ID. The model reads and writes only those IDs. Common words often become a single token and rare words are spelled from smaller pieces. That's why the same text can cost different amounts under different tokenizers."
+  ],
+  [
+   "h3",
+   "Do GPT-5 and GPT-6 use the same tokenizer?"
+  ],
+  [
+   "p",
+   "Probably, though it isn't officially confirmed. A post about the ttok tool notes the vendor «haven't actually confirmed that GPT-6 uses the same tokenizer as the GPT-5 family yet». A commit it cites found that seven GPT models «match each other on every one of the 31 fixtures». That points strongly to a shared tokenizer, short of certainty."
+  ],
+  [
+   "h3",
+   "How do you count tokens in a prompt?"
+  ],
+  [
+   "p",
+   "Run the text through the same tokenizer the target model uses and count the resulting IDs. Command-line counters such as ttok take text piped in and print the count. Check the default tokenizer first: ttok was once «defaulting to the GPT-4 tokenizer when it should very clearly default to GPT-5/GPT-6 instead»."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "an engineering blog",
+   "who": "simonwillison.net",
+   "what": "ttok 1.0",
+   "url": "https://simonwillison.net/2026/Oct/9/ttok/",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Does Morphological Correctness Matter for Tokenization? A Scrambled Control Study in Tagalog",
+   "url": "https://arxiv.org/abs/2610.20859v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "No Single Tokenizer Feature Reliably Predicts Downstream Language Model Performance",
+   "url": "https://arxiv.org/abs/2610.21679v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "piped a file into the new version": 1,
+  "defaulting to the GPT-4 tokenizer when it should very clearly default to GPT-5/GPT-6 instead": 1,
+  "a reasonable excuse to finally ship a 1.0": 1,
+  "haven't actually confirmed that GPT-6 uses the same tokenizer as the GPT-5 family yet": 1,
+  "All seven GPT models (5.5, 5.6 Sol/Terra/Luna, 6 Astra/Sol/Luna) report 44,794 tokens": 1,
+  "s-um-ulat 'wrote', s-in-ulat 'was written'": 2,
+  "no sequence of BPE merges can recover it": 2,
+  "emits the root as a contiguous unit followed by a positional infix token": 2,
+  "by less than between-seed dispersion at both controlled levels": 2,
+  "detect no contribution from morphological correctness at this scale": 2,
+  "approximately 200 language models trained on nine different languages": 3,
+  "none consistently predicts downstream performance across model families, tasks, and languages": 3,
+  "aspects of tokenizer quality that existing metrics miss": 3,
+  "predictive power is likely to vary across model families, languages, and tasks": 3,
+  "match each other on every one of the 31 fixtures": 1
+ },
+ "rel": [
+  [
+   "post:research-radar-concept-code-generation",
+   ""
+  ],
+  [
+   "post:topic-explainer-concept-agents",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:03:27+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21679v1",
+   "arxiv:2610.20859v1",
+   "blog:simonwillison.net|https://simonwillison.net/2026/Oct/9/ttok/"
+  ],
+  "platforms": {
+   "arXiv": 2,
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-explainer:concept/tokenization",
+  "format": "topic-explainer",
+  "reviewed_by": null
+ }
+}

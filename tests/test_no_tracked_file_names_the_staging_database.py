@@ -41,7 +41,10 @@ PLACEHOLDER_HOST = "203.0.113.5"
 #: belong to other people's systems, not ours, and whether it is published at
 #: all is a separate decision (the snapshot exclusion list). Named file by file
 #: so anything else that starts carrying one still fails.
-HARVESTED = ("_github_shape_experiment.json", "articles/")
+#: `_github_shape_experiment.json` left this tuple 2026-10-08, when the file was
+#: removed from the repository; `articles/` was removed 2026-10-05 and stays
+#: listed so a restored copy is still excluded rather than scanned.
+HARVESTED = ("articles/",)
 
 #: Users a reader cannot mistake for a real account: placeholders and the
 #: test fixtures' own inventions. `$USER` is a shell variable in

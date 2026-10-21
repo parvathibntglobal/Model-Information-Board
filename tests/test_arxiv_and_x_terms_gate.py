@@ -49,12 +49,12 @@ def _row(source_id: str):
 def _observations(source_id: str) -> dict:
     """What a healthy internal-development run observes for one source."""
     if source_id == "arxiv":
-        return {"access_path": "api", "use_basis": "internal-development-only"}
+        return {"access_path": "api", "use_basis": "public-derived-publication"}
     return {
         "access_path": "rapidapi-reseller",
         "scraper_provider": "twitter241",
         "credential_present": True,
-        "use_basis": "internal-development-only",
+        "use_basis": "public-derived-publication",
     }
 
 
@@ -101,8 +101,8 @@ def test_the_basis_is_also_a_live_precondition(ruling_id):
     made here because two more rulings now rest on the same basis.
     """
     ruling = _contract().rulings[ruling_id]
-    assert ruling.basis == "internal-development-only"
-    assert ruling.live_preconditions["use_basis"] == ["internal-development-only"]
+    assert ruling.basis == "public-derived-publication"
+    assert ruling.live_preconditions["use_basis"] == ["public-derived-publication"]
 
 
 @pytest.mark.parametrize(("source_id", "ruling_id"), sorted(PLATFORMS.items()))

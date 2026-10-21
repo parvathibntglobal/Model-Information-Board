@@ -1,0 +1,114 @@
+# The blog's live pages: claim walls, "Where engineers disagree", "This week in
+# models" and the daily quiz (judge/blog_live.py).
+#
+# ⚠ PROPOSED 2026-10-15 BY anooj, ON BRANCH anooj_010newdesign - NOT RATIFIED.
+#   contract/ gets two eyes: this file reaches main only through a reviewed PR.
+#
+# THESE PAGES ARE CODE, NOT POSTS. No model writes them and nobody reviews them
+# one by one: they re-render board rows that public pages already show, from
+# PUBLIC SOURCES ONLY (contract/publication.yaml `withheld_from_public`),
+# whatever view the deployment runs. Every figure on them is a count or a
+# measured price (rule 3), and nothing here is a score.
+#
+# ABSENT IS NOT PERMISSIVE (rule 6, rule 12): a missing key raises. There is no
+# default for any of these in code.
+
+version: "0.1"
+status: proposed
+proposed_on: 2026-10-15
+proposed_by: anooj
+
+quiz:
+  # TWO KINDS OF QUESTION (2026-10-15).
+  #
+  # GENERAL: how language models work - the kind in Google's ML Crash Course
+  # LLM quiz. Drafted by the model below, APPROVED BY A PERSON in Admin ->
+  # Quiz, and only approved questions are ever shown (judge/quiz_bank.py).
+  #
+  # FROM THE BOARD: answered by a figure this site publishes - a price, a
+  # context window, a date, a modality, a feature, a maker, or a count of
+  # engineers (judge/blog_live.py).
+  #
+  # The same day gives every reader the same questions, so a score can be
+  # compared. When fewer approved general questions exist than asked for, the
+  # page says so and fills the gap from the board - never with a draft.
+  general_per_day: 4
+  board_per_day: 1
+  # Choices shown per board question, the answer included. (A general question
+  # always has four: the table's CHECK holds it.)
+  options: 4
+  # A "which is highest / lowest" board question is used only when the answer
+  # beats the runner-up by at least this much, so it is never a rounding error.
+  margin_percent: 25
+  # "Listed most recently" needs at least this many days between the newest
+  # choice and the next.
+  gap_days: 7
+
+quiz_drafter:
+  # The model that drafts general questions, via OpenRouter. Its spend is the
+  # `quiz` stage of spend_ledger, outside the daily extraction cap.
+  model: deepseek/deepseek-v4-flash
+  # Questions asked for per call. One call covers one topic.
+  per_call: 8
+  # The topics questions are drafted on, in the order the Admin list offers.
+  topics:
+    - Tokens and tokenization
+    - Embeddings and vector search
+    - Attention and the transformer
+    - Context windows and long inputs
+    - Sampling - temperature, top-p and decoding
+    - Pre-training, fine-tuning and RLHF
+    - Parameter-efficient fine-tuning (LoRA and adapters)
+    - Inference efficiency - KV cache, quantization, batching
+    - Mixture of experts and model scale
+    - Prompting - few-shot, chain-of-thought, system prompts
+    - Retrieval-augmented generation
+    - Tool calling, structured output and agents
+    - Evaluation and benchmarks
+    - Hallucination, safety and prompt injection
+    - Cost - tokens, pricing and prompt caching
+
+this_week:
+  # How many past weeks the page offers, the current week included.
+  weeks_shown: 12
+  # Retirement dates shown: those falling within this many days after the
+  # week ends, as the catalogue reads TODAY (we keep no history of when a date
+  # was announced, so "announced this week" cannot be said).
+  retiring_within_days: 56
+  # The busiest models of the week, by engineers who wrote about them that week.
+  models_listed: 10
+
+known_issues:
+  # A problem appears on a model's known-issues page once at least this many
+  # distinct engineers report it (public sources). One report is a report,
+  # not yet an issue; the claim wall still shows it.
+  min_engineers: 2
+
+answers:
+  # THE Q&A PAGES: "Does <model> support <feature>?", answered from what the
+  # catalogue ADVERTISES and what engineers REPORT, side by side.
+  #
+  # ⚠ WHICH BOARD TOPICS COUNT AS "THE SAME THING" AS A FEATURE IS A RULING
+  #   ABOUT MEANING (rule 10), so it is written here by a person and never
+  #   computed. PROPOSED 2026-10-15 by anooj; the slugs are the board's own.
+  #   A feature with no topics listed shows the advertised half only, and
+  #   says that no board topic is mapped to it.
+  features:
+    - key: tools
+      label: tool calling
+      board_slugs: [function-calling, tool-calling, tool-use]
+    - key: structured_output
+      label: structured output
+      board_slugs: [structured-output]
+    - key: vision_input
+      label: image input
+      board_slugs: [vision]
+    - key: prompt_caching
+      label: prompt caching
+      board_slugs: [prompt-caching, input-caching]
+    - key: reasoning
+      label: a reasoning mode
+      # `reasoning` on the board is reasoning QUALITY, not the mode a provider
+      # switches on, so it is deliberately not mapped here.
+      board_slugs: []
+

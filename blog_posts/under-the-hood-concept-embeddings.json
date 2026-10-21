@@ -1,0 +1,443 @@
+{
+ "slug": "under-the-hood-concept-embeddings",
+ "status": "draft",
+ "tag": "Under the hood",
+ "feat": false,
+ "title": "Embeddings Rank by One Dot Product, and Its Geometry Sets What You Find",
+ "dek": "An embedding turns text into a point, and vector search returns the nearest points. That single score has a fixed shape, and new work shows where the shape helps and where it hides things.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What are embeddings? Vectors that put similar meanings close together, so search becomes a nearest-neighbour lookup. They capture meaning, miss structure, and the shape of the score decides which queries they serve.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+TmVhciBpbiBtZWFuaW5nIGlzIG5vdCB0aGUgc2FtZSBhcyBjb25uZWN0ZWQ8L3RpdGxlPgogIDxkZXNjPkxlZnQ6IGFuIGVtYmVkZGluZyBzcGFjZSB3aGVyZSB0aGUgcXVlcnkgbGFuZHMgbmVhciBzaW1pbGFyIHRleHQgYnV0IGZhciBmcm9tIHRoZSB2dWxuZXJhYmxlIGZ1bmN0aW9uLiBSaWdodDogYSBjYWxsIGdyYXBoIHdoZXJlIHRoZSByb3V0ZSBoYW5kbGVyIHJlYWNoZXMgdGhlIHZ1bG5lcmFibGUgZnVuY3Rpb24gaW4gYSBmZXcgaG9wcy48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnJnIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiPkVtYmVkZGluZ3MgbWVhc3VyZSBuZWFybmVzcywgbm90IGxpbmtzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5UaGUgc2FtZSB0d28gcGllY2VzIG9mIGNvZGUsIHNlZW4gYnkgYSB2ZWN0b3IgaW5kZXggYW5kIGJ5IGEgZ3JhcGg8L3RleHQ+CgogIDxyZWN0IHg9IjYwIiB5PSIxNTAiIHdpZHRoPSI1MjAiIGhlaWdodD0iMzUwIiByeD0iMTQiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjMyMCIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+RW1iZWRkaW5nIHNwYWNlPC90ZXh0PgogIDxjaXJjbGUgY3g9IjE3MCIgY3k9IjMwMCIgcj0iMTQiIGZpbGw9IiM3YWEyZmYiLz4KICA8dGV4dCB4PSIxNzAiIHk9IjM0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPnJvdXRlIGhhbmRsZXI8L3RleHQ+CiAgPGNpcmNsZSBjeD0iMjE1IiBjeT0iMjY1IiByPSI5IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiLz4KICA8Y2lyY2xlIGN4PSIxMzUiIGN5PSIyNTUiIHI9IjkiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIvPgogIDxjaXJjbGUgY3g9IjIzMCIgY3k9IjMyMCIgcj0iOSIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0Ii8+CiAgPHRleHQgeD0iMTg1IiB5PSIyMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1Ij5vdGhlciBIVFRQIGNvZGU8L3RleHQ+CiAgPGNpcmNsZSBjeD0iNDcwIiBjeT0iNDIwIiByPSIxNCIgZmlsbD0iI2ZmN2I3MiIvPgogIDx0ZXh0IHg9IjQ3MCIgeT0iNDYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+Y3J5cHRvIGRlY29kZSByb3V0aW5lPC90ZXh0PgogIDxsaW5lIHgxPSIxODUiIHkxPSIzMTAiIHgyPSI0NTUiIHkyPSI0MTUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI4IDYiLz4KICA8dGV4dCB4PSIzMzAiIHk9IjM5NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPmNvc2luZSBhYm91dCAwLjEyPC90ZXh0PgoKICA8cmVjdCB4PSI2MjAiIHk9IjE1MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSIzNTAiIHJ4PSIxNCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iODgwIiB5PSIxODUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5DYWxsIGdyYXBoPC90ZXh0PgogIDxyZWN0IHg9IjY1MCIgeT0iMjMwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjU2IiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzIwIiB5PSIyNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij5yb3V0ZSBoYW5kbGVyPC90ZXh0PgogIDxyZWN0IHg9IjgxMCIgeT0iMzIwIiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjU2IiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODgwIiB5PSIzNTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij5zZXNzaW9uIGNoZWNrPC90ZXh0PgogIDxyZWN0IHg9Ijk3MCIgeT0iNDEwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjU2IiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTA0NSIgeT0iNDQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+ZGVjb2RlIHJvdXRpbmU8L3RleHQ+CiAgPGxpbmUgeDE9Ijc0MCIgeTE9IjI4NiIgeDI9IjgzMCIgeTI9IjMxOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyZykiLz4KICA8bGluZSB4MT0iOTEwIiB5MT0iMzc2IiB4Mj0iOTkwIiB5Mj0iNDA4IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnJnKSIvPgogIDx0ZXh0IHg9Ijc2MCIgeT0iNDIwIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+YSBwYXRoIGV4aXN0czwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjUzNSIgd2lkdGg9IjEwODAiIGhlaWdodD0iNTYiIHJ4PSIxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iNjAwIiB5PSI1NzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5BIGRpc3RhbmNlIGNhbiByYW5rIG1lYW5pbmcuIE9ubHkgYW4gZWRnZSBjYW4gc2hvdyB0aGF0IG9uZSB0aGluZyByZWFjaGVzIGFub3RoZXIuPC90ZXh0Pgo8L3N2Zz4K",
+  "alt": "Left, an embedding space placing a route handler far from a decode routine; right, a call graph linking them in hops.",
+  "caption": "The same two pieces of code look unrelated as vectors and connected as a graph.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What are embeddings? How text becomes vectors, how vector search scores them, why query geometry matters, and where graphs and agent loops step in.",
+ "keywords": [
+  "what are embeddings",
+  "Embeddings and vector search",
+  "embeddings",
+  "vector search",
+  "cosine similarity",
+  "dense retrieval",
+  "agentic retrieval"
+ ],
+ "kicker": "Under the hood",
+ "tags": [
+  "embeddings",
+  "Under the hood"
+ ],
+ "read": 7,
+ "decisions": [
+  "Check how differently your queries and documents are phrased before settling on one shared encoder.",
+  "Add a graph query when the answer depends on links, direction or hop count.",
+  "Reserve agentic retrieval for hard queries that can afford minutes and a large token bill.",
+  "Let embeddings narrow the candidates and let a model or a rule make the final call."
+ ],
+ "layout": "mechanism",
+ "arrangement": "b",
+ "special": {
+  "type": "lab",
+  "title": "Try it yourself",
+  "items": [
+   {
+    "step": "Embed a small collection",
+    "how": "In a notebook, load any small open embedding model and embed a few dozen short texts you write yourself.",
+    "look_for": "One fixed-length vector per text, however long or short it is."
+   },
+   {
+    "step": "Search by cosine",
+    "how": "Embed a few queries and rank your texts with the numpy top-k function shown above.",
+    "look_for": "Paraphrases of a document rank it near the top even with no shared words."
+   },
+   {
+    "step": "Break it with structure",
+    "how": "Write documents that describe a chain, such as A calls B and B calls C, then ask which items connect A to C.",
+    "look_for": "Results that mention A or C by wording, with no sign of the path between them."
+   },
+   {
+    "step": "Fix it with a graph",
+    "how": "Store the same links as edges in a Python dictionary and run a breadth-first search from A.",
+    "look_for": "An exact path, and a clear empty answer when no path exists."
+   },
+   {
+    "step": "Try a dual head",
+    "how": "On top of frozen embeddings, train one shared linear layer and a pair of separate query and document layers on labelled pairs.",
+    "look_for": "The shared layer holding its own with few pairs, and the dual pair pulling ahead as you add more."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A similarity of 0.12 hid a live attack path",
+    "num": "01",
+    "id": "a-similarity-of-0-12-hid-a-live-attack-path"
+   }
+  ],
+  [
+   "p",
+   "A security team traced a JWT flaw through a web service. Their write-up put the cosine similarity between the public route handler and the vulnerable decode routine at about 0.12. A pure vector search would call that pair unrelated. Yet a call path ran from the route to the flaw in a few hops. That gap is the clearest way into what embeddings are [3]."
+  ],
+  [
+   "p",
+   "An embedding is a list of numbers a model assigns to a piece of text. Texts with similar meaning land near each other in that space. Vector search embeds your query the same way, then returns the stored items closest to it. Closeness is usually cosine similarity: the dot product of two vectors divided by both their lengths [3]."
+  ],
+  [
+   "p",
+   "That one score carries a lot. It sits under question answering, search by meaning and retrieval-augmented generation. It also has a fixed shape, and the shape decides what a search can find. We think many retrieval failures start right there, before any language model reads the results. Let's follow one query through the machine and see where it bends [1]."
+  ],
+  [
+   "h2",
+   {
+    "text": "The encoder turns text into a point and the index finds neighbours",
+    "num": "02",
+    "id": "the-encoder-turns-text-into-a-point-and-the-index-finds-neig"
+   }
+  ],
+  [
+   "p",
+   "Here is the pipeline. You split documents into chunks and run each through an encoder model. Each chunk becomes a vector, and the vectors go into an index. At query time, the query is embedded too. The index returns the top few chunks by score, and those land in your model's prompt. One builder describes exactly this as the default stack for agents [2]."
+  ],
+  [
+   "p",
+   "Notice what the score cannot see. It compares two points. It has no idea of direction, order, or which item calls which. A crypto-forensics builder makes the point with wallets. Similarity can link a laundering phrase to a mixer's name, but it cannot show that money moved between two addresses. For documentation search, the same builder says vectors work fine [2]."
+  ],
+  [
+   "code",
+   {
+    "label": "Cosine top-k search in a few lines of numpy (illustrative)",
+    "language": "python",
+    "source": "import numpy as np\n\ndef top_k(query_vec, doc_vecs, k):\n    q = query_vec / np.linalg.norm(query_vec)\n    D = doc_vecs / np.linalg.norm(doc_vecs, axis=1, keepdims=True)\n    scores = D @ q                     # cosine similarity per document\n    best = np.argsort(-scores)[:k]     # highest scores first\n    return best, scores[best]\n\n# doc_vecs and query_vec come from the same encoder model"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The path a document and a query take through a vector search system.",
+    "steps": [
+     "Split documents into chunks",
+     "Run each chunk through the encoder model",
+     "Store the vectors in an index",
+     "Embed the incoming query with the same encoder",
+     "Rank stored vectors by cosine similarity",
+     "Paste the top chunks into the model's prompt"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Shared or dual projections set the shape of similarity",
+    "num": "03",
+    "id": "shared-or-dual-projections-set-the-shape-of-similarity"
+   }
+  ],
+  [
+   "p",
+   "A new arXiv paper models dense retrieval as low-rank bilinear scoring, `score = q^T W d`. Here q and d are the query and document vectors. If one projection embeds both sides, W comes out positive-semidefinite. The score is then symmetric, so a question and its answer must sit close in one geometry. Separate projections per side can realise any low-rank operator [1]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+U2hhcmVkIHZlcnN1cyBkdWFsIHByb2plY3Rpb25zIGZvciBxdWVyaWVzIGFuZCBkb2N1bWVudHM8L3RpdGxlPgogIDxkZXNjPkxlZnQ6IG9uZSBwcm9qZWN0aW9uIG1hcHMgcXVlcmllcyBhbmQgZG9jdW1lbnRzIGludG8gb25lIHNwYWNlLCBnaXZpbmcgYSBzeW1tZXRyaWMgc2NvcmUuIFJpZ2h0OiBzZXBhcmF0ZSBwcm9qZWN0aW9ucyBwZXIgc2lkZSBjYW4gbW9kZWwgYSByb3RhdGVkIHJlbGF0aW9uLCBhdCB0aGUgY29zdCBvZiBtb3JlIHBhcmFtZXRlcnMgdG8gbGVhcm4uPC9kZXNjPgogIDxkZWZzPgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPk9uZSBwcm9qZWN0aW9uIG9yIHR3bz88L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPlRoZSBjaG9pY2UgZml4ZXMgd2hpY2ggcXVlcnktZG9jdW1lbnQgcmVsYXRpb25zIHRoZSBzY29yZSBjYW4gZXhwcmVzczwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjE0MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSIzMzAiIHJ4PSIxNCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIzMjAiIHk9IjE4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlNoYXJlZDwvdGV4dD4KICA8cmVjdCB4PSIxMDAiIHk9IjIxNSIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI0NCIgcng9IjgiIGZpbGw9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjI0MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnF1ZXJ5PC90ZXh0PgogIDxyZWN0IHg9IjEwMCIgeT0iMjk1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjE2MCIgeT0iMzIzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+ZG9jdW1lbnQ8L3RleHQ+CiAgPHJlY3QgeD0iMjgwIiB5PSIyNDUiIHdpZHRoPSIxMTAiIGhlaWdodD0iNjQiIHJ4PSIxMCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIzMzUiIHk9IjI4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlA8L3RleHQ+CiAgPGxpbmUgeDE9IjIyMCIgeTE9IjIzNyIgeDI9IjI3NSIgeTI9IjI2NSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSIyMjAiIHkxPSIzMTciIHgyPSIyNzUiIHkyPSIyOTIiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iMzkwIiB5MT0iMjc3IiB4Mj0iNDQ1IiB5Mj0iMjc3IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHRleHQgeD0iNTEwIiB5PSIyODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5zY29yZTwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnBvc2l0aXZlLXNlbWlkZWZpbml0ZSBvcGVyYXRvcjwvdGV4dD4KICA8dGV4dCB4PSIzMjAiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmZld2VyIHBhcmFtZXRlcnM6IHdpbnMgd2l0aCBsaXR0bGUgZGF0YTwvdGV4dD4KCiAgPHJlY3QgeD0iNjIwIiB5PSIxNDAiIHdpZHRoPSI1MjAiIGhlaWdodD0iMzMwIiByeD0iMTQiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODgwIiB5PSIxODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5EdWFsPC90ZXh0PgogIDxyZWN0IHg9IjY2MCIgeT0iMjE1IiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjQ0IiByeD0iOCIgZmlsbD0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjcyMCIgeT0iMjQzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+cXVlcnk8L3RleHQ+CiAgPHJlY3QgeD0iNjYwIiB5PSIyOTUiIHdpZHRoPSIxMjAiIGhlaWdodD0iNDQiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iNzIwIiB5PSIzMjMiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5kb2N1bWVudDwvdGV4dD4KICA8cmVjdCB4PSI4MzAiIHk9IjIxMiIgd2lkdGg9IjkwIiBoZWlnaHQ9IjUwIiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODc1IiB5PSIyNDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5QcTwvdGV4dD4KICA8cmVjdCB4PSI4MzAiIHk9IjI5MiIgd2lkdGg9IjkwIiBoZWlnaHQ9IjUwIiByeD0iMTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iODc1IiB5PSIzMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5QZDwvdGV4dD4KICA8bGluZSB4MT0iNzgwIiB5MT0iMjM3IiB4Mj0iODI1IiB5Mj0iMjM3IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9Ijc4MCIgeTE9IjMxNyIgeDI9IjgyNSIgeTI9IjMxNyIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxsaW5lIHgxPSI5MjAiIHkxPSIyMzciIHgyPSIxMDA1IiB5Mj0iMjcyIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjkyMCIgeTE9IjMxNyIgeDI9IjEwMDUiIHkyPSIyODUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8dGV4dCB4PSIxMDYwIiB5PSIyODQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5zY29yZTwvdGV4dD4KICA8dGV4dCB4PSI4ODAiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmFueSBsb3ctcmFuayBvcGVyYXRvcjwvdGV4dD4KICA8dGV4dCB4PSI4ODAiIHk9IjQyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPm1vcmUgZnJlZWRvbTogd2lucyBhcyB0cmFpbmluZyBkYXRhIGdyb3dzPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iNTA1IiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSI1NiIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjU0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPlRoZSBtb3JlIHlvdXIgcXVlcmllcyBhcmUgcGhyYXNlZCB1bmxpa2UgeW91ciBkb2N1bWVudHMsIHRoZSBtb3JlIHRoZSBzZWNvbmQgcHJvamVjdGlvbiBlYXJuczwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "One projection P maps query and document into a shared space; two projections Pq and Pd map each side separately.",
+    "caption": "A shared projection is cheaper to learn; a second projection can follow queries phrased unlike their documents.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "Shared projections induce positive-semidefinite operators, whereas dual projections realize arbitrary low-rank operators.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "So why not always go dual? Extra freedom costs data. The authors prove dual has lower risk exactly when the squared directional signal outweighs the cost of its added degrees of freedom. In their grids, shared won 13 of 16 cells at a sample size of 32. Dual won all 32 cells at 1024 and at 2048 [1]."
+  ],
+  [
+   "p",
+   "The edge also tracks phrasing. As query rotation rose from 0 to 90 degrees, dual's mean NDCG@10 advantage over shared grew steeply. All 168 comparable risk curves moved toward dual as training data grew. Their selector, CARS, cut held-out regret by 49-96% against both fixed choices. It picked the right geometry with 90.1% mean accuracy. We find this the most useful result here for anyone building search [1]."
+  ],
+  [
+   "code",
+   {
+    "label": "Shared against dual projection scoring (illustrative)",
+    "language": "python",
+    "source": "def score_shared(q, d, P):      # one projection for both sides\n    return (P @ q) @ (P @ d)     # W = P.T @ P: positive-semidefinite\n\ndef score_dual(q, d, Pq, Pd):   # one projection per side\n    return (Pq @ q) @ (Pd @ d)   # W = Pq.T @ Pd: any low-rank operator"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "When shared and dual query-document projections won in the bias-variance study.",
+    "columns": [
+     "Setting",
+     "What the authors found"
+    ],
+    "rows": [
+     [
+      "Sample size 32",
+      "Shared projection won 13 of 16 cells"
+     ],
+     [
+      "Sample sizes 1024 and 2048",
+      "Dual projections won all 32 cells"
+     ],
+     [
+      "Query rotation from 0 to 90 degrees",
+      "Dual's mean NDCG@10 advantage grew steeply"
+     ],
+     [
+      "CARS selector against both fixed choices",
+      "49-96% lower held-out regret, 90.1% mean selection accuracy"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Graphs answer the questions a distance cannot",
+    "num": "04",
+    "id": "graphs-answer-the-questions-a-distance-cannot"
+   }
+  ],
+  [
+   "p",
+   "Two hackathon write-ups took this lesson to graph databases. The security team modelled code, dependencies, endpoints and owners as nodes and edges. Reachability became a path query. Can a public endpoint reach the flawed function through up to four call hops? They report that query ran in under 30 milliseconds on their cloud instance [3]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+QSBncmFwaCBxdWVyeSB3YWxrcyB0cmFuc2ZlcnMgdGhhdCBhIHZlY3RvciBpbmRleCBjYW5ub3Qgc2VlPC90aXRsZT4KICA8ZGVzYz5BIGZsYWdnZWQgc291cmNlIHdhbGxldCBzZW5kcyBmdW5kcyB0aHJvdWdoIGEgbXVsZSBhbmQgYSBjb25zb2xpZGF0b3IgdG8gdGhlIHRhcmdldCB3YWxsZXQ7IGVhY2ggaG9wIGlzIGEgdHJhbnNmZXIgZWRnZSwgZmlsdGVyZWQgZm9yIGR1c3QgYW5kIGV4Y2hhbmdlIHdhbGxldHMsIGFuZCB3ZWlnaHRlZCBkb3duIGJ5IGRpc3RhbmNlLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIj5BIHBhdGggcXVlcnksIGhvcCBieSBob3A8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPlVwIHRvIGZvdXIgdHJhbnNmZXIgZWRnZXMgZnJvbSBhIGZsYWdnZWQgc291cmNlIHRvIHRoZSB3YWxsZXQgYmVpbmcgY2hlY2tlZDwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjIzMCIgd2lkdGg9IjIxMCIgaGVpZ2h0PSI5MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE2NSIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+RmxhZ2dlZCBzb3VyY2U8L3RleHQ+CiAgPHRleHQgeD0iMTY1IiB5PSIyOTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij5taXhlciBvciBtdWxlPC90ZXh0PgoKICA8cmVjdCB4PSIzNTAiIHk9IjIzMCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI5MCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQ0NSIgeT0iMjgyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+TXVsZTwvdGV4dD4KCiAgPHJlY3QgeD0iNjIwIiB5PSIyMzAiIHdpZHRoPSIyMTAiIGhlaWdodD0iOTAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI3MjUiIHk9IjI4MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPkNvbnNvbGlkYXRvcjwvdGV4dD4KCiAgPHJlY3QgeD0iOTEwIiB5PSIyMzAiIHdpZHRoPSIyMzAiIGhlaWdodD0iOTAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxMDI1IiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5UYXJnZXQgd2FsbGV0PC90ZXh0PgogIDx0ZXh0IHg9IjEwMjUiIHk9IjI5OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPnRoZSBjb3VudGVycGFydHk8L3RleHQ+CgogIDxsaW5lIHgxPSIyNzAiIHkxPSIyNzUiIHgyPSIzNDUiIHkyPSIyNzUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iNTQwIiB5MT0iMjc1IiB4Mj0iNjE1IiB5Mj0iMjc1IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPGxpbmUgeDE9IjgzMCIgeTE9IjI3NSIgeDI9IjkwNSIgeTI9IjI3NSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8cmVjdCB4PSI2MCIgeT0iMzgwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjIzMCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+RHJvcCBkdXN0PC90ZXh0PgogIDx0ZXh0IHg9IjIzMCIgeT0iNDQ1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+dHJhbnNmZXJzIHVuZGVyICQxMCBpZ25vcmVkPC90ZXh0PgogIDxyZWN0IHg9IjQzMCIgeT0iMzgwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9IjYwMCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+U2tpcCBleGNoYW5nZXM8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSI0NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij5ubyBob3Qgd2FsbGV0IG1pZC1wYXRoPC90ZXh0PgogIDxyZWN0IHg9IjgwMCIgeT0iMzgwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjkwIiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIvPgogIDx0ZXh0IHg9Ijk3MCIgeT0iNDE1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+RGVjYXkgYnkgZGlzdGFuY2U8L3RleHQ+CiAgPHRleHQgeD0iOTcwIiB5PSI0NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij53ZWlnaHQgMC42IHRvIHRoZSBwb3dlciBvZiBob3BzPC90ZXh0PgoKICA8dGV4dCB4PSI2MDAiIHk9IjU0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPlNpbWlsYXJpdHkgY2FuIHNheSBhIG1peGVyIHNvdW5kcyBsaWtlIGxhdW5kZXJpbmcuIE9ubHkgdGhlIGVkZ2VzIHNob3cgbW9uZXkgbW92ZWQuPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A flagged wallet sends funds through a mule and a consolidator to a target, with dust, exchange and decay filters.",
+    "caption": "A graph query answers the hop-by-hop question that a similarity score has no way to ask.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "That result is specific to my test environment and query; performance will vary with graph size, query complexity, and infrastructure.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "The forensics builder did the same with wallets. The query walks up to four transfer edges from a flagged source to the target wallet. It drops transfers under $10 and skips paths through exchange hot wallets. Each source's weight decays by a factor of 0.6 per hop. It returned in 4 milliseconds in testing, and the builder warns that this figure will vary [2]."
+  ],
+  [
+   "p",
+   "We back the mechanism and doubt some of the numbers. The security write-up headlines a 39.7x speedup across sessions. Most of it comes from skipping a 6,035 ms pytest run by matching a cached hash on the warm run. That measures a cache, not graph retrieval. The forensics builder's closing advice is the sound one: pair vectors for meaning with graphs for links [3, 2]."
+  ],
+  [
+   "h2",
+   {
+    "text": "A fine-tuned embedding narrows an ontology to fixable axioms",
+    "num": "05",
+    "id": "a-fine-tuned-embedding-narrows-an-ontology-to-fixable-axioms"
+   }
+  ],
+  [
+   "p",
+   "Embeddings also earn their keep as candidate generators. A new arXiv paper tackles subsumption errors in CASTON, an ontology for the casting domain. A subsumption error places a class under the wrong parent concept. The workflow fine-tunes an ontology embedding model on CASTON. That model then picks a limited set of suspect axioms, plus possible replacements for each [4]."
+  ],
+  [
+   "p",
+   "A language model reads each candidate and suggests a repair. The default setup paired the fine-tuned OnT model with Qwen3-8B. Both domain experts approved every one of the six replacements it marked high-confidence. The authors call it a small expert evaluation, and it is. Still, the division of labour is the lesson. Geometry narrows the search cheaply, and the model reasons only where geometry flagged trouble [4]."
+  ],
+  [
+   "h2",
+   {
+    "text": "An agent loop buys recall with minutes and tokens",
+    "num": "06",
+    "id": "an-agent-loop-buys-recall-with-minutes-and-tokens"
+   }
+  ],
+  [
+   "p",
+   "The heaviest fix wraps the retriever in a reasoning loop. A new arXiv paper runs a language model and a retriever together in a ReAct loop. The model searches, reads, rethinks the query and searches again. With the same embedding model, this beat standard retrieval by 8.7 points of nDCG@10. That metric scores how well the top ten results are ordered, weighting the first ones most [5]."
+  ],
+  [
+   "p",
+   "It also travelled well. Specialised retrieval methods struggled out of domain, but the same agent pipeline held its own on two public leaderboards, ViDoRe v3 and BRIGHT. The bill is steep, though. An average query took 107.4 seconds, against 0.67 seconds for standard retrieval. Each query also consumed 764.1K input tokens and 5.8K output tokens [5]."
+  ],
+  [
+   "p",
+   "In our view the agent is patching the blind spot the geometry paper describes. When one vector cannot express what you meant, the model rewrites the query until a vector can. That is a fair trade for a hard research question. It is a poor one for a search box that must answer in under a second."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Average time per query for standard and agentic retrieval, in seconds.",
+    "unit": "seconds per query",
+    "bars": [
+     {
+      "label": "Standard dense retrieval",
+      "value": 0.67
+     },
+     {
+      "label": "Agentic retrieval in a ReAct loop",
+      "value": 107.4
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The right geometry for your own queries is still unmeasured",
+    "num": "07",
+    "id": "the-right-geometry-for-your-own-queries-is-still-unmeasured"
+   }
+  ],
+  [
+   "p",
+   "Three things remain open. First, nobody can yet tell you the right geometry for your own collection in advance. The theory says it turns on directional signal and data size, and CARS estimates that signal from training pairs. The experiments spanned several data collections and embedding models, but not your query mix [1]."
+  ],
+  [
+   "p",
+   "Second, the agent loop needs a cheaper form, and its own authors call for exactly that. Third, the graph projects report speed and not retrieval quality. Neither write-up scores its answers against a vector baseline on the same questions. So the size of the graph advantage on real queries is still a guess [5, 3, 2]."
+  ],
+  [
+   "p",
+   "You can measure the first one this week. Take a set of real queries with known good documents. Score them with one shared projection and with separate query and document heads. Compare NDCG@10, the metric the geometry study used, as you add training pairs. Where the two curves cross is your answer [1]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What are embeddings?"
+  ],
+  [
+   "p",
+   "Embeddings are lists of numbers a model assigns to text so that similar meanings land close together. Vector search embeds a query the same way and returns the nearest stored items, usually by cosine similarity. They capture meaning well and miss structure, such as which function calls which, or which wallet paid which [3, 2]."
+  ],
+  [
+   "h3",
+   "What is the difference between vector search and graph search?"
+  ],
+  [
+   "p",
+   "Vector search ranks items by how close their embeddings are, so it finds similar meaning. Graph search follows explicit edges, so it can show a path exists, such as funds moving through up to four wallets. Builders who tried both suggest combining them: vectors for meaning, graphs for relationships [2]."
+  ],
+  [
+   "h3",
+   "Should queries and documents use the same embedding model?"
+  ],
+  [
+   "p",
+   "It depends on how much training data you have. A shared projection tends to win with little data, and separate projections win as data grows. In one study, shared won 13 of 16 cells at a sample size of 32. Dual projections won all 32 cells at 1024 and 2048 [1]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "When Does Dense Retrieval Need Asymmetric Geometry? A Bias-Variance Theory of Shared and Dual Projections",
+   "url": "https://huggingface.co/papers/2609.32488",
+   "posted": "2026-09-26"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "theweb3wizard00",
+   "what": "Why Vector Search Guesses and Graphs Prove: What Building ClearPath Taught Me",
+   "url": "https://dev.to/theweb3wizard00/why-vector-search-guesses-and-graphs-prove-what-building-clearpath-taught-me-42lj",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "sudhanshupoddar29code",
+   "what": "Beyond Vector Search: Building an Autonomous Enterprise Security Swarm with FalkorDB Graph Memory",
+   "url": "https://dev.to/sudhanshupoddar29code/beyond-vector-search-building-an-autonomous-enterprise-security-swarm-with-falkordb-graph-memory-3jh4",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Ontology Refinement with Embeddings and LLMs: A Case Study on CASTON",
+   "url": "https://arxiv.org/abs/2610.21466v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Beyond Semantic Similarity: Performance and Costs of Agentic Retrieval for Complex Tasks",
+   "url": "https://huggingface.co/papers/2610.05750",
+   "posted": "2026-10-05"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T02:05:51+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21466v1",
+   "hfpapers:2610.05750",
+   "hfpapers:2609.32488",
+   "devto:4870544",
+   "devto:4871355"
+  ],
+  "platforms": {
+   "arXiv": 1,
+   "Hugging Face": 2,
+   "dev.to": 2
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "under-the-hood:concept/embeddings",
+  "format": "under-the-hood",
+  "reviewed_by": null
+ }
+}

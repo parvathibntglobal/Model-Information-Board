@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams, useLocation } from 'react-router-dom'
-import { modelPage, listModels, fetchAll, BoardUnreadable } from '../api'
-import FetchPanel from '../components/FetchPanel'
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom'
+import { modelPage, modelUrl, listModels, fetchAll, freshness, ApiError, BoardUnreadable } from '../api'
+import NotFound from '../components/NotFound'
 import ModelEvidence from '../components/ModelEvidence'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
+import Freshness from '../components/Freshness'
+import { useHead } from '../seo/head'
+import { modelPage as modelHead } from '../seo/pages'
 
 /** "Last fetched N days ago", from the shared fetch log (judge/fetch_history.py).
  *
@@ -32,20 +35,24 @@ const OUTCOME = {
   'no end recorded': 'has no end recorded',
 }
 
-function LastFetched({ value }) {
-  const style = { fontSize: 'var(--fs-sm)' }
-  const where = ', as recorded in the shared log.'
+function LastFetched({ value, style: extra }) {
+  // SHORT, IN THE HEADER (2026-10-13): one line under the freshness dates.
+  // "As recorded in the shared log" moved to the hover title - still said,
+  // no longer a sentence on the page.
+  const style = { fontSize: 'var(--fs-xs)', margin: 0, ...extra }
+  const where = ''
+  const title = 'Last fetch, as recorded in the shared log.'
   if (value == null) {
-    return <p className="dim" style={style}>When this model was last fetched could not be read from the shared log.</p>
+    return <p className="dim" style={style}>Last check could not be read from the shared log.</p>
   }
   if (!value.runs_recorded) {
-    return <p className="dim" style={style}>No per-model fetch recorded{where}</p>
+    return <p className="dim" style={style} title={title}>No per-model fetch recorded{where}</p>
   }
   const ok = value.succeeded && ago(value.succeeded.at)
   const later = value.later_attempt
   return (
-    <p className="dim" style={style}>
-      {ok ? `Last fetched ${ok}` : 'No per-model fetch has completed'}{where}
+    <p className="dim" style={style} title={title}>
+      {ok ? `Last checked ${ok}` : 'No per-model fetch has completed'}{where}
       {later && ` ${ok ? 'A later attempt' : 'The last attempt'} ${ago(later.at) || ''} ${OUTCOME[later.outcome] || `ended "${later.outcome}"`}.`}
     </p>
   )
@@ -59,6 +66,10 @@ export default function ModelDetail() {
   const [page, setPage] = useState(null)
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
+  // A 404 from /models/{id}: no such model. Its own state, apart from `err`,
+  // because "this model does not exist" and "the API failed" need different
+  // pages - only the first is a not-found page (SEO item 7).
+  const [missing, setMissing] = useState(false)
 
   // THE ROSTER ROW, NOW FOR ONE FIELD. This comment used to say "GET
   // /models/{id} still returns no display_name and no price" - half of that is
@@ -72,12 +83,40 @@ export default function ModelDetail() {
   // ever joins the model payload, this effect and `fetchAll` go with it.
   const [spec, setSpec] = useState(null)
   const name = spec?.display_name || state?.name || id
+  // PER-PAGE <head> (seo/pages.js) once a real name is known; the raw id in
+  // a title would be worse than the site default for the moment it shows.
+  const knownName = spec?.display_name || state?.name || page?.display_name
+  // THE PAGE'S dateModified (structured data): when this model's newest entry
+  // was added, from the same cached freshness read the header line uses.
+  const [fresh, setFresh] = useState(null)
+  useEffect(() => {
+    let on = true
+    freshness().then((f) => on && setFresh(f)).catch(() => {})
+    return () => { on = false }
+  }, [])
+  const modified = fresh?.models?.[page?.canonical_id || id]?.updated_at || null
+  useHead(missing ? false : knownName ? modelHead(page?.canonical_id || id, knownName, modified) : null)
+
+  // ONE URL PER MODEL (SEO item 2). A page reached by its internal `mv_…` id,
+  // or by an older spelling, is replaced by `/models/<canonical id>` once the
+  // page says what that is - `replace`, so Back does not bounce through the
+  // old address. Links that know the canonical id go straight there.
+  const nav = useNavigate()
+  useEffect(() => {
+    if (page?.canonical_id && page.canonical_id !== id) {
+      nav(modelUrl(page.canonical_id), { replace: true, state })
+    }
+  }, [page?.canonical_id, id, nav, state])
 
   useEffect(() => {
-    setPage(null); setErr(null); setUnreadable(null)
+    setPage(null); setErr(null); setUnreadable(null); setMissing(false)
     modelPage(id)
       .then(setPage)
-      .catch((e) => (e instanceof BoardUnreadable ? setUnreadable(e.message) : setErr(e.message)))
+      .catch((e) => {
+        if (e instanceof BoardUnreadable) setUnreadable(e.message)
+        else if (e instanceof ApiError && e.status === 404) setMissing(true)
+        else setErr(e.message)
+      })
   }, [id])
 
   useEffect(() => {
@@ -86,10 +125,12 @@ export default function ModelDetail() {
     fetchAll((l, o) => listModels(l, o))
       .then((list) => {
         if (!live) return
-        setSpec(list.models.find((m) => m.model_version_id === id) || null)
+        // Either id: the URL now carries the canonical one (SEO item 2).
+        setSpec(list.models.find((m) => m.model_version_id === id || m.canonical_id === id) || null)
       })
       .catch(() => {})   // additive: a missing provider must not blank the page
-    return () => { live = false }
+
+  return () => { live = false }
   }, [id])
 
   // Back goes to the Models page, which is where the roster lives and where
@@ -99,16 +140,37 @@ export default function ModelDetail() {
     ? { to: '/board', label: 'Back to the board' }
     : { to: '/models', label: 'Back to all models' }
 
+  // A MODEL THAT DOES NOT EXIST GETS ITS NOT-FOUND PAGE (SEO item 7). This
+  // line used to sit inside the effect above, where React reads a returned
+  // value as the effect's cleanup - so the page never showed and React threw.
+  if (missing) return <NotFound what="model" back={{ to: '/models', label: 'All models' }} />
+
   return (
     <div className="shell section-tight stack stack-4">
       <Link to={back.to} className="row" style={{ gap: 8, fontSize: 'var(--fs-xs)', color: 'var(--text-2)' }}>
         <IconArrow width={13} height={13} style={{ transform: 'rotate(180deg)' }} /> {back.label}
       </Link>
 
+      {/* NAME ON THE LEFT, FRESHNESS ON THE RIGHT, where the header was empty.
+          On a narrow screen the row wraps and the dates drop under the name. */}
+      <div className="row-between" style={{ alignItems: 'flex-start', gap: 'var(--s3)', flexWrap: 'wrap' }}>
       <div className="stack stack-1">
         <span className="eyebrow">Model</span>
-        <h1 style={{ fontSize: 'var(--fs-display)', wordBreak: 'break-word' }}>{name}</h1>
+        {/* THE NAME WITHOUT THE VENDOR PREFIX ("Anthropic: Claude Fable 5.1" ->
+            "Claude Fable 5.1"): the provider is the line under it, so the
+            prefix said it twice. */}
+        <h1 style={{ fontSize: 'var(--fs-display)', wordBreak: 'break-word' }}>
+          {String(name).includes(': ') ? String(name).split(': ').slice(1).join(': ') : name}
+        </h1>
         {spec?.provider && <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>{spec.provider}</span>}
+      </div>
+      <div className="stack" style={{ gap: 4, alignItems: 'flex-end', textAlign: 'right', marginTop: 6 }}>
+        <Freshness modelIds={[id]} style={{ margin: 0 }} />
+        {/* WHEN WE LAST LOOKED, beside how new the evidence is. Without it a
+            model a schedule stopped fetching reads like one nobody discusses
+            (rule 4) - freshness alone cannot tell those apart. */}
+        {page && <LastFetched value={page.last_fetch} />}
+      </div>
       </div>
 
       {/* NOT RENDERED FOR A MODEL THE REGISTRY DOES NOT HOLD. `in_registry`
@@ -128,9 +190,10 @@ export default function ModelDetail() {
           and provider, which are the model's identity rather than its
           advertised numbers. */}
 
-      {page && <LastFetched value={page.last_fetch} />}
+      {/* "Last checked" moved into the header block, under the freshness dates (2026-10-13). */}
 
-      <FetchPanel modelVersionId={id} onDone={() => modelPage(id).then(setPage).catch(() => {})} />
+      {/* NO FETCH BOX HERE (2026-10-06). The Fetch button and its history live
+          on Admin -> Models only; this page is for reading what was said. */}
 
       {/* What was actually said about this model, grouped by the sections the
           classifier discovered. Placed directly under Fetch so the button and

@@ -540,7 +540,17 @@ child_ranking:
   # Raising it costs extraction INPUT tokens roughly in proportion, and more
   # text means more output and a higher chance of the 16,384-token ceiling
   # (judge/extract/client.py max_output_tokens).
-  max_children: 25
+  #
+  # 40 since 2026-10-05, was 25 (since 2026-09-24), asked for on branch
+  # anooj_001 and NOT yet reviewed for main (contract/ gets two eyes). The
+  # case: docs/measurements/comment-selection-llm-vs-ranking.md - on 51
+  # Reddit threads with >25 readable comments, top-25 kept 51.6% of the
+  # evidence-bearing comments, and reading every comment yielded 31% more
+  # verified quotes for 31% more cost. 40 is a step toward that, unmeasured;
+  # long threads risk the output ceiling (10 of 102 read-everything draws
+  # truncated). Affects threads ASSEMBLED from now on only: an existing
+  # thread_context is never rewritten.
+  max_children: 40
 
   # Small on purpose: log1p(500) = 6.2 becomes +0.31, log1p(2) = 1.1 becomes
   # +0.05, so popularity breaks ties between comparably specific comments and

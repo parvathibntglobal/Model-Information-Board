@@ -1,0 +1,472 @@
+{
+ "slug": "field-guide-concept-software-testing",
+ "status": "draft",
+ "tag": "Field guide",
+ "feat": false,
+ "title": "LLM Test Generation in the Field: Make Every Test Kill a Mutant",
+ "dek": "A practitioner's guide to generated tests that catch something: mutants as targets, set-cover pruning, belief mining, and the code you should leave alone.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "Can LLMs write unit tests? Yes, but judge them by the mutants they kill and the beliefs they break, never by green checkmarks or line coverage alone.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93MiIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMTgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhaCIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXYiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZpbGw9IiMyYzM1NDQiIG9wYWNpdHk9IjAuNiI+CiAgICA8cmVjdCB4PSI4MCIgeT0iNzAiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTQiIHJ4PSI3Ii8+CiAgICA8cmVjdCB4PSIxMTAiIHk9IjEwNCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIxNCIgcng9IjciLz4KICAgIDxyZWN0IHg9IjExMCIgeT0iMTM4IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE0IiByeD0iNyIvPgogICAgPHJlY3QgeD0iODAiIHk9IjUyMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxNCIgcng9IjciLz4KICAgIDxyZWN0IHg9IjExMCIgeT0iNTU0IiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE0IiByeD0iNyIvPgogICAgPHJlY3QgeD0iOTAwIiB5PSI4MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSIxNCIgcng9IjciLz4KICAgIDxyZWN0IHg9IjkzMCIgeT0iMTE0IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE0IiByeD0iNyIvPgogICAgPHJlY3QgeD0iODYwIiB5PSI1NDAiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTQiIHJ4PSI3Ii8+CiAgPC9nPgogIDxlbGxpcHNlIGN4PSI2NjAiIGN5PSIyMjAiIHJ4PSIzNjAiIHJ5PSIxNjAiIGZpbGw9InVybCgjZ2xvdzIpIi8+CiAgPHJlY3QgeD0iNDMwIiB5PSIxNjAiIHdpZHRoPSI0NjAiIGhlaWdodD0iMTA0IiByeD0iMTgiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI2NjAiIHk9IjIyOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iNDgiIGZpbGw9IiNlOGVkZjUiPnRvdGFsIDx0c3BhbiBmaWxsPSIjN2FhMmZmIiBmb250LXdlaWdodD0iNzAwIj4mZ3Q7PTwvdHNwYW4+IGxpbWl0PC90ZXh0PgogIDxwYXRoIGQ9Ik05MDAgMjE0IEMgMTAwMCAyMzAsIDEwMzAgMzAwLCAxMDA2IDMzNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggOCIgbWFya2VyLWVuZD0idXJsKCNhdikiLz4KICA8ZWxsaXBzZSBjeD0iNzgwIiBjeT0iMzg2IiByeD0iMTkwIiByeT0iMTkwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgPHJlY3QgeD0iNTYwIiB5PSIzMzQiIHdpZHRoPSI0NDAiIGhlaWdodD0iMTA0IiByeD0iMTgiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjE0IDYiLz4KICA8dGV4dCB4PSI3ODAiIHk9IjQwMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iNDgiIGZpbGw9IiNlOGVkZjUiIG9wYWNpdHk9IjAuOSI+dG90YWwgPHRzcGFuIGZpbGw9IiNmZjdiNzIiIGZvbnQtd2VpZ2h0PSI3MDAiPiZndDs8L3RzcGFuPiBsaW1pdDwvdGV4dD4KICA8ZyBzdHJva2U9IiMzZWNmOGUiIGZpbGw9Im5vbmUiIHN0cm9rZS13aWR0aD0iMyI+CiAgICA8Y2lyY2xlIGN4PSI3ODAiIGN5PSIzODYiIHI9IjQwIi8+CiAgICA8Y2lyY2xlIGN4PSI3ODAiIGN5PSIzODYiIHI9IjEwNCIgc3Ryb2tlLW9wYWNpdHk9IjAuNDUiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPGxpbmUgeDE9Ijc4MCIgeTE9IjI5MCIgeDI9Ijc4MCIgeTI9IjMzMCIvPgogICAgPGxpbmUgeDE9Ijc4MCIgeTE9IjQ0MiIgeDI9Ijc4MCIgeTI9IjQ4MiIvPgogICAgICAgICAgPC9nPgogIDxyZWN0IHg9IjExMCIgeT0iMzIwIiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjE0MCIgcng9IjE4IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHBvbHlsaW5lIHBvaW50cz0iMTUwLDM5MiAxNzYsNDE4IDIyMiwzNjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cmVjdCB4PSIyNDQiIHk9IjM2NiIgd2lkdGg9IjcwIiBoZWlnaHQ9IjEwIiByeD0iNSIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC41Ii8+CiAgPHJlY3QgeD0iMjQ0IiB5PSIzOTAiIHdpZHRoPSI1NCIgaGVpZ2h0PSIxMCIgcng9IjUiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMzUiLz4KICA8cmVjdCB4PSIyNDQiIHk9IjQxNCIgd2lkdGg9IjYyIiBoZWlnaHQ9IjEwIiByeD0iNSIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4zNSIvPgogIDxsaW5lIHgxPSIzNDQiIHkxPSIzOTAiIHgyPSI1NTAiIHkyPSIzODgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FoKSIvPgo8L3N2Zz4K",
+  "alt": "A target reticle locks onto a mutated comparison operator inside a code line while a test card fires at it",
+  "caption": "A generated test earns its place by killing a planted fault, like a flipped boundary operator.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Can LLMs write unit tests worth keeping? A field guide: score suites by killed mutants, prune by runtime, mine developer beliefs, retest off home turf.",
+ "keywords": [
+  "can LLMs write unit tests",
+  "LLM test generation",
+  "mutation testing",
+  "LLMs for testing, repair and code review",
+  "set-cover test reduction",
+  "AI code review cost"
+ ],
+ "kicker": "Field guide",
+ "tags": [
+  "LLM test generation",
+  "Field guide"
+ ],
+ "read": 8,
+ "decisions": [
+  "Grade generated suites by mutation score, with line coverage as a floor only.",
+  "Send boundary assertions to the requirement owner before merging.",
+  "Prune merged suites with a runtime-weighted set cover.",
+  "Revalidate any learned detector on your own repository first.",
+  "Hold off on generation for modules with no written spec."
+ ],
+ "layout": "fieldguide",
+ "arrangement": "b",
+ "special": {
+  "type": "checklist",
+  "title": "Before you ship",
+  "items": [
+   {
+    "check": "Run a mutation tool on every module that has generated tests.",
+    "why": "Catches suites with high line coverage and assertions that would never fail."
+   },
+   {
+    "check": "Route each new boundary assertion to the requirement owner.",
+    "why": "Catches the model guessing the spec and freezing the guess."
+   },
+   {
+    "check": "Confirm every kept test passes on the unmutated code.",
+    "why": "Catches tests that encode wrong expectations and get deleted or ignored later."
+   },
+   {
+    "check": "Prune merged suites with a runtime-weighted set cover.",
+    "why": "Catches slow duplicate tests that bloat the inner loop and get skipped."
+   },
+   {
+    "check": "Ask the model for the author's assumptions, then for inputs that violate them.",
+    "why": "Catches security flaws such as timing side-channels that coverage targets never reach."
+   },
+   {
+    "check": "Revalidate learned detectors and localizers on your own repository.",
+    "why": "Catches cross-project degradation and negative transfer hidden by benchmark scores."
+   },
+   {
+    "check": "Log review-agent tokens per module before scaling.",
+    "why": "Catches tangled, oversized files quietly multiplying agent review loops."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Treat a green generated suite as unproven",
+    "num": "01",
+    "id": "treat-a-green-generated-suite-as-unproven"
+   }
+  ],
+  [
+   "p",
+   "Here's the failure we'd bet you hit first. You point a model at a function and ask for tests. It reads the code and asserts whatever the code does today. Bugs included. The suite goes green on the first run, coverage jumps, and the bug now has bodyguards. That's the oracle problem: a test needs its own idea of the right answer, and the code under test can't supply one."
+  ],
+  [
+   "p",
+   "So can LLMs write unit tests worth keeping? They can, if you grade the suite by what it would catch. Coverage tells you which lines ran. It says nothing about whether any assertion would fail on a wrong line. Mutation score does. A mutant is a copy of your code with one small planted fault, like `>=` flipped to `>`. A test kills the mutant when it fails against it."
+  ],
+  [
+   "p",
+   "That's why one headline from a new arXiv paper on agentic test generation matters. After its agentic phases, Testuary reaches «on average more than 99.9% line and branch coverage as well as a mutation score of 98.6%». We think the mutation figure is the one to carry around. Line coverage can be reached by tests that assert nothing at all. A kill rate can't."
+  ],
+  [
+   "h2",
+   {
+    "text": "Feed surviving mutants back as test targets",
+    "num": "02",
+    "id": "feed-surviving-mutants-back-as-test-targets"
+   }
+  ],
+  [
+   "p",
+   "Let's follow one function through the whole guide. Say you own `apply_discount(total, limit)`, which takes a coupon off once the basket total reaches a limit. The model's first test uses a total well above the limit and checks the price. It passes. It also passes against the mutant that flips `>=` to `>`, because nobody touched the boundary. Full line coverage, one live mutant."
+  ],
+  [
+   "p",
+   "The fix is mechanical. Run a mutation tool over the function, collect the survivors, and hand each one back to the model as a target. A survivor makes a concrete prompt: here is the changed line, write a test that fails on it. For our coupon, the model now writes a test where the total equals the limit exactly. The boundary mutant dies."
+  ],
+  [
+   "p",
+   "Notice what just happened, though. The survivor forced a question only a human can settle: does a basket at exactly the limit get the coupon? If the model guesses, you've automated a guess. We'd send every boundary assertion like this past the person who owns the requirement. It's a short review. It's also the only review that matters here."
+  ],
+  [
+   "code",
+   {
+    "label": "Survivor-driven test loop (illustrative pseudo-code)",
+    "language": "python",
+    "source": "suite = model.draft_tests(source)\nfor _ in range(max_rounds):\n    survivors = [m for m in mutate(source)\n                 if not any(t.fails_on(m) for t in suite)]\n    if not survivors:\n        break\n    for m in survivors:\n        test = model.write_test(source, target=m.diff)\n        if test.passes_on(source):   # must agree with real code\n            suite.append(test)       # and still needs a human on boundaries"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The survivor loop turns each mutant the suite misses into a concrete target for the next test.",
+    "steps": [
+     "Model drafts tests from the function source",
+     "Mutation tool plants small faults like a flipped operator",
+     "Run the suite against every mutant",
+     "Collect survivors the suite failed to kill",
+     "Prompt the model with each survivor's diff",
+     "Keep tests that pass on real code and kill",
+     "Human confirms boundary assertions against the requirement"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Prune the merged suite with a weighted set cover",
+    "num": "03",
+    "id": "prune-the-merged-suite-with-a-weighted-set-cover"
+   }
+  ],
+  [
+   "p",
+   "Testuary's pipeline is worth retracing, because each stage is a decision you'll face. We went through the abstract stage by stage. It first «generates multiple test suites through independent, parallel zero-shot requests, checks and repairs them deterministically», then merges them into one suite. Only then do agents join in. Cheap independent drafts come first, expensive iteration comes last, aimed at the gaps that remain."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjcwMCIgZmlsbD0idXJsKCNiZykiLz4KICA8dGV4dCB4PSI2MCIgeT0iNjYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+UnVudGltZS13ZWlnaHRlZCBzZXQgY292ZXI8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5FYWNoIHRlc3QgaXMgdGhlIHNldCBvZiB0aGluZ3MgaXQgY292ZXJzIG9yIGtpbGxzPC90ZXh0PgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CiAgICA8dGV4dCB4PSI1NjAiIHk9IjE2OCI+bGluZXM8L3RleHQ+CiAgICA8dGV4dCB4PSI3NDUiIHk9IjE2OCI+YnJhbmNoZXM8L3RleHQ+CiAgICA8dGV4dCB4PSI5MjAiIHk9IjE2OCI+bXV0YW50czwvdGV4dD4KICA8L2c+CiAgPHRleHQgeD0iODYwIiB5PSIyMDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIj4mZ3Q7PC90ZXh0PgogIDxsaW5lIHgxPSI0NzAiIHkxPSIyMjIiIHgyPSIxMDAwIiB5Mj0iMjIyIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxsaW5lIHgxPSI2NjAiIHkxPSIxNTAiIHgyPSI2NjAiIHkyPSI2MTAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjgzMCIgeTE9IjE1MCIgeDI9IjgzMCIgeTI9IjYxMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiPgogICAgPHRleHQgeD0iNjAiIHk9IjI3MCIgZmlsbD0iI2U4ZWRmNSI+YWJvdmUgbGltaXQgwrcgZmFzdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwIiB5PSIzNTAiIGZpbGw9IiM5NWExYjQiPmFib3ZlIGxpbWl0IMK3IHNsb3c8L3RleHQ+CiAgICA8dGV4dCB4PSI2MCIgeT0iNDMwIiBmaWxsPSIjOTVhMWI0Ij5hYm92ZSBsaW1pdCDCtyBzbG93PC90ZXh0PgogICAgPHRleHQgeD0iNjAiIHk9IjUxMCIgZmlsbD0iI2U4ZWRmNSI+ZXhhY3RseSBhdCBsaW1pdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwIiB5PSI1OTAiIGZpbGw9IiNlOGVkZjUiPmJlbG93IGxpbWl0PC90ZXh0PgogIDwvZz4KICA8ZyBmaWxsPSIjN2FhMmZmIj4KICAgIDxjaXJjbGUgY3g9IjUwMCIgY3k9IjI2MiIgcj0iMTQiLz48Y2lyY2xlIGN4PSI1NjAiIGN5PSIyNjIiIHI9IjE0Ii8+CiAgICA8Y2lyY2xlIGN4PSI3MTAiIGN5PSIyNjIiIHI9IjE0Ii8+CiAgICA8Y2lyY2xlIGN4PSI5MjAiIGN5PSIyNjIiIHI9IjE0Ii8+CiAgICA8Y2lyY2xlIGN4PSI1MDAiIGN5PSI1MDIiIHI9IjE0Ii8+PGNpcmNsZSBjeD0iNTYwIiBjeT0iNTAyIiByPSIxNCIvPgogICAgPGNpcmNsZSBjeD0iNzEwIiBjeT0iNTAyIiByPSIxNCIvPgogICAgPGNpcmNsZSBjeD0iOTgwIiBjeT0iNTAyIiByPSIxNCIvPgogICAgPGNpcmNsZSBjeD0iNTAwIiBjeT0iNTgyIiByPSIxNCIvPjxjaXJjbGUgY3g9IjYyMCIgY3k9IjU4MiIgcj0iMTQiLz4KICAgIDxjaXJjbGUgY3g9Ijc4MCIgY3k9IjU4MiIgcj0iMTQiLz4KICA8L2c+CiAgPGNpcmNsZSBjeD0iODYwIiBjeT0iNTAyIiByPSIxOCIgZmlsbD0iIzNlY2Y4ZSIvPgogIDxnIGZpbGw9IiMyYzM1NDQiPgogICAgPGNpcmNsZSBjeD0iNTAwIiBjeT0iMzQyIiByPSIxNCIvPjxjaXJjbGUgY3g9IjU2MCIgY3k9IjM0MiIgcj0iMTQiLz4KICAgIDxjaXJjbGUgY3g9IjcxMCIgY3k9IjM0MiIgcj0iMTQiLz48Y2lyY2xlIGN4PSI5MjAiIGN5PSIzNDIiIHI9IjE0Ii8+CiAgICA8Y2lyY2xlIGN4PSI1MDAiIGN5PSI0MjIiIHI9IjE0Ii8+PGNpcmNsZSBjeD0iNTYwIiBjeT0iNDIyIiByPSIxNCIvPgogICAgPGNpcmNsZSBjeD0iNzEwIiBjeT0iNDIyIiByPSIxNCIvPgogIDwvZz4KICA8bGluZSB4MT0iNDcwIiB5MT0iMzQyIiB4Mj0iMTAwMCIgeTI9IjM0MiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIvPgogIDxsaW5lIHgxPSI0NzAiIHkxPSI0MjIiIHgyPSIxMDAwIiB5Mj0iNDIyIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC43Ii8+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiPgogICAgPGNpcmNsZSBjeD0iNjIwIiBjeT0iMjYyIiByPSIxNCIvPjxjaXJjbGUgY3g9Ijc4MCIgY3k9IjI2MiIgcj0iMTQiLz48Y2lyY2xlIGN4PSI4NjAiIGN5PSIyNjIiIHI9IjE0Ii8+PGNpcmNsZSBjeD0iOTgwIiBjeT0iMjYyIiByPSIxNCIvPgogICAgPGNpcmNsZSBjeD0iNjIwIiBjeT0iNTAyIiByPSIxNCIvPjxjaXJjbGUgY3g9Ijc4MCIgY3k9IjUwMiIgcj0iMTQiLz48Y2lyY2xlIGN4PSI5MjAiIGN5PSI1MDIiIHI9IjE0Ii8+CiAgICA8Y2lyY2xlIGN4PSI1NjAiIGN5PSI1ODIiIHI9IjE0Ii8+PGNpcmNsZSBjeD0iNzEwIiBjeT0iNTgyIiByPSIxNCIvPjxjaXJjbGUgY3g9Ijg2MCIgY3k9IjU4MiIgcj0iMTQiLz48Y2lyY2xlIGN4PSI5MjAiIGN5PSI1ODIiIHI9IjE0Ii8+PGNpcmNsZSBjeD0iOTgwIiBjeT0iNTgyIiByPSIxNCIvPgogIDwvZz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgogICAgPHJlY3QgeD0iMTAzMCIgeT0iMjQwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjQ0IiByeD0iMTQiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjEwOTUiIHk9IjI3MCIgZmlsbD0iIzNlY2Y4ZSI+a2VwdDwvdGV4dD4KICAgIDxyZWN0IHg9IjEwMzAiIHk9IjMyMCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI0NCIgcng9IjE0IiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIxMDk1IiB5PSIzNTAiIGZpbGw9IiNmZjdiNzIiPmRyb3BwZWQ8L3RleHQ+CiAgICA8cmVjdCB4PSIxMDMwIiB5PSI0MDAiIHdpZHRoPSIxMzAiIGhlaWdodD0iNDQiIHJ4PSIxNCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iMTA5NSIgeT0iNDMwIiBmaWxsPSIjZmY3YjcyIj5kcm9wcGVkPC90ZXh0PgogICAgPHJlY3QgeD0iMTAzMCIgeT0iNDgwIiB3aWR0aD0iMTMwIiBoZWlnaHQ9IjQ0IiByeD0iMTQiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjEwOTUiIHk9IjUxMCIgZmlsbD0iIzNlY2Y4ZSI+a2VwdDwvdGV4dD4KICAgIDxyZWN0IHg9IjEwMzAiIHk9IjU2MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI0NCIgcng9IjE0IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIxMDk1IiB5PSI1OTAiIGZpbGw9IiMzZWNmOGUiPmtlcHQ8L3RleHQ+CiAgPC9nPgogIDx0ZXh0IHg9IjYwIiB5PSI2NjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+T25seSB0aGUgPHRzcGFuIGZpbGw9IiMzZWNmOGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmF0LWxpbWl0PC90c3Bhbj4gdGVzdCBraWxscyB0aGUgZmxpcHBlZCBib3VuZGFyeSwgc28gaXQgYWx3YXlzIHN1cnZpdmVzIHBydW5pbmc8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Grid of tests against lines, branches and mutants; redundant slow tests are struck through, a unique boundary test is kept",
+    "caption": "Runtime-weighted set cover keeps the cheapest tests that still cover every line, branch and killed mutant.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The pruning step is the one we'd copy tomorrow. A «runtime-weighted set-cover reduction removes redundant tests without losing covered lines, branches, or killed mutants». Set cover is the classic problem: pick the fewest sets whose union covers every element. Here each test is a set of lines, branches and killed mutants. Weighting by runtime means a slow test must cover something no cheaper test covers."
+  ],
+  [
+   "p",
+   "Greedy is the usual approximation. Keep the test with the best ratio of newly covered elements to runtime, repeat until nothing is uncovered, drop the rest. For our coupon, the boundary test survives because it alone kills the `>` mutant. Three near-identical above-the-limit tests collapse into the fastest one. The suite shrinks. Nothing it could catch goes missing."
+  ],
+  [
+   "p",
+   "The payoff lands on the bill. Testuary «needs fewer model requests and its test suites are on average smaller and faster than those of the compared agentic approach». We agree that smaller matters as much as greener. A suite that drags gets skipped in the inner loop, and a skipped suite catches nothing at all."
+  ],
+  [
+   "h2",
+   {
+    "text": "Mine the developer's beliefs for test cases",
+    "num": "04",
+    "id": "mine-the-developer-s-beliefs-for-test-cases"
+   }
+  ],
+  [
+   "p",
+   "Mutation-guided generation has a blind spot. It only probes behaviour the code already has. Security flaws often hide in behaviour the code was meant to rule out. A new arXiv paper on code auditing offers a sharper prompt, built on one intuition: «When we see a null pointer check, we know that the developer believes that the pointer may not be initialized.»"
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDc2MCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9Ijc2MCIgZmlsbD0idXJsKCNiZykiLz4KICA8dGV4dCB4PSI1MCIgeT0iNjYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+RnJvbSBhbiBhc3N1bXB0aW9uIHRvIGEgdGVzdDwvdGV4dD4KICA8cmVjdCB4PSI1MCIgeT0iMTEwIiB3aWR0aD0iNTAwIiBoZWlnaHQ9IjYwMCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxyZWN0IHg9IjcwIiB5PSI0MTQiIHdpZHRoPSI0NjAiIGhlaWdodD0iNDAiIHJ4PSI4IiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMTgiLz4KICA8cmVjdCB4PSI3MCIgeT0iMzEwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjE2Ii8+CiAgPHJlY3QgeD0iNzAiIHk9IjQ2NiIgd2lkdGg9IjQ2MCIgaGVpZ2h0PSI0MCIgcng9IjgiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xNiIvPgogIDxnIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI1IiBmaWxsPSIjZThlZGY1Ij4KICAgIDx0ZXh0IHg9Ijg0IiB5PSIxODAiIGZpbGw9IiM3YWEyZmYiPmRlZiBsb2dpbih1c2VyLCBwdyk6PC90ZXh0PgogICAgPHRleHQgeD0iODQiIHk9IjIzMiIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+ICB1ID0gZmluZCh1c2VyKTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg0IiB5PSIyODQiIHhtbDpzcGFjZT0icHJlc2VydmUiPiAgaWYgdSBpcyBOb25lOjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg0IiB5PSIzMzciIHhtbDpzcGFjZT0icHJlc2VydmUiPiAgICByZXR1cm4gRVJSPC90ZXh0PgogICAgPHRleHQgeD0iODQiIHk9IjM4OSIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+ICBlbHNlOjwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg0IiB5PSI0NDEiIGZpbGw9IiNlM2IzNDEiIHhtbDpzcGFjZT0icHJlc2VydmUiPiAgICBzbG93X2hhc2gocHcpPC90ZXh0PgogICAgPHRleHQgeD0iODQiIHk9IjQ5MyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+ICAgIHJldHVybiBFUlI8L3RleHQ+CiAgICA8dGV4dCB4PSI4NCIgeT0iNTQ1IiB4bWw6c3BhY2U9InByZXNlcnZlIj4gIHJldHVybiBvayh1KTwvdGV4dD4KICA8L2c+CiAgPHRleHQgeD0iODQiIHk9IjY0MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjYTc4YmZhIj5zYW1lIGVycm9yIG9uIGJvdGggcGF0aHM8L3RleHQ+CiAgPHRleHQgeD0iODQiIHk9IjY3NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZTNiMzQxIj5vbmUgcGF0aCBydW5zIHNsb3dlcjwvdGV4dD4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHJlY3QgeD0iNjMwIiB5PSIxMTAiIHdpZHRoPSI1MjAiIGhlaWdodD0iMTYwIiByeD0iMTgiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjY2MCIgeT0iMTUyIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjYTc4YmZhIiBsZXR0ZXItc3BhY2luZz0iMiI+SU5GRVJSRUQgQkVMSUVGPC90ZXh0PgogICAgPHRleHQgeD0iNjYwIiB5PSIxOTYiIGZvbnQtc2l6ZT0iMjciIGZpbGw9IiNlOGVkZjUiPkJvdGggZmFpbHVyZXMgbG9vayBpZGVudGljYWw8L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjIzNCIgZm9udC1zaXplPSIyNyIgZmlsbD0iI2U4ZWRmNSI+dG8gd2hvZXZlciBpcyBjYWxsaW5nPC90ZXh0PgogICAgPHJlY3QgeD0iNjMwIiB5PSIzMzAiIHdpZHRoPSI1MjAiIGhlaWdodD0iMTYwIiByeD0iMTgiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjY2MCIgeT0iMzcyIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIiBsZXR0ZXItc3BhY2luZz0iMiI+Q09OVFJBRElDVElPTjwvdGV4dD4KICAgIDx0ZXh0IHg9IjY2MCIgeT0iNDE2IiBmb250LXNpemU9IjI3IiBmaWxsPSIjZThlZGY1Ij5Pbmx5IHRoZSBrbm93bi11c2VyIHBhdGg8L3RleHQ+CiAgICA8dGV4dCB4PSI2NjAiIHk9IjQ1NCIgZm9udC1zaXplPSIyNyIgZmlsbD0iI2U4ZWRmNSI+cGF5cyBmb3IgYSBzbG93IGhhc2g8L3RleHQ+CiAgICA8cmVjdCB4PSI2MzAiIHk9IjU1MCIgd2lkdGg9IjUyMCIgaGVpZ2h0PSIxNjAiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNjYwIiB5PSI1OTIiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMzZWNmOGUiIGxldHRlci1zcGFjaW5nPSIyIj5HRU5FUkFURUQgVEVTVDwvdGV4dD4KICAgIDx0ZXh0IHg9IjY2MCIgeT0iNjM2IiBmb250LXNpemU9IjI3IiBmaWxsPSIjZThlZGY1Ij5UaW1lIGJvdGggZmFpbHVyZXMgYW5kPC90ZXh0PgogICAgPHRleHQgeD0iNjYwIiB5PSI2NzQiIGZvbnQtc2l6ZT0iMjciIGZpbGw9IiNlOGVkZjUiPmFzc2VydCB0aGV5IG1hdGNoPC90ZXh0PgogIDwvZz4KICA8cGF0aCBkPSJNNTM2IDMzMCBDIDU4MCAzMDAsIDU5MCAyMzAsIDYyMiAyMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgPHBhdGggZD0iTTUzNiA0MzQgQyA1ODAgNDM0LCA1OTAgNDIwLCA2MjIgNDE0IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogIDxsaW5lIHgxPSI4OTAiIHkxPSIyNzQiIHgyPSI4OTAiIHkyPSIzMjIiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgPGxpbmUgeDE9Ijg5MCIgeTE9IjQ5NCIgeDI9Ijg5MCIgeTI9IjU0MiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KPC9zdmc+Cg==",
+    "alt": "Login function: an inferred belief that both errors look the same, contradicted by a slow branch, yields a timing test",
+    "caption": "Belief mining turns an author's assumption into a test that tries to break it, here a timing side-channel.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The approach, called Creed, works in three moves. Given a function, it «infers the developer's security-related beliefs, evaluates how reasonable each one is, and derives the conditions under which it is violated». Each violating condition is a test case waiting to be written. That's the move we'd borrow: ask the model what the author assumed, then ask for inputs that break the assumption."
+  ],
+  [
+   "p",
+   "Their login example stuck with us. A function returns «the same error for both, a wrong user name and a wrong password». The implied belief is that an attacker can't tell the cases apart. Then a call in one branch takes longer, and that gap «uncovers a timing side-channel that syntactic analysis tools would miss». No coverage target would ever have asked for that test."
+  ],
+  [
+   "p",
+   "We're not convinced belief mining replaces mutation testing. It feeds a different stream of targets. Mutants probe what the code does; beliefs probe what it should never do. Run both, and keep belief-derived tests even when they add zero new coverage."
+  ],
+  [
+   "h2",
+   {
+    "text": "Retest any learned checker on a project it never saw",
+    "num": "05",
+    "id": "retest-any-learned-checker-on-a-project-it-never-saw"
+   }
+  ],
+  [
+   "p",
+   "Generated tests are rarely the only model in your pipeline. You may also run a learned vulnerability detector or bug localizer over each change. A new arXiv paper on vulnerability detection puts the risk bluntly: «High benchmark scores in learning-based vulnerability detection mask severe degradation under distribution shifts.» Under those shifts, accuracy «drops by over 35 percentage points», with no warning from the score itself."
+  ],
+  [
+   "p",
+   "The worst shift is the one you'd hit on day one. The paper reports that «cross-project shifts cause the sharpest degradation, even though temporal shifts drift geometrically farthest». Read that twice. The code that looked most foreign in embedding space wasn't where the detector broke hardest. A new repository was."
+  ],
+  [
+   "p",
+   "There's a usable diagnostic buried here. False positives on patched code climb with closeness to vulnerable training examples, from «9.4% in the lowest-risk decile to 58.8% in the highest». So a fixed function that resembles old bugs gets flagged anyway. Distance to the training neighbourhood becomes a warning light you can compute with no extra model."
+  ],
+  [
+   "p",
+   "Bug localization tells the same story from another side. A cross-project study warns that «the same pair can help one architecture and harm another». Negative transfer, where borrowed training data makes results worse, hit 9.5% of pairs for one model and 30.2% for the other two. In our view that's an instruction: validate on your own repository before trusting any transfer claim."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Share of source-to-target project pairs where cross-project training hurt bug localization, in percent of pairs.",
+    "unit": "percent of pairs with negative transfer",
+    "bars": [
+     {
+      "label": "TRANP-CNN",
+      "value": 9.5
+     },
+     {
+      "label": "BLAZE",
+      "value": 30.2
+     },
+     {
+      "label": "COOBA",
+      "value": 30.2
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Count review tokens per module before scaling agents",
+    "num": "06",
+    "id": "count-review-tokens-per-module-before-scaling-agents"
+   }
+  ],
+  [
+   "p",
+   "Generated tests guard patches, and something has to review those patches. Often it's an agent billed per token. A pre-registered study of agent-authored pull requests measured how code quality moves that bill. Each CodeHealth point, a maintainability score, was «associated with 3.5% to 6.1% lower token cost», for every one of the three models in its pipeline."
+  ],
+  [
+   "p",
+   "The mechanism is the interesting bit. Extra cost sat in the review stage, «where agents iterated more on unhealthy code without writing more comments». More loops, same output. And «batch fixing left median CodeHealth unchanged», so asking agents to tidy up didn't buy the discount. The authors trace the effect to file size: «Adjusting for the size of the scored files absorbed the association»."
+  ],
+  [
+   "p",
+   "We think the lesson is narrow and useful. Big, tangled files cost you twice: once in human attention and again in agent loops. Before you scale review agents across a repository, log tokens per module for a week. The expensive modules are your refactoring list, and splitting them is what moves the number."
+  ],
+  [
+   "h2",
+   {
+    "text": "Leave generation out where the spec lives only in heads",
+    "num": "07",
+    "id": "leave-generation-out-where-the-spec-lives-only-in-heads"
+   }
+  ],
+  [
+   "p",
+   "Some code has no spec you can hand a model. Its rules live in years of review threads and in maintainers' memories. Generated tests there freeze today's behaviour, and generated reviews miss the point. A new arXiv paper on Linux kernel review shows the gap: on design trade-off detection, «the strongest baseline achieving an F1 of only 0.213»."
+  ],
+  [
+   "p",
+   "Their fix, DesignLore, «extracts design decisions from historical review discussions» and reuses them to guide review. It lifts F1 to 0.259, «a 21.6% relative improvement». That's real progress. It's also a detector that still misses most trade-offs, and we wouldn't let a score like that gate a merge."
+  ],
+  [
+   "p",
+   "So here's our line. If nobody can write down what correct means for a module, don't generate tests for it yet. You'd only be cementing a guess. Write the spec first, even a few boundary cases in plain words, like our coupon at exactly the limit. Then let the model fill in the rest, and let mutants keep it honest."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Design trade-off detection on real kernel patch reviews stays hard even with recovered design knowledge.",
+    "columns": [
+     "Reviewer",
+     "F1 on design trade-off detection"
+    ],
+    "rows": [
+     [
+      "Strongest coding-agent baseline",
+      "0.213"
+     ],
+     [
+      "DesignLore with historical design knowledge",
+      "0.259"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Can LLMs write unit tests that catch real bugs?"
+  ],
+  [
+   "p",
+   "They can, when you score their tests by killed mutants instead of passing runs. A model reading code will happily assert current behaviour, bugs and all. Feeding surviving mutants back as targets fixes much of that. One agentic system reports «a mutation score of 98.6%», though boundary decisions still need a human who knows the requirement."
+  ],
+  [
+   "h3",
+   "Is LLM test generation better than search-based test tools?"
+  ],
+  [
+   "p",
+   "On one recent comparison, an agentic LLM pipeline came out ahead of search-based and earlier LLM approaches. Testuary's authors compared against «established search and LLM-based test generation approaches» and report «significantly outperforming all compared baseline approaches». Their abstract also says the resulting suites are smaller and faster, which matters for a suite you run on every commit."
+  ],
+  [
+   "h3",
+   "Does AI code review work on messy codebases?"
+  ],
+  [
+   "p",
+   "It works, but messy code makes it slower and pricier, and design-level review stays weak. One pre-registered study ties each CodeHealth point to «3.5% to 6.1% lower token cost». On Linux kernel patches, the best coding-agent baseline reached an F1 of only 0.213 on spotting design trade-offs, so keep humans on design questions."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Testuary: Agentic Test Generation with Zero-Shot Parallelism",
+   "url": "https://arxiv.org/abs/2610.14808v1",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "LLM-based Code Auditing by Inferring and Evaluating Developer Assumptions",
+   "url": "https://arxiv.org/abs/2610.15729v1",
+   "posted": "2026-10-11"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Diagnosing Generalization Boundaries in AI-Based Vulnerability Detection via Calibrated Embedding Distances",
+   "url": "https://arxiv.org/abs/2610.14296v1",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Cross-Project Bug Localization: What Works, What Doesn't, and Why",
+   "url": "https://arxiv.org/abs/2610.17578v1",
+   "posted": "2026-10-13"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "CodeHealth Predicts the Token Cost of Agentic Code Review: A Pre-Registered Study of 465 Agent-Authored Pull Requests",
+   "url": "https://arxiv.org/abs/2610.21914v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Benchmarking and Enhancing Design-Aware Code Review in the Linux Kernel",
+   "url": "https://arxiv.org/abs/2610.21925v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "on average more than 99.9% line and branch coverage as well as a mutation score of 98.6%": 1,
+  "generates multiple test suites through independent, parallel zero-shot requests, checks and repairs them deterministically": 1,
+  "runtime-weighted set-cover reduction removes redundant tests without losing covered lines, branches, or killed mutants": 1,
+  "needs fewer model requests and its test suites are on average smaller and faster than those of the compared agentic approach": 1,
+  "When we see a null pointer check, we know that the developer believes that the pointer may not be initialized.": 2,
+  "infers the developer's security-related beliefs, evaluates how reasonable each one is, and derives the conditions under which it is violated": 2,
+  "the same error for both, a wrong user name and a wrong password": 2,
+  "uncovers a timing side-channel that syntactic analysis tools would miss": 2,
+  "High benchmark scores in learning-based vulnerability detection mask severe degradation under distribution shifts.": 3,
+  "drops by over 35 percentage points": 3,
+  "cross-project shifts cause the sharpest degradation, even though temporal shifts drift geometrically farthest": 3,
+  "9.4% in the lowest-risk decile to 58.8% in the highest": 3,
+  "the same pair can help one architecture and harm another": 4,
+  "associated with 3.5% to 6.1% lower token cost": 5,
+  "where agents iterated more on unhealthy code without writing more comments": 5,
+  "batch fixing left median CodeHealth unchanged": 5,
+  "Adjusting for the size of the scored files absorbed the association": 5,
+  "the strongest baseline achieving an F1 of only 0.213": 6,
+  "extracts design decisions from historical review discussions": 6,
+  "a 21.6% relative improvement": 6,
+  "a mutation score of 98.6%": 1,
+  "established search and LLM-based test generation approaches": 1,
+  "significantly outperforming all compared baseline approaches": 1,
+  "3.5% to 6.1% lower token cost": 5
+ },
+ "rel": [
+  [
+   "post:topic-synthesis-concept-interpretability",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-long-context",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:35:24+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.17578v1",
+   "arxiv:2610.14296v1",
+   "arxiv:2610.15729v1",
+   "arxiv:2610.21925v1",
+   "arxiv:2610.21914v1",
+   "arxiv:2610.14808v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-guide:concept/software-testing",
+  "format": "field-guide",
+  "reviewed_by": null
+ }
+}

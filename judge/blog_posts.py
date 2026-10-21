@@ -1,15 +1,14 @@
-"""Blog drafts for the UI's Blogs section, read from a directory of JSON files.
+"""Blog draft FILES on this machine, and the generation run that writes them.
 
-WHY FILES AND NOT A TABLE, FOR NOW
-
-The posts are drafts for the team to examine on a local build. A table needs a
-migration, and a migration on the shared staging database is a coordinated
-event (CLAUDE.md, Conventions). Files let the team read drafts today without
-writing to shared state; the shape here is the one a `blog_post` table would
-serve later, so the UI does not change when storage does.
-
-`generate_sample_blogs.py` writes the files (`export_post`). This module only
-reads them. Nothing here calls a model.
+THE PAGES DO NOT READ THESE FILES (since 2026-10-06). Posts live in the shared
+`blog_post` table (`judge/blog_store.py`, migration 20261006T1500): the Blogs
+page shows the approved ones and Admin -> Blogs reviews the rest. The files are
+the generator's output on the machine that ran it - `generate_sample_blogs.py`
+calls a paid model and runs locally - and they reach the table two ways: a run
+started from Admin -> Blogs stores its drafts when it finishes
+(`judge/blog_runs._finish`), and anything else is stored from Admin -> Blogs'
+"Store them as drafts" (`POST /blog-posts/store`). This module validates and
+lists the files for both. Nothing here calls a model.
 
 THREE STATES, NOT TWO (rule 4, rule 6)
 
@@ -27,7 +26,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +38,12 @@ REQUIRED = ("slug", "title", "dek", "tag", "by", "lead", "meta", "body", "proven
 
 #: Body block types `vPost` knows how to render. An unknown type would render
 #: as nothing, which reads as a shorter post rather than a broken one.
-BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree"}
+#: `visual` (a table, chart or diagram) and `image` (an AI-generated picture)
+#: joined on 2026-10-13 with the generator that writes them.
+#: `highlight` (one whole sentence from a source, in a reported post) joined on
+#: 2026-10-20 with the reported style (blog_rules.yaml).
+BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree", "visual", "image", "embed",
+               "highlight"}
 
 
 def posts_dir() -> Path | None:
@@ -66,6 +70,14 @@ def _problem(doc: Any) -> str | None:
     for i, block in enumerate(doc["body"]):
         if not (isinstance(block, list) and len(block) == 2 and block[0] in BLOCK_TYPES):
             return f"body[{i}] is not one of {sorted(BLOCK_TYPES)}"
+        if block[0] == "highlight":
+            v = block[1]
+            if not (isinstance(v, dict) and isinstance(v.get("text"), str) and v["text"].strip()
+                    and isinstance(v.get("n"), int)):
+                return f"body[{i}] is a highlight without its text and reference number"
+            if v["n"] not in {s.get("n") for s in doc.get("sources") or [] if isinstance(s, dict)}:
+                return (f"body[{i}] is a highlight citing reference {v['n']}, "
+                        "which the post does not list")
     return None
 
 
@@ -137,31 +149,42 @@ def generation_status() -> dict:
     alive = _proc is not None and _proc.poll() is None
     if st.get("state") in ("starting", "running") and not alive:
         try:
-            age = (datetime.now(timezone.utc) - datetime.fromisoformat(st["updated_at"])).total_seconds()
+            age = (datetime.now(UTC) - datetime.fromisoformat(st["updated_at"])).total_seconds()
         except (KeyError, ValueError, TypeError):
             age = None
         if _proc is not None and _proc.poll() is not None:
             st = {**st, "state": "failed", "message": st.get("message") or
-                  f"the run exited (code {_proc.returncode}) without reporting; see {LOG_FILE.name}"}
+                  f"the run exited (code {_proc.returncode}) without reporting; "
+                  f"see {LOG_FILE.name}"}
         elif age is None or age > STALE_AFTER_S:
-            st = {**st, "state": "stalled", "message": "the run stopped reporting; it is not running from this backend"}
+            st = {**st, "state": "stalled",
+                  "message": "the run stopped reporting; it is not running from this backend"}
     return {**st, "alive": alive}
 
 
 def start_generation(count: int) -> dict:
     global _proc
     if os.getenv("ENVIRONMENT", "").strip().lower() != "development":
-        raise GenerationRefused(403, "generating posts is a local-development action; ENVIRONMENT is not development")
+        raise GenerationRefused(
+            403, "generating posts is a local-development action; ENVIRONMENT is not development")
     if not 1 <= count <= 5:
         raise GenerationRefused(422, "count must be 1 to 5")
     if _proc is not None and _proc.poll() is None:
         raise GenerationRefused(409, "a generation run is already in progress")
+    # PAUSED WHILE CLAUDE CODE WRITES (blog_formats.yaml `writer`, 2026-10-16).
+    from judge.blog_method import writer
+
+    if writer() == "claude-code":
+        raise GenerationRefused(
+            409, "Blog drafts are written by Claude Code from writing packs until the prompt is "
+                 "tuned; no OpenRouter call is made. Prepare packs instead.")
     script = ROOT / "generate_sample_blogs.py"
     STATUS_FILE.parent.mkdir(exist_ok=True)
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
     STATUS_FILE.write_text(json.dumps({"state": "starting", "count": count, "started_at": now,
                                        "updated_at": now, "items": []}), encoding="utf-8")
     log = LOG_FILE.open("w", encoding="utf-8")
     _proc = subprocess.Popen([sys.executable, "-u", str(script), "--plan", str(count), "--status"],
-                             cwd=str(ROOT), env=os.environ.copy(), stdout=log, stderr=subprocess.STDOUT)
+                             cwd=str(ROOT), env=os.environ.copy(), stdout=log,
+                             stderr=subprocess.STDOUT)
     return generation_status()

@@ -1,0 +1,598 @@
+{
+ "slug": "research-radar-concept-fine-tuning",
+ "status": "draft",
+ "tag": "Research radar",
+ "feat": false,
+ "title": "Paris Maps to Crab: The Fine-Tuning Ideas Worth Watching Now",
+ "dek": "A brisk tour of fresh fine-tuning research: a probe that predicts transfer, federated clients that leak and poison, permissive multilingual instruction data, paired experts, repository history as supervision and topology-aware losses.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is fine-tuning an LLM, really? A targeted edit to structure the model already holds: relabelled facts spread to new subjects when the old relation is linearly readable, at Pearson r = 0.87 to 0.92.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkZpbmUtdHVuZWQgbGFiZWwgc3ByZWFkcyBmcm9tIFBhcmlzIHRvIE11bmljaCB0aHJvdWdoIGEgbGluZWFyIHJlZ2lvbjwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImdFdSIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMzIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImdBcyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuMjgiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImdDcmFiIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC40Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYUEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIFoiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYUciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIFoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gcmVwcmVzZW50YXRpb24gcGxhbmUgLS0+CiAgPHBhdGggZD0iTTYwIDUyMCBMMTgwIDExMCBMNzYwIDExMCBMNjQwIDUyMCBaIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxnIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuOCI+CiAgICA8bGluZSB4MT0iMTIwIiB5MT0iMzE1IiB4Mj0iNzAwIiB5Mj0iMzE1Ii8+CiAgICA8bGluZSB4MT0iMjk2IiB5MT0iMTEwIiB4Mj0iMTc2IiB5Mj0iNTIwIi8+CiAgICA8bGluZSB4MT0iNDEyIiB5MT0iMTEwIiB4Mj0iMjkyIiB5Mj0iNTIwIi8+CiAgICA8bGluZSB4MT0iNTI4IiB5MT0iMTEwIiB4Mj0iNDA4IiB5Mj0iNTIwIi8+CiAgICA8bGluZSB4MT0iNjQ0IiB5MT0iMTEwIiB4Mj0iNTI0IiB5Mj0iNTIwIi8+CiAgPC9nPgogIDwhLS0gbGluZWFyIGJvdW5kYXJ5IC0tPgogIDxsaW5lIHgxPSI0NzAiIHkxPSI5NiIgeDI9IjMzMCIgeTI9IjUzNiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEyIDkiLz4KCiAgPCEtLSBFdXJvcGUgY2x1c3RlciAtLT4KICA8ZWxsaXBzZSBjeD0iMjcwIiBjeT0iMzAwIiByeD0iMTUwIiByeT0iMTQwIiBmaWxsPSJ1cmwoI2dFdSkiLz4KICA8ZyBmaWxsPSIjN2FhMmZmIj4KICAgIDxjaXJjbGUgY3g9IjIxMCIgY3k9IjI1MCIgcj0iOSIvPjxjaXJjbGUgY3g9IjI1MCIgY3k9IjIwMCIgcj0iOCIvPjxjaXJjbGUgY3g9IjMwMCIgY3k9IjIzMCIgcj0iOSIvPgogICAgPGNpcmNsZSBjeD0iMTkwIiBjeT0iMzMwIiByPSI4Ii8+PGNpcmNsZSBjeD0iMjQwIiBjeT0iMzgwIiByPSI5Ii8+PGNpcmNsZSBjeD0iMzIwIiBjeT0iMzQwIiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSIzMzAiIGN5PSIyODAiIHI9IjgiLz48Y2lyY2xlIGN4PSIyMDAiIGN5PSI0MjAiIHI9IjgiLz4KICA8L2c+CiAgPCEtLSBBc2lhIGNsdXN0ZXIgLS0+CiAgPGVsbGlwc2UgY3g9IjU2MCIgY3k9IjMyMCIgcng9IjE1MCIgcnk9IjE0MCIgZmlsbD0idXJsKCNnQXMpIi8+CiAgPGcgZmlsbD0iI2E3OGJmYSI+CiAgICA8Y2lyY2xlIGN4PSI1MjAiIGN5PSIyMzAiIHI9IjkiLz48Y2lyY2xlIGN4PSI1ODAiIGN5PSIyMTAiIHI9IjgiLz48Y2lyY2xlIGN4PSI2MjAiIGN5PSIyNzAiIHI9IjkiLz4KICAgIDxjaXJjbGUgY3g9IjUwMCIgY3k9IjMyMCIgcj0iOCIvPjxjaXJjbGUgY3g9IjU2MCIgY3k9IjM2MCIgcj0iOSIvPjxjaXJjbGUgY3g9IjYxMCIgY3k9IjQwMCIgcj0iOCIvPgogICAgPGNpcmNsZSBjeD0iNTMwIiBjeT0iNDMwIiByPSI4Ii8+CiAgPC9nPgoKICA8IS0tIFBhcmlzIGFuZCBNdW5pY2ggLS0+CiAgPGNpcmNsZSBjeD0iMjcwIiBjeT0iMjkwIiByPSIxNSIgZmlsbD0iI2U4ZWRmNSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8Y2lyY2xlIGN4PSIyNzUiIGN5PSIzNjAiIHI9IjE1IiBmaWxsPSIjZThlZGY1IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogIDx0ZXh0IHg9IjI0OCIgeT0iMjk4IiB0ZXh0LWFuY2hvcj0iZW5kIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPlBhcmlzPC90ZXh0PgogIDx0ZXh0IHg9IjI1MiIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0iZW5kIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPk11bmljaDwvdGV4dD4KCiAgPCEtLSBhcnJvd3MgdG8gY3JhYiAtLT4KICA8cGF0aCBkPSJNMjg4IDI4NCBDNTIwIDEyMCA4MjAgMTIwIDkwMCAyMzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0IiBtYXJrZXItZW5kPSJ1cmwoI2FBKSIvPgogIDxwYXRoIGQ9Ik0yOTIgMzY2IEM1NjAgNTYwIDg2MCA1MjAgOTA1IDQwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjEyIDkiIG1hcmtlci1lbmQ9InVybCgjYUcpIi8+CgogIDwhLS0gY3JhYiAtLT4KICA8ZWxsaXBzZSBjeD0iOTYwIiBjeT0iMzIwIiByeD0iMTkwIiByeT0iMTcwIiBmaWxsPSJ1cmwoI2dDcmFiKSIvPgogIDxnIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiPgogICAgPHBhdGggZD0iTTkwMCAzNDAgTDg1MCAzNzAgTDgzOCA0MTAiLz4KICAgIDxwYXRoIGQ9Ik05MDUgMzYwIEw4NjIgNDAwIEw4NTggNDQwIi8+CiAgICA8cGF0aCBkPSJNMTAyMCAzNDAgTDEwNzAgMzcwIEwxMDgyIDQxMCIvPgogICAgPHBhdGggZD0iTTEwMTUgMzYwIEwxMDU4IDQwMCBMMTA2MiA0NDAiLz4KICAgIDxwYXRoIGQ9Ik05MTUgMzAwIEw4ODAgMjUwIi8+CiAgICA8cGF0aCBkPSJNMTAwNSAzMDAgTDEwNDAgMjUwIi8+CiAgPC9nPgogIDxlbGxpcHNlIGN4PSI5NjAiIGN5PSIzMzAiIHJ4PSI3OCIgcnk9IjUyIiBmaWxsPSIjZTNiMzQxIi8+CiAgPHBhdGggZD0iTTg1OCAyNTIgYTI4IDI4IDAgMSAxIDMwIC04IGwtMTYgNiB6IiBmaWxsPSIjZTNiMzQxIi8+CiAgPHBhdGggZD0iTTEwNjIgMjUyIGEyOCAyOCAwIDEgMCAtMzAgLTggbDE2IDYgeiIgZmlsbD0iI2UzYjM0MSIvPgogIDxsaW5lIHgxPSI5NDAiIHkxPSIyODQiIHgyPSI5MzQiIHkyPSIyNjIiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGxpbmUgeDE9Ijk4MCIgeTE9IjI4NCIgeDI9Ijk4NiIgeTI9IjI2MiIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8Y2lyY2xlIGN4PSI5MzQiIGN5PSIyNTgiIHI9IjciIGZpbGw9IiMxMDE0MWIiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGNpcmNsZSBjeD0iOTg2IiBjeT0iMjU4IiByPSI3IiBmaWxsPSIjMTAxNDFiIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9Ijk2MCIgeT0iNTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSI0NiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2UzYjM0MSI+Y3JhYjwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A representation plane split by a dashed line; Paris links to a crab, and Munich follows with a dashed arrow.",
+  "caption": "Fine-tune Paris to crab, and Munich follows when the old continent relation is linearly readable.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is fine-tuning an LLM doing to what it knows? Fresh research on linear transfer, federated poisoning, continual tuning and code that changes.",
+ "keywords": [
+  "what is fine-tuning an LLM",
+  "Fine-tuning",
+  "fine-tuning generalization",
+  "federated fine-tuning",
+  "continual instruction tuning",
+  "preference optimization"
+ ],
+ "kicker": "Research radar",
+ "tags": [
+  "fine-tuning",
+  "Research radar"
+ ],
+ "read": 9,
+ "decisions": [
+  "Probe base representations before fine-tuning a new mapping onto old knowledge",
+  "Keep a trusted root set when fine-tuning across federated clients",
+  "Check the licence behind instruction data before a commercial fine-tune",
+  "Turn version-control history into preference pairs for repository models",
+  "Add a loss term for the structure your users actually read"
+ ],
+ "layout": "radar",
+ "arrangement": "b",
+ "special": {
+  "type": "radar",
+  "title": "On the radar",
+  "items": [
+   {
+    "item": "Linear-readability probe",
+    "what": "Measure how linearly readable a base relation is before fine-tuning a new mapping onto it.",
+    "why": "It predicts generalization at Pearson r = 0.87 to 0.92 within each model.",
+    "stage": "early results",
+    "source": 3,
+    "ref": {
+     "title": "Knowledge That Is Linear Before Fine-Tuning Generalizes After It",
+     "url": "https://arxiv.org/abs/2610.22300v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Attacks on head-only FedAvg",
+    "what": "Privacy and poisoning tests on federated fine-tuning over ten non-IID clients.",
+    "why": "One client update leaks the full label set, and backdoors cost at most 0.8 points of clean accuracy.",
+    "stage": "early results",
+    "source": 1,
+    "ref": {
+     "title": "Federated Art Chase: Privacy Leakage and Data Poisoning in Federated Fine-Tuning",
+     "url": "https://arxiv.org/abs/2610.21547v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "FLTrust with a central root set",
+    "what": "The server scores client updates against a trusted root set kept from central fine-tuning.",
+    "why": "Backdoor success fell to 1.8% and 4.0% at 30% and 50% malicious clients.",
+    "stage": "early results",
+    "source": 1,
+    "ref": {
+     "title": "Federated Art Chase: Privacy Leakage and Data Poisoning in Federated Fine-Tuning",
+     "url": "https://arxiv.org/abs/2610.21547v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Multi-SFT",
+    "what": "502,818 permissively licensed instruction-response pairs across five European languages.",
+    "why": "Clean licences for commercial fine-tunes, with decisive advantages claimed on safety tasks.",
+    "stage": "early results",
+    "source": 2,
+    "ref": {
+     "title": "Multi-SFT: Permissively-Licensed Multilingual Instruction-Following",
+     "url": "https://arxiv.org/abs/2610.22086v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "CART compatible routing",
+    "what": "Paired task-specific experts in the projector and language model, weighted by one joint router.",
+    "why": "It targets projector drift, a forgetting source that language-only protection misses.",
+    "stage": "new idea",
+    "source": 4,
+    "ref": {
+     "title": "CART: Compatible Routing for Multimodal Continual Instruction Tuning",
+     "url": "https://arxiv.org/abs/2610.22137v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "TAFT temporal adaptation",
+    "what": "Repository transitions become preference pairs plus replayed retention examples.",
+    "why": "An 18% average relative gain in updated and suppressed knowledge accuracy.",
+    "stage": "early results",
+    "source": 5,
+    "ref": {
+     "title": "Temporal Adaptive Fine-Tuning for Code Comprehension",
+     "url": "https://arxiv.org/abs/2610.19970v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Topology-inspired fine-tuning",
+    "what": "Auxiliary losses and fixed-pair supervision on persistence features of wind fields.",
+    "why": "Persistence distances fell by 31%, 25% and 27% versus the pretrained CNN.",
+    "stage": "early results",
+    "source": 6,
+    "ref": {
+     "title": "Topology-Inspired Fine-Tuning for Wind-Field Super-Resolution",
+     "url": "https://arxiv.org/abs/2610.22262v1",
+     "platform": "arXiv"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Linear readability predicts which fine-tuned facts spread",
+    "num": "01",
+    "id": "linear-readability-predicts-which-fine-tuned-facts-spread"
+   }
+  ],
+  [
+   "p",
+   "Here's the newest idea, stated plainly. A fact you fine-tune into a model spreads to related facts only when the model already holds the relation in a linearly readable form. A new arXiv paper says so in its title: «Knowledge That Is Linear Before Fine-Tuning Generalizes After It». That changes what you should check before you train."
+  ],
+  [
+   "p",
+   "We retraced the experiment, because it's elegant. Start with a relation the model knows, such as place to continent. Relabel its answers at random: «Europe -> crab, Asia -> zebra». Fine-tune on the new relation for some subjects, never revealing the rule. Then test a held-out subject. The authors put the question directly: «Having learned Paris -> crab, does it answer Munich -> crab?»"
+  ],
+  [
+   "p",
+   "The answer depends on a probe. A linear probe is one linear classifier, trained on frozen hidden states to read out an attribute. Across 70 relations, «how linearly readable the original relation is in pretrained representations strongly predicts this generalization». Within each model, the correlation runs at «Pearson r = 0.87 to 0.92». That's strong for a single readout."
+  ],
+  [
+   "p",
+   "The controls are why we take it seriously. The link survives controls for «the number of fine-tuning subjects and answers», for accuracy on the original relation and for pretraining frequency. It survives fresh label draws and seeds too. We think this is the item on the radar most likely to change how you plan a fine-tune."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The relabelling experiment that tests whether a fine-tuned fact spreads to held-out subjects.",
+    "steps": [
+     "Pick a known relation, such as place to continent",
+     "Relabel each answer at random, Europe to crab",
+     "Fine-tune on the new relation for some subjects",
+     "Ask a held-out subject sharing the old answer",
+     "Compare transfer with a linear probe's readability"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Wrong answers fall back onto the pretrained relation",
+    "num": "02",
+    "id": "wrong-answers-fall-back-onto-the-pretrained-relation"
+   }
+  ],
+  [
+   "p",
+   "The error analysis is the delightful part. When the fine-tuned model misses a held-out subject, map its label back through the relabelling. The paper's example: «Munich -> zebra becomes Munich -> Asia». The model didn't guess at random. In effect it answered from the continent it placed Munich in, then wore the new label."
+  ],
+  [
+   "p",
+   "Those recovered answers «are more often among the linear probe's top answers for the subject than among the pretrained model's own». Read that twice. A linear readout of the base model forecasts the tuned model's mistakes better than the base model's own outputs. Fine-tuning, on this evidence, routes through whatever structure the representation exposes linearly."
+  ],
+  [
+   "p",
+   "Our advice follows directly. Before you fine-tune a new mapping onto old knowledge, probe for the old knowledge. If a linear readout of the base relation is weak, expect memorised rows and little transfer. The closing line says it best: transfer depends «less on whether its facts can be recalled than on how readily their shared structure can be read out linearly»."
+  ],
+  [
+   "code",
+   {
+    "label": "An illustrative pre-flight probe for linear readability, not the paper's code",
+    "language": "python",
+    "source": "from sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import cross_val_score\n\n# frozen activations for each subject, read at one chosen layer\nH = hidden_states(base_model, subjects, layer=probe_layer)\ny = original_answers(subjects)  # e.g. the continent for each place\n\n# how linearly readable is the old relation?\nreadability = cross_val_score(LogisticRegression(), H, y).mean()\nif readability < threshold:\n    print(\"expect recall of trained rows, little transfer\")"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Federated fine-tuning leaks labels and absorbs backdoors",
+    "num": "03",
+    "id": "federated-fine-tuning-leaks-labels-and-absorbs-backdoors"
+   }
+  ],
+  [
+   "p",
+   "Next, fine-tuning where the data never leaves the phone. A new arXiv report studies federated learning used «to adapt a pretrained, centrally fine-tuned model to data that remain on user devices». The setup is small and reproducible: a sketch classifier on ten Quick, Draw! classes, then «head-only FedAvg over ten non-IID clients». FedAvg averages client weight updates on a server."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPlBvaXNvbmVkIGNsaWVudCB1cGRhdGVzIG1lZXQgYSByb290LXNldCB0cnVzdCBjaGVjazwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhRyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgWiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhUiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgWiIgZmlsbD0iI2ZmN2I3MiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhQiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgWiIgZmlsbD0iIzdhYTJmZiIvPgogICAgPC9tYXJrZXI+CiAgICA8c3ltYm9sIGlkPSJwaG9uZSIgdmlld0JveD0iMCAwIDYwIDkwIj4KICAgICAgPHJlY3QgeD0iMyIgeT0iMyIgd2lkdGg9IjU0IiBoZWlnaHQ9Ijg0IiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPHJlY3QgeD0iMTQiIHk9IjE2IiB3aWR0aD0iMzIiIGhlaWdodD0iNDAiIHJ4PSI0IiBmaWxsPSJjdXJyZW50Q29sb3IiIG9wYWNpdHk9IjAuMzUiLz4KICAgICAgPGNpcmNsZSBjeD0iMzAiIGN5PSI3MiIgcj0iNSIgZmlsbD0iY3VycmVudENvbG9yIi8+CiAgICA8L3N5bWJvbD4KICA8L2RlZnM+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjYwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDx0ZXh0IHg9IjEzMCIgeT0iNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzk1YTFiNCI+Y2xpZW50czwvdGV4dD4KCiAgPCEtLSBjbGllbnRzOiB0d28gY29sdW1ucyBvZiBmaXZlLCB0aHJlZSBwb2lzb25lZCAtLT4KICA8ZyBjb2xvcj0iIzNlY2Y4ZSI+CiAgICA8dXNlIGhyZWY9IiNwaG9uZSIgeD0iNjAiIHk9IjkwIiB3aWR0aD0iNTAiIGhlaWdodD0iNzUiLz4KICAgIDx1c2UgaHJlZj0iI3Bob25lIiB4PSI2MCIgeT0iMTkwIiB3aWR0aD0iNTAiIGhlaWdodD0iNzUiLz4KICAgIDx1c2UgaHJlZj0iI3Bob25lIiB4PSI2MCIgeT0iMjkwIiB3aWR0aD0iNTAiIGhlaWdodD0iNzUiLz4KICAgIDx1c2UgaHJlZj0iI3Bob25lIiB4PSI2MCIgeT0iMzkwIiB3aWR0aD0iNTAiIGhlaWdodD0iNzUiLz4KICAgIDx1c2UgaHJlZj0iI3Bob25lIiB4PSI2MCIgeT0iNDkwIiB3aWR0aD0iNTAiIGhlaWdodD0iNzUiLz4KICAgIDx1c2UgaHJlZj0iI3Bob25lIiB4PSIxNTAiIHk9IjkwIiB3aWR0aD0iNTAiIGhlaWdodD0iNzUiLz4KICAgIDx1c2UgaHJlZj0iI3Bob25lIiB4PSIxNTAiIHk9IjI5MCIgd2lkdGg9IjUwIiBoZWlnaHQ9Ijc1Ii8+CiAgPC9nPgogIDxnIGNvbG9yPSIjZmY3YjcyIj4KICAgIDx1c2UgaHJlZj0iI3Bob25lIiB4PSIxNTAiIHk9IjE5MCIgd2lkdGg9IjUwIiBoZWlnaHQ9Ijc1Ii8+CiAgICA8dXNlIGhyZWY9IiNwaG9uZSIgeD0iMTUwIiB5PSIzOTAiIHdpZHRoPSI1MCIgaGVpZ2h0PSI3NSIvPgogICAgPHVzZSBocmVmPSIjcGhvbmUiIHg9IjE1MCIgeT0iNDkwIiB3aWR0aD0iNTAiIGhlaWdodD0iNzUiLz4KICA8L2c+CgogIDwhLS0gdXBkYXRlcyAtLT4KICA8cGF0aCBkPSJNMjE1IDIyMCBDMzIwIDIyMCAzNjAgMzAwIDQ1MCAzMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBtYXJrZXItZW5kPSJ1cmwoI2FHKSIvPgogIDxwYXRoIGQ9Ik0yMTUgNDMwIEMzMjAgNDMwIDM2MCAzNjAgNDUwIDM0NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDgiIG1hcmtlci1lbmQ9InVybCgjYVIpIi8+CiAgPHRleHQgeD0iMzAwIiB5PSIxOTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZmlsbD0iIzNlY2Y4ZSI+aG9uZXN0IHVwZGF0ZTwvdGV4dD4KICA8dGV4dCB4PSIzMDAiIHk9IjQ4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIzIiBmaWxsPSIjZmY3YjcyIj5iYWNrZG9vciB1cGRhdGU8L3RleHQ+CgogIDwhLS0gdHJ1c3QgY2hlY2sgLS0+CiAgPGVsbGlwc2UgY3g9IjU2MCIgY3k9IjMzNSIgcng9IjE3MCIgcnk9IjE3MCIgZmlsbD0idXJsKCNnbG93KSIvPgogIDxyZWN0IHg9IjQ1NSIgeT0iMjUwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjE3MCIgcng9IjE4IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNTYwIiB5PSIzMTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+dHJ1c3Q8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+Y2hlY2s8L3RleHQ+CiAgPHRleHQgeD0iNTYwIiB5PSIzOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+Y29tcGFyZSB0byByb290PC90ZXh0PgoKICA8IS0tIHJvb3Qgc2V0IC0tPgogIDxyZWN0IHg9IjQ3MCIgeT0iNzAiIHdpZHRoPSIxODAiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI1NjAiIHk9IjExMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjYTc4YmZhIj5yb290IHNldDwvdGV4dD4KICA8dGV4dCB4PSI1NjAiIHk9IjE0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5jZW50cmFsIGZpbmUtdHVuZTwvdGV4dD4KICA8bGluZSB4MT0iNTYwIiB5MT0iMTY4IiB4Mj0iNTYwIiB5Mj0iMjQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhQikiLz4KCiAgPCEtLSB0byBzZXJ2ZXIgLS0+CiAgPGxpbmUgeDE9IjY2OCIgeTE9IjMyMCIgeDI9IjgwMCIgeTI9IjMyMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIG1hcmtlci1lbmQ9InVybCgjYUcpIi8+CiAgPHBhdGggZD0iTTY2OCAzODAgQzcwMCA0MDAgNzE1IDQxMCA3MzAgNDI1IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNCA4IiBvcGFjaXR5PSIwLjciLz4KICA8dGV4dCB4PSI3MzUiIHk9IjQ1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmY3YjcyIj5kb3duLXdlaWdodGVkPC90ZXh0PgoKICA8cmVjdCB4PSI4MTAiIHk9IjI1MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxNDAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSI5MTAiIHk9IjMxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5GZWRBdmc8L3RleHQ+CiAgPHRleHQgeD0iOTEwIiB5PSIzNDgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+c2VydmVyPC90ZXh0PgoKICA8IS0tIG91dGNvbWUgLS0+CiAgPHJlY3QgeD0iNzYwIiB5PSI0NzAiIHdpZHRoPSI0MDAiIGhlaWdodD0iMTIwIiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5NjAiIHk9IjUxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIzIiBmaWxsPSIjOTVhMWI0Ij5iYWNrZG9vciBzdWNjZXNzLCAzMCUgcG9pc29uZWQ8L3RleHQ+CiAgPHRleHQgeD0iOTYwIiB5PSI1NjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij48dHNwYW4gZmlsbD0iI2ZmN2I3MiI+MjEuOSU8L3RzcGFuPiA8dHNwYW4gZmlsbD0iIzk1YTFiNCI+dG88L3RzcGFuPiA8dHNwYW4gZmlsbD0iIzNlY2Y4ZSI+MS44JTwvdHNwYW4+PC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Phones send honest and backdoor updates through a trust check fed by a root set, then to a FedAvg server.",
+    "caption": "FLTrust compares each client update with one from a trusted root set before averaging.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Privacy first. From a single client update, «an honest-but-curious server recovers the complete private label set». The drawings stayed safe, since reconstructions «follow class prototypes rather than the private drawings», with mean SSIM 0.130. Aggregation helps more. Label-count recovery fell from 87.5% with one client to 75.0% with five and ten, «below the 80.0% of an uninformed uniform guess»."
+  ],
+  [
+   "p",
+   "Integrity is the scarier half. A backdoor planted by 30%, 50% and 100% of clients reached attack success rates of 21.9%, 31.3% and 54.7%. Clean accuracy fell by «at most 0.8 percentage points of clean accuracy», so validation wouldn't blink. FLTrust scores each update against a server-side root set, and it cut backdoor success to 1.8% and 4.0% at 30% and 50% malicious clients."
+  ],
+  [
+   "p",
+   "We agree with the report's candour about the limit: FLTrust «provides no protection when every client is malicious». That matters for any federated fine-tuning pipeline. The root set is a trusted sample «retained from centralized fine-tuning». Lose it, or let it go stale, and the defence has nothing honest to compare against."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Backdoor attack success rate in percent under plain FedAvg and under FLTrust, by share of malicious clients.",
+    "unit": "attack success rate, %",
+    "bars": [
+     {
+      "label": "FedAvg, 30% malicious",
+      "value": 21.9
+     },
+     {
+      "label": "FedAvg, 50% malicious",
+      "value": 31.3
+     },
+     {
+      "label": "FedAvg, 100% malicious",
+      "value": 54.7
+     },
+     {
+      "label": "FLTrust, 30% malicious",
+      "value": 1.8
+     },
+     {
+      "label": "FLTrust, 50% malicious",
+      "value": 4.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Multi-SFT ships permissive instruction data in five languages",
+    "num": "04",
+    "id": "multi-sft-ships-permissive-instruction-data-in-five-language"
+   }
+  ],
+  [
+   "p",
+   "A quieter problem: licences. Instruction data is often generated by proprietary models «whose terms of service forbid training competing systems». That blocks commercial fine-tunes, outside English most of all. Multi-SFT answers with «a commercially permissive collection of 502,818 instruction-response pairs across five European languages». Where translation falls short, the pipeline regenerates the response from scratch."
+  ],
+  [
+   "p",
+   "Quality checks look solid. Human evaluation reports «inter-annotator agreement of at least 0.87» across languages. Nine models from three families, spanning 1B-32B, were fine-tuned and scored on 13 benchmarks. The headline: Multi-SFT alone «is competitive with larger augmented mixes and official instruction-tuned releases, with decisive advantages on safety tasks»."
+  ],
+  [
+   "p",
+   "Our view is mixed. Competitive is a soft word, and no margins come with it. The safety edge is the interesting claim, and we suspect provenance shapes refusal behaviour more than anyone has measured. Still, if you must ship a European-language assistant under a clean licence, this is the most practical item here."
+  ],
+  [
+   "h2",
+   {
+    "text": "CART pairs projector and language experts to curb forgetting",
+    "num": "05",
+    "id": "cart-pairs-projector-and-language-experts-to-curb-forgetting"
+   }
+  ],
+  [
+   "p",
+   "Multimodal models carry a part text fine-tuning ignores: the projector, a small network that maps image features into the language model's embedding space. In continual instruction tuning, tasks arrive one after another. A new arXiv paper spots an imbalance: existing methods «protect the language model from forgetting while continuously updating the projector across tasks»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPkJlZm9yZSBhbmQgYWZ0ZXIgQ0FSVDogYSBkcmlmdGluZyBwcm9qZWN0b3IgdmVyc3VzIHBhaXJlZCBleHBlcnRzPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFSIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCBaIiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjQwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxsaW5lIHgxPSI1MjAiIHkxPSI2MCIgeDI9IjUyMCIgeTI9IjU5MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPCEtLSBCRUZPUkUgLS0+CiAgPHRleHQgeD0iMjYwIiB5PSI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjOTVhMWI0Ij5iZWZvcmU8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjE1MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIzMDAiIHJ4PSIxOCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjE1MCIgeT0iMjkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPnByb2plY3RvcjwvdGV4dD4KICA8dGV4dCB4PSIxNTAiIHk9IjMyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZmY3YjcyIj5rZWVwcyB1cGRhdGluZzwvdGV4dD4KICA8IS0tIGdob3N0IG9mIGRyaWZ0IC0tPgogIDxyZWN0IHg9IjcyIiB5PSIxMzgiIHdpZHRoPSIxODAiIGhlaWdodD0iMzAwIiByeD0iMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDgiIG9wYWNpdHk9IjAuNSIvPgogIDxyZWN0IHg9Ijg0IiB5PSIxMjYiIHdpZHRoPSIxODAiIGhlaWdodD0iMzAwIiByeD0iMTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDgiIG9wYWNpdHk9IjAuMyIvPgogIDxyZWN0IHg9IjMzMCIgeT0iMTUwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjMwMCIgcng9IjE4IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNDEwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSI+bGFuZ3VhZ2U8L3RleHQ+CiAgPHRleHQgeD0iNDEwIiB5PSIzMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSI+bW9kZWw8L3RleHQ+CiAgPHRleHQgeD0iNDEwIiB5PSIzNTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzdhYTJmZiI+cHJvdGVjdGVkPC90ZXh0PgogIDwhLS0gbWlzbWF0Y2ggZ2FwIC0tPgogIDxwYXRoIGQ9Ik0yNzAgMzAwIEwzMDAgMjgwIEwyODAgMzEwIEwzMTAgMzAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHRleHQgeD0iMjc1IiB5PSI1MjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiI+bWlzbWF0Y2ggZ3Jvd3M8L3RleHQ+CiAgPHRleHQgeD0iMjc1IiB5PSI1NTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+b2xkIHRhc2tzIGZvcmdvdHRlbjwvdGV4dD4KCiAgPCEtLSBBRlRFUiAtLT4KICA8dGV4dCB4PSI4NjAiIHk9IjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiM5NWExYjQiPkNBUlQ8L3RleHQ+CiAgPGVsbGlwc2UgY3g9Ijg2MCIgY3k9IjMwMCIgcng9IjIyMCIgcnk9IjIwMCIgZmlsbD0idXJsKCNnbG93KSIvPgogIDx0ZXh0IHg9IjY0MCIgeT0iMTM1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnByb2plY3RvciBleHBlcnRzPC90ZXh0PgogIDx0ZXh0IHg9IjEwODAiIHk9IjEzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5sYW5ndWFnZSBleHBlcnRzPC90ZXh0PgogIDwhLS0gcHJvamVjdG9yIGV4cGVydHMgLS0+CiAgPGcgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxyZWN0IHg9IjU4MCIgeT0iMTYwIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjgwIiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIvPgogICAgPHJlY3QgeD0iNTgwIiB5PSIyNjAiIHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIHJ4PSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjM2VjZjhlIi8+CiAgICA8cmVjdCB4PSI1ODAiIHk9IjM2MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI4MCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiLz4KICAgIDxyZWN0IHg9IjEwMjAiIHk9IjE2MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI4MCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlM2IzNDEiLz4KICAgIDxyZWN0IHg9IjEwMjAiIHk9IjI2MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI4MCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiLz4KICAgIDxyZWN0IHg9IjEwMjAiIHk9IjM2MCIgd2lkdGg9IjEyMCIgaGVpZ2h0PSI4MCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiLz4KICA8L2c+CiAgPCEtLSB0YXNrIGdseXBocyAtLT4KICA8Y2lyY2xlIGN4PSI2NDAiIGN5PSIyMDAiIHI9IjE2IiBmaWxsPSIjZTNiMzQxIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2NDAsMjgyIDY1OCwzMTYgNjIyLDMxNiIgZmlsbD0iIzNlY2Y4ZSIvPgogIDxyZWN0IHg9IjYyNSIgeT0iMzg1IiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHJ4PSI0IiBmaWxsPSIjN2FhMmZmIi8+CiAgPGNpcmNsZSBjeD0iMTA4MCIgY3k9IjIwMCIgcj0iMTYiIGZpbGw9IiNlM2IzNDEiLz4KICA8cG9seWdvbiBwb2ludHM9IjEwODAsMjgyIDEwOTgsMzE2IDEwNjIsMzE2IiBmaWxsPSIjM2VjZjhlIi8+CiAgPHJlY3QgeD0iMTA2NSIgeT0iMzg1IiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHJ4PSI0IiBmaWxsPSIjN2FhMmZmIi8+CiAgPCEtLSByb3V0ZXIgLS0+CiAgPGNpcmNsZSBjeD0iODYwIiBjeT0iMzAwIiByPSI3MCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjIyIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9Ijg2MCIgeT0iMjk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPmpvaW50PC90ZXh0PgogIDx0ZXh0IHg9Ijg2MCIgeT0iMzI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPnJvdXRlcjwvdGV4dD4KICA8ZyBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiPgogICAgPHBhdGggZD0iTTcwMiAyMDAgQzc2MCAyMTAgNzgwIDI2MCA3OTQgMjc4IiBzdHJva2U9IiNlM2IzNDEiLz4KICAgIDxwYXRoIGQ9Ik03MDIgMzAwIEw3OTAgMzAwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNiIvPgogICAgPHBhdGggZD0iTTcwMiA0MDAgQzc2MCAzOTAgNzgwIDM0MCA3OTQgMzIyIiBzdHJva2U9IiM3YWEyZmYiLz4KICAgIDxwYXRoIGQ9Ik05MjYgMjc4IEM5NDAgMjYwIDk2MCAyMTAgMTAxOCAyMDAiIHN0cm9rZT0iI2UzYjM0MSIvPgogICAgPHBhdGggZD0iTTkzMCAzMDAgTDEwMTggMzAwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNiIvPgogICAgPHBhdGggZD0iTTkyNiAzMjIgQzk0MCAzNDAgOTYwIDM5MCAxMDE4IDQwMCIgc3Ryb2tlPSIjN2FhMmZmIi8+CiAgPC9nPgogIDx0ZXh0IHg9Ijg2MCIgeT0iNTIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNhNzhiZmEiPnJlbGV2YW5jZSArIGNvbXBhdGliaWxpdHk8L3RleHQ+CiAgPHRleHQgeD0iODYwIiB5PSI1NTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+d2VpZ2h0cyBjaG9zZW4gZm9yIGJvdGggbW9kdWxlcyBhdCBvbmNlPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Left: a drifting projector beside a protected language model. Right: paired experts joined by a joint router.",
+    "caption": "CART routes paired projector and language experts together, so the two modules stop drifting apart.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "That asymmetry is the bug. The projector moves, the language model stays put, and the two stop agreeing on what an image token means. The paper blames «substantial representation drift in the projector» for worse catastrophic forgetting. Catastrophic forgetting is the loss of earlier skills when you train on new ones."
+  ],
+  [
+   "p",
+   "CART's fix keeps «task-specific experts for both modules and combines them through weighted mixtures». The router sets weights from expert relevance plus cross-module compatibility. So a projector expert gets paired with a language expert that understands its output. Relevance-guided consolidation then merges experts with similar profiles. That caps growth."
+  ],
+  [
+   "p",
+   "We're not convinced yet, and the reason is simple. The abstract claims «CART achieves state-of-the-art performance» with no number attached. The mechanism is sound, and the diagnosis is sharp. Until margins and parameter growth are on the table, file CART under ideas to watch."
+  ],
+  [
+   "h2",
+   {
+    "text": "TAFT turns repository history into preference pairs",
+    "num": "06",
+    "id": "taft-turns-repository-history-into-preference-pairs"
+   }
+  ],
+  [
+   "p",
+   "Code changes, and a repository-tuned model goes stale. The TAFT paper splits the job four ways: «acquiring new knowledge, suppressing obsolete, retaining still-valid, and preserving semantically neighboring knowledge». Existing tools «address only parts of this problem». Retrieval can't suppress a stale belief. Plain fine-tuning tramples neighbours. Editing handles single facts."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPlRBRlQgdHVybnMgYSByZXBvc2l0b3J5IHRyYW5zaXRpb24gaW50byBmb3VyIGtpbmRzIG9mIHN1cGVydmlzaW9uPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIFoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gdHdvIHNuYXBzaG90cyAtLT4KICA8cmVjdCB4PSI1MCIgeT0iODAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTUwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTc1IiB5PSIxNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNyIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+b2xkIHNuYXBzaG90PC90ZXh0PgogIDx0ZXh0IHg9IjE3NSIgeT0iMTg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyMyIgZmlsbD0iI2ZmN2I3MiI+bG9hZChwYXRoKTwvdGV4dD4KICA8cmVjdCB4PSI1MCIgeT0iMzMwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjE1MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjE3NSIgeT0iMzkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjciIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPm5ldyBzbmFwc2hvdDwvdGV4dD4KICA8dGV4dCB4PSIxNzUiIHk9IjQzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjMiIGZpbGw9IiMzZWNmOGUiPmxvYWQocGF0aCwgKiwgZW5jKTwvdGV4dD4KICA8bGluZSB4MT0iMTc1IiB5MT0iMjMyIiB4Mj0iMTc1IiB5Mj0iMzI0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogIDx0ZXh0IHg9IjE5MCIgeT0iMjg1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPmNvbW1pdDwvdGV4dD4KCiAgPCEtLSBkaWZmIGVuZ2luZSAtLT4KICA8cGF0aCBkPSJNMzA1IDE1NSBDMzgwIDE1NSA0MDAgMjgwIDQ1MCAyODUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgPHBhdGggZD0iTTMwNSA0MDUgQzM4MCA0MDUgNDAwIDMwMCA0NTAgMzAwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogIDxjaXJjbGUgY3g9IjUzMCIgY3k9IjI5MiIgcj0iNzQiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjUzMCIgeT0iMjg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPnRyYW5zaXRpb248L3RleHQ+CiAgPHRleHQgeD0iNTMwIiB5PSIzMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+YXMgZGF0YTwvdGV4dD4KCiAgPCEtLSBvdXRwdXRzIC0tPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8cGF0aCBkPSJNNjA0IDI3MCBDNjYwIDIwMCA2ODAgMTEwIDczMCAxMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cGF0aCBkPSJNNjA2IDI4NCBDNjYwIDI2MCA2OTAgMjI1IDczMCAyMjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cGF0aCBkPSJNNjA2IDMwMiBDNjYwIDMzMCA2OTAgMzU1IDczMCAzNTUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cGF0aCBkPSJNNjA0IDMxNiBDNjYwIDM5MCA2ODAgNDc1IDczMCA0NzUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CgogICAgPHJlY3QgeD0iNzM2IiB5PSI3MCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjEwNCIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSI+bmV3bHkgdmFsaWQ8L3RleHQ+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjEzNiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+Y2hvc2VuIGFuc3dlcjwvdGV4dD4KICAgIDxyZWN0IHg9IjczNiIgeT0iMTg1IiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9Ijc2MCIgeT0iMjE5IiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIj5vYnNvbGV0ZTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc2MCIgeT0iMjUxIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5yZWplY3RlZCBhbnN3ZXI8L3RleHQ+CiAgICA8cmVjdCB4PSI3MzYiIHk9IjMxNSIgd2lkdGg9IjQyMCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjM0OSIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzdhYTJmZiI+c3RpbGwgdmFsaWQ8L3RleHQ+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjM4MSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+cmVwbGF5ZWQgZm9yIHJldGVudGlvbjwvdGV4dD4KICAgIDxyZWN0IHg9IjczNiIgeT0iNDM1IiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9Ijc2MCIgeT0iNDY5IiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZTNiMzQxIj5uZWlnaGJvdXI8L3RleHQ+CiAgICA8dGV4dCB4PSI3NjAiIHk9IjUwMSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+bXVzdCBub3QgbW92ZTwvdGV4dD4KICA8L2c+CiAgPCEtLSBwcmVmZXJlbmNlIGJyYWNrZXQgLS0+CiAgPHBhdGggZD0iTTExNzAgOTAgUTExOTAgOTAgMTE5MCAxMjAgTDExOTAgMjE1IFExMTkwIDI0NSAxMTcwIDI0NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIxMTkwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJlbmQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+cHJlZmVyZW5jZSBwYWlyPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Old and new code snapshots feed a transition node that yields newly valid, obsolete, still-valid and neighbour facts.",
+    "caption": "TAFT turns each repository transition into a preference pair plus retention and neighbour checks.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Each repository transition becomes supervision. TAFT «pairs newly valid with obsolete knowledge through preference optimization». Preference optimization, as in DPO, raises the likelihood of a chosen answer over a rejected one. Here the chosen answer is today's function signature and the rejected one is last release's. Replayed retention examples guard what is still true."
+  ],
+  [
+   "p",
+   "The scale is real: «255,295 QA entries across ten temporal slices». Against deferred and per-slice retrained baselines, TAFT reports «an average relative improvement of 18% in updated/suppressed knowledge accuracy», and «roughly 1.5 times the neighbor accuracy». Knowledge anchors add 3.55%, 8.35% and 13.00% on its three measures."
+  ],
+  [
+   "p",
+   "In our view, this is the most deployable idea here for code assistants. The training signal comes free from version control. The catch is the anchors. The biggest gains arrive «With directly supplied knowledge anchors», so someone still has to write them."
+  ],
+  [
+   "h2",
+   {
+    "text": "Topology losses tune super-resolution for the features scientists read",
+    "num": "07",
+    "id": "topology-losses-tune-super-resolution-for-the-features-scien"
+   }
+  ],
+  [
+   "p",
+   "The last item comes from scientific imaging, and its lesson generalises. Wind-field super-resolution models usually train on pointwise loss, meaning per-pixel error. Yet interpretation «often hinges on extrema, connected regions, and multiscale scalar structure». Persistence diagrams summarise those features. Each peak or region becomes a point recording when it appears and vanishes as a threshold sweeps."
+  ],
+  [
+   "p",
+   "The surprise is that the metrics disagree. Bottleneck and merge-tree distances favour the CNN, and order-2 Wasserstein distances favour the sharper GAN. The authors conclude that «even different distances on the same topological descriptor reward different properties». So they fine-tune the CNN with differentiable topology losses and fixed-pair supervision at known persistence-pair endpoints."
+  ],
+  [
+   "p",
+   "Across 16 configurations, each with a matched standard fine-tuning control, the final objective cut the three persistence distances by 31%, 25% and 27%. They fell on 150 of 168 fields. PSNR rose 1.30 dB, «about half the gain of standard fine-tuning». You trade pixels for structure, on purpose."
+  ],
+  [
+   "p",
+   "We agree with the lesson more than we care about wind. Your fine-tuning loss encodes what you think matters. A standard loss can quietly ignore the thing your users read. The control makes the point sharply, since standard fine-tuning «on its own worsens all three» distances."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Which wind-field model each kind of distance favours, before topology-aware fine-tuning.",
+    "columns": [
+     "Measure",
+     "What it rewards",
+     "Favours"
+    ],
+    "rows": [
+     [
+      "Pointwise metrics",
+      "Per-pixel agreement",
+      "CNN"
+     ],
+     [
+      "Bottleneck persistence distance",
+      "The worst-matched feature",
+      "CNN"
+     ],
+     [
+      "Merge-tree distance",
+      "How regions nest and join",
+      "CNN"
+     ],
+     [
+      "Order-2 Wasserstein persistence distance",
+      "All features, weighted",
+      "GAN"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Every item edits structure the base model already holds",
+    "num": "08",
+    "id": "every-item-edits-structure-the-base-model-already-holds"
+   }
+  ],
+  [
+   "p",
+   "Step back and a pattern shows. Each method here edits structure the model already has. Linear readability decides which relabels spread. FLTrust trusts updates that agree with a root set. CART keeps paired experts compatible. TAFT swaps obsolete answers for new ones and guards neighbours. Topology losses protect shapes a pointwise loss ignores."
+  ],
+  [
+   "p",
+   "So what is fine-tuning an LLM, in one line? It's a targeted edit, and its reach depends on what the base model represents. The open problem is that nobody can yet predict an edit's blast radius before training. TAFT measures neighbour stability afterwards. The linear probe forecasts transfer, but only for relabelled relations."
+  ],
+  [
+   "p",
+   "The experiment we'd want joins the two. Probe a base model, predict which neighbouring facts a fine-tune will move, then fine-tune and check. If the probe forecasts both transfer and collateral damage, fine-tuning stops being trial and error. Nothing on this radar shows that yet."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is fine-tuning an LLM?"
+  ],
+  [
+   "p",
+   "Fine-tuning continues training a pretrained model on a smaller, targeted set of examples so it behaves differently on a task. Fresh research suggests it mostly edits structure the model already holds. A relabelled fact spreads to related subjects when the base relation is linearly readable, at Pearson r = 0.87 to 0.92 within each model."
+  ],
+  [
+   "h3",
+   "Does fine-tuning cause catastrophic forgetting?"
+  ],
+  [
+   "p",
+   "It can, and multimodal models add a second place for forgetting to start. Updating the projector and protecting only the language model causes drift between the two. CART pairs task-specific experts across both modules. For code models, TAFT replays still-valid examples during preference optimization, so knowledge that remains true is kept."
+  ],
+  [
+   "h3",
+   "Is federated fine-tuning private and safe?"
+  ],
+  [
+   "p",
+   "Not fully: one client update let an honest-but-curious server recover the complete private label set. Reconstructed drawings stayed generic, with mean SSIM 0.130. Backdoors are the bigger risk, reaching 54.7% attack success when every client was malicious. FLTrust cut success to 1.8% at 30% malicious clients, but gave no protection when all were."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Knowledge That Is Linear Before Fine-Tuning Generalizes After It",
+   "url": "https://arxiv.org/abs/2610.22300v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Federated Art Chase: Privacy Leakage and Data Poisoning in Federated Fine-Tuning",
+   "url": "https://arxiv.org/abs/2610.21547v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Multi-SFT: Permissively-Licensed Multilingual Instruction-Following",
+   "url": "https://arxiv.org/abs/2610.22086v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "CART: Compatible Routing for Multimodal Continual Instruction Tuning",
+   "url": "https://arxiv.org/abs/2610.22137v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Temporal Adaptive Fine-Tuning for Code Comprehension",
+   "url": "https://arxiv.org/abs/2610.19970v1",
+   "posted": "2026-10-14"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Topology-Inspired Fine-Tuning for Wind-Field Super-Resolution",
+   "url": "https://arxiv.org/abs/2610.22262v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "Knowledge That Is Linear Before Fine-Tuning Generalizes After It": 1,
+  "Europe -> crab, Asia -> zebra": 1,
+  "Having learned Paris -> crab, does it answer Munich -> crab?": 1,
+  "how linearly readable the original relation is in pretrained representations strongly predicts this generalization": 1,
+  "Pearson r = 0.87 to 0.92": 1,
+  "the number of fine-tuning subjects and answers": 1,
+  "Munich -> zebra becomes Munich -> Asia": 1,
+  "are more often among the linear probe's top answers for the subject than among the pretrained model's own": 1,
+  "less on whether its facts can be recalled than on how readily their shared structure can be read out linearly": 1,
+  "to adapt a pretrained, centrally fine-tuned model to data that remain on user devices": 2,
+  "head-only FedAvg over ten non-IID clients": 2,
+  "an honest-but-curious server recovers the complete private label set": 2,
+  "follow class prototypes rather than the private drawings": 2,
+  "below the 80.0% of an uninformed uniform guess": 2,
+  "at most 0.8 percentage points of clean accuracy": 2,
+  "provides no protection when every client is malicious": 2,
+  "retained from centralized fine-tuning": 2,
+  "whose terms of service forbid training competing systems": 3,
+  "a commercially permissive collection of 502,818 instruction-response pairs across five European languages": 3,
+  "inter-annotator agreement of at least 0.87": 3,
+  "is competitive with larger augmented mixes and official instruction-tuned releases, with decisive advantages on safety tasks": 3,
+  "protect the language model from forgetting while continuously updating the projector across tasks": 4,
+  "substantial representation drift in the projector": 4,
+  "task-specific experts for both modules and combines them through weighted mixtures": 4,
+  "CART achieves state-of-the-art performance": 4,
+  "acquiring new knowledge, suppressing obsolete, retaining still-valid, and preserving semantically neighboring knowledge": 5,
+  "address only parts of this problem": 5,
+  "pairs newly valid with obsolete knowledge through preference optimization": 5,
+  "255,295 QA entries across ten temporal slices": 5,
+  "an average relative improvement of 18% in updated/suppressed knowledge accuracy": 5,
+  "roughly 1.5 times the neighbor accuracy": 5,
+  "With directly supplied knowledge anchors": 5,
+  "often hinges on extrema, connected regions, and multiscale scalar structure": 6,
+  "even different distances on the same topological descriptor reward different properties": 6,
+  "about half the gain of standard fine-tuning": 6,
+  "on its own worsens all three": 6
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:40:46+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21547v1",
+   "arxiv:2610.22086v1",
+   "arxiv:2610.22300v1",
+   "arxiv:2610.22137v1",
+   "arxiv:2610.19970v1",
+   "arxiv:2610.22262v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "research-radar:concept/fine-tuning",
+  "format": "research-radar",
+  "reviewed_by": null
+ }
+}

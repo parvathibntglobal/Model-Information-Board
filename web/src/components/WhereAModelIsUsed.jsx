@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Badge } from './ui'
+import { prettyModel } from '../modelNames'
 
 /**
  * Where an AI model is used in this project, and what it is told there.
@@ -25,7 +26,12 @@ import { Badge } from './ui'
  */
 export default function WhereAModelIsUsed({ callers }) {
   if (!callers) return null
-  const { stages = [], extract, ask } = callers
+  const { extract, blogs } = callers
+  // The ledger's stages plus the blog generator, which calls a model
+  // directly and records its cost in its own run history instead.
+  // The Ask box is planned and nothing calls it, so it is not a place a
+  // model is used today (deprioritised 2026-10-06). Reading + blog drafts.
+  const places = (extract ? 1 : 0) + (blogs ? 1 : 0)
 
   return (
     <div className="stack stack-3">
@@ -37,13 +43,14 @@ export default function WhereAModelIsUsed({ callers }) {
             sentence around it changed. */}
         <p style={{ fontSize: 'var(--fs-sm)', margin: 0, maxWidth: '72ch', lineHeight: 1.65 }}>
           An AI model is used in{' '}
-          <strong>{stages.length === 2 ? 'two places' : `${stages.length} places`}</strong>{' '}
-          — nothing else in the project is allowed to call one.
+          <strong>{places === 2 ? 'two places' : `${places} places`}</strong>{' '}
+          — the uses CLAUDE.md rule 2 records (the Ask box is planned and calls nothing yet).
         </p>
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, maxWidth: '72ch', lineHeight: 1.65 }}>
-          In both, the model only <strong style={{ color: 'var(--text)' }}>reads and
-          sorts</strong>. It never decides which model is best: every count, ranking and
-          comparison on the site is worked out by our own code.
+          Reading only <strong style={{ color: 'var(--text)' }}>reads and sorts</strong>;
+          blog drafts are written, then checked by code. A model never decides
+          which model is best: every count, ranking and comparison on the site is worked
+          out by our own code.
         </p>
       </div>
 
@@ -65,11 +72,11 @@ export default function WhereAModelIsUsed({ callers }) {
         />
         <Caller
           n={2}
-          title="Understanding a question (the Ask box)"
-          status="not built yet"
-          does="Turns someone's description of what they need into a clear list of requirements, so our code can find models that fit."
-          when="Not yet — the Ask box is planned but not on the site, so nothing calls this today."
-          part={ask}
+          title="Writing blog drafts"
+          status="live"
+          does="Reads whole engineering discussions and writes one essay as a draft; code then checks every quote and figure against the discussions and rejects the draft if any fails."
+          when="Only when someone presses Generate in Admin → Blogs, on a local development backend. Its cost is recorded per run in the blog run history, not in the spend ledger."
+          part={blogs}
         />
       </div>
 
@@ -113,6 +120,15 @@ function Caller({ n, title, status, when, does, part, retries }) {
           <strong style={{ fontSize: 'var(--fs-sm)' }}>{title}</strong>
           <Badge tone={status === 'live' ? 'pass' : 'mute'}>{status}</Badge>
         </div>
+
+        {/* THE MODEL, NAMED - read from the code on this request, not typed. */}
+        {part?.model && (
+          <span style={{ fontSize: 'var(--fs-xs)' }}>
+            <span className="label" style={{ marginRight: 6 }}>Model</span>
+            <strong>{prettyModel(part.model)}</strong>{' '}
+            <span className="dim mono" style={{ fontSize: 11 }}>{part.model}</span>
+          </span>
+        )}
 
         {/* LABELLED, BECAUSE TWO UNLABELLED PARAGRAPHS READ AS ONE. "What it
             does" and "When it runs" are different questions, and a reader

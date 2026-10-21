@@ -1,5 +1,7 @@
 # Triage as it stands, and what it would do to five new platforms
 
+> **Removed 2026-10-08:** `_github_comments.json` (in history at `3e78e52`) was removed from the repository because it holds harvested platform content or personal data. The figures below are unchanged; to re-run them, regenerate the file locally (it is gitignored) or read it from that commit.
+
 **Assessment of `collect/triage/`, 2026-09-07.** It was read-only when written;
 **two of its recommendations have since been built** and this document has been
 updated rather than left to go stale — a claim about wiring goes stale silently,

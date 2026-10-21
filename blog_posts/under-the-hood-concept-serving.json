@@ -1,0 +1,477 @@
+{
+ "slug": "under-the-hood-concept-serving",
+ "status": "draft",
+ "tag": "Under the hood",
+ "feat": false,
+ "title": "LLM Serving Runs Two Jobs on One Cache, and the Cache Sets the Limit",
+ "dek": "Prefill reads your prompt, decode writes the answer, and both live or die by a key-value cache that grows with every turn. Here is the machinery, part by part.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "How does LLM serving work? Prefill turns your prompt into a key-value cache. Decode reads that cache once per new token. Most speedups fit, share or shrink the cache.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+UHJlZmlsbCBmaWxscyB0aGUgY2FjaGUsIGRlY29kZSByZWFkcyBpdCBvbmNlIHBlciB0b2tlbjwvdGl0bGU+CiAgPGRlc2M+QSBwcm9tcHQgZmxvd3MgaW50byBwcmVmaWxsLCB3aGljaCB3cml0ZXMgYSBrZXkgYW5kIGEgdmFsdWUgcGVyIHRva2VuIGludG8gdGhlIEtWIGNhY2hlOyBkZWNvZGUgcmVhZHMgdGhlIHdob2xlIGNhY2hlIHRvIGVtaXQgZWFjaCBuZXcgdG9rZW4gYW5kIGFwcGVuZHMgdGhhdCB0b2tlbiBiYWNrLjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIj5MTE0gc2VydmluZzogdHdvIGpvYnMsIG9uZSBjYWNoZTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA4IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+UHJlZmlsbCBpcyBib3VuZCBieSBhcml0aG1ldGljLiBEZWNvZGUgaXMgYm91bmQgYnkgbWVtb3J5IHJlYWRzLjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjIyMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPlByb21wdDwvdGV4dD4KICA8dGV4dCB4PSIxNjAiIHk9IjMwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmhpc3RvcnkgKyBxdWVzdGlvbjwvdGV4dD4KCiAgPHJlY3QgeD0iMzMwIiB5PSIyMjAiIHdpZHRoPSIyMjAiIGhlaWdodD0iMTIwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNDQwIiB5PSIyNzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5QcmVmaWxsPC90ZXh0PgogIDx0ZXh0IHg9IjQ0MCIgeT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+YWxsIHRva2VucyBpbiBwYXJhbGxlbDwvdGV4dD4KCiAgPHJlY3QgeD0iNjIwIiB5PSIxOTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTgwIiByeD0iMTQiIGZpbGw9IiMxYjIyMzAiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNzQwIiB5PSIyMzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIj5LViBjYWNoZTwvdGV4dD4KICA8cmVjdCB4PSI2NTAiIHk9IjI1MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxNiIgZmlsbD0iIzdhYTJmZiIvPgogIDxyZWN0IHg9IjY1MCIgeT0iMjcyIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE2IiBmaWxsPSIjN2FhMmZmIi8+CiAgPHJlY3QgeD0iNjUwIiB5PSIyOTQiIHdpZHRoPSIxODAiIGhlaWdodD0iMTYiIGZpbGw9IiM3YWEyZmYiLz4KICA8cmVjdCB4PSI2NTAiIHk9IjMxNiIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxNiIgZmlsbD0iIzNlY2Y4ZSIvPgogIDx0ZXh0IHg9Ijc0MCIgeT0iMzU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+b25lIGtleSArIG9uZSB2YWx1ZSBwZXIgdG9rZW48L3RleHQ+CgogIDxyZWN0IHg9IjkzMCIgeT0iMjIwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjEyMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjEwMzUiIHk9IjI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiPkRlY29kZTwvdGV4dD4KICA8dGV4dCB4PSIxMDM1IiB5PSIzMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5vbmUgdG9rZW4gcGVyIHN0ZXA8L3RleHQ+CgogIDxsaW5lIHgxPSIyNjAiIHkxPSIyODAiIHgyPSIzMjUiIHkyPSIyODAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8bGluZSB4MT0iNTUwIiB5MT0iMjgwIiB4Mj0iNjE1IiB5Mj0iMjgwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnJiKSIvPgogIDx0ZXh0IHg9IjU4MyIgeT0iMjY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjN2FhMmZmIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSI+d3JpdGU8L3RleHQ+CiAgPGxpbmUgeDE9Ijg2MCIgeTE9IjI2MCIgeDI9IjkyNSIgeTI9IjI2MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDx0ZXh0IHg9Ijg5MyIgeT0iMjQ4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNSI+cmVhZCBhbGw8L3RleHQ+CgogIDxwYXRoIGQ9Ik0xMDM1LDM0MCBMMTAzNSw0NDAgTDc0MCw0NDAgTDc0MCwzNzUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycmcpIi8+CiAgPHRleHQgeD0iODkwIiB5PSI0NzAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5IiBmb250LXdlaWdodD0iNzAwIj5hcHBlbmQgdGhlIG5ldyB0b2tlbiwgcmVwZWF0PC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iNTM1IiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSI1NiIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjU3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPkJhdGNoaW5nLCBwcmVmaXggc2hhcmluZywgZXZpY3Rpb24gYW5kIHF1YW50aXphdGlvbiBhbGwgd29yayBvbiB0aGlzIG9uZSBwaWN0dXJlPC90ZXh0Pgo8L3N2Zz4K",
+  "alt": "Prompt flows into prefill, which writes the KV cache; decode reads the whole cache per token and appends each new token.",
+  "caption": "Every serving trick in this post works on one picture: prefill fills the cache, decode reads it once per token.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How does LLM serving work? Prefill, decode, the KV cache, batching, prefix sharing and per-phase quantization, explained part by part.",
+ "keywords": [
+  "how does LLM serving work",
+  "LLM serving",
+  "KV cache",
+  "prefill and decode",
+  "LLM inference engine",
+  "continuous batching",
+  "KV cache quantization"
+ ],
+ "kicker": "Under the hood",
+ "tags": [
+  "LLM serving",
+  "Under the hood"
+ ],
+ "read": 9,
+ "decisions": [
+  "Measure time to first token and decode speed separately; they answer to different bottlenecks.",
+  "Size the KV cache for every live session at full context, not for one fresh chat.",
+  "Alert on memory headroom and throughput, not only on completed requests.",
+  "Test any cache quantization or eviction setting on a buried-detail retrieval task first."
+ ],
+ "layout": "mechanism",
+ "arrangement": "b",
+ "special": {
+  "type": "lab",
+  "title": "Try it yourself",
+  "items": [
+   {
+    "step": "Start a local server",
+    "how": "Run any local engine you already have, such as the llama.cpp server, with a small open model.",
+    "look_for": "A local endpoint that streams tokens back to a simple request."
+   },
+   {
+    "step": "Time the two phases",
+    "how": "Send a short prompt, then a very long one. Record time to first token and tokens per second during generation for each.",
+    "look_for": "Time to first token climbs with prompt length, and the two numbers move separately."
+   },
+   {
+    "step": "Watch the cache grow",
+    "how": "Keep one chat going for several turns with long pastes, and watch GPU or unified memory in a system monitor.",
+    "look_for": "Memory use climbs turn by turn even though the weights never change."
+   },
+   {
+    "step": "Run sessions side by side",
+    "how": "Open several sessions that share the same long system prompt and send requests at the same moment.",
+    "look_for": "Total tokens per second rises; with prefix caching on, later sessions reach their first token sooner."
+   },
+   {
+    "step": "Shrink the cache and check recall",
+    "how": "If your engine exposes a KV cache precision setting, lower it, rerun the long prompt and ask about a detail placed near its start.",
+    "look_for": "Less memory used, and the buried detail still answered correctly. If not, you have found the trade."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "20 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "One request, two very different workloads",
+    "num": "01",
+    "id": "one-request-two-very-different-workloads"
+   }
+  ],
+  [
+   "p",
+   "Picture a coding agent holding 64k tokens of history and asking one more question. On a Mac M4 Pro, llama.cpp decoded that kind of request at 30 tokens per second. Magnitude, a new open-source engine, reported 57 on the same test. Same model, same laptop. So how does LLM serving work, and where does a gap like that come from? Mostly from how the engine moves memory [3]."
+  ],
+  [
+   "p",
+   "Every request runs in two phases. Prefill reads the whole prompt at once. For each token, at every layer, it computes a key and a value vector, the entries attention will look up later. That table is the KV cache. Decode then writes the answer one token at a time. Each new token attends over the entire cache and gets appended to it."
+  ],
+  [
+   "p",
+   "The phases strain different parts of the chip. The authors of a new arXiv paper on quantization spell it out. Cheap low-precision math speeds up prompt reading, and small weights ease memory traffic during generation. Prefill is one big matrix multiply. Decode is mostly a memory read with a little math attached. We think every serving trick makes more sense once you know which phase it targets [2]."
+  ],
+  [
+   "h2",
+   {
+    "text": "The KV cache grows with every token and every session",
+    "num": "02",
+    "id": "the-kv-cache-grows-with-every-token-and-every-session"
+   }
+  ],
+  [
+   "p",
+   "The cache is where serving memory goes. Its size scales with layers, heads, context length and the number of live sessions. An agent session never shrinks on its own. Each tool result and each reply adds rows. A Hacker News commenter argued the real local bottleneck is room for 5+ concurrent 128k contexts on a 24GB card, not single-stream speed [3]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+TWVtb3J5IG9uIG9uZSBzZXJ2aW5nIGJveDogd2VpZ2h0cyBzdGF5IGZpeGVkLCBjYWNoZXMgZ3JvdzwvdGl0bGU+CiAgPGRlc2M+QSBtZW1vcnkgYmFyIGhvbGRzIGZpeGVkIG1vZGVsIHdlaWdodHMgcGx1cyBvbmUgS1YgY2FjaGUgcGVyIGxpdmUgYWdlbnQgc2Vzc2lvbjsgZWFjaCB0dXJuIGxlbmd0aGVucyBldmVyeSBjYWNoZSB1bnRpbCBoZWFkcm9vbSBydW5zIG91dC48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+V2hlcmUgdGhlIG1lbW9yeSBnb2VzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5UaGUgd2VpZ2h0cyBhcmUgcGFpZCBvbmNlLiBFdmVyeSBsaXZlIHNlc3Npb24gcGF5cyBmb3IgaXRzIG93biBjYWNoZS48L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIxOTAiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5FYXJseSBpbiB0aGUgZGF5PC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSIyMDUiIHdpZHRoPSIxMDgwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0iIzFiMjIzMCIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPHJlY3QgeD0iNjAiIHk9IjIwNSIgd2lkdGg9IjQyMCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIvPgogIDx0ZXh0IHg9IjI3MCIgeT0iMjQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+bW9kZWwgd2VpZ2h0czwvdGV4dD4KICA8cmVjdCB4PSI0ODAiIHk9IjIwNSIgd2lkdGg9IjkwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjN2FhMmZmIi8+CiAgPHJlY3QgeD0iNTcwIiB5PSIyMDUiIHdpZHRoPSI5MCIgaGVpZ2h0PSI3MCIgZmlsbD0iI2E3OGJmYSIvPgogIDx0ZXh0IHg9IjkwMCIgeT0iMjQ3IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+aGVhZHJvb208L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSIzNDAiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5TYW1lIHNlc3Npb25zLCBtYW55IHRvb2wgY2FsbHMgbGF0ZXIsIHBsdXMgYSBuZXcgYWdlbnQ8L3RleHQ+CiAgPHJlY3QgeD0iNjAiIHk9IjM1NSIgd2lkdGg9IjEwODAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8cmVjdCB4PSI2MCIgeT0iMzU1IiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjcwIiByeD0iOCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0Ii8+CiAgPHRleHQgeD0iMjcwIiB5PSIzOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5tb2RlbCB3ZWlnaHRzPC90ZXh0PgogIDxyZWN0IHg9IjQ4MCIgeT0iMzU1IiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjcwIiBmaWxsPSIjN2FhMmZmIi8+CiAgPHJlY3QgeD0iNzQwIiB5PSIzNTUiIHdpZHRoPSIyNDAiIGhlaWdodD0iNzAiIGZpbGw9IiNhNzhiZmEiLz4KICA8cmVjdCB4PSI5ODAiIHk9IjM1NSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSI3MCIgZmlsbD0iI2YyYjg0YiIvPgogIDx0ZXh0IHg9IjExMzAiIHk9IjM5NyIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPmZ1bGw8L3RleHQ+CgogIDxyZWN0IHg9IjQ4MCIgeT0iNDYwIiB3aWR0aD0iMjIiIGhlaWdodD0iMjIiIGZpbGw9IiM3YWEyZmYiLz4KICA8dGV4dCB4PSI1MTIiIHk9IjQ3OCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnNlc3Npb24gQSBjYWNoZTwvdGV4dD4KICA8cmVjdCB4PSI2ODAiIHk9IjQ2MCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjIyIiBmaWxsPSIjYTc4YmZhIi8+CiAgPHRleHQgeD0iNzEyIiB5PSI0NzgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5zZXNzaW9uIEIgY2FjaGU8L3RleHQ+CiAgPHJlY3QgeD0iODgwIiB5PSI0NjAiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgZmlsbD0iI2YyYjg0YiIvPgogIDx0ZXh0IHg9IjkxMiIgeT0iNDc4IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+c2Vzc2lvbiBDIGNhY2hlPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iNTIwIiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSI1MCIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjU1MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPkEgcnVuIGNhbiBzdGlsbCBmaW5pc2ggZXZlcnkgcmVxdWVzdCBoZXJlLCB3aXRoIHRocm91Z2hwdXQgc2FnZ2luZyBhcyBoZWFkcm9vbSB2YW5pc2hlczwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Memory bar with fixed weights and three growing session caches that eat the remaining headroom.",
+    "caption": "The weights are paid for once, but each live agent session keeps growing its own cache.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "Explicit memory budgets do not guarantee memory headroom: two stacks complete every request while memory use approaches physical capacity and throughput declines.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "Engines handle that growth very differently. One commenter running DeepSeek models saw the context cache take roughly 50GB in one stack. A dedicated engine needed about 5GB, because it supported the compressed cache format. Magnitude stores keys at 8-bit and values at 4-bit. Its team says the cache then needs less than half its old memory, and decode gets quicker too [3]."
+  ],
+  [
+   "p",
+   "A memory budget in a config file will not save you either. A benchmark of 9 Apple Silicon serving engines found stacks that finished every request as memory crept toward the physical limit. Throughput sagged along the way. Nothing crashed, so nothing alerted. In our view this is the most useful warning in the whole topic. A completed run can still be a sick one [1]."
+  ],
+  [
+   "code",
+   {
+    "label": "An illustrative KV cache size estimate",
+    "language": "python",
+    "source": "# illustrative: rough KV cache size for a serving setup\ndef kv_cache_bytes(layers, kv_heads, head_dim, bytes_per_value, tokens, sessions):\n    per_token = 2 * layers * kv_heads * head_dim * bytes_per_value  # one key + one value\n    return per_token * tokens * sessions\n\n# Read layers, kv_heads and head_dim from your model's config file.\n# Shrink bytes_per_value to model a quantized cache, then compare the\n# total with the memory your card has free after loading the weights."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The scheduler packs prompts beside running generations",
+    "num": "03",
+    "id": "the-scheduler-packs-prompts-beside-running-generations"
+   }
+  ],
+  [
+   "p",
+   "With a single user, a GPU spends most of decode waiting on memory. Batching fixes that by decoding many sequences in one pass over the weights. The weights get read once and serve every sequence in the batch. On Qwen3-0.6B, vllm-metal was the one Apple Silicon engine whose throughput grew strongly from 1 concurrent request to 16. CUDA vLLM and SGLang scaled even better on the same prompts [1]."
+  ],
+  [
+   "p",
+   "The catch is the newcomer. A fresh prompt needs a long prefill, and running sessions want their next token now. Engines that pack prefill and decode work into one step keep both moving. On larger dense and MoE models, the packed path in vllm-metal held first-token latency below omlx under concurrent load. First-token latency is the pause you feel before anything streams [1]."
+  ],
+  [
+   "p",
+   "Datacenter engines tune this trade for crowds. The Magnitude founders argue that vLLM and SGLang give up single-session speed to win batched throughput, so they built for one desktop instead. We think both camps are right about their own workload. A shared endpoint lives on concurrency. A laptop agent lives on one fast stream over a long context [3]."
+  ],
+  [
+   "code",
+   {
+    "label": "An illustrative continuous-batching loop, not any engine's code",
+    "language": "python",
+    "source": "# each step: every running sequence gets one token, newcomers fill the gap\nwhile running or waiting:\n    batch = list(running)                     # decode work, one token each\n    budget = step_token_budget - len(batch)\n    while waiting and waiting.peek().chunk_len <= budget:\n        req = waiting.pop_next()\n        batch.append(req.next_prefill_chunk())  # prefill packed beside decode\n        budget -= req.chunk_len\n    logits = model.forward(batch, kv_cache)   # one pass over the weights\n    for seq in batch:\n        seq.append(sample(logits[seq]))\n    running = [s for s in batch if not s.done]"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Shared prefixes and evicted keys stretch the cache further",
+    "num": "04",
+    "id": "shared-prefixes-and-evicted-keys-stretch-the-cache-further"
+   }
+  ],
+  [
+   "p",
+   "Agents resend the same system prompt and history on every turn. Prefix caching notices that the start of a request matches cached blocks and skips that prefill. Magnitude lets concurrent sessions share prefix caches, an idea it borrows from radix attention in SGLang. It also places those blocks next to each other in memory, so one session does not slow down [3]."
+  ],
+  [
+   "p",
+   "Eviction runs the other way. A sparse attention method drops or compresses cache entries it predicts will not matter. SparseEngine, from a new arXiv paper, builds a whole engine around that idea and hosts 15 methods in four categories. Its Chain Cache resumes an eviction method from history kept from an earlier request. Its prefix-cache pruning removes chosen history regions and still matches the logical prefix [4]."
+  ],
+  [
+   "p",
+   "With eviction on, the authors report over 10x higher throughput. On agent benchmarks, whole runs finished over 2x faster. They also claim over 2.5x faster decoding than vLLM at matched concurrency, with method quality kept intact. We have only the abstract. So the depth of that quality check is unknown, and it is the first thing we would read in the full paper [4]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How a serving engine reuses and trims the cache across agent turns.",
+    "steps": [
+     "A request arrives with the system prompt and history",
+     "The engine matches its opening blocks against cached prefixes",
+     "Matched blocks skip prefill entirely",
+     "Only the new suffix is prefilled into the cache",
+     "Eviction trims cache entries predicted to matter least",
+     "Decode reads the trimmed cache for each new token"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Each phase gets the number format it rewards",
+    "num": "05",
+    "id": "each-phase-gets-the-number-format-it-rewards"
+   }
+  ],
+  [
+   "p",
+   "Quantization stores numbers in fewer bits. Weight-only quantization shrinks the weights but keeps the arithmetic precise. Activation quantization lowers the precision of the math too. A new arXiv paper on disaggregated quantization picks a separate format for each phase. On Qwen 3 and Gemma 3, dropping activation quantization only during decode raised accuracy on decode-heavy tasks at no extra inference cost [2]."
+  ],
+  [
+   "p",
+   "The authors then train a separate prefill checkpoint in a compute-native format. With released Qwen3.8-27B decoders, an NVFP4 prefiller raised 1-bit scores on MMLU-Pro by 32.5 points. On MMMU-Pro the gain was 35.3 points. The decode checkpoint stayed untouched. To fit both on one device, they stream the prefill weights from SSD and spread that loading over the prompt [2]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "To accommodate the additional checkpoint on a single device, offloaded disaggregated prefill (ODP) streams its weights from SSD, amortizing loading over prompt length.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "On the same 27B model, the offloaded prefill gave a 1.78x speedup in time to first token at an 8K prompt in llama.cpp. At the low end, the Magnitude team warned that going below 4-bit quickly hurt thinking, tool calls and coherence in their tests. Our read is that precision has become a per-phase budget. A single bit width per model is the old picture [2, 3]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What limits each phase and which quantization choice the disaggregated approach gives it.",
+    "columns": [
+     "Phase",
+     "What limits it",
+     "Format that helps",
+     "Reported result"
+    ],
+    "rows": [
+     [
+      "Prefill",
+      "Arithmetic throughput",
+      "Low-precision compute, such as an NVFP4 prefiller",
+      "1.78x faster first token at an 8K prompt"
+     ],
+     [
+      "Decode",
+      "Memory traffic",
+      "Compact weights, activations left unquantized",
+      "Higher accuracy on decode-heavy tasks at the same cost"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Kernels tuned on the machine that runs them",
+    "num": "06",
+    "id": "kernels-tuned-on-the-machine-that-runs-them"
+   }
+  ],
+  [
+   "p",
+   "The bottom layer is the kernel, the small GPU program behind each operation. A kernel written for one chip can leave another chip half idle. Magnitude writes kernels with open parameters and tunes them on your device before the model runs. Its team says tuning takes about a minute for each newly downloaded model [3]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+RGVjb2RlIHNwZWVkIG9uIGEgNjRrLWNvbnRleHQgdGVzdCwgdG9rZW5zIHBlciBzZWNvbmQ8L3RpdGxlPgogIDxkZXNjPkxhdW5jaCBiZW5jaG1hcmsgd2l0aCBRd2VuIDMuNiAzNUIgQTNCIGF0IDQtYml0OiBvbiBhbiBNNCBQcm8sIGxsYW1hLmNwcCAzMCBhbmQgTWFnbml0dWRlIDU3IHRva2VucyBwZXIgc2Vjb25kOyBvbiBhIERHWCBTcGFyaywgNDkgYW5kIDU4LjwvZGVzYz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIj5EZWNvZGUgc3BlZWQgYXQgNjRrIGNvbnRleHQ8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPlRva2VucyBwZXIgc2Vjb25kLCBsYXVuY2ggYmVuY2htYXJrLCBRd2VuIDMuNiAzNUIgQTNCIGF0IDQtYml0PC90ZXh0PgoKICA8bGluZSB4MT0iMzYwIiB5MT0iMTUwIiB4Mj0iMzYwIiB5Mj0iNDcwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8dGV4dCB4PSIzNDAiIHk9IjE5MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPk00IFBybywgbGxhbWEuY3BwPC90ZXh0PgogIDxyZWN0IHg9IjM2MCIgeT0iMTY4IiB3aWR0aD0iMzcwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjOTVhMWI0Ii8+CiAgPHRleHQgeD0iNzQyIiB5PSIxOTIiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij4zMDwvdGV4dD4KCiAgPHRleHQgeD0iMzQwIiB5PSIyNTAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5NNCBQcm8sIE1hZ25pdHVkZTwvdGV4dD4KICA8cmVjdCB4PSIzNjAiIHk9IjIyOCIgd2lkdGg9IjcwMyIgaGVpZ2h0PSIzNCIgZmlsbD0iIzdhYTJmZiIvPgogIDx0ZXh0IHg9IjEwNzUiIHk9IjI1MiIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPjU3PC90ZXh0PgoKICA8dGV4dCB4PSIzNDAiIHk9IjM1MCIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPkRHWCBTcGFyaywgbGxhbWEuY3BwPC90ZXh0PgogIDxyZWN0IHg9IjM2MCIgeT0iMzI4IiB3aWR0aD0iNjA0IiBoZWlnaHQ9IjM0IiBmaWxsPSIjOTVhMWI0Ii8+CiAgPHRleHQgeD0iOTc2IiB5PSIzNTIiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij40OTwvdGV4dD4KCiAgPHRleHQgeD0iMzQwIiB5PSI0MTAiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5ER1ggU3BhcmssIE1hZ25pdHVkZTwvdGV4dD4KICA8cmVjdCB4PSIzNjAiIHk9IjM4OCIgd2lkdGg9IjcxNSIgaGVpZ2h0PSIzNCIgZmlsbD0iIzdhYTJmZiIvPgogIDx0ZXh0IHg9IjEwODciIHk9IjQxMiIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPjU4PC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iNTEwIiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSI1MCIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjU0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPlNhbWUgbW9kZWwsIHNhbWUgcHJvbXB0LCBubyBzcGVjdWxhdGl2ZSBkZWNvZGluZyBvbiBlaXRoZXIgZW5naW5lPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Bars: decode at 64k context, llama.cpp 30 and Magnitude 57 tokens per second on M4 Pro; 49 and 58 on DGX Spark.",
+    "caption": "The launch numbers for a device-tuned engine, which other users could not reproduce on every chip.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Their headline test put Moby Dick into a 64k context and asked for the last section back, using Qwen 3.6 35B A3B at 4-bit. On an M4 Pro, decode rose from 30 to 57 tokens per second and prefill from 466 to 507. On a DGX Spark, decode went from 49 to 58 and prefill from 2,033 to 2,507. Per-agent memory fell 28% and 27% [3]."
+  ],
+  [
+   "p",
+   "Users pushed back within hours. One saw llama.cpp decode 20-30% faster on an RTX 5070 Ti. Another, on an M5 Max, found llama.cpp roughly 2x faster at both prefill and decode. The team pointed to new M5 matrix-multiply hardware its kernels may not use yet. We take a narrow lesson from this. Speed belongs to an engine, a chip and a model together [3]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Tool calls spend their time inside the model",
+    "num": "07",
+    "id": "tool-calls-spend-their-time-inside-the-model"
+   }
+  ],
+  [
+   "p",
+   "An agent turn is more than decode. It also calls tools, and each call adds plumbing. One engineer timed a local MCP loop running Qwen2.5-Coder-7B on an RTX 4090. The stdio pipe round trip took 0.82 ms per call. Reading a 45KB file on the server side took 1.84 ms [5]."
+  ],
+  [
+   "p",
+   "The model's own steps dwarfed that. Evaluating the prompt and deciding on the tool took 124.6 ms. Injecting the result and writing the final answer took 312.4 ms. By that author's count, protocol overhead came to 0.41% of total latency. Notice what the second step is. It is a fresh prefill over the tool output, followed by decode [5]."
+  ],
+  [
+   "p",
+   "So the waiting in an agent loop is serving time. Every tool result lands in the cache, and every turn pays prefill on whatever the prefix cache missed. A Hacker News commenter made the same point from the other side: agents doze between tool calls, then wake needing their full context. We agree, and it is why cache reuse matters more than raw token speed for agents [3]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Where the time went in one local MCP tool call, in milliseconds.",
+    "unit": "milliseconds",
+    "bars": [
+     {
+      "label": "Prompt evaluation and tool decision",
+      "value": 124.6
+     },
+     {
+      "label": "Result injection and final answer",
+      "value": 312.4
+     },
+     {
+      "label": "Server-side file read",
+      "value": 1.84
+     },
+     {
+      "label": "Stdio pipe round trip",
+      "value": 0.82
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Cold contexts and long-context fidelity are still unmeasured",
+    "num": "08",
+    "id": "cold-contexts-and-long-context-fidelity-are-still-unmeasured"
+   }
+  ],
+  [
+   "p",
+   "Two parts of this machine remain open. The first is the partly cold context. A Hacker News commenter asked how an engine treats a session whose cache sits idle during a tool call. Keep it resident, compress it, or move it out? We have not seen anyone answer that with numbers [3]."
+  ],
+  [
+   "p",
+   "The second is fidelity under cache compression. The Magnitude team says a retrieval benchmark built on RULER shows no loss from its quantized cache, and the benchmark code is public. SparseEngine claims method quality holds under eviction. On Apple Silicon, only 3 of 9 stacks passed the completion, fidelity and model-coverage gates together. Neither engine summary gives quality figures at 100-200K tokens, where one commenter saw engines fall behind simple baselines [3, 4, 1]."
+  ],
+  [
+   "p",
+   "You can measure this yourself. Run one long prompt at a short and a long context. Log time to first token, decode speed and peak memory. Repeat with cache quantization on. Then ask about a detail buried deep in the prompt. If speed improves and that answer drifts, you have found the trade nobody has priced yet."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How does LLM serving work?"
+  ],
+  [
+   "p",
+   "LLM serving runs each request in two phases. Prefill reads the prompt and builds a key-value cache, then decode writes tokens one at a time. Prefill is limited by arithmetic and decode by memory traffic, which is why one paper gives each phase its own number format. Engines then batch requests, share cached prefixes and evict cache entries to fit more sessions in memory [2, 4, 3]."
+  ],
+  [
+   "h3",
+   "What is the KV cache in LLM inference?"
+  ],
+  [
+   "p",
+   "The KV cache holds the key and value vectors a model computed for every token it has read. Decode reuses them instead of recomputing. It grows with context length and with every live session. One engine stores keys at 8-bit and values at 4-bit, and its team reports that this cuts cache memory by over half [3]."
+  ],
+  [
+   "h3",
+   "Why is LLM decode slower than prefill?"
+  ],
+  [
+   "p",
+   "Decode is slower per token because it produces one token at a time and must read the weights and cache for each one. Prefill handles the whole prompt in parallel. In one launch benchmark on a Mac M4 Pro, an engine prefilled at 507 tokens per second. It decoded at 57 on the same 64k-context test [3]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "SiliconBench: Speed, Memory, and Fidelity for LLM Serving on Unified-Memory Desktops",
+   "url": "https://huggingface.co/papers/2609.19169",
+   "posted": "2026-09-12"
+  },
+  {
+   "n": 2,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Disaggregated Quantization: Specializing LLM Prefill and Decode",
+   "url": "https://huggingface.co/papers/2609.26333",
+   "posted": "2026-09-22"
+  },
+  {
+   "n": 3,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Launch HN: Magnitude (YC S25) – Self-optimizing inference engine for agents",
+   "url": "https://news.ycombinator.com/item?id=49911995",
+   "posted": "2026-09-30"
+  },
+  {
+   "n": 4,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "SparseEngine: Sparse-First Inference Engine",
+   "url": "https://huggingface.co/papers/2609.39068",
+   "posted": "2026-09-30"
+  },
+  {
+   "n": 5,
+   "platform": "dev.to",
+   "who": "abdulrahman_maslmany",
+   "what": "Model Context Protocol (MCP) for Local LLMs: Connect Ollama & vLLM to Workstation Tools",
+   "url": "https://dev.to/abdulrahman_maslmany/model-context-protocol-mcp-for-local-llms-connect-ollama-vllm-to-workstation-tools-414c",
+   "posted": "2026-10-18"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T02:05:57+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "hfpapers:2609.39068",
+   "hfpapers:2609.19169",
+   "hackernews:49911995",
+   "devto:4839975",
+   "hfpapers:2609.26333"
+  ],
+  "platforms": {
+   "Hugging Face": 3,
+   "Hacker News": 1,
+   "dev.to": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "under-the-hood:concept/serving",
+  "format": "under-the-hood",
+  "reviewed_by": null
+ }
+}

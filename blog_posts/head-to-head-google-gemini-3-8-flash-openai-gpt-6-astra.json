@@ -1,0 +1,751 @@
+{
+ "slug": "head-to-head-google-gemini-3-8-flash-openai-gpt-6-astra",
+ "status": "draft",
+ "tag": "Head-to-head",
+ "feat": false,
+ "title": "GPT-6 Astra Remembers More, Gemini 3.8 Flash Searches Its Way to a Tie",
+ "dek": "Astra carries far more facts in its head and reasons further without scratch work. Give Gemini 3.8 Flash a search tool or a routine desk job, and the gap closes at a fraction of the price.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Gemini 3.8 Flash vs GPT-6 Astra: Astra wins on closed-book knowledge and hard reasoning; Gemini 3.8 Flash ties it on desk work and searched facts at a far lower price.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+Cjx0aXRsZT5NZW1vcnkgYW5kIHNlYXJjaCBtZWV0IGF0IHRoZSBzYW1lIGFuc3dlcjwvdGl0bGU+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnQmx1ZSIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC41Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9ImdWaW9sZXQiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuNSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnR3JlZW4iIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAuNTUiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+CjxyYWRpYWxHcmFkaWVudCBpZD0ib3JiQiIgY3g9IjAuNCIgY3k9IjAuMzUiIHI9IjAuNyI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuNTUiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4xMiIvPjwvcmFkaWFsR3JhZGllbnQ+CjxyYWRpYWxHcmFkaWVudCBpZD0ib3JiViIgY3g9IjAuNCIgY3k9IjAuMzUiIHI9IjAuNyI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuNiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjE1Ii8+PC9yYWRpYWxHcmFkaWVudD4KPG1hcmtlciBpZD0iYUIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzdhYTJmZiIvPjwvbWFya2VyPgo8bWFya2VyIGlkPSJhViIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjYTc4YmZhIi8+PC9tYXJrZXI+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKPCEtLSBzaGFyZWQgYW5zd2VyIC0tPgo8ZWxsaXBzZSBjeD0iNjAwIiBjeT0iMTMwIiByeD0iMTcwIiByeT0iMTEwIiBmaWxsPSJ1cmwoI2dHcmVlbikiLz4KPGNpcmNsZSBjeD0iNjAwIiBjeT0iMTMwIiByPSI1MiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CjxwYXRoIGQ9Ik01NzYsMTMxIEw1OTQsMTQ5IEw2MjYsMTEzIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cgo8IS0tIG1lbW9yeSBvcmIgKGxhcmdlLCBkZW5zZSkgLS0+CjxlbGxpcHNlIGN4PSIyOTAiIGN5PSI0MDAiIHJ4PSIyNTAiIHJ5PSIyMTAiIGZpbGw9InVybCgjZ0JsdWUpIi8+CjxjaXJjbGUgY3g9IjI5MCIgY3k9IjQwMCIgcj0iMTM1IiBmaWxsPSJ1cmwoI29yYkIpIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIvPgo8ZyBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMi41IiBvcGFjaXR5PSIwLjY1Ij4KPGNpcmNsZSBjeD0iMjkwIiBjeT0iNDAwIiByPSIxMDUiLz4KPGNpcmNsZSBjeD0iMjkwIiBjeT0iNDAwIiByPSI3NSIvPgo8Y2lyY2xlIGN4PSIyOTAiIGN5PSI0MDAiIHI9IjQ1Ii8+CjwvZz4KPGcgZmlsbD0iI2U4ZWRmNSIgb3BhY2l0eT0iMC44NSI+CjxjaXJjbGUgY3g9IjIyNSIgY3k9IjM0MCIgcj0iNSIvPjxjaXJjbGUgY3g9IjI2NSIgY3k9IjMxNSIgcj0iNSIvPjxjaXJjbGUgY3g9IjMyMCIgY3k9IjMyMiIgcj0iNSIvPjxjaXJjbGUgY3g9IjM2MCIgY3k9IjM1MiIgcj0iNSIvPgo8Y2lyY2xlIGN4PSIyMDAiIGN5PSIzOTUiIHI9IjUiLz48Y2lyY2xlIGN4PSIyNDUiIGN5PSIzODUiIHI9IjUiLz48Y2lyY2xlIGN4PSIyOTAiIGN5PSIzNjgiIHI9IjUiLz48Y2lyY2xlIGN4PSIzMzUiIGN5PSIzOTUiIHI9IjUiLz48Y2lyY2xlIGN4PSIzODAiIGN5PSI0MTAiIHI9IjUiLz4KPGNpcmNsZSBjeD0iMjE1IiBjeT0iNDUwIiByPSI1Ii8+PGNpcmNsZSBjeD0iMjYwIiBjeT0iNDMwIiByPSI1Ii8+PGNpcmNsZSBjeD0iMzA1IiBjeT0iNDQwIiByPSI1Ii8+PGNpcmNsZSBjeD0iMzUwIiBjeT0iNDU1IiByPSI1Ii8+CjxjaXJjbGUgY3g9IjI0NSIgY3k9IjQ5MCIgcj0iNSIvPjxjaXJjbGUgY3g9IjI5MiIgY3k9IjQ4MiIgcj0iNSIvPjxjaXJjbGUgY3g9IjMzNSIgY3k9IjQ5NSIgcj0iNSIvPjxjaXJjbGUgY3g9IjI5MCIgY3k9IjQxMCIgcj0iNyIvPgo8L2c+Cjx0ZXh0IHg9IjI5MCIgeT0iNTgwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiM3YWEyZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm1lbW9yeTwvdGV4dD4KPHBhdGggZD0iTTM2MCwyNzUgQzQyMCwyMDAgNDgwLDE2MCA1MzgsMTQwIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI2FCKSIvPgoKPCEtLSBzZWFyY2ggb3JiIChzbWFsbCwgZmFzdCkgLS0+CjxlbGxpcHNlIGN4PSI4OTAiIGN5PSI0MjAiIHJ4PSIyMDAiIHJ5PSIxNjAiIGZpbGw9InVybCgjZ1Zpb2xldCkiLz4KPGcgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC43Ij4KPGxpbmUgeDE9Ijk4NSIgeTE9IjM5MCIgeDI9IjExMjAiIHkyPSIzOTAiLz4KPGxpbmUgeDE9Ijk5MCIgeTE9IjQyMCIgeDI9IjExNTAiIHkyPSI0MjAiLz4KPGxpbmUgeDE9Ijk4NSIgeTE9IjQ1MCIgeDI9IjExMTAiIHkyPSI0NTAiLz4KPC9nPgo8Y2lyY2xlIGN4PSI5MDAiIGN5PSI0MjAiIHI9IjYyIiBmaWxsPSJ1cmwoI29yYlYpIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgo8IS0tIGxlbnMgLS0+CjxjaXJjbGUgY3g9Ijg5MCIgY3k9IjQxMCIgcj0iMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CjxsaW5lIHgxPSI5MDciIHkxPSI0MjciIHgyPSI5MjUiIHkyPSI0NDUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPCEtLSByZXN1bHQgY2FyZHMgZm91bmQgYnkgc2VhcmNoIC0tPgo8ZyB0cmFuc2Zvcm09InJvdGF0ZSgtNiA3NjAgMzAwKSI+CjxyZWN0IHg9IjcwMCIgeT0iMjYyIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8bGluZSB4MT0iNzE4IiB5MT0iMjg1IiB4Mj0iODAwIiB5Mj0iMjg1IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxsaW5lIHgxPSI3MTgiIHkxPSIzMDUiIHgyPSI3NzUiIHkyPSIzMDUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9nPgo8cGF0aCBkPSJNODcwLDM2MiBDODQwLDM0MCA4MzAsMzIwIDgyNiwzMDYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI2IDciLz4KPHBhdGggZD0iTTc2MCwyNjIgQzcyMCwyMTAgNjkwLDE3MCA2NjAsMTUwIiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBtYXJrZXItZW5kPSJ1cmwoI2FWKSIvPgo8dGV4dCB4PSI5MDAiIHk9IjU2MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjYTc4YmZhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5zZWFyY2g8L3RleHQ+Cjwvc3ZnPgo=",
+  "alt": "A large memory orb and a small fast orb with a search lens both send paths up to one shared answer point.",
+  "caption": "Astra reaches the answer from what it remembers; Gemini 3.8 Flash gets to the same place by searching.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Gemini 3.8 Flash vs GPT-6 Astra: Astra wins closed-book facts and hard reasoning; with search and on desk work, the far cheaper Flash ties.",
+ "keywords": [
+  "Gemini 3.8 Flash vs GPT-6 Astra",
+  "Gemini 3.8 Flash or GPT-6 Astra",
+  "Gemini 3.8 Flash vs GPT-6 Astra for coding",
+  "Gemini 3.8 Flash vs GPT-6 Astra pricing",
+  "AI model comparison",
+  "GPT-6 Astra reasoning",
+  "Gemini 3.8 Flash web search"
+ ],
+ "kicker": "Head-to-head",
+ "tags": [
+  "Gemini 3.8 Flash",
+  "GPT-6 Astra",
+  "Head-to-head"
+ ],
+ "read": 10,
+ "decisions": [
+  "Turn on web search before judging Gemini 3.8 Flash on facts",
+  "Send hard planning and stubborn bugs to GPT-6 Astra",
+  "Run high-volume routine tasks on Gemini 3.8 Flash",
+  "Give Astra precise specs and ask it for the failing line",
+  "Diff the output after every edit, in code or in a scene"
+ ],
+ "layout": "versus",
+ "arrangement": "a",
+ "special": {
+  "type": "picks",
+  "title": "Pick it when",
+  "items": [
+   {
+    "pick": "Gemini 3.8 Flash",
+    "when": "High-volume desk work such as package math, field extraction and outreach drafts, where both models tied"
+   },
+   {
+    "pick": "Gemini 3.8 Flash",
+    "when": "Fact lookups that change often, with a web search tool switched on"
+   },
+   {
+    "pick": "Gemini 3.8 Flash",
+    "when": "Targeted edits to an existing 3D scene, with a diff after each change"
+   },
+   {
+    "pick": "GPT-6 Astra",
+    "when": "Closed-book questions where no search tool is available"
+   },
+   {
+    "pick": "GPT-6 Astra",
+    "when": "Hard planning, optimisation or a stubborn multi-step bug, given a precise prompt"
+   },
+   {
+    "pick": "GPT-6 Astra",
+    "when": "Broad 3D scene work where the overall result matters more than edit precision"
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~10 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Astra answers more from memory, and search erases the gap",
+    "num": "01",
+    "id": "astra-answers-more-from-memory-and-search-erases-the-gap"
+   }
+  ],
+  [
+   "p",
+   "Gemini 3.8 Flash vs GPT-6 Astra comes down first to what each model knows without looking. Asked fresh factual questions from memory, Astra got 78.9% right and Gemini 3.8 Flash got 32.9%. Give both a web search tool and they tie at 98.7%. So Astra wins closed-book work by a mile. With search on, that lead vanishes."
+  ],
+  [
+   "p",
+   "We went through the dev.to experiment behind those figures. Its author asked 63 models the same 76 questions, mostly picked because the answer had changed within the last year: a tax deduction, a filing fee, a contribution limit. Every raw reply was stored, then graded against a primary source. Wrong answers were split in two, because «Outdated and Hallucinated are different failures and collapsing them loses the finding.»"
+  ],
+  [
+   "p",
+   "Before publishing, the author caught a trap. The first draft headline compared every model from memory with the few that could search. «Every number in that is correct. The sentence is still false.» The fix was to compare only models asked both ways. Astra and Gemini 3.8 Flash both sit in that paired group, which is why the comparison above is fair."
+  ],
+  [
+   "p",
+   "We agree with the author's reading, and it changes how you should judge Gemini 3.8 Flash. Its weakness is stale or missing facts, and a search tool fixes nearly all of it. A tool call, where the model asks your code to run a function such as a web search, costs time and tokens. Astra needs that call far less often."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Share of 76 fresh factual questions answered correctly, from memory and with web search, in percent.",
+    "unit": "percent of 76 questions answered correctly",
+    "bars": [
+     {
+      "label": "GPT-6 Astra, from memory",
+      "value": 78.9
+     },
+     {
+      "label": "Gemini 3.8 Flash, from memory",
+      "value": 32.9
+     },
+     {
+      "label": "GPT-6 Astra, with web search",
+      "value": 98.7
+     },
+     {
+      "label": "Gemini 3.8 Flash, with web search",
+      "value": 98.7
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Desk work came out a tie at almost the same bill",
+    "num": "02",
+    "id": "desk-work-came-out-a-tie-at-almost-the-same-bill"
+   }
+  ],
+  [
+   "p",
+   "On routine office work, neither model wins. A Texas real estate agent built 36 desk-work tasks on Kaggle, and both models scored 24 of 36. The whole run cost $0.14 for Astra and $0.13 for Gemini 3.8 Flash. On this evidence, the cheaper model does the same desk work. Nobody pulled ahead."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+Cjx0aXRsZT5UaGUgYW5zd2VyIGtleSBzdHJpcHBlZCB0aGUgY291bnR5IGFuZCBmYWlsZWQgYm90aCBtb2RlbHM8L3RpdGxlPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPjwvbGluZWFyR3JhZGllbnQ+CjxyYWRpYWxHcmFkaWVudCBpZD0iZ1JlZCIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4zIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz48L21hcmtlcj4KPC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjYmcpIi8+CjxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Cjx0ZXh0IHg9IjE4NSIgeT0iNzAiPnRoZSBsaXN0aW5nPC90ZXh0Pgo8dGV4dCB4PSI1ODAiIHk9IjcwIj5ib3RoIG1vZGVsczwvdGV4dD4KPHRleHQgeD0iOTg1IiB5PSI3MCI+dGhlIGFuc3dlciBrZXk8L3RleHQ+CjwvZz4KCjwhLS0gbGlzdGluZyAtLT4KPHJlY3QgeD0iMzUiIHk9IjExMCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxOTAiIHJ4PSIxOCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8ZyBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNSIgZmlsbD0iI2U4ZWRmNSI+Cjx0ZXh0IHg9IjU4IiB5PSIxNzAiPjEyMyBNYWluIFN0LDwvdGV4dD4KPHRleHQgeD0iNTgiIHk9IjIxMCI+RGFsbGFzLDwvdGV4dD4KPHRleHQgeD0iNTgiIHk9IjI1MCIgZmlsbD0iI2UzYjM0MSI+RGFsbGFzIENvdW50eS48L3RleHQ+CjwvZz4KPHRleHQgeD0iMTg1IiB5PSIzNTAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cHJvbXB0OiBjb3B5IGV4YWN0bHk8L3RleHQ+Cgo8bGluZSB4MT0iMzQwIiB5MT0iMjA1IiB4Mj0iNDEwIiB5Mj0iMjA1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgoKPCEtLSBtb2RlbHMgLS0+CjxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CjxyZWN0IHg9IjQyMCIgeT0iMTEwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjgyIiByeD0iMTYiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iNTgwIiB5PSIxNjEiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPkdQVC02IEFzdHJhPC90ZXh0Pgo8cmVjdCB4PSI0MjAiIHk9IjIxOCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI4MiIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9IjU4MCIgeT0iMjY5IiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5HZW1pbmkgMy44IEZsYXNoPC90ZXh0Pgo8dGV4dCB4PSI1ODAiIHk9IjM1MCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzNlY2Y4ZSI+Y29waWVkIGl0IGV4YWN0bHk8L3RleHQ+CjwvZz4KPHBhdGggZD0iTTU0OCwzNzYgTDU2OCwzOTYgTDYwNiwzNTgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KCjxsaW5lIHgxPSI3NDUiIHkxPSIyMDUiIHgyPSI4MTUiIHkyPSIyMDUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+Cgo8IS0tIGFuc3dlciBrZXkgLS0+CjxlbGxpcHNlIGN4PSI5ODUiIGN5PSIyMzAiIHJ4PSIyMTAiIHJ5PSIxNzAiIGZpbGw9InVybCgjZ1JlZCkiLz4KPHJlY3QgeD0iODI1IiB5PSIxMTAiIHdpZHRoPSIzMjAiIGhlaWdodD0iMTkwIiByeD0iMTgiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KPGcgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjUiIGZpbGw9IiNlOGVkZjUiPgo8dGV4dCB4PSI4NDgiIHk9IjE3MCI+MTIzIG1haW4gc3Q8L3RleHQ+Cjx0ZXh0IHg9Ijg0OCIgeT0iMjEwIj5kYWxsYXM8L3RleHQ+Cjx0ZXh0IHg9Ijg0OCIgeT0iMjUwIiBmaWxsPSIjOTVhMWI0IiBvcGFjaXR5PSIwLjciPmNvdW50eTwvdGV4dD4KPC9nPgo8bGluZSB4MT0iODQyIiB5MT0iMjQyIiB4Mj0iOTU4IiB5Mj0iMjQyIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9Ijk3NSIgeT0iMjUwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNmZjdiNzIiPnN0cmlwcGVkPC90ZXh0Pgo8ZyBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KPGxpbmUgeDE9Ijk2MCIgeTE9IjM0NSIgeDI9IjEwMTAiIHkyPSIzOTUiLz4KPGxpbmUgeDE9IjEwMTAiIHkxPSIzNDUiIHgyPSI5NjAiIHkyPSIzOTUiLz4KPC9nPgo8dGV4dCB4PSI5ODUiIHk9IjQ0MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5tYXJrZWQgd3Jvbmc8L3RleHQ+Cgo8cmVjdCB4PSIxNjAiIHk9IjQ5MCIgd2lkdGg9Ijg4MCIgaGVpZ2h0PSI3MCIgcng9IjE2IiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiLz4KPHRleHQgeD0iNjAwIiB5PSI1MzUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dGhlIGdyYWRlciBmYWlsZWQgdGhlIHRlc3QsIG5vdCB0aGUgbW9kZWxzPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A listing address, two models copying it exactly as told, and an answer key with the county stripped marking both wrong.",
+    "caption": "Both models followed the prompt on the address tasks, and the answer key failed them for it.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Both models were perfect on package math and on drafting outreach emails. Each missed one Texas compliance question, and not the same one. Astra slipped on earnest-money timing. Gemini 3.8 Flash missed a rule about state-promulgated forms. The realtor is blunt about where the risk sits: «One wrong TREC answer costs more than every cent of inference in this entire evaluation.»"
+  ],
+  [
+   "p",
+   "A bigger finding concerned the test itself. «The benchmark was wrong more often than the models were.» On the address tasks, the prompt asked for addresses copied exactly, and the answer key had stripped the county. Every model that followed instructions failed. So both scores understate both models, by the same amount."
+  ],
+  [
+   "p",
+   "We agree with the realtor's conclusion: «you don't need the most expensive model to do desk work». Our one caution is compliance. A human should still check legal answers from either model. The tie also says nothing about long, multi-step work, which this test never asked for."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Texas real estate desk-work results for both models, from one Kaggle run.",
+    "columns": [
+     "Measure",
+     "GPT-6 Astra",
+     "Gemini 3.8 Flash"
+    ],
+    "rows": [
+     [
+      "Overall",
+      "24 of 36",
+      "24 of 36"
+     ],
+     [
+      "Package math",
+      "10 of 10",
+      "10 of 10"
+     ],
+     [
+      "Texas compliance",
+      "7 of 8",
+      "7 of 8"
+     ],
+     [
+      "Outreach drafting",
+      "4 of 4",
+      "4 of 4"
+     ],
+     [
+      "Compliance miss",
+      "Earnest-money timing",
+      "Promulgated-forms rule"
+     ],
+     [
+      "Cost for all tasks",
+      "$0.14",
+      "$0.13"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Price per token differs far more than the bill per task",
+    "num": "03",
+    "id": "price-per-token-differs-far-more-than-the-bill-per-task"
+   }
+  ],
+  [
+   "p",
+   "On cost, Gemini 3.8 Flash wins wherever volume is high. Astra's list rate is many times higher, on input and output alike, as the rate card beside this post shows. You feel that gap in every long session. You barely saw it in the desk-work run, where the two bills differed by a cent."
+  ],
+  [
+   "p",
+   "That cent needs a footnote. Short tasks with short answers spend few tokens, so the rate barely shows. The cause of the near-equal bill is not established, since the run logged cost per model and not tokens per answer. Our guess is shorter replies from Astra. Treat it as a guess."
+  ],
+  [
+   "p",
+   "Speed tilts the same way. A Reddit post announcing free access in the Cline coding tool put Gemini 3.8 Flash at roughly 291 output tokens per second. It also cited a 1M-token context window, the amount of text the model can hold in view at once. Replies on Reddit complained that the free quota ran out mid-task. Free is a trial, then."
+  ],
+  [
+   "p",
+   "Astra's cost argument is predictability. One engineer on X, comparing Astra with Fable 5.1 on day one, found its token use more predictable. For a team on a fixed budget, that matters. A cheap model that spends tokens unevenly can still surprise you, and no field report yet shows how evenly Gemini 3.8 Flash spends."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/CLine/comments/1wpyepq/gemini_38_flash_is_now_free_in_cline/",
+    "title": "Gemini 3.8 Flash is now FREE in Cline ⚡",
+    "author": "gargetisha",
+    "community": "CLine",
+    "caption": "A Reddit post announcing free Gemini 3.8 Flash access in a coding tool, with replies about its speed and quotas that run out fast."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Silent reasoning favours Astra by a wide margin",
+    "num": "04",
+    "id": "silent-reasoning-favours-astra-by-a-wide-margin"
+   }
+  ],
+  [
+   "p",
+   "For hard reasoning, Astra is ahead, and the clearest evidence is reasoning it does silently. Chain of thought is the visible scratch work a model writes before answering. Without it, Astra «can do 7.2 serial arithmetic steps in a forward pass vs 4.1 for the next best model (Gemini 3.8 Flash/Fable 5.1)». A forward pass is one run through the network."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCI+Cjx0aXRsZT5TZXJpYWwgYXJpdGhtZXRpYyBzdGVwcyBpbiBvbmUgZm9yd2FyZCBwYXNzPC90aXRsZT4KPGRlc2M+R1BULTYgQXN0cmEgNy4yIHN0ZXBzOyBHZW1pbmkgMy44IEZsYXNoIGFuZCBGYWJsZSA1LjEgNC4xIHN0ZXBzLjwvZGVzYz4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz48L2xpbmVhckdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9ImdCIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjI4Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjU2MCIgZmlsbD0idXJsKCNiZykiLz4KPHRleHQgeD0iNjAiIHk9IjgwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPlNlcmlhbCBzdGVwcyBpbiBvbmUgZm9yd2FyZCBwYXNzPC90ZXh0Pgo8dGV4dCB4PSI2MCIgeT0iMTIwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPm5vIHZpc2libGUgc2NyYXRjaCB3b3JrIGFsbG93ZWQ8L3RleHQ+Cgo8IS0tIGJhc2VsaW5lIGF4aXMgYXQgeD0zMDAsIG9uZSBzdGVwID0gOTUgLS0+CjxsaW5lIHgxPSIzMDAiIHkxPSIxNjAiIHgyPSIzMDAiIHkyPSI0NzAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+Cgo8IS0tIEFzdHJhIHJvdzogNy4yIHN0ZXBzLCBlbmRzIGF0IDk4NCAtLT4KPGVsbGlwc2UgY3g9IjY0MCIgY3k9IjIzNSIgcng9IjQyMCIgcnk9IjkwIiBmaWxsPSJ1cmwoI2dCKSIvPgo8dGV4dCB4PSIyODAiIHk9IjIyNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjN2FhMmZmIiB0ZXh0LWFuY2hvcj0iZW5kIj5HUFQtNjwvdGV4dD4KPHRleHQgeD0iMjgwIiB5PSIyNjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzdhYTJmZiIgdGV4dC1hbmNob3I9ImVuZCI+QXN0cmE8L3RleHQ+CjxsaW5lIHgxPSIzMDAiIHkxPSIyMzUiIHgyPSI5ODQiIHkyPSIyMzUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CjxnIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyI+CjxjaXJjbGUgY3g9IjM0NyIgY3k9IjIzNSIgcj0iMjYiLz48Y2lyY2xlIGN4PSI0NDIiIGN5PSIyMzUiIHI9IjI2Ii8+PGNpcmNsZSBjeD0iNTM3IiBjeT0iMjM1IiByPSIyNiIvPjxjaXJjbGUgY3g9IjYzMiIgY3k9IjIzNSIgcj0iMjYiLz48Y2lyY2xlIGN4PSI3MjciIGN5PSIyMzUiIHI9IjI2Ii8+PGNpcmNsZSBjeD0iODIyIiBjeT0iMjM1IiByPSIyNiIvPjxjaXJjbGUgY3g9IjkxNyIgY3k9IjIzNSIgcj0iMjYiLz4KPC9nPgo8cmVjdCB4PSI5NjUiIHk9IjIxNSIgd2lkdGg9IjE5IiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC41Ii8+Cjx0ZXh0IHg9IjEwMTAiIHk9IjI0NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij43LjI8L3RleHQ+Cgo8IS0tIEdlbWluaSByb3c6IDQuMSBzdGVwcywgZW5kcyBhdCA2OTAgLS0+Cjx0ZXh0IHg9IjI4MCIgeT0iMzc4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNhNzhiZmEiIHRleHQtYW5jaG9yPSJlbmQiPkdlbWluaSAzLjg8L3RleHQ+Cjx0ZXh0IHg9IjI4MCIgeT0iNDEyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNhNzhiZmEiIHRleHQtYW5jaG9yPSJlbmQiPkZsYXNoPC90ZXh0Pgo8bGluZSB4MT0iMzAwIiB5MT0iMzkwIiB4Mj0iNjkwIiB5Mj0iMzkwIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgo8ZyBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMyIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiPgo8Y2lyY2xlIGN4PSIzNDciIGN5PSIzOTAiIHI9IjI2Ii8+PGNpcmNsZSBjeD0iNDQyIiBjeT0iMzkwIiByPSIyNiIvPjxjaXJjbGUgY3g9IjUzNyIgY3k9IjM5MCIgcj0iMjYiLz48Y2lyY2xlIGN4PSI2MzIiIGN5PSIzOTAiIHI9IjI2Ii8+CjwvZz4KPHJlY3QgeD0iNjgwIiB5PSIzNzAiIHdpZHRoPSIxMCIgaGVpZ2h0PSI0MCIgcng9IjQiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNSIvPgo8dGV4dCB4PSI3MTYiIHk9IjQwMSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij40LjE8L3RleHQ+Cjx0ZXh0IHg9IjMwMCIgeT0iNDY1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPkZhYmxlIDUuMSBhbHNvIHJlYWNoZXMgNC4xPC90ZXh0PgoKPHRleHQgeD0iNjAiIHk9IjUyNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5lYWNoIGNpcmNsZSBpcyBvbmUgYXJpdGhtZXRpYyBzdGVwIGRvbmUgc2lsZW50bHk8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Two chains of linked steps: GPT-6 Astra reaches 7.2 serial steps, Gemini 3.8 Flash and Fable 5.1 reach 4.1.",
+    "caption": "Serial arithmetic steps each model completes in one forward pass, with no visible scratch work.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A Hacker News thread gathered more of the same. An outside safety institute measured Astra's math time horizon without scratch work at 30.9 minutes, against 3.6 minutes for GPT 5.6 Sol. Astra also obeys instructions about its own scratch work far better. Within one band of reasoning lengths, «GPT-6 Astra successfully controls 60.9%, compared with 16.1% for GPT-5.6 Sol»."
+  ],
+  [
+   "p",
+   "That second figure cuts both ways. Controllable scratch work helps when you want strict format rules followed. It also means the visible reasoning may say what the model was told to say. Examples include «pretending to reason about a different question». We think that makes Astra's scratch work a weaker window into its thinking."
+  ],
+  [
+   "p",
+   "A Hacker News reply to a buyer's question backed the strength: «it is far better at complex understanding and optimization». Gemini 3.8 Flash earns milder praise. One Reddit commenter found it comparable to GPT-5.6 Terra in execution and reasoning on personal tasks. For a planning step or a stubborn bug, we would pay for Astra."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Reasoning without visible scratch work, as reported in a Hacker News thread.",
+    "columns": [
+     "Measure",
+     "GPT-6 Astra",
+     "Comparison"
+    ],
+    "rows": [
+     [
+      "Serial arithmetic steps in one forward pass",
+      "7.2",
+      "4.1 for Gemini 3.8 Flash and Fable 5.1"
+     ],
+     [
+      "Math time horizon without scratch work",
+      "30.9 minutes",
+      "3.6 minutes for GPT 5.6 Sol"
+     ],
+     [
+      "Scratch work that follows instructions, 750 to 1,250 tokens long",
+      "60.9%",
+      "16.1% for GPT-5.6 Sol"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Gemini edits 3D scenes better, Astra edges the overall score",
+    "num": "05",
+    "id": "gemini-edits-3d-scenes-better-astra-edges-the-overall-score"
+   }
+  ],
+  [
+   "p",
+   "In 3D scene work, the honours split by task. Code4Scene, a new arXiv benchmark, has coding agents write code that builds or edits scenes in Unreal Engine, a game engine. Its result is tidy: «Claude Fable 5.1 leads construction, Gemini 3.8 Flash leads editing, and GPT-6 Astra narrowly leads overall.» Gemini wins precise edits. Astra wins on balance."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+Cjx0aXRsZT5BIDNEIGVkaXQgdGhhdCBoaXRzIGl0cyB0YXJnZXQgYW5kIG1vdmVzIHNvbWV0aGluZyBlbHNlPC90aXRsZT4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz48L2xpbmVhckdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9ImdSIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9ImdHIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+CjxtYXJrZXIgaWQ9ImFHIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz48L21hcmtlcj4KPG1hcmtlciBpZD0iYVIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2ZmN2I3MiIvPjwvbWFya2VyPgo8L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNiZykiLz4KCjwhLS0gaXNvbWV0cmljIGZsb29yIC0tPgo8cG9seWdvbiBwb2ludHM9IjYwMCwxNTAgMTA1MCwzNTAgNjAwLDU1MCAxNTAsMzUwIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMDgiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxnIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIj4KPGxpbmUgeDE9IjQ4NyIgeTE9IjIwMCIgeDI9IjkzNyIgeTI9IjQwMCIvPgo8bGluZSB4MT0iMzc1IiB5MT0iMjUwIiB4Mj0iODI1IiB5Mj0iNDUwIi8+CjxsaW5lIHgxPSIyNjIiIHkxPSIzMDAiIHgyPSI3MTIiIHkyPSI1MDAiLz4KPGxpbmUgeDE9IjcxMiIgeTE9IjIwMCIgeDI9IjI2MiIgeTI9IjQwMCIvPgo8bGluZSB4MT0iODI1IiB5MT0iMjUwIiB4Mj0iMzc1IiB5Mj0iNDUwIi8+CjxsaW5lIHgxPSI5MzciIHkxPSIzMDAiIHgyPSI0ODciIHkyPSI1MDAiLz4KPC9nPgoKPCEtLSB0YWJsZSAodW5jaGFuZ2VkKSAtLT4KPHBvbHlnb24gcG9pbnRzPSI2MDAsMzAwIDY4MCwzMzYgNjAwLDM3MiA1MjAsMzM2IiBmaWxsPSIjOTVhMWI0IiBmaWxsLW9wYWNpdHk9IjAuMzUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPHBvbHlnb24gcG9pbnRzPSI1MjAsMzM2IDYwMCwzNzIgNjAwLDQwMiA1MjAsMzY2IiBmaWxsPSIjOTVhMWI0IiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiLz4KPHBvbHlnb24gcG9pbnRzPSI2MDAsMzcyIDY4MCwzMzYgNjgwLDM2NiA2MDAsNDAyIiBmaWxsPSIjOTVhMWI0IiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjx0ZXh0IHg9IjYwMCIgeT0iNDQwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnVudG91Y2hlZDwvdGV4dD4KCjwhLS0gbGFtcDogZ2hvc3QgYXQgb2xkIHNwb3QsIG1vdmVkIHRvIG5ldyBzcG90IC0tPgo8ZWxsaXBzZSBjeD0iMzYwIiBjeT0iMzMwIiByeD0iMjYiIHJ5PSIxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNiIgb3BhY2l0eT0iMC43Ii8+CjxsaW5lIHgxPSIzNjAiIHkxPSIzMzAiIHgyPSIzNjAiIHkyPSIyNTAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiIG9wYWNpdHk9IjAuNyIvPgo8ZWxsaXBzZSBjeD0iODMwIiBjeT0iMjUwIiByeD0iMTQwIiByeT0iODAiIGZpbGw9InVybCgjZ0cpIi8+CjxlbGxpcHNlIGN4PSI4MzAiIGN5PSIyOTAiIHJ4PSIyNiIgcnk9IjEyIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMzUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxsaW5lIHgxPSI4MzAiIHkxPSIyOTAiIHgyPSI4MzAiIHkyPSIyMTAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1Ii8+Cjxwb2x5Z29uIHBvaW50cz0iODAwLDIxNSA4NjAsMjE1IDg0NSwxODAgODE1LDE4MCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxwYXRoIGQ9Ik0zOTUsMjQwIEM1MjAsMTUwIDY5MCwxNDAgNzkwLDE5NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYUcpIi8+Cjx0ZXh0IHg9IjYwMCIgeT0iMTIwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlcXVlc3RlZCBlZGl0OiBtb3ZlIHRoZSBsYW1wPC90ZXh0PgoKPCEtLSBjaGFpcjogc2hpZnRlZCB3aXRob3V0IGJlaW5nIGFza2VkIC0tPgo8ZWxsaXBzZSBjeD0iNTYwIiBjeT0iNDcwIiByeD0iMTcwIiByeT0iODAiIGZpbGw9InVybCgjZ1IpIi8+CjxnIG9wYWNpdHk9IjAuNTUiPgo8cmVjdCB4PSI0MjAiIHk9IjQzMCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjQwIiByeD0iNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWRhc2hhcnJheT0iNiA2Ii8+CjwvZz4KPHJlY3QgeD0iNTkwIiB5PSI0NjIiIHdpZHRoPSI2MCIgaGVpZ2h0PSI0MCIgcng9IjYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgdHJhbnNmb3JtPSJyb3RhdGUoMTggNjIwIDQ4MikiLz4KPHBhdGggZD0iTTQ4Niw0NTIgQzUyMCw0NDAgNTU1LDQ1MCA1ODQsNDY1IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNyA2IiBtYXJrZXItZW5kPSJ1cmwoI2FSKSIvPgo8dGV4dCB4PSI3NzAiIHk9IjUyMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIj51bmFza2VkIGNoYW5nZTwvdGV4dD4KCjx0ZXh0IHg9IjYwMCIgeT0iNjA1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjM1LjglIG9mIGZ1bGwgcmVjb3ZlcmllcyBzdGlsbCBjaGFuZ2VkIHNvbWV0aGluZyBlbHNlPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A 3D room floor where the requested lamp move succeeds in green and a chair shifts unasked in red.",
+    "caption": "Code4Scene's warning: an edit can hit its target and still move something nobody asked to change.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Editing is the stricter test of control. The agent sees reference images of a target scene and must change the scene to match, leaving everything else alone. Construction is looser, since many layouts satisfy one description. Scoring looks at the scene itself, never the code or a pretty picture of it. That matters, because «a convincing render can hide incorrect spatial relations, intersecting objects, or unintended modifications»."
+  ],
+  [
+   "p",
+   "Neither model is precise yet. On the benchmark's edit-precision score, «the best Repair F1 is only 0.527». Worse, «35.8% of edits that fully recover the target still introduce unintended changes elsewhere in the scene». A correct edit with a side effect is still a bug. It just hides better."
+  ],
+  [
+   "p",
+   "In our view, this is a real edge for Gemini 3.8 Flash on targeted changes, at a fraction of Astra's price. Astra's overall lead is narrow by the authors' own word. Either way, diff the scene after every edit. Neither model will tell you what else it moved."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Code4Scene results across 14 coding-agent configurations on the 95-case public set.",
+    "columns": [
+     "Setting",
+     "Result"
+    ],
+    "rows": [
+     [
+      "Construction from a description",
+      "Claude Fable 5.1 leads"
+     ],
+     [
+      "Editing to match reference images",
+      "Gemini 3.8 Flash leads"
+     ],
+     [
+      "Overall",
+      "GPT-6 Astra leads narrowly"
+     ],
+     [
+      "Best Repair F1 on edits",
+      "0.527"
+     ],
+     [
+      "Full recoveries with unintended changes elsewhere",
+      "35.8%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Quality reports on Gemini 3.8 Flash split on harness and effort",
+    "num": "06",
+    "id": "quality-reports-on-gemini-3-8-flash-split-on-harness-and-eff"
+   }
+  ],
+  [
+   "p",
+   "On everyday code quality, Gemini 3.8 Flash divides the field, and Astra draws less dispute. A Reddit discussion of an updated Artificial Analysis index, where Gemini 3.8 Flash ranked below GLM 5.3 Flash, shows the split clearly. Some replies call it lazy. Others call it the fastest dependable coder they have."
+  ],
+  [
+   "p",
+   "The negative side is specific. One commenter on Reddit ran it at xhigh effort, the setting that lets it think longest, and found it underperformed GPT-5.6 Luna. Others on Reddit blamed the harness, the code that feeds a model its tasks and tools. One reported that Gemini 3.8 Flash scored higher in a third-party coding tool than in Google's own."
+  ],
+  [
+   "p",
+   "The positive side is just as concrete. A Reddit user running it at high effort said it finished nearly every coding request in one shot, very fast. Another reply on Reddit found it better at non-coding agent tasks: fewer mistakes, more self-checking, better instruction following. Both describe daily use. Neither describes a leaderboard."
+  ],
+  [
+   "p",
+   "We side with the daily users, with a caveat. Index rankings average over harnesses and effort settings you will never copy. A reply in that Reddit discussion warned that a one-to-three point gap carries a false-positive rate. Astra's disputes are about style, covered next. Gemini's are about finishing the job, so test it in your own harness."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/google_antigravity/comments/1wa6tna/artificialanalysis_has_updated_its_intelligence/",
+    "title": "Artificialanalysis has updated its Intelligence Index Score, and Gemini 3.8 now ranks lower than GLM 5.3 flash...",
+    "author": "No-Background3147",
+    "community": "google_antigravity",
+    "caption": "A Reddit discussion of an updated intelligence index, where replies split between calling Gemini 3.8 Flash lazy and calling it a fast one-shot coder."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Astra needs a precise prompt and a check for invented problems",
+    "num": "07",
+    "id": "astra-needs-a-precise-prompt-and-a-check-for-invented-proble"
+   }
+  ],
+  [
+   "p",
+   "On vague requests, Astra loses ground, and the gap is about style. A Hacker News user weighing a subscription had heard that Astra is «not as 'smart' in figuring things out on it's own with a vague prompt». A reply agreed and went further: «You really have to be specific with your prompts and they're far less communicative also»."
+  ],
+  [
+   "p",
+   "One engineer on X who ran Astra beside Fable 5.1 on day one liked how plainly it explained itself. The same post flagged a habit to guard against: Astra invented problems that did not exist in the codebase more often than expected. A reviewer that flags phantom bugs wastes your afternoon. Ask for the failing line, every time."
+  ],
+  [
+   "p",
+   "Ask Astra for an asset and it may reach for an image generator. A Reddit post gave Astra and Fable 5.1 the same prompt for 2D game sprites. Astra delivered one sheet with 16 key poses. Fable 5.1 built 992 frames across four palettes, plus a generator script. Replies on Reddit said Astra had called its image tool, so the contest was uneven."
+  ],
+  [
+   "p",
+   "Gemini 3.8 Flash draws a different complaint: it needs a well-explained task. Astra's other friction is security work. «The issues you might run into are straight refusals due to the security limitations, which can be quite annoying.» If your code touches exploits or pentest tooling, measure the refusal rate first. On Google's side, full security features sit in a restricted Cyber variant."
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/simplifyinAI/status/2099095933791478085",
+    "caption": "A post on X summarising a day-one comparison of GPT-6 Astra and Fable 5.1, including Astra's habit of inventing problems."
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ClaudeAI/comments/1wanm8p/fable_51_vs_gpt6_astra_for_2d_sprites/",
+    "title": "Fable 5.1 vs GPT-6 Astra for 2D Sprites",
+    "author": "bobo-the-merciful",
+    "community": "ClaudeAI",
+    "caption": "A Reddit post giving GPT-6 Astra and Fable 5.1 the same sprite prompt, with very different outputs and a debate over fairness."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Long agent runs on one repository remain an untested match",
+    "num": "08",
+    "id": "long-agent-runs-on-one-repository-remain-an-untested-match"
+   }
+  ],
+  [
+   "p",
+   "Long agentic coding is the open question, where a model plans, edits and runs tests over many steps. No public run yet pits Gemini 3.8 Flash against Astra on that work in one harness. The index results came from a generic agent. The desk-work tasks were short. The 3D benchmark is one narrow domain."
+  ],
+  [
+   "p",
+   "Vendor-style numbers do not fill the gap. A Portuguese-language dev.to write-up credits the restricted Gemini 3.8 Flash Cyber variant with large security-benchmark leads over Astra. That variant sits behind an access programme, and its table comes with no reproducible run. Read those figures as claims about a different envelope."
+  ],
+  [
+   "p",
+   "Settling it takes one experiment. Run both models on the same tickets from your repository, in the same harness, at matched effort. Count accepted fixes, total tokens, wall-clock time and refusals. Log invented issues for Astra and unfinished tasks for Gemini 3.8 Flash, the two failure shapes seen in the field."
+  ],
+  [
+   "p",
+   "Keep the search tool on in both arms, since search closed the knowledge gap entirely. Keep the grader honest too. The realtor admitted «I set out to grade the machines and ended up grading my test.» Until that experiment runs, the price gap is the only settled fact in this match."
+  ],
+  [
+   "h2",
+   {
+    "text": "When to use Gemini 3.8 Flash vs GPT-6 Astra",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Questions whose answers change yearly, such as fees and tax limits",
+      "From memory Gemini 3.8 Flash got 32.9% right; with search both reached 98.7%",
+      "Give the model a web search tool and grade against a primary source",
+      "Gemini 3.8 Flash with web search"
+     ],
+     [
+      "Closed-book answers where no search tool is allowed",
+      "Astra answered 78.9% from memory, far ahead of Gemini 3.8 Flash",
+      "Still separate outdated answers from invented ones when you grade",
+      "GPT-6 Astra"
+     ],
+     [
+      "High-volume desk work: package math, extraction, outreach drafts",
+      "Both scored 24 of 36; each missed one compliance question",
+      "Keep a human check on legal and compliance answers",
+      "Gemini 3.8 Flash"
+     ],
+     [
+      "Targeted edits to an existing 3D scene",
+      "Gemini 3.8 Flash leads editing, but edits still leave side effects",
+      "Diff scene state after every edit",
+      "Gemini 3.8 Flash"
+     ],
+     [
+      "Hard planning, optimisation or a stubborn multi-step bug",
+      "Astra reasons further without scratch work, at a much higher rate",
+      "Write a precise spec, since Astra struggles with vague prompts",
+      "GPT-6 Astra"
+     ],
+     [
+      "Code review that reports issues",
+      "Astra can invent problems that are not in the codebase",
+      "Require the failing line or a reproducing test for each finding",
+      "GPT-6 Astra with a verifier step"
+     ],
+     [
+      "Security tooling and exploit research",
+      "Astra can refuse on security grounds; Gemini's full Cyber variant is restricted",
+      "Measure refusal rates on your own tickets first",
+      "Either model, after a refusal test"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Is Gemini 3.8 Flash better than GPT-6 Astra?"
+  ],
+  [
+   "p",
+   "Not overall, but it matches Astra on routine work for far less money. On Texas real estate desk tasks both scored 24 of 36, and with web search both answered 98.7% of fresh factual questions correctly. Astra pulls ahead on closed-book knowledge, at 78.9% against 32.9%, and on hard reasoning without visible scratch work."
+  ],
+  [
+   "h3",
+   "Is GPT-6 Astra worth the price?"
+  ],
+  [
+   "p",
+   "It is worth it for hard reasoning and closed-book knowledge, and rarely for routine volume. Astra did 7.2 serial arithmetic steps in a single forward pass, against 4.1 for Gemini 3.8 Flash. On short desk tasks the two tied, and their bills sat a cent apart. Pay for Astra where a wrong plan is expensive, and give it a precise prompt."
+  ],
+  [
+   "h3",
+   "Is Gemini 3.8 Flash good for coding?"
+  ],
+  [
+   "p",
+   "Yes for fast, well-specified coding, though field opinion is split. On Reddit, it is praised as a quick one-shot coder at high effort and called lazy at xhigh. On the Code4Scene benchmark it led scene editing, ahead of Astra, yet the best edit precision score was only 0.527. Test it in your own harness, since rankings shift with the agent tool around it."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Gemini 3.8 Flash",
+      "$0.75",
+      "$3.75",
+      "$0.075"
+     ],
+     [
+      "GPT-6 Astra",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ],
+     [
+      "Claude Fable 5.1",
+      "$10.00",
+      "$50.00",
+      "$0.25"
+     ],
+     [
+      "GPT-5.6 Sol",
+      "$4.00",
+      "$20.00",
+      "$0.40"
+     ],
+     [
+      "GLM 5.3 Flash",
+      "$0.15",
+      "$0.50",
+      "$0.03"
+     ],
+     [
+      "GPT-5.6 Luna",
+      "$0.20",
+      "$1.20",
+      "$0.02"
+     ],
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ],
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "disisnoturbusiness",
+   "what": "I asked 63 models the same 76 questions with and without web search",
+   "url": "https://dev.to/disisnoturbusiness/i-asked-63-models-the-same-76-questions-with-and-without-web-search-45b1",
+   "posted": "2026-10-08"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "brandon_favor_cf98fad9596",
+   "what": "I tested whether frontier ai can do a texas real estate agents desk work heres what 3 models",
+   "url": "https://dev.to/brandon_favor_cf98fad9596/i-tested-whether-frontier-ai-can-do-a-texas-real-estate-agents-desk-work-heres-what-3-models-71n",
+   "posted": "2026-10-08"
+  },
+  {
+   "n": 3,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49627370",
+   "posted": "2026-09-09"
+  },
+  {
+   "n": 4,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49608008",
+   "posted": "2026-09-08"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "2609.36777v1",
+   "url": "https://arxiv.org/abs/2609.36777v1",
+   "posted": "2026-09-29"
+  }
+ ],
+ "cite": {
+  "Outdated and Hallucinated are different failures and collapsing them loses the finding.": 1,
+  "Every number in that is correct. The sentence is still false.": 1,
+  "One wrong TREC answer costs more than every cent of inference in this entire evaluation.": 2,
+  "The benchmark was wrong more often than the models were.": 2,
+  "you don't need the most expensive model to do desk work": 2,
+  "can do 7.2 serial arithmetic steps in a forward pass vs 4.1 for the next best model (Gemini 3.8 Flash/Fable 5.1)": 3,
+  "GPT-6 Astra successfully controls 60.9%, compared with 16.1% for GPT-5.6 Sol": 3,
+  "pretending to reason about a different question": 3,
+  "it is far better at complex understanding and optimization": 4,
+  "Claude Fable 5.1 leads construction, Gemini 3.8 Flash leads editing, and GPT-6 Astra narrowly leads overall.": 5,
+  "a convincing render can hide incorrect spatial relations, intersecting objects, or unintended modifications": 5,
+  "the best Repair F1 is only 0.527": 5,
+  "35.8% of edits that fully recover the target still introduce unintended changes elsewhere in the scene": 5,
+  "not as 'smart' in figuring things out on it's own with a vague prompt": 4,
+  "You really have to be specific with your prompts and they're far less communicative also": 4,
+  "The issues you might run into are straight refusals due to the security limitations, which can be quite annoying.": 4,
+  "I set out to grade the machines and ended up grading my test.": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:18:40+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_7c8313163ce0a065",
+   "thread_context_d7570b90ab28b2c0",
+   "thread_context_669df110ce74eb37",
+   "thread_context_6123a2caa6794354",
+   "thread_context_43a6a7c9f397abe8",
+   "thread_context_fb06b0abd0b5a885",
+   "thread_context_e00e0fbfd53f8e3d",
+   "thread_context_b585bbdcc6e40dcd",
+   "thread_context_dd96213f921cef9e",
+   "thread_context_9e6ac96b203bb91f"
+  ],
+  "platforms": {
+   "Hacker News": 2,
+   "dev.to": 3,
+   "arXiv": 1,
+   "Reddit": 3,
+   "X": 1
+  },
+  "embedded": 4,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "head-to-head:google/gemini-3.8-flash+openai/gpt-6-astra",
+  "format": "head-to-head",
+  "reviewed_by": null
+ }
+}

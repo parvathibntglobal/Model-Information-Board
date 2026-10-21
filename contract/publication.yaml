@@ -1,0 +1,104 @@
+# What may appear on a PUBLIC surface, by source.
+#
+# PROPOSED 2026-10-05 by anooj; APPROVED 2026-10-19 through the go-public
+#   contract PR (#535), reviewed by parvathi. contract/ gets two eyes. The
+#   original argument is in docs/proposals/public-surfaces-withhold-reddit-arxiv-x.md;
+#   the publication basis it serves is `use_basis_undertaking` in
+#   contract/sources.yaml.
+#
+# THE AGREED POSITION (team, 2026-10-05): nothing from Reddit, arXiv or X is
+# shown on our public platform's board. We may still collect from them for
+# internal work. Derived blog posts are the one exception, below.
+#
+# WHAT "WITHHELD" MEANS ON THE BOARD: no quote, no link, no handle, no
+# platform name, and NO PER-PLATFORM COUNT. A public page that leaves out a
+# withheld source's quotes must SAY that some sources are not quoted (rule 4) -
+# an absence we cause must not read as one we found.
+#
+# TOTALS INCLUDE EVERY SOURCE (amended 2026-10-15 by anooj; proposed, needs the
+# second reviewer like the rest of this file). Was "no count that includes
+# them". A model with 20 voices, 10 of them from Reddit, shows "20 voices" and
+# nothing about Reddit: the total is ours, the split is not shown. A count is
+# not publication (contract/sources.yaml, "What counts as publication": "'7
+# voices, 2 platforms' is a count and publishes nothing quotable"). What stays
+# withheld is anything that would let a reader tell which platform a figure or
+# a quote came from.
+#
+# DERIVED POSTS ARE THE EXCEPTION (decided by anooj, 2026-10-05) - see
+# `derived_posts` below.
+#
+# WHO READS THIS
+#   judge/publication.py        the one loader; every public read goes through it
+#   generate_sample_blogs.py    reads `derived_posts` to decide whether a blog
+#                               draft may draw on a withheld source
+#
+# ABSENT IS NOT PERMISSIVE (rule 6, rule 12). A missing file, a missing key or
+# an empty list raises - it never silently publishes everything.
+
+version: "0.1"
+status: approved
+proposed_on: 2026-10-05
+proposed_by: anooj
+approved_on: 2026-10-19   # through the go-public contract PR; reviewer below
+reviewed_by: parvathi     # by approving that PR
+
+withheld_from_public:
+  # `document.source` values, exactly as the collectors write them.
+  sources:
+    - reddit
+    - arxiv
+    - x
+  # Whether a public TOTAL (voices, reports, entries, models) counts rows from
+  # the sources above. true since 2026-10-15 (approved 2026-10-19): totals
+  # include every source, and no page shows a per-platform count. Must be true
+  # or false - absent raises (rule 6, rule 12): judge/publication.py
+  # `totals_include_withheld`.
+  totals_include_withheld: true
+
+derived_posts:
+  # BLOG DRAFTS MAY BE WRITTEN FROM WITHHELD SOURCES. Decided by anooj on
+  # 2026-10-05: we cannot write useful posts while avoiding Reddit, X and arXiv,
+  # and a post that discusses what practitioners report is not a republication
+  # of their posts. Narrowed the 2026-10-05 first draft of this file, which
+  # withheld derived prose too.
+  #
+  # WHAT A DRAFT CARRIES FROM THEM, stated so a reviewer rules on the real
+  # thing: prose written from the threads, PLUS the short verbatim fragments
+  # (marked «») the generator requires, copied exactly from the source. No
+  # link, no handle, no platform name - those stay refused by the generator's
+  # export and banned-phrase checks.
+  #
+  # Must be true or false. Absent raises (rule 6): the generator never guesses.
+  may_draw_on_withheld: true
+
+  # EMBED ONLY - RE-REVIEWED 2026-10-13 by anooj, approved by the MD (whose idea
+  # it was). docs/proposals/publish-blogs-with-official-embeds.md.
+  #
+  # A source listed here appears in a published post ONLY as the platform's
+  # official embed of the post (X for Websites; Reddit's oEmbed markup), placed
+  # beside our own-words description that names the platform. Its text is never
+  # copied into our prose - not in «», not as a pull quote - and no handle,
+  # subreddit or URL is typed by us. The generator refuses a draft that quotes
+  # one of these sources, and refuses an embed of any source NOT listed here.
+  #
+  # EVERY OTHER SOURCE a post draws on is quoted exactly and credited with its
+  # platform and a link (quote + attribution + link, BUILD-PLAN's form). The
+  # 2026-10-05 "no link, no platform name" position for blog drafts is
+  # superseded by this re-review.
+  #
+  # What this does NOT change: the board stays as `withheld_from_public` says,
+  # and the collection routes stay as `contract/sources.yaml` records them.
+  #
+  # Must be a list. Absent raises (rule 6). An empty list is a definite answer -
+  # "quote every source" - and is never what a missing key means.
+  embed_only:
+    - reddit
+    - x
+
+credits:
+  # ARXIV'S ACKNOWLEDGEMENT, as its API terms ask (2026-10-19, review of #535).
+  # Attached at SERVE time to every post whose sources include an arXiv paper
+  # (judge/publication.py `with_credits`), so no post goes out without it however
+  # it was written. The undertaking's `arxiv_acknowledged: true` rests on this.
+  # Required: absent or empty raises (rule 12).
+  arxiv_acknowledgement: "Thank you to arXiv for use of its open access interoperability."

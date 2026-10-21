@@ -1,97 +1,70 @@
 # Model Information Board
 
-**You describe the work. The board names the models engineers have actually
-made that work with, cheapest first, and shows you their exact words.**
+**What engineers actually report about AI models, filed by the job they were doing, in their own words.**
 
-Coding agents pick their own models for every sub-agent they spawn, and they
-reach for the strongest one almost everywhere. Most sub-agents don't need it.
-Something 10-40x cheaper usually does the job - but *"use something cheaper"*
-is a hope, not a decision.
+Leaderboards give each model one score. Engineers who have shipped with these models write about them every day, in GitHub issues, on Hacker News, dev.to, Hugging Face and engineering blogs. This board collects those reports, keeps only what can be checked against its source, and files each one under:
 
-Benchmarks can't tell you which. Engineers who already shipped can, and they
-publish constantly - in GitHub issues, on Reddit, on engineering blogs. That
-evidence is buried in marketing, and it decays as providers silently update
-models behind the same names.
+- **Best for:** the jobs a model was used for
+- **Capabilities:** what it is good or bad at
+- **Metrics:** figures engineers measured
 
-This collects it, strips the paid and fake content, and states what people
-actually found - in their words.
+Every entry is the engineer's exact words with a link to where they wrote it. It is a verdict and a count, never a score.
 
-## Documents
+## What's on it
 
-| | |
-|---|---|
-| **`BUILD-PLAN.md`** | Requirements (36 FR, 10 NFR), the eight weeks, and who does what |
-| **`docs/logic-and-workflow.md`** | How the machinery works - the nine pipeline stages and the answer path |
-| **`CLAUDE.md`** | Conventions and non-negotiable rules, read by both Claude Code sessions |
+- **Board:** every job, capability and metric, with the reports filed under each
+- **Models:** one model across every section it's discussed in
+- **Compare:** up to three models side by side
+- **Blogs:** posts written from the evidence, published after review
+
+## How it works
+
+```
+registry → harvest → assemble → screen → classify → verify → board
+```
+
+Models come from a polled registry. Reports are harvested from public sources, flattened and deduplicated, screened by rules, then classified into board sections by one model call. A quote is kept only if it appears word for word in its source.
+
+## The rules
+
+1. **No claim without a verbatim quote,** verified in code by exact substring match.
+2. **A model may propose, never decide.** No model counts, weighs, ranks or filters.
+3. **No synthesised number reaches a page.** Every figure is counted or measured.
+4. **Silence is not criticism.** "Nobody has discussed this" never looks like criticism.
+5. **Config in versioned YAML, not code** (`contract/`).
+
+The full set is in `CLAUDE.md`.
 
 ## Layout
 
 ```
-contract/     shared. the interface between two engineers. changes go via PR
-collect/      Engineer 1 - registry, harvest, assemble, triage, ops
-judge/        Engineer 2 - extract, vet, curate, publish, answer path
-fixtures/     hand-written cells, golden sets, shared test threads
-docs/         the specification
-```
-
-Two engineers work this repo in parallel. The data crosses the lane boundary
-exactly once, in one direction:
-
-```
-collect/  ---->  document + thread_context  ---->  judge/
+collect/     registry, harvest, assemble, triage
+judge/       screen, classify, verify, board, blogs, the API
+web/         the React + Vite frontend
+contract/    versioned config, schema and migrations
+scripts/     operational scripts
+tests/       the test suite
+docs/        design notes and measurements
 ```
 
 ## Getting started
 
 ```bash
-cp .env.example .env          # then fill in the credentials below
 pip install -e ".[dev]"
-psql "$DATABASE_URL" -f contract/tables.sql
+cp .env.example .env              # see the comments in it for what each value unlocks
+python -m collect.cli db migrate  # needs DATABASE_URL
+
+python run-backend.py --write     # or --staging for read-only
+cd web && npm install && npm run dev
 ```
 
-**Credentials needed:**
+Tests: `pytest -q`. The Postgres-backed tests need `TEST_DATABASE_URL`.
 
-| | Setup | Limit |
-|---|---|---|
-| GitHub | Personal access token - five minutes | 30 search req/min |
-| Reddit | Register a script app - client id + secret, ~15 min | 429 at 32 rapid calls; 25/min in use, allowance unread |
-| Blogs | Nothing. RSS and sitemaps | be polite: ~1 req/sec |
+## Documents
 
-**Before writing any other code:** finish `contract/seed_models.yaml`. Nine
-models are filled in with real identifiers and aliases; every price, context
-window and date is marked `# VERIFY` and must be read off the provider page,
-with the URL recorded. Slot 10 is empty on purpose - it needs a model released
-in the last 30 days, which only you can know. The checklist is at the bottom
-of that file.
-
-## The five rules
-
-1. **No claim without a verbatim quote**, verified in code by exact substring
-   match. No quote, no claim.
-2. **Exactly two stages call a language model** - `judge/extract/` and
-   `judge/ask/`. An LLM may propose; it may never decide.
-3. **No synthesised number reaches a page.** Every figure shown is counted or
-   measured. Consensus is a phrase, never a score.
-4. **Silence is not criticism.** *"Nobody has discussed this"* must never look
-   like *"engineers report problems"*.
-5. **Config in versioned YAML, not code.**
-
-Full context in `CLAUDE.md`.
-
-
-# sign in credentials
-demo@modelboard.dev
-modelboard-demo
-
-# start backend 
-& "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" run-backend.py --write
-
-py -3.12 run-backend.py --write
-
-# start frontend
-cd web
-npm run dev
-
-demo@modelboard.dev
-modelboard-demo
-
+| | |
+|---|---|
+| `CLAUDE.md` | The rules and working conventions |
+| `BUILD-PLAN.md` | The original plan and requirements |
+| `BUILD-PLAN-UPDATES.md` | How each requirement stands today |
+| `docs/logic-and-workflow.md` | The pipeline design |

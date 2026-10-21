@@ -1,0 +1,12 @@
+
+all sources:
+  before  names {'capability': 737, 'best_for': 341, 'metric': 455}
+          132 results at 5+ voices across 31 models; by section {'metric': 38, 'capability': 66, 'best_for': 28}; job+capability bands {'20+': 6, '5-9': 61, '10-19': 27}
+  after   names {'capability': 162, 'best_for': 75, 'metric': 382}
+          143 results at 5+ voices across 32 models; by section {'metric': 38, 'capability': 76, 'best_for': 29}; job+capability bands {'20+': 7, '5-9': 70, '10-19': 28}
+
+public:
+  before  names {'capability': 500, 'best_for': 227, 'metric': 362}
+          66 results at 5+ voices across 26 models; by section {'capability': 28, 'best_for': 15, 'metric': 23}; job+capability bands {'5-9': 39, '10-19': 4}
+  after   names {'capability': 148, 'best_for': 69, 'metric': 309}
+          68 results at 5+ voices across 26 models; by section {'capability': 30, 'best_for': 15, 'metric': 23}; job+capability bands {'5-9': 41, '10-19': 4}

@@ -1,0 +1,437 @@
+{
+ "slug": "field-guide-concept-context-engineering",
+ "status": "draft",
+ "tag": "Field guide",
+ "feat": false,
+ "title": "Context Engineering Starts With the Requirement Your Agent Never Saw",
+ "dek": "A coding agent can pass every local test and still break a customer, because the rule it needed lived somewhere it never looked. Here is how to deliver that rule on purpose.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is context engineering? Deciding which facts reach an agent, from which authoritative source, at which version, and what it does when one is missing. Start by tracing one correction your reviewers keep making.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+VGhlIHJlcXVpcmVtZW50IHRoYXQgbmV2ZXIgcmVhY2hlZCB0aGUgYWdlbnQ8L3RpdGxlPgogIDxkZXNjPlRvcCByb3c6IGEgY29tcGF0aWJpbGl0eSBydWxlIHNpdHMgaW4gYSBtaWdyYXRpb24gcGxhbiB0aGUgYWdlbnQgbmV2ZXIgbG9hZHMsIHNvIHRoZSBwYXRjaCBkZWxldGVzIGEgZmllbGQgYW4gb2xkIGNsaWVudCBuZWVkcy4gQm90dG9tIHJvdzogYSBjb250ZXh0IGNvbnRyYWN0IGNhcnJpZXMgdGhlIHJ1bGUgaW50byB0aGUgdGFzayBhbmQgYSBjb250cmFjdCB0ZXN0IGVuZm9yY2VzIGl0LjwvZGVzYz4KICA8ZGVmcz4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI5IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIj5Db250ZXh0IGVuZ2luZWVyaW5nOiBjYXJyeSB0aGUgcnVsZSB0byB0aGUgdGFzazwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA4IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+VGhlIGZhY3QgZXhpc3RlZC4gTm90aGluZyBkZWxpdmVyZWQgaXQsIGFuZCBub3RoaW5nIGVuZm9yY2VkIGl0LjwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjE3MCIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPldpdGhvdXQgYSBjb250cmFjdDwvdGV4dD4KICA8cmVjdCB4PSI2MCIgeT0iMTkwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjE4NSIgeT0iMjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+TWlncmF0aW9uIHBsYW48L3RleHQ+CiAgPHRleHQgeD0iMTg1IiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5vbGQgY2xpZW50IG5lZWRzIHRoZSBmaWVsZDwvdGV4dD4KICA8bGluZSB4MT0iMzEwIiB5MT0iMjQwIiB4Mj0iNDI1IiB5Mj0iMjQwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iOCA4Ii8+CiAgPHRleHQgeD0iMzY3IiB5PSIyMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3IiBmb250LXdlaWdodD0iNzAwIj5uZXZlciBsb2FkZWQ8L3RleHQ+CiAgPHJlY3QgeD0iNDMwIiB5PSIxOTAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTAwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNTU1IiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5BZ2VudCBjb250ZXh0PC90ZXh0PgogIDx0ZXh0IHg9IjU1NSIgeT0iMjYyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+Y29kZSBvbmx5LCBubyBwb2xpY3k8L3RleHQ+CiAgPGxpbmUgeDE9IjY4MCIgeTE9IjI0MCIgeDI9Ijc1NSIgeTI9IjI0MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxyZWN0IHg9Ijc2MCIgeT0iMTkwIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijk1MCIgeT0iMjMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+UGF0Y2ggZGVsZXRlcyB0aGUgZmllbGQ8L3RleHQ+CiAgPHRleHQgeD0iOTUwIiB5PSIyNjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZjdiNzIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5sb2NhbCB0ZXN0cyBwYXNzLCBvbGQgY2xpZW50IGJyZWFrczwvdGV4dD4KCiAgPHRleHQgeD0iNjAiIHk9IjM4MCIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPldpdGggYSBjb250ZXh0IGNvbnRyYWN0PC90ZXh0PgogIDxyZWN0IHg9IjYwIiB5PSI0MDAiIHdpZHRoPSIyNTAiIGhlaWdodD0iMTAwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iMTg1IiB5PSI0NDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5DYW5vbmljYWwgcG9saWN5PC90ZXh0PgogIDx0ZXh0IHg9IjE4NSIgeT0iNDcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+b25lIG93bmVyLCBvbmUgdmVyc2lvbjwvdGV4dD4KICA8bGluZSB4MT0iMzEwIiB5MT0iNDUwIiB4Mj0iNDI1IiB5Mj0iNDUwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnJnKSIvPgogIDxyZWN0IHg9IjQzMCIgeT0iNDAwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjU1NSIgeT0iNDQyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMSIgZm9udC13ZWlnaHQ9IjcwMCI+VGFzayBwYWNrZXQ8L3RleHQ+CiAgPHRleHQgeD0iNTU1IiB5PSI0NzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5ydWxlIGxvYWRlZCBiZWZvcmUgcGxhbm5pbmc8L3RleHQ+CiAgPGxpbmUgeDE9IjY4MCIgeTE9IjQ1MCIgeDI9Ijc1NSIgeTI9IjQ1MCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyZykiLz4KICA8cmVjdCB4PSI3NjAiIHk9IjQwMCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIxMDAiIHJ4PSIxNCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5NTAiIHk9IjQ0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPkNvbnRyYWN0IHRlc3QgZ2F0ZXMgcmVtb3ZhbDwvdGV4dD4KICA8dGV4dCB4PSI5NTAiIHk9IjQ3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnVua25vd24gc3VwcG9ydDogYXNrIHRoZSBvd25lcjwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjU0NSIgd2lkdGg9IjEwODAiIGhlaWdodD0iNTAiIHJ4PSIxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPHRleHQgeD0iNjAwIiB5PSI1NzciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5SZWFjaGFibGUgaXMgbm90IGxvYWRlZDogYSBmYWN0IGNvdW50cyBvbmx5IG9uY2UgaXQgaXMgaW4gdGhlIHdpbmRvdzwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "Two paths: a rule stuck in a migration plan lets a patch break an old client; a contract carries it to a gating test.",
+  "caption": "The compatibility rule existed both times; only the contract delivered it and enforced it.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is context engineering? A field guide to deciding which facts reach a coding agent, from which source, and what happens when one is missing.",
+ "keywords": [
+  "what is context engineering",
+  "context engineering",
+  "context engineering for coding agents",
+  "context contract",
+  "AGENTS.md instruction files",
+  "agent context management"
+ ],
+ "kicker": "Field guide",
+ "tags": [
+  "context engineering",
+  "Field guide"
+ ],
+ "read": 8,
+ "decisions": [
+  "Which facts each recurring workflow must receive, and from which canonical source",
+  "What the agent does when a required input is missing or unclear",
+  "Which context to preload and which to fetch as the task narrows",
+  "Who owns each piece of guidance and reviews it when the workflow changes"
+ ],
+ "layout": "fieldguide",
+ "arrangement": "a",
+ "special": {
+  "type": "checklist",
+  "title": "Before you ship",
+  "items": [
+   {
+    "check": "Pick one review correction that keeps recurring and trace it to its authoritative source.",
+    "why": "Catches context work aimed at a problem nobody has measured."
+   },
+   {
+    "check": "Write down what the agent does when each required input is missing.",
+    "why": "Stops the agent filling the gap from its own recollection."
+   },
+   {
+    "check": "Link agent files to canonical policies instead of pasting copies.",
+    "why": "Copies drift apart and the agent reads the stale one."
+   },
+   {
+    "check": "Return source identity and version with every retrieved result.",
+    "why": "A high relevance score can carry an outdated or unauthorised document."
+   },
+   {
+    "check": "Back every hard constraint with a test or a permission the environment enforces.",
+    "why": "A written instruction cannot hold a boundary by itself."
+   },
+   {
+    "check": "Confirm instructions inside retrieved documents cannot widen tool permissions.",
+    "why": "Catches injected text acting as a command."
+   },
+   {
+    "check": "Price each accepted change with the cost of every rejected attempt included.",
+    "why": "Cheap rejected patches otherwise make a workflow look efficient."
+   },
+   {
+    "check": "Confirm the working tree matches the handoff note before an agent resumes.",
+    "why": "Catches a resumed run acting on stale state."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Trace the missing fact before you add more text",
+    "num": "01",
+    "id": "trace-the-missing-fact-before-you-add-more-text"
+   }
+  ],
+  [
+   "p",
+   "A coding agent removes a response field that looks unused. Local tests pass and the diff is tiny. Then an older mobile client breaks, because it still reads that field. Its support promise sat in a separate migration plan the agent never opened. This is the classic context failure. The fact existed, and nothing carried it to the task [1]."
+  ],
+  [
+   "p",
+   "The engineering post that tells this story finds two gaps in it. The workflow never handed over the compatibility requirement, and no test checked it. A longer prompt might stop the next slip. Context engineering asks something harder. How does every task that needs this rule receive it, at the version that applies, with a plan for missing evidence [1]?"
+  ],
+  [
+   "p",
+   "Before you add anything, work out which gap you hit. The same post sorts failures into kinds, each with its own repair. A rule nobody published needs an authoritative home. One that exists but went unfound needs a better discovery path. Stale guidance needs scope and versioning, and clashing sources need an owner to rule. An agent that grasped the rule and still broke it has a verification problem [1]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Each kind of context failure points to a different repair.",
+    "columns": [
+     "What went wrong",
+     "Where the repair goes"
+    ],
+    "rows": [
+     [
+      "The rule was never written anywhere the agent can reach",
+      "Publish it in one authoritative place"
+     ],
+     [
+      "It exists, but the agent never found it",
+      "A better task reference or discovery path"
+     ],
+     [
+      "The guidance belongs to another release",
+      "Record its scope and fetch the version that applies"
+     ],
+     [
+      "Two valid sources disagree",
+      "The responsible owner rules on the conflict"
+     ],
+     [
+      "The agent knew the rule and still broke it",
+      "Reasoning, tooling and verification"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Give each workflow a context contract",
+    "num": "02",
+    "id": "give-each-workflow-a-context-contract"
+   }
+  ],
+  [
+   "p",
+   "The fix proposed for the API case is a context contract. Think of it as a short record of what one workflow needs, where each input lives, and what happens when an input is absent. Its author calls it a working framework, not an industry standard. The record covers authority, scope, version, ownership, access and verification. That list is short on purpose [1]."
+  ],
+  [
+   "p",
+   "For a public field removal, authority is the approved compatibility policy. Scope names the services and mobile releases it covers. Version ties the work to a commit and a migration decision. The API owner settles doubt alongside the mobile owner, and consumer contract tests decide when removal may proceed. Notice what is absent. Nothing in it says to write a better prompt [1]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Copying the same policy into multiple agent files creates more places that can diverge.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "The sharpest clause is about doubt. If nobody can establish which client versions are supported, the task logs that and asks the owner before deleting anything. If a source is down, the workflow names the blocked decision and carries on with safe work. It must never patch the hole with the agent's own recollection. We think this clause earns the contract its keep [1]."
+  ],
+  [
+   "code",
+   {
+    "label": "An illustrative context contract for removing a public API field",
+    "language": "yaml",
+    "source": "workflow: public-api-field-removal\nauthority:\n  source: compatibility-policy   # link to it, never paste a copy\n  governs: removing or renaming response fields\nscope: [public-api, supported-mobile-releases]\nversion:\n  code: checked-out commit\n  decision: current migration record\nowner:\n  primary: api-owner\n  consult: mobile-owner\naccess: approved repo and docs search\nverify:\n  - consumer contract suite\non_missing:\n  supported_clients_unknown: stop, ask api-owner\n  source_unavailable: name the blocked step, continue safe work"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Sort context by how long it stays true",
+    "num": "03",
+    "id": "sort-context-by-how-long-it-stays-true"
+   }
+  ],
+  [
+   "p",
+   "The same post sorts context by lifespan into session state, task evidence and durable guidance. Each one goes stale on its own schedule. Durable guidance holds recurring, non-obvious constraints, kept beside the code they govern, with an owner who reviews them. Its sample rule tells the agent to read the policy and run the contract suite before dropping any public field. That beats a directory listing [1]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+S2luZHMgb2YgY29udGV4dCwgc29ydGVkIGJ5IGhvdyBsb25nIHRoZXkgc3RheSB0cnVlPC90aXRsZT4KICA8ZGVzYz5EdXJhYmxlIGd1aWRhbmNlIGxhc3RzIGFjcm9zcyBtYW55IHRhc2tzIGFuZCBzaXRzIG5lYXIgdGhlIGNvZGU7IHRhc2sgZXZpZGVuY2UgbGFzdHMgZm9yIG9uZSBkZWNpc2lvbjsgc2Vzc2lvbiBzdGF0ZSBsYXN0cyB1bnRpbCB0aGUgbmV4dCBoYW5kb2ZmIGFuZCBtdXN0IGJlIGNoZWNrZWQgYmVmb3JlIHJlc3VtaW5nLjwvZGVzYz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIj5Tb3J0IGNvbnRleHQgYnkgaG93IGxvbmcgaXQgc3RheXMgdHJ1ZTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA1IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+RWFjaCBraW5kIGdvZXMgc3RhbGUgZm9yIGl0cyBvd24gcmVhc29uLCBzbyBlYWNoIGdldHMgaXRzIG93biBvd25lcjwvdGV4dD4KCiAgPGxpbmUgeDE9IjYwIiB5MT0iNTIwIiB4Mj0iMTE0MCIgeTI9IjUyMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI2MCIgeT0iNTU1IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+c2hvcnRlciBsaWZlPC90ZXh0PgogIDx0ZXh0IHg9IjExNDAiIHk9IjU1NSIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmxvbmdlciBsaWZlPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMzgwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjEyMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjIyMCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZm9udC13ZWlnaHQ9IjcwMCI+U2Vzc2lvbiBzdGF0ZTwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjQ1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmZhaWx1cmVzIHNlZW4sIGNoZWNrcyBydW4sIG5leHQgc3RlcDwvdGV4dD4KICA8dGV4dCB4PSIyMjAiIHk9IjQ3OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnJlLWNoZWNrIHRoZSB0cmVlIGJlZm9yZSByZXN1bWluZzwvdGV4dD4KCiAgPHJlY3QgeD0iNDQwIiB5PSIyODAiIHdpZHRoPSIzMjAiIGhlaWdodD0iMTIwIiByeD0iMTQiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjAwIiB5PSIzMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIzIiBmb250LXdlaWdodD0iNzAwIj5UYXNrIGV2aWRlbmNlPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMzUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+cmVxdWVzdCwgcmV2aXNpb24sIHBvbGljeSwgY2hlY2tzPC90ZXh0PgogIDx0ZXh0IHg9IjYwMCIgeT0iMzc4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTc4YmZhIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+YnVpbHQgZnJlc2ggZm9yIGVhY2ggZGVjaXNpb248L3RleHQ+CgogIDxyZWN0IHg9IjgyMCIgeT0iMTYwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjEyMCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9Ijk4MCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMyIgZm9udC13ZWlnaHQ9IjcwMCI+RHVyYWJsZSBndWlkYW5jZTwvdGV4dD4KICA8dGV4dCB4PSI5ODAiIHk9IjIzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnJlY3VycmluZyBydWxlcyBuZWFyIHRoZSBjb2RlPC90ZXh0PgogIDx0ZXh0IHg9Ijk4MCIgeT0iMjU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+b3duZXIgcmV2aWV3cyBpdCBvbiBjaGFuZ2U8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Session state, task evidence and durable guidance placed on a line from shorter to longer life.",
+    "caption": "Each kind of context goes stale for its own reason, so each needs its own owner and refresh.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Task evidence is the packet for one decision. For the field removal it holds the request, acceptance criteria, checked-out revision, policy, proof of supported clients and verification commands. Here is the subtle part. The agent must not quietly swap the goal from deleting the field to keeping it. An open, justified deferral can be the right result [1]."
+  ],
+  [
+   "p",
+   "Session state is the handoff between runs. It should record exact failures, the checks already run, changed files, repository state, open questions and the next step. Keep observations apart from verdicts. A failing legacy test is a fact, but calling that test obsolete needs evidence. Before an agent resumes, confirm the working tree still matches the note [1]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Load constraints early and fetch details late",
+    "num": "04",
+    "id": "load-constraints-early-and-fetch-details-late"
+   }
+  ],
+  [
+   "p",
+   "Context lives in two places, and the split sets your bill. A recent arXiv survey separates compute-active memory, which takes part in the model's computation, from compute-inactive memory, which sits outside it. On the active side sits the KV cache, the stored keys and values for every token the model has read. Docs, indexes and notes sit on the inactive side. They cost little until loaded [2]."
+  ],
+  [
+   "p",
+   "Moving a fact between the sides is a named operation. The survey lists eviction, recall, offloading, consolidation, writing, forgetting, materialization and retrieval-and-injection, and prices them in one budgeted cost account. Its core claim fits the API story well. The hard part, it argues, is picking what enters expensive inference, at what moment and in what shape. Shrinking the volume is the easy half [2]."
+  ],
+  [
+   "p",
+   "So time your loading. The contract post says to preload the constraints a plan needs and to fetch implementation detail as the task narrows. Plain text search works for symbol names and error strings. Semantic retrieval finds related ideas phrased differently, yet a high relevance score grants no authority. Return every result with its source and version or fetch time, and check access before the agent sees it [1]."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative context assembly: preload rules, fetch evidence, block on a missing input",
+    "language": "python",
+    "source": "def build_context(task, budget):\n    ctx = [durable_rules(task.service)]      # needed before planning\n    ctx.append(task_packet(task))            # request, revision, policy\n    for doc in search(task.symbols):         # fetched as the task narrows\n        if not allowed(task.agent, doc):\n            continue                         # access checked first\n        ctx.append(doc.with_source_and_version())\n    gaps = task.required_inputs - covered(ctx)\n    if gaps:\n        return blocked(task, gaps, ask=task.owner)  # never guess\n    return trim_to(ctx, budget)"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "One fact's path from storage outside the model into the KV cache and back out.",
+    "steps": [
+     "Write the fact to storage outside the model",
+     "Retrieve it once the task narrows to that area",
+     "Inject it into the prompt with source and version",
+     "The model reads it; its keys and values join the cache",
+     "Evict or offload cached state when the budget runs short",
+     "Consolidate or forget what no later step will need"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Decide who edits the window",
+    "num": "05",
+    "id": "decide-who-edits-the-window"
+   }
+  ],
+  [
+   "p",
+   "Today a harness usually curates context, meaning the software around the model picks what it sees. A paper on Context Language Models moves that job into the model. It treats the context as a file and lets the model rewrite that file freely, so it learns what to keep. In a team of agents, each agent's context becomes its own file [3]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+Q29udGV4dCBMYW5ndWFnZSBNb2RlbHM6IGNvbXB1dGUgc2F2ZWQgYWdhaW5zdCBwcmlvciBjb250ZXh0IG1hbmFnZW1lbnQ8L3RpdGxlPgogIDxkZXNjPlplcm8tc2hvdCBDb250ZXh0IExhbmd1YWdlIE1vZGVscyB1c2VkIDIxLjUlIGZld2VyIEZMT1BzIG9uIEJyb3dzZUNvbXAtUGx1cyB3aXRoIDExLjQlIGhpZ2hlciBhY2N1cmFjeSwgYW5kIDU5JSBmZXdlciBGTE9QcyBvbiAxMi1ob3VyIEVkZ2VCZW5jaCB3aXRoIDUlIGhpZ2hlciBzY29yZXMuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPkEgbW9kZWwgdGhhdCBlZGl0cyBpdHMgb3duIGNvbnRleHQgc3BlbnQgbGVzczwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA1IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+UGVyY2VudCBmZXdlciBGTE9QcyB0aGFuIGxlYWRpbmcgY29udGV4dC1tYW5hZ2VtZW50IHN0cmF0ZWdpZXMsIHplcm8tc2hvdDwvdGV4dD4KCiAgPGxpbmUgeDE9IjIwMCIgeTE9IjQ3MCIgeDI9IjEwMDAiIHkyPSI0NzAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMzAwIiB5PSIzODQiIHdpZHRoPSIyMDAiIGhlaWdodD0iODYiIGZpbGw9IiM3YWEyZmYiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjM2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiPjIxLjUlIGZld2VyPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+QnJvd3NlQ29tcC1QbHVzPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+MTEuNCUgaGlnaGVyIGFjY3VyYWN5PC90ZXh0PgoKICA8cmVjdCB4PSI3MDAiIHk9IjIzNCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMzYiIGZpbGw9IiNhNzhiZmEiLz4KICA8dGV4dCB4PSI4MDAiIHk9IjIxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiPjU5JSBmZXdlcjwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjUwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPjEyLWhvdXIgRWRnZUJlbmNoPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iNTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+NSUgaGlnaGVyIHNjb3JlczwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Bars: 21.5% fewer FLOPs on BrowseComp-Plus and 59% fewer on 12-hour EdgeBench, with higher scores on both.",
+    "caption": "Letting the model edit its own context cut compute in the paper's zero-shot runs.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The reported gains are large. Built zero-shot from existing models, the approach beat leading context-management strategies. On BrowseComp-Plus it reached 11.4% higher accuracy and spent 21.5% fewer FLOPs, the count of arithmetic operations a run costs. On a 12-hour EdgeBench task it scored 5% higher and used 59% fewer FLOPs. An online RL method also lifted Qwen3.5-9B by 47.6% on BrowseComp-Plus [3]."
+  ],
+  [
+   "p",
+   "We find this the most interesting result here, and the least settled. These figures come from the abstract, which does not spell out the setups behind them. A model that curates its own file also decides authority by itself. The compatibility rule from the API story still needs an owner, a version and a test. Treat self-managed context as a smart cache policy. It does not replace the contract [3, 1]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Keep enforcement out of the prompt",
+    "num": "06",
+    "id": "keep-enforcement-out-of-the-prompt"
+   }
+  ],
+  [
+   "p",
+   "A rule written in a prompt is a request. The contract post moves every constraint that can be enforced into tests and technical controls. Contract tests exercise the response shape that clients rely on. Dependency checks hold module boundaries, and the execution environment enforces tool permissions. In the API case, a consumer contract test would have stopped the deletion cold [1]."
+  ],
+  [
+   "p",
+   "Retrieved content needs the same caution. The post treats documents and tickets as evidence with a defined authority. Instructions buried inside them must not widen permissions or approve unrelated actions. That is prompt injection, where text the agent reads tries to act as a command. A written instruction cannot hold that line alone, the post warns. We agree, and we would review it first [1]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Treat instruction files as an experiment",
+    "num": "07",
+    "id": "treat-instruction-files-as-an-experiment"
+   }
+  ],
+  [
+   "p",
+   "A repository instruction file, such as AGENTS.md, is the obvious first move. The evidence on it is thin. One arXiv evaluation found that automatically generated files gave no statistically significant gain in resolved tasks. They also raised average inference costs by about 20–23%. We read that as a warning about volume. More text cost money and bought nothing anyone could measure [1]."
+  ],
+  [
+   "p",
+   "A second arXiv study spanned 10 repositories and 124 pull-request tasks, with one agent configuration. Instruction files lowered median runtime and output tokens there. Correctness sat outside its scope; a manual pass over 50 sampled tasks only screened for clearly incomplete or irrelevant output. Faster is not the same as cheaper per accepted change. Neither study tests the contract idea itself [1]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Count all attempts when calculating cost per accepted outcome.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "So measure what you ship. The contract post suggests one recurring workflow, a baseline on representative tasks, then one focused change. Hold starting states, permissions and model settings steady, and record the model version and harness. Track correct completions, violations, reviewer corrections, elapsed time, model cost and upkeep effort. Then fold the cost of every rejected attempt into each accepted change [1]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Skip the contract when nothing about the task repeats",
+    "num": "08",
+    "id": "skip-the-contract-when-nothing-about-the-task-repeats"
+   }
+  ],
+  [
+   "p",
+   "Context engineering pays off when the same knowledge must reach many tasks. For a one-off script, a throwaway prototype or a question that fits in one prompt, contracts, indexes and owners are pure overhead. The contract post itself says to expand only when the observed gain justifies the ongoing work. If nothing repeats, nothing can be gained. Write the prompt and move on [1]."
+  ],
+  [
+   "p",
+   "Skip the machinery, too, when a test can carry the constraint alone. A consumer contract test on the response shape needs no retrieval and no memory. And do not buy a bigger window as a shortcut. The survey argues that longer windows leave the compute, storage and selection pressures in place. Build the plumbing only once a correction keeps coming back in review [1, 2]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is context engineering in AI?"
+  ],
+  [
+   "p",
+   "Context engineering is the work of choosing, supplying and maintaining the information an AI agent uses as a task moves along. It spans the prompt, repository files, retrieval, memory and handoff notes. The key point is that data an agent could reach is not the same as data it has actually loaded. So the job includes deciding what enters the window, and when [1]."
+  ],
+  [
+   "h3",
+   "Is context engineering the same as prompt engineering?"
+  ],
+  [
+   "p",
+   "No. Prompt engineering shapes the instructions, and context engineering governs every input around them. A prompt states the task; repository context, retrieval and memory supply the rest. Context engineering also asks who owns each fact, which version applies and what the agent does when a fact is missing. A better prompt can fix one run, and a contract fixes the workflow [1]."
+  ],
+  [
+   "h3",
+   "Does a bigger context window replace context engineering?"
+  ],
+  [
+   "p",
+   "No. A bigger window adds capacity, but authority, relevance and freshness still need decisions. A recent survey argues that growing the window leaves the compute, storage and selection pressures of inference in place. Every token you load also takes room in the KV cache. The real choice is which facts deserve a place, and at what moment [1, 2]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "mjodeh",
+   "what": "Context Engineering Is a Leadership Responsibility",
+   "url": "https://dev.to/mjodeh/context-engineering-is-a-leadership-responsibility-2n3e",
+   "posted": "2026-10-18"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "From Long Context to Selective Memory:A Survey of Memory-Centric Compression for Large Language Models",
+   "url": "https://arxiv.org/abs/2610.21165v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Context Language Models",
+   "url": "https://huggingface.co/papers/2609.37725",
+   "posted": "2026-09-29"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T02:04:49+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "devto:4871232",
+   "arxiv:2610.21165v1",
+   "hfpapers:2609.37725"
+  ],
+  "platforms": {
+   "dev.to": 1,
+   "arXiv": 1,
+   "Hugging Face": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-guide:concept/context-engineering",
+  "format": "field-guide",
+  "reviewed_by": null
+ }
+}

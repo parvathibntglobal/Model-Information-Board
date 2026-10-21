@@ -45,6 +45,17 @@ These are the rules a helpful refactor will otherwise quietly violate.
 2. **Exactly two stages may call a language model**: `judge/extract/` and
    `judge/ask/` (task understanding only). No model participates in counting,
    weighting, gating, ranking, filtering or phrase assembly.
+
+   **A third caller, recorded 2026-10-06 (#508, Parvathi; agreed by Anooj the
+   same day):** the blog generator, `generate_sample_blogs.py`, writes DRAFTS a
+   person must approve in Admin -> Blogs before any reader sees them. It
+   proposes prose only; code checks every quote and figure against its sources
+   and refuses the draft otherwise, and it decides nothing the board computes.
+   Every call it makes is a `spend_ledger` row with stage `blog` (since
+   2026-10-07), at OpenRouter's reported cost, and it is OUTSIDE the daily cap:
+   `EXTRACTION_DAILY_BUDGET_USD` covers extraction and the Ask box only, so a
+   blog run never spends the extraction budget. Admin -> API usage shows it by
+   month; each Admin-started run is also summarised in `blog_generation_run`.
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 
@@ -89,11 +100,13 @@ These are the rules a helpful refactor will otherwise quietly violate.
 3. **No synthesised number reaches a page.** Every figure displayed is either
    *counted* (people, quotes, days) or *measured* (price, tokens). Consensus is
    a phrase assembled from counts, never a score. There is no 0-100 capability
-   figure anywhere in the schema or the UI.
+   figure anywhere in the schema or the UI, **except the one category score
+   permitted by the second exception below**, and only under its conditions.
 
    **An unshown score may ORDER a list, when every figure the list displays is
-   a count.** This is the one place a computed comparison is allowed, and the
-   conditions are what keep it from being the thing this rule forbids:
+   a count.** This is the first of the two places a computed comparison is
+   allowed, and the conditions are what keep it from being the thing this rule
+   forbids:
 
    1. **The score is in no payload field.** A score in the API is one render
       away from a page, so it is computed where the list is sorted and
@@ -125,6 +138,47 @@ These are the rules a helpful refactor will otherwise quietly violate.
    Written into the rule rather than left in a PR because the next reader of
    `board_entries.py` will find a score there and, reading only the first
    paragraph, report it as a violation - correctly.
+
+   **The second exception: ONE visible score, the category score on Compare.**
+   Asked for by anooj on 2026-10-19: a comparison that listed every job,
+   capability and metric with its counts was too long to compare on, and a
+   reader wanted one figure per area. This permits that figure and nothing
+   else. The first exception's condition 1 does not apply to it - this score
+   is in a payload and on screen by design - so its conditions are stricter
+   elsewhere, because a number on screen is read where an order is only felt:
+
+   1. **One formula, in `contract/category_scores.yaml`**: 100 × the Wilson
+      lower bound of positive reports over reports that took a side, counted
+      in reports exactly as `_split` counts them, at the same `wilson_z` that
+      orders the board. No second formula, no per-page tuning, no default in
+      code (rule 12).
+   2. **The counts it was computed from sit beside it, always** - positive,
+      negative and neutral - so a reader can check the figure against its
+      evidence on every row. A score shown without its counts is the breach.
+   3. **Below `min_sided_reports` there is no score, not a low one** (rule 6),
+      and "too few reports to score" renders distinctly from "no reports"
+      (rule 4).
+   4. **The page says in words what it is**: a summary of what engineers
+      reported on this board, read by the extractor, not a benchmark and not a
+      measurement of the model. And that it compares **models within a
+      category**: a model's scores across categories are not comparable,
+      because the categories differ in how their reports were filed (the
+      contract file measures this).
+   5. **Only the eight categories in the contract, only on Compare.** Not per
+      slug or per job, not on the board pages, not in the model picker, not as
+      a sort key elsewhere. A second visible score anywhere is a new amendment
+      to this rule, not an extension of this one.
+   6. **Metric polarity is not scored.** A metric row is shown as a report and
+      moves no score; the contract file says why and measures the difference.
+
+   Rule 2 still holds inside it: the extractor proposes each polarity label,
+   and code counts. No model sees, computes or adjusts the score.
+
+   The instance, from 2026-10-19: `judge/category_scores.py` computes it,
+   `/compare` returns it per model as `reported.categories` with the rule
+   under `category_method`, and `web/src/routes/Compare.jsx` (`CategoryScores`)
+   renders each score with its counts. `tests/test_category_scores.py` pins
+   the arithmetic and the conditions above that live in the markup.
 
 4. **Silence is not criticism.** "Nobody has discussed this" must render
    distinctly from "engineers report problems". Absence of evidence must never

@@ -9,7 +9,8 @@ TWO COMPLETE SURFACES WERE IN THE TREE AND COULD NOT BE REACHED, found by
                                    proposals had accumulated, all unruled.
 
     /admin/pipeline                a finished `PipelinePanel.jsx` that nothing
-                                   imported, over live counts: 348 models,
+                                   imported (route removed 2026-10-08),
+                                   over live counts: 348 models,
                                    18,241 documents, 6,244 threads.
 
 ⚠ NEITHER FAILED. No error, no empty page, no broken link — the code was
@@ -67,8 +68,23 @@ COMPONENTS = ROOT / "web" / "src" / "components"
 #: a rule like "anything ending in Panel" would have missed `ModelProposal`
 #: and silently excused the next orphan with a different suffix.
 NOT_ADMIN_PANELS = {
-    "AuraField", "Faq", "FluidCanvas", "Footer", "LiquidBar",
-    "ModelEvidence", "Nav", "OrbitHub", "Icons", "ui",
+    "AuraField", "BlogShowcase", "Faq", "FluidCanvas", "Footer", "Freshness", "Hero",
+    "ModelEvidence", "Nav", "OrbitHub", "SiteSearch", "Icons", "ui",
+    # The landing's three examples from Reports (2026-10-15): mounted by
+    # routes/Landing.jsx in the "LLM leaderboard alternative" panel.
+    "ReportExamples",
+    # The landing's tools as micro-apps (2026-10-15): mounted by
+    # routes/Landing.jsx in place of the Board's "browse by use case".
+    "ToolsShowcase",
+    # The landing's models and comparisons as tabbed decks (2026-10-15):
+    # mounted by routes/Landing.jsx, reading the published Models pages.
+    "ModelsShowcase",
+    # The not-found page (SEO item 7): mounted by App.jsx's catch-all route and
+    # by Board, Blogs and ModelDetail for a missing section, post or model.
+    "NotFound",
+    # Hover previews (2026-10-15): mounted once by App.jsx for the whole site,
+    # not a panel - it renders a card over any link to a model or a topic.
+    "HoverPreview",
 }
 
 

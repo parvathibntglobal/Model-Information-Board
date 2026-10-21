@@ -16,9 +16,10 @@ TWO EXCEPT CLAUSES, BOTH NAMED, AND THAT IS THE POINT
 
     PayloadTombstoned   a deletion we honoured. NFR-6: the quotes vanish and
                         the content hash remains. NOTHING IS BROKEN.
-    PayloadMissing      the ref points at nothing. A bug, and an urgent one -
+    PayloadMissing      the ref points at nothing HERE, with no tombstone -
                         either the store lost it or the row was written
-                        against a different store.
+                        against a different store. The store cannot tell
+                        which (#303), and the second is the common case.
 
 `except RawStoreError` catches both, and `except Exception` catches those plus
 everything else. Either one folds a deletion we performed on purpose into an
@@ -59,9 +60,11 @@ turn each write into a full read for a case that atomic writes already prevent;
 applies to reads. It is a sweep that calls `verify()` and tombstones or
 quarantines what fails.
 
-ONE SCOPING NOTE FOR THE ENUM MEMBER, because `get()` invites the mistake: its
-`PayloadMissing` log says "This is corruption or a bug, not a takedown". That
-message is about absence CAUSED by corruption, and absence is still `MISSING`.
+ONE SCOPING NOTE FOR THE ENUM MEMBER. `get()`'s `PayloadMissing` log used to say
+"This is corruption or a bug, not a takedown"; since #447 (#303) it says the
+blob is not readable on this machine and carries no tombstone, and that the
+store cannot tell a lost blob from one written elsewhere and never synced. Even
+absence CAUSED by corruption is still absence, so it is still `MISSING`.
 `CORRUPT` should mean present-and-wrong, or the two collapse again from the other
 direction.
 
@@ -157,9 +160,10 @@ class ReadOutcome(StrEnum):
     #: repairing. NOT an error, and the reason there are two except clauses.
     TOMBSTONED = "tombstoned"
 
-    #: The ref points at nothing, with no tombstone beside it. A bug: either
-    #: the store lost the payload or the row was written against a different
-    #: store. Both need investigating.
+    #: The ref points at nothing here, with no tombstone beside it: either the
+    #: store lost the payload or the row was written against a different store
+    #: (another machine's - the common case, #303). This outcome cannot say
+    #: which; `scripts/raw_store_census.py` says where the corpus is.
     MISSING = "missing"
 
     #: Something IS there and does not match what we recorded, so we cannot

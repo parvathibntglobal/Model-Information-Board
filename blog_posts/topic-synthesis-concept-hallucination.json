@@ -1,0 +1,492 @@
+{
+ "slug": "topic-synthesis-concept-hallucination",
+ "status": "draft",
+ "tag": "Topic synthesis",
+ "feat": false,
+ "title": "Hallucination Detectors Are Learning to Look Past the Words",
+ "dek": "A frozen proxy that reads attention, and a benchmark that compares how dialogues unfold: two new lines of work agree that judging the text alone misses the error.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "Why do LLMs hallucinate? They write plausible tokens and nothing checks support. The best new detectors look past the words: a probed 4B proxy beat larger zero-shot judges, and flow metrics beat semantic similarity.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgbGVucyBvdmVyIGEgbGluZSBvZiB3b3JkcyByZXZlYWxzIGF0dGVudGlvbiBhcmNzIGFuZCBhIGRpYWxvZ3VlIHBhdGggZm9ya2luZyBvZmYgdHJhY2s8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJsZW5zRmlsbCIgY3g9IjAuNSIgY3k9IjAuNDUiIHI9IjAuNiI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzFiMjIzMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwZjEzMWEiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjI4Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGNsaXBQYXRoIGlkPSJsZW5zIj4KICAgICAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzAwIiByPSIyMjUiLz4KICAgIDwvY2xpcFBhdGg+CiAgPC9kZWZzPgogIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KICA8Y2lyY2xlIGN4PSI2MDAiIGN5PSIzMDAiIHI9IjMwMCIgZmlsbD0idXJsKCNnbG93KSIvPgoKICA8IS0tIHN1cmZhY2U6IHdvcmRzIGFzIHBsYWluIHBpbGxzIC0tPgogIDxnIGZpbGw9IiMyYzM1NDQiPgogICAgPHJlY3QgeD0iMzAiIHk9IjI1OCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjI2IiByeD0iMTMiLz48cmVjdCB4PSIxMTIiIHk9IjI1OCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjI2IiByeD0iMTMiLz4KICAgIDxyZWN0IHg9IjE2OCIgeT0iMjU4IiB3aWR0aD0iOTIiIGhlaWdodD0iMjYiIHJ4PSIxMyIvPjxyZWN0IHg9IjI3MiIgeT0iMjU4IiB3aWR0aD0iNTYiIGhlaWdodD0iMjYiIHJ4PSIxMyIvPgogICAgPHJlY3QgeD0iMzQwIiB5PSIyNTgiIHdpZHRoPSI4MCIgaGVpZ2h0PSIyNiIgcng9IjEzIi8+PHJlY3QgeD0iNDMyIiB5PSIyNTgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIyNiIgcng9IjEzIi8+CiAgICA8cmVjdCB4PSI0OTIiIHk9IjI1OCIgd2lkdGg9Ijg2IiBoZWlnaHQ9IjI2IiByeD0iMTMiLz48cmVjdCB4PSI1OTAiIHk9IjI1OCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjI2IiByeD0iMTMiLz4KICAgIDxyZWN0IHg9IjY2MiIgeT0iMjU4IiB3aWR0aD0iNzQiIGhlaWdodD0iMjYiIHJ4PSIxMyIvPjxyZWN0IHg9Ijc0OCIgeT0iMjU4IiB3aWR0aD0iNTAiIGhlaWdodD0iMjYiIHJ4PSIxMyIvPgogICAgPHJlY3QgeD0iODEwIiB5PSIyNTgiIHdpZHRoPSI5NiIgaGVpZ2h0PSIyNiIgcng9IjEzIi8+PHJlY3QgeD0iOTE4IiB5PSIyNTgiIHdpZHRoPSI1OCIgaGVpZ2h0PSIyNiIgcng9IjEzIi8+CiAgICA8cmVjdCB4PSI5ODgiIHk9IjI1OCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjI2IiByeD0iMTMiLz48cmVjdCB4PSIxMDgwIiB5PSIyNTgiIHdpZHRoPSI5MCIgaGVpZ2h0PSIyNiIgcng9IjEzIi8+CiAgPC9nPgogIDxnIGZpbGw9IiMyYzM1NDQiIG9wYWNpdHk9IjAuNyI+CiAgICA8Y2lyY2xlIGN4PSI4MCIgY3k9IjQyMCIgcj0iMTAiLz48Y2lyY2xlIGN4PSIxODAiIGN5PSI0MjAiIHI9IjEwIi8+PGNpcmNsZSBjeD0iMjgwIiBjeT0iNDIwIiByPSIxMCIvPgogICAgPGNpcmNsZSBjeD0iOTIwIiBjeT0iNDIwIiByPSIxMCIvPjxjaXJjbGUgY3g9IjEwMjAiIGN5PSI0MjAiIHI9IjEwIi8+PGNpcmNsZSBjeD0iMTEyMCIgY3k9IjQyMCIgcj0iMTAiLz4KICA8L2c+CiAgPGxpbmUgeDE9IjgwIiB5MT0iNDIwIiB4Mj0iMjkwIiB5Mj0iNDIwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxsaW5lIHgxPSI5MTAiIHkxPSI0MjAiIHgyPSIxMTIwIiB5Mj0iNDIwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgoKICA8IS0tIGJlbmVhdGggdGhlIGxlbnMgLS0+CiAgPGcgY2xpcC1wYXRoPSJ1cmwoI2xlbnMpIj4KICAgIDxyZWN0IHg9IjM3MCIgeT0iNzAiIHdpZHRoPSI0NjAiIGhlaWdodD0iNDYwIiBmaWxsPSJ1cmwoI2xlbnNGaWxsKSIvPgogICAgPCEtLSB0b2tlbnM6IGNvbnRleHQgYmx1ZSwgcmVwbHkgdmlvbGV0IC0tPgogICAgPGc+CiAgICAgIDxyZWN0IHg9IjM0MCIgeT0iMjU4IiB3aWR0aD0iODAiIGhlaWdodD0iMjYiIHJ4PSIxMyIgZmlsbD0iIzdhYTJmZiIvPgogICAgICA8cmVjdCB4PSI0MzIiIHk9IjI1OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjI2IiByeD0iMTMiIGZpbGw9IiM3YWEyZmYiLz4KICAgICAgPHJlY3QgeD0iNDkyIiB5PSIyNTgiIHdpZHRoPSI4NiIgaGVpZ2h0PSIyNiIgcng9IjEzIiBmaWxsPSIjN2FhMmZmIi8+CiAgICAgIDxyZWN0IHg9IjU5MCIgeT0iMjU4IiB3aWR0aD0iNjAiIGhlaWdodD0iMjYiIHJ4PSIxMyIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC42Ii8+CiAgICAgIDxyZWN0IHg9IjY2MiIgeT0iMjU4IiB3aWR0aD0iNzQiIGhlaWdodD0iMjYiIHJ4PSIxMyIgZmlsbD0iI2E3OGJmYSIvPgogICAgICA8cmVjdCB4PSI3NDgiIHk9IjI1OCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjI2IiByeD0iMTMiIGZpbGw9IiNhNzhiZmEiLz4KICAgICAgPHJlY3QgeD0iODEwIiB5PSIyNTgiIHdpZHRoPSI5NiIgaGVpZ2h0PSIyNiIgcng9IjEzIiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8L2c+CiAgICA8IS0tIGF0dGVudGlvbiBhcmNzIGZyb20gYSByZXBseSB0b2tlbiBiYWNrIHRvIGNvbnRleHQgLS0+CiAgICA8ZyBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiPgogICAgICA8cGF0aCBkPSJNNzczIDI1NiBRNjQwIDkwIDUzNSAyNTYiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI3IiBvcGFjaXR5PSIwLjk1Ii8+CiAgICAgIDxwYXRoIGQ9Ik03NzMgMjU2IFE2MjAgMTMwIDQ1NiAyNTYiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0IiBvcGFjaXR5PSIwLjciLz4KICAgICAgPHBhdGggZD0iTTc3MyAyNTYgUTcwMCAxNzAgNjIwIDI1NiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIuNSIgb3BhY2l0eT0iMC41Ii8+CiAgICAgIDxwYXRoIGQ9Ik03NzMgMjU2IFE3MzUgMjAwIDY5OSAyNTYiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuNiIvPgogICAgPC9nPgogICAgPCEtLSBkaWFsb2d1ZSBwYXRoIHdpdGggYSBmb3JrIC0tPgogICAgPGxpbmUgeDE9IjM4MCIgeTE9IjQyMCIgeDI9Ijg0MCIgeTI9IjQyMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiLz4KICAgIDxnIGZpbGw9IiMzZWNmOGUiPgogICAgICA8Y2lyY2xlIGN4PSI0MjAiIGN5PSI0MjAiIHI9IjE0Ii8+PGNpcmNsZSBjeD0iNTAwIiBjeT0iNDIwIiByPSIxNCIvPjxjaXJjbGUgY3g9IjU4MCIgY3k9IjQyMCIgcj0iMTQiIG9wYWNpdHk9IjAuNTUiLz4KICAgICAgPGNpcmNsZSBjeD0iNjYwIiBjeT0iNDIwIiByPSIxNCIgb3BhY2l0eT0iMC41NSIvPjxjaXJjbGUgY3g9Ijc0MCIgY3k9IjQyMCIgcj0iMTQiIG9wYWNpdHk9IjAuNTUiLz4KICAgIDwvZz4KICAgIDxwYXRoIGQ9Ik01MDAgNDIwIEM1NDUgNDIwIDU2MCA0NzggNjEwIDQ4MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjUiLz4KICAgIDxjaXJjbGUgY3g9IjYyNiIgY3k9IjQ4MCIgcj0iMTgiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDxwYXRoIGQ9Ik02MTggNDcyIEw2MzQgNDg4IE02MzQgNDcyIEw2MTggNDg4IiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPC9nPgoKICA8IS0tIGxlbnMgcmltIGFuZCBoYW5kbGUgLS0+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzAwIiByPSIyMjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzAwIiByPSIyMzYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjUiLz4KICA8bGluZSB4MT0iNzYyIiB5MT0iNDYyIiB4Mj0iOTAwIiB5Mj0iNjAwIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMzAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxsaW5lIHgxPSI3NjIiIHkxPSI0NjIiIHgyPSI5MDAiIHkyPSI2MDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=",
+  "alt": "A magnifying lens over a row of word shapes reveals attention arcs and a dialogue path with a red fork.",
+  "caption": "Under the surface of the words sit the two signals the new detectors read: where attention went, and how the dialogue moved.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Why do LLMs hallucinate, and how do you catch it? New work on frozen proxy probes, attention statistics and procedural hallucination in agents.",
+ "keywords": [
+  "why do LLMs hallucinate",
+  "Hallucination and factuality",
+  "hallucination detection",
+  "procedural hallucination",
+  "proxy model probes",
+  "FlashAttention"
+ ],
+ "kicker": "Topic synthesis",
+ "tags": [
+  "hallucination",
+  "Topic synthesis"
+ ],
+ "read": 10,
+ "decisions": [
+  "Run a probed frozen proxy on every reply that has context to check against",
+  "Write the procedure down as conformant dialogues so flow metrics have a baseline",
+  "Fork clean transcripts at key steps to build matched eval pairs",
+  "Budget attention-statistic overhead by your typical input length",
+  "Probe a small model before you prompt it as a judge"
+ ],
+ "layout": "synthesis",
+ "arrangement": "a",
+ "special": {
+  "type": "glossary",
+  "title": "Terms in this piece",
+  "items": [
+   {
+    "term": "Hallucination",
+    "meaning": "Model output that its evidence, or the procedure it was meant to follow, does not support."
+   },
+   {
+    "term": "Procedural hallucination",
+    "meaning": "Fluent, plausible turns that deviate from a conversation's intended process, such as skipping a required step."
+   },
+   {
+    "term": "Conformant dialogue",
+    "meaning": "A conversation that follows the intended process step by step, used as the reference."
+   },
+   {
+    "term": "Proxy model",
+    "meaning": "A small frozen model that reads the context and another model's answer so a detector can judge support."
+   },
+   {
+    "term": "Probe",
+    "meaning": "A small classifier trained on a frozen model's internal signals to answer one narrow question."
+   },
+   {
+    "term": "Attention matrix",
+    "meaning": "The weights saying how much each token attends to every other token; its memory grows with the square of length."
+   },
+   {
+    "term": "FlashAttention",
+    "meaning": "A way of computing attention in tiles so the full attention matrix is never stored."
+   },
+   {
+    "term": "F1",
+    "meaning": "The harmonic mean of precision and recall, so a detector cannot score well by flagging everything."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~10 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A hallucination is a claim the evidence never made",
+    "num": "01",
+    "id": "a-hallucination-is-a-claim-the-evidence-never-made"
+   }
+  ],
+  [
+   "p",
+   "A hallucination is model output its evidence doesn't support: a fact nobody gave it, or a step its procedure never allowed. So why do LLMs hallucinate? A language model writes the most plausible next token, and nothing in that loop checks support. Fluency is what training rewards. Support is a separate property, and somebody has to measure it."
+  ],
+  [
+   "p",
+   "Picture an airline rebooking agent. Its procedure is fixed: verify the booking, read the fare rules, quote the change fee, then confirm the new flight. Its context holds the fare rules for this ticket. A customer asks to move a flight. The agent replies warmly, confirms the new seat and says there's no fee."
+  ],
+  [
+   "p",
+   "Look closer and it broke twice. The fare rules in its context say a change fee applies, so the reply contradicts its own evidence. It also confirmed the seat before quoting anything, so it skipped a step. Each sentence reads fine. Somebody skimming the transcript would probably pass it."
+  ],
+  [
+   "p",
+   "New arXiv work attacks this from two ends. One line trains small frozen models to check an answer against its context. The other, a benchmark called DialFork, measures whether a conversation followed its process. Our argument in this post is simple. Both detectors work because they stop judging the words and read something underneath."
+  ],
+  [
+   "h2",
+   {
+    "text": "Surface similarity scores the broken reply as a near match",
+    "num": "02",
+    "id": "surface-similarity-scores-the-broken-reply-as-a-near-match"
+   }
+  ],
+  [
+   "p",
+   "Start with the obvious detector. Embed the agent's reply and a reference reply, then compare them by cosine similarity, the angle between two embedding vectors. Our rebooking reply mentions the booking, the new flight and fees. A conformant reply, one that follows the process, mentions the same things. The vectors sit close, and the check passes."
+  ],
+  [
+   "p",
+   "The DialFork results push hard against that shortcut: FlowScore «significantly outperforms all baselines across seven encoders, showing that semantic similarity is no substitute for procedural similarity». An encoder is the model that turns text into embedding vectors. Swapping in any of those seven encoders never let the content baselines catch up. The weakness lives in the method."
+  ],
+  [
+   "p",
+   "Grounding errors fool similarity from another side. A reply that denies a fee and one that confirms it differ by a word or two. Their embeddings barely move. Similarity measures topic, and both replies share a topic. Support needs a reader that holds the claim against the evidence."
+  ],
+  [
+   "p",
+   "So we agree with the direction both lines of work take. Content similarity is the wrong instrument for either error. You need a detector that inspects how the answer was produced, or how the dialogue moved. The next sections take each in turn, starting with the fee."
+  ],
+  [
+   "h2",
+   {
+    "text": "A small frozen model can audit a bigger model's answer",
+    "num": "03",
+    "id": "a-small-frozen-model-can-audit-a-bigger-model-s-answer"
+   }
+  ],
+  [
+   "p",
+   "The grounding paper's premise is neat: «A compact frozen proxy model can detect such answers by reading the context and another model's response, even from a proprietary generator». The proxy never writes anything. It reads the fare rules and the agent's reply in one forward pass. A probe then decides supported or not."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPkEgZnJvemVuIHByb3h5IHJlYWRzIGNvbnRleHQgYW5kIHJlcGx5OyBhIHByb2JlIG9uIGl0cyBpbnRlcm5hbHMgZmxhZ3MgYW4gdW5zdXBwb3J0ZWQgYW5zd2VyPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAuMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImEiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIFoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYVYiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIFoiIGZpbGw9IiNhNzhiZmEiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MjAiIGZpbGw9InVybCgjYmcpIi8+CgogIDwhLS0gZ2VuZXJhdG9yIC0tPgogIDxyZWN0IHg9IjQwIiB5PSI2MCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSI5MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNyA2Ii8+CiAgPHRleHQgeD0iMTY1IiB5PSIxMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSI+Z2VuZXJhdG9yPC90ZXh0PgogIDx0ZXh0IHg9IjE2NSIgeT0iMTMyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPmFueSBtb2RlbCwgYW55IEFQSTwvdGV4dD4KICA8bGluZSB4MT0iMTY1IiB5MT0iMTUyIiB4Mj0iMTY1IiB5Mj0iMzcyIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgoKICA8IS0tIGNvbnRleHQgY2FyZCAtLT4KICA8cmVjdCB4PSIzMzAiIHk9IjYwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjIxMCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iNDU1IiB5PSIxMDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzdhYTJmZiI+Y29udGV4dDwvdGV4dD4KICA8dGV4dCB4PSI0NTUiIHk9IjEzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5mYXJlIHJ1bGVzPC90ZXh0PgogIDxnIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNiI+CiAgICA8bGluZSB4MT0iMzYwIiB5MT0iMTcwIiB4Mj0iNTUwIiB5Mj0iMTcwIi8+CiAgICA8bGluZSB4MT0iMzYwIiB5MT0iMjAwIiB4Mj0iNTIwIiB5Mj0iMjAwIi8+CiAgICA8bGluZSB4MT0iMzYwIiB5MT0iMjMwIiB4Mj0iNTQ1IiB5Mj0iMjMwIi8+CiAgPC9nPgogIDxsaW5lIHgxPSIzNjAiIHkxPSIyMDAiIHgyPSI0NzAiIHkyPSIyMDAiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8dGV4dCB4PSI0NTUiIHk9IjI1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZTNiMzQxIj5jaGFuZ2UgZmVlIGFwcGxpZXM8L3RleHQ+CgogIDwhLS0gcmVwbHkgY2FyZCAtLT4KICA8cmVjdCB4PSI0MCIgeT0iMzgwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjE1MCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTY1IiB5PSI0MjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2E3OGJmYSI+cmVwbHk8L3RleHQ+CiAgPHRleHQgeD0iMTY1IiB5PSI0NjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+bm8gZmVlLCB5b3UgYXJlPC90ZXh0PgogIDx0ZXh0IHg9IjE2NSIgeT0iNDkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiPmFsbCBzZXQ8L3RleHQ+CgogIDwhLS0gcHJveHkgLS0+CiAgPGVsbGlwc2UgY3g9IjcwMCIgY3k9IjM4MCIgcng9IjIwMCIgcnk9IjE3MCIgZmlsbD0idXJsKCNnbG93KSIvPgogIDxyZWN0IHg9IjYwMCIgeT0iMzAwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjE3MCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjcwNSIgeT0iMzY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPmZyb3plbjwvdGV4dD4KICA8dGV4dCB4PSI3MDUiIHk9IjQwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5wcm94eTwvdGV4dD4KICA8dGV4dCB4PSI3MDUiIHk9IjQ0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPjAuNkIgdG8gOEI8L3RleHQ+CiAgPHBhdGggZD0iTTU4MiAyMjAgQzY0MCAyNDAgNjgwIDI2MCA2OTAgMjk2IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogIDxwYXRoIGQ9Ik0yOTIgNDU1IEM0MjAgNDU1IDUyMCA0MjAgNTk2IDQwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYVYpIi8+CiAgPHRleHQgeD0iNDQwIiB5PSI0MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+b25lIGZvcndhcmQgcGFzczwvdGV4dD4KCiAgPCEtLSBpbnRlcm5hbHMgdG8gcHJvYmUgLS0+CiAgPHBhdGggZD0iTTgxMiAzNTAgQzg2MCAzNTAgODcwIDMzMCA5MDAgMzMwIiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogIDxwYXRoIGQ9Ik04MTIgNDIwIEM4NjAgNDIwIDg3MCA0NDAgOTAwIDQ0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICA8dGV4dCB4PSI5MDUiIHk9IjMwMiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5hdHRlbnRpb24gc3RhdHM8L3RleHQ+CiAgPHRleHQgeD0iOTA1IiB5PSI0ODAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+aGlkZGVuIHN0YXRlczwvdGV4dD4KICA8cmVjdCB4PSI5MDUiIHk9IjM0MCIgd2lkdGg9IjExMCIgaGVpZ2h0PSI5MCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMjIiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iOTYwIiB5PSIzOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+cHJvYmU8L3RleHQ+CiAgPGxpbmUgeDE9IjEwMTciIHkxPSIzODUiIHgyPSIxMDYwIiB5Mj0iMzg1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogIDwhLS0gZmxhZyAtLT4KICA8bGluZSB4MT0iMTA4MCIgeTE9IjMzMCIgeDI9IjEwODAiIHkyPSI0NTAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNMTA4MiAzMzIgTDExNjAgMzUyIEwxMDgyIDM3MiBaIiBmaWxsPSIjZmY3YjcyIi8+CiAgPHRleHQgeD0iMTEwMCIgeT0iNTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPnVuc3VwcG9ydGVkPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Context and a reply feed a frozen proxy; attention stats and hidden states go to a probe that raises a red flag.",
+    "caption": "The proxy never writes a verdict; a probe reads its internals and flags the reply the fare rules contradict.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A probe is a small classifier trained on a frozen model's internal signals. Frozen matters here. The proxy's weights stay fixed, so only the probe trains, and that's cheap. Your generator can sit behind any API. Attention features add a second signal, summarising where the proxy's attention went, such as how much each reply token looked back at the context."
+  ],
+  [
+   "p",
+   "The results are striking for the size. Probes on frozen Qwen3 proxies «of 0.6B to 8B parameters prove strong detectors». A «4B proxy outperforms the strongest of nine zero-shot 4-9B LLM judges in F1 on two of the three» benchmarks. F1 balances precision and recall, so flagging everything can't win."
+  ],
+  [
+   "p",
+   "Two more results matter. The proxies «match or outperform specialized grounding checkers of up to 7B parameters». And «probing each proxy beats prompting it as a judge». That last line is the one we'd underline. The same model detects better when you read its internals than when you ask its opinion."
+  ],
+  [
+   "p",
+   "In our view, a probed proxy is the more honest instrument for grounding. A prompted judge generates a verdict, and a verdict is just more fluent text, open to the same failure it is meant to catch. A probe answers one narrow question with a number. It can't talk its way around the evidence."
+  ],
+  [
+   "h2",
+   {
+    "text": "The detector's real cost hides in the attention matrix",
+    "num": "04",
+    "id": "the-detector-s-real-cost-hides-in-the-attention-matrix"
+   }
+  ],
+  [
+   "p",
+   "There's a catch, and it's memory. Attention-based detectors need attention weights, and «standard pipelines materialize the attention matrix, whose memory grows quadratically with sequence length». Quadratic means the matrix grows with the square of the length. Long fare rules plus a long chat make that matrix the heaviest object in your pipeline."
+  ],
+  [
+   "p",
+   "FlashAttention avoids storing the matrix. It computes attention in tiles and keeps a running softmax, so each tile is used and discarded. The authors compute detector statistics «without materializing attention, by accumulation in the FlashAttention pass, sparse lookups after it, or a second tiled pass over the scores». Each statistic gets sorted by path «into nearly free and costlier ones»."
+  ],
+  [
+   "p",
+   "Here's the bill. On one GPU, the statistics of five published detectors «add 16% to the latency of a Qwen3-8B forward at 2K tokens, falling to 1.4% at 35K». Our reading: attention work grows faster than the statistics work, so their share falls with length. Storage is the other line item, at «22.5 KiB per response token»."
+  ],
+  [
+   "p",
+   "For the rebooking agent that's a fair trade. Fare rules and chat history make long inputs, which sit at the cheap end. Short prompts pay proportionally more, so a bot answering one-line questions sees the high end. Check where your traffic sits before you budget. Price the stored statistics too, if you keep them for audits."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative: a context-attention statistic accumulated inside a tiled attention pass",
+    "language": "python",
+    "source": "# The full attention matrix never exists; each tile is used, then dropped.\nfor q in query_tiles:\n    m, l, acc = running_softmax_init(q)\n    ctx_mass = zeros(len(q))  # attention mass landing on context tokens\n    for k, v, is_ctx in key_value_tiles:\n        s = (q @ k.T) * scale\n        m_new = maximum(m, s.max(axis=-1))\n        p = exp(s - m_new[:, None])\n        r = exp(m - m_new)\n        l = l * r + p.sum(axis=-1)\n        ctx_mass = ctx_mass * r + p[:, is_ctx].sum(axis=-1)\n        acc = acc * r[:, None] + p @ v\n        m = m_new\n    out = acc / l[:, None]\n    context_share = ctx_mass / l  # a detector feature, almost free"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Latency added by five published detectors' attention statistics to a Qwen3-8B forward pass, in percent, at two input lengths.",
+    "unit": "% added latency",
+    "bars": [
+     {
+      "label": "2K tokens",
+      "value": 16.0
+     },
+     {
+      "label": "35K tokens",
+      "value": 1.4
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "DialFork builds wrong dialogues by forking right ones",
+    "num": "05",
+    "id": "dialfork-builds-wrong-dialogues-by-forking-right-ones"
+   }
+  ],
+  [
+   "p",
+   "Now the second error, the skipped fee quote. DialFork names it «procedural hallucination, in which an agent produces individually fluent and factually plausible utterances while deviating from the intended conversational process». Notice the wording. Fluent and plausible are exactly the criteria a content check uses. A procedural error passes both by definition."
+  ],
+  [
+   "p",
+   "We went through how the benchmark is built, because the construction is the clever part. The method is «forking conformant dialogues at controlled turn positions and injecting one of four hallucination types». Everything before the fork stays untouched. So you know exactly where the deviation starts, and what the clean version looked like."
+  ],
+  [
+   "p",
+   "The scale is real: «36,278 dialogues across 24 tasks in 12 domains», and «30 human annotators validate the construction». For our airline agent, a fork would copy a clean rebooking chat up to the fee step. From there, the copy confirms the seat instead. Original and fork match up to that turn."
+  ],
+  [
+   "p",
+   "We think forking is the right design for anyone building agent evals. It gives you matched pairs, the same conversation with and without the error. Any metric that can't separate a pair is measuring something else. You can fork your own transcripts the same way, at the steps your process cares about."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How DialFork turns a clean dialogue into a matched pair with a known deviation turn.",
+    "steps": [
+     "Start from a conformant dialogue that follows the process",
+     "Choose a controlled turn position to fork",
+     "Copy every turn before the fork unchanged",
+     "Inject one of four hallucination types at the fork",
+     "Human annotators validate the forked dialogue"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Process checks come in three zoom levels",
+    "num": "06",
+    "id": "process-checks-come-in-three-zoom-levels"
+   }
+  ],
+  [
+   "p",
+   "DialFork defines three tasks, and they map onto three jobs you'd actually staff. Fleet level asks «how far a set of dialogues deviates from conformant ones», which means monitoring deployed agents. Dialogue level asks how far one conversation strays, called procedural retrieval. Turn level asks «at which turn a dialogue first goes off-track», the job of a real-time guardrail."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPlRocmVlIHpvb20gbGV2ZWxzIG9mIHByb2Nlc3MgY2hlY2tpbmc6IGZsZWV0LCBkaWFsb2d1ZSBhbmQgdHVybjwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBwYW5lbCBmcmFtZXMgLS0+CiAgPHJlY3QgeD0iMzAiIHk9IjkwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjM2MCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxyZWN0IHg9IjQyMCIgeT0iMTMwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjI4MCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxyZWN0IHg9IjgxMCIgeT0iMTcwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjIwMCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDwhLS0gem9vbSBjb25uZWN0b3JzIC0tPgogIDxnIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiPgogICAgPGxpbmUgeDE9IjMzMCIgeTE9IjIzMCIgeDI9IjQyMCIgeTI9IjEzMCIvPgogICAgPGxpbmUgeDE9IjMzMCIgeTE9IjI5MCIgeDI9IjQyMCIgeTI9IjQxMCIvPgogICAgPGxpbmUgeDE9IjcwMCIgeTE9IjI1MCIgeDI9IjgxMCIgeTI9IjE3MCIvPgogICAgPGxpbmUgeDE9IjcwMCIgeTE9IjMxMCIgeDI9IjgxMCIgeTI9IjM3MCIvPgogIDwvZz4KICA8cmVjdCB4PSIyNzAiIHk9IjIzMCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSI2NDAiIHk9IjI1MCIgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiByeD0iOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPCEtLSBmbGVldDogbWFueSBmYWludCBwYXRocywgc29tZSBkcmlmdGluZyAtLT4KICA8ZyBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxwYXRoIGQ9Ik02MCAxNTAgTDM2MCAxNTAiIHN0cm9rZT0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC42Ii8+CiAgICA8cGF0aCBkPSJNNjAgMTg1IEwzNjAgMTg1IiBzdHJva2U9IiMzZWNmOGUiIG9wYWNpdHk9IjAuNiIvPgogICAgPHBhdGggZD0iTTYwIDIyMCBMMzYwIDIyMCIgc3Ryb2tlPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjYiLz4KICAgIDxwYXRoIGQ9Ik02MCAyNjAgQzIwMCAyNjAgMjMwIDI3MCAzMDAgMjcwIEwzNjAgMjcwIiBzdHJva2U9IiMzZWNmOGUiIG9wYWNpdHk9IjAuNiIvPgogICAgPHBhdGggZD0iTTYwIDMwMCBDMTgwIDMwMCAyMjAgMzMwIDM2MCAzNDAiIHN0cm9rZT0iI2ZmN2I3MiIgb3BhY2l0eT0iMC44Ii8+CiAgICA8cGF0aCBkPSJNNjAgMzM1IEwzNjAgMzM1IiBzdHJva2U9IiMzZWNmOGUiIG9wYWNpdHk9IjAuNiIvPgogICAgPHBhdGggZD0iTTYwIDM3MCBDMjAwIDM3MCAyMzAgNDAwIDM2MCA0MTAiIHN0cm9rZT0iI2ZmN2I3MiIgb3BhY2l0eT0iMC44Ii8+CiAgICA8cGF0aCBkPSJNNjAgNDA1IEwzNjAgNDA1IiBzdHJva2U9IiMzZWNmOGUiIG9wYWNpdHk9IjAuNiIvPgogIDwvZz4KCiAgPCEtLSBkaWFsb2d1ZTogY29uZm9ybWFudCB2cyB0aGlzIG9uZSAtLT4KICA8bGluZSB4MT0iNDYwIiB5MT0iMjMwIiB4Mj0iNzQwIiB5Mj0iMjMwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgb3BhY2l0eT0iMC41IiBzdHJva2UtZGFzaGFycmF5PSI4IDciLz4KICA8ZyBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjUiPgogICAgPGNpcmNsZSBjeD0iNDgwIiBjeT0iMjMwIiByPSIxMCIvPjxjaXJjbGUgY3g9IjU1MCIgY3k9IjIzMCIgcj0iMTAiLz48Y2lyY2xlIGN4PSI2MjAiIGN5PSIyMzAiIHI9IjEwIi8+PGNpcmNsZSBjeD0iNjkwIiBjeT0iMjMwIiByPSIxMCIvPgogIDwvZz4KICA8cGF0aCBkPSJNNDgwIDI4MCBMNTUwIDI4MCBDNTkwIDI4MCA2MDAgMzAwIDYyMCAzMDAgTDY3MCAzMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgPGcgZmlsbD0iI2E3OGJmYSI+CiAgICA8Y2lyY2xlIGN4PSI0ODAiIGN5PSIyODAiIHI9IjExIi8+PGNpcmNsZSBjeD0iNTUwIiBjeT0iMjgwIiByPSIxMSIvPgogIDwvZz4KICA8Y2lyY2xlIGN4PSI2NzAiIGN5PSIzMDAiIHI9IjEzIiBmaWxsPSIjZmY3YjcyIi8+CgogIDwhLS0gdHVybjogYSBzaW5nbGUgYnViYmxlIHN0b3BwZWQgLS0+CiAgPHJlY3QgeD0iODUwIiB5PSIyMTUiIHdpZHRoPSIyMDAiIGhlaWdodD0iNzAiIHJ4PSIxOCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxwYXRoIGQ9Ik04ODAgMjg1IEw4NzAgMzEyIEw5MDUgMjg1IFoiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8dGV4dCB4PSI5NTAiIHk9IjI2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij5zZWF0IGNvbmZpcm1lZDwvdGV4dD4KICA8cG9seWdvbiBwb2ludHM9IjExMDAsMjIwIDExMjQsMjMwIDExMzQsMjU0IDExMjQsMjc4IDExMDAsMjg4IDEwNzYsMjc4IDEwNjYsMjU0IDEwNzYsMjMwIiBmaWxsPSIjZTNiMzQxIi8+CiAgPHJlY3QgeD0iMTA4MiIgeT0iMjQ4IiB3aWR0aD0iMzYiIGhlaWdodD0iMTIiIHJ4PSIzIiBmaWxsPSIjMTAxNDFiIi8+CgogIDwhLS0gbGFiZWxzIC0tPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjYwIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjN2FhMmZmIj5mbGVldDwvdGV4dD4KICAgIDx0ZXh0IHg9IjIxMCIgeT0iNTAwIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij5GbG93S0w8L3RleHQ+CiAgICA8dGV4dCB4PSIyMTAiIHk9IjUzNCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+bW9uaXRvciBkZXBsb3llZCBhZ2VudHM8L3RleHQ+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjEwMCIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2E3OGJmYSI+ZGlhbG9ndWU8L3RleHQ+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjQ2MCIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+Rmxvd1Njb3JlPC90ZXh0PgogICAgPHRleHQgeD0iNjAwIiB5PSI0OTQiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnB1bGwgdGhlIHdvcnN0IHRyYW5zY3JpcHRzPC90ZXh0PgogICAgPHRleHQgeD0iOTkwIiB5PSIxNDAiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlM2IzNDEiPnR1cm48L3RleHQ+CiAgICA8dGV4dCB4PSI5OTAiIHk9IjQyMCIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+Z3VhcmRyYWlsPC90ZXh0PgogICAgPHRleHQgeD0iOTkwIiB5PSI0NTQiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNmZjdiNzIiPm5vIG1ldHJpYyBwcm9wb3NlZCB5ZXQ8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "Three panels zoom from many dialogue paths, to one stray dialogue, to a single turn stopped by a sign.",
+    "caption": "DialFork's three tasks zoom from a fleet to one dialogue to one turn, and only the turn lacks a proposed metric.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The proposed metrics cover the first two. FlowKL compares sets of dialogues and FlowScore compares single ones, both «by how they unfold rather than their content». The KL in the name suggests a Kullback-Leibler divergence, a measure of how far one probability distribution sits from a reference. We'd read it as comparing how conversations move between steps."
+  ],
+  [
+   "p",
+   "For the rebooking agent, fleet monitoring is your weekly dashboard. If confirmations start arriving before fee quotes across a week of chats, the flow distribution shifts. A fleet metric should see that. Dialogue level helps you pull the worst transcripts for human review. Turn level would stop the bad confirmation before it's sent."
+  ],
+  [
+   "p",
+   "Notice the gap. The paper proposes metrics «For the first two» tasks only. The guardrail, the check that acts in real time, gets a task definition and no new metric. That's also the one a production agent needs most, since the other two only tell you after the customer has heard the wrong thing."
+  ],
+  [
+   "h2",
+   {
+    "text": "Each check needs a reference that someone has to write",
+    "num": "07",
+    "id": "each-check-needs-a-reference-that-someone-has-to-write"
+   }
+  ],
+  [
+   "p",
+   "Put the two detectors side by side and a shared dependency appears. The proxy compares an answer with the context it was given. DialFork compares a dialogue with conformant ones. Both need a reference. Neither invents one. Ask the rebooking agent a closed-book question, with no fare rules loaded, and the grounding probe has nothing to hold the answer against."
+  ],
+  [
+   "p",
+   "That shapes how you build. Load the evidence into the context, even when the generator might already know it, so the grounding check has something to read. Write the procedure down as conformant example dialogues, so a flow metric has a baseline. Detectors are only as good as their references. Treat those references as code."
+  ],
+  [
+   "p",
+   "The two also part ways on timing. The proxy runs per response and pays per token, with the overhead measured above. Flow metrics run over finished dialogues or whole fleets, so they suit audits more than interception. In our view, a serious agent wants both: a cheap grounding probe on every reply and a flow check over the logs."
+  ],
+  [
+   "p",
+   "One disagreement deserves a flag. The proxy work bets on a learned probe over model internals. DialFork bets on a designed, flow-aware metric over raw dialogue text. Those are different philosophies about where the signal lives. Neither tests the other's approach on its own problem, so the head-to-head is still missing."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What each check reads, the reference it needs, and when it runs.",
+    "columns": [
+     "Check",
+     "Reads",
+     "Needs",
+     "Runs"
+    ],
+    "rows": [
+     [
+      "Probed frozen proxy",
+      "Hidden states and attention statistics",
+      "Evidence in the context",
+      "Per reply"
+     ],
+     [
+      "FlowKL",
+      "How a set of dialogues unfolds",
+      "Conformant dialogues",
+      "Over a fleet"
+     ],
+     [
+      "FlowScore",
+      "How one dialogue unfolds",
+      "Conformant dialogues",
+      "Per finished dialogue"
+     ],
+     [
+      "Turn-level guardrail",
+      "The first off-track turn",
+      "A written procedure",
+      "No metric proposed yet"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The turn-level guardrail is still unbuilt",
+    "num": "08",
+    "id": "the-turn-level-guardrail-is-still-unbuilt"
+   }
+  ],
+  [
+   "p",
+   "Here's what stays unsettled. The proxy results cover grounding against context in the prompt, on three benchmarks. Nobody has shown whether the same probes catch procedural errors, which leave no contradiction for attention to find. And DialFork's third task, the first off-track turn, has no proposed metric yet. Two open questions, one experiment."
+  ],
+  [
+   "p",
+   "The settling experiment is easy to state. Take DialFork's forked pairs, where the deviation turn is known. Run a probed proxy over each turn, with the written procedure loaded as context. Measure how often it flags the fork turn first, and at what latency on long chats. If it works, one cheap detector covers both errors."
+  ],
+  [
+   "p",
+   "If it fails, that's informative too. It would mean process errors need explicit state, a running model of where the conversation sits in its procedure, and not just better reading. We suspect that's the likelier outcome. A skipped fee quote leaves no contradiction behind it. It leaves only an absence."
+  ],
+  [
+   "p",
+   "Until then, keep the two checks separate and keep your references honest. The DialFork authors close by «hoping the community will measure conversational process alongside content». We agree. Content checks alone will keep scoring polite, plausible and wrong conversations as passes."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Why do LLMs hallucinate?"
+  ],
+  [
+   "p",
+   "They generate the most plausible next token, and nothing in that loop checks that the evidence supports it. Fluency is trained directly, and support is not. That is why detection has moved to separate checks: a frozen proxy model that reads an answer against its context, and flow metrics that compare how a dialogue unfolds with conformant ones."
+  ],
+  [
+   "h3",
+   "How do you detect hallucinations in an LLM agent?"
+  ],
+  [
+   "p",
+   "Check grounding on each reply and process across each conversation. A probe on a small frozen proxy reads the context and the reply, and a 4B proxy beat the strongest of nine zero-shot LLM judges in F1 on two of three benchmarks. For process errors, DialFork's FlowScore compares how dialogues unfold, and it outperformed all baselines across seven encoders."
+  ],
+  [
+   "h3",
+   "What is procedural hallucination in conversational agents?"
+  ],
+  [
+   "p",
+   "It is when an agent's turns are fluent and factually plausible but deviate from the intended conversational process. Confirming an action before a required step, such as quoting a fee, is a typical case. DialFork measures it by forking conformant dialogues at controlled turns and injecting one of four hallucination types, across 36,278 dialogues in 12 domains."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "DialFork: Going Beyond Factuality to Evaluate Procedural Hallucination in Conversational Agents",
+   "url": "https://arxiv.org/abs/2610.21561v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "FlashAttention with Statistics: Low-Overhead Attention Features for Compact Hallucination Detectors",
+   "url": "https://arxiv.org/abs/2610.21483v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "significantly outperforms all baselines across seven encoders, showing that semantic similarity is no substitute for procedural similarity": 1,
+  "A compact frozen proxy model can detect such answers by reading the context and another model's response, even from a proprietary generator": 2,
+  "of 0.6B to 8B parameters prove strong detectors": 2,
+  "4B proxy outperforms the strongest of nine zero-shot 4-9B LLM judges in F1 on two of the three": 2,
+  "match or outperform specialized grounding checkers of up to 7B parameters": 2,
+  "probing each proxy beats prompting it as a judge": 2,
+  "standard pipelines materialize the attention matrix, whose memory grows quadratically with sequence length": 2,
+  "without materializing attention, by accumulation in the FlashAttention pass, sparse lookups after it, or a second tiled pass over the scores": 2,
+  "into nearly free and costlier ones": 2,
+  "add 16% to the latency of a Qwen3-8B forward at 2K tokens, falling to 1.4% at 35K": 2,
+  "22.5 KiB per response token": 2,
+  "procedural hallucination, in which an agent produces individually fluent and factually plausible utterances while deviating from the intended conversational process": 1,
+  "forking conformant dialogues at controlled turn positions and injecting one of four hallucination types": 1,
+  "36,278 dialogues across 24 tasks in 12 domains": 1,
+  "30 human annotators validate the construction": 1,
+  "how far a set of dialogues deviates from conformant ones": 1,
+  "at which turn a dialogue first goes off-track": 1,
+  "by how they unfold rather than their content": 1,
+  "For the first two": 1,
+  "hoping the community will measure conversational process alongside content": 1
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:45:41+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21561v1",
+   "arxiv:2610.21483v1"
+  ],
+  "platforms": {
+   "arXiv": 2
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "topic-synthesis:concept/hallucination",
+  "format": "topic-synthesis",
+  "reviewed_by": null
+ }
+}

@@ -1,0 +1,739 @@
+{
+ "slug": "field-report-anthropic-claude-sonnet-5-5",
+ "status": "draft",
+ "tag": "Field report",
+ "feat": false,
+ "title": "Claude Sonnet 5.5 Scored Lower at Max Effort, and Cost More Doing It",
+ "dek": "A field report on Sonnet 5.5 once it leaves the launch table: strong terminal coding, a token appetite at the top of the effort dial, and request settings that now fail on contact.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Claude Sonnet 5.5 review in one line: a strong coding workhorse at medium or high effort, but max effort scored lower and cost more, and some Sonnet 5 request settings now return 400 errors.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+Cjx0aXRsZT5FZmZvcnQgZGlhbDogbWVkaXVtIHJlYWNoZXMgdGhlIGdvYWwsIG1heCB0YW5nbGVzIGludG8gZXh0cmEgcmV2aWV3PC90aXRsZT4KPGRlZnM+CjxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz48L2xpbmVhckdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3dEaWFsIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjMyIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3dSZWQiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+CjxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvd0dyZWVuIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8bGluZWFyR3JhZGllbnQgaWQ9ImFyY0dyYWQiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iOTAiIHkxPSIwIiB4Mj0iNTEwIiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjN2FhMmZmIi8+PHN0b3Agb2Zmc2V0PSIwLjU1IiBzdG9wLWNvbG9yPSIjYTc4YmZhIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIi8+PC9saW5lYXJHcmFkaWVudD4KPG1hcmtlciBpZD0iYXJyRyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+PC9tYXJrZXI+CjxtYXJrZXIgaWQ9ImFyclIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2ZmN2I3MiIvPjwvbWFya2VyPgo8L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KPGVsbGlwc2UgY3g9IjMwMCIgY3k9IjQyMCIgcng9IjMwMCIgcnk9IjI2MCIgZmlsbD0idXJsKCNnbG93RGlhbCkiLz4KPGVsbGlwc2UgY3g9IjEwNTAiIGN5PSIxNTAiIHJ4PSIxNTAiIHJ5PSIxMzAiIGZpbGw9InVybCgjZ2xvd0dyZWVuKSIvPgo8ZWxsaXBzZSBjeD0iMTA2MCIgY3k9IjQ2MCIgcng9IjE3MCIgcnk9IjE1MCIgZmlsbD0idXJsKCNnbG93UmVkKSIvPgoKPCEtLSBkaWFsIC0tPgo8cGF0aCBkPSJNMTAwLDQzMCBBMjAwLDIwMCAwIDAgMSA1MDAsNDMwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMzAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTAwLDQzMCBBMjAwLDIwMCAwIDAgMSA1MDAsNDMwIiBmaWxsPSJub25lIiBzdHJva2U9InVybCgjYXJjR3JhZCkiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45Ii8+CjxnIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiPgo8bGluZSB4MT0iNzgiIHkxPSI0MzAiIHgyPSI1OCIgeTI9IjQzMCIvPgo8bGluZSB4MT0iMTQzIiB5MT0iMjczIiB4Mj0iMTI5IiB5Mj0iMjU5Ii8+CjxsaW5lIHgxPSIzMDAiIHkxPSIyMDgiIHgyPSIzMDAiIHkyPSIxODgiLz4KPGxpbmUgeDE9IjQ1NyIgeTE9IjI3MyIgeDI9IjQ3MSIgeTI9IjI1OSIvPgo8bGluZSB4MT0iNTIyIiB5MT0iNDMwIiB4Mj0iNTQyIiB5Mj0iNDMwIi8+CjwvZz4KPHRleHQgeD0iOTIiIHk9IjIyMiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5tZWRpdW08L3RleHQ+Cjx0ZXh0IHg9IjU0OCIgeT0iNDk0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm1heDwvdGV4dD4KPCEtLSBuZWVkbGUgLS0+CjxsaW5lIHgxPSIzMDAiIHkxPSI0MzAiIHgyPSI0NzgiIHkyPSI0MDQiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI5IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMzAwIiBjeT0iNDMwIiByPSIyMiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjQiLz4KPGNpcmNsZSBjeD0iMzAwIiBjeT0iNDMwIiByPSI3IiBmaWxsPSIjZThlZGY1Ii8+Cgo8IS0tIGNsZWFuIHBhdGggZnJvbSBtZWRpdW0gLS0+CjxwYXRoIGQ9Ik0xNjAsMjUwIEMzMzAsNzAgNzAwLDYwIDk4NSwxNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjYXJyRykiLz4KPGNpcmNsZSBjeD0iMTA1MCIgY3k9IjE1MCIgcj0iNDgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiLz4KPHBhdGggZD0iTTEwMjcsMTUxIEwxMDQ0LDE2OSBMMTA3NiwxMzMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KCjwhLS0gdGFuZ2xlZCBwYXRoIGZyb20gbWF4IC0tPgo8cGF0aCBkPSJNNTYwLDQxMCBDNjIwLDQwMCA2NDAsMzMwIDcwMCwzNTAgQzc2MCwzNzAgNzM1LDQ2MCA2ODAsNDQ1IEM2MjUsNDMwIDY2MCwzNTAgNzMwLDM4MCBDNzkwLDQwNSA3NzAsNDcwIDc5MCw0NzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iODAwIiBjeT0iNDY4IiByPSIxMyIgZmlsbD0iI2E3OGJmYSIvPgo8ZyBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgb3BhY2l0eT0iMC44NSI+CjxsaW5lIHgxPSI4MDAiIHkxPSI0NjgiIHgyPSI4OTAiIHkyPSIzNTAiLz4KPGxpbmUgeDE9IjgwMCIgeTE9IjQ2OCIgeDI9IjkwMCIgeTI9IjQxMCIvPgo8bGluZSB4MT0iODAwIiB5MT0iNDY4IiB4Mj0iOTA1IiB5Mj0iNDcwIi8+CjxsaW5lIHgxPSI4MDAiIHkxPSI0NjgiIHgyPSI5MDAiIHkyPSI1MzAiLz4KPGxpbmUgeDE9IjgwMCIgeTE9IjQ2OCIgeDI9Ijg5MCIgeTI9IjU5MCIvPgo8L2c+CjxnIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyI+CjxjaXJjbGUgY3g9Ijg5MCIgY3k9IjM1MCIgcj0iMTYiLz4KPGNpcmNsZSBjeD0iOTAwIiBjeT0iNDEwIiByPSIxNiIvPgo8Y2lyY2xlIGN4PSI5MDUiIGN5PSI0NzAiIHI9IjE2Ii8+CjxjaXJjbGUgY3g9IjkwMCIgY3k9IjUzMCIgcj0iMTYiLz4KPGNpcmNsZSBjeD0iODkwIiBjeT0iNTkwIiByPSIxNiIvPgo8L2c+CjxnIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI3IDciIGZpbGw9Im5vbmUiIG9wYWNpdHk9IjAuOCI+CjxwYXRoIGQ9Ik05MDYsMzUwIEM5NjAsMzYwIDk4MCw0MDAgMTAwNiw0MjUiLz4KPHBhdGggZD0iTTkxNiw0MTAgQzk2MCw0MTUgOTg1LDQzMCAxMDA0LDQ0MCIvPgo8cGF0aCBkPSJNOTIxLDQ3MCBMMTAwMiw0NjUiLz4KPHBhdGggZD0iTTkxNiw1MzAgQzk2MCw1MjAgOTg1LDUwMCAxMDA2LDQ4OCIvPgo8L2c+CjwhLS0gc3RyYXkgZXh0cmEgZWRpdCBjYXJkIC0tPgo8cmVjdCB4PSI5MzUiIHk9IjU2MCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjU2IiByeD0iMTIiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgdHJhbnNmb3JtPSJyb3RhdGUoLTggOTgzIDU4OCkiLz4KPGcgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgdHJhbnNmb3JtPSJyb3RhdGUoLTggOTgzIDU4OCkiPgo8bGluZSB4MT0iOTUyIiB5MT0iNTgwIiB4Mj0iMTAxMiIgeTI9IjU4MCIvPgo8bGluZSB4MT0iOTUyIiB5MT0iNTk2IiB4Mj0iOTk1IiB5Mj0iNTk2Ii8+CjwvZz4KPGxpbmUgeDE9IjkwNiIgeTE9IjU5MCIgeDI9IjkzMiIgeTI9IjU5MCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KPCEtLSB0aW1lb3V0IGNsb2NrIC0tPgo8Y2lyY2xlIGN4PSIxMDYwIiBjeT0iNDYyIiByPSI1NCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjE2IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNSIvPgo8bGluZSB4MT0iMTA2MCIgeTE9IjQ2MiIgeDI9IjEwNjAiIHkyPSI0MjgiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGxpbmUgeDE9IjEwNjAiIHkxPSI0NjIiIHgyPSIxMDg0IiB5Mj0iNDc2IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxjaXJjbGUgY3g9IjEwNjAiIGN5PSI0NjIiIHI9IjYiIGZpbGw9IiNmZjdiNzIiLz4KPGxpbmUgeDE9IjEwMzYiIHkxPSIzOTgiIHgyPSIxMDg0IiB5Mj0iMzk4IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=",
+  "alt": "An effort dial: medium runs straight to a check mark; max tangles into subagents and a timeout clock.",
+  "caption": "Turning Sonnet 5.5's effort dial to max bought extra review rounds and a lower FrontierCode score.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Claude Sonnet 5.5 review from the field: strong terminal coding, a costly appetite at max effort, and old request settings that now return 400 errors.",
+ "keywords": [
+  "Claude Sonnet 5.5 review",
+  "is Claude Sonnet 5.5 good for coding",
+  "Claude Sonnet 5.5 pricing",
+  "Claude Sonnet 5.5 in production",
+  "Claude Sonnet 5.5 alternatives",
+  "Sonnet 5.5 effort levels",
+  "Sonnet 5.5 migration"
+ ],
+ "kicker": "Field report",
+ "tags": [
+  "Claude Sonnet 5.5",
+  "Field report"
+ ],
+ "read": 11,
+ "decisions": [
+  "Default to medium or high effort; earn max with a measured gain",
+  "Replace thinking disabled with between_tools before switching",
+  "Swap forced tool choice for auto plus a prompt instruction",
+  "Test progress displays for empty thinking blocks",
+  "Keep Opus 5.5 for open-ended work that needs judgment"
+ ],
+ "layout": "report",
+ "arrangement": "a",
+ "special": {
+  "type": "findings",
+  "title": "Findings",
+  "items": [
+   {
+    "finding": "At max effort Sonnet 5.5 scored 46.2% on FrontierCode, below its 52.1% at xhigh.",
+    "status": "established"
+   },
+   {
+    "finding": "Sonnet 5.5 leads Opus 5.5 on Terminal-Bench 4.0 in both Anthropic's table and an outside lab's run.",
+    "status": "established"
+   },
+   {
+    "finding": "At max effort an outside lab measured a higher average cost per task for Sonnet 5.5 than for Opus 5.5.",
+    "status": "established"
+   },
+   {
+    "finding": "Sending thinking as disabled, or a forced tool choice, to Sonnet 5.5 returns a 400 error.",
+    "status": "established"
+   },
+   {
+    "finding": "Sonnet 5.5 runs 30%+ faster than Sonnet 5.",
+    "status": "not established"
+   },
+   {
+    "finding": "Sonnet 5.5 costs less per task than Sonnet 5 on real workloads at medium effort.",
+    "status": "not established"
+   },
+   {
+    "finding": "Sonnet 5.5 gives better open-ended judgment advice than rival models.",
+    "status": "not established"
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~11 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Max effort scored lower than xhigh on a merge test",
+    "num": "01",
+    "id": "max-effort-scored-lower-than-xhigh-on-a-merge-test"
+   }
+  ],
+  [
+   "p",
+   "Claude Sonnet 5.5 scores lower when you give it the most room to think. The clearest case is FrontierCode, a test of a code change merging with no human edits. «Anthropic lists Sonnet 5.5 twice on FrontierCode: 52.1% at xhigh effort and 46.2% at max.» That is our Claude Sonnet 5.5 review in one line. More thinking, worse result."
+  ],
+  [
+   "p",
+   "Effort is the dial that sets how long the model thinks before it acts. At max, the model more often ran a code-review routine that splits checking across subagents, helper copies of the model each handed a slice of the job. In two cases that ended in a timeout or in edits beyond the task. FrontierCode punishes both. «It penalizes changes outside the task's scope, even good ones.»"
+  ],
+  [
+   "p",
+   "Far from any benchmark, the same habit shows up. One engineering blogger's max-effort request for a pelican drawing thought for 128,000 tokens, then stopped «before running out of tokens and failing to produce an SVG». At xhigh, the same request finished in 41 seconds. Nothing came back for the bigger spend."
+  ],
+  [
+   "p",
+   "We agree with the dev.to writer who put it plainly: «If a task has a clear scope, more effort can mean more work you didn't ask for.» In our view, max is a specialist setting. Keep it for tasks where you have measured a gain. Everywhere else it is a tax on your patience and your bill."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Two places where Sonnet 5.5 did worse at max effort than at xhigh.",
+    "columns": [
+     "Task",
+     "At xhigh",
+     "At max"
+    ],
+    "rows": [
+     [
+      "FrontierCode 1.1, main set",
+      "52.1%",
+      "46.2%"
+     ],
+     [
+      "Pelican drawing request",
+      "Finished in 41 seconds",
+      "Ran out after 128,000 tokens, no SVG"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Terminal coding jumped far past Sonnet 5",
+    "num": "02",
+    "id": "terminal-coding-jumped-far-past-sonnet-5"
+   }
+  ],
+  [
+   "p",
+   "Coding in a terminal is where Sonnet 5.5 is strongest. Terminal-Bench 4.0 scores an agent, a model that runs commands and edits files in a loop, on real shell tasks. Anthropic's launch table puts Sonnet 5.5 at 70.6%, against 10.3% for Sonnet 5 and 66.4% for Opus 5.5. It is the one row where the cheaper model leads."
+  ],
+  [
+   "p",
+   "An outside lab saw the same order at lower heights. «Per OfficeChai, Artificial Analysis has Sonnet 5.5 at 63.6% against 59.6% for Opus 5.5 and 59.1% for Astra.» The numbers shrank. The ranking held. We think that agreement matters more than either score, since a vendor's harness and an outside one measure different setups."
+  ],
+  [
+   "p",
+   "Messy visual work shows the same strength. «Sonnet 5.5 appears to be almost as good as Opus 5.5 on some coding tasks», one engineering blogger wrote after a round of 3D animation prompts. A dev.to explainer called it «a workhorse for bug fixes, documentation, and routine code generation». That is the job description we would give it too."
+  ],
+  [
+   "p",
+   "A weekly dev.to roundup gave the right caution about vendor tables: «They are useful for selecting candidates, not declaring a universal winner.» Every figure above belongs to one harness, one effort level and one tool set. Change any of them and the number moves. Your own repository is a different harness again."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Terminal-Bench 4.0 scores in percent, from Anthropic's launch table and from Artificial Analysis.",
+    "unit": "percent of Terminal-Bench 4.0 tasks",
+    "bars": [
+     {
+      "label": "Sonnet 5.5 (Anthropic)",
+      "value": 70.6
+     },
+     {
+      "label": "Opus 5.5 (Anthropic)",
+      "value": 66.4
+     },
+     {
+      "label": "Sonnet 5 (Anthropic)",
+      "value": 10.3
+     },
+     {
+      "label": "Sonnet 5.5 (Artificial Analysis)",
+      "value": 63.6
+     },
+     {
+      "label": "Opus 5.5 (Artificial Analysis)",
+      "value": 59.6
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The token bill grows faster than the price suggests",
+    "num": "03",
+    "id": "the-token-bill-grows-faster-than-the-price-suggests"
+   }
+  ],
+  [
+   "p",
+   "Sonnet 5.5 is cheap per token and hungry per task, and those two facts pull opposite ways. Its per-token price did not change from Sonnet 5, and it is half that of Opus 5.5. The saving is supposed to come from doing less. It «costs up to 30% less for most tasks because it requires fewer tokens to complete the same work», a dev.to explainer wrote."
+  ],
+  [
+   "p",
+   "At max effort, the outside measurement points the other way. Output tokens are the text the model writes, and they are the expensive part of the bill. Artificial Analysis needed 410 million of them to run its whole index, against a median of 88 million. «Sonnet 5.5 costs half as much per token as Opus 5.5, but at max effort a task came out at $7.60 against $5.98 for Opus 5.5.»"
+  ],
+  [
+   "p",
+   "Launch-post customer quotes land on the cheap side. They include about 14% fewer output tokens on Slackbot tests. They also include about 121,000 tokens per answer on finance tasks, against 497,000 for Sonnet 5. The dev.to writer who gathered them added a fair warning: «I read them as things that can happen, not things that will happen to you.»"
+  ],
+  [
+   "p",
+   "We side with the outside lab at max and with Anthropic below it. The dial explains the gap. «Per OfficeChai, Artificial Analysis found high effort was Sonnet 5.5's most cost-competitive setting.» So your bill depends less on the model than on where you leave the dial. Effort is a budget line, so treat it like one."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The cost-per-task split: Anthropic's claim beside the outside measurement at max effort.",
+    "columns": [
+     "Evidence",
+     "Sonnet 5.5",
+     "Comparison"
+    ],
+    "rows": [
+     [
+      "Anthropic, per task",
+      "Up to 30% less",
+      "Against Sonnet 5"
+     ],
+     [
+      "Artificial Analysis, average task at max",
+      "$7.60",
+      "$5.98 for Opus 5.5"
+     ],
+     [
+      "Artificial Analysis, output tokens for the whole index",
+      "410 million",
+      "Median of 88 million"
+     ],
+     [
+      "Launch-post customer, tokens per finance answer",
+      "About 121,000",
+      "497,000 for Sonnet 5"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A kart racer took 12 prompts and one honest play test",
+    "num": "04",
+    "id": "a-kart-racer-took-12-prompts-and-one-honest-play-test"
+   }
+  ],
+  [
+   "p",
+   "Full games make a better test than a benchmark row. One dev.to builder used Sonnet 5.5 for «a cartoon kart racer for 1 to 4 players that I built in Claude Code». It took 12 prompts for the game. Opus 5.5 then spent 8 more turning it into a TV version with split screen and gamepads."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+Cjx0aXRsZT5UaGUgaW52aXNpYmxlIHJvYWQ6IGJ1aWx0IGZhY2luZyBkb3duLCB0aGVuIGRyYXduIGZyb20gYm90aCBzaWRlczwvdGl0bGU+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjIyIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8bWFya2VyIGlkPSJhUiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjZmY3YjcyIi8+PC9tYXJrZXI+CjxtYXJrZXIgaWQ9ImFHIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz48L21hcmtlcj4KPHN5bWJvbCBpZD0iY2FtIiB2aWV3Qm94PSIwIDAgMTIwIDgwIj48cmVjdCB4PSI0IiB5PSIxMCIgd2lkdGg9Ijg0IiBoZWlnaHQ9IjU2IiByeD0iMTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTg4LDI2IEwxMTYsMTIgTDExNiw2NCBMODgsNTAgeiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSI0NiIgY3k9IjM4IiByPSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiLz48L3N5bWJvbD4KPC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MjAiIGZpbGw9InVybCgjYmcpIi8+CjxyZWN0IHg9IjMwIiB5PSIzMCIgd2lkdGg9IjU1NSIgaGVpZ2h0PSI1NjAiIHJ4PSIyMCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjA1IiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgo8cmVjdCB4PSI2MTUiIHk9IjMwIiB3aWR0aD0iNTU1IiBoZWlnaHQ9IjU2MCIgcng9IjIwIiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMDUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjx0ZXh0IHg9IjMwNyIgeT0iODgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QmVmb3JlPC90ZXh0Pgo8dGV4dCB4PSI4OTIiIHk9Ijg4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkFmdGVyPC90ZXh0PgoKPCEtLSBCRUZPUkUgLS0+CjxlbGxpcHNlIGN4PSIzMDciIGN5PSIzMzAiIHJ4PSIyNDAiIHJ5PSIxNTAiIGZpbGw9InVybCgjZ2xvdykiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjUwLDEzMCkgcm90YXRlKDM1IDYwIDQwKSI+PHVzZSBocmVmPSIjY2FtIiB3aWR0aD0iMTIwIiBoZWlnaHQ9IjgwIi8+PC9nPgo8dGV4dCB4PSI0MjAiIHk9IjE2OCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ic3RhcnQiPlRWIGNhbWVyYTwvdGV4dD4KPHBhdGggZD0iTTMzMCwyMjUgTDE3MCwzNzAgTTMzMCwyMjUgTDQ1MCwzNzAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDgiIG9wYWNpdHk9IjAuNiIvPgo8cmVjdCB4PSI3MCIgeT0iMzkwIiB3aWR0aD0iNDc1IiBoZWlnaHQ9IjYwIiByeD0iMTAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yOCIvPgo8cmVjdCB4PSIxNDAiIHk9IjM2OCIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxMCA4Ii8+CjxsaW5lIHgxPSIzMTAiIHkxPSIzOTIiIHgyPSIzMTAiIHkyPSI0NzgiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI1IiBtYXJrZXItZW5kPSJ1cmwoI2FSKSIvPgo8dGV4dCB4PSIzMzAiIHk9IjQ3MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZmY3YjcyIj5mYWNlcyBkb3duPC90ZXh0Pgo8dGV4dCB4PSIzMDciIHk9IjUzMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5za2lwcGVkIGJ5IHRoZSBHUFU8L3RleHQ+Cjx0ZXh0IHg9IjMwNyIgeT0iNTY2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnRoZSB0cmFjayBsb29rcyBsaWtlIGdyYXNzPC90ZXh0PgoKPCEtLSBBRlRFUiAtLT4KPGVsbGlwc2UgY3g9Ijg5MiIgY3k9IjMzMCIgcng9IjI0MCIgcnk9IjE1MCIgZmlsbD0idXJsKCNnbG93KSIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4MzUsMTMwKSByb3RhdGUoMzUgNjAgNDApIj48dXNlIGhyZWY9IiNjYW0iIHdpZHRoPSIxMjAiIGhlaWdodD0iODAiLz48L2c+CjxwYXRoIGQ9Ik05MTUsMjI1IEw3NTUsMzcwIE05MTUsMjI1IEwxMDM1LDM3MCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgOCIgb3BhY2l0eT0iMC42Ii8+CjxyZWN0IHg9IjY1NSIgeT0iMzkwIiB3aWR0aD0iNDc1IiBoZWlnaHQ9IjYwIiByeD0iMTAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yOCIvPgo8cmVjdCB4PSI3MjUiIHk9IjM2OCIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIyMiIgcng9IjQiIGZpbGw9IiM5NWExYjQiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxsaW5lIHgxPSIxMDAwIiB5MT0iMzY2IiB4Mj0iMTAwMCIgeTI9IjMwMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIG1hcmtlci1lbmQ9InVybCgjYUcpIi8+CjxsaW5lIHgxPSIxMDAwIiB5MT0iMzkyIiB4Mj0iMTAwMCIgeTI9IjQ3OCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIG1hcmtlci1lbmQ9InVybCgjYUcpIi8+Cjx0ZXh0IHg9Ijk3MiIgeT0iMzIwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJlbmQiPnVwPC90ZXh0Pgo8dGV4dCB4PSI5NzIiIHk9IjQ3MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0iZW5kIj5kb3duPC90ZXh0Pgo8dGV4dCB4PSI4OTIiIHk9IjUzMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kcmF3biBmcm9tIGJvdGggc2lkZXM8L3RleHQ+Cjx0ZXh0IHg9Ijg5MiIgeT0iNTY2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmEgZ3JleSByb2FkIGFwcGVhcnM8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Before and after: a road facing down is skipped by the GPU and looks like grass; drawn from both sides it shows grey.",
+    "caption": "The kart racer's invisible road: built facing down, it vanished on the TV until it was drawn from both sides.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "We went through the builder's account of the first real play test. On a Mac the road looked fine; on the TV it vanished. It had been built as a flat ribbon facing down, so the graphics chip skipped drawing it. «Every screenshot looked fine on a Mac, because the camera there never looked at the road from the angle that hides it.»"
+  ],
+  [
+   "p",
+   "One line fixed it: draw the road from both sides. The lesson is bigger than the line. «No amount of my own testing found the invisible road, because I was testing what I expected to see.» We agree. Neither the model nor its operator caught a bug that the first real player hit straight away."
+  ],
+  [
+   "p",
+   "Read the result with its limits. «I did not log the tokens, so there is no dollar figure for the code.» So this build shows Sonnet 5.5 can carry a real project from a blank page to a playable game. It says nothing about what that cost, or how Opus 5.5 alone would have fared."
+  ],
+  [
+   "h2",
+   {
+    "text": "Old request settings now return a 400 error",
+    "num": "05",
+    "id": "old-request-settings-now-return-a-400-error"
+   }
+  ],
+  [
+   "p",
+   "Sonnet 5 code can fail on Sonnet 5.5 the moment you change the model name. A dev.to migration guide, checked against the live API, warned that «one of these five settings will return an HTTP 400». A 400 error is the API refusing the request outright. Nothing runs, and nothing is charged."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+Cjx0aXRsZT5UaHJlZSBTb25uZXQgNSByZXF1ZXN0IHNldHRpbmdzIG1lZXRpbmcgU29ubmV0IDUuNTwvdGl0bGU+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz48L21hcmtlcj4KPC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NDAiIGZpbGw9InVybCgjYmcpIi8+Cjx0ZXh0IHg9IjIyMCIgeT0iNjIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U29ubmV0IDUgY29kZTwvdGV4dD4KPHRleHQgeD0iOTgwIiB5PSI2MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj53aGF0IGNvbWVzIGJhY2s8L3RleHQ+Cgo8IS0tIHJlcXVlc3QgY2FyZHMgLS0+CjxnIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI1IiBmaWxsPSIjZThlZGY1Ij4KPHJlY3QgeD0iNDAiIHk9IjEwMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSI2NCIgeT0iMTQ4Ij50aGlua2luZzo8L3RleHQ+Cjx0ZXh0IHg9IjY0IiB5PSIxODQiIGZpbGw9IiM3YWEyZmYiPiJkaXNhYmxlZCI8L3RleHQ+CjxyZWN0IHg9IjQwIiB5PSIyNjUiIHdpZHRoPSIzNjAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iNjQiIHk9IjMxMyI+dG9vbF9jaG9pY2U6PC90ZXh0Pgo8dGV4dCB4PSI2NCIgeT0iMzQ5IiBmaWxsPSIjN2FhMmZmIj4iYW55IjwvdGV4dD4KPHJlY3QgeD0iNDAiIHk9IjQzMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSI2NCIgeT0iNDc4Ij5wcm9ncmVzcyBub3RlPC90ZXh0Pgo8dGV4dCB4PSI2NCIgeT0iNTE0IiBmaWxsPSIjN2FhMmZmIj5iZXR3ZWVuIHRvb2xzPC90ZXh0Pgo8L2c+Cgo8IS0tIHRoZSBtb2RlbCAtLT4KPGVsbGlwc2UgY3g9IjYwMCIgY3k9IjMyMCIgcng9IjE3MCIgcnk9IjI1MCIgZmlsbD0idXJsKCNnbG93KSIvPgo8cmVjdCB4PSI1MTAiIHk9IjExMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0MjAiIHJ4PSIyMCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgo8dGV4dCB4PSI2MDAiIHk9IjMxMCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Tb25uZXQ8L3RleHQ+Cjx0ZXh0IHg9IjYwMCIgeT0iMzUwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjUuNTwvdGV4dD4KCjxnIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIj4KPGxpbmUgeDE9IjQwMiIgeTE9IjE1NSIgeDI9IjUwMiIgeTI9IjE1NSIvPgo8bGluZSB4MT0iNDAyIiB5MT0iMzIwIiB4Mj0iNTAyIiB5Mj0iMzIwIi8+CjxsaW5lIHgxPSI0MDIiIHkxPSI0ODUiIHgyPSI1MDIiIHkyPSI0ODUiLz4KPGxpbmUgeDE9IjY5MiIgeTE9IjE1NSIgeDI9Ijc5MiIgeTI9IjE1NSIvPgo8bGluZSB4MT0iNjkyIiB5MT0iMzIwIiB4Mj0iNzkyIiB5Mj0iMzIwIi8+CjxsaW5lIHgxPSI2OTIiIHkxPSI0ODUiIHgyPSI3OTIiIHkyPSI0ODUiLz4KPC9nPgoKPCEtLSBvdXRjb21lcyAtLT4KPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KPHJlY3QgeD0iODAwIiB5PSIxMDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iODI4IiB5PSIxNTIiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPjQwMCBlcnJvcjwvdGV4dD4KPHRleHQgeD0iODI4IiB5PSIxODgiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmxvdWQ6IHJlcXVlc3QgcmVmdXNlZDwvdGV4dD4KPHJlY3QgeD0iODAwIiB5PSIyNjUiIHdpZHRoPSIzNjAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iODI4IiB5PSIzMTciIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPjQwMCBlcnJvcjwvdGV4dD4KPHRleHQgeD0iODI4IiB5PSIzNTMiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmxvdWQ6IHJlcXVlc3QgcmVmdXNlZDwvdGV4dD4KPHJlY3QgeD0iODAwIiB5PSI0MzAiIHdpZHRoPSIzNjAiIGhlaWdodD0iMTEwIiByeD0iMTYiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEyIDgiLz4KPHRleHQgeD0iODI4IiB5PSI0ODIiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlM2IzNDEiPjIwMCwgZW1wdHkgYmxvY2s8L3RleHQ+Cjx0ZXh0IHg9IjgyOCIgeT0iNTE4IiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5xdWlldDogdGhlIFVJIGdvZXMgYmxhbms8L3RleHQ+CjwvZz4KPHRleHQgeD0iNjAwIiB5PSI2MDAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+YSBzdGF0dXMtY29kZSBjaGVjayBjYXRjaGVzIHRoZSB0b3AgdHdvIGFuZCBtaXNzZXMgdGhlIHRoaXJkPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Three old request settings sent to Sonnet 5.5: two return a 400 error, one returns success with an empty progress block.",
+    "caption": "Two Sonnet 5 settings fail loudly on Sonnet 5.5, and the third, progress text, fails silently.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Both loud breaks hit common patterns. Sending `thinking` as `disabled` now fails, and the replacement is `between_tools`, which skips thinking before the first answer. Forcing a tool call, where `tool_choice` names the function the model must run, fails too. The fix is to let the model choose and to say in the prompt when to call the tool."
+  ],
+  [
+   "p",
+   "A third break makes no noise. Text the model writes between tool calls now arrives inside thinking blocks, and at the default display setting it comes back empty. «A UI that streams progress notes goes quiet with no error.» Your user sees a frozen agent. Your logs show success."
+  ],
+  [
+   "p",
+   "Thinking is also tied to the model and the account. «Switching models drops its thinking.» Move a conversation from Opus 5.5 to Sonnet 5.5 and the later turns run without the earlier reasoning. The request still succeeds, which is exactly the problem. Nothing tells you the context got thinner."
+  ],
+  [
+   "p",
+   "A second dev.to author built a release gate around one idea: «Changing a model string is a dependency upgrade.» In a mocked run, three of seven contract checks broke, and one broke silently. «The quiet break is the one a status code will never catch.» We think every model swap deserves that gate."
+  ],
+  [
+   "code",
+   {
+    "label": "A Sonnet 5 request that now fails, and an illustrative Sonnet 5.5 replacement",
+    "language": "python",
+    "source": "# Sonnet 5: returns 400 on Sonnet 5.5\nclient.messages.create(model=\"claude-sonnet-5\", max_tokens=16000,\n                       thinking={\"type\": \"disabled\"},\n                       tool_choice={\"type\": \"any\"},\n                       tools=tools, messages=msgs)\n\n# Sonnet 5.5: lowest thinking setting, valid at high effort or below\nclient.messages.create(model=\"claude-sonnet-5-5\", max_tokens=16000,\n                       thinking={\"type\": \"between_tools\"},\n                       output_config={\"effort\": \"high\"},\n                       tool_choice={\"type\": \"auto\"},  # say in the prompt when to call it\n                       tools=tools, messages=msgs)"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Sonnet 5 request settings that change behaviour on Sonnet 5.5, and the documented fix.",
+    "columns": [
+     "Old setting",
+     "On Sonnet 5.5",
+     "Fix"
+    ],
+    "rows": [
+     [
+      "thinking type disabled",
+      "400 error",
+      "Send between_tools, at high effort or below"
+     ],
+     [
+      "tool_choice any or tool",
+      "400 error",
+      "Use auto, strict tools, and name the tool in the prompt"
+     ],
+     [
+      "Progress text between tool calls",
+      "Arrives in empty thinking blocks",
+      "Request a display setting that returns updates"
+     ],
+     [
+      "Thinking replayed after a model switch",
+      "Dropped without error",
+      "Keep one model per conversation"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Sonnet 5.5 fills the worker seat in shared agent setups",
+    "num": "06",
+    "id": "sonnet-5-5-fills-the-worker-seat-in-shared-agent-setups"
+   }
+  ],
+  [
+   "p",
+   "Shared agent setups put Sonnet 5.5 in the worker's seat. One engineer on X laid out a tree: Opus 5.5 on high effort runs the main session. Sonnet 5.5 subagents at medium effort edit code, index the repository and run the tests. A Fable 5.1 evaluator reads the transcript only when a turn ends."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+Cjx0aXRsZT5PcHVzIDUuNSBwbGFucywgU29ubmV0IDUuNSBzdWJhZ2VudHMgZG8gdGhlIHJvdXRpbmUgd29yazwvdGl0bGU+CjxkZWZzPgo8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+PC9saW5lYXJHcmFkaWVudD4KPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjM1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjN2FhMmZmIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50Pgo8bWFya2VyIGlkPSJhQiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjN2FhMmZmIi8+PC9tYXJrZXI+CjxtYXJrZXIgaWQ9ImFWIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiMzZWNmOGUiLz48L21hcmtlcj4KPC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NjAiIGZpbGw9InVybCgjYmcpIi8+CjxlbGxpcHNlIGN4PSI1MjAiIGN5PSIxMjAiIHJ4PSIzMDAiIHJ5PSIxMjAiIGZpbGw9InVybCgjZ2xvdykiLz4KCjwhLS0gcGxhbm5lciAtLT4KPHJlY3QgeD0iMzUwIiB5PSI1MCIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIxMjAiIHJ4PSIyMCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+Cjx0ZXh0IHg9IjUyMCIgeT0iMTAyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk9wdXMgNS41PC90ZXh0Pgo8dGV4dCB4PSI1MjAiIHk9IjE0MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjN2FhMmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wbGFucywgaGlnaCBlZmZvcnQ8L3RleHQ+Cgo8IS0tIGV2YWx1YXRvciAtLT4KPHJlY3QgeD0iODUwIiB5PSI1OCIgd2lkdGg9IjMxMCIgaGVpZ2h0PSIxMDQiIHJ4PSIxOCIgZmlsbD0iI2UzYjM0MSIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgNyIvPgo8dGV4dCB4PSIxMDA1IiB5PSIxMDIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RmFibGUgNS4xPC90ZXh0Pgo8dGV4dCB4PSIxMDA1IiB5PSIxMzgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Z3JhZGVzIGF0IHRoZSBzdG9wPC90ZXh0Pgo8bGluZSB4MT0iNjkyIiB5MT0iMTEwIiB4Mj0iODQ2IiB5Mj0iMTEwIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iOCA3Ii8+Cgo8IS0tIGRvd24gYXJyb3dzIC0tPgo8ZyBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgbWFya2VyLWVuZD0idXJsKCNhQikiPgo8cGF0aCBkPSJNNDUwLDE3MiBDNDAwLDIzMCAyMzAsMjQwIDIwMCwyODIiLz4KPHBhdGggZD0iTTUyMCwxNzIgTDUyMCwyODIiLz4KPHBhdGggZD0iTTU5MCwxNzIgQzY0MCwyMzAgODEwLDI0MCA4NDAsMjgyIi8+CjwvZz4KCjwhLS0gd29ya2VycyAtLT4KPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4KPHJlY3QgeD0iNjAiIHk9IjI5MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxNTAiIHJ4PSIxOCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSIyMDAiIHk9IjMzOCIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+d29ya2VyPC90ZXh0Pgo8dGV4dCB4PSIyMDAiIHk9IjM3NiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2E3OGJmYSI+U29ubmV0IDUuNTwvdGV4dD4KPHRleHQgeD0iMjAwIiB5PSI0MTIiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmVkaXRzIGNvZGU8L3RleHQ+CjxyZWN0IHg9IjM4MCIgeT0iMjkwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE1MCIgcng9IjE4IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9IjUyMCIgeT0iMzM4IiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5leHBsb3JlcjwvdGV4dD4KPHRleHQgeD0iNTIwIiB5PSIzNzYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNhNzhiZmEiPlNvbm5ldCA1LjU8L3RleHQ+Cjx0ZXh0IHg9IjUyMCIgeT0iNDEyIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5tYXBzIGNhbGwgc2l0ZXM8L3RleHQ+CjxyZWN0IHg9IjcwMCIgeT0iMjkwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjE1MCIgcng9IjE4IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9Ijg0MCIgeT0iMzM4IiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij52ZXJpZmllcjwvdGV4dD4KPHRleHQgeD0iODQwIiB5PSIzNzYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNhNzhiZmEiPlNvbm5ldCA1LjU8L3RleHQ+Cjx0ZXh0IHg9Ijg0MCIgeT0iNDEyIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5ydW5zIHRlc3RzPC90ZXh0Pgo8L2c+Cjx0ZXh0IHg9IjUyMCIgeT0iNDgyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFsbCB0aHJlZSBvbiBtZWRpdW0gZWZmb3J0PC90ZXh0PgoKPCEtLSByZXN1bHRzIGJhY2sgdXAgLS0+CjxyZWN0IHg9IjM1MCIgeT0iNTMwIiB3aWR0aD0iMzQwIiBoZWlnaHQ9Ijg2IiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iNTIwIiB5PSI1ODMiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dmVyaWZpZWQgcmVzdWx0czwvdGV4dD4KPGcgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiPgo8cGF0aCBkPSJNODQwLDQ0MiBDODQwLDUyMCA3NjAsNTYwIDY5NCw1NjYiIG1hcmtlci1lbmQ9InVybCgjYVYpIi8+CjxwYXRoIGQ9Ik02OTIsNjAwIEMxMTAwLDY0MCAxMTUwLDMwMCAxMDYwLDE3MCIgbWFya2VyLWVuZD0idXJsKCNhVikiIHN0cm9rZS1kYXNoYXJyYXk9IjIgMCIgb3BhY2l0eT0iMC43Ii8+CjwvZz4KPHRleHQgeD0iMTExMCIgeT0iNDIwIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnRyYW5zY3JpcHQ8L3RleHQ+Cjx0ZXh0IHg9IjExMTAiIHk9IjQ1MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj50byBncmFkZXI8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "A tree with Opus 5.5 planning on top, three Sonnet 5.5 subagents at medium effort below, and Fable 5.1 grading at stop.",
+    "caption": "The worker-seat setup engineers share on X: Opus 5.5 plans, Sonnet 5.5 subagents do the routine work.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A second recipe on X pushes the split further. Opus 5.5 writes the plan as a script, Haiku 5.5 agents scan every file, and Sonnet 5.5 agents patch each fix in an isolated copy. Opus returns only to read what survived verification. Fewer expensive tokens go on reading agent transcripts."
+  ],
+  [
+   "p",
+   "This division of labour matches the vendor's own line. A dev.to roundup put it this way: «Opus 5.5 remains the escalation tier for ambiguous work that needs sustained judgment.» We agree with that split. Sonnet 5.5 is the model you can afford to run in parallel. Opus is the one you pay to think."
+  ],
+  [
+   "p",
+   "Our caveat: neither recipe on X reports a measured result. They are designs, not runs. The verifier seat matters most, because at low effort the model «can report a change as done without running a real check». A worker that grades itself is no verifier at all."
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/mirku21/status/2107576738696053203",
+    "caption": "An engineer on X lays out a setup where Opus 5.5 runs the session and Sonnet 5.5 subagents do the routine edits, indexing and testing."
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/thedelost/status/2110472847084650726",
+    "caption": "A second post on X splits one job into planning by Opus 5.5, scanning by Haiku 5.5 and patching by Sonnet 5.5."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Open-ended advice held up better than its rivals",
+    "num": "07",
+    "id": "open-ended-advice-held-up-better-than-its-rivals"
+   }
+  ],
+  [
+   "p",
+   "Sonnet 5.5 gave the strongest free-text advice in a Kaggle benchmark of judgment calls with measured answers. Shown four options, it got 35 of 36 cases right. With no options, it still got 29. Every other model in the run lost more cases between the two formats."
+  ],
+  [
+   "p",
+   "The benchmark's author summed up the gap: «Everyone passes the quiz. Nobody passes the conversation.» Multiple choice tests if a model recognises the right call. The open format tests if it would give that advice unprompted. Claude Haiku 4.5 scored a perfect 36 on the quiz and fell to 20 in conversation."
+  ],
+  [
+   "p",
+   "Here is the overthinking split, seen from the other side. Max effort wasted work on FrontierCode. On these questions, careful reasoning paid. Nearly every miss landed on the right action «for the wrong reason», by the author's reading. We think Sonnet 5.5's smaller drop hints at sturdier reasoning, and it only hints."
+  ],
+  [
+   "p",
+   "Its author names the first soft spot: «The judge is a single model (Gemini 3.8 Flash), which could favour its own family's phrasing.» The sample is small too: «36 cases is small: one case is ~2.8 points». Sonnet 5.5's lead over the next model is narrow. Read it as a good sign, not a ranking."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Open-ended judgment cases answered correctly out of 36 in one Kaggle benchmark.",
+    "unit": "cases correct out of 36, open-ended format",
+    "bars": [
+     {
+      "label": "Claude Sonnet 5.5",
+      "value": 29.0
+     },
+     {
+      "label": "Gemma 4 26B-A4B",
+      "value": 27.0
+     },
+     {
+      "label": "Gemini 3.8 Flash",
+      "value": 26.0
+     },
+     {
+      "label": "GPT-6.1 Sol",
+      "value": 24.0
+     },
+     {
+      "label": "Claude Haiku 4.5",
+      "value": 20.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Speed, re-runs and secure code remain unchecked",
+    "num": "08",
+    "id": "speed-re-runs-and-secure-code-remain-unchecked"
+   }
+  ],
+  [
+   "p",
+   "No outside check backs the headline speed claim yet. Anthropic says the model is 30%+ faster than Sonnet 5, but «nothing outside Anthropic has checked the 30%+ faster claim yet». An independent latency measurement on the same tasks would settle it. Until then, faster is a vendor figure."
+  ],
+  [
+   "p",
+   "Outside scores are first results. «Artificial Analysis ran a pre-release build with a bug that could hurt responses that use structured outputs.» A re-run on the fixed build would show if 63.6% on Terminal-Bench 4.0 holds. It would also show whether the index results move."
+  ],
+  [
+   "p",
+   "Cost below max rests on vendor evidence. On paper, the cheap case is real: «at low or medium effort Sonnet 5.5 beats Sonnet 5's best score on several benchmarks for about a tenth of the cost per task». An outside bill for a real workload at medium effort is still missing. A logged build like the kart racer, with tokens counted, would settle it."
+  ],
+  [
+   "p",
+   "Long documents and security work are blank rows. The context window, the text the model can hold in view at once, is huge on paper, and no field result yet tests it. On security, «For certain high-risk cybersecurity requests, the model will visibly fall back to Sonnet 5.» How often that fires on legitimate work is unknown."
+  ],
+  [
+   "p",
+   "Secure code is the last gap. The dev.to analyst wanted a secure-code result like the one that put Opus 5.5 third. «I couldn't find a Sonnet 5.5 result from them yet», the analyst wrote. That test, plus a log of fallbacks on real security tooling, would close this report's open questions."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Is Claude Sonnet 5.5 good for coding?"
+  ],
+  [
+   "p",
+   "Yes, for well-scoped coding it is strong, especially in a terminal. Anthropic's table puts it at 70.6% on Terminal-Bench 4.0, ahead of Opus 5.5 at 66.4%, and an outside lab measured lower scores in the same order. Keep effort at medium or high. At max it scored lower on FrontierCode and can add work you never asked for."
+  ],
+  [
+   "h3",
+   "Is Claude Sonnet 5.5 a drop-in replacement for Sonnet 5?"
+  ],
+  [
+   "p",
+   "No, some request settings that worked on Sonnet 5 now return a 400 error. Sending thinking as disabled fails, and the replacement is between_tools at high effort or below. Forced tool choice fails too. Text between tool calls also moves into thinking blocks, which can leave a progress display silently empty. Run your request shapes through a test before switching."
+  ],
+  [
+   "h3",
+   "What effort level should I use with Sonnet 5.5?"
+  ],
+  [
+   "p",
+   "Start at medium for well-specified coding and high for harder work, and keep max for tasks where you have measured a gain. At max the model ran extra review rounds and scored lower on FrontierCode. A short system-prompt line telling it to stop and report also helps: «In Anthropic's coding tests at max effort, that cut session cost by about a third with no change in quality.»"
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Claude Sonnet 5.5",
+      "$2.00",
+      "$10.00",
+      "$0.10"
+     ],
+     [
+      "GPT-6.1 Sol",
+      "$2.00",
+      "$10.00",
+      "$0.10"
+     ],
+     [
+      "Claude Opus 5.5",
+      "$4.00",
+      "$20.00",
+      "$0.20"
+     ],
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ],
+     [
+      "Gemini 3.7 Flash",
+      "$0.75",
+      "$3.75",
+      "$0.075"
+     ],
+     [
+      "Gemini 3.8 Flash",
+      "$0.75",
+      "$3.75",
+      "$0.075"
+     ],
+     [
+      "Gemma 4 26B A4B ",
+      "$0.09",
+      "$0.30",
+      "$0.05"
+     ],
+     [
+      "Gemma 4 31B",
+      "$0.20",
+      "$0.40",
+      "not published"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "technomadcode",
+   "what": "What anthropic and artificial analysis say about sonnet 55",
+   "url": "https://dev.to/technomadcode/what-anthropic-and-artificial-analysis-say-about-sonnet-55-254p",
+   "posted": "2026-10-07"
+  },
+  {
+   "n": 2,
+   "platform": "an engineering blog",
+   "who": "simonwillison.net",
+   "what": "Claude sonnet 5 5",
+   "url": "https://simonwillison.net/2026/Sep/28/claude-sonnet-5-5/",
+   "posted": "2026-09-29"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "albertomontagnese",
+   "what": "Anthropics sonnet 55 release is about cost per task not peak performance",
+   "url": "https://dev.to/albertomontagnese/anthropics-sonnet-55-release-is-about-cost-per-task-not-peak-performance-27i6",
+   "posted": "2026-09-30"
+  },
+  {
+   "n": 4,
+   "platform": "dev.to",
+   "who": "ai_made_tools",
+   "what": "Ai dev weekly 28 gpt 61 sol claude sonnet 55 dots and nvidia openshell",
+   "url": "https://dev.to/ai_made_tools/ai-dev-weekly-28-gpt-61-sol-claude-sonnet-55-dots-and-nvidia-openshell-4f53",
+   "posted": "2026-10-01"
+  },
+  {
+   "n": 5,
+   "platform": "dev.to",
+   "who": "akartit",
+   "what": "Claude sonnet 55 built a kart racer for my tv 20 prompts 4 players real gamepads",
+   "url": "https://dev.to/akartit/claude-sonnet-55-built-a-kart-racer-for-my-tv-20-prompts-4-players-real-gamepads-1gaf",
+   "posted": "2026-10-04"
+  },
+  {
+   "n": 6,
+   "platform": "dev.to",
+   "who": "persimmoq",
+   "what": "Claude opus 55 sonnet 55 5 settings that return 400 when you only change the model name",
+   "url": "https://dev.to/persimmoq/claude-opus-55-sonnet-55-5-settings-that-return-400-when-you-only-change-the-model-name-5g36",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 7,
+   "platform": "dev.to",
+   "who": "bobbyhalljr",
+   "what": "Your model upgrade is a breaking change build contract tests for llm providers in typescript",
+   "url": "https://dev.to/bobbyhalljr/your-model-upgrade-is-a-breaking-change-build-contract-tests-for-llm-providers-in-typescript-14d",
+   "posted": "2026-10-04"
+  },
+  {
+   "n": 8,
+   "platform": "dev.to",
+   "who": "khushi886987",
+   "what": "Llms pass the data science quiz then give different advice a kaggle benchmark of 36 measured",
+   "url": "https://dev.to/khushi886987/llms-pass-the-data-science-quiz-then-give-different-advice-a-kaggle-benchmark-of-36-measured-2i6b",
+   "posted": "2026-10-09"
+  }
+ ],
+ "cite": {
+  "Anthropic lists Sonnet 5.5 twice on FrontierCode: 52.1% at xhigh effort and 46.2% at max.": 1,
+  "It penalizes changes outside the task's scope, even good ones.": 1,
+  "before running out of tokens and failing to produce an SVG": 2,
+  "If a task has a clear scope, more effort can mean more work you didn't ask for.": 1,
+  "Per OfficeChai, Artificial Analysis has Sonnet 5.5 at 63.6% against 59.6% for Opus 5.5 and 59.1% for Astra.": 1,
+  "Sonnet 5.5 appears to be almost as good as Opus 5.5 on some coding tasks": 2,
+  "a workhorse for bug fixes, documentation, and routine code generation": 3,
+  "They are useful for selecting candidates, not declaring a universal winner.": 4,
+  "costs up to 30% less for most tasks because it requires fewer tokens to complete the same work": 3,
+  "Sonnet 5.5 costs half as much per token as Opus 5.5, but at max effort a task came out at $7.60 against $5.98 for Opus 5.5.": 1,
+  "I read them as things that can happen, not things that will happen to you.": 1,
+  "Per OfficeChai, Artificial Analysis found high effort was Sonnet 5.5's most cost-competitive setting.": 1,
+  "a cartoon kart racer for 1 to 4 players that I built in Claude Code": 5,
+  "Every screenshot looked fine on a Mac, because the camera there never looked at the road from the angle that hides it.": 5,
+  "No amount of my own testing found the invisible road, because I was testing what I expected to see.": 5,
+  "I did not log the tokens, so there is no dollar figure for the code.": 5,
+  "one of these five settings will return an HTTP 400": 6,
+  "A UI that streams progress notes goes quiet with no error.": 6,
+  "Switching models drops its thinking.": 1,
+  "Changing a model string is a dependency upgrade.": 7,
+  "The quiet break is the one a status code will never catch.": 7,
+  "Opus 5.5 remains the escalation tier for ambiguous work that needs sustained judgment.": 4,
+  "can report a change as done without running a real check": 1,
+  "Everyone passes the quiz. Nobody passes the conversation.": 8,
+  "for the wrong reason": 8,
+  "The judge is a single model (Gemini 3.8 Flash), which could favour its own family's phrasing.": 8,
+  "36 cases is small: one case is ~2.8 points": 8,
+  "nothing outside Anthropic has checked the 30%+ faster claim yet": 1,
+  "Artificial Analysis ran a pre-release build with a bug that could hurt responses that use structured outputs.": 1,
+  "at low or medium effort Sonnet 5.5 beats Sonnet 5's best score on several benchmarks for about a tenth of the cost per task": 1,
+  "For certain high-risk cybersecurity requests, the model will visibly fall back to Sonnet 5.": 3,
+  "I couldn't find a Sonnet 5.5 result from them yet": 1,
+  "In Anthropic's coding tests at max effort, that cut session cost by about a third with no change in quality.": 1
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:11:24+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_0151625df9522b16",
+   "thread_context_69e485ba8a67a962",
+   "thread_context_e6737bc2a47bab7b",
+   "thread_context_495454a15a94ccd9",
+   "thread_context_75dd63e95c10f82b",
+   "thread_context_c068ba48bcd88b98",
+   "thread_context_79ab294b8c5fedb3",
+   "thread_context_55899f49de0fa182",
+   "thread_context_fcad7749c458bbad",
+   "thread_context_dc7310bd8d63b463"
+  ],
+  "platforms": {
+   "dev.to": 7,
+   "an engineering blog": 1,
+   "X": 2
+  },
+  "embedded": 2,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-report:anthropic/claude-sonnet-5.5",
+  "format": "field-report",
+  "reviewed_by": null
+ }
+}

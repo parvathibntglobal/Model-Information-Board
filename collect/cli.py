@@ -646,6 +646,29 @@ def _cmd_registry_aliases(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_poll_catalog(args: argparse.Namespace) -> int:
+    """OpenRouter's whole list, every output type, into `model_catalog`.
+
+    For the Models pages only - nothing in the evidence pipeline reads that
+    table (collect/registry/catalog.py says why). No credential: the feed is
+    public. Gated like every write.
+    """
+    from collect.db import transaction
+    from collect.http import build_client
+    from collect.registry.catalog import poll_catalog
+
+    with transaction() as conn:
+        _gate(conn)
+        with build_client() as client:
+            counts, unstorable = poll_catalog(conn, client)
+    print(f"catalogue: {counts['listed']} listed "
+          f"({counts['added']} new, {counts['updated']} updated)")
+    if unstorable:
+        print(f"NOT WRITTEN, value out of column range: {'; '.join(unstorable)}")
+        return 1
+    return 0
+
+
 def _cmd_registry_recompute_window(args: argparse.Namespace) -> int:
     """Nightly. The sole writer of `model_version.in_window`."""
     from collect.db import transaction
@@ -1163,9 +1186,40 @@ def _cmd_registry_seat_alias(args: argparse.Namespace) -> int:
         except SeatRefused as refusal:
             print(str(refusal))
             return 1
+    return _report_seat(report)
+
+
+#: Every verdict `_sync_alias` returns. Anything else is a defect, not a count.
+_SEAT_VERDICTS = ("inserted", "replaced", "unchanged")
+
+
+def _report_seat(report: dict) -> int:
+    """Print what the seat WROTE, from `_sync_alias`'s verdicts (#460).
+
+    This printed `seated <id>: N alias row(s)` from the rows BUILT, so a seat
+    that wrote nothing - GLM-5.3 on 2026-09-24, every verdict `unchanged`
+    because the alias id excludes the window - read as a success. Same class
+    as #444's "stored" count: a figure reported from the intention.
+
+    All `unchanged` prints "nothing written" and returns 1: a person who ran a
+    seat expecting a change needs the absence said, not inferred.
+    """
+    from collections import Counter
+
+    verdicts = Counter(report["verdicts"])
+    unknown = sorted(set(verdicts) - set(_SEAT_VERDICTS))
+    if unknown:
+        raise RuntimeError(f"_sync_alias returned unknown verdict(s) {unknown}")
+    counts = ", ".join(f"{verdicts[v]} {v}" for v in _SEAT_VERDICTS)
+    if not (verdicts["inserted"] or verdicts["replaced"]):
+        print(
+            f"nothing written for {report['canonical_id']}: {report['rows']} alias "
+            f"row(s) built, {counts} - every one is already in the table"
+        )
+        return 1
     print(
-        f"seated {report['canonical_id']}: {report['rows']} alias row(s), "
-        f"{report['searchable']} search-eligible, primary {report['surface']!r}"
+        f"seated {report['canonical_id']}: {counts} of {report['rows']} alias "
+        f"row(s), {report['searchable']} search-eligible, primary {report['surface']!r}"
     )
     return 0
 
@@ -1332,6 +1386,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="refresh model_version.in_window (nightly; sole writer of that column)",
     )
     recompute.set_defaults(func=_cmd_registry_recompute_window)
+
+    catalog = reg_sub.add_parser(
+        "poll-catalog",
+        help="OpenRouter's whole model list, every output type, into model_catalog "
+             "(the Models pages; never read by the evidence pipeline)",
+    )
+    catalog.set_defaults(func=_cmd_registry_poll_catalog)
 
     load = reg_sub.add_parser("load-seed", help="load contract/seed_models.yaml")
     load.add_argument("--dry-run", action="store_true", help="build rows, touch nothing")

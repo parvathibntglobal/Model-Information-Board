@@ -174,12 +174,15 @@ class BlogAssembleReport:
     unreadable_after_write: int = 0
 
     #: Author rows written for this feed. 1 for a `feed_declared` or `team`
-    #: byline, which is the voice count the contract measured.
+    #: byline, which is the voice count the contract measured; for `entry`, the
+    #: distinct bylines this run attached to a document.
     author_rows: int = 0
-    #: An `entry`-byline feed produced several authors and no per-document
-    #: mapping exists yet, so those documents keep `author_id` NULL. Counted
-    #: rather than attributed to the first one.
-    authors_per_entry_unwired: int = 0
+    #: Documents of an `entry`-byline feed whose OWN entry carries no byline,
+    #: so `author_id` stays NULL. A measurement, not a gap: the entry names
+    #: nobody, and the feed's other bylines are not evidence of who wrote it
+    #: (#373). Replaces `authors_per_entry_unwired`, which counted the run-level
+    #: branch this per-entry mapping removed and had no reader (rule 9).
+    entries_without_byline: int = 0
     #: Documents that already existed and had no author until this run. Reported
     #: apart from `documents_inserted` because a re-run that attributes 89 old
     #: rows and inserts none is doing real work, and one "written" counter would
@@ -243,27 +246,33 @@ def write_blog_run(
     """
     report = BlogAssembleReport()
 
-    # ── the author, once per run, because the run IS one feed ─────────────
+    # ── the author: once per run for a feed byline, per ENTRY for `entry` ──
     #
     # Written before the documents that reference it: `document.author_id` is a
     # foreign key, so the order is not a preference.
+    #
+    # #373: this used to branch on how many distinct bylines the RUN saw. One
+    # byline attached it to every article, including entries that named nobody;
+    # several wrote the rows and attached none, and the backfill below was
+    # guarded on the same None. So a document's attribution depended on who else
+    # published in the same sweep. An `entry` feed now keys on the article's own
+    # entry, built by `from_blog` exactly as the contract's per-entry case, and
+    # an entry with no byline stays NULL.
     author_id: str | None = None
+    per_entry = False
     if feed is not None:
         from collect.assemble.authors import from_blog, write_authors
 
-        extraction = from_blog(feed, [a.entry for a in run.articles if a.stored])
-        if len(extraction.rows) == 1:
-            write_authors(conn, extraction.rows)
-            author_id = extraction.rows[0].id
-            report.author_rows = 1
-        elif len(extraction.rows) > 1:
-            # An `entry`-byline feed: several voices in one run, and a document
-            # gets whichever wrote it. Not this run's shape yet — the nine feeds
-            # in the contract that do this have no stored articles — so it is
-            # counted and left NULL rather than guessed at.
-            write_authors(conn, extraction.rows)
-            report.author_rows = len(extraction.rows)
-            report.authors_per_entry_unwired = len(extraction.rows)
+        measured = feed.get("measured") or {}
+        per_entry = measured.get("byline_source") == "entry"
+        if not per_entry:
+            extraction = from_blog(feed, [a.entry for a in run.articles if a.stored])
+            if extraction.rows:
+                # `feed_declared` / `team`: one voice for the feed by contract.
+                write_authors(conn, extraction.rows)
+                author_id = extraction.rows[0].id
+                report.author_rows = len(extraction.rows)
+    entry_author_ids: set[str] = set()
 
     # ── the template-block rule, resolved ONCE from the contract ──────────
     #
@@ -322,13 +331,25 @@ def write_blog_run(
         # computed — and assembly is handed the id THE DATABASE HOLDS. If the
         # two conventions ever disagree, the read returns a different id and the
         # member list is wrong in a way the check below can see.
+        article_author_id = author_id
+        if per_entry:
+            # Written only once the article has a body to attach it to, so an
+            # entry that extracts nothing leaves no orphaned author row behind.
+            own = from_blog(feed, [article_fetch.entry]).rows
+            if own:
+                write_authors(conn, own)
+                article_author_id = own[0].id
+                entry_author_ids.add(article_author_id)
+            else:
+                report.entries_without_byline += 1
+
         document = {
             **document_row(
                 article,
                 text_ref=article_fetch.artifact.ref,
                 content_hash=article_fetch.artifact.content_hash,
                 published_at=article_fetch.entry.published_at,
-                author_id=author_id,
+                author_id=article_author_id,
             ),
             # Both columns or neither - see `_provenance`.
             **_provenance(harvest_run_id),
@@ -346,12 +367,14 @@ def write_blog_run(
             # nine-feed sweep: 89 documents landed with 0 authors.
             # Guarded by `author_id IS NULL`, so a real attribution is never
             # replaced. Same fix as `reddit_write` and `github.write_documents`.
-            if author_id is not None:
+            # The id is THIS article's, so an `entry` feed's backfill reaches
+            # its own byline rather than skipping on the run-level None (#373).
+            if article_author_id is not None:
                 attached = conn.execute(
                     "UPDATE document SET author_id = %(author_id)s "
                     "WHERE source = %(source)s AND external_id = %(external_id)s "
                     "AND author_id IS NULL",
-                    {"author_id": author_id, "source": document["source"],
+                    {"author_id": article_author_id, "source": document["source"],
                      "external_id": document["external_id"]},
                 )
                 report.authors_attached_to_existing += max(0, attached.rowcount)
@@ -389,4 +412,6 @@ def write_blog_run(
         if missing:
             report.members_unresolved += 1
 
+    if per_entry:
+        report.author_rows = len(entry_author_ids)
     return report

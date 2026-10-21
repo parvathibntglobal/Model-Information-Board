@@ -61,7 +61,7 @@ from dataclasses import dataclass, field
 from collect.adapters.reddit import reddit_document_id
 from collect.assemble.flatten import flatten
 from collect.assemble.prose import reddit_prose
-from collect.assemble.ranking import select_children
+from collect.assemble.ranking import select_children, version_surfaces
 from collect.assemble.thread import MAX_CHILDREN, SELECTION_METHOD, AssembledThread
 from collect.config import settings
 from collect.ids import stable_id
@@ -322,13 +322,20 @@ def _score_of(engagement) -> int | None:
     return None
 
 
-def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> RedditAssemblyReport:
+def assemble_reddit_documents(
+    conn, *, store, limit: int | None = None, roots: list[str] | None = None,
+) -> RedditAssemblyReport:
     """Assemble every stored Reddit thread that has no `thread_context` yet.
 
     A thread is a post (`thread_root_id IS NULL`) plus every comment whose
     `thread_root_id` is that post's document `id` (`reddit:t3_…`). Selected by the ABSENCE of a
     context on the ROOT, so a re-run is a no-op and `write_thread_context`'s
     `ON CONFLICT DO NOTHING` makes it safe rather than merely tidy.
+
+    `roots` NARROWS, it never widens: a listed root that already has a context
+    is still skipped. `scripts/backfill_reddit_comments.py` deletes one
+    body-only context and reassembles that root inside one transaction, and
+    must not sweep up every other unassembled root while it does.
     """
     from collect.assemble.thread import write_thread_context
     from collect.rawstore_reader import RawStoreReader
@@ -336,6 +343,10 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
     reader = RawStoreReader(store)
     report = RedditAssemblyReport()
 
+    if roots is not None and not roots:
+        return report
+    root_filter = "  AND d.id = ANY(%s) " if roots is not None else ""
+    params = (REDDIT_SOURCE, list(roots)) if roots is not None else (REDDIT_SOURCE,)
     roots = conn.execute(
         "SELECT d.id, d.external_id, d.text_ref, d.engagement "
         "FROM document d "
@@ -347,16 +358,17 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         "  AND d.status = 'kept' "
         "  AND d.thread_root_id IS NULL "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
-        "ORDER BY d.id"
+        + root_filter
+        + "ORDER BY d.id"
         + (f" LIMIT {int(limit)}" if limit else ""),
-        (REDDIT_SOURCE,),
+        params,
     ).fetchall()
     report.threads = len(roots)
 
     # The version's aliases are what `rank_children` scores specificity against —
     # a version token in a comment is the specificity signal. Read once, not
     # per thread.
-    version_aliases = _version_aliases(conn)
+    version_aliases = version_surfaces(conn)
     # Every current alias, for the relevance term. Also read once.
     from collect.assemble.ranking import load_lexicon
 
@@ -483,20 +495,3 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
             report.comments_inherited_subject += assembled.subject_inherited_children
 
     return report
-
-
-def _version_aliases(conn):
-    """The registry's VERSION and SNAPSHOT surfaces, which `names_version` counts.
-
-    Filtered on `model_alias.specificity`, not all aliases: `names_version` asks
-    whether a comment names a specific version (`sonnet 4`, `opus 4.6`), and a
-    family bare (`sonnet`) is precisely what it must NOT count — a comment saying
-    only `sonnet` is the low-specificity case ranking exists to sink. Reading all
-    aliases would score every family mention as version-specific, the same
-    over-broadening `specificity.py`'s own comment records costing weeks.
-    """
-    rows = conn.execute(
-        "SELECT DISTINCT normalized FROM model_alias "
-        "WHERE normalized IS NOT NULL AND specificity IN ('version', 'snapshot')"
-    ).fetchall()
-    return {r[0] for r in rows if r[0]}

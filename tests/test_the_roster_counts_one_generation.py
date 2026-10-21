@@ -98,7 +98,14 @@ class TestTheQueryIsScopedToOneGeneration:
         assert "%(pipeline_version)s" in SQL
         conn = _Conn([_row("a", cells=0)])
         RosterReader(conn).all()
-        assert conn.params[0] == {"pipeline_version": PIPELINE_VERSION}
+        # `hidden` arrives the same way, a list never formatted into the SQL:
+        # the sources a TOTAL leaves out. Empty since 2026-10-15, when totals
+        # began counting every source (contract/publication.yaml).
+        from judge import publication
+
+        assert conn.params[0] == {"pipeline_version": PIPELINE_VERSION,
+                                  "hidden": list(publication.hidden_from_counts())}
+        assert "%(hidden)s" in SQL
 
     def test_it_defaults_to_the_current_generation(self):
         conn = _Conn([_row("a", cells=0)])

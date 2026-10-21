@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { BoardUnreadable, modelEvidence } from '../api'
 import { Badge, Notice, Unreadable } from './ui'
 import { IconAlert, IconLayers } from './Icons'
+import { sourceName } from '../sourceName'
 
 /**
  * The evidence behind one model, grouped by the sections the classifier found.
@@ -51,6 +52,60 @@ function safeHref(u) {
 const QUOTES_SHOWN = 4
 
 /**
+ * THE SAME WORDS FROM THE SAME LINK, SHOWN ONCE. Two claims can quote one post
+ * with a trailing full stop apart ("…incredible reviews" / "…reviews."), and a
+ * section then shows the sentence twice in a row. Only an exact repeat - same
+ * text once case, spaces and end punctuation are ignored, and the same URL - is
+ * folded; the same words from two different sources stay two quotes.
+ */
+function dedupeQuotes(d) {
+  if (!d) return d
+  const norm = (t) => String(t || '').toLowerCase().replace(/\s+/g, ' ').replace(/[\s.,;:!?…"'”’]+$/u, '').trim()
+  const out = { ...d }
+  for (const [key] of SECTIONS) {
+    if (!Array.isArray(d[key])) continue
+    out[key] = d[key].map((it) => {
+      const seen = new Set()
+      const quotes = (it.quotes || []).filter((q) => {
+        const k = `${norm(q.quote)}|${q.url || ''}`
+        if (seen.has(k)) return false
+        seen.add(k)
+        return true
+      })
+      return { ...it, quotes }
+    })
+  }
+  return out
+}
+
+/** Every distinct quote on the page, counted by polarity and by platform. A
+ *  COUNT, never a score - and only of what this page shows. */
+function tally(d) {
+  const seen = new Set()
+  const polarity = { positive: 0, negative: 0, neutral: 0 }
+  const hosts = new Set()
+  let unlinked = 0
+  for (const [key] of SECTIONS) {
+    for (const it of d?.[key] || []) {
+      for (const q of it.quotes || []) {
+        const k = `${q.quote}|${q.url || ''}`
+        if (seen.has(k)) continue
+        seen.add(k)
+        polarity[q.polarity in polarity ? q.polarity : 'neutral'] += 1
+        // A PLATFORM, NOT A HOSTNAME: every site the board does not name
+        // (personal and company blogs) is one platform, "blogs" - ten blogs are
+        // not ten platforms. A quote with no link is counted, not dropped.
+        const href = safeHref(q.url)
+        if (!href) { unlinked += 1; continue }
+        const name = sourceName(href)
+        hosts.add(name.includes('.') && !['dev.to'].includes(name) ? 'blogs' : name)
+      }
+    }
+  }
+  return { ...polarity, total: seen.size, platforms: hosts.size, unlinked }
+}
+
+/**
  * One verified quote, with its polarity and a link back to the source.
  *
  * EXTRACTED SO THE FIRST FOUR AND THE REST CANNOT DIVERGE. They were two copies
@@ -64,21 +119,23 @@ function Quote({ q }) {
     <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
       <Badge tone={q.polarity === 'negative' ? 'fail'
         : q.polarity === 'positive' ? 'pass' : 'mute'}>{q.polarity}</Badge>
-      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)' }}>
-        “{q.quote}”
+      {/* THE QUOTE IS THE CONTENT, so it reads at full strength and a step
+          larger. Its source sits on its own line under it, small and dim, so
+          the link never runs into the quote's last words. */}
+      <span className="q-wrap">
+        <span className="q-text">“{q.quote}”</span>
         {/* THE SOURCE, LINKED. The payload used to carry only a document id, so
             the quote could not be checked against what the person actually
-            wrote — which is the one thing this panel is for. */}
+            wrote — which is the one thing this panel is for. The platform's
+            name is read off the link; the old words stay as the accessible
+            label. */}
         {href ? (
-          <>
-            {' '}
-            <a href={href} target="_blank" rel="noopener noreferrer"
-               className="mb-link" style={{ whiteSpace: 'nowrap' }}>
-              open the source ↗
-            </a>
-          </>
+          <a href={href} target="_blank" rel="noopener noreferrer" className="q-src"
+             aria-label={`open the source on ${sourceName(href)}`}>
+            {sourceName(href)} ↗
+          </a>
         ) : (
-          <span className="dim" style={{ fontSize: 10 }}> · no link recorded</span>
+          <span className="q-src dim">no link recorded</span>
         )}
       </span>
     </div>
@@ -101,7 +158,7 @@ export default function ModelEvidence({ modelVersionId }) {
     setState({ data: null, err: null, unreadable: null })
     setPicked(null)   // a different model is a different set of empty sections
     modelEvidence(modelVersionId)
-      .then((d) => alive && setState({ data: d, err: null, unreadable: null }))
+      .then((d) => alive && setState({ data: dedupeQuotes(d), err: null, unreadable: null }))
       .catch((e) => alive && setState({
         data: null,
         err: e instanceof BoardUnreadable ? null : e.message,
@@ -145,8 +202,8 @@ export default function ModelEvidence({ modelVersionId }) {
           evidence and names the job, the behaviour or the figure it discusses.
           A reader cannot tell those two apart from a heading reading
           "Evidence". */}
-      <div style={{ padding: '0 var(--s4)' }}>
-        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0 }}>
+      <div className="card-intro">
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Three ways into the same evidence, and the sections are{' '}
           <strong style={{ color: 'var(--text)' }}>discovered, not chosen from a list</strong>{' '}
           — whatever engineers actually discussed gets named here, whether or not it
@@ -156,6 +213,20 @@ export default function ModelEvidence({ modelVersionId }) {
       </div>
 
       <div className="card-body stack stack-3">
+        {/* AT A GLANCE, before the sections: how the reports lean, and from how
+            many places. Counted from the quotes on this page; dated "today"
+            because the board changes with every fetch. */}
+        {data && totals.sections > 0 && (() => {
+          const t = tally(data)
+          return (
+            <div className="ev-sum" aria-label="Quotes on this page, by polarity">
+              <span className="ev-n pos"><b className="tnum">{t.positive}</b> positive</span>
+              <span className="ev-n neg"><b className="tnum">{t.negative}</b> negative</span>
+              <span className="ev-n neu"><b className="tnum">{t.neutral}</b> neutral</span>
+              <span className="ev-of dim">of {t.total} distinct quotes (one quote can sit in several sections) · from {t.platforms} platform{t.platforms === 1 ? '' : 's'}{t.unlinked ? ` (${t.unlinked} with no link)` : ''} · on the board today</span>
+            </div>
+          )
+        })()}
         {unreadable && <Unreadable detail={unreadable} compact />}
         {err && <Notice icon={<IconAlert />}>{err}</Notice>}
         {!data && !err && !unreadable && <div className="skel" style={{ height: 140 }} />}

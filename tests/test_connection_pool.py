@@ -198,3 +198,45 @@ def test_a_refused_connection_does_not_leak_a_slot(pool, monkeypatch):
     monkeypatch.setattr(psycopg, "connect", lambda url, **_: FakeConnection(url))
     held = [pool.take(URL) for _ in range(_ConnectionPool.MAX)]
     assert len(held) == _ConnectionPool.MAX
+
+
+class TestAnIdleConnectionIsPingedNotTrusted:
+    """`rollback()` sends nothing when no transaction is open, so a connection
+    the server dropped while idle passed the old check and the request's first
+    query failed - a 500 on /models twice on 2026-10-06. Past PING_AFTER_S idle,
+    a real round trip decides."""
+
+    @staticmethod
+    def _clock(monkeypatch, start=1000.0):
+        import judge.app as app
+        now = {"t": start}
+        monkeypatch.setattr(app.time, "monotonic", lambda: now["t"])
+        return now
+
+    def test_a_dropped_idle_connection_is_replaced(self, pool, monkeypatch):
+        now = self._clock(monkeypatch)
+        first = pool.take(URL)
+        pool.give_back(first, reusable=True)
+        def dead(*a, **k):
+            raise RuntimeError("server closed the connection unexpectedly")
+        first.execute = dead
+        now["t"] += _ConnectionPool.PING_AFTER_S + 1
+        second = pool.take(URL)
+        assert second is not first and first.closed
+
+    def test_a_live_idle_connection_is_reused(self, pool, monkeypatch):
+        now = self._clock(monkeypatch)
+        first = pool.take(URL)
+        pool.give_back(first, reusable=True)
+        pings = []
+        first.execute = lambda sql: pings.append(sql)
+        now["t"] += _ConnectionPool.PING_AFTER_S + 1
+        assert pool.take(URL) is first
+        assert pings == ["SELECT 1"]
+
+    def test_a_recently_used_connection_is_not_pinged(self, pool, monkeypatch):
+        self._clock(monkeypatch)
+        first = pool.take(URL)
+        pool.give_back(first, reusable=True)
+        first.execute = lambda sql: (_ for _ in ()).throw(AssertionError("pinged"))
+        assert pool.take(URL) is first

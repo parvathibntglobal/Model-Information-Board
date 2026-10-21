@@ -63,8 +63,13 @@ def _names(text: str) -> set[str]:
     `gpt5.5` are three entries for one model. The question this finder is
     asked is WHICH MODELS a text names, so the spellings are collapsed —
     otherwise "named two models" would be untestable on any real registry.
+
+    Reads `found(...).surface`, the REGISTRY spelling, since #365 made
+    `__call__` return the document's spelling (`GPT-5.5`, not `gpt-5.5`). The
+    question here is which registry surfaces survived, and that is where the
+    answer now lives.
     """
-    return {s.replace(" ", "-").replace("--", "-") for s in FINDER(text)}
+    return {f.surface.replace(" ", "-").replace("--", "-") for f in FINDER.found(text)}
 
 
 class TestTheThreeDemonstratedCases:
@@ -110,7 +115,8 @@ class TestItUsesTheRuleTheOtherPathAlreadyUses:
 
     def test_the_finder_returns_fewer_than_the_raw_resolver(self):
         raw = set(resolve("GPT-5.5 was slower.", POPULATION))
-        assert set(FINDER("GPT-5.5 was slower.")) < raw
+        found = {f.surface for f in FINDER.found("GPT-5.5 was slower.")}
+        assert found < raw
 
     def test_it_returns_the_hits_rather_than_the_whole_resolution(self):
         """A tuple of surfaces, the same shape it always returned. Callers of

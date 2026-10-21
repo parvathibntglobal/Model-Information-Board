@@ -1,0 +1,538 @@
+{
+ "slug": "research-radar-concept-agents",
+ "status": "draft",
+ "tag": "Research radar",
+ "feat": false,
+ "title": "AI Agents Get the Least Review Exactly Where They Need It Most",
+ "dek": "This week's radar: agent pull requests that slip past maintainers, greedy fetching in binary analysis, receipts on every screening call, and logic-checked goals for agent teams.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What are AI agents doing that's new? Matching human reverse engineers by fetching greedily, attaching receipts to decisions, and slipping deployment changes past review. The records are improving; reading them is the open problem.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImxlbnNnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4zIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJ3YXJuIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC4zIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYW0iIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjYiIG1hcmtlckhlaWdodD0iNiIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImF5IiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI2IiBtYXJrZXJIZWlnaHQ9IjYiIG9yaWVudD0iYXV0byI+CiAgICAgIDxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgeiIgZmlsbD0iI2UzYjM0MSIvPgogICAgPC9tYXJrZXI+CiAgICA8c3ltYm9sIGlkPSJwciIgdmlld0JveD0iMCAwIDE1MCAxMDAiPgogICAgICA8cmVjdCB4PSIyIiB5PSIyIiB3aWR0aD0iMTQ2IiBoZWlnaHQ9Ijk2IiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxjaXJjbGUgY3g9IjMwIiBjeT0iNzIiIHI9IjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxsaW5lIHgxPSIzMCIgeTE9IjM4IiB4Mj0iMzAiIHkyPSI2NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPHJlY3QgeD0iNTQiIHk9IjI0IiB3aWR0aD0iNzIiIGhlaWdodD0iMTAiIHJ4PSI1IiBmaWxsPSIjMmMzNTQ0Ii8+CiAgICAgIDxyZWN0IHg9IjU0IiB5PSI0NiIgd2lkdGg9IjU2IiBoZWlnaHQ9IjEwIiByeD0iNSIgZmlsbD0iIzJjMzU0NCIvPgogICAgICA8cmVjdCB4PSI1NCIgeT0iNjgiIHdpZHRoPSI2NCIgaGVpZ2h0PSIxMCIgcng9IjUiIGZpbGw9IiMyYzM1NDQiLz4KICAgIDwvc3ltYm9sPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGxpbmUgeDE9IjgwIiB5MT0iNDcwIiB4Mj0iMTEzMCIgeTI9IjQ3MCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxnIGZpbGw9IiMxMDE0MWIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0Ij4KICAgIDxjaXJjbGUgY3g9Ijg4MCIgY3k9IjQ3MCIgcj0iMTMiLz4KICAgIDxjaXJjbGUgY3g9Ijk4MCIgY3k9IjQ3MCIgcj0iMTMiLz4KICAgIDxjaXJjbGUgY3g9IjEwODAiIGN5PSI0NzAiIHI9IjEzIi8+CiAgPC9nPgogIDx0ZXh0IHg9IjExMzAiIHk9IjUzMCIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzQiIGZpbGw9IiMzZWNmOGUiPm1haW48L3RleHQ+CiAgPHVzZSBocmVmPSIjcHIiIHg9IjcwIiB5PSIyNjAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTAwIiBvcGFjaXR5PSIwLjU1Ii8+CiAgPHVzZSBocmVmPSIjcHIiIHg9IjExMCIgeT0iMjkwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgb3BhY2l0eT0iMC44Ii8+CiAgPGxpbmUgeDE9IjI2OCIgeTE9IjM0MCIgeDI9IjQxMCIgeTI9IjM0MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPGVsbGlwc2UgY3g9IjUzMCIgY3k9IjM0MCIgcng9IjIwMCIgcnk9IjIwMCIgZmlsbD0idXJsKCNsZW5zZ2xvdykiLz4KICA8Y2lyY2xlIGN4PSI1MzAiIGN5PSIzNDAiIHI9IjEwNCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgPGxpbmUgeDE9IjYwNiIgeTE9IjQxNiIgeDI9IjY3NiIgeTI9IjQ4NiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjE2IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNNjQwIDM0MCBDIDcyMCAzNDAsIDc2MCA0NzAsIDg2OCA0NzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI4IDgiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPGVsbGlwc2UgY3g9IjU2MCIgY3k9IjEyMCIgcng9IjE3MCIgcnk9IjkwIiBmaWxsPSJ1cmwoI3dhcm4pIi8+CiAgPHBhdGggZD0iTTI1MCAyNzAgQyAzMzAgNjAsIDgyMCA0MCwgOTcwIDQ0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYXkpIi8+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDkwIDcwKSI+CiAgICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIi8+CiAgICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgcng9IjE0IiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMTUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICA8Y2lyY2xlIGN4PSI3NSIgY3k9IjUwIiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtZGFzaGFycmF5PSI3IDYiLz4KICAgIDxjaXJjbGUgY3g9Ijc1IiBjeT0iNTAiIHI9IjEwIiBmaWxsPSIjZTNiMzQxIi8+CiAgPC9nPgo8L3N2Zz4K",
+  "alt": "Pull request cards flow toward a review lens; one carrying an infrastructure gear arcs around the lens straight into main",
+  "caption": "The sharpest finding this week: agent changes to deployment files are the ones most likely to skip the reviewer.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What are AI agents doing in new research? Greedy fetching, per-decision receipts, governed architectures, and agent PRs that merge with no human look.",
+ "keywords": [
+  "what are AI agents",
+  "AI agents",
+  "AI agent pull requests",
+  "greedy fetching",
+  "multi-agent systems",
+  "agent provenance"
+ ],
+ "kicker": "Research radar",
+ "tags": [
+  "AI agents",
+  "Research radar"
+ ],
+ "read": 7,
+ "decisions": [
+  "Require human review on infrastructure paths for agent-authored changes.",
+  "Improve tool output representation before upgrading an open-weight agent.",
+  "Demand a reason and a source on every agent decision you will audit.",
+  "Log complete agent interactions so workflow differences stay visible."
+ ],
+ "layout": "radar",
+ "arrangement": "b",
+ "special": {
+  "type": "radar",
+  "title": "On the radar",
+  "items": [
+   {
+    "item": "Path-based review for agent PRs",
+    "what": "Access controls that force human review on deployment and infrastructure paths regardless of author.",
+    "why": "Agent identity cuts the odds of human review by 63.7%, and dual-scope changes merge silently.",
+    "stage": "new idea",
+    "source": 5,
+    "ref": {
+     "title": "Co-Modifying Application Code and Deployment Infrastructure: A Causal Study of AI Agent Pull Requests",
+     "url": "https://arxiv.org/abs/2610.12849v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Greedy fetching",
+    "what": "The agent habit of jumping across a binary and pulling code broadly without revisiting it.",
+    "why": "It matches human scores by a different route and saturates context on large programs.",
+    "stage": "early results",
+    "source": 2,
+    "ref": {
+     "title": "Humans vs. Machines: A Comparison With AI Agents in Software Reverse Engineering",
+     "url": "https://arxiv.org/abs/2610.14960v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Richer tool representations",
+    "what": "Feeding agents semantically richer code instead of low-level output.",
+    "why": "Open-weight models improve substantially, and agents fetch less without losing understanding.",
+    "stage": "early results",
+    "source": 2,
+    "ref": {
+     "title": "Humans vs. Machines: A Comparison With AI Agents in Software Reverse Engineering",
+     "url": "https://arxiv.org/abs/2610.14960v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Per-decision receipts",
+    "what": "A multi-agent review system that records a reason for every screening call and a source for every value.",
+    "why": "Makes systematic-review automation auditable, with screening macro F1 up to 0.776.",
+    "stage": "early results",
+    "source": 1,
+    "ref": {
+     "title": "ReviewPilot: A Multi-Agent System for Screening and Data Extraction in Systematic Reviews",
+     "url": "https://arxiv.org/abs/2610.21042v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Governed low-level agent architecture",
+    "what": "A decomposition of a governance framework into roles, typed contracts, task graphs and runtime states.",
+    "why": "Gives teams a concrete checklist for inspectable, testable agent workflows.",
+    "stage": "new idea",
+    "source": 3,
+    "ref": {
+     "title": "ANASSA: From High-Level Framework to Low-Level Architecture for Spatial Agentic AI",
+     "url": "https://arxiv.org/abs/2610.14382v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Continuous spec validation",
+    "what": "Agents that detect and self-correct OpenAPI syntax errors and propose missing endpoints.",
+    "why": "Treats API specs as maintained artifacts, with 100% syntax error detection for the top model.",
+    "stage": "early results",
+    "source": 4,
+    "ref": {
+     "title": "Agent4Spec: An LLM-based Agentic System to Optimize API Specifications through Automated Validation and Market Analysis",
+     "url": "https://arxiv.org/abs/2610.13273v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "item": "Certified temporal objectives",
+    "what": "Multi-agent learning against probabilistic temporal-logic goals compiled into reward automata.",
+    "why": "Offers certified satisfaction probabilities, a property LLM agent evaluations lack.",
+    "stage": "new idea",
+    "source": 6,
+    "ref": {
+     "title": "Learning Rational Strategies for Temporal Objectives in Multi-Agent Systems",
+     "url": "https://arxiv.org/abs/2610.22287v1",
+     "platform": "arXiv"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Agent pull requests skip human review at the riskiest seam",
+    "num": "01",
+    "id": "agent-pull-requests-skip-human-review-at-the-riskiest-seam"
+   }
+  ],
+  [
+   "p",
+   "Here's the newest finding, stated plainly: agent pull requests that change deployment config are the ones most likely to merge unread. A new arXiv causal study of agent PRs reports that agent identity «reduces the odds of human review by 63.7% compared to human peers». That holds even for outside contributors without write access. Read that again. The bot gets waved through."
+  ],
+  [
+   "p",
+   "The study calls these dual-scope PRs: one change that edits application logic plus CI/CD pipelines, containers or provisioning manifests. They're rare, «only 4.48% to 4.55% of agentic PRs». But they split into two modes. Reviewed ones stall, with «a median penalty of +13.13 hours». Unreviewed ones fly: «43.1% to 56.2% of dual-scope PRs bypass inspection to merge silently»."
+  ],
+  [
+   "p",
+   "Once named, the cause is easy to see. Agents are evaluated in sandboxes «against synchronous local tests», so they never meet the failure that arrives later, in an asynchronous pipeline. We think the authors' remedy, «strict path-based access controls», is the right first move. Make anything under your deploy and workflow folders need a human, whoever wrote it."
+  ],
+  [
+   "code",
+   {
+    "label": "A path-based review rule, sketched as generic policy config (illustrative)",
+    "language": "yaml",
+    "source": "# require a human reviewer for infrastructure paths,\n# no matter who (or what) opened the pull request\nreview_policy:\n  - paths: [\"deploy/**\", \"infra/**\", \".ci/**\", \"Dockerfile\"]\n    require_human_review: true\n    applies_to_authors: [humans, agents]\n  - paths: [\"src/**\"]\n    require_human_review: when_agent_touches_infra_too"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What the causal study reports about dual-scope agent pull requests that touch app code and deployment infrastructure.",
+    "columns": [
+     "Measure",
+     "Reported figure"
+    ],
+    "rows": [
+     [
+      "Share of agentic PRs that are dual-scope",
+      "4.48% to 4.55%"
+     ],
+     [
+      "Median delay when reviewed",
+      "+13.13 hours"
+     ],
+     [
+      "Dual-scope PRs merged without inspection",
+      "43.1% to 56.2%"
+     ],
+     [
+      "Median time to silent merge",
+      "under 31 minutes"
+     ],
+     [
+      "Reduction in odds of human review for agents",
+      "63.7%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Greedy fetching matches human reverse engineers by another route",
+    "num": "02",
+    "id": "greedy-fetching-matches-human-reverse-engineers-by-another-r"
+   }
+  ],
+  [
+   "p",
+   "The reverse-engineering study is the most fun read on this list. We went through its setup closely. Nine models took on two static-analysis challenges that human analysts had already solved, and every interaction in IDA Pro was logged. The best agents «achieve statistically human-competitive understanding on both tasks, while weaker models remain far behind». So far, a scoreboard. The trace is the good part."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcxMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhYiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNSIgbWFya2VySGVpZ2h0PSI1IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXYiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjUiIG1hcmtlckhlaWdodD0iNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8L21hcmtlcj4KICAgIDxwYXR0ZXJuIGlkPSJncmlkIiB4PSIwIiB5PSIwIiB3aWR0aD0iOTAiIGhlaWdodD0iODAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8cmVjdCB4PSI4IiB5PSI4IiB3aWR0aD0iNzAiIGhlaWdodD0iNjAiIHJ4PSIxMCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDwvcGF0dGVybj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNzEwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiM3YWEyZmYiPkh1bWFuIGFuYWx5c3Q8L3RleHQ+CiAgICA8dGV4dCB4PSI2MCIgeT0iMTA2IiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5yZXZpc2l0cywgZm9sbG93cyBsb2NhbCBzdHJ1Y3R1cmU8L3RleHQ+CiAgICA8dGV4dCB4PSI2NDAiIHk9IjcwIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjYTc4YmZhIj5TdHJvbmcgYWdlbnQ8L3RleHQ+CiAgICA8dGV4dCB4PSI2NDAiIHk9IjEwNiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+Z3JlZWR5IGZldGNoaW5nIGFjcm9zcyB0aGUgYmluYXJ5PC90ZXh0PgogIDwvZz4KICA8cmVjdCB4PSI2MCIgeT0iMTQwIiB3aWR0aD0iNDUwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNncmlkKSIvPgogIDxyZWN0IHg9IjY0MCIgeT0iMTQwIiB3aWR0aD0iNDUwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNncmlkKSIvPgogIDxnIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4zIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyI+CiAgICA8cmVjdCB4PSIxNTgiIHk9IjIyOCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjYwIiByeD0iMTAiLz4KICAgIDxyZWN0IHg9IjI0OCIgeT0iMjI4IiB3aWR0aD0iNzAiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPgogICAgPHJlY3QgeD0iMjQ4IiB5PSIzMDgiIHdpZHRoPSI3MCIgaGVpZ2h0PSI2MCIgcng9IjEwIi8+CiAgICA8cmVjdCB4PSIxNTgiIHk9IjMwOCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjYwIiByeD0iMTAiLz4KICA8L2c+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiPgogICAgPHBhdGggZD0iTTIyOCAyNDggTDI0NiAyNDgiIG1hcmtlci1lbmQ9InVybCgjYWIpIi8+CiAgICA8cGF0aCBkPSJNMjgzIDI4OCBMMjgzIDMwNiIgbWFya2VyLWVuZD0idXJsKCNhYikiLz4KICAgIDxwYXRoIGQ9Ik0yNDggMzM4IEwyMzAgMzM4IiBtYXJrZXItZW5kPSJ1cmwoI2FiKSIvPgogICAgPHBhdGggZD0iTTE5MyAzMDggTDE5MyAyOTAiIG1hcmtlci1lbmQ9InVybCgjYWIpIi8+CiAgICA8cGF0aCBkPSJNMTc2IDIyNiBDIDE1MCAxODAsIDI1MCAxNzAsIDI3MCAyMjQiIG1hcmtlci1lbmQ9InVybCgjYWIpIi8+CiAgPC9nPgogIDxjaXJjbGUgY3g9IjgxNSIgY3k9IjMzOCIgcj0iMTQiIGZpbGw9IiNhNzhiZmEiLz4KICA8ZyBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMjgiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxyZWN0IHg9IjY0OCIgeT0iMTQ4IiB3aWR0aD0iNzAiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPgogICAgPHJlY3QgeD0iMTAwOCIgeT0iMTQ4IiB3aWR0aD0iNzAiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPgogICAgPHJlY3QgeD0iOTE4IiB5PSIyMjgiIHdpZHRoPSI3MCIgaGVpZ2h0PSI2MCIgcng9IjEwIi8+CiAgICA8cmVjdCB4PSI2NDgiIHk9IjM4OCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjYwIiByeD0iMTAiLz4KICAgIDxyZWN0IHg9IjEwMDgiIHk9IjQ2OCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjYwIiByeD0iMTAiLz4KICAgIDxyZWN0IHg9IjgyOCIgeT0iNDY4IiB3aWR0aD0iNzAiIGhlaWdodD0iNjAiIHJ4PSIxMCIvPgogICAgPHJlY3QgeD0iNzM4IiB5PSIxNDgiIHdpZHRoPSI3MCIgaGVpZ2h0PSI2MCIgcng9IjEwIi8+CiAgICA8cmVjdCB4PSIxMDA4IiB5PSIzMDgiIHdpZHRoPSI3MCIgaGVpZ2h0PSI2MCIgcng9IjEwIi8+CiAgPC9nPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxwYXRoIGQ9Ik04MTUgMzM4IEw2OTAgMjEyIiBtYXJrZXItZW5kPSJ1cmwoI2F2KSIvPgogICAgPHBhdGggZD0iTTgxNSAzMzggTDc3MCAyMTIiIG1hcmtlci1lbmQ9InVybCgjYXYpIi8+CiAgICA8cGF0aCBkPSJNODE1IDMzOCBMMTAwNCAxODIiIG1hcmtlci1lbmQ9InVybCgjYXYpIi8+CiAgICA8cGF0aCBkPSJNODE1IDMzOCBMOTE1IDI2MiIgbWFya2VyLWVuZD0idXJsKCNhdikiLz4KICAgIDxwYXRoIGQ9Ik04MTUgMzM4IEwxMDA0IDMzOCIgbWFya2VyLWVuZD0idXJsKCNhdikiLz4KICAgIDxwYXRoIGQ9Ik04MTUgMzM4IEw3MjIgNDEyIiBtYXJrZXItZW5kPSJ1cmwoI2F2KSIvPgogICAgPHBhdGggZD0iTTgxNSAzMzggTDg2MCA0NjQiIG1hcmtlci1lbmQ9InVybCgjYXYpIi8+CiAgICA8cGF0aCBkPSJNODE1IDMzOCBMMTAwNCA0OTQiIG1hcmtlci1lbmQ9InVybCgjYXYpIi8+CiAgPC9nPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCI+CiAgICA8dGV4dCB4PSI2MCIgeT0iNTg4IiBmaWxsPSIjOTVhMWI0Ij5jb250ZXh0IGhvbGRzIGEgZmV3IGZ1bmN0aW9uczwvdGV4dD4KICAgIDx0ZXh0IHg9IjY0MCIgeT0iNTg4IiBmaWxsPSIjOTVhMWI0Ij5jb250ZXh0IGZpbGxzIHdpdGggZmV0Y2hlZCBjb2RlPC90ZXh0PgogIDwvZz4KICA8cmVjdCB4PSI2MCIgeT0iNjA2IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjgwIiByeD0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiLz4KICA8cmVjdCB4PSI3NiIgeT0iNjQ2IiB3aWR0aD0iNjAiIGhlaWdodD0iMjYiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuNSIvPgogIDxyZWN0IHg9IjE0NiIgeT0iNjQ2IiB3aWR0aD0iNjAiIGhlaWdodD0iMjYiIHJ4PSI2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuNSIvPgogIDxyZWN0IHg9IjY0MCIgeT0iNjA2IiB3aWR0aD0iMTcwIiBoZWlnaHQ9IjgwIiByeD0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiLz4KICA8ZyBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuNTUiPgogICAgPHJlY3QgeD0iNjUyIiB5PSI2NTAiIHdpZHRoPSI0NiIgaGVpZ2h0PSIyNCIgcng9IjYiLz48cmVjdCB4PSI3MDIiIHk9IjY1MCIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjI0IiByeD0iNiIvPjxyZWN0IHg9Ijc1MiIgeT0iNjUwIiB3aWR0aD0iNDYiIGhlaWdodD0iMjQiIHJ4PSI2Ii8+CiAgICA8cmVjdCB4PSI2NTIiIHk9IjYyMCIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjI0IiByeD0iNiIvPjxyZWN0IHg9IjcwMiIgeT0iNjIwIiB3aWR0aD0iNDYiIGhlaWdodD0iMjQiIHJ4PSI2Ii8+PHJlY3QgeD0iNzUyIiB5PSI2MjAiIHdpZHRoPSI0NiIgaGVpZ2h0PSIyNCIgcng9IjYiLz4KICAgIDxyZWN0IHg9Ijc5NiIgeT0iNjQwIiB3aWR0aD0iNDYiIGhlaWdodD0iMjQiIHJ4PSI2IiB0cmFuc2Zvcm09InJvdGF0ZSgxMiA4MTkgNjUyKSIvPjxyZWN0IHg9IjgxMiIgeT0iNjA4IiB3aWR0aD0iNDYiIGhlaWdodD0iMjQiIHJ4PSI2IiB0cmFuc2Zvcm09InJvdGF0ZSgyNiA4MzUgNjIwKSIvPgogIDwvZz4KICA8dGV4dCB4PSI4ODQiIHk9IjY2MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZTNiMzQxIj5vdmVyZmxvd3Mgb24gbGFyZ2UgcHJvZ3JhbXM8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "A grid of binary functions: a human path loops locally and revisits; an agent path fans out across the whole grid",
+    "caption": "Humans revisit nearby functions, while agents fetch broadly and fill their context, which the authors call greedy fetching.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "«Similar success rates hide different workflows.» Humans circle back to functions and follow local structure. Strong agents «jump across the binary, retrieve information broadly, and rarely return to inspected code», a habit the authors call greedy fetching. Picture a human reading a codebase file by file, and an agent photocopying the whole repository before reading any of it."
+  ],
+  [
+   "p",
+   "Greedy fetching has a bill. It piles code into context, and the authors checked saturation across 4,000 real-world binaries: «larger applications and lower-level representations quickly exhaust them». We agree with their conclusion that scaling needs «better navigation, selective retrieval, and persistent analysis state». Of those, we'd bet on persistent state first, because it's the human habit agents skip."
+  ],
+  [
+   "h2",
+   {
+    "text": "Richer code representations close the open-weight gap",
+    "num": "03",
+    "id": "richer-code-representations-close-the-open-weight-gap"
+   }
+  ],
+  [
+   "p",
+   "One ablation from the same study deserves its own entry. The human-agent gap, the authors write, «depends on code representation and workflow demands, not on model capability alone». Open-weight models «improve substantially with richer code representations, whereas frontier models show no significant change». So the weaker reader gains most from better input."
+  ],
+  [
+   "p",
+   "That's actionable today. If you run an open-weight agent on a hard tool task, invest in what the tool returns before you pay for a bigger model. Named, structured pseudo-code beats a wall of raw disassembly for a weaker reader. There's a bonus, too: «given semantically richer code, agents fetch less without losing understanding». We think the lesson travels well beyond binaries. Tool output format is part of the agent."
+  ],
+  [
+   "h2",
+   {
+    "text": "ReviewPilot attaches a reason to every screening decision",
+    "num": "04",
+    "id": "reviewpilot-attaches-a-reason-to-every-screening-decision"
+   }
+  ],
+  [
+   "p",
+   "ReviewPilot attacks a quieter failure. Deep research tools «can search and summarize the literature but do not record which studies are excluded or where extracted values come from». For a systematic review, that's disqualifying. PRISMA, the standard protocol for screening papers and extracting evidence, expects every exclusion to be explainable to a reader."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhbSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NjAiIGZpbGw9InVybCgjYmcpIi8+CiAgPHRleHQgeD0iNTAiIHk9IjY2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPkV2ZXJ5IGNhbGwgY2FycmllcyBpdHMgcmVjZWlwdDwvdGV4dD4KICA8ZyBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0iIzE1MWEyMyI+CiAgICA8cmVjdCB4PSI1MCIgeT0iMjUwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE5MCIgcng9IjEyIiBvcGFjaXR5PSIwLjUiLz4KICAgIDxyZWN0IHg9IjcwIiB5PSIyMzIiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTkwIiByeD0iMTIiIG9wYWNpdHk9IjAuNzUiLz4KICAgIDxyZWN0IHg9IjkwIiB5PSIyMTQiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTkwIiByeD0iMTIiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzJjMzU0NCI+CiAgICA8cmVjdCB4PSIxMTAiIHk9IjI0MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMCIgcng9IjUiLz4KICAgIDxyZWN0IHg9IjExMCIgeT0iMjY0IiB3aWR0aD0iODAiIGhlaWdodD0iMTAiIHJ4PSI1Ii8+CiAgICA8cmVjdCB4PSIxMTAiIHk9IjI4OCIgd2lkdGg9IjEwNCIgaGVpZ2h0PSIxMCIgcng9IjUiLz4KICAgIDxyZWN0IHg9IjExMCIgeT0iMzEyIiB3aWR0aD0iNzAiIGhlaWdodD0iMTAiIHJ4PSI1Ii8+CiAgPC9nPgogIDx0ZXh0IHg9IjE0MCIgeT0iNDgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiPmNhbmRpZGF0ZSBwYXBlcnM8L3RleHQ+CiAgPGxpbmUgeDE9IjI0OCIgeTE9IjMyMCIgeDI9IjMxOCIgeTI9IjMyMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPGVsbGlwc2UgY3g9IjQwMCIgY3k9IjMyMCIgcng9IjEzMCIgcnk9IjEzMCIgZmlsbD0idXJsKCNnbG93KSIvPgogIDxjaXJjbGUgY3g9IjQwMCIgY3k9IjMyMCIgcj0iNzAiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8dGV4dCB4PSI0MDAiIHk9IjMxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5zY3JlZW48L3RleHQ+CiAgPHRleHQgeD0iNDAwIiB5PSIzNDQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2E3OGJmYSI+YWdlbnRzPC90ZXh0PgogIDxwYXRoIGQ9Ik00NzIgMzAwIEMgNTIwIDIwMCwgNTQwIDE3MCwgNTgwIDE3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPGxpbmUgeDE9IjQ3MiIgeTE9IjMyMCIgeDI9IjU4MCIgeTI9IjMzMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPHBhdGggZD0iTTQ3MiAzNDAgQyA1MjAgNDQwLCA1NDAgNDkwLCA1ODAgNDkwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhbSkiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHJlY3QgeD0iNTkwIiB5PSIxMTAiIHdpZHRoPSI1NzAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iMTU1IiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjM2VjZjhlIj5JTkNMVURFPC90ZXh0PgogICAgPHJlY3QgeD0iNjIwIiB5PSIxNzQiIHdpZHRoPSI1MTAiIGhlaWdodD0iNDAiIHJ4PSIxMCIgZmlsbD0iIzEwMTQxYiIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDx0ZXh0IHg9IjYzNiIgeT0iMjAyIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZThlZGY1Ij5yZWFzb246IG1lZXRzIHRoZSBpbmNsdXNpb24gY3JpdGVyaWE8L3RleHQ+CiAgICA8cmVjdCB4PSI1OTAiIHk9IjI3MCIgd2lkdGg9IjU3MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNiIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjEiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI2MjAiIHk9IjMxNSIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiI+RVhDTFVERTwvdGV4dD4KICAgIDxyZWN0IHg9IjYyMCIgeT0iMzM0IiB3aWR0aD0iNTEwIiBoZWlnaHQ9IjQwIiByeD0iMTAiIGZpbGw9IiMxMDE0MWIiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI2MzYiIHk9IjM2MiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+cmVhc29uOiB3cm9uZyBzdHVkeSBwb3B1bGF0aW9uPC90ZXh0PgogICAgPHJlY3QgeD0iNTkwIiB5PSI0MzAiIHdpZHRoPSI1NzAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjYyMCIgeT0iNDc1IiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjN2FhMmZmIj5FWFRSQUNURUQgVkFMVUU8L3RleHQ+CiAgICA8cmVjdCB4PSI2MjAiIHk9IjQ5NCIgd2lkdGg9IjUxMCIgaGVpZ2h0PSI0MCIgcng9IjEwIiBmaWxsPSIjMTAxNDFiIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iNjM2IiB5PSI1MjIiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiPnNvdXJjZTogcmVzdWx0cyB0YWJsZSBvZiB0aGUgc3R1ZHk8L3RleHQ+CiAgPC9nPgogIDx0ZXh0IHg9IjUwIiB5PSI2MTYiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+QSBodW1hbiBhdWRpdG9yIGNoZWNrcyB0aGUgcmVjZWlwdCwgbm90IHRoZSB3aG9sZSBwYXBlcjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Papers pass a screening agent; each verdict card carries a reason tag and each extracted value a source pointer",
+    "caption": "ReviewPilot pins a reason to every screening call and a source to every extracted value.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "So the multi-agent system attaches a receipt to everything. «Each screening decision comes with its reason and each extracted value with its source.» A project memory keeps the reviewer's criteria and revisions, which you tune through dialogue. On epidemiological expert reviews it reports «screening macro F1 up to 0.776 and extraction F1 up to 0.788». Macro F1 averages the F1 score across classes, so rare classes count fully."
+  ],
+  [
+   "p",
+   "We like the receipts more than the scores. An extraction F1 of 0.788 still leaves plenty of wrong calls in a big review. The reason and source on each call are what let a human find them quickly. Those figures are also the best across three backbones, so expect lower numbers on a weaker one."
+  ],
+  [
+   "h2",
+   {
+    "text": "ANASSA turns governance duties into typed parts",
+    "num": "05",
+    "id": "anassa-turns-governance-duties-into-typed-parts"
+   }
+  ],
+  [
+   "p",
+   "ANASSA is the most architecture-heavy entry, built for geospatial work. Its premise is that such agents need more than reasoning and tool use; they «must also support explicit orchestration, spatial validation, governance, provenance, failure handling, and human decision authority». The new paper refines an earlier high-level framework into an implementation-facing, low-level architecture."
+  ],
+  [
+   "p",
+   "Out comes a parts list. It includes «47 logical roles, versioned task graphs, capability-based agent selection, typed contracts, explicit runtime states», plus validation, governance controls, recovery paths and provenance records. We'll be blunt about the evidence. It's an end-to-end execution trace plus analytical checks, with no running system measured. Use it as a design checklist, and a good one, but don't read performance into it."
+  ],
+  [
+   "h2",
+   {
+    "text": "Agent4Spec keeps API specs under continuous validation",
+    "num": "06",
+    "id": "agent4spec-keeps-api-specs-under-continuous-validation"
+   }
+  ],
+  [
+   "p",
+   "Agent4Spec treats an API spec as something that ages. Earlier tools generate specs from source code and stop; the authors say they «treat this process as a one-time event». Their multi-agent framework runs two pipelines. One «detects and self-corrects OpenAPI syntax errors». The other «identifies functional gaps against industry leaders» and drafts the missing endpoints."
+  ],
+  [
+   "p",
+   "On validation, the numbers are strong. Among 9 SOTA LLMs, the top performer reached 100% syntax error detection and over 95% implementation success for its corrections. Proposed endpoint improvements saw «over 50% adoption rates». We're not convinced by the market half, though. Copying a competitor's feature is a product call, and an adoption rate measures persuasion more than wisdom."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Agent4Spec results for the top performer among 9 SOTA LLMs, as its abstract reports them.",
+    "columns": [
+     "Pipeline",
+     "Task",
+     "Top result"
+    ],
+    "rows": [
+     [
+      "Validation",
+      "Syntax error detection",
+      "100%"
+     ],
+     [
+      "Validation",
+      "Implementation success for corrections",
+      "over 95%"
+     ],
+     [
+      "Market analysis",
+      "Adoption of suggested endpoint improvements",
+      "over 50%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Temporal logic gives agent teams a goal you can certify",
+    "num": "07",
+    "id": "temporal-logic-gives-agent-teams-a-goal-you-can-certify"
+   }
+  ],
+  [
+   "p",
+   "The most formal entry comes from multi-agent reinforcement learning. Each agent gets its own objective in PLTLf, a probabilistic temporal logic over finite traces. Think: reach the depot eventually and never collide, with a required probability. The joint strategy must also be stable, an equilibrium such as Nash, using «payoffs derived from each agent's probability of satisfying its temporal objective»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhbSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNiIgbWFya2VySGVpZ2h0PSI2IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXMiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjUiIG1hcmtlckhlaWdodD0iNSIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCB6IiBmaWxsPSIjYTc4YmZhIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTYwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDx0ZXh0IHg9IjQ1IiB5PSI2NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5Gcm9tIGEgdGVtcG9yYWwgZ29hbCB0byBhIGNlcnRpZmllZCBzdHJhdGVneTwvdGV4dD4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHJlY3QgeD0iNDUiIHk9IjE0MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNjAiIHJ4PSIxOCIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNzAiIHk9IjE4NiIgZm9udC1zaXplPSIyMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzdhYTJmZiIgbGV0dGVyLXNwYWNpbmc9IjIiPkdPQUw8L3RleHQ+CiAgICA8dGV4dCB4PSI3MCIgeT0iMjQwIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5yZWFjaCBkZXBvdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjcwIiB5PSIyNzYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPmV2ZW50dWFsbHksPC90ZXh0PgogICAgPHRleHQgeD0iNzAiIHk9IjMxMiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+bmV2ZXIgY29sbGlkZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjcwIiB5PSIzNzAiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnBlciBhZ2VudDwvdGV4dD4KCiAgICA8cmVjdCB4PSIzMzUiIHk9IjE0MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNjAiIHJ4PSIxOCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMzYwIiB5PSIxODYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNhNzhiZmEiIGxldHRlci1zcGFjaW5nPSIyIj5BVVRPTUFUT048L3RleHQ+CiAgICA8dGV4dCB4PSIzNjAiIHk9IjM3MCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+cmV3YXJkcyBwcm9ncmVzczwvdGV4dD4KCiAgICA8cmVjdCB4PSI2MjUiIHk9IjE0MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNjAiIHJ4PSIxOCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjY1MCIgeT0iMTg2IiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjOTVhMWI0IiBsZXR0ZXItc3BhY2luZz0iMiI+TEVBUk48L3RleHQ+CiAgICA8dGV4dCB4PSI2NTAiIHk9IjI0MCIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+dGFidWxhcjwvdGV4dD4KICAgIDx0ZXh0IHg9IjY1MCIgeT0iMjc2IiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5OYXNoLVE8L3RleHQ+CiAgICA8dGV4dCB4PSI2NTAiIHk9IjM3MCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+c3RhYmxlIGpvaW50IHN0cmF0ZWd5PC90ZXh0PgoKICAgIDxlbGxpcHNlIGN4PSIxMDM1IiBjeT0iMjcwIiByeD0iMTYwIiByeT0iMTcwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICA8cmVjdCB4PSI5MTUiIHk9IjE0MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSIyNjAiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iOTQwIiB5PSIxODYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMzZWNmOGUiIGxldHRlci1zcGFjaW5nPSIyIj5DRVJUSUZZPC90ZXh0PgogICAgPHRleHQgeD0iOTQwIiB5PSIyNDAiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnN1Y2Nlc3M8L3RleHQ+CiAgICA8dGV4dCB4PSI5NDAiIHk9IjI3NiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+cHJvYmFiaWxpdHk8L3RleHQ+CiAgICA8dGV4dCB4PSI5NDAiIHk9IjMxMiIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzNlY2Y4ZSI+d2l0aCBib3VuZHM8L3RleHQ+CiAgICA8dGV4dCB4PSI5NDAiIHk9IjM3MCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+ZmluaXRlLXNhbXBsZSBjaGVjazwvdGV4dD4KICA8L2c+CiAgPGcgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9IiMxMDE0MWIiPgogICAgPGNpcmNsZSBjeD0iMzg1IiBjeT0iMjc1IiByPSIyMiIvPgogICAgPGNpcmNsZSBjeD0iNDU1IiBjeT0iMjc1IiByPSIyMiIvPgogICAgPGNpcmNsZSBjeD0iNTI1IiBjeT0iMjc1IiByPSIyMiIvPgogICAgPGNpcmNsZSBjeD0iNTI1IiBjeT0iMjc1IiByPSIxNSIgZmlsbD0ibm9uZSIvPgogIDwvZz4KICA8ZyBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSI+CiAgICA8bGluZSB4MT0iNDA4IiB5MT0iMjc1IiB4Mj0iNDI4IiB5Mj0iMjc1IiBtYXJrZXItZW5kPSJ1cmwoI2FzKSIvPgogICAgPGxpbmUgeDE9IjQ3OCIgeTE9IjI3NSIgeDI9IjQ5OCIgeTI9IjI3NSIgbWFya2VyLWVuZD0idXJsKCNhcykiLz4KICA8L2c+CiAgPGxpbmUgeDE9IjI5MCIgeTE9IjI3MCIgeDI9IjMyNyIgeTI9IjI3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPGxpbmUgeDE9IjU4MCIgeTE9IjI3MCIgeDI9IjYxNyIgeTI9IjI3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPGxpbmUgeDE9Ijg3MCIgeTE9IjI3MCIgeDI9IjkwNyIgeTI9IjI3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+CiAgPHRleHQgeD0iNDUiIHk9IjQ4MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5WYWxpZGF0ZWQgb24gOCBnZW5lcmFsLXN1bSBjb25jdXJyZW50IHN0b2NoYXN0aWMgZ2FtZXM8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Pipeline: a temporal-logic goal compiles to a reward automaton, feeds Nash-Q learning, and ends in a certified probability",
+    "caption": "Each agent's temporal goal becomes a reward automaton, and the learned strategy's success is certified with confidence bounds.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Mechanically, objectives are «automatically compiled into reward automata», small state machines that hand out reward as a trace progresses. Learning uses tabular Nash-Q, and satisfaction is certified «with simultaneous finite-sample confidence bounds». Validation covers «8 general-sum concurrent stochastic games». Tabular means tiny state spaces. We still like it, because a certified probability of meeting a spec is exactly what LLM agent evaluations lack."
+  ],
+  [
+   "h2",
+   {
+    "text": "Every entry here is about the trail an agent leaves",
+    "num": "08",
+    "id": "every-entry-here-is-about-the-trail-an-agent-leaves"
+   }
+  ],
+  [
+   "p",
+   "Step back and one thread ties these together. ReviewPilot gives every decision a reason. ANASSA bakes provenance records into its architecture. The reverse-engineering study found greedy fetching only because it logged complete interactions. The temporal-logic work backs its claims with confidence bounds. Each one makes agent behaviour inspectable after the fact."
+  ],
+  [
+   "p",
+   "Then the causal PR study shows the problem none of them solves. Inspectable isn't inspected. Dual-scope agent PRs that skipped review merged «in a median of under 31 minutes». A perfect trail that nobody reads protects nothing, and agents produce trails faster than people can read them."
+  ],
+  [
+   "p",
+   "Review attention itself is the open problem. Which traces must a human read, and how do you enforce that in tooling instead of habit? Path-based rules are a blunt first answer. In our view, the next useful idea is a way to rank agent actions by blast radius, so the riskiest ones always reach a person."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What are AI agents in software engineering?"
+  ],
+  [
+   "p",
+   "They are language models that act through tools: reading code, editing files and opening pull requests. Recent work shows both promise and risk. In binary analysis the best agents «achieve statistically human-competitive understanding on both tasks». In real repositories, agent identity «reduces the odds of human review by 63.7% compared to human peers», which lets risky changes merge unread."
+  ],
+  [
+   "h3",
+   "Do AI agent pull requests get reviewed less than human ones?"
+  ],
+  [
+   "p",
+   "Yes, in the causal study discussed here they do, especially when they touch deployment files. For PRs editing both app code and infrastructure, «43.1% to 56.2% of dual-scope PRs bypass inspection to merge silently». The authors argue for «strict path-based access controls», so infrastructure paths always need a human reviewer whoever opens the change."
+  ],
+  [
+   "h3",
+   "Can AI agents reverse engineer binaries as well as humans?"
+  ],
+  [
+   "p",
+   "The strongest ones can match skilled analysts on compact challenges, though by a different strategy. Humans revisit functions; agents «jump across the binary, retrieve information broadly, and rarely return to inspected code». That greedy fetching floods the context window, and on big programs «larger applications and lower-level representations quickly exhaust them»."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Co-Modifying Application Code and Deployment Infrastructure: A Causal Study of AI Agent Pull Requests",
+   "url": "https://arxiv.org/abs/2610.12849v1",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Humans vs. Machines: A Comparison With AI Agents in Software Reverse Engineering",
+   "url": "https://arxiv.org/abs/2610.14960v1",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "ReviewPilot: A Multi-Agent System for Screening and Data Extraction in Systematic Reviews",
+   "url": "https://arxiv.org/abs/2610.21042v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "ANASSA: From High-Level Framework to Low-Level Architecture for Spatial Agentic AI",
+   "url": "https://arxiv.org/abs/2610.14382v1",
+   "posted": "2026-10-10"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Agent4Spec: An LLM-based Agentic System to Optimize API Specifications through Automated Validation and Market Analysis",
+   "url": "https://arxiv.org/abs/2610.13273v1",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Learning Rational Strategies for Temporal Objectives in Multi-Agent Systems",
+   "url": "https://arxiv.org/abs/2610.22287v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "reduces the odds of human review by 63.7% compared to human peers": 1,
+  "only 4.48% to 4.55% of agentic PRs": 1,
+  "a median penalty of +13.13 hours": 1,
+  "43.1% to 56.2% of dual-scope PRs bypass inspection to merge silently": 1,
+  "against synchronous local tests": 1,
+  "strict path-based access controls": 1,
+  "achieve statistically human-competitive understanding on both tasks, while weaker models remain far behind": 2,
+  "Similar success rates hide different workflows.": 2,
+  "jump across the binary, retrieve information broadly, and rarely return to inspected code": 2,
+  "larger applications and lower-level representations quickly exhaust them": 2,
+  "better navigation, selective retrieval, and persistent analysis state": 2,
+  "depends on code representation and workflow demands, not on model capability alone": 2,
+  "improve substantially with richer code representations, whereas frontier models show no significant change": 2,
+  "given semantically richer code, agents fetch less without losing understanding": 2,
+  "can search and summarize the literature but do not record which studies are excluded or where extracted values come from": 3,
+  "Each screening decision comes with its reason and each extracted value with its source.": 3,
+  "screening macro F1 up to 0.776 and extraction F1 up to 0.788": 3,
+  "must also support explicit orchestration, spatial validation, governance, provenance, failure handling, and human decision authority": 4,
+  "47 logical roles, versioned task graphs, capability-based agent selection, typed contracts, explicit runtime states": 4,
+  "treat this process as a one-time event": 5,
+  "detects and self-corrects OpenAPI syntax errors": 5,
+  "identifies functional gaps against industry leaders": 5,
+  "over 50% adoption rates": 5,
+  "payoffs derived from each agent's probability of satisfying its temporal objective": 6,
+  "automatically compiled into reward automata": 6,
+  "with simultaneous finite-sample confidence bounds": 6,
+  "8 general-sum concurrent stochastic games": 6,
+  "in a median of under 31 minutes": 1,
+  "achieve statistically human-competitive understanding on both tasks": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:45:18+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21042v1",
+   "arxiv:2610.14960v1",
+   "arxiv:2610.14382v1",
+   "arxiv:2610.13273v1",
+   "arxiv:2610.12849v1",
+   "arxiv:2610.22287v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "research-radar:concept/agents",
+  "format": "research-radar",
+  "reviewed_by": null
+ }
+}

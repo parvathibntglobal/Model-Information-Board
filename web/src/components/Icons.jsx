@@ -95,3 +95,28 @@ export const IconFilter = (p) => (
     <path d="M4 5h16l-6.2 7.4V19l-3.6 2v-8.6L4 5Z" />
   </svg>
 )
+
+// ONE ICON PER ADMIN GROUP, so section headers can be told apart at a glance:
+// heart = Health, funnel (IconFilter) = Evidence, grid = Board & content,
+// clock = Operations.
+export const IconHeart = (p) => (
+  <svg {...base} {...p}>
+    <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" />
+  </svg>
+)
+
+export const IconGrid = (p) => (
+  <svg {...base} {...p}>
+    <rect x="4" y="4" width="6.5" height="6.5" rx="1.2" />
+    <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2" />
+    <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2" />
+    <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2" />
+  </svg>
+)
+
+export const IconClock = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="8" />
+    <path d="M12 7.5V12l3 2" />
+  </svg>
+)

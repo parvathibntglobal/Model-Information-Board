@@ -87,6 +87,114 @@ columns:
     merged_at:
       reviewed: false
       state: reserved
+  blog_generation_run:
+    cost_usd:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    finished_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    id:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    log:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    message:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    model:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    posts_failed:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    posts_written:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    requested_count:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    started_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    state:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    tokens_in:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    tokens_out:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+
+  blog_post:
+    doc:
+      reviewed: false
+      state: read
+      why: 'The post as views.js vPost renders it, kept in every state. Written by judge/blog_store.py store_drafts, read by published() (approved only) and for_review(). Migration 20261006T1500.'
+    generated_at:
+      reviewed: false
+      state: write_only
+      why: 'The post''s provenance.generated_at. Written by judge/blog_store.py store_drafts. Not read by a query: the same value is in doc.provenance, which Admin -> Blogs renders. Migration 20261006T1500.'
+    plan_key:
+      reviewed: false
+      state: read
+      why: 'The planner''s (format, subject) key. Written by judge/blog_store.py store_drafts, read by generate_sample_blogs.py stored_plan_keys (rejected posts included) so a post is never written again. Migration 20261006T1500.'
+    run_id:
+      reviewed: false
+      state: read
+      why: 'The generation run that wrote the post; NULL when stored from files. Written by judge/blog_store.py store_drafts, read by for_review() and decide() (copied to blog_post_review). Migration 20261006T1500.'
+    slug:
+      reviewed: false
+      state: read
+      why: 'Primary key. Written by judge/blog_store.py store_drafts, read by every blog_store reader and by decide(). Migration 20261006T1500.'
+    state:
+      reviewed: false
+      state: read
+      why: 'pending | approved | rejected. Written by judge/blog_store.py store_drafts and decide, read by published() (approved only - the Blogs page) and for_review(). Migration 20261006T1500.'
+    stored_at:
+      reviewed: false
+      state: read
+      why: 'When the row was stored. Written by judge/blog_store.py store_drafts, read by for_review() into the Admin -> Blogs payload (not yet rendered there). Migration 20261006T1500.'
+  blog_post_review:
+    decided_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
+    decision:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
+    id:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
+    reason:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
+    run_id:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
+    slug:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
   board_entry:
     axis_quoted:
       known_gap: the writer is #368 item 3 (store_entries, beside axis_slug) and the renderer is item 4 (db.js/views.js) - both hers, both held until this column exists
@@ -195,6 +303,15 @@ columns:
         new generation and break exactly the idempotence this column exists to provide.
 
         '
+    parent_proposed:
+      reviewed: true
+      state: read
+      why: >-
+        The heading the extractor filed an entry under (2026-10-14), NULL when
+        it gave none or one that is not one of its section's headings. Written by
+        judge/store/board_entries.py:store_entries; read by board_sections,
+        which carries the commonest value per leaf to
+        judge/board_grouping.py:group_section.
     polarity:
       reviewed: true
       state: read
@@ -579,6 +696,51 @@ columns:
       reviewed: true
       state: write_only
       why: members including the canonical. Written for audit; the gate reads voices, never this
+  discussion_post:
+    parent_id:
+      reviewed: false
+      state: read
+      why: 'The post a reply answers; NULL for a post that opens a discussion. Written by judge/discussions.py submit() for a reply, read by public_view() to thread replies under their post and by listing() for Admin -> Discussions. Migration 20261020T1000.'
+    author_name:
+      reviewed: false
+      state: read
+      why: 'The reader''s display name, as typed - required in code since 2026-10-20 (judge/discussions.py check), so NULL only predates that. Written by judge/discussions.py submit(), read by public_view()/listing(); shown with the post ("A reader" when NULL) and in Admin -> Discussions. Migration 20261020T1000.'
+    body:
+      reviewed: false
+      state: read
+      why: 'The post''s text. Written by judge/discussions.py submit() after check(), read by public_view()/listing(); printed as text on /discussions and in Admin -> Discussions. Migration 20261020T1000.'
+    created_at:
+      reviewed: false
+      state: read
+      why: 'When the reader posted. Defaulted by the database, read by judge/discussions.py listing() for its order and shown in Admin -> Discussions. Migration 20261020T1000.'
+    id:
+      reviewed: false
+      state: read
+      why: 'dp_ + random hex. Written by judge/discussions.py submit(), read by every reader and by review(). Migration 20261020T1000.'
+    model_id:
+      reviewed: false
+      state: read
+      why: 'Optional canonical id of the model the post is about. Written by judge/discussions.py submit(), read by public_view()/listing(); the page shows the model''s name beside the post. Migration 20261020T1000.'
+    review_note:
+      reviewed: false
+      state: read
+      why: 'Why a reviewer decided as they did. Written by judge/discussions.py review(), read by listing() for Admin -> Discussions; never sent to the public page. Migration 20261020T1000.'
+    reviewed_at:
+      reviewed: false
+      state: read
+      why: 'When a person approved or rejected the post; NULL while pending (CHECK). Written by judge/discussions.py review(), read by public_view() for its order and shown as the post''s date. Migration 20261020T1000.'
+    state:
+      reviewed: false
+      state: read
+      why: 'pending | approved | rejected. Written by judge/discussions.py review() (pending by default), read by public_view() - approved only - and listing(). Migration 20261020T1000.'
+    title:
+      reviewed: false
+      state: read
+      why: 'The post''s title. Written by judge/discussions.py submit() after check(), read by public_view()/listing(). Migration 20261020T1000.'
+    topic:
+      reviewed: false
+      state: read
+      why: 'One of contract/discussions.yaml topics[].slug, checked in code. Written by judge/discussions.py submit(), read by public_view() to file each post under its topic and by listing(). Migration 20261020T1000.'
   document:
     author_id:
       reviewed: false
@@ -889,17 +1051,26 @@ columns:
       reviewed: false
       state: read
     items_in:
-      reviewed: false
-      state: read
+      reviewed: true
+      state: write_only
+      why: 'Read only by judge/pages/pipeline_status.py (/admin/pipeline), which was removed
+        2026-10-08 because no page called it. collect/ops/ledger.py still writes it; it has no
+        reader until a stage funnel is built (see the StagesPanel note on items_in / items_out).'
     items_out:
-      reviewed: false
-      state: read
+      reviewed: true
+      state: write_only
+      why: 'Read only by judge/pages/pipeline_status.py (/admin/pipeline), which was removed
+        2026-10-08 because no page called it. collect/ops/ledger.py still writes it; it has no
+        reader until a stage funnel is built (see the StagesPanel note on items_in / items_out).'
     outcome:
       reviewed: false
       state: read
     pipeline_version:
-      reviewed: false
-      state: read
+      reviewed: true
+      state: write_only
+      why: 'Read only by judge/pages/pipeline_status.py (/admin/pipeline), which was removed
+        2026-10-08 because no page called it. collect/ops/ledger.py still writes it; it has no
+        reader until a stage funnel is built (see the StagesPanel note on items_in / items_out).'
     stage:
       reviewed: false
       state: read
@@ -958,8 +1129,9 @@ columns:
       reviewed: false
       state: reserved
     family:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: read by collect/assemble/ranking.py load_lexicon (the relevance tier of child ranking); was write_only before that reader landed. Reviewed 2026-10-05, #503
     id:
       reviewed: false
       state: read
@@ -1012,6 +1184,79 @@ columns:
     type:
       reviewed: false
       state: write_only
+  model_catalog:
+    canonical_id:
+      reviewed: true
+      state: read
+      why: "the model's id, shown and linked on the Models pages"
+    context_length:
+      reviewed: true
+      state: read
+      why: 'shown on each model card'
+    description:
+      reviewed: true
+      state: read
+      why: "OpenRouter's description, shown under the heading of a model's page (judge/catalog.py:catalog_model)"
+    expiration_date:
+      reviewed: true
+      state: read
+      why: "when OpenRouter stops serving the model; a model page's Lifecycle shows it as a retirement date (judge/catalog.py:_lifecycle). NULL is none announced"
+    first_seen_at:
+      reviewed: true
+      state: defaulted
+      why: "set by its DEFAULT now() on the insert that first lists a model, never by code - the upsert leaves it alone, so it keeps the first sighting. Nothing reads it yet; the intended reader is a 'new to the board' sort, distinct from listed_at"
+    input_modalities:
+      reviewed: true
+      state: read
+      why: 'shown on each model card'
+    knowledge_cutoff:
+      reviewed: true
+      state: read
+      why: "the feed's training-data date; a model page shows it where the registry has none (judge/catalog.py:_lifecycle)"
+    last_seen_at:
+      reviewed: true
+      state: read
+      why: 'the page lists only what the latest poll listed'
+    listed_at:
+      reviewed: true
+      state: read
+      why: 'orders New releases and is shown as the date listed'
+    max_output_tokens:
+      reviewed: true
+      state: read
+      why: "shown on the model page as the longest answer it can write"
+    name:
+      reviewed: true
+      state: read
+      why: "the card's heading"
+    output_modalities:
+      reviewed: true
+      state: read
+      why: "the type filters (Text, Image, ...) and the card's badges"
+    price_cached_read:
+      reviewed: true
+      state: read
+      why: "shown on the model page and used by its workload estimate for the cached share"
+    price_in:
+      reviewed: true
+      state: read
+      why: 'shown per 1M input tokens; NULL renders as not priced per token'
+    price_out:
+      reviewed: true
+      state: read
+      why: 'shown per 1M output tokens; NULL renders as not priced per token'
+    pricing:
+      reviewed: true
+      state: read
+      why: 'the published unit price shown when a model is not priced per token'
+    provider:
+      reviewed: true
+      state: read
+      why: 'the provider bubbles'
+    supported_parameters:
+      reviewed: true
+      state: read
+      why: "the model page's feature list (tool calling, structured output, reasoning) - empty reads as not stated, never as no"
   model_version:
     advertised_context:
       reviewed: false
@@ -1023,8 +1268,9 @@ columns:
       reviewed: false
       state: read
     deprecation_date:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: "read by judge/catalog.py:catalog_model since 2026-10-14 - shown on a model's catalogue page when the registry tracks it"
     display_name:
       reviewed: false
       state: read
@@ -1041,8 +1287,9 @@ columns:
       reviewed: false
       state: read
     knowledge_cutoff:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: "read by judge/catalog.py:catalog_model since 2026-10-14 - shown on a model's catalogue page when the registry tracks it"
     last_swept_at:
       reviewed: false
       state: read
@@ -1171,6 +1418,59 @@ columns:
     price_out:
       reviewed: false
       state: read
+  quiz_question:
+    answer_index:
+      reviewed: false
+      state: read
+      why: 'Which of the four options is right, as drafted. Written by judge/quiz_bank.py draft(), read by listing()/approved() - Admin -> Quiz marks it, the daily quiz checks answers against it. Migration 20261015T1400.'
+    difficulty:
+      reviewed: false
+      state: read
+      why: 'easy | medium | hard, as drafted. Written by judge/quiz_bank.py draft(), read by listing()/approved(); shown in Admin -> Quiz and in each question''s header. Migration 20261015T1400.'
+    explanation:
+      reviewed: false
+      state: read
+      why: 'Why the answer is right. Written by judge/quiz_bank.py draft(), read by listing()/approved(); the reviewer checks against it and the quiz shows it after answering. Migration 20261015T1400.'
+    generated_at:
+      reviewed: false
+      state: read
+      why: 'When the draft was stored. Defaulted by the database, read by judge/quiz_bank.py listing() for its order and shown in Admin -> Quiz. Migration 20261015T1400.'
+    id:
+      reviewed: false
+      state: read
+      why: 'qq_ + hash of the normalised question, so a re-draft is one row. Written by judge/quiz_bank.py draft(), read by every reader and by review(). Migration 20261015T1400.'
+    options:
+      reviewed: false
+      state: read
+      why: 'The four answer texts. Written by judge/quiz_bank.py draft(), read by listing()/approved(). Migration 20261015T1400.'
+    proposer_model:
+      reviewed: false
+      state: read
+      why: 'The model OpenRouter served for the draft. Written by judge/quiz_bank.py draft(), read by listing() and shown in Admin -> Quiz. Migration 20261015T1400.'
+    question:
+      reviewed: false
+      state: read
+      why: 'The question text. Written by judge/quiz_bank.py draft(), read by listing()/approved() and by draft() itself (the topic''s existing questions, so a new call does not repeat them). Migration 20261015T1400.'
+    review_note:
+      reviewed: false
+      state: read
+      why: 'A reviewer''s optional note. Written by judge/quiz_bank.py review(), read by listing() and shown in Admin -> Quiz. Migration 20261015T1400.'
+    reviewed_at:
+      reviewed: false
+      state: write_only
+      why: 'When a person decided. Written by judge/quiz_bank.py review(); nothing reads it yet. Its intended reader is a ''decided on'' line in Admin -> Quiz; the table''s CHECK already ties it to state. Migration 20261015T1400.'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'The drafting call that produced the row. Written by judge/quiz_bank.py draft(); nothing reads it yet. Its intended reader is a per-call view in Admin -> Quiz, beside the spend_ledger row for the same call. Migration 20261015T1400.'
+    state:
+      reviewed: false
+      state: read
+      why: 'pending | approved | rejected. Written by judge/quiz_bank.py draft() and review(), read by listing(), counts() and approved() - only approved rows reach the daily quiz. Migration 20261015T1400.'
+    topic:
+      reviewed: false
+      state: read
+      why: 'One of contract/blog_live.yaml quiz_drafter.topics. Written by judge/quiz_bank.py draft(), read by counts() (per topic) and approved() (one question per topic a day). Migration 20261015T1400.'
   rapidapi_quota:
     key_fingerprint:
       reviewed: true
@@ -1278,11 +1578,8 @@ columns:
         new and holds no rows until the first metered call after its migration is applied.'
     quota_limit:
       reviewed: true
-      state: write_only
-      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The denominator as this reading stated it, never
-        inherited from another reading - the arms are separately metered. The intended reader is the usage
-        panel''s quota series, which cannot read it yet because that display is not built - the table is new and
-        holds no rows until the first metered call after its migration is applied.'
+      state: read
+      why: 'Written by collect/usage.py with each reading. Read by judge/app.py _rapidapi_series since 2026-10-07: a reset starts a window at the limit, so the requests used in a new window before its first reading are limit minus remaining (_quota_consumption).'
     quota_remaining:
       reviewed: true
       state: read
@@ -1327,6 +1624,23 @@ columns:
       why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The run that spent it, where there was one. The
         intended reader is the usage panel''s quota series, which cannot read it yet because that display is not
         built - the table is new and holds no rows until the first metered call after its migration is applied.'
+  raw_blob:
+    data:
+      reviewed: false
+      state: read
+      why: 'The payload, zlib-compressed. Written by collect/rawstore_remote.py PgBlobs.put_if_absent, read by PgBlobs.get (decompressed) - the shared raw store behind RawStore when RAW_STORE_REMOTE=postgres. Migration 20261007T1200.'
+    key:
+      reviewed: false
+      state: read
+      why: 'The payload ref, or ref plus .tombstone. Written by PgBlobs.put_if_absent, read by every PgBlobs lookup. Migration 20261007T1200.'
+    size:
+      reviewed: false
+      state: read
+      why: 'The UNCOMPRESSED length. Written by PgBlobs.put_if_absent, read by PgBlobs.size for RawStore.stat. Migration 20261007T1200.'
+    stored_at:
+      reviewed: false
+      state: defaulted
+      why: 'now() at insert; nothing reads it yet. Kept for an operator asking when a payload reached the shared store. Migration 20261007T1200.'
   reported_context:
     advertised:
       reviewed: false
@@ -1527,8 +1841,9 @@ columns:
         than one I had mislabelled. Promoted to reviewed because a snapshot that flips does not record
         why it flipped, and that reason is the whole point of this file.'
     child_count:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: read by scripts/show_thread.py show_selected, which prints a thread's selected children; reviewed 2026-10-05, #503
     coverage_ratio:
       reviewed: true
       state: generated
@@ -1604,6 +1919,45 @@ columns:
         Writer unchanged: `judge/store/extractions.py:147`.
     thread_context_id:
       reviewed: false
+      state: read
+  topic_item:
+    authors:
+      reviewed: true
+      state: read
+      why: >-
+        Written by scripts/harvest_topics.py from arXiv's author list and a feed's
+        author field. Read by judge/topics.sources, and given to the writer in an
+        arXiv source's text by generate_sample_blogs.topic_docs ("Authors: ..."),
+        so a topic post can name a paper's authors (2026-10-16).
+    harvested_at:
+      reviewed: true
+      state: defaulted
+      why: >-
+        DEFAULT now() on insert; read by judge/topics.py overview for the
+        last harvest and for when collection began (trend_meaningful_from).
+    id:
+      reviewed: true
+      state: read
+    kind:
+      reviewed: true
+      state: read
+    published_at:
+      reviewed: true
+      state: read
+    source:
+      reviewed: true
+      state: read
+    summary:
+      reviewed: true
+      state: read
+    title:
+      reviewed: true
+      state: read
+    topics:
+      reviewed: true
+      state: read
+    url:
+      reviewed: true
       state: read
   watermark:
     cursor:

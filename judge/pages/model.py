@@ -348,14 +348,21 @@ class ModelPageReader:
         # `claimed_at` is when the PERSON said it, which is the document's date.
         # `c.created_at` is when we extracted it, which is a fact about our
         # batch schedule and would age every quote to the day we ran.
+        # WITHHELD SOURCES ARE NOT RETURNED on a public view
+        # (contract/publication.yaml): each row here is a quote, its permalink
+        # and its platform - all three are data from the source. A quote id
+        # with no row comes back absent, which the page already handles.
+        from judge import publication
+
+        pub_sql, pub_args = publication.sql_public_document("c.document_id")
         rows = self._conn.execute(
             """
             SELECT c.id, c.quote, d.url, d.source, d.created_at,
                    c.polarity, c.pain_points
             FROM claim c JOIN document d ON d.id = c.document_id
             WHERE c.id = ANY(%s) AND c.quote_verified
-            """,
-            (list(claim_ids),),
+            """ + pub_sql,
+            (list(claim_ids), *pub_args),
         ).fetchall()
         return {
             r[0]: Quote(

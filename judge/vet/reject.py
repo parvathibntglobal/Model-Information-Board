@@ -3,10 +3,13 @@
 Binary, and rightly so. An affiliate link to the provider, or a claim dated
 before the model existed, is not a weighting problem.
 
-REJECTED IS NOT DELETED. Every rejected document is stored and appears on
-/filtered with the trigger named, sorted by how close it came to passing.
-A filter you cannot inspect cannot be trusted, and this audience will audit it —
-being able to is the basis for trusting anything else on the page.
+REJECTED IS NOT DELETED, AND NOT YET SHOWN PER DOCUMENT. A rejection is
+counted by trigger in the fetch's run log and in Admin → Evidence stages.
+`/filtered`, which listed documents by `document.status`, was removed
+2026-10-08: rejections made here are not written per document, so it never
+showed them. A filter you cannot inspect cannot be trusted, and this audience
+will audit it - so showing each rejected document with its trigger remains open
+work (FR-18).
 
 The four sophisticated paid-content tests — vendor phrase echo, embargo
 clustering, never-negative author history, coordination graph — are NOT here.
@@ -27,7 +30,8 @@ from urllib.parse import parse_qs, urlparse
 
 
 class RejectionTrigger(StrEnum):
-    """Named on /filtered, so a reader can disagree with the specific rule."""
+    """Named in the run log's per-trigger counts, so a reader can disagree
+    with the specific rule."""
 
     AFFILIATE_LINK = "affiliate_link"
     SPONSORED_DISCLOSURE = "sponsored_disclosure"

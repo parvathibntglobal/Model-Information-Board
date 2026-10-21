@@ -497,6 +497,8 @@ Two steps, both code. **This is the moat; everything else is plumbing.**
 - **A claim about a model dated before that model was released** — cheap, decisive, catches a surprising volume of fabrication
 
 > **Filtered content stays visible.** Rejected documents are stored, never deleted, and appear on `/filtered` with the trigger named — because **a filter you cannot inspect cannot be trusted.** The readers of this board are technical; they will audit the filter, and being able to is the basis for trusting anything else on the page.
+>
+> *Update 2026-10-08: `/filtered` was removed. Promotional rejection moved to the pre-LLM screen (E4b, `judge/screen.py`) and the E6 check (`judge/vet/reject.py`). Rejections are counted per trigger in each fetch's run log and in Admin → Evidence stages, but not yet shown per document.*
 
 ### Step 2 — the weight
 

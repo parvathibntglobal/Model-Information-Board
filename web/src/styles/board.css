@@ -15,8 +15,16 @@
 .crumb a{cursor:pointer;color:var(--info)}
 .crumb a:hover{text-decoration:underline}
 .crumb i{margin:0 8px;opacity:.7;font-style:normal}
-.phead{padding:34px 0 6px}
+/* Block padding only. `padding:34px 0 6px` zeroed the inline padding `.shell`
+   gives, so every page heading sat 24px left of the content under it and met
+   the screen edge on a phone. */
+.phead{padding-block:34px 6px}
 .phead h1{font-size:clamp(1.85rem,3.3vw,2.6rem);letter-spacing:-.03em;line-height:1.08;margin-bottom:14px;max-width:23ch}
+/* The page's own name above its H1 - the landing badge, but a label, not a
+   link, so it does not lift on hover. */
+.page-tag{pointer-events:none;padding:6px 13px;margin-bottom:14px}
+/* One short heading per board tab, above that tab's intro. */
+.tab-h{font-size:1.3rem;letter-spacing:-.02em;line-height:1.2;margin:4px 0 8px}
 .phead .sub{color:var(--text-2);font-size:1.02rem;line-height:1.62;max-width:66ch}
 .sec{padding:34px 0}
 .sec-h{max-width:64ch;margin-bottom:20px}
@@ -69,7 +77,10 @@
    row a verdict, and the two numbers are evidence of the same standing. */
 .rank .split{display:block;margin-top:3px;font:400 .7rem var(--mono);color:var(--text-3)}
 /* The three-group boundary: where board_sections' ordering rule acts. */
-.rank-group{margin:22px 0 6px;padding-top:14px;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2)}
+/* An <h2>/<h3> since SEO item 4: weight, tracking and leading set back to the
+   paragraph it used to be, so the global h1-h4 rule changes nothing here. */
+.rank-group{margin:22px 0 6px;padding-top:14px;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2);
+  font-weight:400;letter-spacing:normal;line-height:inherit;text-wrap:wrap}
 .rank-group:first-child{margin-top:0;padding-top:0;border-top:0}
 .rank-group b{color:var(--text);font-weight:600;margin-right:8px}
 .rank-group span{font:400 .72rem var(--mono);color:var(--text-3)}
@@ -98,7 +109,7 @@
 .orderline a:hover{text-decoration:underline}
 /* "What counts here", below the list: the fine print of how a row got onto it. */
 .jobrule{padding:6px 0 30px;font-size:.84rem;line-height:1.55;color:var(--text-2)}
-.jobrule h3{font:600 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
+.jobrule h2{font:600 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
 .jobrule p{margin:0 0 6px;max-width:110ch}
 .jobrule .fine{font-size:.78rem;color:var(--text-3)}
 /* Narrow screens: the ordering panel drops below the Jobs cards, still visible. */
@@ -268,8 +279,10 @@
 .es-bdg{font-family:var(--es-mono);font-size:.68rem;line-height:1.45;padding:.16rem .6rem;border-radius:999px;border:1px solid;
   white-space:nowrap;display:inline-block;max-width:100%;vertical-align:top}
 /* A long route ("Opus 5, bounded by validation and human oversight") wraps
-   inside its card or cell instead of running past the edge. */
-.es-dtree .es-bdg,.es-tbl td.route .es-bdg{white-space:normal;overflow-wrap:anywhere;border-radius:10px}
+   inside its card or cell instead of running past the edge. EVERY badge, not a
+   list of places: the 2026-10-06 cards and clickable tree were not on the list
+   and their routes ran out of the box. A short badge still sits on one line. */
+.es-bdg{white-space:normal;overflow-wrap:anywhere;border-radius:10px}
 .es-bdg.t-g{color:var(--es-good);border-color:rgba(62,207,142,.4)}
 .es-bdg.t-y{color:var(--es-warn);border-color:rgba(227,179,65,.4)}
 .es-bdg.t-b{color:var(--es-accent);border-color:rgba(122,162,255,.4)}
@@ -512,3 +525,500 @@
 .es-gen-btn:disabled{opacity:.6;cursor:progress;filter:none}
 .es-gen-note{font:400 .76rem var(--es-mono);color:var(--es-dim);line-height:1.5}
 .es-gen-note.warn{color:var(--es-warn)}
+
+/* ── Blogs: per-format layouts (views.js LAYOUTS) ────────────────────────────
+   Each layout re-points the essay accent and styles its own signature block,
+   so a batch of posts does not share one look. */
+.essay.layout-report{--es-accent:#e3b341;--es-accent2:#f2a65a}
+.essay.layout-versus{--es-accent:#7aa2ff;--es-accent2:#f0719b}
+.essay.layout-ledger{--es-accent:#3ecf8e;--es-accent2:#9be29b}
+.essay.layout-runbook{--es-accent:#38bdf8;--es-accent2:#7dd3fc}
+.essay.layout-blueprint{--es-accent:#a78bfa;--es-accent2:#c4b5fd}
+.essay.layout-brief{--es-accent:#fb7185;--es-accent2:#fda4af}
+.essay.layout-critique{--es-accent:#f59e0b;--es-accent2:#fcd34d}
+.es-sp{margin:0 0 2.2rem;padding:1.15rem 1.3rem;background:var(--es-panel);border:1px solid var(--es-line);border-radius:var(--es-radius)}
+.es-sp .lbl{font-family:var(--es-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent);margin-bottom:.8rem}
+.es-sp h4{font-size:1rem;margin:0 0 .45rem;color:var(--es-text)}
+.es-sp ul,.es-sp ol{margin:0;padding:0;list-style:none}
+.es-sp p{margin:.35rem 0 !important;font-size:.92rem;line-height:1.55}
+.es-sp .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+/* report: established vs not established */
+.es-findings li{position:relative;padding:.45rem 0 .45rem 1.3rem;border-top:1px solid var(--es-line);font-size:.92rem;color:var(--es-body);line-height:1.5}
+.es-findings li::before{content:"";position:absolute;left:0;top:.95rem;width:.55rem;height:.55rem;border-radius:50%}
+.es-findings li.ok::before{background:var(--es-good)}
+.es-findings li.open::before{border:1px solid var(--es-dim)}
+.es-findings li.none{color:var(--es-dim)}
+.layout-report .es-article h2 .num{color:var(--es-accent)}
+.layout-report .es-article h2{font-size:1.4rem;border-left:3px solid var(--es-accent);padding-left:.8rem}
+/* versus: nameplates and one card per side */
+.es-vs{display:flex;align-items:center;gap:.8rem;margin:.6rem 0 .2rem;font-family:var(--es-mono);font-size:.82rem}
+.es-vs span{padding:.25rem .7rem;border:1px solid var(--es-accent);border-radius:999px;color:var(--es-text)}
+.es-vs span + i + span{border-color:var(--es-accent2)}
+.es-vs i{color:var(--es-dim);font-style:normal}
+.es-picks .pick{padding:.9rem 1rem;border-radius:12px;background:var(--es-panel2);border-top:3px solid var(--es-accent)}
+.es-picks .pick.p1{border-top-color:var(--es-accent2)}
+.es-picks li{padding:.4rem 0;border-top:1px solid var(--es-line);font-size:.92rem;color:var(--es-body);line-height:1.5}
+.layout-versus .es-article h2 .num{display:table;margin-bottom:.4rem;padding:.1rem .5rem;border-radius:6px;background:rgba(122,162,255,.14)}
+/* ledger: rate card first, drivers as cards */
+.es-rate .es-tbl{margin:0}
+.es-drivers .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem}
+.es-drivers .drv{padding:.9rem 1rem;border-radius:12px;background:var(--es-panel2);border:1px solid var(--es-line)}
+.es-drivers .n{font-family:var(--es-mono);font-size:.7rem;color:var(--es-accent)}
+.es-drivers .lever{color:var(--es-text) !important}
+.es-drivers .lever b{font-family:var(--es-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--es-accent);margin-right:.35rem}
+.layout-ledger .es-article h2{font-family:var(--es-mono);font-size:1.25rem;letter-spacing:-.01em}
+/* runbook: numbered stepper with checks */
+.es-steps li{display:grid;grid-template-columns:2.1rem 1fr;gap:.8rem;padding:.7rem 0;border-top:1px solid var(--es-line)}
+.es-steps li:first-child{border-top:0}
+.es-steps .dot{width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;font:600 .82rem var(--es-mono);color:var(--es-bg);background:var(--es-accent)}
+.es-steps .check{display:flex;gap:.5rem;align-items:flex-start;color:var(--es-muted) !important;font-size:.86rem !important}
+.es-steps .body{min-width:0}
+
+/* Interactive posts, phase 1 (docs/proposals/interactive-blogs.md). */
+.essay .es-ihint{font-size:.82rem;color:var(--es-muted);border-left:2px solid var(--es-accent);padding:.35rem .7rem;margin:0 0 1.2rem}
+.essay a.es-ent{position:relative;color:inherit;text-decoration:underline dotted var(--es-accent);text-underline-offset:3px;cursor:pointer}
+.essay a.es-ent:hover,.essay a.es-ent:focus{text-decoration-style:solid;outline:none}
+.essay .es-pop{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;min-width:15rem;max-width:20rem;padding:.6rem .75rem;border:1px solid var(--es-line);border-radius:8px;background:var(--es-bg);box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:.8rem;font-style:normal;line-height:1.45;text-align:left;white-space:normal}
+.essay a.es-ent:hover .es-pop,.essay a.es-ent:focus .es-pop{display:flex;flex-direction:column;gap:.15rem}
+.essay .es-pop b{color:var(--es-text);font-size:.86rem}
+.essay .es-pop span{color:var(--es-muted)}
+.essay .es-pop .go{color:var(--es-accent);margin-top:.25rem}
+.essay .es-num{text-decoration:underline dotted var(--es-muted);text-underline-offset:3px;cursor:help}
+/* A model with a card and no public page to link (no canonical id). */
+.essay span.es-ent:not(.off){position:relative;text-decoration:underline dotted var(--es-accent);text-underline-offset:3px;cursor:help}
+.essay span.es-ent:not(.off):hover .es-pop,.essay span.es-ent:not(.off):focus .es-pop{display:flex;flex-direction:column;gap:.15rem}
+/* "A vs B" -> /compare, and a two-model post's link to its comparison (2026-10-19). */
+.essay a.es-vs{color:inherit;text-decoration:underline solid var(--es-accent);text-underline-offset:3px}
+.essay a.es-vs:hover,.essay a.es-vs:focus{color:var(--es-accent);outline:none}
+.essay .es-cmp{margin:-1rem 0 1.8rem;font:500 .86rem var(--es-mono)}
+.essay .es-cmp a{color:var(--es-accent);text-decoration:none}
+.essay .es-cmp a:hover,.essay .es-cmp a:focus{text-decoration:underline;outline:none}
+.essay q.es-iq[title]{cursor:help}
+.es-steps .box{flex:0 0 .8rem;height:.8rem;margin-top:.3rem;border:1px solid var(--es-accent);border-radius:3px}
+.layout-runbook .es-pre{border-left:3px solid var(--es-accent)}
+.layout-runbook .es-article h2{font-size:1.35rem}
+/* blueprint: layers as a stacked diagram, outside in */
+.es-layers .stack{display:grid;gap:.45rem}
+.es-layers .band{padding:.75rem 1rem;border-radius:10px;border:1px solid var(--es-accent);background:var(--es-panel2)}
+.es-layers .name{font:600 .95rem var(--es-sans);color:var(--es-text)}
+.es-layers .role{font-size:.88rem;color:var(--es-body);margin:.2rem 0}
+.es-layers .fail{font-size:.84rem;color:var(--es-muted)}
+.es-layers .fail b{font-family:var(--es-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--es-accent);margin-right:.35rem}
+.layout-blueprint .es-article h2 .num{font-family:var(--es-mono)}
+/* brief: claims with status chips */
+.es-claims .chip{font:500 .7rem var(--es-mono);padding:.15rem .55rem;border-radius:999px;border:1px solid;white-space:nowrap}
+.es-claims .chip.ok{color:var(--es-good);border-color:var(--es-good)}
+.es-claims .chip.part{color:var(--es-warn);border-color:var(--es-warn)}
+.es-claims .chip.none{color:var(--es-dim);border-color:var(--es-line2)}
+.layout-brief .es-article h2{font-size:1.3rem}
+.layout-brief .es-article p{font-size:1.02rem}
+/* critique: what is measured vs missed */
+.es-probes td.miss{color:var(--es-text)}
+.layout-critique .es-article h2{font-size:1.5rem;font-style:italic;letter-spacing:-.01em}
+.layout-critique .es-sec:first-of-type p.es-para:first-of-type::first-letter{font-size:2.4em;float:left;line-height:.9;margin:.08em .1em 0 0;color:var(--es-accent)}
+
+/* ── Blogs: one page per format (views.js vPost, reworked 2026-10-06) ────────
+   Every draft opened on the same box and closed on a "which to pick" block.
+   Each format now has its own opening, its own tools and its own ending, and
+   these rules give each a look a reader can tell apart at a glance. State is
+   CSS-only (radio, checkbox, <details>): nothing a reader clicks leaves the page. */
+
+/* Reading mode: skim folds everything after a paragraph's first sentence. */
+.es-mode{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;margin:0 0 1.8rem;padding:.7rem .9rem;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel)}
+.es-mode .seg{display:inline-flex;border:1px solid var(--es-line2);border-radius:999px;overflow:hidden;flex:none}
+.es-mode .seg label{padding:.3rem .85rem;font:500 .78rem var(--es-mono);color:var(--es-muted);cursor:pointer}
+.es-mode .seg input{position:absolute;opacity:0;pointer-events:none}
+.es-mode .seg label:has(input:checked){background:var(--es-accent);color:var(--es-bg)}
+.es-mode .seg label:has(input:focus-visible){outline:2px solid var(--es-accent);outline-offset:-2px}
+.es-mode p{margin:0 !important;font-size:.8rem !important;line-height:1.5;color:var(--es-muted) !important;flex:1 1 260px}
+.es-readtime{font:600 .78rem var(--es-mono);color:var(--es-accent);flex:none}
+/* TABLES, CHARTS AND DIAGRAMS in a post (generator, 2026-10-13). */
+.essay .es-fig{margin:1.6rem 0;padding:1rem 1.1rem;border:1px solid var(--es-line);border-radius:var(--es-radius);background:var(--es-panel)}
+.essay .es-fig figcaption{margin-top:.7rem;font-size:.82rem;line-height:1.5;color:var(--es-muted)}
+.essay .es-fig-table .es-tbl{margin:0}
+.essay .es-fig-chart .unit{font:500 .72rem var(--es-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--es-dim);margin-bottom:.5rem}
+.essay .es-fig-chart svg{display:block;overflow:visible}
+.essay .es-fig-chart .lbl{font:500 3px var(--es-sans);fill:var(--es-body)}
+.essay .es-fig-chart .val{font:600 3px var(--es-mono);fill:var(--es-text)}
+.essay .es-fig-chart .bar{fill:var(--es-accent);opacity:.85}
+.essay .es-fig-flow ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.55rem}
+.essay .es-fig-flow li{position:relative;display:flex;gap:.7rem;align-items:flex-start;padding:.6rem .8rem;border:1px solid var(--es-line2);border-radius:10px;background:var(--es-panel2);color:var(--es-body);font-size:.92rem;line-height:1.45}
+.essay .es-fig-flow li:not(:last-child)::after{content:"\2193";position:absolute;left:1.15rem;bottom:-1rem;color:var(--es-accent);font-size:.8rem}
+.essay .es-fig-flow .n{flex:none;width:1.5rem;height:1.5rem;border-radius:50%;display:grid;place-items:center;background:var(--es-accent);color:var(--es-bg);font:700 .72rem var(--es-mono)}
+.essay .es-fig-image{padding:0;overflow:hidden}
+/* SMALL PICTURES (2026-10-14, team ask: "the pictures are very big"). Drawn at
+   their own size, never stretched: a panel is about 460x260 since four come
+   from one call, and an older 1024x1024 square is held to a modest box. */
+.essay .es-fig-image{display:flex;flex-direction:column;align-items:center}
+.essay .es-fig-image img{display:block;width:auto;height:auto;max-width:min(100%,480px);max-height:300px;border-radius:8px}
+.essay .es-fig-image figcaption{align-self:stretch}
+.essay .es-cover{margin-top:0}
+/* READ THE ORIGINAL (2026-10-14): one card per linked source, after the
+   paragraph that first quotes it - the whole card is the link. */
+.essay .es-linkcard{display:grid;grid-template-columns:auto 1fr;gap:.2rem .7rem;align-items:baseline;margin:.2rem 0 1.3rem;padding:.75rem .95rem;border:1px solid var(--es-line);border-left:3px solid var(--es-accent);border-radius:10px;background:var(--es-panel);text-decoration:none;color:var(--es-body)}
+.essay .es-linkcard:hover{border-color:var(--es-accent)}
+.essay .es-linkcard .plat{grid-row:span 2;font:600 .66rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-accent2)}
+.essay .es-linkcard .what{font-weight:600;color:var(--es-text);line-height:1.35}
+.essay .es-linkcard .meta{grid-column:2;font-size:.8rem;color:var(--es-muted)}
+.essay .es-linkcard .go{grid-column:2;font-size:.82rem;color:var(--es-accent)}
+.essay .es-cover img{max-width:min(100%,640px);max-height:360px}
+.essay .es-fig-image figcaption{margin:0;padding:.7rem 1.1rem .8rem}
+.essay .es-ai{display:inline-block;margin-left:.2rem;padding:.05rem .45rem;border:1px solid var(--es-line2);border-radius:999px;font:500 .68rem var(--es-mono);letter-spacing:.04em;color:var(--es-dim)}
+
+/* The quote box says whose words it holds. */
+/* A reported post's highlight: one whole sentence from a source, word for word (2026-10-20). */
+.es-highlight{margin:1.6rem 0;padding:1.1rem 1.3rem;background:var(--es-panel);border:1px solid var(--es-line);border-radius:12px}
+.es-highlight blockquote{margin:0;font-size:1.12rem;line-height:1.55;color:var(--es-text)}
+.es-highlight figcaption{margin-top:.6rem;font-size:.78rem;color:var(--es-muted)}
+.es-highlight figcaption a{color:var(--es-accent)}
+.es-refnum{margin-left:.1em}
+.es-highlight figcaption a.es-hl-ref{font-family:var(--es-mono);text-decoration:none}
+.es-voice{margin:1.6rem 0;padding:1rem 1.25rem 1.05rem;background:var(--es-panel);border:1px solid var(--es-line);border-left:3px solid var(--es-accent2);border-radius:0 12px 12px 0}
+.es-voice .who{font:600 .68rem var(--es-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent2);margin-bottom:.45rem}
+.es-voice blockquote{margin:0;font-size:1.08rem;line-height:1.55;font-style:italic;color:var(--es-text)}
+.es-voice blockquote::before{content:"\201C"}
+.es-voice blockquote::after{content:"\201D"}
+.es-voice .src{margin-top:.5rem;font-size:.74rem;color:var(--es-dim);line-height:1.45}
+.es-voice .src a{color:var(--es-accent2)}
+/* Quote credits and the platforms' own embeds (2026-10-13). */
+.es-cite{font:600 .66rem var(--es-mono);margin-left:2px}
+.es-cite a{color:var(--es-accent2);text-decoration:none;padding:0 3px;border:1px solid var(--es-line);border-radius:4px}
+.es-embed{margin:1.6rem 0;padding:.9rem;background:var(--es-panel);border:1px solid var(--es-line);border-radius:12px}
+.es-embed-reddit{border-top:3px solid #FF8B5E}
+.es-embed-x{border-top:3px solid #E7E9EA}
+/* The platform's blockquote BEFORE its script replaces it - or for good, if the
+   script is blocked: a link card the reader can still follow. */
+.reddit-embed-bq,.twitter-tweet{margin:0 auto;max-width:550px;padding:.9rem 1rem;border:1px dashed var(--es-line);border-radius:10px;font-size:.9rem;color:var(--es-dim)}
+.reddit-embed-bq a,.twitter-tweet a{color:var(--es-accent2)}
+.es-embed figcaption{margin-top:.6rem}
+.es-embed .cap{display:block;font-size:.9rem;color:var(--es-text)}
+.es-embed .prov{display:block;margin-top:.25rem;font:.7rem var(--es-mono);color:var(--es-dim)}
+.es-sources{margin-top:2rem}
+.es-sources ol{padding-left:1.3rem;font-size:.9rem;color:var(--es-dim)}
+.es-sources li{margin:.35rem 0;scroll-margin-top:80px}
+.es-sources a{color:var(--es-accent2)}
+/* arXiv's acknowledgement under the sources (judge/publication.py with_credits) */
+.es-sources .es-ack{font-style:italic;margin-top:-1rem !important}
+.es-sources .plat{font:600 .64rem var(--es-mono);text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border:1px solid var(--es-line);border-radius:4px;color:var(--es-text)}
+
+/* The lead, styled per format rather than one box for all. */
+.es-open{margin:0 0 1.8rem}
+.es-gloss .lbl,.es-quiz .lbl,.es-myths .lbl,.es-radar .lbl,.es-sides .lbl,.es-results .lbl,.es-open .lbl,.es-log .lbl,.es-points .lbl,.es-chain .lbl,.es-fcol .lbl,.es-receipt .lbl,.es-levers .lbl,.es-map .lbl,.es-ctree .lbl,.es-probe .lbl{font:600 .68rem var(--es-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--es-accent);margin-bottom:.5rem}
+.es-open p{margin:0 !important;color:var(--es-text) !important}
+.es-open.strip{font-family:var(--es-mono);padding:.8rem 1rem;border:1px dashed var(--es-accent);border-radius:8px;background:var(--es-panel)}
+.es-open.strip p{font-size:.88rem;line-height:1.6}
+.es-open.split{text-align:center;max-width:62ch;margin:0 auto 2rem}
+.es-open.split p{font-size:1.05rem}
+.es-open.before{padding:1rem 1.2rem;border-radius:12px;background:var(--es-panel2);border:1px solid var(--es-accent)}
+.es-open.verdict{border-top:4px solid var(--es-accent);padding-top:1rem}
+.es-open.verdict p{font-size:clamp(1.25rem,2.6vw,1.6rem);line-height:1.4;font-weight:600;letter-spacing:-.01em}
+.es-open.thesis{padding:0 0 0 1.2rem;border-left:4px solid var(--es-accent)}
+.es-open.thesis p{font-size:clamp(1.2rem,2.4vw,1.5rem);line-height:1.45;font-style:italic}
+
+/* Sections listed as an opening: a log, numbered points, an argument chain. */
+.es-log ol,.es-points ol,.es-chain ol{list-style:none;margin:0;padding:0}
+.es-log,.es-points,.es-chain{margin:0 0 2rem}
+.es-log li a,.es-points li a,.es-chain li a{display:flex;gap:.8rem;align-items:baseline;padding:.5rem .2rem;border-top:1px solid var(--es-line);color:var(--es-body)}
+.es-log li a:hover,.es-points li a:hover,.es-chain li a:hover{text-decoration:none;color:var(--es-text);background:var(--es-panel)}
+.es-log .k{flex:none;font:600 .72rem var(--es-mono);color:var(--es-accent)}
+.es-log li a{font-family:var(--es-mono);font-size:.84rem}
+.es-points .k{flex:none;font:700 1.4rem var(--es-sans);color:var(--es-accent);min-width:2.2rem}
+.es-points li a{font-weight:600}
+.es-chain ol{border-left:2px solid var(--es-line2);margin-left:.9rem}
+.es-chain li a{border-top:0;position:relative;padding-left:1.6rem}
+.es-chain .k{position:absolute;left:-.95rem;top:.45rem;width:1.7rem;height:1.7rem;border-radius:50%;display:grid;place-items:center;font:600 .74rem var(--es-mono);background:var(--es-bg);border:2px solid var(--es-accent);color:var(--es-accent)}
+
+/* report: what holds up front, what is still open at the end. */
+.es-fcol{margin:1.8rem 0;padding:1rem 1.2rem;border-radius:12px;background:var(--es-panel)}
+.es-fcol ul{list-style:none;margin:0;padding:0}
+.es-fcol li{position:relative;padding:.45rem 0 .45rem 1.4rem;border-top:1px solid var(--es-line);font-size:.92rem;line-height:1.5;color:var(--es-body)}
+.es-fcol li::before{content:"";position:absolute;left:0;top:.9rem;width:.6rem;height:.6rem;border-radius:50%}
+.es-fcol.ok{border:1px solid var(--es-good)}
+.es-fcol.ok li::before{background:var(--es-good)}
+.es-fcol.open{border:1px dashed var(--es-dim)}
+.es-fcol.open .lbl{color:var(--es-muted)}
+.es-fcol.open li::before{border:1px solid var(--es-dim)}
+.es-fcol li.none{color:var(--es-dim)}
+.layout-report .es-sec{position:relative;padding-left:1.1rem;border-left:1px dashed var(--es-line2)}
+.layout-report .es-article h2{font-family:var(--es-mono);font-size:1.15rem;letter-spacing:-.01em}
+
+/* versus: a face-off, then one card per question. */
+.es-face{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:stretch;margin:0 0 1.6rem}
+.es-face .side{padding:1.1rem 1.2rem;border-radius:14px;background:var(--es-panel);border-top:4px solid var(--es-accent)}
+.es-face .side.s1{border-top-color:var(--es-accent2)}
+.es-face .vs{align-self:center;font:700 1.1rem var(--es-mono);color:var(--es-dim)}
+.es-face .nm{font-weight:700;font-size:1.2rem;color:var(--es-text);margin-bottom:.5rem}
+.es-face .px{display:flex;align-items:baseline;gap:.35rem;font:700 1.5rem var(--es-mono);color:var(--es-text)}
+.es-face .px i{font:400 .75rem var(--es-mono);color:var(--es-muted);font-style:normal;margin-right:.5rem}
+.es-face .unit{font:400 .7rem var(--es-mono);color:var(--es-dim);margin-top:.2rem}
+.es-face .when{margin-top:.9rem;font:600 .68rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-muted)}
+.es-face ul{list-style:none;margin:.3rem 0 0;padding:0}
+.es-face li{padding:.4rem 0;border-top:1px solid var(--es-line);font-size:.88rem;line-height:1.5;color:var(--es-body)}
+@media(max-width:700px){.es-face{grid-template-columns:1fr}.es-face .vs{justify-self:center}}
+.es-qcard{margin:1.4rem 0;padding:.4rem 1.3rem 1rem;border:1px solid var(--es-line);border-radius:14px;background:var(--es-panel)}
+.es-qcard h2{font-size:1.25rem !important}
+.es-qcard details.why{border-top:1px solid var(--es-line);margin-top:.6rem;padding-top:.5rem}
+.es-qcard details.why summary,.es-ctree summary,.es-probe summary,.es-map summary{cursor:pointer;color:var(--es-accent);font-size:.86rem}
+
+/* Filter pills, shared by the matrix and the claims wall. */
+.es-pills{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.4rem 0 .8rem;font:500 .76rem var(--es-mono);color:var(--es-dim)}
+.es-pills label{padding:.25rem .7rem;border:1px solid var(--es-line2);border-radius:999px;color:var(--es-muted);cursor:pointer}
+.es-pills input{position:absolute;opacity:0;pointer-events:none}
+.es-pills label:has(input:checked){border-color:var(--es-accent);color:var(--es-text);background:var(--es-panel2)}
+.es-pills label:has(input:focus-visible){outline:2px solid var(--es-accent)}
+.es-mx:has(.f0:checked) tbody tr:not(.g0),.es-mx:has(.f1:checked) tbody tr:not(.g1),.es-mx:has(.f2:checked) tbody tr:not(.g2),
+.es-mx:has(.f3:checked) tbody tr:not(.g3),.es-mx:has(.f4:checked) tbody tr:not(.g4),.es-mx:has(.f5:checked) tbody tr:not(.g5){display:none}
+.es-mx{margin:2rem 0}
+/* On a phone the four-column matrix ran past the screen (by 206px at 390px wide,
+   2026-10-06) and scrolled sideways inside its box. It stacks instead: one card
+   per row, each cell under its column name. */
+@media(max-width:640px){
+  .es-mx .es-tbl{overflow:visible;border:0;border-radius:0}
+  .es-mx table,.es-mx tbody,.es-mx tr,.es-mx td{display:block;width:100%;min-width:0}
+  .es-mx thead{display:none}
+  .es-mx tr{margin:0 0 .7rem;padding:.35rem 0;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel)}
+  .es-mx td{border:0;padding:.3rem .85rem}
+  .es-mx td[data-l]::before{content:attr(data-l);display:block;font:600 .62rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-dim)}
+}
+
+/* A tree you open branch by branch. */
+.es-ctree{margin:2rem 0;padding:1.1rem 1.2rem;border-radius:14px;border:1px solid var(--es-line);background:var(--es-panel)}
+.es-ctree .q{font-weight:700;font-size:1.1rem;color:var(--es-text)}
+.es-ctree .hint{font-size:.8rem !important;color:var(--es-dim) !important;margin:.2rem 0 .7rem !important}
+.es-ctree details.br{border-top:1px solid var(--es-line);padding:.55rem 0}
+.es-ctree details.br summary{color:var(--es-warn);font-family:var(--es-mono);font-size:.82rem;line-height:1.5}
+.es-ctree details.br[open] summary{color:var(--es-text)}
+.es-ctree .out{margin:.45rem 0 .5rem;font-size:.92rem;color:var(--es-body);line-height:1.55}
+
+/* ledger: a receipt to open on, a checklist of levers to close on. */
+.es-receipt{margin:0 0 2rem;padding:1.2rem 1.3rem 1.8rem;border-radius:4px;background:var(--es-panel2);border:1px solid var(--es-line2);font-family:var(--es-mono);
+  -webkit-mask:radial-gradient(circle 6px at 50% 100%,transparent 98%,#000) 0 0/16px 100% repeat-x;mask:radial-gradient(circle 6px at 50% 100%,transparent 98%,#000) 0 0/16px 100% repeat-x}
+.es-receipt .line{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap;font-size:.92rem;color:var(--es-text);padding:.3rem 0}
+.es-receipt .dots{flex:1 1 2rem;border-bottom:1px dotted var(--es-dim);min-width:1rem}
+.es-receipt .dim,.es-receipt .unit{color:var(--es-dim);font-size:.74rem}
+.es-receipt .unit{margin:.2rem 0 1rem;border-bottom:1px dashed var(--es-line2);padding-bottom:.8rem}
+.es-receipt ol.items{list-style:none;margin:0 0 1rem;padding:0}
+.es-receipt ol.items li{display:flex;gap:.7rem;padding:.4rem 0;border-top:1px dotted var(--es-line2);font:400 .84rem var(--es-sans);line-height:1.5;color:var(--es-body)}
+.es-receipt ol.items .k{font-family:var(--es-mono);color:var(--es-accent);flex:none}
+.es-receipt .es-open.in{margin:0;padding-top:.8rem;border-top:2px solid var(--es-text)}
+.es-receipt .es-open.in p{font:500 .95rem var(--es-sans);line-height:1.55}
+.es-levers{margin:2.4rem 0 1rem;padding:1.1rem 1.2rem;border-radius:14px;border:1px solid var(--es-accent);background:var(--es-panel);counter-reset:lv}
+.es-levers .hint{font-size:.8rem !important;color:var(--es-dim) !important;margin:0 0 .5rem !important}
+.es-levers ul{list-style:none;margin:0;padding:0}
+.es-levers li{border-top:1px solid var(--es-line)}
+.es-levers label{display:flex;gap:.7rem;align-items:flex-start;padding:.55rem 0;cursor:pointer;font-size:.9rem;line-height:1.5;color:var(--es-body)}
+.es-levers input{margin-top:.3rem;accent-color:var(--es-accent);flex:none}
+.es-levers input:checked{counter-increment:lv}
+.es-levers label:has(input:checked) span{color:var(--es-dim);text-decoration:line-through}
+.es-levers .tally{margin-top:.6rem;font:600 .78rem var(--es-mono);color:var(--es-accent)}
+.es-levers .tally .ct::after{content:counter(lv)}
+
+/* runbook: each step can be ticked; the tally sticks to the bottom. */
+.es-run{counter-reset:st}
+.es-step{position:relative;padding-left:1.4rem;border-left:2px solid var(--es-line2)}
+.es-step:has(.es-done:checked){border-left-color:var(--es-good)}
+.es-tick{display:inline-flex;gap:.5rem;align-items:center;font:500 .76rem var(--es-mono);color:var(--es-muted);cursor:pointer;margin:-.3rem 0 .4rem}
+.es-tick input{accent-color:var(--es-good)}
+.es-done:checked{counter-increment:st}
+.es-prog{position:sticky;bottom:.6rem;z-index:5;margin:1.6rem 0;padding:.55rem .9rem;border-radius:999px;background:var(--es-panel2);border:1px solid var(--es-accent);font:600 .78rem var(--es-mono);color:var(--es-text);width:max-content;max-width:100%}
+.es-prog .ct::after{content:counter(st)}
+.es-prog .all{display:none;color:var(--es-good)}
+.es-run:not(:has(.es-done:not(:checked))) .es-prog .all{display:inline}
+
+/* blueprint: the architecture as a stepped diagram to open on. */
+.es-map{margin:0 0 2rem}
+.es-map .stack{display:grid;gap:.4rem}
+.es-map .band{display:block;padding:.65rem 1rem;border-radius:10px;border:1px solid var(--es-accent);background:var(--es-panel2);color:var(--es-text);font-weight:600;font-size:.92rem}
+.es-map a.band:hover{text-decoration:none;background:var(--es-panel)}
+.es-map .band p{font-weight:400;font-size:.86rem !important;margin:.4rem 0 !important}
+.es-map .band .fail b{font:600 .66rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-accent);margin-right:.4rem}
+.es-map .cap{margin:1rem 0 0 !important;font-size:.95rem !important;color:var(--es-body) !important}
+.es-map .cap b{color:var(--es-accent)}
+@media(max-width:600px){.es-map .band{margin-left:0 !important}}
+.es-mcards{margin:2.4rem 0 1rem}
+.es-mcards .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem}
+.es-mcards .mc{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
+.es-mcards h3{margin:0 0 .5rem;font-size:.98rem;color:var(--es-text)}
+.es-mcards p{font-size:.86rem !important;line-height:1.5;margin:.35rem 0 !important}
+.es-mcards p b{display:block;font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase}
+.es-mcards p.bad b{color:var(--es-warn)}
+.es-mcards p.good b{color:var(--es-good)}
+/* The route box is labelled: an unlabelled coloured box is the same puzzle the
+   quote box was. */
+.es-mcards p.rt b{color:var(--es-muted)}
+
+/* brief: a wall of claims, filterable by verdict. */
+.es-claimw{margin:0 0 2rem}
+.es-claimw .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.8rem}
+.es-claimw .cl{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
+.es-claimw .cl h3{margin:.6rem 0 .4rem;font-size:.95rem;color:var(--es-text)}
+.es-claimw .cl p{font-size:.85rem !important;margin:0 !important;line-height:1.5}
+.es-claimw .stamp{display:inline-block;font:700 .66rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;padding:.2rem .5rem;border:2px solid;border-radius:4px;transform:rotate(-2deg)}
+.es-claimw .c-ok .stamp{color:var(--es-good)}
+.es-claimw .c-part .stamp{color:var(--es-warn)}
+.es-claimw .c-none .stamp{color:var(--es-muted)}
+.es-claimw:has(.fo:checked) .cl:not(.c-ok),.es-claimw:has(.fp:checked) .cl:not(.c-part),.es-claimw:has(.fn:checked) .cl:not(.c-none){display:none}
+
+/* critique: what each measure tests, opened one at a time. */
+.es-probe{margin:2.4rem 0 1rem}
+.es-probe details{border-top:1px solid var(--es-line);padding:.6rem 0}
+.es-probe summary{display:flex;flex-direction:column;gap:.15rem}
+.es-probe summary b{color:var(--es-text);font-size:.95rem}
+.es-probe summary span{color:var(--es-muted);font-size:.85rem}
+.es-probe details p{font-size:.88rem !important}
+.es-probe details p b{font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-accent);margin-right:.4rem}
+
+/* The sidebar price sheet, moved out of the page's ending. */
+.es-sheet table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;margin:.5rem 0;font:400 .76rem var(--es-mono)}
+.es-sheet th{color:var(--es-dim);font-weight:500;text-align:right;padding:.2rem .3rem}
+.es-sheet td{padding:.3rem;border-top:1px solid var(--es-line);color:var(--es-body);text-align:right;white-space:nowrap}
+.es-sheet td:first-child,.es-sheet th:first-child{width:52%;text-align:left;white-space:normal;color:var(--es-text);font-weight:400}
+.es-sheet p{font-size:.72rem;color:var(--es-dim);line-height:1.45;margin:.3rem 0 0}
+
+/* A model the board does not track: dashed, and the card says so. */
+.essay .es-ent.off{position:relative;text-decoration:underline dashed var(--es-dim);text-underline-offset:3px;cursor:help}
+.essay .es-ent.off:hover .es-pop,.essay .es-ent.off:focus .es-pop{display:flex;flex-direction:column;gap:.15rem}
+
+/* The index: each card carries its format's colour. */
+.es-card.lay-report{border-top:3px solid #e3b341}
+.es-card.lay-versus{border-top:3px solid #7aa2ff}
+.es-card.lay-ledger{border-top:3px solid #3ecf8e}
+.es-card.lay-runbook{border-top:3px solid #38bdf8}
+.es-card.lay-blueprint{border-top:3px solid #a78bfa}
+.es-card.lay-brief{border-top:3px solid #fb7185}
+.es-card.lay-critique{border-top:3px solid #f59e0b}
+
+/* ── Blogs: skim lines and the second arrangement (views.js, 2026-10-08) ────── */
+
+
+/* Which arrangement a post uses; arr-b carries the rules below. */
+.essay.arr-a,.essay.arr-b{isolation:auto}
+
+/* Head-to-head B: every question at once, each opening in place. */
+.es-qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.8rem;margin:1.6rem 0;align-items:start}
+.es-qtile{border:1px solid var(--es-line);border-radius:14px;background:var(--es-panel);padding:.2rem 1.1rem}
+.es-qtile[open]{grid-column:1 / -1;border-color:var(--es-accent)}
+.es-qtile > summary{display:flex;gap:.7rem;align-items:baseline;cursor:pointer;padding:.85rem 0;font-weight:600;color:var(--es-text);line-height:1.4}
+.es-qtile > summary .n{font:700 .8rem var(--es-mono);color:var(--es-accent);flex:none}
+.es-pstrip{display:flex;flex-wrap:wrap;align-items:baseline;gap:.6rem 1.2rem;margin:0 0 1.8rem;padding:.7rem 1rem;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel);font-family:var(--es-mono);font-size:.86rem}
+.es-pstrip .side{display:flex;gap:.6rem;align-items:baseline;color:var(--es-body)}
+.es-pstrip .side b{color:var(--es-text);font-family:var(--es-sans)}
+.es-pstrip i{color:var(--es-dim);font-style:normal}
+.es-pstrip .unit,.es-pstrip .dim{color:var(--es-dim);font-size:.72rem}
+
+/* Field report B: what holds beside what is still open. */
+.es-score{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:0 0 1rem}
+.es-score .es-fcol{margin:0}
+
+/* Arrangement B elsewhere: a section as a spread, heading left of the text. */
+@media(min-width:900px){
+  .es-sec.es-spread{display:grid;grid-template-columns:200px minmax(0,1fr);column-gap:1.6rem;align-items:start}
+  .es-sec.es-spread > h2{grid-column:1;grid-row:1 / span 20;position:sticky;top:5rem;font-size:1.1rem !important;margin-top:2rem}
+  .es-sec.es-spread > :not(h2){grid-column:2}
+}
+
+/* ---------- heading boxes (2026-10-14) ----------
+   A tab with hundreds of leaves shows its headings as boxes; a box opens its
+   leaves. The count is LEAVES, the only number a heading carries - quiet, so it
+   does not read as an amount of evidence. */
+.bv .hboxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.bv .hbox{display:flex;flex-direction:column;gap:8px;min-height:190px;padding:22px 24px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);text-decoration:none;transition:.18s var(--ease)}
+.bv .hbox:hover{border-color:var(--border-strong);background:var(--surface-2);transform:translateY(-2px)}
+.bv .hbox h3{margin:0;font-size:1.12rem;font-weight:650;line-height:1.3}
+.bv .hbox-n{font-size:.82rem;color:var(--text-2);font-variant-numeric:tabular-nums}
+.bv .hbox ul{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}
+.bv .hbox li{font-size:.86rem;color:var(--text-2);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bv .hbox li.more{color:var(--text-3)}
+.bv .hbox-go{margin-top:auto;font:600 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.bv .hbox:hover .hbox-go{color:var(--text)}
+.bv .hbox-unfiled{border-style:dashed;background:transparent}
+.bv .backline{margin-top:10px;font-size:.9rem}
+.bv .icard .filed-by{margin-top:8px;font-size:.76rem;color:var(--warn)}
+
+/* TOPIC POSTS (2026-10-16): the synthesis glossary and the explainer quiz.
+   The quiz is CSS-only: :checked colours the pick, :has() shows the right
+   answer and the explanation once a question is answered. */
+.es-gloss{margin:0 0 2rem;padding:1rem 1.2rem;border:1px solid var(--es-line2);border-radius:12px;background:var(--es-panel)}
+.es-gloss dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem 1.4rem;margin:0}
+.es-gloss dt{font-weight:600;color:var(--es-text)}
+.es-gloss dd{margin:.2rem 0 0;color:var(--es-body);font-size:.92rem;line-height:1.5}
+.es-quiz{margin:2.4rem 0 1rem;padding:1.2rem;border-radius:12px;border:1px solid var(--es-accent);background:var(--es-panel)}
+.es-quiz .q{border:0;margin:0 0 1.4rem;padding:0;min-width:0}
+.es-quiz legend{font-weight:600;color:var(--es-text);margin-bottom:.6rem;padding:0;display:flex;gap:.6rem;line-height:1.45}
+.es-quiz legend .n{font:600 .75rem var(--es-mono);color:var(--es-accent);padding-top:.2rem}
+.es-quiz .opt{display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .75rem;margin:.35rem 0;border-radius:8px;border:1px solid var(--es-line2);cursor:pointer;color:var(--es-text)}
+.es-quiz .opt input{margin-top:.25rem;accent-color:var(--es-accent)}
+.es-quiz .opt.right:has(input:checked){border-color:var(--es-good);background:rgba(62,207,142,.12)}
+.es-quiz .opt.wrong:has(input:checked){border-color:var(--es-warn);background:rgba(227,179,65,.12)}
+.es-quiz .q:has(input:checked) .opt.right{border-color:var(--es-good)}
+.es-quiz .why{display:none;margin:.5rem 0 0;font-size:.92rem;color:var(--es-body)}
+.es-quiz .q:has(input:checked) .why{display:block}
+
+/* MORE TOPIC STYLES (2026-10-16). CSS-only state throughout: nothing a reader
+   opens, ticks or filters is sent anywhere. */
+.es-ref{display:inline-block;margin-top:.5rem;font:500 .74rem var(--es-mono);color:var(--es-accent);text-decoration:none}
+.es-ref:hover{text-decoration:underline}
+.es-lab ol{margin:0;padding-left:1.2rem}
+.es-lab .look{display:block;margin-top:.25rem;font-style:normal;color:var(--es-muted);font-size:.86rem}
+.es-myths{margin:0 0 2rem}
+.es-myths .hint{color:var(--es-muted);font-size:.85rem;margin:0 0 .6rem}
+.es-myths .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem}
+.es-myths .mc{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
+.es-myths summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:.5rem}
+.es-myths summary::-webkit-details-marker{display:none}
+.es-myths .q{color:var(--es-text);font-weight:600;line-height:1.4}
+.es-myths .tap{font:600 .66rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-accent)}
+.es-myths .mc[open] .tap{display:none}
+.es-myths .stamp{display:inline-block;margin-top:.6rem;font:700 .66rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;padding:.2rem .5rem;border:2px solid;border-radius:4px;transform:rotate(-2deg)}
+.es-myths .m-ok .stamp{color:var(--es-good)}
+.es-myths .m-part .stamp{color:var(--es-warn)}
+.es-myths .m-none .stamp{color:var(--es-muted)}
+.es-myths .mc p{font-size:.88rem !important;margin:.5rem 0 0 !important;line-height:1.5}
+.es-radar{margin:0 0 2rem}
+.es-radar .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem;margin-top:.6rem}
+.es-radar .rd{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
+.es-radar .stage{font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-warn)}
+.es-radar .s2 .stage{color:var(--es-good)}
+.es-radar .s0 .stage{color:var(--es-accent2)}
+.es-radar h3{margin:.4rem 0 .3rem;font-size:.98rem;color:var(--es-text)}
+.es-radar p{font-size:.86rem !important;margin:0 0 .4rem !important;line-height:1.5}
+.es-radar p.why{color:var(--es-muted) !important}
+.es-radar:has(.f0:checked) .rd:not(.s0),.es-radar:has(.f1:checked) .rd:not(.s1),.es-radar:has(.f2:checked) .rd:not(.s2){display:none}
+.es-sides{margin:0 0 2rem}
+.es-sides .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem}
+.es-sides .side{padding:1.1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line2)}
+.es-sides .n{font:700 1.4rem var(--es-mono);color:var(--es-accent)}
+.es-sides h3{margin:.3rem 0 .4rem;font-size:1em;color:var(--es-text)}
+.es-sides p{font-size:.9rem !important;line-height:1.55}
+.es-sides summary{cursor:pointer;font:600 .7rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-warn);margin-top:.4rem}
+.es-results{margin:0 0 2rem;border-left:3px solid var(--es-accent);padding-left:1rem}
+.es-results .rs{padding:.7rem 0;border-bottom:1px solid var(--es-line)}
+.es-results .r{color:var(--es-text) !important;font-weight:600;margin:0 !important}
+.es-results .set{color:var(--es-muted) !important;font-size:.86rem !important;margin:.25rem 0 0 !important}
+.es-ack{margin-top:.4rem !important}
+
+/* THE BLOGS LANDING, A RESEARCH-BLOG COLUMN (2026-10-16): one post after
+   another, each with its own picture full width. */
+.bl-list{max-width:780px;margin:2.4rem auto 0;display:flex;flex-direction:column;gap:3.6rem}
+.bl-post{display:flex;flex-direction:column;gap:.75rem}
+.bl-title{margin:0;font-size:clamp(1.45rem,2.6vw,1.95rem);line-height:1.22;letter-spacing:-.01em;font-weight:700}
+.bl-title a{color:var(--es-text);text-decoration:none;cursor:pointer;background-image:linear-gradient(var(--es-accent),var(--es-accent));background-size:0 2px;background-repeat:no-repeat;background-position:0 100%;transition:background-size .25s}
+.bl-title a:hover{background-size:100% 2px}
+.bl-by{display:flex;flex-wrap:wrap;gap:.35rem .9rem;font:500 .78rem var(--es-mono);color:var(--es-muted)}
+.bl-kind{color:var(--es-accent);text-transform:uppercase;letter-spacing:.1em}
+.bl-draft{color:var(--es-warn);text-transform:uppercase;letter-spacing:.1em}
+.bl-fig{display:block;margin:.4rem 0 .2rem;border-radius:14px;overflow:hidden;border:1px solid var(--es-line);background:var(--es-panel);cursor:pointer}
+.bl-fig img{display:block;width:100%;height:auto;max-height:440px;object-fit:cover}
+.bl-fig.drawn img{object-fit:contain}
+.bl-ex{margin:0;color:var(--es-body);font-size:1.02rem;line-height:1.65}
+.bl-more{align-self:flex-start;font:600 .82rem var(--es-mono);color:var(--es-accent);text-decoration:none;cursor:pointer}
+.bl-more:hover{text-decoration:underline}
+.bl-dir{display:block;max-width:780px;margin:1.5rem auto 0;font:600 .85rem var(--es-mono);color:var(--es-accent);text-decoration:none}
+.bl-dir:hover{text-decoration:underline}
+.bl-pager{max-width:780px;margin:3rem auto 1rem;display:flex;justify-content:space-between;align-items:center;font:600 .85rem var(--es-mono)}
+.bl-pager a{color:var(--es-accent);text-decoration:none}
+.bl-pg{color:var(--es-muted)}
+.es-drawn img{background:var(--es-panel)}
+@media (max-width:640px){.bl-list{gap:2.6rem}.bl-fig img{max-height:260px}}

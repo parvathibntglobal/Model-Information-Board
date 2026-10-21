@@ -1,0 +1,433 @@
+{
+ "slug": "field-guide-concept-efficiency",
+ "status": "draft",
+ "tag": "Field guide",
+ "feat": false,
+ "title": "Inference Efficiency Field Guide: Find Out Who Pays for the Speedup",
+ "dek": "Pruning, speculative decoding and distillation all make a model cheaper to run. Each one also moves a cost somewhere you might not be looking.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "How to make LLM inference faster: prune, draft or distill, but calibrate on your real traffic, count server time per delivered token, and treat any relaxed acceptance rule as a quality change.",
+ "description": "How to make LLM inference faster without silent damage: pruning calibration, speculative decoding acceptance rules and distilled students.",
+ "keywords": [
+  "how to make LLM inference faster",
+  "inference efficiency",
+  "speculative decoding",
+  "depth pruning",
+  "on-policy distillation",
+  "pruning calibration"
+ ],
+ "kicker": "Field guide",
+ "tags": [
+  "inference efficiency",
+  "Field guide"
+ ],
+ "read": 8,
+ "decisions": [
+  "Which languages and tasks go into pruning calibration",
+  "Exact or relaxed acceptance for speculative decoding, per task",
+  "Prune, draft or distill for a given latency target",
+  "Which rollouts to drop before distillation or fusion",
+  "The metric that defines a win: server GPU time per delivered token"
+ ],
+ "layout": "fieldguide",
+ "arrangement": "a",
+ "special": {
+  "type": "checklist",
+  "title": "Before you ship",
+  "items": [
+   {
+    "check": "Calibrate pruning on text sampled from every language you serve.",
+    "why": "English-only Block Influence can mark late blocks as idle when other languages rely on them."
+   },
+   {
+    "check": "Report perplexity per language and per task slice, never one pooled figure.",
+    "why": "A pooled average hides the slice pruning broke, such as Tamil on Llama."
+   },
+   {
+    "check": "Sweep the pruning budget and stop well before the quality cliff.",
+    "why": "Past a point every calibration picks the same blocks and perplexity collapses."
+   },
+   {
+    "check": "Measure server GPU time per delivered token, not client tokens per second.",
+    "why": "Client speed can rise while the server bill stays flat."
+   },
+   {
+    "check": "Ship exact acceptance first and log which tasks use a relaxed threshold.",
+    "why": "A relaxed rule changes the output distribution, and a judge score may not notice."
+   },
+   {
+    "check": "Histogram rollout lengths and drop repetition loops before distilling or fusing.",
+    "why": "Looping answers carry a large share of tokens and skew second-moment estimates."
+   },
+   {
+    "check": "Evaluate the distilled student without the teacher's privileged context.",
+    "why": "A student that only works with the hints has not removed any inference cost."
+   },
+   {
+    "check": "Rerun general-capability checks after any compression step.",
+    "why": "Gains on the target task can hide losses everywhere else."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Calibrate pruning on the languages you actually serve",
+    "num": "01",
+    "id": "calibrate-pruning-on-the-languages-you-actually-serve"
+   }
+  ],
+  [
+   "p",
+   "The most common inference efficiency failure is silent. You compress a model on English text, ship it, and your Tamil users get worse answers that no English eval ever shows. Depth pruning is the usual culprit. It deletes whole Transformer blocks, the stacked attention and MLP layers, so every token skips them. That is a real speedup. The catch is which blocks you pick."
+  ],
+  [
+   "p",
+   "Block Influence is the cheap way to pick. It «ranks Transformer blocks for depth pruning from their input-output cosine change». Roughly, `BI = 1 - cos(h_in, h_out)`, averaged over calibration text, the sample you push through to take the measurement. A block that barely changes its input scores low and goes first. Sounds clean. The authors of a new arXiv paper on multilingual pruning point out that «the ranking depends on the calibration distribution»."
+  ],
+  [
+   "quote",
+   "English-only BI systematically misses late-layer activity for Indian-language text"
+  ],
+  [
+   "p",
+   "Run our worked example through it. Say you serve a support assistant in English, Hindi and Tamil. On the small models they studied, «late-block BI is 20.7-55.5% higher for the three Indian languages than for English». So English calibration makes late blocks look idle when Hindi text leans on them. You delete them anyway. Rank correlations still look healthy, and the authors warn that «This mismatch changes the low-BI blocks selected for removal despite high global rank correlations»."
+  ],
+  [
+   "p",
+   "We agree with their own framing: this is a diagnostic, and the fix is not universal. Averaging BI over English, Hindi and Marathi helped Qwen and Gemma. On Llama, «balancing improves Hindi and Marathi at two removed blocks but severely harms Tamil». So mixed-language calibration is a sensible default to try, then check. Measure perplexity per language, never pooled."
+  ],
+  [
+   "h2",
+   {
+    "text": "Count server GPU time per delivered token",
+    "num": "02",
+    "id": "count-server-gpu-time-per-delivered-token"
+   }
+  ],
+  [
+   "p",
+   "Speculative decoding is the other big lever. A small draft model guesses several tokens ahead. The big target model then scores all of them in one parallel forward pass and keeps the longest prefix it agrees with. You pay one expensive pass for several tokens. When the draft guesses well, that is nearly free speed. When it guesses badly, you burned draft compute for nothing."
+  ],
+  [
+   "p",
+   "Now put the draft on a phone. The snag, per a new arXiv paper on device-cloud drafting called HyCo, is that a deep draft tree «requires repeated passes on a mobile neural processing unit (NPU)». A draft tree is a branching set of candidate continuations. Depth costs sequential steps. Phone chips hate sequential steps."
+  ],
+  [
+   "p",
+   "We retraced the HyCo design, and it is clever. It «assigns depth to the server model's native multi-token prediction (MTP) head, executed on the device». An MTP head is a small extra output layer that predicts several future tokens at once. The phone runs it. One pass of the small model then supplies alternative branches. «The server returns the hidden state, input embedding, and key-value entries needed by the head», so the phone skips the server's sequential work."
+  ],
+  [
+   "p",
+   "Then count the right thing. HyCo «reduces server GPU time per output token relative to server-side MTP self-speculation by 38.6% on Spec-Bench». That metric is the one to copy. Client tokens per second can rise while the server works just as hard. Your bill lives on the server. Divide server GPU seconds by tokens actually delivered, and track that number per release."
+  ],
+  [
+   "code",
+   {
+    "label": "One speculative decoding step, as illustrative pseudo-code",
+    "language": "python",
+    "source": "# Illustrative pattern, not a library API\ndef speculative_step(prefix, draft, target, k):\n    guesses = draft.propose(prefix, k)          # cheap, sequential on the device\n    p_t, p_d = target.score(prefix, guesses)    # one parallel pass on the server\n    out = []\n    for i, tok in enumerate(guesses):\n        if accept(p_t[i][tok], p_d[i][tok]):    # exact rule: rand() < p_t / p_d\n            out.append(tok)\n        else:\n            out.append(resample(p_t[i], p_d[i]))  # repair the first miss, stop\n            break\n    return prefix + out\n\n# A relaxed rule swaps accept() for a looser test against eps.\n# More tokens survive; the output is no longer exactly the target's."
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How HyCo splits drafting between the phone and the server before one verification pass.",
+    "steps": [
+     "Server sends hidden state, embedding and KV entries",
+     "Phone runs the MTP head to draft depth",
+     "One small-model pass adds alternative branches",
+     "Draft tree travels to the server",
+     "Target verifies every branch in one parallel pass",
+     "Accepted prefix returns and the loop repeats"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Treat a relaxed acceptance rule as a quality change",
+    "num": "03",
+    "id": "treat-a-relaxed-acceptance-rule-as-a-quality-change"
+   }
+  ],
+  [
+   "p",
+   "Here is the catch that reads like a footnote. Classic speculative decoding is lossless. Its acceptance rule keeps the target's sampling distribution exactly, so outputs match running the target alone. HyCo adds a twist: «An ε-threshold rule additionally relaxes exact preservation of the verifier's sampling distribution». The verifier is the target model checking the draft. Relaxed means it waves through tokens it would sometimes reject."
+  ],
+  [
+   "p",
+   "That buys real savings, and the gap is big. «Without relaxation, HyCo exact saves 27.7% and 11.9%» on the two workloads, against 38.6% and 29.2% relaxed. On long summarization, most of the win comes from the relaxation. So the headline figure is partly a quality trade. Is that trade fine? It might be. The authors report HyCo «differs from Cloud+MTP by +0.2 judge-score points»."
+  ],
+  [
+   "p",
+   "We think a judge score is weak evidence for a sampling change. The interval is «paired 95% CI: -0.9 to +1.3», wide enough to hide a small regression. The abstract also says «exploratory translation favors SpecEdge-ε». In our view, ε is a quality knob, not a speed knob. Ship exact first. Then relax per task, with your own task metrics watching."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "HyCo's cut in server GPU time per output token versus server-side MTP self-speculation, by acceptance rule.",
+    "columns": [
+     "Acceptance rule",
+     "Spec-Bench saving",
+     "32K-token summarization saving"
+    ],
+    "rows": [
+     [
+      "ε-threshold, relaxed",
+      "38.6%",
+      "29.2%"
+     ],
+     [
+      "Exact",
+      "27.7%",
+      "11.9%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Move the cost into training with a distilled student",
+    "num": "04",
+    "id": "move-the-cost-into-training-with-a-distilled-student"
+   }
+  ],
+  [
+   "p",
+   "Sometimes the fastest inference is a smaller model. Distillation trains a cheap student to copy an expensive teacher. Context distillation is an efficiency move in disguise. The teacher gets extra context, and the student learns to act without it. You stop paying for those prompt tokens on every call. Off-policy training on teacher text «suffers from exposure bias». The student never practises recovering from its own mistakes."
+  ],
+  [
+   "p",
+   "On-policy distillation samples rollouts, full attempts, from the student itself. That has its own hole. A new arXiv paper on localized context distillation notes that such rollouts have states that «are often uninformative and fail to convey behaviors the student cannot yet produce». Their method patches the gap surgically. «LoCD first localizes the critical spans of a student trajectory that require revision.» After that, «The teacher then regenerates only these spans from the student's own prefix»."
+  ],
+  [
+   "quote",
+   "more stable training with smaller and sparser parameter updates"
+  ],
+  [
+   "p",
+   "The same shape shows up elsewhere. In shared residual distillation, «the trained model requires no peers at inference time». A vision-language method, SCOPED, aims to «internalize procedural knowledge without explicit skills at inference time». Spot the pattern? Each one spends compute during training so the deployed model carries less context, fewer samples, or no helper prompts. That is an inference saving bought upfront."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "Localized context distillation retrains only the spans of a student rollout that need revision.",
+    "steps": [
+     "Student generates a full rollout on its own",
+     "Locate the critical spans that need revision",
+     "Teacher with privileged context regenerates only those spans",
+     "Regeneration starts from the student's own prefix",
+     "Student trains on the regenerated segments"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Audit the rollouts before you fuse specialists",
+    "num": "05",
+    "id": "audit-the-rollouts-before-you-fuse-specialists"
+   }
+  ],
+  [
+   "p",
+   "Distillation usually costs rollouts, teacher passes and gradient steps. A new arXiv paper on training-free on-policy distillation drops the gradients. When specialists share a base model, each linear layer of the fused model has a closed-form answer. It is «a least-squares problem whose solution needs only the second moments of those inputs». A single forward pass over a modest batch of rollouts supplies those moments."
+  ],
+  [
+   "p",
+   "Sketch the math. For one layer, collect each specialist's inputs `X_k` and its outputs `W_k X_k`. Solve for a single fused `W` that minimises `sum_k ||W X_k - W_k X_k||²`. The answer needs only the `X_k X_kᵀ` products, the second moments. No backprop, no optimizer state. That is cheap enough to rerun whenever a specialist changes."
+  ],
+  [
+   "p",
+   "The surprise sits in the inputs. «What the rollouts contain matters more than the solver». Truncated answers stuck in repetition loops «are few among a mathematics specialist's rollouts but carry a large share of their tokens». Moments weight every token, so those loops dominate. Strip them, and the fused model on AIME25 climbs «from task arithmetic's level to the specialist's at matched precision»."
+  ],
+  [
+   "p",
+   "We think this is the most transferable lesson in the whole efficiency toolbox. Any method that averages over tokens is hostage to its longest, worst outputs. Before you fuse, distill or calibrate, histogram your rollouts by length. Drop the degenerate ones on purpose, and write down that you did."
+  ],
+  [
+   "h2",
+   {
+    "text": "Leave the model uncompressed when you cannot see the tail",
+    "num": "06",
+    "id": "leave-the-model-uncompressed-when-you-cannot-see-the-tail"
+   }
+  ],
+  [
+   "p",
+   "Sometimes the right amount of compression is none. If your traffic includes a language, domain or task you cannot evaluate separately, do not prune for it. The pruning paper is blunt that «multilingual calibration must still be validated per architecture and pruning budget». No validation, no pruning. A pooled average will cheerfully hide the users you just broke."
+  ],
+  [
+   "p",
+   "Push the budget too far and calibration stops mattering at all. On Llama, «larger pruning budgets select the same blocks and collapse perplexity regardless of calibration». No clever mix rescues that. Speculative decoding is gentler, since exact acceptance keeps the target's outputs. Even there, the measured wins come from «single-client runs with a Galaxy S26 Ultra over LTE/5G». Your fleet may look nothing like that."
+  ],
+  [
+   "p",
+   "So skip all of it when quality on rare inputs matters more than cost and you have no per-slice eval. A slower model you can audit beats a fast one you cannot. We would also skip relaxed acceptance for regulated, user-facing text in a language your judge reads poorly. Speed you cannot measure is debt."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How do I make LLM inference faster without hurting quality?"
+  ],
+  [
+   "p",
+   "Start with exact speculative decoding, because it speeds generation without changing what the target model would sample. Pruning and distillation cut more compute, but they change the model itself, so they need evaluation on every slice you serve. Measure server GPU time per delivered token, and compare quality per language and per task, never on one blended average."
+  ],
+  [
+   "h3",
+   "What is speculative decoding in inference efficiency?"
+  ],
+  [
+   "p",
+   "Speculative decoding lets a cheap draft model guess several tokens that the large target model then verifies in one parallel pass. Accepted tokens skip the slow one-at-a-time loop. With an exact acceptance rule, the output distribution is unchanged. Relaxed rules, like the ε-threshold in the HyCo work, save more server time but give up that guarantee, so treat them as a quality setting."
+  ],
+  [
+   "h3",
+   "Does layer pruning work for non-English languages?"
+  ],
+  [
+   "p",
+   "It can, but only if you calibrate on those languages and check each one separately. Block Influence rankings computed on English text miss late-layer activity that Hindi, Marathi and Tamil text relies on. Mixing calibration languages helped some models and hurt Tamil on another, so validate per architecture and per pruning budget before you ship."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Calibration Language Shapes Block-Influence Pruning in Multilingual Language Models",
+   "url": "https://arxiv.org/abs/2610.21383v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "HyCo: Hybrid Drafting for Cost-Efficient Mobile-Cloud Speculative Decoding",
+   "url": "https://arxiv.org/abs/2610.21436v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Learning from Interaction Experience via Localized Context Distillation",
+   "url": "https://arxiv.org/abs/2610.21427v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Learning from Unverified Peers via Shared Residual Distillation",
+   "url": "https://arxiv.org/abs/2610.22080v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Skill-Decoupled On-Policy Expert Distillation for Unified Vision-Language Models",
+   "url": "https://arxiv.org/abs/2610.22217v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 6,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Training-Free On-Policy Distillation",
+   "url": "https://arxiv.org/abs/2610.22236v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "ranks Transformer blocks for depth pruning from their input-output cosine change": 1,
+  "the ranking depends on the calibration distribution": 1,
+  "late-block BI is 20.7-55.5% higher for the three Indian languages than for English": 1,
+  "This mismatch changes the low-BI blocks selected for removal despite high global rank correlations": 1,
+  "balancing improves Hindi and Marathi at two removed blocks but severely harms Tamil": 1,
+  "English-only BI systematically misses late-layer activity for Indian-language text": 1,
+  "requires repeated passes on a mobile neural processing unit (NPU)": 2,
+  "assigns depth to the server model's native multi-token prediction (MTP) head, executed on the device": 2,
+  "The server returns the hidden state, input embedding, and key-value entries needed by the head": 2,
+  "reduces server GPU time per output token relative to server-side MTP self-speculation by 38.6% on Spec-Bench": 2,
+  "An ε-threshold rule additionally relaxes exact preservation of the verifier's sampling distribution": 2,
+  "Without relaxation, HyCo exact saves 27.7% and 11.9%": 2,
+  "differs from Cloud+MTP by +0.2 judge-score points": 2,
+  "paired 95% CI: -0.9 to +1.3": 2,
+  "exploratory translation favors SpecEdge-ε": 2,
+  "suffers from exposure bias": 3,
+  "are often uninformative and fail to convey behaviors the student cannot yet produce": 3,
+  "LoCD first localizes the critical spans of a student trajectory that require revision.": 3,
+  "The teacher then regenerates only these spans from the student's own prefix": 3,
+  "the trained model requires no peers at inference time": 4,
+  "internalize procedural knowledge without explicit skills at inference time": 5,
+  "more stable training with smaller and sparser parameter updates": 3,
+  "a least-squares problem whose solution needs only the second moments of those inputs": 6,
+  "What the rollouts contain matters more than the solver": 6,
+  "are few among a mathematics specialist's rollouts but carry a large share of their tokens": 6,
+  "from task arithmetic's level to the specialist's at matched precision": 6,
+  "multilingual calibration must still be validated per architecture and pruning budget": 1,
+  "larger pruning budgets select the same blocks and collapse perplexity regardless of calibration": 1,
+  "single-client runs with a Galaxy S26 Ultra over LTE/5G": 2
+ },
+ "rel": [
+  [
+   "post:research-radar-concept-code-generation",
+   ""
+  ],
+  [
+   "post:topic-explainer-concept-agents",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:01:16+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21427v1",
+   "arxiv:2610.21383v1",
+   "arxiv:2610.21436v1",
+   "arxiv:2610.22236v1",
+   "arxiv:2610.22217v1",
+   "arxiv:2610.22080v1"
+  ],
+  "platforms": {
+   "arXiv": 6
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-guide:concept/efficiency",
+  "format": "field-guide",
+  "reviewed_by": null
+ }
+}

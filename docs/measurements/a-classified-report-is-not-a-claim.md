@@ -1,5 +1,7 @@
 # A classified capability report is not a `claim`, and the blocker is not her table
 
+> **Removed 2026-10-08:** `classification_withheld.jsonl` (in history at `ed87e4c`) was removed from the repository because it holds harvested platform content or personal data. The figures below are unchanged; to re-run them, regenerate the file locally (it is gitignored) or read it from that commit.
+
 **Two questions answered from the schema rather than from opinion.** Classification
 can run today and its output can be held in a file and inserted later — with one
 fix that costs nothing now and would have cost $0.60 later. But a classified report

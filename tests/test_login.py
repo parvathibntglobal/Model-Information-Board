@@ -34,6 +34,14 @@ def _configured(monkeypatch):
     gate._reset_for_tests()
 
 
+#: Any route behind the gate that answers without a database. `/capabilities`
+#: played this part until it was removed 2026-10-08 (no page called it).
+# `/faq` played this part until 2026-10-15, when it became a public read
+# (judge/gate.py: PUBLIC_READ_PATHS). `/admin/settings` answers without a
+# database too, and stays behind the gate.
+GATED = "/admin/settings"
+
+
 def _client() -> TestClient:
     return TestClient(app)
 
@@ -198,17 +206,17 @@ def test_a_session_token_is_accepted_where_API_TOKEN_would_be(monkeypatch):
     monkeypatch.setenv("API_TOKEN", "a-static-token")
     c = _client()
 
-    assert c.get("/capabilities").status_code == 401
+    assert c.get(GATED).status_code == 401
 
     token = c.post("/auth/login", json={"email": EMAIL, "password": PASSWORD}).json()["token"]
-    ok = c.get("/capabilities", headers={"Authorization": f"Bearer {token}"})
+    ok = c.get(GATED, headers={"Authorization": f"Bearer {token}"})
     assert ok.status_code == 200
 
 
 def test_an_expired_session_does_not_open_the_gate(monkeypatch):
     monkeypatch.setenv("API_TOKEN", "a-static-token")
     stale, _ = login.issue(EMAIL, now=time.time() - 100_000)
-    r = _client().get("/capabilities", headers={"Authorization": f"Bearer {stale}"})
+    r = _client().get(GATED, headers={"Authorization": f"Bearer {stale}"})
     assert r.status_code == 401
 
 

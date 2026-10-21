@@ -67,6 +67,29 @@ def capabilities() -> dict[str, Capability]:
 
 
 @lru_cache(maxsize=1)
+def board_vocabulary() -> dict[str, dict[str, list[dict[str, str]]]]:
+    """`contract/board_vocabulary.yaml` -> {section: {heading: [{slug, name}]}}.
+
+    THE NAMES THE EXTRACTOR IS ASKED TO REUSE (2026-10-14), capabilities only
+    so far. REUSE-FIRST, NOT CLOSED: nothing in code checks a proposed slug
+    against this, for the reason `board_exemplars` gives below - a membership
+    check forces a quote into the nearest wrong name. A section the file does
+    not carry comes back absent, and the prompt falls back to its exemplars.
+    """
+    raw = _read("board_vocabulary.yaml") or {}
+    return {
+        str(section): {str(h): list(items or ()) for h, items in (headings or {}).items()}
+        for section, headings in raw.items()
+    }
+
+
+def section_headings(section: str) -> frozenset[str]:
+    """The heading keys a leaf of `section` may be filed under: every parent in
+    `contract/slug_parents.yaml` for that section. Empty when it has none."""
+    return frozenset(slug_parents().get(section, {}).values())
+
+
+@lru_cache(maxsize=1)
 def board_exemplars() -> dict:
     """Calibration samples for the board's three sections — NOT a vocabulary.
 
@@ -106,7 +129,7 @@ _PLATFORM_LABELS = {
 
 
 @lru_cache(maxsize=1)
-def evidence_platforms() -> tuple[str, ...]:
+def evidence_platforms(exclude_ids: tuple[str, ...] = ()) -> tuple[str, ...]:
     """The platforms the board harvests, read from `contract/sources.yaml`.
 
     THE FAQ MUST NOT COUNT THESE ITSELF. The landing demo's answer said "ten
@@ -123,6 +146,8 @@ def evidence_platforms() -> tuple[str, ...]:
     rows = _read("sources.yaml").get("sources") or []
     seen: list[str] = []
     for row in rows:
+        if row.get("id") in exclude_ids:
+            continue  # withheld from this view (judge/publication.py)
         platform = row.get("platform")
         if platform and platform not in seen:
             seen.append(platform)
@@ -296,6 +321,137 @@ def board_ordering_z() -> float:
     return float(z)
 
 
+@lru_cache(maxsize=1)
+def category_scores() -> dict:
+    """`contract/category_scores.yaml`: the one visible score CLAUDE.md rule 3
+    permits - its categories, which sections score, and the minimum.
+
+    Returns {"min_sided_reports": int, "scored_sections": frozenset,
+    "categories": [{"key", "name"}] in file order,
+    "parent_to_category": {(section, parent): key}}.
+
+    NO DEFAULTS, AND A PARENT IN TWO CATEGORIES IS REFUSED. A missing minimum
+    would score one report as readily as fifty (rule 12); a parent filed twice
+    would count one report in two categories and inflate both. A parent that is
+    not a heading in contract/slug_parents.yaml is refused too: it would score
+    nothing, silently, under a category that looks covered.
+    """
+    raw = _read("category_scores.yaml")
+    if not isinstance(raw, dict):
+        raise ValueError("contract/category_scores.yaml must be a mapping")
+    minimum = raw.get("min_sided_reports")
+    if isinstance(minimum, bool) or not isinstance(minimum, int) or minimum < 1:
+        raise ValueError(
+            "contract/category_scores.yaml: min_sided_reports must be a positive "
+            f"integer, got {minimum!r}"
+        )
+    scored = raw.get("scored_sections")
+    if not isinstance(scored, list) or not scored:
+        raise ValueError("contract/category_scores.yaml: scored_sections must be a non-empty list")
+    headings = {s: set(m.values()) for s, m in slug_parents().items()}
+    cats, owner = [], {}
+    for key, spec in (raw.get("categories") or {}).items():
+        for section, names in ((spec or {}).get("parents") or {}).items():
+            for p in names or []:
+                if p not in headings.get(section, set()):
+                    raise ValueError(
+                        f"contract/category_scores.yaml: {key}: {p!r} is not a {section} "
+                        "heading in contract/slug_parents.yaml"
+                    )
+                if (section, p) in owner:
+                    raise ValueError(
+                        f"contract/category_scores.yaml: {section}/{p} is in both "
+                        f"{owner[(section, p)]!r} and {key!r}"
+                    )
+                owner[(section, p)] = str(key)
+        cats.append({"key": str(key), "name": str((spec or {}).get("name") or key)})
+    if not cats:
+        raise ValueError("contract/category_scores.yaml: no categories")
+    return {
+        "min_sided_reports": minimum,
+        "scored_sections": frozenset(scored),
+        "categories": cats,
+        "parent_to_category": owner,
+    }
+
+
+@lru_cache(maxsize=1)
+def blog_live_settings() -> dict[str, dict[str, int]]:
+    """`contract/blog_live.yaml`: the numbers the blog's live pages run on.
+
+    NO DEFAULTS. Every key must be present and a positive whole number, or this
+    raises - a quiz that quietly fell back to some length nobody chose would
+    look exactly like one somebody did (rule 12)."""
+    raw = _read("blog_live.yaml")
+    need = {
+        "quiz": ("general_per_day", "board_per_day", "options", "margin_percent", "gap_days"),
+        "this_week": ("weeks_shown", "retiring_within_days", "models_listed"),
+    }
+    out: dict[str, dict[str, int]] = {}
+    for part, keys in need.items():
+        block = raw.get(part) if isinstance(raw, dict) else None
+        if not isinstance(block, dict):
+            raise ValueError(f"contract/blog_live.yaml: `{part}` is missing")
+        out[part] = {}
+        for key in keys:
+            v = block.get(key)
+            if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+                raise ValueError(
+                    f"contract/blog_live.yaml: {part}.{key} must be a positive whole "
+                    f"number, got {v!r}"
+                )
+            out[part][key] = v
+    return out
+
+
+@lru_cache(maxsize=1)
+def quiz_drafter_settings() -> dict:
+    """`contract/blog_live.yaml` `quiz_drafter`: which model drafts general quiz
+    questions, how many per call, and on which topics. No defaults (rule 12)."""
+    raw = _read("blog_live.yaml")
+    block = raw.get("quiz_drafter") if isinstance(raw, dict) else None
+    if not isinstance(block, dict):
+        raise ValueError("contract/blog_live.yaml: `quiz_drafter` is missing")
+    model, per_call, topics = block.get("model"), block.get("per_call"), block.get("topics")
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.model must name a model")
+    if isinstance(per_call, bool) or not isinstance(per_call, int) or not 1 <= per_call <= 20:
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.per_call must be 1 to 20")
+    if (
+        not isinstance(topics, list)
+        or not topics
+        or not all(isinstance(t, str) and t.strip() for t in topics)
+    ):
+        raise ValueError("contract/blog_live.yaml: quiz_drafter.topics must be a list of topics")
+    return {"model": model.strip(), "per_call": per_call, "topics": [t.strip() for t in topics]}
+
+
+@lru_cache(maxsize=1)
+def blog_reference_settings() -> dict:
+    """`contract/blog_live.yaml` `known_issues` and `answers`: the known-issues
+    threshold and the person-ruled pairing of advertised features with board
+    topics (rule 10). No defaults (rule 12)."""
+    raw = _read("blog_live.yaml")
+    issues = (raw or {}).get("known_issues") or {}
+    n = issues.get("min_engineers")
+    if isinstance(n, bool) or not isinstance(n, int) or n < 1:
+        raise ValueError("contract/blog_live.yaml: known_issues.min_engineers must be 1 or more")
+    feats = ((raw or {}).get("answers") or {}).get("features")
+    if not isinstance(feats, list) or not feats:
+        raise ValueError("contract/blog_live.yaml: answers.features must be a list")
+    out = []
+    for f in feats:
+        key, label, slugs = f.get("key"), f.get("label"), f.get("board_slugs")
+        if key not in ("tools", "structured_output", "reasoning", "vision_input", "prompt_caching"):
+            raise ValueError(f"contract/blog_live.yaml: unknown feature {key!r}")
+        if not isinstance(label, str) or not isinstance(slugs, list):
+            raise ValueError(
+                f"contract/blog_live.yaml: feature {key} needs a label and board_slugs"
+            )
+        out.append({"key": key, "label": label, "board_slugs": [str(x) for x in slugs]})
+    return {"min_engineers": n, "features": out}
+
+
 def _read(name: str) -> dict:
     path = CONTRACT_DIR / name
     if not path.exists():
@@ -350,6 +506,9 @@ class TrackedModel:
     registry: str | None
     kind: str
     absent_because: str | None = None
+    #: True when the row came from `auto_track` (judge/tracked.py) rather than
+    #: from a hand-written entry in `contract/tracked_models.yaml`.
+    auto: bool = False
 
 
 @lru_cache(maxsize=1)
@@ -379,6 +538,57 @@ def tracked_models() -> tuple[TrackedModel, ...]:
 #: Keys a parent map may never carry. A parent that could express a voice count
 #: would eventually publish one, and a count of voices under a heading nobody
 #: wrote is a consensus about a category no writer named (#410, ruling 1).
+@dataclass(frozen=True)
+class AutoTrackRule:
+    """`contract/tracked_models.yaml` `auto_track`. Read strictly (rule 12)."""
+
+    enabled: bool
+    released_within_days: int
+    include_pro_tier: bool
+    exclude_name_terms: tuple[str, ...]
+
+
+class AutoTrackConfigError(RuntimeError):
+    """`auto_track` is missing a key or carries a value of the wrong kind."""
+
+
+@lru_cache(maxsize=1)
+def auto_track_rule() -> AutoTrackRule:
+    """The rule that admits new arrivals to the page. No default in code: a
+    missing block or key raises, so the page never guesses what it admits."""
+    raw = (_read("tracked_models.yaml") or {}).get("auto_track")
+    if not isinstance(raw, dict):
+        raise AutoTrackConfigError("contract/tracked_models.yaml has no `auto_track` block")
+
+    def need(key, kind):
+        v = raw.get(key)
+        if not isinstance(v, kind) or (kind is int and isinstance(v, bool)):
+            raise AutoTrackConfigError(
+                f"contract/tracked_models.yaml `auto_track.{key}` must be "
+                f"{kind.__name__}, not {v!r}")
+        return v
+
+    if raw.get("providers") != "from_tracked":
+        raise AutoTrackConfigError(
+            "`auto_track.providers` must be `from_tracked` - the only source of "
+            f"providers this rule knows; got {raw.get('providers')!r}")
+    days = need("released_within_days", int)
+    if days < 1:
+        raise AutoTrackConfigError("`auto_track.released_within_days` must be at least 1")
+    terms = need("exclude_name_terms", list)
+    return AutoTrackRule(
+        enabled=need("enabled", bool),
+        released_within_days=days,
+        include_pro_tier=need("include_pro_tier", bool),
+        exclude_name_terms=tuple(str(t).strip().lower() for t in terms),
+    )
+
+
+#: The ceiling on headings per board section (2026-10-14). Kept in code, not the
+#: contract, because it is a limit ON the contract: a file that could raise its
+#: own ceiling would not have one.
+MAX_PARENTS_PER_SECTION = 10
+
 _PARENT_FORBIDDEN_KEYS = ("voices", "n_eff", "weight", "score", "consensus")
 
 
@@ -450,5 +660,12 @@ def slug_parents() -> dict[str, dict[str, str]]:
                         "walks the map."
                     )
                 mapping[leaf] = name
+        if len(set(mapping.values())) > MAX_PARENTS_PER_SECTION:
+            raise ValueError(
+                f"slug_parents.yaml: {section!r} has {len(set(mapping.values()))} "
+                f"parents; the ceiling is {MAX_PARENTS_PER_SECTION}. The Board shows "
+                "each heading as a box to choose from, and a page of boxes a reader "
+                "cannot scan is the long list again."
+            )
         out[str(section)] = mapping
     return out

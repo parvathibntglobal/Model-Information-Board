@@ -152,6 +152,32 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
             if budget is not None:
                 affordable = int(budget.limit_usd / budget.estimated_next_call_usd)
                 print(f"  budget would allow roughly {affordable} threads")
+            # OPEN THE EXPORT TOO, when one is named (#355). This returned above
+            # `_extract_from_export`, so every skip `load()` exists to catch
+            # surfaced only after the model call was paid for. `load()` is file
+            # reading - no database, no network, no spend. Conditional on
+            # `--from-export`, which stays optional: a dry run without it is
+            # how you ask what this pipeline version has already read.
+            if getattr(args, "from_export", None):
+                from pathlib import Path
+
+                from judge.extract import export_source
+
+                loaded = export_source.load(Path(args.from_export))
+                for name, why in loaded.skipped:
+                    print(f"  SKIPPED {name}: {why}")
+                # The population is the export's *.json files, not what is
+                # pending: `seen` above is not subtracted (rule 7).
+                files = len(loaded.threads) + len(loaded.skipped)
+                print(
+                    f"  --from-export: {len(loaded.threads)} of {files} export "
+                    f"file(s) load as threads, {len(loaded.skipped)} skipped"
+                )
+                if not loaded.threads:
+                    # Nonzero, as the real run's SystemExit would be: a check
+                    # that exits 0 on an unusable input reads as a pass.
+                    print("  a real run would stop here: no thread carried usable text")
+                    return 1
             return 0
 
         driver = Driver(args.driver) if args.driver else None

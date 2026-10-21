@@ -1,0 +1,103 @@
+/* THE AI GLOSSARY (2026-10-20): routes/Glossary.jsx. A numbered letter index
+   over letter sections of term cards, after sanity.io/glossary; one paragraph
+   per term page. Tokens only (tokens.css). */
+
+.gl-page { display: flex; flex-direction: column; gap: var(--s4); }
+
+.gl-hero { display: flex; flex-direction: column; gap: var(--s1); max-width: 72ch; }
+.gl-hero .page-tag { align-self: flex-start; }
+.gl-hero h1 { font-size: var(--fs-display); margin: 0; }
+.gl-hero p { margin: 0; line-height: 1.6; }
+
+.gl-note { color: var(--text-2); font-size: var(--fs-sm); margin: 0; }
+
+.gl-tools { display: flex; flex-direction: column; gap: var(--s2); }
+.gl-search {
+  width: 100%; max-width: 480px; padding: 10px 14px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--r-control);
+  font: inherit; font-size: var(--fs-sm);
+}
+.gl-search:focus { outline: none; border-color: var(--border-strong); }
+.gl-chips { display: flex; flex-wrap: wrap; gap: var(--s1); }
+.gl-chip {
+  padding: 5px 12px; border-radius: var(--r-pill);
+  background: transparent; color: var(--text-2);
+  border: 1px solid var(--border); font: inherit; font-size: var(--fs-xs); cursor: pointer;
+  transition: color .15s var(--ease), border-color .15s var(--ease), background .15s var(--ease);
+}
+.gl-chip:hover { color: var(--text); border-color: var(--border-strong); }
+.gl-chip.on { color: var(--bg); background: var(--text); border-color: var(--text); }
+
+.gl-az {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; flex-wrap: wrap; gap: 2px;
+  padding: var(--s1) 0; background: var(--bg); border-bottom: 1px solid var(--border-soft);
+}
+.gl-az a, .gl-az span {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; border-radius: var(--r-sm);
+  font-family: var(--font-mono); font-size: var(--fs-xs);
+}
+.gl-az a { color: var(--text); text-decoration: none; }
+.gl-az a:hover { background: var(--surface-2); }
+/* A letter with no terms: the dimmest token alone, never dimmed twice
+   (tests/test_ui_contrast.py). The live letters are --text, so the two differ. */
+.gl-az span { color: var(--text-3); }
+
+.gl-letter { scroll-margin-top: 56px; display: flex; flex-direction: column; gap: var(--s2); }
+.gl-letter h2 {
+  margin: 0; padding-bottom: var(--s1); border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: var(--fs-h2); color: var(--text);
+}
+
+.gl-grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.gl-card {
+  height: 100%; display: flex; flex-direction: column; gap: 6px;
+  padding: var(--s2) var(--s2) 14px; border-radius: var(--r-card);
+  background: var(--surface); border: 1px solid var(--border-soft);
+  color: var(--text); text-decoration: none;
+  transition: border-color .15s var(--ease), background .15s var(--ease);
+}
+.gl-card:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.gl-card h3 { margin: 0; font-size: var(--fs-h3); }
+.gl-card p { margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.55; }
+.gl-num { font-family: var(--font-mono); font-size: var(--fs-label); color: var(--text-3); }
+.gl-aka { font-size: var(--fs-xs); color: var(--text-3); }
+.gl-cat {
+  margin-top: auto; padding-top: var(--s1); align-self: flex-start;
+  font-family: var(--font-mono); font-size: var(--fs-label); color: var(--info);
+}
+
+.gl-crumb { display: flex; gap: var(--s1); font-size: var(--fs-xs); color: var(--text-3); }
+.gl-crumb a { color: var(--text-2); text-decoration: none; }
+.gl-crumb a:hover { color: var(--text); }
+
+.gl-term { display: flex; flex-direction: column; gap: var(--s2); max-width: 72ch; }
+.gl-term h1 { margin: 0; font-size: var(--fs-display); }
+.gl-term > .gl-aka { margin: 0; font-size: var(--fs-sm); }
+.gl-def { margin: var(--s1) 0 0; font-size: 1.125rem; line-height: 1.75; color: var(--text); }
+
+.gl-related { margin-top: var(--s3); display: flex; flex-direction: column; gap: var(--s2); }
+.gl-related h2 { margin: 0; font-size: var(--fs-h3); color: var(--text-2); }
+.gl-related ul {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: var(--s1); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.gl-card-sm { padding: 14px; }
+
+.gl-pager {
+  margin-top: var(--s3); padding-top: var(--s2); border-top: 1px solid var(--border-soft);
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--s2); font-size: var(--fs-sm);
+}
+.gl-pager a { color: var(--text-2); text-decoration: none; }
+.gl-pager a:hover { color: var(--text); }
+.gl-pager a:last-child { text-align: right; }
+
+@media (max-width: 600px) {
+  .gl-pager { grid-template-columns: 1fr 1fr; }
+  .gl-pager > :nth-child(2) { display: none; }
+}

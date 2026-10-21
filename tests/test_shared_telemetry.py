@@ -143,7 +143,10 @@ class TestTheFileRemainsTheSurvivor:
 
     def test_append_to_database_never_raises(self, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", "postgresql://nobody@127.0.0.1:1/none")
-        assert spend_ledger.append_to_database([_call()]) == 0
+        # Never raises - and no longer answers a bare 0 (#393): nothing was
+        # written, and the status says why.
+        result = spend_ledger.append_to_database([_call()])
+        assert result.written == 0 and result.status != spend_ledger.MIRROR_WRITTEN
 
     def test_the_progress_mirror_never_raises(self):
         # A mirror that can raise turns "the database is down" into "the run
@@ -371,7 +374,15 @@ class TestTheSchemaSaysWhatItIsFor:
         assert "usd            numeric(16, 10) NOT NULL" in self._tables()
 
     def test_the_stage_set_stays_closed(self):
-        assert "spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask'))" in self._tables()
+        # Closed to the callers rule 2 names: extraction, the Ask box, and the
+        # blog generator (2026-10-06; recorded outside the cap, 20261007T0900).
+        # 'quiz' - the quiz question drafter, the blog's draft-then-approve
+        # shape - was ADDED 2026-10-15 by anooj (20261015T1400) and is
+        # PROPOSED: it needs the same agreement the blog generator had.
+        assert (
+            "spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog', 'quiz'))"
+            in self._tables()
+        )
 
     def test_the_fetch_log_keeps_sequence_not_just_time(self):
         # Timestamps here are second-resolution and several lines share one.
@@ -461,7 +472,7 @@ class TestTheTotalTravelsWithItsPopulation:
         # Two figures on one page drawn from different populations disagree for
         # a reason nothing on the page states.
         src = (ROOT / "judge" / "app.py").read_text(encoding="utf-8")
-        assert "all_calls, _ = spend_ledger.read_everywhere()" in src
+        assert "all_calls, all_readable = spend_ledger.read_everywhere()" in src
 
 
 class TestTheFetchLogEndpointDistinguishesItsSources:

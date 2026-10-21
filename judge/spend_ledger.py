@@ -60,6 +60,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import socket
 from collections.abc import Iterable
@@ -70,18 +71,37 @@ from pathlib import Path
 from judge.ask.cost import Pricing
 from judge.extract.budget import DEFAULT_PRICING
 
+log = logging.getLogger(__name__)
+
 LEDGER_PATH_ENV = "SPEND_LEDGER_PATH"
 DEFAULT_LEDGER_PATH = Path("var") / "spend-ledger.jsonl"
 
-#: A CLOSED set: a third caller here is a rule-2 violation, and it should
+#: A CLOSED set: a caller not named here is a rule-2 violation, and it should
 #: surface as a rejected row rather than a new line on a chart nobody questions.
 STAGE_EXTRACT = "extract"
 STAGE_ASK = "ask"
+#: THE STAGES THE DAILY CAP COVERS. Everything about "today" - the cap, the
+#: hourly and daily series, today's per-stage and per-model figures - reads
+#: these and only these.
 STAGES = (STAGE_EXTRACT, STAGE_ASK)
+
+#: THE BLOG GENERATOR, rule 2's third caller (CLAUDE.md, agreed 2026-10-06).
+#: RECORDED HERE, OUTSIDE THE CAP: a blog run must never spend the extraction
+#: budget, and its spend must still be visible beside it - all-time and by
+#: month (`monthly`). Its usd is what OpenRouter REPORTED for the call, not a
+#: rate multiplied out here; a call with no reported cost is `unpriced`.
+STAGE_BLOG = "blog"
+#: THE QUIZ QUESTION DRAFTER (2026-10-15, judge/quiz_bank.py): the blog's
+#: pattern - a model drafts, a person approves - and recorded the same way,
+#: outside the cap, with the cost OpenRouter reports for each call.
+STAGE_QUIZ = "quiz"
+RECORDED_STAGES = (*STAGES, STAGE_BLOG, STAGE_QUIZ)
 
 STAGE_LABELS = {
     STAGE_EXTRACT: "Extraction (E5) — one call per thread, nightly batch",
     STAGE_ASK: "Ask box (Q1) — one call per submission, user-driven",
+    STAGE_BLOG: "Blog drafts (generate_sample_blogs.py) — outside the daily cap",
+    STAGE_QUIZ: "Quiz question drafts (judge/quiz_bank.py) — outside the daily cap",
 }
 
 
@@ -212,6 +232,8 @@ def record(
     path: Path | None = None,
     run_id: str | None = None,
     to_database: bool = True,
+    reported_usd: float | None = None,
+    reported: bool = False,
 ) -> Call:
     """Append one call. A write failure is swallowed: telemetry that kills the
     process when its disk fills is worse than a lost row.
@@ -223,26 +245,34 @@ def record(
     records its tokens with `usd: 0.0` and `unpriced: True` - the tokens are
     measured, the product is not available, and pretending otherwise puts an
     unauditable total on the page (rule 3).
+
+    `reported=True` takes the PROVIDER'S figure, `reported_usd`, instead of a
+    rate held here - the blog stage, which OpenRouter bills per call and whose
+    model has no entry in `MODEL_PRICING`. A reported call with no figure is
+    `unpriced` with usd 0.0: never priced on a guess, never read as free.
     """
     from judge.extract.budget import pricing_for
 
-    if stage not in STAGES:
-        raise ValueError(f"{stage!r} is not one of the two stages permitted to call a model")
+    if stage not in RECORDED_STAGES:
+        raise ValueError(f"{stage!r} is not one of the stages permitted to call a model")
 
-    rate = pricing if pricing is not None else pricing_for(model)
+    if reported:
+        rate, usd = None, float(reported_usd) if reported_usd is not None else 0.0
+        unpriced = reported_usd is None
+    else:
+        rate = pricing if pricing is not None else pricing_for(model)
+        usd = (cost_of(input_tokens, output_tokens, rate, cached_input_tokens)
+               if rate is not None else 0.0)
+        unpriced = rate is None
     call = Call(
         at=at or datetime.now(UTC),
         stage=stage,
         model=model,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        usd=(
-            cost_of(input_tokens, output_tokens, rate, cached_input_tokens)
-            if rate is not None
-            else 0.0
-        ),
+        usd=usd,
         unmetered=input_tokens == 0 and output_tokens == 0,
-        unpriced=rate is None,
+        unpriced=unpriced,
         machine=machine(),
         run_id=run_id,
         cached_input_tokens=cached_input_tokens,
@@ -262,44 +292,119 @@ def record(
     return call
 
 
-def append_to_database(calls: Iterable[Call], *, dsn: str | None = None) -> int:
-    """Mirror calls into `spend_ledger`. Best-effort; never raises.
+#: WHY A MIRROR DID NOT HAPPEN - five answers that used to be one `return 0`
+#: (#393). The first three are "nothing was asked of the table"; the last two
+#: are "a table was configured and these rows are not in it", and only those
+#: are counted and logged. A missing DSN and a broken write returned the same
+#: value, which is rule 12: the fallback succeeded on the wrong input.
+MIRROR_WRITTEN = "written"
+MIRROR_NOTHING_TO_SEND = "nothing_to_send"
+MIRROR_NOT_CONFIGURED = "not_configured"   # no DSN: Report.db_readable says so
+MIRROR_TEST_GUARD = "test_guard"           # pytest, not opted in
+MIRROR_BACKING_OFF = "backing_off"         # a configured DSN failed < 30s ago
+MIRROR_FAILED = "failed"                   # connect or insert raised just now
+MIRROR_UNMIRRORED = (MIRROR_BACKING_OFF, MIRROR_FAILED)
+
+
+@dataclass(frozen=True)
+class Mirrored:
+    """What `append_to_database` did. `sent` rows were offered; `written` of
+    them were inserted or already present (ON CONFLICT DO NOTHING)."""
+
+    status: str
+    sent: int
+    written: int = 0
+    reason: str | None = None
+
+    @property
+    def unmirrored(self) -> int:
+        """Rows a configured table should hold and does not. Zero for the
+        not-asked statuses - those are a configuration, not a loss."""
+        return self.sent - self.written if self.status in MIRROR_UNMIRRORED else 0
+
+
+#: THIS PROCESS'S ROWS THAT A CONFIGURED TABLE DID NOT GET (#393). Read by the
+#: log line in `append_to_database` (the running total) and by
+#: `scripts/fetch_model.py`'s E5 stage line, which says so when a run moved it.
+#: Per process, so NOT the machine's figure - `Report.unmirrored_rows`
+#: reconciles this machine's whole file against the table for that.
+_unmirrored_rows = 0
+
+
+def unmirrored_count() -> int:
+    return _unmirrored_rows
+
+
+def append_to_database(calls: Iterable[Call], *, dsn: str | None = None) -> Mirrored:
+    """Mirror calls into `spend_ledger`. Never raises; no longer silent.
 
     SWALLOWING IS RIGHT HERE AND WRONG ALMOST EVERYWHERE ELSE. The same
     reasoning as the file write: this is telemetry recorded AFTER the money was
     already spent, so raising would turn an unreachable database into a failed
-    extraction and lose the work as well as the record. The row is not lost
-    either - it is in the file, and `backfill` puts it in the table later.
+    extraction and lose the work as well as the record - and `record()` runs in
+    `OpenRouterClient.complete()`'s `finally`, where a raise would also replace
+    the provider's own exception. The row is not lost either - it is in the
+    file, and `python scripts/backfill_telemetry.py --apply` puts it in the
+    table.
+
+    ⚠ BUT NOT RAISING USED TO MEAN NOT SAYING (#393). Three `return 0`s, and 61
+      of one run's 203 file rows (one machine, e5.5 run 1, 2026-09-21) never reached
+      the table with nothing in the log. Every other machine's cap reads the
+      table, so a silent miss gives them headroom they do not have. A configured
+      table that did not get its rows is now logged with the reason and counted
+      (`unmirrored_count`); the result says which of the `MIRROR_*` cases this
+      was instead of a bare 0.
 
     ON CONFLICT DO NOTHING, on a content id, so re-sending is free.
     """
-    rows = [
-        (
-            c.id, c.at, c.stage, c.model, c.input_tokens, c.output_tokens,
-            c.usd, c.unpriced, c.machine or machine(), c.run_id,
-        )
-        for c in calls
-    ]
-    if not rows:
-        return 0
-    conn = _telemetry_connection(dsn)
-    if conn is None:
-        return 0
+    global _unmirrored_rows
     try:
-        with conn, conn.cursor() as cur:
-            cur.executemany(
-                "insert into spend_ledger "
-                "(id, at, stage, model, input_tokens, output_tokens, usd, "
-                " unpriced, machine, run_id) "
-                "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
-                "on conflict (id) do nothing",
-                rows,
+        rows = [
+            (
+                c.id, c.at, c.stage, c.model, c.input_tokens, c.output_tokens,
+                c.usd, c.unpriced, c.machine or machine(), c.run_id,
             )
-        return len(rows)
-    except Exception:
-        return 0
-    finally:
-        conn.close()
+            for c in calls
+        ]
+        if not rows:
+            return Mirrored(MIRROR_NOTHING_TO_SEND, 0)
+        conn, status, reason = _telemetry_connect(dsn)
+        if conn is None:
+            result = Mirrored(status, len(rows), 0, reason)
+        else:
+            try:
+                with conn, conn.cursor() as cur:
+                    cur.executemany(
+                        "insert into spend_ledger "
+                        "(id, at, stage, model, input_tokens, output_tokens, usd, "
+                        " unpriced, machine, run_id) "
+                        "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                        "on conflict (id) do nothing",
+                        rows,
+                    )
+                return Mirrored(MIRROR_WRITTEN, len(rows), len(rows))
+            except Exception as exc:  # noqa: BLE001 - see the docstring
+                result = Mirrored(MIRROR_FAILED, len(rows), 0, _describe(exc))
+            finally:
+                conn.close()
+        if result.unmirrored:
+            _unmirrored_rows += result.unmirrored
+            (log.error if result.status == MIRROR_FAILED else log.warning)(
+                "spend_ledger: %d row(s) NOT mirrored to the shared table "
+                "(%s: %s); %d so far in this process. They are in %s, and "
+                "`python scripts/backfill_telemetry.py --apply` sends them - "
+                "until then no other machine's daily cap can see this spend.",
+                result.unmirrored, result.status, result.reason,
+                _unmirrored_rows, ledger_path(),
+            )
+        return result
+    except Exception as exc:  # noqa: BLE001 - the mirror must never raise
+        return Mirrored(MIRROR_FAILED, 0, 0, _describe(exc))
+
+
+def _describe(exc: BaseException) -> str:
+    """The exception's type and text, never the DSN: this goes to a log."""
+    return f"{type(exc).__name__}: {str(exc).strip()[:200]}"
 
 
 #: TELEMETRY GETS A SHORTER FUSE THAN THE BOARD. `judge.store.claims` waits 10
@@ -317,11 +422,20 @@ TELEMETRY_CONNECT_TIMEOUT = 2.0
 TELEMETRY_RETRY_AFTER_SECONDS = 30.0
 
 _unreachable_until = 0.0
+#: The failure that started the current backoff, so a write skipped during it
+#: can say why rather than only that it was skipped (#393).
+_unreachable_reason: str | None = None
 
 
 def _telemetry_connection(dsn: str | None):
     """A short-timeout connection, or None while the backoff is in force."""
-    global _unreachable_until
+    return _telemetry_connect(dsn)[0]
+
+
+def _telemetry_connect(dsn: str | None):
+    """`(connection | None, MIRROR_* status, reason)` - the WHY that
+    `_telemetry_connection` drops and `append_to_database` must not (#393)."""
+    global _unreachable_until, _unreachable_reason
     import time
 
     import psycopg
@@ -347,24 +461,29 @@ def _telemetry_connection(dsn: str | None):
     if os.getenv("PYTEST_CURRENT_TEST") and not os.getenv(
         "MODELBOARD_ALLOW_TEST_TELEMETRY"
     ):
-        return None
+        return None, MIRROR_TEST_GUARD, None
     if time.monotonic() < _unreachable_until:
-        return None
+        return None, MIRROR_BACKING_OFF, (
+            f"skipped while backing off after {_unreachable_reason or 'an earlier failure'}"
+        )
     url = dsn or os.getenv("DATABASE_URL")
     if not url:
-        return None
+        return None, MIRROR_NOT_CONFIGURED, None
     try:
-        return psycopg.connect(url, connect_timeout=TELEMETRY_CONNECT_TIMEOUT)
-    except Exception:
+        conn = psycopg.connect(url, connect_timeout=TELEMETRY_CONNECT_TIMEOUT)
+    except Exception as exc:  # noqa: BLE001
         _unreachable_until = time.monotonic() + TELEMETRY_RETRY_AFTER_SECONDS
-        return None
+        _unreachable_reason = _describe(exc)
+        return None, MIRROR_FAILED, _unreachable_reason
+    return conn, MIRROR_WRITTEN, None
 
 
 def reset_telemetry_backoff() -> None:
     """Forget a past failure. For tests, and for a caller that has reason to
     believe the database is back — a backoff nobody can clear is a cache."""
-    global _unreachable_until
+    global _unreachable_until, _unreachable_reason
     _unreachable_until = 0.0
+    _unreachable_reason = None
 
 
 def read_database(dsn: str | None = None) -> list[Call] | None:
@@ -413,14 +532,29 @@ def read_everywhere(
     other machine's, so both are read and merged on the content id - which is
     exactly what that id was added for.
     """
+    merged, readable, _local, _unmirrored = _read_and_reconcile(path, dsn)
+    return merged, readable
+
+
+def _read_and_reconcile(
+    path: Path | None, dsn: str | None
+) -> tuple[list[Call], bool, int, int | None]:
+    """`read_everywhere`, plus this machine's file row count and how many of
+    those the table lacks - None when the table could not be read, because
+    "unknown" is not 0 (rule 6). The reconciliation #393 asked for: file and
+    table are the same rows, so when the table is short something says by how
+    much."""
     local = read_all(path)
     shared = read_database(dsn)
     if shared is None:
-        return local, False
+        return local, False, len(local), None
     merged = {c.id: c for c in shared}
+    unmirrored = 0
     for call in local:
-        merged.setdefault(call.id, call)
-    return list(merged.values()), True
+        if call.id not in merged:
+            unmirrored += 1
+            merged[call.id] = call
+    return list(merged.values()), True, len(local), unmirrored
 
 
 def read_all(path: Path | None = None) -> list[Call]:
@@ -496,7 +630,9 @@ def spent_today(path: Path | None = None, now: datetime | None = None) -> float:
     """
     since = day_start(now)
     calls, _ = read_everywhere(path)
-    return sum(c.usd for c in calls if c.at >= since)
+    # THE CAPPED STAGES ONLY: a blog run is recorded here and must not spend
+    # the extraction budget (STAGE_BLOG).
+    return sum(c.usd for c in calls if c.at >= since and c.stage in STAGES)
 
 
 # ── the shape the admin page needs ────────────────────────────────────────
@@ -568,6 +704,14 @@ class Report:
     #: Calls today whose model has no published rate. Their TOKENS are real and
     #: their dollars are 0.0, so a total containing one understates the spend.
     unpriced_today: int = 0
+
+    #: THIS MACHINE'S FILE ROWS THE SHARED TABLE DOES NOT HOLD (#393), out of
+    #: `local_rows`, every stage. None when the table was unreadable - not 0.
+    #: NOT a reason this report is a floor: the union above already holds them.
+    #: It is what every OTHER machine's cap is missing. Read by
+    #: `judge/app.py:admin_usage` (`basis.unmirrored_rows`).
+    unmirrored_rows: int | None = None
+    local_rows: int = 0
 
     @property
     def remaining_usd(self) -> float | None:
@@ -648,7 +792,11 @@ def report(
 ) -> Report:
     """Aggregate the ledger into what one page needs, in a single read."""
     moment = (now or datetime.now(UTC)).astimezone(UTC)
-    calls, db_readable = read_everywhere(path)
+    everything, db_readable, local_rows, unmirrored = _read_and_reconcile(path, None)
+    # THE CAP'S POPULATION: every figure in this report is about the daily cap,
+    # so a blog call (STAGE_BLOG, outside it) is not in any of them. `monthly`
+    # is where blog spend is reported.
+    calls = [c for c in everything if c.stage in STAGES]
     today = [c for c in calls if c.at >= day_start(moment)]
 
     by_stage_usd: dict[str, float] = {}
@@ -680,6 +828,46 @@ def report(
         total_rows=len(calls),
         day_starts_at=day_start(moment),
         db_readable=db_readable,
-        machines=tuple(sorted({c.machine for c in calls if c.machine})),
+        machines=tuple(sorted({c.machine for c in everything if c.machine})),
         unpriced_today=sum(1 for c in today if c.unpriced),
+        unmirrored_rows=unmirrored,
+        local_rows=local_rows,
     )
+
+
+@dataclass(frozen=True)
+class MonthRow:
+    month: str          # "YYYY-MM", UTC
+    stage: str
+    model: str
+    calls: int
+    input_tokens: int
+    output_tokens: int
+    usd: float          # a FLOOR when unpriced_calls > 0
+    unpriced_calls: int
+    unmetered_calls: int
+
+
+def monthly(calls: Iterable[Call]) -> list[MonthRow]:
+    """Spend by calendar month (UTC), stage and model - every stage, the blog
+    stage included. Newest month first, then stage, then most spent.
+
+    A ROW IS A FLOOR when it holds an unpriced or unmetered call; the counts are
+    on the row so the page can say so (rule 7). A month with no calls has no
+    row - that is "nothing recorded", which the page states with the ledger's
+    `counting_since`, never a $0.00 row.
+    """
+    acc: dict[tuple[str, str, str], list] = {}
+    for c in calls:
+        key = (c.at.astimezone(UTC).strftime("%Y-%m"), c.stage, c.model)
+        a = acc.setdefault(key, [0, 0, 0, 0.0, 0, 0])
+        a[0] += 1
+        a[1] += c.input_tokens
+        a[2] += c.output_tokens
+        a[3] += c.usd
+        a[4] += 1 if c.unpriced else 0
+        a[5] += 1 if c.unmetered else 0
+    rows = [MonthRow(m, st, mo, *a) for (m, st, mo), a in acc.items()]
+    order = {s: i for i, s in enumerate(RECORDED_STAGES)}
+    rows.sort(key=lambda r: (-int(r.month.replace("-", "")), order.get(r.stage, 99), -r.usd))
+    return rows

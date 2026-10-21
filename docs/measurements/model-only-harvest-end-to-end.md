@@ -1,5 +1,7 @@
 # Model-only harvest, end to end: is it worth adopting?
 
+> **Removed 2026-10-08:** `model_only_sweep.jsonl` (in history at `9ef9e55`), `classification.jsonl` (in history at `9ef9e55`) were removed from the repository because they hold harvested platform content or personal data. The figures below are unchanged; to re-run them, regenerate the file locally (it is gitignored) or read it from that commit.
+
 **One run. Reddit only. Eleven models. A temporary classification prompt.**
 Written to inform one decision — whether a subject-only sweep should become a
 retrieval shape we keep — and every number below carries the denominator it was

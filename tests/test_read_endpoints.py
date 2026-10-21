@@ -18,20 +18,16 @@ client = TestClient(app, raise_server_exceptions=False)
 PAGES = (
     "/models/mv1",
     "/models/google/gemini-2.5-flash",  # every real id contains a slash
-    "/capabilities/summarization.fidelity",
-    "/filtered",
     "/coverage",
     "/changelog",
 )
 
 
 class TestEveryPageIsReachable:
-    def test_all_five_have_a_route(self):
+    def test_every_page_has_a_route(self):
         paths = {getattr(r, "path", "") for r in app.routes}
         for expected in (
             "/models/{model_version_id:path}",
-            "/capabilities/{capability_key}",
-            "/filtered",
             "/coverage",
             "/changelog",
         ):
@@ -105,9 +101,9 @@ class TestTheCaveatCannotBeDroppedByAccident:
     def test_every_page_returns_a_summary(self):
         import inspect
 
-        from judge.app import capability_page, changelog_page, coverage_page, filtered_page
+        from judge.app import changelog_page, coverage_page
 
-        for fn in (capability_page, changelog_page, coverage_page, filtered_page):
+        for fn in (changelog_page, coverage_page):
             assert '"summary"' in inspect.getsource(fn), fn.__name__
 
 
@@ -115,15 +111,9 @@ class TestTheReadSurfaceOnlyReads:
     def test_no_endpoint_writes(self):
         import inspect
 
-        from judge.app import (
-            capability_page,
-            changelog_page,
-            coverage_page,
-            filtered_page,
-            model_page,
-        )
+        from judge.app import changelog_page, coverage_page, model_page
 
-        for fn in (model_page, capability_page, filtered_page, coverage_page, changelog_page):
+        for fn in (model_page, coverage_page, changelog_page):
             source = inspect.getsource(fn)
             for write in ("INSERT", "UPDATE", "DELETE", ".commit()"):
                 assert write not in source, f"{fn.__name__} contains {write}"
@@ -163,22 +153,6 @@ class TestTheReadSurfaceOnlyReads:
         #   a different database than the caller asked for, and nothing would say
         #   so - see `test_changing_the_dsn_empties_the_pool`.
         assert "getenv" not in bodies["take"]
-
-
-class TestAnUnknownCapabilityIs404:
-    def test_it_is_404_without_needing_a_database(self, monkeypatch):
-        """An unknown key would read "nobody has reported on this", which is
-        indistinguishable from a real capability nobody discussed.
-
-        Checked before connecting, so a wrong key answers 404 rather than 503
-        - telling the caller the board is down when their key is simply wrong
-        is the wrong repair pointed at the wrong person.
-        """
-        monkeypatch.delenv("DATABASE_URL", raising=False)
-        response = client.get("/capabilities/not.a.capability")
-
-        assert response.status_code == 404
-        assert "not a tracked capability" in response.json()["detail"]
 
 
 class TestAModelIdContainsASlash:
@@ -275,7 +249,7 @@ class TestAnUnknownModelIdIsRefusedRatherThanRendered:
         source = inspect.getsource(model_page)
         assert "status_code=404" in source
         assert "indistinguishable" in source, (
-            "the refusal has to say WHY, the way /capabilities/{key} does — "
+            "the refusal has to say WHY — "
             "otherwise the next reader deletes it as defensive"
         )
 

@@ -61,6 +61,9 @@ from collect.db import connect  # noqa: E402
 from collect.ids import stable_id  # noqa: E402
 from collect.rawstore import RawStore  # noqa: E402
 
+# LOCAL ONLY since 2026-10-08: this file was removed from the repository
+# (harvested platform content) and is gitignored, so a re-run never commits
+# it again. Old copy in history at 3e78e52.
 COMMENTS_JSON = ROOT / "_github_comments.json"
 
 #: The fork. See the module docstring on why this is not a constant bump.

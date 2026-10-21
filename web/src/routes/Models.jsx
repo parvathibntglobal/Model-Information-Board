@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { listModels, fetchAll, fmtTokens, BoardUnreadable } from '../api'
+import { listModels, fetchAll, fmtTokens, modelUrl, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
+import Freshness from '../components/Freshness'
+import { useHead } from '../seo/head'
+import { modelsIndex } from '../seo/pages'
+import { comparePath } from '../compare/path'
 
 /**
  * The registry: what each provider advertises, and what engineers have found.
@@ -56,7 +60,7 @@ const COMPARE_MAX = 3
 // `Free only` went - a filter whose criterion is invisible.
 //
 // `Largest context` stays, because the context window is still on the row.
-// NO SORT CONTROL, AND SO NO SORT.
+// NO SORT CONTROL, AND SO NO SORT.  (Superseded 2026-10-20 - see SORTS below.)
 //
 // `Name` and `Largest context` were the last two, after the price sorts went
 // with the price column. Removing the control without removing the sort would
@@ -68,6 +72,27 @@ const COMPARE_MAX = 3
 // lead the page. Re-sorting alphabetically in the browser would have thrown
 // that away for no reason a reader asked for.
 
+
+// SORTING IS BACK, BY WHAT THE ROW SHOWS (2026-10-20, Parvathi): two orders,
+// each by a figure on the row, so the list never rearranges for a reason the
+// reader cannot see - the objection that removed the old sorts above.
+//
+//   Most reported   the count on each row's board badge ("N on the board"),
+//                   most first; a count, so ordering by it is allowed
+//                   (CLAUDE.md rule 3). Ties, and models with none, by name.
+//   Name A-Z        the model's display name.
+//
+// Price is still not a sort: it is not on the row, and cheapest-first is a
+// recommendation this page does not make.
+const SORTS = [
+  ['reported', 'Most reported'],
+  ['name', 'Name A–Z'],
+]
+const byName = (a, b) => String(a.display_name || '').localeCompare(String(b.display_name || ''))
+const SORT_FN = {
+  reported: (a, b) => (b.board?.entries || 0) - (a.board?.entries || 0) || byName(a, b),
+  name: byName,
+}
 
 /* ------------------------------------------------------------------ search */
 
@@ -123,6 +148,7 @@ function matches(models, query) {
 }
 
 export default function Models() {
+  useHead(modelsIndex())
   const [roster, setRoster] = useState(null)
   // ⚠ THERE IS NO CAPABILITY SWEEP HERE ANY MORE (#438). This page used to
   //   loop the twelve ratified `capability_key`s and call `capabilityPage`
@@ -142,6 +168,7 @@ export default function Models() {
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
   const [query, setQuery] = useState('')
+  const [sort, setSort] = useState('reported')
 
   // ── COMPARE SELECTION ────────────────────────────────────────────────────
   // Held here rather than in a URL param: it is a transient choice being made,
@@ -195,17 +222,20 @@ export default function Models() {
 
   const shown = useMemo(() => {
     if (!roster) return []
-    let out = matches(roster, query)
-    return out
-  }, [roster, query])
+    const out = matches(roster, query)
+    return [...out].sort(SORT_FN[sort] || SORT_FN.reported)
+  }, [roster, query, sort])
 
 
   return (
     <div className="shell section-tight stack stack-4">
       <div className="row-between" style={{ alignItems: 'flex-start', gap: 'var(--s4)' }}>
         <div className="stack stack-1">
-          <span className="eyebrow">Models</span>
-          <h1 style={{ fontSize: 'var(--fs-display)' }}>The registry</h1>
+          {/* The page's own name as a tag, like Board and Blogs; the H1 names
+              what the page is in the words people search for (2026-10-05). */}
+          <span className="go-badge go-models page-tag" style={{ alignSelf: 'flex-start' }}>Models</span>
+          <h1 style={{ fontSize: 'var(--fs-display)' }}>AI models: Claude, GPT, Gemini, DeepSeek and more</h1>
+          <Freshness />
         </div>
 
         {/* TOP RIGHT, AND ALWAYS PRESENT. The sticky bar at the foot of the
@@ -214,11 +244,15 @@ export default function Models() {
             does not explain itself. Disabled with a reason is the right shape:
             it tells the reader the feature is there and what it needs, which is
             the opposite of the usual objection to a disabled control. */}
+        <div className="row" style={{ gap: 8, flexShrink: 0 }}>
+        {/* THE COST CALCULATOR AND THE PRICING TABLE sat here until 2026-10-21;
+            both are public tools now, reached from Tools, the menu and the
+            footer, so this signed-in page no longer repeats them. */}
         <button
           type="button"
           className="btn btn-primary"
           disabled={picked.length < 2}
-          onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
+          onClick={() => navigate(comparePath(picked))}
           title={
             picked.length === 0
               // ⚠ THIS SAID "compare what providers advertise against what engineers
@@ -234,6 +268,7 @@ export default function Models() {
         >
           {picked.length === 0 ? 'Compare models' : `Compare (${picked.length}) →`}
         </button>
+        </div>
       </div>
 
       {unreadable && <Unreadable detail={unreadable} />}
@@ -313,8 +348,16 @@ export default function Models() {
           )}
 
           <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-            {/* The sort chips were here. With no control the count is the only
-                child of this row, and `space-between` puts it where it was. */}
+            {/* THE SORT, by a figure each row shows (SORTS, above). */}
+            <div className="row" role="group" aria-label="Sort models" style={{ gap: 8, alignItems: 'center' }}>
+              <span className="label">Sort</span>
+              {SORTS.map(([k, label]) => (
+                <button key={k} type="button" className={`chip${sort === k ? ' chip-on' : ''}`}
+                        aria-pressed={sort === k} onClick={() => setSort(k)}>
+                  {label}
+                </button>
+              ))}
+            </div>
 
             <span className="label">
               {shown.length === roster.length
@@ -372,7 +415,7 @@ export default function Models() {
                   type="button"
                   className="btn btn-primary"
                   disabled={picked.length < 2}
-                  onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
+                  onClick={() => navigate(comparePath(picked))}
                 >
                   Compare ({picked.length}) →
                 </button>
@@ -460,7 +503,7 @@ function ModelRow({ m, picked, onPick, atCap }) {
       </div>
     ) : (
       <Link
-        to={`/models/${m.model_version_id}`}
+        to={modelUrl(m)}
         // `focus` carries which capability to open the model page on. It used to
         // prefer whichever one the reader had filtered by; the "Discussed under"
         // filter is gone, so the first capability this model has evidence for is

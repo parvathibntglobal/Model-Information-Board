@@ -198,7 +198,16 @@ def ending(record: dict, *, model_version_id: str) -> list[str]:
     verified = record.get("claims_verified")
     if verified is not None:
         back = f"{verified:,} claim(s) verified"
-        if record.get("claims_stored") is not None:
+        # BOARD ENTRIES FIRST, split by who they are about: `claims_stored` is
+        # the legacy table and 0 on every run since #502, so "N verified, 0
+        # stored" read as nothing kept. A record from before 2026-10-15 has no
+        # split and falls back to the old line.
+        if record.get("entries_stored") is not None:
+            back += (f", {record['entries_stored']:,} board entr(ies) stored - "
+                     f"{record.get('entries_about_model', 0):,} about this model, "
+                     f"{record.get('entries_about_others', 0):,} about other models "
+                     f"in the same threads")
+        elif record.get("claims_stored") is not None:
             back += f", {record['claims_stored']:,} stored"
         if record.get("cells_written"):
             back += f", {record['cells_written']:,} cell(s)"
@@ -260,6 +269,23 @@ def thread(record: dict) -> list[str]:
         # The cap saying it bound. A truncated list with nothing marking the
         # truncation reads as a complete one.
         lines.append(f"        +{record['unsalvaged_other']} more in other shapes")
+
+    # ⚠ AND THE TWO THAT LOOKED LIKE NOTHING (#411): board entries dropped from
+    #   claims that were kept, and what attempt 1 failed on when a retry ran.
+    #   Each headed, so neither reads as part of the unsalvaged list above.
+    for count_key, key, head in (
+        ("entries_dropped", "dropped_entries", "entries dropped from kept claims"),
+        (None, "retried_on", "attempt 1 failed on (then retried)"),
+    ):
+        shapes = record.get(f"{key}_by_error") or {}
+        if not shapes:
+            continue
+        count = record.get(count_key) if count_key else None
+        lines.append(f"        {head}{f': {count}' if count else ''}")
+        for shape, n in sorted(shapes.items(), key=lambda kv: (-kv[1], kv[0])):
+            lines.append(f"          x{n:<3} {' '.join(str(shape).split())[:_WRAP - 16]}")
+        if record.get(f"{key}_other"):
+            lines.append(f"          +{record[f'{key}_other']} more in other shapes")
 
     cost = []
     if record.get("tokens_in") is not None or record.get("tokens_out") is not None:

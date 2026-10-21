@@ -44,7 +44,7 @@ def _c(external_id: str, body: str, score: int | None = None):
 class TestTheContract:
     def test_every_weight_is_read_from_the_contract(self):
         config = ranking_config()
-        assert config.max_children == 25
+        assert config.max_children == 40
         assert set(config.relevance) == set(ranking.TIERS)
         assert config.relevance[UNRELATED] < 0 < config.relevance[SUBJECT]
         assert config.relevance[UNKNOWN] == 0, "an absent subject is not a penalty"
@@ -157,11 +157,11 @@ class TestRelevance:
 
 
 class TestTheCap:
-    def test_the_top_25_are_kept_of_30(self):
-        comments = [_c(f"c{i:02d}", f"Comment {i}.", score=i) for i in range(30)]
+    def test_the_top_40_are_kept_of_50(self):
+        comments = [_c(f"c{i:02d}", f"Comment {i}.", score=i) for i in range(50)]
         selection = select_children(comments, version_aliases=set(), root_text="")
-        assert len(selection.ranked) == 30
-        assert len(selection.selected) == 25
+        assert len(selection.ranked) == 50
+        assert len(selection.selected) == 40
 
     def test_an_explicit_limit_still_wins(self):
         comments = [_c(f"c{i}", "x") for i in range(10)]
@@ -197,10 +197,11 @@ class TestTheLogLines:
         assert len(cut) == EXCERPT_CHARS and cut.endswith("...")
 
     def test_the_comments_below_the_cut_are_shown_as_dropped(self):
-        comments = [_c(f"c{i:02d}", f"Comment number {i}.", score=i) for i in range(30)]
+        # Five more than the contract cap (40 since 2026-10-05), so five fall below it.
+        comments = [_c(f"c{i:02d}", f"Comment number {i}.", score=i) for i in range(45)]
         lines = selection_lines("t", select_children(comments, version_aliases=set(), root_text=""))
 
         assert "-- dropped: showing 5 of 5 below the cut --" in [line.strip() for line in lines]
         dropped = [line for line in lines if line.endswith("dropped")]
         assert len(dropped) == 5
-        assert dropped[0].lstrip().startswith("#26")
+        assert dropped[0].lstrip().startswith("#41")

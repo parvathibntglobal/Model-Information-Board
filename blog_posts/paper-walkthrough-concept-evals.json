@@ -1,0 +1,573 @@
+{
+ "slug": "paper-walkthrough-concept-evals",
+ "status": "draft",
+ "tag": "Paper walkthrough",
+ "feat": false,
+ "title": "A Length Baseline Tied the Judges: New Papers on LLM Evaluation",
+ "dek": "A reading-group pass over new work that tests the yardstick before the model: leaked repair fixes, executable API calls, judges against a trivial baseline, human-anchored judges and a learned proof checker.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "How to evaluate LLMs honestly: test the yardstick first. Filtering leaked samples cut most repair rates by more than 20%, and a length baseline reached 0.88 against LLM judges at 0.81 to 0.89.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkFuIExMTSBqdWRnZSBhbmQgYSBydWxlciBiYWxhbmNlIG9uIGEgbGV2ZWwgc2NhbGU8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93TCIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuNDUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3dSIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvd0MiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjI1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGVsbGlwc2UgY3g9IjYwMCIgY3k9IjIwMCIgcng9IjI2MCIgcnk9IjE2MCIgZmlsbD0idXJsKCNnbG93QykiLz4KICA8ZWxsaXBzZSBjeD0iMzAwIiBjeT0iMzAwIiByeD0iMjMwIiByeT0iMTkwIiBmaWxsPSJ1cmwoI2dsb3dMKSIvPgogIDxlbGxpcHNlIGN4PSI5MDAiIGN5PSIzMjAiIHJ4PSIyMzAiIHJ5PSIxNzAiIGZpbGw9InVybCgjZ2xvd1IpIi8+CgogIDwhLS0gc3RhbmQgLS0+CiAgPHJlY3QgeD0iNTkyIiB5PSIxNTAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIzOTAiIHJ4PSI2IiBmaWxsPSIjMmMzNTQ0Ii8+CiAgPHBhdGggZD0iTTUwMCA1NjAgTDcwMCA1NjAgTDY2MCA1MzAgTDU0MCA1MzAgWiIgZmlsbD0iIzJjMzU0NCIvPgogIDxwb2x5Z29uIHBvaW50cz0iNjAwLDEyMCA2MjYsMTcwIDU3NCwxNzAiIGZpbGw9IiM3YWEyZmYiLz4KICA8IS0tIGxldmVsIGJlYW0gLS0+CiAgPHJlY3QgeD0iMjcwIiB5PSIxNjQiIHdpZHRoPSI2NjAiIGhlaWdodD0iMTIiIHJ4PSI2IiBmaWxsPSIjOTVhMWI0Ii8+CiAgPGNpcmNsZSBjeD0iNjAwIiBjeT0iMTcwIiByPSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8IS0tIGxldmVsIG1hcmtlciAtLT4KICA8bGluZSB4MT0iNjAwIiB5MT0iOTYiIHgyPSI2MDAiIHkyPSIxMTgiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgPCEtLSBsZWZ0IGhhbmdlcnMgYW5kIHBhbiAtLT4KICA8bGluZSB4MT0iMzAwIiB5MT0iMTc2IiB4Mj0iMjAwIiB5Mj0iMzkwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxsaW5lIHgxPSIzMDAiIHkxPSIxNzYiIHgyPSI0MDAiIHkyPSIzOTAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHBhdGggZD0iTTE4MCAzOTAgUTMwMCA0NDAgNDIwIDM5MCBaIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDwhLS0ganVkZ2U6IGEgc21hbGwgbmV0d29yayBvbiBhIGNhcmQgLS0+CiAgPHJlY3QgeD0iMjE1IiB5PSIyNTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMTM4IiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiLz4KICA8cmVjdCB4PSIyMTUiIHk9IjI1MCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIxMzgiIHJ4PSIxOCIgZmlsbD0iI2E3OGJmYSIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxnIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuOSI+CiAgICA8bGluZSB4MT0iMjUwIiB5MT0iMjg1IiB4Mj0iMzAwIiB5Mj0iMzIwIi8+CiAgICA8bGluZSB4MT0iMjUwIiB5MT0iMzU1IiB4Mj0iMzAwIiB5Mj0iMzIwIi8+CiAgICA8bGluZSB4MT0iMjUwIiB5MT0iMjg1IiB4Mj0iMzAwIiB5Mj0iMjgwIi8+CiAgICA8bGluZSB4MT0iMjUwIiB5MT0iMzU1IiB4Mj0iMzAwIiB5Mj0iMzYwIi8+CiAgICA8bGluZSB4MT0iMzAwIiB5MT0iMjgwIiB4Mj0iMzUwIiB5Mj0iMzIwIi8+CiAgICA8bGluZSB4MT0iMzAwIiB5MT0iMzIwIiB4Mj0iMzUwIiB5Mj0iMzIwIi8+CiAgICA8bGluZSB4MT0iMzAwIiB5MT0iMzYwIiB4Mj0iMzUwIiB5Mj0iMzIwIi8+CiAgPC9nPgogIDxnIGZpbGw9IiNlOGVkZjUiPgogICAgPGNpcmNsZSBjeD0iMjUwIiBjeT0iMjg1IiByPSI5Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTAiIGN5PSIzNTUiIHI9IjkiLz4KICAgIDxjaXJjbGUgY3g9IjMwMCIgY3k9IjI4MCIgcj0iOSIvPgogICAgPGNpcmNsZSBjeD0iMzAwIiBjeT0iMzIwIiByPSI5Ii8+CiAgICA8Y2lyY2xlIGN4PSIzMDAiIGN5PSIzNjAiIHI9IjkiLz4KICA8L2c+CiAgPGNpcmNsZSBjeD0iMzUwIiBjeT0iMzIwIiByPSIxMyIgZmlsbD0iI2E3OGJmYSIvPgogIDxyZWN0IHg9IjIzNiIgeT0iMTk2IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjQ4IiByeD0iMTAiIGZpbGw9IiMxNTFhMjMiLz4KICA8dGV4dCB4PSIzMDAiIHk9IjIzMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPjAuODk8L3RleHQ+CiAgPHRleHQgeD0iMzAwIiB5PSI0ODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2E3OGJmYSI+TExNIGp1ZGdlPC90ZXh0PgoKICA8IS0tIHJpZ2h0IGhhbmdlcnMgYW5kIHBhbiAtLT4KICA8bGluZSB4MT0iOTAwIiB5MT0iMTc2IiB4Mj0iODAwIiB5Mj0iMzkwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxsaW5lIHgxPSI5MDAiIHkxPSIxNzYiIHgyPSIxMDAwIiB5Mj0iMzkwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxwYXRoIGQ9Ik03ODAgMzkwIFE5MDAgNDQwIDEwMjAgMzkwIFoiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPCEtLSBydWxlciAtLT4KICA8cmVjdCB4PSI3OTAiIHk9IjMzMCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI1NiIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIi8+CiAgPHJlY3QgeD0iNzkwIiB5PSIzMzAiIHdpZHRoPSIyMjAiIGhlaWdodD0iNTYiIHJ4PSIxMCIgZmlsbD0iI2UzYjM0MSIgZmlsbC1vcGFjaXR5PSIwLjIyIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxnIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiPgogICAgPGxpbmUgeDE9IjgxMiIgeTE9IjMzMiIgeDI9IjgxMiIgeTI9IjM2MiIvPgogICAgPGxpbmUgeDE9IjgzNCIgeTE9IjMzMiIgeDI9IjgzNCIgeTI9IjM0OCIvPgogICAgPGxpbmUgeDE9Ijg1NiIgeTE9IjMzMiIgeDI9Ijg1NiIgeTI9IjM0OCIvPgogICAgPGxpbmUgeDE9Ijg3OCIgeTE9IjMzMiIgeDI9Ijg3OCIgeTI9IjM0OCIvPgogICAgPGxpbmUgeDE9IjkwMCIgeTE9IjMzMiIgeDI9IjkwMCIgeTI9IjM2MiIvPgogICAgPGxpbmUgeDE9IjkyMiIgeTE9IjMzMiIgeDI9IjkyMiIgeTI9IjM0OCIvPgogICAgPGxpbmUgeDE9Ijk0NCIgeTE9IjMzMiIgeDI9Ijk0NCIgeTI9IjM0OCIvPgogICAgPGxpbmUgeDE9Ijk2NiIgeTE9IjMzMiIgeDI9Ijk2NiIgeTI9IjM0OCIvPgogICAgPGxpbmUgeDE9Ijk4OCIgeTE9IjMzMiIgeDI9Ijk4OCIgeTI9IjM2MiIvPgogIDwvZz4KICA8cmVjdCB4PSI4MzYiIHk9IjI1NCIgd2lkdGg9IjEyOCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIi8+CiAgPHRleHQgeD0iOTAwIiB5PSIyOTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjQwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij4wLjg4PC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iNDgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzQiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlM2IzNDEiPmxlbmd0aDwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "A level balance scale: an LLM judge network marked 0.89 on one pan, a ruler marked 0.88 on the other.",
+  "caption": "A rule that only measures specification length scored 0.88, level with the best LLM judge at 0.89.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How to evaluate LLMs when the yardstick can lie: new papers on leaked repair fixes, executable API calls, length baselines and human-anchored judges.",
+ "keywords": [
+  "how to evaluate LLMs",
+  "Evaluation and benchmarks",
+  "LLM evaluation",
+  "benchmark contamination",
+  "LLM-as-a-judge",
+  "execution-grounded evaluation"
+ ],
+ "kicker": "Paper walkthrough",
+ "tags": [
+  "LLM evaluation",
+  "Paper walkthrough"
+ ],
+ "read": 9,
+ "decisions": [
+  "Run a trivial baseline, such as output length, beside every LLM judge",
+  "Filter repair benchmarks for leaked patches before comparing models",
+  "Grade generated API code by host, endpoint and method, never by text similarity",
+  "Keep a human-labelled audit sample running to catch judge drift",
+  "Use a learned verifier for speed and keep exact verdicts in the reward"
+ ],
+ "layout": "paper",
+ "arrangement": "a",
+ "special": {
+  "type": "results",
+  "title": "What was measured",
+  "items": [
+   {
+    "result": "Filtering contaminated samples reduces the reported resolution rates of most LLMs by more than 20%",
+    "setup": "SWE-bench Verified and Multi-SWE-bench, medium-difficulty tasks, relative to the original rates",
+    "source": 1,
+    "ref": {
+     "title": "BenchChecker: Assessing the Credibility of Bug-Fixing Benchmarks for LLMs",
+     "url": "https://arxiv.org/abs/2610.19447v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Contamination detection reaches AUC scores around 0.9 across six benchmarks",
+    "setup": "StarCoder-15B, StarCoder2-15B and CodeGen2-16B trained on The Stack v2",
+    "source": 1,
+    "ref": {
+     "title": "BenchChecker: Assessing the Credibility of Bug-Fixing Benchmarks for LLMs",
+     "url": "https://arxiv.org/abs/2610.19447v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "The strongest evaluated model obtains only 3.76% Mock",
+    "setup": "Intent-only setting, six code LLMs and a retrieval baseline on 3,135 RapidAPI call functions",
+    "source": 2,
+    "ref": {
+     "title": "SCCGBench: Executability-Oriented Evaluation for Real-World Web Service-Call Code Generation",
+     "url": "https://arxiv.org/abs/2610.12920v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Mock reaches 88.73% to 90.52% for open models and 76.47% to 81.86% for DeepSeek-V4-Pro",
+    "setup": "Gold-documentation Oracle settings C3 and C5",
+    "source": 2,
+    "ref": {
+     "title": "SCCGBench: Executability-Oriented Evaluation for Real-World Web Service-Call Code Generation",
+     "url": "https://arxiv.org/abs/2610.12920v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Judges reach balanced accuracies of 0.87, 0.89 and 0.81; a length baseline reaches 0.88, and no judge separates from it",
+    "setup": "247 held-out PL/SQL specification records, three runs per record, exact paired tests",
+    "source": 3,
+    "ref": {
+     "title": "Leakage-Resistant Evaluation of AI-Generated Database Specifications in Specification-Driven Migration",
+     "url": "https://arxiv.org/abs/2610.12778v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Defect category named in 84%-92% of violated records; quoted evidence overlaps the labelled span in 92%-93%",
+    "setup": "Same held-out records, judges' typed findings",
+    "source": 3,
+    "ref": {
+     "title": "Leakage-Resistant Evaluation of AI-Generated Database Specifications in Specification-Driven Migration",
+     "url": "https://arxiv.org/abs/2610.12778v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Two-stage evaluator reaches 87.8% accuracy predicting Lean acceptance at 3.5 candidates per second",
+    "setup": "68,932-program benchmark from public provers, one H100",
+    "source": 5,
+    "ref": {
+     "title": "Learning Lean Feedback for Efficient Proof-Candidate Evaluation on GPUs",
+     "url": "https://arxiv.org/abs/2610.21881v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Hybrid rewards shorten GRPO steps by approximately 31%; pass@1 62.2% versus 62.4%, pass@32 72.4% versus 71.3%",
+    "setup": "One GRPO epoch on miniF2F, compared with Lean-only rewards",
+    "source": 5,
+    "ref": {
+     "title": "Learning Lean Feedback for Efficient Proof-Candidate Evaluation on GPUs",
+     "url": "https://arxiv.org/abs/2610.21881v1",
+     "platform": "arXiv"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Leaked fixes inflate the repair scores you compare",
+    "num": "01",
+    "id": "leaked-fixes-inflate-the-repair-scores-you-compare"
+   }
+  ],
+  [
+   "p",
+   "Here's the failure. You pick a repair model because it tops SWE-bench Verified, then it stalls on your own bugs. A new arXiv paper on benchmark credibility offers one explanation: «test samples appear in training sets, artificially inflating performance». The model may have seen the fix. A score built on recall tells you little about repair."
+  ],
+  [
+   "p",
+   "That problem sits under every paper in this walkthrough. Each one asks how far you can trust the instrument before you trust its reading. BenchChecker probes models for leaked patches. SCCGBench executes generated API calls. LRFB pits LLM judges against a dumb baseline. A production team keeps humans around its judge, and a Lean paper trains a fast stand-in for a slow verifier."
+  ],
+  [
+   "p",
+   "So here's our thesis, and we think it's the useful one. Knowing how to evaluate LLMs starts one level down: evaluate the evaluator. Every method below earns trust by placing a second check beside the first. Some checks are forensic. Some execute code. One is almost insultingly simple, and it's our favourite."
+  ],
+  [
+   "h2",
+   {
+    "text": "BenchChecker hunts leaked patches in two stages",
+    "num": "02",
+    "id": "benchchecker-hunts-leaked-patches-in-two-stages"
+   }
+  ],
+  [
+   "p",
+   "We retraced the BenchChecker method step by step, because it's clever and cheap. It needs no model weights. It works from «only textual model outputs together with public repository history», so closed models can be tested too. The premise is a fact about training snapshots: «persistent patches likely remain in recent repository snapshots used for training»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPkJlbmNoQ2hlY2tlcidzIHR3by1zdGFnZSBjb250YW1pbmF0aW9uIHRlc3Q8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYXJyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjkiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCBaIiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyckIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCAwIEwxMCA1IEwwIDEwIFoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4yMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjQwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxlbGxpcHNlIGN4PSI2MjAiIGN5PSIzODAiIHJ4PSI0MjAiIHJ5PSIyMDAiIGZpbGw9InVybCgjZ2xvdykiLz4KCiAgPCEtLSBldmlkZW5jZSBpbnB1dHMgLS0+CiAgPHJlY3QgeD0iMzAwIiB5PSI0MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI3NCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjcgNiIvPgogIDx0ZXh0IHg9IjQzNSIgeT0iODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZmlsbD0iI2U4ZWRmNSI+bW9kZWwgdGV4dCBvdXRwdXQ8L3RleHQ+CiAgPHJlY3QgeD0iNjQwIiB5PSI0MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI3NCIgcng9IjE0IiBmaWxsPSIjMmMzNTQ0IiBmaWxsLW9wYWNpdHk9IjAuNiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjcgNiIvPgogIDx0ZXh0IHg9Ijc3NSIgeT0iODYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNSIgZmlsbD0iI2U4ZWRmNSI+cHVibGljIHJlcG8gaGlzdG9yeTwvdGV4dD4KICA8bGluZSB4MT0iNDM1IiB5MT0iMTE0IiB4Mj0iNDM1IiB5Mj0iMjM2IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNiA2IiBtYXJrZXItZW5kPSJ1cmwoI2FyckIpIi8+CiAgPGxpbmUgeDE9Ijc3NSIgeTE9IjExNCIgeDI9Ijc3NSIgeTI9IjIzNiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjYgNiIgbWFya2VyLWVuZD0idXJsKCNhcnJCKSIvPgogIDx0ZXh0IHg9IjYwNSIgeT0iMTgwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPm5vIHdlaWdodHMgbmVlZGVkPC90ZXh0PgoKICA8IS0tIHNhbXBsZSAtLT4KICA8cmVjdCB4PSIzMCIgeT0iMzAwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjE1MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjEyNSIgeT0iMzU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI2MDAiIGZpbGw9IiNlOGVkZjUiPmJlbmNobWFyazwvdGV4dD4KICA8dGV4dCB4PSIxMjUiIHk9IjM5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1Ij50YXNrPC90ZXh0PgogIDx0ZXh0IHg9IjEyNSIgeT0iNDI1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+KyBpdHMgZml4PC90ZXh0PgogIDxsaW5lIHgxPSIyMjIiIHkxPSIzNzUiIHgyPSIyOTYiIHkyPSIzNzUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KCiAgPCEtLSBzdGFnZSBBIC0tPgogIDxyZWN0IHg9IjMwMCIgeT0iMjQwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjI3MCIgcng9IjE4IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTQiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGNpcmNsZSBjeD0iMzQ1IiBjeT0iMjg1IiByPSIyMiIgZmlsbD0iIzdhYTJmZiIvPgogIDx0ZXh0IHg9IjM0NSIgeT0iMjk0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiMxMDE0MWIiPkE8L3RleHQ+CiAgPHRleHQgeD0iNDM1IiB5PSIzNTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNyIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSI+cmVwb3NpdG9yeTwvdGV4dD4KICA8dGV4dCB4PSI0MzUiIHk9IjM4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI3IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1Ij5wcmVzZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI0MzUiIHk9IjQzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5wcm9iZSB3aXRoPC90ZXh0PgogIDx0ZXh0IHg9IjQzNSIgeT0iNDY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPmNvZGUgcHJlZml4ZXM8L3RleHQ+CiAgPGxpbmUgeDE9IjU3MiIgeTE9IjM3NSIgeDI9IjYzNiIgeTI9IjM3NSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8IS0tIHN0YWdlIEIgLS0+CiAgPHJlY3QgeD0iNjQwIiB5PSIyNDAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMjcwIiByeD0iMTgiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8Y2lyY2xlIGN4PSI2ODUiIGN5PSIyODUiIHI9IjIyIiBmaWxsPSIjYTc4YmZhIi8+CiAgPHRleHQgeD0iNjg1IiB5PSIyOTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzEwMTQxYiI+QjwvdGV4dD4KICA8dGV4dCB4PSI3NzUiIHk9IjM1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI3IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1Ij5wYXRjaDwvdGV4dD4KICA8dGV4dCB4PSI3NzUiIHk9IjM4NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI3IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1Ij5wcmVzZW5jZTwvdGV4dD4KICA8dGV4dCB4PSI3NzUiIHk9IjQzNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5zaW1pbGFyaXR5ICs8L3RleHQ+CiAgPHRleHQgeD0iNzc1IiB5PSI0NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+dGVzdCBzdWl0ZTwvdGV4dD4KCiAgPCEtLSBvdXRjb21lcyAtLT4KICA8cGF0aCBkPSJNOTEyIDM0MCBDOTYwIDM0MCA5NjAgMjcwIDEwMDAgMjcwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHBhdGggZD0iTTkxMiA0MTAgQzk2MCA0MTAgOTYwIDQ4MCAxMDAwIDQ4MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxyZWN0IHg9IjEwMDQiIHk9IjIyMiIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI5NiIgcng9IjE2IiBmaWxsPSIjZmY3YjcyIiBmaWxsLW9wYWNpdHk9IjAuMTgiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTA4OSIgeT0iMjYzIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPmxlYWtlZDwvdGV4dD4KICA8dGV4dCB4PSIxMDg5IiB5PSIyOTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+ZmlsdGVyIG91dDwvdGV4dD4KICA8cmVjdCB4PSIxMDA0IiB5PSI0MzIiIHdpZHRoPSIxNzAiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjE2IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjEwODkiIHk9IjQ3MyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjM2VjZjhlIj5jbGVhbjwvdGV4dD4KICA8dGV4dCB4PSIxMDg5IiB5PSI1MDciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U4ZWRmNSI+a2VlcCBzY29yaW5nPC90ZXh0PgoKICA8dGV4dCB4PSI2MDAiIHk9IjU5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5maWx0ZXJpbmcgY3V0IG1vc3QgcmVzb2x1dGlvbiByYXRlcyBieSBtb3JlIHRoYW4gMjAlPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Flow: a benchmark task passes a repository presence test, then a patch presence test, and is flagged leaked or kept.",
+    "caption": "BenchChecker needs only model text output and public repository history to flag a leaked fix.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Stage one is a repository presence test. You feed the model a code prefix from the repository and see how well it continues the file. The paper calls it «probing the model with code prefixes to infer training inclusion». Stage two asks a narrower question. Did the actual fix survive into the snapshot the model trained on?"
+  ],
+  [
+   "p",
+   "That second stage is a «patch presence test to verify patch persistence via similarity alignment and test-suite verification». Similarity alignment compares the model's output with the known patch. Test-suite verification checks that the recalled code behaves like the fix. On models trained on The Stack v2, detection reached «AUC scores around 0.9 across six benchmarks». AUC is the chance a leaked sample outranks a clean one."
+  ],
+  [
+   "p",
+   "Then the payoff. On SWE-bench Verified and Multi-SWE-bench, filtering «reduces the reported resolution rates of most LLMs by more than 20% relative to the original rates on medium-difficulty tasks». That's a steep haircut. One caveat holds us back: detection was validated on StarCoder-class open models with a public training mix. Its accuracy on closed frontier models is inferred, not measured."
+  ],
+  [
+   "h2",
+   {
+    "text": "Plausible request code rarely reaches the right endpoint",
+    "num": "03",
+    "id": "plausible-request-code-rarely-reaches-the-right-endpoint"
+   }
+  ],
+  [
+   "p",
+   "Next comes a failure you'd miss in code review. Ask a model to call a third-party web API from a plain description of intent. It writes tidy request code, with headers, a body and an error branch. It looks right. SCCGBench asks a blunter question: would that request reach the right service at all?"
+  ],
+  [
+   "p",
+   "The benchmark holds «3,135 traceable and decontamination-filtered RapidAPI call functions from real GitHub repositories». Its core metric is Mock, «a virtual-execution hit that simultaneously matches the gold host, endpoint, and HTTP method». Robust «further requires status checking and exception handling». ParamF1 scores the parameters separately, so a right endpoint with wrong arguments still shows up as an error."
+  ],
+  [
+   "p",
+   "The numbers are brutal. With intent only, «the strongest evaluated model obtains only 3.76% Mock». Give the open models the gold documentation and Mock reaches 88.73% to 90.52%. Retrieval lands in between, since «sparse and dense retrieval remain far below this oracle level». So the models can write the call. They can't find which call to write."
+  ],
+  [
+   "p",
+   "We agree with the authors that «service/API grounding is the main bottleneck», and the lesson travels beyond web APIs. A text-similarity metric would have scored those intent-only outputs kindly. Execution exposed them. If your eval compares generated code to reference code token by token, you're grading the costume."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative Mock and Robust checks, after the SCCGBench definitions",
+    "language": "python",
+    "source": "def mock_hit(call, gold):\n    # virtual execution: the request is matched, never sent\n    return (call.host == gold.host\n            and call.endpoint == gold.endpoint\n            and call.method == gold.method)\n\ndef robust_hit(code, call, gold):\n    # Robust adds defensive handling on top of a Mock hit\n    return (mock_hit(call, gold)\n            and checks_status_code(code)\n            and handles_exceptions(code))"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A length counter matched every LLM judge",
+    "num": "04",
+    "id": "a-length-counter-matched-every-llm-judge"
+   }
+  ],
+  [
+   "p",
+   "This one made us laugh, then wince. A new arXiv paper presents «a leakage-resistant framework and benchmark (LRFB) for measuring evaluators of AI-generated Oracle PL/SQL specifications». The judge reads a PL/SQL source and an AI-written spec, then flags defects. The benchmark holds «494 labelled source-specification pairs across 19 quality metrics grouped into seven dimensions»."
+  ],
+  [
+   "p",
+   "We went through the leakage controls, because they're the part worth copying. Ground truth «is mechanically sealed from inference and checked with canary and label-permutation tests». A canary is a planted marker that would reveal labels reaching the judge. A permutation test shuffles labels and expects scores to collapse. If they don't, something besides content is leaking."
+  ],
+  [
+   "p",
+   "Then the result. On 247 held-out records, «GPT-4o, DeepSeek V4 Pro, and Claude Sonnet 4.5 reached balanced accuracies of 0.87, 0.89, and 0.81». A specification-length baseline reached 0.88. Balanced accuracy averages recall on clean and defective cases, so always shouting defective earns nothing. And «Exact paired tests did not separate any judge from that baseline.»"
+  ],
+  [
+   "p",
+   "Read that slowly. A rule that only measures how long the spec is did as well as frontier judges. In our view, this is the most important control in the walkthrough, and it costs almost nothing. We suspect defective specs differ in length from clean ones. Any judge can ride that cue without understanding a line of PL/SQL."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Balanced accuracy on 247 held-out PL/SQL specification records: three LLM judges against a length baseline.",
+    "unit": "balanced accuracy",
+    "bars": [
+     {
+      "label": "GPT-4o",
+      "value": 0.87
+     },
+     {
+      "label": "DeepSeek V4 Pro",
+      "value": 0.89
+     },
+     {
+      "label": "Claude Sonnet 4.5",
+      "value": 0.81
+     },
+     {
+      "label": "Length baseline",
+      "value": 0.88
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Judges still earn their keep by pointing at the defect",
+    "num": "05",
+    "id": "judges-still-earn-their-keep-by-pointing-at-the-defect"
+   }
+  ],
+  [
+   "p",
+   "Don't throw the judges out yet. The LRFB abstract adds that the «judges nevertheless provided information unavailable to length». A length baseline can say a spec looks wrong. It can't say where, or what kind of wrong. The judges could. That difference is measurable, and it was measured."
+  ],
+  [
+   "p",
+   "Two figures carry it. In violated records, «the labelled defect category appeared among findings in 84%-92% of violated records». Separately, «quoted evidence overlapped the labelled span in 92%-93%». So when a spec was broken, the judges mostly named the right kind of break and quoted the right lines. A reviewer can act on that. A bare verdict gives them nothing to check."
+  ],
+  [
+   "p",
+   "The authors land on «evidence-linked, typed findings and benchmark-validity controls». We agree, and we'd push it further. Score your judge on the located finding first and the verdict second. A verdict that a length rule can match is a weak signal. A quoted span you can check against a label is a strong one."
+  ],
+  [
+   "h2",
+   {
+    "text": "Human labels anchor a judge that would otherwise drift",
+    "num": "06",
+    "id": "human-labels-anchor-a-judge-that-would-otherwise-drift"
+   }
+  ],
+  [
+   "p",
+   "LRFB tests a judge once. A production judge runs every day, and that's a different risk. A post on the Netflix tech blog puts the danger plainly: «if the judge drifts, quietly degrading and starting to approve bad output, nothing downstream will flag it». Drift is silent. Your dashboard stays green and quality slides."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPHRpdGxlPkEganVkZ2UgbGlmZWN5Y2xlIHdpdGggYSBodW1hbiBvd25lciBhdCBlYWNoIHBoYXNlPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFyciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iOCIgbWFya2VySGVpZ2h0PSI4IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wIDAgTDEwIDUgTDAgMTAgWiIgZmlsbD0iIzdhYTJmZiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhcnJSIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI4IiBtYXJrZXJIZWlnaHQ9IjgiIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAgMCBMMTAgNSBMMCAxMCBaIiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8L21hcmtlcj4KICAgIDxzeW1ib2wgaWQ9InBlcnNvbiIgdmlld0JveD0iMCAwIDQwIDUwIj4KICAgICAgPGNpcmNsZSBjeD0iMjAiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgICA8cGF0aCBkPSJNNCA0OCBRNCAyNiAyMCAyNiBRMzYgMjYgMzYgNDggWiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9zeW1ib2w+CiAgPC9kZWZzPgogIDxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjcwMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZWxsaXBzZSBjeD0iNTIwIiBjeT0iMzUwIiByeD0iMjMwIiByeT0iMjAwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CgogIDwhLS0gcmluZyBhcmNzLCBjbG9ja3dpc2UgLS0+CiAgPHBhdGggZD0iTTYzMCAxNDIgQTIzNSAyMzUgMCAwIDEgNzMzIDI1MSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxwYXRoIGQ9Ik03MzMgNDQ5IEEyMzUgMjM1IDAgMCAxIDYzMCA1NTciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSI0IiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8cGF0aCBkPSJNNDEwIDU1NyBBMjM1IDIzNSAwIDAgMSAzMDcgNDQ5IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iNCIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHBhdGggZD0iTTMwNyAyNTEgQTIzNSAyMzUgMCAwIDEgNDEwIDE0MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgoKICA8IS0tIGNlbnRyZSBqdWRnZSAtLT4KICA8Y2lyY2xlIGN4PSI1MjAiIGN5PSIzNTAiIHI9IjkyIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8dGV4dCB4PSI1MjAiIHk9IjM0MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij5MTE08L3RleHQ+CiAgPHRleHQgeD0iNTIwIiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+anVkZ2U8L3RleHQ+CgogIDwhLS0gcGhhc2Ugbm9kZXMgLS0+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4KICAgIDxyZWN0IHg9IjQzMCIgeT0iNzAiIHdpZHRoPSIxODAiIGhlaWdodD0iNzAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjUzNSIgeT0iMTE1Ij5idWlsZDwvdGV4dD4KICAgIDxyZWN0IHg9IjY2MCIgeT0iMzE1IiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjcwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI3NjUiIHk9IjM2MCI+YWxpZ248L3RleHQ+CiAgICA8cmVjdCB4PSI0MzAiIHk9IjU2MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI3MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNTM1IiB5PSI2MDUiPnJ1bjwvdGV4dD4KICAgIDxyZWN0IHg9IjE3MCIgeT0iMzE1IiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjcwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIyOTYiIHk9IjM2MCI+bWFpbnRhaW48L3RleHQ+CiAgPC9nPgogIDx1c2UgaHJlZj0iI3BlcnNvbiIgeD0iNDQyIiB5PSI4MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjUwIi8+CiAgPHVzZSBocmVmPSIjcGVyc29uIiB4PSI2NzIiIHk9IjMyNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjUwIi8+CiAgPHVzZSBocmVmPSIjcGVyc29uIiB4PSI0NDIiIHk9IjU3MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjUwIi8+CiAgPHVzZSBocmVmPSIjcGVyc29uIiB4PSIxODAiIHk9IjMyNSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjUwIi8+CgogIDwhLS0gZHJpZnQgZXNjYXBlIC0tPgogIDxwYXRoIGQ9Ik02MTIgNjAwIEM3NjAgNjQwIDg4MCA2MDAgOTMwIDUyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggNyIgbWFya2VyLWVuZD0idXJsKCNhcnJSKSIvPgogIDxyZWN0IHg9Ijg5MCIgeT0iNDMwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9Ijg2IiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xNSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICA8dGV4dCB4PSIxMDI1IiB5PSI0NjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmN2I3MiI+c2lsZW50IGRyaWZ0PC90ZXh0PgogIDx0ZXh0IHg9IjEwMjUiIHk9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZThlZGY1Ij5hcHByb3ZlcyBiYWQgb3V0cHV0PC90ZXh0PgoKICA8IS0tIGxlZ2VuZCAtLT4KICA8dXNlIGhyZWY9IiNwZXJzb24iIHg9IjkwMCIgeT0iMTIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNTAiLz4KICA8dGV4dCB4PSI5NTUiIHk9IjE1NSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjM2VjZjhlIj5odW1hbiBvd25lcjwvdGV4dD4KICA8dGV4dCB4PSI5MDAiIHk9IjIxNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5sYWJlbHMsIHBvbGljeSwgcmV2aWV3PC90ZXh0PgogIDx0ZXh0IHg9IjkwMCIgeT0iMjQ4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPmFuZCBzaWduLW9mZiBvbiB1cGRhdGVzPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A ring of four phases, build, align, run and maintain, around an LLM judge, each with a human owner; drift escapes from run.",
+    "caption": "A human owner at every phase is what stops a production judge drifting silently.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Their rule is blunt: «An LLM judge must never operate alone. It has to be anchored in human judgment.» People define what good means, label the reference examples, watch the judge in production and approve updates. The framing is a lifecycle: «A reliable LLM judge is not a static artifact. It has a lifecycle.» Their running example is recommendation explanations."
+  ],
+  [
+   "p",
+   "We're not convinced the lifecycle framing answers the cost question by itself. How often must a human look? More review catches drift sooner and burns more reviewer hours. The published summary gives the principle, not a sampling rate. Treat the four phases as a checklist, then set the audit rate from your own risk."
+  ],
+  [
+   "h2",
+   {
+    "text": "A learned proof checker buys speed and keeps Lean in the mix",
+    "num": "07",
+    "id": "a-learned-proof-checker-buys-speed-and-keeps-lean-in-the-mix"
+   }
+  ],
+  [
+   "p",
+   "The last paper flips the worry. Here the evaluator is a bottleneck, not a liar. Training a prover needs verifier calls, and «timeouts often leave GPUs waiting and withhold rewards from potentially correct proofs». So the authors train neural evaluators to predict Lean 4 verdicts on GPUs, «using 4.84M labelled programs»."
+  ],
+  [
+   "p",
+   "The design is a cascade. A validity classifier screens each candidate, and a feedback model scores the ones it passes, predicting goal states and error messages. Together they reach «87.8% accuracy in predicting whether Lean accepts a candidate proof». The pair handles «3.5 candidates per second on one H100», beating a 64-worker Lean baseline with environment reuse."
+  ],
+  [
+   "p",
+   "Mixing learned verdicts with real Lean verdicts gives a hybrid reward that «shortens GRPO training steps by approximately 31%». GRPO is a policy-gradient method that scores each sample against its group's average. After one epoch, miniF2F pass@1 was 62.2% against 62.4% with Lean-only rewards. Pass@32 came out at 72.4% against 71.3%. Quality held."
+  ],
+  [
+   "p",
+   "This is the right shape for a proxy grader. It's fast and fallible inside the loop, and exact verdicts stay in the mix. A checker right 87.8% of the time still errs on some proofs, so pure learned rewards would teach a prover to fool it. The results cover miniF2F, and nothing broader."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The two-stage proof evaluator and hybrid reward, as the Lean feedback paper describes it.",
+    "steps": [
+     "Prover proposes a candidate proof",
+     "Validity classifier screens the candidate on GPU",
+     "Feedback model scores positives with goal states and errors",
+     "Learned verdicts mix with real Lean verdicts",
+     "Hybrid reward feeds the GRPO update"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Each control was validated alone and never stacked",
+    "num": "08",
+    "id": "each-control-was-validated-alone-and-never-stacked"
+   }
+  ],
+  [
+   "p",
+   "Here's what stays unshown. Each control is validated on its own turf. BenchChecker never compares against a length baseline. LRFB's judges were never probed for memorised PL/SQL. SCCGBench executes calls without asking an LLM judge for a second opinion. Nobody has shown how these controls interact on one benchmark."
+  ],
+  [
+   "p",
+   "The experiment we'd want is concrete. Take SWE-bench Verified and filter it with BenchChecker. Grade each patch three ways: execution against the test suite, an LLM judge, and a patch-length baseline. Shuffle labels as LRFB does and confirm scores collapse. Then repeat with a human audit sample each month, as the lifecycle post describes."
+  ],
+  [
+   "p",
+   "If the judge beats length only on leaked samples, it was reciting. If it beats length on clean samples and its quoted evidence lands on the failing hunk, you've got a grader worth trusting. Until someone runs that, read any single benchmark number as an uncalibrated instrument's reading."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The second check each paper adds, what it catches, and what it leaves open.",
+    "columns": [
+     "Work",
+     "Second check",
+     "Catches",
+     "Left open"
+    ],
+    "rows": [
+     [
+      "BenchChecker",
+      "Repository and patch presence tests",
+      "Fixes leaked into training",
+      "Accuracy on closed models"
+     ],
+     [
+      "SCCGBench",
+      "Virtual execution of API calls",
+      "Wrong host, endpoint or method",
+      "Judge behaviour on the same code"
+     ],
+     [
+      "LRFB",
+      "Sealed labels, canaries, trivial baselines",
+      "Judges riding a length cue",
+      "Memorised source code"
+     ],
+     [
+      "Judge lifecycle",
+      "Human owners at every phase",
+      "Silent judge drift",
+      "How often humans should audit"
+     ],
+     [
+      "Lean evaluator",
+      "Learned verdicts beside real Lean",
+      "Verifier stalls and timeouts",
+      "Results beyond miniF2F"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How do you evaluate LLMs without benchmark contamination?"
+  ],
+  [
+   "p",
+   "Check whether the model already saw the test before you trust its score. BenchChecker probes a model with code prefixes, then tests whether the known patch survived into its training snapshot. Filtering the flagged samples cut the reported resolution rates of most models by more than 20% on medium-difficulty tasks. Where you can't run a check like that, favour tasks the model could not have seen."
+  ],
+  [
+   "h3",
+   "Is LLM-as-a-judge reliable for LLM evaluation?"
+  ],
+  [
+   "p",
+   "Only once you have tested it against a trivial baseline and anchored it to human labels. On PL/SQL specifications, judges scored 0.81 to 0.89 balanced accuracy, and a length baseline reached 0.88. The judges still located defects well, quoting the labelled span in 92%-93% of cases. One engineering blog insists a judge «must never operate alone»."
+  ],
+  [
+   "h3",
+   "What is execution-based evaluation for generated code?"
+  ],
+  [
+   "p",
+   "It runs, or virtually runs, the generated code and checks what it actually does. SCCGBench counts a Mock hit only when a generated web call matches the gold host, endpoint and HTTP method. Text similarity cannot see that difference. From intent alone, the strongest model reached only 3.76% Mock, and gold documentation lifted open models to 88.73% to 90.52%."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "BenchChecker: Assessing the Credibility of Bug-Fixing Benchmarks for LLMs",
+   "url": "https://arxiv.org/abs/2610.19447v1",
+   "posted": "2026-10-14"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "SCCGBench: Executability-Oriented Evaluation for Real-World Web Service-Call Code Generation",
+   "url": "https://arxiv.org/abs/2610.12920v1",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Leakage-Resistant Evaluation of AI-Generated Database Specifications in Specification-Driven Migration",
+   "url": "https://arxiv.org/abs/2610.12778v1",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 4,
+   "platform": "an engineering blog",
+   "who": "netflixtechblog.com",
+   "what": "The Lifecycle of LLM-as-a-Judge: Building, Aligning, and Monitoring at scale",
+   "url": "https://netflixtechblog.com/the-lifecycle-of-llm-as-a-judge-building-aligning-and-monitoring-at-scale-c95bd8283508?source=rss----2615bd06b42e---4",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 5,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Learning Lean Feedback for Efficient Proof-Candidate Evaluation on GPUs",
+   "url": "https://arxiv.org/abs/2610.21881v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "test samples appear in training sets, artificially inflating performance": 1,
+  "only textual model outputs together with public repository history": 1,
+  "persistent patches likely remain in recent repository snapshots used for training": 1,
+  "probing the model with code prefixes to infer training inclusion": 1,
+  "patch presence test to verify patch persistence via similarity alignment and test-suite verification": 1,
+  "AUC scores around 0.9 across six benchmarks": 1,
+  "reduces the reported resolution rates of most LLMs by more than 20% relative to the original rates on medium-difficulty tasks": 1,
+  "3,135 traceable and decontamination-filtered RapidAPI call functions from real GitHub repositories": 2,
+  "a virtual-execution hit that simultaneously matches the gold host, endpoint, and HTTP method": 2,
+  "further requires status checking and exception handling": 2,
+  "the strongest evaluated model obtains only 3.76% Mock": 2,
+  "sparse and dense retrieval remain far below this oracle level": 2,
+  "service/API grounding is the main bottleneck": 2,
+  "a leakage-resistant framework and benchmark (LRFB) for measuring evaluators of AI-generated Oracle PL/SQL specifications": 3,
+  "494 labelled source-specification pairs across 19 quality metrics grouped into seven dimensions": 3,
+  "is mechanically sealed from inference and checked with canary and label-permutation tests": 3,
+  "GPT-4o, DeepSeek V4 Pro, and Claude Sonnet 4.5 reached balanced accuracies of 0.87, 0.89, and 0.81": 3,
+  "Exact paired tests did not separate any judge from that baseline.": 3,
+  "judges nevertheless provided information unavailable to length": 3,
+  "the labelled defect category appeared among findings in 84%-92% of violated records": 3,
+  "quoted evidence overlapped the labelled span in 92%-93%": 3,
+  "evidence-linked, typed findings and benchmark-validity controls": 3,
+  "if the judge drifts, quietly degrading and starting to approve bad output, nothing downstream will flag it": 4,
+  "An LLM judge must never operate alone. It has to be anchored in human judgment.": 4,
+  "A reliable LLM judge is not a static artifact. It has a lifecycle.": 4,
+  "timeouts often leave GPUs waiting and withhold rewards from potentially correct proofs": 5,
+  "using 4.84M labelled programs": 5,
+  "87.8% accuracy in predicting whether Lean accepts a candidate proof": 5,
+  "3.5 candidates per second on one H100": 5,
+  "shortens GRPO training steps by approximately 31%": 5,
+  "must never operate alone": 4
+ },
+ "rel": [
+  [
+   "post:topic-synthesis-concept-interpretability",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-long-context",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:35:24+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.19447v1",
+   "arxiv:2610.12920v1",
+   "arxiv:2610.12778v1",
+   "blog:netflixtechblog.com|https://medium.com/p/c95bd8283508",
+   "arxiv:2610.21881v1"
+  ],
+  "platforms": {
+   "arXiv": 4,
+   "an engineering blog": 1
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "paper-walkthrough:concept/evals",
+  "format": "paper-walkthrough",
+  "reviewed_by": null
+ }
+}

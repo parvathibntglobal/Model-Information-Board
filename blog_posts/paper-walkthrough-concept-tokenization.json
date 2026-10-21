@@ -1,0 +1,481 @@
+{
+ "slug": "paper-walkthrough-concept-tokenization",
+ "status": "draft",
+ "tag": "Paper walkthrough",
+ "feat": false,
+ "title": "Tokenization by Novelty Lifted a Byte Model's Math From 60% to 90%",
+ "dek": "Where a token or patch begins decides where a model spends its effort. New papers move those boundaries for bytes, images and messy text, and one finds no metric that predicts the payoff.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is tokenization in LLMs? It cuts input into the units a model pays compute for. New papers show that moving those boundaries can lift math accuracy sharply, and that no tokenizer metric predicts it.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+VHdvIHBhdGNoaW5nIHJ1bGVzIG92ZXIgdGhlIHNhbWUgbGluZSBvZiBtYXRoPC90aXRsZT4KICA8ZGVzYz5BIGJ5dGUgc3RyaXAgb2YgYSB3b3JrZWQgc3RlcCBlbmRpbmcgaW4gYSBjb21wdXRlZCByZXN1bHQuIFRoZSBlbnRyb3B5IHJ1bGUgcGxhY2VzIHBhdGNoIHN0YXJ0cyBvbiBzdXJwcmlzaW5nIGJ5dGVzIGFuZCBza2lwcyB0aGUgcmVzdWx0OyB0aGUgbm92ZWx0eSBydWxlIHN0YXJ0cyBhIHBhdGNoIHdoZXJlIHRoZSByZXN1bHQgYmVnaW5zLjwvZGVzYz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9IiMxMjE2MWUiLz4KICA8dGV4dCB4PSI2MCIgeT0iNzAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjM0IiBmb250LXdlaWdodD0iNzAwIj5Ub2tlbml6YXRpb246IHdoZXJlIGEgcGF0Y2ggc3RhcnRzPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5UaGUgYmlnIG1vZGVsIHJ1bnMgb25jZSBwZXIgcGF0Y2gsIHNvIGEgYm91bmRhcnkgaXMgYSBkZWNpc2lvbiBhYm91dCB3aGVyZSB0byB0aGluazwvdGV4dD4KCiAgPGcgZm9udC1mYW1pbHk9IkNvdXJpZXIgTmV3LCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgogICAgPHJlY3QgeD0iODAiIHk9IjI1MCIgd2lkdGg9IjEwNDAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiMyYzM1NDQiLz4KICAgIDx0ZXh0IHg9IjEzMCIgeT0iMjk2Ij50PC90ZXh0Pjx0ZXh0IHg9IjE5MCIgeT0iMjk2Ij5vPC90ZXh0Pjx0ZXh0IHg9IjI1MCIgeT0iMjk2Ij50PC90ZXh0Pjx0ZXh0IHg9IjMxMCIgeT0iMjk2Ij5hPC90ZXh0Pjx0ZXh0IHg9IjM3MCIgeT0iMjk2Ij5sPC90ZXh0PgogICAgPHRleHQgeD0iNDMwIiB5PSIyOTYiPj08L3RleHQ+PHRleHQgeD0iNDkwIiB5PSIyOTYiPmE8L3RleHQ+PHRleHQgeD0iNTUwIiB5PSIyOTYiPis8L3RleHQ+PHRleHQgeD0iNjEwIiB5PSIyOTYiPmI8L3RleHQ+CiAgICA8dGV4dCB4PSI2NzAiIHk9IjI5NiI+PTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc2MCIgeT0iMjk2IiBmaWxsPSIjZjJiODRiIj5SPC90ZXh0Pjx0ZXh0IHg9IjgyMCIgeT0iMjk2IiBmaWxsPSIjZjJiODRiIj5SPC90ZXh0Pjx0ZXh0IHg9Ijg4MCIgeT0iMjk2IiBmaWxsPSIjZjJiODRiIj5SPC90ZXh0PgogICAgPHRleHQgeD0iOTYwIiB5PSIyOTYiPjs8L3RleHQ+CiAgPC9nPgogIDx0ZXh0IHg9IjgyMCIgeT0iMzUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjJiODRiIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+Y29tcHV0ZWQgcmVzdWx0PC90ZXh0PgoKICA8dGV4dCB4PSI4MCIgeT0iMjAwIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+RW50cm9weSBydWxlOiBzdGFydCBhdCBzdXJwcmlzaW5nIGJ5dGVzPC90ZXh0PgogIDxsaW5lIHgxPSIxMDAiIHkxPSIyMTUiIHgyPSIxMDAiIHkyPSIzMzAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGxpbmUgeDE9IjQ2MCIgeTE9IjIxNSIgeDI9IjQ2MCIgeTI9IjMzMCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8bGluZSB4MT0iNTgwIiB5MT0iMjE1IiB4Mj0iNTgwIiB5Mj0iMzMwIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxsaW5lIHgxPSI5MzAiIHkxPSIyMTUiIHgyPSI5MzAiIHkyPSIzMzAiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CgogIDx0ZXh0IHg9IjgwIiB5PSI0MjAiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5Ob3ZlbHR5IHJ1bGU6IHN0YXJ0IHdoZXJlIHRleHQgc3RvcHMgcmVwZWF0aW5nPC90ZXh0PgogIDxsaW5lIHgxPSIxMDAiIHkxPSIyNDAiIHgyPSIxMDAiIHkyPSI0MDAiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtZGFzaGFycmF5PSI4IDUiLz4KICA8bGluZSB4MT0iNzIwIiB5MT0iMjQwIiB4Mj0iNzIwIiB5Mj0iNDAwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iOCA1Ii8+CiAgPGxpbmUgeDE9IjkzMCIgeTE9IjI0MCIgeDI9IjkzMCIgeTI9IjQwMCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjggNSIvPgoKICA8cmVjdCB4PSI2MCIgeT0iNTAwIiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSI5MCIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjUzNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPlRoZSByZXN1bHQgbG9va3Mgb3JkaW5hcnkgdG8gdGhlIHNtYWxsIHBhdGNoZXIgbW9kZWwsIHNvIGEgc3VycHJpc2Utc2Vla2luZyBydWxlIHJpZGVzIHBhc3QgaXQ8L3RleHQ+CiAgPHRleHQgeD0iNjAwIiB5PSI1NjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5JbGx1c3RyYXRpdmUgcG9zaXRpb25zOyB0aGUgbWVhc3VyZWQgZWZmZWN0IGlzIGluIHRoZSBiYXJzIGZ1cnRoZXIgZG93bjwvdGV4dD4KPC9zdmc+Cg==",
+  "alt": "Bytes ending in a computed result: entropy-rule boundaries miss it, novelty-rule boundaries land on it.",
+  "caption": "Two patching rules read the same line of math, and only one starts a patch where the answer begins.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is tokenization in LLMs? A walkthrough of new papers on patch boundaries, image token budgets and tokenizer metrics, and how far to trust each.",
+ "keywords": [
+  "what is tokenization in LLMs",
+  "Tokenization",
+  "byte-level language models",
+  "novelty patching",
+  "visual tokenizer",
+  "tokenizer evaluation metrics"
+ ],
+ "kicker": "Paper walkthrough",
+ "tags": [
+  "tokenization",
+  "Paper walkthrough"
+ ],
+ "read": 8,
+ "decisions": [
+  "Judge a tokenizer change by the trained model's task accuracy, not by intrinsic tokenizer scores.",
+  "Score computed values on their own when you evaluate byte-level models on math.",
+  "Spend image tokens by content when detail is uneven across the picture.",
+  "Use a rule-based tokenizer for a narrow, messy domain, and plan to learn its table later."
+ ],
+ "layout": "paper",
+ "arrangement": "a",
+ "special": {
+  "type": "results",
+  "title": "What was measured",
+  "items": [
+   {
+    "result": "Final-answer accuracy rose from 60% to 90%, and computed-result accuracy from 21% to 57%",
+    "setup": "50M-parameter BLT-style model trained from scratch on 1.9 GB of math text, matched patch rate near 11%, 3 seeds",
+    "source": 4,
+    "ref": {
+     "title": "Patch where the text is new: a compression view of where byte-level models should spend compute",
+     "url": "https://arxiv.org/abs/2610.22100v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "Final-answer accuracy rose from 47% to 72%",
+    "setup": "Same novelty rule and training setup at 12M parameters; no clear effect at 1M",
+    "source": 4,
+    "ref": {
+     "title": "Patch where the text is new: a compression view of where byte-level models should spend compute",
+     "url": "https://arxiv.org/abs/2610.22100v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "No proposed intrinsic tokenizer metric consistently predicted downstream performance",
+    "setup": "Approximately 200 language models trained on nine languages, scored on many benchmarks",
+    "source": 1,
+    "ref": {
+     "title": "No Single Tokenizer Feature Reliably Predicts Downstream Language Model Performance",
+     "url": "https://arxiv.org/abs/2610.21679v1",
+     "platform": "arXiv"
+    }
+   },
+   {
+    "result": "rFID of 1.195 and gFID of 1.95",
+    "setup": "MixTok on 256-by-256 ImageNet, at average budgets of roughly 128 and 131 content tokens per image",
+    "source": 2,
+    "ref": {
+     "title": "MixTok: Adaptive Visual Tokenization with Global 1D Tokens and Sparse 2D Refinement",
+     "url": "https://huggingface.co/papers/2610.13181",
+     "platform": "Hugging Face"
+    }
+   },
+   {
+    "result": "About 10% fewer tokens on ImageNet and 9% fewer zero-shot on COCO, with comparable reconstruction",
+    "setup": "QuadTok trained on ImageNet, compared with a fixed 256-token grid",
+    "source": 3,
+    "ref": {
+     "title": "QuadTok: Quadtree Visual Tokenizer for Autoregressive Image Generation",
+     "url": "https://huggingface.co/papers/2610.10497",
+     "platform": "Hugging Face"
+    }
+   },
+   {
+    "result": "gFID of 2.08",
+    "setup": "947M GPT-style QuadTok generator on 256-by-256 ImageNet, given a quadtree layout before generation",
+    "source": 3,
+    "ref": {
+     "title": "QuadTok: Quadtree Visual Tokenizer for Autoregressive Image Generation",
+     "url": "https://huggingface.co/papers/2610.10497",
+     "platform": "Hugging Face"
+    }
+   },
+   {
+    "result": "10K tokens per second, and surface noise cut by 92%",
+    "setup": "Hand-built DFA tokenizer for Roman Urdu, on the builder's own test inputs with no public benchmark",
+    "source": 5,
+    "ref": {
+     "title": "The problem with standard tokenizers",
+     "url": "https://dev.to/saadaslam99/the-problem-with-standard-tokenizers-4a4n",
+     "platform": "dev.to"
+    }
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Entropy patching skips the numbers a solution computes",
+    "num": "01",
+    "id": "entropy-patching-skips-the-numbers-a-solution-computes"
+   }
+  ],
+  [
+   "p",
+   "Ask a small byte-level model to work a math problem, and watch the number after the equals sign. That computed result is where it stumbles. In Byte Latent Transformer-style models, a patch begins wherever a small helper model finds the next byte hard to predict. That rule seldom places a patch start on a computed result. Under tight patch budgets, accuracy on those results collapses [2]."
+  ],
+  [
+   "p",
+   "So what is tokenization in LLMs? It is the step that cuts input into the units a model processes. Classic text models split words into subword pieces with schemes such as BPE or WordPiece. Byte-level models group raw bytes into patches, and the large global model runs once per patch. Image models cut pictures into tokens too. Each unit buys one step of the expensive model [3, 2, 4, 5]."
+  ],
+  [
+   "p",
+   "That makes every boundary a spending decision. Put a boundary where the hard part begins, and the model thinks there. Put it in the wrong place, and the model coasts past the one byte that mattered. Each idea in this walkthrough moves boundaries on purpose. We think that framing explains more than any vocabulary size does."
+  ],
+  [
+   "h2",
+   {
+    "text": "Tokenizer scorecards fail to forecast the trained model",
+    "num": "02",
+    "id": "tokenizer-scorecards-fail-to-forecast-the-trained-model"
+   }
+  ],
+  [
+   "p",
+   "You might hope to judge a tokenizer before paying for training. Intrinsic metrics try exactly that, scoring a tokenizer on its own output with no model trained. A new arXiv paper put that hope to the test on approximately 200 language models across nine languages. The authors scored both the models and their tokenizers, then checked the models against a wide range of benchmarks [1]."
+  ],
+  [
+   "p",
+   "The verdict is blunt. None of the proposed intrinsic metrics tracked downstream results reliably, across languages, tasks or model families. The authors offer a new linguistically grounded metric and show it picks up aspects of quality the older ones miss. They also expect its predictive power to vary by model family, language and task [1]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Despite the quantity and variety of proposed intrinsic tokenizer metrics, we find that none consistently predicts downstream performance across model families, tasks, and languages.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "We read this as a warning label for everything that follows. A tokenizer change is an experiment, not a setting you can grade in advance. The only score that counts is the trained model's accuracy on the job you care about. That is exactly how the next paper argues its case."
+  ],
+  [
+   "h2",
+   {
+    "text": "Starting patches where text stops repeating fixes the math",
+    "num": "03",
+    "id": "starting-patches-where-text-stops-repeating-fixes-the-math"
+   }
+  ],
+  [
+   "p",
+   "A new arXiv paper proposes novelty patching, borrowed from LZ77-style compression. LZ77 saves space by pointing back to text it has already seen. The new rule opens a patch where the next bytes probably won't echo what came just before. Repeats are cheap to predict. New material is where the global model should look hard [2]."
+  ],
+  [
+   "p",
+   "The rule is almost comically small. It is a lookup table keyed on the previous two bytes. Fitting it takes seconds on raw text, with no labels, no reference model and no losses. The author trained BLT-style models from scratch on 1.9 GB of math text, at a matched patch rate near 11%, with 3 seeds each [2]."
+  ],
+  [
+   "p",
+   "At 1M parameters, novelty showed no clear effect. At 12M, final-answer accuracy rose from 47% to 72%. At 50M, computed results climbed from 21% to 57%. Final answers improved from 60% correct to 90%. The gain held even when the table was built from raw pretraining text. For a two-byte lookup, that is a startling return [2]."
+  ],
+  [
+   "code",
+   {
+    "label": "An illustrative novelty table fitted from raw text, no labels",
+    "language": "python",
+    "source": "from collections import defaultdict\n\ndef fit_novelty_table(text, window):\n    seen, repeats = defaultdict(int), defaultdict(int)\n    for i in range(2, len(text) - 1):\n        ctx = text[i - 2:i]                      # the previous two bytes\n        recent = text[max(0, i - window):i]\n        seen[ctx] += 1\n        repeats[ctx] += text[i:i + 2] in recent  # does what follows repeat?\n    return {c: 1 - repeats[c] / seen[c] for c in seen}\n\n# start a new patch wherever table[ctx] is high: the text is turning new"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How novelty patching decides where a byte-level model starts a new patch.",
+    "steps": [
+     "Fit a table on raw text, keyed by two bytes",
+     "At each position, read the previous two bytes",
+     "Look up how rarely what follows repeats recent text",
+     "Start a new patch when a repeat looks unlikely",
+     "Run the large global model once on that patch"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Outside math the novelty advantage shrinks",
+    "num": "04",
+    "id": "outside-math-the-novelty-advantage-shrinks"
+   }
+  ],
+  [
+   "p",
+   "The author does not oversell it. Outside math, the gap narrows. On prose, novelty lowers bits per byte, a measure of how tightly the model compresses text. It ties the entropy rule on source code, and again on synthetic execution traces [2]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+TWF0aCBhY2N1cmFjeSBiZWZvcmUgYW5kIGFmdGVyIG5vdmVsdHkgcGF0Y2hpbmcsIHBlcmNlbnQ8L3RpdGxlPgogIDxkZXNjPkJMVC1zdHlsZSBtb2RlbHMgYXQgYSBtYXRjaGVkIHBhdGNoIHJhdGU6IGF0IDEyTSBwYXJhbWV0ZXJzIGZpbmFsLWFuc3dlciBhY2N1cmFjeSBnb2VzIGZyb20gNDcgdG8gNzIgcGVyY2VudDsgYXQgNTBNLCBjb21wdXRlZC1yZXN1bHQgYWNjdXJhY3kgZnJvbSAyMSB0byA1NyBhbmQgZmluYWwtYW5zd2VyIGFjY3VyYWN5IGZyb20gNjAgdG8gOTAuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPk1vdmluZyB0aGUgcGF0Y2ggYm91bmRhcmllcywgbWVhc3VyZWQ8L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjEwNSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTkiPkFjY3VyYWN5IGluIHBlcmNlbnQsIEJMVC1zdHlsZSBtb2RlbHMgdHJhaW5lZCBvbiAxLjkgR0Igb2YgbWF0aCB0ZXh0LCAzIHNlZWRzPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iMTMwIiB3aWR0aD0iMjIiIGhlaWdodD0iMjIiIGZpbGw9IiM5NWExYjQiLz4KICA8dGV4dCB4PSI5MiIgeT0iMTQ4IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+YmFzZWxpbmUgcnVsZTwvdGV4dD4KICA8cmVjdCB4PSIyNDAiIHk9IjEzMCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjIyIiBmaWxsPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iMjcyIiB5PSIxNDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij5ub3ZlbHR5IHBhdGNoaW5nPC90ZXh0PgoKICA8bGluZSB4MT0iNDIwIiB5MT0iMTgwIiB4Mj0iNDIwIiB5Mj0iNTAwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgoKICA8dGV4dCB4PSI0MDAiIHk9IjIxNSIgdGV4dC1hbmNob3I9ImVuZCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPjEyTSwgZmluYWwgYW5zd2VyPC90ZXh0PgogIDxyZWN0IHg9IjQyMCIgeT0iMTkwIiB3aWR0aD0iMzI5IiBoZWlnaHQ9IjI2IiBmaWxsPSIjOTVhMWI0Ii8+CiAgPHRleHQgeD0iNzYwIiB5PSIyMTAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij40NzwvdGV4dD4KICA8cmVjdCB4PSI0MjAiIHk9IjIyMCIgd2lkdGg9IjUwNCIgaGVpZ2h0PSIyNiIgZmlsbD0iIzNlY2Y4ZSIvPgogIDx0ZXh0IHg9IjkzNSIgeT0iMjQwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+NzI8L3RleHQ+CgogIDx0ZXh0IHg9IjQwMCIgeT0iMzE1IiB0ZXh0LWFuY2hvcj0iZW5kIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+NTBNLCBjb21wdXRlZCByZXN1bHQ8L3RleHQ+CiAgPHJlY3QgeD0iNDIwIiB5PSIyOTAiIHdpZHRoPSIxNDciIGhlaWdodD0iMjYiIGZpbGw9IiM5NWExYjQiLz4KICA8dGV4dCB4PSI1NzgiIHk9IjMxMCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPjIxPC90ZXh0PgogIDxyZWN0IHg9IjQyMCIgeT0iMzIwIiB3aWR0aD0iMzk5IiBoZWlnaHQ9IjI2IiBmaWxsPSIjM2VjZjhlIi8+CiAgPHRleHQgeD0iODMwIiB5PSIzNDAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij41NzwvdGV4dD4KCiAgPHRleHQgeD0iNDAwIiB5PSI0MTUiIHRleHQtYW5jaG9yPSJlbmQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij41ME0sIGZpbmFsIGFuc3dlcjwvdGV4dD4KICA8cmVjdCB4PSI0MjAiIHk9IjM5MCIgd2lkdGg9IjQyMCIgaGVpZ2h0PSIyNiIgZmlsbD0iIzk1YTFiNCIvPgogIDx0ZXh0IHg9Ijg1MSIgeT0iNDEwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+NjA8L3RleHQ+CiAgPHJlY3QgeD0iNDIwIiB5PSI0MjAiIHdpZHRoPSI2MzAiIGhlaWdodD0iMjYiIGZpbGw9IiMzZWNmOGUiLz4KICA8dGV4dCB4PSIxMDYxIiB5PSI0NDAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE3Ij45MDwvdGV4dD4KCiAgPHRleHQgeD0iNjAwIiB5PSI1NDUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE4Ij5BdCAxTSBwYXJhbWV0ZXJzIHRoZSBhdXRob3Igc2F3IG5vIGNsZWFyIGVmZmVjdDsgb3V0c2lkZSBtYXRoIHRoZSBnYXAgc2hyaW5rczwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Bars: final answer 47 to 72 percent at 12M; computed result 21 to 57 and final answer 60 to 90 percent at 50M.",
+    "caption": "The novelty rule's gains on math grow with model size across the scales the author tested.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "We also report what did not work: typed uncertainty as a training rule, switching rules after training, and a context-aware novelty predictor.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "The boundary analysis explains why. To the patcher's small model, a computed result looks no more surprising than any other byte. Rules that chase surprise therefore walk straight past it. Entropy patching piles patch starts onto high-surprisal bytes harder than any other rule, with a boundary enrichment of 1.61. It also does worst of all on computed results [2]."
+  ],
+  [
+   "p",
+   "Novelty wins where fresh content begins right next to the computation, which is how written math looks. A learned chunker, H-Net, discovers that structure by itself in math and in code. The paper also lists what failed, including switching rules after training. We give it real credit for that list. Our caution is scale, since the largest model here has 50M parameters [2]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Image tokenizers now spend tokens where the picture is busy",
+    "num": "05",
+    "id": "image-tokenizers-now-spend-tokens-where-the-picture-is-busy"
+   }
+  ],
+  [
+   "p",
+   "Images had the same problem in two dimensions. Grid tokenizers hand every region the same share of tokens, though detail is uneven. Compact 1D tokenizers summarise the whole image but can lose local detail. MixTok, from a new arXiv paper, blends the two [4]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+VGhyZWUgd2F5cyB0byBzcGVuZCBhbiBpbWFnZSdzIHRva2VuIGJ1ZGdldDwvdGl0bGU+CiAgPGRlc2M+QSB1bmlmb3JtIGdyaWQgZ2l2ZXMgZXZlcnkgcmVnaW9uIHRoZSBzYW1lIHRva2VuczsgYSBxdWFkdHJlZSBzcGxpdHMgb25seSBidXN5IHJlZ2lvbnM7IGEgaHlicmlkIGFkZHMgc3BhcnNlIDJEIHRva2VucyBvbiB0b3Agb2YgYSBjb21wYWN0IDFEIHN1bW1hcnkuPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPkltYWdlIHRva2VucyBmb2xsb3cgdGhlIGRldGFpbDwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iMTA1IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOSI+U2FtZSBwaWN0dXJlLCB0aHJlZSBidWRnZXRzOiBidXN5IGFyZWEgYXQgdG9wIGxlZnQsIGZsYXQgc2t5IGVsc2V3aGVyZTwvdGV4dD4KCiAgPGcgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9IiMxYjIyMzAiPgogICAgPHJlY3QgeD0iODAiIHk9IjE1MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiLz4KICAgIDxsaW5lIHgxPSIxNTUiIHkxPSIxNTAiIHgyPSIxNTUiIHkyPSI0NTAiLz48bGluZSB4MT0iMjMwIiB5MT0iMTUwIiB4Mj0iMjMwIiB5Mj0iNDUwIi8+PGxpbmUgeDE9IjMwNSIgeTE9IjE1MCIgeDI9IjMwNSIgeTI9IjQ1MCIvPgogICAgPGxpbmUgeDE9IjgwIiB5MT0iMjI1IiB4Mj0iMzgwIiB5Mj0iMjI1Ii8+PGxpbmUgeDE9IjgwIiB5MT0iMzAwIiB4Mj0iMzgwIiB5Mj0iMzAwIi8+PGxpbmUgeDE9IjgwIiB5MT0iMzc1IiB4Mj0iMzgwIiB5Mj0iMzc1Ii8+CiAgPC9nPgogIDxyZWN0IHg9IjgwIiB5PSIxNTAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjI1Ii8+CiAgPHRleHQgeD0iMjMwIiB5PSI0OTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5GaXhlZCBncmlkPC90ZXh0PgogIDx0ZXh0IHg9IjIzMCIgeT0iNTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+c2FtZSB0b2tlbnMgZXZlcnl3aGVyZTwvdGV4dD4KCiAgPGcgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9IiMxYjIyMzAiPgogICAgPHJlY3QgeD0iNDUwIiB5PSIxNTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIi8+CiAgICA8bGluZSB4MT0iNjAwIiB5MT0iMTUwIiB4Mj0iNjAwIiB5Mj0iNDUwIi8+PGxpbmUgeDE9IjQ1MCIgeTE9IjMwMCIgeDI9Ijc1MCIgeTI9IjMwMCIvPgogICAgPGxpbmUgeDE9IjUyNSIgeTE9IjE1MCIgeDI9IjUyNSIgeTI9IjMwMCIvPjxsaW5lIHgxPSI0NTAiIHkxPSIyMjUiIHgyPSI2MDAiIHkyPSIyMjUiLz4KICAgIDxsaW5lIHgxPSI0ODciIHkxPSIxNTAiIHgyPSI0ODciIHkyPSIyMjUiLz48bGluZSB4MT0iNDUwIiB5MT0iMTg3IiB4Mj0iNTI1IiB5Mj0iMTg3Ii8+CiAgPC9nPgogIDxyZWN0IHg9IjQ1MCIgeT0iMTUwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4yIi8+CiAgPHRleHQgeD0iNjAwIiB5PSI0OTAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5RdWFkdHJlZTwvdGV4dD4KICA8dGV4dCB4PSI2MDAiIHk9IjUxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPnNwbGl0IG9ubHkgd2hlcmUgaXQgaXMgYnVzeTwvdGV4dD4KCiAgPHJlY3QgeD0iODIwIiB5PSIxNTAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMWIyMjMwIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjgyMCIgeT0iMTUwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xMiIvPgogIDx0ZXh0IHg9Ijk3MCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYTc4YmZhIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+Y29tcGFjdCAxRCBzdW1tYXJ5PC90ZXh0PgogIDxyZWN0IHg9Ijg0MCIgeT0iMTcwIiB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2YyYjg0YiIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iOTAwIiB5PSIxNzAiIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZjJiODRiIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSI4NDAiIHk9IjIzMCIgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNmMmI4NGIiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjEwMzAiIHk9IjIzNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2YyYjg0YiIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPnNwYXJzZSAyRDwvdGV4dD4KICA8dGV4dCB4PSIxMDMwIiB5PSIyNTciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmMmI4NGIiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE2Ij5yZWZpbmVtZW50czwvdGV4dD4KICA8dGV4dCB4PSI5NzAiIHk9IjQ5MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPkh5YnJpZCAxRCArIDJEPC90ZXh0PgogIDx0ZXh0IHg9Ijk3MCIgeT0iNTE4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+YSByb3V0ZXIgcGlja3MgdGhlIHNwb3RzPC90ZXh0PgoKICA8dGV4dCB4PSI2MDAiIHk9IjU3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPlVuaWZvcm0gYnVkZ2V0cyB3YXN0ZSB0b2tlbnMgb24gZmxhdCByZWdpb25zIGFuZCBzdGFydmUgdGhlIGRldGFpbGVkIG9uZXM8L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Three image panels: a uniform token grid, a quadtree split only in a busy corner, and a 1D summary with sparse 2D tokens.",
+    "caption": "Adaptive image tokenizers put their budget where the picture has detail.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A content-aware router ranks candidate spots by how badly they need refining. It then sets each image's count of 2D tokens under an average budget. At the top spots, 2D token features replace what the 1D summary recovered, and one shared decoder rebuilds the image. On 256-by-256 ImageNet images, MixTok reports a reconstruction FID, or rFID, of 1.195. Its generation FID, gFID, is 1.95. Those came at roughly 128 and 131 content tokens per image [4]."
+  ],
+  [
+   "p",
+   "QuadTok takes a tree route. Its quadtree splits busy regions into finer cells and leaves flat regions coarse. Against a fixed 256-token grid, it saves about 10% of tokens on ImageNet and 9% zero-shot on COCO, at comparable reconstruction quality. Its 947M GPT-style generator scored a 2.08 gFID, given a quadtree layout before generation began [5]."
+  ],
+  [
+   "p",
+   "Both FID scores measure distance from real images, so lower is better. We like both designs and trust their numbers about equally. Each reports clean ImageNet results. Neither abstract shows how the budget behaves on screenshots or diagrams, where fine detail is the whole point."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Two adaptive image tokenizers and what each reports on ImageNet.",
+    "columns": [
+     "Tokenizer",
+     "How it spends tokens",
+     "Reported result"
+    ],
+    "rows": [
+     [
+      "MixTok",
+      "Compact 1D summary plus sparse 2D tokens at spots a router picks",
+      "rFID 1.195 and gFID 1.95 at about 128 and 131 tokens per image"
+     ],
+     [
+      "QuadTok",
+      "Quadtree: fine cells in busy regions, coarse cells in flat ones",
+      "About 10% fewer tokens than a 256-token grid; gFID 2.08 with a supplied layout"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A hand-built automaton tokenizes text that BPE shreds",
+    "num": "06",
+    "id": "a-hand-built-automaton-tokenizes-text-that-bpe-shreds"
+   }
+  ],
+  [
+   "p",
+   "Text has uneven regions too, and one builder hit them in Roman Urdu. That is Urdu typed in Latin script, with no spelling standard. One word can be spelled five ways, people switch languages mid-sentence, and letters get stretched for emphasis. The builder found that English-trained BPE or WordPiece tokenizers broke this input into meaningless pieces [3]."
+  ],
+  [
+   "p",
+   "The fix was an old tool, a deterministic finite automaton, or DFA. A normalization pass runs first, collapsing repeated letters and mapping phonetic variants to one form. A transition table then maps each state and character to the next state. Anything unrecognised drops into a dead state. On the builder's own inputs, the pipeline parsed 10K tokens per second and cut surface noise by 92% [3]."
+  ],
+  [
+   "p",
+   "The builder is candid about limits. Those figures come from personal test inputs, because Roman Urdu has no standard benchmark. Every new spelling means editing the table by hand, and the next version would learn transition weights from real text. We agree with that direction. A rule-based tokenizer is easy to inspect, yet it still needs a trained model's results to prove its worth [3, 1]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The Roman Urdu tokenizer's pipeline, from raw text to typed tokens.",
+    "steps": [
+     "Collapse letters stretched for emphasis",
+     "Map phonetic spelling variants to one form",
+     "Step the DFA through each character",
+     "Stop at an accepting state or fall into the dead state",
+     "Classify each accepted token by type"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The boundary rules still lack a test at frontier scale",
+    "num": "07",
+    "id": "the-boundary-rules-still-lack-a-test-at-frontier-scale"
+   }
+  ],
+  [
+   "p",
+   "Each paper leaves a clear gap. Novelty patching stops at 50M parameters and mostly math text. QuadTok's best generation number assumes the tree layout arrives before generation. MixTok and QuadTok both report ImageNet results, with one zero-shot check on COCO. And no intrinsic metric yet tells you which rule wins before training [2, 5, 4, 1]."
+  ],
+  [
+   "p",
+   "The settling experiment is plain, if costly. Train matched byte-level models at several sizes, well past 50M parameters, on a mix of math, prose and code. Hold the patch rate fixed. Compare the entropy rule, novelty patching and a learned chunker. Report accuracy per content type, and score computed results on their own [2]."
+  ],
+  [
+   "p",
+   "If novelty's math gain holds as models grow, boundaries become a cheap lever for reasoning. If it fades, the small-model result was about a weak patcher, not a better rule. We would bet on something in between. Either way, publish the per-category table. An average would hide the answer."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is tokenization in LLMs?"
+  ],
+  [
+   "p",
+   "Tokenization is the step that splits input into the units a model reads and spends compute on. Text models usually split words into subword pieces with schemes such as BPE or WordPiece. Byte-level models group bytes into patches and run the large model once per patch. Image models cut pictures into visual tokens [3, 2, 4, 5]."
+  ],
+  [
+   "h3",
+   "Does the tokenizer affect LLM accuracy?"
+  ],
+  [
+   "p",
+   "Yes, though it is hard to predict how much. Across approximately 200 models in nine languages, no intrinsic tokenizer metric consistently forecast downstream results. Boundary rules can matter a lot. In one byte-level study, novelty patching raised final-answer math accuracy from 60% to 90% at 50M parameters [1, 2]."
+  ],
+  [
+   "h3",
+   "What is the difference between BPE and byte-level tokenization?"
+  ],
+  [
+   "p",
+   "BPE builds a fixed vocabulary of subword pieces and splits text into them. Byte-level models skip the vocabulary, read raw bytes and group them into patches. Where a patch starts matters. One rule starts patches at hard-to-predict bytes, and another starts them where the text stops repeating recent context [2]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "No Single Tokenizer Feature Reliably Predicts Downstream Language Model Performance",
+   "url": "https://arxiv.org/abs/2610.21679v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Patch where the text is new: a compression view of where byte-level models should spend compute",
+   "url": "https://arxiv.org/abs/2610.22100v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "saadaslam99",
+   "what": "The problem with standard tokenizers",
+   "url": "https://dev.to/saadaslam99/the-problem-with-standard-tokenizers-4a4n",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "MixTok: Adaptive Visual Tokenization with Global 1D Tokens and Sparse 2D Refinement",
+   "url": "https://huggingface.co/papers/2610.13181",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 5,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "QuadTok: Quadtree Visual Tokenizer for Autoregressive Image Generation",
+   "url": "https://huggingface.co/papers/2610.10497",
+   "posted": "2026-10-07"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T02:06:40+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.21679v1",
+   "hfpapers:2610.13181",
+   "hfpapers:2610.10497",
+   "arxiv:2610.22100v1",
+   "devto:4856591"
+  ],
+  "platforms": {
+   "arXiv": 2,
+   "Hugging Face": 2,
+   "dev.to": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "paper-walkthrough:concept/tokenization",
+  "format": "paper-walkthrough",
+  "reviewed_by": null
+ }
+}

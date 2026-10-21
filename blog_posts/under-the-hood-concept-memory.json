@@ -1,0 +1,492 @@
+{
+ "slug": "under-the-hood-concept-memory",
+ "status": "draft",
+ "tag": "Under the hood",
+ "feat": false,
+ "title": "Agent Memory Fails at the Write, Long Before Anyone Asks a Question",
+ "dek": "Follow one changing fact through an agent's memory: the four write operations, a trained writer, consolidation into weights, and a benchmark that inspects the store itself.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "Agent memory is a write path, a store and a read path. Quality is decided when the writer picks create, update, reinforce or supersede, and grading only final answers hides its mistakes.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgbGVucyBvdmVyIGFuIGFnZW50J3MgbWVtb3J5IHN0b3JlIGZpbmRzIGEgc3RhbGUgZW50cnkgYmVoaW5kIGEgY29ycmVjdCBhbnN3ZXI8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJyZWRnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4zOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ3JlZW5nbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC4yOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0idmlvbGV0Z2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXJyZyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBpbmNvbWluZyBjaHVua3MgLS0+CiAgPGcgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIj4KICAgIDxyZWN0IHg9IjcwIiB5PSIxNDAiIHdpZHRoPSIxNzAiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiLz4KICAgIDxyZWN0IHg9IjEwNSIgeT0iMTY2IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjQ2IiByeD0iNiIgc3Ryb2tlPSIjN2FhMmZmIi8+CiAgICA8cG9seWxpbmUgcG9pbnRzPSIxMDUsMTY4IDE1NSwxOTYgMjA1LDE2OCIgc3Ryb2tlPSIjN2FhMmZmIi8+CgogICAgPHJlY3QgeD0iNzAiIHk9IjI3MCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSI5NiIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzdhYTJmZiIvPgogICAgPHJlY3QgeD0iMTIyIiB5PSIyODYiIHdpZHRoPSI2NiIgaGVpZ2h0PSI2NCIgcng9IjYiIHN0cm9rZT0iIzdhYTJmZiIvPgogICAgPGxpbmUgeDE9IjEzNCIgeTE9IjMwNCIgeDI9IjE3NiIgeTI9IjMwNCIgc3Ryb2tlPSIjN2FhMmZmIi8+CiAgICA8bGluZSB4MT0iMTM0IiB5MT0iMzE4IiB4Mj0iMTc2IiB5Mj0iMzE4IiBzdHJva2U9IiM3YWEyZmYiLz4KICAgIDxsaW5lIHgxPSIxMzQiIHkxPSIzMzIiIHgyPSIxNjQiIHkyPSIzMzIiIHN0cm9rZT0iIzdhYTJmZiIvPgoKICAgIDxyZWN0IHg9IjcwIiB5PSI0MDAiIHdpZHRoPSIxNzAiIGhlaWdodD0iOTYiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiM3YWEyZmYiLz4KICAgIDxwYXRoIGQ9Ik0xMTAsNDIwIGg5MCBhMTAsMTAgMCAwIDEgMTAsMTAgdjI2IGExMCwxMCAwIDAgMSAtMTAsMTAgaC02MCBsLTE4LDE2IHYtMTYgaC0xMiBhMTAsMTAgMCAwIDEgLTEwLC0xMCB2LTI2IGExMCwxMCAwIDAgMSAxMCwtMTAgeiIgc3Ryb2tlPSIjN2FhMmZmIi8+CiAgPC9nPgogIDxnIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiPgogICAgPHBhdGggZD0iTTI0NCwxODggQzMwMCwyMDAgMzIwLDI2MCAzNTIsMjk2Ii8+CiAgICA8bGluZSB4MT0iMjQ0IiB5MT0iMzE4IiB4Mj0iMzQ2IiB5Mj0iMzE4Ii8+CiAgICA8cGF0aCBkPSJNMjQ0LDQ0OCBDMzAwLDQzNiAzMjAsMzc2IDM1MiwzNDAiLz4KICA8L2c+CgogIDwhLS0gd3JpdGUgaGVhZCAtLT4KICA8Y2lyY2xlIGN4PSI0MTAiIGN5PSIzMTgiIHI9IjExMCIgZmlsbD0idXJsKCN2aW9sZXRnbG93KSIvPgogIDxjaXJjbGUgY3g9IjQxMCIgY3k9IjMxOCIgcj0iNTYiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8cGF0aCBkPSJNNDEwLDI4MiBMNDMyLDMxOCBMNDE4LDM1MiBMNDAyLDM1MiBMMzg4LDMxOCBaIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuNTUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KICA8bGluZSB4MT0iNDEwIiB5MT0iMzAwIiB4Mj0iNDEwIiB5Mj0iMzQwIiBzdHJva2U9IiMxMDE0MWIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxjaXJjbGUgY3g9IjQxMCIgY3k9IjMxOCIgcj0iNCIgZmlsbD0iIzEwMTQxYiIvPgogIDx0ZXh0IHg9IjQxMCIgeT0iNDEwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGxldHRlci1zcGFjaW5nPSIzIj5XUklURTwvdGV4dD4KICA8bGluZSB4MT0iNDY4IiB5MT0iMzE4IiB4Mj0iNTMwIiB5Mj0iMzE4IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CgogIDwhLS0gdGhlIHN0b3JlIC0tPgogIDxyZWN0IHg9IjU0MCIgeT0iOTYiIHdpZHRoPSIyOTAiIGhlaWdodD0iNDQwIiByeD0iMjAiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPGcgc3Ryb2tlLXdpZHRoPSIzIj4KICAgIDxyZWN0IHg9IjU2NiIgeT0iMTIyIiB3aWR0aD0iMjM4IiBoZWlnaHQ9IjYwIiByeD0iMTIiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgICA8cmVjdCB4PSI1NjYiIHk9IjE5OCIgd2lkdGg9IjIzOCIgaGVpZ2h0PSI2MCIgcng9IjEyIiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzJjMzU0NCIvPgogICAgPHJlY3QgeD0iNTY2IiB5PSIzNTAiIHdpZHRoPSIyMzgiIGhlaWdodD0iNjAiIHJ4PSIxMiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjIyIiBzdHJva2U9IiM3YWEyZmYiLz4KICAgIDxyZWN0IHg9IjU2NiIgeT0iNDI2IiB3aWR0aD0iMjM4IiBoZWlnaHQ9IjYwIiByeD0iMTIiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjMmMzNTQ0Ii8+CiAgPC9nPgogIDxnIGZpbGw9IiM5NWExYjQiIG9wYWNpdHk9IjAuNiI+CiAgICA8cmVjdCB4PSI1ODYiIHk9IjE0MiIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI4IiByeD0iNCIvPjxyZWN0IHg9IjU4NiIgeT0iMTU4IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjgiIHJ4PSI0Ii8+CiAgICA8cmVjdCB4PSI1ODYiIHk9IjIxOCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSI4IiByeD0iNCIvPjxyZWN0IHg9IjU4NiIgeT0iMjM0IiB3aWR0aD0iOTAiIGhlaWdodD0iOCIgcng9IjQiLz4KICAgIDxyZWN0IHg9IjU4NiIgeT0iNDQ2IiB3aWR0aD0iMTQwIiBoZWlnaHQ9IjgiIHJ4PSI0Ii8+PHJlY3QgeD0iNTg2IiB5PSI0NjIiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4IiByeD0iNCIvPgogIDwvZz4KICA8ZyBmaWxsPSIjN2FhMmZmIj4KICAgIDxyZWN0IHg9IjU4NiIgeT0iMzcwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjgiIHJ4PSI0Ii8+PHJlY3QgeD0iNTg2IiB5PSIzODYiIHdpZHRoPSIxMTAiIGhlaWdodD0iOCIgcng9IjQiLz4KICA8L2c+CgogIDwhLS0gdGhlIHN0YWxlIGVudHJ5LCB1bmRlciB0aGUgbGVucyAtLT4KICA8Y2lyY2xlIGN4PSI2ODUiIGN5PSIzMDQiIHI9IjE1MCIgZmlsbD0idXJsKCNyZWRnbG93KSIvPgogIDxyZWN0IHg9IjU2NiIgeT0iMjc0IiB3aWR0aD0iMjM4IiBoZWlnaHQ9IjYwIiByeD0iMTIiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxyZWN0IHg9IjU4NiIgeT0iMjk0IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjgiIHJ4PSI0IiBmaWxsPSIjZmY3YjcyIi8+CiAgPHJlY3QgeD0iNTg2IiB5PSIzMTAiIHdpZHRoPSI5NiIgaGVpZ2h0PSI4IiByeD0iNCIgZmlsbD0iI2ZmN2I3MiIvPgogIDxjaXJjbGUgY3g9Ijc3MiIgY3k9IjMwNCIgcj0iMTUiIGZpbGw9IiNmZjdiNzIiLz4KICA8cmVjdCB4PSI3NjkuNSIgeT0iMjk0IiB3aWR0aD0iNSIgaGVpZ2h0PSIxMiIgcng9IjIiIGZpbGw9IiMxMDE0MWIiLz4KICA8Y2lyY2xlIGN4PSI3NzIiIGN5PSIzMTIiIHI9IjIuNiIgZmlsbD0iIzEwMTQxYiIvPgogIDxjaXJjbGUgY3g9IjY4NSIgY3k9IjMwNCIgcj0iMTE4IiBmaWxsPSIjZThlZGY1IiBmaWxsLW9wYWNpdHk9IjAuMDUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSI3Ii8+CiAgPGxpbmUgeDE9Ijc3MCIgeTE9IjM5MCIgeDI9Ijg2OCIgeTI9IjUwMCIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8bGluZSB4MT0iNzcwIiB5MT0iMzkwIiB4Mj0iODY4IiB5Mj0iNTAwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMTAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDx0ZXh0IHg9IjY4NSIgeT0iNTg0IiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGxldHRlci1zcGFjaW5nPSIzIj5TVE9SRTwvdGV4dD4KCiAgPCEtLSB0aGUgYW5zd2VyIHRoYXQgbG9va3MgZmluZSAtLT4KICA8bGluZSB4MT0iODM2IiB5MT0iMjMwIiB4Mj0iOTMwIiB5Mj0iMjMwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iOCA4IiBtYXJrZXItZW5kPSJ1cmwoI2FycmcpIi8+CiAgPGNpcmNsZSBjeD0iMTA0MCIgY3k9IjIzMCIgcj0iMTIwIiBmaWxsPSJ1cmwoI2dyZWVuZ2xvdykiLz4KICA8cmVjdCB4PSI5NDUiIHk9IjE2MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxNDAiIHJ4PSIyMiIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iNCIvPgogIDxwYXRoIGQ9Ik05OTAsMjMyIEwxMDI1LDI2NiBMMTA5MiwxOTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIxMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHRleHQgeD0iMTA0MCIgeT0iMzQ0IiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGxldHRlci1zcGFjaW5nPSIzIj5BTlNXRVI8L3RleHQ+Cjwvc3ZnPgo=",
+  "alt": "Messages flow through a write node into a memory store; a lens finds a stale red entry while the answer shows a green check.",
+  "caption": "The answer passes, and the store underneath it is wrong: the gap this post follows from write to read.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How does memory work in AI agents? Follow one changing fact through the write path, the store and the read path, and see where QA scores hide bugs.",
+ "keywords": [
+  "how does memory work in AI agents",
+  "Memory for language models",
+  "agent memory",
+  "memory write path",
+  "agent memory evaluation",
+  "KV cache vs long-term memory"
+ ],
+ "kicker": "Under the hood",
+ "tags": [
+  "agent memory",
+  "Under the hood"
+ ],
+ "read": 9,
+ "decisions": [
+  "Inspect the memory store after each write, not only the final answer.",
+  "Log the operation your writer picks for every chunk.",
+  "Alert on any key that holds two live values.",
+  "Price the write path: every ingested chunk is a model call.",
+  "Treat weight-space consolidation as a pattern until it is tested on agent work."
+ ],
+ "layout": "mechanism",
+ "arrangement": "b",
+ "special": {
+  "type": "lab",
+  "title": "Try it yourself",
+  "items": [
+   {
+    "step": "Write the truth first",
+    "how": "In a notebook, write a short trajectory for one key, such as who owns a service, listing each change and the operation it should trigger.",
+    "look_for": "A list where every entry names a chunk id, the expected value and the expected operation."
+   },
+   {
+    "step": "Generate messages from it",
+    "how": "Turn each step into a short email or chat message, by hand or with any local model, and keep the trajectory as your answer key.",
+    "look_for": "Messages that mention the owner indirectly, so a writer has to read them to label them."
+   },
+   {
+    "step": "Ingest with a toy writer",
+    "how": "Feed the messages in order to a small write function that asks a model to choose create, update, reinforce or supersede, and logs the choice.",
+    "look_for": "A store that grows message by message, with the chosen operation beside every write."
+   },
+   {
+    "step": "Diff the store after each step",
+    "how": "After every ingestion, compare the live entries for the key against the trajectory before you ask any question.",
+    "look_for": "Steps where the operation label is wrong even though the store still looks plausible."
+   },
+   {
+    "step": "Ask the question last",
+    "how": "Query the agent about the final owner and grade only its answer, the way a downstream benchmark would.",
+    "look_for": "Runs where the answer is right and the store still holds two live owners: a false positive you caught only because you looked."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~9 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A memory that answers right for the wrong reason",
+    "num": "01",
+    "id": "a-memory-that-answers-right-for-the-wrong-reason"
+   }
+  ],
+  [
+   "p",
+   "Monday, your agent reads an email saying the payments team owns the billing service. Thursday, a design doc hands billing to the platform team. Friday, someone asks who to page. The agent says platform. Correct! Now open its memory store. Both owners sit there, both live, and retrieval just happened to grab the newer one. So how does memory work in AI agents, when a right answer can hide a broken store?"
+  ],
+  [
+   "p",
+   "Strip off the branding and agent memory has three moving parts. A write path reads new text and decides what to keep. A store holds those entries outside the model's weights, usually as text records with embeddings for search. A read path pulls a few entries back and injects them into the prompt. Each part fails on its own. The answer you grade passes through all three."
+  ],
+  [
+   "p",
+   "That's the trap a new arXiv paper on memory evaluation names. Downstream question answering, the usual benchmark, «conflates memory correctness with retrieval and generation quality». It yields «false positives where correct responses mask broken memory». Our Friday answer is exactly that. We think this is the most useful frame in the whole topic. It tells you where to look first: the store, not the answer."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The three moving parts of agent memory, in the order a new fact meets them.",
+    "steps": [
+     "New text arrives: an email, a doc or a chat turn",
+     "The writer picks an operation for each fact it finds",
+     "The store keeps entries outside the model's weights",
+     "The read path retrieves entries for the current question",
+     "The generator answers from whatever was injected"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Four verbs on the write path",
+    "num": "02",
+    "id": "four-verbs-on-the-write-path"
+   }
+  ],
+  [
+   "p",
+   "Start with the write path, because every later stage inherits its mistakes. The Hy-Memory authors define the job as «deciding what to retain, how precisely to represent it, and how new evidence should update persistent state». That's three judgements per incoming chunk. Get one wrong and the store drifts. Retrieval can't repair it. It only sees what was written."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+CiAgPHRpdGxlPk9uZSBmYWN0IG92ZXIgYSB3ZWVrOiB0aGUgb3BlcmF0aW9ucyBhIHdyaXRlciBzaG91bGQgcGljaywgYW5kIHRoZSBvbmVzIGl0IHBpY2tlZDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InJlZGdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NDAiIGZpbGw9InVybCgjYmcpIi8+CgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CiAgICA8dGV4dCB4PSIyMzAiIHk9IjU2Ij5Nb24gwrcgZW1haWw8L3RleHQ+CiAgICA8dGV4dCB4PSI2MDAiIHk9IjU2Ij5UdWUgwrcgZW1haWw8L3RleHQ+CiAgICA8dGV4dCB4PSI5NzAiIHk9IjU2Ij5UaHUgwrcgZGVzaWduIGRvYzwvdGV4dD4KICA8L2c+CiAgPGxpbmUgeDE9IjYwIiB5MT0iNzYiIHgyPSIxMTQwIiB5Mj0iNzYiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CgogIDwhLS0gbGFuZTogc2hvdWxkIGJlIC0tPgogIDx0ZXh0IHg9IjYwIiB5PSIxMjIiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjcwMCIgbGV0dGVyLXNwYWNpbmc9IjIiPlNIT1VMRCBCRTwvdGV4dD4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHJlY3QgeD0iODAiIHk9IjE0NCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iMTAwIiB5PSIxNjAiIHdpZHRoPSIxMTAiIGhlaWdodD0iMzYiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIxNTUiIHk9IjE4NiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+Y3JlYXRlPC90ZXh0PgogICAgPHRleHQgeD0iMTAwIiB5PSIyMzgiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnBheW1lbnRzIG93bnMgYmlsbGluZzwvdGV4dD4KCiAgICA8cmVjdCB4PSI0NTAiIHk9IjE0NCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iNDcwIiB5PSIxNjAiIHdpZHRoPSIxNDAiIGhlaWdodD0iMzYiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI1NDAiIHk9IjE4NiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+cmVpbmZvcmNlPC90ZXh0PgogICAgPHRleHQgeD0iNDcwIiB5PSIyMzgiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnBheW1lbnRzIG93bnMgYmlsbGluZzwvdGV4dD4KCiAgICA8cmVjdCB4PSI4MzYiIHk9IjEzMiIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMDQiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgZmlsbC1vcGFjaXR5PSIwLjUiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI4NTYiIHk9IjE2OCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+cGF5bWVudHMgwrcgcmV0aXJlZDwvdGV4dD4KICAgIDxsaW5lIHgxPSI4NTIiIHkxPSIxNjEiIHgyPSIxMDQ2IiB5Mj0iMTYxIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHJlY3QgeD0iODIwIiB5PSIxODAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4yMiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxyZWN0IHg9Ijg0MCIgeT0iMTk2IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM2IiByeD0iMTgiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4yIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iOTE1IiB5PSIyMjIiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPnN1cGVyc2VkZTwvdGV4dD4KICAgIDx0ZXh0IHg9Ijg0MCIgeT0iMjc0IiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5wbGF0Zm9ybSBvd25zIGJpbGxpbmc8L3RleHQ+CiAgPC9nPgogIDxnIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiPgogICAgPGxpbmUgeDE9IjM4NiIgeTE9IjIwNCIgeDI9IjQ0MiIgeTI9IjIwNCIvPgogICAgPGxpbmUgeDE9Ijc1NiIgeTE9IjIyMiIgeDI9IjgxMiIgeTI9IjIzMiIvPgogIDwvZz4KCiAgPGxpbmUgeDE9IjYwIiB5MT0iMzQwIiB4Mj0iMTE0MCIgeTI9IjM0MCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjYgOCIvPgoKICA8IS0tIGxhbmU6IHdoYXQgaGFwcGVuZWQgLS0+CiAgPHRleHQgeD0iNjAiIHk9IjM5MCIgZmlsbD0iI2ZmN2I3MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBsZXR0ZXItc3BhY2luZz0iMiI+V0hBVCBIQVBQRU5FRDwvdGV4dD4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHJlY3QgeD0iODAiIHk9IjQxMiIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iMTAwIiB5PSI0MjgiIHdpZHRoPSIxMTAiIGhlaWdodD0iMzYiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSIxNTUiIHk9IjQ1NCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+Y3JlYXRlPC90ZXh0PgogICAgPHRleHQgeD0iMTAwIiB5PSI1MDYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnBheW1lbnRzIG93bnMgYmlsbGluZzwvdGV4dD4KCiAgICA8cmVjdCB4PSI0NTAiIHk9IjQxMiIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHJlY3QgeD0iNDcwIiB5PSI0MjgiIHdpZHRoPSIxNDAiIGhlaWdodD0iMzYiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgZmlsbC1vcGFjaXR5PSIwLjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI1NDAiIHk9IjQ1NCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+cmVpbmZvcmNlPC90ZXh0PgogICAgPHRleHQgeD0iNDcwIiB5PSI1MDYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnBheW1lbnRzIG93bnMgYmlsbGluZzwvdGV4dD4KCiAgICA8Y2lyY2xlIGN4PSI5NzAiIGN5PSI0OTAiIHI9IjE5MCIgZmlsbD0idXJsKCNyZWRnbG93KSIvPgogICAgPHJlY3QgeD0iODIwIiB5PSI0MDAiIHdpZHRoPSIzMDAiIGhlaWdodD0iODQiIHJ4PSIxNiIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjE0IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iODQwIiB5PSI0NTIiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnBheW1lbnRzIG93bnMgYmlsbGluZzwvdGV4dD4KICAgIDxyZWN0IHg9IjgyMCIgeT0iNDk2IiB3aWR0aD0iMzAwIiBoZWlnaHQ9Ijg0IiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9Ijg0MCIgeT0iNTQ4IiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5wbGF0Zm9ybSBvd25zIGJpbGxpbmc8L3RleHQ+CiAgICA8cmVjdCB4PSIxMDQwIiB5PSIzNTQiIHdpZHRoPSIxMDAiIGhlaWdodD0iMzYiIHJ4PSIxOCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjI1IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iMTA5MCIgeT0iMzgwIiBmb250LXNpemU9IjIyIiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj5jcmVhdGU8L3RleHQ+CiAgICA8dGV4dCB4PSI5NzAiIHk9IjYyMCIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+dHdvIGxpdmUgb3duZXJzPC90ZXh0PgogIDwvZz4KICA8ZyBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIj4KICAgIDxsaW5lIHgxPSIzODYiIHkxPSI0NzIiIHgyPSI0NDIiIHkyPSI0NzIiLz4KICAgIDxsaW5lIHgxPSI3NTYiIHkxPSI0NzIiIHgyPSI4MTIiIHkyPSI0NzIiLz4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "Two lanes, Monday to Thursday: create, reinforce, supersede above; create, reinforce, create below with two live owners.",
+    "caption": "The billing week as a writer should label it, and as our Friday writer did, with one wrong verb on Thursday.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The FEB-30 authors name the four operations a writer chooses between: «create, update, reinforce, supersede». On our billing week, Monday's email is a create, a brand-new entry. A second email from payments on Tuesday is a reinforce: same fact, more support. Thursday's doc should be a supersede. The old entry is retired as history, and the new owner becomes current."
+  ],
+  [
+   "p",
+   "Update is the slippery sibling. It edits a detail inside a fact that still holds, like adding the on-call rota to an owner. Supersede and update look alike from outside, since both change what the store says. The difference is whether the old claim became false, and that's a reading task. Our Friday writer picked neither. It chose create, and left two live owners."
+  ],
+  [
+   "code",
+   {
+    "label": "A toy write path: the four operations as code, and what a wrong label leaves behind (illustrative)",
+    "language": "python",
+    "source": "from dataclasses import dataclass, field\nfrom enum import Enum\n\nclass Op(Enum):\n    CREATE = \"create\"        # a fact the store has never seen\n    UPDATE = \"update\"        # same fact still true, a detail added or fixed\n    REINFORCE = \"reinforce\"  # same fact, more support, nothing changes\n    SUPERSEDE = \"supersede\"  # the old fact stopped being true\n\n@dataclass\nclass Entry:\n    key: str                                  # e.g. \"owner(billing-service)\"\n    value: str\n    support: list[str] = field(default_factory=list)  # chunk ids behind it\n    superseded_by: str | None = None\n\ndef live(store, key):\n    return [e for e in store.get(key, []) if e.superseded_by is None]\n\ndef write(store, chunk_id, key, value, op: Op):\n    history = store.setdefault(key, [])\n    current = live(store, key)\n    if op is Op.CREATE or not current:\n        # CREATE on a key that already has a live entry = two live owners.\n        history.append(Entry(key, value, [chunk_id]))\n    elif op is Op.REINFORCE:\n        current[-1].support.append(chunk_id)\n    elif op is Op.UPDATE:\n        current[-1].value = value\n        current[-1].support.append(chunk_id)\n    elif op is Op.SUPERSEDE:\n        for e in current:\n            e.superseded_by = chunk_id         # retired, kept as history\n        history.append(Entry(key, value, [chunk_id]))\n\n# The hard part is not this function. It is whatever chose `op`.\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Compute-active and compute-inactive state",
+    "num": "03",
+    "id": "compute-active-and-compute-inactive-state"
+   }
+  ],
+  [
+   "p",
+   "Zoom out, and memory is more than a vector store. A new survey on memory-centric compression draws a sharper line. It separates «compute-active memory, which directly participates in model computation» from memory that lies «outside the computation path» and can be «stored, retrieved, updated, or forgotten». The KV cache, the keys and values a model keeps for tokens it has already read, is compute-active. Your billing store isn't."
+  ],
+  [
+   "p",
+   "The middle ground is the clever part. The survey treats «offloaded KV caches, persistent prefix caches, and precomputed KV states» as states between the two. A prefix cache is computed once and reused, so you pay for storage and skip recompute. Our ownership doc could live as plain text, or as a precomputed KV block. Same facts. Different bill."
+  ],
+  [
+   "p",
+   "Then it names every transition: writing, offloading, recall, retrieval-and-injection, materialization, eviction, consolidation and forgetting. All of them land in «a single cost account». We agree with this framing completely. It turns a vague design argument into a ledger you can audit. Its closing line belongs above every memory design: the challenge is «deciding which information should participate in costly inference, when, and in what form»."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Six lifecycle transitions from the survey's single cost account, with where each moves information and what it costs.",
+    "columns": [
+     "Transition",
+     "Where information moves",
+     "What it costs you"
+    ],
+    "rows": [
+     [
+      "Writing",
+      "Incoming text becomes a stored entry",
+      "A model call per chunk"
+     ],
+     [
+      "Offloading",
+      "KV cache leaves accelerator memory for cheaper storage",
+      "Transfer time later, freed memory now"
+     ],
+     [
+      "Recall",
+      "Offloaded state comes back for computation",
+      "Transfer time on the critical path"
+     ],
+     [
+      "Retrieval-and-injection",
+      "Stored entries enter the prompt",
+      "Prompt tokens on every read"
+     ],
+     [
+      "Eviction",
+      "State drops out of the active cache",
+      "Recompute if it is needed again"
+     ],
+     [
+      "Forgetting",
+      "An entry leaves the store for good",
+      "A silent miss if it still mattered"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A trained writer with rewards per chunk",
+    "num": "04",
+    "id": "a-trained-writer-with-rewards-per-chunk"
+   }
+  ],
+  [
+   "p",
+   "So who runs the write path? Usually a big general model. Existing frameworks, the Hy-Memory paper says, «typically place a general-purpose large language model behind framework-specific prompts». «This raises serving cost», and «a writer specialized for one protocol does not transfer directly to another». Every chunk you ingest becomes a call to your priciest model. Ouch."
+  ],
+  [
+   "p",
+   "We went through their training recipe in order. First, «Memory On-Policy Distillation teaches framework-specific write protocols on student-generated states». On-policy means the student writes, and the teacher corrects states the student actually produced. Next, «Memory RL then optimizes downstream answerability using dense per-chunk probes, attributed cross-chunk rewards, over-storage controls, and chunk-level GRPO». Training also carries memory banks across windows, so it matches deployment."
+  ],
+  [
+   "p",
+   "Map those parts onto our billing week. A per-chunk probe asks a question right after Thursday's write: who owns billing now? An attributed cross-chunk reward credits Thursday's write for Friday's answer, instead of smearing credit over the week. Over-storage controls punish the lazy fix of keeping everything. GRPO, group relative policy optimization, scores each sampled write against its group's average. No critic network needed."
+  ],
+  [
+   "p",
+   "The payoff is «a compact long-term-memory writer trained across Mem0, MemOS, and Hy-Memory». It ranks first on all four harnesses it was scored on, held-out EverMemOS included. Its macro average is 55.49% against 54.62% for Claude Opus 5. We're not convinced the margin means much alone. It's small, and measured «On fixed 20% benchmark subsamples». The cost story is the real headline."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Macro average across the evaluated memory harnesses, in percent, on fixed 20% benchmark subsamples.",
+    "unit": "macro average, %",
+    "bars": [
+     {
+      "label": "Hy-Memory-30B-A3B",
+      "value": 55.49
+     },
+     {
+      "label": "Claude Opus 5",
+      "value": 54.62
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Consolidation turns fresh weights into new layers",
+    "num": "05",
+    "id": "consolidation-turns-fresh-weights-into-new-layers"
+   }
+  ],
+  [
+   "p",
+   "Not every memory is a store you can query. Co2In, a new incremental-learning framework, keeps memory in the weights themselves. Incremental learning means taking on new classes over time while «retaining previously learned information (stability)». Plasticity, picking up new things quickly, pulls the other way. Train hard on new data and old skills fade. That's catastrophic forgetting, the weight-space cousin of a careless overwrite."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPkNvMkluLXN0eWxlIGNvbnNvbGlkYXRpb246IHdvcmtpbmcgbWVtb3J5IGxlYXJucywgY29uc29saWRhdGlvbiBjb21wYWN0cywgYSBuZXcgbGF5ZXIgam9pbnMgbG9uZy10ZXJtIG1lbW9yeTwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InZnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ2dsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MDAiIGZpbGw9InVybCgjYmcpIi8+CgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiI+CiAgICA8IS0tIG5ldyBkYXRhIC0tPgogICAgPGcgZmlsbD0iIzdhYTJmZiI+CiAgICAgIDxjaXJjbGUgY3g9IjcwIiBjeT0iMjUwIiByPSI5Ii8+PGNpcmNsZSBjeD0iMTAwIiBjeT0iMjkwIiByPSI5IiBvcGFjaXR5PSIwLjciLz4KICAgICAgPGNpcmNsZSBjeD0iNjQiIGN5PSIzMjAiIHI9IjkiIG9wYWNpdHk9IjAuNSIvPjxjaXJjbGUgY3g9IjExMCIgY3k9IjM1MCIgcj0iOSIvPgogICAgICA8Y2lyY2xlIGN4PSI4MCIgY3k9IjM4NCIgcj0iOSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8L2c+CiAgICA8dGV4dCB4PSI5MCIgeT0iNDYwIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5uZXcgZGF0YTwvdGV4dD4KICAgIDxsaW5lIHgxPSIxMzQiIHkxPSIzMTgiIHgyPSIxODYiIHkyPSIzMTgiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KCiAgICA8IS0tIHdvcmtpbmcgbWVtb3J5IC0tPgogICAgPHJlY3QgeD0iMTk2IiB5PSIyMDgiIHdpZHRoPSIyMzAiIGhlaWdodD0iMjIwIiByeD0iMjAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxnIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjgiPgogICAgICA8bGluZSB4MT0iMjMwIiB5MT0iMjYwIiB4Mj0iMzAwIiB5Mj0iMzAwIi8+PGxpbmUgeDE9IjIzMCIgeTE9IjI2MCIgeDI9IjMwMCIgeTI9IjM1MCIvPgogICAgICA8bGluZSB4MT0iMjMwIiB5MT0iMzMwIiB4Mj0iMzAwIiB5Mj0iMzAwIi8+PGxpbmUgeDE9IjIzMCIgeTE9IjMzMCIgeDI9IjMwMCIgeTI9IjM1MCIvPgogICAgICA8bGluZSB4MT0iMjMwIiB5MT0iMzkwIiB4Mj0iMzAwIiB5Mj0iMzUwIi8+PGxpbmUgeDE9IjMwMCIgeTE9IjMwMCIgeDI9IjM5MCIgeTI9IjMyMCIvPgogICAgICA8bGluZSB4MT0iMzAwIiB5MT0iMzUwIiB4Mj0iMzkwIiB5Mj0iMzIwIi8+PGxpbmUgeDE9IjIzMCIgeTE9IjM5MCIgeDI9IjMwMCIgeTI9IjMwMCIvPgogICAgPC9nPgogICAgPGcgZmlsbD0iIzdhYTJmZiI+CiAgICAgIDxjaXJjbGUgY3g9IjIzMCIgY3k9IjI2MCIgcj0iMTAiLz48Y2lyY2xlIGN4PSIyMzAiIGN5PSIzMzAiIHI9IjEwIi8+PGNpcmNsZSBjeD0iMjMwIiBjeT0iMzkwIiByPSIxMCIvPgogICAgICA8Y2lyY2xlIGN4PSIzMDAiIGN5PSIzMDAiIHI9IjEwIi8+PGNpcmNsZSBjeD0iMzAwIiBjeT0iMzUwIiByPSIxMCIvPjxjaXJjbGUgY3g9IjM5MCIgY3k9IjMyMCIgcj0iMTAiLz4KICAgIDwvZz4KICAgIDx0ZXh0IHg9IjMxMSIgeT0iMTgwIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj53b3JraW5nIG1lbW9yeTwvdGV4dD4KICAgIDx0ZXh0IHg9IjMxMSIgeT0iNDcyIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5sZWFybnMgbmV3IGRhdGEgZmFzdDwvdGV4dD4KICAgIDxsaW5lIHgxPSI0MzIiIHkxPSIzMTgiIHgyPSI0OTAiIHkyPSIzMTgiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KCiAgICA8IS0tIGNvbnNvbGlkYXRpb24gZnVubmVsIC0tPgogICAgPGNpcmNsZSBjeD0iNTkwIiBjeT0iMzE4IiByPSIxNTAiIGZpbGw9InVybCgjdmdsb3cpIi8+CiAgICA8cGF0aCBkPSJNNTAwLDIyOCBMNjgwLDIyOCBMNjIwLDMxOCBMNjIwLDQwMCBMNTYwLDQwMCBMNTYwLDMxOCBaIiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMiIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgIDxnIGZpbGw9IiNhNzhiZmEiPgogICAgICA8Y2lyY2xlIGN4PSI1NDAiIGN5PSIyNTAiIHI9IjciLz48Y2lyY2xlIGN4PSI1OTAiIGN5PSIyNDYiIHI9IjciLz48Y2lyY2xlIGN4PSI2NDAiIGN5PSIyNTIiIHI9IjciLz4KICAgICAgPGNpcmNsZSBjeD0iNTcwIiBjeT0iMjgwIiByPSI3Ii8+PGNpcmNsZSBjeD0iNjEyIiBjeT0iMjg0IiByPSI3Ii8+PGNpcmNsZSBjeD0iNTkwIiBjeT0iMzMwIiByPSI3Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjU5MCIgY3k9IjM3MCIgcj0iNyIvPgogICAgPC9nPgogICAgPHRleHQgeD0iNTkwIiB5PSIxODAiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmNvbnNvbGlkYXRpb248L3RleHQ+CiAgICA8dGV4dCB4PSI1OTAiIHk9IjQ0NiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZmluZCBwYXR0ZXJucyw8L3RleHQ+CiAgICA8dGV4dCB4PSI1OTAiIHk9IjQ3NCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmUtZXhwcmVzcyBjb21wYWN0bHk8L3RleHQ+CiAgICA8bGluZSB4MT0iNjI2IiB5MT0iMzcyIiB4Mj0iNzY0IiB5Mj0iMjUwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CgogICAgPCEtLSBsb25nLXRlcm0gbWVtb3J5IHN0YWNrIC0tPgogICAgPGNpcmNsZSBjeD0iOTMwIiBjeT0iMjM2IiByPSIxMjAiIGZpbGw9InVybCgjZ2dsb3cpIi8+CiAgICA8cmVjdCB4PSI3OTAiIHk9IjIxMCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI1MiIgcng9IjE0IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMjIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI5NDAiIHk9IjI0NCIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+bmV3IGxheWVyPC90ZXh0PgogICAgPGcgZmlsbD0iIzJjMzU0NCIgZmlsbC1vcGFjaXR5PSIwLjciIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIyIj4KICAgICAgPHJlY3QgeD0iNzkwIiB5PSIyNzYiIHdpZHRoPSIzMDAiIGhlaWdodD0iNDQiIHJ4PSIxMiIvPgogICAgICA8cmVjdCB4PSI3OTAiIHk9IjMzMCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI0NCIgcng9IjEyIi8+CiAgICAgIDxyZWN0IHg9Ijc5MCIgeT0iMzg0IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ0IiByeD0iMTIiLz4KICAgICAgPHJlY3QgeD0iNzkwIiB5PSI0MzgiIHdpZHRoPSIzMDAiIGhlaWdodD0iNDQiIHJ4PSIxMiIvPgogICAgPC9nPgogICAgPHRleHQgeD0iOTQwIiB5PSIxODAiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmxvbmctdGVybSBtZW1vcnk8L3RleHQ+CiAgICA8dGV4dCB4PSI5NDAiIHk9IjUzMCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+b2xkZXIgbGF5ZXJzIGxlZnQgaW4gcGxhY2U8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "New data enters a working-memory network, passes a consolidation funnel and lands as a new layer on older layers.",
+    "caption": "Co2In's bi-level design: learn fast in working memory, consolidate, and add a layer to long-term memory without touching the old ones.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Its answer is «a bi-level memory architecture: a working memory for adaptive knowledge acquisition and a long-term memory dedicated to the persistent retention of information». The working memory learns new data first. Consolidation then hunts for patterns in those freshly learned parameters and re-expresses them compactly. The result becomes «separate network layers and integrated into the long-term memory». Old layers stay put."
+  ],
+  [
+   "p",
+   "Now the honest caveat. Co2In was evaluated on CIFAR-10, CIFAR-100 and Tiny-ImageNet, which are image classification tasks. No agent, no inbox, no billing service. So read it as a pattern, and not yet a part. In our view the pattern travels well: write fast into scratch space, consolidate on a schedule, never overwrite long-term state in place. That's supersede, done in weights."
+  ],
+  [
+   "h2",
+   {
+    "text": "Scoring the store after every ingestion",
+    "num": "06",
+    "id": "scoring-the-store-after-every-ingestion"
+   }
+  ],
+  [
+   "p",
+   "Back to Friday. How would you have caught that bug? FEB-30 flips the usual setup with «paradigm inversion: documents are generated from known fact trajectories». You write the truth first, then generate the emails and docs from it. That gives you an answer key for free, «yielding deterministic ground truth without human annotation». Clever, and cheap."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPHRpdGxlPlN0b3JlIHN0YXRlIGFnYWluc3QgYW5zd2VyIGNvcnJlY3RuZXNzOiB3aGVyZSBhbnN3ZXItb25seSBzY29yaW5nIHBhc3NlcyBicm9rZW4gbWVtb3J5IGFuZCBibGFtZXMgZ29vZCBtZW1vcnk8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJyZWRnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4zMiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNzAwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPCEtLSB0b3AgYnJhY2tldDogd2hhdCBRQSBzY29yaW5nIHNlZXMgLS0+CiAgICA8dGV4dCB4PSI3MjUiIHk9IjUwIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj5hbnN3ZXItb25seSBzY29yaW5nIHNlZXMgdGhpcyBheGlzPC90ZXh0PgogICAgPHBhdGggZD0iTTMzMCw3NCBWNjQgSDExMjAgVjc0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNTMwIiB5PSIxMTYiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmFuc3dlciByaWdodDwvdGV4dD4KICAgIDx0ZXh0IHg9IjkyMCIgeT0iMTE2IiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj5hbnN3ZXIgd3Jvbmc8L3RleHQ+CgogICAgPCEtLSBsZWZ0OiB3aGF0IHN0b3JlIGluc3BlY3Rpb24gc2VlcyAtLT4KICAgIDxwYXRoIGQ9Ik04NiwxNTAgSDc2IFY2NjAgSDg2IiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNTQiIHk9IjQwNSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2E3OGJmYSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCIgdHJhbnNmb3JtPSJyb3RhdGUoLTkwIDU0IDQwNSkiPnN0b3JlIGluc3BlY3Rpb24gc2VlcyB0aGlzIGF4aXM8L3RleHQ+CiAgICA8dGV4dCB4PSIyMTUiIHk9IjI4NCIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+c3RvcmU8L3RleHQ+CiAgICA8dGV4dCB4PSIyMTUiIHk9IjMxOCIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+Y29ycmVjdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjIxNSIgeT0iNTI0IiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj5zdG9yZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjIxNSIgeT0iNTU4IiBmb250LXNpemU9IjI4IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXdlaWdodD0iNzAwIj5icm9rZW48L3RleHQ+CgogICAgPCEtLSBjZWxscyAtLT4KICAgIDxyZWN0IHg9IjM0MCIgeT0iMTUwIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjI0MCIgcng9IjE4IiBmaWxsPSIjM2VjZjhlIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI1MzAiIHk9IjI2MiIgZm9udC1zaXplPSIzMCIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+dHJ1ZSBwYXNzPC90ZXh0PgogICAgPHRleHQgeD0iNTMwIiB5PSIzMDAiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmJvdGggc2NvcmVzIGFncmVlPC90ZXh0PgoKICAgIDxyZWN0IHg9IjczMCIgeT0iMTUwIiB3aWR0aD0iMzgwIiBoZWlnaHQ9IjI0MCIgcng9IjE4IiBmaWxsPSIjZTNiMzQxIiBmaWxsLW9wYWNpdHk9IjAuMTIiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI5MjAiIHk9IjI1MCIgZm9udC1zaXplPSIzMCIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC13ZWlnaHQ9IjcwMCI+ZmFsc2UgbmVnYXRpdmU8L3RleHQ+CiAgICA8dGV4dCB4PSI5MjAiIHk9IjI5MCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cmV0cmlldmFsIGZhaWxlZCw8L3RleHQ+CiAgICA8dGV4dCB4PSI5MjAiIHk9IjMxOCIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bWVtb3J5IGdldHMgdGhlIGJsYW1lPC90ZXh0PgoKICAgIDxjaXJjbGUgY3g9IjUzMCIgY3k9IjUzMCIgcj0iMjMwIiBmaWxsPSJ1cmwoI3JlZGdsb3cpIi8+CiAgICA8cmVjdCB4PSIzNDAiIHk9IjQxMCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyNDAiIHJ4PSIxOCIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjE2IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPHRleHQgeD0iNTMwIiB5PSI1MDgiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNmZjdiNzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPmZhbHNlIHBvc2l0aXZlPC90ZXh0PgogICAgPHRleHQgeD0iNTMwIiB5PSI1NDgiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmEgcmlnaHQgYW5zd2VyIG1hc2tzPC90ZXh0PgogICAgPHRleHQgeD0iNTMwIiB5PSI1NzYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnR3byBsaXZlIG93bmVyczwvdGV4dD4KCiAgICA8cmVjdCB4PSI3MzAiIHk9IjQxMCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIyNDAiIHJ4PSIxOCIgZmlsbD0iIzJjMzU0NCIgZmlsbC1vcGFjaXR5PSIwLjQ1IiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iOTIwIiB5PSI1MjIiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSI3MDAiPnRydWUgZmFpbDwvdGV4dD4KICAgIDx0ZXh0IHg9IjkyMCIgeT0iNTYwIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5ib3RoIHNjb3JlcyBhZ3JlZTwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+    "alt": "A two-by-two grid of store correct or broken against answer right or wrong, with the false positive cell glowing red.",
+    "caption": "Answer-only scoring reads one axis and store inspection reads the other, which is why FEB-30 finds the two diverging.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The benchmark holds «30 fact-evolution trajectories spanning 6 diagnostic categories and 3 difficulty levels». Each one spells out how a fact should evolve across «multi-author artifacts (documents, emails, conversations)». After every ingestion step you inspect the store directly. That's intrinsic evaluation. Grading answers to questions is extrinsic. Our billing week is a tiny trajectory of exactly this shape."
+  ],
+  [
+   "p",
+   "Then the numbers land. On one memory system, the two scores «diverge by an average of 16 percentage points», with «44% of trajectories exceeding meaningful divergence thresholds». Worse, it labelled memory operations correctly «only 20% of the time», which is «a failure entirely invisible to extrinsic evaluation». Read that twice. Answer scores never saw it."
+  ],
+  [
+   "p",
+   "The divergence cuts both ways. Answer-only scoring also produces «false negatives where incorrect responses blame correct memory for retrieval failures». So a bad week of scores might send you rewriting a writer that was fine. We agree, and we'd go further. Store inspection belongs in your unit tests, next to the parser tests, and not in a research project."
+  ],
+  [
+   "code",
+   {
+    "label": "An intrinsic check: replay a known trajectory and diff the store after each write (illustrative)",
+    "language": "python",
+    "source": "# Truth first: what the store should hold after each chunk.\ntrajectory = [\n    (\"mon-email\",  \"owner(billing-service)\", \"payments\", \"create\"),\n    (\"tue-email\",  \"owner(billing-service)\", \"payments\", \"reinforce\"),\n    (\"thu-design\", \"owner(billing-service)\", \"platform\", \"supersede\"),\n]\n\ndef intrinsic_report(memory, trajectory):\n    misses = []\n    for chunk_id, key, expected_value, expected_op in trajectory:\n        op = memory.ingest(chunk_id)               # your system: returns the op it chose\n        values = [e.value for e in memory.live(key)]\n        if op != expected_op:\n            misses.append((chunk_id, \"op\", expected_op, op))\n        if values != [expected_value]:\n            misses.append((chunk_id, \"state\", [expected_value], values))\n    return misses\n\n# The Friday bug shows up at \"thu-design\" as\n#   (\"thu-design\", \"op\", \"supersede\", \"create\")\n#   (\"thu-design\", \"state\", [\"platform\"], [\"payments\", \"platform\"])\n# before anyone asks a question.\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Open questions live in the operation labels",
+    "num": "07",
+    "id": "open-questions-live-in-the-operation-labels"
+   }
+  ],
+  [
+   "p",
+   "Here's the tension nobody has resolved. Hy-Memory's RL stage «optimizes downstream answerability using dense per-chunk probes», which is an extrinsic signal. FEB-30 argues extrinsic signals miss operation errors. So does a writer trained on answers learn to supersede, or only learn to pass probes? Nobody has published that measurement. Per-chunk probes help, since they check state early. They're still questions, though."
+  ],
+  [
+   "p",
+   "Failure shape is the second unknown. The FEB-30 authors report that failure modes «differ systematically by category and difficulty». So one accuracy figure hides a profile. We suspect supersede is the hardest operation, because it asks the writer to judge that an old claim stopped being true. That's a guess. It's also a cheap one to check."
+  ],
+  [
+   "p",
+   "You can start measuring on your own system this week. Log the operation your writer picks for every chunk. Count keys holding more than one live value, which is the Friday bug as a single query. Plot store size against answer accuracy to spot over-storage. The survey asks for «dynamic, governable, lifecycle-aware memory management». Those three logs are where governable begins."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is agent memory in LLMs?"
+  ],
+  [
+   "p",
+   "Agent memory is state an agent keeps beyond one context window, written as it works and read back later. Most systems store text entries outside the model and retrieve them into the prompt. Some research keeps memory in weights instead, like Co2In's working and long-term layers. Either way, a write path decides what is kept, and that decision is where quality is won or lost."
+  ],
+  [
+   "h3",
+   "How does memory work in AI agents?"
+  ],
+  [
+   "p",
+   "A write path turns new text into stored entries, a store holds them, and a read path injects the relevant ones into the prompt. For each fact the writer picks an operation: create, update, reinforce or supersede. Retrieval then selects entries for the question. Errors at any stage can look identical in the final answer, which is why inspecting the store matters."
+  ],
+  [
+   "h3",
+   "Is a KV cache the same as long-term memory?"
+  ],
+  [
+   "p",
+   "No: a KV cache takes part in the model's computation, and a long-term store sits outside it until something is retrieved. One memory-compression survey places offloaded and prefix caches between the two, as «intermediate states on the activation path». Those trade storage for skipped recompute. A long-term text store costs prompt tokens on every read instead, plus a model call for every write."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Beyond Downstream QA: Rethinking How We Evaluate Agent Memory",
+   "url": "https://arxiv.org/abs/2610.22209v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Hy-Memory-30B-A3B: Attributed Reinforcement Learning for Long-Term Memory Writing",
+   "url": "https://arxiv.org/abs/2610.22196v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "From Long Context to Selective Memory:A Survey of Memory-Centric Compression for Large Language Models",
+   "url": "https://arxiv.org/abs/2610.21165v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Co2In: a Bi-level Memory Incremental Learning Framework with Knowledge Encoding, Consolidation, and Integration",
+   "url": "https://arxiv.org/abs/2610.21804v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "conflates memory correctness with retrieval and generation quality": 1,
+  "false positives where correct responses mask broken memory": 1,
+  "deciding what to retain, how precisely to represent it, and how new evidence should update persistent state": 2,
+  "create, update, reinforce, supersede": 1,
+  "compute-active memory, which directly participates in model computation": 3,
+  "outside the computation path": 3,
+  "stored, retrieved, updated, or forgotten": 3,
+  "offloaded KV caches, persistent prefix caches, and precomputed KV states": 3,
+  "a single cost account": 3,
+  "deciding which information should participate in costly inference, when, and in what form": 3,
+  "typically place a general-purpose large language model behind framework-specific prompts": 2,
+  "This raises serving cost": 2,
+  "a writer specialized for one protocol does not transfer directly to another": 2,
+  "Memory On-Policy Distillation teaches framework-specific write protocols on student-generated states": 2,
+  "Memory RL then optimizes downstream answerability using dense per-chunk probes, attributed cross-chunk rewards, over-storage controls, and chunk-level GRPO": 2,
+  "a compact long-term-memory writer trained across Mem0, MemOS, and Hy-Memory": 2,
+  "On fixed 20% benchmark subsamples": 2,
+  "retaining previously learned information (stability)": 4,
+  "a bi-level memory architecture: a working memory for adaptive knowledge acquisition and a long-term memory dedicated to the persistent retention of information": 4,
+  "separate network layers and integrated into the long-term memory": 4,
+  "paradigm inversion: documents are generated from known fact trajectories": 1,
+  "yielding deterministic ground truth without human annotation": 1,
+  "30 fact-evolution trajectories spanning 6 diagnostic categories and 3 difficulty levels": 1,
+  "multi-author artifacts (documents, emails, conversations)": 1,
+  "diverge by an average of 16 percentage points": 1,
+  "44% of trajectories exceeding meaningful divergence thresholds": 1,
+  "only 20% of the time": 1,
+  "a failure entirely invisible to extrinsic evaluation": 1,
+  "false negatives where incorrect responses blame correct memory for retrieval failures": 1,
+  "optimizes downstream answerability using dense per-chunk probes": 2,
+  "differ systematically by category and difficulty": 1,
+  "dynamic, governable, lifecycle-aware memory management": 3,
+  "intermediate states on the activation path": 3
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-long-context",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:37:03+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22209v1",
+   "arxiv:2610.21804v1",
+   "arxiv:2610.22196v1",
+   "arxiv:2610.21165v1"
+  ],
+  "platforms": {
+   "arXiv": 4
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "under-the-hood:concept/memory",
+  "format": "under-the-hood",
+  "reviewed_by": null
+ }
+}

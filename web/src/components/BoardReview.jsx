@@ -6,7 +6,7 @@ import {
   unruleBoardEntry,
 } from '../api'
 import { Badge, Notice, Unreadable } from './ui'
-import { IconAlert, IconLayers } from './Icons'
+import { IconAlert, IconGrid } from './Icons'
 
 /**
  * Review of the board sections the classifier DISCOVERED.
@@ -179,7 +179,7 @@ export default function BoardReview() {
     <section className="card card-flush">
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
-          <IconLayers width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <IconGrid width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">Board sections — discovered, and already live</span>
         </div>
         {data && (
@@ -382,7 +382,7 @@ export default function BoardReview() {
                 {/* ⚠ RULE 7 ON THE LINE ITSELF. "5 quotes" says nothing about
                     how many are LEFT, which is what decides whether to open
                     this row. The queue is what remains, and it shortens. */}
-                <span className="axis-left">
+                <span className={`axis-left${g.unruled > 0 ? ' due' : ''}`}>
                   {g.unruled > 0 ? `${g.unruled} to rule` : 'all ruled'}
                 </span>
                 {g.ruling && !g.merge_cycle && (

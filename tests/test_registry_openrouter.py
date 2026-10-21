@@ -397,3 +397,91 @@ def test_every_price_fits_the_column_it_is_written_to(result):
             assert value is None or value < 10 ** 6, f"{model.canonical_id}.{name}"
         if model.batch_discount is not None:
             assert model.batch_discount < 10, "numeric(4,3)"
+
+
+class TestABatchSurchargeIsNotADiscount:
+    """A `:batch` sibling priced ABOVE its base is not a discount.
+
+    On 2026-10-06 the live feed had four such pairs. The worst -
+    deepseek-v4.1-flash, base $0.003 vs batch $0.112 per 1M, ratio 37.333 -
+    overflowed `batch_discount numeric(4,3)` and failed the whole poll from
+    2026-10-04. The others (6.429, 2.4, 1.333) fitted and would have been
+    stored as "discounts" that raise the price.
+    """
+
+    @staticmethod
+    def _pair(base_prompt: str, batch_prompt: str):
+        from collect.registry.openrouter import map_model
+
+        base = {"id": "acme/model-x", "name": "Acme: Model X",
+                "pricing": {"prompt": base_prompt, "completion": "0.000001"}}
+        batch = {"id": "acme/model-x:batch", "pricing": {"prompt": batch_prompt}}
+        return map_model(base, retrieved_at=RETRIEVED, batch_sibling=batch)
+
+    def test_the_overflowing_pair_stores_no_discount_and_keeps_the_ratio(self):
+        m = self._pair("0.000000003", "0.000000112")
+        assert m.batch_discount is None
+        assert m.batch_ratio_refused == pytest.approx(37.333)
+        assert m.supports_batch is True, "a pricier batch tier is still a batch tier"
+        assert "batch_discount" not in m.sources, "no source for a value we did not store"
+        assert m.as_row()["batch_discount"] is None
+
+    def test_a_real_discount_is_still_stored(self):
+        m = self._pair("0.000001", "0.0000005")
+        assert m.batch_discount == pytest.approx(0.5)
+        assert m.batch_ratio_refused is None
+
+    def test_the_poll_result_lists_what_it_refused(self):
+        from collect.registry.openrouter import PollResult
+
+        result = PollResult(RETRIEVED, 2, (self._pair("0.000000003", "0.000000112"),
+                                           self._pair("0.000001", "0.0000005")), 2)
+        assert result.batch_ratios_refused == (("acme/model-x", pytest.approx(37.333)),)
+
+
+# ── a value no column can hold ────────────────────────────────────────────
+
+
+def _with_prompt_price(feed, model_id, per_token):
+    """The fixture with one entry's prompt price replaced, nothing else."""
+    import copy
+
+    out = copy.deepcopy(feed)
+    entry(out, model_id)["pricing"]["prompt"] = per_token
+    return out
+
+
+def test_an_overflowing_price_drops_that_model_and_keeps_the_rest(feed):
+    """2026-10-04: one `numeric field overflow` rolled back the whole poll and
+    every price stayed where it was. $2/token is $2,000,000 per 1M - out of
+    `numeric(12,6)` - and must cost one model, not all of them."""
+    from collect.registry.openrouter import drop_unstorable
+
+    parsed = parse_models(_with_prompt_price(feed, "anthropic/claude-opus-5", "2"),
+                          retrieved_at=RETRIEVED)
+    kept, dropped = drop_unstorable(parsed)
+
+    assert dropped == ("anthropic/claude-opus-5: price_in",)
+    assert "anthropic/claude-opus-5" not in {m.canonical_id for m in kept.models}
+    assert len(kept.models) == len(parsed.models) - 1
+
+
+@pytest.mark.parametrize("value,fits", [
+    (999_999.999999, True),
+    (999_999.9999996, False),   # rounds to 1,000,000.000000 in numeric(12,6)
+    (1_000_000.0, False),
+    (0.0, True),
+    (None, True),               # absent is absent, not out of range
+])
+def test_the_bound_is_the_column_type_after_rounding(value, fits):
+    from collect.registry.openrouter import unstorable
+
+    assert (unstorable({"price_in": value}) == ()) is fits
+
+
+def test_a_feed_with_nothing_out_of_range_drops_nothing(result):
+    from collect.registry.openrouter import drop_unstorable
+
+    kept, dropped = drop_unstorable(result)
+    assert dropped == ()
+    assert kept.models == result.models

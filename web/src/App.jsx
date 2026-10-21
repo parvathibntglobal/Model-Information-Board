@@ -1,16 +1,86 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useCallback, useEffect, useState } from 'react'
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import Landing from './routes/Landing'
-import Board from './routes/Board'
-import Blogs from './routes/Blogs'
-import ModelDetail from './routes/ModelDetail'
-import Models from './routes/Models'
-import Compare from './routes/Compare'
-import Admin from './routes/Admin'
-import Login from './routes/Login'
 import { getSession, signOut } from './auth'
+import NotFound from './components/NotFound'
+
+/**
+ * ROUTE-LEVEL CODE SPLITTING (SEO item 10, 2026-10-09). The whole app was one
+ * 544.6 kB script (159.3 kB gzipped) that every visitor downloaded before the
+ * first paint - the admin console included, which a reader never opens. The
+ * front door stays in the first download: the shell and Landing. Every
+ * other page is its own chunk, fetched when it is first visited.
+ *
+ * A DEPLOY REPLACES THE CHUNKS. A tab opened before it still names the old
+ * files, so the import fails; this reloads ONCE to pick up the new build
+ * instead of rendering nothing. The flag stops a loop: if the reload does not
+ * fix it, the error is thrown and shows (rule 12), never swallowed.
+ */
+/** An address that moved: forwards to the new one, keeping its query, so a
+ *  shared search (`?model=...`) still opens as it was sent. */
+function MovedTo({ path }) {
+  const { search } = useLocation()
+  return <Navigate to={path + search} replace />
+}
+
+/** /catalog, /catalog/new, /catalog/model/<id> -> /ai-models, /ai-models/latest, /ai-models/<id>. */
+function CatalogMoved() {
+  const rest = (useParams()['*'] || '').replace(/^model\//, '').replace(/^new$/, 'latest')
+  return <MovedTo path={rest ? `/ai-models/${rest}` : '/ai-models'} />
+}
+
+/** /reports/<anything> -> /reviews/<anything> (2026-10-21). */
+function ReportsMoved() {
+  const rest = useParams()['*'] || ''
+  return <MovedTo path={rest ? `/reviews/${rest}` : '/reviews'} />
+}
+
+function page(load) {
+  return lazy(() => load().catch((err) => {
+    let reloaded = false
+    try { reloaded = sessionStorage.getItem('chunk-reload') === '1' } catch { /* storage blocked */ }
+    if (!reloaded) {
+      try { sessionStorage.setItem('chunk-reload', '1') } catch { /* storage blocked */ }
+      window.location.reload()
+      return new Promise(() => {})
+    }
+    throw err
+  }).then((mod) => {
+    try { sessionStorage.removeItem('chunk-reload') } catch { /* storage blocked */ }
+    return mod
+  }))
+}
+
+// LOGIN LEFT THE FIRST DOWNLOAD (2026-10-21): every public visitor fetched the
+// sign-in page and its two animations (AuraField, OrbitHub) and none of them
+// uses it. A team member waits one small request on /login instead.
+const Login = page(() => import('./routes/Login'))
+const Board = page(() => import('./routes/Board'))
+const Blogs = page(() => import('./routes/Blogs'))
+const Glossary = page(() => import('./routes/Glossary'))
+const Tools = page(() => import('./routes/Tools'))
+const Methodology = page(() => import('./routes/Methodology'))
+const ModelPicker = page(() => import('./routes/ModelPicker'))
+const Reports = page(() => import('./routes/Reports'))
+const Catalog = page(() => import('./routes/Catalog'))
+const Discussions = page(() => import('./routes/Discussions'))
+const ModelDetail = page(() => import('./routes/ModelDetail'))
+const Models = page(() => import('./routes/Models'))
+const Compare = page(() => import('./routes/Compare'))
+const TokenCounter = page(() => import('./routes/TokenCounter'))
+const ModelFinder = page(() => import('./routes/ModelFinder'))
+const Admin = page(() => import('./routes/Admin'))
+const BlogLogs = page(() => import('./routes/BlogLogs'))
+const Keywords = page(() => import('./routes/Keywords'))
+
+/** What a page shows while its chunk downloads: the skeleton the pages use for data. */
+const PAGE_LOADING = (
+  <div className="shell section-tight">
+    <div className="skel" style={{ height: 220 }} />
+  </div>
+)
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -19,8 +89,12 @@ function ScrollToTop() {
 }
 
 /**
- * Route guard. Everything sits behind the front door; unauthenticated visitors
- * are sent to /login and returned to where they were headed once they are in.
+ * Route guard - FOR THE SIGNED-IN SURFACES ONLY (2026-10-15, Parvathi): the
+ * Board, the old model pages (/models), Admin and SEO keywords. Every published page - home,
+ * Blogs, Tools and the three tools, the Models pages, Compare, Discussions,
+ * FAQ - opens without signing in, and reads the backend's public endpoints
+ * (judge/gate.py: PUBLIC_READ_PATHS). A visitor who opens a guarded page is
+ * sent to /login and returned there once signed in.
  *
  * This is a demo gate — see src/auth.js. A guard in the client protects the
  * *view*, never the data; the backend must reject unauthenticated requests on
@@ -42,11 +116,13 @@ export default function App() {
   }, [])
 
   const onLogin = loc.pathname === '/login'
-  // THE ONE ROUTE THAT IS NOT A DOCUMENT. /admin fills the viewport and scrolls
-  // inside its own panes, so that its side nav cannot move - see `.adm-page`.
-  // A footer under a viewport-locked layout would put the page back into the
-  // scroll it just left, and the nav would ride up with it again.
-  const onAdmin = loc.pathname === '/admin'
+  // The footer is the landing page's: its columns are a site map and a list of
+  // evidence platforms, which belong where a visitor first arrives. The board,
+  // model and compare pages end on their own content. /admin must never have
+  // one: it fills the viewport and scrolls inside its own panes (`.adm-page`),
+  // and a footer under that layout would put the page back into the scroll it
+  // left, taking the side nav up with it.
+  const onHome = loc.pathname === '/'
 
   return (
     <>
@@ -54,31 +130,66 @@ export default function App() {
       {!onLogin && <Nav session={session} onSignOut={handleSignOut} />}
 
       <main>
+        <Suspense fallback={PAGE_LOADING}>
         <Routes>
-          {/* signing in drops you on the landing page */}
+          {/* signing in returns you to the guarded page you asked for, or the
+              Models list - the first of the signed-in surfaces */}
           <Route
             path="/login"
-            element={session ? <Navigate to="/" replace /> : <Login onSignedIn={setSession} />}
+            element={session ? <Navigate to={loc.state?.from || '/models'} replace /> : <Login onSignedIn={setSession} />}
           />
 
-          <Route path="/"        element={<Require session={session}><Landing /></Require>} />
+          <Route path="/"        element={<Landing />} />
           <Route path="/board/*" element={<Require session={session}><Board /></Require>} />
-          <Route path="/blogs/*" element={<Require session={session}><Blogs /></Require>} />
+          <Route path="/blogs/*" element={<Blogs />} />
+          <Route path="/glossary/*" element={<Glossary />} />
+          <Route path="/tools"       element={<Tools />} />
+          <Route path="/methodology" element={<Methodology />} />
+          <Route path="/best-ai-model" element={<ModelPicker />} />
+          <Route path="/best-ai-model/:job" element={<ModelPicker />} />
+          <Route path="/alternatives/:model" element={<ModelPicker />} />
+          {/* the tool was briefly "AI model finder" here; an old link still opens it */}
+          <Route path="/ai-model-finder" element={<MovedTo path="/best-ai-model" />} />
+          <Route path="/reviews/*"   element={<Reports />} />
+          {/* THE ADDRESSES THAT SAY WHAT PEOPLE SEARCH (2026-10-21): these pages
+              were /reports, /model-picker and /model-finder; an old link still
+              opens and moves to the same page. */}
+          <Route path="/reports/*"   element={<ReportsMoved />} />
+          <Route path="/model-picker" element={<MovedTo path="/best-ai-model" />} />
+          <Route path="/model-finder" element={<MovedTo path="/ai-model-pricing" />} />
+          <Route path="/ai-models/*" element={<Catalog />} />
+          {/* The Models pages were /catalog until 2026-10-21; an old link moves to the same page. */}
+          <Route path="/catalog/*"   element={<CatalogMoved />} />
+          <Route path="/discussions" element={<Discussions />} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           {/* BEFORE `/models/*`, and outside it. The comparison is entered from
-              the models list, but its own URL is `/compare?ids=…`: a model id
-              contains a slash (`anthropic/claude-fable-5-1`), so a path segment
-              could not carry two of them, and the SEO plan's comparison
-              keywords all target /compare. */}
-          <Route path="/compare"    element={<Require session={session}><Compare /></Require>} />
+              the models list. A model id contains a slash
+              (`anthropic/claude-fable-5-1`), so the path names each model by
+              the part after the provider instead - see the route below. */}
+          <Route path="/compare"    element={<Compare />} />
+          {/* THE READABLE ADDRESS (2026-10-20): /compare/grok-4.6-vs-gpt-6-sol,
+              each model named by its own name, which is unique in the catalogue
+              (compare/path.js). `?ids=` still opens and moves here. */}
+          <Route path="/compare/:pair" element={<Compare />} />
+          {/* Entered from the models list, beside Compare; top-level paths for the
+              same reason as /compare - `/models/*` is a model id. */}
+          <Route path="/token-counter" element={<TokenCounter />} />
+          <Route path="/ai-model-pricing"  element={<ModelFinder />} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
+          <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />
+          <Route path="/keywords" element={<MovedTo path="/seo-keywords" />} />
+          <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* NOT A REDIRECT (SEO item 7): an unknown address says so, at that address. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </main>
 
-      {!onLogin && !onAdmin && <Footer />}
+      {onHome && <Footer />}
+      {/* HOVER PREVIEWS OFF (2026-10-19, anooj): components/HoverPreview.jsx
+          is kept; mounting it here again turns them back on. */}
     </>
   )
 }

@@ -59,7 +59,7 @@ from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from typing import Any
 
@@ -121,6 +121,53 @@ def _per_million(per_token: Any) -> float | None:
     return value * 1_000_000
 
 
+#: The magnitude each column's type cannot reach, from `contract/tables.sql`:
+#: `numeric(12,6)` holds |x| < 10^6 and `numeric(4,3)` holds |x| < 10.
+#: The catalogue table declares the same price types, so its writer uses these too.
+COLUMN_BOUNDS = {
+    "price_in": 10**6,
+    "price_out": 10**6,
+    "price_cached_read": 10**6,
+    "batch_discount": 10,
+}
+
+
+def unstorable(row: dict[str, Any]) -> tuple[str, ...]:
+    """The columns of `row` holding a value their column type cannot store.
+
+    ONE SUCH VALUE USED TO END THE WHOLE POLL. On 2026-10-04 a single
+    `numeric field overflow` rolled back every upsert of that run, so all 340
+    prices stayed where they were and the run's only output was the error. The
+    `-1` sentinel above is one source; this catches the ones nobody has met yet.
+
+    Returned rather than raised so the caller can write every other model and
+    still fail loudly, naming this one. Never rounded, clamped or NULLed: each of
+    those stores a price the feed did not publish (rules 6 and 12). Compared
+    after rounding to the column's six places, because that is what Postgres
+    checks against the bound.
+    """
+    return tuple(
+        column for column, bound in COLUMN_BOUNDS.items()
+        if row.get(column) is not None and round(abs(row[column]), 6) >= bound
+    )
+
+
+def drop_unstorable(result: PollResult) -> tuple[PollResult, tuple[str, ...]]:
+    """`(result without unstorable models, "id: columns" for each one dropped)`.
+
+    A dropped model keeps its existing row, price included, so its price is now
+    stale - which is why the stage reports ERROR when this drops anything.
+    """
+    kept, dropped = [], []
+    for model in result.models:
+        columns = unstorable(model.as_row())
+        if columns:
+            dropped.append(f"{model.canonical_id}: {', '.join(columns)}")
+        else:
+            kept.append(model)
+    return replace(result, models=tuple(kept)), tuple(sorted(dropped))
+
+
 #: OpenRouter's `expiration_date` for "never expires". On the wire it is a
 #: date; as a retirement date it is a placeholder for ABSENCE, and storing it
 #: made a definite claim the feed never made (rule 6). It reached
@@ -175,6 +222,10 @@ class PolledModel:
     supports_caching: bool | None
     supports_batch: bool | None
     sources: dict[str, dict[str, str]] = field(default_factory=dict)
+    #: The `:batch`/base prompt-price ratio when it was NOT a discount (> 1).
+    #: Not a column: it says why `batch_discount` is None for a model that does
+    #: have a `:batch` sibling. Read by `PollResult.batch_ratios_refused`.
+    batch_ratio_refused: float | None = None
 
     #: Never set from the feed. `family`, `lifecycle` and `regions` are not in it,
     #: and `slot` is neither in the feed nor in the schema.
@@ -251,10 +302,24 @@ def map_model(entry: dict[str, Any], *, retrieved_at: datetime,
     cached = _per_million(pricing.get("input_cache_read"))
 
     batch_discount = None
+    batch_ratio_refused = None
     if batch_sibling:
         batch_price = _per_million((batch_sibling.get("pricing") or {}).get("prompt"))
         if batch_price is not None and price_in:
-            batch_discount = round(batch_price / price_in, 3)
+            ratio = round(batch_price / price_in, 3)
+            # A DISCOUNT IS A RATIO AT MOST 1. The feed has `:batch` siblings
+            # that cost MORE than the base: on 2026-10-06 four of 73 pairs -
+            # deepseek-v4.1-flash 37.333 (base $0.003 vs batch $0.112 per 1M),
+            # glm-5.3 6.429, kimi-k3 2.4, gpt-oss-20b 1.333. Stored, the first
+            # overflowed `batch_discount numeric(4,3)` and failed the WHOLE
+            # poll from 2026-10-04, so no model arrived after 10-01; the other
+            # three would have been recorded as "discounts" that raise the price
+            # (rule 12: a plausible wrong value). The surcharge is not a
+            # discount, so the column stays NULL and the ratio is kept beside it.
+            if 0 < ratio <= 1:
+                batch_discount = ratio
+            else:
+                batch_ratio_refused = ratio
 
     values: dict[str, Any] = {
         "display_name": entry.get("name") or None,
@@ -299,7 +364,8 @@ def map_model(entry: dict[str, Any], *, retrieved_at: datetime,
             sources[name] = _source(name, retrieved_at)
 
     return PolledModel(
-        canonical_id=model_id, provider=provider, sources=sources, **values
+        canonical_id=model_id, provider=provider, sources=sources,
+        batch_ratio_refused=batch_ratio_refused, **values
     )
 
 
@@ -315,6 +381,12 @@ class PollResult:
     ref: str | None = None
     #: `~vendor/family-latest` pointer entries skipped (they carry `alias_target`).
     alias_entries: int = 0
+
+    @property
+    def batch_ratios_refused(self) -> tuple[tuple[str, float], ...]:
+        """(canonical_id, ratio) for every `:batch` sibling priced above its base."""
+        return tuple((m.canonical_id, m.batch_ratio_refused) for m in self.models
+                     if m.batch_ratio_refused is not None)
 
     @property
     def distinct_models(self) -> int:

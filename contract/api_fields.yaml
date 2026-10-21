@@ -76,6 +76,11 @@ fields:
     routes:
     - /admin/sources
     state: consumed
+  blogs:
+    reviewed: false
+    routes:
+    - /admin/usage
+    state: consumed
   build:
     reviewed: false
     routes:
@@ -142,11 +147,11 @@ fields:
     - /admin/settings
     - /board
     state: consumed
-  caveats:
-    reviewed: false
+  category_method:
+    reviewed: true
     routes:
-    - /admin/pipeline
-    state: no_consumer
+    - /compare
+    state: consumed
   characters:
     reviewed: false
     routes:
@@ -223,15 +228,15 @@ fields:
     - /ask/recommend
     - /models/{model_version_id:path}
     state: consumed
-  documents:
-    reviewed: false
-    routes:
-    - /filtered
-    state: consumed
   done:
     reviewed: false
     routes:
     - /fetch/log
+    state: consumed
+  emerging:
+    reviewed: false
+    routes:
+    - /blog-topics
     state: consumed
   entries:
     reviewed: false
@@ -253,21 +258,30 @@ fields:
     routes:
     - /admin/runs
     state: consumed
-  failure_mode:
-    reviewed: true
+  exists:
+    reviewed: false
     routes:
-    - /capabilities/{capability_key}
-    state: no_consumer
-    why: 'its only reader was `capabilityPage` in web/src/api/index.js, a local stub that
-      resolved with an empty list and never called the endpoint. Removed 2026-09-24 with the
-      rest of the UI''s reads of the closed capability vocabulary, measured that day at 0 of
-      196 models carrying a non-empty list. The endpoint still emits the field; no page asks
-      for it'
+    - /blog-posts/generate/log
+    state: consumed
+  files_reason:
+    reviewed: false
+    routes:
+    - /blog-posts
+    state: consumed
   gates_unreadable:
     reviewed: false
     routes:
     - /admin/stages
     state: consumed
+  generated_at:
+    reviewed: true
+    routes:
+    - /seo/indexable
+    state: consumed
+    why: '`/seo/indexable?export=1` (2026-10-21, #552): when the indexable list was worked out.
+      Its real reader is the open build, outside the scan - web/Dockerfile fetches the export
+      and web/seo-build.js `readPaths` requires this field. The `consumed` the audit finds is
+      other payloads'' fields of the same name in web/src, so it is not proof of this one.'
   grouped:
     reviewed: false
     routes:
@@ -284,6 +298,11 @@ fields:
     routes:
     - /ask/recommend
     state: no_consumer
+  harvest:
+    reviewed: false
+    routes:
+    - /blog-topics
+    state: consumed
   heartbeat_seconds:
     reviewed: false
     routes:
@@ -294,15 +313,20 @@ fields:
     routes:
     - /admin/usage
     state: no_consumer
+  id:
+    reviewed: false
+    routes:
+    - /discussions/delete
+    state: consumed
+  items:
+    reviewed: false
+    routes:
+    - /quiz-bank
+    state: consumed
   jobs:
     reviewed: false
     routes:
     - /board
-    state: consumed
-  key:
-    reviewed: false
-    routes:
-    - /capabilities/{capability_key}
     state: consumed
   kinds:
     reviewed: false
@@ -314,10 +338,24 @@ fields:
     routes:
     - /models/{model_version_id:path}
     state: consumed
+  lastmod:
+    reviewed: true
+    routes:
+    - /seo/indexable
+    state: no_consumer
+    why: '`/seo/indexable?export=1` (2026-10-21, #552): each path''s real last-modified date,
+      only where one exists. Read by the build, which the audit does not scan: web/Dockerfile
+      fetches the export and web/vite.config.js `seoFiles` writes it as the sitemap''s
+      <lastmod>. No page in web/src reads it, and none should.'
   ledger:
     reviewed: false
     routes:
     - /admin/usage
+    state: consumed
+  lines:
+    reviewed: false
+    routes:
+    - /blog-posts/generate/log
     state: consumed
   machine:
     reviewed: false
@@ -360,9 +398,19 @@ fields:
   models:
     reviewed: false
     routes:
-    - /capabilities/{capability_key}
+    - /blog-topics
     - /compare
     - /models
+    state: consumed
+  models_in_use:
+    reviewed: false
+    routes:
+    - /admin/settings
+    state: consumed
+  monthly:
+    reviewed: false
+    routes:
+    - /admin/usage
     state: consumed
   no_evidence:
     reviewed: false
@@ -383,10 +431,19 @@ fields:
     - /admin/stages
     - /fetch/stop
     state: consumed
+  overview:
+    reviewed: false
+    routes:
+    - /blog-topics
+    state: consumed
+  packs:
+    reviewed: false
+    routes:
+    - /blog-posts/packs
+    state: consumed
   page:
     reviewed: false
     routes:
-    - /capabilities/{capability_key}
     - /models
     state: consumed
   parent_coverage:
@@ -395,10 +452,14 @@ fields:
     - /admin/board-entries
     - /board
     state: consumed
+  paths:
+    reviewed: true
+    routes:
+    - /seo/indexable
+    state: consumed
   pipeline_version:
     reviewed: true
     routes:
-    - /admin/pipeline
     - /coverage
     state: no_consumer
     why: 'its only reader was `PipelinePanel.jsx`, the per-stage counts panel on the admin
@@ -406,28 +467,31 @@ fields:
       rows count different units against different denominators - E2 counts 19,834 documents,
       E3 counts 6,629 threads - and `items_in`/`items_out`, which would have made it a funnel,
       are null on every stage. Both endpoints still emit the field and no page asks for it'
+  plan:
+    reviewed: false
+    routes:
+    - /blog-topics
+    state: consumed
   platforms:
     reviewed: false
     routes:
     - /faq
     state: consumed
+  posts:
+    reviewed: false
+    routes:
+    - /blog-posts
+    state: consumed
   priced_at:
     reviewed: false
     routes:
     - /models
-    state: no_consumer
+    state: consumed
   prompts:
     reviewed: false
     routes:
     - /admin/prompts
     state: consumed
-  proposed_key:
-    reviewed: false
-    routes:
-    - /admin/capability-candidates/delete
-    - /admin/capability-candidates/edit
-    - /admin/capability-candidates/rule
-    state: no_consumer
   qualified:
     reviewed: false
     routes:
@@ -498,7 +562,8 @@ fields:
     reviewed: false
     routes:
     - /ask/recommend
-    state: no_consumer
+    - /quiz-bank
+    state: consumed
   report_counts_are_a_floor:
     reviewed: false
     routes:
@@ -514,21 +579,10 @@ fields:
     routes:
     - /admin/board-entries/unrule
     state: no_consumer
-  rows_deleted:
-    reviewed: false
-    routes:
-    - /admin/capability-candidates/delete
-    state: no_consumer
-  rows_edited:
-    reviewed: false
-    routes:
-    - /admin/capability-candidates/edit
-    state: no_consumer
   rows_ruled:
     reviewed: false
     routes:
     - /admin/board-entries/rule
-    - /admin/capability-candidates/rule
     state: no_consumer
   rules:
     reviewed: false
@@ -544,12 +598,16 @@ fields:
     reviewed: false
     routes:
     - /admin/board-entries/rule
-    - /admin/capability-candidates/rule
     state: consumed
   ruling_target:
     reviewed: false
     routes:
     - /admin/board-entries/rule
+    state: consumed
+  run:
+    reviewed: false
+    routes:
+    - /blog-posts/packs
     state: consumed
   run_id:
     reviewed: false
@@ -566,8 +624,8 @@ fields:
   runs:
     reviewed: false
     routes:
-    - /admin/pipeline
     - /admin/runs
+    - /blog-posts/runs
     - /fetch/runs
     state: consumed
   runs_for_untracked_models:
@@ -575,11 +633,6 @@ fields:
     routes:
     - /admin/runs
     state: consumed
-  runs_measured:
-    reviewed: false
-    routes:
-    - /admin/pipeline
-    state: no_consumer
   runtime:
     reviewed: false
     routes:
@@ -605,6 +658,11 @@ fields:
     routes:
     - /admin/board-entries/rule
     - /admin/board-entries/unrule
+    state: consumed
+  skipped:
+    reviewed: false
+    routes:
+    - /blog-posts
     state: consumed
   slug:
     reviewed: false
@@ -637,10 +695,18 @@ fields:
     routes:
     - /admin/sources
     state: consumed
+  # Added 2026-10-05 with contract/publication.yaml (proposed). Produced by
+  # board_sections; intended reader web/src/board/views.js beside
+  # withheldNote(), not yet built - the page must say some sources are not
+  # shown before the board is public (rule 4, rule 9).
+  sources_withheld:
+    reviewed: false
+    routes:
+    - /board
+    state: no_consumer
   stages:
     reviewed: false
     routes:
-    - /admin/pipeline
     - /admin/stages
     state: consumed
   started:
@@ -651,6 +717,7 @@ fields:
   state:
     reviewed: false
     routes:
+    - /discussions/delete
     - /documents/{document_id:path}/source
     state: consumed
   status:
@@ -668,15 +735,12 @@ fields:
     routes:
     - /admin/board-entries
     - /admin/capability-candidates
-    - /admin/pipeline
     - /admin/usage
     - /board
-    - /capabilities/{capability_key}
     - /changelog
     - /compare
     - /coverage
     - /faq
-    - /filtered
     - /models
     - /models/{model_version_id:path}
     state: consumed
@@ -699,16 +763,6 @@ fields:
     reviewed: false
     routes:
     - /admin/usage
-    state: no_consumer
-  total_documents:
-    reviewed: false
-    routes:
-    - /filtered
-    state: no_consumer
-  total_filtered:
-    reviewed: false
-    routes:
-    - /filtered
     state: no_consumer
   total_labels:
     reviewed: false
@@ -745,11 +799,6 @@ fields:
     routes:
     - /admin/runs
     state: no_consumer
-  truncated:
-    reviewed: false
-    routes:
-    - /filtered
-    state: consumed
   unbound_phrases:
     reviewed: false
     routes:
@@ -765,11 +814,21 @@ fields:
     routes:
     - /admin/usage
     state: consumed
+  unreadable:
+    reviewed: false
+    routes:
+    - /blog-posts/generate/log
+    state: consumed
   unsourced:
     reviewed: false
     routes:
     - /compare
     state: no_consumer
+  unstored:
+    reviewed: false
+    routes:
+    - /blog-posts
+    state: consumed
   updated:
     reviewed: false
     routes:
@@ -801,10 +860,15 @@ fields:
     - /documents/{document_id:path}/source
     state: consumed
   window_days:
-    reviewed: false
+    reviewed: true
     routes:
+    - /blog-topics
     - /changelog
-    state: no_consumer
+    state: consumed
+    why: >-
+      Read under /blog-topics by web/src/components/BlogTopics.jsx (the Topics
+      fold's "counted over the last N days"), 2026-10-16. The /changelog copy is
+      still unread; the state is per name, so it is recorded here rather than lost.
   with_entries:
     reviewed: false
     routes:

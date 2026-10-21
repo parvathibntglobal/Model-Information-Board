@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { adminKeywords } from '../api'
 import { Badge, Notice } from './ui'
-import { IconAlert, IconCaret, IconLayers } from './Icons'
+import { IconAlert, IconCaret, IconFilter } from './Icons'
 
 /**
  * The search terms each platform is actually sent, per tracked model.
@@ -62,13 +62,13 @@ export default function KeywordsPanel() {
     <section className="card card-flush">
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
-          <IconLayers width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <IconFilter width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">Keywords — what each platform is actually sent</span>
         </div>
         {data && <span className="label">{data.count} model(s)</span>}
       </div>
 
-      <div style={{ padding: '0 var(--s4)' }}>
+      <div className="card-intro">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Read through the same call the harvest makes, so these are the terms that
           would go out on the next fetch.{' '}
@@ -84,14 +84,20 @@ export default function KeywordsPanel() {
         {arms.length > 0 && (
           <div className="stack stack-2">
             <span className="label">How much each arm gets</span>
-            {arms.map((a) => (
-              <div key={a.id} className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-                <span className="mono" style={{ ...chip, color: 'var(--text-3)' }}>{a.stage}</span>
-                <strong style={{ fontSize: 'var(--fs-xs)' }}>{a.label}</strong>
-                <Badge tone={a.budget === 0 ? 'mute' : 'pass'}>{a.budget_note}</Badge>
-                <span className="dim" style={{ fontSize: 11 }}>{a.how}</span>
-              </div>
-            ))}
+            {/* A GRID, so every column starts at the same x and the notes read
+                as one column instead of a ragged edge. The allowance is a
+                quantity, not a health state, so it wears the info tone - green
+                on this page means "OK". */}
+            <div className="arm-grid">
+              {arms.map((a) => (
+                <div key={a.id} className="arm">
+                  <span className="mono" style={{ ...chip, color: 'var(--text-3)' }}>{a.stage}</span>
+                  <strong style={{ fontSize: 'var(--fs-xs)' }}>{a.label}</strong>
+                  <span><Badge tone={a.budget === 0 ? 'mute' : 'info'}>{a.budget_note}</Badge></span>
+                  <span className="dim" style={{ fontSize: 11 }}>{a.how}</span>
+                </div>
+              ))}
+            </div>
             <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0, lineHeight: 1.6 }}>
               {data.ordering_note}
             </p>
@@ -133,7 +139,10 @@ export default function KeywordsPanel() {
         )}
 
         <div className="stack stack-2">
-          <span className="label">Per model</span>
+          <div className="row-between">
+            <span className="label">Per model</span>
+            <span className="label">Variants</span>
+          </div>
           {(data?.models || []).map((m) => (
             <div key={m.name} className="stack stack-1"
                  style={{ borderLeft: '2px solid var(--border)', paddingLeft: 12 }}>
@@ -158,7 +167,9 @@ export default function KeywordsPanel() {
                   <IconCaret width={13} height={13}
                              className={`caret${open === m.name ? ' on' : ''}`} />
                   <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.name}</strong>
-                  <span className="label">{m.variants.length} variant(s)</span>
+                  {/* A NUMBER COLUMN ON THE RIGHT, so eighteen rows that look
+                      alike can be compared down one edge. */}
+                  <span className="kw-n tnum" title="search variants">{m.variants.length}</span>
                 </button>
               )}
 

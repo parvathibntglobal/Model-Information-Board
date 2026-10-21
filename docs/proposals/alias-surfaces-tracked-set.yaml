@@ -1058,3 +1058,65 @@ proposals:
       - fable-5
       - fable5
     incomplete: [family_surface]
+
+  # ── added 2026-10-05: Anthropic and OpenAI arrivals from the registry poll ──
+  # Arrivals posted on #450 by the 2026-09-24 and 2026-10-01 polls; all four
+  # were `polled` in model_version with NO alias row on 2026-10-05, so a fetch
+  # for any of them searched nothing. Surfaces follow the 2026-09-24 pattern
+  # (#461). Checked on 2026-10-05 against the live surface finder: "sonnet 5.5"
+  # resolves to Sonnet 5.5 and not Sonnet 5, and "gpt-6.1 sol pro" to Sol Pro and
+  # not Sol - the longer surface wins, so no prefix collision. Seated at anooj's
+  # request on branch anooj_001.
+  - canonical_id: openai/gpt-6-luna
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-10-05'
+    surface: gpt-6 luna              # released 2026-09-22
+    variants:
+      - gpt 6 luna
+      - gpt-6 luna
+      - gpt-6-luna
+      - gpt6luna
+    incomplete: [family_surface]
+
+  - canonical_id: anthropic/claude-sonnet-5.5
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-10-05'
+    surface: claude sonnet 5.5       # released 2026-09-28
+    variants:
+      - claude sonnet 5.5
+      - claude-sonnet-5.5
+      - claudesonnet5.5
+      - sonnet 5.5
+      - sonnet-5.5
+      - sonnet5.5
+    incomplete: [family_surface]
+
+  - canonical_id: openai/gpt-6.1-sol
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-10-05'
+    surface: gpt-6.1 sol             # released 2026-09-29
+    variants:
+      - gpt 6.1 sol
+      - gpt-6.1 sol
+      - gpt-6.1-sol
+      - gpt6.1sol
+    incomplete: [family_surface]
+
+  - canonical_id: openai/gpt-6.1-sol-pro
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-10-05'
+    surface: gpt-6.1 sol pro         # released 2026-09-29; a -pro arrival, seated as its own model
+    variants:
+      - gpt 6.1 sol pro
+      - gpt-6.1 sol pro
+      - gpt-6.1-sol-pro
+      - gpt6.1solpro
+    incomplete: [family_surface]

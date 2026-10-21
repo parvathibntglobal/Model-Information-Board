@@ -90,7 +90,8 @@ def extractor_provider() -> dict | None:
     if not raw and not ignore:
         return None
     if raw and raw not in _PROVIDER_SORTS:
-        raise RuntimeError(f"EXTRACTOR_PROVIDER_SORT={raw!r} is not one of {sorted(_PROVIDER_SORTS)}")
+        raise RuntimeError(
+            f"EXTRACTOR_PROVIDER_SORT={raw!r} is not one of {sorted(_PROVIDER_SORTS)}")
     pref: dict = {}
     if raw:
         pref["sort"] = raw
@@ -503,8 +504,14 @@ class OpenRouterClient:
     #: person watching a run does not wait for this at all. The cap is the
     #: backstop for a run nobody is watching, and a backstop that fires on 2.5%
     #: of healthy calls is worse than one that fires late.
-    total_timeout_seconds: float = float(
-        os.getenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200")
+    #:
+    #: READ WHEN THE CLIENT IS BUILT, not when this module is imported (#436).
+    #: An import-time default froze whatever the environment held at the first
+    #: import, so the only way to test a different value was to reload this
+    #: module - which replaced its classes and broke `except` clauses holding
+    #: the old ones in other test files, depending on the order they ran in.
+    total_timeout_seconds: float = field(
+        default_factory=lambda: float(os.getenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200"))
     )
     #: A CEILING ON OUTPUT, which is the thing that actually costs time.
     #:
@@ -529,7 +536,12 @@ class OpenRouterClient:
     #: 16,384 is too low is a question the recorded field can answer after some
     #: runs - which is the direction rule 8 requires, the field first and any
     #: gate later on evidence.
-    max_output_tokens: int = int(os.getenv("EXTRACT_MAX_OUTPUT_TOKENS", "16384"))
+    #:
+    #: READ WHEN THE CLIENT IS BUILT, like `total_timeout_seconds` (#436): an
+    #: import-time default froze whatever the environment held at first import.
+    max_output_tokens: int = field(
+        default_factory=lambda: int(os.getenv("EXTRACT_MAX_OUTPUT_TOKENS", "16384"))
+    )
     #: REASONING IS OFF BY DEFAULT, AND THAT IS A DECISION THE MODEL SWITCH MADE
     #: FOR US UNTIL 2026-09-24.
     #:
@@ -548,7 +560,10 @@ class OpenRouterClient:
     #: model's own default; any other value (`low`, `high`) is sent as the effort.
     #: Whether it took effect is visible: the fetch log prints each thread's
     #: reasoning tokens, which should read 0 once this holds.
-    reasoning_effort: str = os.getenv("EXTRACT_REASONING_EFFORT", "none")
+    #: Read when the client is built, for the same reason (#436).
+    reasoning_effort: str = field(
+        default_factory=lambda: os.getenv("EXTRACT_REASONING_EFFORT", "none")
+    )
     #: Called while a response is arriving. MAY RAISE, and raising is the point.
     #:
     #: `Progress.checkpoint()` raises `RunStopped` when somebody has pressed

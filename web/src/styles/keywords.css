@@ -1,0 +1,58 @@
+/* Keywords dashboard (signed-in). Chips, cards and labels come from app.css. */
+.kw-meta{font-size:var(--fs-xs);color:var(--text-3)}
+.kw-pills{display:flex;flex-wrap:wrap;gap:8px}
+.kw-tab-head{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s2);flex-wrap:wrap}
+.kw-path{font-size:var(--fs-xs);color:var(--text-2)}
+.kw-facts{display:grid;grid-template-columns:170px 1fr;gap:8px 16px;margin:0;font-size:var(--fs-sm)}
+.kw-facts dt{color:var(--text-2)} .kw-facts dt small{color:var(--text-3);font-family:var(--font-mono);margin-left:4px}
+.kw-facts dd{margin:0;color:var(--text)} .kw-note{color:var(--warn)}
+.kw-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.kw-filters input[type=search],.kw-filters select{height:34px;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:var(--surface);color:var(--text);padding:0 10px;font:inherit;font-size:var(--fs-xs)}
+.kw-search input{width:280px}
+.kw-filters input:focus,.kw-filters select:focus{outline:none;border-color:var(--border-strong)}
+.kw-check{display:inline-flex;gap:6px;align-items:center;font-size:var(--fs-xs);color:var(--text-2)}
+.kw-count{margin-left:auto;font-size:var(--fs-xs);color:var(--text-3)}
+.kw-scroll{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:var(--r-card)}
+.kw-table{border-collapse:collapse;width:max-content;min-width:100%;font-size:var(--fs-xs)}
+.kw-table thead th{position:sticky;top:0;z-index:2;background:var(--surface-2,var(--surface));text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap;padding:0}
+.kw-sort{all:unset;cursor:pointer;display:block;padding:9px 10px;font-weight:600;color:var(--text-2)}
+.kw-sort:hover,.kw-sort:focus-visible{color:var(--text)}
+.kw-table td,.kw-table tbody th{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;max-width:260px}
+.kw-table tbody tr:hover td,.kw-table tbody tr:hover th{background:var(--surface)}
+.kw-table .num{text-align:right}
+.kw-kw{position:sticky;left:0;z-index:1;background:var(--bg);font-weight:600;color:var(--text);text-align:left;white-space:nowrap}
+.kw-table thead th:first-child{left:0;z-index:3}
+.kw-places{white-space:nowrap}
+.kw-place{display:inline-block;margin:0 4px 2px 0;padding:0 6px;border-radius:4px;border:1px solid var(--border);
+  color:var(--text-2);font-family:var(--font-mono);font-size:10.5px}
+.kw-place.kw-strong{border-color:color-mix(in srgb,var(--pass) 45%,transparent);color:var(--pass)}
+.kw-empty{padding:var(--s2)}
+/* the filter row under the headers: one control per column */
+.kw-table thead tr.kw-filter-row th{position:sticky;top:34px;z-index:2;background:var(--surface);padding:5px 6px;border-bottom:1px solid var(--border)}
+.kw-table thead tr.kw-filter-row th:first-child{left:0;z-index:3}
+.kw-filter input,.kw-filter select{width:100%;min-width:90px;height:28px;box-sizing:border-box;border-radius:6px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);padding:0 7px;font:inherit;font-size:11px}
+.kw-filter input:focus,.kw-filter select:focus{outline:none;border-color:var(--border-strong)}
+.kw-filter-on input,.kw-filter-on select{border-color:color-mix(in srgb,var(--info) 60%,transparent)}
+.kw-hint{font-size:var(--fs-xs)}
+.kw-clear{height:32px}
+/* two tabs: Keywords on our pages | Keyword plan (2026-10-19) */
+.kw-tabbar{padding-top:var(--s3)}
+.kw-tabs{display:flex;gap:4px;border-bottom:1px solid var(--border)}
+.kw-tab{all:unset;cursor:pointer;padding:10px 14px;font-size:var(--fs-sm);color:var(--text-2);border-bottom:2px solid transparent;margin-bottom:-1px}
+.kw-tab:hover,.kw-tab:focus-visible{color:var(--text)}
+.kw-tab-on{color:var(--text);border-bottom-color:var(--text);font-weight:600}
+.kw-method{font-size:var(--fs-xs);color:var(--text-2)}
+.kw-method summary{cursor:pointer}
+.kw-shares{width:100%;min-width:0}
+.kw-shares td,.kw-shares th{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top;text-align:left}
+.kw-chip-none{opacity:.55}
+.kw-filters-search input{height:34px;width:280px;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:var(--surface);color:var(--text);padding:0 10px;font:inherit;font-size:var(--fs-xs)}
+.kw-variant{color:var(--text-3)}
+.kw-linkbtn{all:unset;cursor:pointer;color:var(--text);text-decoration:underline dotted var(--border-strong);text-underline-offset:3px}
+.kw-linkbtn:hover,.kw-linkbtn:focus-visible{text-decoration-style:solid}
+.kw-new{font-size:10.5px;font-family:var(--font-mono);color:var(--warn)}
+.kw-target{font-size:var(--fs-sm);color:var(--text-2);text-align:right}

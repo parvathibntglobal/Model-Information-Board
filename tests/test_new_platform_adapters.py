@@ -82,11 +82,29 @@ class TestAbsenceIsNotAValue:
         assert _as_timestamp("not a date") is None
 
     def test_an_epoch_and_an_iso_string_both_parse_to_utc(self):
-        # Hacker News sends `created_at_i`; the other four send ISO-8601, two of
-        # them with a `Z` suffix that `fromisoformat` refuses before 3.11.
+        # Hacker News sends `created_at_i`; arXiv, dev.to and Hugging Face send
+        # ISO-8601, with a `Z` suffix that `fromisoformat` refuses before 3.11.
+        # X sends neither: see the legacy-timestamp tests below.
         assert _as_timestamp(1788750795).year == 2026
         assert _as_timestamp("2026-09-07T03:13:15Z").tzinfo is not None
         assert _as_timestamp("2026-09-06T22:49:59.000Z").minute == 49
+
+    def test_x_legacy_timestamp_parses(self):
+        """X sends `Sat May 16 07:41:54 +0000 2026` (copied from a stored
+        payload), not ISO-8601. Until 2026-10-08 this returned None: 344 of 344
+        X documents were undated and every X claim was skipped."""
+        got = _as_timestamp("Sat May 16 07:41:54 +0000 2026")
+        assert (got.year, got.month, got.day, got.hour, got.minute) == (2026, 5, 16, 7, 41)
+        assert got.utcoffset().total_seconds() == 0
+
+    def test_x_legacy_timestamp_keeps_its_offset(self):
+        got = _as_timestamp("Mon Sep 07 22:10:37 +0530 2026")
+        assert got.utcoffset().total_seconds() == 5.5 * 3600
+
+    def test_a_near_miss_of_the_x_format_stays_missing(self):
+        # Matched exactly, not leniently: a wrong date is worse than none (rule 12).
+        assert _as_timestamp("Sat May 16 07:41:54 2026") is None
+        assert _as_timestamp("Sat May 32 07:41:54 +0000 2026") is None
 
     def test_a_naive_timestamp_is_read_as_utc_rather_than_local(self):
         assert _as_timestamp("2026-09-07T03:13:15").tzinfo is not None

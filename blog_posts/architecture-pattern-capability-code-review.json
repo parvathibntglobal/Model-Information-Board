@@ -1,0 +1,731 @@
+{
+ "slug": "architecture-pattern-capability-code-review",
+ "status": "draft",
+ "tag": "Architecture pattern",
+ "feat": false,
+ "title": "An AI Code Review Said Pass on a Password Leak: The Layers That Catch It",
+ "dek": "How teams build a code-review system around language models, layer by layer: when review fires, who reviews, who refutes, what proves a fix, and who signs the merge.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "The best AI model for code review still says pass on bugs it never tested. Wrap it in checkpoints, specialist reviewers, refuting validators, an independent oracle, a sandbox and a human owner.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgZGlmZiBzdGFtcGVkIHBhc3MgbGV0cyBhIHJlZCBidWcgc2xpcCBvdXQsIGFuZCB0cmFuc2x1Y2VudCByZXZpZXcgbGF5ZXJzIHN0b3AgaXQ8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJoaXQiIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJzb2Z0IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4xNCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxlbGxpcHNlIGN4PSI4NDAiIGN5PSIzMjAiIHJ4PSIzODAiIHJ5PSIyODAiIGZpbGw9InVybCgjc29mdCkiLz4KCiAgPCEtLSB0aGUgZGlmZiAtLT4KICA8cmVjdCB4PSI4MCIgeT0iMTQwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjM2MCIgcng9IjIwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxnIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxMCI+CiAgICA8bGluZSB4MT0iMTIwIiB5MT0iMTkwIiB4Mj0iMzMwIiB5Mj0iMTkwIiBzdHJva2U9IiM5NWExYjQiIG9wYWNpdHk9IjAuNDUiLz4KICAgIDxsaW5lIHgxPSIxMjAiIHkxPSIyMzAiIHgyPSIyODAiIHkyPSIyMzAiIHN0cm9rZT0iI2ZmN2I3MiIgb3BhY2l0eT0iMC42Ii8+CiAgICA8bGluZSB4MT0iMTIwIiB5MT0iMjcwIiB4Mj0iMzYwIiB5Mj0iMjcwIiBzdHJva2U9IiMzZWNmOGUiIG9wYWNpdHk9IjAuNyIvPgogICAgPGxpbmUgeDE9IjEyMCIgeTE9IjMxMCIgeDI9IjMwMCIgeTI9IjMxMCIgc3Ryb2tlPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjciLz4KICAgIDxsaW5lIHgxPSIxMjAiIHkxPSIzNTAiIHgyPSIzNDAiIHkyPSIzNTAiIHN0cm9rZT0iIzk1YTFiNCIgb3BhY2l0eT0iMC40NSIvPgogICAgPGxpbmUgeDE9IjEyMCIgeTE9IjM5MCIgeDI9IjI1MCIgeTI9IjM5MCIgc3Ryb2tlPSIjOTVhMWI0IiBvcGFjaXR5PSIwLjQ1Ii8+CiAgICA8bGluZSB4MT0iMTIwIiB5MT0iNDMwIiB4Mj0iMzIwIiB5Mj0iNDMwIiBzdHJva2U9IiM5NWExYjQiIG9wYWNpdHk9IjAuNDUiLz4KICA8L2c+CiAgPCEtLSB0aGUgc3RhbXAgLS0+CiAgPGcgdHJhbnNmb3JtPSJyb3RhdGUoLTE0IDI3MCAzMzApIj4KICAgIDxyZWN0IHg9IjE3MCIgeT0iMjkwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9Ijg0IiByeD0iMTQiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiLz4KICAgIDx0ZXh0IHg9IjI3MCIgeT0iMzQ4IiBmaWxsPSIjM2VjZjhlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSI0OCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cGFzczwvdGV4dD4KICA8L2c+CgogIDwhLS0gdGhlIGxlYWsgcGF0aCAtLT4KICA8cGF0aCBkPSJNNDQwLDQyMCBDNTIwLDQ0MCA1NjAsMzMwIDY0MCwzMjAgQzcwMCwzMTIgNzYwLDMxOCA4MzgsMzIwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgOSIvPgoKICA8IS0tIGxheWVyIHBhbmVzLCBzZWVuIGF0IGFuIGFuZ2xlIC0tPgogIDxnIHN0cm9rZS13aWR0aD0iMyI+CiAgICA8cG9seWdvbiBwb2ludHM9IjY2MCwxNTAgNzIwLDExMCA3MjAsNTEwIDY2MCw1NTAiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjN2FhMmZmIi8+CiAgICA8cG9seWdvbiBwb2ludHM9Ijc2MCwxNTAgODIwLDExMCA4MjAsNTEwIDc2MCw1NTAiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjYTc4YmZhIi8+CiAgICA8cG9seWdvbiBwb2ludHM9Ijg2MCwxNTAgOTIwLDExMCA5MjAsNTEwIDg2MCw1NTAiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjM2VjZjhlIi8+CiAgICA8cG9seWdvbiBwb2ludHM9Ijk2MCwxNTAgMTAyMCwxMTAgMTAyMCw1MTAgOTYwLDU1MCIgZmlsbD0iI2UzYjM0MSIgZmlsbC1vcGFjaXR5PSIwLjEyIiBzdHJva2U9IiNlM2IzNDEiLz4KICA8L2c+CgogIDwhLS0gbml0cGlja3Mgc3RvcHBlZCBhdCB0aGUgZmlyc3QgcGFuZSAtLT4KICA8ZyBmaWxsPSIjOTVhMWI0IiBvcGFjaXR5PSIwLjciPgogICAgPGNpcmNsZSBjeD0iNjQwIiBjeT0iMjMwIiByPSI5Ii8+PGNpcmNsZSBjeD0iNjI4IiBjeT0iMjYyIiByPSI3Ii8+PGNpcmNsZSBjeD0iNjQ2IiBjeT0iNDEwIiByPSI4Ii8+CiAgICA8Y2lyY2xlIGN4PSI2MzAiIGN5PSI0NDAiIHI9IjYiLz48Y2lyY2xlIGN4PSI2NDgiIGN5PSI0NzAiIHI9IjkiLz4KICA8L2c+CgogIDwhLS0gdGhlIGJ1Zywgc3RvcHBlZCBhdCB0aGUgb3JhY2xlIHBhbmUgLS0+CiAgPGNpcmNsZSBjeD0iODcwIiBjeT0iMzE4IiByPSI4MCIgZmlsbD0idXJsKCNoaXQpIi8+CiAgPGNpcmNsZSBjeD0iODcwIiBjeT0iMzE4IiByPSIyMCIgZmlsbD0iI2ZmN2I3MiIvPgogIDxjaXJjbGUgY3g9Ijg3MCIgY3k9IjMxOCIgcj0iMzQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjYiLz4KCiAgPCEtLSBsYWJlbHMgLS0+CiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iNTkyIiBmaWxsPSIjN2FhMmZmIj52YWxpZGF0b3I8L3RleHQ+CiAgICA8dGV4dCB4PSI4OTAiIHk9IjU5MiIgZmlsbD0iIzNlY2Y4ZSI+b3JhY2xlPC90ZXh0PgogICAgPHRleHQgeD0iMTA2MCIgeT0iNTkyIiBmaWxsPSIjZTNiMzQxIj5vd25lcjwvdGV4dD4KICA8L2c+Cjwvc3ZnPgo=",
+  "alt": "A diff stamped pass leaks a red bug that slips past it, then stops against a stack of translucent review layers.",
+  "caption": "One reviewer said pass; the layers behind it are where the leak gets caught.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "The best AI model for code review still passes bugs it never tested. Six layers engineers use to contain that, from checkpoints to the human owner.",
+ "keywords": [
+  "best AI model for code review",
+  "best LLM for code review",
+  "AI models for code review compared",
+  "AI code review architecture",
+  "adversarial validator",
+  "best AI model"
+ ],
+ "kicker": "Architecture pattern",
+ "tags": [
+  "Code review",
+  "Architecture pattern"
+ ],
+ "read": 12,
+ "decisions": [
+  "Fire model review at plan lock, module boundaries, repeated failures and before the PR.",
+  "Put the strongest model on validators and critical domains.",
+  "Never accept an oracle written from the patch under review.",
+  "Score reviewer models by severity, with the labelling rule stated.",
+  "Log which model produced every finding."
+ ],
+ "layout": "blueprint",
+ "arrangement": "a",
+ "special": {
+  "type": "layers",
+  "title": "The layers",
+  "items": [
+   {
+    "layer": "Checkpoint triggers",
+    "role": "Wake a reviewer before a plan locks, at module boundaries, after a repeated failure and before the PR.",
+    "failure_contained": "A single end-of-line review that only sees the finished diff and the issue's example."
+   },
+   {
+    "layer": "Domain reviewers and orchestrator",
+    "role": "Split the diff across specialist prompts tiered by risk, then merge and deduplicate their findings.",
+    "failure_contained": "A generalist reviewer skimming past bugs specific to auth, privacy or one service."
+   },
+   {
+    "layer": "Adversarial validators",
+    "role": "A separate read-only model tries to refute each finding; survivors are ranked by severity.",
+    "failure_contained": "Floods of lows and nitpicks that bury the one critical bug."
+   },
+   {
+    "layer": "Independent oracle",
+    "role": "Check the fix on program-generated inputs against a library, the old behaviour or an invariant.",
+    "failure_contained": "A review that passes because it only tried examples it already believed in."
+   },
+   {
+    "layer": "Sandbox and model log",
+    "role": "Limit what the reviewer can look up and record which model wrote each finding.",
+    "failure_contained": "Leaked answers and silent switches to an older model."
+   },
+   {
+    "layer": "Human owner",
+    "role": "Reads blocked items and critical findings first, then decides the merge.",
+    "failure_contained": "Mistakes that need production context no model was given."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~12 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A review gate that passed a password leak",
+    "num": "01",
+    "id": "a-review-gate-that-passed-a-password-leak"
+   }
+  ],
+  [
+   "p",
+   "On September 28, an agent system called Orbi fixed three issues in open-source forks. Every fix passed its tests and Orbi's own model review. Two were wrong. One, in a secret redactor, let part of a password leak into the logs. «The review ran the tests and checked the issue's example, which passed.» «The regressions sat in inputs nobody tried.»"
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDc2MCI+CiAgPHRpdGxlPlNpeCByZXZpZXcgbGF5ZXJzIGZyb20gdGhlIG91dHNpZGUgaW4sIGVhY2ggd2l0aCB0aGUgZmFpbHVyZSBpdCBjb250YWluczwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhcnciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCBaIiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNzYwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8dGV4dCB4PSI2MCIgeT0iNTYiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCI+b3V0c2lkZTwvdGV4dD4KICA8dGV4dCB4PSI2MCIgeT0iNzEyIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiPmluc2lkZTwvdGV4dD4KICA8bGluZSB4MT0iMTAwIiB5MT0iNzYiIHgyPSIxMDAiIHkyPSI2ODAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FydykiLz4KCiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDxyZWN0IHg9IjE1MCIgeT0iODAiIHdpZHRoPSI5OTAiIGhlaWdodD0iODQiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE2IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTgwIiB5PSIxMzIiIGZpbGw9IiNlOGVkZjUiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiPkNoZWNrcG9pbnRzPC90ZXh0PgogICAgPHRleHQgeD0iMTExMCIgeT0iMTMyIiBmaWxsPSIjOTVhMWI0IiBmb250LXNpemU9IjI0IiB0ZXh0LWFuY2hvcj0iZW5kIj5jb250YWluczogZW5kLW9ubHkgcmV2aWV3PC90ZXh0PgoKICAgIDxyZWN0IHg9IjE5MCIgeT0iMTgwIiB3aWR0aD0iOTEwIiBoZWlnaHQ9Ijg0IiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIGZpbGwtb3BhY2l0eT0iMC4xMiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1vcGFjaXR5PSIwLjgiLz4KICAgIDx0ZXh0IHg9IjIyMCIgeT0iMjMyIiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj5Eb21haW4gcmV2aWV3ZXJzPC90ZXh0PgogICAgPHRleHQgeD0iMTA3MCIgeT0iMjMyIiBmaWxsPSIjOTVhMWI0IiBmb250LXNpemU9IjI0IiB0ZXh0LWFuY2hvcj0iZW5kIj5jb250YWluczogdGhlIGdlbmVyYWxpc3Qgc2tpbTwvdGV4dD4KCiAgICA8cmVjdCB4PSIyMzAiIHk9IjI4MCIgd2lkdGg9IjgzMCIgaGVpZ2h0PSI4NCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIyNjAiIHk9IjMzMiIgZmlsbD0iI2U4ZWRmNSIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCI+VmFsaWRhdG9yczwvdGV4dD4KICAgIDx0ZXh0IHg9IjEwMzAiIHk9IjMzMiIgZmlsbD0iIzk1YTFiNCIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9ImVuZCI+Y29udGFpbnM6IG5pdHBpY2sgZmxvb2RzPC90ZXh0PgoKICAgIDxyZWN0IHg9IjI3MCIgeT0iMzgwIiB3aWR0aD0iNzUwIiBoZWlnaHQ9Ijg0IiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xNiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjMwMCIgeT0iNDMyIiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj5JbmRlcGVuZGVudCBvcmFjbGU8L3RleHQ+CiAgICA8dGV4dCB4PSI5OTAiIHk9IjQzMiIgZmlsbD0iIzk1YTFiNCIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9ImVuZCI+Y29udGFpbnM6IHVudHJpZWQgaW5wdXRzPC90ZXh0PgoKICAgIDxyZWN0IHg9IjMxMCIgeT0iNDgwIiB3aWR0aD0iNjcwIiBoZWlnaHQ9Ijg0IiByeD0iMTYiIGZpbGw9IiNlM2IzNDEiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjM0MCIgeT0iNTMyIiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj5TYW5kYm94PC90ZXh0PgogICAgPHRleHQgeD0iOTUwIiB5PSI1MzIiIGZpbGw9IiM5NWExYjQiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJlbmQiPmNvbnRhaW5zOiBsZWFrcywgc2lsZW50IHN3aXRjaGVzPC90ZXh0PgoKICAgIDxyZWN0IHg9IjM1MCIgeT0iNTgwIiB3aWR0aD0iNTkwIiBoZWlnaHQ9Ijg0IiByeD0iMTYiIGZpbGw9IiNlOGVkZjUiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMzgwIiB5PSI2MzIiIGZpbGw9IiNlOGVkZjUiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiPkh1bWFuIG93bmVyPC90ZXh0PgogICAgPHRleHQgeD0iOTEwIiB5PSI2MzIiIGZpbGw9IiM5NWExYjQiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJlbmQiPmNvbnRhaW5zOiBtaXNzaW5nIGNvbnRleHQ8L3RleHQ+CiAgPC9nPgoKICA8IS0tIHRoZSBtZXJnZSBhdCB0aGUgY29yZSAtLT4KICA8bGluZSB4MT0iNjQ1IiB5MT0iNjY0IiB4Mj0iNjQ1IiB5Mj0iNzAwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcncpIi8+CiAgPHRleHQgeD0iNjQ1IiB5PSI3MzYiIGZpbGw9IiMzZWNmOGUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5tZXJnZTwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "Six nested layers around a diff: checkpoints, domain reviewers, validators, oracle, sandbox, and the human owner at the core.",
+    "caption": "The pattern from the outside in, with the failure each layer is there to contain.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Here's the plain picture first. Strong models now find real bugs in a pull request, the change a developer asks colleagues to approve. One Hacker News commenter says they are «finding really impressive issues that humans just don't have the attention span to track down.» They are weaker at three things. Ranking what matters. Testing inputs nobody wrote down. Judging design."
+  ],
+  [
+   "p",
+   "The pattern engineers converge on has six layers, from the outside in. Checkpoints decide when review runs. Domain reviewers split the diff by specialty. Validators try to knock each finding down. An independent oracle proves the fix on generated inputs. A sandbox limits what the reviewer can see. A human owner signs the merge. Each layer contains one failure."
+  ],
+  [
+   "p",
+   "We think the hunt for the best AI model for code review starts one step too late. In Orbi's own runs, «the harness moved the numbers far more than any model swap». The model still matters. It just sits inside a system that decides what it sees, what it must prove and who checks its work."
+  ],
+  [
+   "h2",
+   {
+    "text": "Checkpoints that decide when a reviewer wakes",
+    "num": "02",
+    "id": "checkpoints-that-decide-when-a-reviewer-wakes"
+   }
+  ],
+  [
+   "p",
+   "The checkpoint layer decides when review runs, and most setups fire it too late. A review at the very end sees a finished diff and the issue's example. One dev.to guide to Opus 5.5 passes on a simple rule: «Run a model review before the human review.» That ordering is the floor. Better setups add review earlier, where a mistake is cheaper."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDU2MCI+CiAgPHRpdGxlPkFuIGFnZW50J3Mgd29yayBmcm9tIGlzc3VlIHRvIG1lcmdlLCB3aXRoIHJldmlldyBmaXJpbmcgYXQgZm91ciBldmVudHM8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMC40NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFydyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIFoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI1NjAiIGZpbGw9InVybCgjYmcpIi8+CgogIDx0ZXh0IHg9IjYwIiB5PSI2NCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIj5SZXZpZXcgZmlyZXMgb24gZXZlbnRzPC90ZXh0PgoKICA8IS0tIHRoZSB3b3JrIGxpbmUgLS0+CiAgPGxpbmUgeDE9IjgwIiB5MT0iMzAwIiB4Mj0iMTEyMCIgeTI9IjMwMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjEwIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8bGluZSB4MT0iODAiIHkxPSIzMDAiIHgyPSIxMTMwIiB5Mj0iMzAwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcncpIi8+CiAgPHRleHQgeD0iODAiIHk9IjM2MCIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiPmlzc3VlPC90ZXh0PgogIDx0ZXh0IHg9IjExMjAiIHk9IjM2MCIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJlbmQiPm1lcmdlPC90ZXh0PgoKICA8IS0tIGNoZWNrcG9pbnRzIC0tPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjYwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+CiAgICA8Zz4KICAgICAgPGNpcmNsZSBjeD0iMjcwIiBjeT0iMjAwIiByPSI2MCIgZmlsbD0idXJsKCNnbG93KSIvPgogICAgICA8Y2lyY2xlIGN4PSIyNzAiIGN5PSIyMDAiIHI9IjM0IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMjUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxlbGxpcHNlIGN4PSIyNzAiIGN5PSIyMDAiIHJ4PSIxOCIgcnk9IjExIiBmaWxsPSJub25lIiBzdHJva2U9IiNlOGVkZjUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8Y2lyY2xlIGN4PSIyNzAiIGN5PSIyMDAiIHI9IjUiIGZpbGw9IiNlOGVkZjUiLz4KICAgICAgPGxpbmUgeDE9IjI3MCIgeTE9IjIzNCIgeDI9IjI3MCIgeTI9IjI5MCIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjUgNiIvPgogICAgICA8Y2lyY2xlIGN4PSIyNzAiIGN5PSIzMDAiIHI9IjEyIiBmaWxsPSIjYTc4YmZhIi8+CiAgICAgIDx0ZXh0IHg9IjI3MCIgeT0iNDEwIiBmaWxsPSIjZThlZGY1Ij5wbGFuIGxvY2tlZDwvdGV4dD4KICAgIDwvZz4KICAgIDxnPgogICAgICA8Y2lyY2xlIGN4PSI1MTAiIGN5PSIyMDAiIHI9IjYwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICAgIDxjaXJjbGUgY3g9IjUxMCIgY3k9IjIwMCIgcj0iMzQiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPGVsbGlwc2UgY3g9IjUxMCIgY3k9IjIwMCIgcng9IjE4IiByeT0iMTEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxjaXJjbGUgY3g9IjUxMCIgY3k9IjIwMCIgcj0iNSIgZmlsbD0iI2U4ZWRmNSIvPgogICAgICA8bGluZSB4MT0iNTEwIiB5MT0iMjM0IiB4Mj0iNTEwIiB5Mj0iMjkwIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNSA2Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjUxMCIgY3k9IjMwMCIgcj0iMTIiIGZpbGw9IiNhNzhiZmEiLz4KICAgICAgPHRleHQgeD0iNTEwIiB5PSI0MTAiIGZpbGw9IiNlOGVkZjUiPm1vZHVsZXMgbWVldDwvdGV4dD4KICAgIDwvZz4KICAgIDxnPgogICAgICA8Y2lyY2xlIGN4PSI3NTAiIGN5PSIyMDAiIHI9IjYwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICAgIDxjaXJjbGUgY3g9Ijc1MCIgY3k9IjIwMCIgcj0iMzQiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPGVsbGlwc2UgY3g9Ijc1MCIgY3k9IjIwMCIgcng9IjE4IiByeT0iMTEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxjaXJjbGUgY3g9Ijc1MCIgY3k9IjIwMCIgcj0iNSIgZmlsbD0iI2U4ZWRmNSIvPgogICAgICA8bGluZSB4MT0iNzUwIiB5MT0iMjM0IiB4Mj0iNzUwIiB5Mj0iMjkwIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNSA2Ii8+CiAgICAgIDxjaXJjbGUgY3g9Ijc1MCIgY3k9IjMwMCIgcj0iMTIiIGZpbGw9IiNmZjdiNzIiLz4KICAgICAgPHRleHQgeD0iNzUwIiB5PSI0MTAiIGZpbGw9IiNlOGVkZjUiPnNhbWUgdGVzdCBmYWlscyB0d2ljZTwvdGV4dD4KICAgIDwvZz4KICAgIDxnPgogICAgICA8Y2lyY2xlIGN4PSI5OTAiIGN5PSIyMDAiIHI9IjYwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CiAgICAgIDxjaXJjbGUgY3g9Ijk5MCIgY3k9IjIwMCIgcj0iMzQiIGZpbGw9IiNhNzhiZmEiIGZpbGwtb3BhY2l0eT0iMC4yNSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPGVsbGlwc2UgY3g9Ijk5MCIgY3k9IjIwMCIgcng9IjE4IiByeT0iMTEiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxjaXJjbGUgY3g9Ijk5MCIgY3k9IjIwMCIgcj0iNSIgZmlsbD0iI2U4ZWRmNSIvPgogICAgICA8bGluZSB4MT0iOTkwIiB5MT0iMjM0IiB4Mj0iOTkwIiB5Mj0iMjkwIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNSA2Ii8+CiAgICAgIDxjaXJjbGUgY3g9Ijk5MCIgY3k9IjMwMCIgcj0iMTIiIGZpbGw9IiNhNzhiZmEiLz4KICAgICAgPHRleHQgeD0iOTkwIiB5PSI0MTAiIGZpbGw9IiNlOGVkZjUiPmJlZm9yZSB0aGUgUFI8L3RleHQ+CiAgICA8L2c+CiAgPC9nPgoKICA8IS0tIHNtYWxsIHggbWFya3MgZm9yIHJldHJpZXMgbmVhciB0aGUgdGhpcmQgY2hlY2twb2ludCAtLT4KICA8ZyBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxwYXRoIGQ9Ik02NTgsMjg4IEw2NzIsMzAyIE02NzIsMjg4IEw2NTgsMzAyIi8+CiAgICA8cGF0aCBkPSJNNjkyLDI4OCBMNzA2LDMwMiBNNzA2LDI4OCBMNjkyLDMwMiIvPgogIDwvZz4KCiAgPHRleHQgeD0iNjAwIiB5PSI0OTAiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZWFjaCBvbmUgZ3VhcmRzIGEgc3RlcCB0aGF0IGlzIGhhcmQgdG8gdW5kbzwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "A timeline of an agent's work with four review checkpoints: plan locked, module boundary, test fails twice, before the PR.",
+    "caption": "Checkpoints fire on events that are about to become hard to undo, not on a timer.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A developer on X shared a team layout with a critic model that checks in at three points. It reviews where modules meet, after a test fails twice, and before the PR goes out. A module boundary is where two pieces of code agree on a contract. That's where a reviewer earns its cost."
+  ],
+  [
+   "p",
+   "Another poster on X described a similar trigger list for an advisor model. It wakes before a plan is locked, when the same error hits twice, and before a complex task is marked complete. We agree with the shape of both. They fire on events, not on a timer. The reviewer wakes when something is about to become hard to undo."
+  ],
+  [
+   "p",
+   "Each checkpoint contains one failure. The plan check catches a wrong approach before code exists. The repeat-failure check catches an agent looping on its own mistake. The pre-PR check catches what slipped through. Skip them and the only gate left is the final review, the one that said pass at Orbi."
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/rvaniaaaa/status/2107221534821498977",
+    "caption": "An agent-team layout in which a critic model reviews where modules meet, after a test fails twice, and before a PR opens."
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/mirku21/status/2110475821441753116",
+    "caption": "A multi-model setup that wakes an advisor model only before a plan locks, on a repeated error, and before a task is marked done."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Domain reviewers under one orchestrator",
+    "num": "03",
+    "id": "domain-reviewers-under-one-orchestrator"
+   }
+  ],
+  [
+   "p",
+   "The reviewer layer splits one diff across specialists. One Hacker News commenter describes an «internal code review tool that is a bit maximalist». It runs subagents for each internal domain, a wider tier for design, rollout and security, and «a final agent at the top orchestrating and combining». An orchestrator is the agent that hands out work and merges what comes back."
+  ],
+  [
+   "p",
+   "Specialists contain one failure: the generalist that skims. A prompt focused on one domain can carry its own best practices, common problems and security guidelines. The same commenter tiers models by risk, with «Opus medium for less critical tickets/domains, Fable 5.1 high for critical domains». Reasoning effort is the setting for how long a model thinks before it answers."
+  ],
+  [
+   "p",
+   "Fan-out needs a rule on the way back in. The Opus 5.5 guide on dev.to quotes a prompt for audits: «Give each service to its own subagent. When a subagent reports back, check its evidence before you accept it.» We think that second sentence is the whole design. Parallel reviewers multiply findings. Something must thin them out."
+  ],
+  [
+   "p",
+   "The cost is real, and the commenter is frank about it: «each one can eat 25-33% of my 5 hour limit». Their answer is that «the biggest limit here isn't the price difference». It is «the cost to the business for shipping lower quality». We agree for privacy-critical code. For a marketing site, we'd tier down harder."
+  ],
+  [
+   "code",
+   {
+    "label": "Reviewer topology as configuration (illustrative; keys and tier names are ours, not a vendor API)",
+    "language": "yaml",
+    "source": "orchestrator:\n  model: top-tier-high\n  merge: dedupe findings by file and line, keep the best evidence\n\nreviewers:\n  - domain: billing-api\n    model: top-tier-medium      # less critical domain\n  - domain: auth-and-permissions\n    model: strongest-high       # critical domain\n  - band: security-privacy\n    model: strongest-high\n  - band: design\n    model: strongest-xhigh      # still needs a human owner\n\nvalidators:\n  model: strongest-high\n  mode: read-only               # tries to refute, never edits\n\nreport:\n  block_merge_on: [critical]\n  post: [critical, high, medium]\n  digest: [low, nit]\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Adversarial validators between a finding and the PR",
+    "num": "04",
+    "id": "adversarial-validators-between-a-finding-and-the-pr"
+   }
+  ],
+  [
+   "p",
+   "The validator layer exists because reviewers over-report. The same Hacker News commenter warns that «these agents can find endless reams of lows and nitpicks that are just ~worthless hardening». A finding is one comment the reviewer wants on the PR. Left unfiltered, the real bug sits among the nitpicks. People stop reading."
+  ],
+  [
+   "p",
+   "Their fix is blunt: «I also use adversarial validator passes against all findings.» A validator is a second model whose only job is to knock a finding down. It reads the claim and its evidence, then tries to show the claim is wrong. Only survivors reach the developer. They put their strongest model on every validator."
+  ],
+  [
+   "p",
+   "A developer on X posted a related setup. A strong model reads the whole session transcript at each turn boundary, with no tool calls. It returns one of three verdicts: not yet met, met, or impossible. We like the read-only rule a lot. A validator that can edit code stops being a validator."
+  ],
+  [
+   "p",
+   "Severity belongs in this layer too. The commenter wants to know «how many critical/high/medium's each test found», not a raw bug count. Rank the survivors, post the top tiers, and send lows to a digest. A merge should block on a critical finding. Never on a nitpick."
+  ],
+  [
+   "code",
+   {
+    "label": "A validator gate for one finding (illustrative pattern)",
+    "language": "python",
+    "source": "POSTABLE = {\"critical\", \"high\", \"medium\"}\n\ndef gate(finding, validator):\n    \"\"\"A finding reaches the PR only with evidence a separate model failed to refute.\"\"\"\n    if not finding.evidence:          # file, line, and a failing input or trace\n        return \"drop\"\n    verdict = validator.refute(finding)   # different model, read-only, no tools\n    if verdict.refuted:\n        return \"drop\"\n    if finding.severity not in POSTABLE:\n        return \"digest\"               # lows and nits never block a merge\n    return \"post\"\n"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "How one finding travels from a domain reviewer to the pull request.",
+    "steps": [
+     "Reviewer posts a finding with file, line and evidence",
+     "A separate validator model tries to refute it, read-only",
+     "Refuted findings are dropped before the PR",
+     "Survivors are ranked critical, high, medium or low",
+     "Lows go to a digest; a critical finding blocks the merge"
+    ]
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/mirku21/status/2107576738696053203",
+    "caption": "A setup where a strong model reads the session transcript at each turn boundary and returns met, not yet met, or impossible."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "An oracle the patch did not write",
+    "num": "05",
+    "id": "an-oracle-the-patch-did-not-write"
+   }
+  ],
+  [
+   "p",
+   "We went through one team's dev.to write-up of a loop where «One agent writes the fix, another reviews it, and the loop runs until the review passes.» Its first lesson is about evidence. Ask a reviewer to check for regressions, and it checks the examples it already believes in. In their words, «Ask an agent to look for regressions and you get the ones it already expects.»"
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY2MCI+CiAgPHRpdGxlPkEgcmVmZXJlbmNlIGNvcGllZCBmcm9tIHRoZSBwYXRjaCBhZ3JlZXMgd2l0aCBpdDsgYW4gaW5kZXBlbmRlbnQgb3JhY2xlIGNhdGNoZXMgdGhlIHJlZ3Jlc3Npb248L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMC4xOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZWNmOGUiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFydyIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8iPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIFoiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2NjAiIGZpbGw9InVybCgjYmcpIi8+CiAgPGVsbGlwc2UgY3g9IjkwMCIgY3k9IjM2MCIgcng9IjMwMCIgcnk9IjI4MCIgZmlsbD0idXJsKCNnKSIvPgogIDxsaW5lIHgxPSI2MDAiIHkxPSI0MCIgeDI9IjYwMCIgeTI9IjYyMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPGcgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIj4KICAgIDwhLS0gTEVGVDogY2lyY3VsYXIgb3JhY2xlIC0tPgogICAgPHRleHQgeD0iMzAwIiB5PSI2NiIgZmlsbD0iI2ZmN2I3MiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3JhY2xlIGZyb20gdGhlIGZpeDwvdGV4dD4KICAgIDxyZWN0IHg9IjcwIiB5PSIxMTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iOTAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjE3MCIgeT0iMTY1IiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wYXRjaDwvdGV4dD4KICAgIDxyZWN0IHg9IjMzMCIgeT0iMTEwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiNmZjdiNzIiIGZpbGwtb3BhY2l0eT0iMC4xNCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggNiIvPgogICAgPHRleHQgeD0iNDMwIiB5PSIxNjUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlZmVyZW5jZTwvdGV4dD4KICAgIDxwYXRoIGQ9Ik0yNzAsMTQwIEMzMDAsMTI1IDMwMCwxMjUgMzIyLDE0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJ3KSIvPgogICAgPHRleHQgeD0iMzAwIiB5PSIyNDAiIGZpbGw9IiNmZjdiNzIiIGZvbnQtc2l6ZT0iMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNhbWUgcnVsZSwgd3JpdHRlbiB0d2ljZTwvdGV4dD4KICAgIDxwYXRoIGQ9Ik0xNzAsMjAwIEwxNzAsMzAwIEwyODAsMzAwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTQzMCwyMDAgTDQzMCwzMDAgTDMyMCwzMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8bGluZSB4MT0iMzAwIiB5MT0iMzAwIiB4Mj0iMzAwIiB5Mj0iMzUwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcncpIi8+CiAgICA8cmVjdCB4PSIxNjAiIHk9IjM2MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI5MCIgcng9IjE2IiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMzAwIiB5PSI0MTUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5oZWFkIHdyb25nOiAwPC90ZXh0PgogICAgPGxpbmUgeDE9IjMwMCIgeTE9IjQ1MCIgeDI9IjMwMCIgeTI9IjUwMCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJ3KSIvPgogICAgPHJlY3QgeD0iMTQwIiB5PSI1MTAiIHdpZHRoPSIzMjAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iI2ZmN2I3MiIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiNmZjdiNzIiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMzAwIiB5PSI1NjAiIGZpbGw9IiNmZjdiNzIiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlZ3Jlc3Npb24gc2hpcHM8L3RleHQ+CgogICAgPCEtLSBSSUdIVDogaW5kZXBlbmRlbnQgb3JhY2xlIC0tPgogICAgPHRleHQgeD0iOTAwIiB5PSI2NiIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+T3JhY2xlIGZyb20gZWxzZXdoZXJlPC90ZXh0PgogICAgPHJlY3QgeD0iNjUwIiB5PSI5NiIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1OCIgcng9IjE0IiBmaWxsPSIjYTc4YmZhIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI5MDAiIHk9IjEzNCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Z2VuZXJhdGVkIGlucHV0cywgd2hvbGUgY2xhc3NlczwvdGV4dD4KICAgIDxsaW5lIHgxPSI3NTAiIHkxPSIxNTQiIHgyPSI3NTAiIHkyPSIxODYiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FydykiLz4KICAgIDxsaW5lIHgxPSIxMDQ1IiB5MT0iMTU0IiB4Mj0iMTA0NSIgeTI9IjE4NiIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJ3KSIvPgogICAgPHJlY3QgeD0iNjUwIiB5PSIxOTYiIHdpZHRoPSIyMDAiIGhlaWdodD0iOTAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9Ijc1MCIgeT0iMjUxIiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5wYXRjaDwvdGV4dD4KICAgIDxyZWN0IHg9IjkyMCIgeT0iMTk2IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjE0MCIgcng9IjE2IiBmaWxsPSIjN2FhMmZmIiBmaWxsLW9wYWNpdHk9IjAuMTYiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxMDQ1IiB5PSIyMzgiIGZpbGw9IiNlOGVkZjUiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmV4aXN0aW5nIGxpYnJhcnk8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDQ1IiB5PSIyNzQiIGZpbGw9IiNlOGVkZjUiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPm9sZCBiZWhhdmlvdXI8L3RleHQ+CiAgICA8dGV4dCB4PSIxMDQ1IiB5PSIzMTAiIGZpbGw9IiNlOGVkZjUiIGZvbnQtc2l6ZT0iMjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmludmFyaWFudDwvdGV4dD4KICAgIDxwYXRoIGQ9Ik03NTAsMjg2IEw3NTAsMzcwIEw4NjAsMzcwIiBmaWxsPSJub25lIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHBhdGggZD0iTTEwNDUsMzM2IEwxMDQ1LDM3MCBMOTQwLDM3MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDxsaW5lIHgxPSI5MDAiIHkxPSIzNzAiIHgyPSI5MDAiIHkyPSI0MDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FydykiLz4KICAgIDxyZWN0IHg9Ijc2MCIgeT0iNDEwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9Ijg0IiByeD0iMTYiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI5MDAiIHk9IjQ2MSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y29tcGFyZTwvdGV4dD4KICAgIDxsaW5lIHgxPSI5MDAiIHkxPSI0OTQiIHgyPSI5MDAiIHkyPSI1MjAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FydykiLz4KICAgIDxyZWN0IHg9Ijc0MCIgeT0iNTI4IiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiMzZWNmOGUiIGZpbGwtb3BhY2l0eT0iMC4xOCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjkwMCIgeT0iNTc4IiBmaWxsPSIjM2VjZjhlIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5taXNtYXRjaCBjYXVnaHQ8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "Left: a patch checked against a copy of its own rule agrees and ships a bug. Right: an independent oracle catches it.",
+    "caption": "An oracle written from the fix agrees with the fix; one from somewhere else can catch it.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "An oracle is whatever tells you the right answer for a given input. Orbi's sharpest failure came from a strong model building its own. A gpt-5.6-sol run generated 1,200 tables and compared them with a reference that implemented the fix's own rule. It reported zero wrong and shipped the regression. «An oracle written from the fix proves nothing.»"
+  ],
+  [
+   "p",
+   "So this layer has three rules, each from a failed run. «Inputs have to be generated by a program, across whole classes of values.» The oracle must come from somewhere else: an existing library, the old behaviour, or an invariant. And references can be wrong too. «Cross-check two references and say which one you believe.»"
+  ],
+  [
+   "p",
+   "Here we agree with the team, with one caution. The stronger harness cost more: a median 5.8 million tokens per run against 2.8 million on unseen issues. On those ordinary bugs it bought nothing they could measure. We'd run the full oracle layer on risky changes, like redactors and parsers, and a light one elsewhere."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Median tokens per run on Orbi's held-out issues, original harness against v15; cache reads were about 97% of tokens.",
+    "unit": "million tokens per run (median)",
+    "bars": [
+     {
+      "label": "Original harness",
+      "value": 2.8
+     },
+     {
+      "label": "v15 harness",
+      "value": 5.8
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Reviewer model slots and the split over who fills them",
+    "num": "06",
+    "id": "reviewer-model-slots-and-the-split-over-who-fills-them"
+   }
+  ],
+  [
+   "p",
+   "The reviewer slot is where engineers split. One Hacker News commenter calls the top tier clear: «Right now, Fable 5.1 delivers incredible reviews. Opus 5 delivers good reviews.» They add that «open weights models find between 1/4 to 1/2 of what Fable/Opus stack can find, and often miss the most critical issues». That is a strong claim from one heavy user."
+  ],
+  [
+   "p",
+   "Another Hacker News comment points elsewhere: «GPT 6 Sol still beat Opus 5.5 on code review (of GPT written code in this case)». The same writer adds that «Opus 5.5 is better in that regard than Fable 5.1 except for some bugs with more complexity». That parenthesis matters. A reviewer from the author's own family may read its habits better. Nobody has established that cause."
+  ],
+  [
+   "p",
+   "Cheap models split the room too. A dev.to analysis of one vendor benchmark gives GPT-5.6 Luna 69 verified bugs and 74% precision on 50 public PRs. GPT-6 Astra found 92 at 96%. Precision is the share of comments that were real bugs. On Keycloak's auth code, Luna's precision fell toward 50%. That is coin-flip review on permission logic."
+  ],
+  [
+   "p",
+   "Where do we stand? The evidence favours a strong model in the validator and critical-domain slots. It doesn't crown one family. Results swing with whose code is reviewed and who counts the bugs. A Zig release discussion on Hacker News adds a softer signal: after a model review, «whatever I think is wrong is almost certainly right»."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Reviewer models as engineers placed and judged them; each row comes from a different setup, so rows do not compare directly.",
+    "columns": [
+     "Model or stack",
+     "Where it was used",
+     "What was reported"
+    ],
+    "rows": [
+     [
+      "Claude Fable 5.1",
+      "Critical domains and every validator",
+      "Incredible reviews, in one heavy user's words"
+     ],
+     [
+      "Claude Opus 5",
+      "Wider review tiers",
+      "Good reviews"
+     ],
+     [
+      "Claude Opus 5.5",
+      "Lowest-effort review pass",
+      "More bugs than Opus 5 at high effort, fewer false alarms"
+     ],
+     [
+      "GPT-6 Sol",
+      "Reviewing GPT-written code",
+      "Beat Opus 5.5 in a Hacker News test"
+     ],
+     [
+      "GPT-6 Astra",
+      "50 public PRs",
+      "92 verified bugs, 96% precision"
+     ],
+     [
+      "GPT-5.6 Luna",
+      "50 public PRs",
+      "69 verified bugs, 74% precision; toward 50% on auth code"
+     ],
+     [
+      "Open-weights stacks",
+      "Same subagent pattern",
+      "1/4 to 1/2 of what the Fable/Opus stack found"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Scorecards that rank reviewer models",
+    "num": "07",
+    "id": "scorecards-that-rank-reviewer-models"
+   }
+  ],
+  [
+   "p",
+   "The scorecard is the component nobody builds, and it decides every comparison. A dev.to analysis asks the blunt question: «Who decided a finding was a real bug?» Its answer is uncomfortable. «That single choice moves precision by more than the model choice does.» Read that twice before trusting any leaderboard."
+  ],
+  [
+   "p",
+   "Near-duplicates show how. A comment can be a true bug, a nit, a misreading or a repeat of a human's note. «The same model run could get 80% or 95% precision depending on whether the checker counts near-duplicates as hits.» So a precision figure without its labelling rule is a claim. The benchmark it examined used two judges, who agreed on 91% of findings."
+  ],
+  [
+   "p",
+   "Orbi's graders broke too. «A benchmark is software, and ours had bugs.» One grader enforced a changelog rule upstream never followed. The fix is a calibration step: «before a grader scores anything, show it failing the known-bad version and passing the known-good one». We'd make that a test that runs before every comparison."
+  ],
+  [
+   "p",
+   "Count by severity, as well. A reviewer that posts more lows looks better on a bug count and worse in a real queue. We think an honest scorecard reports critical, high and medium findings separately, with the judge named beside them. Anything else ranks volume."
+  ],
+  [
+   "h2",
+   {
+    "text": "A sandbox around the reviewer",
+    "num": "08",
+    "id": "a-sandbox-around-the-reviewer"
+   }
+  ],
+  [
+   "p",
+   "The sandbox layer controls what a reviewer can see and which model really answers. Orbi learned the first part the hard way. In one run, «a reviewer once looked up the real upstream fix». In another, a review found an old cross-reference that gave the answer away. Both runs measured lookup. Neither measured review."
+  ],
+  [
+   "p",
+   "Their fix was narrow and right. From then on, every held-out run went through git and GitHub wrappers that only reach the benchmark's own repositories. A wrapper is a thin program that stands in for a real tool and limits what it can touch. Production reviewers need the same fence."
+  ],
+  [
+   "p",
+   "Model pinning is the second wall. The Opus 5.5 guide on dev.to warns that in Claude apps and Claude Code, «most flagged messages do not get refused». Instead, «They get silently routed to an older model, and your work just continues there, usually without you noticing.» For security review, the guide's advice is to set that switch to ask-first."
+  ],
+  [
+   "p",
+   "We'd log the model that produced every finding, right beside the finding. «Getting silently downgraded mid-session is the kind of failure you can spend hours not noticing.» A comment from the wrong model looks exactly like one from the right model. Only the log tells them apart."
+  ],
+  [
+   "h2",
+   {
+    "text": "The human owner at the merge",
+    "num": "09",
+    "id": "the-human-owner-at-the-merge"
+   }
+  ],
+  [
+   "p",
+   "The human owner is the last layer, and the one the others exist to serve. The dev.to analysis of review benchmarks lands on the same point: «It is a verify step a human owns.» Not a better benchmark. A person who can say no."
+  ],
+  [
+   "p",
+   "One engineering blog shows what that owner catches. Its author built a newsletter feature by voice with GPT-6 Astra High, then moved to the keyboard. «I reviewed the code in the GitHub PR interface.» The code worked locally. «It was nearly what I needed, except it had chosen to use Git in a subprocess for one of the import scripts.»"
+  ],
+  [
+   "p",
+   "That catch needed context no reviewer had. One import had to read a private repository in production, so the author swapped Git for an API call. The owner's job is that kind of judgement. Make it cheap. The Opus 5.5 guide suggests ending every run with three headings: «Blocked on me, Changed, Found»."
+  ],
+  [
+   "p",
+   "Order the queue for the owner. Critical findings come first, with evidence attached. Lows wait in a digest. The model that wrote each comment is named beside it. If the owner has to dig, the earlier layers failed at their real job: making the human's review short."
+  ],
+  [
+   "h2",
+   {
+    "text": "Design judgement above the diff",
+    "num": "10",
+    "id": "design-judgement-above-the-diff"
+   }
+  ],
+  [
+   "p",
+   "The failure this pattern still doesn't contain is design. The maximalist reviewer from Hacker News gives its design agent the strongest setting available. Its job is «the kind of high level tech design review that AI notoriously can't do well». A diff shows lines. A design flaw lives in what those lines assume."
+  ],
+  [
+   "p",
+   "Validators can't fix this. They test a finding against code and inputs. A design question has no failing input. Should this import use Git or an API? Should this cache exist at all? The same commenter adds «I also think review is about A LOT more than» finding bugs, and we agree."
+  ],
+  [
+   "p",
+   "Orbi's write-up shows a cousin of the problem. Their own harness text carried an example that was wrong for one project and steered the agent wrong. «Rules about a repository should come from the repository's own tools.» Design rules mostly live in people's heads. No tool can run them."
+  ],
+  [
+   "p",
+   "So the owner still carries design, mostly unaided. We see no layer in any of these setups that contains it. The honest move is to say so in the review itself. Mark design as unreviewed by the model, and hand it to a person who knows why the system looks the way it does."
+  ],
+  [
+   "h2",
+   {
+    "text": "Pattern versus anti-pattern",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Fix to a secret redactor or parser",
+      "The issue's example passes while untested inputs leak",
+      "Generate inputs across classes and compare against an oracle the patch did not write",
+      "Full oracle layer with a strong validator model"
+     ],
+     [
+      "Ordinary local bug fix",
+      "The stronger harness cost more tokens and time and bought nothing measurable",
+      "Keep the light harness plus a pre-PR model review",
+      "Original harness with a mid-tier reviewer"
+     ],
+     [
+      "Auth and permission logic",
+      "One cheap model's precision fell toward 50% on this code",
+      "Critical-domain reviewer plus an adversarial validator",
+      "Strongest available model at high effort"
+     ],
+     [
+      "Audit across many services",
+      "Parallel reviewers multiply findings and false alarms",
+      "One subagent per service, with evidence checked before acceptance",
+      "Orchestrator plus read-only validators"
+     ],
+     [
+      "Reviewing code one model family wrote",
+      "A same-family reviewer may read its habits better; the cause is unproven",
+      "Score reviewers from two families on your own PRs",
+      "Cross-family reviewer pair"
+     ],
+     [
+      "Security review in a chat tool",
+      "Flagged sessions can move silently to an older model",
+      "Set the switch to ask-first and log the model per finding",
+      "Pinned model with a per-finding log"
+     ],
+     [
+      "Comparing reviewer models",
+      "The labelling rule moves precision more than the model does",
+      "Two judges, a stated protocol and counts by severity",
+      "Your own PRs with calibrated graders"
+     ],
+     [
+      "Feature built end to end by an agent",
+      "Works locally but misses production context",
+      "A human owner reviews the PR before the merge",
+      "Human owner at the merge"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is the best AI model for code review?"
+  ],
+  [
+   "p",
+   "No single model wins every review; engineers' reports favour the strongest Claude and GPT tiers for critical code. One Hacker News commenter says «Right now, Fable 5.1 delivers incredible reviews.» Another found that «GPT 6 Sol still beat Opus 5.5 on code review (of GPT written code in this case)». Test candidates on your own pull requests, scored by severity."
+  ],
+  [
+   "h3",
+   "Can AI replace human code review?"
+  ],
+  [
+   "p",
+   "Not yet; the pattern that holds up keeps a human owner at the merge. A dev.to analysis of review benchmarks closes on «It is a verify step a human owns.» Models catch real bugs, but they miss context, such as whether an import must reach a private repository in production. Make the human's review short, never optional."
+  ],
+  [
+   "h3",
+   "How do you reduce false positives in AI code review?"
+  ],
+  [
+   "p",
+   "Add an adversarial validator that tries to refute each finding, then rank the survivors by severity. One Hacker News engineer runs «adversarial validator passes against all findings» on their strongest model. Ask for evidence on every comment, send lows and nitpicks to a digest, and block a merge only on critical findings."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "xqliu",
+   "what": "Searching for orbis harness part 1 what our reviewer missed",
+   "url": "https://dev.to/xqliu/searching-for-orbis-harness-part-1-what-our-reviewer-missed-1n0f",
+   "posted": "2026-10-05"
+  },
+  {
+   "n": 2,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49703003",
+   "posted": "2026-09-15"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "jamilxt",
+   "what": "Stop saying think step by step what addy osmanis opus 55 prompting guide actually says",
+   "url": "https://dev.to/jamilxt/stop-saying-think-step-by-step-what-addy-osmanis-opus-55-prompting-guide-actually-says-17da",
+   "posted": "2026-10-04"
+  },
+  {
+   "n": 4,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49896975",
+   "posted": "2026-09-29"
+  },
+  {
+   "n": 5,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49938521",
+   "posted": "2026-10-03"
+  },
+  {
+   "n": 6,
+   "platform": "dev.to",
+   "who": "tessainsley",
+   "what": "Counting bugs is the hard part of comparing ai review tools",
+   "url": "https://dev.to/tessainsley/counting-bugs-is-the-hard-part-of-comparing-ai-review-tools-1cm1",
+   "posted": "2026-09-16"
+  },
+  {
+   "n": 7,
+   "platform": "an engineering blog",
+   "who": "simonwillison.net",
+   "what": "Built using my voice",
+   "url": "https://simonwillison.net/2026/Oct/9/built-using-my-voice/",
+   "posted": "2026-10-09"
+  }
+ ],
+ "cite": {
+  "The review ran the tests and checked the issue's example, which passed.": 1,
+  "The regressions sat in inputs nobody tried.": 1,
+  "finding really impressive issues that humans just don't have the attention span to track down.": 2,
+  "the harness moved the numbers far more than any model swap": 1,
+  "Run a model review before the human review.": 3,
+  "internal code review tool that is a bit maximalist": 2,
+  "a final agent at the top orchestrating and combining": 2,
+  "Opus medium for less critical tickets/domains, Fable 5.1 high for critical domains": 2,
+  "Give each service to its own subagent. When a subagent reports back, check its evidence before you accept it.": 3,
+  "each one can eat 25-33% of my 5 hour limit": 2,
+  "the biggest limit here isn't the price difference": 2,
+  "the cost to the business for shipping lower quality": 2,
+  "these agents can find endless reams of lows and nitpicks that are just ~worthless hardening": 2,
+  "I also use adversarial validator passes against all findings.": 2,
+  "how many critical/high/medium's each test found": 2,
+  "One agent writes the fix, another reviews it, and the loop runs until the review passes.": 1,
+  "Ask an agent to look for regressions and you get the ones it already expects.": 1,
+  "An oracle written from the fix proves nothing.": 1,
+  "Inputs have to be generated by a program, across whole classes of values.": 1,
+  "Cross-check two references and say which one you believe.": 1,
+  "Right now, Fable 5.1 delivers incredible reviews. Opus 5 delivers good reviews.": 2,
+  "open weights models find between 1/4 to 1/2 of what Fable/Opus stack can find, and often miss the most critical issues": 2,
+  "GPT 6 Sol still beat Opus 5.5 on code review (of GPT written code in this case)": 4,
+  "Opus 5.5 is better in that regard than Fable 5.1 except for some bugs with more complexity": 4,
+  "whatever I think is wrong is almost certainly right": 5,
+  "Who decided a finding was a real bug?": 6,
+  "That single choice moves precision by more than the model choice does.": 6,
+  "The same model run could get 80% or 95% precision depending on whether the checker counts near-duplicates as hits.": 6,
+  "A benchmark is software, and ours had bugs.": 1,
+  "before a grader scores anything, show it failing the known-bad version and passing the known-good one": 1,
+  "a reviewer once looked up the real upstream fix": 1,
+  "most flagged messages do not get refused": 3,
+  "They get silently routed to an older model, and your work just continues there, usually without you noticing.": 3,
+  "Getting silently downgraded mid-session is the kind of failure you can spend hours not noticing.": 3,
+  "It is a verify step a human owns.": 6,
+  "I reviewed the code in the GitHub PR interface.": 7,
+  "It was nearly what I needed, except it had chosen to use Git in a subprocess for one of the import scripts.": 7,
+  "Blocked on me, Changed, Found": 3,
+  "the kind of high level tech design review that AI notoriously can't do well": 2,
+  "I also think review is about A LOT more than": 2,
+  "Rules about a repository should come from the repository's own tools.": 1,
+  "Right now, Fable 5.1 delivers incredible reviews.": 2,
+  "adversarial validator passes against all findings": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:20:06+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_2a285c28428a0fd8",
+   "thread_context_32f03da6472b26c3",
+   "thread_context_1bdae3620d717458",
+   "thread_context_7d51dc5ab8d19f55",
+   "thread_context_019b2086de5b7ea1",
+   "thread_context_b807c8e899164701",
+   "thread_context_2a666df7dd74e290",
+   "thread_context_75dd63e95c10f82b",
+   "thread_context_6fae1acd520d51fc",
+   "thread_context_fb986e273cbeddde"
+  ],
+  "platforms": {
+   "Hacker News": 3,
+   "dev.to": 3,
+   "X": 3,
+   "an engineering blog": 1
+  },
+  "embedded": 3,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "architecture-pattern:capability/code-review",
+  "format": "architecture-pattern",
+  "reviewed_by": null
+ }
+}

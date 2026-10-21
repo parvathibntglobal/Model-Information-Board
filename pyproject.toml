@@ -16,6 +16,7 @@ dependencies = [
   "datasketch>=1.6",       # MinHash + LSH for short-document dedupe
   "simhash>=2.1",          # long-form dedupe
   "feedparser>=6.0",       # blog RSS
+  "boto3>=1.34",           # the shared raw store: an S3-compatible bucket (collect/rawstore_remote.py)
 
   # PINNED TO A MAJOR. Extraction output is load-bearing for quote
   # verification and offset stability: `thread_context.offset_map` maps
@@ -32,6 +33,11 @@ dependencies = [
   # WHICH version produced a given flattened text, proposed for
   # `thread_context` on issue #5.
   "trafilatura>=2.2,<3",   # blog article text extraction
+  # Blog pictures: resize, JPEG-encode, and cut a 2x2 grid into four panels
+  # (generate_sample_blogs.split_panels). Undeclared until 2026-10-14, when
+  # CI - which installs from scratch - failed to import it on #532; every
+  # laptop that had run the generator already had it installed (12.1.1).
+  "pillow>=10",
 ]
 
 [project.optional-dependencies]
@@ -79,6 +85,14 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# THE BLOG GENERATOR'S PROMPTS ARE LONG PROSE STRINGS (system prompts, banned-
+# phrase patterns, format instructions). 187 of its lines exceed 100 characters,
+# nearly all inside those strings; rewrapping them changes nothing a reader of
+# the code needs and makes every prompt edit a diff of line breaks. E501 only,
+# and only this file - every other rule still applies to it. 2026-10-05, #503.
+"generate_sample_blogs.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

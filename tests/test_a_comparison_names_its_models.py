@@ -112,38 +112,39 @@ class TestThePageDoesNotPrintADatabaseIdAtTheReader:
         A check that silently changes what it covers is worse than one that
         covers less, because it keeps passing either way.
         """
-        heads = _theads(jsx(COMPARE))
-        assert len(heads) >= 2, (
-            f"expected a header on both compare tables, found {len(heads)}"
-        )
+        # ⚠ NO <thead> SINCE 2026-10-19: the shared-axes table came off and
+        # both tables now are grids whose header is a `st-th` row. The check
+        # moves with them and still covers every header there is - a check
+        # that silently stops covering a table is the defect this docstring
+        # describes.
+        src = jsx(COMPARE)
+        heads = [h.split("</div>")[0] for h in src.split('className="st-tr st-th"')[1:]]
+        assert len(heads) >= 2, f"expected the scores and specs headers, found {len(heads)}"
         for i, head in enumerate(heads):
-            assert "m.canonical_id &&" in head, (
-                f"table {i} names its models without the provider's id"
+            assert "shortName(m.display_name)" in head, f"grid header {i} does not name its models"
+            assert ">{m.model_version_id}" not in head, (
+                f"grid header {i} prints the internal database id at the reader"
             )
-            assert "m.model_version_id}" + chr(10) not in head, (
-                f"table {i} prints the internal database id at the reader"
-            )
+        assert "_theads" in globals()  # the <thead> reader stays for any table that returns
 
     def test_the_payload_carries_it(self):
         src = APP.read_text(encoding="utf-8")
         assert '"canonical_id": m.get("canonical_id"),' in src
 
 
-class TestTheProvidersSpecSheetIsNotOnThisPage:
-    def test_the_spec_block_is_gone_entirely(self):
-        """⚠ RENAMING IT WAS MY SECOND WRONG ANSWER. First I reworded the
-        heading, then I made the block conditional, and both kept a provider's
-        published numbers in a table beside counted reports.
-
-        This board's evidence comes from engineers writing about models they
-        used. A spec sheet is the one thing on the page nobody reported, and a
-        heading cannot hold that line — a table is a table, and the two halves
-        looked equally like findings."""
+class TestTheProvidersSpecSheetIsLabelled:
+    def test_the_spec_block_is_back_and_labelled(self):
+        """⚠ REVERSED 2026-10-19, at the product owner's request: price and
+        specs replace the metrics block. The reason it came off still stands -
+        a spec sheet beside counted reports reads as a finding - so what is
+        pinned now is the label that holds that line, below the scores and
+        apart from them, and that a missing value says so (rule 6)."""
         src = jsx(COMPARE)
-        assert "the provider's claim about itself" not in src
-        assert "Specification" not in src
-        for row in ("Cost per Mtok", "Context window", "Max output", "Cached read"):
-            assert row not in src, f"the spec row {row!r} is still rendered"
+        assert "function PriceAndSpecs" in src and "<PriceAndSpecs models={models} />" in src
+        assert "not measured here" in src
+        for row in ("Input price", "Output price", "Cached input", "Context window", "Max output"):
+            assert f"'{row}'" in src, f"the spec row {row!r} is missing"
+        assert src.index("<CategoryScores") < src.index("<PriceAndSpecs")
 
     def test_the_advertised_data_is_still_in_the_payload(self):
         """Removed from the page, not from the API. The model pages still
@@ -223,37 +224,36 @@ class TestARowWhereEveryCellIsIdenticalIsNotARow:
 
 
 class TestHowAReportWasPhrasedIsCountedSeparately:
-    def test_the_three_counts_are_rendered(self):
+    """Since 2026-10-15 the three counts are on the head-to-head cards and the
+    shared-sections table, not on the counted table that came off the page."""
+
+    def _head_to_head(self):
         src = jsx(COMPARE)
-        assert "How it was phrased" in src
-        for word in ("negative", "positive", "neutral"):
-            assert word in src
+        return src[src.index("function HeadToHead"):src.index("function StickyNames")]
+
+    def test_the_three_counts_are_rendered(self):
+        block = self._head_to_head()
+        assert "positive: pol.positive" in block and "negative: pol.negative" in block
+        assert "neutral: pol.neutral" in block
 
     def test_no_ratio_net_or_score_is_computed(self):
-        """⚠ RULE 3, AND THIS IS EXACTLY WHERE IT WOULD BREAK. A net score, a
-        percentage positive or a "sentiment" figure is the 0-100 capability
-        number this board refuses to compute — and it would pick a winner from
-        a count of sentences."""
-        src = jsx(COMPARE)
-        block = src[src.index("How it was phrased"):src.index("— out of")]
-        # ⚠ ARITHMETIC ON THE COUNTS, NOT RAW CHARACTERS. The first version of
-        #   this test banned "/" and failed on every JSX closing tag, which is
-        #   mention-versus-use in a new costume: it searched for the shape of
-        #   the defect instead of the defect.
+        """⚠ RULE 3. A net score, a percentage positive or a "sentiment" figure
+        is the 0-100 number this board refuses to compute - it would pick a
+        winner from a count of sentences."""
+        block = self._head_to_head()
         for banned in ("Math.round", "toFixed", "* 100", "reduce("):
             assert banned not in block, f"a figure is being derived with {banned!r}"
         for field in ("positive", "negative", "neutral", "entries"):
             for op in ("/", "*", "+", "-"):
-                assert f"p.{field} {op}" not in block, (
-                    f"p.{field} is being combined with {op!r} — that is a score"
+                assert f"pol.{field} {op}" not in block, (
+                    f"pol.{field} is being combined with {op!r} - that is a score"
                 )
 
     def test_the_denominator_travels_with_the_counts(self):
-        """Rule 7. Entries are not people — one document can produce several,
-        so "74 negative" means nothing without both numbers."""
-        src = jsx(COMPARE)
-        assert "entries, from " in src
-        assert "documents}" in src
+        """Rule 7. Entries are not people - one post can produce several - so
+        the card carries the entries and the posts they came from."""
+        block = self._head_to_head()
+        assert "split.total" in block and "pol.documents" in block
 
     def test_declined_entries_are_not_counted(self):
         """A reviewer has ruled them off the board; counting them would put

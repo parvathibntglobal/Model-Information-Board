@@ -119,3 +119,36 @@ _before_rollup.json
 # JSON at the root is the #428 shape.
 column-audit.json
 api-fields.json
+
+# REMOVED FROM THE REPOSITORY 2026-10-08: harvested platform content and
+# personal data (Reddit quotes/titles/links, GitHub handles, email addresses).
+# The scripts that write them still default to these names, so they are
+# ignored here to stop a re-run committing them again. Old copies remain in
+# git history (team decision 2026-10-08: no rewrite, repository stays public).
+/_github_comments.json
+/_github_shape_experiment.json
+/classification.jsonl
+/classification_withheld.jsonl
+/model_only_sweep.jsonl
+/model_only_sweep_corrected.jsonl
+
+# GENERATED BLOG POSTS (2026-10-14; reworded 2026-10-16 by anooj).
+#
+# blog_posts/  The generator writes a post file into the checkout it runs from,
+#              on every run. The directory stays ignored so a run never stages
+#              one by accident. Posts ARE committed, on purpose and by name
+#              (`git add -f blog_posts/<slug>.json`), once they are written.
+#              That includes posts carrying Reddit or X embeds: the
+#              official-embed form was agreed on 2026-10-13
+#              (contract/publication.yaml derived_posts.embed_only). An embed is
+#              the platform's own post address, rendered by the platform's own
+#              script; no Reddit or X text is quoted in our prose. The database
+#              (blog_post) remains the source of truth for each post's state:
+#              pending, approved or rejected.
+#
+# blog_packs/  NEVER committed. A writing pack holds the full text of every
+#              source discussion the post was written from (Reddit and X
+#              threads included), which is harvested platform content, not
+#              something we publish.
+blog_posts/
+blog_packs/

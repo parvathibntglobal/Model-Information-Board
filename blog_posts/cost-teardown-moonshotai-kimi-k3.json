@@ -1,0 +1,743 @@
+{
+ "slug": "cost-teardown-moonshotai-kimi-k3",
+ "status": "draft",
+ "tag": "Cost teardown",
+ "feat": false,
+ "title": "Kimi K3's 25-Cent Pelican and the Hidden Price of Always-On Thinking",
+ "dek": "Kimi K3 thinks before every answer, and you pay output rates for every thought. Here is what moves the bill, from cache discounts to copied launcher scripts, and the levers that pull it back.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Kimi K3 review in one line: it thinks on every request and you pay output rates for that thinking, so cache your context, cap the output and send routine loop steps to a cheaper model.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+Cjx0aXRsZT5UaGUgYW5zd2VyIGlzIHRoZSB0aXAgb2YgdGhlIGJpbGw8L3RpdGxlPgo8ZGVzYz5BIHNtYWxsIGJsb2NrIG9mIGFuc3dlciB0b2tlbnMgcmlzZXMgYWJvdmUgYSB3YXRlcmxpbmU7IGJlbG93IGl0IHNpdHMgYSBmYXIgbGFyZ2VyIGJsb2NrIG9mIGhpZGRlbiB0aGlua2luZyB0b2tlbnMsIGRyYXduIHRvIHNjYWxlIGZyb20gMyw0MTcgYW5zd2VyIHRva2VucyBhbmQgMTMsMjQxIHJlYXNvbmluZyB0b2tlbnMsIGFuZCBhIGJyYWNrZXQgbWFya3MgYm90aCBhcyBiaWxsZWQgYXMgb3V0cHV0LjwvZGVzYz4KPGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJzZWEiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4yMCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjAzIi8+PC9saW5lYXJHcmFkaWVudD48cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZTNiMzQxIiBzdG9wLW9wYWNpdHk9IjAuMzAiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSJnbG93MiIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48L2RlZnM+CjxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCIgZmlsbD0idXJsKCNiZykiLz4KPHJlY3QgeD0iMCIgeT0iMTk2IiB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI0MzQiIGZpbGw9InVybCgjc2VhKSIvPgo8ZWxsaXBzZSBjeD0iNjAwLjAiIGN5PSIzNzAuNCIgcng9IjMzMCIgcnk9IjIzNC40IiBmaWxsPSJ1cmwoI2dsb3cpIi8+CjxlbGxpcHNlIGN4PSI2MDAuMCIgY3k9IjE1MS4wIiByeD0iMjYwIiByeT0iMTEwIiBmaWxsPSJ1cmwoI2dsb3cyKSIvPgo8cmVjdCB4PSI0MzAiIHk9IjE5NiIgd2lkdGg9IjM0MCIgaGVpZ2h0PSIzNDguOCIgcng9IjE2IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjEwIi8+CjxyZWN0IHg9IjQzMCIgeT0iMTk2IiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjM0OC44IiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjg1Ii8+CjxyZWN0IHg9IjQ1MCIgeT0iMjE0IiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI0OTYiIHk9IjIxNCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNTI2IiB5PSIyMTQiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTU2IiB5PSIyMTQiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjU4NiIgeT0iMjE0IiB3aWR0aD0iMjIiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI2MTYiIHk9IjIxNCIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNjcwIiB5PSIyMTQiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjcwMCIgeT0iMjE0IiB3aWR0aD0iMjIiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI0NTAiIHk9IjIzMyIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNDg4IiB5PSIyMzMiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjU1MCIgeT0iMjMzIiB3aWR0aD0iNTQiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC41Ii8+CjxyZWN0IHg9IjYxMiIgeT0iMjMzIiB3aWR0aD0iMzAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI2NTAiIHk9IjIzMyIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI2ODgiIHk9IjIzMyIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNDUwIiB5PSIyNTIiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjQ5NiIgeT0iMjUyIiB3aWR0aD0iMzAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI1MzQiIHk9IjI1MiIgd2lkdGg9IjU0IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNTk2IiB5PSIyNTIiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjY0MiIgeT0iMjUyIiB3aWR0aD0iMjIiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI2NzIiIHk9IjI1MiIgd2lkdGg9IjU0IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNDUwIiB5PSIyNzEiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTEyIiB5PSIyNzEiIHdpZHRoPSI0NiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjU2NiIgeT0iMjcxIiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC41Ii8+CjxyZWN0IHg9IjYxMiIgeT0iMjcxIiB3aWR0aD0iMzAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI2NTAiIHk9IjI3MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNjgwIiB5PSIyNzEiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNDUwIiB5PSIyOTAiIHdpZHRoPSI0NiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTA0IiB5PSIyOTAiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjUzNCIgeT0iMjkwIiB3aWR0aD0iNDYiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI1ODgiIHk9IjI5MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI2MjYiIHk9IjI5MCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNjU2IiB5PSIyOTAiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjQ1MCIgeT0iMzA5IiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI0OTYiIHk9IjMwOSIgd2lkdGg9IjU0IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI1NTgiIHk9IjMwOSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI1ODgiIHk9IjMwOSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNjE4IiB5PSIzMDkiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjY2NCIgeT0iMzA5IiB3aWR0aD0iNDYiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC41Ii8+CjxyZWN0IHg9IjQ1MCIgeT0iMzI4IiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI0OTYiIHk9IjMyOCIgd2lkdGg9IjM4IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNTQyIiB5PSIzMjgiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTcyIiB5PSIzMjgiIHdpZHRoPSIzMCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNjEwIiB5PSIzMjgiIHdpZHRoPSIzMCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNjQ4IiB5PSIzMjgiIHdpZHRoPSI0NiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjcwMiIgeT0iMzI4IiB3aWR0aD0iNDYiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC41Ii8+CjxyZWN0IHg9IjQ1MCIgeT0iMzQ3IiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI0OTYiIHk9IjM0NyIgd2lkdGg9IjU0IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI1NTgiIHk9IjM0NyIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI2MTIiIHk9IjM0NyIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNjY2IiB5PSIzNDciIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjY5NiIgeT0iMzQ3IiB3aWR0aD0iMzAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI0NTAiIHk9IjM2NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI0ODAiIHk9IjM2NiIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI1MTgiIHk9IjM2NiIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNTQ4IiB5PSIzNjYiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNjEwIiB5PSIzNjYiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNjcyIiB5PSIzNjYiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjQ1MCIgeT0iMzg1IiB3aWR0aD0iMjIiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC41Ii8+CjxyZWN0IHg9IjQ4MCIgeT0iMzg1IiB3aWR0aD0iNTQiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC41Ii8+CjxyZWN0IHg9IjU0MiIgeT0iMzg1IiB3aWR0aD0iNDYiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC41Ii8+CjxyZWN0IHg9IjU5NiIgeT0iMzg1IiB3aWR0aD0iNDYiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI2NTAiIHk9IjM4NSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNjgwIiB5PSIzODUiIHdpZHRoPSIzMCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNzE4IiB5PSIzODUiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNDUwIiB5PSI0MDQiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjQ4MCIgeT0iNDA0IiB3aWR0aD0iNTQiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI1NDIiIHk9IjQwNCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI1NzIiIHk9IjQwNCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNjAyIiB5PSI0MDQiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNjY0IiB5PSI0MDQiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNzEwIiB5PSI0MDQiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNDUwIiB5PSI0MjMiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNDgwIiB5PSI0MjMiIHdpZHRoPSI0NiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTM0IiB5PSI0MjMiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjU2NCIgeT0iNDIzIiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI2MTAiIHk9IjQyMyIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNjY0IiB5PSI0MjMiIHdpZHRoPSI1NCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjQ1MCIgeT0iNDQyIiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI0OTYiIHk9IjQ0MiIgd2lkdGg9IjU0IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNTU4IiB5PSI0NDIiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjYwNCIgeT0iNDQyIiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI2NTAiIHk9IjQ0MiIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI2ODgiIHk9IjQ0MiIgd2lkdGg9IjU0IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNDUwIiB5PSI0NjEiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjQ5NiIgeT0iNDYxIiB3aWR0aD0iNTQiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI1NTgiIHk9IjQ2MSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNjEyIiB5PSI0NjEiIHdpZHRoPSIzMCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjY1MCIgeT0iNDYxIiB3aWR0aD0iMzgiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI2OTYiIHk9IjQ2MSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI0NTAiIHk9IjQ4MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNDg4IiB5PSI0ODAiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTM0IiB5PSI0ODAiIHdpZHRoPSIzOCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTgwIiB5PSI0ODAiIHdpZHRoPSIzMCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjYxOCIgeT0iNDgwIiB3aWR0aD0iNDYiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4zNSIvPgo8cmVjdCB4PSI2NzIiIHk9IjQ4MCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI0NTAiIHk9IjQ5OSIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI0ODAiIHk9IjQ5OSIgd2lkdGg9IjM4IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNTI2IiB5PSI0OTkiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTU2IiB5PSI0OTkiIHdpZHRoPSIzMCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjUiLz4KPHJlY3QgeD0iNTk0IiB5PSI0OTkiIHdpZHRoPSI0NiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjY0OCIgeT0iNDk5IiB3aWR0aD0iMjIiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI2NzgiIHk9IjQ5OSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNSIvPgo8cmVjdCB4PSI0NTAiIHk9IjUxOCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNDgwIiB5PSI1MTgiIHdpZHRoPSIzMCIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjM1Ii8+CjxyZWN0IHg9IjUxOCIgeT0iNTE4IiB3aWR0aD0iMzAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI1NTYiIHk9IjUxOCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNhNzhiZmEiIG9wYWNpdHk9IjAuNjUiLz4KPHJlY3QgeD0iNTk0IiB5PSI1MTgiIHdpZHRoPSI0NiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjY0OCIgeT0iNTE4IiB3aWR0aD0iMzAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC42NSIvPgo8cmVjdCB4PSI2ODYiIHk9IjUxOCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMzUiLz4KPHJlY3QgeD0iNzI0IiB5PSI1MTgiIHdpZHRoPSIyMiIgaGVpZ2h0PSI5IiByeD0iNC41IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjY1Ii8+CjxyZWN0IHg9IjQzMCIgeT0iMTA2IiB3aWR0aD0iMzQwIiBoZWlnaHQ9IjkwIiByeD0iMTYiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMjIiLz4KPHJlY3QgeD0iNDMwIiB5PSIxMDYiIHdpZHRoPSIzNDAiIGhlaWdodD0iOTAiIHJ4PSIxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiLz4KPHJlY3QgeD0iNDU0IiB5PSIxMjQiIHdpZHRoPSIyMTAiIGhlaWdodD0iMTAiIHJ4PSI1IiBmaWxsPSIjZThlZGY1IiBvcGFjaXR5PSIwLjkiLz4KPHJlY3QgeD0iNDU0IiB5PSIxNDYiIHdpZHRoPSIyNjAiIGhlaWdodD0iMTAiIHJ4PSI1IiBmaWxsPSIjZThlZGY1IiBvcGFjaXR5PSIwLjciLz4KPHJlY3QgeD0iNDU0IiB5PSIxNjgiIHdpZHRoPSIxNTAiIGhlaWdodD0iMTAiIHJ4PSI1IiBmaWxsPSIjZThlZGY1IiBvcGFjaXR5PSIwLjUiLz4KPHBhdGggZD0iTTAsMTk2IFEzMCwxODkgNjAsMTk2IFQxMjAsMTk2IFExNTAsMTg5IDE4MCwxOTYgVDI0MCwxOTYgUTI3MCwxODkgMzAwLDE5NiBUMzYwLDE5NiBRMzkwLDE4OSA0MjAsMTk2IFQ0ODAsMTk2IFE1MTAsMTg5IDU0MCwxOTYgVDYwMCwxOTYgUTYzMCwxODkgNjYwLDE5NiBUNzIwLDE5NiBRNzUwLDE4OSA3ODAsMTk2IFQ4NDAsMTk2IFE4NzAsMTg5IDkwMCwxOTYgVDk2MCwxOTYgUTk5MCwxODkgMTAyMCwxOTYgVDEwODAsMTk2IFExMTEwLDE4OSAxMTQwLDE5NiBUMTIwMCwxOTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiIG9wYWNpdHk9IjAuNyIvPgo8dGV4dCB4PSI0MDAiIHk9IjE2NS4wIiB0ZXh0LWFuY2hvcj0iZW5kIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSI0MCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2U4ZWRmNSI+YW5zd2VyPC90ZXh0Pgo8dGV4dCB4PSI0MDAiIHk9IjM4NC40IiB0ZXh0LWFuY2hvcj0iZW5kIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSI0MCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2UzYjM0MSI+dGhpbmtpbmc8L3RleHQ+CjxwYXRoIGQ9Ik04MTAsMTA2IGgxOCBWNTQ0LjggaC0xOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPGxpbmUgeDE9IjgyOCIgeTE9IjMyNS40IiB4Mj0iODUwIiB5Mj0iMzI1LjQiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0Ii8+Cjx0ZXh0IHg9Ijg2NiIgeT0iMzE5LjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0MCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+YmlsbGVkIGFzPC90ZXh0Pgo8dGV4dCB4PSI4NjYiIHk9IjM2Ny40IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlM2IzNDEiPm91dHB1dDwvdGV4dD4KPC9zdmc+",
+  "alt": "A small answer block above a waterline over a far larger thinking block below, drawn to scale, both bracketed as output.",
+  "caption": "The pelican request drawn to scale: the visible answer is the tip, and the hidden thinking under it bills at the same output rate.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "Kimi K3 review of the bill: always-on reasoning billed as output, cache discounts, long outputs and flat plans, with the lever that cuts each cost.",
+ "keywords": [
+  "Kimi K3 review",
+  "Kimi K3 pricing",
+  "is Kimi K3 good for coding",
+  "Kimi K3 in production",
+  "Kimi K3 alternatives",
+  "Kimi K3 reasoning tokens"
+ ],
+ "kicker": "Cost teardown",
+ "tags": [
+  "Kimi K3",
+  "Cost teardown"
+ ],
+ "read": 10,
+ "decisions": [
+  "Budget Kimi K3 by reasoning tokens per task, not by answer length.",
+  "Set effort explicitly in every launcher and watch the first hour of spend.",
+  "Keep the prompt prefix identical so repeats bill at the cached rate.",
+  "Reserve K3 for planning and review; run the bulk of the loop on a cheaper model.",
+  "Cap output tokens on every agent step."
+ ],
+ "layout": "ledger",
+ "arrangement": "b",
+ "special": {
+  "type": "drivers",
+  "title": "Cost drivers",
+  "items": [
+   {
+    "driver": "Always-on reasoning",
+    "mechanism": "K3 thinks before every answer and every reasoning token bills as output; one request used 13,241 reasoning tokens for a 3,417-token answer.",
+    "lever": "Send routine requests to a model you can run without thinking, and log reasoning tokens per task."
+   },
+   {
+    "driver": "Effort left at maximum",
+    "mechanism": "A copied launcher script set effort to max, and the bill passed 50 bucks within 3-4 hours.",
+    "lever": "Set effort explicitly where your provider accepts it, and watch the first hour of spend."
+   },
+   {
+    "driver": "Uncached repeated context",
+    "mechanism": "Agents resend the system prompt, files and history on every step, billed as fresh input when the cache misses.",
+    "lever": "Keep the prefix identical so repeats bill as cache hits, at a 90% discount on Moonshot's published rates."
+   },
+   {
+    "driver": "Long outputs",
+    "mechanism": "Output defaults to 131K tokens and can be configured up to 1M, all at the output rate.",
+    "lever": "Cap output per call, as the GitHub example does at 2,048 tokens."
+   },
+   {
+    "driver": "One model for every step",
+    "mechanism": "Implementation steps produce long output at K3's output price.",
+    "lever": "Keep K3 for the hardest tasks and run the bulk of the loop on GLM-5.2 or DeepSeek V4 Pro."
+   },
+   {
+    "driver": "Premium tier on flat plans",
+    "mechanism": "K3 crosses the premium threshold and draws from a small weekly allowance.",
+    "lever": "Ration K3 to the steps that need it, or pay as you go in heavy weeks."
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~10 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Reasoning tokens billed at the output rate",
+    "num": "01",
+    "id": "reasoning-tokens-billed-at-the-output-rate"
+   }
+  ],
+  [
+   "p",
+   "One cartoon of a pelican on a bicycle cost 25 cents on Kimi K3's launch day. A dev.to roundup gives the split. The model burned 13,241 reasoning tokens before writing a 3,417-token answer. Reasoning tokens are the private scratch work a model does before it replies. You see little of it. You pay for all of it."
+  ],
+  [
+   "p",
+   "That is the mechanism behind every K3 bill. The roundup puts it bluntly: «K3 always thinks. There is no non-thinking variant.» Every one of those hidden tokens is billed as output. Output is the expensive side of the rate card. So a short question can still carry a long, pricey thought."
+  ],
+  [
+   "p",
+   "We went through the roundup's pricing argument line by line, and its core claim holds. «The visible answer you get back is a fraction of what you actually pay for», it says. The pelican shows the gap in a single request. The launch-day verdict it quotes: «This is expensive. The pelican cost 25 cents.»"
+  ],
+  [
+   "p",
+   "We think this changes how you should read the rate card. For short prompts the input price barely matters. What you send is small; what K3 thinks is large. Budget by reasoning tokens per task, and log them from day one. Answer length tells you almost nothing about the bill."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Tokens Kimi K3 spent on one pelican-drawing request on launch day, as a dev.to roundup reports it.",
+    "unit": "tokens in one request",
+    "bars": [
+     {
+      "label": "Hidden reasoning",
+      "value": 13241.0
+     },
+     {
+      "label": "Visible answer",
+      "value": 3417.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "The effort setting and the copied launcher script",
+    "num": "02",
+    "id": "the-effort-setting-and-the-copied-launcher-script"
+   }
+  ],
+  [
+   "p",
+   "Reasoning effort is the setting that tells a thinking model how hard to work. On K3, accounts disagree about whether you can turn it down. The dev.to roundup says effort «is locked to maximum, and every one of those reasoning tokens bills as output». It contrasts K3 with a rival that ships an effort dial."
+  ],
+  [
+   "p",
+   "A Hacker News commenter tells a different story, and an expensive one. They signed up, and «within 3-4 hours spent over 50 bucks on my personal project». The cause was a default they never noticed: the «launcher script I copied from an example had set effort to max». A setting a script can raise is a setting that exists."
+  ],
+  [
+   "quote",
+   "Will have to watch cost carefully though."
+  ],
+  [
+   "p",
+   "A GitHub bug report adds a third data point. Its example calls K3 on Fireworks with `reasoning_effort=\"medium\"` and a 2,048-token output cap. The report is about a different bug. So it never says whether medium effort cut the token count, only that the call ran."
+  ],
+  [
+   "p",
+   "Where do we stand? We're not convinced effort is locked on every path. The evidence favours a setting that some providers and harnesses expose, with no measured saving yet. Treat it as a lever to test, never a given. Set it explicitly in every launcher, and watch the first hour of spend."
+  ],
+  [
+   "h2",
+   {
+    "text": "Repeated context and the cached-input discount",
+    "num": "03",
+    "id": "repeated-context-and-the-cached-input-discount"
+   }
+  ],
+  [
+   "p",
+   "Caching is the cheapest lever on a K3 bill, if your host honours it. A provider that caches keeps a copy of a prompt prefix you resend and bills it at a lower rate. One gateway's dev.to write-up lists prompt caching for K3 «at a 90% discount on repeated input»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY4MCI+Cjx0aXRsZT5XaGF0IG9uZSBhZ2VudCBzdGVwIGlzIGJpbGxlZCBhdDwvdGl0bGU+CjxkZXNjPk9uZSBhZ2VudCByZXF1ZXN0IGRyYXduIGFzIGxheWVyczogc3lzdGVtIHByb21wdCwgdG9vbCBsaXN0LCBmaXhlZCBmaWxlcyBhbmQgaGlzdG9yeSBhdCB0aGUgY2FjaGVkIHJhdGUsIHRoZSBuZXcgdHVybiBhcyBmcmVzaCBpbnB1dCwgYW5kIHJlYXNvbmluZyBwbHVzIGFuc3dlciBhdCB0aGUgb3V0cHV0IHJhdGUuIE9uIHRoZSByaWdodCwgYSB0aW1lc3RhbXAgaW5zZXJ0ZWQgaW50byB0aGUgcHJlZml4IHR1cm5zIHRoZSBzYW1lIGxheWVycyBpbnRvIGZyZXNoIGlucHV0LjwvZGVzYz4KPGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPjwvbGluZWFyR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjIyIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50PjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjgwIiBmaWxsPSJ1cmwoI2JnKSIvPgo8ZWxsaXBzZSBjeD0iMzAwIiBjeT0iMjAwIiByeD0iMzAwIiByeT0iMjIwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CjxyZWN0IHg9IjkwIiB5PSI2MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI1MCIgcng9IjEyIiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjE4Ii8+CjxyZWN0IHg9IjkwIiB5PSI2MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI1MCIgcng9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMi41Ii8+Cjx0ZXh0IHg9IjExMiIgeT0iOTQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+c3lzdGVtIHByb21wdDwvdGV4dD4KPHJlY3QgeD0iOTAiIHk9IjEyMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI1MCIgcng9IjEyIiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjE4Ii8+CjxyZWN0IHg9IjkwIiB5PSIxMjAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIHJ4PSIxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8dGV4dCB4PSIxMTIiIHk9IjE1NCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij50b29sIGxpc3Q8L3RleHQ+CjxyZWN0IHg9IjkwIiB5PSIxODAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIHJ4PSIxMiIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4xOCIvPgo8cmVjdCB4PSI5MCIgeT0iMTgwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjUwIiByeD0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPHRleHQgeD0iMTEyIiB5PSIyMTQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+Zml4ZWQgZmlsZXM8L3RleHQ+CjxyZWN0IHg9IjkwIiB5PSIyNDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIHJ4PSIxMiIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4xOCIvPgo8cmVjdCB4PSI5MCIgeT0iMjQwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjUwIiByeD0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPHRleHQgeD0iMTEyIiB5PSIyNzQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+aGlzdG9yeTwvdGV4dD4KPHJlY3QgeD0iOTAiIHk9IjMwMCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI1MCIgcng9IjEyIiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjE4Ii8+CjxyZWN0IHg9IjkwIiB5PSIzMDAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIHJ4PSIxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8dGV4dCB4PSIxMTIiIHk9IjMzNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij5uZXcgdHVybjwvdGV4dD4KPGxpbmUgeDE9IjkwIiB5MT0iMzY4IiB4Mj0iNDUwIiB5Mj0iMzY4IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiA4Ii8+CjxyZWN0IHg9IjkwIiB5PSIzOTAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNTAiIHJ4PSIxMiIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4yMiIvPgo8cmVjdCB4PSI5MCIgeT0iMzkwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjUwIiByeD0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPHRleHQgeD0iMTEyIiB5PSI0MjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+cmVhc29uaW5nPC90ZXh0Pgo8cmVjdCB4PSI5MCIgeT0iNDUwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjUwIiByeD0iMTIiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMTIiLz4KPHJlY3QgeD0iOTAiIHk9IjQ1MCIgd2lkdGg9IjM2MCIgaGVpZ2h0PSI1MCIgcng9IjEyIiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMi41Ii8+Cjx0ZXh0IHg9IjExMiIgeT0iNDg0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPmFuc3dlcjwvdGV4dD4KPHBhdGggZD0iTTQ2OCw2MCBoMTQgVjI5MCBoLTE0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMy41IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjx0ZXh0IHg9IjQ5OCIgeT0iMTcxLjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzNlY2Y4ZSI+Y2FjaGVkIHJhdGU8L3RleHQ+Cjx0ZXh0IHg9IjQ5OCIgeT0iMjAzLjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+cmVzZW50IGVhY2ggc3RlcDwvdGV4dD4KPHBhdGggZD0iTTQ2OCwzMDAgaDE0IFYzNTAgaC0xNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMuNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8dGV4dCB4PSI0OTgiIHk9IjMzNC4wIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiM3YWEyZmYiPmZyZXNoIGlucHV0PC90ZXh0Pgo8cGF0aCBkPSJNNDY4LDM5MCBoMTQgVjUwMCBoLTE0IiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMy41IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjx0ZXh0IHg9IjQ5OCIgeT0iNDQxLjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2UzYjM0MSI+b3V0cHV0IHJhdGU8L3RleHQ+Cjx0ZXh0IHg9IjQ5OCIgeT0iNDczLjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCI+b24gZXZlcnkgc3RlcDwvdGV4dD4KPGxpbmUgeDE9Ijc3MCIgeTE9IjUwIiB4Mj0iNzcwIiB5Mj0iNjMwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgo8dGV4dCB4PSI4MjAiIHk9Ijc0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPk9uZSBlZGl0IHRvIHRoZSBwcmVmaXg8L3RleHQ+CjxyZWN0IHg9IjgyMCIgeT0iMTA0IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjUwIiByeD0iMTIiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuMTgiLz4KPHJlY3QgeD0iODIwIiB5PSIxMDQiIHdpZHRoPSIzMDAiIGhlaWdodD0iNTAiIHJ4PSIxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8dGV4dCB4PSI4NDIiIHk9IjEzOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij5zeXN0ZW0gcHJvbXB0PC90ZXh0Pgo8cmVjdCB4PSI4NjAiIHk9IjE2NiIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI0NCIgcng9IjIyIiBmaWxsPSIjZmY3YjcyIiBvcGFjaXR5PSIwLjE4Ii8+CjxyZWN0IHg9Ijg2MCIgeT0iMTY2IiB3aWR0aD0iMjIwIiBoZWlnaHQ9IjQ0IiByeD0iMjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9Ijk3MCIgeT0iMTk2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2ZmN2I3MiI+dGltZXN0YW1wPC90ZXh0Pgo8cmVjdCB4PSI4MjAiIHk9IjIyOCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI1MCIgcng9IjEyIiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjE0Ii8+CjxyZWN0IHg9IjgyMCIgeT0iMjI4IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjUwIiByeD0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPHRleHQgeD0iODQyIiB5PSIyNjIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+dG9vbCBsaXN0PC90ZXh0Pgo8cmVjdCB4PSI4MjAiIHk9IjI4OCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSI1MCIgcng9IjEyIiBmaWxsPSIjN2FhMmZmIiBvcGFjaXR5PSIwLjE0Ii8+CjxyZWN0IHg9IjgyMCIgeT0iMjg4IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjUwIiByeD0iMTIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4KPHRleHQgeD0iODQyIiB5PSIzMjIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+Zml4ZWQgZmlsZXM8L3RleHQ+CjxyZWN0IHg9IjgyMCIgeT0iMzQ4IiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjUwIiByeD0iMTIiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTQiLz4KPHJlY3QgeD0iODIwIiB5PSIzNDgiIHdpZHRoPSIzMDAiIGhlaWdodD0iNTAiIHJ4PSIxMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIuNSIvPgo8dGV4dCB4PSI4NDIiIHk9IjM4MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZThlZGY1Ij5oaXN0b3J5PC90ZXh0Pgo8dGV4dCB4PSI4MjAiIHk9IjQ0NCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZmY3YjcyIj5jYWNoZSBtaXNzPC90ZXh0Pgo8dGV4dCB4PSI4MjAiIHk9IjQ4MCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5ldmVyeXRoaW5nIGJlbG93IGl0PC90ZXh0Pgo8dGV4dCB4PSI4MjAiIHk9IjUxMiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5iaWxscyBhcyBmcmVzaCBpbnB1dDwvdGV4dD4KPC9zdmc+",
+    "alt": "One agent request as layers: a cached prefix, a fresh new turn and output on top; a timestamp in the prefix breaks the cache.",
+    "caption": "Which layers of one agent step bill at which rate, and how a small edit to the prefix turns cache hits back into fresh input.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Agent work is where that discount lives. The same write-up explains why: «Coding agents re-send the same system prompt, file context, and conversation history on every step». An agent step is one round of thinking, calling a tool and reading the result. Over a long session, most input becomes «cache hits billed at a tenth of the fresh rate»."
+  ],
+  [
+   "p",
+   "Check the discount your route actually applies. On the OpenRouter rate card shown with this post, the cached input rate sits far closer to the fresh rate. The 90% figure comes from Moonshot's own published prices. Hosts and gateways set their own. Read the card for yours before you count on it."
+  ],
+  [
+   "p",
+   "In our view the lever is boring and powerful: keep the prefix identical. Put the system prompt, the tool list and fixed files first, in a fixed order. Append each new turn at the end. We'd expect anything that edits the prefix, like a timestamp or a reshuffled tool list, to cost you the hit."
+  ],
+  [
+   "code",
+   {
+    "label": "Keep the cached prefix identical on every agent step (illustrative)",
+    "language": "python",
+    "source": "# Illustrative pattern: the prefix never changes, so repeats can bill as cache hits.\nSTABLE_PREFIX = [\n    {\"role\": \"system\", \"content\": SYSTEM_PROMPT},  # never edited mid-session\n    {\"role\": \"user\", \"content\": REPO_CONTEXT},     # fixed files, fixed order\n]\n\ndef build_messages(history, new_turn):\n    # Anything that edits STABLE_PREFIX (a timestamp, a reordered tool list)\n    # turns the next request back into fresh input.\n    return STABLE_PREFIX + history + [new_turn]\n\ndef step(send, history, new_turn, output_cap):\n    # `send` is your own client wrapper; cap the visible output on every step.\n    return send(messages=build_messages(history, new_turn), max_output=output_cap)\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Long answers at the output rate",
+    "num": "04",
+    "id": "long-answers-at-the-output-rate"
+   }
+  ],
+  [
+   "p",
+   "Output length is the second meter, and K3 lets it run long. A context window is how much text a model can hold at once, and K3's is 1,048,576 tokens. The gateway FAQ describes output «defaulting to 131K tokens and configurable up to the same 1M». That default is generous. Every token of it bills at the output rate."
+  ],
+  [
+   "p",
+   "A big window doesn't have to drain the budget. A Hacker News commenter on a personal project noted K3 «didn't seem to burn through context window that fast (1M)». Their surprise came from the effort setting instead. Input volume was not the problem."
+  ],
+  [
+   "p",
+   "The lever is a hard cap on output per call. The GitHub example above sets one at 2,048 tokens. Most agent steps need a short plan or a diff, not an essay. We think a per-step cap, raised only for the steps that need it, is the cheapest insurance you can buy."
+  ],
+  [
+   "h2",
+   {
+    "text": "The average task price and its fat tail",
+    "num": "05",
+    "id": "the-average-task-price-and-its-fat-tail"
+   }
+  ],
+  [
+   "p",
+   "Cost per task is the K3 number leaderboards like to quote. The dev.to roundup reports that «Artificial Analysis clocked it at about $0.94 to run one Intelligence Index task». It sets that beside «Opus 4.8’s $1.80». An Intelligence Index task is one item from a standard suite of benchmark questions."
+  ],
+  [
+   "p",
+   "The same writer warns against reading that as a promise: «the cost-per-task number is real, but it’s an average, and the tail on that average is fat». A fat tail means a few tasks cost far more than the typical one. Hard prompts think longer. Long thinking bills as output."
+  ],
+  [
+   "p",
+   "Agent loops multiply the tail. The roundup again: «Scale that across an agent loop making thousands of calls and the “half the cost of Opus” headline evaporates fast.» We agree. An average from a benchmark run says little about your worst hour. Track cost per task on your own work, and watch the slowest tasks closely."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Average cost to run one Intelligence Index task, as a dev.to roundup reports it.",
+    "columns": [
+     "Model",
+     "Cost per Index task"
+    ],
+    "rows": [
+     [
+      "Kimi K3",
+      "about $0.94"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$1.80"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Reasoning quality that splits the value case",
+    "num": "06",
+    "id": "reasoning-quality-that-splits-the-value-case"
+   }
+  ],
+  [
+   "p",
+   "Is K3's thinking worth its price? Here engineers split. On Hacker News, one commenter said K3 «found tons of issues with the code generated by Sonnet 4.6». They praised its «strong analytical abilities and a much more sobering and cautious tone». Another said it «felt on par with my claude opus 4.8 in my first tests»."
+  ],
+  [
+   "p",
+   "The sceptical side comes from an engineering newsletter. Its author writes that «Kimi has some brittleness which smells to me like» benchmark tuning. The worry is scores tuned to the tests in ways that hurt general skill. A security institute it cites has not tested K3 yet: «AISI intends to test Kimi K3 on this same basis, once its weights are publicly released»."
+  ],
+  [
+   "p",
+   "Roleplay users on Reddit split along cost lines too. One Reddit commenter called K3 very clever and very expensive, and found it softer than Kimi K2.6. Another on Reddit ruled it out as too expensive for casual use. A third on Reddit cut its cost by changing presets, the saved prompt settings their app sends."
+  ],
+  [
+   "p",
+   "We side with the enthusiasts on hard analysis and with the sceptics on routine work. The praise is about finding problems in existing code and about frontend design. The doubts are about skill beyond benchmarks. Paying output rates for deep thought makes sense when the task needs it. Most loop steps don't."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/SillyTavernAI/comments/1wuf1tk/top_5_rp_models_as_of_september_2026_what_do_you/",
+    "title": "Top 5 RP models as of September 2026 — what do you think?",
+    "author": "Pirx32",
+    "community": "SillyTavernAI",
+    "caption": "A roleplay thread where users weigh Kimi K3's writing against its cost, and one trims the bill by changing presets."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Routing the bulk of the agent loop elsewhere",
+    "num": "07",
+    "id": "routing-the-bulk-of-the-agent-loop-elsewhere"
+   }
+  ],
+  [
+   "p",
+   "The cheapest K3 token is the one a cheaper model writes instead. A dev.to ranking of open models recommends «K3 for the hard problems, GLM-5.2 or DeepSeek V4 Pro for the loop». The gateway's own write-up repeats the pattern: «A workable pattern is K3 for the hardest tasks and GLM-5.2 or DeepSeek V4 Pro for the bulk of the loop.»"
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY0MCI+Cjx0aXRsZT5LaW1pIEszIGF0IHRoZSBlbmRzIG9mIHRoZSBsb29wLCBhIGNoZWFwZXIgbW9kZWwgaW4gdGhlIG1pZGRsZTwvdGl0bGU+CjxkZXNjPktpbWkgSzMgd3JpdGVzIHRoZSBwbGFuIGFuZCByZXZpZXdzIHRoZSByZXN1bHQ7IGJldHdlZW4gdGhlbSBhIGNoZWFwZXIgbW9kZWwgc3VjaCBhcyBHTE0tNS4yIG9yIERlZXBTZWVrIFY0IFBybyBydW5zIHRoZSByZXBlYXRlZCBpbXBsZW1lbnRhdGlvbiBzdGVwcyBvZiB0aGUgYWdlbnQgbG9vcC48L2Rlc2M+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz48L2xpbmVhckdyYWRpZW50PjxyYWRpYWxHcmFkaWVudCBpZD0iZ2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMC4zMiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48bWFya2VyIGlkPSJhdiIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjYTc4YmZhIi8+PC9tYXJrZXI+PG1hcmtlciBpZD0iYWIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPjxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzdhYTJmZiIvPjwvbWFya2VyPjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjQwIiBmaWxsPSJ1cmwoI2JnKSIvPgo8ZWxsaXBzZSBjeD0iNjAwIiBjeT0iMTIwIiByeD0iNDYwIiByeT0iMTYwIiBmaWxsPSJ1cmwoI2dsb3cpIi8+CjxyZWN0IHg9IjkwIiB5PSI2MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxMjAiIHJ4PSIyMCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xOCIvPgo8cmVjdCB4PSI5MCIgeT0iNjAiIHdpZHRoPSIyODAiIGhlaWdodD0iMTIwIiByeD0iMjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSI0Ii8+Cjx0ZXh0IHg9IjIzMCIgeT0iMTA4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0idWktbW9ub3NwYWNlLCBTRk1vbm8tUmVndWxhciwgTWVubG8sIG1vbm9zcGFjZSIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2E3OGJmYSI+S2ltaSBLMzwvdGV4dD4KPHRleHQgeD0iMjMwIiB5PSIxNTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSI+cGxhbjwvdGV4dD4KPHJlY3QgeD0iODMwIiB5PSI2MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxMjAiIHJ4PSIyMCIgZmlsbD0iI2E3OGJmYSIgb3BhY2l0eT0iMC4xOCIvPgo8cmVjdCB4PSI4MzAiIHk9IjYwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjEyMCIgcng9IjIwIiBmaWxsPSJub25lIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iNCIvPgo8dGV4dCB4PSI5NzAiIHk9IjEwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNhNzhiZmEiPktpbWkgSzM8L3RleHQ+Cjx0ZXh0IHg9Ijk3MCIgeT0iMTUyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPnJldmlldzwvdGV4dD4KPHRleHQgeD0iNjAwIiB5PSIxMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+bG9uZyB0aG91Z2h0LDwvdGV4dD4KPHRleHQgeD0iNjAwIiB5PSIxNDYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+c2hvcnQgb3V0cHV0PC90ZXh0Pgo8cmVjdCB4PSIxNTAiIHk9IjMwMCIgd2lkdGg9IjkwMCIgaGVpZ2h0PSIyNTAiIHJ4PSIyNiIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4wNiIvPgo8cmVjdCB4PSIxNTAiIHk9IjMwMCIgd2lkdGg9IjkwMCIgaGVpZ2h0PSIyNTAiIHJ4PSIyNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWRhc2hhcnJheT0iMTAgOCIvPgo8dGV4dCB4PSI2MDAiIHk9IjM0NiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3YWEyZmYiPkdMTS01LjIgb3IgRGVlcFNlZWsgVjQgUHJvPC90ZXh0Pgo8cmVjdCB4PSIyMTAiIHk9IjM3NCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI5NiIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8cmVjdCB4PSIyMzAiIHk9IjM5NCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNzUiLz4KPHJlY3QgeD0iMjMwIiB5PSI0MTYiIHdpZHRoPSIxMTAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC42MCIvPgo8cmVjdCB4PSIyMzAiIHk9IjQzOCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNDUiLz4KPHBhdGggZD0iTTM2NCw0MjIgTDQxNCw0MjIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FiKSIvPgo8cmVjdCB4PSI0MjAiIHk9IjM3NCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI5NiIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8cmVjdCB4PSI0NDAiIHk9IjM5NCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNzUiLz4KPHJlY3QgeD0iNDQwIiB5PSI0MTYiIHdpZHRoPSIxMTAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC42MCIvPgo8cmVjdCB4PSI0NDAiIHk9IjQzOCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNDUiLz4KPHBhdGggZD0iTTU3NCw0MjIgTDYyNCw0MjIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FiKSIvPgo8cmVjdCB4PSI2MzAiIHk9IjM3NCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI5NiIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8cmVjdCB4PSI2NTAiIHk9IjM5NCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNzUiLz4KPHJlY3QgeD0iNjUwIiB5PSI0MTYiIHdpZHRoPSIxMTAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC42MCIvPgo8cmVjdCB4PSI2NTAiIHk9IjQzOCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNDUiLz4KPHBhdGggZD0iTTc4NCw0MjIgTDgzNCw0MjIiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FiKSIvPgo8cmVjdCB4PSI4NDAiIHk9IjM3NCIgd2lkdGg9IjE1MCIgaGVpZ2h0PSI5NiIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8cmVjdCB4PSI4NjAiIHk9IjM5NCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNzUiLz4KPHJlY3QgeD0iODYwIiB5PSI0MTYiIHdpZHRoPSIxMTAiIGhlaWdodD0iOSIgcng9IjQuNSIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC42MCIvPgo8cmVjdCB4PSI4NjAiIHk9IjQzOCIgd2lkdGg9IjcwIiBoZWlnaHQ9IjkiIHJ4PSI0LjUiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuNDUiLz4KPHRleHQgeD0iNjAwIiB5PSI1MjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+bWFueSBzdGVwcywgbG9uZyBvdXRwdXQsIGxvd2VyIG91dHB1dCByYXRlPC90ZXh0Pgo8cGF0aCBkPSJNMjMwLDE4NCBDMjMwLDI1MCAyODUsMzAwIDI4NSwzNjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzLjUiIG1hcmtlci1lbmQ9InVybCgjYXYpIi8+CjxwYXRoIGQ9Ik05MTUsMzcwIEM5MTUsMzAwIDk3MCwyNTAgOTcwLDE4NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYTc4YmZhIiBzdHJva2Utd2lkdGg9IjMuNSIgbWFya2VyLWVuZD0idXJsKCNhdikiLz4KPHRleHQgeD0iNjAwIiB5PSI2MDIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+SzMgYXQgdGhlIGVuZHMsIGEgY2hlYXBlciBtb2RlbCBpbiB0aGUgbWlkZGxlPC90ZXh0Pgo8L3N2Zz4=",
+    "alt": "Kimi K3 plans and reviews at the top while a cheaper model runs the repeated implementation steps of the loop below.",
+    "caption": "The pattern the write-ups recommend: K3 for short output after long thought, a cheaper model for the long output of the loop.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "One Hacker News commenter runs that idea without K3 at all. Their harness, the program that runs the agent, assigns models by role. GLM 5.2 plans, DeepSeek V4 Flash implements and MiniMax M3 reviews. Their verdict: «Overall I am saving a lot using some of these smaller models.»"
+  ],
+  [
+   "p",
+   "We think K3 earns its seat in that kind of setup as the planner or the reviewer. Both roles produce short output after long thought, which is what K3 is good at. Implementation is long output, step after step. Hand that to a model with a lower output rate."
+  ],
+  [
+   "p",
+   "The trade-off is coordination. Mixing models means more prompts to tune and more ways to fail. A Hacker News commenter who liked K3 still found it «hard to switch back and forth between claude and kimi». That friction has no figure anywhere yet, and it is real."
+  ],
+  [
+   "h2",
+   {
+    "text": "Flat plans, free tiers and the premium allowance",
+    "num": "08",
+    "id": "flat-plans-free-tiers-and-the-premium-allowance"
+   }
+  ],
+  [
+   "p",
+   "A flat plan swaps a metered bill for a ration. The gateway write-up sells its plan on exactly that: «a runaway agent loop cannot produce a surprise invoice». The catch for K3 is the tier. A dev.to ranking from the same gateway notes that «K3 crosses the premium price threshold and draws from a weekly premium allowance»."
+  ],
+  [
+   "p",
+   "That allowance is small next to the monthly pool, as the table shows. Remember whose blog it is. These are a seller's figures. A ration still caps how much K3 you get in a heavy week. A reset pass restores it, and Pro includes one per cycle."
+  ],
+  [
+   "p",
+   "Free tiers sit at the other end. A dev.to post on free cloud models says of K3: «It now leads my \"think hard\" job». On NVIDIA's free tier it «answers in about 3 seconds» and «handles tool calls properly (a lot of free models fumble these)». A tool call is a request the model makes to run one of your functions."
+  ],
+  [
+   "p",
+   "That free tier has a ceiling: «about 40 requests a minute for the whole account». Access itself can be the cost. A Hacker News thread covered Moonshot suspending new subscriptions because of K3 demand. We'd keep a metered fallback configured, with a cheaper model behind it."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Flat plans as one gateway publishes them; Kimi K3 draws on the weekly premium allowance.",
+    "columns": [
+     "Plan",
+     "Monthly price",
+     "Usage included",
+     "Weekly premium allowance"
+    ],
+    "rows": [
+     [
+      "Lite",
+      "$29",
+      "~$87",
+      "~$10"
+     ],
+     [
+      "Pro",
+      "$79",
+      "~$237",
+      "$36"
+     ],
+     [
+      "Max",
+      "$179",
+      "~$537",
+      "$97"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Dropped reasoning between turns, a cost with no figure yet",
+    "num": "09",
+    "id": "dropped-reasoning-between-turns-a-cost-with-no-figure-yet"
+   }
+  ],
+  [
+   "p",
+   "Multi-turn reasoning is the cost nobody has measured. A GitHub issue reports that LangChain's Fireworks integration drops K3's reasoning in two places. Streaming callers never see it. And on follow-up turns, «the model loses its chain-of-thought across turns». The issue says the provider's API returns the reasoning correctly."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+Cjx0aXRsZT5SZWFzb25pbmcgbG9zdCBiZXR3ZWVuIHR1cm5zPC90aXRsZT4KPGRlc2M+VHVybiBvbmUgcHJvZHVjZXMgYSBxdWVzdGlvbiwgYSByZWFzb25pbmcgdHJhY2UgYW5kIGFuIGFuc3dlcjsgYSBjb252ZXJ0ZXIgcGFzc2VzIHRoZSBhbnN3ZXIgdG8gdHVybiB0d28gYnV0IGRyb3BzIHRoZSByZWFzb25pbmcsIGFuZCB0dXJuIHR3byBtYXkgdGhpbmsgdGhlIHNhbWUgZ3JvdW5kIGFnYWluIGF0IGEgY29zdCBub2JvZHkgaGFzIG1lYXN1cmVkLjwvZGVzYz4KPGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPjwvbGluZWFyR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSJnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmN2I3MiIgc3RvcC1vcGFjaXR5PSIwLjI1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmY3YjcyIiBzdG9wLW9wYWNpdHk9IjAiLz48L3JhZGlhbEdyYWRpZW50PjxtYXJrZXIgaWQ9ImFtIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj48cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM5NWExYjQiLz48L21hcmtlcj48bWFya2VyIGlkPSJhciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+PHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjZmY3YjcyIi8+PC9tYXJrZXI+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MjAiIGZpbGw9InVybCgjYmcpIi8+CjxlbGxpcHNlIGN4PSI2MDAiIGN5PSIzMDAiIHJ4PSIyMjAiIHJ5PSIyNTAiIGZpbGw9InVybCgjZ2xvdykiLz4KPHRleHQgeD0iMjUwIiB5PSI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij50dXJuIDE8L3RleHQ+CjxyZWN0IHg9IjExMCIgeT0iMTEwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTYiLz4KPHJlY3QgeD0iMTEwIiB5PSIxMTAiIHdpZHRoPSIyODAiIGhlaWdodD0iNzAiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iMjUwLjAiIHk9IjE1NC4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnF1ZXN0aW9uPC90ZXh0Pgo8cmVjdCB4PSIxMTAiIHk9IjIxMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNCIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4yMiIvPgo8cmVjdCB4PSIxMTAiIHk9IjIxMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iMjUwLjAiIHk9IjI3NC4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPnJlYXNvbmluZzwvdGV4dD4KPHJlY3QgeD0iMTEwIiB5PSIzNTAiIHdpZHRoPSIyODAiIGhlaWdodD0iNzAiIHJ4PSIxNCIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4xNiIvPgo8cmVjdCB4PSIxMTAiIHk9IjM1MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI3MCIgcng9IjE0IiBmaWxsPSJub25lIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSIyNTAuMCIgeT0iMzk0LjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+YW5zd2VyPC90ZXh0Pgo8cmVjdCB4PSI1NDUiIHk9IjkwIiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjQyMCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgo8dGV4dCB4PSI2MDAiIHk9IjU1NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0Ij5jb252ZXJ0ZXI8L3RleHQ+CjxwYXRoIGQ9Ik0zOTQsMzg1IEM3MjAsMzg1IDY5MCwxNDUgODA2LDE0NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYW0pIi8+Cjx0ZXh0IHg9IjQ3MCIgeT0iNDIwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiM5NWExYjQiPnBhc3NlZCBvbjwvdGV4dD4KPHBhdGggZD0iTTM5NCwyNjUgTDU2MCwyNjUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxwYXRoIGQ9Ik01NjIsMjY1IEM2MTAsMjY4IDYxMiwzMjAgNjAyLDM1MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggNyIgbWFya2VyLWVuZD0idXJsKCNhcikiLz4KPHRleHQgeD0iNjAwIiB5PSIyMzIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmN2I3MiI+ZHJvcHBlZDwvdGV4dD4KPHRleHQgeD0iOTUwIiB5PSI3MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZThlZGY1Ij50dXJuIDI8L3RleHQ+CjxyZWN0IHg9IjgxMCIgeT0iMTEwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9IiM3YWEyZmYiIG9wYWNpdHk9IjAuMTYiLz4KPHJlY3QgeD0iODEwIiB5PSIxMTAiIHdpZHRoPSIyODAiIGhlaWdodD0iNzAiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KPHRleHQgeD0iOTUwLjAiIHk9IjE1NC4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiPmhpc3RvcnkgKyBxdWVzdGlvbjwvdGV4dD4KPHJlY3QgeD0iODEwIiB5PSIyMTAiIHdpZHRoPSIyODAiIGhlaWdodD0iMTEwIiByeD0iMTQiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMSIvPgo8cmVjdCB4PSI4MTAiIHk9IjIxMCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSIxMTAiIHJ4PSIxNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDgiLz4KPHRleHQgeD0iOTUwLjAiIHk9IjI3NC4wIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlM2IzNDEiPnRoaW5rIGFnYWluPzwvdGV4dD4KPHJlY3QgeD0iODEwIiB5PSIzNTAiIHdpZHRoPSIyODAiIGhlaWdodD0iNzAiIHJ4PSIxNCIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC4xIi8+CjxyZWN0IHg9IjgxMCIgeT0iMzUwIiB3aWR0aD0iMjgwIiBoZWlnaHQ9IjcwIiByeD0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+Cjx0ZXh0IHg9Ijk1MC4wIiB5PSIzOTQuMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZThlZGY1Ij5hbnN3ZXI8L3RleHQ+Cjx0ZXh0IHg9Ijk1MCIgeT0iNDcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPmNvc3Qgbm90IG1lYXN1cmVkPC90ZXh0Pgo8dGV4dCB4PSI5NTAiIHk9IjUwOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmaWxsPSIjOTVhMWI0Ij5ubyB0b2tlbiBjb3VudCB5ZXQ8L3RleHQ+Cjwvc3ZnPg==",
+    "alt": "Turn one's reasoning is dropped by a converter before turn two, which may think again at an unmeasured cost.",
+    "caption": "Where reasoning goes missing between turns, and the cost nobody has measured yet.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Here is the open question. If a model loses its earlier reasoning, does it think the same ground through again? Re-thinking would bill as output on every turn. The issue never counts tokens, so the size of that cost is unknown. It could be tiny. It could be large."
+  ],
+  [
+   "p",
+   "The fix is small, by the issue author's account: «I have a scoped fix ready (2 lines + 6 unit tests)». Until it lands, streaming multi-turn agents on that path run without their earlier reasoning. That is a correctness problem first. It may also be a billing one."
+  ],
+  [
+   "p",
+   "Settling it would take one careful log. Run the same multi-turn task with reasoning forwarded and with it dropped, and count reasoning tokens per turn. Self-hosting has the same gap. The gateway write-up says only that «a 2.8T mixture-of-experts model demands serious hardware». Nobody has put a price on that yet."
+  ],
+  [
+   "h2",
+   {
+    "text": "What moves the bill",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Hard review of existing code",
+      "Strong analysis, with a long reasoning trace billed as output",
+      "Cap output and set a budget per task",
+      "Kimi K3"
+     ],
+     [
+      "Long coding-agent session",
+      "Thinks on every step while repeated context grows",
+      "Stable cached prefix; a cheaper model for implementation",
+      "K3 to plan, GLM-5.2 or DeepSeek V4 Pro for the loop"
+     ],
+     [
+      "Personal think-hard helper",
+      "Free tier ceiling of about 40 requests a minute",
+      "A fallback chain to other free models",
+      "Kimi K3 on a free tier, with fallbacks"
+     ],
+     [
+      "Frontend and motion design work",
+      "Strong results, but switching between models is hard",
+      "Keep one model per project",
+      "Kimi K3"
+     ],
+     [
+      "Long roleplay sessions",
+      "Good emotional range, cost climbs over many turns",
+      "Leaner presets",
+      "K3 when budget allows; GLM 5.3 Flash for casual sessions"
+     ],
+     [
+      "Launcher script copied from an example",
+      "Effort set to max without anyone noticing",
+      "Read launcher defaults and set spend alerts",
+      "K3 with effort set explicitly"
+     ],
+     [
+      "Streaming multi-turn agent on LangChain and Fireworks",
+      "Reasoning dropped between turns",
+      "Non-streaming calls until the scoped fix lands",
+      "K3 after the converter fix"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How much does Kimi K3 cost per million tokens?"
+  ],
+  [
+   "p",
+   "Moonshot's published rate is $3.00 for input and $15.00 for output per 1M tokens, with cached input at $0.30. Hosts and gateways set their own rates, so check the card for your route. The bigger driver is reasoning. K3 always thinks, and every reasoning token bills as output, so the answer you see is a fraction of what you pay for."
+  ],
+  [
+   "h3",
+   "Is Kimi K3 good for coding?"
+  ],
+  [
+   "p",
+   "It looks strong on hard analysis and frontend work, but it is costly to run on every step. A Hacker News commenter praised its «strong analytical abilities» when reviewing older generated code. Another said it «felt on par with my claude opus 4.8 in my first tests». Gateway write-ups suggest K3 for the hardest tasks and a cheaper model for the loop."
+  ],
+  [
+   "h3",
+   "What are cheaper alternatives to Kimi K3?"
+  ],
+  [
+   "p",
+   "GLM-5.2 and DeepSeek V4 Pro are the cheaper models that write-ups pair with K3 for routine work. A dev.to ranking suggests «K3 for the hard problems, GLM-5.2 or DeepSeek V4 Pro for the loop». Kimi K2.6, the previous generation, got cheaper the day K3 shipped. MiniMax M3 is the multimodal option in the same lists."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Kimi K3",
+      "$0.45",
+      "$15.00",
+      "$0.28"
+     ],
+     [
+      "Claude Opus 5.5",
+      "$4.00",
+      "$20.00",
+      "$0.20"
+     ],
+     [
+      "MiniMax M3",
+      "$0.30",
+      "$1.20",
+      "$0.06"
+     ],
+     [
+      "Inkling",
+      "$1.00",
+      "$4.05",
+      "$0.17"
+     ],
+     [
+      "GLM 5.2",
+      "$0.02",
+      "$7.00",
+      "$0.019"
+     ],
+     [
+      "Claude Opus 4.6",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "GLM 5.3 Flash",
+      "$0.15",
+      "$0.50",
+      "$0.03"
+     ],
+     [
+      "Claude Sonnet 5.5",
+      "$2.00",
+      "$10.00",
+      "$0.10"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "eristoddle",
+   "what": "Kimi k3 and inkling the week the open models won",
+   "url": "https://dev.to/eristoddle/kimi-k3-and-inkling-the-week-the-open-models-won-m90",
+   "posted": "2026-07-21"
+  },
+  {
+   "n": 2,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=48969291",
+   "posted": "2026-07-19"
+  },
+  {
+   "n": 3,
+   "platform": "dev.to",
+   "who": "smakosh",
+   "what": "Kimi k3 and chinas open weight model wave",
+   "url": "https://dev.to/smakosh/kimi-k3-and-chinas-open-weight-model-wave-bpp",
+   "posted": "2026-07-21"
+  },
+  {
+   "n": 4,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=49085698",
+   "posted": "2026-07-28"
+  },
+  {
+   "n": 5,
+   "platform": "an engineering blog",
+   "who": "jack-clark.net",
+   "what": "Import ai 465 open vs closed gaps kimi k3 demis big policy plan",
+   "url": "https://jack-clark.net/2026/07/20/import-ai-465-open-vs-closed-gaps-kimi-k3-demis-big-policy-plan/",
+   "posted": "2026-07-20"
+  },
+  {
+   "n": 6,
+   "platform": "dev.to",
+   "who": "smakosh",
+   "what": "9 best open source llms in 2026 compared",
+   "url": "https://dev.to/smakosh/9-best-open-source-llms-in-2026-compared-29p2",
+   "posted": "2026-07-21"
+  },
+  {
+   "n": 7,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=48999291",
+   "posted": "2026-07-22"
+  },
+  {
+   "n": 8,
+   "platform": "dev.to",
+   "who": "rabbidraccoon",
+   "what": "Two more free ai brains for my no gpu laptop nvidia nim and ollama cloud",
+   "url": "https://dev.to/rabbidraccoon/two-more-free-ai-brains-for-my-no-gpu-laptop-nvidia-nim-and-ollama-cloud-7fj",
+   "posted": "2026-10-08"
+  },
+  {
+   "n": 9,
+   "platform": "GitHub",
+   "who": "langchain-ai/langchain",
+   "what": "Issue #40367",
+   "url": "https://github.com/langchain-ai/langchain/issues/40367",
+   "posted": "2026-09-10"
+  }
+ ],
+ "cite": {
+  "K3 always thinks. There is no non-thinking variant.": 1,
+  "The visible answer you get back is a fraction of what you actually pay for": 1,
+  "This is expensive. The pelican cost 25 cents.": 1,
+  "is locked to maximum, and every one of those reasoning tokens bills as output": 1,
+  "within 3-4 hours spent over 50 bucks on my personal project": 2,
+  "launcher script I copied from an example had set effort to max": 2,
+  "Will have to watch cost carefully though.": 2,
+  "at a 90% discount on repeated input": 3,
+  "Coding agents re-send the same system prompt, file context, and conversation history on every step": 3,
+  "cache hits billed at a tenth of the fresh rate": 3,
+  "defaulting to 131K tokens and configurable up to the same 1M": 3,
+  "didn't seem to burn through context window that fast (1M)": 2,
+  "Artificial Analysis clocked it at about $0.94 to run one Intelligence Index task": 1,
+  "Opus 4.8’s $1.80": 1,
+  "the cost-per-task number is real, but it’s an average, and the tail on that average is fat": 1,
+  "Scale that across an agent loop making thousands of calls and the “half the cost of Opus” headline evaporates fast.": 1,
+  "found tons of issues with the code generated by Sonnet 4.6": 2,
+  "strong analytical abilities and a much more sobering and cautious tone": 2,
+  "felt on par with my claude opus 4.8 in my first tests": 4,
+  "Kimi has some brittleness which smells to me like": 5,
+  "AISI intends to test Kimi K3 on this same basis, once its weights are publicly released": 5,
+  "K3 for the hard problems, GLM-5.2 or DeepSeek V4 Pro for the loop": 6,
+  "A workable pattern is K3 for the hardest tasks and GLM-5.2 or DeepSeek V4 Pro for the bulk of the loop.": 3,
+  "Overall I am saving a lot using some of these smaller models.": 7,
+  "hard to switch back and forth between claude and kimi": 4,
+  "a runaway agent loop cannot produce a surprise invoice": 3,
+  "K3 crosses the premium price threshold and draws from a weekly premium allowance": 6,
+  "It now leads my \"think hard\" job": 8,
+  "answers in about 3 seconds": 8,
+  "handles tool calls properly (a lot of free models fumble these)": 8,
+  "about 40 requests a minute for the whole account": 8,
+  "the model loses its chain-of-thought across turns": 9,
+  "I have a scoped fix ready (2 lines + 6 unit tests)": 9,
+  "a 2.8T mixture-of-experts model demands serious hardware": 3,
+  "strong analytical abilities": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:20:21+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_45594771c616eefd",
+   "thread_context_d4a1af7dd6bec58e",
+   "thread_context_8e7690b8b9ac74ca",
+   "thread_context_254a83a3d430944d",
+   "thread_context_5d4830867e385d51",
+   "thread_context_c04415d7a4e4dc66",
+   "thread_context_0e11423ab8b345e2",
+   "thread_context_8303bdad09bbc9c6",
+   "thread_context_a954c57b9b2843b7",
+   "thread_context_4d5b02b477a42bac"
+  ],
+  "platforms": {
+   "dev.to": 4,
+   "Hacker News": 3,
+   "an engineering blog": 1,
+   "Reddit": 1,
+   "GitHub": 1
+  },
+  "embedded": 1,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "cost-teardown:moonshotai/kimi-k3",
+  "format": "cost-teardown",
+  "reviewed_by": null
+ }
+}

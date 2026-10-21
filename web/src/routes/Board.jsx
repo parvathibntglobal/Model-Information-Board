@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { boardPage, BoardUnreadable } from '../api'
-import { setBoardData } from '../board/db'
+import { boardPage, freshness, BoardUnreadable } from '../api'
+import { DB, modelKeyFor, setBoardData } from '../board/db'
+import { useHead } from '../seo/head'
+import { boardHub, boardModelInSection, boardSection } from '../seo/pages'
 import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel } from '../board/views'
 import BoardView from '../board/BoardView'
+import NotFound from '../components/NotFound'
 
 /**
  * The board: three ways into the same evidence — Jobs (key `best_for`), Capabilities,
@@ -23,6 +26,8 @@ import BoardView from '../board/BoardView'
  *
  * Routes handled (via the /board/* splat):
  *   /board                          → hub, tab from ?tab (best|cap|met)
+ *   /board?tab=cap&group=<heading>  → one heading's capabilities (a box opened)
+ *   /board?tab=best&group=<heading> → one heading's jobs
  *   /board/jobs/:slug               → the models reported for that job
  *   /board/jobs/:slug/*             → one model's reports on that job
  *   /board/capabilities/:slug       → the models reported on that capability
@@ -43,15 +48,22 @@ export default function Board() {
   const [sp] = useSearchParams()
   const parts = rest.split('/')
   const [seg, slug] = parts
-  const modelKey = parts.length > 2 ? parts.slice(2).join('/') : null
+  // THE ADDRESS NAMES THE MODEL READABLY (`anthropic/claude-opus-4.6`); the
+  // views look rows up by their grouping key, so it is translated here. An
+  // old `mv_…` link is its own key and still works.
+  const modelParam = parts.length > 2 ? parts.slice(2).join('/') : null
   const [state, setState] = useState({ ready: false, err: null, unreadable: null })
+  const modelKey = state.ready ? modelKeyFor(modelParam) : modelParam
 
   useEffect(() => {
     let alive = true
-    boardPage()
-      .then((d) => {
+    // THE FRESHNESS DATES ride along; if they cannot be read the line is left
+    // out, and the board still renders.
+    Promise.all([boardPage(), freshness().catch(() => null)])
+      .then(([d, f]) => {
         if (!alive) return
         setBoardData(d)
+        DB.freshness = f
         setState({ ready: true, err: null, unreadable: null })
       })
       .catch((e) => {
@@ -67,6 +79,16 @@ export default function Board() {
     return () => { alive = false }
   }, [])
 
+  // PER-PAGE <head> (seo/pages.js), from the section the board actually
+  // loaded - null while loading, so the site defaults stand until it has.
+  // A slug the board does not hold gets the hub's head, which is also what
+  // the views render for it.
+  // A SECTION THAT IS NOT ON THE BOARD IS NOT FOUND (SEO item 7), where the
+  // views used to render the hub at its address. `/board/jobs` with no slug is
+  // still the tab: a list page links use. NotFound owns the head then (`false`).
+  const missing = state.ready && sectionMissing(seg, slug)
+  useHead(!state.ready ? null : missing ? false : headFor(seg, slug, modelKey, sp.get('tab')))
+
   if (!state.ready) {
     return (
       <div className="shell section-tight">
@@ -75,11 +97,16 @@ export default function Board() {
     )
   }
 
+  if (missing) {
+    const what = { jobs: 'job', capabilities: 'capability', metrics: 'metric' }[seg]
+    return <NotFound what={what} back={{ to: '/board', label: 'Browse the board' }} />
+  }
+
   let html
   if (seg === 'jobs') html = modelKey ? vJobModel(slug, modelKey) : vJob(slug)
   else if (seg === 'capabilities') html = modelKey ? vCapModel(slug, modelKey) : vCap(slug)
   else if (seg === 'metrics') html = modelKey ? vMetModel(slug, modelKey) : vMet(slug)
-  else html = vBoard(sp.get('tab') || 'best')
+  else html = vBoard(sp.get('tab') || 'best', sp.get('group'))
 
   return (
     <>
@@ -90,7 +117,26 @@ export default function Board() {
           </p>
         </div>
       )}
-      <BoardView html={html} key={rest + '?' + (sp.get('tab') || '')} />
+      <BoardView html={html} key={rest + '?' + (sp.get('tab') || '') + '&' + (sp.get('group') || '')} />
     </>
   )
+}
+
+const SECTION_LIST = { jobs: 'jobs', capabilities: 'caps', metrics: 'mets' }
+
+/** An unknown segment (`/board/foo`), or a slug the board does not hold. */
+function sectionMissing(seg, slug) {
+  if (!seg) return false
+  const list = DB[SECTION_LIST[seg]]
+  if (!list) return true
+  return Boolean(slug) && !list.some((x) => x.slug === slug)
+}
+
+function headFor(seg, slug, modelKey, tab) {
+  const list = DB[SECTION_LIST[seg]]
+  const item = list ? list.find((x) => x.slug === slug) : null
+  if (!item) return boardHub(seg ? 'best' : tab || 'best')
+  if (!modelKey) return boardSection(seg, item)
+  const row = (item.rows || []).find((r) => r.key === modelKey)
+  return row ? boardModelInSection(seg, item, row.slug || modelKey, row.m, row.freshUpdated) : boardSection(seg, item)
 }

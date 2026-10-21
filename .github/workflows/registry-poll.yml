@@ -1,6 +1,19 @@
 name: Registry poll
 
-# Every three days: post what the poll is about to change, THEN poll.
+# Twice a day: post what the poll is about to change, THEN poll.
+#
+# TWICE A DAY, BECAUSE A PRICE CHANGE MUST REACH THE PAGES WITHIN A DAY
+# (2026-10-21). It ran every three days, so a price could sit wrong on every
+# page for 72 hours; and GitHub starts scheduled runs late - the 05:23 slot
+# began between 10:15 and 12:46 on every run from 09-25 to 10-19 - so even a
+# daily slot could drift past 24 hours. Two slots 12 hours apart keep the worst
+# case near 18. The pages read the database live (no server cache), so the
+# poll IS the latency.
+#
+# ⚠ STAGING MOVED, 2026-10-21. `secrets.STAGING_DATABASE_URL` pointed at the
+# retired staging host from 10-07 to 10-19, and every run in that span died on
+# its first connection, before writing anything. A connection failure here
+# means the secret is stale, not that the poll is broken.
 #
 # WHY THIS EXISTS. The registry poll is wired into the nightly chain and nothing
 # ever scheduled the chain: it last ran on 2026-08-20, and by 2026-09-24 the
@@ -10,8 +23,16 @@ name: Registry poll
 #
 # WHAT IT DOES AND DOES NOT DO
 #   poll-registry     upsert every catalogue model (tombstoned ids skipped and
-#                     counted: contract/tombstoned_models.yaml)
+#                     counted: contract/tombstoned_models.yaml), and record each
+#                     price move in pricing_history + model_event
+#   poll-catalog      refresh model_catalog, which the Catalog pages and the
+#                     price-change card's "has the history stopped" check read.
+#                     Was not in this list, so those pages only moved when
+#                     somebody ran the chain by hand.
 #   recompute-window  refresh model_version.in_window
+#   A VALUE NO COLUMN CAN HOLD is written for nobody and named in the stage's
+#   ERROR line; every other model is still written (it rolled back all of them
+#   on 2026-10-04).
 #   NOT seating       aliases stay manual: seat() with its collision check. A
 #                     polled model is RECOGNISED in documents the day it lands
 #                     and is not SEARCHED for until a person seats it.
@@ -32,7 +53,9 @@ name: Registry poll
 
 on:
   schedule:
-    - cron: "23 5 */3 * *"
+    # Two lines, not "23 5,17": the promotion report keys on which one fired.
+    - cron: "23 5 * * *"
+    - cron: "23 17 * * *"
   workflow_dispatch:
 
 permissions:
@@ -74,19 +97,43 @@ jobs:
 
       - run: pip install -e .
 
+      # Posted only when it has something in it: at two runs a day, an empty
+      # diff on every run would bury the ones a person needs to read.
       - name: Diff, before the poll writes
-        run: python scripts/registry_diff.py --out diff.md
+        run: python scripts/registry_diff.py --only-if-changed --out diff.md
 
       - name: Post the diff where a person sees it
-        run: gh issue comment "$DIFF_ISSUE" --body-file diff.md
+        run: |
+          if [ -f diff.md ]; then
+            gh issue comment "$DIFF_ISSUE" --body-file diff.md
+          else
+            echo "no arrivals, departures or expiration changes: nothing posted"
+          fi
 
-      - name: Poll the registry and refresh the window
+      - name: Poll the registry and the catalogue, and refresh the window
         run: >
           python -m collect.cli ops run
-          --only poll-registry --only recompute-window
+          --only poll-registry --only poll-catalog --only recompute-window
           --journal poll-journal.jsonl
 
+      # NEW MODELS FROM PROVIDERS ALREADY ON THE PAGE (contract/tracked_models.yaml
+      # `auto_track`, 2026-10-06). The page and the scheduler admit them by rule;
+      # this gives each one the search aliases a fetch needs - generated,
+      # versioned surfaces only, collision-checked against every live alias.
+      # The report on the diff issue is the staging-write announcement.
+      - name: Seat aliases for new models the auto_track rule admits
+        run: |
+          python scripts/auto_seat.py --apply --out auto_seat.md
+          if grep -q "nothing new: no arrival matched the rule" auto_seat.md; then
+            echo "auto_seat: nothing seated, nothing posted"
+          else
+            gh issue comment "$DIFF_ISSUE" --body-file auto_seat.md
+          fi
+
+      # ONCE A DAY, on the morning slot or by hand. It ranks the corpus, which
+      # a twelve-hour-old poll does not change.
       - name: Post the promotion report where a person sees it
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '23 5 * * *'
         run: |
           if [ -z "$PROMOTION_ISSUE" ]; then
             echo "::error::promotion report not posted: vars.PROMOTION_ISSUE is not set"

@@ -246,6 +246,9 @@ class DocumentFacts:
 class SurfaceFinder(Protocol):
     """Text -> every model surface that appears in it. For inheritance only.
 
+    Each surface is returned AS THE TEXT SPELLS IT, not as the registry does
+    (#365), so a `SurfaceResolver` must normalise what it is handed.
+
     WHY THIS IS A SECOND PROTOCOL AND NOT A METHOD ON `SurfaceResolver`.
     `SurfaceResolver` answers "what model is this string?" and is asked about a
     surface. This answers "does this text name any model?" and is asked about a
@@ -608,6 +611,12 @@ class PipelineResult:
     #: sections, so the two numbers are legitimately different and a
     #: reader comparing them should see why.
     board_entries_stored: int = 0
+    #: `board_entries_stored` split by who each row is about: `searched` (the
+    #: run's own model), `mentioned` (another model named in the same thread),
+    #: `unlabelled` (the run named no subject). Only the first lands on the
+    #: searched model's page, so a run summary that shows the total alone reads
+    #: as rows that went missing (2026-10-15).
+    board_entries_by_scope: dict[str, int] = field(default_factory=dict)
     #: Whether this thread's metric figures could QUOTE their own axis and
     #: subject. Measured and reported, never enforced - the question it answers
     #: is whether the extractor can be made to copy those two the way it copies
@@ -1102,6 +1111,7 @@ class Pipeline:
                     "slug": _entry.slug,
                     "name": _entry.name,
                     "definition": _entry.definition,
+                    "parent": _entry.parent,
                     "unit": _entry.unit,
                     "value_verbatim": _entry.value_verbatim,
                     "basis": _entry.basis,
@@ -1133,6 +1143,7 @@ class Pipeline:
                 searched_model_version_id=self._searched_model_version_id,
             )
             result.board_entries_stored = outcome["stored"]
+            result.board_entries_by_scope = outcome.get("stored_by_scope", {})
             # ⚠ RULE 7. Counts out of the metrics in THIS batch. A run is the
             # only place the denominator is known, so the denominator is printed
             # beside the counts rather than a percentage that outlives it.

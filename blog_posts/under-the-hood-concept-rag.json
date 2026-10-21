@@ -1,0 +1,456 @@
+{
+ "slug": "under-the-hood-concept-rag",
+ "status": "draft",
+ "tag": "Under the hood",
+ "feat": false,
+ "title": "Inside RAG: The Passage Was Reachable, the Query Drifted Away",
+ "dek": "A stage-by-stage teardown of retrieval-augmented generation that follows one two-hop question from the embedder to the moment the model decides it knows enough.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "What is RAG? A retriever feeds passages into a generator's prompt. It breaks at the joints: queries drift off unanswered hops, stale facts arrive unlabelled, and models stop before the evidence is sufficient.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgcXVlcnkgcmVhY2hlcyBvbmUgcGFzc2FnZSwgdGhlbiBkcmlmdHMgYXdheSBmcm9tIHRoZSByZWFjaGFibGUgb25lIGl0IG5lZWRlZDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImdvbGRnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC40NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iYmx1ZWdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwLjU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzdhYTJmZiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYWIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDwvbWFya2VyPgogICAgPG1hcmtlciBpZD0iYXIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOCIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjciIG1hcmtlckhlaWdodD0iNyIgb3JpZW50PSJhdXRvLXN0YXJ0LXJldmVyc2UiPgogICAgICA8cGF0aCBkPSJNMCwwIEwxMCw1IEwwLDEwIHoiIGZpbGw9IiNmZjdiNzIiLz4KICAgIDwvbWFya2VyPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjYmcpIi8+CiAgPCEtLSBlbWJlZGRpbmcgc3BhY2U6IHNjYXR0ZXJlZCBwb2ludHMgLS0+CiAgPGcgZmlsbD0iIzk1YTFiNCIgb3BhY2l0eT0iMC4zNSI+CiAgICA8Y2lyY2xlIGN4PSI5MCIgY3k9IjEyMCIgcj0iNSIvPjxjaXJjbGUgY3g9IjE1MCIgY3k9IjIwMCIgcj0iNCIvPjxjaXJjbGUgY3g9IjI2MCIgY3k9IjkwIiByPSI1Ii8+CiAgICA8Y2lyY2xlIGN4PSIzMzAiIGN5PSIxODAiIHI9IjQiLz48Y2lyY2xlIGN4PSI0MjAiIGN5PSIxMTAiIHI9IjUiLz48Y2lyY2xlIGN4PSI1NjAiIGN5PSI4MCIgcj0iNCIvPgogICAgPGNpcmNsZSBjeD0iNjQwIiBjeT0iMTQwIiByPSI1Ii8+PGNpcmNsZSBjeD0iNzAwIiBjeT0iNzAiIHI9IjQiLz48Y2lyY2xlIGN4PSI5NjAiIGN5PSI5MCIgcj0iNSIvPgogICAgPGNpcmNsZSBjeD0iMTA2MCIgY3k9IjE1MCIgcj0iNCIvPjxjaXJjbGUgY3g9IjExMjAiIGN5PSIyNTAiIHI9IjUiLz48Y2lyY2xlIGN4PSIxMDEwIiBjeT0iMzAwIiByPSI0Ii8+CiAgICA8Y2lyY2xlIGN4PSI4MCIgY3k9IjU2MCIgcj0iNSIvPjxjaXJjbGUgY3g9IjMwMCIgY3k9IjU4MCIgcj0iNCIvPjxjaXJjbGUgY3g9IjQyMCIgY3k9IjUyMCIgcj0iNSIvPgogICAgPGNpcmNsZSBjeD0iNTYwIiBjeT0iNTkwIiByPSI0Ii8+PGNpcmNsZSBjeD0iNjYwIiBjeT0iNDcwIiByPSI1Ii8+PGNpcmNsZSBjeD0iMzgwIiBjeT0iNDIwIiByPSI0Ii8+CiAgICA8Y2lyY2xlIGN4PSIyNTAiIGN5PSIzMDAiIHI9IjQiLz48Y2lyY2xlIGN4PSI2MDAiIGN5PSIzMDAiIHI9IjUiLz48Y2lyY2xlIGN4PSI3MjAiIGN5PSIzODAiIHI9IjQiLz4KICA8L2c+CiAgPCEtLSB0aGUgZmFyIGNsdXN0ZXIgdGhlIHNlYXJjaCBkcmlmdHMgaW50byAtLT4KICA8ZyBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjU1Ij4KICAgIDxjaXJjbGUgY3g9Ijk5MCIgY3k9IjQ3MCIgcj0iNyIvPjxjaXJjbGUgY3g9IjEwNDAiIGN5PSI1MjAiIHI9IjYiLz48Y2lyY2xlIGN4PSI5NTAiIGN5PSI1NDAiIHI9IjYiLz4KICAgIDxjaXJjbGUgY3g9IjEwOTAiIGN5PSI0NjAiIHI9IjUiLz48Y2lyY2xlIGN4PSIxMDEwIiBjeT0iNTgwIiByPSI1Ii8+PGNpcmNsZSBjeD0iOTIwIiBjeT0iNDgwIiByPSI1Ii8+CiAgPC9nPgogIDwhLS0gcmVhY2hhYmxlIHBhc3NhZ2UsIG5ldmVyIGZldGNoZWQgLS0+CiAgPGVsbGlwc2UgY3g9IjgzMCIgY3k9IjIxNSIgcng9IjE5MCIgcnk9IjE1MCIgZmlsbD0idXJsKCNnb2xkZ2xvdykiLz4KICA8cmVjdCB4PSI3NjIiIHk9IjE2MCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMDQiIHJ4PSIxNiIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4xOCIvPgogIDxyZWN0IHg9Ijc0OCIgeT0iMTQ4IiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEwNCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxsaW5lIHgxPSI3NzIiIHkxPSIxODIiIHgyPSI4ODQiIHkyPSIxODIiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuOCIvPgogIDxsaW5lIHgxPSI3NzIiIHkxPSIyMDQiIHgyPSI4NjQiIHkyPSIyMDQiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSI3NzIiIHkxPSIyMjYiIHgyPSI4NzQiIHkyPSIyMjYiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNiIvPgogIDwhLS0gdGhlIHF1ZXJ5IHRoYXQgc2hvdWxkIGhhdmUgYmVlbiBpc3N1ZWQgLS0+CiAgPHBhdGggZD0iTTU2MCwzMzAgQzYyMCwyNTAgNjgwLDIyMCA3MzYsMjA2IiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWRhc2hhcnJheT0iNCAxMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjgiLz4KICA8dGV4dCB4PSI4MjgiIHk9IjMxOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZTNiMzQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZWFjaGFibGU8L3RleHQ+CiAgPCEtLSBxdWVyeSBub2RlIC0tPgogIDxjaXJjbGUgY3g9IjE2MCIgY3k9IjQ0MCIgcj0iNzAiIGZpbGw9InVybCgjYmx1ZWdsb3cpIi8+CiAgPGNpcmNsZSBjeD0iMTYwIiBjeT0iNDQwIiByPSIyMiIgZmlsbD0iIzdhYTJmZiIvPgogIDxjaXJjbGUgY3g9IjE2MCIgY3k9IjQ0MCIgcj0iMzQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjUiLz4KICA8IS0tIGhvcCBvbmU6IGZvdW5kIC0tPgogIDxwYXRoIGQ9Ik0xOTYsNDI0IEMyODAsMzgwIDM2MCwzNjAgNDMwLDM1NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjQiIG1hcmtlci1lbmQ9InVybCgjYWIpIi8+CiAgPHJlY3QgeD0iNDUyIiB5PSIzMTgiIHdpZHRoPSIxMzIiIGhlaWdodD0iODgiIHJ4PSIxNCIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4xNiIvPgogIDxyZWN0IHg9IjQ0MCIgeT0iMzA2IiB3aWR0aD0iMTMyIiBoZWlnaHQ9Ijg4IiByeD0iMTQiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGxpbmUgeDE9IjQ2MiIgeTE9IjMzNiIgeDI9IjU1MCIgeTI9IjMzNiIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC43Ii8+CiAgPGxpbmUgeDE9IjQ2MiIgeTE9IjM1OCIgeDI9IjUzMCIgeTI9IjM1OCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC41Ii8+CiAgPHBhdGggZD0iTTUzNiwzNjggbDEwLDEyIGwyMCwtMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8IS0tIGhvcCB0d286IGRyaWZ0IC0tPgogIDxwYXRoIGQ9Ik01NzYsMzcyIEM2ODAsNDIwIDc2MCw1MjAgOTAwLDUwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1kYXNoYXJyYXk9IjE0IDkiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgPHRleHQgeD0iNzMwIiB5PSI1MzAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjYwMCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+ZHJpZnQ8L3RleHQ+Cjwvc3ZnPgo=",
+  "alt": "A query finds one passage, then its search path drifts away from a glowing, reachable passage it never fetches.",
+  "caption": "The failure this post follows: the second hop's evidence was reachable, and the search wandered off.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "What is RAG, stage by stage: embeddings, query rewriting, multi-hop search drift, versioned context and the sufficiency check that still fails.",
+ "keywords": [
+  "what is RAG",
+  "Retrieval-augmented generation (RAG)",
+  "multi-hop RAG",
+  "search drift",
+  "RAG privacy random projection",
+  "RAG context assembly"
+ ],
+ "kicker": "Under the hood",
+ "tags": [
+  "RAG",
+  "Under the hood"
+ ],
+ "read": 8,
+ "decisions": [
+  "Split multi-hop questions into tracked sub-questions before blaming the retriever",
+  "Tag each wrong answer as missed, ignored or premature before tuning anything",
+  "Label superseded facts as historical instead of deleting them",
+  "Try one shared random projection on the vector store as a cheap privacy baseline"
+ ],
+ "layout": "mechanism",
+ "arrangement": "a",
+ "special": {
+  "type": "lab",
+  "title": "Try it yourself",
+  "items": [
+   {
+    "step": "Build a tiny index",
+    "how": "Write a handful of short passages about a made-up team, including an old office and a newer one. Embed them with any small open embedding model and keep the vectors in a numpy array.",
+    "look_for": "A query for the team's office returns the newer office passage near the top."
+   },
+   {
+    "step": "Project the store",
+    "how": "Multiply the passage vectors and the query by the same random Gaussian matrix, as in the first code sketch, and rerun top-k on the projected vectors.",
+    "look_for": "Nearly the same neighbours come back, with small shuffles in the order."
+   },
+   {
+    "step": "Ask both hops at once",
+    "how": "Embed the full question about where the team worked before its move as a single query and retrieve.",
+    "look_for": "The current office dominates the hits and the old office passage is missing or ranked low."
+   },
+   {
+    "step": "Add a register",
+    "how": "Split the question into sub-questions, keep a dict of which ones still lack evidence, and write each next query from the open item, with the same index and embedder.",
+    "look_for": "The old office passage now appears, though nothing about the retriever changed."
+   },
+   {
+    "step": "Label the versions",
+    "how": "Paste both office facts in source order, prefixing the older one with historical and the newer one with current, then ask a model the before question.",
+    "look_for": "The answer names the old office and does not confuse it with the current one."
+   },
+   {
+    "step": "Tag your failures",
+    "how": "Run a few of your own multi-hop questions and tag each wrong answer as never retrieved, retrieved but ignored, or answered before the last hop.",
+    "look_for": "As never-retrieved cases fall, premature answers and abstentions may rise."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "16 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "A retriever bolted to the front of a generator",
+    "num": "01",
+    "id": "a-retriever-bolted-to-the-front-of-a-generator"
+   }
+  ],
+  [
+   "p",
+   "Your assistant is asked which city Maya's team worked from before its last move. It answers confidently. It's wrong. You open the logs expecting a retrieval miss, and the passage with the old city is sitting right there in the index. Nothing asked for it. That gap, between evidence that exists and evidence that gets fetched, is the best place to start on what is RAG and where it breaks."
+  ],
+  [
+   "p",
+   "Retrieval-augmented generation is a language model with a search step in front. A retriever takes your question, finds passages in an external store, and pastes them into the prompt. The generator, the model itself, writes an answer conditioned on that text. The weights never change. You update what the system knows by updating the store, which is the whole appeal."
+  ],
+  [
+   "p",
+   "Each stage fails in its own way. The store can leak what it holds. The query can miss the sub-question that matters. The prompt can bury the right fact beside a stale one. And the generator can stop too early. We'll push Maya's question through every stage in the order the machinery runs, and bring in a fresh arXiv paper at each joint."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "The order a RAG request runs in, with each stage a separate place to fail.",
+    "steps": [
+     "Question arrives and is split into sub-questions",
+     "Each sub-question is embedded as a vector",
+     "Nearest passages come back from the store",
+     "Passages are ordered and labelled in the prompt",
+     "Generator answers, or decides the evidence is not enough"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Embeddings put passages and queries in one space",
+    "num": "02",
+    "id": "embeddings-put-passages-and-queries-in-one-space"
+   }
+  ],
+  [
+   "p",
+   "Start with the index. An embedding model maps each passage to a vector, a list of numbers whose direction encodes meaning. Your query goes through the same model. Retrieval is then a nearest-neighbour lookup: score every passage by cosine similarity, `cos(q, d) = q·d / (|q| |d|)`, and keep the top-k. For Maya, the passage about her team's old office should land near the query vector."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPk9uZSByYW5kb20gbWF0cml4IGFwcGxpZWQgdG8gdGhlIHN0b3JlIGFuZCB0aGUgcXVlcnkga2VlcHMgbmVpZ2hib3VycyB0b2dldGhlcjwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InZnIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNhNzhiZmEiIHN0b3Atb3BhY2l0eT0iMC40Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzk1YTFiNCIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiPgogICAgPHJlY3QgeD0iNDAiIHk9IjkwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjM2MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iMjIwIiB5PSI3MCIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+b3JpZ2luYWwgdmVjdG9yczwvdGV4dD4KICAgIDxnIGZpbGw9IiM5NWExYjQiIG9wYWNpdHk9IjAuNiI+CiAgICAgIDxjaXJjbGUgY3g9IjExMCIgY3k9IjE2MCIgcj0iOSIvPjxjaXJjbGUgY3g9IjMzMCIgY3k9IjE0MCIgcj0iOSIvPjxjaXJjbGUgY3g9IjMyMCIgY3k9IjM4MCIgcj0iOSIvPgogICAgICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSIzOTAiIHI9IjkiLz48Y2lyY2xlIGN4PSIyNTAiIGN5PSIyMDAiIHI9IjkiLz4KICAgIDwvZz4KICAgIDxjaXJjbGUgY3g9IjIwMCIgY3k9IjMwMCIgcj0iNTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtZGFzaGFycmF5PSI2IDYiLz4KICAgIDxjaXJjbGUgY3g9IjE4NiIgY3k9IjI5MCIgcj0iMTIiIGZpbGw9IiM3YWEyZmYiLz4KICAgIDxyZWN0IHg9IjIxMiIgeT0iMzA0IiB3aWR0aD0iMjIiIGhlaWdodD0iMjIiIHJ4PSI1IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8Y2lyY2xlIGN4PSI2MDAiIGN5PSIyNzAiIHI9IjE1MCIgZmlsbD0idXJsKCN2ZykiLz4KICAgIDxyZWN0IHg9IjUxMCIgeT0iMTgwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPGcgZmlsbD0iI2E3OGJmYSI+CiAgICAgIDxyZWN0IHg9IjUzMiIgeT0iMjAyIiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHJ4PSI0IiBvcGFjaXR5PSIwLjciLz48cmVjdCB4PSI1ODUiIHk9IjIwMiIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iNCIgb3BhY2l0eT0iMC4zIi8+PHJlY3QgeD0iNjM4IiB5PSIyMDIiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgcng9IjQiIG9wYWNpdHk9IjAuNTUiLz4KICAgICAgPHJlY3QgeD0iNTMyIiB5PSIyNTUiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgcng9IjQiIG9wYWNpdHk9IjAuMzUiLz48cmVjdCB4PSI1ODUiIHk9IjI1NSIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iNCIgb3BhY2l0eT0iMC44Ii8+PHJlY3QgeD0iNjM4IiB5PSIyNTUiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgcng9IjQiIG9wYWNpdHk9IjAuMjUiLz4KICAgICAgPHJlY3QgeD0iNTMyIiB5PSIzMDgiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgcng9IjQiIG9wYWNpdHk9IjAuNSIvPjxyZWN0IHg9IjU4NSIgeT0iMzA4IiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHJ4PSI0IiBvcGFjaXR5PSIwLjIiLz48cmVjdCB4PSI2MzgiIHk9IjMwOCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiByeD0iNCIgb3BhY2l0eT0iMC42NSIvPgogICAgPC9nPgogICAgPHRleHQgeD0iNjAwIiB5PSI0MDAiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNhNzhiZmEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNhbWUgcmFuZG9tIG1hdHJpeDwvdGV4dD4KICAgIDx0ZXh0IHg9IjYwMCIgeT0iNDMyIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5mb3Igc3RvcmUgYW5kIHF1ZXJ5PC90ZXh0PgogICAgPGxpbmUgeDE9IjQxMCIgeTE9IjI3MCIgeDI9IjQ5NiIgeTI9IjI3MCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICAgIDxsaW5lIHgxPSI3MDAiIHkxPSIyNzAiIHgyPSI3ODYiIHkyPSIyNzAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8cmVjdCB4PSI4MDAiIHk9IjkwIiB3aWR0aD0iMzYwIiBoZWlnaHQ9IjM2MCIgcng9IjE4IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPHRleHQgeD0iOTgwIiB5PSI3MCIgZm9udC1zaXplPSIyOCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cHJvamVjdGVkIHZlY3RvcnM8L3RleHQ+CiAgICA8ZyBmaWxsPSIjOTVhMWI0IiBvcGFjaXR5PSIwLjYiPgogICAgICA8Y2lyY2xlIGN4PSI4NzAiIGN5PSIzMzAiIHI9IjkiLz48Y2lyY2xlIGN4PSIxMTAwIiBjeT0iNDAwIiByPSI5Ii8+PGNpcmNsZSBjeD0iMTA5MCIgY3k9IjE1MCIgcj0iOSIvPgogICAgICA8Y2lyY2xlIGN4PSI4ODAiIGN5PSIxNDAiIHI9IjkiLz48Y2lyY2xlIGN4PSIxMDMwIiBjeT0iMzcwIiByPSI5Ii8+CiAgICA8L2c+CiAgICA8Y2lyY2xlIGN4PSI5OTAiIGN5PSIyNDAiIHI9IjU2IiBmaWxsPSJub25lIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWRhc2hhcnJheT0iNiA2Ii8+CiAgICA8Y2lyY2xlIGN4PSIxMDA4IiBjeT0iMjI2IiByPSIxMiIgZmlsbD0iIzdhYTJmZiIvPgogICAgPHJlY3QgeD0iOTYyIiB5PSIyNDAiIHdpZHRoPSIyMiIgaGVpZ2h0PSIyMiIgcng9IjUiIGZpbGw9IiMzZWNmOGUiLz4KICAgIDxjaXJjbGUgY3g9IjcwIiBjeT0iNTIwIiByPSIxMiIgZmlsbD0iIzdhYTJmZiIvPgogICAgPHRleHQgeD0iOTIiIHk9IjUyOSIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2U4ZWRmNSI+cXVlcnk8L3RleHQ+CiAgICA8cmVjdCB4PSIxODgiIHk9IjUwOCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjIyIiByeD0iNSIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPHRleHQgeD0iMjIyIiB5PSI1MjkiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiNlOGVkZjUiPm5lYXJlc3QgcGFzc2FnZTwvdGV4dD4KICAgIDx0ZXh0IHg9IjgwMCIgeT0iNTAwIiBmb250LXNpemU9IjI2IiBmaWxsPSIjM2VjZjhlIj5uZWlnaGJvdXIga2VwdDwvdGV4dD4KICAgIDx0ZXh0IHg9IjgwMCIgeT0iNTQwIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZmY3YjcyIj5yYXcgdmVjdG9ycyBuZXZlciBzdG9yZWQ8L3RleHQ+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "Points before and after one shared random matrix; the query and its nearest passage stay together.",
+    "caption": "One random matrix applied to both the store and the query keeps neighbours together while the raw vectors stay out of the store.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Here's the catch nobody draws on the architecture slide. That store is an attack surface. A new arXiv paper on private RAG warns that retrieval can «introduce privacy risks by leaking sensitive information from the retrieval datastore». Their fix is almost suspiciously simple. Multiply every vector by one random matrix, «By applying the same projection to both datastore embeddings and query embeddings», so the store never holds the raw vectors."
+  ],
+  [
+   "p",
+   "Random projection roughly preserves inner products, so neighbours stay neighbours. The authors say their method «provably preserves semantic similarity between queries and retrieved items». They also report beating formal differential-privacy baselines on retrieval and generation, with «comparable empirical privacy under strong attack models». Notice the split. Similarity is proven; privacy is measured against attacks. We think that's still the right bar for a baseline, because it costs one matrix multiply per vector."
+  ],
+  [
+   "code",
+   {
+    "label": "Top-k retrieval before and after one shared random projection (illustrative sketch, not the paper's code)",
+    "language": "python",
+    "source": "import numpy as np\n\ndef top_k(query, passages, k):\n    q = query / np.linalg.norm(query)\n    P = passages / np.linalg.norm(passages, axis=1, keepdims=True)\n    return np.argsort(-(P @ q))[:k]          # cosine similarity, best first\n\n# passages: (n, d) from your embedder; query: (d,)\nn, d = passages.shape\nm = d // 2                                   # projected width, your choice\nrng = np.random.default_rng()                # the matrix stays server-side\nR = rng.normal(size=(d, m)) / np.sqrt(m)\n\nstore = passages @ R                         # what the vector store holds\nplain = set(top_k(query, passages, k=5))\nprojected = set(top_k(query @ R, store, k=5))\nprint(len(plain & projected), \"neighbours survive the projection\")\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Query formation decides what the retriever ever sees",
+    "num": "03",
+    "id": "query-formation-decides-what-the-retriever-ever-sees"
+   }
+  ],
+  [
+   "p",
+   "Now the query. A retriever only returns what you ask for, and people rarely ask cleanly. Maya's question hides two hops: which team is she on, and where was that team before it moved? Embed the whole sentence and you get one blurry vector halfway between both. The usual fix is to rewrite the question into sub-questions before anything touches the index."
+  ],
+  [
+   "p",
+   "An AI tutor paper makes this stage its centrepiece. The tutor answers student questions, often in Mandarin, from a mix of course materials. Its authors describe «a specialized Retrieval-Augmented Generation (RAG) pipeline with a novel question extraction mechanism». Extraction pulls the real question out of a rambling forum message. On 91 Piazza questions, the tutor answered 83.52% correctly and helpfully. Translation landed for 76.92% of them."
+  ],
+  [
+   "p",
+   "In our view, query formation is the least glamorous stage and the most underrated. It costs one extra model call per question. Every later stage inherits its mistakes, though. Drop a sub-question here and no embedder, however good, can bring it back. Keep that in mind for the next stage. It turns out the same failure keeps happening between hops."
+  ],
+  [
+   "h2",
+   {
+    "text": "Search drift between the first hop and the second",
+    "num": "04",
+    "id": "search-drift-between-the-first-hop-and-the-second"
+   }
+  ],
+  [
+   "p",
+   "Multi-hop retrieval runs as a loop. The agent issues a query, reads the hits, settles one sub-question, then writes the next query. Somewhere around the second hop, things slide. A new arXiv paper on multi-hop RAG calls this search drift, where «the search no longer tracks an unanswered sub-question». For Maya, the agent finds her team, searches for the team's city, gets the current one, and stops."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDcwMCI+CiAgPHRpdGxlPkEgcmVxdWlyZW1lbnQgcmVnaXN0ZXIgc3RlZXJzIHRoZSBuZXh0IHF1ZXJ5IHRvd2FyZCB0aGUgb3BlbiBob3A8L3RpdGxlPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMDE0MWIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnIiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC4zIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UzYjM0MSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPG1hcmtlciBpZD0iYSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzdhYTJmZiIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJheSIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2UzYjM0MSIvPgogICAgPC9tYXJrZXI+CiAgICA8bWFya2VyIGlkPSJhciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iI2ZmN2I3MiIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjcwMCIgZmlsbD0idXJsKCNiZykiLz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiPgogICAgPHJlY3QgeD0iNjAiIHk9IjExMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSI4MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTYwIiB5PSIxNjAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmFnZW50PC90ZXh0PgogICAgPHJlY3QgeD0iMzgwIiB5PSIxMTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjQ4MCIgeT0iMTYwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5uZXh0IHF1ZXJ5PC90ZXh0PgogICAgPHJlY3QgeD0iMzgwIiB5PSIzNTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjQ4MCIgeT0iNDAwIiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5yZXRyaWV2ZXI8L3RleHQ+CiAgICA8cmVjdCB4PSI2MCIgeT0iMzUwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSIxNjAiIHk9IjQwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+cGFzc2FnZXM8L3RleHQ+CiAgICA8bGluZSB4MT0iMjYyIiB5MT0iMTUwIiB4Mj0iMzcyIiB5Mj0iMTUwIiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogICAgPGxpbmUgeDE9IjQ4MCIgeTE9IjE5MiIgeDI9IjQ4MCIgeTI9IjM0MiIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICAgIDxsaW5lIHgxPSIzNzgiIHkxPSIzOTAiIHgyPSIyNjgiIHkyPSIzOTAiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2EpIi8+CiAgICA8bGluZSB4MT0iMTYwIiB5MT0iMzQ4IiB4Mj0iMTYwIiB5Mj0iMTk4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogICAgPHRleHQgeD0iMzIwIiB5PSIyODAiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiPnNhbWUgaW5kZXg8L3RleHQ+CiAgICA8cGF0aCBkPSJNNTAwLDEwOCBDNTIwLDYwIDYwMCw0MCA2ODAsNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxMCA4IiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIgb3BhY2l0eT0iMC44NSIvPgogICAgPHRleHQgeD0iNzAwIiB5PSI1MCIgZmlsbD0iI2ZmN2I3MiIgZm9udC1zaXplPSIyNCI+ZHJpZnQsIG5vIHJlZ2lzdGVyPC90ZXh0PgogICAgPGVsbGlwc2UgY3g9IjkzMCIgY3k9IjM1MCIgcng9IjI2MCIgcnk9IjIzMCIgZmlsbD0idXJsKCNnKSIvPgogICAgPHJlY3QgeD0iNzIwIiB5PSIxNTAiIHdpZHRoPSI0MjAiIGhlaWdodD0iMzgwIiByeD0iMTgiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8dGV4dCB4PSI5MzAiIHk9IjIwMCIgZmlsbD0iI2UzYjM0MSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjYwMCI+cmVnaXN0ZXI8L3RleHQ+CiAgICA8bGluZSB4MT0iNzQ1IiB5MT0iMjIwIiB4Mj0iMTExNSIgeTI9IjIyMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KICAgIDxyZWN0IHg9Ijc0NSIgeT0iMjQyIiB3aWR0aD0iMzcwIiBoZWlnaHQ9IjEwMCIgcng9IjEyIiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjEyIi8+CiAgICA8dGV4dCB4PSI3NzAiIHk9IjI4MiIgZmlsbD0iI2U4ZWRmNSI+aG9wIEE6IHdoaWNoIHRlYW0/PC90ZXh0PgogICAgPHRleHQgeD0iNzcwIiB5PSIzMjAiIGZpbGw9IiMzZWNmOGUiIGZvbnQtc2l6ZT0iMjQiPmV2aWRlbmNlIGhlbGQ8L3RleHQ+CiAgICA8cGF0aCBkPSJNMTA3MCwyODIgbDEwLDEyIGwyMCwtMjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICAgIDxyZWN0IHg9Ijc0NSIgeT0iMzYwIiB3aWR0aD0iMzcwIiBoZWlnaHQ9IjEwMCIgcng9IjEyIiBmaWxsPSIjZTNiMzQxIiBvcGFjaXR5PSIwLjE0Ii8+CiAgICA8dGV4dCB4PSI3NzAiIHk9IjQwMCIgZmlsbD0iI2U4ZWRmNSI+aG9wIEI6IGNpdHkgYmVmb3JlPzwvdGV4dD4KICAgIDx0ZXh0IHg9Ijc3MCIgeT0iNDM4IiBmaWxsPSIjZTNiMzQxIiBmb250LXNpemU9IjI0Ij5zdGlsbCBvcGVuPC90ZXh0PgogICAgPGNpcmNsZSBjeD0iMTA4NSIgY3k9IjQwMCIgcj0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8cGF0aCBkPSJNNzQyLDQxMCBDNjYwLDQxMCA2MjAsMjgwIDU5MCwxOTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2F5KSIvPgogICAgPHRleHQgeD0iNjQwIiB5PSIzMjAiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjQiPnN0ZWVyczwvdGV4dD4KICAgIDxsaW5lIHgxPSI2MCIgeTE9IjU5MCIgeDI9IjExNDAiIHkyPSI1OTAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8dGV4dCB4PSI2MCIgeT0iNjQwIiBmaWxsPSIjZThlZGY1IiBmb250LXNpemU9IjI4Ij5ndWlkYW5jZSBjaGFuZ2VzPC90ZXh0PgogICAgPHRleHQgeD0iMzMwIiB5PSI2NDAiIGZpbGw9IiM5NWExYjQiIGZvbnQtc2l6ZT0iMjgiPmV2aWRlbmNlIGFjY2VzcyBzdGF5cyBmaXhlZDwvdGV4dD4KICAgIDxsaW5lIHgxPSIzMDAiIHkxPSI2MTYiIHgyPSIzMDAiIHkyPSI2NDgiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPC9nPgo8L3N2Zz4K",
+    "alt": "A retrieval loop with a register beside it; the open hop steers the next query instead of drifting off.",
+    "caption": "The register only changes which query gets written next, which is why every passage it recovers was reachable all along.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "We went through how the authors pull drift apart from plain retrieval failure. Their complaint is blunt: «Standard retrieval evaluations conflate these two causes». Either the passage was unreachable, or nobody asked for it. So they hold the retriever and generator fixed and add «a training-free requirement register that records open sub-questions and their supporting evidence». The register keeps pointing the next query at whatever is still open."
+  ],
+  [
+   "p",
+   "The clever part is the control. «The register changes search guidance but not evidence access», so any gold passage it recovers was always reachable. That's a proof by construction, and we love it. On 1,000 MuSiQue questions, wrong answers missing required evidence fell from 382 to 234 with one embedder. With the other, they fell from 383 to 274."
+  ],
+  [
+   "p",
+   "As shares of each system's wrong answers, missing-evidence cases went from 69% to 44% and from 66% to 48%. So a big slice of what looked like retrieval failure was really query failure. The retriever was fine. It just wasn't being asked the right thing, at the right hop, by an agent that had lost track of its own plan."
+  ],
+  [
+   "code",
+   {
+    "label": "A requirement register wrapped around a multi-hop loop (illustrative sketch, not the authors' code)",
+    "language": "python",
+    "source": "register = {sq: None for sq in decompose(question)}   # open sub-questions\n\nwhile any(v is None for v in register.values()) and budget_left():\n    target = next(sq for sq, v in register.items() if v is None)\n    query = write_query(question, target, register)   # aim at the open hop\n    hits = retriever.search(query, k=K)               # same retriever, same index\n    support = find_support(hits, target)\n    if support:\n        register[target] = support                    # hop settled, with evidence\n    else:\n        log_drift(target, query, hits)                # where drift becomes visible\n\nanswer = generate(question, evidence=register)\n"
+   }
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Wrong answers lacking required evidence on 1,000 MuSiQue questions, with and without the requirement register, unit: wrong answers.",
+    "unit": "wrong answers with unretrieved required evidence",
+    "bars": [
+     {
+      "label": "all-MiniLM-L6-v2, no register",
+      "value": 382.0
+     },
+     {
+      "label": "all-MiniLM-L6-v2, with register",
+      "value": 234.0
+     },
+     {
+      "label": "Qwen3-Embedding-0.6B, no register",
+      "value": 383.0
+     },
+     {
+      "label": "Qwen3-Embedding-0.6B, with register",
+      "value": 274.0
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Context assembly orders facts by version",
+    "num": "05",
+    "id": "context-assembly-orders-facts-by-version"
+   }
+  ],
+  [
+   "p",
+   "The passages are in. Now they have to be laid out in the prompt, and layout matters more than you'd guess. Say the store holds two facts about Maya's team: an old office in Lyon and a new one in Oslo. Paste both with no dates and the generator guesses which is current. Paste only the newest and the question about before becomes unanswerable."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPlVubGFiZWxsZWQgZmFjdHMgY29uZnVzZSB0aGUgZ2VuZXJhdG9yOyB2ZXJzaW9uZWQsIG9yZGVyZWQsIGxhYmVsbGVkIGZhY3RzIGRvIG5vdDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bWFya2VyIGlkPSJhIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFiIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjN2FhMmZmIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjIwIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxnIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiI+CiAgICA8dGV4dCB4PSIyMjAiIHk9IjcwIiBmaWxsPSIjOTVhMWI0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjI4Ij5wYXN0ZWQgYXMgZm91bmQ8L3RleHQ+CiAgICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSgtNiAyMTAgMjE1KSI+CiAgICAgIDxyZWN0IHg9IjcwIiB5PSIxNzAiIHdpZHRoPSIyODAiIGhlaWdodD0iOTAiIHJ4PSIxNCIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPHRleHQgeD0iOTYiIHk9IjIyNSIgZmlsbD0iI2U4ZWRmNSI+dGVhbSBvZmZpY2U6IE9zbG88L3RleHQ+CiAgICA8L2c+CiAgICA8ZyB0cmFuc2Zvcm09InJvdGF0ZSg1IDIzMCAzMzUpIj4KICAgICAgPHJlY3QgeD0iOTAiIHk9IjI5MCIgd2lkdGg9IjI4MCIgaGVpZ2h0PSI5MCIgcng9IjE0IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8dGV4dCB4PSIxMTYiIHk9IjM0NSIgZmlsbD0iI2U4ZWRmNSI+dGVhbSBvZmZpY2U6IEx5b248L3RleHQ+CiAgICA8L2c+CiAgICA8dGV4dCB4PSIyMjAiIHk9IjQ3MCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSI1NiIgZm9udC13ZWlnaHQ9IjYwMCI+PzwvdGV4dD4KICAgIDx0ZXh0IHg9IjIyMCIgeT0iNTI1IiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj53aGljaCBvbmUgaXMgY3VycmVudD88L3RleHQ+CiAgICA8bGluZSB4MT0iNDEwIiB5MT0iMzAwIiB4Mj0iNTAwIiB5Mj0iMzAwIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhKSIvPgogICAgPHRleHQgeD0iNzYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyOCI+dmVyc2lvbmVkLCBpbiBzb3VyY2Ugb3JkZXI8L3RleHQ+CiAgICA8cmVjdCB4PSI1NDAiIHk9IjEzMCIgd2lkdGg9IjQ0MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNiIgZmlsbD0iIzE1MWEyMyIgc3Ryb2tlPSIjZTNiMzQxIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDx0ZXh0IHg9IjU3MCIgeT0iMTgwIiBmaWxsPSIjZThlZGY1Ij50ZWFtIG9mZmljZTogTHlvbjwvdGV4dD4KICAgIDxyZWN0IHg9IjU3MCIgeT0iMTk4IiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjM2IiByeD0iMTgiIGZpbGw9IiNlM2IzNDEiIG9wYWNpdHk9IjAuMjIiLz4KICAgIDx0ZXh0IHg9IjY0NSIgeT0iMjI0IiBmaWxsPSIjZTNiMzQxIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjIyIj5oaXN0b3JpY2FsPC90ZXh0PgogICAgPHRleHQgeD0iOTU1IiB5PSIxODAiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJlbmQiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtZmFtaWx5PSJ1aS1tb25vc3BhY2UsIFNGTW9uby1SZWd1bGFyLCBNZW5sbywgbW9ub3NwYWNlIj5zcmMgQTwvdGV4dD4KICAgIDxyZWN0IHg9IjU0MCIgeT0iMjgwIiB3aWR0aD0iNDQwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iNTcwIiB5PSIzMzAiIGZpbGw9IiNlOGVkZjUiPnRlYW0gb2ZmaWNlOiBPc2xvPC90ZXh0PgogICAgPHJlY3QgeD0iNTcwIiB5PSIzNDgiIHdpZHRoPSIxMzAiIGhlaWdodD0iMzYiIHJ4PSIxOCIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC4yMiIvPgogICAgPHRleHQgeD0iNjM1IiB5PSIzNzQiIGZpbGw9IiMzZWNmOGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMjIiPmN1cnJlbnQ8L3RleHQ+CiAgICA8dGV4dCB4PSI5NTUiIHk9IjMzMCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9ImVuZCIgZm9udC1zaXplPSIyMiIgZm9udC1mYW1pbHk9InVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIE1lbmxvLCBtb25vc3BhY2UiPnNyYyBCPC90ZXh0PgogICAgPGxpbmUgeDE9Ijc2MCIgeTE9IjI1MiIgeDI9Ijc2MCIgeTI9IjI3NCIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYSkiLz4KICAgIDxwYXRoIGQ9Ik03NjAsNDA0IEM3NjAsNDcwIDkwMCw1MDAgOTkwLDUwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYWIpIi8+CiAgICA8cmVjdCB4PSIxMDAwIiB5PSI0NjAiIHdpZHRoPSIxNzAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzdhYTJmZiIgZmlsbC1vcGFjaXR5PSIwLjE4IiBzdHJva2U9IiM3YWEyZmYiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPHRleHQgeD0iMTA4NSIgeT0iNTA4IiBmaWxsPSIjZThlZGY1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5nZW5lcmF0b3I8L3RleHQ+CiAgICA8dGV4dCB4PSI1NjAiIHk9IjU3NSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1zaXplPSIyNiI+YW5zd2VyczogYmVmb3JlIHRoZSBtb3ZlLCBMeW9uPC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==",
+    "alt": "Two unlabelled office facts beside the same facts versioned, ordered and tagged historical or current, feeding a generator.",
+    "caption": "Ordering facts by source and tagging the old one as historical is what lets the generator answer a question about before.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A memory paper called TEM takes this on directly. Its premise is sharp: «A new fact may replace an earlier value without making that value irrelevant to a later question». That's exactly Maya's case. TEM «stores facts as versioned records linked to their sources», then «places them in source order and labels historical records before passing the evidence to the answer model»."
+  ],
+  [
+   "p",
+   "The label alone does a lot of work. Adding historical labels to otherwise identical, source-ordered facts raised hit rates by 17.14 to 55.95 percentage points. The evidence stayed small too, at 94 to 118 tokens per answer. Every pasted token is billed on every call, so that matters. We agree with the abstract's closing argument for «exposing their temporal status to the generator». Cheap metadata, big effect."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "TEM's reported ranges across four open-weight models on 420 questions.",
+    "columns": [
+     "Measurement",
+     "Reported range"
+    ],
+    "rows": [
+     [
+      "Key-entity hit rate, overall",
+      "75.71-97.62%"
+     ],
+     [
+      "Hit rate, historical-residence subset",
+      "96.67-100.00%"
+     ],
+     [
+      "Gain from adding historical labels",
+      "17.14-55.95 percentage points"
+     ],
+     [
+      "Evidence per answer",
+      "94-118 tokens"
+     ],
+     [
+      "Evidence saved against session-aware RAG",
+      "48.75-56.73%"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Sufficiency checking is the joint nobody has solved",
+    "num": "06",
+    "id": "sufficiency-checking-is-the-joint-nobody-has-solved"
+   }
+  ],
+  [
+   "p",
+   "Here's the twist in the drift paper, and it's the most honest line we read all week. Recovering missing evidence didn't fix as many answers as you'd hope. In their words, «evidence recovery does not produce a proportional reduction in total error». Instead, «premature resolutions and abstentions increase as missing-evidence failures decrease». Read that twice. The agent now holds the right passage and still stops early, or gives up."
+  ],
+  [
+   "p",
+   "So the bottleneck moves. The authors frame it as a shift «from guiding search toward required evidence to verifying that the retrieved evidence is sufficient». For Maya's question, the generator must notice it holds the current office but not the earlier one. Knowing what you don't know, inside one forward pass, is a hard thing to ask of a model."
+  ],
+  [
+   "p",
+   "We're not convinced anyone has a general sufficiency check yet, and you can measure your own gap. Log every wrong answer with one of three tags: required passage never retrieved, retrieved but ignored, or answered before the last hop. Add a register and watch the tags shift. If abstentions climb as misses fall, you've hit the same wall."
+  ],
+  [
+   "p",
+   "Privacy has its own open number. The projection paper's privacy result is empirical, measured against the attacks it tried. Nobody yet knows how it holds against an attacker who adapts to the projection itself. That's measurable too. Point an extraction attack at your own projected store, compare what leaks against the plain store, and write the result down."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "What is RAG in simple terms?"
+  ],
+  [
+   "p",
+   "RAG is a language model that looks things up before it answers: a retriever fetches passages from an external store and the model writes its reply from them. You change what it knows by changing the store, not the weights. The catch is that every stage, from the query to the final check, can fail on its own."
+  ],
+  [
+   "h3",
+   "Why does RAG give a wrong answer when the right passage is in the index?"
+  ],
+  [
+   "p",
+   "Often because no query ever asked for it. A multi-hop RAG paper calls this search drift, where «the search no longer tracks an unanswered sub-question». Tracking open sub-questions recovered evidence the same retriever could always reach. Even then, the model sometimes answered before checking it had everything it needed, so total errors fell less than missing evidence did."
+  ],
+  [
+   "h3",
+   "Can a vector database leak private data in a RAG system?"
+  ],
+  [
+   "p",
+   "Yes, a RAG store can leak sensitive text to extraction attacks. A new arXiv paper proposes multiplying stored and query vectors by one random projection, which it says «provably preserves semantic similarity between queries and retrieved items». Its privacy is shown empirically against strong attacks, so test it against your own threat model before you rely on it."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Private Retrieval Augmented Generation via Random Projection",
+   "url": "https://arxiv.org/abs/2610.22297v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Multi-sourced AI Tutor for Non-Native English Speaker Students",
+   "url": "https://arxiv.org/abs/2610.22163v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 3,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "Beyond Retrieval Failure: Understanding Why LLMs Miss Evidence in Multi-Hop RAG",
+   "url": "https://arxiv.org/abs/2610.21184v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 4,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "TEM: Temporal State Tracking Memory for Large Language Model Agents",
+   "url": "https://arxiv.org/abs/2610.21900v1",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {
+  "introduce privacy risks by leaking sensitive information from the retrieval datastore": 1,
+  "By applying the same projection to both datastore embeddings and query embeddings": 1,
+  "provably preserves semantic similarity between queries and retrieved items": 1,
+  "comparable empirical privacy under strong attack models": 1,
+  "a specialized Retrieval-Augmented Generation (RAG) pipeline with a novel question extraction mechanism": 2,
+  "the search no longer tracks an unanswered sub-question": 3,
+  "Standard retrieval evaluations conflate these two causes": 3,
+  "a training-free requirement register that records open sub-questions and their supporting evidence": 3,
+  "The register changes search guidance but not evidence access": 3,
+  "A new fact may replace an earlier value without making that value irrelevant to a later question": 4,
+  "stores facts as versioned records linked to their sources": 4,
+  "places them in source order and labels historical records before passing the evidence to the answer model": 4,
+  "exposing their temporal status to the generator": 4,
+  "evidence recovery does not produce a proportional reduction in total error": 3,
+  "premature resolutions and abstentions increase as missing-evidence failures decrease": 3,
+  "from guiding search toward required evidence to verifying that the retrieved evidence is sufficient": 3
+ },
+ "rel": [
+  [
+   "post:topic-synthesis-concept-interpretability",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-long-context",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T06:36:02+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "arxiv:2610.22297v1",
+   "arxiv:2610.21184v1",
+   "arxiv:2610.22163v1",
+   "arxiv:2610.21900v1"
+  ],
+  "platforms": {
+   "arXiv": 4
+  },
+  "embedded": 0,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "under-the-hood:concept/rag",
+  "format": "under-the-hood",
+  "reviewed_by": null
+ }
+}

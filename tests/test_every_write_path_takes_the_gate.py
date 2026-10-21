@@ -63,16 +63,32 @@ READ_ONLY: dict[str, str] = {
     "_six_host_probe.py": "measurement only; no write verb",
     "corpus_inventory.py": "counts the corpus; no write verb",
     "dump_keywords.py": "prints what each platform is sent; no write verb",
+    "export_indexable_paths.py": ("writes the indexable paths to a FILE for the sitemap (SEO "
+                                  "item 8); SELECTs only, over a default_transaction_read_only "
+                                  "connection; no write verb"),
     "measure_key_constraint.py": "measurement only; no write verb",
     "measure_signal_demotion_platforms.py": "measurement only; no write verb",
     "promotion_report.py": ("ranks untracked models by the claims already held; one SELECT, "
                             "over a default_transaction_read_only connection; no write verb"),
+    "propose_model.py": ("previews adding or untracking a model for /admin/models/propose; "
+                         "SELECTs only, over a default_transaction_read_only connection; "
+                         "no write verb (#459)"),
+    "pull_raw_store.py": ("fetches missing raw payloads from the shared raw_blob table "
+                          "into local files; SELECTs only, both connections "
+                          "default_transaction_read_only; no write verb"),
+    "raw_store_census.py": ("#321's census: counts where each payload is, over a "
+                            "default_transaction_read_only connection; stats the raw "
+                            "store, never RawStore.get (which caches); no write verb"),
     "registry_diff.py": ("diffs the catalogue against model_version for #450; one SELECT, "
                          "over a default_transaction_read_only connection; no write verb"),
     "run_scheduled_fetches.py": ("plans which models are due over a "
                                  "default_transaction_read_only connection; the WRITES are "
                                  "fetch_model's subprocess, which carries the fixture gate; "
                                  "no write verb here"),
+    "seo_about_gaps.py": ("lists indexable pages with no about-text (SEO item 4); SELECTs "
+                          "only, over a default_transaction_read_only connection; no write verb"),
+    "show_thread.py": ("prints one harvested Reddit thread from `document` and the raw "
+                       "store; SELECTs only, no write verb"),
     "triage_stored_corpus.py": "re-triages in memory and reports; no write verb",
     "write_report.py": "writes a FILE, not the database; no SQL write verb",
 }

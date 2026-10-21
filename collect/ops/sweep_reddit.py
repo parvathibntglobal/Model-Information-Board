@@ -118,6 +118,17 @@ class RedditSweepReport:
     distinct_threads: int = 0
     group_hits: dict[str, int] = field(default_factory=dict)
 
+    #: The comment fetch, one request per survivor. Four outcomes kept apart
+    #: because they mean different things on the page: comments stored, a
+    #: thread the platform says has none, a link post with no thread, and a
+    #: fetch that FAILED - the last is an absence we caused, not one we found.
+    comment_requests: int = 0
+    threads_with_comments: int = 0
+    comments_stored: int = 0
+    threads_without_comments: int = 0
+    threads_not_a_thread: int = 0
+    comment_fetch_failures: list[str] = field(default_factory=list)
+
     harvest_runs_opened: int = 0
     harvest_runs_closed: int = 0
     documents_with_run_id: int = 0
@@ -162,7 +173,19 @@ class RedditSweepReport:
             f"           {self.candidates} candidate(s) of {self.offered} offered, "
             f"{self.kept} kept, {self.stored} document(s) stored",
             f"           DISTINCT THREADS: {self.distinct_threads}   <- the result",
+            f"           comments: {self.comment_requests} request(s) for {self.kept} "
+            f"kept post(s); {self.threads_with_comments} thread(s) with comments "
+            f"({self.comments_stored} comment document(s) stored), "
+            f"{self.threads_without_comments} with none on the platform, "
+            f"{self.threads_not_a_thread} link post(s) with no thread, "
+            f"{len(self.comment_fetch_failures)} FAILED fetch(es)",
         ]
+        if self.comment_fetch_failures:
+            lines.append(
+                "           * a FAILED comment fetch assembles body-only and reads as a "
+                "post nobody answered. Re-fetch before assembly: "
+                + ", ".join(self.comment_fetch_failures[:5])
+            )
         if self.candidates:
             rates = ", ".join(
                 f"{g} {h} ({100 * h / self.candidates:.1f}%)"
@@ -423,6 +446,89 @@ def sweep_reddit(
         )
         conn.commit()
 
+        # EVERY SURVIVOR'S DISCUSSION, NOT ONLY ITS POST. Added 2026-10-05.
+        #
+        # Until this loop the listing stored posts and nothing under them, so
+        # the assembler found no comments and wrote `post_body_only`. Measured
+        # on staging 2026-10-05: of 1,507 roots this sweep wrote (one run,
+        # 2026-08-28), 17 had any comment document, while the platform's own
+        # count said 1,417 of them had comments (median 50). The search arm in
+        # `scripts/fetch_model.py` already fetched comments - 137 of its 185
+        # roots carry them - so the gap was this stage alone.
+        #
+        # FETCHED BEFORE THE FIRST ASSEMBLY, WHICH IS THE ONLY CHEAP MOMENT. A
+        # context's id does not hash its members and `write_thread_context` is
+        # ON CONFLICT DO NOTHING, so a post assembled body-only stays body-only
+        # when comments arrive later; repairing it is a rebuild and, where it
+        # was extracted, a paid re-extraction.
+        #
+        # ALL OF THEM, AND THE TOP ONES ARE CHOSEN DOWNSTREAM. The whole tree
+        # is stored; which replies reach the extractor is decided at assembly
+        # by `collect/assemble/ranking.py` under `contract/harvest.yaml`
+        # `child_ranking`. Nothing here filters a reply.
+        #
+        # One request per survivor, paced by the harvester's own limiter, and
+        # NOT counted against `report.cap` - that cap is GitHub's page budget
+        # (`cap_borrowed_from`). The bound is the survivor count, which the
+        # listing caps at `offered`, and the summary prints both.
+        def _store_comments(post, refs=refs, opened=opened) -> None:
+            fetch = harvester.fetch_comments(post)
+            report.comment_requests += 0 if fetch.not_a_thread else 1
+            report.http_errors += fetch.http_errors
+            report.rate_limited += fetch.rate_limited
+            if fetch.quota_remaining is not None:
+                report.quota_remaining = fetch.quota_remaining
+            if fetch.quota_limit is not None:
+                report.quota_limit = fetch.quota_limit
+            if fetch.not_a_thread:
+                report.threads_not_a_thread += 1
+                return
+            # A 429 IS A FAILED FETCH TOO (review of #503): the adapter counts
+            # it in `rate_limited`, not `http_errors`, so testing only the
+            # latter filed a rate-limited thread under "no comments on the
+            # platform" - an absence we caused, read as one we found.
+            if (fetch.http_errors or fetch.rate_limited) and not fetch.comments:
+                report.comment_fetch_failures.append(post.external_id)
+                return
+            if not fetch.comments:
+                # The platform returned a thread with no comments. Assembly
+                # records it as body-only with coverage 0.0 - a true absence,
+                # distinct from one we caused by not asking.
+                report.threads_without_comments += 1
+                return
+            comment_refs = {}
+            for comment in fetch.comments:
+                payload = json.dumps(comment.raw, ensure_ascii=False, sort_keys=True)
+                stored = harvester_store.put(payload.encode("utf-8"), namespace=RAW)
+                comment_refs[comment.external_id] = (stored.ref, stored.content_hash)
+            # The post rides along so the writer can root its comments; its own
+            # row already exists and conflicts away.
+            comment_refs[post.external_id] = refs[post.external_id]
+            wrote_comments = write_documents(
+                conn,
+                [post, *fetch.comments],
+                retrieval_provenance=provenance if opened is not None else fallback,
+                harvest_run_id=opened.id if opened is not None else None,
+                refs=comment_refs,
+            )
+            conn.commit()
+            report.threads_with_comments += 1
+            report.comments_stored += int(wrote_comments.get("documents_inserted", 0) or 0)
+
+        for post in run.survivors:
+            # ONE POST'S FAILURE IS ONE POST'S (review of #503). An exception
+            # here - a malformed response, a dropped connection on the write -
+            # used to propagate out of the sweep: the harvest_run was never
+            # closed, the remaining subreddits were skipped and the report was
+            # lost. Now the post is named in `comment_fetch_failures`, the
+            # connection rolled back, and the sweep carries on.
+            try:
+                _store_comments(post)
+            except Exception as error:  # noqa: BLE001 - recorded, not swallowed
+                log.warning("comment fetch/write failed for %s: %s", post.external_id, error)
+                report.comment_fetch_failures.append(post.external_id)
+                conn.rollback()
+
         seat.requests = run.pages_fetched
         seat.candidates = len(run.posts)
         seat.kept = len(run.survivors)
@@ -440,8 +546,15 @@ def sweep_reddit(
         report.http_errors += run.http_errors
         report.rate_limited += run.rate_limited
         report.quota_exhausted = report.quota_exhausted or run.quota_exhausted
+        # THE LOWER READING WINS (review of #503). The listing's figure was read
+        # BEFORE this subreddit's comment requests, so letting it overwrite the
+        # comment loop's later reading overstated the quota left by every
+        # comment request. The quota only falls within its window.
         if run.quota_remaining is not None:
-            report.quota_remaining = run.quota_remaining
+            report.quota_remaining = (
+                run.quota_remaining if report.quota_remaining is None
+                else min(report.quota_remaining, run.quota_remaining)
+            )
         if run.quota_limit is not None:
             report.quota_limit = run.quota_limit
 

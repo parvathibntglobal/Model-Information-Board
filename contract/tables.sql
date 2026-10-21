@@ -196,6 +196,34 @@ CREATE TABLE pricing_history (
   PRIMARY KEY (model_version_id, observed_at)
 );
 
+-- ── model_catalog - OpenRouter's whole list, every output type (2026-10-14) ──
+-- For the Models pages ONLY; nothing in the evidence pipeline reads it, so a
+-- voice or video model listed here never becomes a search target. Writer:
+-- collect/registry/catalog.py. Reader: judge/catalog.py. Column meanings in
+-- migrations/20261014T1300_model_catalog.sql.
+CREATE TABLE model_catalog (
+  canonical_id       text PRIMARY KEY,   -- OpenRouter's id as listed
+  provider           text NOT NULL,      -- vendor segment, '~' stripped
+  name               text NOT NULL,
+  description        text,
+  listed_at          timestamptz,        -- when OPENROUTER listed it, not a release date
+  input_modalities   text[] NOT NULL,
+  output_modalities  text[] NOT NULL,    -- OpenRouter's types, as published
+  context_length     int,
+  price_in           numeric(12,6),      -- USD per 1M tokens; NULL = not priced per token
+  price_out          numeric(12,6),
+  price_cached_read  numeric(12,6),      -- USD per 1M cached input tokens; NULL = none published
+  pricing            jsonb NOT NULL,     -- as published (per image, per second ...)
+  max_output_tokens  int,
+  supported_parameters text[] NOT NULL DEFAULT '{}',  -- empty = none listed, not "none supported"
+  expiration_date    date,                -- OpenRouter stops serving it; NULL = none announced
+  knowledge_cutoff   date,                -- as the feed states it; NULL = not stated
+  first_seen_at      timestamptz NOT NULL DEFAULT now(),
+  last_seen_at       timestamptz NOT NULL
+);
+
+CREATE INDEX model_catalog_seen_idx ON model_catalog (last_seen_at);
+
 
 -- ============================================================================
 --  THE INTERFACE — collect/ fills these, judge/ reads them.
@@ -914,6 +942,14 @@ CREATE TABLE board_entry (
   -- guessing from the old shape would bake an accident in as a decision.
   model_scope       text,
 
+  -- ── the heading the extractor filed an entry under (2026-10-14) ─────────
+  -- One of its section's headings in contract/slug_parents.yaml, or NULL:
+  -- written before this column, or the extractor gave no heading or one that
+  -- is not real (counted per section in store_entries' outcome as
+  -- `unfiled_by_section`). Read by board_sections to place a leaf the
+  -- contract has not filed; the contract wins wherever it has an answer.
+  parent_proposed   text,
+
   -- ── was this row's SLUG backed by its own quote? #368 ────────────────────
   -- `axis_verbatim` and `subject_verbatim` are the words COPIED from the
   -- quote, or NULL when the quote named none. They existed on the extraction
@@ -1527,10 +1563,13 @@ CREATE TABLE IF NOT EXISTS spend_ledger (
   run_id         text,
   recorded_at    timestamptz NOT NULL DEFAULT now(),
 
-  -- The same closed set rule 2 permits to call a model. A third value here is
-  -- a rule-2 violation and should be refused by the database rather than
-  -- appear as a new line on a chart nobody questions.
-  CONSTRAINT spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask'))
+  -- The same closed set rule 2 permits to call a model. Any other value is a
+  -- rule-2 violation and should be refused by the database rather than appear
+  -- as a new line on a chart nobody questions. 'blog' is the generator rule 2
+  -- named on 2026-10-06; it is recorded OUTSIDE the daily cap
+  -- (20261007T0900_spend_ledger_blog_stage.sql). 'quiz' is the quiz question
+  -- drafter, outside the cap the same way (20261015T1400_quiz_question.sql).
+  CONSTRAINT spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog', 'quiz'))
 );
 
 -- The two questions asked of this table: "what has today cost" (the shared cap)
@@ -1694,3 +1733,159 @@ COMMENT ON COLUMN rapidapi_quota_reading.observed_at IS
   'When this call recorded the reading, microsecond precision. Distinct from '
   'read_at, which is second resolution: two calls in one second that read the '
   'same figures must be two rows, because an unmoved counter is the signal.';
+
+
+-- ============================================================================
+--  BLOG GENERATION HISTORY AND REVIEW
+--  (migration 20261006T1200_blog_generation_history.sql - why it exists and
+--   why review is append-only are written there)
+-- ============================================================================
+
+CREATE TABLE blog_generation_run (
+  id               text PRIMARY KEY,
+  started_at       timestamptz NOT NULL,
+  finished_at      timestamptz,
+  state            text NOT NULL,
+  requested_count  integer NOT NULL,
+  model            text,
+  cost_usd         numeric(12,6),
+  tokens_in        bigint,
+  tokens_out       bigint,
+  posts_written    text[] NOT NULL DEFAULT '{}',
+  posts_failed     text[] NOT NULL DEFAULT '{}',
+  message          text,
+  log              text
+);
+
+-- run_id is NULL for a post stored from files, which no recorded run wrote
+-- (made nullable by 20261006T1500_blog_post_store.sql).
+CREATE TABLE blog_post_review (
+  id          text PRIMARY KEY,
+  slug        text NOT NULL,
+  run_id      text REFERENCES blog_generation_run(id),
+  decision    text NOT NULL CHECK (decision IN ('approved', 'rejected', 'reopened')),
+  reason      text,
+  decided_at  timestamptz NOT NULL
+);
+
+CREATE INDEX blog_post_review_slug_at ON blog_post_review (slug, decided_at DESC);
+
+-- ============================================================================
+--  BLOG POSTS: pending, approved, or rejected (kept, never shown)
+--  (migration 20261006T1500_blog_post_store.sql - the states, why a rejected
+--   post is kept, and who writes are written there)
+-- ============================================================================
+
+CREATE TABLE blog_post (
+  slug          text PRIMARY KEY,
+  state         text NOT NULL CHECK (state IN ('pending', 'approved', 'rejected')),
+  doc           jsonb NOT NULL,
+  plan_key      text,
+  run_id        text REFERENCES blog_generation_run(id),
+  generated_at  timestamptz,
+  stored_at     timestamptz NOT NULL
+);
+
+CREATE INDEX blog_post_state ON blog_post (state);
+
+-- ============================================================================
+--  THE SHARED RAW STORE: one row per raw payload, zlib-compressed
+--  (migration 20261007T1200_raw_blob.sql - why it is a table and not a bucket,
+--   the measured size, and the key format are written there)
+-- ============================================================================
+
+CREATE TABLE raw_blob (
+  key        text PRIMARY KEY,
+  data       bytea NOT NULL,
+  size       bigint NOT NULL,
+  stored_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- THE QUIZ'S QUESTION BANK (2026-10-15): drafted by a model, approved by a
+-- person; the daily quiz draws approved rows only. See
+-- contract/migrations/20261015T1400_quiz_question.sql.
+CREATE TABLE IF NOT EXISTS quiz_question (
+  -- qq_ + sha256 of the normalised question text, so a re-draft of the same
+  -- question is one row, not two.
+  id              text PRIMARY KEY,
+  topic           text NOT NULL,
+  difficulty      text NOT NULL,
+  question        text NOT NULL,
+  -- Exactly four answer texts, in the order drafted. The page shuffles.
+  options         jsonb NOT NULL,
+  answer_index    integer NOT NULL,
+  explanation     text NOT NULL,
+  state           text NOT NULL DEFAULT 'pending',
+  proposer_model  text NOT NULL,
+  run_id          text NOT NULL,
+  generated_at    timestamptz NOT NULL DEFAULT now(),
+  reviewed_at     timestamptz,
+  review_note     text,
+  CONSTRAINT quiz_question_state_ck CHECK (state IN ('pending', 'approved', 'rejected')),
+  CONSTRAINT quiz_question_difficulty_ck CHECK (difficulty IN ('easy', 'medium', 'hard')),
+  CONSTRAINT quiz_question_options_ck
+    CHECK (jsonb_typeof(options) = 'array' AND jsonb_array_length(options) = 4),
+  CONSTRAINT quiz_question_answer_ck CHECK (answer_index BETWEEN 0 AND 3),
+  -- A decision has a time; a pending question has none.
+  CONSTRAINT quiz_question_reviewed_ck CHECK ((state = 'pending') = (reviewed_at IS NULL))
+);
+
+CREATE INDEX IF NOT EXISTS quiz_question_state_idx ON quiz_question (state);
+
+-- THE BLOG'S TOPIC HARVEST (2026-10-16): papers and posts about AI in general,
+-- for the blog only. See contract/migrations/20261016T0900_topic_item.sql.
+CREATE TABLE IF NOT EXISTS topic_item (
+  -- 'arxiv:<id>' for a paper; '<feed source id>|<entry id>' for a post.
+  id            text PRIMARY KEY,
+  -- 'arxiv', or the feed's source id as contract/sources.yaml names it.
+  source        text NOT NULL,
+  kind          text NOT NULL,
+  title         text NOT NULL,
+  -- The abstract or the feed summary, as plain text. NULL when the feed gives none.
+  summary       text,
+  url           text NOT NULL,
+  authors       text[] NOT NULL DEFAULT '{}',
+  -- When the publisher says it was published. NULL when it does not say.
+  published_at  timestamptz,
+  -- The blog_topics.yaml keys its title and summary match. Recomputed on every
+  -- harvest, so a topic added later re-labels old items.
+  topics        text[] NOT NULL DEFAULT '{}',
+  harvested_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT topic_item_kind_ck CHECK (kind IN ('paper', 'post'))
+);
+
+CREATE INDEX IF NOT EXISTS topic_item_published_idx ON topic_item (published_at);
+CREATE INDEX IF NOT EXISTS topic_item_topics_idx ON topic_item USING gin (topics);
+
+-- READERS' DISCUSSION POSTS (2026-10-20): stored pending, shown only once a
+-- person approves them in Admin -> Discussions; never added to any count. See
+-- contract/migrations/20261020T1000_discussion_post.sql.
+CREATE TABLE IF NOT EXISTS discussion_post (
+  -- dp_ + random hex. A post is not deduplicated by its text.
+  id            text PRIMARY KEY,
+  -- One of contract/discussions.yaml `topics[].slug`, checked in code.
+  topic         text NOT NULL,
+  -- The post this answers; NULL for a post that opens a discussion. A reply
+  -- takes its parent's topic.
+  parent_id     text REFERENCES discussion_post (id) ON DELETE CASCADE,
+  -- A post's title; NULL exactly for a reply (CHECK below).
+  title         text,
+  body          text NOT NULL,
+  -- The display name, required in code since 2026-10-20 (judge/discussions.py);
+  -- the column stays nullable, so a NULL can only predate that.
+  author_name   text,
+  -- Optional canonical id of the model the post is about.
+  model_id      text,
+  state         text NOT NULL DEFAULT 'pending',
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  reviewed_at   timestamptz,
+  review_note   text,
+  CONSTRAINT discussion_post_state_ck CHECK (state IN ('pending', 'approved', 'rejected')),
+  -- A decision has a time; a pending post has none.
+  CONSTRAINT discussion_post_reviewed_ck CHECK ((state = 'pending') = (reviewed_at IS NULL)),
+  -- A post has a title and no parent; a reply has a parent and no title.
+  CONSTRAINT discussion_post_reply_ck CHECK ((parent_id IS NULL) = (title IS NOT NULL))
+);
+
+CREATE INDEX IF NOT EXISTS discussion_post_state_idx ON discussion_post (state, created_at DESC);
+CREATE INDEX IF NOT EXISTS discussion_post_parent_idx ON discussion_post (parent_id);

@@ -596,3 +596,53 @@ class TestAMergedClaimDoesNotOverwriteTheFirst:
             "WHERE be.model_version_id IS DISTINCT FROM c.model_version_id"
         ).fetchone()[0]
         assert foreign == 0
+
+
+# ── #275: a board entry linked to a claim says what that claim says ─────────
+#
+# `board_entry.quote`, `.polarity` and `.model_version_id` are COPIES of the
+# claim they point at, and on 2026-09-24 43 e5.5 claims on staging carried an
+# entry whose quote, polarity or model was not theirs. The writer is fixed
+# (`judge/pipeline.py`, the `written_here` merge check); this pins the
+# invariant on every path that writes a claim, so a regression shows here and
+# not on a page. Historical rows are not repaired by this - it covers new ones.
+
+def _no_key(fixture, document_id: str) -> str:
+    """The claim-without-a-cell branch: no `legacy_score_key`, claim still written."""
+    claim = json.loads(scripted(fixture, document_id))["claims"][0]
+    claim.pop("legacy_score_key")
+    return json.dumps({"claims": [claim]})
+
+
+@pytest.mark.parametrize("shape", ["one claim", "no ratified key", "two claims on one hint"])
+def test_a_linked_board_entry_carries_its_claims_quote_polarity_and_model(
+    world, fixture, monkeypatch, shape,
+):
+    # Claims are written on the legacy path only (`judge/legacy.py`), so the
+    # invariant is only checkable with it on. Set here, not inherited from the
+    # conftest pin, because the test is vacuous without it.
+    monkeypatch.setenv("LEGACY_CELLS", "on")
+    document_id = fixture["member_document_ids"][0]
+    response = {
+        "one claim": lambda: scripted(fixture, document_id, polarity="positive"),
+        "no ratified key": lambda: _no_key(fixture, document_id),
+        "two claims on one hint": lambda: _two_on_one_hint(
+            fixture, document_id, second_polarity="positive", shift=3),
+    }[shape]()
+    pipeline_for(world, response).run(
+        thread_input(fixture),
+        facts=facts_for(fixture),
+        model_version_of={"google/gemini-2.5-flash": MODEL},
+    )
+    world.commit()
+
+    rows = world.execute(
+        "SELECT be.quote, c.quote, be.polarity, c.polarity, "
+        "be.model_version_id, c.model_version_id "
+        "FROM board_entry be JOIN claim c ON c.id = be.claim_id"
+    ).fetchall()
+    assert rows, "no linked entry: the check below would pass on nothing"
+    for be_quote, c_quote, be_pol, c_pol, be_model, c_model in rows:
+        assert be_quote == c_quote
+        assert be_pol == c_pol
+        assert be_model == c_model == MODEL

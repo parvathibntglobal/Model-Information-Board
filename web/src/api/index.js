@@ -7,13 +7,11 @@
  * Endpoints, as they actually exist in judge/app.py:
  *
  *   GET  /health                     no database needed
- *   GET  /capabilities               no database needed
- *   POST /ask/requirements           no database needed — deterministic Q3
- *   POST /ask/revise                 no database needed — Q3 after an edit
- *   POST /ask/understand             needs OPENROUTER_API_KEY — the one LLM call
  *   GET  /models/{id}                needs the database
- *   GET  /capabilities/{key}         needs the database
- *   GET  /filtered  /coverage  /changelog    need the database
+ *   GET  /coverage  /changelog       need the database
+ *
+ * (`/capabilities`, `/capabilities/{key}` and `/filtered` were removed
+ * 2026-10-08: no page called them.)
  *
  * The database-backed reads answer 503 when DATABASE_URL is unset, and the
  * backend is explicit that this is not the same as a board with nothing on it.
@@ -21,7 +19,8 @@
  */
 
 import { sessionToken } from '../auth'
-import { cached } from './cache'
+import { bust, cached } from './cache'
+import { markSharedNames } from '../compare/path'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -148,6 +147,15 @@ export const health = () => request('/health')
  * an `mv_…` hash with no slash in it, but the helper handles both.
  */
 export const modelPath = (id) => String(id).split('/').map(encodeURIComponent).join('/')
+/**
+ * THE MODEL'S READABLE URL (SEO item 2, 2026-10-08): `/models/<canonical id>`,
+ * e.g. `/models/anthropic/claude-opus-4.6` - the registry's own id, unique
+ * across all 247 models and URL-safe, rather than a second slug that could
+ * drift from it (rule 10). The internal `mv_…` id is used only where a row
+ * carries no canonical id, and ModelDetail redirects those to the readable form.
+ */
+export const modelUrl = (m) => `/models/${modelPath(
+  typeof m === 'string' ? m : (m.canonical_id || m.model_version_id))}`
 export const modelPage = (id) => request(`/models/${modelPath(id)}`)
 
 /**
@@ -217,6 +225,15 @@ export const listModels = async (limit = 100, offset = 0) => {
 }
 
 /**
+ * THE WHOLE REGISTRY, not the tracked set: the token counter and the spec
+ * finder read every model. Plain `/models` (no `tracked`), paged like any list;
+ * `priced_at` is the newest price CHANGE recorded (pricing_history is written
+ * on change only), not the last poll.
+ */
+export const listRegistry = (limit = 100, offset = 0) =>
+  request(`/models?limit=${limit}&offset=${offset}`)
+
+/**
  * Every page of a list endpoint, followed to the end.
  *
  * `/models` and `/capabilities/{key}` now page at 100 by default. A client that
@@ -271,7 +288,6 @@ export const fetchLog = (runId) =>
 export const fetchRuns = (modelVersionId) =>
   request(`/fetch/runs?model_version_id=${encodeURIComponent(modelVersionId)}`)
 
-export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 /**
  * The board's three sections, DISCOVERED by the classifier rather than chosen
  * from a list. Returns { jobs, caps, mets, counts, report_counts_are_a_floor,
@@ -293,18 +309,58 @@ export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
  * is open, so one section can arrive under two names until the duplicates are
  * merged. Rendering it as an exact total would overstate what was counted.
  */
-export const boardPage = () => request('/board')
+// CACHED FOR TWO MINUTES. Building the board is the slowest read the site makes
+// (about 1.6s on the shared database, measured 2026-10-01), and the landing,
+// the board and its section pages all ask for it - every page view used to pay
+// it again. A ruling clears the copy (below), so a decision still shows at once.
+const BOARD_TTL_MS = 2 * 60 * 1000
+export const boardPage = () => cached('board', () => request('/board'), { ttl: BOARD_TTL_MS })
+// When the board last changed and how new its evidence is (components/Freshness.jsx).
+export const freshness = () => cached('freshness', () => request('/freshness'), { ttl: BOARD_TTL_MS })
+// THE REPORTS PAGE: the board's counts over the PUBLIC view, never a quote
+// (judge/reports.py). Cached like the board, which it is read from.
+export const reportsPage = () => cached('reports', () => request('/reports'), { ttl: BOARD_TTL_MS })
+// The Models pages: OpenRouter's whole list by provider and type (judge/catalog.py).
+// Reading the catalogue also tells comparison addresses which model names two
+// providers share (compare/path.js `markSharedNames`).
+export const modelCatalog = () => cached('catalog', () => request('/model-catalog').then((v) => {
+  markSharedNames(v?.models)
+  return v
+}), { ttl: BOARD_TTL_MS })
+// One model's page: price, specs, registry facts and engineer voices.
+export const modelCatalogEntry = (id) => request(`/model-catalog/${modelPath(id)}`)
 
 export const coveragePage = () => request('/coverage')
 
 /**
- * Blog drafts for the Blogs section — `{posts, skipped, reason}`.
+ * Blog posts, from the shared `blog_post` table — `{posts, skipped, reason}`.
  *
- * `reason` is set when the backend is not configured to serve drafts, and is
- * null when it is configured and simply has none: the page must show those
- * differently. `skipped` names any draft file the backend could not read.
+ * Public (the Blogs page): APPROVED posts only, filtered on the server.
+ * `blogPosts('all')` (Admin → Blogs and its preview): every stored post —
+ * pending, approved and rejected — with its `review` state, plus `unstored`
+ * (draft files on that backend's machine not yet stored) and `files_reason`.
+ *
+ * `reason` is set when the store could not be read, and then `posts` is empty:
+ * the page shows nothing rather than everything. An empty list with no reason
+ * means nothing is approved yet — the page must show those differently.
  */
-export const blogPosts = () => request('/blog-posts')
+// `include='all'` is Admin -> Blogs: every draft with its review state. The
+// default is what a reader may see, filtered by the server (fails closed).
+// THE BLOG'S LIVE PAGES (2026-10-15): code over the board, public sources
+// only (judge/blog_live.py). Previews are cached: a hover asks for the same
+// card many times.
+export const liveDisagree = () => cached('live-disagree', () => request('/blog-live/disagree'), { ttl: BOARD_TTL_MS })
+export const liveWall = (section, slug, modelId) =>
+  request(`/blog-live/wall/${encodeURIComponent(section)}/${encodeURIComponent(slug)}/${modelPath(modelId)}`)
+export const liveWeek = (start) => request(`/blog-live/week${start ? `?start=${encodeURIComponent(start)}` : ''}`)
+export const liveQuiz = (day) => request(`/blog-live/quiz${day ? `?day=${encodeURIComponent(day)}` : ''}`)
+export const livePreview = (kind, id) =>
+  cached(`preview:${kind}:${id}`, () => request(`/blog-live/preview/${kind}/${modelPath(id)}`), { ttl: BOARD_TTL_MS })
+
+export const blogPosts = (include) => request(`/blog-posts${include ? `?include=${include}` : ''}`)
+
+/** Store this machine's draft files the database does not have yet, as pending. */
+export const storeBlogDrafts = () => request('/blog-posts/store', { method: 'POST' })
 
 /** Start a background run that plans and writes `count` new drafts (local only). */
 export const startBlogGeneration = (count = 3) =>
@@ -312,6 +368,56 @@ export const startBlogGeneration = (count = 3) =>
 
 /** `{state, items:[{key, format, subject, state, attempt}], message, cost_usd, alive}` */
 export const blogGenerationStatus = () => request('/blog-posts/generate')
+
+// The latest generation run's console log (Admin → Blogs). Read-only; keys masked.
+export const blogGenerationLog = (lines = 400) => request(`/blog-posts/generate/log?lines=${lines}`)
+
+// Recorded generation runs, newest first (each post's review state travels with the post).
+export const blogRuns = (limit = 20) => request(`/blog-posts/runs?limit=${limit}`)
+
+// Approve, reject or move back a stored post. A rejected post is kept, never shown.
+// THE BLOG'S REFERENCE FORMATS (judge/blog_reference.py): glossary, known
+// issues, answers. Code over the board and the catalogue, public sources only.
+// THE AI GLOSSARY (2026-10-20): reviewed copy from glossary.yaml, public.
+export const glossaryTerms = () => cached('glossary-terms', () => request('/glossary-terms'), { ttl: BOARD_TTL_MS })
+export const glossaryTerm = (slug) =>
+  cached(`glossary-term:${slug}`, () => request(`/glossary-terms/${encodeURIComponent(slug)}`), { ttl: BOARD_TTL_MS })
+export const refGlossary = () => cached('ref-glossary', () => request('/blog-ref/glossary'), { ttl: BOARD_TTL_MS })
+export const refGlossaryEntry = (section, slug) =>
+  request(`/blog-ref/glossary/${encodeURIComponent(section)}/${encodeURIComponent(slug)}`)
+export const refIssues = () => cached('ref-issues', () => request('/blog-ref/issues'), { ttl: BOARD_TTL_MS })
+export const refIssuesFor = (id) => request(`/blog-ref/issues/${modelPath(id)}`)
+export const refAnswers = () => cached('ref-answers', () => request('/blog-ref/answers'), { ttl: BOARD_TTL_MS })
+export const refAnswersFor = (id) => request(`/blog-ref/answers/${modelPath(id)}`)
+
+// THE QUIZ QUESTION BANK (judge/quiz_bank.py): drafted by a model, approved here.
+export const quizBank = (state = 'pending') => request(`/quiz-bank?state=${encodeURIComponent(state)}`)
+export const draftQuizQuestions = (topic) => request('/quiz-bank/draft', { method: 'POST', body: { topic } })
+export const reviewQuizQuestion = (id, decision, note) =>
+  request('/quiz-bank/review', { method: 'POST', body: { id, decision, note: note || null } })
+
+// THE DISCUSSIONS PAGE (judge/discussions.py, 2026-10-20). The page reads the
+// topics and APPROVED posts and posts without a token (the one public write);
+// what a reader posts is stored pending until Admin -> Discussions approves it.
+export const discussionsPage = () => request('/discussions')
+export const postDiscussion = (post) => request('/discussions/posts', { method: 'POST', body: post })
+export const discussionsReview = (state = 'pending') =>
+  request(`/discussions/review?state=${encodeURIComponent(state)}`)
+export const reviewDiscussion = (id, decision, note) =>
+  request('/discussions/review', { method: 'POST', body: { id, decision, note: note || null } })
+export const deleteDiscussion = (id) => request('/discussions/delete', { method: 'POST', body: { id } })
+
+// HOW A POST IS MADE, AND THE WRITING PACKS (judge/blog_method.py, 2026-10-16).
+export const blogMethod = () => request('/blog-posts/method')
+export const blogPacks = () => request('/blog-posts/packs')
+export const startBlogPacks = (count = 3) => request('/blog-posts/packs', { method: 'POST', body: { count } })
+
+// THE BLOG'S TOPIC HARVEST (judge/topics.py, 2026-10-16): no model call.
+export const blogTopics = () => request('/blog-topics')
+export const startTopicHarvest = () => request('/blog-topics/harvest', { method: 'POST' })
+
+export const reviewBlogPost = (slug, decision, reason) =>
+  request('/blog-posts/review', { method: 'POST', body: { slug, decision, reason: reason || null } })
 
 /**
  * The landing page's FAQ, from `contract/faq.yaml`.
@@ -325,7 +431,10 @@ export const blogGenerationStatus = () => request('/blog-posts/generate')
  * `established: false` with an answer that says what the board cannot yet
  * support, and the page must render that answer rather than the demo's.
  */
-export const faqPage = () => request('/faq')
+// Cached: the landing's FAQ and the footer both read it on every visit.
+export const faqPage = () => cached('faq', () => request('/faq'))
+/** Paths worth indexing, by contract/indexing.yaml (SEO item 5). Read by seo/indexable.js. */
+export const seoIndexable = () => cached('seo-indexable', () => request('/seo/indexable'))
 
 /**
  * Two or three models side by side. `ids` is an array of model_version_ids.
@@ -341,33 +450,6 @@ export const comparePage = (ids) =>
   request(`/compare?ids=${encodeURIComponent((ids || []).join(','))}`)
 
 /* ------------------------------------------------------------------ ask */
-
-/**
- * Q3. Deterministic — the same task always produces the same requirements.
- * Needs no API key and no database, which is why it is the page that works
- * end to end today.
- */
-export const askRequirements = (payload) =>
-  request('/ask/requirements', { method: 'POST', body: payload })
-
-/** Q3 again, over a profile the user has corrected. No model runs. */
-export const askRevise = (profile, acceptedAssumptions = []) =>
-  request('/ask/revise', {
-    method: 'POST',
-    body: { profile, accepted_assumptions: acceptedAssumptions },
-  })
-
-/** Q1 — the LLM call. 429 when the extraction budget is spent, 422 on refusal. */
-export const askUnderstand = (text, shape = 'task') =>
-  request('/ask/understand', { method: 'POST', body: { text, shape } })
-
-/**
- * Q4–Q7. The requirement, ranked against real cells. No model runs; the
- * justification is bound to quote ids. Abstains — and names the missing
- * capability — when no model has evidence clearing the bar.
- */
-export const askRecommend = (payload) =>
-  request('/ask/recommend', { method: 'POST', body: payload })
 
 /**
  * OUR spend against OUR shared daily cap — not OpenRouter's ceilings, which are
@@ -473,6 +555,19 @@ export const proposeModel = ({ action, registry = '', name = '', kind = 'text' }
 // a corpse, since a killed process writes nothing, and the missed heartbeats
 // beside it are the evidence for that reading.
 export const adminRuns = (limit) => request(`/admin/runs${limit ? `?limit=${limit}` : ''}`)
+// Admin -> API usage: billed against estimated cost per run.
+export const adminUsageBilled = () => request('/admin/usage/billed')
+// Admin -> Runs: claims each run lost to validation, by error.
+export const adminLostClaims = () => request('/admin/runs/lost-claims')
+
+// Admin -> Scheduler: workflow setup, policy, due queue, switch and GitHub runs. Read-only.
+export const adminScheduler = () => request('/admin/scheduler')
+
+// Keywords dashboard: which SEO keywords sit on which public page, and where. A dated snapshot.
+// (Not `adminKeywords` above - that is the search terms each platform is sent.)
+export const adminSeoKeywords = () => request('/admin/seo-keywords')
+// Keyword plan: which keywords to use on which public page, and pages/tools worth adding.
+export const adminSeoKeywordPlan = () => request('/admin/seo-keyword-plan')
 
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`
@@ -497,13 +592,13 @@ export const ruleBoardEntry = (section, slug, ruling, ruling_target = null, entr
   request('/admin/board-entries/rule', {
     method: 'POST',
     body: { section, slug, ruling, ruling_target, entry_ids: entry_ids?.length ? entry_ids : null },
-  })
+  }).finally(() => bust('board'))
 
 export const unruleBoardEntry = (section, slug, entry_ids = null) =>
   request('/admin/board-entries/unrule', {
     method: 'POST',
     body: { section, slug, ruling: 'adopted', entry_ids: entry_ids?.length ? entry_ids : null },
-  })
+  }).finally(() => bust('board'))
 
 // ⚠ NOTHING HERE REACHES `/admin/capability-candidates`, ON PURPOSE. Four
 //   functions did — list, rule, edit, delete — and no component ever called
@@ -512,15 +607,11 @@ export const unruleBoardEntry = (section, slug, entry_ids = null) =>
 //   and discovery moved to `board_entries`, whose vocabulary is open. Board
 //   sections is the review surface; capabilities get no separate one.
 //
-//   The endpoint still answers and the extractor still proposes into it, so
-//   this is a client that declines to call a live route rather than a route
-//   that went away. The upstream half — the prompt field and the endpoint —
-//   is #434, not deleted from this side.
+//   The read endpoint still answers and the extractor still proposes into
+//   it. The rule / edit / delete endpoints were removed 2026-10-08, since
+//   nothing called them; the prompt field upstream is #434's open half.
 
 /* ------------------------------------------------------------------ display */
-
-export const fmtInt = (n) =>
-  n == null ? '—' : new Intl.NumberFormat('en-US').format(n)
 
 export const fmtTokens = (n) => {
   if (n == null) return '—'
@@ -553,17 +644,3 @@ export const fmtPrice = (n) => {
   return `$${n % 1 === 0 ? n : n.toFixed(2)}`
 }
 
-export const TIER = {
-  1: { label: 'Trivial', note: 'almost anything qualifies — pick on price' },
-  2: { label: 'Small', note: 'many cheap models qualify' },
-  3: { label: 'Moderate', note: 'mid-tier and up' },
-  4: { label: 'Hard', note: 'few models; cost is secondary' },
-  5: { label: 'Frontier', note: 'one or two, or nothing does this reliably yet' },
-}
-
-export const ERROR_COST = {
-  experimental: { tone: 'mute', note: 'a wrong answer costs a rerun' },
-  internal: { tone: 'info', note: 'errors get noticed internally' },
-  'customer-facing': { tone: 'warn', note: 'requires praised, not merely uncriticised' },
-  irreversible: { tone: 'fail', note: 'writes, sends, payments — unevidenced picks are suppressed' },
-}

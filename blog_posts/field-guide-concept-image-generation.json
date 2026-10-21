@@ -1,0 +1,461 @@
+{
+ "slug": "field-guide-concept-image-generation",
+ "status": "draft",
+ "tag": "Field guide",
+ "feat": false,
+ "title": "AI Image Generation Drifts a Little More With Every Edit",
+ "dek": "Single edits look great. Long sessions decay, references go missing, and the wrong cup turns blue. A field guide to the parts that fix each one.",
+ "by": "Draft for team review · written by Claude Code from published research and engineering writing · checked in code",
+ "lead": "How does AI image generation work? A model refines visual tokens or a latent into pixels, guided by your prompt. It drifts over long edit sessions, so re-anchor on the clean original and mark regions.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIj4KICA8dGl0bGU+TXVsdGktdHVybiBpbWFnZSBlZGl0aW5nIGRyaWZ0cyBhcyB0aGUgZWRpdG9yIHdvcmtzIG9uIGl0cyBvd24gb3V0cHV0czwvdGl0bGU+CiAgPGRlc2M+VG9wOiBhIHN0dWRlbnQgZWRpdG9yIGFwcGxpZXMgZWRpdHMgdHVybiBieSB0dXJuIHRvIGl0cyBvd24gcHJldmlvdXMgb3V0cHV0LCBhbmQgc21hbGwgc2hpZnRzIHBpbGUgdXAuIEJvdHRvbTogYSB0ZWFjaGVyIHN0YXlzIG9uIHRoZSBjbGVhbiBvcmlnaW5hbCBhbmQgcmVjZWl2ZXMgYWxsIGVkaXRzIGFzIG9uZSBjb21wb3VuZCBpbnN0cnVjdGlvbiwgZ2l2aW5nIGEgc3RhYmxlIHRhcmdldC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bWFya2VyIGlkPSJhcnIiIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjOTVhMWI0Ii8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFycmciIHZpZXdCb3g9IjAgMCAxMCAxMCIgcmVmWD0iOSIgcmVmWT0iNSIgbWFya2VyV2lkdGg9IjgiIG1hcmtlckhlaWdodD0iOCIgb3JpZW50PSJhdXRvIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzNCIgZm9udC13ZWlnaHQ9IjcwMCI+QUkgaW1hZ2UgZWRpdGluZzogZWFjaCB0dXJuIGluaGVyaXRzIHRoZSBsYXN0IG9uZSdzIGRyaWZ0PC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDgiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIj5UaGUgZWRpdG9yIHRyYWluZWQgb24gY2xlYW4gaW1hZ2VzLCB0aGVuIHNwZW5kcyBhIHNlc3Npb24gZWRpdGluZyBpdHMgb3duIG91dHB1dDwvdGV4dD4KCiAgPHJlY3QgeD0iNjAiIHk9IjE3MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxNTAiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZThlZGY1IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiPkNsZWFuIG9yaWdpbmFsPC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMjcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+d2hhdCB0cmFpbmluZyBsb29rZWQgbGlrZTwvdGV4dD4KCiAgPGxpbmUgeDE9IjI2MCIgeTE9IjI0NSIgeDI9IjMyNSIgeTI9IjI0NSIgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyKSIvPgogIDxyZWN0IHg9IjMzMCIgeT0iMTgwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjEzMCIgcng9IjEyIiBmaWxsPSIjMmMzNTQ0IiBzdHJva2U9IiNhNzhiZmEiIHN0cm9rZS13aWR0aD0iMiIvPgogIDx0ZXh0IHg9IjQyMCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9IjcwMCI+RWRpdDogYWRkIGhhdDwvdGV4dD4KICA8dGV4dCB4PSI0MjAiIHk9IjI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2E3OGJmYSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPnNtYWxsIHNoaWZ0PC90ZXh0PgoKICA8bGluZSB4MT0iNTEwIiB5MT0iMjQ1IiB4Mj0iNTc1IiB5Mj0iMjQ1IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnIpIi8+CiAgPHJlY3QgeD0iNTgwIiB5PSIxODAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTMwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjcwIiB5PSIyNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIwIiBmb250LXdlaWdodD0iNzAwIj5FZGl0OiBkdXNrIHNreTwvdGV4dD4KICA8dGV4dCB4PSI2NzAiIHk9IjI2OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2UzYjM0MSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPnNoaWZ0IG9uIGEgc2hpZnQ8L3RleHQ+CgogIDxsaW5lIHgxPSI3NjAiIHkxPSIyNDUiIHgyPSI4MjUiIHkyPSIyNDUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycikiLz4KICA8cmVjdCB4PSI4MzAiIHk9IjE4MCIgd2lkdGg9IjMxMCIgaGVpZ2h0PSIxMzAiIHJ4PSIxMiIgZmlsbD0iIzJjMzU0NCIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI5ODUiIHk9IjI0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZvbnQtd2VpZ2h0PSI3MDAiPkxhdGVyIHR1cm5zPC90ZXh0PgogIDx0ZXh0IHg9Ijk4NSIgeT0iMjY4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmY3YjcyIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNiI+aW5wdXRzIHVubGlrZSBhbnl0aGluZyBpbiB0cmFpbmluZzwvdGV4dD4KCiAgPHBhdGggZD0iTTE2MCwzMjAgTDE2MCw0NzAgTDQyNSw0NzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FycmcpIi8+CiAgPHJlY3QgeD0iNDMwIiB5PSI0MTAiIHdpZHRoPSI0MDAiIGhlaWdodD0iMTIwIiByeD0iMTIiIGZpbGw9IiMyYzM1NDQiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgeD0iNjMwIiB5PSI0NTUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIxIiBmb250LXdlaWdodD0iNzAwIj5UZWFjaGVyOiBjbGVhbiBvcmlnaW5hbDwvdGV4dD4KICA8dGV4dCB4PSI2MzAiIHk9IjQ4NyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnBsdXMgYWxsIGVkaXRzIGFzIG9uZSBpbnN0cnVjdGlvbjwvdGV4dD4KICA8cGF0aCBkPSJNODMwLDQ3MCBMOTg1LDQ3MCBMOTg1LDMxNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjggNiIgbWFya2VyLWVuZD0idXJsKCNhcnJnKSIvPgogIDx0ZXh0IHg9IjEwMDAiIHk9IjQwMCIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPnN0YWJsZSB0YXJnZXQ8L3RleHQ+CgogIDx0ZXh0IHg9IjYwMCIgeT0iNTkwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCI+VHJhaW4gdGhlIHN0dWRlbnQgb24gaXRzIG93biBvdXRwdXRzLCBhbmQgbGV0IGFuIGFuY2hvcmVkIHRlYWNoZXIgc3VwcGx5IHRoZSBhbnN3ZXI8L3RleHQ+Cjwvc3ZnPgo=",
+  "alt": "An edit chain drifting turn by turn, and a teacher on the clean original giving a stable target.",
+  "caption": "Each turn edits the last turn's output, so small shifts pile up unless something anchors them.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "How does AI image generation work, and where does it break? A field guide to edit drift, pointing at regions, prompt rewriters and harnesses.",
+ "keywords": [
+  "how does AI image generation work",
+  "AI image generation",
+  "image generation and editing",
+  "multi-turn image editing",
+  "AI image editing drift",
+  "multi-reference image generation"
+ ],
+ "kicker": "Field guide",
+ "tags": [
+  "AI image generation",
+  "Field guide"
+ ],
+ "read": 8,
+ "decisions": [
+  "How many edit turns to allow before rebuilding from the clean original",
+  "Canvas marks or text descriptions for choosing what gets edited",
+  "Which harness changes to search, and which held-out tasks judge them",
+  "Where generated images stop and code-drawn graphics start"
+ ],
+ "layout": "fieldguide",
+ "arrangement": "a",
+ "special": {
+  "type": "checklist",
+  "title": "Before you ship",
+  "items": [
+   {
+    "check": "Run a long scripted edit session and compare the last frame with a fresh compound edit.",
+    "why": "Catches drift that single-edit demos never show."
+   },
+   {
+    "check": "Test edits on scenes with several look-alike objects.",
+    "why": "Catches an editor that changes the wrong target."
+   },
+   {
+    "check": "Measure how much changes outside the edited region, not just inside it.",
+    "why": "Catches edits that quietly repaint the rest of the image."
+   },
+   {
+    "check": "Try ambiguous drags and check the result against what a person meant.",
+    "why": "Catches a drag read as a pixel shift when it was a change of pose or shape."
+   },
+   {
+    "check": "Keep harness feedback tasks, selection tasks and held-out tasks in separate sets.",
+    "why": "Catches a harness search that flatters itself on tasks it learned from."
+   },
+   {
+    "check": "Count subjects in multi-reference outputs against the reference list.",
+    "why": "Catches dropped and duplicated subjects."
+   },
+   {
+    "check": "Route charts, diagrams and labels with figures to code, not to the generator.",
+    "why": "Catches a plausible image that carries a wrong number."
+   }
+  ]
+ },
+ "acknowledgement": "Thank you to arXiv for use of its open access interoperability.",
+ "meta": [
+  "20 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Budget for decay across a long edit session",
+    "num": "01",
+    "id": "budget-for-decay-across-a-long-edit-session"
+   }
+  ],
+  [
+   "p",
+   "Picture a user who asks an editor for a hat, then a dusk sky, then a red coat. Each step looks fine alone. The session as a whole is where things go wrong. A new arXiv paper on multi-turn editing names this as the standard failure: quality slides as the turns pile up. Single edits impress. Long sessions decay [1]."
+  ],
+  [
+   "p",
+   "The cause is a mismatch between training and use. During training, the editor sees clean images. In a session, it sees its own previous output, which carries a small shift away from that clean distribution. Each turn adds another shift, and they accumulate. By the later turns, the model is editing inputs unlike anything it learned on [1]."
+  ],
+  [
+   "highlight",
+   {
+    "text": "Each editing turn introduces small distribution shifts that accumulate over successive edits, creating a gap between the input distributions encountered during the editor's original training and multi-turn inference.",
+    "n": 1
+   }
+  ],
+  [
+   "p",
+   "The paper's fix trains the editor on its own outputs, borrowing a method called Self-Forcing. That breaks plain supervision, because the drifting results no longer match any ground truth. So a teacher editor supplies the target. The teacher stays on the original clean image and receives every edit as one compound instruction. The authors report much less decay over long sequences, with edit quality intact [1]."
+  ],
+  [
+   "p",
+   "We like this because it treats the cause. Until your editor is trained this way, plan around the decay. Every few turns, rebuild from the clean original with the edits so far merged into one request, the same move the teacher makes. It costs an extra render. It can save the image [1]."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative pattern: re-anchor a long edit session on the clean original",
+    "language": "python",
+    "source": "def apply_edit(session, request):\n    session.history.append(request)\n    if session.turns_since_anchor >= session.reanchor_every:\n        merged = \"; then \".join(session.history)      # one compound instruction\n        session.latest = editor(session.original, merged)\n        session.turns_since_anchor = 0\n    else:\n        session.latest = editor(session.latest, request)  # cheap turn, drifts a little\n        session.turns_since_anchor += 1\n    return session.latest"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Learn what the generator actually predicts",
+    "num": "02",
+    "id": "learn-what-the-generator-actually-predicts"
+   }
+  ],
+  [
+   "p",
+   "So how does AI image generation work under the hood? A generator turns your prompt into conditioning, then refines a grid of visual tokens or a continuous latent into an image. The camps differ on what a token is. Discrete approaches use a visual tokenizer with one codebook, which fits text modelling neatly but holds limited detail. A codebook is a fixed list of learned vectors, and each image patch becomes the index of its nearest entry [3]."
+  ],
+  [
+   "p",
+   "Continuous and hybrid approaches keep richer pictures, but they put text and images in different spaces with different training objectives. The authors of Intern Lumina U2 warn that this can make the modalities fight during optimisation. Their answer keeps everything discrete. Each image position holds a group of codes from complementary codebooks, which adds detail and stays compatible with text tokens [3]."
+  ],
+  [
+   "p",
+   "The backbone is a diffusion language model, one that starts from masked positions and fills them in over several steps. It works on all positions in parallel, and a light autoregressive head predicts the codes inside each position one by one. A new sampler unmasks positions once confidence plateaus and refreshes its cache when drift appears, speeding up image generation by 4.45x. We read that as a reminder. The sampler is a tuning surface of its own [3]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Ways a unified model can represent an image, and what each one trades.",
+    "columns": [
+     "Approach",
+     "What one image position holds",
+     "Strength",
+     "Cost"
+    ],
+    "rows": [
+     [
+      "Discrete, one codebook",
+      "One code index",
+      "Fits text modelling",
+      "Limited detail"
+     ],
+     [
+      "Continuous or hybrid",
+      "A real-valued vector",
+      "Richer pictures",
+      "Text and images in separate spaces"
+     ],
+     [
+      "Discrete, several codebooks (Intern Lumina U2)",
+      "A group of codes",
+      "More detail, still text-compatible",
+      "An extra head predicts codes per position"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Point at the region you want changed",
+    "num": "03",
+    "id": "point-at-the-region-you-want-changed"
+   }
+  ],
+  [
+   "p",
+   "Text editing fails at a predictable spot. Describing the change is easy, but naming the object you mean is hard, especially when several look alike. Ask for the second cup to turn blue, and an editor can pick the wrong cup. No amount of prompt polish fixes an ambiguous target [4]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+UGl4ZWxzIG91dHNpZGUgdGhlIGVkaXQ6IGNhbnZhcyBpbnN0cnVjdGlvbnMgYWdhaW5zdCBhIHRleHQtaW5zdHJ1Y3RlZCBiYXNlbGluZTwvdGl0bGU+CiAgPGRlc2M+T3V0c2lkZS1yZWdpb24gUFNOUiBvbiBhIGJlbmNobWFyayBvZiBzaW1pbGFyLWxvb2tpbmcgb2JqZWN0czogVmliZUVkaXQgMzIuOCBkQiwgRmlyZVJlZCAyNC4wIGRCLiBIaWdoZXIgbWVhbnMgdW50b3VjaGVkIHBpeGVscyBzdGF5ZWQgY2xvc2VyIHRvIHRoZSBvcmlnaW5hbC48L2Rlc2M+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMTIxNjFlIi8+CiAgPHRleHQgeD0iNjAiIHk9IjcwIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCI+TWFya2luZyB0aGUgc3BvdCBsZWZ0IHRoZSByZXN0IG9mIHRoZSBwaWN0dXJlIGFsb25lPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5PdXRzaWRlLXJlZ2lvbiBQU05SIGluIGRCOyBoaWdoZXIgbWVhbnMgdGhlIHVudG91Y2hlZCBwaXhlbHMgc3RheWVkIGNsb3NlciB0byB0aGUgb3JpZ2luYWw8L3RleHQ+CgogIDxsaW5lIHgxPSIyMDAiIHkxPSI0NzAiIHgyPSIxMDAwIiB5Mj0iNDcwIiBzdHJva2U9IiMyYzM1NDQiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxyZWN0IHg9IjMwMCIgeT0iMTc0IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI5NiIgZmlsbD0iIzdhYTJmZiIvPgogIDx0ZXh0IHg9IjQwMCIgeT0iMTU4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCI+MzIuOCBkQjwvdGV4dD4KICA8dGV4dCB4PSI0MDAiIHk9IjUwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlZpYmVFZGl0PC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNTMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTVhMWI0IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNyI+Y2FudmFzIG1hcmtzIGFuZCBub3RlczwvdGV4dD4KCiAgPHJlY3QgeD0iNzAwIiB5PSIyNTQiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjE2IiBmaWxsPSIjYTc4YmZhIi8+CiAgPHRleHQgeD0iODAwIiB5PSIyMzgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj4yNC4wIGRCPC90ZXh0PgogIDx0ZXh0IHg9IjgwMCIgeT0iNTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+RmlyZVJlZDwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjUzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk1YTFiNCIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTciPmJlc3QgdGV4dC1pbnN0cnVjdGVkIGJhc2VsaW5lPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Bars: outside-region PSNR of 32.8 dB for VibeEdit against 24.0 dB for FireRed.",
+    "caption": "Marking the target kept far more of the untouched picture intact than the best text-instructed editor.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "A paper on VibeEdit swaps the text box for marks on the image itself. You draw spatial marks and add optional short notes, and together they form a canvas instruction covering the spot and the change. The editor handles adding, removing, replacing, moving and restyling objects with no separate text prompt. Under the hood, the team built 1.55 million source-target edit pairs and rendered canvas instructions from them [4]."
+  ],
+  [
+   "p",
+   "They adapted Qwen-Image-Edit to encode the original image and the marks separately, then ran region-weighted fine-tuning and rubric-guided RL. On a human-curated benchmark of 419 cases, VibeEdit scored 79.9 on a VLM rubric against 67.4 for FireRed. FireRed was the strongest text-instructed baseline tested. Outside the edited region, PSNR reached 32.8 dB against 24.0 dB. PSNR, peak signal-to-noise ratio, rises as untouched pixels stay closer to the original [4]."
+  ],
+  [
+   "p",
+   "We think the PSNR gap matters more than the rubric. A rubric from a vision-language model grades the edit itself. PSNR outside the region tells you the rest of the picture survived. For product photos, that second number is the one a shopper would notice [4]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Treat a drag as an intent to interpret",
+    "num": "04",
+    "id": "treat-a-drag-as-an-intent-to-interpret"
+   }
+  ],
+  [
+   "p",
+   "Drag editing gives you handle and target points: grab here, move it there. Most methods read that pair as a geometric shift of pixels. That breaks when the edit depends on what the content means. A sparse pair of points cannot say, alone, which transformation would look plausible [5]."
+  ],
+  [
+   "p",
+   "ThinkDrag, a multimodal framework from a new paper, learns to map point constraints onto meaningful changes at the object and scene level. It can also spell out its reading of the intended edit, step by step, before generating any pixels. The authors say the trace helps most with ambiguous drags. Special markers at each drag's endpoints, suggested by a study of cross-image attention, pin every drag to a spot in the image [5]."
+  ],
+  [
+   "p",
+   "The team built a supervised collection of semantic drags paired with reasoning traces, plus a benchmark called DragBench++. They report state-of-the-art quality and plausibility, with point-following precision they call competitive. We read that last word carefully. If your users need exact placement, test precision on your own images before you switch tools [5]."
+  ],
+  [
+   "h2",
+   {
+    "text": "Score prompt rewrites by whole phrases",
+    "num": "05",
+    "id": "score-prompt-rewrites-by-whole-phrases"
+   }
+  ],
+  [
+   "p",
+   "Another lever sits before the image model. A language model can rewrite your prompt for a frozen generator, and RL can train that rewriter. The usual method takes one signal from the finished image and applies it to every subword token alike. Yet objects, counts, attributes and relations arrive as coherent spans of words. A reward for a wrong count should land on the count [6]."
+  ],
+  [
+   "p",
+   "A new paper on SCOPE builds on GRPO, group relative policy optimization. GRPO samples a group of rewrites and scores each against its group, and that gap is called the advantage. In SCOPE the rewriter emits a better prompt plus a split of it into semantic spans. Within each span, the shifts in log probabilities are pooled into one shared weight for that span's token losses [6]."
+  ],
+  [
+   "p",
+   "Each completion still gets one advantage, so no extra span rewards or image renders are needed. Across Qwen-Image, SD3 and FLUX.1-dev, the authors report average relative gains over plain GRPO: GeneVal rose by 9.48% and T2I-CompBench by 7.62%. Ablations credit both the span boundaries and the pooling. We like the cost profile most. The gain comes from bookkeeping inside the loss [6]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "SCOPE's average relative gain over plain GRPO across Qwen-Image, SD3 and FLUX.1-dev, in percent.",
+    "unit": "percent average relative gain over vanilla GRPO",
+    "bars": [
+     {
+      "label": "GeneVal",
+      "value": 9.48
+     },
+     {
+      "label": "T2I-CompBench",
+      "value": 7.62
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Keep the tasks that tune a harness apart from the ones that judge it",
+    "num": "06",
+    "id": "keep-the-tasks-that-tune-a-harness-apart-from-the-ones-that-"
+   }
+  ],
+  [
+   "p",
+   "Merging several reference photos into one image fails in familiar ways. Models drop a subject, duplicate one, or produce people who look pasted in. Image agents answer with a harness, an executable program that decides how references are read and how generation runs. It also diagnoses each output and picks the final image. Hand-written harnesses vary widely in performance, and nobody can easily predict which change will help [2]."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjAwIj4KICA8dGl0bGU+QSByZXdyaXR0ZW4gaGFybmVzcyBsaWZ0ZWQgYSBmcm96ZW4gb3Blbi13ZWlnaHQgZ2VuZXJhdG9yPC90aXRsZT4KICA8ZGVzYz5PbiBoZWxkLW91dCBmb3VyLXJlZmVyZW5jZSBNdWx0aUJhbmFuYSB0YXNrcywgRkxVWC4yIFtrbGVpbl0gNEIgc2NvcmVkIDUuNzIgYmVmb3JlIGFuZCA3LjM3IHdpdGggdGhlIEF1dG9SZWYtSGFybmVzcywgd2l0aCBib3RoIG1vZGVscyBmcm96ZW4uPC9kZXNjPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iIzEyMTYxZSIvPgogIDx0ZXh0IHg9IjYwIiB5PSI3MCIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZvbnQtd2VpZ2h0PSI3MDAiPlNhbWUgZnJvemVuIGdlbmVyYXRvciwgYmV0dGVyIHByb2dyYW0gYXJvdW5kIGl0PC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSIxMDUiIGZpbGw9IiM5NWExYjQiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE5Ij5GTFVYLjIgW2tsZWluXSA0QiBvbiBoZWxkLW91dCBmb3VyLXJlZmVyZW5jZSBNdWx0aUJhbmFuYSB0YXNrcyAoYmVuY2htYXJrIHNjb3JlKTwvdGV4dD4KCiAgPGxpbmUgeDE9IjIwMCIgeTE9IjQ3MCIgeDI9IjEwMDAiIHkyPSI0NzAiIHN0cm9rZT0iIzJjMzU0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHJlY3QgeD0iMzAwIiB5PSIyNDIiIHdpZHRoPSIyMDAiIGhlaWdodD0iMjI4IiBmaWxsPSIjYTc4YmZhIi8+CiAgPHRleHQgeD0iNDAwIiB5PSIyMjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNlOGVkZjUiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIj41LjcyPC90ZXh0PgogIDx0ZXh0IHg9IjQwMCIgeT0iNTA1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMCI+QmVmb3JlIHRoZSBzZWFyY2g8L3RleHQ+CgogIDxyZWN0IHg9IjcwMCIgeT0iMTc2IiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI5NCIgZmlsbD0iIzdhYTJmZiIvPgogIDx0ZXh0IHg9IjgwMCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZThlZGY1IiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCI+Ny4zNzwvdGV4dD4KICA8dGV4dCB4PSI4MDAiIHk9IjUwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2U4ZWRmNSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPldpdGggQXV0b1JlZi1IYXJuZXNzPC90ZXh0PgoKICA8cmVjdCB4PSI2MCIgeT0iNTM1IiB3aWR0aD0iMTA4MCIgaGVpZ2h0PSI0NSIgcng9IjEwIiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiMyYzM1NDQiLz4KICA8dGV4dCB4PSI2MDAiIHk9IjU2NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzNlY2Y4ZSIgZm9udC1mYW1pbHk9IkhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiPk9ubHkgdGhlIGhhcm5lc3MgY29kZSBjaGFuZ2VkOyB0aGUgZ2VuZXJhdG9yIGFuZCB0aGUgcmVhc29uaW5nIG1vZGVsIHN0YXllZCBmcm96ZW48L3RleHQ+Cjwvc3ZnPgo=",
+    "alt": "Bars: FLUX.2 [klein] 4B scored 5.72 before the harness search and 7.37 after it.",
+    "caption": "Only the program around the generator changed, and the held-out score still rose.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "highlight",
+   {
+    "text": "Without re-optimization, the same harness also improves results when the generator, number of references, benchmark, evaluator, or reasoning model differs from those used in the search.",
+    "n": 2
+   }
+  ],
+  [
+   "p",
+   "AutoRef keeps the generator and the reasoning model frozen, and a coding agent rewrites the harness code round after round. The design choice we care about is a split. One set of tasks feeds the agent its feedback. A separate set picks the candidates, and the search continues from a beam of top-ranked harnesses [2]."
+  ],
+  [
+   "p",
+   "On held-out four-reference MultiBanana tasks, the harness it found raised the open-weight FLUX.2 [klein] 4B to 7.37, up from 5.72. That put it level with, or ahead of, closed models such as GPT-Image-1.5 and Nano Banana Pro. We think the split deserves the credit. A search graded on the tasks it learned from will flatter itself, so keep your selection set and your held-out set apart [2]."
+  ],
+  [
+   "visual",
+   {
+    "kind": "diagram",
+    "caption": "One round of an automatic harness search with the image models frozen.",
+    "steps": [
+     "Run the current harness on the feedback tasks",
+     "A coding agent reads failures and rewrites the harness code",
+     "Score each candidate on separate selection tasks",
+     "Keep a beam of the top-ranked harnesses",
+     "Search again from the beam",
+     "Report the winner on held-out tasks only"
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Leave the generator out when the picture must be exact",
+    "num": "07",
+    "id": "leave-the-generator-out-when-the-picture-must-be-exact"
+   }
+  ],
+  [
+   "p",
+   "Some images are data. A chart, a wiring diagram or a price label carries facts in its pixels. The systems above are graded on benchmark scores and on rubrics from vision-language models. Even the drag editor built for control reports precision that is competitive, not exact. And long sessions still drift, even after the best fix on offer [2, 4, 5, 1]."
+  ],
+  [
+   "p",
+   "That grading suits taste, layout and fit. It never promises a correct number in the picture. When the image must be right to the digit, draw it with code. An SVG or a plotting library will do, and you can test it like code. Use the generator for the photo around the chart. Keep it away from the chart itself."
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "How does AI image generation work?"
+  ],
+  [
+   "p",
+   "A model turns your prompt into conditioning, then refines visual tokens or a latent into an image over several steps. In one new design, every image position holds a group of discrete codes, and a diffusion backbone fills all positions in parallel. A light head then predicts the codes inside each position. A decoder finally turns those codes into pixels [3]."
+  ],
+  [
+   "h3",
+   "Why do AI image edits get worse after several changes?"
+  ],
+  [
+   "p",
+   "Each edit leaves a small shift, and the next edit works on that shifted image. Editors train on clean images, so later turns feed them inputs unlike their training data. One fix trains the editor on its own outputs, with a teacher anchored to the clean original supplying the target. Without that, rebuild from the original now and then [1]."
+  ],
+  [
+   "h3",
+   "Can AI edit one specific object in an image?"
+  ],
+  [
+   "p",
+   "Yes, and marking it works better than describing it when objects look alike. One editor takes marks and short notes drawn on the image as its instruction. On a benchmark built around similar objects, it beat the strongest text-instructed baseline on a rubric score and on preserving pixels outside the edit. Drag tools can also target a spot [4, 5]."
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "arXiv",
+   "who": "arxiv.org",
+   "what": "ACEdit: Stable Multi-Turn Image Editing via Asymmetric Conditioning",
+   "url": "https://arxiv.org/abs/2610.22328v1",
+   "posted": "2026-10-15"
+  },
+  {
+   "n": 2,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "AutoRef: Harness Optimization for Agentic Multi-Reference Image Generation",
+   "url": "https://huggingface.co/papers/2609.35530",
+   "posted": "2026-09-28"
+  },
+  {
+   "n": 3,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "Intern Lumina U2: A Multi-Codebook Diffusion Large Language Model for Omni-Visual Understanding and Image Generation",
+   "url": "https://huggingface.co/papers/2610.20818",
+   "posted": "2026-10-14"
+  },
+  {
+   "n": 4,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "VibeEdit: Image Editing with Canvas Instructions",
+   "url": "https://huggingface.co/papers/2610.12229",
+   "posted": "2026-10-08"
+  },
+  {
+   "n": 5,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "ThinkDrag: Semantic Drag-Based Image Editing with Visual Reasoning",
+   "url": "https://huggingface.co/papers/2610.13316",
+   "posted": "2026-10-09"
+  },
+  {
+   "n": 6,
+   "platform": "Hugging Face",
+   "who": "",
+   "what": "SCOPE: Semantic Bounded Credit Optimization for Prompt Engineering in Text-to-image Generation",
+   "url": "https://huggingface.co/papers/2610.22264",
+   "posted": "2026-10-15"
+  }
+ ],
+ "cite": {},
+ "style": "reported",
+ "rel": [
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-serving",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-20T02:04:53+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "hfpapers:2610.20818",
+   "hfpapers:2609.35530",
+   "arxiv:2610.22328v1",
+   "hfpapers:2610.22264",
+   "hfpapers:2610.13316",
+   "hfpapers:2610.12229"
+  ],
+  "platforms": {
+   "Hugging Face": 5,
+   "arXiv": 1
+  },
+  "embedded": 0,
+  "checks": "the newsroom rules: own words, a reference on every reported fact, whole-sentence highlights, figures, sentence length and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "field-guide:concept/image-generation",
+  "format": "field-guide",
+  "reviewed_by": null
+ }
+}

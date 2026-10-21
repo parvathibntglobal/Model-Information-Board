@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { adminUsage } from '../api'
 import { prettyModel } from '../modelNames'
 import { Badge, Notice, Stat } from './ui'
-import { IconAlert, IconGauge } from './Icons'
+import { IconAlert, IconHeart } from './Icons'
+import BilledCostPanel from './BilledCostPanel'
 
 /**
  * OUR cap, OUR spend. Live.
@@ -129,7 +130,7 @@ export default function UsagePanel() {
   return (
     <section className="card card-flush">
       <div className="card-head">
-        <span className="eyebrow"><IconGauge width={14} height={14} /> API usage — our cap</span>
+        <span className="eyebrow"><IconHeart width={14} height={14} /> API usage — our cap</span>
         {onRapid ? (
           <Badge tone={rapid.instrumented ? 'mute' : 'fail'}>{rapid.instrumented ? 'requests' : 'no reading'}</Badge>
         ) : (
@@ -168,6 +169,8 @@ export default function UsagePanel() {
               basis={data.basis || null}
               ledger={data.ledger || null}
               byStage={data.by_stage || []}
+              blogs={data.blogs}
+              monthly={data.monthly || null}
             />}
       </div>
     </section>
@@ -194,7 +197,7 @@ export default function UsagePanel() {
  *
  * The producer did its half. This is the consumer's.
  */
-function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, ledger, byStage }) {
+function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, ledger, byStage, blogs, monthly }) {
   const rows = Object.entries(byModel)
     .map(([model, spent]) => {
       const closed = SPEND_BEFORE_THE_LEDGER[model]
@@ -218,7 +221,11 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
   // Both are arithmetic on measured figures, never an estimate. They are shown
   // as one row only when they CORROBORATE each other; if they diverge, the
   // attribution is not safe and the row says so rather than picking one.
-  const ledgerKnown = rows.reduce((sum, [, spent]) => sum + spent, 0)
+  // BLOG SPEND IS LEDGER-KNOWN TOO since 2026-10-07 (stage 'blog'), reported
+  // under `blogs` rather than in these rows - so it is added here, or every blog
+  // dollar would fall into the remainder below and read as unattributed
+  // extractor spend.
+  const ledgerKnown = rows.reduce((sum, [, spent]) => sum + spent, 0) + (blogs?.total_usd || 0)
   const remainder = everyone.available ? (everyone.total_usd ?? 0) - ledgerKnown : null
   const todayOnKey = everyone.today_usd ?? null
   const CENT = 0.005 // half a cent: below this the two figures are the same number
@@ -253,7 +260,9 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
   // ledger started late is a different fact from a stage that has never
   // recorded, and both are different from a call whose tokens never arrived.
   const isFloor = today.is_a_floor_not_a_total === true
-  const unwired = (ledger?.unwired_stages) || []
+  // A stage in NOT_BUILT_YET is not listed at all now (the Ask box was
+  // deprioritised 2026-10-06); any OTHER unwired stage still warns.
+  const unwired = ((ledger?.unwired_stages) || []).filter((s) => !NOT_BUILT_YET.has(s))
   const unmetered = today.unmetered_calls || 0
   // The key total is a provider figure and is whole regardless; only the
   // LEDGER's own figure inherits the floor. So the qualifier attaches to the
@@ -264,333 +273,228 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
       ? 'recorded on this key today — a floor, not a total'
       : 'total spent on this key'
 
+  // ONE ROW SHAPE for every list below: a name on the left, the figure and its
+  // small caption on the right.
+  const Line = ({ name, value, caption }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline',
+      padding: '8px 0', borderTop: '1px solid var(--border-soft)' }}>
+      <span>{name}</span>
+      <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
+        <span className="tnum">{value}</span>
+        {caption && <span className="dim" style={{ fontSize: 10 }}>{caption}</span>}
+      </span>
+    </div>
+  )
+  const Block = ({ title, children }) => (
+    <div className="stack" style={{ gap: 0 }}>
+      <span className="label" style={{ marginBottom: 6 }}>{title}</span>
+      {children}
+    </div>
+  )
+
   return (
-    <div className="stack stack-2">
+    <div className="stack stack-3">
+      {/* 1 · THE THREE HEADLINE FIGURES */}
       <div className="grid g3">
         <Stat
           n={everyone.available ? usd(everyone.total_usd) : usd(today.spent_usd)}
           l={totalLabel}
-          // The population this figure was drawn from, on hover rather than in
-          // prose. It was a sentence under the panel saying "nothing is
-          // missing" on every healthy render.
-          //
-          // ⚠ THE COUNT, NOT THE ROSTER. This used to append the hostnames -
-          //   "machine-A, machine-B" beside four container ids - which is rule 7's
-          //   denominator answered with a guest list. The count IS the
-          //   denominator; the names were never acted on and this is a web
-          //   page. `spend_ledger.machine` still records them.
           title={
             basis?.complete && basis.machine_count
-              ? `Ledger totals cover ${basis.machine_count} host${
-                  basis.machine_count === 1 ? '' : 's'}`
+              ? `Ledger totals cover ${basis.machine_count} host${basis.machine_count === 1 ? '' : 's'}`
               : undefined
           }
         />
         <Stat n={usd(today.remaining_usd)} l="left before today's cap" />
-        <Stat
-          n={today.calls}
-          l={unmetered > 0 ? `calls today — ${unmetered} unmetered` : 'calls today'}
-        />
+        <Stat n={today.calls} l={unmetered > 0 ? `calls today — ${unmetered} unmetered` : 'calls today'} />
       </div>
 
-      {/* A FLOOR SAYS WHY IT IS ONE. `counting_since` is the whole explanation:
-          the ledger began after today did, so calls made before it started are
-          missing from the figure rather than absent from the day. */}
+      {/* 2 · WARNINGS, only when one applies. Each is a real caveat on the
+          figures above (a floor, an unwired stage, rows above the key total),
+          so they stay; the always-on explanatory prose is gone. */}
       {isFloor && (
         <Notice icon={<IconAlert />}>
           The ledger began recording at{' '}
-          <strong>{ledger?.counting_since ? new Date(ledger.counting_since).toLocaleString() : 'an unrecorded time'}</strong>
-          , which is after today started. Spend before that is missing from
-          today&rsquo;s figure, not absent from the day — so the number above is
-          a floor.
+          <strong>{ledger?.counting_since ? new Date(ledger.counting_since).toLocaleString() : 'an unrecorded time'}</strong>,
+          after today started, so today&rsquo;s figure is a floor.
         </Notice>
       )}
-
-      {/* ⚠ THIS SAID "NOT WIRED TO THE LEDGER", AND THAT WAS FALSE. Checked
-          2026-09-28: `/ask/understand` is the only route in the ask flow that
-          calls a model at all — `/ask/recommend` and `/ask/revise` run no LLM —
-          and it charges the ledger through `judge/ask/spend.py:charge`, which
-          records STAGE_ASK unconditionally, before the budget branch.
-
-          The stage reads zero because THE ASK BOX IS NOT BUILT. No component
-          calls `askUnderstand`, and there is no /ask route in the app; the
-          backend half exists ahead of the surface.
-
-          So the panel took an absence and made it a definite mechanical claim,
-          which is rule 6 pointed at ourselves — and this notice exists to stop
-          exactly that. Three states, not two:
-
-              never recorded, no caller exists      not built yet
-              never recorded, a caller exists       A WIRING FAULT
-              recorded zero                         a quiet day
-
-          THE MIDDLE ONE IS STILL THE ALARM and the wording below keeps it,
-          because the day someone builds the Ask box this has to go back to
-          being a warning without anybody remembering to change it. What the
-          ledger cannot tell us is which of the first two we are in — that
-          needs a record of whether the route has ever been REACHED, which
-          nothing keeps. Until then the page names both and asserts neither. */}
       {unwired.length > 0 && (
         <Notice icon={<IconAlert />}>
           <strong>
             {unwired.length === 1 ? 'One stage has' : `${unwired.length} stages have`} never
-            recorded a call: {unwired.map((s) => NOT_BUILT_YET.has(s) ? `${s} (not built yet)` : s).join(', ')}.
+            recorded a call: {unwired.join(', ')}.
           </strong>
-          {/* ⚠ ONLY THE STAGES NOT IN `NOT_BUILT_YET` GET THE WARNING, and that is
-              the whole reason the set exists rather than the sentence being
-              deleted. "(not built yet)" is a checked fact about `ask` and would be
-              a reassuring guess about anything else — a stage that spends and
-              records nothing, wearing the same label, is the alarm going
-              quiet. */}
           {unwired.some((s) => !NOT_BUILT_YET.has(s)) && (
             <>
               {' '}Either nothing has reached it, or it is not wired to the
-              ledger — this figure cannot tell you which, and the second would
-              mean anything it spends is missing from every number here.
+              ledger — the second would mean anything it spends is missing from every number here.
             </>
           )}
         </Notice>
       )}
-
-      {/* UNMETERED IS NOT UNPRICED, AND THE PAGE MUST SAY WHICH.
-          `spend_ledger.py:124-127` keeps them apart deliberately — "Both make a
-          dollar total a floor, and for different reasons a reader would want to
-          tell apart" — and the panel already shows `unpriced_calls_today` in
-          the basis line below. Two dim sentences each saying "n calls were not
-          counted" would be true of both and tell a reader neither, so this one
-          names the contrast rather than restating the shape:
-
-            unpriced    tokens known, RATE missing        -> publish the rate
-            unmetered   the provider reported NO tokens   -> ask the provider
-
-          They want different repairs, which is the test of whether the
-          distinction survived into the UI rather than living only in the code. */}
-      {unmetered > 0 && (
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
-          <strong style={{ color: 'var(--text)' }}>
-            {unmetered} call{unmetered === 1 ? '' : 's'} today reported no token usage at all.
-          </strong>{' '}
-          Not a missing price — a missing measurement. An unpriced call has known
-          tokens and no published rate; {unmetered === 1 ? 'this one has' : 'these have'}{' '}
-          neither, so {unmetered === 1 ? 'it is' : 'they are'} counted in the call
-          figure and absent from the dollar one.
-        </span>
-      )}
-      {!everyone.available && (
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-          Key total across all machines unavailable — the figure above is this machine only.
-        </span>
-      )}
-
-      {/* WHOSE SPEND THIS IS. A dollar total means nothing without the
-          population it covers, and that population is variable: every machine
-          that has recorded when the shared table is readable, one laptop when
-          it is not. An incomplete total is named a FLOOR rather than shown in
-          the same type as a whole one — the same reason report counts on the
-          board say so. */}
-      {/* THE POPULATION IS NAMED ONLY WHEN IT QUALIFIES SOMETHING.
-      
-          This printed "Ledger totals cover all 2 machines (machine-A, machine-B)."
-          on every render of a healthy panel - a sentence whose entire content
-          is "nothing is missing", which is what a reader already assumes. A
-          caveat that is always on screen stops being read, and then the one
-          time it says something different it is in the same grey as the
-          hundred times it did not.
-      
-          RULE 7 IS NOT WAIVED, IT IS RELOCATED. The figure still travels with
-          its population - the machine list moved to the `title` of the stat
-          above, so it is one hover away and nothing is unknowable. What went
-          is the prose, not the fact.
-      
-          The INCOMPLETE branch stays exactly as it was, because that one is a
-          real caveat: a floor reported as a total is the error this whole
-          panel is built to avoid. */}
-      {basis && !basis.complete && (
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-          <strong>This machine only.</strong> The shared
-          ledger could not be read, so every figure here is a floor &mdash; other
-          machines&rsquo; spend is missing from it, not absent.
-        </span>
-      )}
-      {basis?.unpriced_calls_today > 0 && (
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-          {basis.unpriced_calls_today} call
-          {basis.unpriced_calls_today === 1 ? '' : 's'} today used a model with no
-          published rate, so its tokens are counted and its dollars are not.
-        </span>
-      )}
-
-      {/* WHERE THE ONE CAP WENT. The backend splits every figure by stage
-          precisely so a reader can see which of the two consumed the day
-          "without the split implying two budgets" (judge/app.py:1800), and
-          nothing rendered it. A stage that has never recorded is shown as such
-          rather than as $0.00 — those are different claims, and only one of
-          them is reassuring. */}
-      {byStage.length > 0 && (
-        <>
-          <span className="label">Where today&rsquo;s spend went — one cap, split by stage</span>
-          {byStage.map((s) => (
-            <div key={s.stage} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-              <span style={{ fontSize: 'var(--fs-sm)' }}>{s.label || s.stage}</span>
-              <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
-                <span className="tnum">
-                  {s.ever_recorded ? usd(s.spent_usd) : 'never recorded'}
-                </span>
-                {s.ever_recorded && (
-                  <span className="dim" style={{ fontSize: 10 }}>
-                    {s.calls} call{s.calls === 1 ? '' : 's'} today
-                  </span>
-                )}
-              </span>
-            </div>
-          ))}
-        </>
-      )}
-
-      {/* ⚠ THE ROWS ADD UP TO MORE THAN THE KEY HAS EVER BEEN CHARGED. Stated
-          before the rows rather than after them, because a reader who has
-          already added them up has drawn the conclusion. */}
-      {/* ⚠ MEASURED AGAINST THE PROVIDER, 2026-09-28, NOT REASONED ABOUT.
-          `/api/v1/key` reports `usage` $4.157033986 and `limit_remaining`
-          25.842966014 against a limit of 30 — two routes to the same figure,
-          agreeing to nine places, so the number at the top of this panel is
-          exact and the rows below are what is wrong.
-
-          `usage_monthly` $1.680758006 covers 2026-09-01 onward, which is the
-          day the extractor switched, so the lifetime total decomposes:
-          $4.1570 - $1.6808 = $2.4763 before the switch, when Gemini was the
-          only thing spending. That is the closed Gemini row's $2.4780 arrived
-          at independently, off by $0.0017 — the 185 Gemini calls that ran on
-          after the switch.
-
-          Which leaves at most $1.5287 for DeepSeek against $7.08 displayed.
-          The implied blended rate is $0.0509 per 1M tokens over 30.0M; both
-          rates in `budget.py` are above it (0.14/0.28 gives $0.1608, and even
-          0.065/0.14 gives $0.0762), most likely because 13,200 input tokens
-          per call are nearly all the same prompt and cache hits do not bill at
-          list. So #381's 2.11x is necessary and not sufficient. */}
       {overstated != null && (
         <Notice icon={<IconAlert />}>
-          <strong style={{ color: 'var(--text)' }}>
-            These rows exceed the key total by {usd(overstated)}.
-          </strong>{' '}
-          They are not what the provider charged. Every dollar below is the
-          call&rsquo;s tokens multiplied by a rate held in{' '}
-          <span className="mono">judge/extract/budget.py</span>, and measured
-          against the provider on 2026-09-28 that rate is about{' '}
-          <strong>3&times; too high</strong> — the extraction prompt is largely
-          identical call to call, and cache hits are not billed at list price
-          (#381). The figure at the top of this panel comes straight from the
-          provider and is the one to trust. Treat the split below as{' '}
-          <strong>which model, not how much</strong>.
+          <strong style={{ color: 'var(--text)' }}>The rows below exceed the key total by {usd(overstated)}.</strong>{' '}
+          They are tokens × a held rate, which overstates cached calls (#381). Trust the total above;
+          read the rows as <strong>which model, not how much</strong>.
         </Notice>
       )}
+      {(!everyone.available || (basis && !basis.complete)) && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          <strong>This machine only</strong> — the shared ledger could not be read, so these figures are floors.
+        </span>
+      )}
+      {/* #393: rows this machine recorded that never reached the shared table.
+          Said only when non-zero (a permanent "0 unmirrored" is furniture). Not
+          a floor HERE - this page reads the file too - but every other
+          machine's cap is short by exactly these rows. */}
+      {basis?.unmirrored_rows > 0 && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          <strong>
+            {basis.unmirrored_rows} of {basis.local_rows} call
+            {basis.local_rows === 1 ? '' : 's'} recorded on this machine
+          </strong>{' '}
+          never reached the shared ledger, so other machines&rsquo; daily cap cannot
+          see that spend. <code>python scripts/backfill_telemetry.py --apply</code>{' '}
+          sends them.
+        </span>
+      )}
 
-      {/* Through `prettyModel` like the rows below it, so the heading and the
-          row it describes cannot disagree about what the extractor is called. */}
-      <span className="label">
-        By extractor model — {prettyModel('google/gemini-2.5-flash')} (used so far)
-        {' → '}{prettyModel(CURRENT_EXTRACTOR)} (current)
-      </span>
-      {/* ⚠ WHAT WAS SERVED, NOT WHAT WAS ASKED FOR, and the page has to say
-          which because the two can differ. `judge/extract/client.py` records
-          the model id the PROVIDER reported on the response; `claim.extractor_
-          model` records the id we sent. A row here for a build nobody
-          configured is therefore not proof that anything was misconfigured —
-          on 2026-09-24 four calls from one host recorded `-0731` while every
-          claim written that day recorded the undated alias, and the ledger
-          cannot tell you which of the two happened. #481. */}
-      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', lineHeight: 1.6 }}>
-        The model named on each row is the one{' '}
-        <strong style={{ color: 'var(--text)' }}>the provider reported serving</strong>,
-        which is not always the id we sent — an undated alias resolves to a dated
-        build. What we asked for is recorded on the claims, not here.
-      </span>
+      {/* 3 · TODAY, BY STAGE: the capped stage and the uncapped blog drafts together */}
+      <Block title="Today (UTC)">
+        {byStage.filter((s) => !NOT_BUILT_YET.has(s.stage)).map((s) => (
+          <Line key={s.stage} name={s.label || s.stage}
+                value={s.ever_recorded ? usd(s.spent_usd) : 'never recorded'}
+                caption={s.ever_recorded ? `${s.calls} call${s.calls === 1 ? '' : 's'} · inside the cap` : null} />
+        ))}
+        {blogs && (
+          <Line name="Blog drafts" value={usd(blogs.spent_today_usd)}
+                caption={`${blogs.calls_today} call${blogs.calls_today === 1 ? '' : 's'} · outside the cap${blogs.unpriced_today ? ' · a floor' : ''}`} />
+        )}
+        {unmetered > 0 && (
+          <span className="dim" style={{ fontSize: 'var(--fs-xs)', paddingTop: 6 }}>
+            {unmetered} call{unmetered === 1 ? '' : 's'} today reported no token usage, so {unmetered === 1 ? 'it is' : 'they are'} not in the dollar figure.
+          </span>
+        )}
+      </Block>
+
+      {/* 4 · ALL-TIME, BY MODEL: extraction models, then the blog generator */}
+      <Block title="All-time spend by model">
+        {rows.length === 0 && !(blogs?.models || []).length ? (
+          <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No model calls recorded yet.</span>
+        ) : rows.map(([model, spent, asof]) => (
+          <Line key={model}
+                name={String(model ?? '').trim() === ''
+                  ? <span className="dim" style={{ fontStyle: 'italic' }}>{prettyModel(model)}</span>
+                  : <><strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(model)}</strong>{' '}
+                      <Badge tone="mute">extraction</Badge>
+                      {model === CURRENT_EXTRACTOR && <> <Badge tone="info">current</Badge></>}
+                      {asof && <> <Badge tone="mute">closed {asof}</Badge></>}</>}
+                value={(unpriced || []).includes(model) ? 'no published rate' : usd(spent)}
+                caption={byTokens?.[model] > 0 ? `${byTokens[model].toLocaleString()} tokens` : null} />
+        ))}
+        {currentSpend != null && !alreadyListed && (
+          <Line name={<><strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(CURRENT_EXTRACTOR)}</strong>{' '}
+                  <Badge tone={corroborated ? 'mute' : 'warn'}>{corroborated ? 'from the provider' : 'unattributed'}</Badge></>}
+                value={usd(currentSpend)} />
+        )}
+        {(blogs?.models || []).map((m) => (
+          <Line key={`blog-${m.model}`}
+                name={<><strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(m.model)}</strong>{' '}
+                  <Badge tone="mute">blog drafts</Badge>
+                  {m.model === blogs.model && <> <Badge tone="info">current</Badge></>}</>}
+                value={usd(m.spent_usd)}
+                caption={`${m.calls} call${m.calls === 1 ? '' : 's'}${m.unpriced_calls ? ' · a floor' : ''}`} />
+        ))}
+        {blogs && !(blogs.models || []).length && blogs.model && (
+          <Line name={<><strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(blogs.model)}</strong>{' '}
+                  <Badge tone="mute">blog drafts</Badge></>}
+                value={<span className="dim">no recorded calls</span>} />
+        )}
+        {(unpriced || []).length > 0 && (
+          <span className="dim" style={{ fontSize: 'var(--fs-xs)', paddingTop: 6 }}>
+            No published rate for {(unpriced || []).join(', ')}: tokens counted, dollars not.
+          </span>
+        )}
+      </Block>
+
+      {/* 5 · BY MONTH */}
+      <MonthlyLedger monthly={monthly} />
+
+      {/* 6 · BILLED PER RUN (added 2026-10-12) */}
+      <BilledCostPanel />
+    </div>
+  )
+}
+
+const STAGE_SHORT = { extract: 'Extraction', ask: 'Ask box', blog: 'Blog drafts' }
+
+/**
+ * SPEND BY MONTH — every model call in the ledger, by calendar month (UTC),
+ * stage and model, GPT-6 Luna's blog drafts included (`monthly` in
+ * /admin/usage, judge/spend_ledger.py `monthly`).
+ *
+ * TWO KINDS OF DOLLAR, SAID ON THE PAGE (rule 7): extraction and Ask rows are
+ * tokens x a rate held in `judge/extract/budget.py` (see the note above on how
+ * far that rate is off), blog rows are OpenRouter's reported cost per call. A
+ * month before a stage's first recorded call has no row for it because nothing
+ * was recording, not because nothing was spent — so each stage's start is shown.
+ */
+function MonthlyLedger({ monthly }) {
+  if (!monthly) return null
+  const rows = monthly.rows || []
+  const since = Object.entries(monthly.counting_since || {})
+  return (
+    <>
+      <span className="label">By month — every model call in the ledger (UTC months)</span>
+      {monthly.complete === false && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          The shared ledger could not be read, so these are this machine&apos;s calls only — every row is a floor.
+        </span>
+      )}
       {rows.length === 0 ? (
         <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No model calls recorded yet.</span>
       ) : (
-        rows.map(([model, spent, asof]) => (
-          <div key={model} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-            <span>
-              <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(model)}</strong>{' '}
-              <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{model}</span>
-              {/* A CLOSED ROW LOOKS IDENTICAL TO A LIVE ONE, which is the whole
-                  problem with a constant on a live panel. This says which it
-                  is, in the row, where a reader comparing the two will be. */}
-              {asof && <> <Badge tone="mute">closed {asof}</Badge></>}
-            </span>
-            <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
-              <span className="tnum">
-                {(unpriced || []).includes(model) ? 'no published rate' : usd(spent)}
-              </span>
-              {/* TOKENS ARE THE MEASUREMENT. Shown beside the dollars because a
-                  model with no rate records $0.00, and money alone would read
-                  as free — the one wrong conclusion available here. */}
-              {byTokens?.[model] > 0 && (
-                <span className="dim" style={{ fontSize: 10 }}>
-                  {byTokens[model].toLocaleString()} tokens
-                </span>
-              )}
-            </span>
-          </div>
-        ))
+        <div className="tablewrap"><table>
+          <thead>
+            <tr><th>Month</th><th>Stage</th><th>Model</th><th>Calls</th><th>Tokens in / out</th><th>Spent</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={`${r.month}|${r.stage}|${r.model}`}>
+                <td className="mono">{r.month}</td>
+                <td>
+                  {STAGE_SHORT[r.stage] || r.stage}
+                  {r.stage === 'blog' && <> <Badge tone="mute">outside cap</Badge></>}
+                </td>
+                <td>
+                  <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(r.model)}</strong>
+                  <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--text-3)' }}>{r.model}</span>
+                </td>
+                <td className="tnum">{r.calls.toLocaleString()}</td>
+                <td className="tnum">{r.tokens_in.toLocaleString()} / {r.tokens_out.toLocaleString()}</td>
+                <td className="tnum">
+                  {usd(r.usd)}
+                  {(r.unpriced_calls > 0 || r.unmetered_calls > 0) && (
+                    <span className="dim" style={{ display: 'block', fontSize: 10 }}>
+                      a floor: {[r.unpriced_calls ? `${r.unpriced_calls} unpriced` : null,
+                        r.unmetered_calls ? `${r.unmetered_calls} with no tokens reported` : null]
+                        .filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
       )}
-
-      {(unpriced || []).length > 0 && (
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
-          <strong style={{ color: 'var(--text)' }}>
-            {(unpriced || []).length} model{(unpriced || []).length === 1 ? '' : 's'} recorded
-            tokens with no published rate
-          </strong>{' '}
-          — {(unpriced || []).join(', ')}. Their tokens are measured; the price is not held in{' '}
-          <span className="mono">judge/extract/budget.py</span>, so no dollar figure is computed
-          for them rather than one being computed at another model's rate.
-        </span>
-      )}
-
-      {/* The current extractor, listed BELOW the previous one so the switch
-          reads in order. Its figure is the provider's, not the ledger's, and
-          the row says which — a number whose source is not stated is not
-          evidence (rule 7). */}
-      {currentSpend != null && !alreadyListed && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-          <span>
-            <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(CURRENT_EXTRACTOR)}</strong>{' '}
-            <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{CURRENT_EXTRACTOR}</span>{' '}
-            <Badge tone={corroborated ? 'mute' : 'warn'}>
-              {corroborated ? 'from the provider' : 'unattributed'}
-            </Badge>
-          </span>
-          <span className="tnum">{usd(currentSpend)}</span>
-        </div>
-      )}
-
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        Spend to date ran on <strong>Gemini 2.5 Flash</strong>; the extractor is now{' '}
-        <strong>{prettyModel(CURRENT_EXTRACTOR)}</strong>, so new spend accrues under it — the two stay
-        separated above.
+        Recording since {since.length
+          ? since.map(([st, at]) => `${STAGE_SHORT[st] || st} ${new Date(at).toLocaleDateString()}`).join(' · ')
+          : 'nothing recorded'}.
       </span>
-      {currentSpend != null && !alreadyListed && (
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-          {corroborated ? (
-            <>
-              The DeepSeek figure is <strong>the provider&apos;s</strong>, not this machine&apos;s
-              ledger — the runs that spent it errored before the ledger write. It is the key
-              total minus every model the ledger knows, and it matches what the provider
-              reports for today ({usd(todayOnKey)}), which is why it is attributed rather
-              than left as a gap.
-            </>
-          ) : (
-            <>
-              <strong style={{ color: 'var(--text)' }}>Unattributed.</strong> {usd(currentSpend)}{' '}
-              is on the key and not in this machine&apos;s ledger, but it does not match what
-              the provider reports for today ({usd(todayOnKey)}) — so it may not all be
-              DeepSeek. Shown rather than hidden, and not assigned.
-            </>
-          )}
-        </span>
-      )}
-    </div>
+    </>
   )
 }
 
@@ -1014,15 +918,29 @@ function QuotaSeries({ s, which }) {
     <div className="stack stack-1">
       <span className="label">Consumption — measured over the recorded series</span>
       <div className="grid g2">
-        <Stat n={`${s.per_day.toFixed(1)}/day`}
+        <Stat n={`${s.consumed_is_a_floor ? '≥ ' : ''}${s.per_day.toFixed(1)}/day`}
               l={`over ${s.span_days.toFixed(1)} days`} />
-        <Stat n={count(s.consumed)} l={`requests across ${s.readings} readings`} />
+        <Stat n={`${s.consumed_is_a_floor ? '≥ ' : ''}${count(s.consumed)}`}
+              l={`requests across ${s.readings} readings`} />
       </div>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
         Measured between {s.first_at} and {s.last_at}. The span is stated because
         this harvest is bursty — a rate without the window it was taken over is a
         figure answering a question nobody asked.
       </span>
+      {/* A RESET IS NOT NEGATIVE CONSUMPTION. Until 2026-10-07 this read first
+          minus last, and X's two resets turned it into -1,018 requests. Summed
+          reading to reading now (judge/app.py _quota_consumption); the part a
+          reset hides is said, not guessed. */}
+      {s.resets > 0 && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+          <strong style={{ color: 'var(--text)' }}>
+            The quota reset {s.resets} time{s.resets === 1 ? '' : 's'} in this span, so these are floors.
+          </strong>{' '}
+          Requests in each new window are counted from the limit; requests made between the last reading
+          and a reset were never read.
+        </span>
+      )}
     </div>
   )
 }

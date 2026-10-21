@@ -154,3 +154,65 @@ def test_the_same_command_without_dry_run_is_still_refused(conn, monkeypatch):
     assert "192.0.2.10" in message
     assert "judge extract" in message
     assert not conn.statements, "it must refuse before the connection is used"
+
+
+# ── #355: the dry run opens the export when one is named ─────────────────────
+
+
+def _export(tmp_path):
+    """One loadable thread and one with no `flattened_text`."""
+    import json
+
+    good = {
+        "thread_context_id": "thread_context_good",
+        "flattened_text": "Flash was fast",
+        "offset_map": [{"flat_start": 0, "flat_end": 14, "document_id": "d1",
+                        "raw_start": 0, "raw_end": 14}],
+        "raw_text_of": {"d1": "Flash was fast"},
+        "member_document_ids": ["d1"],
+    }
+    bad = {**good, "thread_context_id": "thread_context_bad"}
+    del bad["flattened_text"]
+    (tmp_path / "a_good.json").write_text(json.dumps(good), encoding="utf-8")
+    (tmp_path / "b_no_text.json").write_text(json.dumps(bad), encoding="utf-8")
+    return tmp_path
+
+
+def test_a_dry_run_names_what_the_export_would_skip(conn, capsys, tmp_path):
+    assert cli._cmd_extract(_args(dry_run=True, from_export=str(_export(tmp_path)))) == 0
+
+    out = capsys.readouterr().out
+    assert "SKIPPED b_no_text.json: no flattened_text" in out
+    assert "a_good.json" not in out
+    assert "1 of 2 export file(s) load as threads, 1 skipped" in out
+    assert "pending" not in out, "the export count is not a pending count (rule 7)"
+
+
+def test_opening_the_export_still_only_reads(conn, tmp_path):
+    cli._cmd_extract(_args(dry_run=True, from_export=str(_export(tmp_path))))
+
+    non_select = [s for s in conn.statements if not s.lstrip().upper().startswith("SELECT")]
+    assert not non_select, f"the dry-run path issued a non-SELECT: {non_select}"
+    assert conn.transactions == 0
+    assert conn.commits == 0
+
+
+def test_an_export_with_nothing_usable_is_not_a_pass(conn, capsys, tmp_path):
+    """The real run raises here, so the dry run must not exit 0 (rule 12)."""
+    (tmp_path / "only.json").write_text("{}", encoding="utf-8")
+
+    assert cli._cmd_extract(_args(dry_run=True, from_export=str(tmp_path))) == 1
+    assert "a real run would stop here" in capsys.readouterr().out
+
+
+def test_without_from_export_the_dry_run_is_unchanged(conn, capsys, monkeypatch):
+    """`--from-export` stays optional; the export is never touched without it."""
+    from judge.extract import export_source
+
+    def _must_not_load(*a, **k):
+        raise AssertionError("load() called without --from-export")
+
+    monkeypatch.setattr(export_source, "load", _must_not_load)
+    assert cli._cmd_extract(_args(dry_run=True)) == 0
+    out = capsys.readouterr().out
+    assert "--from-export" not in out and "SKIPPED" not in out

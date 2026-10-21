@@ -1,0 +1,37 @@
+# How often the scheduler fetches each tracked model, and how much a fetch reads.
+#
+# ⚠ PROPOSED 2026-10-05 ON BRANCH anooj_001 - contract/ gets two eyes; this
+#   reaches main only through a reviewed PR. The values are the ones
+#   judge/scheduler.py carried as code constants since #494 (merged
+#   2026-09-28), moved here unchanged so rule 5 holds. Changing them is a
+#   separate decision.
+#
+# READ BY judge/scheduler.py `policy()`. Every key is required and must be a
+# positive integer; absent or anything else raises (rule 6, rule 12) - there is
+# no default in code.
+
+version: "0.1"
+status: proposed
+
+#: Hours after a model's last SUCCESSFUL fetch before it is due again.
+#:
+#: 60 HOURS = EVERY THIRD NIGHT, SO EVERY TRACKED MODEL TWICE A WEEK OR MORE
+#: (2026-10-21, anooj; was `cadence_days: 7`). The workflow runs nightly, so a
+#: model fetched one night is due again three nights later: 72 h minus how far
+#: into that night's run it was fetched. Hours rather than days because of that
+#: offset - `3 days` would miss the third night for any model fetched after the
+#: run started, and slip it to every fourth (1.75 a week). 60 h holds for a run
+#: up to 12 h late, and stays above the 48 h of the second night.
+#:
+#: NOT ONE BIG RUN TWICE A WEEK, AND MEASURED: over the 35 ok fetches of the 21
+#: days to 2026-10-21 (shared DB fetch_log), a fetch took 28 min median, 79 p90;
+#: one at <= 25 threads 11 min median, 21 p90. 32 tracked models in one job is
+#: about 6 h against the 6 h limit and a 300-minute launch deadline, and would
+#: meet the daily extraction budget. Nightly, it is about 11 models a night.
+cadence_hours: 60
+
+#: FETCH_MAX_THREADS for a model's first-ever fetch: its whole backlog is unread.
+first_fetch_thread_cap: 100
+
+#: FETCH_MAX_THREADS for a refresh: most of the backlog is already extracted.
+refresh_thread_cap: 25

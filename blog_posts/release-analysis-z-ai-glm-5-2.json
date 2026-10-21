@@ -1,0 +1,782 @@
+{
+ "slug": "release-analysis-z-ai-glm-5-2",
+ "status": "draft",
+ "tag": "Release analysis",
+ "feat": false,
+ "title": "GLM 5.2 Beats Opus 4.8 Only 32% of the Time, and Still Earns a Seat",
+ "dek": "Launch charts put the open-weights model within a point of Opus 4.8. A one-shot game build, a government cyber evaluation and some home-lab arithmetic tell a more useful story.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "GLM 5.2 review: a strong open-weights coder for well-specified, text-only work, close to Opus 4.8 on benchmarks but weaker on long builds, hungry for tokens and expensive to run yourself at full precision.",
+ "cover": {
+  "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYzMCI+CiAgPHRpdGxlPkEgcGxhdGZvcm1lciBmcmFtZSBjaGVja2VkIGJ5IHNhbXBsaW5nIHBpeGVsIGNvbG91cnM7IHRoZSBwcm9iZXMgcGFzcyB3aGlsZSB0aGUgZ3JheSBoZXJvIGFuZCBkZWJ1ZyBvdmVybGF5IGdvIHVuc2VlbjwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNreSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxYjI0MzMiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTUxYTIzIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJyZWRnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMC4zOCIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZjdiNzIiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxjbGlwUGF0aCBpZD0ic2NyZWVuIj4KICAgICAgPHJlY3QgeD0iMTIwIiB5PSI3MCIgd2lkdGg9Ijk2MCIgaGVpZ2h0PSI0OTAiIHJ4PSIyMCIvPgogICAgPC9jbGlwUGF0aD4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjMwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHRoZSByZW5kZXJlZCBmcmFtZSAtLT4KICA8cmVjdCB4PSIxMjAiIHk9IjcwIiB3aWR0aD0iOTYwIiBoZWlnaHQ9IjQ5MCIgcng9IjIwIiBmaWxsPSJ1cmwoI3NreSkiLz4KICA8ZyBjbGlwLXBhdGg9InVybCgjc2NyZWVuKSI+CiAgICA8IS0tIGdyb3VuZDogZ3Jhc3Mgb3ZlciBkaXJ0IC0tPgogICAgPHJlY3QgeD0iMTIwIiB5PSI0NDAiIHdpZHRoPSI5NjAiIGhlaWdodD0iMjYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuODUiLz4KICAgIDxyZWN0IHg9IjEyMCIgeT0iNDY2IiB3aWR0aD0iOTYwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzhhNWEyYiIgb3BhY2l0eT0iMC43NSIvPgogICAgPCEtLSBwbGF0Zm9ybXMgLS0+CiAgICA8cmVjdCB4PSIzMDAiIHk9IjMzMCIgd2lkdGg9IjE3MCIgaGVpZ2h0PSIyMCIgcng9IjYiIGZpbGw9IiMzZWNmOGUiIG9wYWNpdHk9IjAuOCIvPgogICAgPHJlY3QgeD0iMzAwIiB5PSIzNTAiIHdpZHRoPSIxNzAiIGhlaWdodD0iMjIiIHJ4PSI2IiBmaWxsPSIjOGE1YTJiIiBvcGFjaXR5PSIwLjciLz4KICAgIDxyZWN0IHg9IjY5MCIgeT0iMjUwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjIwIiByeD0iNiIgZmlsbD0iIzNlY2Y4ZSIgb3BhY2l0eT0iMC44Ii8+CiAgICA8cmVjdCB4PSI2OTAiIHk9IjI3MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIyMiIgcng9IjYiIGZpbGw9IiM4YTVhMmIiIG9wYWNpdHk9IjAuNyIvPgogICAgPCEtLSBjb2lucyAtLT4KICAgIDxjaXJjbGUgY3g9IjM1MCIgY3k9IjI5MCIgcj0iMTYiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDxjaXJjbGUgY3g9IjQxMCIgY3k9IjI5MCIgcj0iMTYiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDxjaXJjbGUgY3g9Ijc2MCIgY3k9IjIxMCIgcj0iMTYiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDxjaXJjbGUgY3g9IjgyMCIgY3k9IjIxMCIgcj0iMTYiIGZpbGw9IiNlM2IzNDEiLz4KICAgIDwhLS0gc3Bpa2VzIHRoYXQgbmV2ZXIgaHVydCAtLT4KICAgIDxwb2x5Z29uIHBvaW50cz0iNTYwLDQ0MCA1NzYsNDEwIDU5Miw0NDAiIGZpbGw9IiM5NWExYjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iNTkyLDQ0MCA2MDgsNDEwIDYyNCw0NDAiIGZpbGw9IiM5NWExYjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iNjI0LDQ0MCA2NDAsNDEwIDY1Niw0NDAiIGZpbGw9IiM5NWExYjQiLz4KICAgIDwhLS0gZGVidWcgb3ZlcmxheSBsZWZ0IG9uIHNjcmVlbiAtLT4KICAgIDxyZWN0IHg9Ijg5MCIgeT0iOTYiIHdpZHRoPSIxNjYiIGhlaWdodD0iOTIiIHJ4PSIxMCIgZmlsbD0iIzBjMGMwZSIgb3BhY2l0eT0iMC43IiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMiIvPgogICAgPGcgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC44Ij4KICAgICAgPGxpbmUgeDE9IjkxMCIgeTE9IjEyMiIgeDI9IjEwMzAiIHkyPSIxMjIiLz4KICAgICAgPGxpbmUgeDE9IjkxMCIgeTE9IjE0MiIgeDI9IjEwMDAiIHkyPSIxNDIiLz4KICAgICAgPGxpbmUgeDE9IjkxMCIgeTE9IjE2MiIgeDI9IjEwMjAiIHkyPSIxNjIiLz4KICAgIDwvZz4KICA8L2c+CgogIDwhLS0gdGhlIGdyYXkgaGVybywgZmFjaW5nIGJhY2t3YXJkcyAtLT4KICA8ZWxsaXBzZSBjeD0iMjIwIiBjeT0iMzgwIiByeD0iMTEwIiByeT0iMTEwIiBmaWxsPSJ1cmwoI3JlZGdsb3cpIi8+CiAgPHJlY3QgeD0iMTk2IiB5PSIzNzAiIHdpZHRoPSI0OCIgaGVpZ2h0PSI3MCIgcng9IjEyIiBmaWxsPSIjNmI3MjgwIi8+CiAgPGNpcmNsZSBjeD0iMjIwIiBjeT0iMzUwIiByPSIyNCIgZmlsbD0iIzZiNzI4MCIvPgogIDxjaXJjbGUgY3g9IjIxMCIgY3k9IjM0OCIgcj0iNCIgZmlsbD0iIzNhM2Y0OCIvPgogIDxjaXJjbGUgY3g9IjIyMCIgY3k9IjM4MCIgcj0iODYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxMCA5Ii8+CiAgPGNpcmNsZSBjeD0iOTczIiBjeT0iMTQyIiByPSI3OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1kYXNoYXJyYXk9IjEwIDkiLz4KCiAgPCEtLSBwaXhlbCBwcm9iZXM6IGFsbCBwYXNzIC0tPgogIDxnIHN0cm9rZT0iI2U4ZWRmNSIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIj4KICAgIDxjaXJjbGUgY3g9IjQ4MCIgY3k9IjQ1MyIgcj0iMTgiLz4KICAgIDxsaW5lIHgxPSI0ODAiIHkxPSI0MjUiIHgyPSI0ODAiIHkyPSI0ODEiLz48bGluZSB4MT0iNDUyIiB5MT0iNDUzIiB4Mj0iNTA4IiB5Mj0iNDUzIi8+CiAgICA8Y2lyY2xlIGN4PSI5MDAiIGN5PSI1MTAiIHI9IjE4Ii8+CiAgICA8bGluZSB4MT0iOTAwIiB5MT0iNDgyIiB4Mj0iOTAwIiB5Mj0iNTM4Ii8+PGxpbmUgeDE9Ijg3MiIgeTE9IjUxMCIgeDI9IjkyOCIgeTI9IjUxMCIvPgogICAgPGNpcmNsZSBjeD0iNDEwIiBjeT0iMjkwIiByPSIxOCIvPgogICAgPGxpbmUgeDE9IjQxMCIgeTE9IjI2MiIgeDI9IjQxMCIgeTI9IjMxOCIvPjxsaW5lIHgxPSIzODIiIHkxPSIyOTAiIHgyPSI0MzgiIHkyPSIyOTAiLz4KICA8L2c+CiAgPGcgZmlsbD0iIzNlY2Y4ZSI+CiAgICA8Y2lyY2xlIGN4PSI1MTAiIGN5PSI0MjUiIHI9IjE0Ii8+CiAgICA8Y2lyY2xlIGN4PSI5MzAiIGN5PSI0ODIiIHI9IjE0Ii8+CiAgICA8Y2lyY2xlIGN4PSI0NDAiIGN5PSIyNjIiIHI9IjE0Ii8+CiAgPC9nPgogIDxnIHN0cm9rZT0iIzEwMTQxYiIgc3Ryb2tlLXdpZHRoPSIzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CiAgICA8cG9seWxpbmUgcG9pbnRzPSI1MDMsNDI1IDUwOCw0MzEgNTE3LDQxOSIvPgogICAgPHBvbHlsaW5lIHBvaW50cz0iOTIzLDQ4MiA5MjgsNDg4IDkzNyw0NzYiLz4KICAgIDxwb2x5bGluZSBwb2ludHM9IjQzMywyNjIgNDM4LDI2OCA0NDcsMjU2Ii8+CiAgPC9nPgoKICA8IS0tIGxhYmVscyAtLT4KICA8dGV4dCB4PSI2MDAiIHk9IjYwNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0iZW5kIj5waXhlbHMgc2FtcGxlZDwvdGV4dD4KICA8dGV4dCB4PSI2NDAiIHk9IjYwNiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwIiBmaWxsPSIjZmY3YjcyIj5wcm9ibGVtcyB1bnNlZW48L3RleHQ+Cjwvc3ZnPgo=",
+  "alt": "A platformer frame with pixel probes that all pass, while a gray hero and a debug overlay are circled as unseen.",
+  "caption": "The failure at the heart of this release: checks that read numbers pass while the problems a person would see go unseen.",
+  "generated_by": "Claude Code (figure drawn as SVG)",
+  "cut": null,
+  "kind": "figure"
+ },
+ "description": "GLM 5.2 review: an open-weights coder near Opus 4.8 on paper, rougher on long builds, token-hungry, text-only and costly to self-host.",
+ "keywords": [
+  "GLM 5.2 review",
+  "is GLM 5.2 good for coding",
+  "GLM 5.2 in production",
+  "GLM 5.2 pricing",
+  "GLM 5.2 alternatives",
+  "GLM 5.2 vs Opus 4.8"
+ ],
+ "kicker": "Release analysis",
+ "tags": [
+  "GLM 5.2",
+  "Release analysis"
+ ],
+ "read": 11,
+ "decisions": [
+  "Pilot GLM 5.2 on spec-driven coding with tests and a reviewer.",
+  "Keep a vision-capable checker for any UI or rendered output.",
+  "Cap context well below the advertised window until recall is tested.",
+  "Benchmark the quantized copy you will actually run, not the launch chart.",
+  "Hold long unattended builds on your current frontier model for now."
+ ],
+ "layout": "brief",
+ "arrangement": "a",
+ "special": {
+  "type": "claims",
+  "title": "Claims against reality",
+  "items": [
+   {
+    "claim": "As good as Opus 4.8 at coding",
+    "finding": "Within a point on FrontierSWE, but it wins only 32% of head-to-head duels and shipped a rougher one-shot game",
+    "status": "partly holds"
+   },
+   {
+    "claim": "The leading open-weights model",
+    "finding": "Top open-weights index result of 51, and it tied frontier models on a small, well-specified web app",
+    "status": "holds"
+   },
+   {
+    "claim": "A real 1M token context with stable performance",
+    "finding": "Asserted at launch with no independent long-context test shown; heavy users warn about cost past 300-500k tokens",
+    "status": "not shown"
+   },
+   {
+    "claim": "Open weights you can run yourself",
+    "finding": "MIT-licensed, but the full model needs 750 to 1.5TB of memory and FP2 copies lose over 17% accuracy",
+    "status": "partly holds"
+   },
+   {
+    "claim": "Cheap to run",
+    "finding": "Lowest cost per task at its level, yet it writes 43k output tokens per task and costs more than nearly-as-good open rivals",
+    "status": "partly holds"
+   },
+   {
+    "claim": "Close behind the closed frontier",
+    "finding": "On cyber evals it matches closed models from 4 to 7 months earlier, and the gap widens on long chains",
+    "status": "partly holds"
+   }
+  ]
+ },
+ "acknowledgement": null,
+ "meta": [
+  "16 October 2026",
+  "~11 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "GLM 5.2 loses most head-to-head duels with Opus 4.8",
+    "num": "01",
+    "id": "glm-5-2-loses-most-head-to-head-duels-with-opus-4-8"
+   }
+  ],
+  [
+   "p",
+   "In one independent arena, GLM 5.2 lost to Opus 4.8 more often than it won. A dev.to analysis reports that the evaluation «shows GLM-5.2 beats Opus 4.8 (with extended thinking) only 32% of the time». That number sits awkwardly beside the launch story. Any honest GLM 5.2 review has to start with that gap."
+  ],
+  [
+   "p",
+   "The launch story is strong, and much of it holds. GLM 5.2 is an open-weights model, so anyone can download and run it, and it ships under the MIT license. On FrontierSWE, a coding benchmark, it scored 74.4% against 75.1% for Opus 4.8. On SWE-Bench Pro it hit 62.1%, ahead of GPT-5.5 at 58.6%."
+  ],
+  [
+   "p",
+   "A post on X from a benchmarking group put GLM 5.2 at 51 on the Artificial Analysis Intelligence Index at launch. That was the top open-weights result, with MiniMax-M3 at 44. The same post placed it on the frontier of intelligence against cost per task. We take those numbers at face value. They describe averages, and your work is not an average."
+  ],
+  [
+   "p",
+   "The dev.to author draws the sober conclusion: «GLM-5.2 doesn't clearly beat the closed frontier — it probably loses to Opus 4.8 more often than it wins». We agree. The useful question is where it loses, and what that costs you. The rest of this analysis follows the evidence there."
+  ],
+  [
+   "embed",
+   {
+    "platform": "x",
+    "url": "https://x.com/ArtificialAnlys/status/2067135640249209175",
+    "caption": "The launch-day ranking that placed this model at the top of the open-weights field, with its token use and cost per task."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "A one-shot WebGL game exposed what the averages hide",
+    "num": "02",
+    "id": "a-one-shot-webgl-game-exposed-what-the-averages-hide"
+   }
+  ],
+  [
+   "p",
+   "The clearest failure came from a single build. We went through a hands-on test that a dev.to write-up retells in detail. Both models got one prompt: build a third-person 3D platformer in raw WebGL, the browser's low-level graphics interface, with no libraries. The verdict was blunt: «GLM-5.2 shipped a rougher game.»"
+  ],
+  [
+   "p",
+   "The details hurt. «The character rendered as flat gray with missing textures.» Worse, «The spike hazard did nothing when you touched it. There was no win condition.» The character also faced backwards the whole time. Opus 4.8 shipped textures, working hazards and a way to win, with only minor edge-case bugs."
+  ],
+  [
+   "p",
+   "GLM 5.2 did get one thing right: a spring launch that bounced the player up to higher platforms. So it can code. The write-up's reading is fair: «It struggles to hold a complex multi-file build together at the same level as Opus.» Time and money ran the other way: «Opus finished in half the time. GLM-5.2 cost a fraction of the price.»"
+  ],
+  [
+   "p",
+   "We read this test as a warning, not a verdict. The write-up itself cautions that «The WebGL test is one data point from one prompt.» A one-shot game is also unusually hard on a model that cannot see. That last point turns out to matter more than any number in the table below."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "The one-shot raw WebGL platformer test, as the dev.to write-up reports it.",
+    "columns": [
+     "Measure",
+     "GLM 5.2",
+     "Claude Opus 4.8"
+    ],
+    "rows": [
+     [
+      "Build time",
+      "1h 10m 40s",
+      "33m 30s"
+     ],
+     [
+      "Output tokens",
+      "131,000",
+      "216,809"
+     ],
+     [
+      "Tool calls",
+      "128",
+      "153"
+     ],
+     [
+      "Textures",
+      "missing, flat gray",
+      "applied correctly"
+     ],
+     [
+      "Spike hazard",
+      "did nothing",
+      "killed the player"
+     ],
+     [
+      "Win condition",
+      "none",
+      "working"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Opus 4.8 keeps a wide lead on the longest coding runs",
+    "num": "03",
+    "id": "opus-4-8-keeps-a-wide-lead-on-the-longest-coding-runs"
+   }
+  ],
+  [
+   "p",
+   "On short, well-defined tasks GLM 5.2 keeps pace. On long ones it falls back. The model-card table, where each vendor reports its own numbers, shows the pattern. GLM 5.2 leads Opus 4.8 on the AIME 2026 maths contest, 99.2 against 95.7. On SWE-Marathon, a long-horizon coding test, it scores 13.0 against 26.0."
+  ],
+  [
+   "p",
+   "The dev.to summary does not soften it: «Opus dominates the coding and long-horizon agentic benchmarks». Terminal Bench, which runs tasks in a real command line, shows a smaller gap of 81.0 against 85. These numbers match the WebGL story. The longer the job, the wider the gap."
+  ],
+  [
+   "p",
+   "A Reddit poster ran a personal benchmark that points the other way, at least on a smaller job. Every model built the same small web app from one detailed spec, graded by tests and AI judges. GLM 5.2, with GPT-5.5 reviewing its work, tied the top result of 95.56%. It took 77 minutes to get there."
+  ],
+  [
+   "p",
+   "We think both results are true at once. Give GLM 5.2 a tight spec, tests and a reviewer, and it reaches frontier quality, slowly. Hand it a sprawling build from a single prompt and it drops pieces. That is a useful shape to know before you move real work onto it."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "Model-card results; the Opus 4.8 figures are self-reported by its vendor.",
+    "columns": [
+     "Benchmark",
+     "GLM 5.2",
+     "Opus 4.8"
+    ],
+    "rows": [
+     [
+      "AIME 2026",
+      "99.2",
+      "95.7"
+     ],
+     [
+      "GPQA-Diamond",
+      "91.2",
+      "93.6"
+     ],
+     [
+      "SWE-bench Pro",
+      "62.1",
+      "69.2"
+     ],
+     [
+      "Terminal Bench (Terminus-2)",
+      "81.0",
+      "85"
+     ],
+     [
+      "SWE-Marathon",
+      "13.0",
+      "26.0"
+     ]
+    ]
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ClaudeCode/comments/1u8k2jd/glm_52_personal_benchmark_results_comparable_with/",
+    "title": "GLM 5.2 personal benchmark. Results comparable with Fable, Opus 4.8, and GPT 5.5",
+    "author": "lrsaturnin9",
+    "community": "ClaudeCode",
+    "caption": "A personal benchmark where every model builds the same small web app from one spec, scored by tests and AI judges."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Each task burns more tokens than rival open models need",
+    "num": "04",
+    "id": "each-task-burns-more-tokens-than-rival-open-models-need"
+   }
+  ],
+  [
+   "p",
+   "GLM 5.2 is cheap per token and less cheap per job. A token is a chunk of text, roughly a word piece, and you pay for every one the model writes. The Artificial Analysis figures shared on X put GLM 5.2 at 43k output tokens per index task, up from 26k for GLM 5.1."
+  ],
+  [
+   "p",
+   "Its rivals wrote less. MiniMax-M3 used 24k, Kimi K2.6 35k and DeepSeek V4 Pro 37k on the same tasks. Much of that extra writing is reasoning, the model thinking step by step before it answers. It still cost about $0.46 per task, the lowest at its level of intelligence on that ranking. Cheaper rivals sit lower on the ladder."
+  ],
+  [
+   "p",
+   "A Hacker News commenter who likes the model still flags the catch: «it is MUCH more expensive than other open models that are also very nearly good enough». The same commenter says «GLM is already good enough and cheap enough to use it at API rates». Both can be true. Good enough and cheapest are different prizes."
+  ],
+  [
+   "p",
+   "A Reddit thread adds the other half of the bill. One heavy user there warned that context, the text a model holds in one request, gets expensive past roughly 300-500k tokens. Another Reddit poster called GLM 5.2 a daily coding workhorse for most tasks. We think the lesson is to cap context, not to avoid the model."
+  ],
+  [
+   "visual",
+   {
+    "kind": "chart",
+    "caption": "Output tokens per Artificial Analysis Intelligence Index task, in thousands of tokens.",
+    "unit": "thousand output tokens per task",
+    "bars": [
+     {
+      "label": "GLM 5.2",
+      "value": 43.0
+     },
+     {
+      "label": "DeepSeek V4 Pro (max)",
+      "value": 37.0
+     },
+     {
+      "label": "Kimi K2.6",
+      "value": 35.0
+     },
+     {
+      "label": "GLM 5.1",
+      "value": 26.0
+     },
+     {
+      "label": "MiniMax-M3",
+      "value": 24.0
+     }
+    ]
+   }
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ZaiGLM/comments/1voufqu/glm53_is_out_and_the_us_tech_giants_are_in_panic/",
+    "title": "GLM-5.3 is out and the US tech Giants 🫈 are in panic mode once again",
+    "author": "tiguidoio",
+    "community": "ZaiGLM",
+    "caption": "A thread where heavy users trade notes on code quality, context costs and planning with this model."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Visible reasoning turns GLM 5.2's long thinking into a steering wheel",
+    "num": "05",
+    "id": "visible-reasoning-turns-glm-5-2-s-long-thinking-into-a-steer"
+   }
+  ],
+  [
+   "p",
+   "Engineers split on GLM 5.2's reasoning, and both camps have a point. The model thinks at length before it acts. To one camp that is waste. To another it is the best feature, because the reasoning is visible and you can stop it early. We side with the second camp, with one condition."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYyMCI+CiAgPHRpdGxlPkEgdmlzaWJsZSByZWFzb25pbmcgdHJhY2UgZHJpZnRzIG9mZiBjb3Vyc2U7IGEgd2F0Y2hpbmcgZW5naW5lZXIgc3RvcHMgaXQgYW5kIHRoZSBjb3JyZWN0ZWQgcGF0aCByZWFjaGVzIHRoZSBnb2FsPC90aXRsZT4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iYmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTAxNDFiIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzE1MWEyMyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0iZ29hbGdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzNlY2Y4ZSIgc3RvcC1vcGFjaXR5PSIwLjQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjM2VjZjhlIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InN0b3BnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNlM2IzNDEiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFnciIgdmlld0JveD0iMCAwIDEwIDEwIiByZWZYPSI4IiByZWZZPSI1IiBtYXJrZXJXaWR0aD0iNyIgbWFya2VySGVpZ2h0PSI3IiBvcmllbnQ9ImF1dG8tc3RhcnQtcmV2ZXJzZSI+CiAgICAgIDxwYXRoIGQ9Ik0wLDAgTDEwLDUgTDAsMTAgeiIgZmlsbD0iIzNlY2Y4ZSIvPgogICAgPC9tYXJrZXI+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYyMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPCEtLSBzdGFydCAtLT4KICA8Y2lyY2xlIGN4PSIxMTAiIGN5PSIzMzAiIHI9IjIyIiBmaWxsPSIjN2FhMmZmIi8+CiAgPHRleHQgeD0iMTEwIiB5PSIzOTUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+dGFzazwvdGV4dD4KCiAgPCEtLSByZWFzb25pbmcgc3RlcHMgb24gY291cnNlIC0tPgogIDxnIGZpbGw9IiM3YWEyZmYiPgogICAgPGNpcmNsZSBjeD0iMTgwIiBjeT0iMzMwIiByPSI5Ii8+PGNpcmNsZSBjeD0iMjQwIiBjeT0iMzMwIiByPSI5Ii8+PGNpcmNsZSBjeD0iMzAwIiBjeT0iMzI4IiByPSI5Ii8+CiAgICA8Y2lyY2xlIGN4PSIzNjAiIGN5PSIzMjIiIHI9IjkiLz48Y2lyY2xlIGN4PSI0MjAiIGN5PSIzMTIiIHI9IjkiLz4KICA8L2c+CiAgPCEtLSBkcmlmdCAtLT4KICA8ZyBmaWxsPSIjZmY3YjcyIj4KICAgIDxjaXJjbGUgY3g9IjQ3OCIgY3k9IjI5MiIgcj0iOSIvPjxjaXJjbGUgY3g9IjUzMiIgY3k9IjI2MiIgcj0iOSIgb3BhY2l0eT0iMC44NSIvPjxjaXJjbGUgY3g9IjU4MiIgY3k9IjIyNiIgcj0iOSIgb3BhY2l0eT0iMC43Ii8+CiAgICA8Y2lyY2xlIGN4PSI2MjgiIGN5PSIxODYiIHI9IjkiIG9wYWNpdHk9IjAuNSIvPjxjaXJjbGUgY3g9IjY3MCIgY3k9IjE0NiIgcj0iOSIgb3BhY2l0eT0iMC4zNSIvPgogIDwvZz4KICA8dGV4dCB4PSI3MjAiIHk9IjEyOCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI2IiBmaWxsPSIjZmY3YjcyIj5nb2VzIHNpZGV3YXlzPC90ZXh0PgoKICA8IS0tIHRoZSBzdG9wIC0tPgogIDxlbGxpcHNlIGN4PSI1MDAiIGN5PSIzMDAiIHJ4PSIxMjAiIHJ5PSIxMTAiIGZpbGw9InVybCgjc3RvcGdsb3cpIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI0ODYsMjMyIDUxNCwyMzIgNTM0LDI1MiA1MzQsMjgwIDUxNCwzMDAgNDg2LDMwMCA0NjYsMjgwIDQ2NiwyNTIiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iI2UzYjM0MSIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgPHJlY3QgeD0iNDgyIiB5PSIyNTgiIHdpZHRoPSIzNiIgaGVpZ2h0PSIxNiIgcng9IjQiIGZpbGw9IiNlM2IzNDEiLz4KCiAgPCEtLSBjb3JyZWN0ZWQgcGF0aCAtLT4KICA8cGF0aCBkPSJNNTAwLDMxMCBDNTYwLDM4MCA2NTAsNDAwIDc2MCwzODAgUzk0MCwzNDAgMTAzMCwzMzAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNlY2Y4ZSIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtZGFzaGFycmF5PSIyIDEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG1hcmtlci1lbmQ9InVybCgjYWdyKSIvPgogIDx0ZXh0IHg9IjU2MCIgeT0iNDUyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlM2IzNDEiPnN0b3AgYW5kIGNvcnJlY3Q8L3RleHQ+CgogIDwhLS0gZ29hbCAtLT4KICA8ZWxsaXBzZSBjeD0iMTA4MCIgY3k9IjMzMCIgcng9IjExMCIgcnk9IjEwMCIgZmlsbD0idXJsKCNnb2FsZ2xvdykiLz4KICA8Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMzMwIiByPSIzNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8Y2lyY2xlIGN4PSIxMDgwIiBjeT0iMzMwIiByPSIxNCIgZmlsbD0iIzNlY2Y4ZSIvPgogIDx0ZXh0IHg9IjEwODAiIHk9IjQwNSIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjM2VjZjhlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5kb25lPC90ZXh0PgoKICA8IS0tIHRoZSBjb25kaXRpb24gLS0+CiAgPHJlY3QgeD0iNjAiIHk9IjUwMCIgd2lkdGg9IjEwODAiIGhlaWdodD0iODAiIHJ4PSIxNiIgZmlsbD0iIzJjMzU0NCIgb3BhY2l0eT0iMC40NSIvPgogIDx0ZXh0IHg9IjkwIiB5PSI1NDgiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iI2U4ZWRmNSI+V2F0Y2hlZDogeW91IGNhdGNoIHRoZSBkcmlmdC48L3RleHQ+CiAgPHRleHQgeD0iMTExMCIgeT0iNTQ4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJlbmQiPlVud2F0Y2hlZDogNDNrIHRva2VucyBub2JvZHkgcmVhZHMuPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "A reasoning path drifts off course, a stop sign halts it, and a corrected path reaches the goal.",
+    "caption": "Visible reasoning pays when someone is watching to stop the drift, and costs tokens when nobody is.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "The case for comes from a Hacker News commenter who uses Opus at work. They find Opus «subjectively slower because I can't read its CoT trace», CoT meaning chain of thought, the model's written-out reasoning. With GLM, they write, «I just stop it and give a course correction rather than wait a whole turn». They call it «another HUGE benefit of GLM»."
+  ],
+  [
+   "p",
+   "The case against appears in a Hacker News recap on dev.to: GLM 5.2 «sometimes hallucinates plans it does not follow». That is a planning failure, not a cost one. A plan you can read is only useful if the model then does what it wrote. A Reddit poster, by contrast, calls GLM 5.2 their main planner."
+  ],
+  [
+   "p",
+   "Our view: visible reasoning pays off only when someone watches it. In an interactive session you catch the drift and correct it. In an unattended agent loop you pay for every one of those 43k tokens, and nobody reads them. The same commenter also doubts token counts for closed models, since «frontier models don't provide nearly the entire reasoning trace»."
+  ],
+  [
+   "h2",
+   {
+    "text": "Text-only GLM 5.2 checks its own visual work blind",
+    "num": "06",
+    "id": "text-only-glm-5-2-checks-its-own-visual-work-blind"
+   }
+  ],
+  [
+   "p",
+   "GLM 5.2 cannot see. «GLM-5.2 is text-only. No vision support.» For backend code that barely matters. For anything with a screen it matters a lot, and engineers split on how much a good harness can repair. We think the harness helps you, but it does not help the model check itself."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDY4MCI+CiAgPHRpdGxlPkEgaGFybmVzcyBoYW5kcyBwYXN0ZWQgaW1hZ2VzIHRvIGEgdmlzaW9uLWNhcGFibGUgbW9kZWwgZm9yIGEgdGV4dC1vbmx5IG1vZGVsLCB3aGlsZSB0aGUgbW9kZWwncyBvd24gc2VsZi1jaGVjayBzdGF5cyBibGluZDwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImJsdWVnbG93IiBjeD0iMC41IiBjeT0iMC41IiByPSIwLjUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YWEyZmYiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgPC9yYWRpYWxHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFnIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjM2VjZjhlIi8+CiAgICA8L21hcmtlcj4KICAgIDxtYXJrZXIgaWQ9ImFyIiB2aWV3Qm94PSIwIDAgMTAgMTAiIHJlZlg9IjgiIHJlZlk9IjUiIG1hcmtlcldpZHRoPSI3IiBtYXJrZXJIZWlnaHQ9IjciIG9yaWVudD0iYXV0by1zdGFydC1yZXZlcnNlIj4KICAgICAgPHBhdGggZD0iTTAsMCBMMTAsNSBMMCwxMCB6IiBmaWxsPSIjZmY3YjcyIi8+CiAgICA8L21hcmtlcj4KICA8L2RlZnM+CiAgPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNjgwIiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHRvcCBsYW5lIGxhYmVsIC0tPgogIDx0ZXh0IHg9IjYwIiB5PSI2NiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjM2VjZjhlIj5JbWFnZSB5b3UgcGFzdGUgaW46IGhhcm5lc3MgY292ZXJzIGl0PC90ZXh0PgoKICA8IS0tIHNjcmVlbnNob3QgY2FyZCAtLT4KICA8cmVjdCB4PSI2MCIgeT0iMTAwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE0MCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDxyZWN0IHg9IjgwIiB5PSIxMjAiIHdpZHRoPSIxNjAiIGhlaWdodD0iNzAiIHJ4PSI4IiBmaWxsPSIjMmMzNTQ0Ii8+CiAgPHBvbHlnb24gcG9pbnRzPSI5MCwxODUgMTMwLDE0NSAxNjUsMTgwIDE5MCwxNjAgMjMwLDE4NSIgZmlsbD0iIzdhYTJmZiIgb3BhY2l0eT0iMC42Ii8+CiAgPHRleHQgeD0iMTYwIiB5PSIyMjQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iIzk1YTFiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c2NyZWVuc2hvdDwvdGV4dD4KICA8bGluZSB4MT0iMjcwIiB5MT0iMTcwIiB4Mj0iMzMwIiB5Mj0iMTcwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KCiAgPCEtLSBoYXJuZXNzIC0tPgogIDxyZWN0IHg9IjM0MCIgeT0iMTEwIiB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjQ0MCIgeT0iMTc4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmhhcm5lc3M8L3RleHQ+CiAgPGxpbmUgeDE9IjU1MCIgeTE9IjE3MCIgeDI9IjYxMCIgeTI9IjE3MCIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYWcpIi8+CgogIDwhLS0gdmlzaW9uIG1vZGVsIHdpdGggYW4gZXllIC0tPgogIDxlbGxpcHNlIGN4PSI3MjAiIGN5PSIxNzAiIHJ4PSIxMzAiIHJ5PSIxMDAiIGZpbGw9InVybCgjYmx1ZWdsb3cpIi8+CiAgPHJlY3QgeD0iNjIwIiB5PSIxMTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9IiMxNTFhMjMiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHBhdGggZD0iTTY3MiwxNTggUTcyMCwxMjQgNzY4LDE1OCBRNzIwLDE5MiA2NzIsMTU4IFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdhYTJmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGNpcmNsZSBjeD0iNzIwIiBjeT0iMTU4IiByPSIxMSIgZmlsbD0iIzdhYTJmZiIvPgogIDx0ZXh0IHg9IjcyMCIgeT0iMjE0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnZpc2lvbiBtb2RlbDwvdGV4dD4KICA8bGluZSB4MT0iODMwIiB5MT0iMTcwIiB4Mj0iODkwIiB5Mj0iMTcwIiBzdHJva2U9IiMzZWNmOGUiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhZykiLz4KCiAgPCEtLSB0ZXh0IGRlc2NyaXB0aW9uIGludG8gR0xNIC0tPgogIDxyZWN0IHg9IjkwMCIgeT0iMTEwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjE4Ii8+CiAgPHJlY3QgeD0iOTAwIiB5PSIxMTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTAyMCIgeT0iMTYyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkdMTSA1LjI8L3RleHQ+CiAgPHRleHQgeD0iMTAyMCIgeT0iMTk4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNhNzhiZmEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlYWRzIHRleHQgb25seTwvdGV4dD4KCiAgPGxpbmUgeDE9IjYwIiB5MT0iMzAwIiB4Mj0iMTE0MCIgeTI9IjMwMCIgc3Ryb2tlPSIjMmMzNTQ0IiBzdHJva2Utd2lkdGg9IjIiLz4KCiAgPCEtLSBib3R0b20gbGFuZTogc2VsZi1jaGVjayAtLT4KICA8dGV4dCB4PSI2MCIgeT0iMzU2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZjdiNzIiPk91dHB1dCBpdCByZW5kZXJzIGl0c2VsZjogc3RpbGwgYmxpbmQ8L3RleHQ+CgogIDxyZWN0IHg9IjkwMCIgeT0iMzkwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjYTc4YmZhIiBvcGFjaXR5PSIwLjE4Ii8+CiAgPHJlY3QgeD0iOTAwIiB5PSIzOTAiIHdpZHRoPSIyNDAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2E3OGJmYSIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPHRleHQgeD0iMTAyMCIgeT0iNDQyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkdMTSA1LjI8L3RleHQ+CiAgPHRleHQgeD0iMTAyMCIgeT0iNDc4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZpbGw9IiNhNzhiZmEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPndyaXRlcyB0aGUgZ2FtZTwvdGV4dD4KCiAgPHBhdGggZD0iTTg5MCw0NTAgTDU2MCw0NTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2FyKSIvPgogIDxyZWN0IHg9IjM0MCIgeT0iMzkwIiB3aWR0aD0iMjEwIiBoZWlnaHQ9IjEyMCIgcng9IjE2IiBmaWxsPSIjMTUxYTIzIiBzdHJva2U9IiM5NWExYjQiIHN0cm9rZS13aWR0aD0iMyIvPgogIDx0ZXh0IHg9IjQ0NSIgeT0iNDQyIiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnJlbmRlcmVkPC90ZXh0PgogIDx0ZXh0IHg9IjQ0NSIgeT0iNDc2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlOGVkZjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPmZyYW1lPC90ZXh0PgoKICA8cGF0aCBkPSJNMzMwLDQ1MCBMMjcwLDQ1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmY3YjcyIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgPHJlY3QgeD0iNjAiIHk9IjM5MCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxNiIgZmlsbD0iI2ZmN2I3MiIgb3BhY2l0eT0iMC4xNCIvPgogIDxyZWN0IHg9IjYwIiB5PSIzOTAiIHdpZHRoPSIyMDAiIGhlaWdodD0iMTIwIiByeD0iMTYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI4IDgiLz4KICA8dGV4dCB4PSIxNjAiIHk9IjQ0MiIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjZmY3YjcyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5waXhlbCBjb2xvdXI8L3RleHQ+CiAgPHRleHQgeD0iMTYwIiB5PSI0NzQiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+c2FtcGxlczwvdGV4dD4KCiAgPHBhdGggZD0iTTE2MCw1MjAgQzE2MCw2MDAgMTAyMCw2MDAgMTAyMCw1MjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmN2I3MiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI2IDgiIG1hcmtlci1lbmQ9InVybCgjYXIpIi8+CiAgPHRleHQgeD0iNTkwIiB5PSI2NTIiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iI2ZmN2I3MiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+Y29sb3VycyBwcmVzZW50LCBzbyBpdCBkZWNsYXJlcyBkb25lPC90ZXh0Pgo8L3N2Zz4K",
+    "alt": "Top: a harness routes a screenshot through a vision model to GLM 5.2. Bottom: its self-check samples pixel colours blind.",
+    "caption": "A harness can see for GLM 5.2 on images you paste in, but not when the model checks its own rendered output.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "Back in the WebGL test, both models were told to verify their work before stopping. Opus 4.8 took a screenshot and caught its own debug overlay. GLM 5.2 instead «wrote scripts to sample pixel colors from the saved frame». Grass green, dirt brown, coin gold: all present, so it called the game finished. «GLM-5.2 never saw those problems because it was reading numbers instead of looking at the image.»"
+  ],
+  [
+   "p",
+   "A Hacker News commenter answers that «If you use a good harness or add the right tools and plugins both the image and web search issues mentioned are non-issues.» A harness is the tool around the model that runs commands and passes files. Theirs routes pasted images to a separate vision-capable model, MiniMax M3 in their setup."
+  ],
+  [
+   "p",
+   "That fixes images you paste in. It does not obviously fix the WebGL case, where the model itself decided when the game looked right. A Reddit poster praised GLM 5.2 for building solid SVG graphics without vision, which fits: SVG is text. We would wire in a vision checker before trusting it on any UI work."
+  ],
+  [
+   "h2",
+   {
+    "text": "Running the full GLM 5.2 at home costs more than years of subscriptions",
+    "num": "07",
+    "id": "running-the-full-glm-5-2-at-home-costs-more-than-years-of-su"
+   }
+  ],
+  [
+   "p",
+   "Open weights let you run GLM 5.2 yourself, in principle. The hardware bill says otherwise. A Hacker News commenter puts the full model at «750 (FP8) to 1.5TB(FP16) of memory». FP8 and FP16 are number formats that trade precision for size. Smaller formats fit cheaper machines and lose accuracy."
+  ],
+  [
+   "p",
+   "The same commenter lays out the cost of shrinking. FP4 means an accuracy loss of about 3%, «Not noticeable but more chance for mistakes». At FP2, the format most home setups can afford, «Your looking at over 17% loss in accuracy.» For the price of that rig, they argue, you could pay a coding subscription «for the next 4+ years with better models»."
+  ],
+  [
+   "p",
+   "Their warning for anyone reading launch charts deserves a pin above every local deployment: «Do not mix the benchmark results of GLM 5.2 FP16/FP8 with FP4 or FP2.» The 74.4% on FrontierSWE belongs to the full model. A quantized copy, stored in a smaller format to fit a home box, is a weaker model wearing the same name."
+  ],
+  [
+   "p",
+   "A Reddit poster made the same point more bluntly: anything worth running needs 500+ GB, unless you accept a crawl off an SSD. We agree with both. Open weights still matter, for privacy, for price control and as insurance against outages. They just rarely mean a box under your desk."
+  ],
+  [
+   "visual",
+   {
+    "kind": "table",
+    "caption": "What one Hacker News commenter reports about running GLM 5.2 at each number format.",
+    "columns": [
+     "Format",
+     "What the commenter reports"
+    ],
+    "rows": [
+     [
+      "FP16",
+      "The top of the 750 to 1.5TB memory range"
+     ],
+     [
+      "FP8",
+      "The bottom of that range, about 750"
+     ],
+     [
+      "FP4",
+      "Accuracy loss of about 3%"
+     ],
+     [
+      "FP2",
+      "Over 17% loss in accuracy"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Open models now trail the closed frontier by months on cyber tasks",
+    "num": "08",
+    "id": "open-models-now-trail-the-closed-frontier-by-months-on-cyber"
+   }
+  ],
+  [
+   "p",
+   "The most rigorous outside check on GLM 5.2 came from a government lab, and it measured a lag in months. The UK's AI Security Institute compared open and closed models on cyber tasks. As quoted in the Import AI newsletter, «Recent open models GLM-5.2 and DeepSeek V4-Pro perform similarly to frontier closed models released 4 to 7 months before them»."
+  ],
+  [
+   "image",
+   {
+    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDYwMCI+CiAgPHRpdGxlPkhvdyBmYXIgYmFjayB0aGUgY2xvc2VkIG1vZGVscyBHTE0gNS4yIG1hdGNoZXMgb24gY3liZXIgZXZhbHMgd2VyZSByZWxlYXNlZCwgYWdhaW5zdCB0aGUgZ2FwIG1lYXN1cmVkIHRocm91Z2ggMjAyNTwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzEwMTQxYiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxNTFhMjMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InZpb2xldGdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2E3OGJmYSIgc3RvcC1vcGFjaXR5PSIwLjQiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjYTc4YmZhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNiZykiLz4KCiAgPHRleHQgeD0iNjAiIHk9IjY2IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjgiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNlOGVkZjUiPk1vbnRocyBiZWZvcmUgdGhlIG9wZW4gbW9kZWwncyByZWxlYXNlPC90ZXh0PgoKICA8IS0tIGF4aXM6IHggPSAxMDUwIC0gOTAgKiBtb250aHMgLS0+CiAgPGxpbmUgeDE9IjE1MCIgeTE9IjMwMCIgeDI9IjEwNTAiIHkyPSIzMDAiIHN0cm9rZT0iIzk1YTFiNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgPGcgc3Ryb2tlPSIjOTVhMWI0IiBzdHJva2Utd2lkdGg9IjMiPgogICAgPGxpbmUgeDE9IjE1MCIgeTE9IjI5MCIgeDI9IjE1MCIgeTI9IjMxMCIvPgogICAgPGxpbmUgeDE9IjUxMCIgeTE9IjI5MCIgeDI9IjUxMCIgeTI9IjMxMCIvPgogICAgPGxpbmUgeDE9IjQyMCIgeTE9IjI5MCIgeDI9IjQyMCIgeTI9IjMxMCIvPgogICAgPGxpbmUgeDE9IjY5MCIgeTE9IjI5MCIgeDI9IjY5MCIgeTI9IjMxMCIvPgogIDwvZz4KICA8ZyBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM5NWExYjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgogICAgPHRleHQgeD0iMTUwIiB5PSIzNDIiPjEwPC90ZXh0PgogICAgPHRleHQgeD0iNDIwIiB5PSIzNDIiPjc8L3RleHQ+CiAgICA8dGV4dCB4PSI1MTAiIHk9IjM0MiI+NjwvdGV4dD4KICAgIDx0ZXh0IHg9IjY5MCIgeT0iMzQyIj40PC90ZXh0PgogIDwvZz4KCiAgPCEtLSBub3c6IHRoZSBvcGVuIG1vZGVsIC0tPgogIDxlbGxpcHNlIGN4PSIxMDUwIiBjeT0iMzAwIiByeD0iMTEwIiByeT0iMTAwIiBmaWxsPSJ1cmwoI3Zpb2xldGdsb3cpIi8+CiAgPGNpcmNsZSBjeD0iMTA1MCIgY3k9IjMwMCIgcj0iMjAiIGZpbGw9IiNhNzhiZmEiLz4KICA8dGV4dCB4PSIxMDUwIiB5PSIyNTAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2U4ZWRmNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+R0xNIDUuMjwvdGV4dD4KCiAgPCEtLSAyMDI2IGdhcCBicmFja2V0LCBhYm92ZSAtLT4KICA8cGF0aCBkPSJNNDIwLDIwMCBMNDIwLDE4MCBMNjkwLDE4MCBMNjkwLDIwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2VjZjhlIiBzdHJva2Utd2lkdGg9IjQiLz4KICA8cmVjdCB4PSI0MjAiIHk9IjIwMCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSI4MCIgcng9IjEwIiBmaWxsPSIjM2VjZjhlIiBvcGFjaXR5PSIwLjE0Ii8+CiAgPHRleHQgeD0iNTU1IiB5PSIxNjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNiIgZmlsbD0iIzNlY2Y4ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+NCB0byA3IG1vbnRocyBub3c8L3RleHQ+CgogIDwhLS0gMjAyNSBnYXAgYnJhY2tldCwgYmVsb3cgLS0+CiAgPHJlY3QgeD0iMTUwIiB5PSIzNjAiIHdpZHRoPSIzNjAiIGhlaWdodD0iNzAiIHJ4PSIxMCIgZmlsbD0iI2UzYjM0MSIgb3BhY2l0eT0iMC4xMiIvPgogIDxwYXRoIGQ9Ik0xNTAsNDMwIEwxNTAsNDUwIEw1MTAsNDUwIEw1MTAsNDMwIiBmaWxsPSJub25lIiBzdHJva2U9IiNlM2IzNDEiIHN0cm9rZS13aWR0aD0iNCIvPgogIDx0ZXh0IHg9IjMzMCIgeT0iNDg4IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjYiIGZpbGw9IiNlM2IzNDEiIHRleHQtYW5jaG9yPSJtaWRkbGUiPjYgdG8gMTAgbW9udGhzIHRocm91Z2ggMjAyNTwvdGV4dD4KCiAgPCEtLSBjbG9zZXN0IG1hdGNoIG9uIG5hcnJvdyBldmFscyAtLT4KICA8Y2lyY2xlIGN4PSI2NjMiIGN5PSIzMDAiIHI9IjE0IiBmaWxsPSIjN2FhMmZmIi8+CiAgPGxpbmUgeDE9IjY2MyIgeTE9IjMxNCIgeDI9IjY2MyIgeTI9IjM3NCIgc3Ryb2tlPSIjN2FhMmZmIiBzdHJva2Utd2lkdGg9IjIuNSIvPgogIDx0ZXh0IHg9IjYyMCIgeT0iNDA0IiBmb250LWZhbWlseT0iSW50ZXIsIHN5c3RlbS11aSwgLWFwcGxlLXN5c3RlbSwgU2Vnb2UgVUksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM3YWEyZmYiPmNsb3Nlc3Q6IE9wdXMgNC42LDwvdGV4dD4KICA8dGV4dCB4PSI2MjAiIHk9IjQzNCIgZm9udC1mYW1pbHk9IkludGVyLCBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sIFNlZ29lIFVJLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjN2FhMmZmIj40LjMgbW9udGhzIGVhcmxpZXI8L3RleHQ+CgogIDx0ZXh0IHg9IjYwIiB5PSI1NjAiIGZvbnQtZmFtaWx5PSJJbnRlciwgc3lzdGVtLXVpLCAtYXBwbGUtc3lzdGVtLCBTZWdvZSBVSSwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZmlsbD0iIzk1YTFiNCI+T24gbG9uZyBjaGFpbmVkIGN5YmVyIHJhbmdlcyB0aGUgZ2FwIGdyb3dzIGFnYWluLjwvdGV4dD4KPC9zdmc+Cg==",
+    "alt": "A months timeline: GLM 5.2 matches closed models from 4 to 7 months back, against 6 to 10 months through 2025.",
+    "caption": "The cyber evaluation's lag, drawn from the months the institute reported, with Opus 4.6 as the closest match.",
+    "generated_by": "Claude Code (figure drawn as SVG)",
+    "cut": null,
+    "kind": "figure"
+   }
+  ],
+  [
+   "p",
+   "That is «a narrower gap than the 6 to 10 months we measured through most of 2025». On 70 narrow cyber evals, «GLM-5.2 is closest to Claude Opus 4.6, which was released 4.3 months earlier». On a long-horizon cyber range, where a model chains skills into a full operation, it reached only as far as Opus 4.5. «The gap here is larger than on our narrow cyber tasks»."
+  ],
+  [
+   "p",
+   "Notice the rhyme with the coding evidence. Short, narrow tasks look close to the frontier. Long chains open the gap again. The newsletter's author names the missing piece as «the generalization magic juice that distinguishes proprietary models». We would put it less poetically. Holding a long plan together is the skill that still lags."
+  ],
+  [
+   "p",
+   "For a security team the lag cuts both ways. The institute warns that «cyber defenders have a short window to prepare». For a team adopting GLM 5.2, it is a fair rule of thumb too. Expect the frontier of several months ago, not this month's, and test long chains harder than short ones."
+  ],
+  [
+   "h2",
+   {
+    "text": "The million-token window and GLM 5.3 are the claims left to test",
+    "num": "09",
+    "id": "the-million-token-window-and-glm-5-3-are-the-claims-left-to-"
+   }
+  ],
+  [
+   "p",
+   "The biggest open question is long context. GLM 5.2 advertises a 1M token window, up from 200K on GLM 5.1. A context window is how much text the model can hold in one request. The dev.to launch analysis says «it's a real 1M — the model maintains stable performance across the full range». We have not seen the test behind that sentence."
+  ],
+  [
+   "p",
+   "That claim deserves an independent check before anyone feeds a whole codebase in. The deciding evidence is easy to describe. Plant known facts at different depths of a long prompt, ask about them, and score recall and cost together. The Reddit warning about prompts past 300-500k tokens suggests cost may bite before accuracy does."
+  ],
+  [
+   "p",
+   "The second thing to watch is the successor. A Reddit thread comparing GLM 5.3 with GPT 5.6 already treats GLM 5.2 as the older option, with one office team still running it on price. Another Reddit poster claims GLM 5.3 uses half the tokens of 5.2. If that holds, the cost-per-task story changes overnight."
+  ],
+  [
+   "p",
+   "The third is long-horizon work. SWE-Marathon, the WebGL build and the cyber range all point the same way. What would change our mind is a repeated multi-file build where GLM 5.2 holds the plan together for hours. Until someone publishes that, read its benchmark parity as parity on short tasks."
+  ],
+  [
+   "embed",
+   {
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ZaiGLM/comments/1w71kco/how_does_glm_53_compare_to_gpt_56_and_claude_5/",
+    "title": "How does GLM 5.3 compare to GPT 5.6 and Claude 5?",
+    "author": "gd6noob",
+    "community": "ZaiGLM",
+    "caption": "A thread comparing the successor model with rival plans, where some teams still run the older version on price."
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Should your team adopt GLM 5.2 now?",
+    "num": "Decision tree",
+    "id": "decision"
+   }
+  ],
+  [
+   "tree",
+   {
+    "question": "Should your team adopt GLM 5.2 now?",
+    "branches": [
+     {
+      "condition": "Your work is text-heavy coding with a clear spec and tests",
+      "outcome": "Adopt now, with a reviewer model or a person on each change",
+      "route": "GLM 5.2 through an API"
+     },
+     {
+      "condition": "Your work needs visual checks such as UIs or rendered output",
+      "outcome": "Wait, or pair it with a vision-capable checker in the harness",
+      "route": "Keep a multimodal model for verification"
+     },
+     {
+      "condition": "You run long, unattended multi-file builds or agent chains",
+      "outcome": "Wait for evidence on long-horizon work",
+      "route": "Keep your current frontier model and pilot GLM 5.2 on sub-tasks"
+     },
+     {
+      "condition": "You plan to self-host on hardware you already own",
+      "outcome": "Price the memory first, because small quantized copies lose accuracy",
+      "route": "Use the API unless you can serve the full model"
+     },
+     {
+      "condition": "Cost per task is your main constraint and good enough is enough",
+      "outcome": "Compare it with cheaper open models before switching",
+      "route": "Test GLM 5.2 against a cheaper open model on your own tasks"
+     }
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Questions people ask",
+    "num": "FAQ",
+    "id": "faq"
+   }
+  ],
+  [
+   "h3",
+   "Is GLM 5.2 good for coding?"
+  ],
+  [
+   "p",
+   "Yes for well-specified, text-only work, and less so for long multi-file builds. It scored 74.4% on FrontierSWE against 75.1% for Opus 4.8. A one-shot WebGL test, though, found it «struggles to hold a complex multi-file build together at the same level as Opus.» Give it tests and a reviewer, and keep long builds watched."
+  ],
+  [
+   "h3",
+   "Can you run GLM 5.2 locally?"
+  ],
+  [
+   "p",
+   "You can, but the full model needs far more memory than a typical workstation has. A Hacker News commenter puts it at «750 (FP8) to 1.5TB(FP16) of memory», and says the FP2 copies most home setups can afford lose over 17% accuracy. For the benchmarked model, an API or a hosted provider is the realistic route."
+  ],
+  [
+   "h3",
+   "GLM 5.2 vs Opus 4.8: which is better?"
+  ],
+  [
+   "p",
+   "Opus 4.8 still wins more often, and GLM 5.2 costs far less per task. One independent arena «shows GLM-5.2 beats Opus 4.8 (with extended thinking) only 32% of the time». GLM 5.2 also cannot see images. For text-heavy coding with tests and review, that gap may not justify paying the closed model's premium."
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "GLM 5.2",
+      "$0.02",
+      "$7.00",
+      "$0.019"
+     ],
+     [
+      "GLM 5.3",
+      "$0.03",
+      "$4.80",
+      "$0.029"
+     ],
+     [
+      "GLM 5.3 Flash",
+      "$0.15",
+      "$0.50",
+      "$0.03"
+     ],
+     [
+      "Kimi K3",
+      "$0.45",
+      "$15.00",
+      "$0.28"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "DeepSeek V4 Pro 0423",
+      "$0.9553",
+      "$1.91",
+      "$0.0796"
+     ],
+     [
+      "MiniMax M3",
+      "$0.30",
+      "$1.20",
+      "$0.06"
+     ],
+     [
+      "GPT-5.5",
+      "$5.00",
+      "$30.00",
+      "$0.50"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "sources": [
+  {
+   "n": 1,
+   "platform": "dev.to",
+   "who": "max_quimby",
+   "what": "Glm 52 vs opus 48 the open weights moat is real",
+   "url": "https://dev.to/max_quimby/glm-52-vs-opus-48-the-open-weights-moat-is-real-1ign",
+   "posted": "2026-06-21"
+  },
+  {
+   "n": 2,
+   "platform": "dev.to",
+   "who": "jamilxt",
+   "what": "Glm 52 vs claude opus what the numbers actually say for developers",
+   "url": "https://dev.to/jamilxt/glm-52-vs-claude-opus-what-the-numbers-actually-say-for-developers-19o4",
+   "posted": "2026-06-27"
+  },
+  {
+   "n": 3,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=48809877",
+   "posted": "2026-07-07"
+  },
+  {
+   "n": 4,
+   "platform": "Hacker News",
+   "who": "",
+   "what": "Discussion",
+   "url": "https://news.ycombinator.com/item?id=48636377",
+   "posted": "2026-06-23"
+  },
+  {
+   "n": 5,
+   "platform": "an engineering blog",
+   "who": "jack-clark.net",
+   "what": "Import ai 465 open vs closed gaps kimi k3 demis big policy plan",
+   "url": "https://jack-clark.net/2026/07/20/import-ai-465-open-vs-closed-gaps-kimi-k3-demis-big-policy-plan/",
+   "posted": "2026-07-20"
+  }
+ ],
+ "cite": {
+  "shows GLM-5.2 beats Opus 4.8 (with extended thinking) only 32% of the time": 1,
+  "GLM-5.2 doesn't clearly beat the closed frontier — it probably loses to Opus 4.8 more often than it wins": 1,
+  "GLM-5.2 shipped a rougher game.": 2,
+  "The character rendered as flat gray with missing textures.": 2,
+  "The spike hazard did nothing when you touched it. There was no win condition.": 2,
+  "It struggles to hold a complex multi-file build together at the same level as Opus.": 2,
+  "Opus finished in half the time. GLM-5.2 cost a fraction of the price.": 2,
+  "The WebGL test is one data point from one prompt.": 2,
+  "Opus dominates the coding and long-horizon agentic benchmarks": 2,
+  "it is MUCH more expensive than other open models that are also very nearly good enough": 3,
+  "GLM is already good enough and cheap enough to use it at API rates": 3,
+  "subjectively slower because I can't read its CoT trace": 3,
+  "I just stop it and give a course correction rather than wait a whole turn": 3,
+  "another HUGE benefit of GLM": 3,
+  "sometimes hallucinates plans it does not follow": 2,
+  "frontier models don't provide nearly the entire reasoning trace": 3,
+  "GLM-5.2 is text-only. No vision support.": 1,
+  "wrote scripts to sample pixel colors from the saved frame": 2,
+  "GLM-5.2 never saw those problems because it was reading numbers instead of looking at the image.": 2,
+  "If you use a good harness or add the right tools and plugins both the image and web search issues mentioned are non-issues.": 3,
+  "750 (FP8) to 1.5TB(FP16) of memory": 4,
+  "Not noticeable but more chance for mistakes": 4,
+  "Your looking at over 17% loss in accuracy.": 4,
+  "for the next 4+ years with better models": 4,
+  "Do not mix the benchmark results of GLM 5.2 FP16/FP8 with FP4 or FP2.": 4,
+  "Recent open models GLM-5.2 and DeepSeek V4-Pro perform similarly to frontier closed models released 4 to 7 months before them": 5,
+  "a narrower gap than the 6 to 10 months we measured through most of 2025": 5,
+  "GLM-5.2 is closest to Claude Opus 4.6, which was released 4.3 months earlier": 5,
+  "The gap here is larger than on our narrow cyber tasks": 5,
+  "the generalization magic juice that distinguishes proprietary models": 5,
+  "cyber defenders have a short window to prepare": 5,
+  "it's a real 1M — the model maintains stable performance across the full range": 1,
+  "struggles to hold a complex multi-file build together at the same level as Opus.": 2
+ },
+ "rel": [
+  [
+   "post:under-the-hood-concept-memory",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rag",
+   ""
+  ],
+  [
+   "post:under-the-hood-concept-rl-training",
+   ""
+  ]
+ ],
+ "provenance": {
+  "model": "anthropic/claude-opus-5.5 (Claude Code)",
+  "served_as": [
+   "anthropic/claude-opus-5.5 (Claude Code)"
+  ],
+  "generated_at": "2026-10-16T07:18:15+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_0da9b0eeb52f354d",
+   "thread_context_8f16e7a1e6741781",
+   "thread_context_eccb5f3032425db6",
+   "thread_context_3f5788e15f63dea0",
+   "thread_context_d8766dfe69841cc0",
+   "thread_context_f08ba354ee231e90",
+   "thread_context_bfbcac11d4325274",
+   "thread_context_bc639642d131d15e",
+   "thread_context_5d4830867e385d51",
+   "thread_context_9d7cae94ed4e87d2"
+  ],
+  "platforms": {
+   "X": 1,
+   "dev.to": 3,
+   "Reddit": 3,
+   "Hacker News": 2,
+   "an engineering blog": 1
+  },
+  "embedded": 4,
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "style_notes": [],
+  "plan_key": "release-analysis:z-ai/glm-5.2",
+  "format": "release-analysis",
+  "reviewed_by": null
+ }
+}

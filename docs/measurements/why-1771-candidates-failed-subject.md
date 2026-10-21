@@ -1,5 +1,7 @@
 # Why 1,771 of 2,500 candidates failed subject verification — and one of them was our fault twice
 
+> **Removed 2026-10-08:** `model_only_sweep.jsonl` (in history at `9ef9e55`) was removed from the repository because it holds harvested platform content or personal data. The figures below are unchanged; to re-run them, regenerate the file locally (it is gitignored) or read it from that commit.
+
 **48.8% surface wrong, 45.7% correct refusal, 5.4% nothing matched.** The failures
 were retained, so this needed no re-run. And chasing the two zero-candidate
 surfaces found a defect that had been documented as a measurement for two weeks.

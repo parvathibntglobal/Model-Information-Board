@@ -48,14 +48,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from judge import fetch_console  # noqa: E402
-from judge.extract.client import extractor_model  # noqa: E402
-from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
-
 from collect import usage  # noqa: E402
 from collect.adapters.github import GitHubHarvester  # noqa: E402
 from collect.adapters.queries import load_queries, plan_searches  # noqa: E402
 from collect.assemble import prose  # noqa: E402
+from judge import fetch_console  # noqa: E402
+from judge.extract.client import extractor_model  # noqa: E402
+from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
 
 log = logging.getLogger(__name__)
 from collect.config import settings  # noqa: E402
@@ -86,9 +85,10 @@ FETCH_DIR = ROOT / "var" / "fetch"
 
 #: An on-demand fetch must stay responsive, and extraction is one LLM call per
 #: thread whose latency scales with the prompt. A 45-comment thread produced a
-#: ~13-minute E5 with no visible progress. Threads larger than this are DEFERRED
-#: to the nightly batch (which is uncapped) rather than read on a click; the cap
-#: is generous, so only pathologically large threads are held back.
+#: ~13-minute E5 with no visible progress. Threads larger than this are HELD
+#: BACK rather than read on a click; the cap is generous, so only
+#: pathologically large threads are. Said to wait for "the nightly batch" until
+#: #304: there is none, so nothing scheduled reads them (`NO_SCHEDULED_READER`).
 MAX_FETCH_THREAD_CHARS = 30_000
 
 #: Sources dedupe runs over. Every one has a prose extractor; a source
@@ -151,10 +151,24 @@ MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "50"))
 #: document this run harvested. Filling the cap from it spent the 2026-09-24
 #: GPT-5.5 fetch on 22 of 24 threads about other models - 27 minutes of LLM calls
 #: for a button that says "fetch GPT-5.5". Off, the fetch reads this model's
-#: threads only and the backlog waits for the nightly batch, which reads the
-#: whole unread pool. Deferred, not dropped (rule 8): nothing is marked read.
-#: `FETCH_BACKLOG=on` restores the old fill.
+#: threads only and the backlog stays unread. Not dropped: nothing is marked
+#: read. `FETCH_BACKLOG=on` restores the old fill.
+#:
+#: ⚠ THIS SAID THE BACKLOG "WAITS FOR THE NIGHTLY BATCH, WHICH READS THE WHOLE
+#:   UNREAD POOL". THERE IS NO SUCH BATCH (#304). `collect/ops/chain.py` has no
+#:   extract stage and `scripts/run_scheduled_fetches.py` never sets this, so a
+#:   fetch run with it on is the ONLY reader. "Deferred" with no reader reads as
+#:   a decision about the threads when it is an absence we caused (rule 4).
+#:   Turning it on is a spend decision, so the wording changed and the default
+#:   did not.
 FETCH_BACKLOG = os.getenv("FETCH_BACKLOG", "").strip().lower() in {"1", "on", "true", "yes"}
+
+#: Said on every stage line that leaves threads unread. One string, so the
+#: claim is made once and tested once (`tests/test_fetch_model.py`).
+NO_SCHEDULED_READER = (
+    "no scheduled path reads them today - the nightly chain has no extract "
+    "stage and scheduled fetches leave FETCH_BACKLOG off"
+)
 
 #: How far `len(prose(payload))` may differ from what `thread_context.offset_map`
 #: says that member was, before the member is dropped rather than sliced.
@@ -189,6 +203,19 @@ MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
 #: X 100,000/month ceiling, which is a TENTH of Reddit and the reason this is
 #: bounded at all.
 X_PAGES_PER_MODEL = int(os.getenv("FETCH_X_PAGES", "3"))
+
+#: Reddit threads per fetch whose COMMENT TREE is fetched and stored. Was the
+#: literal 5 at the call site, sized for "Reddit 429s at ~32 rapid calls" -
+#: written before the adapter paced itself (25 requests/minute, with a backoff
+#: on 429). The cost of one more thread is one more paced request (~2.4 s) and
+#: one unit of a 1,000,000-request quota (window 23.9 days, read 2026-08-18).
+#:
+#: It is the lever on how many threads a run can extract, and it is small for
+#: a non-obvious reason: one Reddit thread is one post plus all its comments,
+#: so 5 threads arrive as ~680 documents and leave as 5 threads. Measured on
+#: 2026-10-05 (GPT-6.1 Sol Pro): 679 of 747 documents appended came from the 5.
+#: The default stays 5 so nothing changes until a deployment raises it.
+REDDIT_THREADS_PER_FETCH = int(os.getenv("FETCH_REDDIT_THREADS", "5"))
 
 
 # ── THE TERMINAL ACCOUNT OF A RUN ───────────────────────────────────────────
@@ -470,10 +497,20 @@ class Progress:
         #: `harvest_run_id=None`, so there is no id to join on.
         self.started_at = datetime.now(UTC)
         self._seq = 0
-        #: Stop trying after the first failure. A database that is down stays
-        #: down for the length of a run, and re-attempting a connection on
-        #: every stage line turns a quiet mirror into a per-line timeout.
+        #: BACK OFF AFTER A FAILURE, DO NOT STOP (2026-10-05). This used to stop
+        #: mirroring for the rest of the run after one failed write, on the
+        #: premise that "a database that is down stays down for the length of a
+        #: run". Staging drops and comes back: two button runs on 2026-10-05
+        #: mirrored 7 of 205 and 17 of 193 lines, never sent their `ok` end, and
+        #: the reaper recorded both as `abandoned` 45 minutes later - so the
+        #: scheduler still listed GPT-6 Luna as never fetched. A failure now
+        #: pauses the mirror for MIRROR_BACKOFF_S (still no per-line timeout
+        #: storm), and `done` re-sends the whole file if anything was missed.
+        #: `_mirror` stays the on/off switch (tests set it False); the backoff
+        #: and the missed flag sit beside it.
         self._mirror = True
+        self._mirror_after = 0.0
+        self._mirror_missed = False
         #: EVERY STAGE THAT REPORTED `error`, IN ORDER, DEDUPED. The end record
         #: is derived from this rather than from what the caller believes.
         #:
@@ -584,16 +621,19 @@ class Progress:
             self._seq += 1
             with self.path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(rec) + "\n")
-            mirror = self._mirror
-        if mirror:
-            # OUTSIDE THE LOCK. The mirror opens a connection and can wait on the
-            # network; holding the lock across it would let a slow database stall
-            # the main thread behind a heartbeat, which is the opposite of what
-            # this is for.
-            self._mirror = _mirror_fetch_line(
-                run_id=self.run_id, seq=seq, rec=rec,
-                model_version_id=self.model_version_id,
-            )
+            mirror = self._mirror and time.monotonic() >= self._mirror_after
+            if self._mirror and not mirror:
+                self._mirror_missed = True
+        # OUTSIDE THE LOCK. The mirror opens a connection and can wait on the
+        # network; holding the lock across it would let a slow database stall
+        # the main thread behind a heartbeat, which is the opposite of what
+        # this is for.
+        if mirror and not _mirror_fetch_line(
+            run_id=self.run_id, seq=seq, rec=rec,
+            model_version_id=self.model_version_id,
+        ):
+            self._mirror_missed = True
+            self._mirror_after = time.monotonic() + MIRROR_BACKOFF_S
 
     def thread(self, **fields) -> None:
         """One finished thread: what came back, and what the call cost.
@@ -763,6 +803,43 @@ class Progress:
         record = {"kind": "end", "status": status, "detail": detail,
                   "at": _now(), **self.harvest_summary(), **self._summary}
         self._write(record)
+        if self._mirror and self._mirror_missed:
+            # Every id is sha256(run_id|seq|payload), so re-sending lines that
+            # did arrive inserts nothing; only the gaps fill. Best-effort like
+            # the mirror itself - the file remains the survivor.
+            #
+            # ⚠ AND IT CLEARS `usage`'s OWN BACKOFF FIRST. A failed connection
+            #   makes `telemetry_connection()` return None for
+            #   TELEMETRY_RETRY_AFTER_SECONDS (30 s), so a replay started inside
+            #   that window "sends" nothing and the end record is lost again.
+            #   Found 2026-10-06 repairing a reaped run: three replays in a row
+            #   stopped at the same 44 of 193 lines. Up to three attempts, 10 s
+            #   apart, stopping once every line has gone - at most ~20 s added,
+            #   and only to a run that already lost lines.
+            #
+            #   A replay that sends NOTHING stops at once: the database is
+            #   unreachable (or the test guard refuses it), and waiting on a
+            #   database that is not answering is the per-line timeout storm
+            #   the backoff exists to prevent. Partial progress is what earns a
+            #   retry.
+            total = sum(1 for _ in self.path.open(encoding="utf-8"))
+            for attempt in range(3):
+                usage.reset_telemetry_backoff()
+                sent = _replay_fetch_file(self.path, run_id=self.run_id,
+                                          model_version_id=self.model_version_id)
+                if sent >= total or sent == 0:
+                    break
+                if attempt < 2:
+                    time.sleep(MIRROR_REPLAY_PAUSE_S)
+            if sent < total:
+                # SAID, NOT SILENT (review of #503): the reaper will record this
+                # run `abandoned` in 45 minutes, and this line is what tells a
+                # reader the run finished and the shared log is what fell short.
+                log.warning(
+                    "fetch_log replay incomplete for %s: %d of %d lines; the local "
+                    "file %s holds the whole run - replay it when the database answers",
+                    self.run_id, sent, total, self.path,
+                )
         if self._console:
             self._say([""] + fetch_console.render(
                 record, model_version_id=self.model_version_id))
@@ -771,6 +848,35 @@ class Progress:
 
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+#: Seconds the mirror waits after a failed write before trying again.
+MIRROR_BACKOFF_S = 60.0
+#: Pause between end-of-run replay attempts (see `Progress.done`).
+MIRROR_REPLAY_PAUSE_S = 10.0
+
+
+def _replay_fetch_file(path, *, run_id: str, model_version_id: str) -> int:
+    """Re-send every line of a run's file to `fetch_log`. NEVER RAISES.
+
+    `seq` is the line's position in the file, which is what `_write` assigned:
+    it increments once per line appended. Returns how many lines were sent
+    without error (inserted or already present - the ids make that the same).
+    """
+    sent = 0
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return 0
+    for seq, raw in enumerate(lines):
+        try:
+            rec = json.loads(raw)
+        except ValueError:
+            continue
+        if _mirror_fetch_line(run_id=run_id, seq=seq, rec=rec,
+                              model_version_id=model_version_id):
+            sent += 1
+    return sent
 
 
 def _mirror_fetch_line(
@@ -1353,6 +1459,12 @@ def _harvest_verdict(errors: int, produced: int) -> str:
     return "error" if errors and not produced else "ok"
 
 
+#: Papers fetched per arXiv query, newest first - five, as before 2026-10-07.
+#: Each costs one request at arXiv's one-per-three-seconds rate, so two queries
+#: of five is about thirty seconds a model.
+ARXIV_PAPERS_PER_QUERY = 5
+
+
 def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
     """E2 harvest — arXiv search for this model, appended to `document`.
 
@@ -1374,15 +1486,24 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
         prog.stage("E2A", "Harvest · arXiv", "skipped", detail=why)
         return 0
 
+    from collect.adapters.queries.arxiv import arxiv_query
+
     queries = variants[:max_queries]
     prog.stage("E2A", "Harvest · arXiv", "running", queries=len(queries),
                detail=f"arXiv search for {len(queries)} name variant(s)")
     inserted = papers = errors = found = 0
     for variant in queries:
-        run = harvester.search(variant)
+        # ⚠ TWO DEFECTS, FIXED 2026-10-07, that made every arXiv run store 0.
+        #   1. The bare name went in as the search_query, which arXiv reads as
+        #      separate words: 10,275 hits for "DeepSeek V4" against 169 for the
+        #      phrase. `arxiv_query` searches the phrase in title or abstract.
+        #   2. Papers were fetched with `fetch_paper` and its return value was
+        #      dropped. Only `harvest()` adds a fetched paper to `run.stored`,
+        #      and `write_documents` writes `run.stored` - so 57 runs fetched
+        #      papers and wrote none. `harvest()` is the one path that keeps them.
+        run = harvester.harvest(arxiv_query(variant), terms=None,
+                                max_fetch=ARXIV_PAPERS_PER_QUERY)
         found += len(getattr(run, "papers", []) or [])
-        for paper in list(getattr(run, "papers", []) or [])[:5]:
-            harvester.fetch_paper(paper, run)
         papers += len(getattr(run, "stored", []) or [])
         errors += int(getattr(run, "http_errors", 0) or 0)
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
@@ -1511,7 +1632,7 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
     detail += f" — up to {X_PAGES_PER_MODEL} page(s) of 20"
     prog.stage("E2X", "Harvest · X", "running", queries=1, detail=detail)
     inserted = posts = errors = 0
-    survived = pages = 0
+    survived = pages = undated = 0
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     from collect.adapters.queries.sieve import sieve as sieve_post
 
@@ -1543,6 +1664,7 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
+        undated += int(getattr(wrote, "without_created_at", 0) or 0)
     _write_rapidapi_quota(q_remaining, q_limit, prog.run_id, read_on="x")
     # THE DENOMINATOR IS IN THE SENTENCE. "0 appended" out of 60 retrieved and
     # "0 appended" out of 0 retrieved are different failures, and they used to
@@ -1552,6 +1674,11 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
               f"dropped {dropped}; {inserted} document(s) appended")
     if survived and not inserted:
         detail += " — every survivor was already stored (append-only)"
+    if undated:
+        # Said on the harvest line because this is where it starts: an undated
+        # document's claims are skipped at E5 (2026-09-08 to 10-08, every one).
+        detail += (f" — {undated} written with NO DATE (the platform date did not "
+                   f"parse); their claims cannot reach the board")
     if errors:
         # THE ONE THE LOG GOT WRONG. `_get` catches every `httpx.HTTPError`,
         # DNS failures included, and returns None - so two searches that never
@@ -1560,7 +1687,8 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         detail += f" — {errors} request(s) failed before returning anything"
     prog.stage("E2X", "Harvest · X", _harvest_verdict(errors, posts),
                posts=posts, pages=pages, sieve_kept=survived, sieve_dropped=dropped,
-               documents_inserted=inserted, http_errors=errors,
+               documents_inserted=inserted, documents_undated=undated or None,
+               http_errors=errors,
                quota_remaining=q_remaining, quota_limit=q_limit,
                detail=detail)
     return inserted
@@ -1889,7 +2017,7 @@ def longer_registry_surfaces(conn, model_version_id: str | None, surfaces) -> li
 
 
 def threads_naming_the_model(
-    conn, store, surfaces, *, longer=()
+    conn, store, surfaces, *, longer=(), counts: dict | None = None
 ) -> tuple[set[str], int]:
     """Unread thread ids whose flattened text literally names one of `surfaces`,
     and how many unread threads were scanned - the denominator for the first.
@@ -1966,13 +2094,21 @@ def threads_naming_the_model(
         (PIPELINE_VERSION,),
     ).fetchall()
     naming = set()
+    unreadable = 0
     for tc_id, ref in rows:
         try:
             text = store.get_text(ref)
         except Exception:
-            continue  # payload not on this machine - not this fetch's to judge
+            # Payload not on this machine (or the shared bucket). COUNTED, since
+            # 2026-10-06: the first scheduled Action could read none of 6,087
+            # and reported "no unread thread anywhere in the corpus names this
+            # model" - an absence it caused, stated as one it found (rule 4).
+            unreadable += 1
+            continue
         if names_the_model(text, own, longer_rx):
             naming.add(tc_id)
+    if counts is not None:
+        counts["unreadable"] = unreadable
     return naming, len(rows)
 
 
@@ -2158,8 +2294,8 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
     inputs = []
     doc_ids: set[str] = set()
     #: Threads skipped for size. Returned rather than counted, so the caller can
-    #: name them - "deferred to the nightly batch" is only honest if somebody
-    #: can see WHICH threads are waiting.
+    #: name them - "held back" is only honest if somebody can see WHICH
+    #: threads are waiting, and nothing scheduled reads them (#304).
     oversized: list[str] = []
     naming_set = set(naming)
     #: Threads whose flattened payload this machine could not read (#303).
@@ -2579,9 +2715,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     prog.stage("E5", "Extract", "running",
                detail="scanning unread threads for this model's surfaces "
                       "(local reads, no network)")
+    scan: dict = {}
     naming, unread_total = threads_naming_the_model(
         conn, store, surfaces,
-        longer=longer_registry_surfaces(conn, model_version_id, surfaces))
+        longer=longer_registry_surfaces(conn, model_version_id, surfaces), counts=scan)
+    scan_unreadable = scan.get("unreadable", 0)
+    # Carried to the end record so the scheduler's summary can show it: a run
+    # that read nothing because nothing was readable must not look like a run
+    # that found nothing to read.
+    prog.record_summary(threads_unreadable_here=scan_unreadable)
     threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming,
         include_backlog=FETCH_BACKLOG)
@@ -2639,15 +2781,27 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         # rest (rule 4). The denominator is the unread pool the scan covered.
         prog.stage("E5", "Extract", "running",
                    backlog_read=False, unread_threads=unread_total,
+                   threads_unreadable_here=scan_unreadable,
                    detail=f"backlog NOT read by this fetch: of {unread_total:,} unread "
-                          f"thread(s) scanned, {len(naming)} name this model; the "
-                          f"others are left unread for the nightly batch "
-                          f"(FETCH_BACKLOG=on reads them here)")
+                          f"thread(s) scanned, {scan_unreadable:,} could not be read on "
+                          f"this machine and {len(naming)} of the rest name this model; "
+                          f"the others stay unread: {NO_SCHEDULED_READER}, so "
+                          f"FETCH_BACKLOG=on is the only reader (#304)")
     if not naming:
-        # Rule 4: an empty scan is a finding, not a fallback to be silent about.
+        # Rule 4: an empty scan is a finding, not a fallback to be silent about -
+        # and it is only a finding about the threads this machine could READ.
+        if unread_total and scan_unreadable >= unread_total:
+            found = (f"none of the {unread_total:,} unread thread(s) could be read on "
+                     f"this machine - their payloads are on other machines, so this "
+                     f"is NOT evidence that none names the model")
+        elif scan_unreadable:
+            found = (f"no readable unread thread names this model's seated surfaces; "
+                     f"{scan_unreadable:,} of {unread_total:,} could not be read here")
+        else:
+            found = "no unread thread anywhere in the corpus names this model's seated surfaces"
         prog.stage("E5", "Extract", "running",
-                   detail="no unread thread anywhere in the corpus names this "
-                          "model's seated surfaces — "
+                   threads_unreadable_here=scan_unreadable,
+                   detail=found + " — "
                           + ("everything below is backlog" if FETCH_BACKLOG else
                              "only this run's own harvest can be read"))
     if gated_out:
@@ -2665,8 +2819,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # a cap of 25 deliver 6.
     if oversized:
         prog.stage("E5", "Extract", "running",
-                   detail=f"{len(oversized)} oversized thread(s) deferred to the nightly "
-                          f"batch (> {MAX_FETCH_THREAD_CHARS:,} chars, too slow on demand)")
+                   detail=f"{len(oversized)} oversized thread(s) held back "
+                          f"(> {MAX_FETCH_THREAD_CHARS:,} chars, too slow on demand); "
+                          f"{NO_SCHEDULED_READER} (#304)")
 
     # PRE-LLM HARD GATES. The model reads only what survives them, so a
     # promotional/placeholder/too-short thread never costs a token. Reuses the
@@ -2731,10 +2886,22 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     #   `spent_usd` as the run's cost would charge this run for every fetch
     #   since midnight.
     spent_before = 0.0
+    # This process's spend rows the shared table did not get, before the stage
+    # runs - the stage line reports the delta (#393).
+    unmirrored_before = spend_ledger.unmirrored_count()
     if budget is not None:
         budget.spent_usd = spend_ledger.spent_today()
         spent_before = budget.spent_usd
-    facts, _ = _document_facts(conn, doc_ids)
+        # TWO FETCHES AT ONCE (2026-10-15): every cap check re-reads today's
+        # total, so a run started beside this one spends from the same cap.
+        budget.shared_today = spend_ledger.spent_today
+    # `undatable` WAS DISCARDED HERE (`facts, _ = ...`). A document with no
+    # `created_at` has no facts, so the pipeline skips every claim from it with
+    # one log line each - and every X document was undated from 2026-09-08 to
+    # 2026-10-08 (X's date format was never parsed), so X produced 0 board
+    # entries from 233 threads read while this stage said nothing. Kept now and
+    # counted on the E5 line below (rule 4: an absence this run caused).
+    facts, undatable = _document_facts(conn, doc_ids)
     mvo = _model_version_map(conn)
     resolver = RegistrySurfaceResolver.from_connection(conn)
 
@@ -2885,6 +3052,36 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             out["unsalvaged_other"] = overflow
         return out
 
+    def _dropped_entries(dropped) -> dict:
+        """Board entries dropped from claims that were kept (#411). Absent when
+        none were, for the same reason as `_unsalvaged_shapes`.
+
+        COUNTED, NOT SILENT (rule 4): "3 entries stored" and "3 stored, 1
+        dropped for a missing basis" are different facts.
+        """
+        if not dropped:
+            return {}
+        from judge.extract.runner import dropped_entry_shapes
+
+        shapes, overflow = dropped_entry_shapes(dropped)
+        out = {"entries_dropped": len(dropped), "dropped_entries_by_error": shapes}
+        if overflow:
+            out["dropped_entries_other"] = overflow
+        return out
+
+    def _retried_on(errors) -> dict:
+        """What attempt 1 failed on when a retry ran (#411 b). Absent when no
+        retry ran, for the same reason as `_unsalvaged_shapes`."""
+        if not errors:
+            return {}
+        from judge.extract.runner import error_shapes
+
+        shapes, overflow = error_shapes(errors)
+        out = {"retried_on_by_error": shapes}
+        if overflow:
+            out["retried_on_other"] = overflow
+        return out
+
     def _on_result(result, *, tokens_in, tokens_out, usd, posts, index, total):
         """What came back from one thread, as it lands.
 
@@ -2915,6 +3112,11 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             #   want opposite fixes - one defect repeated, or twenty different
             #   ones - were indistinguishable afterwards.
             **_unsalvaged_shapes(run.unsalvaged),
+            **_dropped_entries(getattr(run, "dropped_entries", None)),
+            # ⚠ WHAT THE RETRY WAS ASKED TO FIX (#411 b). `unsalvaged_by_error`
+            #   is the answer salvaged from, so a retry that rescued a thread
+            #   left no record of what it rescued it from.
+            **_retried_on(getattr(run, "first_attempt_errors", ())),
             unclassified=len(run.unclassified),
             proposed=len(run.proposed_capabilities),
             keys=keys or None,
@@ -3016,7 +3218,21 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     truncated = [r.extraction.thread_context_id for r in results
                  if r.extraction.truncated]
     board_stored = sum(r.board_entries_stored or 0 for r in results)
+    # WHO THE STORED ROWS ARE ABOUT (2026-10-15). A thread about this model
+    # names others, and their rows go to THEIR pages. The total alone, beside a
+    # model page showing a handful of quotes, read as a lost write - it is how
+    # "166 stored" against 7 quotes on Nano Banana 2 was reported as a defect.
+    by_scope: dict[str, int] = {}
+    for r in results:
+        for k, n in (getattr(r, "board_entries_by_scope", None) or {}).items():
+            by_scope[k] = by_scope.get(k, 0) + n
+    about = by_scope.get("searched", 0)
+    others = by_scope.get("mentioned", 0)
+    unlabelled = by_scope.get("unlabelled", 0)
     detail = (f"{verified} claim(s) verified, {board_stored} board entr(ies) stored"
+              + (f" ({about} about this model, {others} about other models named in the"
+                 f" same threads" + (f", {unlabelled} unlabelled" if unlabelled else "")
+                 + ")" if board_stored else "")
               + (f", {stored} legacy claim row(s)" if legacy_on else ""))
     # THE DIFFERENCE BETWEEN WRITES AND ROWS, ON THE LINE THAT REPORTS THE
     # ROWS (#444). Said only when it happened.
@@ -3026,6 +3242,19 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         detached = sum(r.board_entries_detached_on_merge for r in results)
         detail += (f", {merged} merged ({dup} duplicate, {dis} distinct and not "
                    f"written; {detached} board entr(ies) detached)")
+    # VERIFIED CLAIMS DROPPED FOR A MISSING DATE, said only when it happened.
+    # Their quotes passed; the pipeline skipped them because the document has
+    # no `created_at` (see `undatable` above), so the board never saw them.
+    undated_docs = {q.document_id for r in results for _c, q in r.extraction.verified
+                    if q.document_id in undatable}
+    if undated_docs:
+        undated_claims = sum(1 for r in results for _c, q in r.extraction.verified
+                             if q.document_id in undated_docs)
+        detail += (
+            f"; {undated_claims} VERIFIED CLAIM(S) DROPPED from {len(undated_docs)} "
+            f"document(s) with no created_at - the platform date did not parse, "
+            f"so these never reached the board"
+        )
     if truncated:
         detail += (
             f"; {len(truncated)} of {len(results)} thread(s) STOPPED AT THE "
@@ -3047,10 +3276,21 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             f"not answer for them after {EXTRACT_ATTEMPTS} attempt(s). They are "
             f"not recorded as read, so the next run tries them again"
         )
+    # SPEND THE SHARED TABLE NEVER GOT (#393), said only when it happened. The
+    # rows are in this machine's ledger file; every OTHER machine's cap is
+    # short by them until the backfill runs.
+    unmirrored = spend_ledger.unmirrored_count() - unmirrored_before
+    if unmirrored:
+        detail += (
+            f"; {unmirrored} spend row(s) DID NOT REACH THE SHARED LEDGER - they "
+            f"are in {spend_ledger.ledger_path()}, and `python "
+            f"scripts/backfill_telemetry.py --apply` sends them"
+        )
     prog.stage("E5", "Extract", "ok", truncated=len(truncated),
                truncated_threads=truncated[:10],
                retried_threads=retried or None,
                unread_threads=len(unread) or None,
+               undated_documents=len(undated_docs) or None,
                detail=detail)
 
     # ── WHAT THE RUN AMOUNTED TO, for the closing box ────────────────────
@@ -3078,6 +3318,11 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         sent_chars=sum(len(t.flattened_text) for t in threads),
         claims_verified=verified,
         claims_stored=stored,
+        # Board entries, the rows a model page reads, split by who they are
+        # about. Only `entries_about_model` lands on this model's page.
+        entries_stored=board_stored,
+        entries_about_model=about,
+        entries_about_others=others,
         cells_written=cells,
         **({
             "tokens_in": budget.input_tokens,
@@ -3338,9 +3583,14 @@ def main(argv: list[str] | None = None) -> int:
     #
     # A bare `print(run_id)` stood here under "the backend reads this to know
     # which log to poll". `start_fetch` GENERATES the run id and passes it in
-    # with `--run-id`; it never reads a byte of this process's stdout, and
-    # nothing else in the repo invokes this script either. The line was a
-    # leftover from a design where the child chose the id.
+    # with `--run-id`; it never reads a byte of this process's stdout. The line
+    # was a leftover from a design where the child chose the id.
+    #
+    # ⚠ "NOTHING ELSE INVOKES THIS SCRIPT" STOOD HERE AND WAS WRONG:
+    #   `scripts/run_scheduled_fetches.py` did, and read the id from the first
+    #   stdout line - so removing the print broke every scheduled summary.
+    #   It now passes `--run-id` like the button (2026-10-05). Every caller
+    #   names the run; none parses this process's output.
     #
     # It goes rather than moves because `Progress.__init__` has just printed the
     # id in the header - and while it was harmless when both streams went to
@@ -3489,7 +3739,8 @@ def main(argv: list[str] | None = None) -> int:
 
         if "reddit" in sources:
             try:
-                harvest_reddit(db.live(prog), prog, variants, max_searches=3, max_threads=5)
+                harvest_reddit(db.live(prog), prog, variants, max_searches=3,
+                               max_threads=REDDIT_THREADS_PER_FETCH)
             except Exception as exc:
                 prog.stage("E2R", "Harvest · Reddit", "error",
                            detail=str(exc).splitlines()[0][:200])

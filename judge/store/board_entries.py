@@ -48,6 +48,14 @@ _NON_SLUG = re.compile(r"[^a-z0-9]+")
 _PREFIX = re.compile(r"^(job|metric|capability|cap)[._-]")
 
 
+
+def _iso(value):
+    """A timestamp as ISO text, or None - never a placeholder date (rule 6).
+    Already-text values (test fixtures) pass through unchanged."""
+    if value is None:
+        return None
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
 def normalise_slug(raw: str) -> str:
     """Mechanical slug normalisation. NO synonym resolution.
 
@@ -547,7 +555,8 @@ def store_entries(
     searched_model_version_id: str | Iterable[str] | None = None,
     pipeline_version: str = PIPELINE_VERSION,
 ) -> dict[str, int]:
-    """Append discovered entries. Returns {proposed, stored, skipped_unverified}.
+    """Append discovered entries. Returns {proposed, stored, skipped_unverified,
+    stored_by_scope, ...}.
 
     Each dict carries: section, slug, name, definition, document_id, quote,
     quote_verified, polarity, and optionally model_version_id, claim_id, and
@@ -576,6 +585,19 @@ def store_entries(
     # prompt; "11 with no quantity, 1 whose figure is not in its quote" sends
     # them to two different places, and only one of them is the prompt.
     refused: dict[str, int] = {}
+    # THE HEADING THE EXTRACTOR FILED AN ENTRY UNDER, kept only when it is one
+    # of its section's real headings. Anything else is stored as NULL and
+    # COUNTED per section (rule 4): the row is kept either way, because a
+    # missing heading is a filing gap, not a reason to lose a report (rule 8).
+    from judge.config import section_headings
+
+    unfiled: dict[str, int] = {}
+    # WHO THE STORED ROWS ARE ABOUT (2026-10-15). A per-model run reads whole
+    # threads, and a thread about one model names others: on 2026-10-12 a Nano
+    # Banana 2 run stored 151 rows in its window and 8 were about Nano Banana 2.
+    # "166 stored" beside a model page showing 7 quotes read as a lost write.
+    # Counted on insert only, so it adds up to `stored`.
+    stored_by_scope: dict[str, int] = {}
     with conn.cursor() as cur:
         for e in entries:
             if not e.get("quote_verified"):
@@ -601,12 +623,20 @@ def store_entries(
             if not slug:
                 skipped += 1
                 continue
+            parent = None
+            headings = section_headings(section)
+            if headings:
+                proposed_parent = (e.get("parent") or "").strip().lower()
+                if proposed_parent in headings:
+                    parent = proposed_parent
+                else:
+                    unfiled[section] = unfiled.get(section, 0) + 1
             cur.execute(
                 "INSERT INTO board_entry "
                 "(id, section, slug, name, definition, unit, value_verbatim, basis,"
                 " model_version_id, document_id, claim_id, quote, quote_verified,"
-                " polarity, proposer_model, model_scope, pipeline_version) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                " polarity, proposer_model, model_scope, pipeline_version, parent_proposed) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                 "ON CONFLICT (id) DO NOTHING",
                 (
                     entry_id(
@@ -619,15 +649,25 @@ def store_entries(
                     e["quote"], True, e["polarity"], proposer_model,
                     _scope_of(e, searched),
                     pipeline_version,
+                    parent,
                 ),
             )
             stored += cur.rowcount  # 1 on insert, 0 on conflict
+            if cur.rowcount:
+                scope = _scope_of(e, searched) or "unlabelled"
+                stored_by_scope[scope] = stored_by_scope.get(scope, 0) + 1
     return {
         "proposed": proposed,
         "stored": stored,
         "skipped_unverified": skipped,
         "refused_metrics": sum(refused.values()),
         "refused_by": refused,
+        # Rows stored with no usable heading - missing, or not one of their
+        # section's headings - per section. Kept and counted, never dropped.
+        "unfiled_by_section": unfiled,
+        # `searched` / `mentioned` / `unlabelled` (no subject passed - rule 6:
+        # never guessed into either), summing to `stored`.
+        "stored_by_scope": stored_by_scope,
     }
 
 
@@ -921,7 +961,7 @@ def spelling_key(slug: str) -> str:
 _SEPARATORS = re.compile(r"[-_\s]+")
 
 
-def board_sections(conn: Any) -> dict[str, list[dict]]:
+def board_sections(conn: Any, *, hide_source: Any = None) -> dict[str, list[dict]]:
     """Everything the Board page renders, grouped by section then slug.
 
     Returns {"best_for": [...], "capability": [...], "metric": [...]}, each item
@@ -1050,7 +1090,9 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         # split across both shapes, so this closes a latent split rather than
         # repairing a live one - worth saying, because the same sentence with
         # no denominator would read as a defect being fixed.
-        "       v.canonical_id, v.display_name, v.id "
+        "       v.canonical_id, v.display_name, v.id, d.source, "
+        # WHEN THE SOURCE POST WAS WRITTEN, for each section's freshness line.
+        "       d.created_at, be.parent_proposed "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "LEFT JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
@@ -1067,9 +1109,26 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     #: ever measured the model - those are opposite statements and the empty
     #: page looks identical.
     withheld: dict[str, int] = {}
+    # WITHHELD BY SOURCE, counted apart from the metric gate above because it
+    # means something else: not "this figure failed a check" but "this source
+    # is not published here" (contract/publication.yaml). Every section, not
+    # only metrics. Carried under `_withheld_sources` (rule 4).
+    from judge import publication
+
+    # `hide_source` is "is this source hidden here?". None means this
+    # deployment's view, which is what every page reads. `judge/seo.py` passes
+    # `publication.withheld_publicly`, because which pages are worth indexing
+    # is a question about the PUBLIC page whatever view this server runs.
+    # (Not named `withheld`: that name is the metric-withholding tally above,
+    # and the first version of this shadowed the parameter with it.)
+    hide = hide_source or publication.withheld
+    by_source = 0
     for (section, slug, name, definition, unit, value, basis,
          mv_id, doc_id, quote, polarity, _created_at, url, author_id,
-         canonical, display, registry_id) in rows:
+         canonical, display, registry_id, source, doc_created, parent_prop) in rows:
+        if hide(source):
+            by_source += 1
+            continue
         held = metric_withholding({
             "section": section, "slug": slug, "unit": unit,
             "value_verbatim": value, "quote": quote,
@@ -1121,9 +1180,18 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
                 # because it was >= 2. Nothing on this read path had ever
                 # looked at `document_id` or `author_id` at all.
                 "_docs": set(), "_voices": set(), "_models": {},
+                # FRESHNESS, over exactly the rows this section shows: the
+                # newest entry ADDED and the newest source post WRITTEN.
+                "_updated": None, "_newest": None,
+                # THE HEADING THE EXTRACTOR FILED THESE ROWS UNDER, counted, so
+                # a leaf the contract has not filed can still sit in a box -
+                # marked as the extractor's filing (board_grouping).
+                "_parents": {},
             },
         )
         bucket["_spellings"][slug] = bucket["_spellings"].get(slug, 0) + 1
+        if parent_prop:
+            bucket["_parents"][parent_prop] = bucket["_parents"].get(parent_prop, 0) + 1
         if definition:
             seen = bucket["_definitions"].setdefault(definition, [0, _created_at])
             seen[0] += 1
@@ -1168,8 +1236,18 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             model = bucket["_models"].setdefault(
                 model_key,
                 {"docs": {}, "voices": set(), "polarities": set(),
-                 "raw": mv_id, "label": label},
+                 "raw": mv_id, "label": label, "canonical": canonical,
+                 "updated": None, "newest": None},
             )
+            # THE TWO FRESHNESS DATES, kept apart (judge/freshness.py): when the
+            # entry was added, and when its source post was written. Taken
+            # here, after the withheld-source filter above, so a hidden row
+            # never dates a page that does not show it.
+            for holder, a, b in ((bucket, "_updated", "_newest"), (model, "updated", "newest")):
+                if _created_at is not None and (holder[a] is None or _created_at > holder[a]):
+                    holder[a] = _created_at
+                if doc_created is not None and (holder[b] is None or doc_created > holder[b]):
+                    holder[b] = doc_created
             # `docs` MAPS A DOCUMENT TO ITS POLARITIES rather than being a set
             # of ids, and that is what lets the split be counted in REPORTS.
             # Counting it in quotes would put the inflation this file's
@@ -1284,6 +1362,13 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
                     definitions.items(),
                     key=lambda kv: (-kv[1][0], kv[1][1] is None, kv[1][1] or 0, kv[0]),
                 )[0]
+            # The commonest heading the extractor proposed; ties to the key
+            # that sorts first, so the box a leaf sits in does not flip on an
+            # arbitrary row order. None when no row proposed one (rule 6).
+            parents = item.pop("_parents", {}) or {}
+            item["parent_proposed"] = (
+                min(parents.items(), key=lambda kv: (-kv[1], kv[0]))[0] if parents else None
+            )
             spellings = item.pop("_spellings", {}) or {}
             if spellings:
                 item["slug"] = min(spellings.items(), key=lambda kv: (-kv[1], kv[0]))[0]
@@ -1328,6 +1413,13 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             item["models"] = [
                 {"model_key": key, "model_version_id": m["raw"],
                  "model_label": m["label"],
+                 # THE READABLE ID for links (`anthropic/claude-opus-4.6`), so
+                 # a drill-down URL names the model rather than `mv_6d0d…`.
+                 # `model_key` stays the grouping key; this is only its
+                 # spelling in an address. None when the registry has none.
+                 "model_canonical": m.get("canonical"),
+                 "updated_at": _iso(m.get("updated")),
+                 "newest_report_at": _iso(m.get("newest")),
                  "reports": len(m["docs"]), "voices": len(m["voices"]),
                  "polarities": sorted(m["polarities"]),
                  **(
@@ -1347,6 +1439,8 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             if section != "metric":
                 item.pop("figures", None)
                 item.pop("unit", None)
+            item["updated_at"] = _iso(item.pop("_updated", None))
+            item["newest_report_at"] = _iso(item.pop("_newest", None))
             items.append(item)
         # Most-reported first: the ordering is a COUNT, never a score.
         items.sort(key=lambda i: (-i["reports"], i["slug"]))
@@ -1356,6 +1450,7 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     # this dict is keyed by, and a fourth section name here would be read as a
     # fourth tab by anything iterating it.
     out["_withheld"] = withheld
+    out["_withheld_sources"] = publication.notice(by_source)
     return out
 
 
@@ -1959,7 +2054,45 @@ def unrule_entries(conn, *, section: str, slug: str) -> int:
     return cur.rowcount
 
 
-def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict:
+def voices_by_model(conn, *, hidden: list[str]) -> dict[str, int]:
+    """{registry id: distinct voices} for every model at once - what
+    `evidence_for_model(conn, id, hidden=hidden, with_voices=True)["voices"]`
+    returns for one model, for all of them in ONE query (#552, item 12).
+
+    judge/seo.py asked once per model, two queries each with the either-shape
+    join, ~13 s for the index list on a local database. Same rows, same gates:
+    non-declined, the source gate in SQL, `metric_withholding` in Python - the
+    same function, not the rule written twice - and only the three sections.
+    A row is filed under `v.id` when the registry join resolves it (either id
+    shape) and under its raw id when it does not, which is the model
+    `evidence_for_model` would have matched it for.
+    tests/test_seo_indexable_pages.py holds the two equal model by model.
+    """
+    rows = conn.execute(
+        "SELECT COALESCE(v.id, be.model_version_id), be.section,"
+        "       COALESCE(be.ruling_target, be.slug), be.unit, be.value_verbatim,"
+        "       be.quote, d.author_id "
+        "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
+        "LEFT JOIN model_version v "
+        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
+        "WHERE be.ruling IS DISTINCT FROM 'declined' "
+        "  AND (cardinality(%s::text[]) = 0 "
+        "       OR (d.source IS NOT NULL AND NOT d.source = ANY(%s::text[])))",
+        (list(hidden), list(hidden)),
+    ).fetchall()
+    voices: dict[str, set] = {}
+    for key, section, slug, unit, value, quote, author_id in rows:
+        if section not in SECTIONS or not author_id:
+            continue
+        if metric_withholding({"section": section, "slug": slug, "unit": unit,
+                               "value_verbatim": value, "quote": quote}) is not None:
+            continue
+        voices.setdefault(key, set()).add(author_id)
+    return {k: len(v) for k, v in voices.items()}
+
+
+def evidence_for_model(conn, model_version_id: str, *, limit: int | None = None,
+                       hidden: list[str] | None = None, with_voices: bool = False) -> dict:
     """Every discovered section this model was named in, with the quotes.
 
     THE MODEL PAGE'S HALF OF THE SAME CORPUS. The board groups by section and
@@ -1977,10 +2110,18 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
     verified — the table CHECKs `quote_verified` — so what reaches the reader is
     what the engineer wrote, resolved back to the raw span.
     """
+    from judge import publication
+
+    # `hidden` overrides this deployment's view, and `with_voices` adds the
+    # model-wide count of distinct voices - both for `judge/seo.py`, which asks
+    # about the PUBLIC page. The API passes neither, so its payload is unchanged.
+    hidden = list(publication.hidden_here()) if hidden is None else list(hidden)
+    all_voices: set[str] = set()
     rows = conn.execute(
         "SELECT be.section, COALESCE(be.ruling_target, be.slug) AS slug, be.name,"
         "       be.definition, be.unit, be.value_verbatim, be.basis, be.quote,"
-        "       be.polarity, be.document_id, be.created_at, d.url, d.author_id "
+        "       be.polarity, be.document_id, be.created_at, d.url, d.author_id,"
+        "       d.source "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "LEFT JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
@@ -2001,15 +2142,41 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
         # "the figure appears in its own quote" is a string comparison between
         # two columns, and expressing it here would be a second implementation
         # of `metric_withholding` that could drift from the first.
-        "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC "
-        "LIMIT %s",
-        (model_version_id, model_version_id, model_version_id, limit),
+        #
+        # THE SOURCE GATE, BY CONTRAST, IS IN SQL: it compares one column with
+        # a list, so there is nothing to drift, and in Python it would let
+        # withheld rows use up the LIMIT - a public page short of quotes it has.
+        # Unknown provenance is withheld with them (`publication.withheld`).
+        "  AND (cardinality(%s::text[]) = 0 "
+        "       OR (d.source IS NOT NULL AND NOT d.source = ANY(%s::text[]))) "
+        "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC"
+        # ⚠ NO DEFAULT CAP (2026-10-13). This read `LIMIT 200`, and the rows are
+        #   ordered by SECTION, so the cap cut whole sections from the end of
+        #   the alphabet rather than trimming evenly: GLM 5.3 had 242 entries
+        #   (51 best_for, 137 capability, 54 metric), the page got 188 + 12, and
+        #   showed "200 quotes" as if that were all of them - 42 metric entries
+        #   from a fetch gone with nothing saying so (rule 4). judge/seo.py and
+        #   the compare page read the same rows, so voices and counts were short
+        #   too. A caller that wants a cap passes one; none does today.
+        + (" LIMIT %s" if limit is not None else ""),
+        (model_version_id, model_version_id, model_version_id, hidden, hidden)
+        + ((limit,) if limit is not None else ()),
     ).fetchall()
+    by_source = conn.execute(
+        "SELECT count(*) FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
+        "LEFT JOIN model_version v "
+        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
+        "WHERE (be.model_version_id = %s OR v.id = %s OR v.canonical_id = %s) "
+        "  AND be.ruling IS DISTINCT FROM 'declined' "
+        "  AND cardinality(%s::text[]) > 0 "
+        "  AND (d.source IS NULL OR d.source = ANY(%s::text[]))",
+        (model_version_id, model_version_id, model_version_id, hidden, hidden),
+    ).fetchone()[0]
 
     sections: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
     withheld: dict[str, int] = {}
     for (section, slug, name, definition, unit, value, basis,
-         quote, polarity, doc_id, _created, url, author_id) in rows:
+         quote, polarity, doc_id, _created, url, author_id, _source) in rows:
         if section not in sections:
             continue
         # THE SAME FUNCTION, not the same rule written twice. A model page
@@ -2034,6 +2201,7 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
         bucket["_docs"].add(doc_id)
         if author_id:
             bucket["_voices"].add(author_id)
+            all_voices.add(author_id)
         bucket["quotes"].append(
             {"quote": quote, "polarity": polarity, "document_id": doc_id, "url": url}
         )
@@ -2074,4 +2242,5 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
             "quotes": sum(len(i["quotes"]) for v in out.values() for i in v),
         },
         "withheld": withheld,
-    }
+        "withheld_sources": publication.notice(by_source),
+    } | ({"voices": len(all_voices)} if with_voices else {})

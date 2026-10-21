@@ -9,10 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import pytest
-
 from judge.config import capabilities
-from judge.pages.capability import CapabilityPage, CapabilityPageReader, ModelStanding
 from judge.pages.model import (
     CapabilityView,
     ConditionSlice,
@@ -170,78 +167,5 @@ class TestQuotesAreReadUntransformed:
         assert conn.sql == []
 
 
-# ── the capability page ───────────────────────────────────────────────────
-
-
-class TestTheTransposeHasItsOwnFailure:
-    """On a model page an unreported capability is a visible empty row. Here an
-    unreported MODEL is invisible unless the registry is enumerated - and the
-    missing ones are the new and the obscure, which are the cheap ones."""
-
-    def test_models_with_no_cells_are_listed_rather_than_omitted(self):
-        conn = Conn(
-            rows=[
-                ("mv1", "Gemini 2.5 Flash", None, None, None, None),
-                ("mv2", "Claude Haiku 4.5", None, None, None, None),
-            ]
-        )
-        page = CapabilityPageReader(conn).build("summarization.fidelity")
-
-        assert len(page.models) == 2
-        assert len(page.unreported) == 2
-
-    def test_the_query_left_joins_so_a_model_without_a_cell_survives_it(self):
-        """An inner join here IS the defect - it would silently produce a page
-        about the models people post about."""
-        conn = Conn(rows=[])
-        CapabilityPageReader(conn).build("summarization.fidelity")
-
-        sql = conn.sql[0].upper()
-        assert "LEFT JOIN" in sql
-        assert "FROM MODEL_VERSION" in sql
-
-    def test_the_summary_says_why_the_unreported_are_listed(self):
-        conn = Conn(rows=[("mv1", "A", None, None, None, None)])
-        summary = CapabilityPageReader(conn).build("summarization.fidelity").summary
-
-        assert "ranks popularity, not capability" in summary
-
-    def test_an_unknown_capability_is_refused_rather_than_rendered_empty(self):
-        """An unknown key would produce a page reading "nobody has reported on
-        this", indistinguishable from a real capability nobody discussed."""
-        with pytest.raises(KeyError, match="not in contract/capabilities.yaml"):
-            CapabilityPageReader(Conn()).build("not.a.capability")
-
-    def test_a_silent_capability_warns_across_the_whole_page(self):
-        conn = Conn(rows=[("mv1", "A", None, None, None, None)])
-        page = CapabilityPageReader(conn).build("summarization.fidelity")
-
-        assert page.silent
-        assert "not evidence that it works" in page.summary
-
-
-class TestConditionalStandingIsAFinding:
-    def test_a_model_published_in_one_bucket_and_not_another_is_conditional(self):
-        standing = ModelStanding(
-            model_version_id="mv1",
-            display_name="A",
-            buckets=(("tools:1-5", "published"), ("tools:6-15", "insufficient")),
-        )
-        assert standing.conditional
-        assert standing.publishes
-
-    def test_a_single_bucket_is_not_conditional(self):
-        standing = ModelStanding(
-            model_version_id="mv1", display_name="A", buckets=(("any", "published"),)
-        )
-        assert not standing.conditional
-
-
-class TestNoRankingIsInvented:
-    def test_the_page_exposes_no_score_or_ordering_member(self):
-        """Rule 3. Two models with published cells are not thereby ordered, and
-        any ordering invented here would be a synthesised number with a page to
-        live on."""
-        public = {n for n in dir(CapabilityPage) if not n.startswith("_")}
-        for invented in ("score", "rank", "ranked", "best", "top", "ordering"):
-            assert invented not in public, f"CapabilityPage.{invented} invents an order"
+# The capability page and its tests were removed 2026-10-08: no page called
+# `/capabilities/{key}` after the frontend dropped it on 2026-09-24.

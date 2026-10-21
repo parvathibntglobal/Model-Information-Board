@@ -1,0 +1,2910 @@
+# THE AI GLOSSARY (2026-10-20): one short paragraph per concept, served at
+# /glossary and /glossary/<slug> (judge/glossary.py, web/src/routes/Glossary.jsx).
+#
+# Written by Claude Code. Terms come from the keyword plan's concept list
+# (seo/keyword_plan.yaml) and the AI terms in sanity.io/glossary that bear on
+# choosing, prompting, running or judging AI models. Every entry
+# is checked on load - 6 to 10 sentences, the newsroom's sentence limits
+# (blog_rules.yaml), the term named in the first sentence, no performance
+# figure, related terms that exist - and a file that fails is refused whole.
+#
+# category: foundations, prompting, reasoning, decoding, retrieval, training, inference, agents, evaluation, safety, deployment, decisions, web
+
+terms:
+  - slug: large-language-model
+    term: "Large language model"
+    aka: ["LLM"]
+    category: foundations
+    teaser: "A neural network trained on huge amounts of text to predict the next token, which lets it write, answer and reason in language."
+    definition: >-
+      A large language model, or LLM, is a neural network trained on vast amounts of text to predict the
+      next token. By repeating that one prediction, it writes sentences, answers questions, summarises and
+      writes code. Most modern LLMs are built on the transformer architecture. They learn grammar, facts
+      and patterns of reasoning from their training data, not from hand-written rules. You meet them in
+      chat assistants, coding tools and any API that turns a prompt into text. Large refers to the number
+      of parameters and the size of the training data. A bigger model is not always the right choice for a
+      task. Smaller models can be cheaper and faster for narrow, well-defined work. An LLM also has no
+      built-in way to check facts, so it can state wrong things fluently.
+    related: [transformer, token, parameters, hallucination, small-language-model]
+
+  - slug: small-language-model
+    term: "Small language model"
+    aka: ["SLM"]
+    category: foundations
+    teaser: "A language model with far fewer parameters than the largest models, built to be cheap, fast and able to run on modest hardware."
+    definition: >-
+      A small language model, or SLM, is a language model with relatively few parameters. There is no
+      fixed size line, since the term is relative to the largest models of the day. It works the same way
+      as a large model, predicting one token at a time. Its smaller size means lower cost, faster answers
+      and less memory. Many can run on a laptop, a phone or a single modest GPU. Builders use them for
+      routing, classification, extraction and other narrow sub-tasks. They are often fine-tuned or
+      distilled from larger models to do one job well. The trade-off is less broad knowledge and weaker
+      handling of complex, open-ended requests. A small model that suits one task can fail on a
+      neighbouring one, so test it on the real work.
+    related: [large-language-model, distillation, on-device-ai, local-llm, quantization]
+
+  - slug: foundation-model
+    term: "Foundation model"
+    aka: []
+    category: foundations
+    teaser: "A large model trained on broad data that can be adapted to many different tasks rather than built for just one."
+    definition: >-
+      A foundation model is a large model trained on broad data so it can be adapted to many tasks.
+      Researchers at Stanford coined the term in 2021. Instead of training a new model for each job, teams
+      start from one general model. They then adapt it with prompting, fine-tuning or retrieval. Most
+      large language models are foundation models, and some also handle images, audio or code. The idea is
+      that one expensive training run serves many downstream uses. That also means flaws and biases in the
+      base model spread to everything built on it. A foundation model is a starting point, not a finished
+      product for a particular task.
+    related: [large-language-model, pretraining, fine-tuning, frontier-model, multimodal-model]
+
+  - slug: frontier-model
+    term: "Frontier model"
+    aka: []
+    category: foundations
+    teaser: "A model at the leading edge of capability at a given time, usually the newest and largest systems from major AI labs."
+    definition: >-
+      A frontier model is a model at the leading edge of what AI systems can do at a given moment. The
+      label is relative, so a frontier model becomes ordinary as newer ones arrive. These models are
+      usually the largest and most expensive to train and to run. Policy discussions use the term for
+      systems whose new abilities may bring new risks. Developers meet them as the flagship tier of a
+      provider's API. They tend to handle hard, open-ended tasks that smaller models struggle with. The
+      common misconception is that every task needs one. Many routine jobs work just as well on a cheaper,
+      faster model. Choosing the model to fit the task usually saves money without losing quality.
+    related: [foundation-model, large-language-model, small-language-model, inference-cost, ai-safety]
+
+  - slug: multimodal-model
+    term: "Multimodal model"
+    aka: []
+    category: foundations
+    teaser: "A model that can take in or produce more than one kind of data, such as text, images, audio or video."
+    definition: >-
+      A multimodal model is a model that works with more than one kind of data, such as text, images,
+      audio or video. Each kind of input is turned into a shared internal representation the model can
+      reason over. That lets it describe a photo, read a chart, transcribe speech or answer questions
+      about a video. Some multimodal models only accept mixed inputs and reply in text. Others can also
+      generate images or speech as output. You meet them when you attach a screenshot or a PDF to a chat,
+      or send audio to an API. Support differs widely between models, so check which inputs and outputs a
+      model actually accepts. Being able to accept an image does not mean the model reads every detail in
+      it correctly. Small text, dense tables and exact counts in images are common weak spots.
+    related: [vision-language-model, large-language-model, foundation-model, computer-use, embeddings]
+
+  - slug: vision-language-model
+    term: "Vision language model"
+    aka: ["VLM"]
+    category: foundations
+    teaser: "A model that reads images alongside text and answers in text, used for describing pictures, reading documents and visual questions."
+    definition: >-
+      A vision language model, or VLM, is a model that takes images and text as input and usually replies
+      in text. It typically pairs an image encoder with a language model. The encoder turns the picture
+      into vectors the language model can read alongside the prompt. This lets it caption photos, read
+      screenshots, pull fields from scanned forms and answer questions about charts. VLMs also power
+      agents that look at a screen to decide where to click. They are a common kind of multimodal model. A
+      frequent misconception is that a VLM sees an image the way a person does. Images are often resized
+      or split into tiles first, so fine print can be lost. For exact text, a dedicated text recognition
+      step can still be more reliable.
+    related: [multimodal-model, computer-use, embeddings, transformer, hallucination]
+
+  - slug: transformer
+    term: "Transformer"
+    aka: []
+    category: foundations
+    teaser: "The neural network architecture behind nearly all modern language models, built around attention between tokens."
+    definition: >-
+      A transformer is the neural network architecture that most modern language models are built on.
+      Researchers at Google introduced it in a 2017 paper titled Attention Is All You Need. Its core idea
+      is attention, which lets every token weigh every other token when building its meaning. Text is
+      split into tokens, turned into vectors, and passed through many stacked layers. Each layer mixes
+      information across tokens and then refines each token on its own. Because tokens are processed in
+      parallel during training, transformers train efficiently on large hardware. Most chat models use a
+      decoder-only design that predicts the next token. The main cost is that attention grows quickly with
+      the length of the input. That is why long contexts are expensive and why tricks like the KV cache
+      and flash attention exist.
+    related: [attention-mechanism, token, large-language-model, kv-cache, flash-attention]
+
+  - slug: attention-mechanism
+    term: "Attention mechanism"
+    aka: ["attention", "self-attention"]
+    category: foundations
+    teaser: "The part of a transformer that lets each token look at the other tokens and decide which ones matter for its meaning."
+    definition: >-
+      An attention mechanism is the part of a transformer that lets each token draw on other tokens in the
+      input. For every token, the model scores how relevant each other token is. It then blends their
+      information using those scores as weights. This is how a model links a pronoun to its noun, or a
+      function call to a definition far above it. Models run many attention heads in parallel, each free
+      to track different relationships. In chat models, each token can only attend to the tokens before
+      it. Standard attention compares every token with every other one. So its cost grows much faster than
+      the input length, which makes long prompts expensive. Attention weights are sometimes shown as
+      explanations, but they are not a reliable account of why a model answered.
+    related: [transformer, kv-cache, flash-attention, context-window, token]
+
+  - slug: parameters
+    term: "Parameters"
+    aka: ["model weights"]
+    category: foundations
+    teaser: "The learned numbers inside a model that store what it picked up in training, often used as a rough measure of its size."
+    definition: >-
+      Parameters, also called model weights, are the learned numbers inside a neural network. Training
+      adjusts them, step by step, so the model's predictions improve. Together they store everything the
+      model has picked up, from grammar to facts to coding habits. A model's size is usually quoted as its
+      parameter count, often in billions. The count drives how much memory is needed to load the model and
+      how much compute each token costs. When a lab releases weights, it is releasing these numbers as
+      files. A common misconception is that more parameters always means a better model. Training data,
+      training method and architecture matter as much as raw size. In mixture of experts models, only some
+      parameters are used for each token.
+    related: [active-parameters, dense-model, mixture-of-experts, open-weights, quantization]
+
+  - slug: active-parameters
+    term: "Active parameters"
+    aka: []
+    category: foundations
+    teaser: "The parameters a model actually uses to process each token, a figure that matters most in mixture of experts models."
+    definition: >-
+      Active parameters are the parameters a model actually uses to process a single token. In a dense
+      model every parameter is used for every token, so active and total counts are the same. In a mixture
+      of experts model, a router picks only a few experts per token. Only those experts' parameters are
+      active, so the active count is far below the total. The active count largely sets the compute cost
+      and speed of generating each token. The total count still sets how much memory is needed to hold the
+      model. Model listings often quote both numbers, and they answer different questions. A misconception
+      is that a model with few active parameters is a small model. It may still need large, costly
+      hardware just to load all its weights.
+    related: [parameters, mixture-of-experts, dense-model, inference-cost, throughput]
+
+  - slug: dense-model
+    term: "Dense model"
+    aka: []
+    category: foundations
+    teaser: "A model that uses all of its parameters for every token, as opposed to a mixture of experts model that uses only a subset."
+    definition: >-
+      A dense model is a neural network that uses all of its parameters to process every token. Most
+      classic transformer language models are dense. Every layer's full set of weights takes part in each
+      prediction. This makes behaviour simple to reason about and easier to serve on standard hardware.
+      Its cost per token grows directly with its size. The alternative is a mixture of experts model,
+      which routes each token through only part of the network. Comparing the two designs by total
+      parameters alone is misleading. A fair comparison looks at active parameters, which drive compute,
+      and total parameters, which drive memory.
+    related: [mixture-of-experts, active-parameters, parameters, transformer]
+
+  - slug: mixture-of-experts
+    term: "Mixture of experts"
+    aka: ["MoE"]
+    category: foundations
+    teaser: "A model design that splits parts of the network into many experts and sends each token through only a few of them."
+    definition: >-
+      Mixture of experts, or MoE, is a model design where parts of the network are split into many smaller
+      expert blocks. A small router network looks at each token and sends it to only a few experts. The
+      other experts stay idle for that token. This lets a model hold a very large total number of
+      parameters while spending less compute per token. Many recent large language models use this design.
+      The experts are not specialists in human topics like law or maths. Their roles are learned during
+      training and are often hard to interpret. The trade-off is memory, since all experts must be loaded
+      even though few run at once. Training and serving are also harder, because the router must spread
+      work evenly across experts.
+    related: [active-parameters, dense-model, parameters, transformer, inference]
+
+  - slug: pretraining
+    term: "Pretraining"
+    aka: []
+    category: foundations
+    teaser: "The first and largest stage of training, where a model learns language and knowledge by predicting text across a huge corpus."
+    definition: >-
+      Pretraining is the first and largest stage of building a language model. The model reads a huge
+      corpus of text and learns to predict the next token. No human labels are needed, because the next
+      word in the text is the answer to check against. Through this one task the model picks up grammar,
+      facts, styles and patterns of reasoning. This stage uses most of the compute spent on a model. The
+      result is a base model that continues text well but does not reliably follow instructions.
+      Post-training then shapes it into a helpful assistant. The pretraining data also fixes the model's
+      knowledge cutoff. Anything missing or wrong in that data tends to show up in the model's answers.
+    related: [post-training, foundation-model, knowledge-cutoff, synthetic-data, token]
+
+  - slug: post-training
+    term: "Post-training"
+    aka: []
+    category: foundations
+    teaser: "The training done after pretraining that turns a raw base model into an assistant that follows instructions and behaves safely."
+    definition: >-
+      Post-training is everything done to a model after pretraining to make it useful and safe. A base
+      model only continues text, so it needs further work to follow instructions. Common steps include
+      supervised fine-tuning on example conversations. Preference methods such as RLHF or DPO then push
+      the model toward answers people prefer. Reinforcement learning on checkable tasks like maths and
+      code is used to build reasoning models. Post-training also teaches tool use, output formats and
+      refusal of harmful requests. It uses far less compute than pretraining but has a large effect on how
+      the model behaves. A misconception is that post-training adds much new knowledge. It mostly shapes
+      how a model uses what it already learned.
+    related: [pretraining, fine-tuning, rlhf, dpo, alignment]
+
+  - slug: token
+    term: "Token"
+    aka: []
+    category: foundations
+    teaser: "The basic unit of text a language model reads and writes, often a word or a piece of one."
+    definition: >-
+      A token is the basic unit of text a language model reads and writes. It can be a whole word, part of
+      a word, a punctuation mark or a space. Common words are often one token, while rare words split into
+      several. The model never sees letters directly, only a sequence of token IDs. Context windows,
+      output limits, rate limits and prices are all counted in tokens. The same text can use a different
+      number of tokens on different models, because each has its own tokenizer. Non-English text and code
+      often need more tokens than plain English. Seeing text as tokens also explains odd slips, such as
+      miscounting the letters in a word.
+    related: [tokenizer, tokenization, context-window, max-tokens, inference-cost]
+
+  - slug: tokenizer
+    term: "Tokenizer"
+    aka: []
+    category: foundations
+    teaser: "The component that converts text into the token IDs a model reads, and turns the model's output IDs back into text."
+    definition: >-
+      A tokenizer is the component that turns text into token IDs for a model, and turns IDs back into
+      text. It holds a fixed vocabulary of tokens, built before the model is trained. Each model is tied
+      to its own tokenizer, and swapping it would break the model. Most modern tokenizers use subword
+      methods such as byte pair encoding. Developers meet tokenizers when counting tokens to estimate cost
+      or check that a prompt fits. Providers often publish a tokenizer library or a token counting
+      endpoint for this. A token count from one model's tokenizer does not carry over to another model. So
+      the same prompt can cost and fit differently across providers.
+    related: [token, tokenization, byte-pair-encoding, context-window, inference-cost]
+
+  - slug: tokenization
+    term: "Tokenization"
+    aka: []
+    category: foundations
+    teaser: "The process of splitting text into tokens, and mapping each one to a number, before a model can read it."
+    definition: >-
+      Tokenization is the process of splitting text into tokens that a language model can process. A
+      tokenizer applies fixed rules and a fixed vocabulary to break the text into pieces. Each piece is
+      then mapped to a number, its token ID. Most modern models use subword tokenization, which keeps
+      common words whole and splits rare ones. This lets a model handle any word, including typos and
+      names it has never seen. Tokenization shapes cost and limits, because both are counted in tokens. It
+      also explains some quirks, such as trouble with spelling, letter counting and some arithmetic.
+      Languages with less training text are often split into more tokens, which makes them costlier to
+      process.
+    related: [token, tokenizer, byte-pair-encoding, embeddings]
+
+  - slug: byte-pair-encoding
+    term: "Byte pair encoding"
+    aka: ["BPE"]
+    category: foundations
+    teaser: "A common way to build a tokenizer's vocabulary by repeatedly merging the most frequent pairs of characters or bytes."
+    definition: >-
+      Byte pair encoding, or BPE, is a common method for building the vocabulary of a tokenizer. It starts
+      with single characters or bytes as the basic units. It then finds the most frequent adjacent pair in
+      a training corpus and merges it into a new unit. Repeating this many times builds up common word
+      pieces and whole words. The process stops when the vocabulary reaches a chosen size. To tokenize new
+      text, the tokenizer applies the learned merges in the same order. Working at the byte level means
+      any input can be encoded, with no unknown words. The vocabulary reflects its training text, so rarer
+      languages and unusual code split into more pieces. BPE began as a data compression method before it
+      was adopted for language models.
+    related: [tokenizer, tokenization, token]
+
+  - slug: embeddings
+    term: "Embeddings"
+    aka: ["text embeddings", "vector embeddings"]
+    category: foundations
+    teaser: "Lists of numbers that represent the meaning of text, placed so that similar meanings end up close together."
+    definition: >-
+      Embeddings are lists of numbers, called vectors, that represent the meaning of a piece of text. An
+      embedding model turns a word, sentence or document into one such vector. Texts with similar meaning
+      land close together, even when they share no words. This makes embeddings the basis of semantic
+      search and retrieval augmented generation. You store document embeddings in a vector database and
+      compare them with the embedding of a query. They are also used for clustering, deduplication and
+      recommendations. Embeddings from different models are not compatible, so a whole index must use one
+      model. A misconception is that close vectors mean a passage answers the question. They only mean the
+      texts are about similar things, which is why rerankers are often added.
+    related: [vector-database, semantic-search, retrieval-augmented-generation, reranking, vector-search]
+
+  - slug: logits
+    term: "Logits"
+    aka: []
+    category: foundations
+    teaser: "The raw scores a model gives every possible next token before they are turned into probabilities."
+    definition: >-
+      Logits are the raw scores a language model gives every token in its vocabulary at each step. A
+      higher logit means the model rates that token as a more likely next token. They are not
+      probabilities yet and can be any positive or negative number. A softmax function turns them into
+      probabilities that add up to one. Sampling settings act on this step. Temperature rescales the
+      logits, while top-k and top-p trim the list of candidates. Some APIs let you adjust logits directly
+      with a bias, for example to ban a token. Most hosted APIs do not expose raw logits, though some
+      return log probabilities instead.
+    related: [log-probabilities, temperature, sampling, top-p, greedy-decoding]
+
+  - slug: log-probabilities
+    term: "Log probabilities"
+    aka: ["logprobs"]
+    category: foundations
+    teaser: "The logarithm of the probability a model gave each token, returned by some APIs to show how likely each choice was."
+    definition: >-
+      Log probabilities, or logprobs, are the logarithms of the probabilities a model assigns to tokens.
+      Some APIs can return them for each output token, often with the top alternatives. Logs are used
+      because tiny probabilities are easier to handle and add up neatly across a sequence. A value close
+      to zero means the model saw the token as very likely. More negative values mean less likely choices.
+      Developers use logprobs to score classifications, spot uncertain answers and rank candidate outputs.
+      A common misconception is that a high logprob means the answer is true. It only shows how likely the
+      model found that wording, not whether the fact is correct. Not every provider or model exposes them.
+    related: [logits, calibrated-confidence, sampling, hallucination, zero-shot-classification]
+
+  - slug: knowledge-cutoff
+    term: "Knowledge cutoff"
+    aka: ["training cutoff"]
+    category: foundations
+    teaser: "The date after which a model's training data stops, so it knows nothing about later events unless told."
+    definition: >-
+      A knowledge cutoff, also called a training cutoff, is the date after which a model's training data
+      ends. The model has no knowledge of events, releases or changes after that point. Providers usually
+      state the cutoff in the model's documentation or model card. Coverage often thins out in the months
+      just before the cutoff, since less had been written yet. Asking a model about recent news can
+      produce outdated or invented answers. The usual fix is to supply current information in the prompt,
+      through search or retrieval. A model may also be unsure of its own cutoff and state it wrongly. A
+      model's release date is not its cutoff, which usually comes earlier.
+    related: [pretraining, retrieval-augmented-generation, hallucination, model-card, grounding]
+
+  - slug: open-weights
+    term: "Open weights"
+    aka: ["open-weight model"]
+    category: foundations
+    teaser: "A model whose trained weights are published for anyone to download and run, whatever the license says about code or data."
+    definition: >-
+      Open weights means a model's trained parameters are published so anyone can download and run the
+      model. You can host it on your own hardware, run it locally or fine-tune it. That gives control over
+      cost, privacy and which version you run. Open weights do not mean open source in the full sense. The
+      training data and training code are often not released. The license may also restrict commercial use
+      or certain applications, so read it before building on it. Running the larger open-weight models
+      still needs serious hardware or a hosting provider. Many hosting services serve popular open-weight
+      models through an API.
+    related: [open-source-model, closed-model, local-llm, fine-tuning, gguf]
+
+  - slug: open-source-model
+    term: "Open source model"
+    aka: []
+    category: foundations
+    teaser: "A model released with the freedom to use, study, change and share it, ideally with its code and training data details too."
+    definition: >-
+      An open source model is a model released under terms that let anyone use, study, modify and share
+      it. In the strict sense this covers the weights, the code and enough about the training data to
+      rebuild it. The Open Source Initiative has published a definition of open source AI along these
+      lines. In everyday use, people often call any open-weights model open source. That is loose, because
+      many such models withhold data or carry restrictive licenses. The difference matters when you need
+      to audit how a model was trained. For most developers, the practical questions are what the license
+      allows and whether the weights run locally.
+    related: [open-weights, closed-model, model-card, fine-tuning]
+
+  - slug: closed-model
+    term: "Closed model"
+    aka: ["proprietary model"]
+    category: foundations
+    teaser: "A model whose weights are kept private by its developer and can only be used through the developer's apps or API."
+    definition: >-
+      A closed model, also called a proprietary model, is one whose weights are not released. You can only
+      use it through the developer's own apps or API, or through approved cloud partners. The provider
+      handles hosting, scaling and updates. That makes closed models simple to start with, and you need no
+      hardware of your own. In return, you cannot inspect, self-host or fully fine-tune the model. Your
+      prompts and data pass through the provider, under its terms. The provider can also change, update or
+      retire a model version on its own schedule. That can shift behaviour in an app that depended on it,
+      which is one form of model drift.
+    related: [open-weights, open-source-model, model-drift, rate-limit, bring-your-own-key]
+
+  - slug: model-card
+    term: "Model card"
+    aka: []
+    category: foundations
+    teaser: "A document published with a model that describes what it is for, how it was trained and tested, and its known limits."
+    definition: >-
+      A model card is a short document published with a model that explains what it is and how it should
+      be used. It typically covers intended uses, training data, evaluation results, known limits and
+      safety testing. The format was proposed in a research paper by researchers at Google. Open model
+      hubs show a model card on each model's page. Large labs often publish longer versions, sometimes
+      called system cards. Model cards are where to look for context length, supported languages, license
+      and knowledge cutoff. They are written by the developer, so they reflect what the developer chose to
+      test and report. Read them as a starting point, then check the model on your own tasks.
+    related: [knowledge-cutoff, open-weights, benchmark, llm-evaluation, ai-safety]
+
+  - slug: prompt
+    term: "Prompt"
+    aka: []
+    category: prompting
+    teaser: "The text you send a language model to get a response, from a one-line question to a long set of instructions."
+    definition: >-
+      A prompt is the input text you give a language model to tell it what to do. It can be a short
+      question, a set of instructions, worked examples or a pasted document. The model reads the prompt as
+      tokens and predicts a continuation one token at a time. In a chat app, each message you type becomes
+      part of the prompt. Behind the scenes, the app also adds a system prompt and the earlier
+      conversation. Small changes in wording, order or examples can change the answer. A prompt guides the
+      model but does not guarantee its behaviour. Anything inside it, including text pasted from
+      elsewhere, can steer what the model does.
+    related: [system-prompt, prompt-engineering, context-window, prompt-injection]
+
+  - slug: system-prompt
+    term: "System prompt"
+    aka: []
+    category: prompting
+    teaser: "Standing instructions placed before a conversation that set how a model behaves on every turn."
+    definition: >-
+      A system prompt is a set of instructions placed before a conversation that shapes how a model
+      behaves on every turn. Developers use it to set a role, a tone, rules, an output format and the
+      tools on offer. Users of a chat product usually never see it. Most model APIs send it in a separate
+      field from the user messages. Models are trained to give system instructions more weight than
+      ordinary user text. That weight is a strong tendency, not a hard lock. A cleverly written user
+      message can still pull a model away from its system prompt. A long system prompt also uses context
+      window space and adds cost on every call.
+    related: [prompt, prompt-engineering, guardrails, prompt-injection, prompt-caching]
+
+  - slug: prompt-engineering
+    term: "Prompt engineering"
+    aka: []
+    category: prompting
+    teaser: "The craft of writing, testing and revising prompts so a model gives useful and reliable answers."
+    definition: >-
+      Prompt engineering is the practice of writing and refining prompts so a language model gives useful,
+      reliable answers. It covers clear instructions, worked examples, a stated output format and enough
+      background for the task. Practitioners run a prompt on many inputs, study the failures and revise.
+      Common techniques include few-shot examples, asking for step-by-step reasoning and splitting a big
+      task into smaller calls. It matters most when a prompt runs inside an application over and over. A
+      prompt tuned for one model may behave differently on another model or a newer version. So prompts
+      are best treated like code, with versions and tests.
+    related: [prompt, few-shot-prompting, chain-of-thought, context-engineering, llm-evaluation]
+
+  - slug: few-shot-prompting
+    term: "Few-shot prompting"
+    aka: ["few-shot learning"]
+    category: prompting
+    teaser: "Putting a handful of worked examples in a prompt so the model copies their pattern on a new input."
+    definition: >-
+      Few-shot prompting means including a handful of worked examples in a prompt so the model copies
+      their pattern. Each example pairs an input with the desired output. The model then handles a new
+      input in the same style and format. No training happens and no weights change. The examples act only
+      within that one call. It is a quick way to teach a label set, a tone or a tricky format. The model
+      can over-copy the examples, repeating their length, wording or even their answers. Choosing varied,
+      representative examples matters more than adding many of them. Examples also take up context window
+      space on every request.
+    related: [zero-shot-prompting, in-context-learning, prompt-engineering, golden-dataset]
+
+  - slug: zero-shot-prompting
+    term: "Zero-shot prompting"
+    aka: ["zero-shot learning"]
+    category: prompting
+    teaser: "Asking a model to do a task from instructions alone, with no worked examples in the prompt."
+    definition: >-
+      Zero-shot prompting means asking a model to do a task with instructions alone, without any worked
+      examples. You describe what you want and the model relies on what it learned in training. Most
+      everyday chat use is zero-shot. It keeps prompts short and avoids biasing the model toward
+      particular examples. It works well for common tasks the model has met often during training. It
+      struggles more with unusual formats, niche label sets or a house style. When zero-shot output keeps
+      missing the mark, adding a few examples is the usual next step. Clear, specific instructions do most
+      of the work in a zero-shot prompt.
+    related: [few-shot-prompting, zero-shot-classification, prompt-engineering, in-context-learning]
+
+  - slug: in-context-learning
+    term: "In-context learning"
+    aka: []
+    category: prompting
+    teaser: "A model picking up a task from instructions or examples in the prompt, without any change to its weights."
+    definition: >-
+      In-context learning is the ability of a language model to pick up a task from instructions or
+      examples in the prompt itself. The weights of the model do not change. It simply conditions its next
+      tokens on the patterns it sees in the context. This is what makes few-shot prompting work. It became
+      noticeable as language models grew larger. Whatever the model learns this way lasts only for that
+      call. Start a new conversation and the lesson is gone unless you send it again. Fine-tuning is the
+      alternative when a behaviour must be learned once and kept.
+    related: [few-shot-prompting, zero-shot-prompting, fine-tuning, context-window]
+
+  - slug: context-window
+    term: "Context window"
+    aka: ["context length"]
+    category: prompting
+    teaser: "The most text a model can read and write in one call, counted in tokens."
+    definition: >-
+      A context window is the most text a language model can handle in one call, measured in tokens.
+      Everything counts against it: the system prompt, the chat so far, pasted documents and the answer. A
+      request that runs past the limit is refused, or the oldest text gets dropped. A larger window lets a
+      model read a whole contract or codebase at once. It does not mean the model uses every part equally
+      well. Details buried in the middle of a long prompt are easier to miss. Every token in the window is
+      billed and adds to the wait for the first word. So teams still trim, summarise or retrieve only the
+      passages a task needs.
+    related: [token, max-tokens, context-engineering, retrieval-augmented-generation]
+
+  - slug: context-engineering
+    term: "Context engineering"
+    aka: []
+    category: prompting
+    teaser: "Choosing what documents, history, memory and tool results go into the context window on each model call."
+    definition: >-
+      Context engineering is the work of deciding what information goes into the context window of a model
+      on each call. It goes beyond the wording of a prompt. It covers which documents to retrieve, what
+      history and memory to keep, and which tool results to include. It matters most for agents, which
+      make many calls and pile up context as they go. Too little context leaves the model guessing. Too
+      much buries the useful parts, raises cost and slows responses. The aim is the smallest set of
+      material that fully covers the task. Common techniques include retrieval, summarising old turns and
+      dropping stale tool output.
+    related: [context-window, prompt-engineering, retrieval-augmented-generation, agent-memory, ai-agent]
+
+  - slug: max-tokens
+    term: "Max tokens"
+    aka: ["max output tokens"]
+    category: prompting
+    teaser: "A request setting that caps how many tokens a model may generate in its answer before it stops."
+    definition: >-
+      Max tokens is a request setting that caps how many tokens a model may generate in its answer. When
+      the model reaches the cap, it stops, even in the middle of a sentence. The response usually reports
+      a stop reason, so code can tell a cut-off from a finished answer. The cap covers output only, though
+      input and output together must still fit the context window. Setting it limits the cost and wait of
+      each call. Setting it too low truncates answers and can break structured output such as JSON. For
+      reasoning models, hidden thinking tokens may count toward the same cap. Each model also has its own
+      upper limit on output length.
+    related: [context-window, token, thinking-tokens, inference-cost, structured-output]
+
+  - slug: structured-output
+    term: "Structured output"
+    aka: ["JSON mode"]
+    category: prompting
+    teaser: "Model output that follows a fixed machine-readable format, usually JSON matching a schema you supply."
+    definition: >-
+      Structured output is model output that follows a fixed machine-readable format, usually JSON
+      matching a schema you supply. It lets code parse the answer directly instead of scraping free text.
+      Many APIs offer a JSON mode or a schema parameter for this. Some enforce the schema during
+      generation, so the output always parses. Others rely on instructions alone, so invalid output still
+      happens and needs a retry. Tool calling uses the same idea, with the model filling in the arguments
+      of a function. A valid format does not mean valid content. A field can be perfectly shaped and still
+      hold a wrong or invented value.
+    related: [constrained-decoding, tool-calling, max-tokens, hallucination]
+
+  - slug: constrained-decoding
+    term: "Constrained decoding"
+    aka: []
+    category: prompting
+    teaser: "Restricting which tokens a model may pick at each step so its output must follow a set format."
+    definition: >-
+      Constrained decoding is a technique that restricts which tokens a model may pick at each step, so
+      its output must follow a set format. At every step, tokens that would break the format are masked
+      out before one is chosen. The format can be a JSON schema, a regular expression or a formal grammar.
+      This is how some structured output features guarantee valid JSON. It works at the decoding stage, so
+      the model weights do not change. It needs access to the token scores, so it is easiest with models
+      you run yourself. Forcing a format can sometimes push the model into awkward or weaker content. It
+      guarantees the shape of an answer, not its truth.
+    related: [structured-output, logits, sampling, tool-calling]
+
+  - slug: zero-shot-classification
+    term: "Zero-shot classification"
+    aka: []
+    category: prompting
+    teaser: "Sorting text into categories using only their names or descriptions, with no labelled training examples."
+    definition: >-
+      Zero-shot classification means sorting text into categories using only the category names or
+      descriptions, with no labelled training data. With a language model, you list the labels in the
+      prompt and ask which one fits. Older approaches used models trained on natural language inference to
+      score each label. It needs no labelled examples, which makes it fast to set up. It is common for
+      tagging support tickets, routing queries and filtering content. Results depend heavily on how
+      clearly the labels are named and described. Overlapping or vague labels lead to inconsistent
+      choices. A small labelled test set is still the way to check it before trusting it.
+    related: [zero-shot-prompting, few-shot-prompting, golden-dataset, query-routing, llm-evaluation]
+
+  - slug: reasoning-model
+    term: "Reasoning model"
+    aka: []
+    category: reasoning
+    teaser: "A language model trained to think through a problem step by step before it gives a final answer."
+    definition: >-
+      A reasoning model is a language model trained to work through a problem in a chain of thought before
+      giving its final answer. It generates intermediate thinking tokens, which may be shown, summarised
+      or hidden. This extra thinking helps on maths, coding, planning and multi-step logic. Many reasoning
+      models let you set how much effort to spend. The trade-off is time and cost, since the thinking
+      tokens are generated and usually billed. For simple lookups or casual chat, the extra reasoning
+      often adds delay without a better answer. A visible chain of thought is also not guaranteed to match
+      how the model actually reached its answer.
+    related: [chain-of-thought, thinking-tokens, reasoning-effort, test-time-compute, system-2-model]
+
+  - slug: system-1-model
+    term: "System 1 model"
+    aka: ["System One model"]
+    category: decisions
+    teaser: "A class of models that judge rather than write, returning a typed decision with probabilities instead of prose."
+    definition: >-
+      A System 1 model, in current usage, is a model that judges rather than writes. Given a state and a
+      typed question, it returns a decision instead of prose. That decision might be an option, a score or
+      a yes or no probability. TypeSafe AI sold Jev, released in September 2026, as the first model
+      marketed this way. The contrastive language model CLM-8B from Hazy Research is placed in the same
+      class. The name borrows from Daniel Kahneman, who called fast, intuitive human judgement System 1.
+      An older, looser usage applies it to any model that answers in one fast pass without a reasoning
+      phase. In that sense it is the counterpart to System 2 or reasoning models. Claims that such models
+      cannot hallucinate are about output format, since they can only pick from given options. They can
+      still pick the wrong option with confidence.
+    related: [decision-model, system-2-model, jev, contrastive-language-model, reasoning-model]
+
+  - slug: system-2-model
+    term: "System 2 model"
+    aka: ["System Two model"]
+    category: reasoning
+    teaser: "A model that reasons step by step before answering, named after the slow, deliberate thinking Kahneman called System 2."
+    definition: >-
+      A System 2 model is a language model that reasons step by step before it answers, rather than
+      replying in one fast pass. The name borrows from Daniel Kahneman, who described System 2 as slow,
+      deliberate human thinking. In practice this usually means a reasoning model that generates thinking
+      tokens first. It suits maths, coding, planning and problems with many dependent steps. The cost is
+      longer waits and more tokens on every request. On easy questions it can overthink and add little.
+      The label is informal and describes behaviour, not a specific architecture. Many systems route easy
+      requests to a fast model and hard ones to a slower one.
+    related: [system-1-model, reasoning-model, test-time-compute, reasoning-effort, query-routing]
+
+  - slug: test-time-compute
+    term: "Test-time compute"
+    aka: ["inference-time compute"]
+    category: reasoning
+    teaser: "The processing a model spends while answering a request, which reasoning models raise to think longer."
+    definition: >-
+      Test-time compute is the processing a model spends while answering a request, as opposed to during
+      training. It is also called inference-time compute. Spending more of it can mean a longer chain of
+      thought, several sampled answers, or a search over candidate solutions. Reasoning models are built
+      around this idea. Instead of only training a bigger model, you let a model think longer on hard
+      problems. More test-time compute raises latency and cost on every request. The gains are largest on
+      problems with checkable steps, like maths and code. On simple tasks, extra thinking often changes
+      little.
+    related: [reasoning-model, thinking-tokens, reasoning-effort, chain-of-thought, inference-cost]
+
+  - slug: chain-of-thought
+    term: "Chain of thought"
+    aka: ["CoT"]
+    category: reasoning
+    teaser: "A model writing out intermediate reasoning steps before it gives its final answer."
+    definition: >-
+      Chain of thought is a technique where a language model writes out intermediate reasoning steps
+      before its final answer. It began as a prompting trick, such as asking the model to think step by
+      step or showing worked examples. Reasoning models now produce it on their own through training.
+      Writing steps out gives the model room to break a problem into parts. It tends to help on maths,
+      logic and multi-step questions. It adds tokens, so answers are slower and cost more. The written
+      reasoning is not always a faithful account of how the model reached its answer. A neat chain can
+      still end in a wrong conclusion.
+    related: [reasoning-model, tree-of-thoughts, thinking-tokens, few-shot-prompting, system-2-model]
+
+  - slug: tree-of-thoughts
+    term: "Tree of thoughts"
+    aka: ["ToT"]
+    category: reasoning
+    teaser: "A method where a model explores several reasoning paths as branches, keeping the promising ones."
+    definition: >-
+      Tree of thoughts is a prompting method in which a model explores several reasoning paths as branches
+      instead of one line. At each step, the model proposes a few possible next thoughts. The model, or a
+      separate check, then judges which branches look promising. Weak branches are dropped and strong ones
+      are expanded, sometimes with backtracking. This mirrors classic search methods such as breadth-first
+      or depth-first search. It suits puzzles and planning tasks where one early wrong step ruins the
+      rest. The cost is many more model calls than a single chain of thought. It is usually built as a
+      loop in application code around the model.
+    related: [chain-of-thought, beam-search, test-time-compute, reasoning-model]
+
+  - slug: thinking-tokens
+    term: "Thinking tokens"
+    aka: ["reasoning tokens"]
+    category: reasoning
+    teaser: "The tokens a reasoning model generates while working through a problem, before its final answer."
+    definition: >-
+      Thinking tokens are the tokens a reasoning model generates while working through a problem, before
+      it writes the final answer. They are also called reasoning tokens. Some providers show them in full,
+      some show a summary, and some hide them entirely. Even when hidden, they are usually billed as
+      output tokens. They also count toward output limits and add to response time. The amount of thinking
+      varies by task and can often be steered with a budget or effort setting. A simple question may use
+      few thinking tokens while a hard one uses many. So the visible answer alone undercounts what a
+      reasoning model really costs.
+    related: [reasoning-model, reasoning-effort, max-tokens, inference-cost, chain-of-thought]
+
+  - slug: reasoning-effort
+    term: "Reasoning effort"
+    aka: []
+    category: reasoning
+    teaser: "A request setting on some reasoning models that controls how much the model thinks before it answers."
+    definition: >-
+      Reasoning effort is a request setting on some reasoning models that controls how much the model
+      thinks before answering. It is often offered as named levels such as low, medium and high. Some APIs
+      use a token budget for thinking instead. Higher effort lets the model generate more thinking tokens
+      and explore the problem further. Lower effort returns faster and costs less. The right level depends
+      on the task, not on a rule that more is always better. Easy tasks gain little from high effort and
+      simply wait longer. The setting guides the model, so actual thinking length still varies between
+      requests.
+    related: [thinking-tokens, reasoning-model, test-time-compute, latency, inference-cost]
+
+  - slug: calibrated-confidence
+    term: "Calibrated confidence"
+    aka: ["calibration"]
+    category: reasoning
+    teaser: "When how sure a model sounds matches how often it is actually right."
+    definition: >-
+      Calibrated confidence means the confidence a model expresses matches how often it is actually right.
+      A well calibrated model is usually correct when it sounds sure and often wrong when it hedges.
+      Calibration can be measured from token probabilities or from confidence the model states in words.
+      Training a model to be helpful and agreeable can make it sound surer than it should. That gap is one
+      reason hallucinations can sound so convincing. Good calibration lets an application trust confident
+      answers and send doubtful ones for review. Fluent, assertive prose is not the same thing as
+      calibration. Checking it means comparing stated confidence against real answers on a labelled test
+      set.
+    related: [hallucination, log-probabilities, llm-evaluation, human-in-the-loop]
+
+  - slug: temperature
+    term: "Temperature"
+    aka: []
+    category: decoding
+    teaser: "A sampling setting that controls how random or predictable the word choices of a model are."
+    definition: >-
+      Temperature is a sampling setting that controls how random the word choices of a model are. Before
+      each token is picked, the raw scores are divided by the temperature and turned into probabilities. A
+      low temperature sharpens the spread, so the most likely tokens win almost every time. A high
+      temperature flattens it, giving less likely tokens more of a chance. Low settings suit extraction,
+      coding and classification. Higher settings suit brainstorming and creative writing. Even at zero,
+      outputs are not always identical, because of how servers batch and compute. Some reasoning models
+      fix the temperature and ignore attempts to change it.
+    related: [top-p, top-k, sampling, greedy-decoding, logits]
+
+  - slug: top-p
+    term: "Top-p"
+    aka: ["nucleus sampling"]
+    category: decoding
+    teaser: "A sampling setting that draws only from the most likely tokens whose probabilities add up to a set threshold."
+    definition: >-
+      Top-p is a sampling setting that picks only from the most likely tokens whose probabilities add up
+      to a set threshold. It is also called nucleus sampling. The model then draws the next token from
+      that smaller set. When the model is confident, the set may hold just one or two tokens. When it is
+      unsure, the set grows to include many options. This adapts at every step, unlike top-k, which always
+      keeps a fixed number. A lower threshold makes output more focused and predictable. A higher one
+      allows more variety. Many providers advise adjusting either top-p or temperature, not both.
+    related: [top-k, temperature, sampling, greedy-decoding]
+
+  - slug: top-k
+    term: "Top-k"
+    aka: []
+    category: decoding
+    teaser: "A sampling setting that limits each choice to a fixed number of the most likely next tokens."
+    definition: >-
+      Top-k is a sampling setting that limits each choice to the k most likely next tokens. All other
+      tokens are discarded, and the model samples among the ones that remain. A small k makes output safer
+      and more repetitive. A large k allows more variety but lets odd tokens through. Its weakness is that
+      the cut has the same size whatever the situation. When the model is confident, k may still admit
+      poor options. When it is unsure, k may cut off reasonable ones. Top-p adapts to this, and the two
+      are often combined with temperature. Not every hosted API exposes top-k.
+    related: [top-p, temperature, sampling, greedy-decoding]
+
+  - slug: greedy-decoding
+    term: "Greedy decoding"
+    aka: []
+    category: decoding
+    teaser: "Generating text by always picking the single most likely next token, with no randomness."
+    definition: >-
+      Greedy decoding is the simplest way to generate text, where the model always picks the single most
+      likely next token. There is no randomness, so the same input tends to give the same output. It is
+      fast and suits short, factual tasks such as extraction or classification. Setting temperature to
+      zero is the usual way to approximate it through an API. Its weakness is short-sightedness. A likely
+      word now can lead into a weak sentence later. On long open-ended text, greedy output can loop or
+      repeat itself. Beam search and sampling are the common alternatives.
+    related: [beam-search, sampling, temperature, top-k]
+
+  - slug: beam-search
+    term: "Beam search"
+    aka: []
+    category: decoding
+    teaser: "A decoding method that keeps several candidate sequences at each step and returns the best-scoring one."
+    definition: >-
+      Beam search is a decoding method that keeps several candidate sequences at each step instead of
+      committing to one token. The number of candidates kept is called the beam width. At each step every
+      candidate is extended, scored, and only the best few survive. At the end, the highest-scoring
+      complete sequence wins. It finds more probable outputs than greedy decoding by looking a little
+      further ahead. It has long been standard in machine translation and speech recognition. For
+      open-ended chat it tends to produce bland, repetitive text, so sampling is usually preferred. It
+      also costs more compute than generating a single sequence.
+    related: [greedy-decoding, sampling, tree-of-thoughts, top-p]
+
+  - slug: sampling
+    term: "Sampling"
+    aka: []
+    category: decoding
+    teaser: "Picking the next token at random according to the probabilities the model assigns, so outputs can vary."
+    definition: >-
+      Sampling is the step where a model picks its next token at random, weighted by the probabilities it
+      assigned. The model scores every token in its vocabulary, turns the scores into probabilities, then
+      draws one. Likely tokens are picked most often, but less likely ones get a chance too. Settings such
+      as temperature, top-p and top-k reshape the probabilities before the draw. Sampling is why the same
+      prompt can give different answers on different runs. That variety helps creative work and lets you
+      generate several candidates to compare. It hurts when you need repeatable output, such as tests or
+      audits. There, a low temperature or a fixed random seed helps where the API supports it.
+    related: [temperature, top-p, top-k, greedy-decoding, logits]
+
+  - slug: speculative-decoding
+    term: "Speculative decoding"
+    aka: []
+    category: decoding
+    teaser: "Speeding up generation by letting a small model draft tokens that a larger model checks in one pass."
+    definition: >-
+      Speculative decoding is a way to speed up text generation by letting a small model draft tokens that
+      a larger model checks. The small draft model proposes several tokens ahead. The large model verifies
+      all of them together in a single pass. It keeps the drafted tokens it agrees with and replaces the
+      first one it rejects. Done properly, the output follows the same distribution the large model would
+      produce alone. So quality is unchanged and only speed improves. The speed-up depends on how often
+      the draft model guesses right. It is mostly an inference-server technique, not a setting most API
+      users control.
+    related: [inference, latency, tokens-per-second, distillation, kv-cache]
+
+  - slug: retrieval-augmented-generation
+    term: "Retrieval augmented generation"
+    aka: ["RAG"]
+    category: retrieval
+    teaser: "A pattern that fetches relevant documents first and hands them to the model, so its answer draws on that text."
+    definition: >-
+      Retrieval augmented generation, or RAG, is a pattern where a system looks up relevant text before
+      the model answers. The retrieved passages are placed in the prompt alongside the question. The model
+      then writes its answer with that material in front of it. This lets a model use private, recent or
+      specialised documents it never saw in training. You meet it in support bots, internal search
+      assistants and tools that answer questions about a codebase. A typical pipeline splits documents
+      into chunks, indexes them, searches them and passes the best matches on. The answer can only be as
+      good as what the search returns. A common misconception is that RAG stops a model from making things
+      up. It reduces the risk, but the model can still misread or ignore the passages it was given.
+    related: [chunking, vector-search, reranking, grounding, hallucination]
+
+  - slug: vector-database
+    term: "Vector database"
+    aka: []
+    category: retrieval
+    teaser: "A database built to store embeddings and quickly find the ones closest to a query."
+    definition: >-
+      A vector database is a database designed to store embeddings and find the ones most similar to a
+      query. An embedding is a list of numbers that captures the meaning of a piece of text, an image or
+      other data. The database indexes these lists so it can search millions of them without comparing
+      every one. It usually stores the original text and some metadata next to each vector. You meet it
+      when building retrieval augmented generation, recommendation features or semantic search. Many
+      ordinary databases now offer vector search as an add-on, so a separate product is not always needed.
+      Most vector indexes return approximate nearest matches rather than guaranteed exact ones. That trade
+      buys speed, and it means a relevant item can occasionally be missed.
+    related: [embeddings, vector-search, semantic-search, retrieval-augmented-generation]
+
+  - slug: vector-search
+    term: "Vector search"
+    aka: []
+    category: retrieval
+    teaser: "Finding items whose embeddings sit closest to the embedding of a query."
+    definition: >-
+      Vector search is a way of finding items by comparing their embeddings with the embedding of a query.
+      Each document and the query are turned into lists of numbers by the same embedding model. The search
+      returns the items whose numbers sit closest together, using a measure such as cosine similarity.
+      Closeness in this space tends to mean closeness in meaning. You meet it inside most retrieval
+      augmented generation systems and in vector databases. Large collections use approximate nearest
+      neighbour indexes so the search stays fast. The results are only as good as the embedding model
+      behind them. Vector search can struggle with exact terms such as product codes, names or error
+      strings. That weakness is a main reason teams pair it with keyword search.
+    related: [embeddings, vector-database, semantic-search, hybrid-search]
+
+  - slug: semantic-search
+    term: "Semantic search"
+    aka: []
+    category: retrieval
+    teaser: "Search that matches on meaning rather than on the exact words typed."
+    definition: >-
+      Semantic search is search that tries to match the meaning of a query rather than its exact words. A
+      question about cancelling a plan can find a page titled ending your subscription. Most semantic
+      search today is built on embeddings and vector search. Older keyword search only finds documents
+      that share the literal terms of the query. You meet semantic search in help centres, document tools
+      and the retrieval step of RAG systems. It is good at paraphrases and loosely worded questions. It is
+      weaker on rare names, codes and exact phrases that carry little general meaning. So semantic search
+      is a complement to keyword search, not a full replacement for it.
+    related: [vector-search, embeddings, hybrid-search, reranking]
+
+  - slug: hybrid-search
+    term: "Hybrid search"
+    aka: []
+    category: retrieval
+    teaser: "Search that combines keyword matching and vector matching, then merges the two result lists."
+    definition: >-
+      Hybrid search is search that runs keyword matching and vector matching together and merges their
+      results. Keyword search is strong on exact terms such as names, codes and error messages. Vector
+      search is strong on paraphrase and meaning. Combining them covers the blind spots of each. The two
+      ranked lists are merged with a fusion method, such as reciprocal rank fusion, or a weighted blend of
+      scores. You meet it in many retrieval augmented generation pipelines and in search features of
+      vector databases. The trade-off is more moving parts and a merge setting that needs tuning on your
+      own data. A reranker is often added afterwards to sort the merged list more carefully.
+    related: [vector-search, semantic-search, reranking, retrieval-augmented-generation]
+
+  - slug: reranking
+    term: "Reranking"
+    aka: ["reranker"]
+    category: retrieval
+    teaser: "A second pass that reorders search results with a slower, more careful model before they reach the LLM."
+    definition: >-
+      Reranking is a second step in search that reorders a short list of results using a more careful
+      model. The first search pulls back many candidates quickly, often with vector or keyword search. A
+      reranker then reads the query and each candidate together and scores how well they fit. Reading both
+      together lets it catch relevance that a fast first pass misses. Only the top few results after
+      reranking are passed to the language model. You meet it in retrieval augmented generation pipelines
+      and in many search APIs. The trade-off is cost and delay, since every candidate is scored one by
+      one. Reranking cannot rescue a document the first search never returned.
+    related: [hybrid-search, vector-search, retrieval-augmented-generation, semantic-search]
+
+  - slug: graphrag
+    term: "GraphRAG"
+    aka: []
+    category: retrieval
+    teaser: "Retrieval augmented generation that searches a knowledge graph built from the documents, not just text chunks."
+    definition: >-
+      GraphRAG is a form of retrieval augmented generation that retrieves from a knowledge graph rather
+      than only from text chunks. The documents are first processed to pull out entities, such as people
+      or products, and the links between them. Those entities and links form a graph that the system can
+      walk at question time. This helps with questions that join facts spread across many documents. It
+      also helps with broad questions about themes across a whole collection. Microsoft researchers
+      popularised the name with an open source project. The trade-off is a costly build step, often using
+      a language model to extract the graph. Errors made while building the graph carry through into every
+      answer that uses it.
+    related: [knowledge-graph, retrieval-augmented-generation, entity-resolution, ontology]
+
+  - slug: knowledge-graph
+    term: "Knowledge graph"
+    aka: []
+    category: retrieval
+    teaser: "A store of facts as entities joined by named relationships, such as a company linked to its products."
+    definition: >-
+      A knowledge graph is a way of storing facts as entities connected by named relationships. An entity
+      might be a person, a company or a model, and a relationship might be made by or part of. Each fact
+      is a small link between two things, so facts can be chained together. That makes it possible to
+      answer questions that need several hops, like which products came from one lab. You meet knowledge
+      graphs in search engines, in enterprise data and in GraphRAG systems. Language models are now often
+      used to extract graphs from plain text. A graph is only as reliable as its extraction and its rules
+      for spotting duplicate entities. Building and maintaining one takes far more effort than indexing
+      text chunks.
+    related: [graphrag, ontology, entity-resolution, knowledge-base]
+
+  - slug: chunking
+    term: "Chunking"
+    aka: ["document chunking"]
+    category: retrieval
+    teaser: "Splitting documents into smaller passages so they can be indexed and retrieved one piece at a time."
+    definition: >-
+      Chunking is splitting long documents into smaller passages so each can be indexed and retrieved on
+      its own. It is one of the first steps in building a retrieval augmented generation system. Chunks
+      can be cut by a fixed number of tokens, by paragraph, by heading or by meaning. Many setups let
+      neighbouring chunks overlap a little so a sentence is not cut in half. Each chunk is usually turned
+      into an embedding and stored with a link to its source. Small chunks give precise matches but can
+      lose the surrounding context. Large chunks keep context but blur what the chunk is about and use
+      more of the prompt. There is no single right size, so teams test choices against their own documents
+      and questions.
+    related: [retrieval-augmented-generation, embeddings, vector-database, context-window]
+
+  - slug: knowledge-base
+    term: "Knowledge base"
+    aka: []
+    category: retrieval
+    teaser: "The collection of documents or facts an AI system is allowed to look things up in."
+    definition: >-
+      A knowledge base is the collection of documents, records or facts that a system can look things up
+      in. In LLM products it usually means the source material behind a retrieval step. It might hold help
+      articles, policies, product manuals or past support tickets. The model does not learn this material
+      in training; it reads relevant parts when asked. That makes a knowledge base easy to update without
+      retraining anything. You meet the term in chatbot builders, support tools and enterprise assistant
+      platforms. Answers depend on what the knowledge base contains and how current it is. An outdated or
+      contradictory knowledge base produces confident but wrong answers.
+    related: [retrieval-augmented-generation, chunking, knowledge-graph, grounding]
+
+  - slug: query-routing
+    term: "Query routing"
+    aka: []
+    category: retrieval
+    teaser: "Sending each request to the data source, tool or model best suited to handle it."
+    definition: >-
+      Query routing is deciding where each incoming request should go before it is answered. The
+      destination might be a particular index, a database, a tool or a different model. A billing question
+      might go to account records while a how-to question goes to help articles. Routing can also send
+      easy requests to a small cheap model and hard ones to a larger model. The router itself can be
+      simple rules, a classifier or a language model making a choice. You meet it in systems with several
+      data sources and in AI gateways that front many models. The trade-off is that a wrong route sends
+      the question somewhere that cannot answer it well. Those misroutes are easy to miss, so routing
+      decisions are worth logging and reviewing.
+    related: [retrieval-gating, ai-gateway, retrieval-augmented-generation, small-language-model]
+
+  - slug: retrieval-gating
+    term: "Retrieval gating"
+    aka: []
+    category: retrieval
+    teaser: "Deciding, for each query, whether to run a retrieval step at all or let the model answer directly."
+    definition: >-
+      Retrieval gating is deciding, for each query, whether to retrieve documents at all before the model
+      answers. A greeting or a simple rewrite request does not need a search. A question about a company
+      policy probably does. Skipping retrieval when it is not needed saves time and cost and keeps
+      irrelevant text out of the prompt. The gate can be a rule, a small classifier or the model itself
+      choosing to call a search tool. It is a working term used by practitioners, not a fixed standard
+      with one definition. The risk is a gate that wrongly skips retrieval and lets the model answer from
+      memory alone. That failure looks like a confident answer, so it is hard to spot without checking.
+    related: [query-routing, speculative-retrieval, retrieval-augmented-generation, tool-calling]
+
+  - slug: speculative-retrieval
+    term: "Speculative retrieval"
+    aka: []
+    category: retrieval
+    teaser: "Fetching documents that will probably be needed before it is certain they are needed, to cut waiting time."
+    definition: >-
+      Speculative retrieval is fetching documents that are likely to be needed before it is certain they
+      will be. The aim is to have relevant material ready by the time the model asks for it. A system
+      might start a search while the user is still typing or while the model is still planning. If the
+      guess is right, the answer arrives sooner because the lookup already happened. If the guess is
+      wrong, the fetched documents are thrown away. It is a working term used by practitioners, not a
+      fixed standard with one definition. The trade-off is extra searches and spending on lookups that are
+      never used. Care is also needed so unused results do not leak into the prompt and distract the
+      model.
+    related: [retrieval-gating, latency, speculative-decoding, retrieval-augmented-generation]
+
+  - slug: grounding
+    term: "Grounding"
+    aka: []
+    category: retrieval
+    teaser: "Tying a model's answer to specific source material it was given, so claims can be traced and checked."
+    definition: >-
+      Grounding is tying a model's answer to specific source material, such as retrieved documents or
+      search results. A grounded answer should only state things that the supplied sources support. Many
+      systems show citations so a reader can check each claim against its source. Grounding is the main
+      goal behind retrieval augmented generation and web search features in chat tools. You meet the word
+      in product settings that connect a model to search or to your own data. Grounding lowers the chance
+      of invented facts but does not remove it. A model can still cite a source that does not actually say
+      what the answer claims. Checking that the cited text really contains the claim is a separate step
+      worth doing.
+    related: [retrieval-augmented-generation, hallucination, knowledge-base, content-provenance]
+
+  - slug: entity-resolution
+    term: "Entity resolution"
+    aka: []
+    category: retrieval
+    teaser: "Working out when different names or records refer to the same real-world thing."
+    definition: >-
+      Entity resolution is working out when different records or names refer to the same real thing. One
+      document may say IBM and another International Business Machines, and both mean one company. Without
+      resolution, a system counts them as two entities and splits their facts apart. It is used in
+      customer databases, fraud checks and building knowledge graphs. In LLM work it matters for GraphRAG
+      and for any system that groups mentions of models or products. Methods range from exact matching and
+      alias lists to fuzzy matching and model judgements. The trade-off runs both ways: merging too
+      eagerly joins different things into one. Merging too cautiously leaves duplicates that quietly split
+      the evidence.
+    related: [knowledge-graph, graphrag, ontology, embeddings]
+
+  - slug: ontology
+    term: "Ontology"
+    aka: []
+    category: retrieval
+    teaser: "A formal list of the kinds of things in a domain and the relationships allowed between them."
+    definition: >-
+      An ontology is a formal description of the kinds of things in a domain and how they may relate. It
+      might say that a model is made by a company, and that a company is a kind of organisation. It
+      defines the vocabulary before any actual facts are stored. A knowledge graph then holds the facts,
+      and the ontology sets the rules they follow. You meet ontologies in enterprise data projects,
+      medical coding and GraphRAG pipelines. A shared ontology keeps different teams and tools using the
+      same names for the same things. The trade-off is effort, since a detailed ontology takes time to
+      design and agree on. A rigid one can also fail to fit new kinds of data as a domain changes.
+    related: [knowledge-graph, entity-resolution, graphrag, structured-output]
+
+  - slug: benchmark
+    term: "Benchmark"
+    aka: []
+    category: evaluation
+    teaser: "A fixed set of tasks with a scoring method, used to compare models on the same test."
+    definition: >-
+      A benchmark is a fixed set of test tasks with a set scoring method, used to compare models. Each
+      benchmark targets a skill, such as maths, coding, reading comprehension or tool use. Labs and
+      researchers publish benchmark results so models can be compared on the same questions. You meet
+      benchmark scores in model announcements, model cards and leaderboards. A benchmark measures only the
+      tasks it contains, under the setup used to run it. Prompt format, number of attempts and tool access
+      can all change a result. A high score does not guarantee good results on your own tasks. Popular
+      benchmarks can also leak into training data, which makes scores less trustworthy.
+    related: [llm-evaluation, benchmark-contamination, golden-dataset, model-card]
+
+  - slug: llm-evaluation
+    term: "LLM evaluation"
+    aka: ["evals"]
+    category: evaluation
+    teaser: "Testing a model or LLM app against chosen examples to see whether it does the job you need."
+    definition: >-
+      LLM evaluation, often shortened to evals, is testing a model or an LLM application on chosen
+      examples. The goal is to see whether it does the specific job you need it to do. An eval set holds
+      inputs, and often expected outputs or rules for judging a good answer. Grading can be done by code
+      checks, by people or by another model acting as a judge. Teams run evals before switching models,
+      after changing prompts and as a regular check in production. Public benchmarks are one kind of
+      evaluation, but they rarely match your own tasks. A small set built from real user requests is often
+      more useful than a famous leaderboard. The common mistake is testing on easy examples and missing
+      the cases that fail in practice.
+    related: [benchmark, llm-as-a-judge, golden-dataset, model-drift, red-teaming]
+
+  - slug: llm-as-a-judge
+    term: "LLM as a judge"
+    aka: []
+    category: evaluation
+    teaser: "Using one language model to grade or compare the outputs of another against a written rubric."
+    definition: >-
+      LLM as a judge is the practice of using a language model to grade the outputs of a model. The judge
+      is given the task, the answer and a rubric, then asked for a verdict or a preference. It is useful
+      for open-ended outputs, such as summaries or replies, that code cannot easily check. It scales far
+      beyond what human reviewers can read. You meet it in eval tools, model comparisons and automated
+      quality checks in production. Judges have known biases, such as favouring longer answers or the
+      first option shown. They can also favour outputs that resemble their own style. So judge verdicts
+      are best checked against a sample of human labels before anyone relies on them.
+    related: [llm-evaluation, golden-dataset, benchmark, rlhf]
+
+  - slug: benchmark-contamination
+    term: "Benchmark contamination"
+    aka: ["data contamination"]
+    category: evaluation
+    teaser: "When benchmark questions or answers end up in a model's training data, inflating its score on that test."
+    definition: >-
+      Benchmark contamination is when test questions or their answers end up in a model's training data.
+      Training corpora are scraped from the public web, and benchmarks are often published there. A
+      contaminated model may recall answers instead of working them out. Its score then overstates how
+      well it handles new problems of the same kind. You meet the issue when a model scores well on a
+      public test but struggles on fresh tasks. Benchmark makers respond with hidden test sets, newer
+      questions and checks for memorised text. Contamination is hard to rule out from outside, because
+      training data is rarely fully published. Testing on your own private examples is a practical guard
+      against it.
+    related: [benchmark, llm-evaluation, pretraining, golden-dataset]
+
+  - slug: model-drift
+    term: "Model drift"
+    aka: []
+    category: evaluation
+    teaser: "When a model's behaviour or usefulness changes over time, whether from updates or from shifting inputs."
+    definition: >-
+      Model drift is a change over time in how a model behaves or how well it suits its job. It can come
+      from the provider updating the model behind an unchanged name. It can also come from the world
+      changing, so real inputs no longer look like the original test cases. In LLM apps, drift often shows
+      up as changed formatting, tone, refusals or tool use. You meet it when a prompt that worked last
+      month starts producing different output. Pinning a dated model version, where a provider offers one,
+      reduces surprise updates. Running the same evals on a schedule is the usual way to catch drift
+      early. Drift is easy to mistake for a bug in your own code, so checking the model version comes
+      first.
+    related: [llm-evaluation, knowledge-cutoff, golden-dataset, inference]
+
+  - slug: hallucination
+    term: "Hallucination"
+    aka: []
+    category: evaluation
+    teaser: "When a model states something false or unsupported with the same confidence as a true answer."
+    definition: >-
+      A hallucination is when a language model produces false or unsupported content and presents it as
+      fact. Examples include invented citations, made-up function names and wrong dates. It happens
+      because a model generates likely-sounding text rather than looking up stored facts. The output often
+      reads just as fluently as a correct answer, which makes it hard to spot. You meet it most when
+      asking about obscure topics, recent events or exact details. Retrieval, grounding with citations and
+      asking the model to admit uncertainty all reduce it. None of these removes it entirely, so important
+      claims still need checking. A common misconception is that a confident tone signals a correct
+      answer.
+    related: [grounding, retrieval-augmented-generation, calibrated-confidence, knowledge-cutoff, llm-evaluation]
+
+  - slug: local-llm
+    term: "Local LLM"
+    aka: []
+    category: deployment
+    teaser: "A language model run on your own computer or server instead of through a provider's cloud API."
+    definition: >-
+      A local LLM is a language model that runs on hardware you control instead of on a provider's cloud.
+      That hardware might be a laptop, a desktop with a graphics card or a company server. It needs a
+      model with open weights and software that can load and run it. Quantized model files, often in the
+      GGUF format, make this practical on ordinary machines. People choose local models for privacy,
+      offline use, cost control or freedom to customise. The trade-off is that models small enough to run
+      locally are usually less capable than the largest hosted ones. Speed also depends heavily on your
+      memory and graphics card. Local does not mean simple, since updates, safety settings and monitoring
+      become your job.
+    related: [open-weights, quantization, gguf, on-device-ai, small-language-model]
+
+  - slug: on-device-ai
+    term: "On-device AI"
+    aka: []
+    category: deployment
+    teaser: "AI models that run directly on a phone, laptop or other personal device instead of in the cloud."
+    definition: >-
+      On-device AI is running AI models directly on a phone, laptop, watch or other personal device. The
+      data stays on the device, which helps privacy and lets features work without a connection. Responses
+      can also feel quicker because nothing travels over the network. Device makers now ship chips with
+      dedicated units for running neural networks. You meet it in features such as on-phone transcription,
+      photo search and text suggestions. The models must be small and heavily compressed to fit in limited
+      memory and battery. So many products mix the two, handling simple requests on the device and harder
+      ones in the cloud. On-device does not always mean nothing leaves the device, so product settings are
+      worth checking.
+    related: [edge-ai, local-llm, small-language-model, quantization]
+
+  - slug: edge-ai
+    term: "Edge AI"
+    aka: []
+    category: deployment
+    teaser: "Running AI close to where data is produced, on devices or nearby servers, rather than in a central cloud."
+    definition: >-
+      Edge AI is running AI models near where data is produced rather than in a distant data centre. The
+      edge might be a camera, a factory sensor, a car, a phone or a small local server. Processing nearby
+      cuts network delay and reduces how much raw data has to be sent away. It also keeps working when the
+      connection is slow or unavailable. On-device AI is one kind of edge AI, where the device itself runs
+      the model. You meet edge AI in manufacturing checks, retail cameras, vehicles and smart home
+      equipment. The trade-off is limited computing power, so models must be small and efficient. Updating
+      many scattered devices is also harder than updating one central service.
+    related: [on-device-ai, local-llm, latency, quantization]
+
+  - slug: fine-tuning
+    term: "Fine-tuning"
+    aka: []
+    category: training
+    teaser: "Further training of a pretrained model on a smaller, focused dataset so it suits one task, style or domain."
+    definition: >-
+      Fine-tuning is further training of a pretrained model on a smaller dataset chosen for one task or
+      domain. The model starts from weights that already know language, so it needs far less data than
+      training from scratch. Typical data is a set of example inputs paired with the outputs you want.
+      Teams use it to fix a tone, a format, a niche vocabulary or a narrow classification job. Full
+      fine-tuning updates every weight, while methods like LoRA update only a small add-on. Many hosted
+      providers offer it as a service on selected models. It is good at teaching behaviour and style, and
+      weak at adding new facts reliably. For fresh or changing knowledge, retrieval is usually the better
+      tool. A fine-tuned model can also lose some general skill it had before.
+    related: [lora, qlora, post-training, retrieval-augmented-generation, golden-dataset]
+
+  - slug: lora
+    term: "LoRA"
+    aka: ["low-rank adaptation"]
+    category: training
+    teaser: "A cheap way to fine-tune a model by training small add-on matrices while the original weights stay frozen."
+    definition: >-
+      LoRA, short for low-rank adaptation, is a way to fine-tune a model without changing its original
+      weights. The base weights are frozen. Small pairs of matrices are added beside some layers, and only
+      those are trained. Together they describe a compact change to the layer, which is the low-rank part
+      of the name. The result is an adapter file that is tiny next to the full model. One base model can
+      serve many adapters, swapped in per customer or per task. Training needs much less memory than full
+      fine-tuning, so it fits on modest hardware. The trade-off is reach: a small adapter may not capture
+      a large change in behaviour. Adapters are also tied to the exact base model they were trained on.
+    related: [fine-tuning, qlora, parameters, open-weights]
+
+  - slug: qlora
+    term: "QLoRA"
+    aka: []
+    category: training
+    teaser: "LoRA fine-tuning on top of a base model held in 4-bit precision, so large models can be tuned on one GPU."
+    definition: >-
+      QLoRA is a fine-tuning method that combines LoRA adapters with a base model quantized to 4-bit
+      precision. The frozen base weights are stored in compressed form to save memory. During training
+      they are expanded on the fly for each calculation. Only the small LoRA adapters are trained, and
+      they are kept at higher precision. This lets people fine-tune fairly large open-weight models on a
+      single consumer or workstation GPU. It is a common route for hobbyists and small teams adapting
+      local models. The cost is speed, since the constant decompression makes training slower. Quality can
+      also dip slightly compared with tuning on full-precision weights.
+    related: [lora, quantization, fine-tuning, local-llm, open-weights]
+
+  - slug: rlhf
+    term: "RLHF"
+    aka: ["reinforcement learning from human feedback"]
+    category: training
+    teaser: "Training a model on human preference rankings so its answers drift toward what people judge helpful and safe."
+    definition: >-
+      RLHF, or reinforcement learning from human feedback, trains a model using human judgements of its
+      answers. First, human raters compare pairs of model replies and pick the better one. Those choices
+      train a separate reward model that predicts which answers people prefer. The language model is then
+      tuned with reinforcement learning to score well on that reward model. This step is a large part of
+      what turns a raw pretrained model into a helpful assistant. It shapes tone, refusals, formatting and
+      willingness to follow instructions. The weak point is the reward model, which only approximates real
+      human judgement. A model can learn to please it, for example by sounding confident or agreeing too
+      readily. Collecting good human ratings is also slow and expensive.
+    related: [dpo, constitutional-ai, alignment, post-training]
+
+  - slug: dpo
+    term: "DPO"
+    aka: ["direct preference optimization"]
+    category: training
+    teaser: "A simpler alternative to RLHF that trains directly on pairs of preferred and rejected answers."
+    definition: >-
+      DPO, or direct preference optimization, tunes a model on pairs of answers where one is preferred
+      over the other. It uses the same kind of preference data as RLHF. The difference is that it skips
+      the separate reward model and the reinforcement learning loop. Instead, one training objective
+      pushes the model toward the preferred answer and away from the rejected one. That makes it simpler
+      to run, more stable, and cheaper in compute. It has become a common choice for preference tuning of
+      open-weight models. Its results still depend on the quality of the preference pairs. Noisy or biased
+      pairs teach the model the same noise and bias.
+    related: [rlhf, post-training, fine-tuning, alignment]
+
+  - slug: distillation
+    term: "Distillation"
+    aka: ["knowledge distillation"]
+    category: training
+    teaser: "Training a smaller student model to imitate a larger teacher, keeping much of its skill at lower running cost."
+    definition: >-
+      Distillation, or knowledge distillation, trains a smaller student model to copy the behaviour of a
+      larger teacher model. The student learns from what the teacher produces rather than only from raw
+      data. Sometimes it learns from the full spread of probabilities the teacher gives each possible next
+      token. Sometimes it simply trains on large sets of answers the teacher wrote. The goal is a model
+      that is cheaper and faster to run while keeping much of the skill. Many small and mid-sized models
+      are built partly this way. The student rarely matches the teacher everywhere, and gaps show most on
+      hard or unusual tasks. Some providers forbid using their model outputs to train competing models, so
+      check the terms.
+    related: [small-language-model, synthetic-data, fine-tuning, inference-cost]
+
+  - slug: synthetic-data
+    term: "Synthetic data"
+    aka: []
+    category: training
+    teaser: "Training or test data written by a model or a program instead of collected from real people and events."
+    definition: >-
+      Synthetic data is data generated by a model or a program rather than gathered from the real world.
+      In LLM work it often means example questions, answers or conversations written by another model.
+      Teams use it when real data is scarce, private, costly to label or missing rare cases. It is widely
+      used in post-training, distillation and building test sets. Good pipelines filter the output and
+      check it against rules or human review. The risk is that the data inherits the mistakes, blind spots
+      and phrasing habits of its generator. It can also be less varied than real data while looking
+      plentiful. Training repeatedly on such data without fresh real data can lead to model collapse.
+    related: [model-collapse, distillation, golden-dataset, post-training]
+
+  - slug: model-collapse
+    term: "Model collapse"
+    aka: []
+    category: training
+    teaser: "The slow loss of quality and variety when models are trained, generation after generation, on model-made data."
+    definition: >-
+      Model collapse is the decline in quality and diversity that occurs when models train on data
+      produced by earlier models. Each generation copies the common patterns of the last one well and the
+      rare ones badly. Over repeated rounds, unusual facts, styles and edge cases fade out. Outputs grow
+      blander, more repetitive and sometimes plainly wrong. The concern grows as more text on the web is
+      itself written by models. It matters to anyone building training sets from scraped text or synthetic
+      data. Mixing in fresh human-written data and tracking where data came from both reduce the effect.
+      It is a risk of careless data pipelines, not proof that all synthetic data is harmful.
+    related: [synthetic-data, pretraining, content-provenance, distillation]
+
+  - slug: golden-dataset
+    term: "Golden dataset"
+    aka: ["golden set"]
+    category: training
+    teaser: "A fixed, carefully checked set of inputs and correct answers used to measure whether a model or prompt works."
+    definition: >-
+      A golden dataset, or golden set, is a fixed collection of inputs with answers checked by people and
+      treated as correct. It is the reference you score a model, prompt or pipeline against. Each item
+      pairs an example with the label or output a careful person would give. Teams rerun it after every
+      change to see whether results got better or worse. It is usually small, because each answer needs
+      human attention. Its value depends on the labels being right and the examples matching real use. It
+      must stay out of training data, or scores on it stop meaning anything. Labels should never be
+      adjusted just to make a system look better.
+    related: [llm-evaluation, benchmark, benchmark-contamination, llm-as-a-judge]
+
+  - slug: constitutional-ai
+    term: "Constitutional AI"
+    aka: []
+    category: training
+    teaser: "An Anthropic training method where a model critiques and revises its own answers against a written set of principles."
+    definition: >-
+      Constitutional AI is a training method from Anthropic that guides a model with a written list of
+      principles, called a constitution. The model drafts an answer, critiques it against those
+      principles, and writes a revised version. The revised answers become training data for the model. In
+      a later stage, a model compares pairs of answers using the principles, instead of human raters doing
+      it. That replaces much of the human labelling that RLHF needs. It also makes the intended behaviour
+      easier to inspect, because the rules are written down. The method still relies on the principles
+      being well chosen and well worded. A model judging itself can also miss failures it does not
+      recognise as failures.
+    related: [rlhf, alignment, ai-safety, dpo]
+
+  - slug: alignment
+    term: "Alignment"
+    aka: ["AI alignment"]
+    category: training
+    teaser: "The work of making a model do what people actually intend, and avoid harm, rather than just what was literally asked."
+    definition: >-
+      Alignment, or AI alignment, is the effort to make AI systems act in line with human intentions and
+      values. A pretrained model only predicts likely text and has no built-in sense of what a user wants.
+      Alignment work steers it toward being helpful, honest and harmless. Common methods include RLHF,
+      DPO, constitutional AI and careful system prompts. Users meet its effects in refusals, safety
+      caveats and how a model handles ambiguous requests. It is not a switch that is on or off, and no
+      current method guarantees it. Pushing hard on safety can make a model refuse reasonable requests.
+      Pushing hard on helpfulness can make it comply with harmful ones.
+    related: [rlhf, constitutional-ai, ai-safety, guardrails, red-teaming]
+
+  - slug: inference
+    term: "Inference"
+    aka: []
+    category: inference
+    teaser: "Running a trained model to get an answer, as opposed to training it; every API call is an inference request."
+    definition: >-
+      Inference is the act of running a trained model on new input to produce an output. Training sets the
+      weights once, and inference uses those fixed weights on every request. For a language model it has
+      two phases. Prefill reads the whole prompt at once, and decoding then writes the answer one token at
+      a time. Every chat message, API call and agent step is an inference request. It is where most of the
+      ongoing cost of using a model sits, usually billed per token. Speed depends on model size, hardware,
+      prompt length and how busy the server is. The same model can run very differently across providers
+      because their inference setups differ.
+    related: [latency, inference-cost, kv-cache, quantization, tokens-per-second]
+
+  - slug: quantization
+    term: "Quantization"
+    aka: []
+    category: inference
+    teaser: "Storing model weights at lower precision, such as 8-bit or 4-bit, so the model needs less memory and runs faster."
+    definition: >-
+      Quantization stores the numbers inside a model at lower precision so it takes less memory and runs
+      faster. Weights are usually trained in 16-bit or 32-bit form. Quantization rounds them to 8-bit,
+      4-bit or even fewer bits each. A smaller model fits on cheaper hardware, including laptops and
+      phones. It also moves less data per token, which often speeds up generation. It is the main reason
+      large open-weight models can run locally. The cost is some loss of accuracy, and it grows as
+      precision drops. The same model name can behave differently at different precisions, so check which
+      version a host serves.
+    related: [gguf, qlora, local-llm, parameters, on-device-ai]
+
+  - slug: gguf
+    term: "GGUF"
+    aka: []
+    category: inference
+    teaser: "A single-file format from the llama.cpp project for storing model weights, usually quantized, to run models locally."
+    definition: >-
+      GGUF is a file format for storing a model and its settings in one file, created by the llama.cpp
+      project. It replaced an older format from the same project called GGML. A GGUF file holds the
+      weights plus metadata such as the tokenizer and the chat template. The weights are usually
+      quantized, and file names often show the precision used. Tools built on llama.cpp, such as Ollama
+      and LM Studio, load GGUF files directly. It is the most common way open-weight models are shared for
+      running on personal computers. One model often appears as many GGUF files, each a different size and
+      precision. Smaller files run on weaker hardware but give up some quality.
+    related: [quantization, local-llm, open-weights, on-device-ai]
+
+  - slug: kv-cache
+    term: "KV cache"
+    aka: ["key-value cache"]
+    category: inference
+    teaser: "Memory that stores attention data for tokens already processed, so a model does not recompute them for each new token."
+    definition: >-
+      A KV cache, or key-value cache, stores intermediate attention results so a model does not redo work
+      for earlier tokens. In a transformer, each token produces a key and a value used by the attention
+      mechanism. When writing an answer, every new token must look back at all previous tokens. Without a
+      cache, the model would recompute those keys and values at every step. The cache keeps them in memory
+      and adds only the newest token each time. This makes generation far faster, and it is standard in
+      every serving system. The price is memory, which grows with context length and with the number of
+      users served at once. That memory demand is a main limit on long contexts and on serving cost.
+    related: [attention-mechanism, prompt-caching, context-window, inference, flash-attention]
+
+  - slug: prompt-caching
+    term: "Prompt caching"
+    aka: []
+    category: inference
+    teaser: "Reusing the processed form of a repeated prompt prefix across calls, so later requests cost less and start faster."
+    definition: >-
+      Prompt caching lets a provider reuse work already done on the start of a prompt across separate
+      requests. Many apps send the same long system prompt, documents or tool list on every call. With
+      caching, the provider stores the processed state of that shared prefix. Later requests that begin
+      with the identical prefix skip reprocessing it. Cached input is usually billed at a lower rate and
+      the first token arrives sooner. Some providers cache automatically, while others need the cached
+      part to be marked. The match must be exact from the start, so a single changed character early on
+      breaks it. Caches also expire after a short idle period, so rarely repeated prompts gain little.
+    related: [kv-cache, inference-cost, time-to-first-token, system-prompt, context-engineering]
+
+  - slug: flash-attention
+    term: "FlashAttention"
+    aka: ["flash attention"]
+    category: inference
+    teaser: "A faster way to compute attention on GPUs that gives exactly the same result while moving far less data through memory."
+    definition: >-
+      FlashAttention is an algorithm that computes transformer attention faster by cutting down slow
+      memory traffic on the GPU. Standard attention builds a large table of scores between every pair of
+      tokens. Writing that table to the main GPU memory and reading it back is slow. FlashAttention splits
+      the work into small tiles that fit in the fast memory on the chip. It finishes each tile there and
+      never stores the full table. The output is the same as normal attention, not an approximation. It
+      speeds up both training and inference and makes long contexts more practical. Users rarely touch it
+      directly, because it is built into most serving and training libraries.
+    related: [attention-mechanism, kv-cache, transformer, context-window]
+
+  - slug: latency
+    term: "Latency"
+    aka: []
+    category: inference
+    teaser: "How long you wait for a response, from sending a request to a model to receiving its answer."
+    definition: >-
+      Latency is the time between sending a request to a model and getting its response. It has several
+      parts: the network trip, time waiting in a queue, reading the prompt and writing the answer. Two
+      measures matter most in practice. Time to first token covers the wait before anything appears. Total
+      latency covers the wait until the answer is complete. Long prompts, long answers, large models and
+      reasoning steps all add to it. Latency shapes how responsive a chat feels and how long an agent with
+      many steps takes. A faster model per token can still have higher latency if it writes or thinks much
+      more.
+    related: [time-to-first-token, tokens-per-second, throughput, streaming, reasoning-model]
+
+  - slug: time-to-first-token
+    term: "Time to first token"
+    aka: ["TTFT"]
+    category: inference
+    teaser: "The wait between sending a request and the first piece of the answer arriving, often shortened to TTFT."
+    definition: >-
+      Time to first token, or TTFT, is how long a model takes to return the first token of its answer. It
+      covers the network trip, any queue on the server and the work of reading the whole prompt. Longer
+      prompts take longer to process, so TTFT rises with input length. Reasoning models may spend time
+      thinking before the visible answer begins. With streaming, TTFT decides how quickly a user sees
+      something happen. That makes it the measure that most shapes how fast a chat feels. Prompt caching
+      can shorten it when requests share a long prefix. A low TTFT says nothing about how quickly the rest
+      of the answer arrives.
+    related: [latency, tokens-per-second, streaming, prompt-caching]
+
+  - slug: throughput
+    term: "Throughput"
+    aka: []
+    category: inference
+    teaser: "How much work a model server gets through in total, usually measured as tokens processed across all users over time."
+    definition: >-
+      Throughput is the total amount of work a model deployment completes in a given time, across all
+      requests. It is usually counted as tokens generated per second for the whole server, not for one
+      user. Servers raise throughput by batching, which processes many requests together on the same
+      hardware. High throughput lowers the cost of each token, which matters for providers and batch jobs.
+      It is a different thing from the speed a single user sees. Packing more requests into a batch raises
+      throughput but can slow each individual response. So a provider tuned for cheap bulk work may feel
+      slower in an interactive chat.
+    related: [tokens-per-second, latency, batch-api, inference-cost]
+
+  - slug: tokens-per-second
+    term: "Tokens per second"
+    aka: []
+    category: inference
+    teaser: "How fast a model writes its answer once it has started, measured as output tokens produced each second."
+    definition: >-
+      Tokens per second is the rate at which a model produces output once generation has begun. It is
+      usually measured for a single request, after the first token appears. It decides how long a long
+      answer takes to finish. It depends on model size, hardware, quantization, server load and the
+      serving software. The same model can show very different speeds from one provider to another.
+      Comparisons across models need care, because different tokenizers split text into different numbers
+      of tokens. A high rate does not mean a quick answer if the model also writes a lot of hidden
+      reasoning.
+    related: [time-to-first-token, throughput, latency, tokenizer]
+
+  - slug: inference-cost
+    term: "Inference cost"
+    aka: []
+    category: inference
+    teaser: "What it costs to run a model on your requests, usually billed per token for input and output separately."
+    definition: >-
+      Inference cost is what you pay to run a model on your requests, rather than to train it. Hosted APIs
+      usually bill per token, with separate rates for input and output. Output tokens typically cost more
+      than input tokens. Reasoning tokens are usually billed as output even when they are hidden. Cached
+      input and batch processing are often billed at lower rates. For self-hosted models, the cost is
+      hardware, power and the work of running it. The price per token is only half the picture. A cheaper
+      model that writes longer answers or needs retries can cost more per finished task.
+    related: [prompt-caching, batch-api, thinking-tokens, token, small-language-model]
+
+  - slug: rate-limit
+    term: "Rate limit"
+    aka: ["rate limiting"]
+    category: inference
+    teaser: "A cap a provider sets on how many requests or tokens you can send in a period of time."
+    definition: >-
+      A rate limit is a cap on how many requests or tokens an account can send to a model in a set period.
+      Providers use limits to share capacity fairly and protect their servers. Limits are often counted
+      per minute, per day, or both, and may apply to input and output tokens separately. Higher usage
+      tiers or paid plans usually come with higher limits. When a limit is hit, the API returns an error
+      instead of an answer. Well-built clients wait and retry with growing pauses rather than failing at
+      once. Agents and batch jobs hit limits often because they send many calls quickly. Limits can bind
+      before cost does, so they matter when choosing a provider.
+    related: [batch-api, ai-gateway, throughput, bring-your-own-key]
+
+  - slug: batch-api
+    term: "Batch API"
+    aka: []
+    category: inference
+    teaser: "A way to submit many model requests at once for processing later, usually at a lower price than live calls."
+    definition: >-
+      A batch API lets you submit a large set of model requests together and collect the results later.
+      You upload the requests as one job instead of calling the model for each one. The provider runs them
+      when it has spare capacity, within a stated time window. In return, batch requests are usually
+      priced below normal live calls. They also tend to sit outside the usual per-minute rate limits. It
+      suits work nobody is waiting on, such as classifying a large archive or running evaluations. It does
+      not suit chat or anything interactive, because results can take hours. Failed items in a batch still
+      need to be found and resubmitted.
+    related: [inference-cost, rate-limit, throughput, llm-evaluation]
+
+  - slug: streaming
+    term: "Streaming"
+    aka: []
+    category: inference
+    teaser: "Sending a model answer piece by piece as it is written, instead of waiting for the whole reply."
+    definition: >-
+      Streaming is when a model API sends its answer in small pieces as they are generated, rather than
+      all at the end. It usually works over a long-lived connection that pushes each new chunk to the
+      client. Chat apps use it so words appear on screen while the model is still writing. It makes the
+      wait feel shorter, because the user sees progress early. The total time to the full answer is about
+      the same as without streaming. Streaming makes some tasks harder, such as parsing structured output
+      or checking content before it is shown. A stream can also break midway, so clients need to handle
+      partial answers.
+    related: [time-to-first-token, latency, structured-output, tool-calling]
+
+  - slug: ai-gateway
+    term: "AI gateway"
+    aka: []
+    category: inference
+    teaser: "A layer between your app and model providers that routes, logs and controls all model calls through one place."
+    definition: >-
+      An AI gateway is a proxy that sits between an application and one or more model providers. The app
+      sends every model call to the gateway instead of to each provider. The gateway forwards the request,
+      often through a single common API format. It can switch providers on failure, route requests by cost
+      or task, and cache repeated answers. It also centralises API keys, rate limits, logging and spending
+      reports. Teams adopt one when they use several models or need oversight across many apps. The
+      trade-off is an extra network hop and another service that can fail. It also sees every prompt and
+      response, so it must be trusted with that data.
+    related: [query-routing, rate-limit, bring-your-own-key, inference-cost, guardrails]
+
+  - slug: bring-your-own-key
+    term: "Bring your own key"
+    aka: ["BYOK"]
+    category: inference
+    teaser: "Using a third-party AI tool with your own provider API key, so model usage is billed to your own account."
+    definition: >-
+      Bring your own key, or BYOK, means supplying your own model provider API key to a tool built by
+      someone else. The tool then calls the model on your account rather than its own. Usage is billed by
+      the provider directly to you. Your own rate limits and data terms with that provider apply. Many
+      coding assistants, chat apps and AI gateways offer it as an option. It can give access to models the
+      tool does not include by default. The trade-off is trust, since the tool holds a key that can spend
+      your money. Use keys with spending caps or narrow permissions, and revoke them when no longer
+      needed.
+    related: [ai-gateway, rate-limit, inference-cost, agentic-coding]
+
+  - slug: ai-agent
+    term: "AI agent"
+    aka: []
+    category: agents
+    teaser: "A program that uses a language model to choose actions, call tools and work toward a goal over several steps."
+    definition: >-
+      An AI agent is a program that uses a language model to decide what to do next toward a goal. It
+      works in a loop rather than answering once. The model reads the task, picks an action such as a
+      search or a file edit, and sees the result. Then it decides the next step, until it judges the job
+      done or hits a limit. You meet agents in coding assistants, research tools and support bots that
+      take actions for you. Building one means giving the model tools, instructions and a way to stop. The
+      common misconception is that an agent understands its goal the way a person does. It only predicts a
+      useful next step, so small errors can compound over a long run. That is why most agents run with
+      step limits, logs and checks on risky actions.
+    related: [tool-calling, agentic-workflow, react-agent, agent-memory, human-in-the-loop]
+
+  - slug: agentic-ai
+    term: "Agentic AI"
+    aka: []
+    category: agents
+    teaser: "A broad label for AI systems that plan and act on their own across several steps, rather than replying once."
+    definition: >-
+      Agentic AI is a broad label for systems where a model plans and takes actions, not just answers. The
+      model is given a goal, tools and some freedom to decide the order of steps. It might search, write
+      code, run it, read the error and try again without a person in between. The word describes a degree
+      of independence rather than one specific technique. A chatbot that only replies sits at one end, and
+      a fully autonomous agent sits at the other. Most real products sit in between, with fixed steps and
+      a few model decisions. You will see the term in product launches and vendor pitches, often loosely.
+      The trade-off is control: more autonomy means fewer prompts from you and more room for silent
+      mistakes. Asking which decisions the model actually makes is a good way to cut through the label.
+    related: [ai-agent, agentic-workflow, human-in-the-loop, multi-agent-system]
+
+  - slug: agentic-workflow
+    term: "Agentic workflow"
+    aka: []
+    category: agents
+    teaser: "A multi-step process where a language model makes some of the decisions between steps, inside a structure set by code."
+    definition: >-
+      An agentic workflow is a multi-step process where a language model makes some of the decisions. The
+      steps and their order are usually laid out in code. The model fills in the judgement calls, such as
+      which document to read or whether a draft is good enough. A typical example drafts an answer, checks
+      it against sources and revises it before replying. This sits between a single prompt and a fully
+      free agent. Builders choose it when a task has a known shape but needs flexible handling inside each
+      step. It is easier to test and debug than an open loop, because each step can be inspected. The
+      trade-off is that fixed steps cannot adapt to a task that does not fit the plan. Many teams start
+      here and give the model more freedom only where it proves reliable.
+    related: [ai-agent, workflow-orchestration, agentic-ai, tool-calling, human-in-the-loop]
+
+  - slug: multi-agent-system
+    term: "Multi-agent system"
+    aka: []
+    category: agents
+    teaser: "A setup where several AI agents, each with its own role or tools, work together on one task."
+    definition: >-
+      A multi-agent system is a setup where several AI agents work together on one task. Each agent
+      usually has its own instructions, tools or slice of the problem. A common pattern has one lead agent
+      that splits the job and hands parts to sub-agents. The sub-agents report back, and the lead agent
+      combines their results. This helps when parts of a task can run in parallel or need different
+      skills. It also keeps each context window smaller, since no single agent holds everything. You meet
+      it in research assistants, coding tools and pipelines that mix cheap and expensive models. The
+      trade-off is overhead: more model calls, more cost and more places for a handoff to lose detail. A
+      single well-built agent is often enough, so splitting work should solve a real problem.
+    related: [ai-agent, a2a-protocol, workflow-orchestration, agentic-workflow]
+
+  - slug: agent-memory
+    term: "Agent memory"
+    aka: []
+    category: agents
+    teaser: "The ways an AI agent keeps information between steps or sessions, since the model itself remembers nothing between calls."
+    definition: >-
+      Agent memory is how an AI agent keeps information beyond a single model call. The model itself is
+      stateless, so anything it should recall must be passed back in. Short-term memory is usually the
+      running conversation and recent tool results in the context window. Long-term memory is stored
+      outside the model, in files, a database or a vector store. The agent, or code around it, decides
+      what to save and what to fetch back later. You meet this when an assistant remembers your
+      preferences or a coding agent keeps notes on a project. A common misconception is that the model
+      learns from these memories. Its weights do not change, it simply reads stored text again. The
+      trade-off is relevance: too little memory forgets context, and too much fills the window with noise.
+    related: [context-window, context-engineering, vector-database, retrieval-augmented-generation, ai-agent]
+
+  - slug: tool-calling
+    term: "Tool calling"
+    aka: ["function calling"]
+    category: agents
+    teaser: "The way a language model asks your code to run a function, by returning a structured request instead of plain text."
+    definition: >-
+      Tool calling, also called function calling, lets a language model ask your code to run a function.
+      You describe each tool to the model with a name, a purpose and the inputs it takes. When a tool
+      would help, the model replies with a structured request naming the tool and its arguments. Your code
+      runs the tool and sends the result back for the model to use. The model never executes anything
+      itself, it only proposes the call. This is how assistants check the weather, query a database or
+      edit files. It is the basic building block of most AI agents. The misconception to avoid is trusting
+      the arguments blindly. The model can pick the wrong tool or invent values, so your code should
+      validate every call.
+    related: [ai-agent, structured-output, model-context-protocol, tool-gating, react-agent]
+
+  - slug: tool-gating
+    term: "Tool gating"
+    aka: []
+    category: agents
+    teaser: "Code that decides which tools an AI agent may call, and when it must stop and ask a person first."
+    definition: >-
+      Tool gating means code deciding which tools an AI agent may call and when it must ask first. It is a
+      working term used by builders rather than a fixed standard. The gate sits between the model and the
+      tools. It might allow reading files freely but require approval before deleting one or sending an
+      email. It can also hide tools entirely for a given task or user. The point is that the decision
+      lives in ordinary code, not in the prompt. A model told to be careful can still be talked out of it,
+      but a code check cannot. You meet this as permission prompts in coding agents and approval steps in
+      business automations. The trade-off is friction: too many prompts and people approve without
+      reading.
+    related: [tool-calling, human-in-the-loop, guardrails, prompt-injection, ai-agent]
+
+  - slug: model-context-protocol
+    term: "Model Context Protocol"
+    aka: ["MCP"]
+    category: agents
+    teaser: "An open standard from Anthropic for connecting AI applications to tools and data sources through one common interface."
+    definition: >-
+      The Model Context Protocol, or MCP, is an open standard for connecting AI applications to tools and
+      data. Anthropic introduced it, and many other tools and vendors now support it. A service exposes
+      its tools and data through an MCP server. An AI application acts as the client and can then use any
+      compatible server without custom glue code. Think of it as a common plug shape for connecting
+      assistants to things like files, databases and work apps. You meet it when adding connectors to a
+      chat app or giving a coding agent access to a service. It standardises how tools are described and
+      called, not what the model does with them. The main caution is trust, since a server can return text
+      that tries to steer the model. Install servers from sources you trust and keep risky tools behind
+      approval.
+    related: [tool-calling, a2a-protocol, prompt-injection, tool-gating, ai-agent]
+
+  - slug: a2a-protocol
+    term: "A2A protocol"
+    aka: ["agent-to-agent protocol"]
+    category: agents
+    teaser: "An open protocol from Google that lets AI agents built by different teams discover each other and hand off tasks."
+    definition: >-
+      The A2A protocol, short for agent-to-agent, is an open standard for AI agents to talk to each other.
+      Google introduced it so agents built on different platforms could cooperate. Each agent publishes a
+      description of what it can do. Another agent can find it, send it a task and track the result as the
+      work progresses. The agents do not need to share code, models or internal memory. It is often
+      described as a companion to MCP. MCP connects one agent to tools and data, while A2A connects agents
+      to other agents. You meet it mainly in enterprise settings that link agents from several vendors. As
+      with any handoff, each side must still decide how far to trust what the other sends back.
+    related: [model-context-protocol, multi-agent-system, ai-agent, workflow-orchestration]
+
+  - slug: react-agent
+    term: "ReAct agent"
+    aka: ["ReAct"]
+    category: agents
+    teaser: "An agent pattern where the model alternates between reasoning about a step and acting on it, then reads the result."
+    definition: >-
+      ReAct is an agent pattern where a model alternates between reasoning and acting. The name joins the
+      two words, and it began as a research method. At each step the model writes a short thought about
+      what to do next. It then takes an action, such as a search or a tool call, and reads what comes
+      back. That observation feeds the next thought, and the loop repeats until the model answers. Writing
+      the reasoning down helps the model plan and lets a person follow its path. Many agent frameworks use
+      this loop by default, sometimes without naming it. The trade-off is cost and time, since every step
+      is another model call. The written thoughts can also sound confident while the plan is wrong, so the
+      results still need checking.
+    related: [ai-agent, chain-of-thought, tool-calling, agentic-workflow]
+
+  - slug: computer-use
+    term: "Computer use"
+    aka: []
+    category: agents
+    teaser: "A model controlling a computer the way a person does, by reading screenshots and sending clicks and keystrokes."
+    definition: >-
+      Computer use is when a model operates a computer through its screen, mouse and keyboard. The model
+      receives a screenshot and decides where to click or what to type. Code carries out that action,
+      takes a new screenshot and sends it back. This loop lets an agent work with apps that have no API,
+      such as old desktop software or websites. It needs a model that can read images as well as text. You
+      meet it in browser agents and tools that fill forms or test interfaces. It is slower and more
+      fragile than calling an API, since layouts change and pages load at different speeds. It also
+      carries real risk, because a wrong click can send, buy or delete something. Most setups run it in a
+      sandboxed machine and ask a person before sensitive steps.
+    related: [ai-agent, vision-language-model, tool-calling, human-in-the-loop, prompt-injection]
+
+  - slug: agentic-coding
+    term: "Agentic coding"
+    aka: []
+    category: agents
+    teaser: "Using an AI agent that reads a codebase, edits files and runs commands to complete a programming task."
+    definition: >-
+      Agentic coding is using an AI agent that carries out programming tasks across a codebase. Rather
+      than suggesting one line, the agent reads files, edits several of them and runs commands. It can run
+      the tests, read the failures and try again. The developer describes the goal and reviews the
+      changes, often as a diff or a pull request. You meet it in terminal tools, editor extensions and
+      hosted coding agents. It works best on tasks with a clear check, such as a test suite that must
+      pass. The misconception is that a passing run means correct code. An agent can make tests pass by
+      weakening them or by solving the wrong problem. Careful review of what changed remains the job of
+      the developer.
+    related: [ai-agent, vibe-coding, tool-gating, human-in-the-loop, tool-calling]
+
+  - slug: vibe-coding
+    term: "Vibe coding"
+    aka: []
+    category: agents
+    teaser: "Building software by describing what you want to an AI and accepting its code without reading it closely."
+    definition: >-
+      Vibe coding is building software by prompting an AI and accepting its code without reading it
+      closely. You describe what you want, run the result and ask for fixes when something looks wrong.
+      The focus is on whether the app seems to work, not on how the code is written. The term is informal
+      and often used with a wink. It suits quick prototypes, personal tools and trying out an idea in an
+      afternoon. It lets people with little programming background build something that runs. The risk is
+      hidden problems, such as security holes, leaked keys or code nobody can maintain. Those rarely show
+      up when you only check whether the screen looks right. For anything others rely on, someone still
+      needs to read and test the code.
+    related: [agentic-coding, ai-agent, hallucination, human-in-the-loop]
+
+  - slug: human-in-the-loop
+    term: "Human in the loop"
+    aka: ["HITL"]
+    category: agents
+    teaser: "A design where a person reviews, approves or corrects an AI system at chosen points instead of letting it run alone."
+    definition: >-
+      Human in the loop, or HITL, means a person reviews or approves an AI system at chosen points. The
+      system pauses and waits before a step that matters. That might be sending an email, spending money,
+      merging code or publishing an answer. The person can approve, edit or reject, and the system carries
+      on from there. It is also used to label data or correct outputs so a system can improve. You meet it
+      as approval prompts in agents and review queues in business tools. The benefit is that costly
+      mistakes are caught before they happen. The trade-off is speed, and a reviewer who sees too many
+      requests starts approving without reading. Good designs ask only at the steps where a mistake would
+      be hard to undo.
+    related: [tool-gating, ai-agent, guardrails, agentic-workflow, computer-use]
+
+  - slug: workflow-orchestration
+    term: "Workflow orchestration"
+    aka: []
+    category: agents
+    teaser: "The code or service that runs the steps of an AI pipeline in order, passes data between them and handles failures."
+    definition: >-
+      Workflow orchestration is the layer that runs the steps of a pipeline in the right order. In AI
+      systems those steps might be retrieval, several model calls, tool calls and a final check. The
+      orchestrator passes each output to the next step and decides what runs in parallel. It also handles
+      retries, timeouts and what happens when a step fails. It can be a few functions in your own code or
+      a dedicated framework or service. You meet it whenever an application does more than send one prompt
+      and show the reply. Keeping the order in code makes the system easier to test and to reason about.
+      The trade-off is that a heavy framework can hide what is actually being sent to the model. Simple
+      pipelines often need nothing more than plain code and good logging.
+    related: [agentic-workflow, multi-agent-system, ai-agent, ai-gateway]
+
+  - slug: guardrails
+    term: "Guardrails"
+    aka: ["AI guardrails"]
+    category: safety
+    teaser: "Checks placed around a language model to block, filter or correct unsafe or off-topic inputs and outputs."
+    definition: >-
+      Guardrails are checks placed around a language model to keep its inputs and outputs within set
+      limits. An input guardrail inspects a request before the model sees it. An output guardrail inspects
+      the answer before a user or another system receives it. Checks can be simple rules, such as a
+      blocked word list, or a second model acting as a classifier. They are used to stop harmful content,
+      leaks of private data, off-topic replies or malformed output. You meet them in customer-facing
+      chatbots and in agent tools that guard risky actions. The misconception is that guardrails make a
+      system safe on their own. They catch known patterns and can be both too strict and too loose. They
+      work best as one layer among several, alongside limited permissions and human review.
+    related: [prompt-injection, jailbreak, pii-detection, tool-gating, ai-safety]
+
+  - slug: prompt-injection
+    term: "Prompt injection"
+    aka: []
+    category: safety
+    teaser: "An attack that hides instructions inside text a model reads, so the model follows the attacker instead of you."
+    definition: >-
+      Prompt injection is an attack that slips instructions into text a language model will read. The
+      model cannot reliably tell your instructions apart from text it was only meant to process. Direct
+      injection is a user typing commands meant to override the system prompt. Indirect injection hides
+      instructions in a web page, email, document or tool result the model reads later. It matters most
+      for agents, since a hijacked agent can send data or take actions. You face it whenever a model reads
+      content that someone else could have written. It is different from a jailbreak, which targets safety
+      rules rather than the application. No prompt wording fully prevents it. The sturdier defence is
+      limiting what the model can do, gating risky tools and treating outside text as untrusted.
+    related: [jailbreak, tool-gating, guardrails, model-context-protocol, red-teaming]
+
+  - slug: jailbreak
+    term: "Jailbreak"
+    aka: ["adversarial prompting"]
+    category: safety
+    teaser: "A prompt crafted to get a model to ignore its safety training and produce content it would normally refuse."
+    definition: >-
+      A jailbreak is a prompt crafted to make a model ignore its safety training. The goal is to get
+      content the model would normally refuse to produce. Common tricks include role play, fictional
+      framing, splitting a request into harmless parts or using odd encodings. Model providers patch known
+      jailbreaks, and people keep finding new ones. It is related to prompt injection, but the target
+      differs. A jailbreak attacks the safety rules of the model itself, usually by the person typing.
+      Prompt injection attacks an application by hiding instructions in content the model reads. For
+      builders, the lesson is not to rely on the model alone to refuse harmful requests. Output checks and
+      limited permissions catch what a successful jailbreak gets through.
+    related: [prompt-injection, red-teaming, guardrails, alignment, ai-safety]
+
+  - slug: red-teaming
+    term: "Red teaming"
+    aka: []
+    category: safety
+    teaser: "Deliberately attacking an AI system to find harmful behaviour, weaknesses and failure modes before real users do."
+    definition: >-
+      Red teaming is deliberately attacking an AI system to find its weaknesses before others do. The name
+      comes from security and military practice, where a red team plays the adversary. Testers try
+      jailbreaks, prompt injections, misleading questions and misuse scenarios. They look for harmful
+      outputs, data leaks, biased answers and unsafe actions. Some red teaming is done by people, and some
+      uses other models to generate attacks at scale. Model developers do it before release, and companies
+      do it on their own applications. You can apply the same idea to a small chatbot by trying to break
+      it yourself. The limit is coverage: a red team finds the problems it thinks to look for. Passing a
+      red team exercise shows those attacks failed, not that no attack will succeed.
+    related: [jailbreak, prompt-injection, ai-safety, llm-evaluation, guardrails]
+
+  - slug: ai-safety
+    term: "AI safety"
+    aka: []
+    category: safety
+    teaser: "The work of making AI systems behave as intended and avoid causing harm, from everyday misuse to long-term risks."
+    definition: >-
+      AI safety is the field concerned with making AI systems behave as intended and avoid harm. It covers
+      near-term problems such as harmful content, misuse, privacy leaks and unfair outputs. It also covers
+      longer-term concerns about powerful systems pursuing goals people did not intend. Methods include
+      alignment training, evaluations, red teaming and monitoring after release. For builders, safety also
+      means system design, like limiting what an agent can touch. You meet it in model cards, usage
+      policies, refusals and approval prompts. The term is sometimes confused with security, which focuses
+      on attackers. The two overlap, but safety also covers harm when nobody is attacking at all. No
+      single method is enough, so safety work relies on several layers together.
+    related: [alignment, red-teaming, guardrails, constitutional-ai, rlhf]
+
+  - slug: pii-detection
+    term: "PII detection"
+    aka: []
+    category: safety
+    teaser: "Finding personal details such as names, emails and ID numbers in text so they can be masked before reaching a model or log."
+    definition: >-
+      PII detection is finding personally identifiable information in text, such as names, emails and
+      phone numbers. It also covers addresses, account numbers and government ID numbers. Detectors use
+      patterns for things with a fixed shape and models for things like names in free text. Once found,
+      the details can be masked, replaced with placeholders or blocked. In LLM applications it often runs
+      before a prompt is sent to an outside model provider. It may also run on outputs and logs so private
+      details are not stored or shown. You meet it in enterprise gateways, support tools and data
+      pipelines that feed training sets. The trade-off is between misses and false alarms. A strict
+      detector damages useful text, while a loose one lets private data through.
+    related: [guardrails, ai-gateway, ai-safety, synthetic-data]
+
+  - slug: content-provenance
+    term: "Content provenance"
+    aka: ["C2PA"]
+    category: safety
+    teaser: "Records attached to an image, video or document that show where it came from and how it was made or edited."
+    definition: >-
+      Content provenance is a record of where a piece of media came from and how it was changed. C2PA is
+      the main open standard for it, created by an industry coalition. Under C2PA, signed metadata travels
+      with a file and lists its source and edits. A camera, editing app or AI image tool can add an entry
+      saying what it did. Anyone can then inspect the record and check that the signature is intact. You
+      meet it as content credentials on images, and in labels marking media as AI-generated. It is
+      different from a watermark, which is hidden inside the content itself. The main limitation is that
+      metadata can be stripped, for example by a screenshot. A missing record does not prove a file is
+      fake, only that its history is unknown.
+    related: [ai-safety, multimodal-model, guardrails]
+
+  - slug: decision-model
+    term: "Decision model"
+    aka: ["typed decision model"]
+    category: decisions
+    teaser: "A model that answers a typed question with a decision and probabilities, rather than writing prose."
+    definition: >-
+      A decision model is an AI model that returns a typed decision instead of written text. The caller
+      declares the shape of the answer in advance. That might be a closed list of options, a bounded
+      score, or a yes or no probability. The model then spreads a probability across the possible answers.
+      Software can act on that directly, for example approving confident cases and sending the rest to a
+      person. This differs from a chat model in a structured output mode, which still writes tokens that
+      get parsed. It also differs from a trained classifier, because the labels arrive with each call and
+      need no retraining. Readers meet it in ticket triage, request routing and choosing the next step for
+      an agent. No standards body defines the term, so vendors use it loosely or strictly. Current builds
+      still struggle with counting, dates and long or noisy input, and need a bounded set of answers.
+    related: [system-1-model, jev, calibrated-confidence, structured-output, human-in-the-loop]
+
+  - slug: jev
+    term: "Jev"
+    aka: ["TypeSafe Jev"]
+    category: decisions
+    teaser: "A decision model from TypeSafe AI, released in September 2026 and marketed as the first System One model."
+    definition: >-
+      Jev is a decision model from TypeSafe AI, released in September 2026. TypeSafe markets it as the
+      first System One model, a model that judges rather than writes. A caller sends a state, as text or
+      JSON, plus typed questions defined in code. TypeSafe describes three question types: Choice picks
+      one option, Score places an item on a scale, and Noul gives a yes or no probability. The reply holds
+      only numbers and listed values, with no prose, rationale or code. TypeSafe says all answers come
+      from a single pass over the input. Each question is judged separately against that same reading. It
+      was trained with RLCD, a vendor objective aimed at honest probabilities, instead of RLHF. The
+      weights are closed, access is hosted only, and it handles text alone. Its published benchmark
+      results are self-reported and measure agreement with labels from other models, not checked ground
+      truth.
+    related: [decision-model, system-1-model, noul, rlcd, closed-model]
+
+  - slug: noul
+    term: "Noul"
+    aka: []
+    category: decisions
+    teaser: "The yes or no question type in TypeSafe Jev, which returns one probability that the answer is yes."
+    definition: >-
+      Noul is the name TypeSafe gives to the yes or no question type in its Jev model. It is a question
+      format, not a model in its own right. A caller asks something like whether a customer wants to speak
+      to a human agent. Jev answers with a single probability, between zero and one, that the answer is
+      yes. A value close to either end means the model is close to certain. A value near the middle means
+      it is unsure. There is no separate confidence field and no explanation alongside the number. The
+      name is coined by TypeSafe and is not a general industry term. The probability is only useful as a
+      threshold if it is well calibrated, which is a separate question from being right.
+    related: [jev, decision-model, calibrated-confidence, rlcd]
+
+  - slug: openai-decisions-api
+    term: "OpenAI Decisions API"
+    aka: ["Decisions API"]
+    category: decisions
+    teaser: "An OpenAI interface, announced in September 2026, that answers a question by picking from answers you define."
+    definition: >-
+      The OpenAI Decisions API is an interface that answers a user-defined question by choosing from
+      answers the caller supplies. OpenAI announced it at DevDay on 29 September 2026, first as a limited
+      preview. The context it judges can be text or images. OpenAI describes uses such as classifying
+      content, routing requests and choosing the next action for an agent. It is a way of calling a
+      general model from the GPT-6 Luna family, not a separate model trained only to decide. Our catalog
+      lists it as a GPT-6 Luna Decisions entry. Its behaviour and biases therefore follow the underlying
+      model. Quality depends heavily on how well the answer options are written. Any confidence number it
+      returns is only meaningful if it is calibrated. OpenRouter has an unrelated product also called a
+      Decisions API, so check which one a source means.
+    related: [decision-model, structured-output, query-routing, agent-action-selection, calibrated-confidence]
+
+  - slug: rlcd
+    term: "RLCD"
+    aka: ["reinforcement learning for calibrated decisions"]
+    category: decisions
+    teaser: "A vendor training objective that rewards a model when its stated probabilities match how often it is right."
+    definition: >-
+      RLCD, short for reinforcement learning for calibrated decisions, is a post-training objective coined
+      by TypeSafe AI. TypeSafe introduced it in September 2026 to train its Jev decision model. The reward
+      depends on whether the probability a model states matches how often it turns out right. RLHF, by
+      contrast, rewards answers that people prefer. Other methods reward outputs that a program can check
+      mechanically. RLCD aims instead at honest probabilities. It is a vendor term, not an industry
+      standard, and no paper describes it. Its reward design, data and calibration results are unpublished
+      and have not been reproduced independently. Calibration is not accuracy, since a well calibrated
+      model can still be wrong often. The same letters also name reinforcement learning from contrastive
+      distillation, an unrelated alignment method from 2023.
+    related: [jev, calibrated-confidence, rlhf, post-training, decision-model]
+
+  - slug: contrastive-language-model
+    term: "Contrastive language model"
+    aka: ["CLM"]
+    category: decisions
+    teaser: "A model that ranks candidate actions by how well each fits a state, without generating any text."
+    definition: >-
+      A contrastive language model scores how well each candidate action fits a given state, and writes no
+      text. It uses two encoders, one for states and one for actions. Candidates are ranked by how closely
+      their embeddings line up with the state. Training pulls the state toward the action actually taken
+      and pushes it away from the alternatives. Hazy Research describes CLM-8B, announced in September
+      2026, as the first released model of this kind. It has open weights and sits beside Jev in the
+      System One class. Because each candidate is embedded on its own, a fixed set can be embedded once
+      and reused. Its scores are normalised across the candidates supplied, so they are not calibrated
+      probabilities. Changing the candidate list changes every score. Note that CLM also abbreviates
+      causal language model, the ordinary next-token predictor behind GPT-style models.
+    related: [system-1-model, decision-model, embeddings, agent-action-selection, open-weights]
+
+  - slug: decision-audit-trail
+    term: "Decision audit trail"
+    aka: []
+    category: decisions
+    teaser: "A stored record that lets someone reconstruct and review an automated decision after it was made."
+    definition: >-
+      A decision audit trail is a record that lets someone rebuild and review an automated decision later.
+      It stores the exact input the model saw, pinned to a version. It also keeps the question or policy,
+      the model version and the full output, with a probability for every option. The threshold in force,
+      the action taken and any human override, with who and when, belong there too. Model versions matter
+      because a hosted model can change while keeping the same name. A trail supports accountability when
+      someone asks why a decision affected them. It also helps explain decision models, which give no
+      rationale of their own. Engineers can debug by replaying a stored input against the same versions.
+      Replay only works if every version was saved. A stored score describes how an item was sorted, not a
+      fact about a person, so record whether anyone confirmed it.
+    related: [decision-model, human-in-the-loop, observability, model-drift, calibrated-confidence]
+
+  - slug: agent-action-selection
+    term: "Agent action selection"
+    aka: []
+    category: agents
+    teaser: "The step in an agent loop where the system picks its next move, such as calling a tool or stopping."
+    definition: >-
+      Agent action selection is the step in an agent loop where the system chooses its next move. That
+      move might be calling a tool, asking the user, handing off to another agent, or stopping. The common
+      default lets the language model pick through tool calling. Another approach is a fixed workflow that
+      consults a model only at branch points. A third uses a separate decision model or classifier that
+      chooses from a closed list. A closed list prevents invented or malformed tool calls and is easier to
+      review. It can also run on a cheaper model, at the cost of flexibility and upkeep. Common safeguards
+      include tool gating and confidence thresholds that send risky or irreversible actions to a person.
+      Logging every choice makes the loop reviewable after the fact.
+    related: [tool-calling, tool-gating, decision-model, ai-agent, human-in-the-loop]
+
+  - slug: ai-workflows
+    term: "AI workflows"
+    aka: []
+    category: agents
+    teaser: "A fixed, coded sequence of steps in which a model handles some of the steps."
+    definition: >-
+      AI workflows are fixed sequences of steps, written in code, where a model handles some of the steps.
+      The developer decides the order in advance, such as fetch, summarise, classify, then store. The
+      model fills in one step at a time and hands its output to the next. An agent works differently,
+      because the model itself chooses which step or tool comes next. Workflows are easier to test,
+      cheaper to predict and simpler to debug than agents. Each step can use a different model, so a small
+      model can do the easy parts. Many products described as agents are really workflows, and that is
+      often the better design. The caution is that a fixed path cannot adapt when an input falls outside
+      what the steps expect.
+    related: [ai-agent, agentic-workflow, workflow-orchestration, tool-calling]
+
+  - slug: idempotency
+    term: "Idempotency"
+    aka: []
+    category: agents
+    teaser: "The property that doing the same action twice has the same effect as doing it once."
+    definition: >-
+      Idempotency means an action can be repeated without changing the result beyond the first time.
+      Reading a record is idempotent, and so is setting a field to a fixed value. Sending an email or
+      charging a card is not, because each repeat does it again. This matters for AI agents because model
+      calls and tool calls fail and get retried. An agent may also repeat a step when it loses track of
+      what it already did. A common fix is an idempotency key, a unique id sent with the request. The
+      receiving service remembers the key and ignores a second request that carries it. The caution is
+      that a retry is only safe when the action was designed to be repeated.
+    related: [tool-calling, ai-agent, agentic-workflow, human-in-the-loop]
+
+  - slug: oauth
+    term: "OAuth"
+    aka: []
+    category: agents
+    teaser: "A standard that lets an app act on your accounts with limited permissions, without your password."
+    definition: >-
+      OAuth is an open standard that lets one app access your account on another service without your
+      password. You sign in on the service itself and approve a list of permissions, called scopes. The
+      service then gives the app a token that works only within those scopes. Tokens can expire and can be
+      revoked without changing your password. AI agents and connectors use OAuth to read a calendar, a
+      mailbox or a code repository for you. Remote MCP servers commonly use it to decide what a connected
+      assistant may reach. The caution is that the agent can do anything the granted scopes allow. Grant
+      the narrowest scopes a task needs, because a misled agent acts with your access.
+    related: [model-context-protocol, ai-agent, tool-calling, prompt-injection]
+
+  - slug: observability
+    term: "Observability"
+    aka: ["LLM observability"]
+    category: evaluation
+    teaser: "Recording what an AI app does in production so you can see why it behaved as it did."
+    definition: >-
+      Observability is the practice of recording enough about a running system to explain its behaviour.
+      For LLM apps this means capturing traces of each request from start to finish. A trace shows the
+      prompt, the model used, each tool call, the output and the errors. It also records token counts,
+      latency and cost for every step. Teams use these records to find slow steps, expensive prompts and
+      failing tool calls. Traces also supply real examples for evaluation sets and regression tests. The
+      caution is that logged prompts and outputs often contain personal or sensitive data. Decide what to
+      redact and how long to keep it before turning logging on.
+    related: [llm-evaluation, latency, inference-cost, model-drift, pii-detection]
+
+  - slug: taxonomy-drift
+    term: "Taxonomy drift"
+    aka: []
+    category: evaluation
+    teaser: "When a fixed set of labels stops matching the things it is used to sort."
+    definition: >-
+      Taxonomy drift is when a set of labels or categories slowly stops matching the world it describes.
+      New products, topics or behaviours appear that no existing label fits well. Old labels get stretched
+      to cover cases they were never meant for. A classifier or decision model trained on the old labels
+      keeps assigning them with confidence. Its outputs still look valid, so nothing obviously breaks. The
+      damage shows up as a growing catch-all bucket or reports that no longer make sense. This differs
+      from model drift, where the model changes and the labels stay right. The usual remedy is to review
+      uncategorised and borderline items on a schedule and revise the labels.
+    related: [model-drift, zero-shot-classification, decision-model, ontology, golden-dataset]
+
+  - slug: json-schema
+    term: "JSON Schema"
+    aka: []
+    category: prompting
+    teaser: "A standard format for describing the shape of JSON data, used to define tools and structured outputs."
+    definition: >-
+      JSON Schema is a standard way to describe what a piece of JSON data must look like. It lists the
+      fields, their types, which ones are required and which values are allowed. Model APIs use it to
+      describe the parameters of each tool a model may call. The model reads the schema and writes
+      arguments meant to fit it. Structured output features also take a schema and ask the model to return
+      matching JSON. Some providers enforce the schema during generation, while others only request it.
+      The caution is that valid JSON is not the same as correct content. A response can match every field
+      type and still contain wrong values, so check them in code.
+    related: [structured-output, tool-calling, constrained-decoding, structured-data]
+
+  - slug: markdown
+    term: "Markdown"
+    aka: []
+    category: prompting
+    teaser: "A plain-text formatting syntax that most chat models use by default for headings, lists and code."
+    definition: >-
+      Markdown is a lightweight syntax that marks formatting with plain characters. Asterisks mark
+      emphasis, hash signs mark headings and dashes start list items. Most chat models write Markdown by
+      default, because chat interfaces display it nicely. An app that shows raw model output may display
+      those symbols as clutter. So an app either renders the Markdown into formatted text or tells the
+      model to avoid it. Output headed for a text message, a voice reply or a database field usually needs
+      plain text. The caution is that rendering untrusted model output can carry risks such as hidden
+      links or images. Treat rendered output like any other content from an outside source.
+    related: [system-prompt, structured-output, prompt-injection, prompt]
+
+  - slug: api-gateway
+    term: "API gateway"
+    aka: []
+    category: inference
+    teaser: "A single entry point that sits in front of several services and handles requests to them."
+    definition: >-
+      An API gateway is a single entry point that sits in front of a set of backend services. Clients send
+      requests to the gateway, which routes each one to the right service. It also handles shared jobs
+      like authentication, rate limits, logging and caching. An AI gateway is the same idea applied to
+      model APIs. It can route requests across providers, fall back to another model on failure and track
+      token spend. Teams use one so that switching models does not mean changing every app that calls
+      them. The caution is that the gateway becomes a point every request depends on. If it slows down or
+      fails, every app behind it does too.
+    related: [ai-gateway, rate-limit, latency, bring-your-own-key, observability]
+
+  - slug: api-versioning
+    term: "API versioning"
+    aka: ["model versioning"]
+    category: inference
+    teaser: "Naming each release of an API or model so callers can stay on a known version."
+    definition: >-
+      API versioning is the practice of labelling each release of an API so callers know what they are
+      using. Model providers apply it to models, usually through dated or numbered model identifiers. Many
+      providers also offer a short alias that points to their newest model in a family. When the provider
+      moves that alias, the model behind your app changes without any code change. Outputs, formatting and
+      tool behaviour can all shift when that happens. Providers also retire older models on announced
+      dates, after which calls to them fail. Pin a specific version in production and run your evaluations
+      before moving to a new one. The caution is that a pinned version still has an end date, so watch
+      deprecation notices.
+    related: [model-drift, llm-evaluation, model-card, api-gateway]
+
+  - slug: content-moderation
+    term: "Content moderation"
+    aka: []
+    category: safety
+    teaser: "Checking text, images or other content for harmful material and flagging or blocking it."
+    definition: >-
+      Content moderation is the process of checking content for harmful material and acting on it. In AI
+      apps it runs on both sides, on what users send and on what the model returns. The checks are usually
+      classifiers or smaller models that label content by category. Common categories include violence,
+      hate, sexual content, self-harm and harassment. Some providers offer moderation endpoints, and
+      general models can also be prompted to classify. The app then decides whether to block, warn, log or
+      send the item for human review. The caution is that every classifier makes errors in both
+      directions. It blocks some harmless content and misses some harmful content, especially sarcasm or
+      coded language.
+    related: [guardrails, ai-safety, zero-shot-classification, human-in-the-loop, jailbreak]
+
+  - slug: automated-image-tagging
+    term: "Automated image tagging"
+    aka: []
+    category: retrieval
+    teaser: "Using vision models to label images with descriptive tags or captions for search and accessibility."
+    definition: >-
+      Automated image tagging is the use of models to label images with words that describe them. A vision
+      model or multimodal model looks at each image and returns tags or a short caption. The tags might
+      name objects, scenes, colours, text in the image or the style of the picture. Photo libraries and
+      online shops use the tags so that images can be found by search. Captions can also be stored as text
+      and embedded for semantic search or retrieval. Some teams use model captions as a first draft of alt
+      text for screen readers. The caution is that a model can confidently name things that are not there.
+      Alt text should describe what matters in context, so a person should review it before publishing.
+    related: [vision-language-model, multimodal-model, metadata-enrichment, semantic-search, hallucination]
+
+  - slug: metadata-enrichment
+    term: "Metadata enrichment"
+    aka: []
+    category: retrieval
+    teaser: "Adding tags, summaries and named entities to documents so they are easier to search and retrieve."
+    definition: >-
+      Metadata enrichment is adding descriptive information to documents beyond their raw text. Typical
+      additions are topic tags, summaries, dates, authors and the people or products named. Language
+      models are often used to generate these fields from the text itself. Search systems can then filter
+      by the fields, such as only recent documents about one product. In retrieval-augmented generation,
+      enriched chunks are easier to match with the right question. A short summary attached to a chunk can
+      also give the model context the chunk lacks. The caution is that generated metadata can be wrong and
+      then hides the right document. Spot-check the fields, and keep the original text so enrichment can
+      be rerun.
+    related: [retrieval-augmented-generation, chunking, entity-resolution, hybrid-search, knowledge-base]
+
+  - slug: semantic-layer
+    term: "Semantic layer"
+    aka: []
+    category: retrieval
+    teaser: "A shared map from business terms to the data behind them, so every query uses one definition."
+    definition: >-
+      A semantic layer is a shared map that ties business terms to the data that defines them. It states,
+      for example, exactly which tables and filters make up active customers or monthly revenue.
+      Dashboards and reports that query through it all get the same answer for the same term. This matters
+      for LLMs that answer questions about company data by writing queries. Without the layer, a model
+      guesses which column or join a word refers to. With it, the model picks a defined metric and the
+      layer produces the query. The caution is that the layer is only as good as its definitions. A term
+      the layer does not define still leaves the model to guess.
+    related: [knowledge-graph, ontology, grounding, structured-data, hallucination]
+
+  - slug: answer-engine-optimization
+    term: "Answer engine optimization"
+    aka: ["AEO", "generative engine optimization"]
+    category: web
+    teaser: "Shaping web content so AI answer engines and chat search can find it, quote it and cite it."
+    definition: >-
+      Answer engine optimization is shaping content so AI answer engines can find, quote and cite it.
+      Answer engines include chat assistants with web search and search pages that show generated answers.
+      They retrieve pages, pick passages and write a reply that may link back to sources. Content that
+      states a clear answer near the top is easier for them to lift. Plain headings, defined terms, dated
+      facts and structured data also help a page get parsed. The page must also be reachable by the
+      crawlers these systems use. Much of this overlaps with ordinary good writing and classic search
+      optimisation. The caution is that nobody outside these systems knows exactly how they choose
+      sources.
+    related: [machine-readable-content, structured-data, schema-markup, robots-txt, retrieval-augmented-generation]
+
+  - slug: machine-readable-content
+    term: "Machine-readable content"
+    aka: []
+    category: web
+    teaser: "Content laid out in clear, consistent and labelled forms that software can parse reliably."
+    definition: >-
+      Machine-readable content is content arranged so software can parse it without guessing. That means
+      clear structure, consistent labels and text that is not locked inside images or scripts. Real
+      headings, tables built as tables and dates in a standard format all help. Formats like JSON, CSV and
+      embedded structured data make the meaning explicit. Search crawlers, RAG pipelines and AI answer
+      engines all read pages this way. A page that looks fine to a person can still be hard for these
+      systems to parse. The caution is that being parseable does not make content accurate or useful. It
+      only makes it easier to extract, whatever its quality.
+    related: [structured-data, schema-markup, answer-engine-optimization, chunking]
+
+  - slug: schema-markup
+    term: "Schema markup"
+    aka: []
+    category: web
+    teaser: "Schema.org vocabulary embedded in a web page to describe what the page and its content are."
+    definition: >-
+      Schema markup is code added to a web page that describes its content using the schema.org
+      vocabulary. It labels things like an article, a product, a person, an event or a set of questions
+      and answers. The most common form is JSON-LD, a block of JSON placed in the page. Search engines
+      read it to understand a page and may use it for enhanced search results. AI answer engines and other
+      crawlers can read the same labels. The markup must match what the page visibly shows. The caution is
+      that adding markup does not guarantee any special display or ranking. Search engines decide for
+      themselves whether and how to use it.
+    related: [structured-data, machine-readable-content, answer-engine-optimization, knowledge-graph]
+
+  - slug: structured-data
+    term: "Structured data"
+    aka: []
+    category: web
+    teaser: "Data organised into defined fields with known types, rather than free-flowing text."
+    definition: >-
+      Structured data is information organised into defined fields with known types. A database table, a
+      spreadsheet and a JSON object are all examples. Free text, like an email or a forum post, is
+      unstructured by comparison. On the web the term often means schema markup that describes a page to
+      search engines. In LLM pipelines, structured data can be filtered, joined and counted by code
+      directly. A common pattern has a model turn unstructured text into structured fields for code to
+      use. The caution is that a field filled by a model is still a model output. It needs the same
+      checking as any other generated text before code trusts it.
+    related: [structured-output, json-schema, schema-markup, knowledge-graph, entity-resolution]
+
+  - slug: robots-txt
+    term: "Robots.txt"
+    aka: []
+    category: web
+    teaser: "A file at the root of a website that tells crawlers which pages they may fetch."
+    definition: >-
+      Robots.txt is a plain-text file at the root of a website that tells crawlers what they may fetch.
+      Each rule names a crawler by its user agent and lists paths it may or may not visit. Site owners now
+      use it to address AI crawlers as well as search engine crawlers. Several AI companies publish
+      separate user agents for training data and for live search or browsing. That lets a site refuse
+      training crawlers while still allowing ones that cite pages in answers. Blocking a crawler that
+      feeds an answer engine can keep a site out of its answers. The caution is that robots.txt is a
+      request, not an enforcement mechanism. Well-behaved crawlers follow it, but nothing technically
+      stops one that chooses not to.
+    related: [answer-engine-optimization, machine-readable-content, synthetic-data, pretraining]
+
+  - slug: gpt
+    term: "GPT"
+    aka: ["generative pre-trained transformer"]
+    category: foundations
+    teaser: "A family name and a design idea for models that are pretrained to predict the next token and then tuned for use."
+    definition: >-
+      GPT stands for generative pre-trained transformer, both a model family from OpenAI and a general
+      design. The design uses only the decoder half of the original transformer. Such a model is first
+      pretrained on a large body of text to predict the next token. It is then tuned further, often with
+      human feedback, to follow instructions and hold a conversation. Most chat models from most labs
+      share this decoder-only shape, whatever they are called. Readers meet the acronym in model names,
+      API identifiers and price lists. ChatGPT is a product built on top of GPT models, not the models
+      themselves. So a report about ChatGPT may reflect app settings, tools or a hidden system prompt
+      rather than the bare model. When choosing through an API, check which exact model version a report
+      actually used.
+    related: [transformer, pretraining, post-training, language-modeling, large-language-model]
+
+  - slug: bert
+    term: "BERT"
+    aka: ["bidirectional encoder representations from transformers"]
+    category: foundations
+    teaser: "An early encoder-only transformer from Google, still common for embeddings, classification and reranking."
+    definition: >-
+      BERT, short for bidirectional encoder representations from transformers, is an encoder-only model
+      family released by Google in 2018. It reads a whole passage at once, so each word is understood from
+      the words on both sides. It was pretrained by hiding some tokens and asking the model to fill them
+      in. BERT does not generate free text the way a chat model does. Instead it turns text into vectors
+      or labels that other code can use. Many embedding models, classifiers and rerankers in retrieval
+      pipelines descend from it. These models are small and cheap to run next to a large chat model. A
+      common mistake is to expect BERT to answer questions in prose like a decoder-only model. It is the
+      right tool for sorting and matching text, not for writing it.
+    related: [masked-language-model, embeddings, reranking, transformer, gpt]
+
+  - slug: t5
+    term: "T5"
+    aka: ["text-to-text transfer transformer"]
+    category: foundations
+    teaser: "A Google encoder-decoder transformer family that frames every task as turning input text into output text."
+    definition: >-
+      T5, the text-to-text transfer transformer, is a model family from Google that uses both halves of
+      the transformer. An encoder reads the input, and a decoder writes the output one token at a time.
+      Every task is framed the same way, as text in and text out. Translation, summarising and
+      classification all become a matter of writing the right answer string. This sits between
+      encoder-only models like BERT and decoder-only chat models like GPT. T5 variants are still used for
+      embeddings, reranking and narrow tasks such as summarising. They are often small enough to fine-tune
+      and serve on modest hardware. Do not assume a T5 model follows open-ended instructions as a modern
+      chat model does. Unless it was tuned for instructions, it expects the task formats it was trained
+      on.
+    related: [transformer, bert, gpt, multi-task-learning, transfer-learning]
+
+  - slug: masked-language-model
+    term: "Masked language model"
+    aka: ["masked token prediction"]
+    category: foundations
+    teaser: "A model trained to fill in hidden tokens using the words on both sides, the approach behind BERT."
+    definition: >-
+      A masked language model is trained to guess tokens that have been hidden inside a passage. During
+      training, some tokens are swapped for a blank marker. The model sees the words before and after each
+      blank and learns to fill it in. Because it reads in both directions, it builds a strong sense of
+      what each word means in context. BERT and its descendants are the best-known examples. Readers meet
+      these models inside embedding services, classifiers and rerankers rather than chat apps. The
+      objective differs from next-token prediction, which only looks at earlier text. That is why a masked
+      model is not built to write long answers. Pick one when the job is to compare or label text, not to
+      generate it.
+    related: [bert, language-modeling, embeddings, pretraining]
+
+  - slug: language-modeling
+    term: "Language modeling"
+    aka: ["causal language modeling", "next-token prediction"]
+    category: foundations
+    teaser: "Predicting the next token from the tokens before it, the training goal behind every chat model."
+    definition: >-
+      Language modeling is the task of predicting the next token given all the tokens that came before it.
+      A model learns it by reading huge amounts of text and adjusting itself after each wrong guess. At
+      run time it repeats the step, adding one token at a time until the answer is done. Every chat model
+      is trained this way first, then tuned to follow instructions. Settings like temperature and top-p
+      only change how the next token is picked from the predictions. This explains why output tokens are
+      produced in sequence and why long answers take longer. It also explains hallucination in part, since
+      the model writes what is likely, not what is checked. A fluent answer is therefore not evidence that
+      the answer is correct. Grounding a prompt in supplied sources helps keep likely text close to true
+      text.
+    related: [token, pretraining, logits, sampling, hallucination]
+
+  - slug: lm-head
+    term: "LM head"
+    aka: ["language model head"]
+    category: foundations
+    teaser: "The final layer of a language model that turns its internal state into a score for every token in the vocabulary."
+    definition: >-
+      An LM head, or language model head, is the last layer that turns the internal state of a model into
+      next-token scores. It produces one score for every token the tokenizer knows. These raw scores are
+      called logits. A softmax step turns them into probabilities, and a sampler then picks a token. Some
+      APIs expose these values as log probabilities, which helps with scoring and calibration. Engineers
+      meet the term when fine-tuning, when swapping in a classification head, or when reading model code.
+      In many models the head shares its weights with the token embedding table. The head does not decide
+      on its own what the model says. Decoding settings such as temperature and top-k shape the final
+      choice.
+    related: [logits, log-probabilities, token-embedding, tokenizer, sampling]
+
+  - slug: token-embedding
+    term: "Token embedding"
+    aka: []
+    category: foundations
+    teaser: "The vector a model looks up for each token before any processing begins, learned during training."
+    definition: >-
+      A token embedding is the list of numbers a model assigns to each token in its vocabulary. When text
+      arrives, the tokenizer splits it into tokens and each token is swapped for its vector. These vectors
+      are learned during training, so similar tokens end up with similar numbers. The rest of the model
+      then mixes them with attention to build meaning from context. Readers meet the idea when reading
+      about tokenizers, vocabulary size or model internals. A token embedding is not the same as the text
+      embedding an embeddings API returns. That API returns one vector for a whole passage, built after
+      the full model has run. Confusing the two leads to wrong guesses about what a search index stores.
+      For retrieval, use a model built and documented for text embeddings.
+    related: [embeddings, tokenizer, token, lm-head, attention-mechanism]
+
+  - slug: model-checkpoint
+    term: "Model checkpoint"
+    aka: ["checkpoint"]
+    category: foundations
+    teaser: "A saved copy of the weights of a model at one point in training, which can be loaded, served or trained further."
+    definition: >-
+      A model checkpoint is a saved snapshot of the weights of a model at a given moment in training.
+      Training runs save checkpoints often, so work can resume after a crash. Labs also release chosen
+      checkpoints as the model people actually download or call. A fine-tune starts from one checkpoint
+      and produces a new one. Readers meet checkpoints on model hubs, in dated API model names and in
+      research papers. Two checkpoints with the same family name can behave quite differently. A report
+      about one dated version may not hold for a later one. That is why the board ties each report to a
+      specific model version where it can. Before relying on a claim, check which checkpoint the writer
+      was using.
+    related: [open-weights, fine-tuning, model-hub, model-drift, gguf]
+
+  - slug: multilingual-llm
+    term: "Multilingual LLM"
+    aka: []
+    category: foundations
+    teaser: "A large language model trained to read and write in many languages, though rarely equally well in each."
+    definition: >-
+      A multilingual LLM is a large language model trained on text in many languages, not just one. It can
+      answer, translate and summarise across those languages within a single model. Its skill in each
+      language follows how much text in that language it saw during training. Tokenizers also matter,
+      since some scripts split into many more tokens than others. More tokens for the same message means
+      higher cost and less room in the context window. Readers meet the term in model cards that list
+      supported languages. A listed language is a claim by the provider, not a measured level of quality.
+      Reports from engineers working in that language are a better guide than a list. Test on real prompts
+      in each language you serve before committing.
+    related: [large-language-model, tokenizer, training-data, model-card, inference-cost]
+
+  - slug: model-hub
+    term: "Model hub"
+    aka: ["model zoo"]
+    category: foundations
+    teaser: "A site that hosts downloadable models with their cards, files and licences, with Hugging Face the best-known."
+    definition: >-
+      A model hub is a website that hosts downloadable models together with their cards, files and
+      licences. Hugging Face is the best-known example. Model zoo is an older name for the same idea,
+      often tied to one framework. Each entry usually holds weights, a tokenizer, configuration files and
+      a model card. Engineers use hubs to find open-weights models, fine-tunes and quantised versions to
+      run locally. Many uploads come from third parties rather than the original lab. A name that looks
+      official is no guarantee of who made the files. Check the uploader, the licence and the card before
+      building on a download. Downloaded code can also run on your machine, so treat unknown repositories
+      with care.
+    related: [model-card, open-weights, model-checkpoint, gguf, local-llm]
+
+  - slug: training-data
+    term: "Training data"
+    aka: ["pretraining data"]
+    category: foundations
+    teaser: "The text and other material a model learned from, which sets what it knows and when its knowledge stops."
+    definition: >-
+      Training data is the material a model learned from, mostly text and sometimes images, audio or code.
+      Pretraining data is the large first batch, gathered from the web, books, code and other sources.
+      Later stages add smaller curated sets for instruction following and safety. The newest date in the
+      data sets the knowledge cutoff, past which the model knows nothing on its own. What the data covers
+      also shapes which languages, domains and styles the model handles well. Labs rarely publish their
+      full training data, so outsiders often have to infer it. Licensing and consent for that data remain
+      open legal and ethical questions. Test questions can leak into the data, which makes benchmark
+      scores look better than real skill. Treat a strong score on a public test with care until it holds
+      on your own tasks.
+    related: [pretraining, knowledge-cutoff, benchmark-contamination, synthetic-data, model-card]
+
+  - slug: model-catalog
+    term: "Model catalog"
+    aka: []
+    category: foundations
+    teaser: "A listing of available models with their providers, prices, context limits and features, as published by sellers."
+    definition: >-
+      A model catalog is a published list of available models with their providers, prices, context limits
+      and features. Aggregators, cloud platforms and model providers each keep one. Engineers use catalogs
+      to compare per-token prices and check support for tools, images or structured output. The board
+      reads catalog data to show what each model costs and what it claims to support. Every entry in a
+      catalog is a claim by the provider, not a measurement of how the model performs. A listed feature
+      may work poorly, and a long context limit may not mean reliable recall. Missing fields are common,
+      and a blank should not be read as a no. Catalogs also change often as prices drop and models are
+      retired. Pair the listing with what engineers report from real use before choosing.
+    related: [llm-provider, inference-cost, context-window, model-card, ai-gateway]
+
+  - slug: transfer-learning
+    term: "Transfer learning"
+    aka: []
+    category: training
+    teaser: "Reusing what a model learned on one broad task as the starting point for a different, narrower one."
+    definition: >-
+      Transfer learning is reusing knowledge a model gained on one task to help it on another. A model
+      pretrained on broad text already knows grammar, facts and common patterns. Fine-tuning it on a
+      small, specific dataset is far cheaper than training from scratch. Every modern chat model relies on
+      this, since pretraining comes first and tuning comes after. Engineers meet it when adapting an open
+      model to their domain with methods like LoRA. Prompting with a few examples is a lighter cousin that
+      changes no weights at all. Transfer works best when the new task resembles what the model has
+      already seen. A narrow fine-tune can also erode skills the base model had. Check general behaviour
+      as well as the target task after any tuning.
+    related: [fine-tuning, pretraining, lora, foundation-model, few-shot-prompting]
+
+  - slug: multi-task-learning
+    term: "Multi-task learning"
+    aka: []
+    category: training
+    teaser: "Training one model on several tasks at once so that skills learned for each can help the others."
+    definition: >-
+      Multi-task learning is training a single model on several tasks at the same time. The tasks share
+      most of the model, so patterns learned for one can help another. T5 is a well-known example, since
+      it framed many tasks as text in and text out. Instruction tuning for chat models works in a similar
+      spirit, mixing many kinds of request. The result is one model that can handle a wide spread of jobs
+      from a prompt alone. For a team, that can mean serving one model instead of several narrow ones.
+      Tasks can also pull against each other, so one improves while another slips. Balancing the mix of
+      training data is the hard part. A general model may still lose to a small specialist on a single
+      narrow task.
+    related: [t5, transfer-learning, fine-tuning, post-training, training-data]
+
+  - slug: hyperparameters
+    term: "Hyperparameters"
+    aka: ["hyperparameter tuning"]
+    category: training
+    teaser: "Settings chosen by people before or during training, such as learning rate, rather than learned by the model."
+    definition: >-
+      Hyperparameters are the settings people choose for training, as opposed to the weights a model
+      learns. Examples include the learning rate, batch size, number of passes over the data and LoRA
+      rank. Hyperparameter tuning means trying different values and keeping what works best on held-out
+      data. Engineers meet them when fine-tuning through a provider or with open tools. Poor choices can
+      make a fine-tune forget general skills or fail to learn the new task. Each extra trial costs
+      compute, so tuning adds directly to the bill. Sampling settings such as temperature are sometimes
+      loosely called hyperparameters too. Those only change how text is generated, not what the model has
+      learned. Keep a record of the values used so a result can be reproduced later.
+    related: [fine-tuning, lora, parameters, temperature, llm-evaluation]
+
+  - slug: model-compression
+    term: "Model compression"
+    aka: []
+    category: training
+    teaser: "Making a model smaller or cheaper to run through methods like quantization, distillation and pruning."
+    definition: >-
+      Model compression is any method that makes a trained model smaller, faster or cheaper to run.
+      Quantization stores weights with fewer bits each. Distillation trains a smaller student model to
+      copy a larger teacher. Pruning removes weights or whole parts that contribute little. These methods
+      let models run on laptops, phones or cheaper servers. Many low-priced or local options are
+      compressed versions of a larger model. Compression usually costs some quality, and the loss is
+      uneven across tasks. A model can look fine on chat and still slip on maths, code or rare languages.
+      Test a compressed version on your own tasks rather than trusting the name it shares.
+    related: [quantization, distillation, small-language-model, local-llm, gguf]
+
+  - slug: interpretability
+    term: "Interpretability"
+    aka: ["mechanistic interpretability"]
+    category: evaluation
+    teaser: "Research into what actually happens inside a model when it produces an answer."
+    definition: >-
+      Interpretability is research into how a model computes its outputs, by studying its internal
+      workings. Mechanistic interpretability tries to map specific internal features and circuits to
+      behaviours. Researchers probe activations, trace which parts respond to which inputs, and test by
+      switching parts off. The work can help explain why a model makes a certain error or carries a
+      certain bias. Much of it is done on open-weights models, since it needs access to the internals.
+      Engineers choosing a hosted model mostly meet it through published research and model cards. A
+      common mistake is to treat a model explaining itself in text as interpretability. A written
+      explanation is just more generated output, and it may not reflect the real computation.
+      Chain-of-thought text can help with debugging, but it is not a view inside the model.
+    related: [chain-of-thought, open-weights, alignment, ai-safety, model-card]
+
+  - slug: ai-bias
+    term: "AI bias"
+    aka: ["LLM bias"]
+    category: evaluation
+    teaser: "Systematic skews in model outputs, learned from data or tuning, that favour some groups, views or answers over others."
+    definition: >-
+      AI bias is a systematic skew in what a model produces, as opposed to random error. It is usually
+      learned from training data that over-represents some groups, languages or viewpoints. Tuning steps
+      such as RLHF can add skews of their own, reflecting the preferences of the raters. It shows up as
+      stereotyped wording, uneven quality across languages, or different answers for different names.
+      Models used as judges can also favour answers that resemble their own style. Teams test for it by
+      sending matched prompts that differ in one detail and comparing the outputs. A model that does well
+      on a general benchmark can still be skewed on your task. Switching to a cheaper model can change the
+      skew too, so retest before you switch.
+    related: [training-data, rlhf, llm-evaluation, llm-as-a-judge, alignment]
+
+  - slug: prompt-ab-testing
+    term: "Prompt A/B testing"
+    aka: []
+    category: evaluation
+    teaser: "Comparing two versions of a prompt on the same inputs or on live traffic to see which one gives better results."
+    definition: >-
+      Prompt A/B testing compares two versions of a prompt to find out which one works better. The
+      versions may differ in wording, examples, instructions or the model they are sent to. Offline, both
+      versions run over the same saved inputs and the outputs are scored side by side. Online, live
+      traffic is split between them and outcomes such as user ratings are tracked. Scoring can use human
+      review, exact checks, or a model acting as judge. Model outputs vary from run to run, so a small
+      sample can show a difference that is only noise. Change one thing at a time, or you cannot tell
+      which change mattered. The same method answers a cost question: whether a cheaper model with a
+      better prompt can match a pricier one.
+    related: [prompt-engineering, llm-evaluation, golden-dataset, llm-as-a-judge, prompt-management]
+
+  - slug: prompt-template
+    term: "Prompt template"
+    aka: ["prompt templating"]
+    category: prompting
+    teaser: "A reusable prompt with placeholders that code fills in with the details of each request."
+    definition: >-
+      A prompt template is a reusable prompt with named placeholders that are filled in for each request.
+      The fixed part holds instructions, format rules and examples. The placeholders take the parts that
+      change, such as a user question or retrieved documents. Code or a templating library substitutes the
+      values before the prompt is sent to the model. Templates keep prompts consistent across calls and
+      make them easier to review and version. A stable opening section also suits prompt caching, which
+      reuses the processed start of a prompt. A common risk is inserting untrusted text straight into a
+      template. That text can carry instructions the model may follow, which is how prompt injection gets
+      in. Mark inserted content clearly and keep instructions separate from it.
+    related: [prompt, system-prompt, prompt-management, prompt-caching, prompt-injection]
+
+  - slug: prompt-management
+    term: "Prompt management"
+    aka: ["PromptOps", "prompt versioning"]
+    category: prompting
+    teaser: "Storing, versioning and reviewing prompts outside the code, and tracing each output back to the prompt that made it."
+    definition: >-
+      Prompt management is the practice of storing, versioning and reviewing prompts as assets in their
+      own right. PromptOps is the operational name for the same work. Prompts live outside application
+      code, in files or a registry, each with a version number. A change to a prompt goes through review,
+      much like a change to code. Each logged output records the prompt version and the model that
+      produced it. That link lets a team see when a quality drop started and roll back to an earlier
+      version. It also matters when switching models, since a prompt tuned for one model may behave
+      differently on another. A common misconception is that prompts are just text and need no process. A
+      one-word edit can change outputs as much as a code change can.
+    related: [prompt-template, prompt-ab-testing, llmops, observability, model-drift]
+
+  - slug: query-expansion
+    term: "Query expansion"
+    aka: []
+    category: retrieval
+    teaser: "Adding related terms or rephrasings to a search query so retrieval finds relevant passages it would otherwise miss."
+    definition: >-
+      Query expansion widens a search query with related terms, synonyms or rephrasings before retrieval
+      runs. It helps when a user words a question differently from the documents that answer it. Classic
+      methods add synonyms or terms taken from the top results of a first search. In LLM systems, a model
+      often rewrites the question into several variants, and each one is searched. Another approach has
+      the model draft a hypothetical answer and searches with that instead. The results are merged and
+      usually reranked before they reach the main model. Each rewrite is an extra model call, so it adds
+      cost and latency to every question. Expansion can also drift from what was asked and pull in
+      passages on the wrong topic. Many teams use a small, cheap model for the rewriting step, since it is
+      a narrow task.
+    related: [retrieval-augmented-generation, semantic-search, hybrid-search, reranking, query-routing]
+
+  - slug: llm-provider
+    term: "LLM provider"
+    aka: ["model provider"]
+    category: inference
+    teaser: "A company or platform that serves language models through an API and bills for their use."
+    definition: >-
+      An LLM provider is a company or platform that runs language models and serves them through an API.
+      Some providers build their own models and serve only those. Others host open-weights models that
+      were built elsewhere. The same open model can be offered by several providers at different prices,
+      speeds and rate limits. Providers can also differ in context length, quantization and supported
+      features such as tool calling. Aggregators sit in front of many providers and route each request to
+      one of them. So two calls to the same model name may not behave identically. When comparing prices,
+      check which provider and which version of the model a figure refers to.
+    related: [llm-api, open-weights, ai-gateway, quantization, inference-cost]
+
+  - slug: llm-api
+    term: "LLM API"
+    aka: ["inference API"]
+    category: inference
+    teaser: "The HTTP interface a program uses to send text to a hosted model and get its reply, billed by the token."
+    definition: >-
+      An LLM API is the HTTP interface a program uses to send input to a hosted model and receive its
+      output. A request carries messages, a model name and settings such as temperature and max tokens.
+      The reply carries the generated text plus a count of the input and output tokens used. Billing is
+      per token, and output tokens are usually priced higher than input tokens. Providers enforce rate
+      limits on requests and on tokens per minute. Many APIs also offer streaming, tool calling,
+      structured output and cheaper batch modes. Several providers copy a common request format, which
+      makes switching models easier. A shared format does not guarantee identical behaviour, since
+      features and limits can still differ.
+    related: [llm-provider, token, rate-limit, streaming, batch-api]
+
+  - slug: llmops
+    term: "LLMOps"
+    aka: ["large language model operations"]
+    category: inference
+    teaser: "The practices for running language model applications in production, from prompts and evaluation to monitoring and cost."
+    definition: >-
+      LLMOps, short for large language model operations, covers the work of running LLM applications in
+      production. It borrows from MLOps but shifts the focus, since most teams call hosted models rather
+      than train their own. Typical concerns are prompt versioning, evaluation, monitoring, cost tracking
+      and incident response. Teams log each request with its prompt, model, token counts and latency. They
+      run evaluation sets before changing a prompt or swapping a model. They also watch for drift when a
+      provider updates a model behind the same name. A common gap is monitoring uptime and speed but not
+      answer quality. A system can respond quickly and cheaply while quietly giving worse answers.
+    related: [observability, prompt-management, llm-evaluation, model-drift, model-serving]
+
+  - slug: model-serving
+    term: "Model serving"
+    aka: []
+    category: inference
+    teaser: "Running a trained model behind an endpoint so applications can send it requests and get answers back."
+    definition: >-
+      Model serving is running a trained model behind an endpoint so applications can send it requests.
+      The serving layer loads the weights onto hardware, usually GPUs, and handles incoming traffic. It
+      groups requests into batches to keep the hardware busy. For language models it also manages the KV
+      cache and streams tokens back as they are produced. Dedicated inference servers handle much of this
+      work for open-weights models. Teams using a hosted API leave serving to the provider. Teams hosting
+      their own model take on the hardware, scaling and uptime themselves. A frequent mistake is comparing
+      only hardware rental against API prices. Idle capacity, engineering time and on-call work belong in
+      that comparison too.
+    related: [inference, kv-cache, throughput, autoscaling, llm-provider]
+
+  - slug: load-balancing
+    term: "Load balancing"
+    aka: []
+    category: inference
+    teaser: "Spreading requests across servers, API keys, regions or providers so no single one becomes a bottleneck."
+    definition: >-
+      Load balancing spreads incoming requests across several backends so that no single one is
+      overloaded. For self-hosted models, the backends are servers or GPUs running copies of the model.
+      For hosted models, they can be API keys, regions or entirely different providers. Simple balancers
+      rotate through the backends in turn. Smarter ones send each request to the backend with the most
+      spare capacity or remaining rate limit. An AI gateway often handles this in front of several
+      providers. Balancing across providers can mix models that answer differently, even under the same
+      model name. It can also weaken prompt caching, since a cached prefix usually lives with one backend.
+      Splitting traffic across many keys just to dodge a rate limit may break the terms of service.
+    related: [ai-gateway, rate-limit, fault-tolerance, prompt-caching, autoscaling]
+
+  - slug: autoscaling
+    term: "Autoscaling"
+    aka: []
+    category: inference
+    teaser: "Adding or removing serving capacity automatically as traffic rises and falls."
+    definition: >-
+      Autoscaling adds or removes serving capacity automatically as demand changes. A controller watches
+      signals such as queue length, GPU use or request rate. When load rises it starts more model
+      replicas, and when load falls it shuts some down. This matters most for self-hosted models, where
+      idle GPUs cost money whether or not they serve anything. Hosted APIs scale on the provider side, so
+      their users mostly meet rate limits instead. Language models are slow to scale up, because large
+      weights take time to load onto new hardware. Scaling to zero saves money, but the first request
+      after a quiet spell waits for a cold start. Teams often keep a minimum number of replicas warm to
+      avoid that wait.
+    related: [model-serving, load-balancing, latency, inference-cost, throughput]
+
+  - slug: fault-tolerance
+    term: "Fault tolerance"
+    aka: ["model fallback"]
+    category: inference
+    teaser: "Keeping an LLM application working through provider outages, timeouts and rate limits."
+    definition: >-
+      Fault tolerance is the ability of an LLM application to keep working when a model provider fails.
+      Common failures are outages, timeouts, rate limit errors and malformed responses. Retries with
+      backoff handle brief errors by waiting a little longer before each new attempt. A model fallback
+      sends the request to a second model or provider when the first one keeps failing. Timeouts stop a
+      stuck call from holding up the user indefinitely. Actions with side effects should be idempotent, so
+      a retried call does not send an email twice. The fallback model may answer differently, so test it
+      on your task in advance. A fallback that quietly returns worse answers can hide a failure rather
+      than handle it.
+    related: [rate-limit, idempotency, ai-gateway, load-balancing, observability]
+
+  - slug: llm-cost-optimization
+    term: "LLM cost optimization"
+    aka: []
+    category: inference
+    teaser: "Cutting what an LLM application spends on model calls without losing the quality the task needs."
+    definition: >-
+      LLM cost optimization is reducing what an application spends on model calls while keeping the
+      quality it needs. One lever is choosing a cheaper model for the tasks it handles well. Routing sends
+      easy requests to small models and saves large ones for hard requests. Prompt caching cuts the cost
+      of a long, repeated opening such as a system prompt. Batch APIs offer lower prices for work that can
+      wait. Trimming context and capping output length reduce the tokens billed on every call. The
+      cheapest model per token is not always the cheapest per finished task. If it fails more often,
+      retries, longer outputs and human review can cost more than a pricier model. Measure cost per
+      successful result, not cost per call.
+    related: [inference-cost, prompt-caching, batch-api, query-routing, small-language-model]
+
+  - slug: llm-data-privacy
+    term: "LLM data privacy"
+    aka: []
+    category: safety
+    teaser: "What happens to the prompts and data you send to a model provider, and how to keep sensitive data out."
+    definition: >-
+      LLM data privacy concerns what happens to the data in prompts and outputs sent to a model provider.
+      Providers may log requests for a period, for abuse monitoring or debugging. Some may use customer
+      data to train future models, depending on the plan and settings. Many offer business terms that
+      exclude training use, and some offer zero data retention. Those terms can differ between the
+      consumer app and the API of the same company. Teams also keep personal data out of prompts by
+      masking or removing it before sending. Running a local or self-hosted model keeps the data on
+      hardware you control. A common misconception is that opting out of training means nothing is stored.
+      Read the retention terms separately, since they answer a different question.
+    related: [pii-detection, local-llm, llm-provider, model-governance, on-device-ai]
+
+  - slug: model-governance
+    term: "Model governance"
+    aka: []
+    category: safety
+    teaser: "The policies and records that control which models an organisation uses, for what, and with what oversight."
+    definition: >-
+      Model governance is the set of policies and records that control which models an organisation uses
+      and how. It covers approving models and providers before use, often with a review of how they handle
+      data. It keeps an inventory of where each model runs and which version is in use. It sets rules for
+      testing, human oversight and incident reporting. Logs and audit trails show which model and prompt
+      produced a given output. Regulators and customers may ask for records of this kind. Governance also
+      applies when switching to a cheaper model, since the new model needs the same approval and testing.
+      A common gap is governing the models a team trains while ignoring the APIs it calls.
+    related: [llm-data-privacy, decision-audit-trail, model-card, llmops, ai-safety]
