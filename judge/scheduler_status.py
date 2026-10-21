@@ -44,18 +44,25 @@ _cache: dict[str, tuple[float, Any]] = {}
 
 
 def repo_slug() -> str | None:
-    """owner/name of this checkout's origin, from GITHUB_REPOSITORY or .git/config."""
+    """owner/name of the repository, or None.
+
+    GITHUB_REPOSITORY first: THE DEPLOYED BACKEND HAS NO `.git` (.dockerignore
+    leaves it out), so on Railway this setting is the only way the panel knows
+    which repository's runs to read - without it the log said "no GitHub
+    remote found" while the schedule ran (found 2026-10-21). Then git itself,
+    which also works in a worktree, whose `.git` is a file, not a directory.
+    """
     env = os.getenv("GITHUB_REPOSITORY", "").strip()
     if env:
         return env
+    import subprocess
+
     try:
-        text = (ROOT / ".git" / "config").read_text(encoding="utf-8")
-    except OSError:
+        url = subprocess.run(["git", "-C", str(ROOT), "config", "--get", "remote.origin.url"],
+                             capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
         return None
-    m = re.search(r'\[remote "origin"\][^\[]*?url\s*=\s*(\S+)', text)
-    if not m:
-        return None
-    hit = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?$", m.group(1))
+    hit = re.search(r"github\.com[:/]([^/\s]+/[^/\s]+?)(?:\.git)?$", url)
     return hit.group(1) if hit else None
 
 
@@ -81,6 +88,18 @@ def next_cron(expr: str, now: datetime) -> str | None:
         return None
     nxt = now.replace(hour=int(parts[1]), minute=int(parts[0]), second=0, microsecond=0)
     if nxt <= now:
+        nxt += timedelta(days=1)
+    return nxt.isoformat()
+
+
+def first_firing_after(expr: str, after: datetime) -> str | None:
+    """The first daily firing of 'M H * * *' at or after `after`, ISO."""
+    parts = expr.split()
+    if not (len(parts) == 5 and parts[2:] == ["*", "*", "*"]
+            and parts[0].isdigit() and parts[1].isdigit()):
+        return None
+    nxt = after.replace(hour=int(parts[1]), minute=int(parts[0]), second=0, microsecond=0)
+    if nxt < after:
         nxt += timedelta(days=1)
     return nxt.isoformat()
 
@@ -126,7 +145,7 @@ def policy() -> dict:
             encoding="utf-8")) or {}).get("status")
     except (OSError, yaml.YAMLError):
         status = None
-    return {"cadence_days": p.cadence_days, "first_fetch_thread_cap": p.first_fetch_thread_cap,
+    return {"cadence_hours": p.cadence_hours, "first_fetch_thread_cap": p.first_fetch_thread_cap,
             "refresh_thread_cap": p.refresh_thread_cap, "status": status}
 
 
@@ -139,16 +158,34 @@ def queue(conn) -> dict:
     rows = due_rows(conn)
     due = scheduler.rank_due(rows, datetime.now(UTC))
     due_ids = {d.model_version_id for d in due}
+    cadence = timedelta(hours=scheduler.policy().cadence_hours)
+    crons = setup().get("crons") or []
+    cron = crons[0]["expr"] if crons else None
     return {
         "due": [{"model_version_id": d.model_version_id, "name": d.display_name,
                  "reason": d.reason, "thread_cap": d.thread_cap,
                  "last_success": d.last_success.isoformat() if d.last_success else None}
                 for d in due],
+        # WHEN EACH IS NEXT DUE, and the first scheduled run at or after that -
+        # the cadence from the contract, the cron from the workflow file, so the
+        # panel restates neither. None where either is unknown, never a guess.
         "not_due": [{"model_version_id": r["model_version_id"], "name": r["display_name"],
-                     "last_success": r["last_success"].isoformat() if r["last_success"] else None}
+                     "last_success": r["last_success"].isoformat() if r["last_success"] else None,
+                     "next_due": _next_due(r["last_success"], cadence),
+                     "next_run": (first_firing_after(cron, _next_due_dt(r["last_success"], cadence))
+                                  if cron and r["last_success"] else None)}
                     for r in rows if r["model_version_id"] not in due_ids and r.get("in_window")],
         "tracked": len(rows),
     }
+
+
+def _next_due_dt(last: datetime | None, cadence: timedelta) -> datetime | None:
+    return last + cadence if last else None
+
+
+def _next_due(last: datetime | None, cadence: timedelta) -> str | None:
+    d = _next_due_dt(last, cadence)
+    return d.isoformat() if d else None
 
 
 # ── GitHub: the switch and the scheduled runs ──────────────────────────────
@@ -194,6 +231,107 @@ def runs(slug: str, limit: int = 15) -> dict:
     return {"runs": out}
 
 
+def switch(slug: str) -> dict:
+    """The repository variable SCHEDULER_ENABLED: what actually turns the
+    nightly run on (the workflow's gate wants exactly `1`).
+
+    SHOWN SINCE 2026-10-21 - it was left out on 2026-10-06 because reading it
+    needs a token allowed to read repository variables. Where the backend's
+    GITHUB_TOKEN is not, this says so: "unreadable" is never shown as "off"
+    (rule 6), because a switch nobody can read is not a switch that is off.
+    """
+    code, body = _gh(f"/repos/{slug}/actions/variables/SCHEDULER_ENABLED")
+    if code == 200 and isinstance(body, dict):
+        value = str(body.get("value") or "")
+        return {"state": "on" if value.strip() == "1" else "off", "value": value,
+                "updated_at": body.get("updated_at")}
+    return {"unreadable": f"GitHub answered {code or 'nothing'}: the backend's GITHUB_TOKEN "
+                          "is missing or may not read repository variables"}
+
+
+#: The runner's summary comment (judge/scheduler.summarise_runs) starts with this.
+SUMMARY_HEAD = "**Scheduled fetch:"
+SUMMARY_COLUMNS = ("model", "outcome", "documents_appended", "threads_read",
+                   "quotes_verified", "unreadable_here", "harvest_errors")
+
+
+def parse_summary(body: str) -> list[dict]:
+    """The rows of one summary table. A `-` cell is None: the run did not
+    report it, which is not zero (the summary's own footnote says the same)."""
+    rows = []
+    for line in (body or "").splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if not line.startswith("|") or len(cells) != len(SUMMARY_COLUMNS):
+            continue
+        if cells[0] in ("Model", "") or set(cells[0]) <= {"-"}:
+            continue
+        row = {}
+        for key, cell in zip(SUMMARY_COLUMNS, cells, strict=True):
+            if cell == "-":
+                row[key] = None
+            elif key in ("model", "outcome", "harvest_errors"):
+                row[key] = cell
+            else:
+                row[key] = int(cell) if cell.isdigit() else cell
+        rows.append(row)
+    return rows
+
+
+def summaries(slug: str, issue: str) -> list[dict]:
+    """The runner's summary comments on SCHEDULER_ISSUE, newest page, parsed.
+    The issue is public, so these need no token."""
+    code, meta = _gh(f"/repos/{slug}/issues/{issue}")
+    if code != 200 or not isinstance(meta, dict):
+        return []
+    per = 50
+    last_page = max(1, -(-int(meta.get("comments") or 0) // per))
+    out = []
+    for page in sorted({max(1, last_page - 1), last_page}):
+        code, body = _gh(f"/repos/{slug}/issues/{issue}/comments?per_page={per}&page={page}")
+        if code != 200 or not isinstance(body, list):
+            continue
+        for c in body:
+            text = c.get("body") or ""
+            if text.startswith(SUMMARY_HEAD):
+                out.append({"at": c.get("created_at"), "url": c.get("html_url"),
+                            "rows": parse_summary(text)})
+    return out
+
+
+def attach_summaries(run_list: list[dict], posted: list[dict]) -> None:
+    """Give each finished run the summary its runner posted while it ran.
+
+    MATCHED BY TIME: a comment created after the run started and no later than
+    15 minutes after it ended. A finished run with none gets `summary: None` -
+    it fetched nothing it reported (a run with the switch off ends in under a
+    minute and posts nothing), which the panel says in those words rather than
+    showing the bare "success" GitHub gives every such run.
+    """
+    def ts(v):
+        return datetime.fromisoformat(v.replace("Z", "+00:00")) if v else None
+
+    for r in run_list:
+        if r.get("status") != "completed":
+            continue
+        start = ts(r.get("started_at"))
+        end = start + timedelta(minutes=(r.get("minutes") or 0) + 15) if start else None
+        hit = next((p for p in posted
+                    if start and ts(p["at"]) and start <= ts(p["at"]) <= end), None)
+        if hit is None:
+            r["summary"] = None
+            continue
+        rows = hit["rows"]
+        r["summary"] = {
+            "url": hit["url"], "models": len(rows),
+            "ok": sum(1 for x in rows if x.get("outcome") == "ok"),
+            "documents_appended": sum(x.get("documents_appended") or 0 for x in rows
+                                      if isinstance(x.get("documents_appended"), int)),
+            "quotes_verified": sum(x.get("quotes_verified") or 0 for x in rows
+                                   if isinstance(x.get("quotes_verified"), int)),
+            "rows": rows,
+        }
+
+
 def overview(conn) -> dict:
     slug = repo_slug()
     s = setup()
@@ -204,12 +342,21 @@ def overview(conn) -> dict:
         out["queue"] = {"unreadable": type(e).__name__}
     if slug:
         out["github"] = runs(slug)
+        out["switch"] = switch(slug)
+        issue = os.getenv("SCHEDULER_ISSUE", "").strip()
+        if issue and out["github"].get("runs"):
+            attach_summaries(out["github"]["runs"], summaries(slug, issue))
+        elif not issue:
+            # Said, not hidden: without the issue a run's results cannot be read.
+            out["github"]["summaries_unreadable"] = "SCHEDULER_ISSUE is not set on this backend"
         out["links"] = {
             "workflow": f"https://github.com/{slug}/actions/workflows/{WORKFLOW_FILE}",
             "secrets": f"https://github.com/{slug}/settings/secrets/actions",
         }
     else:
-        out["github"] = {"runs": [], "unreadable": "no GitHub remote found"}
+        out["github"] = {"runs": [], "unreadable": "no repository known: set GITHUB_REPOSITORY "
+                                                   "on this backend (owner/name)"}
+        out["switch"] = {"unreadable": "no repository known"}
     crons = (s.get("crons") or []) if isinstance(s, dict) else []
     out["next_run"] = next_cron(crons[0]["expr"], datetime.now(UTC)) if crons else None
     return out

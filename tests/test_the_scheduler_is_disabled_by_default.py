@@ -33,7 +33,20 @@ class TestWhatIsDue:
         assert d.thread_cap == scheduler.policy().first_fetch_thread_cap
 
     def test_a_recent_success_is_not_due(self):
-        assert scheduler.rank_due([_row("a", "A", last=NOW - timedelta(days=3))], NOW) == []
+        assert scheduler.rank_due([_row("a", "A", last=NOW - timedelta(days=2))], NOW) == []
+
+    def test_every_third_night_whatever_point_in_the_run_it_was_fetched(self):
+        """60 h (2026-10-21): the nightly run fetches a model at some point
+        after it starts - up to the 300-minute launch deadline, and a run can
+        itself start hours late. That model must be due on the THIRD night after,
+        not the second and not the fourth: `3 days` slipped every model fetched
+        after the run's first minute to every fourth night."""
+        start = datetime(2026, 10, 21, 20, 30, tzinfo=UTC)
+        for into_run in (timedelta(0), timedelta(minutes=300), timedelta(hours=6)):
+            last = start + into_run
+            second, third = start + timedelta(days=2), start + timedelta(days=3)
+            assert scheduler.rank_due([_row("a", "A", last=last)], second) == [], into_run
+            assert len(scheduler.rank_due([_row("a", "A", last=last)], third)) == 1, into_run
 
     def test_a_stale_success_is_a_refresh_at_the_smaller_cap(self):
         (d,) = scheduler.rank_due([_row("a", "A", last=NOW - timedelta(days=9))], NOW)
@@ -236,13 +249,13 @@ class TestThePolicyIsContract:
     def test_the_values_moved_unchanged(self):
         scheduler.policy.cache_clear()
         p = scheduler.policy()
-        assert (p.cadence_days, p.first_fetch_thread_cap, p.refresh_thread_cap) == (7, 100, 25)
+        assert (p.cadence_hours, p.first_fetch_thread_cap, p.refresh_thread_cap) == (60, 100, 25)
 
     @pytest.mark.parametrize("bad", [None, 0, -3, "7", True])
     def test_a_missing_or_bad_value_refuses(self, monkeypatch, bad):
         import judge.config as config
 
-        doc = {"cadence_days": bad, "first_fetch_thread_cap": 100, "refresh_thread_cap": 25}
+        doc = {"cadence_hours": bad, "first_fetch_thread_cap": 100, "refresh_thread_cap": 25}
         monkeypatch.setattr(config, "_read", lambda name: doc)
         scheduler.policy.cache_clear()
         try:

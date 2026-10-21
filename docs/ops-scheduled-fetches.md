@@ -1,24 +1,29 @@
-# Scheduled per-model fetches — built, and off until a person turns it on
+# Scheduled per-model fetches — every tracked model, every third night
 
 The evidence pipeline runs one model at a time through `scripts/fetch_model.py`.
 This adds the piece that decides *which* models are due and runs them in turn, so
-the models page stays fresh without somebody clicking Fetch. It is **disabled by
-default** and harvests nothing until `SCHEDULER_ENABLED` is set on the service.
+the models page stays fresh without somebody clicking Fetch. It harvests nothing
+unless the repository variable `SCHEDULER_ENABLED` is `1`.
 
-## Why it is off
+## Why it was off, and why it is on (2026-10-21)
 
-A public repository held a Reddit-derived article, so `contract/sources.yaml`'s
-undertaking reads `derived_publication: false` while that is no longer true, and
-the seven non-GitHub rulings rest on it. Until the basis is honest again — repo
-private, the file gone, the undertaking re-signed — a full harvest must not run.
-`SCHEDULER_ENABLED` being unset is the guard that holds that line, and it is a
-person's to lift.
+It was switched off while `contract/sources.yaml`'s undertaking described a
+basis that was no longer true. The go-public contract (#535, approved
+2026-10-19) re-asserted it on the public basis (`public-derived-publication`),
+so the reason no longer holds and the scheduler was switched back on
+2026-10-21, at a 60-hour cadence (below).
+
+⚠ **THE UNDERTAKING LAPSES 30 DAYS AFTER IT WAS ASSERTED: 2026-11-18.**
+`review_valid_days: 30` from `asserted_on: 2026-10-19`. If nobody re-asserts it
+by then, every non-GitHub arm skips itself with its reason and the nightly run
+quietly becomes GitHub-only. The summary on the scheduler issue shows it -
+`harvest_arms_errored` per model - but nothing else will.
 
 Two independent guards, so neither alone is load-bearing:
 
 - **`SCHEDULER_ENABLED`** (this runner) — unset means nothing runs at all.
-- **the terms gate** (inside `fetch_model`) — once the undertaking is flipped to
-  void, every non-GitHub arm skips itself with its reason, whatever the switch
+- **the terms gate** (inside `fetch_model`) — once the undertaking is void or
+  lapsed, every non-GitHub arm skips itself with its reason, whatever the switch
   says.
 
 ## Where it runs: a GitHub Action (since 2026-10-06)
@@ -64,13 +69,15 @@ backend that serves it, not for the Action - check the repository variables.
 
 - **never fetched → a first fetch**, at the larger thread cap (its whole backlog
   is unread);
-- **last success ≥ 7 days ago → a refresh**, at the smaller cap;
+- **last success ≥ 60 hours ago → a refresh**, at the smaller cap. The run is
+  nightly, so that is every third night - twice a week or more for every tracked
+  model;
 - ordered **first fetches first, then the longest-stale**. It never drops a model
   on a yield guess: a model a schedule stopped fetching reads exactly like one
   nobody discusses (rule 4). Yield-ordering within a night is a later refinement
   and waits for the end-record fields (#489) to accumulate.
 
-The cadence (7 days) and the two caps (100, 25) live in `contract/scheduler.yaml`
+The cadence (60 hours; 7 days until 2026-10-21) and the two caps (100, 25) live in `contract/scheduler.yaml`
 since 2026-10-05; there is no default in code, so a missing value refuses.
 
 **The daily budget stops the batch.** `EXTRACTION_DAILY_BUDGET_USD` is one

@@ -67,6 +67,13 @@ htmlcov/
 
 # ── vcs and local noise ──────────────────────────────────────────────────────
 .git/
-.github/
+# .github/ is left out EXCEPT the scheduled-fetches workflow, which Admin ->
+# Scheduler reads for the cron line and the job's limits (judge/scheduler_status.py
+# `setup`). Without it the deployed panel could not say when the next run is.
+# Public, small, and no secret in it - the workflow names secrets, never holds them.
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/scheduled-fetches.yml
 .gitignore
 *.log
