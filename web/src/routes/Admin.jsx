@@ -18,7 +18,7 @@ import SchedulerPanel from '../components/SchedulerPanel'
 import BlogsPanel from '../components/BlogsPanel'
 import QuizPanel from '../components/QuizPanel'
 import DiscussionsPanel from '../components/DiscussionsPanel'
-import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart } from '../components/Icons'
+import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart, IconLayers } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 
@@ -191,7 +191,10 @@ function CollectEvidence() {
  * these are short slugs and not the titles.
  */
 // ONE ICON PER GROUP, the same ones the section headers use.
-const GROUP_ICONS = { Health: IconHeart, Evidence: IconFilter, 'Board & content': IconGrid, Operations: IconClock }
+const GROUP_ICONS = {
+  Health: IconHeart, Evidence: IconFilter, 'Board & content': IconGrid, Operations: IconClock,
+  Projects: IconLayers,
+}
 
 const SECTIONS = [
   // THE ORDER IS THE ONE ASKED FOR, top to bottom, ruled 2026-10-05 by
@@ -338,6 +341,12 @@ const SECTIONS = [
   },
 ]
 
+// GROUPS WITH NO SECTIONS YET, drawn after the ones above. A group is
+// otherwise only the label on the first section of its run, so an empty one
+// has nowhere to live in SECTIONS. Projects: added 2026-10-21 by anooj as a
+// heading to fill later; it holds nothing and its count says 0.
+const EMPTY_GROUPS = ['Projects']
+
 /** `/health` plus whether the database answered. Needs no database itself. */
 function ServicePanel({ hp, cov }) {
   return (
@@ -483,6 +492,18 @@ export default function Admin() {
                   <span className="d">{sec.blurb}</span>
                 </button>
                 ))}
+              </div>
+            )
+          })}
+          {EMPTY_GROUPS.map((group) => {
+            const Icon = GROUP_ICONS[group]
+            return (
+              <div key={group} className="adm-nav-g" role="group" aria-label={group}>
+                <span className="adm-nav-group" aria-hidden="true">
+                  {Icon && <Icon width={13} height={13} />}
+                  {group}
+                  <span className="n">0</span>
+                </span>
               </div>
             )
           })}
