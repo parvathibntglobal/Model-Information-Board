@@ -2353,9 +2353,29 @@ def seo_indexable() -> dict:
     """
     from judge import seo
 
-    with _conn() as conn:
-        result = seo.indexable_pages(conn)
-    return {"paths": [p["path"] for p in result["paths"]]}
+    # KEPT FOR A FEW MINUTES (2026-10-20). Every public page asks for this on
+    # load, and working it out reads each model's evidence one query at a time
+    # (board_entries.evidence_for_model) plus the glossary file - ~13 s on the
+    # local database, during which the page says noindex. Which pages are worth
+    # indexing changes when evidence arrives, not between two page loads, so
+    # one answer serves everyone for _INDEXABLE_TTL_S. A failure is not kept.
+    # The return stays a literal so scripts/audit_api_fields.py can read the
+    # field it emits (contract/api_fields.yaml declares `paths`).
+    now = time.monotonic()
+    with _indexable_lock:
+        if _indexable_cache and now - _indexable_cache[0] < _INDEXABLE_TTL_S:
+            paths = _indexable_cache[1]
+        else:
+            with _conn() as conn:
+                result = seo.indexable_pages(conn)
+            paths = [p["path"] for p in result["paths"]]
+            _indexable_cache[:] = [now, paths]
+    return {"paths": paths}
+
+
+_INDEXABLE_TTL_S = 300
+_indexable_cache: list = []
+_indexable_lock = threading.Lock()
 
 
 @app.get("/freshness")

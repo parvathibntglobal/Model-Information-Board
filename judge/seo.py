@@ -27,6 +27,7 @@ missing one raises (rule 12).
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any
 
 #: board section key -> the URL segment the frontend routes on.
@@ -50,6 +51,7 @@ def rules() -> dict:
             "always": [str(p) for p in raw["always"]],
             "never": [str(p) for p in raw["never"]],
             "blog_posts": str(raw["blog_posts"]),
+            "model_type_min_models": int(raw["model_types"]["min_reported_models"]),
         }
     except (KeyError, TypeError, ValueError) as exc:
         raise IndexingContractError(
@@ -59,6 +61,10 @@ def rules() -> dict:
     for kind, n in out["min_voices"].items():
         if n < 1:
             raise IndexingContractError(f"`pages.{kind}.min_voices` must be at least 1, not {n}.")
+    if out["model_type_min_models"] < 1:
+        raise IndexingContractError(
+            "`model_types.min_reported_models` must be at least 1, not "
+            f"{out['model_type_min_models']}.")
     if out["blog_posts"] != "approved_only":
         raise IndexingContractError(
             f"`blog_posts: {out['blog_posts']}` is not a known policy (only `approved_only`).")
@@ -79,12 +85,17 @@ def indexable_pages(conn: Any) -> dict:
     noindex - `noindexFor` keeps a page indexable only when its canonical is
     here. The same evidence now admits the public page that shows it:
 
-        section           /reports/{jobs|capabilities|metrics}/:slug
-        model             /catalog/model/:canonical and /reports/models/:canonical
+        section           /reviews/{jobs|capabilities|metrics}/:slug, and for a
+                          job also /best-ai-model/:slug (the picker on that job)
+        model             /ai-models/:canonical and /reviews/models/:canonical, and
+                          /alternatives/:name (the picker's alternatives to it)
         model_in_section  counted for the tally only - no public page shows one
                           model inside one section
         glossary_term     /glossary/:slug - every term in glossary.yaml, which is
                           reviewed copy, so no evidence threshold applies
+        model_type        /ai-models/:type (2026-10-21) - one type's list (image,
+                          video...), once it shows enough models engineers
+                          reported on; an empty type page is not invited
     """
     from judge import blog_store, publication
     from judge.store.board_entries import board_sections, evidence_for_model
@@ -100,6 +111,9 @@ def indexable_pages(conn: Any) -> dict:
     # threshold counts the quotable (public) voices only, as before.
     sections = board_sections(conn, hide_source=publication.withheld_publicly)
     mkey_lastmod: dict[str, str] = {}
+    # Models with a job or capability entry: what the picker can find
+    # alternatives for (it reads no metrics - web/src/routes/ModelPicker.jsx).
+    in_picker: set[str] = set()
     for key, seg in SEGMENT.items():
         for item in sections.get(key) or []:
             v = int(item.get("voices") or 0)
@@ -108,14 +122,21 @@ def indexable_pages(conn: Any) -> dict:
                 tallies["section"]["indexable"] += 1
                 # LASTMOD: when the newest entry on the page was added, over the
                 # same public rows the page shows. Absent rather than invented.
-                out.append({"path": f"/reports/{seg}/{item['slug']}", "kind": "section",
+                out.append({"path": f"/reviews/{seg}/{item['slug']}", "kind": "section",
                             "voices": v, "lastmod": item.get("updated_at")})
+                # A JOB HAS A SECOND PUBLIC PAGE (2026-10-21): the picker's
+                # /best-ai-model/<job>, the same evidence asked as "which model".
+                if seg == "jobs":
+                    out.append({"path": f"/best-ai-model/{item['slug']}", "kind": "section",
+                                "voices": v, "lastmod": item.get("updated_at")})
             for m in item.get("models") or []:
                 # THE READABLE ID IN THE ADDRESS (`anthropic/claude-opus-4.6`), the
                 # same one the board links use; the internal key only as a fallback.
                 mkey = m.get("model_canonical") or m.get("model_key") or m.get("model_version_id")
                 if not mkey:
                     continue
+                if key != "metric":
+                    in_picker.add(mkey)
                 mv = int(m.get("voices") or 0)
                 # The model's newest entry across every section, for its own page.
                 when = m.get("updated_at")
@@ -135,6 +156,24 @@ def indexable_pages(conn: Any) -> dict:
         "SELECT DISTINCT v.id FROM board_entry be JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
         "WHERE be.ruling IS DISTINCT FROM 'declined'").fetchall()}
+    # A MODEL'S ALTERNATIVES PAGE is named by its own name (`gpt-6-astra`), or
+    # `provider--model` when two registry models share that name - the rule the
+    # picker writes its canonical by (web/src/routes/ModelPicker.jsx, altSlug).
+    names = Counter(c.split("/", 1)[1] for _, c in registry if c and "/" in c)
+
+    def alt_slug(canonical: str) -> str:
+        name = canonical.split("/", 1)[1]
+        return name if names[name] == 1 else canonical.replace("/", "--", 1)
+
+    # A MODEL'S /ai-models PAGE EXISTS ONLY FOR WHAT THE CATALOGUE LISTS
+    # (judge/catalog.py; anything else is a 404 there). A registry model with
+    # reports but no listing keeps its reviews page. Read through the
+    # catalogue's own view - only its modules name its table.
+    from judge.catalog import catalog_view
+
+    catalogue = catalog_view(conn)
+    listed = {m["id"] for m in catalogue.get("models") or []}
+
     for mv_id, canonical in registry:
         tallies["model"]["pages"] += 1
         if mv_id not in with_entries or not canonical:
@@ -142,11 +181,29 @@ def indexable_pages(conn: Any) -> dict:
         v = evidence_for_model(conn, mv_id, hidden=hidden, with_voices=True)["voices"]
         if v >= need["model"]:
             tallies["model"]["indexable"] += 1
-            # Two public pages show one model: its catalogue page (price, specs,
-            # voices) and its Most reported page (what engineers report).
-            for path in (f"/catalog/model/{canonical}", f"/reports/models/{canonical}"):
+            # Public pages that show one model: its catalogue page (price, specs,
+            # voices) and its reviews page (what engineers report).
+            paths = [f"/reviews/models/{canonical}"]
+            if canonical in listed:
+                paths.insert(0, f"/ai-models/{canonical}")
+            # ...and its alternatives in the picker (2026-10-21), the same evidence
+            # asked as "what else works where this one does".
+            # Only where the picker has something to offer: a model reported on for
+            # metrics alone has no alternatives page (it would read "not found").
+            if "/" in canonical and canonical in in_picker:
+                paths.append(f"/alternatives/{alt_slug(canonical)}")
+            for path in paths:
                 out.append({"path": path, "kind": "model", "voices": v,
                             "lastmod": mkey_lastmod.get(mv_id)})
+
+    # MODEL TYPE PAGES (2026-10-21): /ai-models/image lists the image models
+    # engineers reported on, and stays empty until one has a voice. Counted by
+    # the page's own data (catalog_view's `types_voiced`, the number its type
+    # chip shows), so the list and the page cannot disagree.
+    voiced = catalogue.get("types_voiced") or {}
+    for t, n in voiced.items():
+        if n >= r["model_type_min_models"]:
+            out.append({"path": f"/ai-models/{t}", "kind": "model_type", "voices": None})
 
     # Approved posts only. A store that cannot be read raises
     # (`blog_store.StoreUnreadable`), so a failure is not read as "no posts".

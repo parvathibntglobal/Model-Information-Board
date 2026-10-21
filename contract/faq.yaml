@@ -42,8 +42,9 @@ schema_type: FAQPage
 
 questions:
   # ── REWRITTEN 2026-10-15 for the public site as it now stands ───────────
-  # The pages a visitor can open are the Models pages (/catalog, /reports),
-  # the tools (Best AI model picker, Model specs finder, Token counter),
+  # The pages a visitor can open are the Models pages (/ai-models, /reviews),
+  # the tools (Best AI model picker, AI model pricing & specs table, LLM cost
+  # calculator - renamed 2026-10-20/21),
   # Compare and Blogs. They publish COUNTS - how many different people reported
   # a model working, failing or neither - never the posts themselves, and the
   # Board is not published. The old answers promised quotes "word for word" and
@@ -132,11 +133,11 @@ questions:
     # NAMES NO MODEL: "which is cheapest" is the withheld question below; this
     # one says how to work it out, which needs no claim about any model.
     a: >-
-      Paste your prompt into the Token counter. It counts the tokens in your
+      Paste your prompt into the LLM cost calculator. It counts the tokens in your
       browser — your text never leaves the page — and prices them as input or
       output on every model, so OpenAI API pricing, Claude API pricing and Gemini
       API pricing sit side by side for the same prompt, along with whether it
-      fits each model's context window. The Model specs finder filters every
+      fits each model's context window. The AI model pricing & specs table filters every
       model by context window, price, tool calling and structured output. Both
       show what providers advertise; the cheapest LLM API is only worth it if
       engineers reported it working for your job, which is what the reports are

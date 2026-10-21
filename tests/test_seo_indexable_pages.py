@@ -8,8 +8,8 @@ What is pinned:
      public evidence was one person. 816 section pages counted as 966.
   2. a page needs `min_voices` DISTINCT voices: one person twice is one voice;
   3. section pages and model pages appear at the PUBLIC paths the frontend
-     writes as their canonical (web/src/seo/pages.js) - /reports/... and
-     /catalog/model/... - never at the signed-in /board or /models (2026-10-20);
+     writes as their canonical (web/src/seo/pages.js) - /reviews/... and
+     /ai-models/... - never at the signed-in /board or /models (2026-10-20);
   4. structural pages are always listed, never-pages never are, and only
      approved blog posts count;
   5. a missing threshold raises instead of defaulting (rule 12).
@@ -69,6 +69,10 @@ def conn(test_dsn):
         c.execute(SCHEMA.read_text(encoding="utf-8"))
         c.execute("INSERT INTO model_version (id, canonical_id, provider, sources, provenance) "
                   "VALUES ('mv_t', 'acme/model-t', 'acme', '{}', 'polled')")
+        # The catalogue lists it, so it has an /ai-models page (judge/seo.py).
+        c.execute("INSERT INTO model_catalog (canonical_id, provider, name, input_modalities, "
+                  "output_modalities, pricing, last_seen_at) "
+                  "VALUES ('acme/model-t', 'acme', 'Model T', '{text}', '{text}', '{}', now())")
         for doc, source, author, slug in DOCS:
             c.execute(_AUTHOR, (author, source, author))
             c.execute(_DOC, (doc, source, doc, f"https://example.test/{doc}",
@@ -90,36 +94,36 @@ class TestCountedOnThePublicView:
         monkeypatch.setenv("PUBLICATION_VIEW", "internal")
         paths = _paths(conn)
         # three voices internally, one publicly: NOT indexable
-        assert "/reports/capabilities/long-context" not in paths
+        assert "/reviews/capabilities/long-context" not in paths
 
     def test_the_public_server_agrees(self, conn):
-        assert "/reports/capabilities/long-context" not in _paths(conn)
+        assert "/reviews/capabilities/long-context" not in _paths(conn)
 
 
 class TestTheThreshold:
     def test_two_public_voices_is_indexable(self, conn):
         paths = _paths(conn)
-        assert paths["/reports/capabilities/tool-use"]["voices"] == 2
+        assert paths["/reviews/capabilities/tool-use"]["voices"] == 2
 
     def test_no_drill_down_is_listed(self, conn):
         """One model inside one section has no public page; it is tallied, not listed."""
         paths = _paths(conn)
-        assert not any(p.count("/") > 3 and p.startswith("/reports/capabilities/") for p in paths)
+        assert not any(p.count("/") > 3 and p.startswith("/reviews/capabilities/") for p in paths)
         assert seo.indexable_pages(conn)["tallies"]["model_in_section"]["indexable"] == 1
 
     def test_an_indexable_section_page_carries_its_lastmod(self, conn):
         """Every indexable section path carries when its newest public entry was
         added, for the sitemap's <lastmod>."""
-        assert _paths(conn)["/reports/capabilities/tool-use"].get("lastmod")
+        assert _paths(conn)["/reviews/capabilities/tool-use"].get("lastmod")
 
     def test_one_person_twice_is_one_voice(self, conn):
-        assert "/reports/capabilities/code-review" not in _paths(conn)
+        assert "/reviews/capabilities/code-review" not in _paths(conn)
 
     def test_the_model_has_its_two_public_pages(self, conn):
         # Public voices across the whole model: a1, a2, a3, a6 = 4.
         paths = _paths(conn)
-        assert paths["/catalog/model/acme/model-t"]["voices"] == 4
-        assert paths["/reports/models/acme/model-t"]["voices"] == 4
+        assert paths["/ai-models/acme/model-t"]["voices"] == 4
+        assert paths["/reviews/models/acme/model-t"]["voices"] == 4
 
     def test_no_signed_in_page_is_listed(self, conn):
         """/board and /models are behind the sign-in since 2026-10-15."""
@@ -134,8 +138,9 @@ class TestTheThreshold:
 class TestTheLists:
     def test_structural_pages_always_and_never_pages_never(self, conn):
         paths = _paths(conn)
-        assert {"/", "/blogs", "/tools", "/catalog", "/catalog/new", "/compare", "/reports",
-                "/reports/jobs", "/token-counter", "/model-picker", "/model-finder"} <= set(paths)
+        assert {"/", "/blogs", "/tools", "/ai-models", "/ai-models/latest", "/compare", "/reviews",
+                "/reviews/jobs", "/token-counter", "/best-ai-model",
+                "/ai-model-pricing"} <= set(paths)
         assert not {"/login", "/admin", "/board", "/models", "/seo-keywords"} & set(paths)
 
     def test_the_contract_lists_match_the_sitemap_lists(self):
@@ -176,3 +181,107 @@ class TestTheContract:
             "always": [], "never": [], "blog_posts": "approved_only"})
         with pytest.raises(seo.IndexingContractError):
             seo.rules()
+
+
+def test_the_indexable_list_is_worked_out_once_for_a_few_minutes(monkeypatch):
+    """Every public page asks for /seo/indexable on load, and working it out is
+    slow (one evidence query per model). The endpoint keeps its answer for
+    _INDEXABLE_TTL_S, and a new answer is worked out once that has passed."""
+    import contextlib
+
+    from judge import app
+
+    calls = []
+
+    def fake(conn):
+        calls.append(1)
+        return {"paths": [{"path": f"/p{len(calls)}"}]}
+
+    monkeypatch.setattr(seo, "indexable_pages", fake)
+    monkeypatch.setattr(app, "_conn", lambda: contextlib.nullcontext(None))
+    monkeypatch.setattr(app, "_indexable_cache", [])
+    clock = [1000.0]
+    monkeypatch.setattr(app.time, "monotonic", lambda: clock[0])
+
+    assert app.seo_indexable() == {"paths": ["/p1"]}
+    assert app.seo_indexable() == {"paths": ["/p1"]}
+    assert len(calls) == 1
+    clock[0] += app._INDEXABLE_TTL_S + 1
+    assert app.seo_indexable() == {"paths": ["/p2"]}
+    assert len(calls) == 2
+
+
+def test_a_model_type_page_is_listed_once_it_shows_enough_reported_models(conn, monkeypatch):
+    """/ai-models/<type> is listed when catalog_view counts at least
+    `model_types.min_reported_models` reported models of that type - the
+    number the page's own type chip shows - and an empty type is not."""
+    from judge import catalog
+
+    need = seo.rules()["model_type_min_models"]
+    monkeypatch.setattr(catalog, "catalog_view",
+                        lambda c: {"types_voiced": {"text": need, "image": need - 1, "video": 0}})
+    paths = {p["path"]: p["kind"] for p in seo.indexable_pages(conn)["paths"]}
+    assert paths.get("/ai-models/text") == "model_type"
+    assert "/ai-models/image" not in paths and "/ai-models/video" not in paths
+
+
+def test_the_type_threshold_is_required(monkeypatch):
+    from judge import config
+
+    real = config._read
+
+    def without(name):
+        data = dict(real(name) or {})
+        if name == "indexing.yaml":
+            data.pop("model_types", None)
+        return data
+
+    monkeypatch.setattr(config, "_read", without)
+    with pytest.raises(seo.IndexingContractError):
+        seo.rules()
+
+
+def test_a_job_page_brings_its_picker_page_and_a_capability_does_not(conn, monkeypatch):
+    """A job section that is worth indexing is also listed as the picker on that
+    job (/best-ai-model/<slug>): the same evidence, asked as "which model". A
+    capability or metric has no picker page."""
+    from judge.store import board_entries
+
+    sections = {"best_for": [{"slug": "coding-agent", "voices": 5, "models": []},
+                             {"slug": "thin-job", "voices": 1, "models": []}],
+                "capability": [{"slug": "tool-use", "voices": 5, "models": []}]}
+    monkeypatch.setattr(board_entries, "board_sections", lambda c, hide_source=None: sections)
+    paths = {p["path"] for p in seo.indexable_pages(conn)["paths"]}
+    assert {"/reviews/jobs/coding-agent", "/best-ai-model/coding-agent"} <= paths
+    assert "/best-ai-model/thin-job" not in paths and "/reviews/jobs/thin-job" not in paths
+    assert "/best-ai-model/tool-use" not in paths
+
+
+def test_an_indexable_model_brings_its_alternatives_page(conn):
+    """A model page worth indexing also lists the picker's alternatives to it,
+    named by the model's own name (`model-t`), as the picker's canonical is."""
+    paths = {p["path"]: p for p in seo.indexable_pages(conn)["paths"]}
+    assert paths["/alternatives/model-t"]["kind"] == "model"
+    assert paths["/alternatives/model-t"]["voices"] == paths["/ai-models/acme/model-t"]["voices"]
+
+
+def test_a_model_the_catalogue_does_not_list_has_no_ai_models_page(conn):
+    """/ai-models/<id> is the catalogue's page, a 404 for anything it does not
+    list; such a model with reports keeps its reviews page and alternatives."""
+    conn.execute("DELETE FROM model_catalog")
+    conn.commit()
+    paths = {p["path"] for p in seo.indexable_pages(conn)["paths"]}
+    assert "/ai-models/acme/model-t" not in paths
+    assert {"/reviews/models/acme/model-t", "/alternatives/model-t"} <= paths
+
+
+def test_a_model_reported_only_on_metrics_has_no_alternatives_page(conn, monkeypatch):
+    """The picker reads jobs and capabilities, never metrics, so a model whose
+    only entries are metrics would open /alternatives/<it> as "not found"."""
+    from judge.store import board_entries
+
+    model = {"model_canonical": "acme/model-t", "model_key": "mv_t", "voices": 4}
+    only_metric = {"metric": [{"slug": "latency", "voices": 4, "models": [model]}]}
+    monkeypatch.setattr(board_entries, "board_sections", lambda c, hide_source=None: only_metric)
+    paths = {p["path"] for p in seo.indexable_pages(conn)["paths"]}
+    assert "/alternatives/model-t" not in paths

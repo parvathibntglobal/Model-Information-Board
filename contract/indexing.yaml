@@ -54,13 +54,15 @@
 version: 1
 
 pages:
-  # /reports/{jobs|capabilities|metrics}/:slug
+  # /reviews/{jobs|capabilities|metrics}/:slug - and for a job, also the
+  # picker's /best-ai-model/:slug (same evidence, asked as "which model")
   section:
     min_voices: 2
   # one model inside one section: tallied only - no public page shows it
   model_in_section:
     min_voices: 2
-  # /catalog/model/:canonical_id and /reports/models/:canonical_id
+  # /ai-models/:canonical_id and /reviews/models/:canonical_id - and the
+  # picker's /alternatives/:name (what else engineers report working there)
   model:
     min_voices: 2
 
@@ -70,17 +72,24 @@ always:
   - /
   - /blogs
   - /tools
-  - /model-picker
-  - /model-finder
+  - /best-ai-model
+  - /ai-model-pricing
   - /token-counter
-  - /catalog
-  - /catalog/new
+  - /ai-models
+  - /ai-models/latest
   - /compare
-  - /reports
-  - /reports/jobs
-  - /reports/capabilities
-  - /reports/metrics
+  - /reviews
+  - /reviews/jobs
+  - /reviews/capabilities
+  - /reviews/metrics
   - /glossary
+  - /methodology
+
+# One type of model (/ai-models/image, /ai-models/video...; 2026-10-21): the
+# models of that type engineers reported on. A type with too few of them is a
+# near-empty list, so it is invited only once it shows this many.
+model_types:
+  min_reported_models: 2
 
 # Glossary term pages (/glossary/:slug) are listed from glossary.yaml by
 # judge/seo.py: reviewed copy, no evidence threshold.
