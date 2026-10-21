@@ -149,9 +149,11 @@ export default function Compare() {
         <span className="eyebrow">Compare up to three AI models</span>
         <h1>AI model comparison</h1>
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '70ch' }}>
-          Pick two or three models to compare what engineers have actually reported
-          about them — counted, side by side, with no synthesised score and no winner
-          picked for you.
+          Compare AI models side by side, such as Claude vs GPT, on what engineers
+          reported about each, with the counts and a score for each category they
+          share. No overall winner is picked.
+          {/* "NO SYNTHESISED SCORE" came off this line on 2026-10-22: the page has
+              shown a category score since #540, so the promise was untrue. */}
           {/* ⚠ THIS PROMISED "what their providers advertise against what
               engineers have actually reported". The spec sheet came off this
               page on 2026-09-23, so the page's own empty state described a
@@ -227,8 +229,10 @@ export default function Compare() {
             change as the scores, so the page never says "never scored" while
             showing one. What stays true: no overall winner is picked. */}
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch' }}>
-          What engineers reported about each model, side by side: a score per category with the reports it comes from,
-          and each model&apos;s price and specs. Compare models within a category; no overall winner is picked.
+          {/* Opens with "<A> vs <B>", the search (2026-10-22, approved short answer). */}
+          {models.map((m) => shortName(m.display_name)).join(' vs ')}: what engineers reported about each model, side by
+          side - a score per category with the reports it comes from, and each model&apos;s price and specs. Compare
+          models within a category; no overall winner is picked.
         </p>
         <HowToRead method={state.data.category_method} />
       </div>

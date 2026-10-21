@@ -234,9 +234,12 @@ export default function Catalog() {
   }
 
   const title = isNew ? 'Latest AI model releases' : type ? `${typeLabel(type)} models` : 'All models'
+  // THE SHORT ANSWERS (2026-10-22, approved draft): keyword-led.
   const lede = isNew
-    ? `The ${view?.new_releases?.length || 40} models OpenRouter listed most recently, newest first.`
-    : 'The models engineers have reported on, most voices first. Pick a type, then a provider, to narrow the list.'
+    ? `The latest AI models: the ${view?.new_releases?.length || 40} most recently listed, newest first, with price, context window and type.`
+    : type
+      ? `${typeLabel(type)} AI models engineers have reported on, by provider, with price and context window.`
+      : 'A list of AI models engineers have reported on, by provider and type (text, image, video, speech and more), most-reported first. Pick a type, then a provider.'
 
   return (
     <div className="shell section-tight stack stack-4">

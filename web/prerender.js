@@ -33,8 +33,10 @@
  * THE BROWSER: CHROME_PATH (the Dockerfile installs Alpine's chromium), else
  * Chrome or Edge where they normally live.
  */
+import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { loadEnv } from 'vite'
@@ -122,8 +124,32 @@ const CANDIDATES = [env.CHROME_PATH, '/usr/bin/chromium', '/usr/bin/chromium-bro
 const executablePath = CANDIDATES.find((p) => existsSync(p))
 if (!executablePath) throw new Error('prerender: no browser found - set CHROME_PATH')
 
-const browser = await puppeteer.launch({ executablePath, headless: true,
-  args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'] })
+// THE BROWSER, TWO WAYS (2026-10-22). puppeteer's own launch is the normal
+// path (the Docker image's chromium). On a desktop where that browser is
+// already open, Edge 155 exits at once under puppeteer's launch (code 0), so
+// the fallback starts it with a debugging port on a profile of its own and
+// connects - the way a person would. Either way the same browser renders.
+async function openBrowser() {
+  const args = ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+  try {
+    return { browser: await puppeteer.launch({ executablePath, headless: true, args }), child: null }
+  } catch (first) {
+    const port = 9400 + Math.floor(Math.random() * 400)
+    const profile = mkdtempSync(join(tmpdir(), 'prerender-'))
+    const child = spawn(executablePath, ['--headless=new', ...args, `--remote-debugging-port=${port}`,
+      `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' })
+    for (let i = 0; i < 40; i++) {
+      await new Promise((ok) => setTimeout(ok, 250))
+      try {
+        const r = await fetch(`http://127.0.0.1:${port}/json/version`)
+        if (r.ok) return { browser: await puppeteer.connect({ browserURL: `http://127.0.0.1:${port}` }), child }
+      } catch { /* not up yet */ }
+    }
+    child.kill()
+    throw new Error(`prerender: the browser would not start (${first.message.split(String.fromCharCode(10))[0]})`)
+  }
+}
+const { browser, child: browserChild } = await openBrowser()
 
 // What the page's head was in the shell - main.jsx puts it back before the app starts.
 const shellHead = await (async () => {
@@ -174,52 +200,66 @@ async function render(page, path) {
 const failed = []
 let saved = 0
 const t0 = Date.now()
-const page = await browser.newPage()
-await page.setRequestInterception(true)
-// THE INDEXABLE LIST ONCE, for every page: the backend works it out afresh on
-// each request (judge/app.py `seo_indexable`, ~13 s on the local database), and
-// it is the same answer for every page in one run.
-let indexableOnce = null
-page.on('request', async (req) => {
+// EVERY API READ ONCE PER RUN (2026-10-22). Each page asks for the same big
+// answers - the catalogue, the reviews data, the model list, the indexable
+// list - and one run is one snapshot of the API. So a GET is fetched once,
+// by its full address, and every page and tab is handed that answer: the
+// backend serves each address once per build instead of once per page, and a
+// few tabs can then render at once. A failed fetch is not kept.
+const apiOnce = new Map()
+function fetchOnce(url) {
+  if (!apiOnce.has(url)) {
+    const p = fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_MS * 3) })
+      .then(async (r) => ({ status: r.status, type: r.headers.get('content-type') || 'application/json',
+        body: Buffer.from(await r.arrayBuffer()) }))
+    p.catch(() => apiOnce.delete(url))
+    apiOnce.set(url, p)
+  }
+  return apiOnce.get(url)
+}
+
+/** A tab with this script's request rules (see the notes at the top). */
+async function openTab() {
+  const page = await browser.newPage()
+  await page.setRequestInterception(true)
+  page.on('request', (req) => handle(req))
+  return page
+}
+
+async function handle(req) {
   if (['image', 'media', 'font'].includes(req.resourceType())) return req.abort()
   const url = req.url()
-  if (url.includes('/seo/indexable')) {
-    indexableOnce ||= fetch(url, { signal: AbortSignal.timeout(FETCH_MS * 3) }).then(async (r) => {
-      if (!r.ok) throw new Error(`/seo/indexable answered ${r.status}`)
-      return Buffer.from(await r.arrayBuffer())
-    })
+  // The API: the dev default `/api` on this server, or the origin the bundle
+  // names. Answered here - once per address per run, and with no CORS.
+  const api = url.startsWith(`${ORIGIN}/api/`) || (API_ORIGIN && url.startsWith(API_ORIGIN))
+  if (api) {
     try {
-      const body = await indexableOnce
-      return req.respond({ status: 200, contentType: 'application/json',
-        headers: { 'access-control-allow-origin': ORIGIN }, body })
+      if (req.method() === 'GET') {
+        const r = await fetchOnce(url)
+        return req.respond({ status: r.status, contentType: r.type,
+          headers: { 'access-control-allow-origin': ORIGIN }, body: r.body })
+      }
+      const r = await fetch(url, { method: req.method(), headers: { accept: req.headers().accept || '*/*' },
+        signal: AbortSignal.timeout(FETCH_MS), body: req.postData() })
+      return req.respond({ status: r.status, contentType: r.headers.get('content-type') || 'application/json',
+        headers: { 'access-control-allow-origin': ORIGIN }, body: Buffer.from(await r.arrayBuffer()) })
     } catch {
-      indexableOnce = null
       return req.abort()
     }
   }
   if (url.startsWith(ORIGIN) || url.startsWith('data:')) return req.continue()
   // Any other site - an embedded post, a widget - is not loaded (see the note at the top).
-  if (!API_ORIGIN || !url.startsWith(API_ORIGIN)) return req.abort()
-  // The API the bundle names. Fetched here, so CORS never applies.
-  try {
-    const get = ['GET', 'HEAD'].includes(req.method())
-    const r = await fetch(url, { method: req.method(), headers: { accept: req.headers().accept || '*/*' },
-      signal: AbortSignal.timeout(FETCH_MS), ...(get ? {} : { body: req.postData() }) })
-    await req.respond({ status: r.status, contentType: r.headers.get('content-type') || 'application/json',
-      headers: { 'access-control-allow-origin': ORIGIN }, body: Buffer.from(await r.arrayBuffer()) })
-  } catch {
-    await req.abort()
-  }
-})
+  return req.abort()
+}
 
-for (const path of PATHS) {
+async function saveOne(page, path) {
   const file = prerenderFile(path)
   const t1 = Date.now()
-  if (!file) { failed.push(`${path}: not a safe file name`); continue }
+  if (!file) { failed.push(`${path}: not a safe file name`); return }
   try {
     // One retry: a slow API answer is not a broken page.
     const { notFound, html } = await render(page, path).catch(() => render(page, path))
-    if (notFound) { failed.push(`${path}: renders "not found"`); continue }
+    if (notFound) { failed.push(`${path}: renders "not found"`); return }
     const out = join(DIST, file)
     mkdirSync(dirname(out), { recursive: true })
     // Vite's preload links are written with the page's full address; the local one must not ship.
@@ -231,10 +271,23 @@ for (const path of PATHS) {
     failed.push(`${path}: ${e.name || 'Error'} ${String(e.message).split('\n')[0]}`)
   }
 }
+
+// SEVERAL TABS AT ONCE (2026-10-22). One tab took 51 minutes for 1,334 pages,
+// most of it each page waiting on its own API calls, while Railway's build has
+// a time limit. PRERENDER_TABS tabs (default 4) take the next path from one
+// queue; each page still renders alone in its tab, so nothing it saves differs.
+const TABS = Math.max(1, Math.min(16, Number.parseInt(env.PRERENDER_TABS || '4', 10) || 4))
+let next = 0
+await Promise.all(Array.from({ length: Math.min(TABS, PATHS.length) }, async () => {
+  const page = await openTab()
+  while (next < PATHS.length) await saveOne(page, PATHS[next++])
+  await page.close()
+}))
 await browser.close()
+browserChild?.kill()
 server.close()
 
-console.log(`prerender: ${saved} of ${PATHS.length} pages saved in ${Math.round((Date.now() - t0) / 1000)}s`)
+console.log(`prerender: ${saved} of ${PATHS.length} pages saved in ${Math.round((Date.now() - t0) / 1000)}s (${TABS} tabs, ${apiOnce.size} API reads)`)
 if (failed.length) {
   console.error(`prerender: ${failed.length} failed:\n  ${failed.slice(0, 40).join('\n  ')}`)
   process.exit(1)
