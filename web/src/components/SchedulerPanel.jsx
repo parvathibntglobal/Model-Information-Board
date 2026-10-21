@@ -100,7 +100,7 @@ export default function SchedulerPanel() {
               <Cell k="Last run" v={last ? at(last.started_at) : 'none yet'}
                     sub={last ? `${last.event === 'schedule' ? 'scheduled' : 'started by hand'} · ${last.conclusion || last.status}` : null} />
               <Cell k="Due now" v={q.unreadable ? '—' : `${(q.due || []).length} of ${q.tracked ?? '—'} tracked`} />
-              <Cell k="Cadence" v={pol.cadence_days ? `every ${pol.cadence_days} days` : '—'}
+              <Cell k="Cadence" v={pol.cadence_hours ? `every ${pol.cadence_hours} hours after the last fetch` : '—'}
                     sub="after a model's last successful fetch" />
               <Cell k="Threads per fetch" v={pol.first_fetch_thread_cap ? `${pol.first_fetch_thread_cap} first · ${pol.refresh_thread_cap} refresh` : '—'} />
             </div>
@@ -159,7 +159,7 @@ export default function SchedulerPanel() {
                   <thead><tr><th>#</th><th>Model</th><th>Last success</th><th>Why it is due</th><th className="r">Thread cap</th></tr></thead>
                   <tbody>
                     {(q.due || []).length === 0 ? (
-                      <tr><td colSpan={5} className="dim">Nobody is due: every tracked model was fetched within {pol.cadence_days} days.</td></tr>
+                      <tr><td colSpan={5} className="dim">Nobody is due: every tracked model was fetched within {pol.cadence_hours} hours.</td></tr>
                     ) : q.due.map((d, i) => (
                       <tr key={d.model_version_id}>
                         <td className="dim tnum">{i + 1}</td>

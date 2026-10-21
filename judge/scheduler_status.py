@@ -126,7 +126,7 @@ def policy() -> dict:
             encoding="utf-8")) or {}).get("status")
     except (OSError, yaml.YAMLError):
         status = None
-    return {"cadence_days": p.cadence_days, "first_fetch_thread_cap": p.first_fetch_thread_cap,
+    return {"cadence_hours": p.cadence_hours, "first_fetch_thread_cap": p.first_fetch_thread_cap,
             "refresh_thread_cap": p.refresh_thread_cap, "status": status}
 
 

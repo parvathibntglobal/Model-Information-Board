@@ -2,12 +2,11 @@
 """Run the per-model fetches that are due, one at a time, within the daily cap.
 
 ⚠ DISABLED BY DEFAULT, AND THAT IS THE POINT. It refuses to harvest unless
-  `SCHEDULER_ENABLED` is set to a truthy value. Nothing here runs on a schedule
-  until a person sets that variable on the service - which is deliberate while
-  `contract/sources.yaml`'s undertaking is being made honest again (a public
-  repo held a Reddit-derived article, so `derived_publication: false` reads true
-  while being false, and the seven non-GitHub rulings rest on it). Until the
-  basis is honest, this stays off.
+  `SCHEDULER_ENABLED` is set to a truthy value, so turning it on is a person's
+  decision, made on the repository variable. It was off while
+  `contract/sources.yaml`'s undertaking described a basis that no longer held;
+  #535 re-asserted it on 2026-10-19 and it was switched on 2026-10-21. The
+  undertaking lapses 2026-11-18 unless re-asserted (docs/ops-scheduled-fetches.md).
 
   TWO INDEPENDENT GUARDS, so neither alone is load-bearing:
     - this switch (off), which stops the scheduler running at all;
