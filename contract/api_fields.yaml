@@ -273,6 +273,15 @@ fields:
     routes:
     - /admin/stages
     state: consumed
+  generated_at:
+    reviewed: true
+    routes:
+    - /seo/indexable
+    state: consumed
+    why: '`/seo/indexable?export=1` (2026-10-21, #552): when the indexable list was worked out.
+      Its real reader is the open build, outside the scan - web/Dockerfile fetches the export
+      and web/seo-build.js `readPaths` requires this field. The `consumed` the audit finds is
+      other payloads'' fields of the same name in web/src, so it is not proof of this one.'
   grouped:
     reviewed: false
     routes:
@@ -329,6 +338,15 @@ fields:
     routes:
     - /models/{model_version_id:path}
     state: consumed
+  lastmod:
+    reviewed: true
+    routes:
+    - /seo/indexable
+    state: no_consumer
+    why: '`/seo/indexable?export=1` (2026-10-21, #552): each path''s real last-modified date,
+      only where one exists. Read by the build, which the audit does not scan: web/Dockerfile
+      fetches the export and web/vite.config.js `seoFiles` writes it as the sitemap''s
+      <lastmod>. No page in web/src reads it, and none should.'
   ledger:
     reviewed: false
     routes:

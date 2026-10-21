@@ -2338,7 +2338,7 @@ def _fetch_runs_from_db(flat: str, hex_chars: set[str]) -> list[tuple[str, str, 
 
 
 @app.get("/seo/indexable")
-def seo_indexable() -> dict:
+def seo_indexable(export: bool = False) -> dict:
     """The paths worth indexing, by `contract/indexing.yaml` (SEO item 5, proposed).
 
     Read by `web/src/seo/indexable.js`: a page whose canonical path is not in
@@ -2346,10 +2346,15 @@ def seo_indexable() -> dict:
     Nothing here makes the site indexable - `web/index.html`'s `noindex`
     governs every page today.
 
-    PATHS ONLY. `judge/seo.py` also computes per-kind tallies and the rules it
-    applied; they stay in Python until something reads them (an Admin panel, the
-    sitemap generator), because an emitted field with no reader is rule 9's
-    defect. Counted on the PUBLIC view whatever view this server runs.
+    PATHS ONLY, unless `?export=1`. Counted on the PUBLIC view whatever view
+    this server runs.
+
+    `?export=1` (2026-10-21) is the file `scripts/export_indexable_paths.py`
+    writes, field for field, for an OPEN build: web/Dockerfile fetches it from
+    PRERENDER_API before `vite build`, because the node image cannot reach the
+    database and pre-rendering already needs this API (#552). Its reader is the
+    build (web/seo-build.js `readPaths`, vite.config.js `seoFiles` for the
+    sitemap's <lastmod>), not a page, so the pages keep the short answer.
     """
     from judge import seo
 
@@ -2364,12 +2369,24 @@ def seo_indexable() -> dict:
     now = time.monotonic()
     with _indexable_lock:
         if _indexable_cache and now - _indexable_cache[0] < _INDEXABLE_TTL_S:
-            paths = _indexable_cache[1]
+            result, generated_at = _indexable_cache[1], _indexable_cache[2]
         else:
             with _conn() as conn:
                 result = seo.indexable_pages(conn)
-            paths = [p["path"] for p in result["paths"]]
-            _indexable_cache[:] = [now, paths]
+            generated_at = datetime.now(UTC).isoformat(timespec="seconds")
+            _indexable_cache[:] = [now, result, generated_at]
+    paths = [p["path"] for p in result["paths"]]
+    if export:
+        # What the build reads of scripts/export_indexable_paths.py's file, and
+        # no more (rule 9): `rule` and `tallies` are for a person reading the
+        # script's output, and nothing in the build reads them. A date only
+        # where a real one exists (rule 6); `generated_at` is when the list was
+        # WORKED OUT, not when this request read the cache.
+        return {
+            "generated_at": generated_at,
+            "paths": paths,
+            "lastmod": {p["path"]: p["lastmod"] for p in result["paths"] if p.get("lastmod")},
+        }
     return {"paths": paths}
 
 

@@ -16,6 +16,7 @@ Rendered through node (tests/js/seo_build.mjs), as the other frontend tests do.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import xml.etree.ElementTree as ET
@@ -138,3 +139,73 @@ def test_the_shell_head_cannot_close_its_own_script(out):
     s = out["shellScript"]
     assert s.startswith('<script type="application/json" id="shell-head">')
     assert s.count("</script>") == 1 and "\u003c/script>" in s
+
+
+# ── nginx: what the server answers (2026-10-21, review of #552) ───────────
+#
+# nginx cannot be run in CI, so these read the template. They hold the four
+# things that were wrong or missing in it, each verified against nginx 1.26
+# when written: a saved page served without no-cache, a trailing slash
+# answering 403, every unknown address answering 200, and no server redirect
+# for the old addresses.
+
+
+_NGINX = ROOT / "web" / "nginx.conf.template"
+_APP = ROOT / "web" / "src" / "App.jsx"
+#: App.jsx elements that only move the visitor: the server must 301 these.
+_MOVERS = {"MovedTo", "CatalogMoved", "ReportsMoved"}
+
+
+def _nginx() -> str:
+    return _NGINX.read_text(encoding="utf-8")
+
+
+def _routes() -> list[tuple[str, str]]:
+    """(path, element) for every <Route> in App.jsx."""
+    text = _APP.read_text(encoding="utf-8")
+    return re.findall(r'<Route\s+path="([^"]+)"\s+element=\{<(\w+)', text)
+
+
+def _app_route_map() -> tuple[set[str], set[str]]:
+    """The exact and prefix first segments in the `$app_route` map."""
+    text = _nginx()
+    exact = re.search(r"~\^/\(([^)]+)\)\$ 1;", text).group(1).split("|")
+    prefix = re.search(r"~\^/\(([^)]+)\)/ 1;", text).group(1).split("|")
+    return set(exact), set(prefix)
+
+
+def test_every_app_route_answers_200_or_moves_for_good():
+    """A route nginx does not know would answer 404 to a real page."""
+    exact, prefix = _app_route_map()
+    text = _nginx()
+    for path, element in _routes():
+        if path in ("/", "*"):
+            continue
+        first = path.strip("/").split("/")[0]
+        if element in _MOVERS:
+            assert re.search(rf"location (= |\^~ |~ \^)/{re.escape(first)}\b", text), (
+                f"{path} moves in the browser only; nginx needs a 301 for it")
+            continue
+        below = path.endswith("/*") or "/:" in path or path.count("/") > 1
+        assert (first in prefix) if below else (first in exact), (
+            f"{path} ({element}) is not in nginx's $app_route map, so it would answer 404")
+
+
+def test_a_saved_page_is_never_cached():
+    """`no-cache` on the location that serves the page, not on a nested
+    `\.html$` location that `/reviews/jobs` never reaches."""
+    block = re.search(r"location / \{(.*?)\n    \}", _nginx(), re.S).group(1)
+    assert "location" not in block, "a nested location is what never matched /reviews/jobs"
+    assert re.search(r'^        add_header Cache-Control "no-cache";', block, re.M)
+
+
+def test_a_trailing_slash_cannot_reach_a_directory():
+    """`$uri/` served the `reviews/` directory for `/reviews/` and answered 403."""
+    for line in re.findall(r"try_files[^;]*;", _nginx()):
+        assert "$uri/" not in line, line
+    assert re.search(r"location ~ \^\(/\.\+\)/\$ \{ return 301 \$1", _nginx())
+
+
+def test_redirects_are_relative_behind_the_proxy():
+    """An absolute Location would name nginx's own http port, not the site."""
+    assert "absolute_redirect off;" in _nginx()

@@ -285,3 +285,32 @@ def test_a_model_reported_only_on_metrics_has_no_alternatives_page(conn, monkeyp
     monkeypatch.setattr(board_entries, "board_sections", lambda c, hide_source=None: only_metric)
     paths = {p["path"] for p in seo.indexable_pages(conn)["paths"]}
     assert "/alternatives/model-t" not in paths
+
+
+def test_the_export_is_the_scripts_file_from_the_same_cached_list(monkeypatch):
+    """`?export=1` (2026-10-21) is what web/Dockerfile fetches for an open
+    build: the fields of scripts/export_indexable_paths.py's file that the
+    build reads, a lastmod only where a real date exists, and `generated_at`
+    from when the list was worked out -
+    not when the cache was read."""
+    import contextlib
+
+    from judge import app
+
+    def fake(conn):
+        return {"paths": [{"path": "/a", "lastmod": "2026-10-20T00:00:00+00:00"}, {"path": "/b"}],
+                "tallies": {"model": {"pages": 2, "indexable": 1}}}
+
+    monkeypatch.setattr(seo, "indexable_pages", fake)
+    monkeypatch.setattr(app, "_conn", lambda: contextlib.nullcontext(None))
+    monkeypatch.setattr(app, "_indexable_cache", [])
+    clock = [1000.0]
+    monkeypatch.setattr(app.time, "monotonic", lambda: clock[0])
+
+    first = app.seo_indexable(export=True)
+    assert first["paths"] == ["/a", "/b"]
+    assert first["lastmod"] == {"/a": "2026-10-20T00:00:00+00:00"}
+    assert set(first) == {"generated_at", "paths", "lastmod"}
+    clock[0] += 10
+    assert app.seo_indexable(export=True)["generated_at"] == first["generated_at"]
+    assert app.seo_indexable() == {"paths": ["/a", "/b"]}

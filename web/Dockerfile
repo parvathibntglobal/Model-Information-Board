@@ -48,20 +48,42 @@ ENV VITE_API_URL=$VITE_API_URL
 # so until now SITE_URL and PUBLIC_SITE never reached `vite build` and the
 # deployed site stayed closed whatever the variables said. Empty = closed.
 # PRERENDER_API is where pre-rendering reads data when VITE_API_URL is the
-# relative `/api`. SEO_PATHS_FILE is NOT here yet: an open build needs it
-# (vite.config.js), and writing it takes scripts/export_indexable_paths.py
-# and the database - a step this node image cannot run.
+# relative `/api`.
+#
+# THE PAGE LIST FOR AN OPEN BUILD (2026-10-21). vite.config.js refuses an open
+# build without SEO_PATHS_FILE (the sitemap would list only the structural
+# pages). Writing it takes the database, which this image cannot reach - but
+# pre-rendering already needs PRERENDER_API, and that API serves the same file:
+# `/seo/indexable?export=1` is scripts/export_indexable_paths.py's output, field
+# for field. So an open build fetches it there, unless SEO_PATHS_FILE was
+# given. No PRERENDER_API on an open build FAILS here, by name, rather than at
+# the sitemap step with a message about a file. Same "open" test as
+# web/seo-build.js `siteOf`: SITE_URL set and PUBLIC_SITE exactly 1.
 ARG SITE_URL=
 ARG PUBLIC_SITE=
 ARG PRERENDER=
 ARG PRERENDER_API=
+ARG SEO_PATHS_FILE=
 ENV SITE_URL=$SITE_URL PUBLIC_SITE=$PUBLIC_SITE PRERENDER=$PRERENDER PRERENDER_API=$PRERENDER_API
 
 # `vite.config.js` reads the repo-root `.env` via `loadEnv(mode, REPO_ROOT, '')`
 # to find API_TOKEN. That file is not in this build context and must not be -
 # `loadEnv` returns an empty value, `define` injects an empty token, and the
 # session path above is what carries the credential.
-RUN npm run build
+#
+# SEO_PATHS_FILE is resolved from the repo root (vite.config.js), which is `/`
+# in this image, so the fetched file is named `web/seo-paths.json`.
+RUN set -e; \
+    if [ -n "$SITE_URL" ] && [ "$(echo "$PUBLIC_SITE" | tr -d ' ')" = "1" ] && [ -z "$SEO_PATHS_FILE" ]; then \
+      if [ -z "$PRERENDER_API" ]; then \
+        echo "open build refused: PRERENDER_API is not set, so the indexable page list cannot be fetched" >&2; \
+        exit 1; \
+      fi; \
+      wget -q -T 120 -O /web/seo-paths.json "${PRERENDER_API%/}/seo/indexable?export=1"; \
+      SEO_PATHS_FILE=web/seo-paths.json npm run build; \
+    else \
+      SEO_PATHS_FILE="$SEO_PATHS_FILE" npm run build; \
+    fi
 
 
 FROM nginx:alpine
