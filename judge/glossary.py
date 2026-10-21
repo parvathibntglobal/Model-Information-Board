@@ -22,7 +22,9 @@ No model is called here (rule 2).
 
 from __future__ import annotations
 
+import copy
 import re
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -160,11 +162,40 @@ def problems(entries: list[dict], known: set[str] | None = None,
     return out
 
 
+#: The parsed, checked file, kept until it changes on disk (2026-10-21, #552).
+#: Reading it cost ~117 ms a call - 154 terms, 160 KB of YAML parsed and every
+#: entry re-checked - on the index, on every term page and on every
+#: /seo/indexable rebuild, which is the slow load seen on the glossary pages.
+#: Keyed on (mtime, size), so an edited glossary.yaml is read on the next call
+#: with no restart. A file that fails its checks raises and is NOT kept.
+_CACHE: dict[Path, tuple[tuple[int, int], list[dict]]] = {}
+_CACHE_LOCK = threading.Lock()
+
+
 def load(path: Path | None = None) -> list[dict]:
-    """Every entry, checked. Raises GlossaryError naming every problem."""
+    """Every entry, checked. Raises GlossaryError naming every problem.
+
+    Each call gets its own copy, so a caller that changes an entry cannot
+    change what the next caller is served.
+    """
     path = path or PATH
-    if not path.exists():
-        raise GlossaryError(f"{path.name} is missing")
+    try:
+        st = path.stat()
+    except FileNotFoundError:
+        raise GlossaryError(f"{path.name} is missing") from None
+    stamp = (st.st_mtime_ns, st.st_size)
+    with _CACHE_LOCK:
+        hit = _CACHE.get(path)
+    if hit is not None and hit[0] == stamp:
+        return copy.deepcopy(hit[1])
+    entries = _read(path)
+    with _CACHE_LOCK:
+        _CACHE[path] = (stamp, entries)
+    return copy.deepcopy(entries)
+
+
+def _read(path: Path) -> list[dict]:
+    """The file parsed and checked, every time it is called."""
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     entries = raw.get("terms") or []
     bad = problems(entries)
