@@ -18,11 +18,13 @@ from pathlib import Path
 APP = (Path(__file__).resolve().parents[1] / "web" / "src" / "App.jsx").read_text(encoding="utf-8")
 
 #: The front door: what a visitor sees first, kept in the first download.
-EAGER = ("Landing", "Login")
+#: Login left it on 2026-10-21 - no public visitor uses it, and it carried two
+#: animations (AuraField, OrbitHub) into every first download.
+EAGER = ("Landing",)
 #: Every other page: fetched on first visit. Admin carries the big panels.
-LAZY = ("Board", "Blogs", "ModelDetail", "Models", "Compare",
+LAZY = ("Login", "Board", "Blogs", "ModelDetail", "Models", "Compare",
         "TokenCounter", "ModelFinder", "Admin", "BlogLogs",
-        "Tools", "Reports", "Discussions", "ModelPicker", "Catalog")
+        "Tools", "Reports", "Discussions", "ModelPicker", "Catalog", "Methodology")
 
 
 def test_the_front_door_is_in_the_first_download():

@@ -6,6 +6,6 @@ export const fmtCtx = (n) => (n >= 1e6 ? `${+(n / 1e6).toFixed(1)}M` : n >= 1e3 
 export const fmtDate = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 
 /** The address of one model's page. Each id segment is encoded; the slash between them is kept. */
-export const modelPagePath = (id) => `/catalog/model/${id.split('/').map(encodeURIComponent).join('/')}`
+export const modelPagePath = (id) => `/ai-models/${id.split('/').map(encodeURIComponent).join('/')}`
 /** Her reports page for a model (judge/reports.py): every job, capability and metric, counted. */
-export const reportsPath = (id) => `/reports/models/${id.split('/').map(encodeURIComponent).join('/')}`
+export const reportsPath = (id) => `/reviews/models/${id.split('/').map(encodeURIComponent).join('/')}`

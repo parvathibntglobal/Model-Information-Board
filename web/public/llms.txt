@@ -6,22 +6,23 @@ The board reads public posts by engineers about AI models, files each report und
 
 ## Models
 
-- [All AI models](/catalog): every listed model by provider and type, with list prices and context window
-- [New AI model releases](/catalog/new): the most recently listed models, newest first
-- [Compare AI models](/compare): up to three models side by side
-- [Most reported](/reports): what engineers report about each AI model
-- [Most reported, by job](/reports/jobs): which models engineers report working for each job
-- [Most reported, by capability](/reports/capabilities)
-- [Most reported, by metric](/reports/metrics)
+- [All AI models](/ai-models): every listed model by provider and type, with list prices and context window
+- [Latest AI model releases](/ai-models/latest): the most recently listed models, newest first
+- [AI model comparison](/compare): up to three models side by side, at /compare/<model>-vs-<model>
+- [AI model reviews](/reviews): AI models ranked by engineer reports
+- [AI model reviews by job](/reviews/jobs): which models engineers report working for each job
+- [AI model reviews by capability](/reviews/capabilities)
+- [AI model reviews by metric](/reviews/metrics)
 
-## Tools
+## Free AI model tools
 
-- [Best AI model picker](/model-picker): models engineers reported working for a job, a capability or a metric
-- [Model specs finder](/model-finder): filter models by context window, price and features
-- [Token counter](/token-counter): count a prompt's tokens and price it on several models
+- [Best AI model picker](/best-ai-model): models engineers reported working for a job or a capability; one job alone is its own page, /best-ai-model/<job>
+- [AI model pricing & specs table](/ai-model-pricing): every model's price per token, context window and features, filterable
+- [LLM cost calculator & token counter](/token-counter): count a prompt's tokens and price it on several models
 
 ## Reading
 
 - [Blogs](/blogs): posts on AI models, written from the reports
 - [AI glossary](/glossary): one short paragraph on each AI model term, from tokens to retrieval-augmented generation
 - [Discussions](/discussions): readers' own experiences with AI models, shown beside the reports and never added to the counts
+- [Methodology](/methodology): how a report is found, checked against its post and counted, and the fixed rule behind every verdict

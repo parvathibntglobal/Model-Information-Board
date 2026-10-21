@@ -6,7 +6,7 @@ import { useInView } from './ui'
  * leaderboard alternative" section: one model reported working, one disputed,
  * one with problems, each with a small positive / negative / neutral chart.
  *
- * REAL COUNTS, FIXED AT A DATE: the three were picked from `/reports` on the
+ * REAL COUNTS, FIXED AT A DATE: the three were picked from `/reviews` on the
  * team's 2026-10-15 database (newest report 12 Oct) as real cases with all
  * three bars, so the chart reads at a glance; the panel names that date on its
  * face, because the live counts move on. They replaced sample figures that had

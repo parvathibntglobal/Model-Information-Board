@@ -4,7 +4,7 @@ import { modelCatalog, fmtPrice, fmtTokens } from '../api'
 import { Badge, Notice } from '../components/ui'
 import { IconAlert, IconSearch } from '../components/Icons'
 import { CONTEXT_STEPS, FLAGS, INPUTS, OUTPUTS, findModels, fromCatalog } from '../finder/finder'
-import { modelPagePath } from '../catalog/format'
+import { fmtDate, modelPagePath } from '../catalog/format'
 import { typeLabel } from '../catalog/types'
 import { useHead } from '../seo/head'
 import { modelFinder } from '../seo/pages'
@@ -94,9 +94,9 @@ export default function ModelFinder() {
     <div className="shell section-tight stack stack-4">
       <div className="stack stack-1">
         <nav className="tc-trail label" aria-label="Breadcrumb">
-          <Link to="/tools">Tools</Link> <span aria-hidden="true">/</span> Spec finder
+          <Link to="/tools">Tools</Link> <span aria-hidden="true">/</span> AI model pricing &amp; specs table
         </nav>
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>Find a model by spec</h1>
+        <h1 style={{ fontSize: 'var(--fs-display)' }}>AI model pricing &amp; specs table</h1>
         <p className="tc-lead">
           Tick what your feature needs - what the model must read and write, and what it must support.
           These are what each model is listed as doing, not what engineers found; each model's page has the reports.
@@ -222,6 +222,7 @@ export default function ModelFinder() {
             )}
             <p className="dim tc-note">
               {models.length} models, as OpenRouter lists them: what each reads and writes, its features and its prices.
+              {view?.polled_at ? <> Prices read <time dateTime={view.polled_at}>{fmtDate(view.polled_at.slice(0, 10))}</time>.</> : null}
             </p>
           </section>
         </div>

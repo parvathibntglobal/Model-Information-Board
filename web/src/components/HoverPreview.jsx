@@ -20,7 +20,7 @@ import '../styles/blog-live.css'
  */
 
 const ROUTES = [
-  [/^\/catalog\/model\/(.+)$/, 'model'],
+  [/^\/ai-models\/([^/]+\/.+)$/, 'model'],
   [/^\/models\/([^/]+\/[^/]+)$/, 'model'],
   [/^\/board\/capabilities\/([^/]+)$/, 'cap'],
   [/^\/board\/jobs\/([^/]+)$/, 'job'],

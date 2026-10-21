@@ -1,9 +1,8 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import Landing from './routes/Landing'
-import Login from './routes/Login'
 import { getSession, signOut } from './auth'
 import NotFound from './components/NotFound'
 
@@ -11,7 +10,7 @@ import NotFound from './components/NotFound'
  * ROUTE-LEVEL CODE SPLITTING (SEO item 10, 2026-10-09). The whole app was one
  * 544.6 kB script (159.3 kB gzipped) that every visitor downloaded before the
  * first paint - the admin console included, which a reader never opens. The
- * front door stays in the first download: the shell, Login and Landing. Every
+ * front door stays in the first download: the shell and Landing. Every
  * other page is its own chunk, fetched when it is first visited.
  *
  * A DEPLOY REPLACES THE CHUNKS. A tab opened before it still names the old
@@ -24,6 +23,18 @@ import NotFound from './components/NotFound'
 function MovedTo({ path }) {
   const { search } = useLocation()
   return <Navigate to={path + search} replace />
+}
+
+/** /catalog, /catalog/new, /catalog/model/<id> -> /ai-models, /ai-models/latest, /ai-models/<id>. */
+function CatalogMoved() {
+  const rest = (useParams()['*'] || '').replace(/^model\//, '').replace(/^new$/, 'latest')
+  return <MovedTo path={rest ? `/ai-models/${rest}` : '/ai-models'} />
+}
+
+/** /reports/<anything> -> /reviews/<anything> (2026-10-21). */
+function ReportsMoved() {
+  const rest = useParams()['*'] || ''
+  return <MovedTo path={rest ? `/reviews/${rest}` : '/reviews'} />
 }
 
 function page(load) {
@@ -42,10 +53,15 @@ function page(load) {
   }))
 }
 
+// LOGIN LEFT THE FIRST DOWNLOAD (2026-10-21): every public visitor fetched the
+// sign-in page and its two animations (AuraField, OrbitHub) and none of them
+// uses it. A team member waits one small request on /login instead.
+const Login = page(() => import('./routes/Login'))
 const Board = page(() => import('./routes/Board'))
 const Blogs = page(() => import('./routes/Blogs'))
 const Glossary = page(() => import('./routes/Glossary'))
 const Tools = page(() => import('./routes/Tools'))
+const Methodology = page(() => import('./routes/Methodology'))
 const ModelPicker = page(() => import('./routes/ModelPicker'))
 const Reports = page(() => import('./routes/Reports'))
 const Catalog = page(() => import('./routes/Catalog'))
@@ -128,23 +144,37 @@ export default function App() {
           <Route path="/blogs/*" element={<Blogs />} />
           <Route path="/glossary/*" element={<Glossary />} />
           <Route path="/tools"       element={<Tools />} />
-          <Route path="/model-picker" element={<ModelPicker />} />
+          <Route path="/methodology" element={<Methodology />} />
+          <Route path="/best-ai-model" element={<ModelPicker />} />
+          <Route path="/best-ai-model/:job" element={<ModelPicker />} />
+          <Route path="/alternatives/:model" element={<ModelPicker />} />
           {/* the tool was briefly "AI model finder" here; an old link still opens it */}
-          <Route path="/ai-model-finder" element={<MovedTo path="/model-picker" />} />
-          <Route path="/reports/*"   element={<Reports />} />
-          <Route path="/catalog/*"   element={<Catalog />} />
+          <Route path="/ai-model-finder" element={<MovedTo path="/best-ai-model" />} />
+          <Route path="/reviews/*"   element={<Reports />} />
+          {/* THE ADDRESSES THAT SAY WHAT PEOPLE SEARCH (2026-10-21): these pages
+              were /reports, /model-picker and /model-finder; an old link still
+              opens and moves to the same page. */}
+          <Route path="/reports/*"   element={<ReportsMoved />} />
+          <Route path="/model-picker" element={<MovedTo path="/best-ai-model" />} />
+          <Route path="/model-finder" element={<MovedTo path="/ai-model-pricing" />} />
+          <Route path="/ai-models/*" element={<Catalog />} />
+          {/* The Models pages were /catalog until 2026-10-21; an old link moves to the same page. */}
+          <Route path="/catalog/*"   element={<CatalogMoved />} />
           <Route path="/discussions" element={<Discussions />} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           {/* BEFORE `/models/*`, and outside it. The comparison is entered from
-              the models list, but its own URL is `/compare?ids=…`: a model id
-              contains a slash (`anthropic/claude-fable-5-1`), so a path segment
-              could not carry two of them, and the SEO plan's comparison
-              keywords all target /compare. */}
+              the models list. A model id contains a slash
+              (`anthropic/claude-fable-5-1`), so the path names each model by
+              the part after the provider instead - see the route below. */}
           <Route path="/compare"    element={<Compare />} />
+          {/* THE READABLE ADDRESS (2026-10-20): /compare/grok-4.6-vs-gpt-6-sol,
+              each model named by its own name, which is unique in the catalogue
+              (compare/path.js). `?ids=` still opens and moves here. */}
+          <Route path="/compare/:pair" element={<Compare />} />
           {/* Entered from the models list, beside Compare; top-level paths for the
               same reason as /compare - `/models/*` is a model id. */}
           <Route path="/token-counter" element={<TokenCounter />} />
-          <Route path="/model-finder"  element={<ModelFinder />} />
+          <Route path="/ai-model-pricing"  element={<ModelFinder />} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
           <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />

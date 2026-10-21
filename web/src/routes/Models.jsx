@@ -6,6 +6,7 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 import Freshness from '../components/Freshness'
 import { useHead } from '../seo/head'
 import { modelsIndex } from '../seo/pages'
+import { comparePath } from '../compare/path'
 
 /**
  * The registry: what each provider advertises, and what engineers have found.
@@ -244,22 +245,14 @@ export default function Models() {
             it tells the reader the feature is there and what it needs, which is
             the opposite of the usual objection to a disabled control. */}
         <div className="row" style={{ gap: 8, flexShrink: 0 }}>
-        {/* BESIDE COMPARE, two more tools over the same roster: count a text's
-            tokens and price it (routes/TokenCounter.jsx), and filter models on
-            advertised specs (routes/ModelFinder.jsx). */}
-        <Link to="/token-counter" className="btn btn-ghost" style={{ whiteSpace: 'nowrap' }}
-              title="Count the tokens in a text and see what it costs on each model">
-          Token counter
-        </Link>
-        <Link to="/model-finder" className="btn btn-ghost" style={{ whiteSpace: 'nowrap' }}
-              title="Filter models by tool calling, vision, context window and price">
-          Spec finder
-        </Link>
+        {/* THE COST CALCULATOR AND THE PRICING TABLE sat here until 2026-10-21;
+            both are public tools now, reached from Tools, the menu and the
+            footer, so this signed-in page no longer repeats them. */}
         <button
           type="button"
           className="btn btn-primary"
           disabled={picked.length < 2}
-          onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
+          onClick={() => navigate(comparePath(picked))}
           title={
             picked.length === 0
               // ⚠ THIS SAID "compare what providers advertise against what engineers
@@ -422,7 +415,7 @@ export default function Models() {
                   type="button"
                   className="btn btn-primary"
                   disabled={picked.length < 2}
-                  onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
+                  onClick={() => navigate(comparePath(picked))}
                 >
                   Compare ({picked.length}) →
                 </button>

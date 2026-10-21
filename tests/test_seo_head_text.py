@@ -38,15 +38,16 @@ def out() -> dict:
 def _heads(out):
     # `noindex` and `structured` hold other cases, not page heads.
     return {k: v for k, v in out.items()
-            if isinstance(v, dict) and k not in ("noindex", "structured")}
+            if isinstance(v, dict) and k not in ("noindex", "structured", "compare")}
 
 
 def test_every_page_has_its_own_title(out):
     # Pairs that are the SAME page by design are left out: A-vs-B and B-vs-A,
-    # a missing post (which falls back to the index head), and /reports/models,
-    # which is /reports.
+    # a missing post (which falls back to the index head), and /reviews/models,
+    # which is /reviews.
     titles = [h["title"] for k, h in _heads(out).items()
-              if k not in ("compareBA", "postMissing", "hubDefault", "reportsModels") and h]
+              if k not in ("compareBA", "postMissing", "hubDefault", "reportsModels",
+                           "compareReadableBA") and h]
     assert all(titles)
     assert len(set(titles)) == len(titles)
 
@@ -171,8 +172,83 @@ def test_a_dated_page_says_when_it_last_changed(out):
 
 
 def test_reports_models_and_the_hub_are_one_page(out):
-    """/reports opens on the Models section, so /reports/models names the hub as
+    """/reviews opens on the Models section, so /reviews/models names the hub as
     its canonical instead of competing with it (2026-10-20)."""
-    assert out["reportsHub"]["canonical"] == "/reports"
-    assert out["reportsModels"]["canonical"] == "/reports"
-    assert out["reportsJobs"]["canonical"] == "/reports/jobs"
+    assert out["reportsHub"]["canonical"] == "/reviews"
+    assert out["reportsModels"]["canonical"] == "/reviews"
+    assert out["reportsJobs"]["canonical"] == "/reviews/jobs"
+
+
+def test_a_comparison_has_a_readable_path_and_one_canonical(out):
+    """/compare/<a>-vs-<b> names the models the way people search them; either
+    order is one canonical; internal ids keep the query form (2026-10-20)."""
+    c = out["compare"]
+    assert c["path"] == "/compare/grok-4.6-vs-gpt-6-sol"
+    assert c["pathFrom"] == "/compare/grok-4.6-vs-gpt-6-sol?from=reports"
+    assert c["pathInternal"] == "/compare?ids=mv_1%2Cmv_2"
+    assert c["pathOne"] == "/compare?ids=x-ai%2Fgrok-4.6"
+    assert c["canonAB"] == c["canonBA"] == "/compare/gpt-6-sol-vs-grok-4.6"
+    heads = (out["compareReadableAB"], out["compareReadableBA"])
+    assert [h["canonical"] for h in heads] == [c["canonAB"], c["canonAB"]]
+
+
+def test_a_readable_comparison_resolves_back_to_its_models(out):
+    c = out["compare"]
+    assert c["parsed"] == ["grok-4.6", "gpt-6-sol"]
+    assert c["resolved"] == {"ids": ["x-ai/grok-4.6", "openai/gpt-6-sol"], "unknown": []}
+    # an unknown name, and a name two providers share, are not guessed
+    assert c["unknown"] == {"ids": [], "unknown": ["grok-9", "twin"]}
+    # the full id written with `--` names a shared name exactly
+    assert c["fullId"] == {"ids": ["acme/twin"], "unknown": []}
+
+
+def test_a_job_in_the_picker_is_a_page_of_its_own(out):
+    """/best-ai-model/<job> (2026-10-21): its own canonical and a title that
+    reads as the search does - "best AI model for coding agents" - with an
+    acronym kept as written ("RAG", not "rAG")."""
+    h = out["pickerJob"]
+    assert h["canonical"] == "/best-ai-model/coding-agent"
+    assert h["title"].startswith("Best AI model for coding agents")
+    assert h["breadcrumbs"][-1] == {"name": "Coding agents", "path": "/best-ai-model/coding-agent"}
+    assert out["pickerJobAcronym"]["title"].startswith("Best AI model for RAG:")
+
+
+def test_a_tool_says_it_is_a_free_web_app_and_nothing_more(out):
+    """The cost calculator, the pricing table, the picker and the bare
+    comparison tool carry WebApplication markup (2026-10-21): their own name,
+    address and description, free - and no rating or review count, which they
+    do not have. A comparison of two named models is a page, not the tool."""
+    s = out["structured"]
+    app = next(x for x in s["tool"] if x["@type"] == "WebApplication")
+    assert app["name"] == "LLM cost calculator & token counter"
+    assert app["url"] == "https://board.example/token-counter"
+    assert app["isAccessibleForFree"] is True and app["offers"]["price"] == "0"
+    assert "aggregateRating" not in app and "review" not in app
+    assert all("WebApplication" in types for types in s["toolTypes"])
+    assert "WebApplication" in s["compareTool"] and "WebApplication" not in s["comparePair"]
+    assert s["closedTool"] == []
+
+
+def test_a_model_list_is_marked_up_in_the_pages_own_order(out):
+    """ItemList (2026-10-21): the models the page shows, numbered in its order,
+    with absolute links; an empty list writes no ItemList at all."""
+    s = out["structured"]
+    lst = next(x for x in s["typeList"] if x["@type"] == "ItemList")
+    assert lst["numberOfItems"] == 2
+    assert [(e["position"], e["name"], e["url"]) for e in lst["itemListElement"]] == [
+        (1, "Flux 2", "https://board.example/ai-models/bfl/flux-2"),
+        (2, "Nano Banana 2", "https://board.example/ai-models/google/nano-banana-2"),
+    ]
+    assert "BreadcrumbList" in [x["@type"] for x in s["typeList"]]
+    assert "ItemList" not in s["emptyList"]
+    assert s["reviewCrumbs"][0] == {"name": "AI model reviews", "path": "/reviews"}
+
+
+def test_a_models_alternatives_are_a_page_of_their_own(out):
+    """/alternatives/<model> (2026-10-21): "gpt-6 astra alternatives" is the
+    search, so the title and canonical say it."""
+    h = out["pickerAlternatives"]
+    assert h["canonical"] == "/alternatives/gpt-6-astra"
+    assert h["title"].startswith("GPT-6 Astra alternatives")
+    assert h["breadcrumbs"][-1] == {"name": "GPT-6 Astra alternatives",
+                                     "path": "/alternatives/gpt-6-astra"}

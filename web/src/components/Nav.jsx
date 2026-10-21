@@ -10,26 +10,28 @@ const LINKS = [
   // short definitions a reader looks up for the basics.
   { to: '/blogs', label: 'Blogs', items: [
     { to: '/blogs', label: 'Blog posts' },
-    { to: '/glossary', label: 'Glossary' },
+    { to: '/glossary', label: 'AI glossary' },
   ] },
   // HOVER MENUS. The label still opens its own page on click; hovering lists
   // what is inside it, the way the demo's sections are split.
   { to: '/tools', label: 'Tools', items: [
-    { to: '/model-picker', label: 'Best AI model picker' },
-    { to: '/model-finder', label: 'Model specs finder' },
-    { to: '/token-counter', label: 'Token counter' },
+    { to: '/best-ai-model', label: 'Best AI model picker' },
+    { to: '/ai-model-pricing', label: 'AI model pricing & specs table' },
+    { to: '/token-counter', label: 'LLM cost calculator' },
   ] },
   // MODELS, A MEGA MENU (2026-10-14): explore on the left, the seven model
-  // types on the right. Every model OpenRouter lists lives at /catalog; the
-  // counted reports (/reports) are one entry here and each model's detail.
-  { to: '/catalog', label: 'Models', mega: {
+  // types on the right. Every model OpenRouter lists lives at /ai-models; the
+  // counted reports (/reviews) are one entry here and each model's detail.
+  { to: '/ai-models', label: 'Models', mega: {
     explore: [
-      { to: '/catalog', label: 'All models', note: 'Every provider, every model' },
-      { to: '/catalog/new', label: 'New releases', note: 'The newest listings' },
-      { to: '/compare', label: 'Compare models', note: 'Up to three, side by side' },
-      { to: '/reports', label: 'Most reported', note: 'What engineers report about each' },
+      { to: '/ai-models', label: 'All models', note: 'Every provider, every model' },
+      { to: '/ai-models/latest', label: 'Latest AI model releases', note: 'The newest listings' },
+      { to: '/compare', label: 'AI model comparison', note: 'Up to three, side by side' },
+      { to: '/reviews', label: 'AI model reviews', note: 'Ranked by engineer reports' },
+      // On every page through the menu (2026-10-21): the footer is on the home page only.
+      { to: '/methodology', label: 'How we count reports', note: 'Methodology' },
     ],
-    types: MODEL_TYPES.map((t) => ({ to: `/catalog?type=${t.key}`, key: t.key, label: `${t.label} models`, note: t.note })),
+    types: MODEL_TYPES.map((t) => ({ to: `/ai-models/${t.key}`, key: t.key, label: `${t.label} models`, note: t.note })),
   } },
   { to: '/discussions', label: 'Discussions' },
   // The FAQ is a SECTION of the landing page, not a route — same as the demo,
@@ -42,11 +44,14 @@ const LINKS = [
 // BEHIND "LOG IN": the full board, the model pages and the admin console - the
 // only pages that still need a sign-in (2026-10-15). Shown to everyone: a
 // visitor who picks one is taken to /login and brought back once signed in.
+// NOFOLLOW (2026-10-21): every public page carries these four links, and each
+// ends at a sign-in wall that robots.txt disallows and the page marks noindex;
+// telling crawlers not to follow them keeps their time on the public pages.
 const SIGNED_IN = [
-  { to: '/models', label: 'Models' },
-  { to: '/board', label: 'Board' },
-  { to: '/admin', label: 'Admin' },
-  { to: '/seo-keywords', label: 'SEO keywords' },
+  { to: '/models', label: 'Models', nofollow: true },
+  { to: '/board', label: 'Board', nofollow: true },
+  { to: '/admin', label: 'Admin', nofollow: true },
+  { to: '/seo-keywords', label: 'SEO keywords', nofollow: true },
 ]
 
 /** Whether `to` (which may carry a query) is the page being shown. */
@@ -99,7 +104,7 @@ function Menu({ head, items, loc, lit, end }) {
       {head}
       <div className="nav-menu-pop" role="menu">
         {items.map((i) => (
-          <Link key={i.to} to={i.to} role="menuitem"
+          <Link key={i.to} to={i.to} role="menuitem" rel={i.nofollow ? 'nofollow' : undefined}
                 className={`nav-menu-item${isHere(i.to, loc) ? ' on' : ''}`}>
             {i.label}
           </Link>
@@ -151,7 +156,7 @@ export default function Nav({ session, onSignOut }) {
                 lit={SIGNED_IN.some((i) => isHere(i.to, loc))}
                 head={session
                   ? <button type="button" className="nav-link nav-menu-btn" aria-haspopup="true">Log in {caret}</button>
-                  : <Link to="/login" className="nav-link nav-menu-btn" aria-haspopup="true">Log in {caret}</Link>} />
+                  : <Link to="/login" rel="nofollow" className="nav-link nav-menu-btn" aria-haspopup="true">Log in {caret}</Link>} />
         </nav>
 
         <div className="nav-right">

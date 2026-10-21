@@ -60,7 +60,7 @@ function GlossaryIndex() {
     <div className="shell section-tight gl-page">
       <header className="gl-hero">
         <span className="go-badge go-models page-tag">Glossary</span>
-        <h1>Glossary</h1>
+        <h1>AI glossary</h1>
         <p className="muted">
           Plain definitions of the terms you meet when choosing, prompting and running AI models.
           One short paragraph each: enough to get the idea, with the related terms beside it.

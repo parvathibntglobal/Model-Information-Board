@@ -1,3 +1,4 @@
+import { comparePath } from '../compare/path.js'
 /**
  * Board links: `data-go="kind:arg"` -> the app route it means.
  *
@@ -44,9 +45,10 @@ export function goPath(go) {
   // names sent every reader to the login screen: 1,102 links over the 150
   // published posts on 2026-10-19. The arg is a canonical id; the catalog
   // answers 404 to an internal key, so the caller passes none.
-  if (kind === 'catmodel') return `/catalog/model/${arg.split('/').map(encodeURIComponent).join('/')}`
-  // Two or three canonical ids, comma-separated, in the order the text names them.
-  if (kind === 'compare') return `/compare?ids=${encodeURIComponent(arg)}`
+  if (kind === 'catmodel') return `/ai-models/${arg.split('/').map(encodeURIComponent).join('/')}`
+  // Two or three canonical ids, comma-separated, in the order the text names them;
+  // the readable path `/compare/<a>-vs-<b>` (compare/path.js).
+  if (kind === 'compare') return comparePath(String(arg).split(','))
   if (kind === 'blogs') return '/blogs'
   if (kind === 'post') return `/blogs/${arg}`
   if (kind === 'live') return `/blogs/${arg}`

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { modelCatalog } from '../api'
 import ModelPage from '../catalog/ModelPage'
 import { fmtCtx, fmtDate, fmtUsd, modelPagePath } from '../catalog/format'
@@ -11,13 +11,19 @@ import '../styles/catalog.css'
 /**
  * MODELS (2026-10-14): every model OpenRouter lists, by provider and by type.
  *
- *   /catalog                    All models: the models engineers have reported
+ *   /ai-models                  All models: the models engineers have reported
  *                               on, most voices first; type chips above
  *                               provider bubbles; a bubble lists its models
- *   /catalog?type=image         ... one type (the menu's "Image models")
- *   /catalog?provider=openai    ... one provider
- *   /catalog/new                New releases: the newest listings, voiced or not
- *   /catalog/model/<id>         ONE model: price, workload cost, specs, voices
+ *   /ai-models/image            ... one type (the menu's "Image models"); was
+ *                               ?type=image, which still opens and moves here
+ *   /ai-models?provider=openai  ... one provider
+ *   /ai-models/latest           Latest releases: the newest listings, voiced or not
+ *                               (was /ai-models/new until 2026-10-21; it moves here)
+ *   /ai-models/<provider>/<model>  ONE model: price, workload cost, specs, voices
+ *
+ * THE ADDRESS (2026-10-21) was /catalog, /catalog/new and /catalog/model/<id>:
+ * "catalog" is a word nobody searches, and "ai models" is what people type.
+ * An old /catalog address still opens and moves here (App.jsx, CatalogMoved).
  *
  * Read from GET /model-catalog (judge/catalog.py), never from the evidence
  * pipeline. Every card opens its model's page.
@@ -97,11 +103,17 @@ function NewReleases({ view, byId, names }) {
  * Every other listed model is still one click away, in New releases and on its
  * own page; the page says how many, so the shorter list is not read as all.
  */
-function AllModels({ view, names }) {
+function AllModels({ view, names, type }) {
   const [sp, setSp] = useSearchParams()
-  const type = sp.get('type') || ''
+  const navigate = useNavigate()
   const provider = sp.get('provider') || ''
+  // A TYPE IS AN ADDRESS (/ai-models/image, 2026-10-21), so Google can list
+  // "image models" as a page; a provider stays a filter on it.
   const set = (k, v) => {
+    if (k === 'type') {
+      navigate(`/ai-models${v ? `/${v}` : ''}${sp.toString() ? `?${sp}` : ''}`, { replace: true })
+      return
+    }
     const next = new URLSearchParams(sp)
     if (v) next.set(k, v); else next.delete(k)
     setSp(next, { replace: true })
@@ -170,7 +182,7 @@ function AllModels({ view, names }) {
 
       <p className="cat-hint">
         These are the {voiced.length} models engineers have reported on. OpenRouter lists {unvoiced} more
-        with no engineer voice yet; they are in <Link to="/catalog/new">New releases</Link> and each has its own page.
+        with no engineer voice yet; they are in <Link to="/ai-models/latest">Latest AI model releases</Link> and each has its own page.
         A voice is one person: someone who posted about a model several times counts once.
       </p>
     </div>
@@ -179,8 +191,9 @@ function AllModels({ view, names }) {
 
 export default function Catalog() {
   const rest = useParams()['*'] || ''
-  const modelId = rest.startsWith('model/') ? decodeURIComponent(rest.slice('model/'.length)) : null
-  const isNew = rest === 'new'
+  // A model id is `provider/model`, so a path with a slash in it is one model.
+  const modelId = rest.includes('/') ? decodeURIComponent(rest) : null
+  const isNew = rest === 'latest'
   const [sp] = useSearchParams()
   const [state, setState] = useState({ view: null, err: null })
 
@@ -193,15 +206,34 @@ export default function Catalog() {
     return () => { alive = false }
   }, [modelId])
 
-  const type = sp.get('type') || ''
-  useHead(modelId ? null : catalogIndex(isNew ? 'new' : type || null))
+  const type = MODEL_TYPES.some((t) => t.key === rest) ? rest : ''
+  const oldType = !rest && MODEL_TYPES.some((t) => t.key === sp.get('type')) ? sp.get('type') : ''
   const view = state.view
+  // THE LIST FOR STRUCTURED DATA (2026-10-21): the models this page shows, in
+  // its order - newest first on New releases; most voices first otherwise, as
+  // AllModels sorts them before a provider is picked. The first 50.
+  const listed = useMemo(() => {
+    if (!view || view.reason || modelId) return []
+    const by = Object.fromEntries((view.models || []).map((m) => [m.id, m]))
+    const models = isNew
+      ? (view.new_releases || []).map((id) => by[id]).filter(Boolean)
+      : view.models.filter((m) => m.voices > 0 && (!type || m.types.includes(type)))
+        .slice().sort((a, b) => b.voices - a.voices || b.reports - a.reports || a.name.localeCompare(b.name))
+    return models.slice(0, 50).map((m) => ({ name: m.name, path: modelPagePath(m.id) }))
+  }, [view, isNew, type, modelId])
+  useHead(modelId || oldType ? null : catalogIndex(isNew ? 'new' : type || null, listed))
   const names = useMemo(() => Object.fromEntries((view?.providers || []).flatMap((p) => p.ids.map((i) => [i, p.name]))), [view])
   const byId = useMemo(() => Object.fromEntries((view?.models || []).map((m) => [m.id, m])), [view])
 
   if (modelId) return <ModelPage id={modelId} />
+  if (rest === 'new') return <Navigate to={`/ai-models/latest${sp.toString() ? `?${sp}` : ''}`} replace />
+  if (oldType) {
+    const keep = new URLSearchParams(sp)
+    keep.delete('type')
+    return <Navigate to={`/ai-models/${oldType}${keep.toString() ? `?${keep}` : ''}`} replace />
+  }
 
-  const title = isNew ? 'New releases' : type ? `${typeLabel(type)} models` : 'All models'
+  const title = isNew ? 'Latest AI model releases' : type ? `${typeLabel(type)} models` : 'All models'
   const lede = isNew
     ? `The ${view?.new_releases?.length || 40} models OpenRouter listed most recently, newest first.`
     : 'The models engineers have reported on, most voices first. Pick a type, then a provider, to narrow the list.'
@@ -213,17 +245,17 @@ export default function Catalog() {
         <h1 style={{ fontSize: 'var(--fs-display)' }}>{title}</h1>
         <p className="muted" style={{ maxWidth: '72ch', margin: 0 }}>{lede}</p>
         <nav className="cat-tabs" aria-label="Models">
-          <Link to="/catalog" className={!isNew ? 'on' : ''}>All models</Link>
-          <Link to="/catalog/new" className={isNew ? 'on' : ''}>New releases</Link>
-          <Link to="/compare">Compare models</Link>
-          <Link to="/reports">Most reported</Link>
+          <Link to="/ai-models" className={!isNew ? 'on' : ''}>All models</Link>
+          <Link to="/ai-models/latest" className={isNew ? 'on' : ''}>Latest AI model releases</Link>
+          <Link to="/compare">AI model comparison</Link>
+          <Link to="/reviews">AI model reviews</Link>
         </nav>
       </div>
 
       {!view && !state.err && <div className="skel" style={{ height: 220 }} />}
       {state.err && <p className="cat-hint">{state.err}</p>}
       {view && view.reason && <p className="cat-hint">{view.reason}</p>}
-      {view && !view.reason && (isNew ? <NewReleases view={view} byId={byId} names={names} /> : <AllModels view={view} names={names} />)}
+      {view && !view.reason && (isNew ? <NewReleases view={view} byId={byId} names={names} /> : <AllModels view={view} names={names} type={type} />)}
 
       {view && !view.reason && (
         <p className="cat-source">
