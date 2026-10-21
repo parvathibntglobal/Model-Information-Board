@@ -19,8 +19,12 @@ import { IconAlert, IconClock } from './Icons'
  *           did (fetch_log cannot tell a scheduled fetch from a button fetch)
  *
  * ⚠ NO BUTTONS THAT CHANGE ANYTHING. "Run now" is the workflow's Run workflow
- *   button on GitHub and spends money; the panel links to it. The on/off switch
- *   is not shown (decided 2026-10-06).
+ *   button on GitHub and spends money; the panel links to it.
+ * THE SWITCH AND WHAT EACH RUN FETCHED (2026-10-21). The repository variable
+ *   SCHEDULER_ENABLED is shown when the backend's token may read it - "can't be
+ *   read" is never shown as "off". Each run carries the summary its runner
+ *   posted to the scheduler issue; a run with none fetched nothing, which is
+ *   said in words instead of GitHub's bare "success".
  */
 
 function at(iso) {
@@ -48,6 +52,41 @@ function Cell({ k, v, sub }) {
   )
 }
 
+/** What one run fetched, from the summary its runner posted. A finished run
+ *  with no summary fetched nothing it reported - GitHub calls that "success"
+ *  too, so it is said in words. Per-model rows fold out. */
+function Fetched({ r }) {
+  if (r.status !== 'completed') return <span className="dim">running…</span>
+  if (r.summary === undefined) return <span className="dim">—</span>
+  if (r.summary === null) {
+    return <span className="dim">{r.minutes != null && r.minutes < 2 ? 'nothing (switch was off)' : 'no summary posted'}</span>
+  }
+  const s = r.summary
+  return (
+    <details>
+      <summary>
+        {s.models} {s.models === 1 ? 'model' : 'models'} · {s.ok} ok · {s.documents_appended} docs · {s.quotes_verified} quotes
+      </summary>
+      <table className="adm-subtable">
+        <thead><tr><th>Model</th><th>Outcome</th><th className="r">Docs</th><th className="r">Threads</th><th className="r">Quotes</th><th className="r">Unreadable here</th></tr></thead>
+        <tbody>
+          {s.rows.map((x, i) => (
+            <tr key={`${x.model}:${i}`}>
+              <td>{x.model}</td>
+              <td>{x.outcome === 'ok' ? <span className="run-ok">ok</span> : <span className="dim">{x.outcome}</span>}</td>
+              <td className="r tnum">{x.documents_appended ?? '—'}</td>
+              <td className="r tnum">{x.threads_read ?? '—'}</td>
+              <td className="r tnum">{x.quotes_verified ?? '—'}</td>
+              <td className="r tnum">{x.unreadable_here ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {s.url && <a className="mb-link" href={s.url} target="_blank" rel="noopener noreferrer">the posted summary ↗</a>}
+    </details>
+  )
+}
+
 export default function SchedulerPanel() {
   const [state, setState] = useState({ data: null, err: null })
 
@@ -66,6 +105,7 @@ export default function SchedulerPanel() {
   const gh = data?.github || {}
   const links = data?.links || {}
   const last = (gh.runs || [])[0]
+  const sw = data?.switch || {}
   const cron = (setup.crons || [])[0]
 
   return (
@@ -94,14 +134,19 @@ export default function SchedulerPanel() {
           <>
             {/* ── at a glance ─────────────────────────────────────────── */}
             <div className="adm-plan-grid">
+              <Cell k="Switch" v={sw.state === 'on' ? <span className="run-ok">● on</span>
+                                  : sw.state === 'off' ? <Badge tone="fail">off</Badge>
+                                  : 'can’t be read here'}
+                    sub={sw.state ? `SCHEDULER_ENABLED = ${JSON.stringify(sw.value)}` : sw.unreadable} />
               <Cell k="Schedule" v={cron ? cron.words : '—'} sub={cron ? `cron "${cron.expr}"` : null} />
               <Cell k="Next run" v={data.next_run ? at(data.next_run) : '—'}
                     sub={data.next_run ? 'GitHub may start it a little late' : null} />
               <Cell k="Last run" v={last ? at(last.started_at) : 'none yet'}
                     sub={last ? `${last.event === 'schedule' ? 'scheduled' : 'started by hand'} · ${last.conclusion || last.status}` : null} />
               <Cell k="Due now" v={q.unreadable ? '—' : `${(q.due || []).length} of ${q.tracked ?? '—'} tracked`} />
-              <Cell k="Cadence" v={pol.cadence_hours ? `every ${pol.cadence_hours} hours after the last fetch` : '—'}
-                    sub="after a model's last successful fetch" />
+              <Cell k="Cadence" v={pol.cadence_hours ? `every ${pol.cadence_hours} hours` : '—'}
+                    sub={pol.cadence_hours === 60 ? 'after a model’s last successful fetch: every third night, twice a week or more'
+                         : 'after a model’s last successful fetch'} />
               <Cell k="Threads per fetch" v={pol.first_fetch_thread_cap ? `${pol.first_fetch_thread_cap} first · ${pol.refresh_thread_cap} refresh` : '—'} />
             </div>
 
@@ -173,9 +218,19 @@ export default function SchedulerPanel() {
                 </table></div>
               )}
               {(q.not_due || []).length > 0 && (
-                <span className="dim" style={{ fontSize: 11 }}>
-                  Not due yet: {q.not_due.map((n) => n.name).join(', ')}.
-                </span>
+                <div className="tablewrap"><table>
+                  <thead><tr><th>Not due yet</th><th>Last success</th><th>Due again</th><th>Taken by the run of</th></tr></thead>
+                  <tbody>
+                    {[...q.not_due].sort((a, b) => String(a.next_due).localeCompare(String(b.next_due))).map((n) => (
+                      <tr key={n.model_version_id}>
+                        <td><strong style={{ fontSize: 'var(--fs-sm)' }}>{n.name}</strong></td>
+                        <td className="dim">{n.last_success ? at(n.last_success) : 'never'}</td>
+                        <td className="dim">{n.next_due ? at(n.next_due) : '—'}</td>
+                        <td>{n.next_run ? at(n.next_run) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table></div>
               )}
             </div>
 
@@ -184,10 +239,10 @@ export default function SchedulerPanel() {
               <span className="label">Log — every run of the scheduled workflow</span>
               {gh.unreadable ? <Notice icon={<IconAlert />}>The workflow's runs could not be read from GitHub: {gh.unreadable}</Notice> : (
                 <div className="tablewrap"><table>
-                  <thead><tr><th>Started</th><th>How</th><th>Result</th><th className="r">Took</th><th>Run</th></tr></thead>
+                  <thead><tr><th>Started</th><th>How</th><th>Result</th><th>What it fetched</th><th className="r">Took</th><th>Run</th></tr></thead>
                   <tbody>
                     {(gh.runs || []).length === 0 ? (
-                      <tr><td colSpan={5} className="dim">No run yet.</td></tr>
+                      <tr><td colSpan={6} className="dim">No run yet.</td></tr>
                     ) : gh.runs.map((r) => (
                       <tr key={r.id}>
                         <td>{at(r.started_at)}</td>
@@ -199,6 +254,7 @@ export default function SchedulerPanel() {
                               ? <span className="run-ok">✓ success</span>
                               : <Badge tone="fail">{r.conclusion}</Badge>}
                         </td>
+                        <td><Fetched r={r} /></td>
                         <td className="r tnum">{mins(r.minutes)}</td>
                         <td>{r.url && <a className="mb-link" href={r.url} target="_blank" rel="noopener noreferrer">#{r.number} ↗</a>}</td>
                       </tr>
@@ -207,6 +263,7 @@ export default function SchedulerPanel() {
                 </table></div>
               )}
               <span className="dim" style={{ fontSize: 11 }}>
+                {gh.summaries_unreadable ? `What each run fetched can't be shown: ${gh.summaries_unreadable}. ` : ''}
                 Each fetch a run makes also appears under Runs, like any other fetch.
               </span>
             </div>
