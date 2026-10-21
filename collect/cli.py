@@ -660,9 +660,12 @@ def _cmd_registry_poll_catalog(args: argparse.Namespace) -> int:
     with transaction() as conn:
         _gate(conn)
         with build_client() as client:
-            counts = poll_catalog(conn, client)
+            counts, unstorable = poll_catalog(conn, client)
     print(f"catalogue: {counts['listed']} listed "
           f"({counts['added']} new, {counts['updated']} updated)")
+    if unstorable:
+        print(f"NOT WRITTEN, value out of column range: {'; '.join(unstorable)}")
+        return 1
     return 0
 
 

@@ -311,6 +311,44 @@ def test_a_zero_model_poll_is_an_error_rather_than_a_quiet_ok():
     assert result.starves, "an error on this stage has to say what it starves"
 
 
+def test_an_unstorable_price_writes_the_rest_and_still_errors(monkeypatch):
+    """2026-10-04: one overflowing price rolled back the whole poll, so no
+    price moved that night. Now every other model is written - and the stage
+    still ends in ERROR naming the one that was not, because that model's row
+    keeps a price the feed no longer publishes (rule 12)."""
+    import json
+    from pathlib import Path
+
+    import collect.registry.openrouter as poller
+    from collect.ops.chain import ERROR, _poll_registry_stage
+
+    feed = json.loads((Path(__file__).resolve().parents[1] / "fixtures" / "openrouter"
+                       / "models-slice.json").read_text(encoding="utf-8"))
+    next(e for e in feed["data"] if e["id"] == "anthropic/claude-opus-5")["pricing"]["prompt"] = "2"
+
+    class Resp:
+        status_code = 200
+
+        def json(self):
+            return feed
+
+    class Client:
+        def get(self, url):
+            return Resp()
+
+    written = []
+    monkeypatch.setattr(poller, "write_model_versions",
+                        lambda conn, result: written.extend(m.canonical_id for m in result.models)
+                        or {"inserted": 0, "updated": len(result.models)})
+
+    result = _poll_registry_stage({"conn": object(), "client": Client()})
+
+    assert result.outcome == ERROR, result
+    assert "anthropic/claude-opus-5: price_in" in result.detail
+    assert result.counts["unstorable_skipped"] == 1
+    assert written and "anthropic/claude-opus-5" not in written
+
+
 # ── --only, and the denominator it has to carry ───────────────────────────
 
 
