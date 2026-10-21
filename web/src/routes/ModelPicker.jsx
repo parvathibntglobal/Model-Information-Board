@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { reportsPage, listRegistry, fetchAll, BoardUnreadable } from '../api'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert } from '../components/Icons'
 import { useHead } from '../seo/head'
-import { modelPicker } from '../seo/pages'
+import { modelPicker, pickerAlternatives, pickerJob } from '../seo/pages'
+import { comparePath, isReadable, resolveSlugs, slugOf } from '../compare/path'
+import Freshness from '../components/Freshness'
+import NotFound from '../components/NotFound'
 
 /**
  * BEST AI MODEL PICKER (2026-10-14), from model-alternatives-demo.html: the
@@ -12,7 +15,7 @@ import { modelPicker } from '../seo/pages'
  * top of the page follows the agreed layout (a sentence to fill in, the four
  * start-from chips, one search box, examples); the results keep every filter.
  *
- * TWO SOURCES, KEPT APART. The evidence is `/reports` (judge/reports.py): the
+ * TWO SOURCES, KEPT APART. The evidence is `/reviews` (judge/reports.py): the
  * board's counts over the PUBLIC view, never a quote, link or author. Prices
  * are the registry's (`/models`): what providers ADVERTISE, never evidence, and
  * a model with no published price shows "—", never $0.
@@ -30,7 +33,29 @@ import { modelPicker } from '../seo/pages'
  * THE ADDRESS HOLDS THE SEARCH (`?model=&job=&capability=&price=` and the
  * compare picks as `&cmp=`), so a result can be sent to somebody and opens as
  * they saw it.
+ *
+ * ONE JOB ALONE IS A PAGE OF ITS OWN (2026-10-21): `/best-ai-model/coding-agent`,
+ * with its own title, heading and canonical - "best AI model for coding
+ * agents" is what people search, and under `?job=` every job shared the
+ * picker's one title and canonical, so none could be listed. Any other mix of
+ * filters stays in the query. `?job=x` on its own moves to the path.
+ *
+ * SO IS ONE MODEL'S ALTERNATIVES (2026-10-21): `/alternatives/gpt-6-astra` -
+ * "gpt-6 astra alternatives" is the search. The model is named by the part of
+ * its id after the provider, as a comparison is (compare/path.js), or by
+ * `provider--model` if two providers share that name. The model the picker puts
+ * in the compare tray by itself is not repeated in the address (`cmp=`). Its
+ * heading stays the picker's (her call, 2026-10-21): the title and the results'
+ * own heading ("Alternatives to ...") name the model.
+ *
+ * A GROUP READS AS `?job-group=software-development` or
+ * `?capability-group=instruction-and-reliability`. Its id is `parent:<group>`,
+ * which came out as `?capability=parent%3A...` and, for a job group, as
+ * `/best-ai-model/parent%3A...`; both still open. A group is a reading aid over
+ * its jobs, never a page of its own, so it is never the job address.
  */
+const GROUP = 'parent:'
+
 
 const COMPARE_MAX = 3
 const THIN = 3
@@ -213,7 +238,7 @@ function ModelCard({ m, refPrice, price, cmp, why }) {
       {saves != null && <div className="mp-save">↓ saves {rate(saves)} per 1M input</div>}
       <div className="mp-card-foot">
         <span className="mp-actions">
-          <Link to={`/reports/models/${id}`} className="mp-link">Model page</Link>
+          <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
           <CompareBox id={id} cmp={cmp} />
         </span>
       </div>
@@ -343,7 +368,7 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
               <div className="mp-pick-line"><Badge ph={phrase(c.m.split)} /><span className="mp-pick-price">{rate(priceOf(c.m))}<small> /1M in</small></span></div>
               <div className="mp-pick-why">{[why(c), peopleText(c.m)].filter(Boolean).join(' · ')}</div>
               <div className="mp-pick-foot">
-                <Link to={`/reports/models/${id}`} className="mp-link">Model page</Link>
+                <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
                 <CompareBox id={id} cmp={cmp} />
               </div>
             </div>
@@ -356,9 +381,10 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
 
 // ── the page ─────────────────────────────────────────────────────────────────
 export default function ModelPicker() {
-  useHead(modelPicker())
   const navigate = useNavigate()
-  const [sp, setSp] = useSearchParams()
+  const { pathname } = useLocation()
+  const { job: jobPath, model: altPath } = useParams()
+  const [sp] = useSearchParams()
   const [data, setData] = useState(null)
   const [registry, setRegistry] = useState(null)
   const [err, setErr] = useState(null)
@@ -378,6 +404,8 @@ export default function ModelPicker() {
   const comboRef = useRef(null)
   const resultsRef = useRef(null)
   const restored = useRef(false)
+  // A job or model address that names nothing: 'job' or 'model' (shown as not found, noindex).
+  const [missing, setMissing] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -442,7 +470,7 @@ export default function ModelPicker() {
     const groups = Object.entries(idx.parents)
       .map(([pid, name]) => ({ pid, name, n: idx.members(t, pid).length }))
       .filter((g) => g.n > 1)
-      .map((g) => ({ id: `parent:${g.pid}`, label: g.name, pre: 'group', sub: `${g.n} capabilities, shown separately` }))
+      .map((g) => ({ id: `parent:${g.pid}`, label: g.name, pre: 'group', sub: `${g.n} ${t === 'job' ? 'jobs' : 'capabilities'}, shown separately` }))
     return groups.concat(axes)
   }
   const shownOpts = useMemo(() => {
@@ -457,10 +485,14 @@ export default function ModelPicker() {
     if (!idx || restored.current) return
     restored.current = true
     const f = {}
+    const altId = altPath ? resolveSlugs([altPath], idx.list.map((r) => ({ id: modelId(r) }))).ids[0] : null
+    const groupOf = (t) => (sp.get(`${t}-group`) ? `${GROUP}${sp.get(`${t}-group`)}` : null)
     for (const t of ORDER) {
-      const id = sp.get(t)
+      const id = sp.get(t) || { job: jobPath || groupOf('job'), model: altId, capability: groupOf('capability') }[t] || null
       if (id) { const label = labelFor(t, id); if (label) f[t] = { id, label } }
     }
+    if (jobPath && !f.job) { setMissing('job'); return }
+    if (altPath && !f.model) { setMissing('model'); return }
     const picks = (sp.get('cmp') || '').split(',').filter((id) => idx.byId.has(id)).slice(0, COMPARE_MAX)
     if (picks.length) setCmpIds(picks)
     if (Object.keys(f).length) { setFilters(f); run(f, false, picks) }
@@ -473,13 +505,44 @@ export default function ModelPicker() {
   useEffect(() => {
     if (!restored.current) return
     const next = new URLSearchParams()
-    for (const t of ORDER) if (ran && ran[t]) next.set(t, ran[t].id)
-    if (cmpIds.length) next.set('cmp', cmpIds.join(','))
-    if (next.toString() !== sp.toString()) setSp(next, { replace: true })
+    const own = jobOnly ? `/best-ai-model/${encodeURIComponent(ran.job.id)}`
+      : altOnly ? `/alternatives/${encodeURIComponent(altSlug(ran.model.id))}` : null
+    if (own) {
+      if (pathname !== own || sp.toString()) navigate(own, { replace: true })
+      return
+    }
+    for (const t of ORDER) {
+      if (!ran || !ran[t]) continue
+      const id = String(ran[t].id)
+      if ((t === 'job' || t === 'capability') && id.startsWith(GROUP)) next.set(`${t}-group`, id.slice(GROUP.length))
+      else next.set(t, id)
+    }
+    // The searched model sits in the tray by itself; the address does not repeat it.
+    const onlyTheModel = ran?.model && cmpIds.length === 1 && cmpIds[0] === ran.model.id
+    if (cmpIds.length && !onlyTheModel) next.set('cmp', cmpIds.join(','))
+    if (pathname !== '/best-ai-model' || next.toString() !== sp.toString()) {
+      navigate(`/best-ai-model${next.toString() ? `?${next}` : ''}`, { replace: true })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ran, cmpIds])
 
   const has = (f) => ORDER.some((k) => f && f[k])
+  // One job and nothing else: the page /best-ai-model/<job> (see the note at the top).
+  const jobOnly = !!(ran && ran.job && !String(ran.job.id).startsWith(GROUP)
+    && !ORDER.some((k) => k !== 'job' && ran[k]) && !cmpIds.length)
+  // One model and nothing else (the tray holding only it): /alternatives/<model>.
+  const altOnly = !!(ran && ran.model && isReadable(ran.model.id) && !ORDER.some((k) => k !== 'model' && ran[k])
+    && cmpIds.every((c) => c === ran.model.id))
+  // The model's name in its address; `provider--model` if another provider uses the same name.
+  const altSlug = (id) => {
+    const name = slugOf(id)
+    const twins = (idx?.list || []).filter((r) => isReadable(modelId(r)) && slugOf(modelId(r)) === name).length
+    return twins > 1 ? id.replace('/', '--') : name
+  }
+  // A job or model address waits for its item to be known before it names itself.
+  useHead(jobOnly ? pickerJob(ran.job)
+    : altOnly ? pickerAlternatives({ ...ran.model, slug: altSlug(ran.model.id) })
+    : (jobPath || altPath) && !ran ? null : modelPicker())
   function run(f = filters, scroll = true, keepCmp = cmpIds) {
     if (!has(f)) { setRan(null); return }
     const firstOfKind = !ran || !!ran.model !== !!f.model
@@ -729,7 +792,7 @@ export default function ModelPicker() {
                     </div>
                     <div className="mp-card-foot">
                       <span className="mp-actions">
-                        <Link to={`/reports/models/${modelId(r)}`} className="mp-link">Model page</Link>
+                        <Link to={`/reviews/models/${modelId(r)}`} className="mp-link">Model page</Link>
                         <CompareBox id={modelId(r)} cmp={cmp} />
                       </span>
                     </div>
@@ -812,7 +875,7 @@ export default function ModelPicker() {
                   )}
                   <div className="mp-card-foot">
                     <span className="mp-actions">
-                      <Link to={`/reports/models/${id}`} className="mp-link">Model page</Link>
+                      <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
                       <CompareBox id={id} cmp={cmp} />
                     </span>
                   </div>
@@ -858,17 +921,24 @@ export default function ModelPicker() {
   }, [idx, prices])
   const cmpModels = cmpIds.map((id) => idx?.byId.get(id)).filter(Boolean)
 
+  // NOT A SOFT 404 (2026-10-21): an unknown /best-ai-model/<job> or
+  // /alternatives/<model> said nothing and kept the site's default head.
+  if (missing) return <NotFound what={missing} back={{ to: '/best-ai-model', label: 'Open the best AI model picker' }} />
+
   return (
     <div className={`shell section-tight stack stack-4 mp mp-layout${cmpIds.length ? ' mp-with-tray' : ''}`}>
       <div className="stack stack-1">
         <span className="go-badge go-models page-tag" style={{ alignSelf: 'flex-start' }}>Tools</span>
+        {/* ONE HEADING FOR EVERY VIEW (her call, 2026-10-21): a job's or a
+            model's page names itself in its title and its results' heading. */}
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Best <span className="mp-accent-text">AI model</span> picker</h1>
         <p className="mp-sub">Find the best AI model for the job, or a cheaper alternative to the one you use.</p>
         <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>
           Start from the job you need done to find the models engineers reported working for it, or from a model
           you already use to find alternatives that worked as well and cost less. Narrow it by capability or
-          budget, and see what each one costs beside the evidence.
+          budget, and see what each one costs beside the evidence. <Link to="/methodology">How we count reports</Link>.
         </p>
+        {!jobOnly && !altOnly && <Freshness style={{ margin: 0 }} />}
       </div>
 
       {unreadable && <Unreadable detail={unreadable} />}
@@ -1065,7 +1135,7 @@ export default function ModelPicker() {
           ))}
           <button type="button" className="mp-textbtn" onClick={() => setCmpIds([])}>Clear</button>
           <button type="button" className="mp-find" disabled={cmpModels.length < 2}
-                  onClick={() => navigate(`/compare?ids=${encodeURIComponent(cmpModels.map(modelId).join(','))}&from=reports`)}>
+                  onClick={() => navigate(comparePath(cmpModels.map(modelId), { from: 'reports' }))}>
             {cmpModels.length < 2 ? 'Tick one more to compare' : 'Compare →'}
           </button>
         </div>

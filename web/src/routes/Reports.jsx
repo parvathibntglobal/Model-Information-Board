@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { reportsPage, BoardUnreadable } from '../api'
+import Freshness from '../components/Freshness'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { reportsIndex } from '../seo/pages'
+import { comparePath } from '../compare/path'
 
 /**
  * REPORTS (2026-10-14): the demo's Reports page (model-information-board-home-
@@ -145,7 +147,7 @@ function Legend() {
  *  the "How the reports work" section and the "How we count" drawer. */
 function MethodBoxes({ min, multi, withheld }) {
   const box = (no, title, body) => (
-    <div className="rp-mbox"><h4><span className="rp-no">{no}</span>{title}</h4>{body}</div>
+    <div className="rp-mbox"><h3><span className="rp-no">{no}</span>{title}</h3>{body}</div>
   )
   return (
     <div className="rp-mgrid2">
@@ -187,8 +189,9 @@ function HowWeCount({ min, multi, withheld, onClose }) {
 }
 
 /** A breadcrumb step: reachable by keyboard as well as by mouse. */
-function Crumb({ onGo, children }) {
-  return <a role="button" tabIndex={0} onClick={onGo} onKeyDown={(e) => { if (e.key === 'Enter') onGo() }}>{children}</a>
+/** A breadcrumb is a real link (2026-10-21), so a crawler can climb back up too. */
+function Crumb({ to, children }) {
+  return <Link to={to} onClick={() => window.scrollTo({ top: 0 })}>{children}</Link>
 }
 
 // ── views ───────────────────────────────────────────────────────────────────
@@ -200,7 +203,7 @@ const COMPARE_MAX = 3
  * same `/compare?ids=` page the Models list opens - with the same ids
  * (`canonical`, else the internal key), so the two routes agree.
  */
-function ModelsList({ v, q, open, onCompare }) {
+function ModelsList({ v, q, href, onCompare }) {
   const [all, setAll] = useState(false)
   const [picking, setPicking] = useState(false)
   const [picked, setPicked] = useState([])
@@ -241,19 +244,29 @@ function ModelsList({ v, q, open, onCompare }) {
           {list.map((r) => {
             const id = modelId(r)
             const on = picked.includes(id)
-            return (
-              <button type="button" key={r.key}
-                      className={`rp-mcard${on ? ' rp-picked' : ''}`}
-                      aria-pressed={picking ? on : undefined}
-                      disabled={picking && !on && picked.length >= COMPARE_MAX}
-                      onClick={() => (picking ? toggle(id) : open('models', id))}>
+            const body = (
+              <>
                 {picking && <span className="rp-tick" aria-hidden="true">{on ? '✓' : ''}</span>}
                 <div className="rp-prov">{providerOf(r)}</div>
                 <div className="rp-nm">{shortName(r)}</div>
                 <div className="rp-cnt">
                   {KINDS.map((k) => { const n = r.axes[k.id].length; return n ? <span key={k.id}>{n} {n === 1 ? k.short : k.shortPl}</span> : null })}
                 </div>
+              </>
+            )
+            // Picking for Compare, a card selects instead of opening, so it stays a button.
+            return picking ? (
+              <button type="button" key={r.key}
+                      className={`rp-mcard${on ? ' rp-picked' : ''}`}
+                      aria-pressed={on}
+                      disabled={!on && picked.length >= COMPARE_MAX}
+                      onClick={() => toggle(id)}>
+                {body}
               </button>
+            ) : (
+              <Link key={r.key} to={href('models', id)} className="rp-mcard" onClick={() => window.scrollTo({ top: 0 })}>
+                {body}
+              </Link>
             )
           })}
         </div>
@@ -265,11 +278,11 @@ function ModelsList({ v, q, open, onCompare }) {
   )
 }
 
-function ModelView({ v, id, min, multi, open, back }) {
+function ModelView({ v, id, min, multi, href }) {
   const r = v.models.find((x) => modelId(x) === id || x.key === id)
   const base = r || [...v.all.values()].find((x) => modelId(x) === id || x.key === id)
   const crumbs = (
-    <div className="rp-crumbs"><Crumb onGo={() => back(null)}>Models</Crumb> / <span>{base ? shortName(base) : 'Model'}</span></div>
+    <div className="rp-crumbs"><Crumb to={href(null)}>Models</Crumb> / <span>{base ? shortName(base) : 'Model'}</span></div>
   )
   if (!r) {
     return <>{crumbs}<div className="rp-empty">{base ? `${shortName(base)} has no job, capability or metric with ${min}+ voices${multi ? ' from 2+ platforms' : ''}. Lower the threshold to see it.` : 'There is no model at this address.'}</div></>
@@ -298,9 +311,8 @@ function ModelView({ v, id, min, multi, open, back }) {
               {r.axes[k.id].map(({ axis, m }) => {
                 const ph = phrase(m.split)
                 return (
-                  <div key={axis.slug} className="rp-tile" tabIndex={0} role="button"
-                       onClick={() => open(k.tab, axis.slug)}
-                       onKeyDown={(e) => { if (e.key === 'Enter') open(k.tab, axis.slug) }}>
+                  <Link key={axis.slug} className="rp-tile" to={href(k.tab, axis.slug)}
+                        onClick={() => window.scrollTo({ top: 0 })}>
                     <div className="rp-t-name">{axis.name}</div>
                     <div className={`rp-phrase rp-ph-${ph.c}`}>{ph.t}</div>
                     <VChart s={m.split} />
@@ -310,7 +322,7 @@ function ModelView({ v, id, min, multi, open, back }) {
                       {k.id === 'metric' && m.figures > 0 && <span><b>{m.figures}</b> figures</span>}
                     </div>
                     {m.newest && <div className="rp-date">Newest report {m.newest}</div>}
-                  </div>
+                  </Link>
                 )
               })}
             </div>
@@ -321,7 +333,7 @@ function ModelView({ v, id, min, multi, open, back }) {
   )
 }
 
-function AxisList({ v, kind, q, open }) {
+function AxisList({ v, kind, q, href }) {
   const k = KIND[kind]
   const ql = q.toLowerCase()
   const all = v.byKind[k.id]
@@ -339,12 +351,12 @@ function AxisList({ v, kind, q, open }) {
       {items.length ? (
         <div className="rp-axis-grid">
           {items.map((x) => (
-            <button type="button" key={x.axis.slug} className="rp-acard" onClick={() => open(k.tab, x.axis.slug)}>
+            <Link key={x.axis.slug} className="rp-acard" to={href(k.tab, x.axis.slug)} onClick={() => window.scrollTo({ top: 0 })}>
               <div className="rp-kind-label">{k.one}</div>
               <div className="rp-t-name">{x.axis.name}</div>
               <div className="rp-cnt">{plural(x.models.length, 'model')} <span className="rp-dim">· {x.axis.voices} voices · {x.axis.reports} reports</span></div>
               <div className="rp-mini">{x.models.map((m) => <i key={m.key} className={squareClass(m)} title={shortName(m)} />)}</div>
-            </button>
+            </Link>
           ))}
         </div>
       ) : <div className="rp-empty">No {k.one} matches &quot;{q}&quot;.</div>}
@@ -352,12 +364,12 @@ function AxisList({ v, kind, q, open }) {
   )
 }
 
-function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
+function AxisView({ v, axes, kind, slug, min, multi, href }) {
   const k = KIND[kind]
   const hit = v.byKind[k.id].find((x) => x.axis.slug === slug)
   const a = hit ? hit.axis : axes.find((x) => x.kind === k.id && x.slug === slug)
   const crumbs = (
-    <div className="rp-crumbs"><Crumb onGo={() => back(null)}>Models</Crumb> / <Crumb onGo={() => back(k.tab)}>{k.label}</Crumb> / <span>{a ? a.name : slug}</span></div>
+    <div className="rp-crumbs"><Crumb to={href(null)}>Models</Crumb> / <Crumb to={href(k.tab)}>{k.label}</Crumb> / <span>{a ? a.name : slug}</span></div>
   )
   if (!a) return <>{crumbs}<div className="rp-empty">There is no {k.one} at this address.</div></>
   const models = hit ? hit.models : []
@@ -369,9 +381,8 @@ function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
     const ph = phrase(m.split), s = m.split
     const wp = (40 * s.positive) / scale, wn = (40 * s.negative) / scale
     return (
-      <div key={m.key} className="rp-rrow" role="button" tabIndex={0}
-           onClick={() => open('models', modelId(m))}
-           onKeyDown={(e) => { if (e.key === 'Enter') open('models', modelId(m)) }}>
+      <Link key={m.key} className="rp-rrow" to={href('models', modelId(m))}
+            onClick={() => window.scrollTo({ top: 0 })}>
         <span className="rp-rk">{String(rank).padStart(2, '0')}</span>
         <span className="rp-nm"><span className="rp-prov">{providerOf(m)}</span>{shortName(m)}</span>
         <span className="rp-div" role="img" aria-label={`${s.positive} positive, ${s.negative} negative`}>
@@ -386,7 +397,7 @@ function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
           {m.voices} voices · {m.reports} reports{k.id === 'metric' && m.figures > 0 && <><br />{m.figures} figures</>}
         </span>
         <span className={`rp-ph rp-ph-${ph.c}`}>{ph.t}</span>
-      </div>
+      </Link>
     )
   }
   let body
@@ -440,10 +451,10 @@ function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
 /**
  * EACH SECTION IS ITS OWN PAGE (2026-10-14), as Model specs is under Tools:
  *
- *   /reports, /reports/models         Models (the first is the nav's Models link)
- *   /reports/models/<vendor>/<model>  one model, everything it was reported for
- *   /reports/jobs | capabilities | metrics           the list
- *   /reports/jobs/<slug> (etc.)                      one job, capability, metric
+ *   /reviews, /reviews/models         Models (the first is the nav's Models link)
+ *   /reviews/models/<vendor>/<model>  one model, everything it was reported for
+ *   /reviews/jobs | capabilities | metrics           the list
+ *   /reviews/jobs/<slug> (etc.)                      one job, capability, metric
  *
  * The threshold travels as `?min=3|10` and `?multi=1` on every one of them, so
  * moving between pages keeps the reader's setting. The old `?tab=` addresses
@@ -460,9 +471,9 @@ export default function Reports() {
   const { pathname, search } = useLocation()
   const navigate = useNavigate()
   const [sp] = useSearchParams()
-  const rest = pathname.replace(/^\/reports\/?/, '')
+  const rest = pathname.replace(/^\/reviews\/?/, '')
   const [sectionKey, ...itemParts] = rest ? rest.split('/') : []
-  // `/reports` ITSELF IS THE AI MODELS LIST (2026-10-14); there is no hub page.
+  // `/reviews` ITSELF IS THE AI MODELS LIST (2026-10-14); there is no hub page.
   const section = sectionKey ? (SECTIONS[sectionKey] || null) : SECTIONS.models
   const pill = section ? section.pill : null
   const item = itemParts.length ? decodeURIComponent(itemParts.join('/')) : null
@@ -475,7 +486,7 @@ export default function Reports() {
   const [how, setHow] = useState(false)
   const [q, setQ] = useState({ models: '', job: '', capability: '', metric: '' })
 
-  // THE FIRST NAV LINKS were `/reports?tab=jobs`; send them to their page.
+  // THE FIRST NAV LINKS were `/reviews?tab=jobs`; send them to their page.
   useEffect(() => {
     const tab = sp.get('tab')
     if (!sectionKey && tab && SECTIONS[tab]) {
@@ -484,7 +495,7 @@ export default function Reports() {
       const it = next.get('item')
       next.delete('item')
       const qs = next.toString()
-      navigate(`/reports/${tab}${it ? `/${it}` : ''}${qs ? `?${qs}` : ''}`, { replace: true })
+      navigate(`/reviews/${tab}${it ? `/${it}` : ''}${qs ? `?${qs}` : ''}`, { replace: true })
     }
   }, [sectionKey, sp, navigate])
 
@@ -512,8 +523,18 @@ export default function Reports() {
     const a = data.axes.find((x) => x.kind === pill && x.slug === item)
     return a ? a.name : null
   })()
+  // THE LIST FOR STRUCTURED DATA (2026-10-21): what this page ranks, in its
+  // order - the models (first 50) or the jobs, capabilities or metrics. None on
+  // one item's page, which is a breakdown rather than a ranking.
+  const ranked = (() => {
+    if (!v || item || !section) return []
+    if (pill === 'models') {
+      return v.models.slice(0, 50).map((r) => ({ name: shortName(r), path: `/reviews/models/${modelId(r).split('/').map(encodeURIComponent).join('/')}` }))
+    }
+    return (v.byKind[pill] || []).map((x) => ({ name: x.axis.name, path: `/reviews/${sectionKey}/${encodeURIComponent(x.axis.slug)}` }))
+  })()
   useHead(reportsIndex(section ? { key: sectionKey || 'models', title: section.title, lede: section.lede } : null,
-                       item ? { path: itemParts.join('/'), name: itemName } : null))
+                       item ? { path: itemParts.join('/'), name: itemName } : null, ranked))
 
   const keep = () => {
     const next = new URLSearchParams()
@@ -523,13 +544,11 @@ export default function Reports() {
     return qs ? `?${qs}` : ''
   }
   const TAB_TO_KEY = { models: 'models', jobs: 'jobs', capabilities: 'capabilities', metrics: 'metrics' }
-  const go = (key, id) => {
-    const path = key ? `/reports/${TAB_TO_KEY[key] || key}${id ? `/${id.split('/').map(encodeURIComponent).join('/')}` : ''}` : '/reports'
-    navigate(path + keep())
-    window.scrollTo({ top: 0 })
-  }
-  const open = (tab, id) => go(tab, id)
-  const back = (tab) => go(tab)
+  // EVERY ITEM IS A LINK (2026-10-21): the lists opened their pages from a
+  // button's click, which a crawler cannot follow, so no review page was
+  // reachable from another. `href` is the address a list item links to, with
+  // the reader's threshold kept.
+  const href = (key, id) => (key ? `/reviews/${TAB_TO_KEY[key] || key}${id ? `/${id.split('/').map(encodeURIComponent).join('/')}` : ''}` : '/reviews') + keep()
   const setCriteria = (patch) => {
     const next = new URLSearchParams(search)
     for (const [key, val] of Object.entries(patch)) {
@@ -540,7 +559,15 @@ export default function Reports() {
     navigate(pathname + (qs ? `?${qs}` : ''), { replace: true })
   }
 
-  const heading = section ? section.title : 'Models'
+  // AI MODEL REVIEWS (2026-10-20): the hub and the Models section read as reviews
+  // ranked by engineer reports; each other section is "AI model reviews by ...".
+  const REVIEW_BY = { jobs: 'job', capabilities: 'capability', metrics: 'metric' }
+  // ONE ITEM OPEN (a model, a job...): the heading names it, as the title does (2026-10-21).
+  const heading = item && itemName
+    ? `${itemName}: AI model reviews from engineers`
+    : !sectionKey || sectionKey === 'models'
+    ? 'AI model reviews: ranked by engineer reports'
+    : `AI model reviews by ${REVIEW_BY[sectionKey] || (section?.title || 'section').toLowerCase()}`
   const lede = section
     ? section.lede
     : 'The jobs they used them for, the capabilities they tested and the figures they measured. Everything is counted from our evidence collection and never quoted.'
@@ -551,8 +578,15 @@ export default function Reports() {
         <span className="go-badge go-board page-tag" style={{ alignSelf: 'flex-start' }}>Models</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>{heading}</h1>
         <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>
-          {lede} A model appears only where at least {min} different people reported on it.
+          {lede} A model appears only where at least {min} different people reported on it.{' '}
+          <Link to="/methodology">How we count</Link>.
         </p>
+        {/* FRESHNESS (2026-10-21): the board's two dates on a list, one model's
+            own on its page. Not on one job's page: the board's dates there
+            would read as the job's, and each model row already shows its
+            newest report. */}
+        {item && pill === 'models' ? <Freshness modelIds={[item]} style={{ margin: 0 }} />
+          : !item ? <Freshness style={{ margin: 0 }} /> : null}
       </div>
 
       <section className="rp-part">
@@ -595,12 +629,12 @@ export default function Reports() {
           {v && section && (
             item
               ? pill === 'models'
-                ? <ModelView v={v} id={item} min={min} multi={multi} open={open} back={back} />
-                : <AxisView v={v} axes={data.axes} kind={pill} slug={item} min={min} multi={multi} open={open} back={back} />
+                ? <ModelView v={v} id={item} min={min} multi={multi} href={href} />
+                : <AxisView v={v} axes={data.axes} kind={pill} slug={item} min={min} multi={multi} href={href} />
               : pill === 'models'
-                ? <ModelsList v={v} q={q.models} open={open}
-                              onCompare={(ids) => navigate(`/compare?ids=${encodeURIComponent(ids.join(','))}&from=reports`)} />
-                : <AxisList v={v} kind={pill} q={q[pill]} open={open} />
+                ? <ModelsList v={v} q={q.models} href={href}
+                              onCompare={(ids) => navigate(comparePath(ids, { from: 'reports' }))} />
+                : <AxisList v={v} kind={pill} q={q[pill]} href={href} />
           )}
         </div>
       </section>

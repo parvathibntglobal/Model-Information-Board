@@ -1,3 +1,4 @@
+import { canonicalComparePath } from '../compare/path.js'
 /**
  * PER-PAGE <head> TEXT: what each route says its title and description are.
  *
@@ -130,21 +131,26 @@ export function modelPage(id, name, modified = null) {
   }
 }
 
-/** `/compare?ids=`. The canonical sorts the ids, so A-vs-B and B-vs-A are one page. */
+/**
+ * A comparison. The canonical is the readable path, `/compare/<a>-vs-<b>`, with
+ * the names sorted so A-vs-B and B-vs-A are one page (compare/path.js); ids with
+ * no readable name keep `/compare?ids=`, sorted the same way.
+ */
 export function comparePage(ids, names) {
   const list = (names && names.length ? names : ids).map(squash).filter(Boolean)
   if (list.length < 2) {
-    return { title: fullTitle('Compare AI models'), description: 'Put two or three AI models side by side on what engineers report about each.', canonical: '/compare' }
+    return { title: fullTitle('AI Model Comparison'), description: 'Put two or three AI models side by side on what engineers report about each.', canonical: '/compare',
+      app: { name: 'AI model comparison' }, breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'AI model comparison', path: '/compare' }] }
   }
   return {
     title: fullTitle(list.join(' vs ')),
     description: clip(`${list.join(' vs ')}: what engineers report about each, side by side, by the jobs, capabilities and metrics they share.`),
-    canonical: `/compare?ids=${[...ids].sort().join(',')}`,
+    canonical: canonicalComparePath(ids),
   }
 }
 
 /**
- * `/token-counter` and `/model-finder` (#520). Neither is on
+ * `/token-counter` and `/ai-model-pricing` (#520). Neither is on
  * contract/indexing.yaml's `always` list, so both are noindex like every
  * unlisted page until somebody adds them there. A HEAD OF THEIR OWN MATTERS
  * EVEN SO: a page with no head keeps index.html's robots, which the open build
@@ -153,19 +159,21 @@ export function comparePage(ids, names) {
  */
 export function tokenCounter() {
   return {
-    title: fullTitle('LLM token counter and cost calculator'),
+    title: fullTitle('LLM Cost Calculator & Token Counter'),
     description: 'Count the tokens in a prompt or an answer in your browser, then see what that text costs to send or generate on each AI model at its list price.',
     canonical: '/token-counter',
-    breadcrumbs: [{ name: 'Models', path: '/models' }, { name: 'Token counter', path: '/token-counter' }],
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'LLM cost calculator', path: '/token-counter' }],
+    app: { name: 'LLM cost calculator & token counter' },
   }
 }
 
 export function modelFinder() {
   return {
-    title: fullTitle('Find an AI model by spec'),
-    description: 'Filter AI models by what each provider advertises: tool calling, vision, structured output, prompt caching, context window and price per token.',
-    canonical: '/model-finder',
-    breadcrumbs: [{ name: 'Models', path: '/models' }, { name: 'Spec finder', path: '/model-finder' }],
+    title: fullTitle('AI Model Pricing & Specs Table'),
+    description: "Every AI model's price per token, context window and features in one table: filter by tool calling, vision, structured output and prompt caching.",
+    canonical: '/ai-model-pricing',
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'AI model pricing & specs table', path: '/ai-model-pricing' }],
+    app: { name: 'AI model pricing & specs table' },
   }
 }
 
@@ -174,75 +182,135 @@ export function modelFinder() {
  * Reports and Discussions are being built: until they hold content they ask
  * not to be indexed, so an empty page never reaches a search result.
  */
-/** `/model-picker`: the best model for a job, and cheaper alternatives (2026-10-14). */
+/** `/best-ai-model`: the best model for a job, and cheaper alternatives (2026-10-14). */
 export function modelPicker() {
   return {
     title: fullTitle('Best AI model picker: the best model for the job, or a cheaper alternative'),
     description: 'Find the best AI model for your job, or a cheaper alternative to the one you use, from what engineers reported working - beside what each model costs.',
-    canonical: '/model-picker',
-    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Best AI model picker', path: '/model-picker' }],
+    canonical: '/best-ai-model',
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Best AI model picker', path: '/best-ai-model' }],
+    app: { name: 'Best AI model picker' },
   }
 }
 
-/** `/catalog` and `/catalog/new`: every model OpenRouter lists. `type` is a
- *  model type key (`image`), `'new'` for New releases, or null for All models. */
+/** One job in the picker (`/best-ai-model/<job>`, 2026-10-21): the models engineers reported working for it. */
+/** "Coding agents" -> "coding agents" inside a sentence; "RAG" stays "RAG". */
+export const inSentence = (s) => (/^[A-Z0-9]{2,}\b/.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1))
+
+export function pickerJob(job, items = []) {
+  const name = inSentence(job.label)
+  return {
+    title: fullTitle(`Best AI model for ${name}: what engineers report working`),
+    description: `The AI models engineers reported working for ${name}, counted from their public posts, beside what each one costs.`,
+    canonical: `/best-ai-model/${job.id}`,
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Best AI model picker', path: '/best-ai-model' },
+      { name: job.label, path: `/best-ai-model/${job.id}` }],
+    list: { name: `AI models reported working for ${name}`, items },
+  }
+}
+
+/**
+ * One model's alternatives in the picker (`/alternatives/<model>`, 2026-10-21):
+ * models engineers reported working on the same jobs and capabilities. `model`
+ * is { id, label, slug }.
+ */
+export function pickerAlternatives(model, items = []) {
+  return {
+    title: fullTitle(`${model.label} alternatives: what engineers report working`),
+    description: clip(`AI models engineers reported working on the same jobs and capabilities as ${model.label}, counted from their public posts, beside what each one costs.`),
+    canonical: `/alternatives/${model.slug}`,
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Best AI model picker', path: '/best-ai-model' },
+      { name: `${model.label} alternatives`, path: `/alternatives/${model.slug}` }],
+    list: { name: `Alternatives to ${model.label}`, items },
+  }
+}
+
+/** `/ai-models` and `/ai-models/latest`: every model OpenRouter lists. `type` is a
+ *  model type key (`image`), `'new'` for the latest releases, or null for All models. */
 const CATALOG_TYPE_NAMES = { text: 'Text', image: 'Image', video: 'Video', speech: 'Speech', audio: 'Audio', transcription: 'Transcription', decisions: 'Decision' }
-export function catalogIndex(type = null) {
+const MODELS_CRUMB = { name: 'AI models', path: '/ai-models' }
+/** `items`: the models the page lists, in its order, as [{ name, path }] (structured data). */
+export function catalogIndex(type = null, items = []) {
   if (type === 'new') {
-    return { title: fullTitle('New AI model releases'), description: 'The AI models listed most recently, newest first, with their prices, context and type.', canonical: '/catalog/new' }
+    return { title: fullTitle('Latest AI Models: New Releases'), description: 'The latest AI models, listed most recently first, with their prices, context and type.', canonical: '/ai-models/latest',
+      breadcrumbs: [MODELS_CRUMB, { name: 'Latest AI model releases', path: '/ai-models/latest' }],
+      list: { name: 'Latest AI model releases', items } }
   }
   if (type && CATALOG_TYPE_NAMES[type]) {
     const n = CATALOG_TYPE_NAMES[type]
-    return { title: fullTitle(`${n} AI models by provider`), description: `Every ${n.toLowerCase()} AI model, by provider, with list prices and context.`, canonical: `/catalog?type=${type}` }
+    return { title: fullTitle(`${n} AI models by provider`), description: `Every ${n.toLowerCase()} AI model, by provider, with list prices and context.`, canonical: `/ai-models/${type}`,
+      breadcrumbs: [MODELS_CRUMB, { name: `${n} models`, path: `/ai-models/${type}` }],
+      list: { name: `${n} AI models engineers reported on`, items } }
   }
-  return { title: fullTitle('All AI models by provider and type'), description: 'Every AI model, from every provider: text, image, video, speech, audio, transcription and decision models.', canonical: '/catalog' }
+  return { title: fullTitle('All AI models by provider and type'), description: 'Every AI model, from every provider: text, image, video, speech, audio, transcription and decision models.', canonical: '/ai-models',
+    list: { name: 'AI models engineers reported on', items } }
 }
 
-/** One model's page in the catalogue (`/catalog/model/<id>`). */
+/** One model's page in the catalogue (`/ai-models/<id>`). */
 export function catalogModelHead(m) {
   const who = m.provider_name ? `${m.provider_name} ${m.name}` : m.name
   return {
     title: fullTitle(`${who}: price, specs and what engineers report`),
     description: `${who}: list price per million tokens, what a workload would cost, context and features, and what engineers report about it.`,
-    canonical: `/catalog/model/${m.id}`,
+    canonical: `/ai-models/${m.id}`,
+    breadcrumbs: [MODELS_CRUMB, { name: squash(m.name), path: `/ai-models/${m.id}` }],
+  }
+}
+
+/** `/methodology` (2026-10-21): how a report is found, checked and counted. */
+export function methodologyPage() {
+  return {
+    title: fullTitle('How We Count Engineer Reports: Methodology'),
+    description: 'How AI model reports are found, checked against the post they came from, and counted by person and post, with the fixed rule behind every verdict.',
+    canonical: '/methodology',
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Methodology', path: '/methodology' }],
   }
 }
 
 export function toolsIndex() {
   return {
-    title: fullTitle('AI model tools: model picker, specs and token counter'),
+    title: fullTitle('Free AI Model Tools: picker, specs, cost calculator'),
     description: 'Find which AI models engineers reported working for your job, what each model advertises, and what your prompt would cost on each one.',
     canonical: '/tools',
   }
 }
 
 /**
- * `/reports` and each of its pages: the hub, a section (`/reports/jobs`) or one
- * item in it (`/reports/jobs/coding-agent`). `item.name` is null until the data
+ * `/reviews` and each of its pages: the hub, a section (`/reviews/jobs`) or one
+ * item in it (`/reviews/jobs/coding-agent`). `item.name` is null until the data
  * has loaded, and the title then names the section alone.
  */
-export function reportsIndex(section = null, item = null) {
+/** "AI model reviews by job", "... by capability", "... by metric" (2026-10-20). */
+const REVIEW_NOUN = { jobs: 'job', capabilities: 'capability', metrics: 'metric' }
+
+const REVIEWS_CRUMB = { name: 'AI model reviews', path: '/reviews' }
+/** `items`: what the page ranks, in its order, as [{ name, path }] (structured data). */
+export function reportsIndex(section = null, item = null, items = []) {
   if (!section) {
     return {
-      title: fullTitle('Models: what engineers report about each AI model'),
+      title: fullTitle('AI Model Reviews: Ranked by Engineer Reports'),
       description: 'What engineers report about each AI model, by job, capability and metric: counted, and shown only where at least five different people reported.',
-      canonical: '/reports',
+      canonical: '/reviews',
+      list: { name: 'AI models ranked by engineer reports', items },
     }
   }
-  const base = `/reports/${section.key}`
+  const base = `/reviews/${section.key}`
   if (item && item.name) {
     return {
-      title: fullTitle(`${item.name}: what engineers report`),
+      title: fullTitle(`${item.name}: AI model reviews from engineers`),
       description: clip(`What engineers report about ${item.name}, counted by positive, negative and neutral reports, never quoted.`),
       canonical: `${base}/${item.path}`,
-      breadcrumbs: [{ name: 'AI models', path: '/reports' }, { name: item.name, path: `${base}/${item.path}` }],
+      breadcrumbs: [REVIEWS_CRUMB, { name: item.name, path: `${base}/${item.path}` }],
     }
   }
   return {
-    title: fullTitle(section.key === 'models' ? 'Models: what engineers report about each AI model' : `${section.title}: what engineers report`),
+    title: fullTitle(section.key === 'models' ? 'AI Model Reviews: Ranked by Engineer Reports' : `AI model reviews by ${REVIEW_NOUN[section.key] || section.title.toLowerCase()}`),
     description: clip(section.lede),
-    canonical: base,
-    breadcrumbs: [{ name: 'AI models', path: '/reports' }, ...(section.key === 'models' ? [] : [{ name: section.title, path: base }])],
+    // /reviews/models IS /reviews - the hub opens on the Models section - so both
+    // name one canonical and search engines see one page, not two (2026-10-20).
+    canonical: section.key === 'models' ? '/reviews' : base,
+    breadcrumbs: [REVIEWS_CRUMB, ...(section.key === 'models' ? [] : [{ name: section.title, path: base }])],
+    list: { name: section.key === 'models' ? 'AI models ranked by engineer reports' : `AI model reviews by ${REVIEW_NOUN[section.key] || section.title.toLowerCase()}`, items },
   }
 }
 
@@ -311,7 +379,7 @@ export function liveQuiz() {
  */
 export function aiGlossaryHead() {
   return {
-    title: fullTitle('Glossary: LLM and AI terms, defined in a paragraph'),
+    title: fullTitle('AI Glossary: AI and LLM terms defined in a paragraph'),
     description: 'Plain definitions of the terms you meet when choosing, prompting and running AI models, from tokens and context windows to agents, RAG and quantization.',
     canonical: '/glossary',
     breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Glossary', path: '/glossary' }],

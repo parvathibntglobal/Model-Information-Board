@@ -3,7 +3,7 @@
 Read from `model_catalog` (collect/registry/catalog.py), never from the evidence
 pipeline. What this adds is the link back to the evidence: each model says
 whether it is in our registry and whether engineers' reports on it can be read
-on the Models detail page (`/reports/models/<id>`) - over the PUBLIC view,
+on the Models detail page (`/reviews/models/<id>`) - over the PUBLIC view,
 because that is the page the link opens (judge/reports.py).
 
 WHAT IS LEFT OUT, AND SAID

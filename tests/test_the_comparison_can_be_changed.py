@@ -78,11 +78,12 @@ class TestTheComparisonWritesTheUrl:
         """The URL is the comparison. A link that describes a different page
         from the one on screen is worse than no picker."""
         # Since 2026-10-14 a comparison opened from Models also carries
-        # `from=reports` (it hides "In their words"); both branches still write
-        # the ids to the address, which is what this test is for.
+        # `from=reports` (it hides "In their words"). Since 2026-10-21 the
+        # models are the path itself (/compare/<a>-vs-<b>, compare/path.js),
+        # so changing them navigates to that address, `from` kept.
         src = code()
-        assert "setSp(fromReports ? { ids: trimmed.join(','), from: 'reports' }" in src
-        assert ": { ids: trimmed.join(',') })" in src
+        assert "navigate(comparePath(trimmed, { from }))" in src
+        assert "useState(trimmed" not in src
 
     def test_it_refuses_above_the_cap_before_the_request(self):
         """The endpoint answers 422 above three. A reader who clicks a fourth

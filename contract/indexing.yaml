@@ -42,18 +42,27 @@
 # search engine is invited to list. A wrong `noindex` costs a page its search
 # listing (recoverable, visible in /seo/indexable); a wrong `index` puts a
 # one-comment page in front of searchers as if it were a finding.
+#
+# THE PUBLIC ADDRESSES (proposed 2026-10-20, branch seo/parvathi). The board's
+# own pages - /board and /models - have been signed-in since 2026-10-15, so the
+# lists below now name the PUBLIC pages that show the same evidence. Before
+# this, `always` named two login walls and every public page outside it fell to
+# noindex the moment the site opened (web/src/seo/pages.js: noindexFor).
+# The thresholds are unchanged.
 # ============================================================================
 
 version: 1
 
 pages:
-  # /board/{jobs|capabilities|metrics}/:slug
+  # /reviews/{jobs|capabilities|metrics}/:slug - and for a job, also the
+  # picker's /best-ai-model/:slug (same evidence, asked as "which model")
   section:
     min_voices: 2
-  # /board/{jobs|capabilities|metrics}/:slug/:model
+  # one model inside one section: tallied only - no public page shows it
   model_in_section:
     min_voices: 2
-  # /models/:canonical_id
+  # /ai-models/:canonical_id and /reviews/models/:canonical_id - and the
+  # picker's /alternatives/:name (what else engineers report working there)
   model:
     min_voices: 2
 
@@ -61,19 +70,50 @@ pages:
 # visitor needs them to find the pages above.
 always:
   - /
-  - /board
-  - /board?tab=cap
-  - /board?tab=met
-  - /models
   - /blogs
+  - /tools
+  - /best-ai-model
+  - /ai-model-pricing
+  - /token-counter
+  - /ai-models
+  - /ai-models/latest
+  - /compare
+  - /reviews
+  - /reviews/jobs
+  - /reviews/capabilities
+  - /reviews/metrics
+  - /glossary
+  - /methodology
+
+# A comparison of two models (/compare/<a>-vs-<b>; review of #552, item 9,
+# option A): listed when BOTH models have at least this many distinct public
+# voices in one shared job, capability or metric - the count every threshold
+# here uses (pages.section.min_voices). Both must be in the catalogue and the
+# registry, so the page can open. Three-way comparisons are never listed.
+# Measured 2026-10-21 on the local database: 2 -> 727 pairs (46 models),
+# 3 -> 418, 5 -> 177. Each listed pair is a pre-rendered page at build time.
+compare_pairs:
+  min_voices: 2
+
+# One type of model (/ai-models/image, /ai-models/video...; 2026-10-21): the
+# models of that type engineers reported on. A type with too few of them is a
+# near-empty list, so it is invited only once it shows this many.
+model_types:
+  min_reported_models: 2
+
+# Glossary term pages (/glossary/:slug) are listed from glossary.yaml by
+# judge/seo.py: reviewed copy, no evidence threshold.
 
 # Blog posts: approved posts only (judge/blog_store.py). A pending or rejected
 # post is never indexable, whatever this file says elsewhere.
 blog_posts: approved_only
 
-# Never indexable, at any evidence level. /compare is combinatorial (every pair
-# and triple of models) and would multiply thin pages; the others are private.
+# Never indexable, at any evidence level: the signed-in pages. The bare
+# /compare tool page is listed above; a comparison of named models
+# (/compare?ids=...) is combinatorial and stays off this list, so it is noindex.
 never:
-  - /compare
   - /login
   - /admin
+  - /board
+  - /models
+  - /seo-keywords

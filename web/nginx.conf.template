@@ -1,5 +1,19 @@
 # Static hosting for the built SPA. `$PORT` is substituted at container start
-# by nginx:alpine's own envsubst pass over /etc/nginx/templates/.
+# by nginx:alpine's own envsubst pass over /etc/nginx/templates/. This file is
+# included inside nginx's `http {}`, which is why `map` can sit above `server`.
+
+# THE ADDRESSES THE APP ANSWERS (web/src/App.jsx), so anything else can say 404
+# (2026-10-21). nginx cannot know whether a model or a job exists - an
+# `/ai-models/<p>/<m>` that names nothing still gets the app, which renders
+# Not found with `noindex`. What it can know is that `/foo` is no page at all.
+#   exact   the route takes no path below it (`/tools`, not `/tools/x`)
+#   prefix  the route owns everything below it (`/ai-models/...`)
+# tests/test_seo_build_files.py fails when App.jsx gains a route missing here.
+map $uri $app_route {
+    default 0;
+    ~^/(login|tools|methodology|best-ai-model|ai-model-pricing|discussions|models|compare|token-counter|admin|seo-keywords)$ 1;
+    ~^/(board|blogs|glossary|best-ai-model|alternatives|reviews|ai-models|compare|models|admin)/ 1;
+}
 
 server {
     listen       ${PORT};
@@ -7,28 +21,78 @@ server {
     root         /usr/share/nginx/html;
     index        index.html;
 
-    # THE SPA FALLBACK, AND IT IS NOT COSMETIC. `react-router-dom` owns
-    # /models/<id> and every other path in the app. A reload or a pasted link
-    # asks nginx for a file that was never built, and without this line the
-    # answer is 404 on every route except `/` - which reads as "the deploy is
-    # broken" rather than "the server does not know about client routing".
+    # RELATIVE REDIRECTS. Behind Railway's proxy nginx sees plain HTTP on $PORT,
+    # so an absolute Location would read `http://<host>:8080/...` - a downgrade
+    # and a port the outside never answers on. A relative one keeps the
+    # visitor's own scheme and host.
+    absolute_redirect off;
+
+    # THE OLD ADDRESSES MOVE FOR GOOD (2026-10-21). The app already moves them in
+    # the browser; a 301 also tells a search engine, so what the old address
+    # earned is passed on. The query string travels. `/compare?ids=` is not here:
+    # turning ids into names needs the catalogue, so it stays a browser move
+    # plus the canonical tag.
+    location = /catalog          { return 301 /ai-models$is_args$args; }
+    location = /catalog/new      { return 301 /ai-models/latest$is_args$args; }
+    location ^~ /catalog/model/  { rewrite ^/catalog/model/(.*)$ /ai-models/$1 permanent; }
+    location ^~ /catalog/        { rewrite ^/catalog/(.*)$ /ai-models/$1 permanent; }
+    location ~ ^/reports(/.*)?$  { return 301 /reviews$1$is_args$args; }
+    location = /model-picker     { return 301 /best-ai-model$is_args$args; }
+    location = /ai-model-finder  { return 301 /best-ai-model$is_args$args; }
+    location = /model-finder     { return 301 /ai-model-pricing$is_args$args; }
+    location = /keywords         { return 301 /seo-keywords$is_args$args; }
+
+    # ONE ADDRESS PER PAGE: `/reviews/` moves to `/reviews`. With the trailing
+    # slash, `try_files $uri` matched the `reviews/` DIRECTORY (it exists because
+    # reviews/jobs.html is inside it), found no index.html there, and answered
+    # 403 Forbidden.
+    location ~ ^(/.+)/$ { return 301 $1$is_args$args; }
+
+    # EVERY PAGE IS no-cache, whichever way it is found: each one names the
+    # current build's asset hashes, so a cached copy after a deploy points at
+    # files that no longer exist and shows a white page until a hard reload.
+    # It is set HERE, on the location that serves the page - a nested
+    # `location ~ \.html$` never matched `/reviews/jobs`, because try_files
+    # serves `$uri.html` without a new location search.
+    #
+    # PRE-RENDERED PAGES (web/prerender.js, 2026-10-20): each public page is
+    # saved as `<path>.html` (`/reviews/jobs` -> reviews/jobs.html), so
+    # `$uri.html` serves it. Not `<path>/index.html`: that makes nginx redirect
+    # `/reviews` to `/reviews/`, a second address for every page. Anything with
+    # no file of its own goes to @app.
+    location = / {
+        add_header Cache-Control "no-cache";
+        try_files /index.html =404;
+    }
     location / {
-        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+        try_files $uri $uri.html @app;
+    }
+
+    # THE EMPTY APP, shell.html - noindex, no canonical (web/prerender.js) - for
+    # an address the app answers that has no saved page (a sign-in page, a
+    # comparison, a model that is not on the index list). Any other address is
+    # no page at all: the same shell, so the visitor still sees the app's Not
+    # found, but with status 404, so a crawler does not take it for a page.
+    location @app {
+        add_header Cache-Control "no-cache";
+        if ($app_route = 0) {
+            return 404;
+        }
+        try_files /shell.html =500;
+    }
+    error_page 404 /shell.html;
+    location = /shell.html {
+        # `always`: without it nginx adds no header to a 404, and a 404 may be
+        # cached by a browser that guesses.
+        add_header Cache-Control "no-cache" always;
     }
 
     # Hashed assets are immutable by construction - Vite puts the content hash
-    # in the filename - so they can be cached hard. `index.html` deliberately is
-    # NOT, below, because it is the file that names the current hashes.
+    # in the filename - so they can be cached hard.
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";
-    }
-
-    location = /index.html {
-        # A cached index.html points at the PREVIOUS build's asset hashes, which
-        # no longer exist - so a browser holding one gets a white page after
-        # every deploy until it hard-reloads. Cheap to serve, expensive to cache.
-        add_header Cache-Control "no-cache";
     }
 
     # A liveness target that does not depend on the app booting. Railway's

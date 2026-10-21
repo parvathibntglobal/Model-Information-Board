@@ -12,22 +12,22 @@ import { toolsIndex } from '../seo/pages'
  */
 const TOOLS = [
   {
-    to: '/model-picker',
+    to: '/best-ai-model',
     name: 'Best AI model picker',
     title: 'The best model for the job, or a cheaper alternative',
     body: "Start from a job to see the models engineers reported working for it, or from a model you use to find alternatives that worked as well and cost less.",
     cta: 'Open the model picker',
   },
   {
-    to: '/model-finder',
-    name: 'Model specs finder',
+    to: '/ai-model-pricing',
+    name: 'AI model pricing & specs table',
     title: "Every model's advertised specs",
     body: 'Context window, output limit, prices and features for every model on our registry. Advertised by providers: not evidence, and never part of the counts.',
-    cta: 'Open model specs',
+    cta: 'Open the pricing & specs table',
   },
   {
     to: '/token-counter',
-    name: 'Token counter',
+    name: 'LLM cost calculator & token counter',
     title: 'Price your own prompt',
     body: "Counted with OpenAI's o200k tokenizer, in your browser. See the cost as input or output on each model, and whether it fits each model's context. Your text never leaves the page.",
     cta: 'Open token counter',
@@ -40,7 +40,7 @@ export default function Tools() {
     <div className="shell section-tight stack stack-4">
       <div className="stack stack-1">
         <span className="go-badge go-models page-tag" style={{ alignSelf: 'flex-start' }}>Tools</span>
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>Pick, price and filter AI models</h1>
+        <h1 style={{ fontSize: 'var(--fs-display)' }}>Free AI model tools</h1>
         <p className="muted" style={{ maxWidth: '72ch', margin: 0 }}>
           Which models engineers reported working for your job, what every model advertises, and what your prompt would cost on each one.
         </p>

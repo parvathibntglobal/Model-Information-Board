@@ -16,6 +16,7 @@ Rendered through node (tests/js/seo_build.mjs), as the other frontend tests do.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import xml.etree.ElementTree as ET
@@ -54,7 +55,10 @@ def test_open_needs_both_keys(out):
 
 def test_open_robots_disallows_private_pages_and_names_the_sitemap(out):
     robots = out["robotsOpen"].splitlines()
-    assert {"Disallow: /admin", "Disallow: /login", "Disallow: /compare"} <= set(robots)
+    assert {"Disallow: /admin", "Disallow: /login", "Disallow: /board", "Disallow: /models",
+            "Disallow: /seo-keywords"} <= set(robots)
+    # Compare is a public tool since 2026-10-20: crawlable, noindex per comparison
+    assert "Disallow: /compare" not in robots
     assert "Sitemap: https://board.example/sitemap.xml" in robots
     assert "Disallow: /" not in robots
 
@@ -65,15 +69,21 @@ def test_the_sitemap_is_valid_xml_with_structural_and_indexable_pages(out):
     assert len(locs) == len(set(locs))                       # each once
     for p in out["structural"]:
         assert f"https://board.example{p}" in locs
-    assert "https://board.example/board/jobs/code-review" in locs
-    assert "https://board.example/models/anthropic/claude-opus-4.6" in locs
-    assert "https://board.example/board?tab=cap&x=1" in locs   # escaped in XML, intact once parsed
+    assert "https://board.example/reviews/jobs/code-review" in locs
+    assert "https://board.example/ai-models/anthropic/claude-opus-4.6" in locs
+    # escaped in XML, intact once parsed
+    assert "https://board.example/ai-models?type=text&x=1" in locs
+    assert "https://board.example/compare" in locs
 
 
 def test_the_sitemap_never_lists_a_private_page_or_a_non_path(out):
     root = ET.fromstring(out["sitemap"])
     locs = [u.find(f"{NS}loc").text for u in root.findall(f"{NS}url")]
-    assert not any(x.endswith(("/compare", "/admin", "/login")) for x in locs)
+    # the signed-in pages, at any depth, never reach the sitemap
+    assert not any(x.endswith(("/admin", "/login", "/seo-keywords")) for x in locs)
+    paths = [x.replace("https://board.example", "", 1) for x in locs]
+    for q in ("/board", "/models"):
+        assert not any(p == q or p.startswith((q + "/", q + "?")) for p in paths)
     assert not any("not-a-path" in x for x in locs)
 
 
@@ -92,8 +102,110 @@ def test_a_real_date_becomes_lastmod_and_nothing_else_does(out):
     that has one. A malformed value and an undated path get none (no build
     time standing in for a date nobody recorded)."""
     xml = out["sitemapDated"]
-    dated = "<loc>https://board.example/board/jobs/code-review</loc><lastmod>2026-10-06</lastmod>"
+    dated = "<loc>https://board.example/reviews/jobs/code-review</loc><lastmod>2026-10-06</lastmod>"
     assert dated in xml
-    assert "<loc>https://board.example/models/acme/model-t</loc></url>" in xml
-    assert "<loc>https://board.example/board</loc></url>" in xml
+    assert "<loc>https://board.example/ai-models/acme/model-t</loc></url>" in xml
+    assert "<loc>https://board.example/blogs</loc></url>" in xml
     assert xml.count("<lastmod>") == 1
+
+
+def test_pre_rendering_saves_the_sitemap_pages_only(out):
+    """The pre-render saves what the sitemap lists: never a private path, never
+    a query-string or fragment address (one file with parameters), each once."""
+    paths = out["prerenderPaths"]
+    assert "/reviews/jobs/code-review" in paths and "/ai-models/acme/model-t" in paths
+    assert paths.count("/reviews/jobs/code-review") == 1
+    assert set(out["structural"]) <= set(paths)
+    assert not [p for p in paths if "?" in p or "#" in p]
+    assert not [p for p in paths if p.startswith(("/board", "/models", "/admin", "/login"))]
+
+
+def test_a_pre_rendered_page_is_saved_as_its_path_dot_html(out):
+    """`<path>.html`, not `<path>/index.html` (nginx would redirect `/reviews`
+    to `/reviews/`); `/` is index.html; a path that could leave dist/ or is not
+    a valid file name is refused."""
+    files = out["prerenderFiles"]
+    assert files["/"] == "index.html"
+    assert files["/reviews/jobs"] == "reviews/jobs.html"
+    assert files["/ai-models/openai/gpt-6-sol"] == "ai-models/openai/gpt-6-sol.html"
+    assert files["/glossary/gpt-5.5"] == "glossary/gpt-5.5.html"
+    for bad in ("/a/../b", "/a%2F..%2Fb", "/x/", "/a:b", "/%E0%A4", "/a%5Cb", "/a%00b"):
+        assert files[bad] is None, bad
+
+
+def test_the_shell_head_cannot_close_its_own_script(out):
+    """The shell's head is carried as JSON in a <script>; a `</script>` in a
+    title must not end it early."""
+    s = out["shellScript"]
+    assert s.startswith('<script type="application/json" id="shell-head">')
+    assert s.count("</script>") == 1 and "\u003c/script>" in s
+
+
+# ── nginx: what the server answers (2026-10-21, review of #552) ───────────
+#
+# nginx cannot be run in CI, so these read the template. They hold the four
+# things that were wrong or missing in it, each verified against nginx 1.26
+# when written: a saved page served without no-cache, a trailing slash
+# answering 403, every unknown address answering 200, and no server redirect
+# for the old addresses.
+
+
+_NGINX = ROOT / "web" / "nginx.conf.template"
+_APP = ROOT / "web" / "src" / "App.jsx"
+#: App.jsx elements that only move the visitor: the server must 301 these.
+_MOVERS = {"MovedTo", "CatalogMoved", "ReportsMoved"}
+
+
+def _nginx() -> str:
+    return _NGINX.read_text(encoding="utf-8")
+
+
+def _routes() -> list[tuple[str, str]]:
+    """(path, element) for every <Route> in App.jsx."""
+    text = _APP.read_text(encoding="utf-8")
+    return re.findall(r'<Route\s+path="([^"]+)"\s+element=\{<(\w+)', text)
+
+
+def _app_route_map() -> tuple[set[str], set[str]]:
+    """The exact and prefix first segments in the `$app_route` map."""
+    text = _nginx()
+    exact = re.search(r"~\^/\(([^)]+)\)\$ 1;", text).group(1).split("|")
+    prefix = re.search(r"~\^/\(([^)]+)\)/ 1;", text).group(1).split("|")
+    return set(exact), set(prefix)
+
+
+def test_every_app_route_answers_200_or_moves_for_good():
+    """A route nginx does not know would answer 404 to a real page."""
+    exact, prefix = _app_route_map()
+    text = _nginx()
+    for path, element in _routes():
+        if path in ("/", "*"):
+            continue
+        first = path.strip("/").split("/")[0]
+        if element in _MOVERS:
+            assert re.search(rf"location (= |\^~ |~ \^)/{re.escape(first)}\b", text), (
+                f"{path} moves in the browser only; nginx needs a 301 for it")
+            continue
+        below = path.endswith("/*") or "/:" in path or path.count("/") > 1
+        assert (first in prefix) if below else (first in exact), (
+            f"{path} ({element}) is not in nginx's $app_route map, so it would answer 404")
+
+
+def test_a_saved_page_is_never_cached():
+    """`no-cache` on the location that serves the page, not on a nested
+    `\.html$` location that `/reviews/jobs` never reaches."""
+    block = re.search(r"location / \{(.*?)\n    \}", _nginx(), re.S).group(1)
+    assert "location" not in block, "a nested location is what never matched /reviews/jobs"
+    assert re.search(r'^        add_header Cache-Control "no-cache";', block, re.M)
+
+
+def test_a_trailing_slash_cannot_reach_a_directory():
+    """`$uri/` served the `reviews/` directory for `/reviews/` and answered 403."""
+    for line in re.findall(r"try_files[^;]*;", _nginx()):
+        assert "$uri/" not in line, line
+    assert re.search(r"location ~ \^\(/\.\+\)/\$ \{ return 301 \$1", _nginx())
+
+
+def test_redirects_are_relative_behind_the_proxy():
+    """An absolute Location would name nginx's own http port, not the site."""
+    assert "absolute_redirect off;" in _nginx()

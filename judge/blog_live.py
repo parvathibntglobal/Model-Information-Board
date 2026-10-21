@@ -665,7 +665,7 @@ def _question(kind: str, rng: random.Random, models: list[dict], cfg: dict, toda
             "explain": "The date each model first appeared on OpenRouter - not always "
             "the day it was released.",
             "source": "OpenRouter's catalogue",
-            "links": [["See every new listing", "/catalog/new"]],
+            "links": [["See every new listing", "/ai-models/latest"]],
         }
     if kind == "reads":
         what = rng.choice(sorted(_READS))
@@ -679,7 +679,7 @@ def _question(kind: str, rng: random.Random, models: list[dict], cfg: dict, toda
             "answer": win["id"],
             "explain": "What each model is listed as reading.",
             "source": "OpenRouter's catalogue",
-            "links": [["Find models by what they read and write", "/model-finder"]],
+            "links": [["Find models by what they read and write", "/ai-model-pricing"]],
         }
     if kind == "writes":
         what = rng.choice(sorted(_WRITES))
@@ -693,7 +693,7 @@ def _question(kind: str, rng: random.Random, models: list[dict], cfg: dict, toda
             "answer": win["id"],
             "explain": "What each model is listed as producing.",
             "source": "OpenRouter's catalogue",
-            "links": [["Find models by what they read and write", "/model-finder"]],
+            "links": [["Find models by what they read and write", "/ai-model-pricing"]],
         }
     if kind == "missing_feature":
         key = rng.choice(sorted(_FEATURES))
@@ -710,7 +710,7 @@ def _question(kind: str, rng: random.Random, models: list[dict], cfg: dict, toda
             "explain": f"Whether each model lists {_FEATURES[key]} among its supported "
             "parameters. Advertised, not tested.",
             "source": "OpenRouter's catalogue",
-            "links": [["Filter by feature in the spec finder", "/model-finder"]],
+            "links": [["Filter by feature in the spec finder", "/ai-model-pricing"]],
         }
     if kind == "retires_first":
         dated = [m for m in models if m["expires"] and m["expires"] >= today]

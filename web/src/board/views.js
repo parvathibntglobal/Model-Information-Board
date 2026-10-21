@@ -1679,7 +1679,7 @@ function probeList(sp){
 /* ---------- interactive posts, phase 1 (docs/proposals/interactive-blogs.md) ----------
  * OPT-IN PER POST: `"interactive": true`. Three things, none of them typed by the
  * model that wrote the post:
- *   entity links  a model's name links to its PUBLIC page (/catalog/model/...);
+ *   entity links  a model's name links to its PUBLIC page (/ai-models/...);
  *                 first mention per paragraph, longest name first, so "GPT-6.1
  *                 Sol Pro" is never split into "GPT-6.1 Sol" (rule 10: the whole
  *                 identifier). Every registry model, by its display name or its
