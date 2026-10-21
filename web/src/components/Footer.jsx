@@ -32,6 +32,7 @@ const MODELS = [
   { t: 'All models', to: '/catalog' },
   { t: 'New releases', to: '/catalog/new' },
   { t: 'Most reported', to: '/reports/models' },
+  { t: 'Evidence feed', to: '/evidence' },
   { t: 'By job', to: '/reports/jobs' },
   { t: 'By capability', to: '/reports/capabilities' },
 ]

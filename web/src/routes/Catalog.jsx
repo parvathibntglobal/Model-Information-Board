@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { modelCatalog } from '../api'
 import ModelPage from '../catalog/ModelPage'
-import { fmtCtx, fmtDate, fmtUsd, modelPagePath } from '../catalog/format'
+import { evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath } from '../catalog/format'
 import { MODEL_TYPES, typeLabel } from '../catalog/types'
 import { useHead } from '../seo/head'
 import { catalogIndex } from '../seo/pages'
@@ -31,10 +31,15 @@ function Price({ m, side }) {
   return <b>{fmtUsd(v)}</b>
 }
 
+// ⚠ THE CARD IS NOT ONE LINK ANY MORE (2026-10-21). Its voices count opens the
+//   evidence feed, and a link cannot sit inside a link. So the card is a box,
+//   its model link is stretched over it (`.cat-stretch`), and the count is a
+//   second link raised above that - the whole card still opens the model.
 function ModelCard({ m, providerName, showProvider = true }) {
   const reads = m.inputs.filter((i) => i !== 'text')
   return (
-    <Link to={modelPagePath(m.id)} className="cat-card">
+    <div className="cat-card cat-card-box">
+      <Link to={modelPagePath(m.id)} className="cat-stretch" aria-label={`${m.name}: open its page`} />
       <div className="cat-card-top">
         {showProvider ? <span className="eyebrow">{providerName}</span> : <span />}
         {m.listed_at && <span className="cat-date">Listed {fmtDate(m.listed_at)}</span>}
@@ -54,11 +59,16 @@ function ModelCard({ m, providerName, showProvider = true }) {
       </div>
       <div className="cat-foot">
         {m.voices
-          ? <span className="cat-voices"><b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} {m.reports === 1 ? 'report' : 'reports'}</span>
+          ? (
+            <Link to={evidencePath(m.id)} className="cat-voices ev-open cat-raised"
+                  title={`Read the ${m.reports} ${m.reports === 1 ? 'report' : 'reports'} behind this count`}>
+              <b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} {m.reports === 1 ? 'report' : 'reports'}
+            </Link>
+          )
           : <span className="cat-na">No engineer voices yet</span>}
         <span className="cat-open">Open →</span>
       </div>
-    </Link>
+    </div>
   )
 }
 
@@ -217,6 +227,7 @@ export default function Catalog() {
           <Link to="/catalog/new" className={isNew ? 'on' : ''}>New releases</Link>
           <Link to="/compare">Compare models</Link>
           <Link to="/reports">Most reported</Link>
+          <Link to="/evidence">Evidence feed</Link>
         </nav>
       </div>
 

@@ -116,6 +116,9 @@
 .rp .rp-div .rp-lab{position: absolute; top: 3px; font: 500 .72rem var(--font-mono);}
 .rp .rp-div .rp-lab.rp-l{color: var(--fail);}
 .rp .rp-div .rp-lab.rp-r{color: var(--pass);}
+/* The two numbers open their reports (2026-10-21). */
+.rp .rp-div .rp-lablink{text-decoration: none;}
+.rp .rp-div .rp-lablink:hover{text-decoration: underline;}
 .rp .rp-rrow .rp-side{font: .74rem var(--font-mono); color: var(--text-2); line-height: 1.5;}
 .rp .rp-rrow .rp-side .rp-neu{color: var(--rp-text-1);}
 .rp .rp-rrow .rp-ph{font-size: .8rem;}

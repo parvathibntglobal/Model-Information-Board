@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { reportsPage, BoardUnreadable } from '../api'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { reportsIndex } from '../seo/pages'
+import { SECTION_OF_KIND, evidencePath } from '../catalog/format'
 
 /**
  * REPORTS (2026-10-14): the demo's Reports page (model-information-board-home-
@@ -15,8 +16,10 @@ import { reportsIndex } from '../seo/pages'
  *
  * THE DATA IS `/reports` (judge/reports.py): the board's own counts over the
  * PUBLIC view, so a withheld source adds nothing here. No quote, link, author
- * or platform name reaches this page; it is self-contained and links nowhere
- * outside Reports.
+ * or platform name reaches this page. Its one way out is the EVIDENCE FEED
+ * (2026-10-21, PROPOSED): the counts on a model's tile and on each ranked row
+ * open the reports behind them, narrowed the way they were counted - our
+ * paraphrases with their sources, never a quote (routes/Evidence.jsx).
  *
  * THE ADDRESS HOLDS THE STATE: each section is its own page (see the routes
  * above `Reports`), with `?min=3|10` and `?multi=1` for the threshold. A view
@@ -99,6 +102,17 @@ function build(axes, min, multi) {
   shown.sort((a, b) => b.total - a.total || shortName(a).localeCompare(shortName(b)))
   for (const k of KINDS) byKind[k.id].sort((a, b) => b.models.length - a.models.length || b.axis.voices - a.axis.voices)
   return { models: shown, all: models, byKind }
+}
+
+// ── into the evidence feed ──────────────────────────────────────────────────
+// A count opens its reports. Inside a tile or row that is itself clickable, so
+// the click and Enter stop here rather than also opening the tile.
+const stop = (e) => e.stopPropagation()
+function FeedLink({ to, title, className = 'ev-open', style, children }) {
+  return (
+    <Link to={to} className={className} style={style} title={title} aria-label={title}
+          onClick={stop} onKeyDown={stop}>{children}</Link>
+  )
 }
 
 // ── pictures ────────────────────────────────────────────────────────────────
@@ -305,7 +319,11 @@ function ModelView({ v, id, min, multi, open, back }) {
                     <div className={`rp-phrase rp-ph-${ph.c}`}>{ph.t}</div>
                     <VChart s={m.split} />
                     <div className="rp-nums">
-                      <span><b>{m.voices}</b> voices</span><span><b>{m.reports}</b> reports</span>
+                      <span><b>{m.voices}</b> voices</span>
+                      <FeedLink to={evidencePath(modelId(r), { section: SECTION_OF_KIND[k.id], slug: axis.slug })}
+                                title={`Read the ${m.reports} reports on ${axis.name} for ${shortName(r)}`}>
+                        <b>{m.reports}</b> reports
+                      </FeedLink>
                       <span><b>{m.platforms}</b> platform{m.platforms === 1 ? '' : 's'}</span>
                       {k.id === 'metric' && m.figures > 0 && <span><b>{m.figures}</b> figures</span>}
                     </div>
@@ -363,6 +381,8 @@ function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
   const models = hit ? hit.models : []
   const hidden = a.models.length - models.length
   const scale = Math.max(1, ...models.map((m) => Math.max(m.split.positive, m.split.negative)))
+  // The feed narrowed to this job, capability or metric - the population every row counts.
+  const at = { section: SECTION_OF_KIND[k.id], slug: a.slug }
   let rank = 0
   const row = (m) => {
     rank += 1
@@ -374,16 +394,27 @@ function AxisView({ v, axes, kind, slug, min, multi, open, back }) {
            onKeyDown={(e) => { if (e.key === 'Enter') open('models', modelId(m)) }}>
         <span className="rp-rk">{String(rank).padStart(2, '0')}</span>
         <span className="rp-nm"><span className="rp-prov">{providerOf(m)}</span>{shortName(m)}</span>
-        <span className="rp-div" role="img" aria-label={`${s.positive} positive, ${s.negative} negative`}>
+        {/* NOT role="img" since 2026-10-21: its two numbers are links into the
+            feed, and an image's children are hidden from assistive technology.
+            Each link names its count in its own label. */}
+        <span className="rp-div">
           <span className="rp-mid" />
           {s.negative > 0 && <span className="rp-neg" style={{ width: `${wn}%` }} />}
           {s.positive > 0 && <span className="rp-pos" style={{ width: `${wp}%` }} />}
-          <span className="rp-lab rp-l" style={{ right: `calc(50% + ${wn}% + 6px)` }}>{s.negative}</span>
-          <span className="rp-lab rp-r" style={{ left: `calc(50% + ${wp}% + 6px)` }}>{s.positive}</span>
+          <FeedLink to={evidencePath(modelId(m), { ...at, polarity: 'negative' })} className="rp-lab rp-l rp-lablink"
+                    style={{ right: `calc(50% + ${wn}% + 6px)` }}
+                    title={`Open the ${s.negative} negative reports on ${a.name} for ${shortName(m)}`}>{s.negative}</FeedLink>
+          <FeedLink to={evidencePath(modelId(m), { ...at, polarity: 'positive' })} className="rp-lab rp-r rp-lablink"
+                    style={{ left: `calc(50% + ${wp}% + 6px)` }}
+                    title={`Open the ${s.positive} positive reports on ${a.name} for ${shortName(m)}`}>{s.positive}</FeedLink>
         </span>
         <span className="rp-side">
-          <span className="rp-neu">{s.neutral} neutral</span>{s.both > 0 && ` · ${s.both} said both`}<br />
-          {m.voices} voices · {m.reports} reports{k.id === 'metric' && m.figures > 0 && <><br />{m.figures} figures</>}
+          <FeedLink to={evidencePath(modelId(m), { ...at, polarity: 'neutral' })} className="rp-neu ev-open"
+                    title={`Open the ${s.neutral} neutral reports on ${a.name} for ${shortName(m)}`}>{s.neutral} neutral</FeedLink>
+          {s.both > 0 && ` · ${s.both} said both`}<br />
+          {m.voices} voices · <FeedLink to={evidencePath(modelId(m), at)}
+                                        title={`Read the ${m.reports} reports on ${a.name} for ${shortName(m)}`}>{m.reports} reports</FeedLink>
+          {k.id === 'metric' && m.figures > 0 && <><br />{m.figures} figures</>}
         </span>
         <span className={`rp-ph rp-ph-${ph.c}`}>{ph.t}</span>
       </div>

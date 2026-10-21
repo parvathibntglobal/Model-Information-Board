@@ -426,6 +426,71 @@ def quiz_drafter_settings() -> dict:
     return {"model": model.strip(), "per_call": per_call, "topics": [t.strip() for t in topics]}
 
 
+def evidence_feed_settings() -> dict:
+    """`contract/evidence_feed.yaml`: the feed's paraphraser, summariser and
+    page size. Every key is required and checked; no defaults (rule 12)."""
+    raw = _read("evidence_feed.yaml")
+    if not isinstance(raw, dict):
+        raise ValueError("contract/evidence_feed.yaml is not a mapping")
+
+    def block(name: str) -> dict:
+        b = raw.get(name)
+        if not isinstance(b, dict):
+            raise ValueError(f"contract/evidence_feed.yaml: `{name}` is missing")
+        return b
+
+    def text(b: dict, where: str, key: str) -> str:
+        v = b.get(key)
+        if not isinstance(v, str) or not v.strip():
+            raise ValueError(
+                f"contract/evidence_feed.yaml: {where}.{key} must be a non-empty string"
+            )
+        return v.strip()
+
+    def count(b: dict, where: str, key: str, lo: int, hi: int) -> int:
+        v = b.get(key)
+        if isinstance(v, bool) or not isinstance(v, int) or not lo <= v <= hi:
+            raise ValueError(f"contract/evidence_feed.yaml: {where}.{key} must be {lo} to {hi}")
+        return v
+
+    def effort(b: dict, where: str) -> str:
+        v = text(b, where, "reasoning_effort").lower()
+        if v not in ("none", "low", "medium", "high"):
+            raise ValueError(f"contract/evidence_feed.yaml: {where}.reasoning_effort must be "
+                             "none, low, medium or high")
+        return v
+
+    p, s, pg = block("paraphrase"), block("summary"), block("page")
+    words = s.get("quantity_words")
+    if not isinstance(words, list) or not all(isinstance(w, str) and w.strip() for w in words):
+        raise ValueError(
+            "contract/evidence_feed.yaml: summary.quantity_words must be a list of words"
+        )
+    return {
+        "paraphrase": {
+            "model": text(p, "paraphrase", "model"),
+            "reasoning_effort": effort(p, "paraphrase"),
+            "prompt_version": text(p, "paraphrase", "prompt_version"),
+            "per_call": count(p, "paraphrase", "per_call", 1, 50),
+            "max_chars": count(p, "paraphrase", "max_chars", 80, 1000),
+            "max_copied_words": count(p, "paraphrase", "max_copied_words", 2, 20),
+        },
+        "summary": {
+            "model": text(s, "summary", "model"),
+            "reasoning_effort": effort(s, "summary"),
+            "prompt_version": text(s, "summary", "prompt_version"),
+            "max_reports": count(s, "summary", "max_reports", 5, 2000),
+            "min_reports": count(s, "summary", "min_reports", 1, 100),
+            "max_words": count(s, "summary", "max_words", 100, 2000),
+            "max_paragraphs": count(s, "summary", "max_paragraphs", 1, 20),
+            "attempts": count(s, "summary", "attempts", 1, 5),
+            "max_copied_words": count(s, "summary", "max_copied_words", 2, 20),
+            "quantity_words": [w.strip().lower() for w in words],
+        },
+        "page": {"per_page": count(pg, "page", "per_page", 5, 200)},
+    }
+
+
 @lru_cache(maxsize=1)
 def blog_reference_settings() -> dict:
     """`contract/blog_live.yaml` `known_issues` and `answers`: the known-issues

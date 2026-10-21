@@ -28,6 +28,9 @@ const LINKS = [
       { to: '/catalog/new', label: 'New releases', note: 'The newest listings' },
       { to: '/compare', label: 'Compare models', note: 'Up to three, side by side' },
       { to: '/reports', label: 'Most reported', note: 'What engineers report about each' },
+      // THE EVIDENCE FEED (2026-10-21, PROPOSED): the reports behind a count, each
+      // in our own words with its source. Every count on these pages links in too.
+      { to: '/evidence', label: 'Evidence feed', note: 'The reports behind every count' },
     ],
     types: MODEL_TYPES.map((t) => ({ to: `/catalog?type=${t.key}`, key: t.key, label: `${t.label} models`, note: t.note })),
   } },

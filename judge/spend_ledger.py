@@ -95,13 +95,18 @@ STAGE_BLOG = "blog"
 #: pattern - a model drafts, a person approves - and recorded the same way,
 #: outside the cap, with the cost OpenRouter reports for each call.
 STAGE_QUIZ = "quiz"
-RECORDED_STAGES = (*STAGES, STAGE_BLOG, STAGE_QUIZ)
+#: THE EVIDENCE FEED (2026-10-21, PROPOSED, judge/feed/): a paraphrase per
+#: report and a person-approved summary per model. Outside the cap, at the cost
+#: OpenRouter reports, like the two above.
+STAGE_FEED = "feed"
+RECORDED_STAGES = (*STAGES, STAGE_BLOG, STAGE_QUIZ, STAGE_FEED)
 
 STAGE_LABELS = {
     STAGE_EXTRACT: "Extraction (E5) — one call per thread, nightly batch",
     STAGE_ASK: "Ask box (Q1) — one call per submission, user-driven",
     STAGE_BLOG: "Blog drafts (generate_sample_blogs.py) — outside the daily cap",
     STAGE_QUIZ: "Quiz question drafts (judge/quiz_bank.py) — outside the daily cap",
+    STAGE_FEED: "Evidence feed paraphrases and summaries (judge/feed/) — outside the daily cap",
 }
 
 

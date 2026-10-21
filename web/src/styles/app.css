@@ -2102,3 +2102,11 @@ a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:
 /* the post's own photo fills the card (2026-10-20); figures keep `contain` */
 .bs-img.bs-photo{padding:0}
 .bs-img.bs-photo img{object-fit:cover}
+
+/* A COUNT THAT OPENS ITS REPORTS (2026-10-21, PROPOSED): the voices, splits and
+   bars on Catalog, Compare and Reports link into the evidence feed, narrowed the
+   way they were counted. Global, because those pages do not load evidence.css. */
+.ev-open{color:inherit;text-decoration:underline;text-decoration-color:var(--border-strong);text-underline-offset:3px}
+.ev-open:hover{text-decoration-color:var(--text)}
+.ev-chiplink{text-decoration:none;border-radius:6px}
+.ev-chiplink:hover .badge{border-color:currentColor}

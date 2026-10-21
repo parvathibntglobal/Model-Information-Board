@@ -49,6 +49,7 @@ const Tools = page(() => import('./routes/Tools'))
 const ModelPicker = page(() => import('./routes/ModelPicker'))
 const Reports = page(() => import('./routes/Reports'))
 const Catalog = page(() => import('./routes/Catalog'))
+const Evidence = page(() => import('./routes/Evidence'))
 const Discussions = page(() => import('./routes/Discussions'))
 const ModelDetail = page(() => import('./routes/ModelDetail'))
 const Models = page(() => import('./routes/Models'))
@@ -133,6 +134,9 @@ export default function App() {
           <Route path="/ai-model-finder" element={<MovedTo path="/model-picker" />} />
           <Route path="/reports/*"   element={<Reports />} />
           <Route path="/catalog/*"   element={<Catalog />} />
+          {/* THE EVIDENCE FEED (2026-10-21, PROPOSED): public, like Reports - the
+              reports behind every count, paraphrased, each with its source. */}
+          <Route path="/evidence/*"  element={<Evidence />} />
           <Route path="/discussions" element={<Discussions />} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           {/* BEFORE `/models/*`, and outside it. The comparison is entered from

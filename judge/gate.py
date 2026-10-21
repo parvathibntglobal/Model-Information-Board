@@ -125,6 +125,12 @@ PUBLIC_READ_PATHS = frozenset({
     "/discussions",
     # 2026-10-20: the glossary index (judge/glossary.py) - reviewed copy, no source text.
     "/glossary-terms",
+    # 2026-10-21 (PROPOSED): the evidence feed and a model's APPROVED summary
+    # (judge/feed/). Our paraphrases, tags, dates and sources - an official
+    # embed for Reddit and X, a link otherwise - and never a quote, under
+    # contract/publication.yaml `evidence_feed`. Drafts (/feed/summaries)
+    # still need a token.
+    "/feed", "/feed/summary",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

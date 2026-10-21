@@ -6,7 +6,7 @@ import { catalogModelHead } from '../seo/pages'
 import { DAYS_PER_MONTH, fmtUsd as fmtCost, workloadCost } from '../tokens/cost'
 import PersonaPicker from '../tokens/PersonaPicker'
 import { PERSONAS } from '../tokens/personas'
-import { fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
+import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
 import { typeLabel } from './types'
 
 /**
@@ -111,21 +111,32 @@ function Voices({ m }) {
     <section className="card stack stack-2">
       <div className="mp2-row">
         <h2 className="mp2-h">What engineers report</h2>
-        <span className="mp2-count"><b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} reports</span>
+        {/* EVERY COUNT HERE OPENS ITS REPORTS (2026-10-21): the evidence feed,
+            narrowed the way the number was counted. */}
+        <Link to={evidencePath(m.id)} className="mp2-count ev-open"
+              title={`Read the ${m.reports} reports behind this count`}>
+          <b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} reports
+        </Link>
       </div>
       {axes == null ? <div className="skel" style={{ height: 120 }} /> : (
         <ul className="mp2-axes">
           {top.map(({ a, row }) => {
             const s = row.split || {}
+            const at = { section: SECTION_OF_KIND[a.kind], slug: a.slug }
+            const side = (k, cls) => (
+              <Link to={evidencePath(m.id, { ...at, polarity: k })} className={`${cls} ev-open`}
+                    title={`Read the ${s[k] || 0} ${k} reports on ${a.name}`}>{s[k] || 0}</Link>
+            )
             return (
               <li key={`${a.kind}:${a.slug}`}>
                 <span className="mp2-kind">{KIND_LABEL[a.kind] || a.kind}</span>
-                <span className="mp2-axis">{a.name}</span>
+                <Link to={evidencePath(m.id, at)} className="mp2-axis ev-open"
+                      title={`Read the ${row.reports} reports on ${a.name}`}>{a.name}</Link>
                 {/* A METRIC CARRIES NO POLARITY (2026-10-15): a stated figure is
                     not praised or criticised, so its row shows no split. */}
                 {a.kind === 'metric' ? <span /> : (
                   <span className="mp2-split" title="Positive / negative / neutral reports">
-                    <i className="p">{s.positive || 0}</i><i className="n">{s.negative || 0}</i><i className="z">{s.neutral || 0}</i>
+                    {side('positive', 'p')}{side('negative', 'n')}{side('neutral', 'z')}
                   </span>
                 )}
                 <span className="mp2-v">{row.voices} {row.voices === 1 ? 'voice' : 'voices'}</span>

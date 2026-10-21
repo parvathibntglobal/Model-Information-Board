@@ -1,0 +1,58 @@
+/* THE EVIDENCE FEED (2026-10-21, PROPOSED): routes/Evidence.jsx and the parts
+   in evidence/parts.jsx, which Admin -> Feed summaries also renders. Colours
+   are tokens only (tokens.css); a polarity is a word as well as a colour. */
+
+.ev-dim{color:var(--text-3)}
+.ev-note{font-size:var(--fs-sm);color:var(--text-2);max-width:72ch;margin:0}
+.ev-counts{margin:0;color:var(--text-2);font-size:var(--fs-sm)}
+.ev-counts b{color:var(--text)}
+.ev-modellink{font-size:var(--fs-sm);color:var(--text-2);align-self:flex-start}
+.ev-modellink:hover{color:var(--text)}
+.ev-h3{font-size:var(--fs-h3);margin:var(--s2) 0 0}
+
+.ev-search{height:40px;padding:0 14px;max-width:420px;width:100%;font:inherit;color:var(--text);
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-control)}
+.ev-search:focus{outline:none;border-color:var(--border-strong)}
+.ev-pick{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--s1)}
+.ev-pick a{display:flex;flex-direction:column;gap:2px;padding:12px 14px;color:var(--text);text-decoration:none;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card)}
+.ev-pick a:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.ev-pick-name{font-weight:600}
+.ev-pick .ev-dim{font-size:var(--fs-sm)}
+
+.ev-filters,.ev-polbar{display:flex;flex-wrap:wrap;gap:8px}
+
+.ev-tabs{display:flex;gap:4px;padding:4px;align-self:flex-start;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-pill)}
+.ev-tabs button{font:inherit;font-size:var(--fs-sm);color:var(--text-2);padding:7px 16px;border:0;
+  background:none;border-radius:var(--r-pill);cursor:pointer}
+.ev-tabs button:hover{color:var(--text)}
+.ev-tabs button.on{color:var(--bg);background:var(--text);font-weight:600}
+
+.ev-new{align-self:center;font:inherit;font-size:var(--fs-sm);font-weight:600;color:var(--info);cursor:pointer;
+  padding:6px 14px;border-radius:var(--r-pill);border:1px solid var(--info);background:var(--info-dim)}
+
+.ev-list{display:flex;flex-direction:column;gap:var(--s1)}
+.ev-item{display:flex;flex-direction:column;gap:8px;padding:14px 16px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--r-card)}
+.ev-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ev-when{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-2)}
+.ev-tag{font-size:var(--fs-xs);color:var(--text-2);padding:2px 8px;border:1px solid var(--border-soft);border-radius:var(--r-pill)}
+.ev-text{margin:0;line-height:1.55;max-width:80ch}
+.ev-source{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;font-size:var(--fs-sm)}
+.ev-source a{color:var(--text-2)}
+.ev-source a:hover{color:var(--text)}
+.ev-ack{font-size:var(--fs-xs);color:var(--text-3)}
+.ev-show{height:30px;font-size:var(--fs-xs)}
+.ev-embed{width:100%;max-width:560px}
+
+.ev-summary p{margin:0;line-height:1.6;max-width:75ch}
+.ev-summary sup a{font-family:var(--font-mono);font-size:.7em;color:var(--info);text-decoration:none;margin-left:2px}
+.ev-cites{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:var(--s1)}
+.ev-cites li{padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card)}
+.ev-cites li > *{margin-top:6px}
+.ev-cites li > :first-child{margin-top:0}
+
+/* Admin -> Feed summaries: a flagged paragraph is marked, not hidden. */
+.ev-flagged{border-left:3px solid var(--warn);padding-left:10px}
+.ev-flag{font-size:var(--fs-xs);color:var(--warn)}

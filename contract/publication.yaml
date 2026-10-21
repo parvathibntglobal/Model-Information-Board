@@ -95,6 +95,36 @@ derived_posts:
     - reddit
     - x
 
+evidence_feed:
+  # ⚠ PROPOSED 2026-10-21 by anooj, on branch feat/evidence-feed - NOT RATIFIED.
+  #   Needs the second reviewer like every change to this file, and reaches
+  #   main only with the rule-2 amendment (docs/proposals/evidence-feed.md).
+  #
+  # THE FEED IS THE DRILL-DOWN FROM A COUNT TO ITS REPORTS (contract/
+  # evidence_feed.yaml). Totals already count every source (above), so a feed
+  # that lists only the non-withheld ones would back up about half of each
+  # number: measured 2026-10-21 on the shared DB, 1,595 of 2,725 documents
+  # behind board entries (58.5%) are Reddit, X or arXiv.
+  #
+  # So the feed follows the DERIVED-POST terms, not the board's:
+  #   - every report appears, as OUR paraphrase - never its text. The
+  #     paraphrase is checked in code to share no run longer than
+  #     `max_copied_words` with the excerpts it was written from.
+  #   - a source in `embed_only` is cited ONLY as the platform's official
+  #     embed, loaded when the reader asks for it. No link, handle or
+  #     subreddit typed by us.
+  #   - every other source is cited with its platform name and a link;
+  #     arXiv carries `credits.arxiv_acknowledgement` wherever it appears.
+  #   - no verbatim quote from ANY source reaches the feed.
+  # The board itself stays as `withheld_from_public` says.
+  #
+  # Must be true or false, and a list. Absent raises (rule 6).
+  status: proposed
+  may_draw_on_withheld: true
+  embed_only:
+    - reddit
+    - x
+
 credits:
   # ARXIV'S ACKNOWLEDGEMENT, as its API terms ask (2026-10-19, review of #535).
   # Attached at SERVE time to every post whose sources include an arXiv paper

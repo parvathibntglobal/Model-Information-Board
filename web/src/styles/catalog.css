@@ -61,10 +61,18 @@
 /* A card is a link to its model's page (2026-10-14). */
 a.cat-card{color:var(--text);text-decoration:none;transition:border-color .18s var(--ease), background .18s var(--ease)}
 a.cat-card:hover{border-color:var(--border-strong);background:var(--surface-2)}
+/* The card as a box (2026-10-21): its model link stretched over it, and the
+   voices count raised above that so it can open the evidence feed. */
+.cat-card-box{position:relative;color:var(--text);transition:border-color .18s var(--ease), background .18s var(--ease)}
+.cat-card-box:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.cat-stretch{position:absolute;inset:0;border-radius:inherit;z-index:0}
+.cat-stretch:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.cat-raised{position:relative;z-index:1}
 .cat-voices{color:var(--text-2)}
 .cat-voices b{color:var(--text)}
 .cat-open{font-weight:600;color:var(--text-2)}
 a.cat-card:hover .cat-open{color:var(--text)}
+.cat-card-box:hover .cat-open{color:var(--text)}
 
 /* ONE MODEL'S PAGE (catalog/ModelPage.jsx) */
 .mp2 .crumb{font-size:var(--fs-sm);color:var(--text-3);margin:0;display:flex;gap:8px;align-items:center}
@@ -103,7 +111,10 @@ a.cat-card:hover .cat-open{color:var(--text)}
 .mp2-axis{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
 .mp2-kind{font:600 .66rem var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)}
 .mp2-split{display:flex;gap:4px;font:500 .72rem var(--font-mono)}
-.mp2-split i{font-style:normal;padding:1px 6px;border-radius:var(--r-pill)}
+.mp2-split i,.mp2-split a{font-style:normal;padding:1px 6px;border-radius:var(--r-pill)}
+/* Each side of the split opens its reports (2026-10-21); a pill, not underlined. */
+.mp2-split a{text-decoration:none}
+.mp2-split a:hover{outline:1px solid currentColor}
 .mp2-split .p{color:var(--pass);background:var(--pass-dim)}
 .mp2-split .n{color:var(--fail);background:var(--fail-dim)}
 .mp2-split .z{color:var(--text-2);background:var(--surface-3)}
