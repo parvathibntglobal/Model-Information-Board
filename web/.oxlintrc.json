@@ -27,7 +27,7 @@
   "overrides": [
     {
       // Build tooling runs in Node, not a browser: `process` is real here.
-      "files": ["vite.config.js", "*.config.js", "scripts/**"],
+      "files": ["vite.config.js", "*.config.js", "scripts/**", "prerender.js"],
       "env": { "node": true }
     }
   ]

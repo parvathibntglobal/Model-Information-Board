@@ -12,8 +12,19 @@ server {
     # asks nginx for a file that was never built, and without this line the
     # answer is 404 on every route except `/` - which reads as "the deploy is
     # broken" rather than "the server does not know about client routing".
+    #
+    # PRE-RENDERED PAGES (web/prerender.js, 2026-10-20): each public page is
+    # saved as `<path>.html` (`/reviews/jobs` -> reviews/jobs.html), so
+    # `$uri.html` serves it. Not `<path>/index.html`: that makes nginx redirect
+    # `/reviews` to `/reviews/`, a second address for every page. Anything
+    # with no file of its own gets shell.html, the empty app - NOT index.html,
+    # which is now the home page's saved HTML. Every .html is no-cache for the
+    # reason given for index.html below: each one names the current asset hashes.
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri.html $uri/ /shell.html;
+        location ~ \.html$ {
+            add_header Cache-Control "no-cache";
+        }
     }
 
     # Hashed assets are immutable by construction - Vite puts the content hash
@@ -22,6 +33,10 @@ server {
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";
+    }
+
+    location = /shell.html {
+        add_header Cache-Control "no-cache";
     }
 
     location = /index.html {

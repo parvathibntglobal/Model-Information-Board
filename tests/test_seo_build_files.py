@@ -68,10 +68,10 @@ def test_the_sitemap_is_valid_xml_with_structural_and_indexable_pages(out):
     assert len(locs) == len(set(locs))                       # each once
     for p in out["structural"]:
         assert f"https://board.example{p}" in locs
-    assert "https://board.example/reports/jobs/code-review" in locs
-    assert "https://board.example/catalog/model/anthropic/claude-opus-4.6" in locs
+    assert "https://board.example/reviews/jobs/code-review" in locs
+    assert "https://board.example/ai-models/anthropic/claude-opus-4.6" in locs
     # escaped in XML, intact once parsed
-    assert "https://board.example/catalog?type=text&x=1" in locs
+    assert "https://board.example/ai-models?type=text&x=1" in locs
     assert "https://board.example/compare" in locs
 
 
@@ -101,8 +101,40 @@ def test_a_real_date_becomes_lastmod_and_nothing_else_does(out):
     that has one. A malformed value and an undated path get none (no build
     time standing in for a date nobody recorded)."""
     xml = out["sitemapDated"]
-    dated = "<loc>https://board.example/reports/jobs/code-review</loc><lastmod>2026-10-06</lastmod>"
+    dated = "<loc>https://board.example/reviews/jobs/code-review</loc><lastmod>2026-10-06</lastmod>"
     assert dated in xml
-    assert "<loc>https://board.example/catalog/model/acme/model-t</loc></url>" in xml
+    assert "<loc>https://board.example/ai-models/acme/model-t</loc></url>" in xml
     assert "<loc>https://board.example/blogs</loc></url>" in xml
     assert xml.count("<lastmod>") == 1
+
+
+def test_pre_rendering_saves_the_sitemap_pages_only(out):
+    """The pre-render saves what the sitemap lists: never a private path, never
+    a query-string or fragment address (one file with parameters), each once."""
+    paths = out["prerenderPaths"]
+    assert "/reviews/jobs/code-review" in paths and "/ai-models/acme/model-t" in paths
+    assert paths.count("/reviews/jobs/code-review") == 1
+    assert set(out["structural"]) <= set(paths)
+    assert not [p for p in paths if "?" in p or "#" in p]
+    assert not [p for p in paths if p.startswith(("/board", "/models", "/admin", "/login"))]
+
+
+def test_a_pre_rendered_page_is_saved_as_its_path_dot_html(out):
+    """`<path>.html`, not `<path>/index.html` (nginx would redirect `/reviews`
+    to `/reviews/`); `/` is index.html; a path that could leave dist/ or is not
+    a valid file name is refused."""
+    files = out["prerenderFiles"]
+    assert files["/"] == "index.html"
+    assert files["/reviews/jobs"] == "reviews/jobs.html"
+    assert files["/ai-models/openai/gpt-6-sol"] == "ai-models/openai/gpt-6-sol.html"
+    assert files["/glossary/gpt-5.5"] == "glossary/gpt-5.5.html"
+    for bad in ("/a/../b", "/a%2F..%2Fb", "/x/", "/a:b", "/%E0%A4", "/a%5Cb", "/a%00b"):
+        assert files[bad] is None, bad
+
+
+def test_the_shell_head_cannot_close_its_own_script(out):
+    """The shell's head is carried as JSON in a <script>; a `</script>` in a
+    title must not end it early."""
+    s = out["shellScript"]
+    assert s.startswith('<script type="application/json" id="shell-head">')
+    assert s.count("</script>") == 1 and "\u003c/script>" in s

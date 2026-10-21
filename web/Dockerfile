@@ -19,6 +19,13 @@
 
 FROM node:22-alpine AS build
 
+# THE BROWSER FOR PRE-RENDERING (web/prerender.js, 2026-10-20). `npm run build`
+# saves each public page's finished HTML when the site is open (SITE_URL +
+# PUBLIC_SITE=1) or PRERENDER=1, reading the API named by VITE_API_URL - so
+# that API must be reachable from the build. A closed build skips it.
+RUN apk add --no-cache chromium
+ENV CHROME_PATH=/usr/bin/chromium
+
 WORKDIR /web
 
 # `npm ci` NOT `npm install`, because `package-lock.json` is committed and a
@@ -35,6 +42,20 @@ COPY . .
 # variables block in the deployment notes says to set it.
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
+
+# THE SWITCH THAT OPENS THE SITE, and pre-rendering with it (2026-10-20).
+# Railway hands a service variable to the build only when it is declared here,
+# so until now SITE_URL and PUBLIC_SITE never reached `vite build` and the
+# deployed site stayed closed whatever the variables said. Empty = closed.
+# PRERENDER_API is where pre-rendering reads data when VITE_API_URL is the
+# relative `/api`. SEO_PATHS_FILE is NOT here yet: an open build needs it
+# (vite.config.js), and writing it takes scripts/export_indexable_paths.py
+# and the database - a step this node image cannot run.
+ARG SITE_URL=
+ARG PUBLIC_SITE=
+ARG PRERENDER=
+ARG PRERENDER_API=
+ENV SITE_URL=$SITE_URL PUBLIC_SITE=$PUBLIC_SITE PRERENDER=$PRERENDER PRERENDER_API=$PRERENDER_API
 
 # `vite.config.js` reads the repo-root `.env` via `loadEnv(mode, REPO_ROOT, '')`
 # to find API_TOKEN. That file is not in this build context and must not be -
