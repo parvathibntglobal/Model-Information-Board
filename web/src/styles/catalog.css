@@ -85,6 +85,8 @@ a.cat-card:hover .cat-open{color:var(--text)}
 .mp2-yes{color:var(--pass)}
 .mp2-no{color:var(--text-2)}
 .mp2-note{font-size:var(--fs-xs);color:var(--text-3);margin:0;line-height:1.6}
+/* The short answer under a model's heading (2026-10-22): its price, context and how many engineers reported on it. */
+.mp2-answer{font-size:var(--fs-sm);color:var(--text-2);line-height:1.6}
 .mp2-note a{color:var(--text-2);text-decoration:underline}
 .mp2-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s2)}
 .mp2-form label{display:flex;flex-direction:column;gap:6px;min-width:0}
