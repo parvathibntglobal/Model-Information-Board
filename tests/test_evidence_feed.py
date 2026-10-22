@@ -682,3 +682,14 @@ def test_a_number_in_the_reports_own_topic_may_be_repeated():
                                      max_copied_words=6) is not None
     assert checks.paraphrase_problem(text, excerpts, "Claude Fable 5.1", max_chars=320,
                                      max_copied_words=6, topics=["3D modeling"]) is None
+
+
+def test_a_bare_number_citation_is_its_report_id(conn):
+    """`19` is `R19`; an id naming no report given is still refused."""
+    _paraphrase_all(conn)
+    page = {"paragraphs": [{"text": "Tool selection is described as strong.", "cites": ["1", "r3"]}]}
+    out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
+    assert out["stored"]
+    bad = {"paragraphs": [{"text": "Tool selection is described as strong.", "cites": ["99"]}]}
+    out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(bad, bad))
+    assert not out["stored"] and "not given" in out["refused"]

@@ -152,6 +152,25 @@ def _user_message(label: str, reports: list[dict]) -> str:
     )
 
 
+def _with_ids(paragraph: dict) -> dict:
+    """A citation written `19` or `r19` is the report `R19` - a formatting
+    slip, not a different claim (2026-10-21: 6 of 17 refused drafts cited bare
+    numbers). Anything else is left as written for the check to judge: an id
+    that names no report it was given is still refused."""
+    cites = paragraph.get("cites")
+    if not isinstance(cites, list):
+        return paragraph
+    fixed = []
+    for c in cites:
+        text = str(c).strip()
+        if text.isdigit():
+            text = f"R{text}"
+        elif text[:1] == "r" and text[1:].isdigit():
+            text = f"R{text[1:]}"
+        fixed.append(text)
+    return {**paragraph, "cites": fixed}
+
+
 def draft(
     conn,
     model_id: str,
@@ -211,7 +230,7 @@ def draft(
             reason = str(e)
             reasons.append(reason)
             continue
-        paragraphs = [p for p in (args.get("paragraphs") or []) if isinstance(p, dict)]
+        paragraphs = [_with_ids(p) for p in (args.get("paragraphs") or []) if isinstance(p, dict)]
         reason, flags = checks.summary_problems(
             paragraphs,
             sources,
