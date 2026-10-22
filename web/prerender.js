@@ -205,18 +205,22 @@ const t0 = Date.now()
 // list - and one run is one snapshot of the API. So a GET is fetched once,
 // by its full address, and every page and tab is handed that answer: the
 // backend serves each address once per build instead of once per page, and a
-// few tabs can then render at once. A failed fetch is not kept.
+// few tabs can then render at once. A failed fetch is not kept - and NEITHER IS
+// A 5xx ANSWER (review of #556): kept, one backend hiccup would be handed to
+// every page that reads that address for the rest of the run. A 4xx is kept:
+// a 404 is how a page learns a model does not exist.
 const apiOnce = new Map()
 function fetchOnce(url) {
   if (!apiOnce.has(url)) {
     const p = fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_MS * 3) })
       .then(async (r) => ({ status: r.status, type: r.headers.get('content-type') || 'application/json',
         body: Buffer.from(await r.arrayBuffer()) }))
-    p.catch(() => apiOnce.delete(url))
+    p.then((r) => { if (r.status >= 500) apiOnce.delete(url) }, () => apiOnce.delete(url))
     apiOnce.set(url, p)
   }
   return apiOnce.get(url)
 }
+const isApi = (url) => url.startsWith(`${ORIGIN}/api/`) || Boolean(API_ORIGIN && url.startsWith(API_ORIGIN))
 
 /** A tab with this script's request rules (see the notes at the top). */
 async function openTab() {
@@ -231,8 +235,7 @@ async function handle(req) {
   const url = req.url()
   // The API: the dev default `/api` on this server, or the origin the bundle
   // names. Answered here - once per address per run, and with no CORS.
-  const api = url.startsWith(`${ORIGIN}/api/`) || (API_ORIGIN && url.startsWith(API_ORIGIN))
-  if (api) {
+  if (isApi(url)) {
     try {
       if (req.method() === 'GET') {
         const r = await fetchOnce(url)
@@ -256,9 +259,21 @@ async function saveOne(page, path) {
   const file = prerenderFile(path)
   const t1 = Date.now()
   if (!file) { failed.push(`${path}: not a safe file name`); return }
+  // A PAGE WHOSE API ANSWERED 5xx IS NOT SAVED (review of #556). It renders
+  // the app's error notice - a heading, no skeleton, not "not found" - so it
+  // passed every check here and was saved for crawlers until the next build.
+  // Retried once (the 5xx is not cached); a second 5xx fails the page, and a
+  // failed page fails the build, as any other does.
+  const errors = []
+  const onResponse = (r) => { if (isApi(r.url()) && r.status() >= 500) errors.push(`${r.status()} ${r.url()}`) }
+  page.on('response', onResponse)
   try {
-    // One retry: a slow API answer is not a broken page.
-    const { notFound, html } = await render(page, path).catch(() => render(page, path))
+    // One retry: a slow API answer, or one 5xx, is not a broken page.
+    const once = () => { errors.length = 0; return render(page, path) }
+    let result = await once().catch(() => null)
+    if (!result || errors.length) result = await once()
+    const { notFound, html } = result
+    if (errors.length) { failed.push(`${path}: the API answered ${errors[0]}`); return }
     if (notFound) { failed.push(`${path}: renders "not found"`); return }
     const out = join(DIST, file)
     mkdirSync(dirname(out), { recursive: true })
@@ -269,6 +284,8 @@ async function saveOne(page, path) {
     if (env.PRERENDER_VERBOSE) console.log(`  ${path}  ${Date.now() - t1}ms`)
   } catch (e) {
     failed.push(`${path}: ${e.name || 'Error'} ${String(e.message).split('\n')[0]}`)
+  } finally {
+    page.off('response', onResponse)
   }
 }
 
