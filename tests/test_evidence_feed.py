@@ -687,7 +687,8 @@ def test_a_number_in_the_reports_own_topic_may_be_repeated():
 def test_a_bare_number_citation_is_its_report_id(conn):
     """`19` is `R19`; an id naming no report given is still refused."""
     _paraphrase_all(conn)
-    page = {"paragraphs": [{"text": "Tool selection is described as strong.", "cites": ["1", "r3"]}]}
+    strong = "Tool selection is described as strong."
+    page = {"paragraphs": [{"text": strong, "cites": ["1", "r3"]}]}
     out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
     assert out["stored"]
     bad = {"paragraphs": [{"text": "Tool selection is described as strong.", "cites": ["99"]}]}
