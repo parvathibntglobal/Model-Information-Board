@@ -33,7 +33,10 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SRC = ROOT / "web" / "src"
-STYLES = SRC / "styles"
+#: Every stylesheet under web/src, not only web/src/styles: Kite Pulse (#560)
+#: keeps its own beside its components (kitepulse/site.css, admin.css), and a
+#: class defined there is defined. Reading styles/ alone failed 67 of them.
+STYLESHEETS = sorted(SRC.rglob("*.css"))
 
 #: Classes that are deliberately not in a stylesheet.
 #:
@@ -63,7 +66,7 @@ _CLASS_IN_JS = re.compile(r'class="([^"{}$]+)"')
 def _declared() -> set[str]:
     """Every class selector any stylesheet defines, comments stripped."""
     out: set[str] = set()
-    for f in STYLES.glob("*.css"):
+    for f in STYLESHEETS:
         text = re.sub(r"/\*.*?\*/", " ", f.read_text(encoding="utf-8"), flags=re.DOTALL)
         # Selectors only: everything before a `{`, so a class named inside a
         # declaration value cannot count as a definition.
