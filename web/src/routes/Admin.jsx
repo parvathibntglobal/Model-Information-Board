@@ -20,6 +20,7 @@ import QuizPanel from '../components/QuizPanel'
 import FeedSummaryPanel from '../components/FeedSummaryPanel'
 import DiscussionsPanel from '../components/DiscussionsPanel'
 import KitePulsePanel from '../kitepulse/KitePulsePanel'
+import { KITE_PULSE_OPEN } from '../kitepulse/status'
 import { IconAlert, IconArrow, IconClock, IconFilter, IconGrid, IconHeart, IconSearch } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
@@ -384,10 +385,14 @@ const PROJECTS = [
     blurb: 'Kite Pulse SEO: pages, keywords and AI-answer tracking',
     sections: KITE_SECTIONS,
     site: '/kite-pulse',
+    // LOCKED while its team works inside it (kitepulse/status.js): the card
+    // shows and cannot be opened, and no URL reaches its sections.
+    locked: !KITE_PULSE_OPEN,
   },
 ]
 
-const projectOf = (sectionId) => PROJECTS.find((pr) => pr.sections.some((x) => x.id === sectionId))
+const OPENABLE = PROJECTS.filter((pr) => !pr.locked)
+const projectOf = (sectionId) => OPENABLE.find((pr) => pr.sections.some((x) => x.id === sectionId))
 
 /** `/health` plus whether the database answered. Needs no database itself. */
 function ServicePanel({ hp, cov }) {
@@ -446,7 +451,7 @@ export default function Admin() {
   const [params, setParams] = useSearchParams()
   const wanted = params.get('s')
   // No project named and no section that belongs to one: the project list.
-  const project = PROJECTS.find((pr) => pr.id === params.get('p')) || (wanted && projectOf(wanted)) || null
+  const project = OPENABLE.find((pr) => pr.id === params.get('p')) || (wanted && projectOf(wanted)) || null
   const sections = project ? project.sections : []
   const active = project ? (sections.find((x) => x.id === wanted) || sections[0]) : null
 
@@ -489,7 +494,13 @@ export default function Admin() {
           <p className="muted">Each project has its own admin. Pick one.</p>
         </div>
         <div className="adm-projects">
-          {PROJECTS.map((pr) => (
+          {PROJECTS.map((pr) => pr.locked ? (
+            <div key={pr.id} className="card adm-project adm-project-locked" aria-disabled="true">
+              <span className="adm-project-name">{pr.name}</span>
+              <span className="muted">{pr.blurb}</span>
+              <span className="adm-project-meta">In progress: not open yet</span>
+            </div>
+          ) : (
             // PUSH, NOT REPLACE: from a project, Back returns to this list.
             <button key={pr.id} type="button" className="card adm-project"
                     onClick={() => setParams({ p: pr.id })}>
