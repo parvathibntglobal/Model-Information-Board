@@ -61,8 +61,14 @@ def _kv(key: str, kind: int, payload: bytes) -> bytes:
     return _s(key) + struct.pack("<I", kind) + payload
 
 
+def _tensor(name: str, dims: list[int]) -> bytes:
+    """One tensor description: name, dimensions, type, offset - never data."""
+    shape = struct.pack("<I", len(dims)) + struct.pack(f"<{len(dims)}Q", *dims)
+    return _s(name) + shape + struct.pack("<IQ", 12, 0)
+
+
 def gguf_bytes(arch="llama", layers=32, kv_heads=8, extra=b"", extra_pairs=0,
-               tail=1 << 16) -> bytes:
+               tensors=(), tail=1 << 16) -> bytes:
     pairs = [
         _kv("general.architecture", 8, _s(arch)),
         _kv("general.name", 8, _s("Test model")),
@@ -73,8 +79,9 @@ def gguf_bytes(arch="llama", layers=32, kv_heads=8, extra=b"", extra_pairs=0,
         # The vocabulary: a string array, skipped and never stored.
         _kv("tokenizer.ggml.tokens", 9, struct.pack("<IQ", 8, 3) + _s("a") + _s("b") + _s("c")),
     ]
-    head = b"GGUF" + struct.pack("<IQQ", 3, 2, len(pairs) + extra_pairs)
-    return head + b"".join(pairs) + extra + b"\x00" * tail  # tail stands in for the tensors
+    head = b"GGUF" + struct.pack("<IQQ", 3, len(tensors), len(pairs) + extra_pairs)
+    listing = b"".join(_tensor(n, d) for n, d in tensors)
+    return head + b"".join(pairs) + extra + listing + b"\x00" * tail  # tail: the tensor data
 
 
 class TestTheHeaderReader:
@@ -90,6 +97,15 @@ class TestTheHeaderReader:
         arr = _kv("gemma4.attention.head_count_kv", 9, per_layer)
         fields, _ = gguf.parse_header(gguf_bytes(arch="gemma4", extra=arr, extra_pairs=1))
         assert fields["attention.head_count_kv"] == [8, 8, 1]
+
+    def test_the_first_key_projection_is_kept_from_the_tensor_list(self):
+        """Names and shapes only - the shape is what checks the head size."""
+        listing = (("token_embd.weight", [4096, 128256]), ("blk.0.attn_q.weight", [4096, 4096]),
+                   ("blk.0.attn_k.weight", [4096, 1024]), ("blk.1.attn_k.weight", [4096, 1024]))
+        fields, end = gguf.parse_header(gguf_bytes(tensors=listing))
+        assert fields["tensor.attn_k"] == {"layer": 0, "shape": [4096, 1024]}
+        assert "tensor.attn_qkv" not in fields
+        assert end == len(gguf_bytes(tensors=listing)) - (1 << 16)
 
     def test_a_prefix_that_ends_inside_the_header_asks_for_more(self):
         whole = gguf_bytes()
@@ -226,10 +242,27 @@ def test_every_constant_is_required(monkeypatch):
         view.inference_settings()
 
 
-def test_the_hardware_list_loads_grouped():
+def test_the_hardware_list_loads_grouped_and_every_mac_has_its_share():
     devices = view.hardware()
-    assert devices and all(d["memory_gib"] > 0 and d["group"] for d in devices)
+    assert devices and all(d["memory_gib"] > 0 and d["group"] and d["source"] for d in devices)
     assert {d["kind"] for d in devices} == {"discrete", "unified"}
+    macs = {d["memory_gib"]: d["gpu_share"] for d in devices if d["kind"] == "unified"}
+    table = view.inference_settings()["apple_gpu_share"]
+    assert macs and all(s == view.gpu_share(gib, table) for gib, s in macs.items())
+
+
+def test_a_mac_takes_the_largest_row_at_or_below_its_memory():
+    table = [{"from_gib": 0, "share": 0.66}, {"from_gib": 64, "share": 0.75}]
+    assert [view.gpu_share(g, table) for g in (8, 48, 63.9, 64, 512)] == [
+        0.66, 0.66, 0.66, 0.75, 0.75]
+
+
+def test_the_mac_table_must_start_at_zero(monkeypatch):
+    raw = view._read("local_inference.yaml")
+    raw = {**raw, "apple_gpu_share": [{"from_gib": 16, "share": 0.66, "evidence": "x"}]}
+    monkeypatch.setattr(view, "_read", lambda name: raw)
+    with pytest.raises(view.LocalModelsContractError, match="from 0 GiB"):
+        view.inference_settings()
 
 
 # ── the cache, from the real headers measured 2026-10-23 ─────────────────────
@@ -241,51 +274,108 @@ def _header(model_id: str) -> dict:
     return fields
 
 
+SETTINGS = view.inference_settings()
+
+
+def _shape(header):
+    return view.cache_shape(header, SETTINGS)
+
+
 class TestTheCacheShape:
     def test_llama_8b_is_one_gib_at_8k_in_f16(self):
         """32 layers x 8 KV heads x (128 + 128) = 65,536 elements a token;
         x 2 bytes x 8,192 tokens = exactly 1 GiB, the published figure."""
-        shape = view.cache_shape(_header("llama-3.1-8b"))
+        shape = _shape(_header("llama-3.1-8b"))
         assert shape["basis"] == "exact" and shape["full_elements"] == 65536
         assert shape["full_elements"] * 2 * 8192 == 2**30
 
     def test_an_unstated_head_size_is_llama_cpps_own_rule(self):
         """Llama 3.1 8B's header has no key_length: 4096 / 32 = 128."""
         assert "attention.key_length" not in _header("llama-3.1-8b")
-        assert view.cache_shape(_header("llama-3.1-8b"))["full_elements"] == 32 * 8 * 256
+        assert _shape(_header("llama-3.1-8b"))["full_elements"] == 32 * 8 * 256
 
     def test_a_full_attention_interval_caches_only_those_layers(self):
         """Qwen 3.6 27B: 64 layers, every 4th keeps a cache -> 16 x 4 x 512."""
-        shape = view.cache_shape(_header("qwen3.6-27b"))
+        shape = _shape(_header("qwen3.6-27b"))
         assert shape["basis"] == "exact" and shape["full_elements"] == 16 * 4 * 512
 
     def test_zero_kv_heads_mark_a_layer_with_no_cache(self):
-        shape = view.cache_shape(_header("nemotron-3-nano-4b"))
+        shape = _shape(_header("nemotron-3-nano-4b"))
         kv = _header("nemotron-3-nano-4b")["attention.head_count_kv"]
         assert shape["basis"] == "exact" and sum(1 for h in kv if h) < len(kv)
 
+    def test_a_state_space_layer_is_no_kv_and_no_feed_forward(self):
+        """llama.cpp's own test. Nemotron-H's zero-KV layers with a feed-forward
+        width are plain feed-forward layers and hold no state."""
+        h = _header("nemotron-3-nano-4b")
+        pairs = zip(h["attention.head_count_kv"], h["feed_forward_length"], strict=True)
+        ssm = sum(1 for k, f in pairs if not k and not f)
+        per_layer = 3 * (7680 + 2 * 8 * 128) + 128 * 7680
+        assert _shape(h)["fixed_bytes"] == ssm * per_layer * 4
+
+    def test_the_recurrent_state_is_counted_not_left_out(self):
+        """Qwen 3.6 27B: 48 state-space layers x ((4-1) x (6144 + 2 x 16 x 128)
+        + 128 x 6144) f32 = 156,893,184 bytes, the ~150 MiB the review found."""
+        assert _shape(_header("qwen3.6-27b"))["fixed_bytes"] == 156_893_184
+
     def test_a_stated_window_pattern_is_exact_and_split(self):
-        shape = view.cache_shape(_header("gemma-4-12b"))
+        shape = _shape(_header("gemma-4-12b"))
         assert shape["basis"] == "exact"
         assert shape["windowed"] and shape["windowed"][0]["window"] == 1024
 
     def test_a_window_without_a_pattern_is_an_upper_bound(self):
-        shape = view.cache_shape(_header("gemma-3-12b"))
+        shape = _shape(_header("gemma-3-12b"))
         assert shape["basis"] == "upper_bound" and "pattern" in shape["why"]
         assert shape["windowed"] == []
 
+    def test_a_window_of_zero_or_past_the_context_is_full_attention(self):
+        assert _header("phi-4-mini")["attention.sliding_window"] == 262144
+        assert _header("phi-4-reasoning-plus")["attention.sliding_window"] == 0
+        assert _shape(_header("phi-4-mini"))["basis"] == "exact"
+        assert _shape(_header("phi-4-reasoning-plus"))["basis"] == "exact"
+
+    def test_attention_llama_cpp_sets_in_code_is_an_upper_bound(self):
+        shape = _shape(_header("llama-4-scout-17b-16e"))
+        assert shape["basis"] == "upper_bound" and "chunked" in shape["why"]
+
+    def test_attention_the_arithmetic_does_not_model_is_unknown(self):
+        """Qwen3.8 Flash Next's indexer keeps its own cache: not even a bound."""
+        shape = _shape(_header("qwen3.8-flash-next"))
+        assert shape["basis"] == "unknown" and "indexer" in shape["why"]
+
+    def test_a_head_size_the_files_own_projection_contradicts_is_unknown(self):
+        """unsloth's Mistral Nemo: no key_length, so 5120 / 32 = 160 - but its
+        key projection is 1024 = 8 KV heads x 128 (measured 2026-10-23)."""
+        nemo = {**_header("mistral-nemo-12b"),
+                "tensor.attn_k": {"layer": 0, "shape": [5120, 1024]}}
+        assert "attention.key_length" not in nemo
+        shape = _shape(nemo)
+        assert shape["basis"] == "unknown" and "160" in shape["why"] and "128" in shape["why"]
+        fixed = {**nemo, "attention.key_length": 128, "attention.value_length": 128}
+        assert _shape(fixed)["basis"] == "exact"
+
+    def test_a_fused_projection_checks_the_head_size_too(self):
+        """Phi-4 mini rotates 96 of 128 dims - which a rope check would misread.
+        Its fused q/k/v is 24 x 128 + 2 x 8 x 128 = 5120 wide: consistent."""
+        phi = {**_header("phi-4-mini"), "tensor.attn_qkv": {"layer": 0, "shape": [3072, 5120]}}
+        assert phi["rope.dimension_count"] == 96
+        assert _shape(phi)["basis"] == "exact"
+
     def test_latent_attention_is_an_upper_bound(self):
-        shape = view.cache_shape(_header("glm-4.7-flash"))
+        shape = _shape(_header("glm-4.7-flash"))
         assert shape["basis"] == "upper_bound" and "latent" in shape["why"]
 
     def test_an_unread_header_is_unknown_never_zero(self):
-        shape = view.cache_shape(None)
+        shape = _shape(None)
         assert shape["basis"] == "unknown" and shape["full_elements"] is None
 
-    def test_the_measured_split_is_43_exact_and_7_upper_bound(self):
-        """The count in the proposal, recomputed (rule 11)."""
-        bases = [view.cache_shape(_header(m))["basis"] for m in HEADERS]
-        assert (bases.count("exact"), bases.count("upper_bound")) == (43, 7)
+    def test_the_measured_split_is_41_exact_8_upper_bound_1_unknown(self):
+        """The count in the proposal, recomputed (rule 11) over the 50 headers
+        measured 2026-10-23. Was 43 / 7 before review: Llama 4 Scout became an
+        upper bound and Qwen3.8 Flash Next unknown."""
+        bases = [_shape(_header(m))["basis"] for m in HEADERS]
+        counts = (bases.count("exact"), bases.count("upper_bound"), bases.count("unknown"))
+        assert counts == (41, 8, 1)
 
 
 # ── the page's arithmetic, run in node ────────────────────────────────────────
@@ -306,47 +396,50 @@ def js() -> dict:
 GIB = 2**30
 
 
-class TestTheEstimate:
-    def test_file_plus_cache_plus_runtime(self, js):
-        e = js["llama8gb"]
-        assert e["cacheBytes"] == GIB and e["overheadBytes"] == GIB
-        assert e["total"] == pytest.approx(4.58 * GIB + 2 * GIB)
+class TestTheGroups:
+    """need = 4.58 file + 1 context + 1 runtime = 6.58 GiB."""
 
-    def test_the_groups(self, js):
-        """6.58 GiB estimated. 8 GiB: 85% is 6.8, so it fits. 7.5 GiB: over 85%
-        (6.375), under 100%, so tight. 6 GiB: won't fit."""
-        assert js["llama8gb"]["group"] == "fits"
-        assert js["llama7_5gb"]["group"] == "tight"
+    def test_fits_tight_and_wont(self, js):
+        assert js["llama8gb"]["group"] == "fits"       # 6.58 <= 85% of 8 = 6.8
+        assert js["llama7_5gb"]["group"] == "tight"    # over 6.375, under 7.5
         assert js["llama6gb"]["group"] == "wont"
 
-    def test_an_8_bit_cache_is_smaller(self, js):
-        assert js["llamaQ8cache"]["cacheBytes"] == pytest.approx(GIB * 1.0625 / 2)
+    def test_two_cards_pay_the_runtime_twice(self, js):
+        assert js["llamaTwoSmallCards"]["group"] == "tight"  # 7.58 of 8
+        assert js["budget"]["twoCards"] == 48 * GIB
 
-    def test_two_cards_double_memory_and_pay_overhead_twice(self, js):
-        e = js["llamaTwoCards"]
-        assert e["budget"] == 8 * GIB and e["overheadBytes"] == 2 * GIB
+    def test_a_mac_counts_only_its_gpu_share_and_one_runtime(self, js):
+        assert js["llamaMac8"]["group"] == "wont"      # file + runtime 5.58 > 5.28
+        assert js["llamaMac16"]["group"] == "fits"     # cards ignored on a Mac
+        assert js["budget"]["mac16"] == pytest.approx(16 * 0.66 * GIB)
 
-    def test_a_mac_gets_its_gpu_share_and_one_runtime(self, js):
-        assert js["llamaMac8"]["budget"] == pytest.approx(6 * GIB)
-        assert js["llamaMacIgnoresCards"]["budget"] == pytest.approx(12 * GIB)
-        assert js["llamaMacIgnoresCards"]["overheadBytes"] == GIB
+    def test_an_unknown_context_is_cant_tell_never_zero(self, js):
+        """Rule 6: never fits on an unknown. Won't fit only when the file and
+        the runtime alone are already over - certain either way."""
+        assert js["unknown8gb"]["group"] == "unknown"
+        assert js["unknown8gb"]["cacheKnown"] is False
+        assert js["unknownTooBig"]["group"] == "wont"
 
-    def test_windowed_layers_stop_growing_at_their_window(self, js):
-        e = js["gemma32k"]
-        assert e["cacheBytes"] == 2 * (8192 * 32768 + 163840 * 1024)
-
-    def test_unknown_context_memory_stays_unknown(self, js):
-        assert js["unknown"]["cacheBytes"] is None
-        assert js["unknown"]["total"] == 3 * GIB  # file + runtime, and the page says so
-
-    def test_a_missing_size_is_no_estimate(self, js):
+    def test_a_missing_size_is_no_group(self, js):
         assert js["missing"] is None
 
     def test_the_context_is_capped_at_the_models_maximum(self, js):
         assert js["capped"]["context"] == {"tokens": 4096, "capped": True}
 
+    def test_no_computed_figure_leaves_the_function(self, js):
+        """Rule 3: the row gets the measured size and a group - no total."""
+        assert set(js["llama8gb"]) == {"fileBytes", "group", "context", "cacheKnown",
+                                       "upperBound"}
+
+    def test_the_cache_arithmetic(self, js):
+        assert js["cache"]["llama8k"] == GIB
+        assert js["cache"]["llama8kQ8"] == pytest.approx(GIB * 1.0625 / 2)
+        assert js["cache"]["gemma32k"] == 2 * (8192 * 32768 + 163840 * 1024)
+        assert js["cache"]["hybrid8k"] == 2 * 32768 * 8192 + 156_893_184
+        assert js["cache"]["unknown"] is None
+
     def test_sizes_are_gib_and_say_so(self, js):
-        assert js["fmt"] == ["4.68 GiB", "15.3 GiB", "111 GiB", "—"]
+        assert js["fmt"] == ["4.68 GiB", "15.3 GiB", "111 GiB", "\u2014"]
 
 
 # ── the table and the view (Postgres) ─────────────────────────────────────────
@@ -389,7 +482,9 @@ def test_the_view_lists_measured_models_and_names_the_rest(conn, monkeypatch):
     assert a["quants"]["Q4_K_M"]["bytes"] == 5 * GIB
     assert a["quants"]["Q8_0"]["bytes"] is None and a["quants"]["Q8_0"]["missing_files"]
     assert a["cache"]["basis"] == "exact" and a["on_catalog"] and a["price_out"] == 0.3
-    assert set(out["constants"]) >= {"quants", "contexts", "kv_cache_bytes", "apple_gpu_share"}
+    assert set(out["constants"]) >= {"quants", "contexts", "kv_cache_bytes", "fits_at_most"}
+    # The Mac share travels on each Mac, from the memory-size table.
+    assert all("gpu_share" in d for d in out["hardware"] if d["kind"] == "unified")
 
 
 def test_a_size_without_its_files_or_a_header_without_a_reason_is_refused(conn):

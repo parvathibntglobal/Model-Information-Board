@@ -1294,6 +1294,38 @@ terms_rulings:
       derived content is published - quotes with the platform's credit and a link, never full text. The reading below is kept as ruled: what was
       read and what was not is unchanged, and the unread terms it lists are
       the accepted risk of publishing, recorded rather than resolved.
+      ---- PROPOSED 2026-10-23 (anooj, #559; NOT IN FORCE UNTIL REVIEWED) ----
+      GGUF HEADER READS, for the local VRAM tool (docs/proposals/can-i-run-it.md).
+      A second access path beside the API: ranged GET requests on
+      `huggingface.co/<repo>/resolve/<commit>/<file>.gguf`, only for the repos
+      and files contract/local_models.yaml lists, reading the file's header -
+      its key/value metadata and tensor list (names and shapes) - in steps of
+      local_inference.yaml `header_read.chunk_bytes`, stopping at the first
+      step that completes it or at `max_header_bytes`. The last step can run
+      past the header by up to one step; those bytes are discarded unread. No
+      tensor is parsed or stored and no file is downloaded whole; a response
+      that ignores the range is refused unread. Measured over the 50 listed
+      files 2026-10-23: the largest header 15.1 MiB, no read past 16 MiB.
+      File sizes and listings come from the documented API.
+
+      WHAT IS PUBLISHED: a file's size, its repo name and a link to the repo at
+      the measured commit. No text from the repo, its card or its files.
+
+      READ 2026-10-23, AND RECORDED HERE RATHER THAN IN `recorded_evidence`:
+        - robots.txt (https://huggingface.co/robots.txt): `User-agent: *`
+          `Allow: /`, a sitemap line, nothing else.
+        - Terms of Service (https://huggingface.co/terms-of-service, "Effective
+          Date: September 15, 2022"): no clause on scraping, crawling or
+          automated access was found. "You may not alter, reproduce, republish,
+          license any of our proprietary materials" covers Hugging Face's own
+          "Website, design, code, graphics, interfaces, trademarks, and logo";
+          uploaded files are users' Content ("You own ... the Content you
+          post"), here the GGUF repos' owners'.
+      ⚠ `recorded_evidence` still says terms_document_read / robots_checked:
+        false, ON PURPOSE. The terms check compares those values with the
+        source's own `terms_evidence`; flipping them here alone would refuse
+        the existing Hugging Face harvester in the scheduled fetch. Both sides
+        change together, in review, or neither does.
       ---- AS RULED ----
       RULED 2026-09-09. Access is the documented public API at huggingface.co/api
       - repo search and the discussions endpoints - never the site HTML and never

@@ -12,10 +12,12 @@ import { estimate, fmtGiB } from '../vram/estimate'
  * "CAN I RUN IT?" (2026-10-23, docs/proposals/can-i-run-it.md): which open
  * models fit the reader's hardware, at 4-bit or 8-bit.
  *
- * THE FIGURE IS MEASURED, THE GROUP IS ESTIMATED (rule 3). Each row shows the
- * size of the exact GGUF file, read from Hugging Face. The total that decides
- * fits / tight / won't fit adds the KV cache for the chosen context and a
- * runtime allowance, and is labelled "estimate" wherever it appears.
+ * ONE FIGURE PER ROW, AND IT IS MEASURED (rule 3): the size of the exact GGUF
+ * file, read from Hugging Face. Whether it fits is a GROUP - a word - worked out
+ * from that size plus the memory the chosen context needs and an allowance for
+ * the runtime. Neither of those is shown as a number; the page says in words
+ * what the group adds. Revised after review on #559, which found the first
+ * draft's "≈ 6.58 GiB estimate" was a computed figure rule 3 does not allow.
  *
  * THE CHOICES LIVE IN THE ADDRESS (?hw=&n=&q=&ctx=&kv=), so a reader can
  * bookmark their own machine and a shared link opens on the same answer.
@@ -25,8 +27,9 @@ const QUANT_WORDS = { Q4_K_M: '4-bit', Q8_0: '8-bit' }
 const CACHE_WORDS = { f16: 'Standard (16-bit)', q8_0: '8-bit (smaller)' }
 const GROUPS = [
   ['fits', 'Fits', 'Room to spare after the file, the context and the runtime.'],
-  ['tight', 'Tight', 'Fits by the estimate, with little or no room left. Close other GPU apps, or shorten the context.'],
-  ['wont', "Won't fit", 'Needs more memory than this hardware has, by the estimate. Most can still run partly on the CPU, much more slowly.'],
+  ['tight', 'Tight', 'Fits, with little or no room left. Close other GPU apps, or pick a shorter context.'],
+  ['unknown', "Can't tell", "The file and the runtime fit, but how much memory this model's context needs could not be worked out from its file. Never counted as nothing."],
+  ['wont', "Won't fit", 'Needs more memory than this hardware has. Most can still run partly on the CPU, much more slowly.'],
 ]
 const DEFAULT_HW = 'rtx-4060'
 const fmtTokens = (n) => (n >= 1024 ? `${Math.round(n / 1024)}K` : String(n))
@@ -70,10 +73,11 @@ export default function VramCalculator() {
   }, [data, device, cards, quant, tokens, cacheType, q, c])
 
   const grouped = useMemo(() => {
-    const out = { fits: [], tight: [], wont: [], unmeasured: [] }
+    const out = { fits: [], tight: [], unknown: [], wont: [], unmeasured: [] }
     for (const r of rows || []) (r.e ? out[r.e.group] : out.unmeasured).push(r)
-    // Largest file first: the biggest model that fits is usually the one a reader wants.
-    for (const k of ['fits', 'tight', 'wont']) out[k].sort((a, b) => b.e.fileBytes - a.e.fileBytes)
+    // Largest file first - the measured figure each row shows, so the order can
+    // be checked against it: the biggest model that fits is usually the one wanted.
+    for (const k of ['fits', 'tight', 'unknown', 'wont']) out[k].sort((a, b) => b.e.fileBytes - a.e.fileBytes)
     return out
   }, [rows])
 
@@ -86,8 +90,8 @@ export default function VramCalculator() {
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Can I run it? Local LLM VRAM calculator</h1>
         <p className="tc-lead">
           Pick your graphics card or Mac and see which open models fit in its memory at 4-bit or 8-bit.
-          Every size is the measured size of the actual model file; whether it fits is an estimate that
-          adds the memory your context length needs.
+          Every size shown is the measured size of the actual model file; whether it fits also counts the
+          memory your context length needs.
         </p>
       </div>
 
@@ -151,15 +155,15 @@ export default function VramCalculator() {
             </div>
             <p className="dim vr-budget">
               {device.kind === 'unified'
-                ? <>A Mac lets its GPU use about {Math.round(c.apple_gpu_share * 100)}% of unified memory by default: {fmtGiB(device.memory_gib * c.apple_gpu_share * 2 ** 30)} of {device.memory_gib} GiB.</>
-                : <>{cards > 1 ? `${cards} cards, ${cards * device.memory_gib} GiB together, split by layer.` : `${device.memory_gib} GiB of graphics memory.`}</>}
+                ? <>macOS lets the GPU use only part of a Mac&apos;s unified memory, and a smaller part on smaller Macs. The groups below count only that part.</>
+                : <>{cards > 1 ? `${cards} × ${device.memory_gib} GiB, split by layer across the cards.` : `${device.memory_gib} GiB of graphics memory.`}</>}
             </p>
           </section>
 
           <input className="vr-search" type="search" value={q} onChange={(e) => setQ(e.target.value)}
                  placeholder="Search models (Llama, Qwen, Gemma...)" aria-label="Search models" />
 
-          {GROUPS.map(([key, title, note]) => (
+          {GROUPS.map(([key, title, note]) => (key === 'unknown' && !grouped.unknown.length ? null : (
             <section key={key} className="stack stack-2" aria-label={title}>
               <div className={`vr-group-head vr-${key}`}>
                 <h2>{title} <span className="dim">{plural(grouped[key].length, 'model')}</span></h2>
@@ -169,7 +173,7 @@ export default function VramCalculator() {
                 ? <ul className="vr-list">{grouped[key].map(({ m, e }) => <Row key={m.id} m={m} e={e} quant={quant} />)}</ul>
                 : <p className="dim">None of the models{q ? ` matching "${q}"` : ''}.</p>}
             </section>
-          ))}
+          )))}
 
           {(grouped.unmeasured.length > 0 || data.not_measured.length > 0) && (
             <Notice icon={<IconAlert />}>
@@ -184,15 +188,16 @@ export default function VramCalculator() {
             <p>
               <strong>The size shown is measured:</strong> the size of the model&apos;s actual {quant} GGUF file
               on Hugging Face, summed over its parts, in GiB (a graphics card&apos;s &quot;8 GB&quot; is 8 GiB).
-              Each row links the repository it was measured in.
+              Each row links the repository and the commit it was measured at.
             </p>
             <p>
-              <strong>Whether it fits is an estimate:</strong> the file, plus the memory the context needs
-              (worked out from the layers and attention heads stated in the file&apos;s own header), plus
-              about {c.runtime_overhead_gib} GiB for the runtime{c.overhead_per_card ? ', once per card' : ''}.
-              It fits when that is at most {Math.round(c.fits_at_most * 100)}% of the memory available, and is
-              tight up to 100%. Where the header does not say exactly which layers keep the context, the
-              context memory is an upper bound, and the row says so.
+              <strong>The group adds what the file does not hold:</strong> the memory your context length needs,
+              worked out from the layers and attention heads stated in the file&apos;s own header, and an
+              allowance for the runtime{c.overhead_per_card ? ' on each card' : ''}. A model fits when all of that
+              leaves room to spare, and is tight when it only just fits. Where the header does not say exactly
+              which layers keep the context, the context is counted as if every layer did, so a model can only
+              look bigger than it is - the row says so. Where it cannot be worked out at all, the model is
+              &quot;can&apos;t tell&quot; rather than counted as needing nothing.
             </p>
             {data.measured_at && <p className="dim">Sizes measured {String(data.measured_at).slice(0, 10)}; re-measured weekly.</p>}
           </section>
@@ -216,14 +221,14 @@ function Row({ m, e, quant }) {
         <span className="dim">{quant} file, measured · <a href={tree} target="_blank" rel="noopener noreferrer">{m.gguf_repo}</a></span>
       </div>
       <div className="vr-est">
-        <span className="tnum">≈ {fmtGiB(e.total)} <span className="dim">estimate</span></span>
         <span className="dim">
-          file + {e.cacheBytes == null ? 'context memory unknown' : `${fmtGiB(e.cacheBytes)} for ${fmtTokens(e.context.tokens)} context`}
-          {' '}+ {fmtGiB(e.overheadBytes)} runtime
+          {e.cacheKnown
+            ? `Plus the memory a ${e.context.capped ? '' : fmtTokens(e.context.tokens) + ' '}context needs, and the runtime.`
+            : "How much memory this model's context needs is unknown."}
         </span>
-        {e.upperBound && <span className="dim">Context memory is an upper bound: {m.cache.why}.</span>}
-        {e.cacheBytes == null && m.cache.why && <span className="dim">{m.cache.why}.</span>}
-        {e.context.capped && <span className="dim">This model takes at most {fmtTokens(e.context.tokens)} tokens.</span>}
+        {e.upperBound && <span className="dim">Context counted at its most: {m.cache.why}.</span>}
+        {!e.cacheKnown && m.cache.why && <span className="dim">{m.cache.why}.</span>}
+        {e.context.capped && <span className="dim">This model takes at most {fmtTokens(e.context.tokens)} tokens, so that is what is counted.</span>}
       </div>
       <div className="vr-links">
         {m.on_catalog && <Link to={modelPagePath(m.openrouter)}>Model page →</Link>}

@@ -1,17 +1,18 @@
 /**
- * THE LOCAL VRAM TOOL'S ARITHMETIC (docs/proposals/can-i-run-it.md).
+ * THE LOCAL VRAM TOOL'S GROUPING (docs/proposals/can-i-run-it.md).
  *
  * Every constant comes from GET /local-models, which reads contract/ - this file
- * has none of its own (rules 5 and 12). The FIGURE a row shows is the measured
- * file size; what is computed here is the estimate that decides the group,
- * which the page labels as one (rule 3).
+ * has none of its own (rules 5 and 12). The ONE figure a row shows is the
+ * measured file size. What is computed here decides only the group - a word -
+ * and is never shown as a number (rule 3).
  *
  *   weights   the measured GGUF file size (the sum of its parts)
  *   cache     bytes per element x (full elements x tokens
- *             + windowed elements x min(tokens, window))
- *   total     weights + cache + runtime overhead (once per card when split)
- *   budget    memory x cards (a graphics card) | memory x Mac GPU share (a Mac)
- *   group     fits | tight | wont
+ *             + windowed elements x min(tokens, window)) + a fixed recurrent state
+ *   need      weights + cache + runtime allowance (once per card when split)
+ *   budget    memory x cards (a graphics card) | memory x the Mac's GPU share
+ *   group     fits | tight | wont | unknown (the cache could not be worked out
+ *             and the file plus allowance alone are within budget - rule 6)
  */
 
 export const GIB = 2 ** 30
@@ -22,22 +23,23 @@ export function effectiveContext(cache, tokens) {
   return max && max < tokens ? { tokens: max, capped: true } : { tokens, capped: false }
 }
 
-/** Bytes the KV cache takes, or null when the header did not let us know (rule 6). */
+/** Bytes beyond the file, or null when the header did not let us know (rule 6). */
 export function cacheBytes(cache, tokens, bytesPerElement) {
   if (!cache || cache.basis === 'unknown' || cache.full_elements == null) return null
   const windowed = (cache.windowed || []).reduce((s, w) => s + w.elements * Math.min(tokens, w.window), 0)
-  return bytesPerElement * (cache.full_elements * tokens + windowed)
+  return bytesPerElement * (cache.full_elements * tokens + windowed) + (cache.fixed_bytes || 0)
 }
 
 /** The memory a model may use on this hardware. */
-export function budgetBytes(device, cards, constants) {
-  if (device.kind === 'unified') return device.memory_gib * GIB * constants.apple_gpu_share
+export function budgetBytes(device, cards) {
+  if (device.kind === 'unified') return device.memory_gib * GIB * device.gpu_share
   return device.memory_gib * GIB * cards
 }
 
 /**
- * One model on one hardware choice. `null` when the model has no measured size
- * for this quantization - never a guessed one.
+ * One model on one hardware choice: its group, and the facts the row states in
+ * words. `null` when the model has no measured size for this quantization -
+ * never a guessed one.
  */
 export function estimate(model, { quant, tokens, cacheType, device, cards }, constants) {
   const file = model.quants[quant]
@@ -46,17 +48,20 @@ export function estimate(model, { quant, tokens, cacheType, device, cards }, con
   const ctx = effectiveContext(model.cache, tokens)
   const cache = cacheBytes(model.cache, ctx.tokens, constants.kv_cache_bytes[cacheType])
   const overhead = constants.runtime_overhead_gib * GIB * (constants.overhead_per_card ? n : 1)
-  const total = file.bytes + (cache || 0) + overhead
-  const budget = budgetBytes(device, n, constants)
-  const group = total <= constants.fits_at_most * budget ? 'fits' : total <= budget ? 'tight' : 'wont'
+  const budget = budgetBytes(device, n)
+  const floor = file.bytes + overhead
+  let group
+  if (floor > budget) group = 'wont' // certain whatever the cache is
+  else if (cache == null) group = 'unknown'
+  else {
+    const need = floor + cache
+    group = need <= constants.fits_at_most * budget ? 'fits' : need <= budget ? 'tight' : 'wont'
+  }
   return {
     fileBytes: file.bytes,
-    cacheBytes: cache,
-    overheadBytes: overhead,
-    total,
-    budget,
     group,
     context: ctx,
+    cacheKnown: cache != null,
     upperBound: model.cache && model.cache.basis === 'upper_bound',
   }
 }

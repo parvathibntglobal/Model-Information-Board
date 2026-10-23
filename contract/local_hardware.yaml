@@ -5,85 +5,109 @@
 # "GB" and mean GiB (an "8 GB" card has 8 x 2^30 bytes), so the number is used
 # as GiB unchanged. Apple's unified memory is the same.
 #
-# ⚠ NOT YET CHECKED ENTRY BY ENTRY. Every figure here is the vendor's published
-#   memory size, written from the product names; `source` names where each one
-#   is checked. The review of this file is that check - a wrong figure here is
-#   a wrong "fits" on every model, so it is reviewed rather than trusted.
+# EACH DEVICE CITES THE PAGE ITS FIGURE IS CHECKED ON (`source`, a key below).
+# Checked 2026-10-23: Parvathi spot-checked 41 of the first 51 on #559 and found
+# none wrong; the rest were checked by fetching each page and finding the figure
+# - Intel B580 and A770, T4, L4, A100 40/80, H100, the RTX 3050 Laptop 4GB, the
+# RTX 4070 Ti ("12 GB GDDR6X" on the compare page) and the Mac Studio's 256 and
+# 512 GB. 48 of the 54 are checked.
+#
+# ⚠ THE SIX AMD CARDS ARE NOT YET CHECKED. amd.com timed out or dropped the
+#   connection on every product page on 2026-10-23, for us and for the
+#   reviewer. Their figures are AMD's published sizes as commonly listed, and
+#   stay marked here until a page loads.
 #
 # kind
-#   discrete   a graphics card. The whole of `memory_gib` is available to the
-#              model, less the runtime overhead (local_inference.yaml).
-#   unified    a Mac. The GPU may use only a share of it by default
-#              (local_inference.yaml `apple_gpu_share`), which the tool applies.
-#
-# `count` is NOT here: the page lets a reader pick 1, 2, 3 or 4 of a discrete
-# card ("Dual RTX 4090"), and local_inference.yaml says what splitting costs.
+#   discrete   a graphics card. The page lets a reader pick 1 to 4 of them.
+#   unified    a Mac. The GPU may use only a share of it, by memory size
+#              (local_inference.yaml `apple_gpu_share`).
 
-# Each source is where its devices' figures are checked, and `label` is the
-# heading the page groups them under, in this order.
+# The headings the page groups devices under, in this order.
+groups:
+  - {id: geforce, label: NVIDIA GeForce}
+  - {id: geforce_laptop, label: NVIDIA GeForce laptop}
+  - {id: radeon, label: AMD Radeon}
+  - {id: arc, label: Intel Arc}
+  - {id: mac, label: Mac (unified memory)}
+  - {id: datacentre, label: Data centre and cloud}
+
 sources:
-  nvidia: {label: NVIDIA GeForce, url: "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"}
-  nvidia_laptop: {label: NVIDIA GeForce laptop, url: "https://www.nvidia.com/en-us/geforce/laptops/compare/"}
-  amd: {label: AMD Radeon, url: "https://www.amd.com/en/products/graphics/desktops/radeon.html"}
-  intel: {label: Intel Arc, url: "https://www.intel.com/content/www/us/en/products/details/discrete-gpus/arc.html"}
-  apple: {label: Mac (unified memory), url: "https://www.apple.com/mac/compare/"}
-  nvidia_datacenter: {label: Data centre and cloud, url: "https://www.nvidia.com/en-us/data-center/"}
+  geforce_compare: "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"
+  geforce_laptop_compare: "https://www.nvidia.com/en-us/geforce/laptops/compare/"
+  geforce_laptop_30: "https://www.nvidia.com/en-us/geforce/laptops/30-series/"
+  radeon_7600: "https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7600.html"
+  radeon_7700xt: "https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7700-xt.html"
+  radeon_7800xt: "https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7800-xt.html"
+  radeon_7900xt: "https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7900xt.html"
+  radeon_7900xtx: "https://www.amd.com/en/products/graphics/desktops/radeon/7000-series/amd-radeon-rx-7900xtx.html"
+  radeon_9070xt: "https://www.amd.com/en/products/graphics/desktops/radeon/9000-series/amd-radeon-rx-9070xt.html"
+  arc_b580: "https://www.intel.com/content/www/us/en/products/sku/241598/intel-arc-b580-graphics/specifications.html"
+  arc_a770: "https://www.intel.com/content/www/us/en/products/sku/229151/intel-arc-a770-graphics-16gb/specifications.html"
+  mac_compare: "https://www.apple.com/mac/compare/"
+  mac_studio: "https://www.apple.com/mac-studio/specs/"
+  t4: "https://www.nvidia.com/en-us/data-center/tesla-t4/"
+  l4: "https://www.nvidia.com/en-us/data-center/l4/"
+  a100: "https://www.nvidia.com/en-us/data-center/a100/"
+  h100: "https://www.nvidia.com/en-us/data-center/h100/"
 
 devices:
   # ── NVIDIA GeForce, desktop ──────────────────────────────────────────────
-  - {id: rtx-3050-6gb, name: RTX 3050 6GB, kind: discrete, memory_gib: 6, source: nvidia}
-  - {id: rtx-3050, name: RTX 3050 8GB, kind: discrete, memory_gib: 8, source: nvidia}
-  - {id: rtx-3060, name: RTX 3060 12GB, kind: discrete, memory_gib: 12, source: nvidia}
-  - {id: rtx-3060-ti, name: RTX 3060 Ti, kind: discrete, memory_gib: 8, source: nvidia}
-  - {id: rtx-3070, name: RTX 3070 / 3070 Ti, kind: discrete, memory_gib: 8, source: nvidia}
-  - {id: rtx-3080, name: RTX 3080 10GB, kind: discrete, memory_gib: 10, source: nvidia}
-  - {id: rtx-3080-12gb, name: RTX 3080 12GB / 3080 Ti, kind: discrete, memory_gib: 12, source: nvidia}
-  - {id: rtx-3090, name: RTX 3090 / 3090 Ti, kind: discrete, memory_gib: 24, source: nvidia}
-  - {id: rtx-4060, name: RTX 4060, kind: discrete, memory_gib: 8, source: nvidia}
-  - {id: rtx-4060-ti, name: RTX 4060 Ti 8GB, kind: discrete, memory_gib: 8, source: nvidia}
-  - {id: rtx-4060-ti-16gb, name: RTX 4060 Ti 16GB, kind: discrete, memory_gib: 16, source: nvidia}
-  - {id: rtx-4070, name: RTX 4070 / 4070 Super, kind: discrete, memory_gib: 12, source: nvidia}
-  - {id: rtx-4070-ti-super, name: RTX 4070 Ti Super, kind: discrete, memory_gib: 16, source: nvidia}
-  - {id: rtx-4080, name: RTX 4080 / 4080 Super, kind: discrete, memory_gib: 16, source: nvidia}
-  - {id: rtx-4090, name: RTX 4090, kind: discrete, memory_gib: 24, source: nvidia}
-  - {id: rtx-5060, name: RTX 5060, kind: discrete, memory_gib: 8, source: nvidia}
-  - {id: rtx-5060-ti-16gb, name: RTX 5060 Ti 16GB, kind: discrete, memory_gib: 16, source: nvidia}
-  - {id: rtx-5070, name: RTX 5070, kind: discrete, memory_gib: 12, source: nvidia}
-  - {id: rtx-5070-ti, name: RTX 5070 Ti, kind: discrete, memory_gib: 16, source: nvidia}
-  - {id: rtx-5080, name: RTX 5080, kind: discrete, memory_gib: 16, source: nvidia}
-  - {id: rtx-5090, name: RTX 5090, kind: discrete, memory_gib: 32, source: nvidia}
+  - {id: rtx-3050-6gb, name: RTX 3050 6GB, kind: discrete, memory_gib: 6, group: geforce, source: geforce_compare}
+  - {id: rtx-3050, name: RTX 3050 8GB, kind: discrete, memory_gib: 8, group: geforce, source: geforce_compare}
+  - {id: rtx-3060, name: RTX 3060 12GB, kind: discrete, memory_gib: 12, group: geforce, source: geforce_compare}
+  - {id: rtx-3060-ti, name: RTX 3060 Ti, kind: discrete, memory_gib: 8, group: geforce, source: geforce_compare}
+  - {id: rtx-3070, name: RTX 3070 / 3070 Ti, kind: discrete, memory_gib: 8, group: geforce, source: geforce_compare}
+  - {id: rtx-3080, name: RTX 3080 10GB, kind: discrete, memory_gib: 10, group: geforce, source: geforce_compare}
+  - {id: rtx-3080-12gb, name: RTX 3080 12GB / 3080 Ti, kind: discrete, memory_gib: 12, group: geforce, source: geforce_compare}
+  - {id: rtx-3090, name: RTX 3090 / 3090 Ti, kind: discrete, memory_gib: 24, group: geforce, source: geforce_compare}
+  - {id: rtx-4060, name: RTX 4060, kind: discrete, memory_gib: 8, group: geforce, source: geforce_compare}
+  - {id: rtx-4060-ti, name: RTX 4060 Ti 8GB, kind: discrete, memory_gib: 8, group: geforce, source: geforce_compare}
+  - {id: rtx-4060-ti-16gb, name: RTX 4060 Ti 16GB, kind: discrete, memory_gib: 16, group: geforce, source: geforce_compare}
+  - {id: rtx-4070, name: RTX 4070 / 4070 Super, kind: discrete, memory_gib: 12, group: geforce, source: geforce_compare}
+  - {id: rtx-4070-ti, name: RTX 4070 Ti, kind: discrete, memory_gib: 12, group: geforce, source: geforce_compare}
+  - {id: rtx-4070-ti-super, name: RTX 4070 Ti Super, kind: discrete, memory_gib: 16, group: geforce, source: geforce_compare}
+  - {id: rtx-4080, name: RTX 4080 / 4080 Super, kind: discrete, memory_gib: 16, group: geforce, source: geforce_compare}
+  - {id: rtx-4090, name: RTX 4090, kind: discrete, memory_gib: 24, group: geforce, source: geforce_compare}
+  - {id: rtx-5060, name: RTX 5060, kind: discrete, memory_gib: 8, group: geforce, source: geforce_compare}
+  - {id: rtx-5060-ti-16gb, name: RTX 5060 Ti 16GB, kind: discrete, memory_gib: 16, group: geforce, source: geforce_compare}
+  - {id: rtx-5070, name: RTX 5070, kind: discrete, memory_gib: 12, group: geforce, source: geforce_compare}
+  - {id: rtx-5070-ti, name: RTX 5070 Ti, kind: discrete, memory_gib: 16, group: geforce, source: geforce_compare}
+  - {id: rtx-5080, name: RTX 5080, kind: discrete, memory_gib: 16, group: geforce, source: geforce_compare}
+  - {id: rtx-5090, name: RTX 5090, kind: discrete, memory_gib: 32, group: geforce, source: geforce_compare}
   # ── NVIDIA GeForce, laptop ───────────────────────────────────────────────
-  - {id: rtx-3050-laptop, name: RTX 3050 Laptop 4GB, kind: discrete, memory_gib: 4, source: nvidia_laptop}
-  - {id: rtx-4050-laptop, name: RTX 4050 Laptop, kind: discrete, memory_gib: 6, source: nvidia_laptop}
-  - {id: rtx-4060-laptop, name: RTX 4060 Laptop, kind: discrete, memory_gib: 8, source: nvidia_laptop}
-  - {id: rtx-4070-laptop, name: RTX 4070 Laptop, kind: discrete, memory_gib: 8, source: nvidia_laptop}
-  - {id: rtx-4080-laptop, name: RTX 4080 Laptop, kind: discrete, memory_gib: 12, source: nvidia_laptop}
-  - {id: rtx-4090-laptop, name: RTX 4090 Laptop, kind: discrete, memory_gib: 16, source: nvidia_laptop}
-  # ── AMD Radeon ───────────────────────────────────────────────────────────
-  - {id: rx-7600, name: Radeon RX 7600, kind: discrete, memory_gib: 8, source: amd}
-  - {id: rx-7700-xt, name: Radeon RX 7700 XT, kind: discrete, memory_gib: 12, source: amd}
-  - {id: rx-7800-xt, name: Radeon RX 7800 XT, kind: discrete, memory_gib: 16, source: amd}
-  - {id: rx-7900-xt, name: Radeon RX 7900 XT, kind: discrete, memory_gib: 20, source: amd}
-  - {id: rx-7900-xtx, name: Radeon RX 7900 XTX, kind: discrete, memory_gib: 24, source: amd}
-  - {id: rx-9070-xt, name: Radeon RX 9070 XT, kind: discrete, memory_gib: 16, source: amd}
+  - {id: rtx-3050-laptop, name: RTX 3050 Laptop 4GB, kind: discrete, memory_gib: 4, group: geforce_laptop, source: geforce_laptop_30}
+  - {id: rtx-4050-laptop, name: RTX 4050 Laptop, kind: discrete, memory_gib: 6, group: geforce_laptop, source: geforce_laptop_compare}
+  - {id: rtx-4060-laptop, name: RTX 4060 Laptop, kind: discrete, memory_gib: 8, group: geforce_laptop, source: geforce_laptop_compare}
+  - {id: rtx-4070-laptop, name: RTX 4070 Laptop, kind: discrete, memory_gib: 8, group: geforce_laptop, source: geforce_laptop_compare}
+  - {id: rtx-4080-laptop, name: RTX 4080 Laptop, kind: discrete, memory_gib: 12, group: geforce_laptop, source: geforce_laptop_compare}
+  - {id: rtx-4090-laptop, name: RTX 4090 Laptop, kind: discrete, memory_gib: 16, group: geforce_laptop, source: geforce_laptop_compare}
+  # ── AMD Radeon - NOT YET CHECKED, see the header ─────────────────────────
+  - {id: rx-7600, name: Radeon RX 7600, kind: discrete, memory_gib: 8, group: radeon, source: radeon_7600}
+  - {id: rx-7700-xt, name: Radeon RX 7700 XT, kind: discrete, memory_gib: 12, group: radeon, source: radeon_7700xt}
+  - {id: rx-7800-xt, name: Radeon RX 7800 XT, kind: discrete, memory_gib: 16, group: radeon, source: radeon_7800xt}
+  - {id: rx-7900-xt, name: Radeon RX 7900 XT, kind: discrete, memory_gib: 20, group: radeon, source: radeon_7900xt}
+  - {id: rx-7900-xtx, name: Radeon RX 7900 XTX, kind: discrete, memory_gib: 24, group: radeon, source: radeon_7900xtx}
+  - {id: rx-9070-xt, name: Radeon RX 9070 XT, kind: discrete, memory_gib: 16, group: radeon, source: radeon_9070xt}
   # ── Intel Arc ────────────────────────────────────────────────────────────
-  - {id: arc-b580, name: Arc B580, kind: discrete, memory_gib: 12, source: intel}
-  - {id: arc-a770, name: Arc A770 16GB, kind: discrete, memory_gib: 16, source: intel}
+  - {id: arc-b580, name: Arc B580, kind: discrete, memory_gib: 12, group: arc, source: arc_b580}
+  - {id: arc-a770, name: Arc A770 16GB, kind: discrete, memory_gib: 16, group: arc, source: arc_a770}
   # ── Apple silicon: the memory decides, not the chip name ─────────────────
-  - {id: mac-8gb, name: Mac with 8 GB unified memory, kind: unified, memory_gib: 8, source: apple}
-  - {id: mac-16gb, name: Mac with 16 GB unified memory, kind: unified, memory_gib: 16, source: apple}
-  - {id: mac-18gb, name: Mac with 18 GB unified memory, kind: unified, memory_gib: 18, source: apple}
-  - {id: mac-24gb, name: Mac with 24 GB unified memory, kind: unified, memory_gib: 24, source: apple}
-  - {id: mac-32gb, name: Mac with 32 GB unified memory, kind: unified, memory_gib: 32, source: apple}
-  - {id: mac-36gb, name: Mac with 36 GB unified memory, kind: unified, memory_gib: 36, source: apple}
-  - {id: mac-48gb, name: Mac with 48 GB unified memory, kind: unified, memory_gib: 48, source: apple}
-  - {id: mac-64gb, name: Mac with 64 GB unified memory, kind: unified, memory_gib: 64, source: apple}
-  - {id: mac-96gb, name: Mac with 96 GB unified memory, kind: unified, memory_gib: 96, source: apple}
-  - {id: mac-128gb, name: Mac with 128 GB unified memory, kind: unified, memory_gib: 128, source: apple}
-  - {id: mac-192gb, name: Mac with 192 GB unified memory, kind: unified, memory_gib: 192, source: apple}
+  - {id: mac-8gb, name: Mac with 8 GB unified memory, kind: unified, memory_gib: 8, group: mac, source: mac_compare}
+  - {id: mac-16gb, name: Mac with 16 GB unified memory, kind: unified, memory_gib: 16, group: mac, source: mac_compare}
+  - {id: mac-18gb, name: Mac with 18 GB unified memory, kind: unified, memory_gib: 18, group: mac, source: mac_compare}
+  - {id: mac-24gb, name: Mac with 24 GB unified memory, kind: unified, memory_gib: 24, group: mac, source: mac_compare}
+  - {id: mac-32gb, name: Mac with 32 GB unified memory, kind: unified, memory_gib: 32, group: mac, source: mac_compare}
+  - {id: mac-36gb, name: Mac with 36 GB unified memory, kind: unified, memory_gib: 36, group: mac, source: mac_compare}
+  - {id: mac-48gb, name: Mac with 48 GB unified memory, kind: unified, memory_gib: 48, group: mac, source: mac_compare}
+  - {id: mac-64gb, name: Mac with 64 GB unified memory, kind: unified, memory_gib: 64, group: mac, source: mac_compare}
+  - {id: mac-96gb, name: Mac with 96 GB unified memory, kind: unified, memory_gib: 96, group: mac, source: mac_compare}
+  - {id: mac-128gb, name: Mac with 128 GB unified memory, kind: unified, memory_gib: 128, group: mac, source: mac_compare}
+  - {id: mac-192gb, name: Mac with 192 GB unified memory, kind: unified, memory_gib: 192, group: mac, source: mac_compare}
+  - {id: mac-256gb, name: Mac with 256 GB unified memory, kind: unified, memory_gib: 256, group: mac, source: mac_studio}
+  - {id: mac-512gb, name: Mac with 512 GB unified memory, kind: unified, memory_gib: 512, group: mac, source: mac_studio}
   # ── Data-centre and cloud ────────────────────────────────────────────────
-  - {id: t4, name: NVIDIA T4 (e.g. Colab free tier), kind: discrete, memory_gib: 16, source: nvidia_datacenter}
-  - {id: l4, name: NVIDIA L4, kind: discrete, memory_gib: 24, source: nvidia_datacenter}
-  - {id: a100-40gb, name: NVIDIA A100 40GB, kind: discrete, memory_gib: 40, source: nvidia_datacenter}
-  - {id: a100-80gb, name: NVIDIA A100 80GB, kind: discrete, memory_gib: 80, source: nvidia_datacenter}
-  - {id: h100, name: NVIDIA H100 80GB, kind: discrete, memory_gib: 80, source: nvidia_datacenter}
+  - {id: t4, name: NVIDIA T4 (e.g. Colab free tier), kind: discrete, memory_gib: 16, group: datacentre, source: t4}
+  - {id: l4, name: NVIDIA L4, kind: discrete, memory_gib: 24, group: datacentre, source: l4}
+  - {id: a100-40gb, name: NVIDIA A100 40GB, kind: discrete, memory_gib: 40, group: datacentre, source: a100}
+  - {id: a100-80gb, name: NVIDIA A100 80GB, kind: discrete, memory_gib: 80, group: datacentre, source: a100}
+  - {id: h100, name: NVIDIA H100 80GB, kind: discrete, memory_gib: 80, group: datacentre, source: h100}

@@ -14,6 +14,14 @@ What is kept: the architecture, and every `<arch>.*` key whose value is a
 number, a boolean, or an array of them (per-layer KV heads, a sliding-window
 pattern). Strings and string arrays - the tokenizer's vocabulary is most of a
 header - are skipped, never stored.
+
+THE TENSOR LIST TOO, BUT NEVER THE TENSORS. After the key/value section the file
+lists every tensor's name and shape (a few tens of KiB). One of them is kept:
+the first layer that has a key projection, as `tensor.attn_k` (or the fused
+`tensor.attn_qkv`) with its layer and shape. Its output width is KV heads x the
+real head size, which is how judge/local_models.py checks the header's head
+size against the file itself (rule 12): unsloth's Mistral Nemo states 160 in
+its header and its key projection says 128.
 """
 
 from __future__ import annotations
@@ -43,12 +51,13 @@ class NotGGUF(ValueError):
 
 
 def parse_header(buf: bytes) -> tuple[dict, int]:
-    """`(fields, end)`: the kept key/values, and where the key/value section ends."""
+    """`(fields, end)`: the kept key/values and key-projection shape, and where
+    the tensor list ends - the last byte of metadata before any tensor data."""
     if len(buf) < 24:
         raise Incomplete
     if buf[:4] != MAGIC:
         raise NotGGUF(f"starts with {buf[:4]!r}, not {MAGIC!r}")
-    version, _tensors, pairs = struct.unpack_from("<IQQ", buf, 4)
+    version, tensors, pairs = struct.unpack_from("<IQQ", buf, 4)
     if version < 2:
         raise NotGGUF(f"GGUF version {version}: only 2 and later carry 64-bit counts")
     reader = _Reader(buf, 24)
@@ -58,7 +67,24 @@ def parse_header(buf: bytes) -> tuple[dict, int]:
         value = reader.value(reader.u32())
         if value is not None:
             raw[key] = value
-    return keep_fields(raw), reader.offset
+    fields = keep_fields(raw)
+    for _ in range(tensors):
+        name = reader.string()
+        dims = [reader.u64() for _ in range(reader.u32())]
+        reader.u32()  # the tensor's type
+        reader.u64()  # its offset into the data section
+        kind = _key_projection(name)
+        if kind and f"tensor.{kind}" not in fields:
+            fields[f"tensor.{kind}"] = {"layer": int(name.split(".")[1]), "shape": dims}
+    return fields, reader.offset
+
+
+def _key_projection(name: str) -> str | None:
+    """`attn_k` / `attn_qkv` for a layer's key (or fused) projection weight."""
+    parts = name.split(".")
+    if len(parts) == 4 and parts[0] == "blk" and parts[1].isdigit() and parts[3] == "weight":
+        return parts[2] if parts[2] in ("attn_k", "attn_qkv") else None
+    return None
 
 
 def keep_fields(raw: dict) -> dict:
@@ -87,6 +113,9 @@ class _Reader:
 
     def u32(self) -> int:
         return struct.unpack_from("<I", self.buf, self._take(4))[0]
+
+    def u64(self) -> int:
+        return struct.unpack_from("<Q", self.buf, self._take(8))[0]
 
     def string(self) -> str:
         n = struct.unpack_from("<Q", self.buf, self._take(8))[0]

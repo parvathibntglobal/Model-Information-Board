@@ -480,7 +480,9 @@ models:
     # NOT unsloth's: its 2024 file states head size 160 (rope.dimension_count,
     # no key_length) where Nemo's is 128 - an early conversion, and the cache
     # arithmetic would be wrong. bartowski's states key_length 128, names its
-    # base model, and is the same size to the byte (6.96 / 12.13 GiB).
+    # base model, and is the same size to two decimals in GiB (6.96 / 12.13) - 3,680
+    # bytes larger exactly (7,477,208,192 against 7,477,204,512 for Q4_K_M;
+    # docs/measurements/local-model-tensor-check-2026-10-23.out.txt).
     gguf_repo: bartowski/Mistral-Nemo-Instruct-2407-GGUF
     files:
       Q4_K_M:
