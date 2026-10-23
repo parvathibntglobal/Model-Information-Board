@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { health, coveragePage, listModels, adminRuns, blogPosts, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
@@ -18,6 +18,7 @@ import SchedulerPanel from '../components/SchedulerPanel'
 import BlogsPanel from '../components/BlogsPanel'
 import QuizPanel from '../components/QuizPanel'
 import DiscussionsPanel from '../components/DiscussionsPanel'
+import KitePulsePanel from '../kitepulse/KitePulsePanel'
 import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart, IconLayers } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
@@ -339,13 +340,32 @@ const SECTIONS = [
     blurb: 'Account, stack, running commit and every operational cap',
     render: () => <SettingsPanel />,
   },
+  // OTHER PRODUCTS' WEBSITES, managed from this admin. Everything above is the
+  // Model Information Board itself; a project here has its own pages and
+  // keywords and shares none of the evidence pipeline. Kite Pulse is SEO only.
+  //
+  // `href` makes an entry a LINK OUT of the admin rather than a panel in it:
+  // "Kite Pulse" opens that product's site preview (kitepulse/KitePulseSite.jsx).
+  {
+    id: 'kite-pulse-site',
+    group: 'Projects',
+    title: 'Kite Pulse',
+    blurb: 'Open the site: home, solutions, guides, blog',
+    href: '/kite-pulse',
+  },
+  {
+    id: 'kite-pulse',
+    title: 'Kite Pulse SEO',
+    blurb: 'Pages, keywords and AI-answer tracking',
+    render: () => <KitePulsePanel />,
+  },
 ]
 
 // GROUPS WITH NO SECTIONS YET, drawn after the ones above. A group is
 // otherwise only the label on the first section of its run, so an empty one
-// has nowhere to live in SECTIONS. Projects: added 2026-10-21 by anooj as a
-// heading to fill later; it holds nothing and its count says 0.
-const EMPTY_GROUPS = ['Projects']
+// has nowhere to live in SECTIONS. Projects was one (added 2026-10-21 by
+// anooj) until Kite Pulse filled it on 2026-10-22.
+const EMPTY_GROUPS = []
 
 /** `/health` plus whether the database answered. Needs no database itself. */
 function ServicePanel({ hp, cov }) {
@@ -403,7 +423,9 @@ export default function Admin() {
   // section rather than rendering nothing.
   const [params, setParams] = useSearchParams()
   const wanted = params.get('s')
-  const active = SECTIONS.find((x) => x.id === wanted) || SECTIONS[0]
+  // A link entry has nothing to render, so it can never be the active section.
+  const active = SECTIONS.find((x) => x.id === wanted && !x.href) || SECTIONS[0]
+  const navigate = useNavigate()
 
   // A LINK TO A LOW SECTION OPENS WITH ITS NAV ITEM IN VIEW. The nav scrolls
   // inside its own pane, so `?s=settings` would otherwise select an item the
@@ -471,7 +493,7 @@ export default function Admin() {
                   key={sec.id}
                   type="button"
                   aria-current={sec.id === active.id ? 'page' : undefined}
-                  onClick={() => setParams(
+                  onClick={() => sec.href ? navigate(sec.href) : setParams(
                     sec.id === SECTIONS[0].id ? {} : { s: sec.id },
                     // REPLACE, NOT PUSH. Switching panels is not navigation a
                     // reader wants to walk back through — Back should leave the
@@ -482,6 +504,7 @@ export default function Admin() {
                   <span className="t">
                     {sec.title}
                     {sec.wired === false && <span className="adm-nav-tag">not wired</span>}
+                    {sec.href && <span aria-hidden="true"> →</span>}
                     {sec.id === 'blogs' && blogWaiting && blogWaiting.pending + blogWaiting.unstored > 0 && (
                       <span className="adm-nav-count"
                             title={`${blogWaiting.pending} stored draft(s) pending review, ${blogWaiting.unstored} draft file(s) not yet stored`}>

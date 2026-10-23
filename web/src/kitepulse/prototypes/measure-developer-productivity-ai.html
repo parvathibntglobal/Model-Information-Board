@@ -1,0 +1,730 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AI Productivity Measurement Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How to measure developer productivity with AI: test your guess against the research, separate good metrics from vanity ones, and copy a fair test plan.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to measure developer productivity with AI","author":{"@type":"Organization","name":"Kite Pulse team"},"publisher":{"@type":"Organization","name":"Kite Pulse"},"dateModified":"2026-10-22","datePublished":"2026-10-22","mainEntityOfPage":"/blog/measure-developer-productivity-ai"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"How to measure developer productivity with AI","item":"/blog/measure-developer-productivity-ai"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Is using AI coding assistants actually making developers more productive?","acceptedAnswer":{"@type":"Answer","text":"It depends on the work. Controlled studies found large speed-ups on set tasks: 55.8% faster on one small JavaScript task, and about 21% in an enterprise trial at Google. In METR's 2025 study of experienced developers working on their own mature repositories, tasks took 19% longer with AI, and METR's late-2025 follow-up found small benefits of about 4 to 20% that it expects are an underestimate. The reliable answer for your team is your own measurement against a baseline."}},
+{"@type":"Question","name":"Can generative AI improve developer productivity?","acceptedAnswer":{"@type":"Answer","text":"Yes, in some settings. In the published studies, speed-ups were largest on small, self-contained tasks, and absent in METR's 2025 study of experienced developers working in large codebases they already knew well. Whether it improves productivity on your team depends on the kind of work, the tools and how they are used, so measure delivery and quality before and after rollout."}},
+{"@type":"Question","name":"How do I measure software developer productivity?","acceptedAnswer":{"@type":"Answer","text":"Measure four areas at team level: adoption (who uses AI and for what), delivery (lead time and deployment frequency), quality (change failure rate and rework) and experience (where work gets stuck). Compare each against a baseline. Never rank individuals by output counts such as commits or lines of code."}},
+{"@type":"Question","name":"How do I measure developer productivity when AI writes most of the code?","acceptedAnswer":{"@type":"Answer","text":"Stop counting what was produced and measure what reached users and how it held up: lead time for changes, deployment frequency, change failure rate and rework. Add a view of the process inside AI sessions, such as retries of the same fix and approaches that were dropped, because that is where time now goes."}},
+{"@type":"Question","name":"Are commits and pull requests still good productivity metrics with AI?","acceptedAnswer":{"@type":"Answer","text":"Not on their own. AI makes code cheap to produce, so commit and pull request counts rise as soon as a team adopts it, whether or not delivery improves. Use them only as context next to lead time and change failure rate."}},
+{"@type":"Question","name":"Why are we shipping more commits but not delivering faster?","acceptedAnswer":{"@type":"Answer","text":"Commits measure activity, and delivery depends on everything after the commit: review, testing, release and fixing what broke. If AI speeds up writing code but the work queues at review or comes back as rework, commits rise and lead time stays flat. Measure lead time and rework to find where the time goes."}},
+{"@type":"Question","name":"How do I improve developer productivity with AI?","acceptedAnswer":{"@type":"Answer","text":"Start where AI sessions go wrong. Repeated failures, retries of the same fix and abandoned approaches usually point to a broken test setup, missing project context or a task that is too large. Fix those causes once, then check the effect against your baseline with one delivery metric and one quality metric."}},
+{"@type":"Question","name":"Does higher AI usage correlate with higher developer productivity?","acceptedAnswer":{"@type":"Answer","text":"Not reliably. Usage rises with adoption whether or not outcomes improve, and the heaviest users may simply have the largest tasks. Google's 2024 DORA report found that as AI adoption increased, it was accompanied by an estimated 1.5% decrease in delivery throughput and a 7.2% reduction in delivery stability. Compare outcomes against a baseline instead of correlating usage with output."}},
+{"@type":"Question","name":"Can I determine whether AI coding tools help developers complete tasks faster?","acceptedAnswer":{"@type":"Answer","text":"Yes, with a fair test. Roll AI out to half the team first, or compare against a similar team, keep a baseline of at least one release cycle, and compare lead time and a quality metric over the same weeks. A simple before-and-after comparison is weak evidence, because anything else that changed in those weeks looks like an AI effect."}},
+{"@type":"Question","name":"How do I benchmark my team's AI adoption against other teams?","acceptedAnswer":{"@type":"Answer","text":"Benchmark against your own baseline first. Figures from other companies mix different codebases, tools and metric definitions, so a gap may only mean the definitions differ. When comparing teams inside your company, use the same definitions, compare outcomes such as lead time rather than usage, and compare teams, never individuals."}},
+{"@type":"Question","name":"Are AI-generated changes increasing code review time?","acceptedAnswer":{"@type":"Answer","text":"They can, because more code reaches review. Measure it from your git host: time from a pull request opening to its first review and to merge, plus pull request size, compared with your baseline. Git-based engineering analytics tools report this directly."}},
+{"@type":"Question","name":"Is AI usage affecting the quality of our code?","acceptedAnswer":{"@type":"Answer","text":"Look at outcomes: change failure rate, rework soon after merge, escaped bugs and time to restore service, each against your baseline. Google's 2024 DORA report associated rising AI adoption with an estimated 7.2% reduction in delivery stability, so quality is worth tracking from the first week of a rollout."}},
+{"@type":"Question","name":"Are developers spending less time on repetitive coding tasks?","acceptedAnswer":{"@type":"Answer","text":"Find out by classifying the work first: label what time goes to bug fixes, new features, tests and boilerplate, then compare the mix before and after rollout. Without that split, a drop in repetitive work and a drop in all work look the same."}},
+{"@type":"Question","name":"What is tokenmaxxing?","acceptedAnswer":{"@type":"Answer","text":"Tokenmaxxing is using as many AI tokens as possible, usually because token use is tracked or ranked as a sign of productivity. It turns a cost into a target: spend rises whether or not more useful work gets done. Track tokens to manage budgets, not to judge people."}}
+]}
+]}
+</script>
+<style>
+/* Layout: one reading column of numbered steps; each pairs crawlable explanation with one hands-on tool. Same system as /ai-cost-tracking; the sticky bar carries the reader's guess instead of a running total. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+
+/* sticky bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.topbar .brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.topbar .brand span{color:var(--accent)}
+.topbar .mine{margin-left:auto;display:flex;align-items:baseline;gap:8px}
+.topbar .mine b{font-family:var(--mono);font-size:1.1rem;color:var(--accent)}
+.topbar .mine small{color:var(--muted);font-size:.8rem}
+.steps{display:flex;gap:4px;width:100%}
+.steps i{flex:1;height:3px;border-radius:2px;background:var(--line);transition:background .3s}
+.steps i.on{background:var(--accent)}
+.toggle{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+/* hero */
+.hero{padding-block:52px 32px;display:grid;gap:20px}
+.byline{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.answer{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:grid;gap:10px}
+.answer p{font-size:1.08rem}
+.hero .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.hero .meta span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:middle}
+.toc{display:flex;flex-wrap:wrap;gap:8px}
+.toc a{font-size:.85rem;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+/* sections */
+section.step{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.step-head{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.step-no{font-family:var(--mono);font-weight:600;font-size:.85rem;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 9px;margin-top:4px}
+.step-head > div{display:grid;gap:10px;min-width:0}
+.step-head p{color:var(--muted)}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.tool-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
+.tool-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.prose{display:grid;gap:12px}
+.prose ul{margin:0;padding-left:1.2em;max-width:65ch;display:grid;gap:6px}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.kp p + p{margin-top:8px}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+blockquote{margin:0;border-left:3px solid var(--line);padding:4px 0 4px 14px;color:var(--muted);font-size:.95rem;max-width:65ch}
+blockquote cite{display:block;font-style:normal;font-size:.85rem;margin-top:4px}
+
+/* controls */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:600;font-size:.93rem;display:flex;align-items:center;gap:8px;transition:border-color .15s,background .15s}
+.chip .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.chip[aria-pressed="true"] .dot{background:var(--accent)}
+.chip[disabled]{opacity:.45;cursor:not-allowed}
+.field{display:grid;gap:6px}
+.field > label,.field > .lab{font-weight:600;font-size:.95rem;display:flex;justify-content:space-between;gap:12px}
+.field label output{font-family:var(--mono);color:var(--accent);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--bg);padding:8px 14px;cursor:pointer;font-weight:600;font-size:.9rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+
+/* 1 dot plot */
+.guessbox{display:grid;gap:10px}
+.guessval{font-family:var(--mono);font-size:1.8rem;font-weight:600;color:var(--accent);line-height:1.1}
+.plot{display:grid;gap:6px}
+.prow{display:grid;grid-template-columns:minmax(0,230px) 1fr;gap:14px;align-items:center;min-height:32px}
+.prow .name{font-size:.9rem;line-height:1.3}
+.prow .name small{display:block;color:var(--muted);font-size:.78rem}
+.track{position:relative;height:26px;border-radius:6px;background:var(--sunk)}
+.track .zero{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--muted);opacity:.55}
+.dotm{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%}
+.dotm.m{background:var(--ink)}
+.dotm.b{background:var(--surface);border:2.5px solid var(--ink)}
+.dotm.you{background:var(--accent);width:16px;height:16px;box-shadow:0 0 0 3px var(--accent-soft)}
+.dotm.neg{background:var(--bad)}
+.range{position:absolute;top:50%;height:10px;transform:translateY(-50%);border-radius:5px;background:var(--good);opacity:.85}
+.val{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:.75rem;font-weight:600;white-space:nowrap}
+.paxis{display:grid;grid-template-columns:minmax(0,230px) 1fr;gap:14px}
+.paxis .ticks{position:relative;height:30px;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.paxis .ticks span{position:absolute;top:0;transform:translateX(-50%)}
+.paxis .ticks em{position:absolute;bottom:0;font-style:normal;font-family:var(--body);font-size:.78rem}
+.plegend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);align-items:center}
+.plegend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.reveal-note{display:grid;gap:8px;background:var(--sunk);border-radius:10px;padding:14px 16px}
+.textfind{border-top:1px solid var(--line);padding-top:12px}
+.textfind summary{cursor:pointer;font-weight:600;font-size:.95rem}
+.textfind ul{margin:10px 0 0;padding-left:1.2em;display:grid;gap:6px;font-size:.93rem;max-width:70ch}
+
+/* 2 sample team */
+.mini{display:grid;gap:8px;min-width:0}
+.mini h3{font-size:.98rem}
+.cols{display:grid;grid-template-columns:auto 1fr;gap:4px 8px}
+.yax{display:flex;flex-direction:column;justify-content:space-between;font-family:var(--mono);font-size:.68rem;color:var(--muted);height:140px;text-align:right}
+.bars{position:relative;height:140px;display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;border-bottom:1.5px solid var(--muted)}
+.bars .b{position:relative;border-radius:4px 4px 0 0;background:var(--line)}
+.bars .b.after{background:var(--accent)}
+.bars .b span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:.68rem;padding-bottom:2px}
+.bars .roll{position:absolute;top:0;bottom:0;border-left:1.5px dashed var(--cost)}
+.bars .roll em{position:absolute;top:-2px;left:4px;font-size:.7rem;font-style:normal;color:var(--cost);white-space:nowrap;font-weight:600}
+.xlab{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;font-family:var(--mono);font-size:.68rem;color:var(--muted);text-align:center}
+
+/* 3 quiz */
+.qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.q{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px;align-content:start;background:var(--bg)}
+.q h3{font-size:1rem}
+.q .seg button{padding:6px 12px;font-size:.85rem}
+.q.right{border-color:var(--good);background:var(--good-soft)}
+.q.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.q .why{font-size:.9rem}
+.score{font-weight:700}
+
+/* 4 framework */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px}
+.tabs button{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:700;font-size:.93rem}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fw{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px}
+.fw dl{margin:0;display:grid;gap:12px}
+.fw dt{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fw dd{margin:0}
+.fw ul{margin:0;padding-left:1.1em}
+.trap{background:var(--cost-soft);border-radius:10px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.trap b{color:var(--cost);font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+
+/* 5 builder */
+.warns{display:grid;gap:8px}
+.warn{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:.93rem}
+.plan{background:var(--sunk);border-radius:10px;padding:16px 18px;font-size:.93rem;white-space:pre-wrap;font-family:var(--mono);line-height:1.7;overflow-x:auto;max-width:100%;margin:0}
+.copyta{width:100%;min-height:160px;font-family:var(--mono);font-size:.85rem;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:10px}
+
+/* 6 session */
+.sess-sum{display:flex;gap:24px;flex-wrap:wrap}
+.sess-sum div{display:grid;gap:0}
+.sess-sum b{font-family:var(--mono);font-size:1.6rem;font-weight:600;line-height:1.15}
+.sess-sum span{color:var(--muted);font-size:.83rem}
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:0;position:relative}
+.timeline li{display:grid;grid-template-columns:52px 18px 1fr;gap:10px;align-items:start;padding-block:6px;transition:opacity .35s,transform .35s}
+.timeline li.pending{opacity:.12;transform:translateX(6px)}
+.timeline .t{font-family:var(--mono);font-size:.78rem;color:var(--muted);text-align:right;padding-top:2px}
+.timeline .k{width:14px;height:14px;border-radius:50%;margin-top:5px;background:var(--muted);position:relative}
+.timeline li:not(:last-child) .k::after{content:"";position:absolute;left:6px;top:16px;width:2px;height:28px;background:var(--line)}
+.k.ask{background:var(--accent)} .k.edit{background:var(--ink)} .k.fail{background:var(--bad)}
+.k.retry{background:var(--cost)} .k.drop{background:var(--surface);border:2.5px solid var(--bad)}
+.k.pass{background:var(--good)} .k.commit{background:var(--accent);border-radius:3px}
+.timeline .x{font-size:.94rem}
+.timeline .x .pill{margin-left:6px}
+.commitlog{font-family:var(--mono);font-size:.88rem;background:var(--sunk);border-radius:10px;padding:16px;overflow-x:auto}
+.commitlog .h{color:var(--cost)}
+
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.85}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.related a{display:grid;gap:4px;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.related a:hover{border-color:var(--accent)}
+.related a span{color:var(--muted);font-size:.88rem}
+.related a b{color:var(--accent)}
+
+details.faq{border-bottom:1px solid var(--line);padding-block:14px}
+details.faq summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details.faq p{margin-top:8px;color:var(--muted)}
+.sources{margin:0;padding-left:1.2em;display:grid;gap:8px;font-size:.92rem}
+.sources small{color:var(--muted)}
+body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .prow,.paxis{grid-template-columns:1fr;gap:4px}
+  .paxis > div:first-child{display:none}
+  .prow{padding-bottom:6px}
+  .fw{grid-template-columns:1fr}
+  .tool{padding:16px}
+  .step-head{grid-template-columns:1fr;gap:8px}
+  .step-no{justify-self:start}
+  .topbar .brand{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span> · Guides</div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+    <div class="mine"><small>Your guess</small><b id="barGuess" class="num">—</b></div>
+    <div class="steps" id="stepBar" aria-hidden="true"></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Guide · Engineering intelligence</div>
+    <h1>How to measure developer productivity with AI</h1>
+    <div class="byline"><span>By the Kite Pulse team</span><span>Updated 22 October 2026</span><span>11 min read</span></div>
+    <div class="answer">
+      <p><b>Measuring developer productivity with AI means comparing how fast and how well work reaches users, with AI and without it, against a fair baseline.</b> Counting what the AI produced tells you very little. Commits, lines of code and accepted suggestions all rise the moment a team adopts AI, whether or not delivery improves.</p>
+      <p>Use delivery and quality metrics, a comparison group, and a look at the process inside AI sessions, where the time now goes.</p>
+    </div>
+    <div class="meta"><span>6 steps with hands-on tools</span><span>Research linked and dated</span><span>No sign-up</span></div>
+    <nav class="toc" aria-label="Steps">
+      <a href="#guess">1 Guess first</a><a href="#outputs">2 More commits, same speed</a><a href="#metrics">3 Good or vanity metric</a><a href="#framework">4 Four areas</a><a href="#fair-test">5 Design a fair test</a><a href="#sessions">6 Inside AI sessions</a><a href="#tokenmaxxing">Token leaderboards</a><a href="#faq">FAQ</a>
+    </nav>
+    <div class="seo"><b>SEO</b>Title tag on build: "Measure Developer Productivity with AI | Kite Pulse" (51 characters). Meta description (151 characters) is in the head. Main keyword "measure developer productivity with ai" sits in the URL, the title and the H1 (as "How to measure developer productivity with AI", which is also the secondary keyword). "Measuring developer productivity with AI" opens the bolded definition, the block AI assistants and snippets quote. Article, BreadcrumbList and FAQPage JSON-LD are in the head.</div>
+  </header>
+
+  <!-- 1 -->
+  <section class="step" id="guess" data-step>
+    <div class="step-head"><div class="step-no">01</div><div>
+      <h2>AI coding assistant productivity impact: guess first</h2>
+      <p>Is AI increasing developer productivity? Before you read any study, say what you expect. How much faster do AI coding assistants make an experienced developer on real work? Set your guess, then compare it with what researchers predicted and what they measured.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Guess, then reveal</div>
+      <div class="guessbox">
+        <div class="field">
+          <label for="guess">Your guess: change in speed with AI <output id="guessOut" class="num"></output></label>
+          <input type="range" id="guess" min="-30" max="60" step="1" value="25">
+        </div>
+        <div class="row"><button class="btn" type="button" id="revealBtn">Show the research</button><button class="btn ghost" type="button" id="hideBtn" hidden>Guess again</button></div>
+      </div>
+      <div class="plot" id="plot" aria-live="polite"></div>
+      <div class="paxis" aria-hidden="true"><div></div><div class="ticks" id="ticks"></div></div>
+      <div class="plegend" id="plegend" hidden><span><i style="background:var(--ink)"></i>Measured</span><span><i style="border:2.5px solid var(--ink);background:var(--surface)"></i>Predicted or believed</span><span><i style="background:var(--good);border-radius:3px;width:18px;height:8px"></i>Measured range</span><span><i style="background:var(--accent)"></i>Your guess</span></div>
+      <div class="reveal-note" id="revealNote" hidden></div>
+      <details class="textfind">
+        <summary>Read the findings as text</summary>
+        <ul>
+          <li><b>GitHub Copilot lab task, 2023.</b> Developers asked to write an HTTP server in JavaScript "completed the task 55.8% faster" with Copilot. One small task, written from scratch.</li>
+          <li><b>Google enterprise trial, 2024.</b> 96 Google engineers on an enterprise task. The authors' estimate of time saved "stands at about 21%, although our confidence interval is large".</li>
+          <li><b>METR, early 2025.</b> 16 experienced developers on 246 real issues in large open-source repositories they knew well. AI "increases completion time by 19%". Before starting, developers forecast 24% less time; afterwards they estimated 20% less. Economists predicted 39% and ML experts 38%.</li>
+          <li><b>METR follow-up, late 2025 agents.</b> "Small (~4-20%) productivity benefits", which METR expects to be "an underestimate due to selection effects": developers increasingly declined to work without AI.</li>
+        </ul>
+      </details>
+    </div>
+    <p class="muted small">Each study words its result differently: time saved on a task, or a productivity benefit. The chart places each figure as its source states it, on one scale, so that the gap between belief and measurement is visible. It is not a single comparable measure.</p>
+    <div class="seo"><b>SEO</b>H2 carries "ai coding assistant productivity impact"; the first sentence asks "is ai increasing developer productivity". The findings are in a &lt;details&gt; list in the HTML, so crawlers and AI assistants read them without running the game. Every figure is in data/productivity-research.json with its verbatim sentence.</div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="outputs" data-step>
+    <div class="step-head"><div class="step-no">02</div><div>
+      <h2>Why are we shipping more commits but not delivering faster?</h2>
+      <p>Commits measure activity. Delivery depends on everything after the commit: review, testing, release, and fixing what broke. When AI makes writing code cheaper but the work queues at review or comes back as rework, commit counts climb and lead time does not move.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Sample team · six months</div>
+      <div class="grid2">
+        <div class="mini"><h3>Commits per week</h3><div class="cols"><div class="yax" id="yCommits"></div><div class="bars" id="bCommits"></div><div></div><div class="xlab" id="xCommits"></div></div></div>
+        <div class="mini"><h3>Median lead time, days</h3><div class="cols"><div class="yax" id="yLead"></div><div class="bars" id="bLead"></div><div></div><div class="xlab" id="xLead"></div></div></div>
+      </div>
+      <p class="small muted">Example data, not a real team. AI tools were rolled out at the start of month 4 (blue bars).</p>
+    </div>
+    <div class="prose">
+      <p>The pattern also shows up at industry scale. Google's 2024 DORA report found that "as AI adoption increased, it was accompanied by an estimated decrease in delivery throughput by 1.5%, and an estimated reduction in delivery stability by 7.2%". That is a statistical association across survey respondents, not proof about your team. It is a reason to measure delivery itself rather than the activity that feeds it.</p>
+    </div>
+    <div class="seo"><b>SEO</b>The H2 is the AEO question from the sheet, word for word, so an assistant can lift the paragraph under it as the answer. The DORA sentence is quoted verbatim with its source in the list at the end.</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="metrics" data-step>
+    <div class="step-head"><div class="step-no">03</div><div>
+      <h2>AI developer productivity metrics: good metric or vanity metric?</h2>
+      <p>A vanity metric rises when people use AI, whether or not the work gets better. A good metric moves only when something real changes for users or for the team. Sort the eight metrics below, then check your answers.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Quiz · 8 metrics</div>
+      <div class="qgrid" id="quiz"></div>
+      <div class="row"><button class="btn" type="button" id="checkQuiz">Check answers</button><button class="btn ghost" type="button" id="resetQuiz">Reset</button><span id="quizScore" class="score" aria-live="polite"></span></div>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "ai developer productivity metrics" in the H2 and answers "Are commits and pull requests still good productivity metrics with AI?" through the quiz. Each card's reason is in the HTML after "Check answers"; the FAQ repeats the commits answer as plain text.</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step" id="framework" data-step>
+    <div class="step-head"><div class="step-no">04</div><div>
+      <h2>How to measure developer productivity: four areas to cover</h2>
+      <p>No single number answers whether AI is helping. Cover four areas at team level: <b>adoption</b> (who uses AI, and for what), <b>delivery</b> (is work reaching users faster), <b>quality</b> (is it holding up) and <b>experience</b> (how the work feels, and where it gets stuck). Adoption is the input. The other three show the result.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Framework explorer</div>
+      <div class="tabs" role="tablist" id="fwTabs"></div>
+      <div id="fwPanel" role="tabpanel"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "how to measure developer productivity" and the AEO question "how to measure software developer productivity". The four areas are named in the paragraph so the answer reads without the tabs. Delivery metrics link to DORA's own definitions.</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="step" id="fair-test" data-step>
+    <div class="step-head"><div class="step-no">05</div><div>
+      <h2>Design a fair test of AI on your team</h2>
+      <p>You can find out whether AI coding tools help your team complete work faster, but only by comparing like with like. The strongest simple design is a staggered rollout: half the team starts now, half starts later, and you compare the two groups over the same weeks. A before-and-after comparison is weaker, because anything else that changed in those weeks looks like an AI effect.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Test builder · copy the plan</div>
+      <div class="field"><div class="lab" id="qLab">What do you want to find out?</div>
+        <div class="seg" id="qSeg" role="group" aria-labelledby="qLab">
+          <button type="button" data-v="speed" aria-pressed="false">Are we faster?</button>
+          <button type="button" data-v="quality" aria-pressed="false">Is quality holding?</button>
+          <button type="button" data-v="both" aria-pressed="true">Both</button>
+        </div></div>
+      <div class="field"><div class="lab" id="cLab">How will you compare?</div>
+        <div class="seg" id="cSeg" role="group" aria-labelledby="cLab">
+          <button type="button" data-v="staggered" aria-pressed="true">Staggered rollout</button>
+          <button type="button" data-v="matched" aria-pressed="false">Similar team without the change</button>
+          <button type="button" data-v="before" aria-pressed="false">Before and after only</button>
+        </div></div>
+      <div class="grid2">
+        <div class="field"><label for="devs">Developers taking part <output id="devsOut" class="num"></output></label><input type="range" id="devs" min="2" max="120" value="24"></div>
+        <div class="field"><label for="base">Baseline before the change <output id="baseOut" class="num"></output></label><input type="range" id="base" min="2" max="12" value="6"></div>
+        <div class="field"><label for="weeks">Test length <output id="weeksOut" class="num"></output></label><input type="range" id="weeks" min="4" max="16" value="8"></div>
+      </div>
+      <div class="field"><div class="lab" id="mLab">Pick three metrics <span class="muted small" id="mCount"></span></div><div class="chips" id="mChips" role="group" aria-labelledby="mLab"></div></div>
+      <div class="warns" id="warns" aria-live="polite"></div>
+      <pre class="plan" id="planOut"></pre>
+      <div class="row"><button class="btn" type="button" id="copyPlan">Copy plan</button><span id="copyMsg" class="muted small" aria-live="polite"></span></div>
+      <textarea class="copyta" id="planText" readonly hidden aria-label="Plan text"></textarea>
+    </div>
+    <div class="seo"><b>SEO</b>Answers "Can I determine whether AI coding tools help developers complete tasks faster?" and "Are developers completing tasks faster with AI coding assistants?" in the paragraph. The builder's warnings are the method written as rules, so the paragraph stands without them.</div>
+  </section>
+
+  <!-- 6 -->
+  <section class="step" id="sessions" data-step>
+    <div class="step-head"><div class="step-no">06</div><div>
+      <h2>What AI sessions show that commits cannot</h2>
+      <p>When AI writes most of the code, the commit is the last line of a longer story. Inside the session are the questions asked, the fixes the AI retried, and the approaches that were tried and dropped. That is where a team finds out why a task took 40 minutes instead of 10, and what to fix so the next one does not.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">One sample session, two views</div>
+      <div class="seg" id="viewSeg" role="group" aria-label="View">
+        <button type="button" data-v="commit" aria-pressed="false">What the commit log shows</button>
+        <button type="button" data-v="session" aria-pressed="true">What happened in the session</button>
+      </div>
+      <div id="viewCommit" hidden>
+        <div class="commitlog"><span class="h">a41c9e2</span>  Make payment webhook retries idempotent<br><span class="muted">1 file changed, 142 insertions(+), 38 deletions(-)</span></div>
+        <p class="small muted" style="margin-top:10px">One commit. Nothing here says it took three failed test runs and a change of approach.</p>
+      </div>
+      <div id="viewSession" class="prose">
+        <div class="sess-sum" id="sessSum"></div>
+        <ol class="timeline" id="timeline"></ol>
+        <div class="row"><button class="btn ghost" type="button" id="replay">Replay the session</button></div>
+      </div>
+      <p class="small muted">Example session, not real data.</p>
+      <div class="kp"><div class="mark">Kite Pulse</div><div>
+        <p>Kite Pulse reads the session history your AI tools already keep and measures active time, sessions, retries and abandoned approaches from the sessions themselves. It works across Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot, Cline, Roo Code, Kilo Code, OpenCode and Aider.</p>
+        <p>It does not open or upload a project's source files. Secrets are removed on the developer's computer before upload, and data goes only to your team's own server. It describes what happened and never grades a person.</p>
+      </div></div>
+    </div>
+    <div class="seo"><b>SEO</b>Answers "How do I measure developer productivity when AI writes most of the code?" and "how to improve developer productivity with ai" (fix the cause of repeated retries). The Kite Pulse callout is worded from the Product Guide: "Problems it solves" row 1, "Key features" 1 and "Privacy and trust".</div>
+  </section>
+
+  <!-- tokenmaxxing -->
+  <section class="step" id="tokenmaxxing">
+    <h2>Why token usage leaderboards for engineers backfire</h2>
+    <div class="prose">
+      <p><b>Tokenmaxxing is using as many AI tokens as possible, usually because token use is tracked or ranked as a sign of productivity.</b> A leaderboard of tokens per engineer turns a cost into a target. Spend goes up whether or not more useful work gets done, and the people who rank highest may simply have the longest-running agents.</p>
+      <p>Tokens belong in two places: budgets, where they explain what AI costs, and session analysis, where a spike can point at a loop the AI could not get out of. In both, the question is what happened to the work, not who used the most. For the cost side, see <a href="/ai-cost-tracking">how to track AI coding costs across developers, teams and projects</a>. For the people side, see <a href="/blog/tracking-ai-usage-ethically">how to track AI usage ethically</a>.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Carries "token usage leaderboard engineers" in the H2 and the second main keyword "tokenmaxxing" with a bolded definition. Open question in the sheet: whether tokenmaxxing gets its own page (/glossary/tokenmaxxing is proposed). If it does, cut this to two sentences and link there.</div>
+  </section>
+
+  <!-- CTA -->
+  <section class="step">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See the process behind your team's AI work</h3>
+      <p>Kite Pulse shows a team how its software is really being built: who is working on what, how AI tools are used, what they cost, and where work gets stuck. It runs on a server your team controls.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+    <div class="related">
+      <a href="/blog/ai-coding-roi"><b>AI coding ROI</b><span>Is AI worth what it costs? The money side of this question.</span></a>
+      <a href="/blog/developer-experience-metrics"><b>Developer experience metrics</b><span>How the work feels, and how to measure it without a survey every week.</span></a>
+      <a href="/blog/ai-retry-loops"><b>AI retry loops</b><span>Why an assistant retries the same fix, and how to stop it.</span></a>
+      <a href="/engineering-intelligence"><b>Engineering intelligence platforms</b><span>Choosing a platform to measure this for you.</span></a>
+    </div>
+    <div class="seo"><b>SEO</b>Separate jobs, as the Page Map sets them: this page asks "is AI making us faster and better"; /blog/ai-coding-roi asks "is it worth the money"; /blog/developer-experience-metrics covers how the work feels; /engineering-intelligence is which platform to buy.</div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="step" id="faq">
+    <h2>Measuring developer productivity with AI: questions</h2>
+    <div>
+      <details class="faq" open><summary>Is using AI coding assistants actually making developers more productive?</summary><p>It depends on the work. Controlled studies found large speed-ups on set tasks: 55.8% faster on one small JavaScript task, and about 21% in an enterprise trial at Google. In METR's 2025 study of experienced developers working on their own mature repositories, tasks took 19% longer with AI, and METR's late-2025 follow-up found small benefits of about 4 to 20% that it expects are an underestimate. The reliable answer for your team is your own measurement against a baseline.</p></details>
+      <details class="faq"><summary>Can generative AI improve developer productivity?</summary><p>Yes, in some settings. In the published studies, speed-ups were largest on small, self-contained tasks, and absent in METR's 2025 study of experienced developers working in large codebases they already knew well. Whether it improves productivity on your team depends on the kind of work, the tools and how they are used, so measure delivery and quality before and after rollout.</p></details>
+      <details class="faq"><summary>How do I measure software developer productivity?</summary><p>Measure four areas at team level: adoption (who uses AI and for what), delivery (lead time and deployment frequency), quality (change failure rate and rework) and experience (where work gets stuck). Compare each against a baseline. Never rank individuals by output counts such as commits or lines of code.</p></details>
+      <details class="faq"><summary>How do I measure developer productivity when AI writes most of the code?</summary><p>Stop counting what was produced and measure what reached users and how it held up: lead time for changes, deployment frequency, change failure rate and rework. Add a view of the process inside AI sessions, such as retries of the same fix and approaches that were dropped, because that is where time now goes.</p></details>
+      <details class="faq"><summary>Are commits and pull requests still good productivity metrics with AI?</summary><p>Not on their own. AI makes code cheap to produce, so commit and pull request counts rise as soon as a team adopts it, whether or not delivery improves. Use them only as context next to lead time and change failure rate.</p></details>
+      <details class="faq"><summary>Why are we shipping more commits but not delivering faster?</summary><p>Commits measure activity, and delivery depends on everything after the commit: review, testing, release and fixing what broke. If AI speeds up writing code but the work queues at review or comes back as rework, commits rise and lead time stays flat. Measure lead time and rework to find where the time goes.</p></details>
+      <details class="faq"><summary>How do I improve developer productivity with AI?</summary><p>Start where AI sessions go wrong. Repeated failures, retries of the same fix and abandoned approaches usually point to a broken test setup, missing project context or a task that is too large. Fix those causes once, then check the effect against your baseline with one delivery metric and one quality metric.</p></details>
+      <details class="faq"><summary>Does higher AI usage correlate with higher developer productivity?</summary><p>Not reliably. Usage rises with adoption whether or not outcomes improve, and the heaviest users may simply have the largest tasks. Google's 2024 DORA report found that as AI adoption increased, it was accompanied by an estimated 1.5% decrease in delivery throughput and a 7.2% reduction in delivery stability. Compare outcomes against a baseline instead of correlating usage with output.</p></details>
+      <details class="faq"><summary>Can I determine whether AI coding tools help developers complete tasks faster?</summary><p>Yes, with a fair test. Roll AI out to half the team first, or compare against a similar team, keep a baseline of at least one release cycle, and compare lead time and a quality metric over the same weeks. A simple before-and-after comparison is weak evidence, because anything else that changed in those weeks looks like an AI effect.</p></details>
+      <details class="faq"><summary>How do I benchmark my team's AI adoption against other teams?</summary><p>Benchmark against your own baseline first. Figures from other companies mix different codebases, tools and metric definitions, so a gap may only mean the definitions differ. When comparing teams inside your company, use the same definitions, compare outcomes such as lead time rather than usage, and compare teams, never individuals.</p></details>
+      <details class="faq"><summary>Are AI-generated changes increasing code review time?</summary><p>They can, because more code reaches review. Measure it from your git host: time from a pull request opening to its first review and to merge, plus pull request size, compared with your baseline. Git-based engineering analytics tools report this directly.</p></details>
+      <details class="faq"><summary>Is AI usage affecting the quality of our code?</summary><p>Look at outcomes: change failure rate, rework soon after merge, escaped bugs and time to restore service, each against your baseline. Google's 2024 DORA report associated rising AI adoption with an estimated 7.2% reduction in delivery stability, so quality is worth tracking from the first week of a rollout.</p></details>
+      <details class="faq"><summary>Are developers spending less time on repetitive coding tasks?</summary><p>Find out by classifying the work first: label what time goes to bug fixes, new features, tests and boilerplate, then compare the mix before and after rollout. Without that split, a drop in repetitive work and a drop in all work look the same.</p></details>
+      <details class="faq"><summary>What is tokenmaxxing?</summary><p>Tokenmaxxing is using as many AI tokens as possible, usually because token use is tracked or ranked as a sign of productivity. It turns a cost into a target: spend rises whether or not more useful work gets done. Track tokens to manage budgets, not to judge people.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>All 15 FAQ rows mapped to this page are answered. Four near-duplicates are merged: rows 450, 453 and 455 into "Is using AI coding assistants actually making developers more productive?", and 483 into "Does higher AI usage correlate...". FAQPage JSON-LD in the head carries the same text.</div>
+  </section>
+
+  <section class="step" id="sources">
+    <h2>Sources</h2>
+    <ol class="sources">
+      <li><a href="https://arxiv.org/abs/2302.06590" rel="noopener">Peng, Kalliamvakou, Cihon, Demirer. The Impact of AI on Developer Productivity: Evidence from GitHub Copilot (2023)</a> <small>checked 22 Oct 2026</small></li>
+      <li><a href="https://arxiv.org/abs/2410.12944" rel="noopener">Paradis et al. How much does AI impact development speed? An enterprise-based randomized controlled trial (2024)</a> <small>checked 22 Oct 2026</small></li>
+      <li><a href="https://arxiv.org/abs/2507.09089" rel="noopener">Becker, Rush, Barnes, Rein. Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity (METR, 2025)</a> <small>checked 22 Oct 2026</small></li>
+      <li><a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/" rel="noopener">METR. Study summary: early-2025 AI and experienced open-source developers</a> <small>checked 22 Oct 2026</small></li>
+      <li><a href="https://metr.org/blog/2026-02-24-uplift-update/" rel="noopener">METR. We are Changing our Developer Productivity Experiment Design (24 Feb 2026)</a> <small>checked 22 Oct 2026</small></li>
+      <li><a href="https://metr.org/blog/2026-05-19-frontier-risk-report/" rel="noopener">METR. Frontier Risk Report, February to March 2026 (19 May 2026)</a> <small>checked 22 Oct 2026</small></li>
+      <li><a href="https://cloud.google.com/blog/products/devops-sre/announcing-the-2024-dora-report" rel="noopener">Google Cloud. Announcing the 2024 DORA report (23 Oct 2024)</a> <small>checked 22 Oct 2026</small></li>
+      <li><a href="https://dora.dev/" rel="noopener">DORA. Software delivery performance metrics</a> <small>definitions of lead time, deployment frequency, change failure rate and time to restore</small></li>
+    </ol>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/measure-developer-productivity-ai page. The sample team, the sample session and the quiz are examples. Research figures are quoted from the sources listed, checked 22 Oct 2026.</div></footer>
+
+<script>
+(function(){
+  /* RESEARCH: copied from web/src/kitepulse/data/productivity-research.json, checked 2026-10-22.
+     kind m = measured, b = predicted or believed, r = measured range. */
+  const RESEARCH=[
+    {label:'GitHub Copilot lab task',sub:'2023 · one small JavaScript task',v:55.8,kind:'m'},
+    {label:'Google enterprise trial',sub:'2024 · 96 engineers, wide interval',v:21,kind:'m'},
+    {label:'Economists predicted',sub:'METR 2025',v:39,kind:'b'},
+    {label:'ML experts predicted',sub:'METR 2025',v:38,kind:'b'},
+    {label:'Developers expected, before',sub:'METR 2025',v:24,kind:'b'},
+    {label:'Developers believed, after',sub:'METR 2025',v:20,kind:'b'},
+    {label:'Measured on their own repos',sub:'METR 2025 · 16 devs, 246 issues',v:-19,kind:'m'},
+    {label:'Late-2025 agents',sub:'METR follow-up · likely an underestimate',lo:4,hi:20,kind:'r'}
+  ];
+  const AX={min:-30,max:60,ticks:[-30,-15,0,15,30,45,60]};
+
+  /* SAMPLE_TEAM: example data, not a real team. AI rollout at the start of month 4. */
+  const SAMPLE_TEAM={months:['M1','M2','M3','M4','M5','M6'],rollout:3,
+    commits:[38,41,39,56,63,68],lead:[4.2,4.4,4.1,4.3,4.5,4.2]};
+
+  /* SAMPLE_SESSION: example session, not real data. t = minutes from start. */
+  const SAMPLE_SESSION=[
+    {t:0,k:'ask',x:'Asks the AI to add retries to the payment webhook handler'},
+    {t:3,k:'edit',x:'AI edits webhook.ts and adds a retry loop inside the handler'},
+    {t:6,k:'fail',x:'Tests run: 2 fail with a duplicate charge'},
+    {t:9,k:'retry',x:'AI tries a fix: wait before retrying',tag:'retry'},
+    {t:12,k:'fail',x:'Same 2 tests fail'},
+    {t:15,k:'retry',x:'AI tries again: wrap the call in try/catch',tag:'retry'},
+    {t:19,k:'fail',x:'Same 2 tests fail'},
+    {t:22,k:'drop',x:'Developer drops the in-handler retry approach',tag:'abandoned'},
+    {t:25,k:'ask',x:'Asks for an idempotency key on the charge instead'},
+    {t:33,k:'edit',x:'AI adds the key and moves retries to the job queue'},
+    {t:38,k:'pass',x:'All tests pass'},
+    {t:41,k:'commit',x:'Commit: "Make payment webhook retries idempotent"'}
+  ];
+
+  const QUIZ=[
+    {m:'Lines of code written by AI',a:'vanity',why:'Rises the moment anyone uses AI. More code is also more to review and maintain.'},
+    {m:'Suggestion acceptance rate',a:'vanity',why:'Shows a suggestion was kept at that moment, not that it survived review or worked in production.'},
+    {m:'Commits or pull requests per developer',a:'vanity',why:'Easy to raise by splitting work into smaller pieces, and AI makes small changes cheaper still.'},
+    {m:'Tokens used per developer',a:'vanity',why:'Measures spend. Ranking people by it rewards burning tokens, which is tokenmaxxing.'},
+    {m:'Lead time for changes',a:'good',why:'Time from commit to running in production. It moves only when delivery actually speeds up.'},
+    {m:'Change failure rate',a:'good',why:'Share of deployments that cause a failure. It catches speed bought with quality.'},
+    {m:'Rework soon after merge',a:'good',why:'Code rewritten within weeks of merging means work landed before it was right.'},
+    {m:'Developer-reported friction',a:'good',why:'A short, regular question about what slowed people down. Best read next to a delivery metric, because self-reports drift.'}
+  ];
+
+  const FW={
+    adoption:{name:'Adoption',q:'Are people using AI, and for what?',m:['Active users per AI tool','Sessions per week, per team','Share of work done with AI assistance','Which tools, and how many accounts each runs under'],src:'AI tools\' admin consoles, or the session history the tools keep on each machine.',trap:'High adoption says nothing about value. It is the input, not the result. Never rank people by it.'},
+    delivery:{name:'Delivery',q:'Is work reaching users faster?',m:['Lead time for changes','Deployment frequency','Pull request cycle time (open to merge)','Time from ticket start to release'],src:'Git host, CI/CD pipeline and issue tracker. <a href="https://dora.dev/" rel="noopener">DORA</a> defines the first two.',trap:'Compare with a baseline from before the rollout. Watch pull request size too: smaller pieces can look like speed.'},
+    quality:{name:'Quality',q:'Is the work holding up?',m:['Change failure rate','Time to restore service','Rework soon after merge','Bugs found after release'],src:'Incident records, deployment history and bug tracker.',trap:'Speed and stability can move in opposite directions. Google\'s 2024 DORA report associated rising AI adoption with an estimated 7.2% reduction in delivery stability.'},
+    experience:{name:'Experience',q:'How does the work feel, and where does it get stuck?',m:['Reported friction from a short regular survey','Time lost waiting on review, builds or environments','Retries of the same fix and abandoned approaches in AI sessions','Very long sessions'],src:'A short survey, and the AI sessions themselves.',trap:'Self-reports drift. In METR\'s 2025 study, developers believed AI had sped them up by 20% while their tasks took 19% longer.'}
+  };
+
+  const METRICS=[
+    {id:'lead',n:'Lead time for changes',g:'delivery'},
+    {id:'deploy',n:'Deployment frequency',g:'delivery'},
+    {id:'cycle',n:'Pull request cycle time',g:'delivery'},
+    {id:'cfr',n:'Change failure rate',g:'quality'},
+    {id:'rework',n:'Rework soon after merge',g:'quality'},
+    {id:'restore',n:'Time to restore service',g:'quality'},
+    {id:'survey',n:'Reported friction (short survey)',g:'experience'},
+    {id:'retries',n:'Retries and abandoned approaches in AI sessions',g:'experience'}
+  ];
+
+
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fmt=v=>(v>0?'+':v<0?'−':'')+Math.abs(v)+'%';
+  const word=v=>v===0?'no change':v>0?`${v}% faster`:`${-v}% slower`;
+  const pos=v=>((v-AX.min)/(AX.max-AX.min)*100).toFixed(2)+'%';
+
+  /* progress + seo */
+  const stepsEls=[...document.querySelectorAll('[data-step]')];
+  $('stepBar').innerHTML=stepsEls.map(()=>'<i></i>').join('');
+  const pips=[...$('stepBar').children];
+  function onScroll(){const y=innerHeight*.45;stepsEls.forEach((s,i)=>pips[i].classList.toggle('on',s.getBoundingClientRect().top<y));}
+  addEventListener('scroll',onScroll,{passive:true});
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* 1 guess */
+  let guess=25,shown=false;
+  $('ticks').innerHTML=AX.ticks.map(t=>`<span style="left:${pos(t)}">${t===0?'0':fmt(t)}</span>`).join('')+
+    `<em style="left:0">← slower</em><em style="right:0">faster →</em>`;
+  function trackHtml(inner){return `<div class="track"><div class="zero" style="left:${pos(0)}"></div>${inner}</div>`;}
+  function valLabel(v,text){const right=v<40;return `<span class="val" style="${right?'left':'right'}:calc(${right?pos(v):(100-parseFloat(pos(v))).toFixed(2)+'%'} + 12px)">${text}</span>`;}
+  function renderPlot(){
+    $('guessOut').textContent=word(guess);
+    $('barGuess').textContent=fmt(guess);
+    let h=`<div class="prow"><div class="name"><b>Your guess</b><small>experienced developer, real work</small></div>${trackHtml(`<i class="dotm you"style="left:${pos(guess)}"></i>${valLabel(guess,fmt(guess))}`)}</div>`;
+    if(shown){
+      h+=RESEARCH.map(r=>{
+        let inner;
+        if(r.kind==='r') inner=`<i class="range" style="left:${pos(r.lo)};width:calc(${pos(r.hi)} - ${pos(r.lo)})"></i>${valLabel(r.hi,'+'+r.lo+' to +'+r.hi+'%')}`;
+        else inner=`<i class="dotm ${r.kind==='b'?'b':r.v<0?'neg':'m'}" style="left:${pos(r.v)}"></i>${valLabel(r.v,fmt(r.v))}`;
+        return `<div class="prow"><div class="name">${esc(r.label)}<small>${esc(r.sub)}</small></div>${trackHtml(inner)}</div>`;
+      }).join('');
+    }
+    $('plot').innerHTML=h;
+    $('plegend').hidden=!shown;
+    $('revealNote').hidden=!shown;
+    if(shown){
+      const belief=20,measured=-19;
+      const closer=Math.abs(guess-belief)<Math.abs(guess-measured)?'what developers believed afterwards (20% faster)':'what was measured on their own repositories (19% slower)';
+      $('revealNote').innerHTML=`<p><b>Your guess, ${word(guess)}, is closer to ${closer}.</b></p>
+        <p>The gap that matters is between belief and measurement. In METR's 2025 study, developers expected to be 24% faster, still believed they had been 20% faster, and were measured 19% slower. Experts predicted even more. On a small task written from scratch, the Copilot study measured 55.8% faster.</p>
+        <p>The setting decides the result: the size of the task, how well the developer knows the code, and how capable the tools are at the time. METR now calls its 2025 figure out of date, and its late-2025 follow-up found small benefits it expects to be an underestimate. Your team's number is one you have to measure.</p>`;
+    }
+    $('revealBtn').hidden=shown;$('hideBtn').hidden=!shown;
+  }
+  $('guess').addEventListener('input',e=>{guess=+e.target.value;renderPlot();});
+  $('revealBtn').addEventListener('click',()=>{shown=true;renderPlot();$('hideBtn').focus();});
+  $('hideBtn').addEventListener('click',()=>{shown=false;renderPlot();$('guess').focus();});
+
+  /* 2 sample team bars */
+  function bars(id,vals,max,dec){
+    $('y'+id).innerHTML=[max,max/2,0].map(v=>`<span>${dec?v.toFixed(1):v}</span>`).join('');
+    const rollLeft=(SAMPLE_TEAM.rollout/6*100);
+    $('b'+id).innerHTML=vals.map((v,i)=>`<div class="b${i>=SAMPLE_TEAM.rollout?' after':''}" style="height:${(v/max*100).toFixed(1)}%"><span>${dec?v.toFixed(1):v}</span></div>`).join('')+
+      `<div class="roll" style="left:calc(${rollLeft}% - 4px)"><em>AI rollout</em></div>`;
+    $('x'+id).innerHTML=SAMPLE_TEAM.months.map(m=>`<span>${m}</span>`).join('');
+  }
+  bars('Commits',SAMPLE_TEAM.commits,80,false);
+  bars('Lead',SAMPLE_TEAM.lead,6,true);
+
+  /* 3 quiz */
+  const ans={};let checked=false;
+  function renderQuiz(){
+    $('quiz').innerHTML=QUIZ.map((q,i)=>{
+      const a=ans[i],cls=checked&&a?(a===q.a?' right':' wrong'):'';
+      const verdict=checked?`<p class="why"><span class="pill ${q.a==='good'?'good':'bad'}">${q.a==='good'?'Good metric':'Vanity metric'}</span> ${esc(q.why)}</p>`:'';
+      return `<div class="q${cls}"><h3>${esc(q.m)}</h3><div class="seg" role="group" aria-label="${esc(q.m)}">
+        <button type="button" data-i="${i}" data-a="good" aria-pressed="${a==='good'}">Good</button><button type="button" data-i="${i}" data-a="vanity" aria-pressed="${a==='vanity'}">Vanity</button></div>${verdict}</div>`;
+    }).join('');
+  }
+  $('quiz').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;ans[b.dataset.i]=b.dataset.a;
+    if(checked){checked=false;$('quizScore').textContent='';}renderQuiz();
+    const nb=$('quiz').querySelector(`button[data-i="${b.dataset.i}"][data-a="${b.dataset.a}"]`);nb&&nb.focus();});
+  $('checkQuiz').addEventListener('click',()=>{checked=true;renderQuiz();
+    const n=Object.keys(ans).length,right=QUIZ.filter((q,i)=>ans[i]===q.a).length;
+    $('quizScore').textContent=n?`${right} of 8 right${n<8?` (${8-n} not answered)`:''}`:'Showing the answers';});
+  $('resetQuiz').addEventListener('click',()=>{for(const k in ans)delete ans[k];checked=false;$('quizScore').textContent='';renderQuiz();});
+
+  /* 4 framework */
+  let fwKey='delivery';
+  function renderFw(){
+    $('fwTabs').innerHTML=Object.entries(FW).map(([k,f])=>`<button type="button" role="tab" id="tab-${k}" aria-controls="fwPanel" aria-selected="${k===fwKey}" tabindex="${k===fwKey?0:-1}" data-k="${k}">${f.name}</button>`).join('');
+    const f=FW[fwKey];
+    $('fwPanel').setAttribute('aria-labelledby','tab-'+fwKey);
+    $('fwPanel').innerHTML=`<div class="fw"><dl><div><dt>The question</dt><dd><b>${f.q}</b></dd></div>
+      <div><dt>Metrics</dt><dd><ul>${f.m.map(x=>`<li>${x}</li>`).join('')}</ul></dd></div>
+      <div><dt>Where the data comes from</dt><dd>${f.src}</dd></div></dl>
+      <div class="trap"><b>The trap</b><p>${f.trap}</p></div></div>`;
+  }
+  $('fwTabs').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;fwKey=b.dataset.k;renderFw();$('tab-'+fwKey).focus();});
+  $('fwTabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const ks=Object.keys(FW);let i=ks.indexOf(fwKey);
+    i=(i+(e.key==='ArrowRight'?1:-1)+ks.length)%ks.length;fwKey=ks[i];renderFw();$('tab-'+fwKey).focus();});
+
+  /* 5 builder */
+  const T={q:'both',c:'staggered',devs:24,base:6,weeks:8,sel:new Set(['lead','cfr','survey'])};
+  function seg(id,key){$(id).addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b)return;T[key]=b.dataset.v;
+    [...$(id).children].forEach(x=>x.setAttribute('aria-pressed',x===b));renderPlan();});}
+  seg('qSeg','q');seg('cSeg','c');
+  ['devs','base','weeks'].forEach(k=>$(k).addEventListener('input',e=>{T[k]=+e.target.value;renderPlan();}));
+  function renderChips(){
+    $('mChips').innerHTML=METRICS.map(m=>{const on=T.sel.has(m.id);return `<button type="button" class="chip" data-id="${m.id}" aria-pressed="${on}"${!on&&T.sel.size>=3?' disabled':''}><span class="dot"></span>${m.n}</button>`;}).join('');
+    $('mCount').textContent=`${T.sel.size} of 3 picked`;
+  }
+  $('mChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b||b.disabled)return;const id=b.dataset.id;
+    T.sel.has(id)?T.sel.delete(id):T.sel.add(id);renderChips();renderPlan();const nb=$('mChips').querySelector(`[data-id="${id}"]`);nb&&nb.focus();});
+  function renderPlan(){
+    $('devsOut').textContent=T.devs;
+    $('baseOut').textContent=T.base+' weeks';
+    $('weeksOut').textContent=T.weeks+' weeks';
+    const picked=METRICS.filter(m=>T.sel.has(m.id));
+    const has=g=>picked.some(m=>m.g===g);
+    const w=[];
+    if(T.c==='before')w.push(['bad','Weak comparison','Anything else that changed in those weeks, such as a release crunch, holidays or a new hire, will look like an AI effect. Write those events down with their dates, and treat the result as a hint, not a finding.']);
+    const per=T.c==='staggered'?Math.floor(T.devs/2):T.devs;
+    if(T.c!=='before'&&per<8)w.push(['warn','Small groups',`With ${per} ${per===1?'person':'people'} per group, one person's week of leave can move the result. Read it as a direction, not a size.`]);
+    if(T.base<4)w.push(['warn','Short baseline','A baseline of a few weeks may not cover a full release cycle, so normal ups and downs can look like a change.']);
+    if((T.q==='speed'||T.q==='both')&&!has('delivery'))w.push(['warn','No delivery metric','You asked whether the team is faster, but none of your metrics measures delivery. Add lead time or deployment frequency.']);
+    if((T.q==='quality'||T.q==='both')&&!has('quality'))w.push(['warn','No quality metric','Add change failure rate or rework, so speed bought with failures shows up.']);
+    if(T.q==='speed'&&!has('quality'))w.push(['warn','Speed without quality','Even when the question is speed, one quality metric stops a faster but less stable result from reading as a win.']);
+    if(T.sel.size<3)w.push(['warn','Pick three','Three metrics from different areas give a result that one number cannot fake.']);
+    if(!w.length)w.push(['good','Fair test','Same weeks, a comparison group, a baseline and metrics from different areas. A result from this plan is worth acting on.']);
+    $('warns').innerHTML=w.map(([k,t,x])=>`<div class="warn"><span class="pill ${k}">${t}</span><span>${x}</span></div>`).join('');
+    const qtext={speed:'Does AI make our delivery faster?',quality:'Does our quality hold up with AI?',both:'Does AI make our delivery faster without hurting quality?'}[T.q];
+    const design={
+      staggered:`Split the ${T.devs} developers into two similar groups of about ${Math.floor(T.devs/2)} (mix of seniority and kinds of work). Group A starts with AI tools in week 1; group B starts after the test.`,
+      matched:`Pick a similar team that will not change its tools during the test. Your ${T.devs} developers start with AI tools in week 1.`,
+      before:`All ${T.devs} developers start with AI tools in week 1. Compare the test weeks with the baseline weeks.`
+    }[T.c];
+    const lines=[
+      `Question: ${qtext}`,
+      ``,
+      `1. Write the question and the metrics down before you start, so the result cannot pick its own yardstick.`,
+      `2. Design: ${design}`,
+      `3. Baseline: measure ${picked.length?picked.map(m=>m.n.toLowerCase()).join(', '):'your chosen metrics'} for ${T.base} weeks before anything changes.`,
+      `4. Test: run for ${T.weeks} weeks. Record releases, freezes, incidents, leave and re-organisations with their dates.`,
+      `5. Compare ${T.c==='before'?'the test weeks with the baseline':'the two groups over the same weeks'}, metric by metric. Report each with the number of people and weeks behind it.`,
+      `6. Look inside AI sessions where a metric moved the wrong way: repeated retries and abandoned approaches show where time went.`,
+      `7. Decide on the evidence. Do not rank individuals on any of these metrics.`
+    ];
+    $('planOut').textContent=lines.join('\n');
+    $('planText').value='Fair test of AI coding tools\n'+lines.join('\n');
+  }
+  $('copyPlan').addEventListener('click',()=>{const t=$('planText').value;
+    const fallback=()=>{const ta=$('planText');ta.hidden=false;ta.select();$('copyMsg').textContent='Select the text below and copy it.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fallback);}catch(e){fallback();}});
+
+  /* 6 session */
+  const tags={retry:'<span class="pill warn">retry</span>',abandoned:'<span class="pill bad">abandoned</span>'};
+  function renderSession(){
+    const fails=SAMPLE_SESSION.filter(s=>s.k==='fail').length,retries=SAMPLE_SESSION.filter(s=>s.k==='retry').length,drops=SAMPLE_SESSION.filter(s=>s.k==='drop').length;
+    const mins=SAMPLE_SESSION[SAMPLE_SESSION.length-1].t;
+    $('sessSum').innerHTML=[[mins+' min','in the session'],[fails,'failed test runs'],[retries,'retries of a fix'],[drops,'approach dropped'],[1,'commit']]
+      .map(([b,s])=>`<div><b class="num">${b}</b><span>${s}</span></div>`).join('');
+    $('timeline').innerHTML=SAMPLE_SESSION.map(s=>`<li><span class="t">${s.t} min</span><span class="k ${s.k}" aria-hidden="true"></span><span class="x">${esc(s.x)}${s.tag?tags[s.tag]:''}</span></li>`).join('');
+  }
+  let timer=null;
+  function replay(){
+    const items=[...$('timeline').children];
+    clearInterval(timer);
+    if(reduce){items.forEach(li=>li.classList.remove('pending'));return;}
+    items.forEach(li=>li.classList.add('pending'));
+    let i=0;timer=setInterval(()=>{if(i>=items.length){clearInterval(timer);return;}items[i++].classList.remove('pending');},380);
+  }
+  $('replay').addEventListener('click',replay);
+  $('viewSeg').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b)return;
+    [...$('viewSeg').children].forEach(x=>x.setAttribute('aria-pressed',x===b));
+    const s=b.dataset.v==='session';$('viewSession').hidden=!s;$('viewCommit').hidden=s;if(s)replay();});
+
+
+  renderPlot();renderQuiz();renderFw();renderChips();renderPlan();renderSession();onScroll();
+})();
+</script>
+
+</body></html>

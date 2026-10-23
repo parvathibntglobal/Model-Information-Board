@@ -1,0 +1,60 @@
+{
+  "_about": "Developer experience frameworks for the Kite Pulse guides: SPACE, the DevEx framework and DX Core 4. Every dimension and example metric carries the exact wording it was taken from and its source. Read by /blog/developer-experience-metrics (copied into the prototype's FRAMEWORKS and METRICS on the checked date). The two papers were read from their PDFs because the ACM sites refuse automated reads. Frameworks change slowly; re-check yearly, and DX Core 4 whenever DX revises it.",
+  "checked": "2026-10-22",
+  "checked_by": "Kite Pulse team (to be named)",
+  "not_used": [
+    "DX's reported outcomes for DX Core 4 (efficiency gains, engagement): vendor-reported, seen in search results only",
+    "DX Core 4 benchmark values (e.g. diffs per engineer by quartile): vendor benchmarks, not read on a primary page, and the page is not a benchmark"
+  ],
+  "sources": {
+    "space_doi": "https://doi.org/10.1145/3453928",
+    "space_msr": "https://www.microsoft.com/en-us/research/publication/the-space-of-developer-productivity-theres-more-to-it-than-you-think/",
+    "devex": "https://queue.acm.org/detail.cfm?id=3595878",
+    "devex_doi": "https://doi.org/10.1145/3595878",
+    "dx_core4": "https://newsletter.getdx.com/p/introducing-the-dx-core-4"
+  },
+  "space": {
+    "citation": "Forsgren, Storey, Maddila, Zimmermann, Houck, Butler. The SPACE of Developer Productivity. ACM Queue 19(1), 2021; Communications of the ACM 64(6), June 2021.",
+    "dimensions": ["Satisfaction and well-being", "Performance", "Activity", "Communication and collaboration", "Efficiency and flow"],
+    "single_metric": "it cannot be measured by a single metric or activity data alone",
+    "at_least_three": "teams and leaders (and even individuals) should capture several metrics across multiple dimensions of the framework—at least three are recommended",
+    "perceptual": "Another recommendation is that at least one of the metrics include perceptual measures such as survey data.",
+    "activity_warning": "they should never be used in isolation to make decisions about individual or team productivity because of their known limitations",
+    "aggregate": "report only anonymized, aggregate results at the team or group level",
+    "examples": {
+      "Satisfaction and well-being": ["Employee satisfaction", "Developer efficacy. Whether developers have the tools and resources they need to get their work done.", "Burnout. Exhaustion caused by excessive and prolonged workplace stress."],
+      "Performance": ["Quality. Reliability, absence of bugs, ongoing service health.", "Impact. Customer satisfaction, customer adoption and retention, feature usage, cost reduction."],
+      "Activity": ["Design and coding. Volume or count of design documents and specs, work items, pull requests, commits, and code reviews."],
+      "Communication and collaboration": ["Discoverability of documentation and expertise.", "How quickly work is integrated.", "Onboarding time for and experience of new members."],
+      "Efficiency and flow": ["Number of handoffs in a process", "Perceived ability to stay in flow and complete work.", "Interruptions: quantity, timing, how spaced, impact on development work and flow.", "Time measures through a system: total time, value-added time, wait time."]
+    }
+  },
+  "devex": {
+    "citation": "Noda, Storey, Forsgren, Greiler. DevEx: What Actually Drives Productivity. ACM Queue 21(2), March-April 2023.",
+    "definition": "Developer experience encompasses how developers feel about, think about, and value their work.",
+    "dimensions": "Our framework distills developer experience to its three core dimensions: feedback loops, cognitive load, and flow state",
+    "feedback_loops": "the speed and quality of responses to actions performed",
+    "cognitive_load": "Cognitive load encompasses the amount of mental processing required for a developer to perform a task.",
+    "flow_state": "a mental state in which a person performing an activity is fully immersed in a feeling of energized focus, full involvement, and enjoyment",
+    "neither_alone": "A comparative analysis of perceptual measures and workflows is necessary because neither alone can tell the full picture.",
+    "table_1": {
+      "perceptions": {
+        "feedback_loops": ["Satisfaction with automated test speed and output", "Satisfaction with time it takes to validate a local change", "Satisfaction with time it takes to deploy a change to production"],
+        "cognitive_load": ["Perceived complexity of codebase", "Ease of debugging production systems", "Ease of understanding documentation"],
+        "flow_state": ["Perceived ability to focus and avoid interruptions", "Satisfaction with clarity of task or project goals", "Perceived disruptiveness of being on-call"]
+      },
+      "workflows": {
+        "feedback_loops": ["Time it takes to generate CI results", "Code review turnaround time", "Deployment lead time (time it takes to get a change released to production)"],
+        "cognitive_load": ["Time it takes to get answers to technical questions", "Manual steps required to deploy a change", "Frequency of documentation improvements"],
+        "flow_state": ["Number of blocks of time without meetings or interruptions", "Frequency of unplanned tasks or requests", "Frequency of incidents requiring team attention"]
+      },
+      "kpis": ["Overall perceived ease of delivering software", "Employee engagement or satisfaction", "Perceived productivity"]
+    }
+  },
+  "dx_core4": {
+    "citation": "Abi Noda. Introducing the DX Core 4. DX newsletter, 10 December 2024.",
+    "key_metrics": { "Speed": "Diffs per Engineer (or PRs per Engineer)", "Effectiveness": "Developer Experience Index (DXI)", "Quality": "Change Failure Rate", "Impact": "Percentage of Time Spent on New Capabilities" },
+    "dxi": "an aggregated score from 14 standardized Likert-scale survey items",
+    "diffs_warning": "It is critical that this metric is never used at the individual level or tied to performance evaluations."
+  }
+}

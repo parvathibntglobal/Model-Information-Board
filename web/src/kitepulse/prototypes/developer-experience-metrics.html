@@ -1,0 +1,629 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Developer Experience Metrics Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Developer experience metrics compared: SPACE, DevEx and DX Core 4, a filterable library of 37 metrics, a scorecard builder, and what AI sessions show.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Developer experience metrics: what to measure in the AI era","author":{"@type":"Organization","name":"Kite Pulse team"},"publisher":{"@type":"Organization","name":"Kite Pulse"},"datePublished":"2026-10-22","dateModified":"2026-10-22","mainEntityOfPage":"/blog/developer-experience-metrics"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Developer experience metrics","item":"/blog/developer-experience-metrics"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What are developer experience metrics?","acceptedAnswer":{"@type":"Answer","text":"Developer experience metrics measure how developers feel about, think about and value their work, and the friction they meet while doing it. They combine survey answers (perceptions) with data from engineering systems (workflows), across dimensions such as feedback loops, cognitive load and flow state."}},
+{"@type":"Question","name":"What is the difference between developer experience and developer productivity?","acceptedAnswer":{"@type":"Answer","text":"Developer productivity is about what gets delivered and how well. Developer experience is about what the work is like for the people doing it. The two are linked: the SPACE framework counts satisfaction and well-being as one of its five dimensions of productivity, and its authors note that productivity and satisfaction are correlated."}},
+{"@type":"Question","name":"How do you measure developer experience?","acceptedAnswer":{"@type":"Answer","text":"Pick metrics from at least three dimensions and include at least one perceptual measure such as a survey question, as the SPACE framework recommends. Pair each perception with a workflow measure from your systems, record a baseline, report results only at team level, and work on the weakest area first."}},
+{"@type":"Question","name":"Can you measure developer experience without surveys?","acceptedAnswer":{"@type":"Answer","text":"Partly. System data and AI coding sessions show friction directly: slow CI, long waits for review, repeated failing commands, retries and abandoned approaches. They cannot tell you how developers feel about their work, which is what developer experience is, so keep a short survey and use session data to explain and check what it says."}},
+{"@type":"Question","name":"What is the SPACE framework?","acceptedAnswer":{"@type":"Answer","text":"SPACE is a framework for developer productivity published in 2021 by Nicole Forsgren, Margaret-Anne Storey and colleagues. Its five dimensions are satisfaction and well-being, performance, activity, communication and collaboration, and efficiency and flow. It recommends capturing metrics from at least three dimensions, including at least one perceptual measure."}},
+{"@type":"Question","name":"What is the DevEx framework?","acceptedAnswer":{"@type":"Answer","text":"The DevEx framework, published in 2023 by Abi Noda, Margaret-Anne Storey, Nicole Forsgren and Michaela Greiler, reduces developer experience to three dimensions: feedback loops, cognitive load and flow state. It measures each through developers' perceptions and through workflow data, and says neither alone can tell the full picture."}},
+{"@type":"Question","name":"What is DX Core 4?","acceptedAnswer":{"@type":"Answer","text":"DX Core 4 is a framework from the company DX, introduced in December 2024. It has four dimensions with one key metric each: speed (diffs per engineer), effectiveness (the Developer Experience Index), quality (change failure rate) and impact (percentage of time spent on new capabilities). DX states that diffs per engineer must never be used at the individual level or tied to performance evaluations."}},
+{"@type":"Question","name":"What is the Developer Experience Index (DXI)?","acceptedAnswer":{"@type":"Answer","text":"The Developer Experience Index is the effectiveness measure in DX Core 4. DX describes it as an aggregated score from 14 standardized Likert-scale survey items, so it is a survey measure."}},
+{"@type":"Question","name":"Should developer experience metrics be used in performance reviews?","acceptedAnswer":{"@type":"Answer","text":"No. The SPACE authors recommend reporting only anonymised, aggregate results at team or group level, and DX says diffs per engineer must never be tied to performance evaluations. Developer experience metrics exist to find and remove friction, and people stop answering surveys honestly once their answers can count against them."}},
+{"@type":"Question","name":"How do AI coding assistants change developer experience metrics?","acceptedAnswer":{"@type":"Answer","text":"They move some friction into the AI session: a fix the assistant retries without success, a failing command it runs again and again, an approach dropped halfway. These show up in session history weeks before they show up in a survey. Add session signals to your workflow measures, and keep asking developers how the work feels."}}
+]}
+]}
+</script>
+<style>
+/* Layout: one reading column of numbered steps; a metric library feeds a scorecard the reader builds, and the sticky bar counts the scorecard. Same system as the other Kite Pulse guides. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --fl:#2747D6; --cl:#8A3FB8; --fs:#0E7C93;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19;
+  --fl:#8299FF; --cl:#C38BEA; --fs:#4FC3DA; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19;
+  --fl:#8299FF; --cl:#C38BEA; --fs:#4FC3DA; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --fl:#2747D6; --cl:#8A3FB8; --fs:#0E7C93; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.topbar .brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.topbar .brand span{color:var(--accent)}
+.topbar .mine{margin-left:auto;display:flex;align-items:baseline;gap:8px;text-decoration:none;color:inherit}
+.topbar .mine b{font-family:var(--mono);font-size:1.1rem;color:var(--accent)}
+.topbar .mine small{color:var(--muted);font-size:.8rem}
+.steps{display:flex;gap:4px;width:100%}
+.steps i{flex:1;height:3px;border-radius:2px;background:var(--line);transition:background .3s}
+.steps i.on{background:var(--accent)}
+.toggle{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:20px}
+.byline{display:flex;gap:6px 18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.answer{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:grid;gap:10px}
+.answer p{font-size:1.08rem}
+.terms{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:0}
+.terms div{border-left:3px solid var(--line);padding:2px 0 2px 12px}
+.terms dt{font-weight:700;font-size:.95rem}
+.terms dd{margin:0;font-size:.9rem;color:var(--muted)}
+.terms .fl{border-color:var(--fl)} .terms .cl{border-color:var(--cl)} .terms .fs{border-color:var(--fs)}
+.hero .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.hero .meta span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:middle}
+.toc{display:flex;flex-wrap:wrap;gap:8px}
+.toc a{font-size:.85rem;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+section.step{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.step-head{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.step-no{font-family:var(--mono);font-weight:600;font-size:.85rem;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 9px;margin-top:4px}
+.step-head > div{display:grid;gap:10px;min-width:0}
+.step-head p{color:var(--muted)}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.tool-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
+.tool-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.prose{display:grid;gap:12px}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .kpmark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.kp p + p{margin-top:8px}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--bg);padding:8px 14px;cursor:pointer;font-weight:600;font-size:.9rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.sm{padding:5px 12px;font-size:.85rem;border-radius:8px}
+.btn.added{background:var(--accent-soft);color:var(--accent);border:1.5px solid var(--accent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.src-survey{background:var(--cost-soft);color:var(--cost)}
+.pill.src-system{background:var(--sunk);color:var(--ink)}
+.pill.src-ai{background:var(--accent-soft);color:var(--accent)}
+.field{display:grid;gap:6px;min-width:0}
+.field label{font-weight:600;font-size:.9rem}
+select{border:1.5px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--bg);width:100%}
+
+/* 1 frameworks */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px}
+.tabs button{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:700;font-size:.93rem}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fwmeta{display:grid;gap:6px}
+.fwmeta .cite{font-size:.88rem;color:var(--muted)}
+.dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.dim{border:1.5px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:8px;align-content:start;background:var(--bg)}
+.dim h3{font-size:1rem}
+.dim ul{margin:0;padding-left:1.1em;font-size:.88rem;color:var(--muted);display:grid;gap:3px}
+.lean{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.lean div{background:var(--sunk);border-radius:10px;padding:12px 14px;display:grid;gap:4px;font-size:.92rem}
+.lean b{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* 2 library */
+.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.lib{display:grid;gap:8px;max-height:620px;overflow-y:auto;padding-right:4px}
+.met{display:grid;grid-template-columns:4px 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 12px 10px 0;background:var(--bg);overflow:hidden}
+.met .bar{align-self:stretch;border-radius:0 3px 3px 0;background:var(--line)}
+.met .body{display:grid;gap:3px;min-width:0}
+.met .body b{font-size:.96rem}
+.met .body span{font-size:.85rem;color:var(--muted)}
+.met .tags{display:flex;gap:6px;flex-wrap:wrap}
+.d-fl .bar{background:var(--fl)} .d-cl .bar{background:var(--cl)} .d-fs .bar{background:var(--fs)}
+.d-sat .bar{background:var(--good)} .d-dq .bar{background:var(--bad)} .d-cc .bar{background:var(--cost)} .d-kpi .bar{background:var(--ink)}
+.libcount{font-size:.88rem;color:var(--muted)}
+
+/* 3 scorecard */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td .x{border:0;background:none;cursor:pointer;color:var(--muted);font-size:1.1rem;line-height:1;padding:2px 6px;border-radius:6px}
+td .x:hover{color:var(--bad)}
+.warns{display:grid;gap:8px}
+.warn{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;font-size:.93rem}
+.cover{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.88rem;color:var(--muted)}
+.copyta{width:100%;min-height:160px;font-family:var(--mono);font-size:.85rem;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:10px}
+
+/* 4 session */
+.sess-sum{display:flex;gap:24px;flex-wrap:wrap}
+.sess-sum div{display:grid}
+.sess-sum b{font-family:var(--mono);font-size:1.6rem;font-weight:600;line-height:1.15}
+.sess-sum span{color:var(--muted);font-size:.83rem}
+.timeline{list-style:none;margin:0;padding:0;display:grid}
+.timeline li{display:grid;grid-template-columns:52px 18px 1fr;gap:10px;align-items:start;padding-block:6px;transition:opacity .35s,transform .35s}
+.timeline li.pending{opacity:.12;transform:translateX(6px)}
+.timeline .t{font-family:var(--mono);font-size:.78rem;color:var(--muted);text-align:right;padding-top:2px}
+.timeline .k{width:14px;height:14px;border-radius:50%;margin-top:5px;background:var(--muted)}
+.k.ask{background:var(--accent)} .k.edit{background:var(--ink)} .k.fail{background:var(--bad)}
+.k.retry{background:var(--cost)} .k.drop{background:var(--surface);border:2.5px solid var(--bad)}
+.k.pass{background:var(--good)} .k.commit{background:var(--accent);border-radius:3px}
+.timeline .x{font-size:.94rem}
+.timeline .x .pill{margin-left:6px}
+.pill.fl{background:var(--accent-soft);color:var(--fl)} .pill.cl{background:var(--sunk);color:var(--cl)} .pill.fs{background:var(--sunk);color:var(--fs)}
+
+/* 5 pulse */
+.qs{display:grid;gap:14px}
+.qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px}
+.qrow p{font-size:.96rem}
+.qrow .seg button{padding:6px 11px;font-family:var(--mono);font-size:.85rem}
+.scale{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)}
+.pbars{display:grid;gap:10px}
+.pbar{display:grid;grid-template-columns:130px 1fr 46px;gap:12px;align-items:center}
+.pbar .track{position:relative;height:18px;background:var(--sunk);border-radius:5px;overflow:hidden}
+.pbar .track span{position:absolute;left:0;top:0;bottom:0;border-radius:5px;transition:width .3s}
+.pbar .v{font-family:var(--mono);text-align:right;font-size:.9rem}
+.paxis{display:grid;grid-template-columns:130px 1fr 46px;gap:12px;font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+.paxis .ticks{display:flex;justify-content:space-between}
+.pres{display:grid;gap:10px;background:var(--sunk);border-radius:10px;padding:14px 16px}
+
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.85}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.related a{display:grid;gap:4px;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.related a:hover{border-color:var(--accent)}
+.related a span{color:var(--muted);font-size:.88rem}
+.related a b{color:var(--accent)}
+details.faq{border-bottom:1px solid var(--line);padding-block:14px}
+details.faq summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details.faq p{margin-top:8px;color:var(--muted)}
+.sources{margin:0;padding-left:1.2em;display:grid;gap:8px;font-size:.92rem}
+.sources small{color:var(--muted)}
+body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .tool{padding:16px}
+  .step-head{grid-template-columns:1fr;gap:8px}
+  .step-no{justify-self:start}
+  .topbar .brand{display:none}
+  .filters{grid-template-columns:1fr}
+  .met{grid-template-columns:4px 1fr;}
+  .met .btn{grid-column:2;justify-self:start}
+  .qrow{grid-template-columns:1fr}
+  .pbar,.paxis{grid-template-columns:96px 1fr 40px;gap:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span> · Guides</div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+    <a class="mine" href="#scorecard"><small>Your scorecard</small><b id="barCount" class="num">0</b><small>metrics</small></a>
+    <div class="steps" id="stepBar" aria-hidden="true"></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Guide · Developer experience</div>
+    <h1>Developer experience metrics: what to measure in the AI era</h1>
+    <div class="byline"><span>By the Kite Pulse team</span><span>Updated 22 October 2026</span><span>12 min read</span></div>
+    <div class="answer">
+      <p><b>Developer experience metrics measure how developers feel about, think about and value their work, and the friction they meet while doing it.</b> Good sets combine survey answers about how work feels with data from the systems developers use, across feedback loops, cognitive load and flow.</p>
+      <p>Surveys stay essential for how the work feels. AI coding sessions now add a third source: retries, failing commands and abandoned approaches show friction directly, between survey rounds.</p>
+    </div>
+    <dl class="terms">
+      <div class="fl"><dt>Feedback loops</dt><dd>The speed and quality of responses to actions a developer performs: builds, tests, reviews.</dd></div>
+      <div class="cl"><dt>Cognitive load</dt><dd>The amount of mental processing a developer needs to perform a task.</dd></div>
+      <div class="fs"><dt>Flow state</dt><dd>Fully immersed, energised focus on the work, without interruptions.</dd></div>
+      <div><dt>Perceptual measure</dt><dd>What developers report, usually in a survey: attitudes, feelings, opinions.</dd></div>
+      <div><dt>Workflow measure</dt><dd>What systems record: CI time, review turnaround, deployment lead time.</dd></div>
+      <div><dt>Developer Experience Index (DXI)</dt><dd>DX's score from 14 standard survey items, used in DX Core 4.</dd></div>
+    </dl>
+    <div class="meta"><span>5 steps with hands-on tools</span><span>37 metrics, sourced</span><span>No sign-up</span></div>
+    <nav class="toc" aria-label="Steps">
+      <a href="#frameworks">1 Three frameworks</a><a href="#library">2 Metric library</a><a href="#scorecard">3 Your scorecard</a><a href="#without-surveys">4 What AI sessions show</a><a href="#pulse">5 Team pulse check</a><a href="#faq">FAQ</a>
+    </nav>
+    <div class="seo"><b>SEO</b>Title tag on build: "Developer Experience Metrics for the AI Era | Kite Pulse" (56 characters). Meta description (150 characters) is in the head. Main keyword "developer experience metrics" in the URL, title, H1 and the opening of the bolded definition. The definitions list competes with the mstone.ai glossary result: each term has a one-line, quotable answer. Definitions are from the DevEx paper (2023), paraphrased; the DXI line is from DX.</div>
+  </header>
+
+  <!-- 1 -->
+  <section class="step" id="frameworks" data-step>
+    <div class="step-head"><div class="step-no">01</div><div>
+      <h2>Three developer experience frameworks compared: SPACE, DevEx and DX Core 4</h2>
+      <p>Most teams start from one of three published frameworks. <b>SPACE</b> (2021) names five dimensions of productivity and asks you to measure at least three. The <b>DevEx framework</b> (2023) narrows developer experience to feedback loops, cognitive load and flow state. <b>DX Core 4</b> (2024) picks one headline metric for each of four dimensions. Two of the three lean on surveys for the parts that matter most.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Framework explorer</div>
+      <div class="tabs" role="tablist" id="fwTabs"></div>
+      <div id="fwPanel" role="tabpanel" class="prose"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Every dimension and example metric is quoted or closely paraphrased from the papers and DX's own announcement (data/devex-frameworks.json). DX Core 4 is DX's framework; DX ranks #1 for this keyword, so the page says so and links /compare/dx rather than pretending to neutrality.</div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="library" data-step>
+    <div class="step-head"><div class="step-no">02</div><div>
+      <h2>Developer experience metric library</h2>
+      <p>Thirty-seven metrics, each tagged with the dimension it measures, where the data comes from (a survey, your systems, or AI coding sessions), and the rough effort to start collecting it. Where a framework names the metric, the tag says which. Filter the list, then add the ones you want to your scorecard.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Filter · add to scorecard</div>
+      <div class="filters">
+        <div class="field"><label for="fDim">Dimension</label><select id="fDim"></select></div>
+        <div class="field"><label for="fSrc">Data source</label><select id="fSrc"><option value="">All sources</option><option value="survey">Survey</option><option value="system">Systems (CI, git, deploys, calendar)</option><option value="ai">AI coding sessions</option></select></div>
+        <div class="field"><label for="fEff">Effort to start</label><select id="fEff"><option value="">Any effort</option><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select></div>
+      </div>
+      <div class="libcount" id="libCount" aria-live="polite"></div>
+      <div class="lib" id="lib"></div>
+      <p class="small muted">Effort is our estimate and assumes you already run a short, regular survey. Without one, every survey metric starts at medium.</p>
+    </div>
+    <div class="seo"><b>SEO</b>The library is rendered from one METRICS object; DevEx-tagged rows are Table 1 of the DevEx paper, word for word. A crawler-readable version: the scorecard table below renders the selected metrics as HTML, and the six defaults are listed in its paragraph.</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="scorecard" data-step>
+    <div class="step-head"><div class="step-no">03</div><div>
+      <h2>Build your DevEx scorecard</h2>
+      <p>A scorecard is the short list of metrics a team reviews on a fixed rhythm. Keep it to five to eight. Cover at least three dimensions and include at least one perceptual measure, as the SPACE authors recommend, and pair survey questions with a system or session measure of the same thing. Set targets as a direction from your own baseline, not a number borrowed from someone else. The starting set below covers review turnaround, test speed, focus, documentation, failure loops and change failure rate.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Your scorecard</div>
+      <div class="cover" id="cover"></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Metric</th><th>How to measure</th><th>How often</th><th>Aim</th><th><span class="sr" hidden>Remove</span></th></tr></thead>
+        <tbody id="scBody"></tbody>
+      </table></div>
+      <div class="warns" id="scWarns" aria-live="polite"></div>
+      <div class="row"><button class="btn" type="button" id="copySc">Copy scorecard</button><a class="btn ghost" href="#library" style="text-decoration:none">Add more from the library</a><span id="copyMsg" class="muted small" aria-live="polite"></span></div>
+      <textarea class="copyta" id="scText" readonly hidden aria-label="Scorecard text"></textarea>
+    </div>
+    <div class="seo"><b>SEO</b>The "practical framework a team can use" that made the inDriver handbook rank: the reader leaves with their own copyable set. The rules in the paragraph (3 dimensions, 1 perceptual) are SPACE's, quoted in the data file.</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step" id="without-surveys" data-step>
+    <div class="step-head"><div class="step-no">04</div><div>
+      <h2>Measure developer experience without surveys: what AI sessions show</h2>
+      <p>When much of the work happens in conversation with an AI coding assistant, a lot of friction leaves a record. A test command that fails five times, a fix the assistant retries, an approach dropped after twenty minutes: each is a feedback loop, a load or a broken flow you can see the same day. What sessions cannot tell you is how the work feels, so treat them as a complement to a short survey, not a replacement.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">One sample session · tagged by dimension</div>
+      <div class="sess-sum" id="sessSum"></div>
+      <ol class="timeline" id="timeline"></ol>
+      <div class="row"><button class="btn ghost" type="button" id="replay">Replay the session</button><span class="small muted">Example session, not real data.</span></div>
+      <p class="small">A survey might catch this as a lower score on "satisfaction with time it takes to validate a local change", next round. The session shows it today, and shows the cause: nobody had written down how to start the test database.</p>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>Session signal</th><th>What it may point to</th><th>Dimension (our reading)</th></tr></thead>
+      <tbody>
+        <tr><td>The same command fails again and again</td><td>A broken setup or slow, unclear test output</td><td><span class="pill fl">Feedback loops</span></td></tr>
+        <tr><td>The assistant retries one fix several times</td><td>Feedback the tool cannot act on, or missing context</td><td><span class="pill fl">Feedback loops</span></td></tr>
+        <tr><td>An approach is tried and dropped</td><td>Unclear code, task or conventions</td><td><span class="pill cl">Cognitive load</span></td></tr>
+        <tr><td>The developer asks how something works</td><td>Missing or hard-to-find documentation</td><td><span class="pill cl">Cognitive load</span></td></tr>
+        <tr><td>Very long sessions with little progress</td><td>Someone stuck, and possibly needing help</td><td><span class="pill fs">Flow state</span></td></tr>
+        <tr><td>Many short bursts in a day</td><td>Interruptions or fragmented work</td><td><span class="pill fs">Flow state</span></td></tr>
+      </tbody>
+    </table></div>
+    <p class="small muted">The dimension column is our mapping of each signal to the DevEx framework. The framework's authors did not define these signals; treat them as leads to check with the team.</p>
+    <div class="kp"><div class="kpmark">Kite Pulse</div><div>
+      <p>Kite Pulse sees developer experience directly in retries, failures and long sessions, with no survey. Its Error &amp; Command Stats page shows failing commands, repeated failure loops and the most common error types across the team. It reads the session history your AI tools already keep, across ten tools including Claude Code, Cursor and GitHub Copilot.</p>
+      <p>When there is too little data, an insight says "not enough data" rather than guessing. It describes what happened and never grades a person.</p>
+    </div></div>
+    <div class="seo"><b>SEO</b>Secondary keyword "measure developer experience without surveys" is the H2. The answer is honest (partly), matching the DevEx paper's point that perceptions and workflows are both needed. Callout wording is from the Product Guide: the glossary row "Developer experience (DevEx, DX)", "Key features" 3 (Error &amp; Command Stats) and "Safeguards for developers".</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="step" id="pulse" data-step>
+    <div class="step-head"><div class="step-no">05</div><div>
+      <h2>Team pulse check: six questions</h2>
+      <p>Six statements, two for each DevEx dimension, taken from the perceptual examples in the DevEx paper. Answer for yourself, or use them to open a team retrospective. This is a self-check to decide where to start measuring. It is not a benchmark, and the result compares you with nobody.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Self-check · example answers filled in</div>
+      <div class="qs" id="qs"></div>
+      <div class="pbars" id="pbars"></div>
+      <div class="paxis" aria-hidden="true"><div></div><div class="ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div><div></div></div>
+      <div class="pres" id="pres" aria-live="polite"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Labelled as a self-check, as the brief asks. Each statement rephrases one DevEx Table 1 perception item into a first-person agree/disagree line.</div>
+  </section>
+
+  <section class="step">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See where your team's work gets stuck</h3>
+      <p>Kite Pulse shows a team how its software is really being built, now that much of that work happens in conversation with AI coding assistants. It does this without surveys, timesheets or extra steps for developers.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+    <div class="related">
+      <a href="/blog/measure-developer-productivity-ai"><b>Measuring AI's effect on productivity</b><span>Is AI making the team faster and better? A fair test you can copy.</span></a>
+      <a href="/blog/ai-retry-loops"><b>AI retry loops</b><span>Why an assistant retries the same fix, and how to stop it.</span></a>
+      <a href="/blog/engineering-burnout-signals"><b>Engineering burnout signals</b><span>Early signs that someone needs a supportive check-in.</span></a>
+      <a href="/compare/dx"><b>Kite Pulse and DX</b><span>Survey-led and session-led measurement, side by side.</span></a>
+    </div>
+  </section>
+
+  <section class="step" id="faq">
+    <h2>Developer experience metrics: questions</h2>
+    <div>
+      <details class="faq" open><summary>What are developer experience metrics?</summary><p>Developer experience metrics measure how developers feel about, think about and value their work, and the friction they meet while doing it. They combine survey answers (perceptions) with data from engineering systems (workflows), across dimensions such as feedback loops, cognitive load and flow state.</p></details>
+      <details class="faq"><summary>What is the difference between developer experience and developer productivity?</summary><p>Developer productivity is about what gets delivered and how well. Developer experience is about what the work is like for the people doing it. The two are linked: the SPACE framework counts satisfaction and well-being as one of its five dimensions of productivity, and its authors note that productivity and satisfaction are correlated.</p></details>
+      <details class="faq"><summary>How do you measure developer experience?</summary><p>Pick metrics from at least three dimensions and include at least one perceptual measure such as a survey question, as the SPACE framework recommends. Pair each perception with a workflow measure from your systems, record a baseline, report results only at team level, and work on the weakest area first.</p></details>
+      <details class="faq"><summary>Can you measure developer experience without surveys?</summary><p>Partly. System data and AI coding sessions show friction directly: slow CI, long waits for review, repeated failing commands, retries and abandoned approaches. They cannot tell you how developers feel about their work, which is what developer experience is, so keep a short survey and use session data to explain and check what it says.</p></details>
+      <details class="faq"><summary>What is the SPACE framework?</summary><p>SPACE is a framework for developer productivity published in 2021 by Nicole Forsgren, Margaret-Anne Storey and colleagues. Its five dimensions are satisfaction and well-being, performance, activity, communication and collaboration, and efficiency and flow. It recommends capturing metrics from at least three dimensions, including at least one perceptual measure.</p></details>
+      <details class="faq"><summary>What is the DevEx framework?</summary><p>The DevEx framework, published in 2023 by Abi Noda, Margaret-Anne Storey, Nicole Forsgren and Michaela Greiler, reduces developer experience to three dimensions: feedback loops, cognitive load and flow state. It measures each through developers' perceptions and through workflow data, and says neither alone can tell the full picture.</p></details>
+      <details class="faq"><summary>What is DX Core 4?</summary><p>DX Core 4 is a framework from the company DX, introduced in December 2024. It has four dimensions with one key metric each: speed (diffs per engineer), effectiveness (the Developer Experience Index), quality (change failure rate) and impact (percentage of time spent on new capabilities). DX states that diffs per engineer must never be used at the individual level or tied to performance evaluations.</p></details>
+      <details class="faq"><summary>What is the Developer Experience Index (DXI)?</summary><p>The Developer Experience Index is the effectiveness measure in DX Core 4. DX describes it as an aggregated score from 14 standardized Likert-scale survey items, so it is a survey measure.</p></details>
+      <details class="faq"><summary>Should developer experience metrics be used in performance reviews?</summary><p>No. The SPACE authors recommend reporting only anonymised, aggregate results at team or group level, and DX says diffs per engineer must never be tied to performance evaluations. Developer experience metrics exist to find and remove friction, and people stop answering surveys honestly once their answers can count against them.</p></details>
+      <details class="faq"><summary>How do AI coding assistants change developer experience metrics?</summary><p>They move some friction into the AI session: a fix the assistant retries without success, a failing command it runs again and again, an approach dropped halfway. These show up in session history weeks before they show up in a survey. Add session signals to your workflow measures, and keep asking developers how the work feels.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The keyword sheet maps no FAQ or AEO rows to this page. These ten questions are ours, written from the brief's angle and common phrasings; check them against "People also ask" before publishing. FAQPage JSON-LD carries the same text.</div>
+  </section>
+
+  <section class="step" id="sources">
+    <h2>Sources</h2>
+    <ol class="sources">
+      <li><a href="https://doi.org/10.1145/3453928" rel="noopener">Forsgren, Storey, Maddila, Zimmermann, Houck, Butler. The SPACE of Developer Productivity. Communications of the ACM 64(6), June 2021</a> <small>read 22 Oct 2026; also in ACM Queue 19(1), 2021 (<a href="https://www.microsoft.com/en-us/research/publication/the-space-of-developer-productivity-theres-more-to-it-than-you-think/" rel="noopener">Microsoft Research page</a>)</small></li>
+      <li><a href="https://queue.acm.org/detail.cfm?id=3595878" rel="noopener">Noda, Storey, Forsgren, Greiler. DevEx: What Actually Drives Productivity. ACM Queue 21(2), March–April 2023</a> <small>read 22 Oct 2026</small></li>
+      <li><a href="https://newsletter.getdx.com/p/introducing-the-dx-core-4" rel="noopener">Abi Noda. Introducing the DX Core 4. DX newsletter, 10 December 2024</a> <small>read 22 Oct 2026</small></li>
+    </ol>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/developer-experience-metrics page. The sample session and the pre-filled pulse-check answers are examples. Effort ratings are our estimates. Framework dimensions and named metrics are from the sources listed, read 22 Oct 2026.</div></footer>
+
+<script>
+(function(){
+  /* FRAMEWORKS: from web/src/kitepulse/data/devex-frameworks.json, read 2026-10-22. */
+  const FRAMEWORKS={
+    space:{name:'SPACE',year:'2021',cite:'Forsgren, Storey, Maddila, Zimmermann, Houck, Butler · ACM Queue and Communications of the ACM, 2021',
+      intro:'Productivity "cannot be measured by a single metric or activity data alone". Capture several metrics across the dimensions: "at least three are recommended", and at least one should be a perceptual measure such as survey data.',
+      dims:[
+        ['Satisfaction and well-being',['Employee satisfaction','Developer efficacy: having the tools and resources needed','Burnout']],
+        ['Performance',['Quality: reliability, absence of bugs, service health','Impact: customer adoption, feature usage, cost reduction']],
+        ['Activity',['Counts of design docs, work items, pull requests, commits, code reviews','Never used alone for decisions about people or teams']],
+        ['Communication and collaboration',['Discoverability of documentation and expertise','How quickly work is integrated','Onboarding time and experience']],
+        ['Efficiency and flow',['Number of handoffs','Perceived ability to stay in flow','Interruptions','Total, value-added and wait time']]
+      ],
+      leans:'A mix. Satisfaction is "often best captured with surveys"; activity and parts of efficiency come from systems.',
+      use:'You want a broad map of productivity and a rule for picking a balanced set.'},
+    devex:{name:'DevEx framework',year:'2023',cite:'Noda, Storey, Forsgren, Greiler · ACM Queue, March–April 2023',
+      intro:'"Developer experience encompasses how developers feel about, think about, and value their work." Three dimensions, each measured through perceptions and workflows: "neither alone can tell the full picture".',
+      dims:[
+        ['Feedback loops',['Satisfaction with automated test speed and output','Time it takes to generate CI results','Code review turnaround time','Deployment lead time']],
+        ['Cognitive load',['Perceived complexity of codebase','Ease of understanding documentation','Time it takes to get answers to technical questions','Manual steps required to deploy a change']],
+        ['Flow state',['Perceived ability to focus and avoid interruptions','Satisfaction with clarity of task or project goals','Blocks of time without meetings or interruptions','Frequency of unplanned tasks or requests']]
+      ],
+      leans:'Half perceptions, half workflows by design, plus overall KPIs such as perceived ease of delivering software.',
+      use:'You want to find and remove day-to-day friction for developers.'},
+    core4:{name:'DX Core 4',year:'2024',cite:'Abi Noda · DX newsletter, 10 December 2024 · from DX, a vendor in this space (see Kite Pulse and DX)',
+      intro:'One key metric for each of four dimensions. DX says of diffs per engineer: "It is critical that this metric is never used at the individual level or tied to performance evaluations."',
+      dims:[
+        ['Speed',['Diffs per engineer (or PRs per engineer)']],
+        ['Effectiveness',['Developer Experience Index (DXI): "an aggregated score from 14 standardized Likert-scale survey items"']],
+        ['Quality',['Change failure rate']],
+        ['Impact',['Percentage of time spent on new capabilities']]
+      ],
+      leans:'Its effectiveness metric, the DXI, is a survey. Speed and quality come from systems.',
+      use:'Leadership wants a small, fixed set of headline numbers.'}
+  };
+
+  /* METRICS: dim fl/cl/fs/sat/dq/cc/kpi · src survey/system/ai · eff low/med/high (our estimate) · fw = framework that names it. */
+  const METRICS=[
+    {id:'ci',n:'Time it takes to generate CI results',d:'fl',s:'system',e:'low',fw:'DevEx',how:'Median CI run time, from your CI provider.',aim:'Lower'},
+    {id:'review',n:'Code review turnaround time',d:'fl',s:'system',e:'low',fw:'DevEx',how:'Time from review request to first review, from your git host.',aim:'Lower'},
+    {id:'deploylt',n:'Deployment lead time',d:'fl',s:'system',e:'med',fw:'DevEx',how:'Time from merge to running in production, from deploy logs.',aim:'Lower'},
+    {id:'ptests',n:'Satisfaction with automated test speed and output',d:'fl',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "Our tests run fast enough and their output tells me what is wrong."',aim:'Higher'},
+    {id:'plocal',n:'Satisfaction with time it takes to validate a local change',d:'fl',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "I can check a local change quickly."',aim:'Higher'},
+    {id:'pdeploy',n:'Satisfaction with time it takes to deploy a change to production',d:'fl',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "Getting a change to production is quick enough."',aim:'Higher'},
+    {id:'aifail',n:'Failing commands and repeated failure loops',d:'fl',s:'ai',e:'low',fw:'',how:'Failed commands, and runs of the same failing command, in AI coding sessions per week.',aim:'Lower'},
+    {id:'airetry',n:'Retries of the same fix',d:'fl',s:'ai',e:'low',fw:'',how:'Sessions where the assistant retried one fix several times before it worked or was dropped.',aim:'Lower'},
+    {id:'answers',n:'Time it takes to get answers to technical questions',d:'cl',s:'system',e:'high',fw:'DevEx',how:'Time from a question in the help channel to its first useful answer.',aim:'Lower'},
+    {id:'manual',n:'Manual steps required to deploy a change',d:'cl',s:'system',e:'med',fw:'DevEx',how:'Count the steps in the deploy runbook that need a person.',aim:'Lower'},
+    {id:'docfreq',n:'Frequency of documentation improvements',d:'cl',s:'system',e:'low',fw:'DevEx',how:'Merged changes that touch documentation, per month.',aim:'Higher'},
+    {id:'pcomplex',n:'Perceived complexity of codebase',d:'cl',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "The code I work in is easy to understand."',aim:'Higher agreement than your baseline'},
+    {id:'pdebug',n:'Ease of debugging production systems',d:'cl',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "I can find the cause of a production problem quickly."',aim:'Higher'},
+    {id:'pdocs',n:'Ease of understanding documentation',d:'cl',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "Documentation answers my questions without asking someone."',aim:'Higher'},
+    {id:'aidrop',n:'Abandoned approaches',d:'cl',s:'ai',e:'low',fw:'',how:'Approaches tried and dropped within AI sessions, per week, with the area of code.',aim:'Lower'},
+    {id:'aiask',n:'"How does this work?" questions to the assistant',d:'cl',s:'ai',e:'med',fw:'',how:'Session questions about project setup or conventions, grouped by topic. Recurring topics are missing documentation.',aim:'Fewer repeats of each topic than your baseline'},
+    {id:'blocks',n:'Number of blocks of time without meetings or interruptions',d:'fs',s:'system',e:'med',fw:'DevEx',how:'From calendars: uninterrupted blocks of a length the team agrees, per person per week, reported for the team.',aim:'Higher'},
+    {id:'unplanned',n:'Frequency of unplanned tasks or requests',d:'fs',s:'system',e:'med',fw:'DevEx',how:'Tickets or requests started without being planned, per sprint.',aim:'Lower'},
+    {id:'incidents',n:'Frequency of incidents requiring team attention',d:'fs',s:'system',e:'low',fw:'DevEx',how:'Incidents the team was paged or pulled in for, per month.',aim:'Lower'},
+    {id:'pfocus',n:'Perceived ability to focus and avoid interruptions',d:'fs',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "I get enough time to focus without interruptions."',aim:'Higher'},
+    {id:'pgoals',n:'Satisfaction with clarity of task or project goals',d:'fs',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "The goals of my tasks are clear."',aim:'Higher'},
+    {id:'poncall',n:'Perceived disruptiveness of being on-call',d:'fs',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5, asked of people on the rota: "Being on-call disrupts my work."',aim:'Lower agreement than your baseline'},
+    {id:'interrupts',n:'Interruptions: quantity and timing',d:'fs',s:'system',e:'high',fw:'SPACE',how:'Pages, chat pings and meetings landing in focus time, sampled for the team.',aim:'Lower'},
+    {id:'ailong',n:'Very long or stuck AI sessions',d:'fs',s:'ai',e:'low',fw:'',how:'Sessions far longer than the team\'s usual, with repeated failures and little progress.',aim:'Lower'},
+    {id:'aiburst',n:'Short bursts of AI work in a day',d:'fs',s:'ai',e:'low',fw:'',how:'Share of sessions under ten minutes, per person per week, reported for the team.',aim:'Lower'},
+    {id:'efficacy',n:'Developer efficacy',d:'sat',s:'survey',e:'low',fw:'SPACE',how:'Survey, 1–5: "I have the tools and resources I need to get my work done."',aim:'Higher'},
+    {id:'burnout',n:'Burnout',d:'sat',s:'survey',e:'med',fw:'SPACE',how:'A validated burnout question set, anonymous and reported for the team only.',aim:'Lower'},
+    {id:'cfr',n:'Change failure rate',d:'dq',s:'system',e:'med',fw:'DX Core 4',how:'Share of deployments that cause a failure needing a fix, from deploy and incident records.',aim:'Lower'},
+    {id:'diffs',n:'Diffs (pull requests) per engineer',d:'dq',s:'system',e:'low',fw:'DX Core 4',how:'Merged pull requests per engineer per week, reported as a team trend only.',aim:'Read as a trend, never per person'},
+    {id:'newcap',n:'Percentage of time spent on new capabilities',d:'dq',s:'system',e:'med',fw:'DX Core 4',how:'Classify work as new capabilities, maintenance or bugs, and take the share of time on the first.',aim:'Higher'},
+    {id:'handoffs',n:'Number of handoffs in a process',d:'dq',s:'system',e:'high',fw:'SPACE',how:'Map one change from idea to production and count the handoffs between people and teams.',aim:'Lower'},
+    {id:'onboard',n:'Onboarding time for new members',d:'cc',s:'system',e:'med',fw:'SPACE',how:'Days from start date to a new member\'s first merged change.',aim:'Lower'},
+    {id:'discover',n:'Discoverability of documentation and expertise',d:'cc',s:'survey',e:'low',fw:'SPACE',how:'Survey, 1–5: "I can find who knows about a system, or the document that explains it."',aim:'Higher'},
+    {id:'kease',n:'Overall perceived ease of delivering software',d:'kpi',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "It is easy to deliver software here."',aim:'Higher'},
+    {id:'keng',n:'Employee engagement or satisfaction',d:'kpi',s:'survey',e:'low',fw:'DevEx',how:'Your regular engagement survey, team results only.',aim:'Higher'},
+    {id:'kprod',n:'Perceived productivity',d:'kpi',s:'survey',e:'low',fw:'DevEx',how:'Survey, 1–5: "I was productive this month."',aim:'Higher'},
+    {id:'dxi',n:'Developer Experience Index (DXI)',d:'kpi',s:'survey',e:'high',fw:'DX Core 4',how:'DX\'s aggregated score from 14 standardized survey items.',aim:'Higher'}
+  ];
+  const DIMS={fl:'Feedback loops',cl:'Cognitive load',fs:'Flow state',sat:'Satisfaction and well-being',dq:'Delivery and quality',cc:'Communication and collaboration',kpi:'Overall (north star)'};
+  const SRC={survey:'Survey',system:'Systems',ai:'AI sessions'};
+  const EFF={low:'Low effort',med:'Medium effort',high:'High effort'};
+  const FREQ={survey:'Each survey round',system:'Weekly, reviewed monthly',ai:'Weekly'};
+  const aimText=m=>/^(Higher|Lower)$/.test(m.aim)?`${m.aim} than your baseline`:m.aim;
+
+  /* SAMPLE_SESSION: example data, not a real session. t = minutes from start. dim tags are our reading. */
+  const SAMPLE_SESSION=[
+    {t:0,k:'ask',x:'Asks the AI to fix a failing date-format test'},
+    {t:2,k:'fail',x:'npm test fails: cannot connect to the test database',dim:'fl'},
+    {t:4,k:'retry',x:'AI runs npm test again',dim:'fl',tag:'retry'},
+    {t:5,k:'fail',x:'Same error',dim:'fl'},
+    {t:7,k:'retry',x:'AI edits the config to point at a local database',dim:'fl',tag:'retry'},
+    {t:9,k:'fail',x:'Same error',dim:'fl'},
+    {t:12,k:'drop',x:'Developer reverts the config change',dim:'cl',tag:'abandoned'},
+    {t:14,k:'ask',x:'Asks: "how do I start the test database here?"',dim:'cl'},
+    {t:18,k:'edit',x:'Finds the command in an old pull request and starts the database',dim:'fs'},
+    {t:21,k:'edit',x:'AI fixes the actual date-format bug'},
+    {t:23,k:'pass',x:'All tests pass'},
+    {t:26,k:'commit',x:'Commit: "Fix date format for en-GB locale"'}
+  ];
+
+  /* PULSE: statements rephrased from DevEx paper Table 1 perceptions. EXAMPLE answers pre-filled. */
+  const PULSE=[
+    {d:'fl',q:'Our automated tests run fast enough, and their output tells me what is wrong.',a:2},
+    {d:'fl',q:'I can check a local change quickly.',a:3},
+    {d:'cl',q:'The code I work in is easy to understand.',a:4},
+    {d:'cl',q:'Documentation answers my questions without asking someone.',a:2},
+    {d:'fs',q:'I get enough time to focus without interruptions.',a:3},
+    {d:'fs',q:'The goals of my tasks are clear.',a:4}
+  ];
+  const START={fl:['plocal','ci','aifail'],cl:['pdocs','answers','aiask'],fs:['pfocus','blocks','ailong']};
+
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const byId=Object.fromEntries(METRICS.map(m=>[m.id,m]));
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const stepsEls=[...document.querySelectorAll('[data-step]')];
+  $('stepBar').innerHTML=stepsEls.map(()=>'<i></i>').join('');
+  const pips=[...$('stepBar').children];
+  function onScroll(){const y=innerHeight*.45;stepsEls.forEach((s,i)=>pips[i].classList.toggle('on',s.getBoundingClientRect().top<y));}
+  addEventListener('scroll',onScroll,{passive:true});
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* 1 frameworks */
+  let fwKey='devex';
+  function renderFw(){
+    $('fwTabs').innerHTML=Object.entries(FRAMEWORKS).map(([k,f])=>`<button type="button" role="tab" id="tab-${k}" aria-controls="fwPanel" aria-selected="${k===fwKey}" tabindex="${k===fwKey?0:-1}" data-k="${k}">${f.name} <span class="muted small">${f.year}</span></button>`).join('');
+    const f=FRAMEWORKS[fwKey];
+    $('fwPanel').setAttribute('aria-labelledby','tab-'+fwKey);
+    $('fwPanel').innerHTML=`<div class="fwmeta"><p>${esc(f.intro)}</p><p class="cite">${esc(f.cite)}</p></div>
+      <div class="dims">${f.dims.map(([n,ex])=>`<div class="dim"><h3>${esc(n)}</h3><ul>${ex.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}</div>
+      <div class="lean"><div><b>Where the data comes from</b><span>${esc(f.leans)}</span></div><div><b>Start here when</b><span>${esc(f.use)}</span></div></div>`;
+  }
+  $('fwTabs').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;fwKey=b.dataset.k;renderFw();$('tab-'+fwKey).focus();});
+  $('fwTabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const ks=Object.keys(FRAMEWORKS);let i=ks.indexOf(fwKey);
+    i=(i+(e.key==='ArrowRight'?1:-1)+ks.length)%ks.length;fwKey=ks[i];renderFw();$('tab-'+fwKey).focus();});
+
+  /* 2 library + 3 scorecard (shared selection) */
+  const sel=['review','ptests','pfocus','pdocs','aifail','cfr'];
+  $('fDim').innerHTML='<option value="">All dimensions</option>'+Object.entries(DIMS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  ['fDim','fSrc','fEff'].forEach(id=>$(id).addEventListener('change',renderLib));
+  function renderLib(){
+    const d=$('fDim').value,s=$('fSrc').value,e=$('fEff').value;
+    const list=METRICS.filter(m=>(!d||m.d===d)&&(!s||m.s===s)&&(!e||m.e===e));
+    $('libCount').textContent=`Showing ${list.length} of ${METRICS.length} metrics`;
+    $('lib').innerHTML=list.length?list.map(m=>{const on=sel.includes(m.id);return `<div class="met d-${m.d}"><span class="bar"></span><div class="body"><b>${esc(m.n)}</b><span>${esc(m.how)}</span>
+      <div class="tags"><span class="pill">${DIMS[m.d]}</span><span class="pill src-${m.s}">${SRC[m.s]}</span><span class="pill">${EFF[m.e]}</span>${m.fw?`<span class="pill">${m.fw}</span>`:''}</div></div>
+      <button type="button" class="btn sm ${on?'added':'ghost'}" data-id="${m.id}" aria-pressed="${on}">${on?'Added':'Add'}</button></div>`;}).join('')
+      :'<p class="muted">No metric matches all three filters. Widen one of them.</p>';
+  }
+  $('lib').addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(!b)return;toggle(b.dataset.id);
+    const nb=$('lib').querySelector(`button[data-id="${b.dataset.id}"]`);nb&&nb.focus();});
+  function toggle(id){const i=sel.indexOf(id);i>=0?sel.splice(i,1):sel.push(id);renderLib();renderSc();}
+
+  function renderSc(){
+    const ms=sel.map(id=>byId[id]);
+    $('barCount').textContent=ms.length;
+    $('scBody').innerHTML=ms.length?ms.map(m=>`<tr><td><b>${esc(m.n)}</b><br><span class="pill src-${m.s}">${SRC[m.s]}</span> <span class="pill">${DIMS[m.d]}</span></td><td>${esc(m.how)}</td><td>${FREQ[m.s]}</td><td>${esc(aimText(m))}</td>
+      <td><button type="button" class="x" data-id="${m.id}" aria-label="Remove ${esc(m.n)}">×</button></td></tr>`).join('')
+      :'<tr><td colspan="5" class="muted">No metrics yet. Add some from the library above.</td></tr>';
+    const dims=[...new Set(ms.map(m=>m.d))].filter(d=>d!=='kpi');
+    const srcs=new Set(ms.map(m=>m.s));
+    $('cover').innerHTML='Covers: '+(dims.length?dims.map(d=>`<span class="pill">${DIMS[d]}</span>`).join(''):'<span>nothing yet</span>')+' · Sources: '+([...srcs].map(s=>`<span class="pill src-${s}">${SRC[s]}</span>`).join('')||'none');
+    const w=[];
+    if(ms.length<5)w.push(['warn','Too few',`${ms.length} metric${ms.length===1?'':'s'}. Five to eight gives a balanced view without a dashboard nobody reads.`]);
+    if(ms.length>8)w.push(['warn','Too many',`${ms.length} metrics. Teams stop reviewing a scorecard this long. Keep the eight you would act on.`]);
+    if(dims.length<3&&ms.length)w.push(['warn','Fewer than three dimensions','SPACE recommends metrics from at least three dimensions, so one improvement cannot hide a loss elsewhere.']);
+    if(ms.length&&!srcs.has('survey'))w.push(['bad','No perceptual measure','Developer experience is how the work feels. Add at least one survey question, as SPACE recommends.']);
+    if(ms.length&&!srcs.has('system')&&!srcs.has('ai'))w.push(['warn','Only surveys','Pair each survey question with a system or session measure of the same thing. The DevEx authors: "neither alone can tell the full picture".']);
+    if(sel.includes('diffs'))w.push(['warn','Diffs per engineer',`DX's own rule for this metric: "It is critical that this metric is never used at the individual level or tied to performance evaluations."`]);
+    if(!w.length)w.push(['good','Balanced','Several dimensions, perceptions and system data together. Record a baseline before you change anything.']);
+    $('scWarns').innerHTML=w.map(([k,t,x])=>`<div class="warn"><span class="pill ${k}">${t}</span><span>${esc(x)}</span></div>`).join('');
+    $('scText').value='Developer experience scorecard\n'+ms.map((m,i)=>`${i+1}. ${m.n} (${DIMS[m.d]}, ${SRC[m.s]})\n   How: ${m.how}\n   How often: ${FREQ[m.s]}\n   Aim: ${aimText(m)}`).join('\n')+
+      '\n\nRules: report team results only, never individuals. Record a baseline first. Review on a fixed rhythm and act on the weakest area.';
+  }
+  $('scBody').addEventListener('click',e=>{const b=e.target.closest('button[data-id]');if(b)toggle(b.dataset.id);});
+  $('copySc').addEventListener('click',()=>{const t=$('scText').value;
+    const fallback=()=>{const ta=$('scText');ta.hidden=false;ta.select();$('copyMsg').textContent='Select the text below and copy it.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fallback);}catch(e){fallback();}});
+
+  /* 4 session */
+  const TAGS={retry:'<span class="pill warn">retry</span>',abandoned:'<span class="pill bad">abandoned</span>'};
+  function renderSession(){
+    const fails=SAMPLE_SESSION.filter(s=>s.k==='fail').length,retries=SAMPLE_SESSION.filter(s=>s.k==='retry').length;
+    const setup=SAMPLE_SESSION.find(s=>s.t===18).t-SAMPLE_SESSION.find(s=>s.k==='fail').t;
+    $('sessSum').innerHTML=[[SAMPLE_SESSION[SAMPLE_SESSION.length-1].t+' min','in the session'],[setup+' min','lost to test setup'],[fails,'failed test runs'],[retries,'retries'],[1,'approach dropped']]
+      .map(([b,s])=>`<div><b class="num">${b}</b><span>${s}</span></div>`).join('');
+    $('timeline').innerHTML=SAMPLE_SESSION.map(s=>`<li><span class="t">${s.t} min</span><span class="k ${s.k}" aria-hidden="true"></span><span class="x">${esc(s.x)}${s.tag?TAGS[s.tag]:''}${s.dim?` <span class="pill ${s.dim}">${DIMS[s.dim]}</span>`:''}</span></li>`).join('');
+  }
+  let timer=null;
+  $('replay').addEventListener('click',()=>{const items=[...$('timeline').children];clearInterval(timer);
+    if(reduce)return;items.forEach(li=>li.classList.add('pending'));let i=0;
+    timer=setInterval(()=>{if(i>=items.length){clearInterval(timer);return;}items[i++].classList.remove('pending');},380);});
+
+  /* 5 pulse */
+  function renderQs(){
+    $('qs').innerHTML=PULSE.map((p,i)=>`<div class="qrow"><p><span class="pill ${p.d}">${DIMS[p.d]}</span> ${esc(p.q)}</p>
+      <div><div class="seg" role="group" aria-label="${esc(p.q)} (1 strongly disagree, 5 strongly agree)">${[1,2,3,4,5].map(v=>`<button type="button" data-i="${i}" data-v="${v}" aria-pressed="${p.a===v}">${v}</button>`).join('')}</div>
+      <div class="scale"><span>disagree</span><span>agree</span></div></div></div>`).join('');
+  }
+  $('qs').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;PULSE[b.dataset.i].a=+b.dataset.v;renderQs();renderPulse();
+    const nb=$('qs').querySelector(`button[data-i="${b.dataset.i}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();});
+  function renderPulse(){
+    const avg=d=>{const xs=PULSE.filter(p=>p.d===d).map(p=>p.a);return xs.reduce((a,b)=>a+b,0)/xs.length;};
+    const ds=['fl','cl','fs'],vals=Object.fromEntries(ds.map(d=>[d,avg(d)]));
+    $('pbars').innerHTML=ds.map(d=>`<div class="pbar"><span class="small"><b>${DIMS[d]}</b></span><div class="track"><span style="width:${((vals[d]-1)/4*100).toFixed(1)}%;background:var(--${d})"></span></div><span class="v">${vals[d].toFixed(1)}</span></div>`).join('');
+    const low=ds.reduce((a,b)=>vals[b]<vals[a]?b:a,ds[0]);
+    const tie=ds.filter(d=>vals[d]===vals[low]).length>1;
+    const start=START[low].map(id=>byId[id]);
+    $('pres').innerHTML=`<p><b>${tie?'Tied lowest; starting with':'Start with'} ${DIMS[low].toLowerCase()} (${vals[low].toFixed(1)} of 5).</b> Measure it three ways: ${start.map(m=>esc(m.n.charAt(0).toLowerCase()+m.n.slice(1))).join('; ')}.</p>
+      <div class="row"><button type="button" class="btn sm" id="addStart">Add these to my scorecard</button><span class="small muted" id="addMsg" aria-live="polite"></span></div>`;
+    $('addStart').addEventListener('click',()=>{let n=0;START[low].forEach(id=>{if(!sel.includes(id)){sel.push(id);n++;}});renderLib();renderSc();
+      $('addMsg').textContent=n?`Added ${n}. Your scorecard has ${sel.length} metrics.`:'Already on your scorecard.';});
+  }
+
+  renderFw();renderLib();renderSc();renderSession();renderQs();renderPulse();onScroll();
+})();
+</script>
+
+</body></html>

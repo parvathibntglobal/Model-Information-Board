@@ -1,0 +1,447 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Shadow AI Coding Tools</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: problem-first solution page; one reading column where each section pairs crawlable text with one hands-on panel. Same tokens as the /ai-cost-tracking prototype so the site reads as one system. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.topnav{display:flex;gap:14px;font-size:.9rem;flex-wrap:wrap}
+.topnav a{color:var(--muted);text-decoration:none}
+.topnav a:hover{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:56px 36px;display:grid;gap:20px}
+.hero .lede{font-size:1.2rem;color:var(--muted)}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.def{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:4px}
+.def b{font-family:var(--display)}
+
+section.block{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.head{display:grid;gap:10px}
+.head p{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 13px;cursor:pointer;font-weight:600;font-size:.92rem;display:flex;align-items:center;gap:8px}
+.chip .box{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--muted);display:grid;place-items:center;font-size:10px;line-height:1}
+.chip[aria-pressed="true"]{border-color:var(--good);background:var(--good-soft)}
+.chip[aria-pressed="true"] .box{background:var(--good);border-color:var(--good);color:var(--surface)}
+.chip[aria-pressed="true"] .box::after{content:"\2713"}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{border-radius:12px;padding:14px 16px;background:var(--sunk);display:grid;gap:2px}
+.tile b{font-family:var(--mono);font-size:1.7rem;line-height:1.1}
+.tile span{font-size:.85rem;color:var(--muted)}
+.tile.bad b{color:var(--bad)} .tile.warn b{color:var(--cost)} .tile.good b{color:var(--good)}
+.split{display:grid;gap:6px}
+.split .bar{height:16px;border-radius:6px;overflow:hidden;display:flex;background:var(--sunk)}
+.split .bar span{height:100%;transition:width .4s ease}
+.split .lg{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);gap:12px;flex-wrap:wrap}
+.split .lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+tr.unapproved td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.acct{font-size:.85rem;color:var(--muted)}
+
+.qs{display:grid;gap:12px;counter-reset:q}
+.q{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.q:last-child{border-bottom:0;padding-bottom:0}
+.q p{font-weight:600;font-size:.97rem}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--bg);padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem;white-space:nowrap}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.meter{display:grid;gap:8px}
+.meter .scale{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--good) 0 33.3%,var(--cost) 33.3% 66.6%,var(--bad) 66.6% 100%);opacity:.9}
+.meter .needle{position:absolute;top:-6px;width:4px;height:26px;border-radius:2px;background:var(--ink);transform:translateX(-50%);transition:left .4s ease;box-shadow:0 0 0 2px var(--surface)}
+.meter .ticks{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);font-family:var(--mono)}
+.verdict{display:grid;gap:8px;border-radius:12px;padding:16px;background:var(--sunk)}
+.verdict h3 .lvl{color:var(--c)}
+.verdict ul{margin:0;padding-left:1.2em;display:grid;gap:4px;max-width:65ch}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
+.field{display:grid;gap:6px}
+.field label{font-weight:600;font-size:.95rem;display:flex;justify-content:space-between;gap:12px}
+.field label output{font-family:var(--mono);color:var(--accent);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=number],select{border:1.5px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--bg);width:100%}
+.big{display:flex;gap:28px;flex-wrap:wrap}
+.big div{display:grid;gap:2px}
+.big b{font-family:var(--mono);font-size:1.8rem;font-weight:600;line-height:1.1}
+.big b.cost{color:var(--cost)}
+.big span{color:var(--muted);font-size:.85rem}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:600;font-size:.95rem}
+.check input{width:18px;height:18px;margin-top:3px;accent-color:var(--accent)}
+
+.policy{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:20px 22px;display:grid;gap:10px;font-size:.95rem}
+.policy h3{font-size:1.15rem}
+.policy .meta{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+.policy ol{margin:0;padding-left:1.3em;display:grid;gap:6px;max-width:68ch}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg)}
+textarea#policyText{width:100%;min-height:180px;border:1.5px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);font-family:var(--mono);font-size:.8rem}
+
+.flow{width:100%;height:auto;display:block}
+.flow text{font-family:var(--body);fill:var(--ink)}
+.flow .lbl{font-size:13px;font-weight:700}
+.flow .sub{font-size:11px;fill:var(--muted)}
+.flow .lane{stroke:var(--line);stroke-width:2;fill:none;stroke-dasharray:4 5}
+.flow .boxs{fill:var(--surface);stroke:var(--ink);stroke-width:1.5}
+.flow .strip{fill:var(--cost-soft);stroke:var(--cost);stroke-width:1.5}
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{margin:0;padding-left:1.2em;display:grid;gap:4px;font-size:.93rem}
+
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .panel{padding:16px}
+  .q{grid-template-columns:1fr}
+  .topnav{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <nav class="topnav" aria-label="Sections"><a href="#actual">Approved vs actual</a><a href="#risk">Risk check</a><a href="#seats">Unused seats</a><a href="#policy">Policy</a><a href="#how">How it works</a></nav>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Shadow AI · Coding tools</div>
+    <h1>Your developers already use AI coding tools you haven't approved</h1>
+    <p class="lede">Find out which AI coding tools and accounts are really in use across your team, including personal accounts, shared logins and seats nobody uses.</p>
+    <div class="def">
+      <b>What is shadow AI in coding?</b>
+      <p>Shadow AI is any AI tool used for work without the organisation knowing or approving it. In software teams it usually means developers using AI coding assistants, agents or CLIs on personal accounts or outside the approved list, so code and data go to tools nobody has reviewed.</p>
+    </div>
+    <div class="hero-row"><a class="btn" href="#actual" style="text-decoration:none">See what a typical team really uses</a></div>
+    <div class="seo"><b>SEO</b>H1 states the problem in buyer language. The definition block answers "what is shadow AI" for featured snippets and AI answers. The keyword "shadow AI coding tools" goes in the title tag and first H2.</div>
+  </header>
+
+  <section class="block" id="actual">
+    <div class="head">
+      <h2>Shadow AI coding tools: approved vs actually used</h2>
+      <p>Most teams approve two or three AI coding tools. Developers try many more: a CLI agent on a personal API key, a free tier of another assistant, a teammate's shared login. Tick the tools your company has approved, and see what a typical 24-person team actually runs.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Your approved list <span class="sample">Sample team</span></div>
+      <div class="chips" id="approvedChips" role="group" aria-label="Approved tools"></div>
+      <div class="tiles" id="tiles"></div>
+      <div class="split" id="split"></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Tool</th><th class="r">People</th><th>Accounts</th><th>Findings</th></tr></thead>
+        <tbody id="toolBody"></tbody>
+      </table></div>
+      <p style="font-size:.88rem;color:var(--muted)">Example data for a fictional team. Kite Pulse shows the same view for your own team from the Tool Accounts page.</p>
+    </div>
+  </section>
+
+  <section class="block" id="risk">
+    <div class="head">
+      <h2>How exposed is your team to shadow AI?</h2>
+      <p>Shadow AI risk comes from three gaps: not knowing which tools are used, not owning the accounts, and not controlling what gets pasted into them. Answer six questions for a quick read on where you stand.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Risk check</div>
+      <div class="qs" id="qs"></div>
+      <div class="meter">
+        <div class="scale"><div class="needle" id="needle"></div></div>
+        <div class="ticks"><span>Low</span><span>Medium</span><span>High</span></div>
+      </div>
+      <div class="verdict" id="verdict" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="block" id="seats">
+    <div class="head">
+      <h2>What unused AI seats cost you</h2>
+      <p>Shadow AI has a mirror image: seats you pay for that nobody uses, because developers moved to another tool. Yearly waste is seats × unused share × price per seat × 12. The defaults are examples, so change them to match your contracts.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Savings calculator</div>
+      <div class="grid2">
+        <div class="field"><label for="seatCount">Paid AI coding seats</label><input type="number" id="seatCount" min="0" value="60"></div>
+        <div class="field"><label for="seatPrice">Average price per seat / month ($)</label><input type="number" id="seatPrice" min="0" step="1" value="25"></div>
+      </div>
+      <div class="field"><label for="unused">Seats with no activity in 30 days <output id="unusedOut" class="num"></output></label><input type="range" id="unused" min="0" max="60" value="15"></div>
+      <div class="big">
+        <div><b class="num" id="idleSeats"></b><span>idle seats</span></div>
+        <div><b class="num cost" id="wasteMonth"></b><span>wasted per month</span></div>
+        <div><b class="num cost" id="wasteYear"></b><span>wasted per year</span></div>
+      </div>
+      <div class="kp"><div class="mark">Kite Pulse</div><p>Tool Accounts shows each account's last activity, so idle seats stand out without a survey. For the full picture of AI spend by person and project, see the <a href="#">AI coding cost tracking guide</a>.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="policy">
+    <div class="head">
+      <h2>Write a shadow AI policy in two minutes</h2>
+      <p>A short policy turns shadow AI into approved AI: it names the allowed tools, says who owns accounts, and gives developers a fast way to ask for new tools. Banning everything pushes usage further out of sight. Pick your rules and copy the result.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Policy builder</div>
+      <div class="grid2">
+        <div class="field"><label for="polCompany">Company name</label><input type="text" id="polCompany" value="Acme Engineering" style="border:1.5px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--bg)"></div>
+        <div class="field"><label for="polPersonal">Personal AI accounts for work</label><select id="polPersonal"><option value="no">Not allowed</option><option value="approval">Allowed with manager approval</option></select></div>
+        <div class="field"><label for="polRequest">How to request a new tool</label><select id="polRequest"><option value="channel">Post in the #ai-tools channel</option><option value="ticket">Open a ticket with IT</option><option value="manager">Ask your engineering manager</option></select></div>
+        <div class="field"><label for="polReview">Review of tools and seats</label><select id="polReview"><option value="monthly">Monthly</option><option value="quarterly" selected>Quarterly</option></select></div>
+      </div>
+      <label class="check" for="polSecrets"><input type="checkbox" id="polSecrets" checked> Never paste secrets, API keys or customer data into AI tools</label>
+      <p style="font-size:.88rem;color:var(--muted)">Approved tools come from your list in the first section.</p>
+      <div class="policy" id="policyDoc"></div>
+      <div class="row"><button class="btn" type="button" id="copyPolicy">Copy policy</button><span id="copyMsg" style="color:var(--muted);font-size:.9rem" aria-live="polite"></span></div>
+      <textarea id="policyText" readonly hidden aria-label="Policy text"></textarea>
+    </div>
+    <div class="seo"><b>SEO</b>Covers the secondary keyword "shadow ai policy". The generated policy is also rendered as plain text on the server, so it is crawlable.</div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="head">
+      <h2>How Kite Pulse finds shadow AI coding tools</h2>
+      <p>A small background program on each developer's computer reads the session history that AI coding tools already keep. It strips out secrets on the device, then sends the sessions to your own Kite Pulse server. Tool Accounts then shows every tool and account in use, how many people use each one, and when each was last active.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">From laptop to Tool Accounts</div>
+      <div class="scroll" style="border:0"><svg class="flow" id="flowSvg" viewBox="0 0 680 230" role="img" aria-label="Sessions from developer laptops pass through secret stripping to your own server, then to the Tool Accounts view"></svg></div>
+      <div class="cansee">
+        <div class="yes"><h3>What it can see</h3><ul>
+          <li>The ten supported AI coding tools: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot, Cline, Roo Code, Kilo Code, OpenCode and Aider</li>
+          <li>Which accounts each tool runs under, including personal and shared ones</li>
+          <li>Who uses each tool, and when it was last active</li>
+        </ul></div>
+        <div class="no"><h3>What it does not see</h3><ul>
+          <li>AI tools used in a web browser, such as a chat website</li>
+          <li>AI coding tools outside the supported ten</li>
+          <li>Computers where the Kite Pulse program is not installed</li>
+        </ul><p style="font-size:.88rem;color:var(--muted)">For browser and network-level AI use, pair Kite Pulse with your security tools.</p></div>
+      </div>
+    </div>
+    <div class="seo"><b>Prototype</b>Keep the "does not see" list. Ranking pages are from security vendors; being clear about scope builds trust and positions Kite Pulse as the coding-specific layer.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Shadow AI questions</h2>
+    <div>
+      <details open><summary>How do I find out which AI tools developers use without approval?</summary><p>Compare your approved list with what is actually running. Vendor admin consoles only show their own tool. A tool that reads AI session history on each developer's computer, like Kite Pulse, shows every supported AI coding tool and account in one place.</p></details>
+      <details><summary>How can I find shared or unused AI tool accounts?</summary><p>Look at how many people use each account and when it was last active. One account used by several people is a shared login. An account with no activity in 30 days is an unused seat.</p></details>
+      <details><summary>What is the risk of shadow AI in software development?</summary><p>Code, secrets and customer data can go to tools nobody has reviewed, under accounts the company does not control. When a developer leaves, their personal account and its history leave with them.</p></details>
+      <details><summary>Should we ban unapproved AI coding tools?</summary><p>Bans tend to push usage out of sight. A short list of approved tools, company-owned accounts and a fast way to request new tools usually works better.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Questions come from the AEO rows mapped to /shadow-ai in the keyword sheet. Mark up with FAQPage schema.</div>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See your team's real AI tool list</h3>
+      <p>Install Kite Pulse on your team's computers and get every AI coding tool, account and idle seat in one view, on your own server.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /shadow-ai solution page. Team data, prices and the company name are examples.</div></footer>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const usd=v=>'$'+Math.round(v).toLocaleString('en-US');
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* 1. approved vs actual (sample team) */
+  const TOOLS=[
+    {id:'claude',name:'Claude Code',people:14,company:12,personal:1,shared:{acct:1,people:3},idle:0,sessions:1240},
+    {id:'copilot',name:'GitHub Copilot',people:13,company:18,personal:0,shared:null,idle:5,sessions:610},
+    {id:'cursor',name:'Cursor',people:9,company:8,personal:1,shared:null,idle:0,sessions:720},
+    {id:'codex',name:'Codex',people:4,company:0,personal:4,shared:null,idle:0,sessions:260},
+    {id:'gemini',name:'Gemini CLI',people:3,company:0,personal:3,shared:null,idle:0,sessions:140},
+    {id:'cline',name:'Cline',people:3,company:0,personal:3,shared:null,idle:0,sessions:180},
+    {id:'aider',name:'Aider',people:2,company:0,personal:2,shared:null,idle:0,sessions:90}
+  ];
+  const approved=new Set(['claude','copilot','cursor']);
+
+  function renderChips(){
+    $('approvedChips').innerHTML=TOOLS.map(t=>`<button type="button" class="chip" data-id="${t.id}" aria-pressed="${approved.has(t.id)}"><span class="box"></span>${t.name}</button>`).join('');
+  }
+  $('approvedChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const id=b.dataset.id;
+    approved.has(id)?approved.delete(id):approved.add(id);renderChips();renderActual();renderPolicy();});
+
+  function renderActual(){
+    let unTools=0,unPeople=0,personal=0,shared=0,idle=0,sA=0,sU=0;
+    const rows=TOOLS.map(t=>{
+      const ok=approved.has(t.id);const p=[];
+      if(!ok){unTools++;unPeople+=t.people;p.push('<span class="pill bad">Not approved</span>');sU+=t.sessions;}else sA+=t.sessions;
+      if(t.personal){personal+=t.personal;p.push(`<span class="pill warn">${t.personal} personal account${t.personal>1?'s':''}</span>`);}
+      if(t.shared){shared+=t.shared.acct;p.push(`<span class="pill warn">Shared login, ${t.shared.people} people</span>`);}
+      if(t.idle){idle+=t.idle;p.push(`<span class="pill">${t.idle} idle seats</span>`);}
+      if(!p.length)p.push('<span class="pill good">No issues</span>');
+      const acc=[t.company?`${t.company} company`:'',t.personal?`${t.personal} personal`:'',t.shared?`${t.shared.acct} shared`:''].filter(Boolean).join(' · ');
+      return `<tr class="${ok?'':'unapproved'}"><td><b>${t.name}</b></td><td class="r num">${t.people}</td><td class="acct">${acc}</td><td><div class="pills">${p.join('')}</div></td></tr>`;
+    });
+    $('toolBody').innerHTML=rows.join('');
+    $('tiles').innerHTML=`
+      <div class="tile"><b>${TOOLS.length}</b><span>AI coding tools in use</span></div>
+      <div class="tile ${unTools?'bad':'good'}"><b>${unTools}</b><span>not on your approved list (${unPeople} users)</span></div>
+      <div class="tile ${personal?'warn':'good'}"><b>${personal}</b><span>personal accounts</span></div>
+      <div class="tile ${shared?'warn':'good'}"><b>${shared}</b><span>shared login${shared===1?'':'s'}</span></div>
+      <div class="tile"><b>${idle}</b><span>idle paid seats</span></div>`;
+    const tot=sA+sU, pu=tot?Math.round(sU/tot*100):0;
+    $('split').innerHTML=`<div class="lg"><span><b>${pu}%</b> of AI coding sessions happen in tools you have not approved</span></div>
+      <div class="bar" role="img" aria-label="${100-pu}% approved, ${pu}% not approved"><span style="width:${100-pu}%;background:var(--good)"></span><span style="width:${pu}%;background:var(--bad)"></span></div>
+      <div class="lg"><span><i style="background:var(--good)"></i>Approved tools · ${sA.toLocaleString('en-US')} sessions</span><span><i style="background:var(--bad)"></i>Not approved · ${sU.toLocaleString('en-US')} sessions</span></div>`;
+  }
+
+  /* 2. risk check */
+  const QS=[
+    {q:'Do you have a written list of approved AI coding tools?',a:'yes',fix:'Write down which AI coding tools are approved. The policy builder below gives you a start.'},
+    {q:'Do you know every AI coding tool used in the last 30 days?',a:'unsure',fix:'Get a real inventory of AI coding tools in use, not only the ones you pay for.'},
+    {q:'Are all AI tool accounts owned by the company?',a:'no',fix:'Move developers from personal accounts to company accounts, so access ends when someone leaves.'},
+    {q:'Does every developer have their own login (no shared accounts)?',a:'unsure',fix:'Split shared logins into personal company seats, so usage and cost can be traced.'},
+    {q:'Do you stop secrets and API keys from being pasted into AI tools?',a:'no',fix:'Add a rule against pasting secrets and use tools that strip them automatically.'},
+    {q:'Do you review AI tool seats at least every quarter?',a:'yes',fix:'Review seats every quarter and remove ones with no activity.'}
+  ];
+  const SC={yes:0,unsure:1,no:2};
+  function renderQs(){
+    $('qs').innerHTML=QS.map((x,i)=>`<div class="q"><p>${x.q}</p><div class="seg" role="group" aria-label="${x.q}">${['yes','unsure','no'].map(v=>`<button type="button" data-i="${i}" data-v="${v}" aria-pressed="${x.a===v}">${v==='unsure'?'Not sure':v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div></div>`).join('');
+  }
+  $('qs').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;QS[b.dataset.i].a=b.dataset.v;renderQs();renderRisk();
+    const nb=$('qs').querySelector(`button[data-i="${b.dataset.i}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();});
+  function renderRisk(){
+    const s=QS.reduce((a,x)=>a+SC[x.a],0),max=QS.length*2,pct=s/max;
+    $('needle').style.left=`${Math.min(98,Math.max(2,pct*100))}%`;
+    const lvl=pct<1/3?['Low','var(--good)']:pct<2/3?['Medium','var(--cost)']:['High','var(--bad)'];
+    const fixes=QS.filter(x=>x.a!=='yes').sort((a,b)=>SC[b.a]-SC[a.a]).map(x=>`<li>${x.fix}</li>`).join('');
+    $('verdict').innerHTML=`<h3>Shadow AI risk: <span class="lvl" style="--c:${lvl[1]}">${lvl[0]}</span> <span class="num" style="font-size:.85rem;color:var(--muted);font-weight:400">(${s} of ${max})</span></h3>
+      ${fixes?`<p style="font-size:.95rem">Start here:</p><ul>${fixes}</ul>`:'<p>You have the basics covered. Keep reviewing tools and seats on a schedule.</p>'}
+      <p style="font-size:.82rem;color:var(--muted)">A quick self-check, not an audit.</p>`;
+  }
+
+  /* 3. seats */
+  function renderSeats(){
+    const seats=Math.max(0,+$('seatCount').value||0),price=Math.max(0,+$('seatPrice').value||0);
+    const r=$('unused');r.max=Math.max(1,seats);if(+r.value>seats)r.value=seats;
+    const idle=+r.value,pct=seats?Math.round(idle/seats*100):0;
+    $('unusedOut').textContent=`${idle} (${pct}%)`;
+    $('idleSeats').textContent=idle;$('wasteMonth').textContent=usd(idle*price);$('wasteYear').textContent=usd(idle*price*12);
+  }
+  ['seatCount','seatPrice','unused'].forEach(id=>$(id).addEventListener('input',renderSeats));
+
+  /* 4. policy */
+  function renderPolicy(){
+    const co=($('polCompany').value||'Your company').trim();
+    const tools=TOOLS.filter(t=>approved.has(t.id)).map(t=>t.name);
+    const req={channel:'post in the #ai-tools channel',ticket:'open a ticket with IT',manager:'ask your engineering manager'}[$('polRequest').value];
+    const items=[
+      tools.length?`Approved AI coding tools: ${tools.join(', ')}. Other AI coding tools need approval before use on company code.`:'No AI coding tools are approved yet. Ask before using any AI coding tool on company code.',
+      $('polPersonal').value==='no'?'Use company accounts only. Personal AI accounts must not be used for company work.':'Use company accounts by default. A personal AI account may be used for company work only with your manager\'s written approval.',
+      'Each person uses their own login. Do not share AI tool accounts.',
+      $('polSecrets').checked?'Never paste secrets, API keys, passwords or customer data into an AI tool.':null,
+      `To request a new AI tool, ${req}. Requests get an answer within five working days.`,
+      `Engineering reviews AI tools, accounts and seats ${$('polReview').value}, and removes seats with no activity in 30 days.`
+    ].filter(Boolean);
+    const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    $('policyDoc').innerHTML=`<h3>${esc(co)} AI coding tools policy</h3><div class="meta">Applies to everyone who writes code for ${esc(co)}</div><ol>${items.map(i=>`<li>${esc(i)}</li>`).join('')}</ol>`;
+    $('policyText').value=`${co} AI coding tools policy\nApplies to everyone who writes code for ${co}\n\n`+items.map((t,i)=>`${i+1}. ${t}`).join('\n');
+  }
+  ['polCompany','polPersonal','polRequest','polReview','polSecrets'].forEach(id=>$(id).addEventListener(id==='polCompany'?'input':'change',renderPolicy));
+  $('copyPolicy').addEventListener('click',()=>{const t=$('policyText').value;
+    const fb=()=>{const ta=$('policyText');ta.hidden=false;ta.select();$('copyMsg').textContent='Copy the text below.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fb);}catch(e){fb();}});
+
+  /* 5. flow diagram */
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let dots=[];
+  function renderFlow(){
+    const devs=[['Priya','Claude Code'],['Marco','Codex · personal'],['Lena','Cursor']];
+    let s='';
+    devs.forEach((d,i)=>{const y=40+i*75;
+      s+=`<rect class="boxs" x="0" y="${y-24}" width="132" height="48" rx="8"/><text class="lbl" x="12" y="${y-3}">${d[0]}'s laptop</text><text class="sub" x="12" y="${y+13}">${d[1]}</text>`;
+      s+=`<path class="lane" id="ln${i}" d="M132 ${y} C 200 ${y}, 200 115, 250 115"/>`;
+      for(let k=0;k<2;k++)s+=`<circle class="d" data-l="${i}" data-o="${(k/2+i*.15)%1}" r="4.5" style="fill:var(--accent)"/>`;
+    });
+    s+=`<rect class="strip" x="250" y="85" width="120" height="60" rx="8"/><text class="lbl" x="262" y="111">Secrets stripped</text><text class="sub" x="262" y="128">on the laptop</text>`;
+    s+=`<path class="lane" id="ln3" d="M370 115 L 430 115"/><circle class="d" data-l="3" data-o="0" r="4.5" style="fill:var(--accent)"/><circle class="d" data-l="3" data-o=".5" r="4.5" style="fill:var(--accent)"/>`;
+    s+=`<rect class="boxs" x="430" y="85" width="100" height="60" rx="8"/><text class="lbl" x="442" y="111">Your server</text><text class="sub" x="442" y="128">self-hosted</text>`;
+    s+=`<path class="lane" id="ln4" d="M530 115 L 560 115"/>`;
+    s+=`<rect x="560" y="45" width="118" height="140" rx="8" style="fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5"/><text class="lbl" x="572" y="70">Tool Accounts</text>
+      <text class="sub" x="572" y="94">Claude Code · 14</text><text class="sub" x="572" y="112" style="fill:var(--bad)">Codex · 4 personal</text><text class="sub" x="572" y="130" style="fill:var(--cost)">1 shared login</text><text class="sub" x="572" y="148">Copilot · 5 idle</text><text class="sub" x="572" y="166">Cursor · 9</text>`;
+    $('flowSvg').innerHTML=s;
+    dots=[...$('flowSvg').querySelectorAll('.d')].map(c=>{const p=$('ln'+c.dataset.l);return{c,p,len:p.getTotalLength(),o:+c.dataset.o};});
+    draw(performance.now());
+  }
+  function draw(t){dots.forEach(d=>{const f=reduce?d.o:((t/3000)+d.o)%1;const pt=d.p.getPointAtLength(f*d.len);d.c.setAttribute('cx',pt.x);d.c.setAttribute('cy',pt.y);});}
+  if(!reduce){(function loop(t){draw(t);requestAnimationFrame(loop);})(performance.now());}
+
+  renderChips();renderActual();renderQs();renderRisk();renderSeats();renderPolicy();renderFlow();
+})();
+</script>
+
+</body></html>

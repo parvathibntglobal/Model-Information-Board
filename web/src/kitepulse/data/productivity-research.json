@@ -1,0 +1,33 @@
+{
+  "_about": "Research figures on AI and developer productivity for the Kite Pulse guides. Every figure carries the exact sentence it was taken from and its source page. Read by /blog/measure-developer-productivity-ai (copied into the prototype's RESEARCH on the checked date) and meant for /blog/ai-coding-roi and /blog/ai-coding-data-report. Each study measures something different (a lab task, an enterprise task, experienced developers' own issues), so a figure is quoted with its setting, never alone. Re-check when METR publishes a new uplift study: its February 2026 post says the 2025 result is out of date.",
+  "checked": "2026-10-22",
+  "checked_by": "Kite Pulse team (to be named)",
+  "not_used": [
+    "METR February 2026 point estimates (-18%, CI -38% to +9%; -4%, CI -15% to +9%): the post does not state which way its 'speedup' sign points, so the page quotes METR's own later wording instead (frontier_risk below)",
+    "Peng et al. sample size: not in the abstract read",
+    "DORA 2024 figures for code quality and review speed: seen only in secondary coverage, not in the primary page read"
+  ],
+  "sources": {
+    "metr_2025_blog": "https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/",
+    "metr_2025_paper": "https://arxiv.org/abs/2507.09089",
+    "metr_2026_update": "https://metr.org/blog/2026-02-24-uplift-update/",
+    "metr_frontier_risk": "https://metr.org/blog/2026-05-19-frontier-risk-report/",
+    "peng_2023": "https://arxiv.org/abs/2302.06590",
+    "google_rct_2024": "https://arxiv.org/abs/2410.12944",
+    "dora_2024": "https://cloud.google.com/blog/products/devops-sre/announcing-the-2024-dora-report"
+  },
+  "facts": {
+    "metr_measured": { "source": "metr_2025_paper", "value": -19, "quote": "Surprisingly, we find that allowing AI actually increases completion time by 19%--AI tooling slowed developers down." },
+    "metr_forecast_before": { "source": "metr_2025_paper", "value": 24, "quote": "Before starting tasks, developers forecast that allowing AI will reduce completion time by 24%." },
+    "metr_believed_after": { "source": "metr_2025_paper", "value": 20, "quote": "After completing the study, developers estimate that allowing AI reduced completion time by 20%." },
+    "metr_experts": { "source": "metr_2025_paper", "values": { "economics": 39, "ml": 38 }, "quote": "This slowdown also contradicts predictions from experts in economics (39% shorter) and ML (38% shorter)." },
+    "metr_sample": { "source": "metr_2025_blog", "quote": "we recruited 16 experienced developers from large open-source repositories", "also": "Developers provide lists of real issues (246 total)" },
+    "metr_scope": { "source": "metr_2025_blog", "quote": "We do not claim that our developers or repositories represent a majority or plurality of software development work" },
+    "metr_2026_unreliable": { "source": "metr_2026_update", "quote": "gives us an unreliable signal of the current productivity effect of AI tools" },
+    "metr_2026_selection": { "source": "metr_2026_update", "quote": "developers choosing not to participate in the study because they do not wish to work without AI" },
+    "frontier_risk": { "source": "metr_frontier_risk", "range": [4, 20], "quote": "METR's latest RCT of open source developers using late 2025 public agents found small (~4-20%) productivity benefits, but we expect this to be an underestimate due to selection effects." },
+    "peng_faster": { "source": "peng_2023", "value": 55.8, "quote": "The treatment group, with access to the AI pair programmer, completed the task 55.8% faster than the control group.", "task": "Recruited software developers were asked to implement an HTTP server in JavaScript as quickly as possible." },
+    "google_faster": { "source": "google_rct_2024", "value": 21, "quote": "stands at about 21%, although our confidence interval is large", "sample": "Our randomized controlled trial with 96 full-time Google software engineers contributes to this literature", "caveat": "we cannot assume that the effect size obtained in our lab study will necessarily apply more broadly" },
+    "dora_delivery": { "source": "dora_2024", "quote": "As AI adoption increased, it was accompanied by an estimated decrease in delivery throughput by 1.5%, and an estimated reduction in delivery stability by 7.2%." }
+  }
+}
