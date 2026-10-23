@@ -503,6 +503,27 @@ def _poll_catalog_stage(context) -> StageResult:
     return StageResult(OK, counts=counts)
 
 
+def _poll_local_models_stage(context) -> StageResult:
+    """The local VRAM tool's measured files (collect/local_models/poll.py). Weekly,
+    selected with `--only poll-local-models`. Nothing downstream needs it: a
+    failure leaves the tool showing last week's sizes, each with its date."""
+    from collect.local_models.poll import LocalModelsContractError, poll_local_models
+
+    starves = "the local VRAM tool keeps last week's sizes"
+    conn = context.get("conn")
+    if conn is None:
+        return StageResult(REFUSED, "no database connection", starves=starves)
+    if context.get("offline"):
+        return StageResult(REFUSED, "offline run: the Hub is not called", starves=starves)
+    if not context.get("client"):
+        return StageResult(REFUSED, "no HTTP client supplied", starves=starves)
+    try:
+        counts = poll_local_models(conn, context["client"], store=context.get("raw_store"))
+    except LocalModelsContractError as e:
+        return StageResult(ERROR, str(e), starves=starves)
+    return StageResult(OK, counts=counts)
+
+
 def _recompute_window_stage(context) -> StageResult:
     """FR-1's trailing window. The sole writer of `model_version.in_window`."""
     from collect.registry.load import recompute_window
@@ -804,6 +825,7 @@ def default_stages() -> list[Stage]:
         Stage("preflight", run=_preflight_stage),
         Stage("poll-registry", run=_poll_registry_stage, needs=("preflight",)),
         Stage("poll-catalog", run=_poll_catalog_stage, needs=("preflight",)),
+        Stage("poll-local-models", run=_poll_local_models_stage, needs=("preflight",)),
         Stage("recompute-window", run=_recompute_window_stage, needs=("preflight",)),
         # BEFORE anything that could produce a claim. An empty `capability`
         # table does not degrade extraction, it refuses every insert at the

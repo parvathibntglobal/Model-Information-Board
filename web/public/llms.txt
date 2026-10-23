@@ -19,6 +19,7 @@ The board reads public posts by engineers about AI models, files each report und
 - [Best AI model picker](/best-ai-model): models engineers reported working for a job or a capability; one job alone is its own page, /best-ai-model/<job>
 - [AI model pricing & specs table](/ai-model-pricing): every model's price per token, context window and features, filterable
 - [LLM cost calculator & token counter](/token-counter): count a prompt's tokens and price it on several models
+- [Can I run it? Local LLM VRAM calculator](/local-llm-vram-calculator): which open models fit a graphics card or Mac at 4-bit or 8-bit, from measured model file sizes
 
 ## Reading
 

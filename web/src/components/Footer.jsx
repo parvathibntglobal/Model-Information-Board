@@ -25,6 +25,7 @@ const TOOLS = [
   { t: 'Best AI model picker', to: '/best-ai-model' },
   { t: 'AI model pricing & specs table', to: '/ai-model-pricing' },
   { t: 'LLM cost calculator', to: '/token-counter' },
+  { t: 'Can I run it? VRAM calculator', to: '/local-llm-vram-calculator' },
   { t: 'AI model comparison', to: '/compare' },
 ]
 

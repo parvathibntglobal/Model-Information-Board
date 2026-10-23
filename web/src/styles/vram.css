@@ -1,0 +1,39 @@
+/* "Can I run it?" - the local VRAM calculator (routes/VramCalculator.jsx). */
+.vr-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--s3);align-items:start}
+.vr-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vr-field select{width:100%;min-width:0;height:36px;padding:0 10px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface-2);color:var(--text);font-size:var(--fs-sm)}
+.vr-seg{display:flex;flex-wrap:wrap;gap:6px}
+.vr-seg button{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;cursor:pointer;
+  border:1px solid var(--border);border-radius:var(--r-pill);background:var(--surface);color:var(--text-2);
+  font-size:var(--fs-sm);transition:border-color .15s var(--ease)}
+.vr-seg button span{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3)}
+.vr-seg button:hover{border-color:var(--border-strong);color:var(--text)}
+.vr-seg button.on{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:600}
+.vr-seg button.on span{color:var(--bg)}
+.vr-budget{grid-column:1/-1;margin:0;font-size:var(--fs-sm)}
+.vr-search{height:38px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--surface);color:var(--text);font-size:var(--fs-sm);width:100%;max-width:420px}
+.vr-group-head{display:flex;flex-direction:column;gap:2px;padding-left:12px;border-left:3px solid var(--border)}
+.vr-group-head h2{font-size:var(--fs-h3);margin:0}
+.vr-group-head h2 .dim{font-size:var(--fs-sm);font-weight:400}
+.vr-group-head p{margin:0;font-size:var(--fs-sm)}
+.vr-fits{border-left-color:var(--pass)}
+.vr-tight{border-left-color:var(--warn)}
+.vr-wont{border-left-color:var(--fail)}
+.vr-unknown{border-left-color:var(--info)}
+.vr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.vr-row{padding:12px 16px;display:grid;grid-template-columns:minmax(160px,1.1fr) minmax(170px,1fr) minmax(220px,1.4fr) minmax(150px,1fr);
+  gap:var(--s3);align-items:start;font-size:var(--fs-sm)}
+.vr-name,.vr-size,.vr-est,.vr-links{display:flex;flex-direction:column;gap:3px;min-width:0}
+.vr-row a{color:var(--text-2);overflow-wrap:anywhere}
+.vr-row a:hover{color:var(--text)}
+.vr-file{font-size:var(--fs-h3);font-weight:600;color:var(--text)}
+.vr-method p{margin:0;font-size:var(--fs-sm);line-height:1.6;max-width:80ch}
+@media (max-width:820px){
+  .vr-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+@media (max-width:520px){
+  .vr-controls{grid-template-columns:minmax(0,1fr)}
+  .vr-row{grid-template-columns:minmax(0,1fr)}
+}

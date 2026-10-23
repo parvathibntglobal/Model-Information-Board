@@ -669,6 +669,23 @@ def _cmd_registry_poll_catalog(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_poll_local_models(args: argparse.Namespace) -> int:
+    """The local VRAM tool's files: sizes from the Hub API and each model's
+    GGUF header, into `local_model_file` (collect/local_models/poll.py). Only
+    the files contract/local_models.yaml lists. No credential. Gated."""
+    from collect.db import transaction
+    from collect.http import build_client
+    from collect.local_models.poll import poll_local_models
+
+    with transaction() as conn:
+        _gate(conn)
+        with build_client() as client:
+            counts = poll_local_models(conn, client)
+    print(f"local models: {counts['models']} measured, {counts['rows']} rows, "
+          f"{counts['missing_size']} without a size, {counts['header_unread']} headers unread")
+    return 0
+
+
 def _cmd_registry_recompute_window(args: argparse.Namespace) -> int:
     """Nightly. The sole writer of `model_version.in_window`."""
     from collect.db import transaction
@@ -1393,6 +1410,13 @@ def build_parser() -> argparse.ArgumentParser:
              "(the Models pages; never read by the evidence pipeline)",
     )
     catalog.set_defaults(func=_cmd_registry_poll_catalog)
+
+    local_models = reg_sub.add_parser(
+        "poll-local-models",
+        help="GGUF file sizes and headers for the local VRAM tool, into local_model_file "
+             "(only the files contract/local_models.yaml lists)",
+    )
+    local_models.set_defaults(func=_cmd_registry_poll_local_models)
 
     load = reg_sub.add_parser("load-seed", help="load contract/seed_models.yaml")
     load.add_argument("--dry-run", action="store_true", help="build rows, touch nothing")

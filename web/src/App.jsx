@@ -71,6 +71,7 @@ const ModelDetail = page(() => import('./routes/ModelDetail'))
 const Models = page(() => import('./routes/Models'))
 const Compare = page(() => import('./routes/Compare'))
 const TokenCounter = page(() => import('./routes/TokenCounter'))
+const VramCalculator = page(() => import('./routes/VramCalculator'))
 const ModelFinder = page(() => import('./routes/ModelFinder'))
 const Admin = page(() => import('./routes/Admin'))
 const BlogLogs = page(() => import('./routes/BlogLogs'))
@@ -178,6 +179,7 @@ export default function App() {
           {/* Entered from the models list, beside Compare; top-level paths for the
               same reason as /compare - `/models/*` is a model id. */}
           <Route path="/token-counter" element={<TokenCounter />} />
+          <Route path="/local-llm-vram-calculator" element={<VramCalculator />} />
           <Route path="/ai-model-pricing"  element={<ModelFinder />} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />

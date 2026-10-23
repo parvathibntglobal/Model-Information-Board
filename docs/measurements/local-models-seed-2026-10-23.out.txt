@@ -1,0 +1,50 @@
+Qwen3.8 27B                        ggml-org/Qwen3.8-27B-GGUF                            Q4_K_M=17.67GiB/1f Q8_0=26.63GiB/1f
+Qwen3.8 Flash Next                 bartowski/Qwen3.8-Flash-Next-GGUF                    Q4_K_M=111.39GiB/4f Q8_0=175.33GiB/6f
+Qwen3.6 35B A3B                    ggml-org/Qwen3.6-35B-A3B-GGUF                        Q4_K_M=19.02GiB/1f Q8_0=34.37GiB/1f
+Qwen3.6 27B                        unsloth/Qwen3.6-27B-GGUF                             Q4_K_M=15.66GiB/1f Q8_0=26.63GiB/1f
+Qwen3.5 0.8B                       unsloth/Qwen3.5-0.8B-GGUF                            Q4_K_M=0.50GiB/1f Q8_0=0.76GiB/1f
+Qwen3.5 2B                         unsloth/Qwen3.5-2B-GGUF                              Q4_K_M=1.19GiB/1f Q8_0=1.87GiB/1f
+Qwen3.5 4B                         unsloth/Qwen3.5-4B-GGUF                              Q4_K_M=2.55GiB/1f Q8_0=4.17GiB/1f
+Qwen3.5 9B                         unsloth/Qwen3.5-9B-GGUF                              Q4_K_M=5.29GiB/1f Q8_0=8.87GiB/1f
+Qwen3.5 35B A3B                    unsloth/Qwen3.5-35B-A3B-GGUF                         Q4_K_M=20.50GiB/1f Q8_0=34.37GiB/1f
+Qwen3 4B Instruct 2507             unsloth/Qwen3-4B-Instruct-2507-GGUF                  Q4_K_M=2.33GiB/1f Q8_0=3.99GiB/1f
+Qwen3 8B                           unsloth/Qwen3-8B-GGUF                                Q4_K_M=4.68GiB/1f Q8_0=8.11GiB/1f
+Qwen3 14B                          unsloth/Qwen3-14B-GGUF                               Q4_K_M=8.38GiB/1f Q8_0=14.62GiB/1f
+Qwen3 30B A3B Instruct 2507        unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF             Q4_K_M=17.28GiB/1f Q8_0=30.25GiB/1f
+Qwen3 Coder 30B A3B                unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF            Q4_K_M=17.28GiB/1f Q8_0=30.25GiB/1f
+Qwen2.5 Coder 7B                   unsloth/Qwen2.5-Coder-7B-Instruct-GGUF               Q4_K_M=4.36GiB/1f Q8_0=7.54GiB/1f
+Qwen2.5 Coder 14B                  unsloth/Qwen2.5-Coder-14B-Instruct-GGUF              Q4_K_M=8.37GiB/1f Q8_0=14.62GiB/1f
+Qwen2.5 7B                         bartowski/Qwen2.5-7B-Instruct-GGUF                   Q4_K_M=4.36GiB/1f Q8_0=7.54GiB/1f
+Qwen2.5 32B                        bartowski/Qwen2.5-32B-Instruct-GGUF                  Q4_K_M=18.49GiB/1f Q8_0=32.43GiB/1f
+Gemma 4 E2B                        unsloth/gemma-4-E2B-it-GGUF                          Q4_K_M=2.89GiB/1f Q8_0=4.70GiB/1f
+Gemma 4 E4B                        unsloth/gemma-4-E4B-it-GGUF                          Q4_K_M=4.64GiB/1f Q8_0=7.63GiB/1f
+Gemma 4 12B                        unsloth/gemma-4-12b-it-GGUF                          Q4_K_M=6.63GiB/1f Q8_0=11.80GiB/1f
+Gemma 4 26B A4B                    lmstudio-community/gemma-4-26B-A4B-it-GGUF           Q4_K_M=15.64GiB/1f Q8_0=25.02GiB/1f
+Gemma 4 31B                        unsloth/gemma-4-31B-it-GGUF                          Q4_K_M=17.07GiB/1f Q8_0=30.39GiB/1f
+Gemma 3 1B                         unsloth/gemma-3-1b-it-GGUF                           Q4_K_M=0.75GiB/1f Q8_0=1.00GiB/1f
+Gemma 3 4B                         unsloth/gemma-3-4b-it-GGUF                           Q4_K_M=2.32GiB/1f Q8_0=3.85GiB/1f
+Gemma 3 12B                        unsloth/gemma-3-12b-it-GGUF                          Q4_K_M=6.80GiB/1f Q8_0=11.65GiB/1f
+Gemma 3 27B                        unsloth/gemma-3-27b-it-GGUF                          Q4_K_M=15.41GiB/1f Q8_0=26.74GiB/1f
+Llama 3.2 1B                       unsloth/Llama-3.2-1B-Instruct-GGUF                   Q4_K_M=0.75GiB/1f Q8_0=1.23GiB/1f
+Llama 3.2 3B                       unsloth/Llama-3.2-3B-Instruct-GGUF                   Q4_K_M=1.88GiB/1f Q8_0=3.19GiB/1f
+Llama 3.1 8B                       bartowski/Meta-Llama-3.1-8B-Instruct-GGUF            Q4_K_M=4.58GiB/1f Q8_0=7.95GiB/1f
+Llama 3.3 70B                      unsloth/Llama-3.3-70B-Instruct-GGUF                  Q4_K_M=39.60GiB/1f Q8_0=69.83GiB/2f
+Llama 4 Scout 17B 16E              unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF          Q4_K_M=60.87GiB/2f Q8_0=106.67GiB/3f
+Phi-4 mini                         unsloth/Phi-4-mini-instruct-GGUF                     Q4_K_M=2.32GiB/1f Q8_0=3.80GiB/1f
+Phi-4                              unsloth/phi-4-GGUF                                   Q4_K_M=8.28GiB/1f Q8_0=14.51GiB/1f
+Phi-4 reasoning plus               unsloth/Phi-4-reasoning-plus-GGUF                    Q4_K_M=8.43GiB/1f Q8_0=14.51GiB/1f
+Ministral 3 3B                     unsloth/Ministral-3-3B-Instruct-2512-GGUF            Q4_K_M=2.00GiB/1f Q8_0=3.40GiB/1f
+Ministral 3 14B Reasoning          unsloth/Ministral-3-14B-Reasoning-2512-GGUF          Q4_K_M=7.67GiB/1f Q8_0=13.37GiB/1f
+Devstral Small 2 24B               unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF      Q4_K_M=13.35GiB/1f Q8_0=23.33GiB/1f
+Mistral Small 3.2 24B              unsloth/Mistral-Small-3.2-24B-Instruct-2506-GGUF     Q4_K_M=13.35GiB/1f Q8_0=23.33GiB/1f
+Mistral Nemo 12B                   unsloth/Mistral-Nemo-Instruct-2407-GGUF              Q4_K_M=6.96GiB/1f Q8_0=12.13GiB/1f
+DeepSeek R1 0528 Qwen3 8B          unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF               Q4_K_M=4.68GiB/1f Q8_0=8.11GiB/1f
+DeepSeek R1 Distill Qwen 7B        unsloth/DeepSeek-R1-Distill-Qwen-7B-GGUF             Q4_K_M=4.36GiB/1f Q8_0=7.54GiB/1f
+DeepSeek R1 Distill Qwen 14B       unsloth/DeepSeek-R1-Distill-Qwen-14B-GGUF            Q4_K_M=8.37GiB/1f Q8_0=14.62GiB/1f
+DeepSeek R1 Distill Qwen 32B       unsloth/DeepSeek-R1-Distill-Qwen-32B-GGUF            Q4_K_M=18.49GiB/1f Q8_0=32.43GiB/1f
+gpt-oss 20B                        unsloth/gpt-oss-20b-GGUF                             Q4_K_M=10.83GiB/1f Q8_0=11.28GiB/1f
+gpt-oss 120B                       unsloth/gpt-oss-120b-GGUF                            Q4_K_M=58.46GiB/2f Q8_0=59.03GiB/2f
+GLM 4.7 Flash                      unsloth/GLM-4.7-Flash-GGUF                           Q4_K_M=17.05GiB/1f Q8_0=29.66GiB/1f
+Nemotron 3 Nano 4B                 unsloth/NVIDIA-Nemotron-3-Nano-4B-GGUF               Q4_K_M=2.70GiB/1f Q8_0=3.94GiB/1f
+Nemotron 3.5 Lightning 30B A3B     bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF Q4_K_M=23.73GiB/1f Q8_0=32.60GiB/1f
+SmolLM3 3B                         unsloth/SmolLM3-3B-GGUF                              Q4_K_M=1.78GiB/1f Q8_0=3.05GiB/1f

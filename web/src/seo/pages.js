@@ -167,6 +167,21 @@ export function tokenCounter() {
   }
 }
 
+/**
+ * "Can I run it?" (2026-10-23, docs/proposals/can-i-run-it.md): which open
+ * models fit a reader's graphics card or Mac. A tool, so `app` gives it the
+ * WebApplication JSON-LD like the token counter.
+ */
+export function localVram() {
+  return {
+    title: fullTitle('Can I Run It? Local LLM VRAM Calculator'),
+    description: 'Pick your GPU or Mac and see which open models fit in its memory at 4-bit or 8-bit, from the measured size of each model file. Free, no sign-in.',
+    canonical: '/local-llm-vram-calculator',
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Can I run it?', path: '/local-llm-vram-calculator' }],
+    app: { name: 'Can I run it? Local LLM VRAM calculator' },
+  }
+}
+
 export function modelFinder() {
   return {
     title: fullTitle('AI Model Pricing & Specs Table'),

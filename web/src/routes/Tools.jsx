@@ -32,6 +32,13 @@ const TOOLS = [
     body: "Counted with OpenAI's o200k tokenizer, in your browser. See the cost as input or output on each model, and whether it fits each model's context. Your text never leaves the page.",
     cta: 'Open token counter',
   },
+  {
+    to: '/local-llm-vram-calculator',
+    name: 'Can I run it? VRAM calculator',
+    title: 'Which open models fit your GPU or Mac',
+    body: 'Pick your graphics card or Mac and see which open models fit in its memory at 4-bit or 8-bit. Sizes are measured from each model file; whether it fits is a labelled estimate.',
+    cta: 'Open the VRAM calculator',
+  },
 ]
 
 export default function Tools() {

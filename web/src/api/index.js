@@ -329,6 +329,9 @@ export const modelCatalog = () => cached('catalog', () => request('/model-catalo
 }), { ttl: BOARD_TTL_MS })
 // One model's page: price, specs, registry facts and engineer voices.
 export const modelCatalogEntry = (id) => request(`/model-catalog/${modelPath(id)}`)
+// The local VRAM tool (judge/local_models.py): measured GGUF sizes, cache shapes,
+// hardware and constants. Re-measured weekly, so the default cache is plenty.
+export const localModels = () => cached('local-models', () => request('/local-models'))
 
 export const coveragePage = () => request('/coverage')
 

@@ -1,0 +1,2356 @@
+{
+ "_about": "Headers as stored by the real poll (collect/local_models/poll.py) of every model in contract/local_models.yaml, into a LOCAL database on 2026-10-23 - the tensor list's key-projection shape included. Mistral Nemo here is bartowski's file, the one listed. Exported from local_model_file (quant Q4_K_M; both quants share the header).",
+ "models": {
+  "deepseek-r1-0528-qwen3-8b": {
+   "gguf_repo": "unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
+   "header": {
+    "architecture": "qwen3",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 128,
+    "block_count": 36,
+    "context_length": 131072,
+    "embedding_length": 4096,
+    "feed_forward_length": 12288,
+    "rope.freq_base": 1000000.0,
+    "rope.scaling.factor": 4.0,
+    "rope.scaling.original_context_length": 32768,
+    "rope.scaling.type": "yarn",
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      4096,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:17:00.421318+05:30",
+   "repo_sha": "eb48357c179d34dbf515983f798dfb8752a0f261"
+  },
+  "deepseek-r1-distill-qwen-14b": {
+   "gguf_repo": "unsloth/DeepSeek-R1-Distill-Qwen-14B-GGUF",
+   "header": {
+    "architecture": "qwen2",
+    "attention.head_count": 40,
+    "attention.head_count_kv": 8,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "block_count": 48,
+    "context_length": 131072,
+    "embedding_length": 5120,
+    "feed_forward_length": 13824,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:17:08.694467+05:30",
+   "repo_sha": "7b05b58b41f623e66fc74cd27b35475267b2f3e3"
+  },
+  "deepseek-r1-distill-qwen-32b": {
+   "gguf_repo": "unsloth/DeepSeek-R1-Distill-Qwen-32B-GGUF",
+   "header": {
+    "architecture": "qwen2",
+    "attention.head_count": 40,
+    "attention.head_count_kv": 8,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "block_count": 64,
+    "context_length": 131072,
+    "embedding_length": 5120,
+    "feed_forward_length": 27648,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:17:12.954621+05:30",
+   "repo_sha": "1938d05cc893a60f37be1dc16e7465038f4fca63"
+  },
+  "deepseek-r1-distill-qwen-7b": {
+   "gguf_repo": "unsloth/DeepSeek-R1-Distill-Qwen-7B-GGUF",
+   "header": {
+    "architecture": "qwen2",
+    "attention.head_count": 28,
+    "attention.head_count_kv": 4,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "block_count": 28,
+    "context_length": 131072,
+    "embedding_length": 3584,
+    "feed_forward_length": 18944,
+    "rope.freq_base": 10000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      3584,
+      512
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:17:04.499113+05:30",
+   "repo_sha": "097680e4eed7a83b3df6b0bb5e5134099cadf1b0"
+  },
+  "devstral-small-2-24b": {
+   "gguf_repo": "unsloth/Devstral-Small-2-24B-Instruct-2512-GGUF",
+   "header": {
+    "architecture": "mistral3",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.temperature_scale": 0.10000000149011612,
+    "attention.value_length": 128,
+    "block_count": 40,
+    "context_length": 393216,
+    "embedding_length": 5120,
+    "feed_forward_length": 32768,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 100000000.0,
+    "rope.scaling.factor": 48.0,
+    "rope.scaling.original_context_length": 8192,
+    "rope.scaling.type": "yarn",
+    "rope.scaling.yarn_beta_fast": 32.0,
+    "rope.scaling.yarn_beta_slow": 1.0,
+    "rope.scaling.yarn_log_multiplier": 1.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    },
+    "vocab_size": 131072
+   },
+   "measured_at": "2026-10-23T12:16:46.651132+05:30",
+   "repo_sha": "6e458b8add42681bfd023de5eab93637694aaf82"
+  },
+  "gemma-3-12b": {
+   "gguf_repo": "unsloth/gemma-3-12b-it-GGUF",
+   "header": {
+    "architecture": "gemma3",
+    "attention.head_count": 16,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.sliding_window": 1024,
+    "attention.value_length": 256,
+    "block_count": 48,
+    "context_length": 131072,
+    "embedding_length": 3840,
+    "feed_forward_length": 15360,
+    "rope.freq_base": 1000000.0,
+    "rope.scaling.factor": 8.0,
+    "rope.scaling.type": "linear",
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      3840,
+      2048
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:54.905747+05:30",
+   "repo_sha": "d15e4c7dc21dc55d56bf8549db57a71ad8a2a35d"
+  },
+  "gemma-3-1b": {
+   "gguf_repo": "unsloth/gemma-3-1b-it-GGUF",
+   "header": {
+    "architecture": "gemma3",
+    "attention.head_count": 4,
+    "attention.head_count_kv": 1,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.sliding_window": 512,
+    "attention.value_length": 256,
+    "block_count": 26,
+    "context_length": 32768,
+    "embedding_length": 1152,
+    "feed_forward_length": 6912,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      1152,
+      256
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:46.999484+05:30",
+   "repo_sha": "f0b45be0aac41bd6a100a4b5734cad5f67255bfb"
+  },
+  "gemma-3-27b": {
+   "gguf_repo": "unsloth/gemma-3-27b-it-GGUF",
+   "header": {
+    "architecture": "gemma3",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 16,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.sliding_window": 1024,
+    "attention.value_length": 128,
+    "block_count": 62,
+    "context_length": 131072,
+    "embedding_length": 5376,
+    "feed_forward_length": 21504,
+    "rope.freq_base": 1000000.0,
+    "rope.scaling.factor": 8.0,
+    "rope.scaling.type": "linear",
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5376,
+      2048
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:58.878021+05:30",
+   "repo_sha": "7cd0121f2530b00e42c4df952d4cad4418c0b3c1"
+  },
+  "gemma-3-4b": {
+   "gguf_repo": "unsloth/gemma-3-4b-it-GGUF",
+   "header": {
+    "architecture": "gemma3",
+    "attention.head_count": 8,
+    "attention.head_count_kv": 4,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.sliding_window": 1024,
+    "attention.value_length": 256,
+    "block_count": 34,
+    "context_length": 131072,
+    "embedding_length": 2560,
+    "feed_forward_length": 10240,
+    "rope.freq_base": 1000000.0,
+    "rope.scaling.factor": 8.0,
+    "rope.scaling.type": "linear",
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2560,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:50.884696+05:30",
+   "repo_sha": "5a3566e716d80f709ed7b79817eaf7733d2a1fce"
+  },
+  "gemma-4-12b": {
+   "gguf_repo": "unsloth/gemma-4-12b-it-GGUF",
+   "header": {
+    "architecture": "gemma4",
+    "attention.head_count": 16,
+    "attention.head_count_kv": [
+     8,
+     8,
+     8,
+     8,
+     8,
+     1,
+     8,
+     8,
+     8,
+     8,
+     8,
+     1,
+     8,
+     8,
+     8,
+     8,
+     8,
+     1,
+     8,
+     8,
+     8,
+     8,
+     8,
+     1,
+     8,
+     8,
+     8,
+     8,
+     8,
+     1,
+     8,
+     8,
+     8,
+     8,
+     8,
+     1,
+     8,
+     8,
+     8,
+     8,
+     8,
+     1,
+     8,
+     8,
+     8,
+     8,
+     8,
+     1
+    ],
+    "attention.key_length": 512,
+    "attention.key_length_swa": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.shared_kv_layers": 0,
+    "attention.sliding_window": 1024,
+    "attention.sliding_window_pattern": [
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false
+    ],
+    "attention.value_length": 512,
+    "attention.value_length_swa": 256,
+    "block_count": 48,
+    "context_length": 262144,
+    "embedding_length": 3840,
+    "embedding_length_per_layer_input": 0,
+    "feed_forward_length": 15360,
+    "final_logit_softcapping": 30.0,
+    "rope.dimension_count": 512,
+    "rope.dimension_count_swa": 256,
+    "rope.freq_base": 1000000.0,
+    "rope.freq_base_swa": 10000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      3840,
+      2048
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:24.226719+05:30",
+   "repo_sha": "fc034cfff751157913579611efad8462ac1be606"
+  },
+  "gemma-4-26b-a4b": {
+   "gguf_repo": "lmstudio-community/gemma-4-26B-A4B-it-GGUF",
+   "header": {
+    "architecture": "gemma4",
+    "attention.head_count": 16,
+    "attention.head_count_kv": [
+     8,
+     8,
+     8,
+     8,
+     8,
+     2,
+     8,
+     8,
+     8,
+     8,
+     8,
+     2,
+     8,
+     8,
+     8,
+     8,
+     8,
+     2,
+     8,
+     8,
+     8,
+     8,
+     8,
+     2,
+     8,
+     8,
+     8,
+     8,
+     8,
+     2
+    ],
+    "attention.key_length": 512,
+    "attention.key_length_swa": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.shared_kv_layers": 0,
+    "attention.sliding_window": 1024,
+    "attention.sliding_window_pattern": [
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false
+    ],
+    "attention.value_length": 512,
+    "attention.value_length_swa": 256,
+    "block_count": 30,
+    "context_length": 262144,
+    "embedding_length": 2816,
+    "embedding_length_per_layer_input": 0,
+    "expert_count": 128,
+    "expert_feed_forward_length": 704,
+    "expert_used_count": 8,
+    "feed_forward_length": 2112,
+    "final_logit_softcapping": 30.0,
+    "rope.dimension_count": 512,
+    "rope.dimension_count_swa": 256,
+    "rope.freq_base": 1000000.0,
+    "rope.freq_base_swa": 10000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2816,
+      2048
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:31.827674+05:30",
+   "repo_sha": "f6e6747823b2912661935db7e0009287c4838073"
+  },
+  "gemma-4-31b": {
+   "gguf_repo": "unsloth/gemma-4-31B-it-GGUF",
+   "header": {
+    "architecture": "gemma4",
+    "attention.head_count": 32,
+    "attention.head_count_kv": [
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4,
+     16,
+     16,
+     16,
+     16,
+     16,
+     4
+    ],
+    "attention.key_length": 512,
+    "attention.key_length_swa": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.shared_kv_layers": 0,
+    "attention.sliding_window": 1024,
+    "attention.sliding_window_pattern": [
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false
+    ],
+    "attention.value_length": 512,
+    "attention.value_length_swa": 256,
+    "block_count": 60,
+    "context_length": 262144,
+    "embedding_length": 5376,
+    "embedding_length_per_layer_input": 0,
+    "feed_forward_length": 21504,
+    "final_logit_softcapping": 30.0,
+    "rope.dimension_count": 512,
+    "rope.dimension_count_swa": 256,
+    "rope.freq_base": 1000000.0,
+    "rope.freq_base_swa": 10000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5376,
+      4096
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:39.287838+05:30",
+   "repo_sha": "c1ac76e99d5513b141e8adde7288b85c3f9c32ec"
+  },
+  "gemma-4-e2b": {
+   "gguf_repo": "unsloth/gemma-4-E2B-it-GGUF",
+   "header": {
+    "architecture": "gemma4",
+    "attention.head_count": 8,
+    "attention.head_count_kv": 1,
+    "attention.key_length": 512,
+    "attention.key_length_swa": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.shared_kv_layers": 20,
+    "attention.sliding_window": 512,
+    "attention.sliding_window_pattern": [
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     false
+    ],
+    "attention.value_length": 512,
+    "attention.value_length_swa": 256,
+    "block_count": 35,
+    "context_length": 131072,
+    "embedding_length": 1536,
+    "embedding_length_per_layer_input": 256,
+    "feed_forward_length": [
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     6144,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288,
+     12288
+    ],
+    "final_logit_softcapping": 30.0,
+    "rope.dimension_count": 512,
+    "rope.dimension_count_swa": 256,
+    "rope.freq_base": 1000000.0,
+    "rope.freq_base_swa": 10000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      1536,
+      256
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:09.727870+05:30",
+   "repo_sha": "0314792d7f1f7e229411f620751375812bb9faf2"
+  },
+  "gemma-4-e4b": {
+   "gguf_repo": "unsloth/gemma-4-E4B-it-GGUF",
+   "header": {
+    "architecture": "gemma4",
+    "attention.head_count": 8,
+    "attention.head_count_kv": 2,
+    "attention.key_length": 512,
+    "attention.key_length_swa": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.shared_kv_layers": 18,
+    "attention.sliding_window": 512,
+    "attention.sliding_window_pattern": [
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     true,
+     true,
+     false
+    ],
+    "attention.value_length": 512,
+    "attention.value_length_swa": 256,
+    "block_count": 42,
+    "context_length": 131072,
+    "embedding_length": 2560,
+    "embedding_length_per_layer_input": 256,
+    "feed_forward_length": 10240,
+    "final_logit_softcapping": 30.0,
+    "rope.dimension_count": 512,
+    "rope.dimension_count_swa": 256,
+    "rope.freq_base": 1000000.0,
+    "rope.freq_base_swa": 10000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2560,
+      512
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:17.057121+05:30",
+   "repo_sha": "bfc15c382204943c3a8fff0c750b94ae2364d7a3"
+  },
+  "glm-4.7-flash": {
+   "gguf_repo": "unsloth/GLM-4.7-Flash-GGUF",
+   "header": {
+    "architecture": "deepseek2",
+    "attention.head_count": 20,
+    "attention.head_count_kv": 1,
+    "attention.key_length": 576,
+    "attention.key_length_mla": 256,
+    "attention.kv_lora_rank": 512,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.q_lora_rank": 768,
+    "attention.value_length": 512,
+    "attention.value_length_mla": 256,
+    "block_count": 47,
+    "context_length": 202752,
+    "embedding_length": 2048,
+    "expert_count": 64,
+    "expert_feed_forward_length": 1536,
+    "expert_gating_func": 2,
+    "expert_group_count": 1,
+    "expert_group_used_count": 1,
+    "expert_shared_count": 1,
+    "expert_used_count": 4,
+    "expert_weights_norm": true,
+    "expert_weights_scale": 1.7999999523162842,
+    "feed_forward_length": 10240,
+    "leading_dense_block_count": 1,
+    "rope.dimension_count": 64,
+    "rope.freq_base": 1000000.0,
+    "vocab_size": 154880
+   },
+   "measured_at": "2026-10-23T12:17:31.476360+05:30",
+   "repo_sha": "0d32489ecb9db6d2a4fc93bd27ef01519f95474d"
+  },
+  "gpt-oss-120b": {
+   "gguf_repo": "unsloth/gpt-oss-120b-GGUF",
+   "header": {
+    "architecture": "gpt-oss",
+    "attention.head_count": 64,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 64,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.sliding_window": 128,
+    "attention.value_length": 64,
+    "block_count": 36,
+    "context_length": 131072,
+    "embedding_length": 2880,
+    "expert_count": 128,
+    "expert_feed_forward_length": 2880,
+    "expert_used_count": 4,
+    "feed_forward_length": 2880,
+    "rope.freq_base": 150000.0,
+    "rope.scaling.factor": 32.0,
+    "rope.scaling.original_context_length": 4096,
+    "rope.scaling.type": "yarn",
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2880,
+      512
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:17:24.381641+05:30",
+   "repo_sha": "ff1a82da6ad466e32284fa3d2b86694db3204789"
+  },
+  "gpt-oss-20b": {
+   "gguf_repo": "unsloth/gpt-oss-20b-GGUF",
+   "header": {
+    "architecture": "gpt-oss",
+    "attention.head_count": 64,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 64,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.sliding_window": 128,
+    "attention.value_length": 64,
+    "block_count": 24,
+    "context_length": 131072,
+    "embedding_length": 2880,
+    "expert_count": 32,
+    "expert_feed_forward_length": 2880,
+    "expert_used_count": 4,
+    "feed_forward_length": 2880,
+    "rope.freq_base": 150000.0,
+    "rope.scaling.factor": 32.0,
+    "rope.scaling.original_context_length": 4096,
+    "rope.scaling.type": "yarn",
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2880,
+      512
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:17:17.210324+05:30",
+   "repo_sha": "d449b42d93e1c2c7bda5312f5c25c8fb91dfa9b4"
+  },
+  "llama-3.1-8b": {
+   "gguf_repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+   "header": {
+    "architecture": "llama",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "block_count": 32,
+    "context_length": 131072,
+    "embedding_length": 4096,
+    "feed_forward_length": 14336,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 500000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      4096,
+      1024
+     ]
+    },
+    "vocab_size": 128256
+   },
+   "measured_at": "2026-10-23T12:16:11.767976+05:30",
+   "repo_sha": "bf5b95e96dac0462e2a09145ec66cae9a3f12067"
+  },
+  "llama-3.2-1b": {
+   "gguf_repo": "unsloth/Llama-3.2-1B-Instruct-GGUF",
+   "header": {
+    "architecture": "llama",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 64,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 64,
+    "block_count": 16,
+    "context_length": 131072,
+    "embedding_length": 2048,
+    "feed_forward_length": 8192,
+    "rope.dimension_count": 64,
+    "rope.freq_base": 500000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2048,
+      512
+     ]
+    },
+    "vocab_size": 128256
+   },
+   "measured_at": "2026-10-23T12:16:02.802631+05:30",
+   "repo_sha": "b69aef112e9f895e6f98d7ae0949f72ff09aa401"
+  },
+  "llama-3.2-3b": {
+   "gguf_repo": "unsloth/Llama-3.2-3B-Instruct-GGUF",
+   "header": {
+    "architecture": "llama",
+    "attention.head_count": 24,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 128,
+    "block_count": 28,
+    "context_length": 131072,
+    "embedding_length": 3072,
+    "feed_forward_length": 8192,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 500000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      3072,
+      1024
+     ]
+    },
+    "vocab_size": 128256
+   },
+   "measured_at": "2026-10-23T12:16:07.429434+05:30",
+   "repo_sha": "e7d0997e49c9cb00d88b4c1a6a16aa894b0bbc31"
+  },
+  "llama-3.3-70b": {
+   "gguf_repo": "unsloth/Llama-3.3-70B-Instruct-GGUF",
+   "header": {
+    "architecture": "llama",
+    "attention.head_count": 64,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 128,
+    "block_count": 80,
+    "context_length": 131072,
+    "embedding_length": 8192,
+    "feed_forward_length": 28672,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 500000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      8192,
+      1024
+     ]
+    },
+    "vocab_size": 128256
+   },
+   "measured_at": "2026-10-23T12:16:15.590927+05:30",
+   "repo_sha": "8f14c5c5d06fca109ff16f94496147a8479711de"
+  },
+  "llama-4-scout-17b-16e": {
+   "gguf_repo": "unsloth/Llama-4-Scout-17B-16E-Instruct-GGUF",
+   "header": {
+    "architecture": "llama4",
+    "attention.head_count": 40,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 128,
+    "block_count": 48,
+    "context_length": 10485760,
+    "embedding_length": 5120,
+    "expert_count": 16,
+    "expert_feed_forward_length": 8192,
+    "expert_used_count": 1,
+    "feed_forward_length": 16384,
+    "interleave_moe_layer_step": 1,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 500000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    },
+    "vocab_size": 202048
+   },
+   "measured_at": "2026-10-23T12:16:19.823067+05:30",
+   "repo_sha": "72a6853f56a66dc13a3a4b6bdc9cf7ee4c364b47"
+  },
+  "ministral-3-14b-reasoning": {
+   "gguf_repo": "unsloth/Ministral-3-14B-Reasoning-2512-GGUF",
+   "header": {
+    "architecture": "mistral3",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.temperature_scale": 0.10000000149011612,
+    "attention.value_length": 128,
+    "block_count": 40,
+    "context_length": 262144,
+    "embedding_length": 5120,
+    "feed_forward_length": 16384,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 1000000000.0,
+    "rope.scaling.factor": 16.0,
+    "rope.scaling.original_context_length": 16384,
+    "rope.scaling.type": "yarn",
+    "rope.scaling.yarn_beta_fast": 32.0,
+    "rope.scaling.yarn_beta_slow": 1.0,
+    "rope.scaling.yarn_log_multiplier": 1.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    },
+    "vocab_size": 131072
+   },
+   "measured_at": "2026-10-23T12:16:42.389609+05:30",
+   "repo_sha": "2d687ca0523d4d87469835433b53642dfae83152"
+  },
+  "ministral-3-3b": {
+   "gguf_repo": "unsloth/Ministral-3-3B-Instruct-2512-GGUF",
+   "header": {
+    "architecture": "mistral3",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.temperature_scale": 0.10000000149011612,
+    "attention.value_length": 128,
+    "block_count": 26,
+    "context_length": 262144,
+    "embedding_length": 3072,
+    "feed_forward_length": 9216,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 1000000.0,
+    "rope.scaling.factor": 16.0,
+    "rope.scaling.original_context_length": 16384,
+    "rope.scaling.type": "yarn",
+    "rope.scaling.yarn_beta_fast": 32.0,
+    "rope.scaling.yarn_beta_slow": 1.0,
+    "rope.scaling.yarn_log_multiplier": 1.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      3072,
+      1024
+     ]
+    },
+    "vocab_size": 131072
+   },
+   "measured_at": "2026-10-23T12:16:38.176860+05:30",
+   "repo_sha": "7564922f37fa5bbb62b87f09a55c12f1f91d7a6a"
+  },
+  "mistral-nemo-12b": {
+   "gguf_repo": "bartowski/Mistral-Nemo-Instruct-2407-GGUF",
+   "header": {
+    "architecture": "llama",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 128,
+    "block_count": 40,
+    "context_length": 1024000,
+    "embedding_length": 5120,
+    "feed_forward_length": 14336,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    },
+    "vocab_size": 131072
+   },
+   "measured_at": "2026-10-23T12:16:56.485080+05:30",
+   "repo_sha": "a2dd64a0a76ea1bdb2bb6ab6fa5496b003c7c908"
+  },
+  "mistral-small-3.2-24b": {
+   "gguf_repo": "unsloth/Mistral-Small-3.2-24B-Instruct-2506-GGUF",
+   "header": {
+    "architecture": "llama",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 128,
+    "block_count": 40,
+    "context_length": 131072,
+    "embedding_length": 5120,
+    "feed_forward_length": 32768,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 1000000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    },
+    "vocab_size": 131072
+   },
+   "measured_at": "2026-10-23T12:16:52.383718+05:30",
+   "repo_sha": "b750ec2299225e492f1bd27cab88a0a595fa848f"
+  },
+  "nemotron-3-nano-4b": {
+   "gguf_repo": "unsloth/NVIDIA-Nemotron-3-Nano-4B-GGUF",
+   "header": {
+    "architecture": "nemotron_h",
+    "attention.head_count": 40,
+    "attention.head_count_kv": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     8,
+     0,
+     0,
+     0,
+     0,
+     8,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     8,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     8,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "attention.key_length": 128,
+    "attention.layer_norm_epsilon": 9.999999747378752e-06,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 128,
+    "block_count": 42,
+    "context_length": 1048576,
+    "embedding_length": 3136,
+    "feed_forward_length": [
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     0,
+     0,
+     12544,
+     0,
+     0,
+     0,
+     12544,
+     0,
+     12544,
+     0,
+     12544
+    ],
+    "rope.dimension_count": 78,
+    "rope.scaling.finetuned": false,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 8,
+    "ssm.inner_size": 7680,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 96,
+    "tensor.attn_k": {
+     "layer": 12,
+     "shape": [
+      3136,
+      1024
+     ]
+    },
+    "vocab_size": 131072
+   },
+   "measured_at": "2026-10-23T12:17:37.099424+05:30",
+   "repo_sha": "8e81be55c5aa3d63bb82b6ceec62d50805d9e1bb"
+  },
+  "nemotron-3.5-lightning-30b-a3b": {
+   "gguf_repo": "bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF",
+   "header": {
+    "architecture": "nemotron_h_moe",
+    "attention.head_count": 32,
+    "attention.head_count_kv": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     2,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2
+    ],
+    "attention.key_length": 128,
+    "attention.layer_norm_epsilon": 9.999999747378752e-06,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 128,
+    "block_count": 53,
+    "context_length": 1048576,
+    "embedding_length": 2688,
+    "expert_count": 128,
+    "expert_feed_forward_length": 1856,
+    "expert_group_count": 1,
+    "expert_group_used_count": 1,
+    "expert_shared_count": 1,
+    "expert_shared_feed_forward_length": 3712,
+    "expert_used_count": 6,
+    "expert_weights_norm": true,
+    "expert_weights_scale": 2.5,
+    "feed_forward_length": [
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     0,
+     1856,
+     1856
+    ],
+    "nextn_predict_layers": 1,
+    "rope.dimension_count": 84,
+    "rope.freq_base": 10000.0,
+    "rope.scaling.finetuned": false,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 8,
+    "ssm.inner_size": 4096,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 64,
+    "tensor.attn_k": {
+     "layer": 5,
+     "shape": [
+      2688,
+      256
+     ]
+    },
+    "vocab_size": 131072
+   },
+   "measured_at": "2026-10-23T12:17:40.758654+05:30",
+   "repo_sha": "f0eec2267ae843d9eb21ea3926ab0046da0a8628"
+  },
+  "phi-4": {
+   "gguf_repo": "unsloth/phi-4-GGUF",
+   "header": {
+    "architecture": "llama",
+    "attention.head_count": 40,
+    "attention.head_count_kv": 10,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.value_length": 128,
+    "block_count": 40,
+    "context_length": 16384,
+    "embedding_length": 5120,
+    "feed_forward_length": 17920,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 250000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1280
+     ]
+    },
+    "vocab_size": 100352
+   },
+   "measured_at": "2026-10-23T12:16:32.523769+05:30",
+   "repo_sha": "5110b7771e8166d5530e73346a15aea096a8cb99"
+  },
+  "phi-4-mini": {
+   "gguf_repo": "unsloth/Phi-4-mini-instruct-GGUF",
+   "header": {
+    "architecture": "phi3",
+    "attention.head_count": 24,
+    "attention.head_count_kv": 8,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.sliding_window": 262144,
+    "block_count": 32,
+    "context_length": 131072,
+    "embedding_length": 3072,
+    "feed_forward_length": 8192,
+    "rope.dimension_count": 96,
+    "rope.freq_base": 10000.0,
+    "rope.scaling.attn_factor": 1.190238118171692,
+    "rope.scaling.original_context_length": 4096,
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      3072,
+      5120
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:16:28.013957+05:30",
+   "repo_sha": "78eb92a46fc37e6b524df991ed9aca9bc6aa7b80"
+  },
+  "phi-4-reasoning-plus": {
+   "gguf_repo": "unsloth/Phi-4-reasoning-plus-GGUF",
+   "header": {
+    "architecture": "phi3",
+    "attention.head_count": 40,
+    "attention.head_count_kv": 10,
+    "attention.layer_norm_rms_epsilon": 9.999999747378752e-06,
+    "attention.sliding_window": 0,
+    "block_count": 40,
+    "context_length": 32768,
+    "embedding_length": 5120,
+    "feed_forward_length": 17920,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 500000.0,
+    "rope.scaling.original_context_length": 32768,
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      5120,
+      7680
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:16:35.155054+05:30",
+   "repo_sha": "80fff8542dc7b88dba725b660beefd80e91e80c9"
+  },
+  "qwen2.5-32b": {
+   "gguf_repo": "bartowski/Qwen2.5-32B-Instruct-GGUF",
+   "header": {
+    "architecture": "qwen2",
+    "attention.head_count": 40,
+    "attention.head_count_kv": 8,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "block_count": 64,
+    "context_length": 32768,
+    "embedding_length": 5120,
+    "feed_forward_length": 27648,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:05.737147+05:30",
+   "repo_sha": "2116cbb385b8ce3a4d28cf3bf1cd2039a55821a6"
+  },
+  "qwen2.5-7b": {
+   "gguf_repo": "bartowski/Qwen2.5-7B-Instruct-GGUF",
+   "header": {
+    "architecture": "qwen2",
+    "attention.head_count": 28,
+    "attention.head_count_kv": 4,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "block_count": 28,
+    "context_length": 32768,
+    "embedding_length": 3584,
+    "feed_forward_length": 18944,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      3584,
+      512
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:15:01.869884+05:30",
+   "repo_sha": "8911e8a47f92bac19d6f5c64a2e2095bd2f7d031"
+  },
+  "qwen2.5-coder-14b": {
+   "gguf_repo": "unsloth/Qwen2.5-Coder-14B-Instruct-GGUF",
+   "header": {
+    "architecture": "qwen2",
+    "attention.head_count": 40,
+    "attention.head_count_kv": 8,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "block_count": 48,
+    "context_length": 32768,
+    "embedding_length": 5120,
+    "feed_forward_length": 13824,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:57.747468+05:30",
+   "repo_sha": "388f3f20271ef903bb2dbe7d8236158903e7edb3"
+  },
+  "qwen2.5-coder-7b": {
+   "gguf_repo": "unsloth/Qwen2.5-Coder-7B-Instruct-GGUF",
+   "header": {
+    "architecture": "qwen2",
+    "attention.head_count": 28,
+    "attention.head_count_kv": 4,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "block_count": 28,
+    "context_length": 32768,
+    "embedding_length": 3584,
+    "feed_forward_length": 18944,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      3584,
+      512
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:53.860118+05:30",
+   "repo_sha": "0ecf11859560b2bf42e703207f9371186d02245f"
+  },
+  "qwen3-14b": {
+   "gguf_repo": "unsloth/Qwen3-14B-GGUF",
+   "header": {
+    "architecture": "qwen3",
+    "attention.head_count": 40,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 128,
+    "block_count": 40,
+    "context_length": 40960,
+    "embedding_length": 5120,
+    "feed_forward_length": 17408,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      5120,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:42.007022+05:30",
+   "repo_sha": "a04a82c4739b3ef5fa6da7d10261db2c67dd1985"
+  },
+  "qwen3-30b-a3b-instruct-2507": {
+   "gguf_repo": "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF",
+   "header": {
+    "architecture": "qwen3moe",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 4,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 128,
+    "block_count": 48,
+    "context_length": 262144,
+    "embedding_length": 2048,
+    "expert_count": 128,
+    "expert_feed_forward_length": 768,
+    "expert_used_count": 8,
+    "feed_forward_length": 6144,
+    "rope.freq_base": 10000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2048,
+      512
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:46.017713+05:30",
+   "repo_sha": "eea7b2be5805a5f151f8847ede8e5f9a9284bf77"
+  },
+  "qwen3-4b-instruct-2507": {
+   "gguf_repo": "unsloth/Qwen3-4B-Instruct-2507-GGUF",
+   "header": {
+    "architecture": "qwen3",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 128,
+    "block_count": 36,
+    "context_length": 262144,
+    "embedding_length": 2560,
+    "feed_forward_length": 9728,
+    "rope.freq_base": 5000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2560,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:34.005711+05:30",
+   "repo_sha": "a06e946bb6b655725eafa393f4a9745d460374c9"
+  },
+  "qwen3-8b": {
+   "gguf_repo": "unsloth/Qwen3-8B-GGUF",
+   "header": {
+    "architecture": "qwen3",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 8,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 128,
+    "block_count": 36,
+    "context_length": 40960,
+    "embedding_length": 4096,
+    "feed_forward_length": 12288,
+    "rope.freq_base": 1000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      4096,
+      1024
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:38.056152+05:30",
+   "repo_sha": "a6adef130ffb23ddaf1a62fec9dced968c9bc482"
+  },
+  "qwen3-coder-30b-a3b": {
+   "gguf_repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+   "header": {
+    "architecture": "qwen3moe",
+    "attention.head_count": 32,
+    "attention.head_count_kv": 4,
+    "attention.key_length": 128,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 128,
+    "block_count": 48,
+    "context_length": 262144,
+    "embedding_length": 2048,
+    "expert_count": 128,
+    "expert_feed_forward_length": 768,
+    "expert_shared_feed_forward_length": 0,
+    "expert_used_count": 8,
+    "feed_forward_length": 5472,
+    "rope.freq_base": 10000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2048,
+      512
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:50.011039+05:30",
+   "repo_sha": "b17cb02dd882d5b6ab62fc777ad2995f19668350"
+  },
+  "qwen3.5-0.8b": {
+   "gguf_repo": "unsloth/Qwen3.5-0.8B-GGUF",
+   "header": {
+    "architecture": "qwen35",
+    "attention.head_count": 8,
+    "attention.head_count_kv": 2,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 256,
+    "block_count": 24,
+    "context_length": 262144,
+    "embedding_length": 1024,
+    "feed_forward_length": 3584,
+    "full_attention_interval": 4,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 2048,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 16,
+    "tensor.attn_k": {
+     "layer": 3,
+     "shape": [
+      1024,
+      512
+     ]
+    },
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      1024,
+      6144
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:06.631038+05:30",
+   "repo_sha": "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0"
+  },
+  "qwen3.5-2b": {
+   "gguf_repo": "unsloth/Qwen3.5-2B-GGUF",
+   "header": {
+    "architecture": "qwen35",
+    "attention.head_count": 8,
+    "attention.head_count_kv": 2,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 256,
+    "block_count": 24,
+    "context_length": 262144,
+    "embedding_length": 2048,
+    "feed_forward_length": 6144,
+    "full_attention_interval": 4,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 2048,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 16,
+    "tensor.attn_k": {
+     "layer": 3,
+     "shape": [
+      2048,
+      512
+     ]
+    },
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      2048,
+      6144
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:12.227197+05:30",
+   "repo_sha": "f6d5376be1edb4d416d56da11e5397a961aca8ae"
+  },
+  "qwen3.5-35b-a3b": {
+   "gguf_repo": "unsloth/Qwen3.5-35B-A3B-GGUF",
+   "header": {
+    "architecture": "qwen35moe",
+    "attention.head_count": 16,
+    "attention.head_count_kv": 2,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 256,
+    "block_count": 40,
+    "context_length": 262144,
+    "embedding_length": 2048,
+    "expert_count": 256,
+    "expert_feed_forward_length": 512,
+    "expert_shared_feed_forward_length": 512,
+    "expert_used_count": 8,
+    "full_attention_interval": 4,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 4096,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 32,
+    "tensor.attn_k": {
+     "layer": 3,
+     "shape": [
+      2048,
+      512
+     ]
+    },
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      2048,
+      8192
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:28.631480+05:30",
+   "repo_sha": "bc014a17be43adabd7066b7a86075ff935c6a4e2"
+  },
+  "qwen3.5-4b": {
+   "gguf_repo": "unsloth/Qwen3.5-4B-GGUF",
+   "header": {
+    "architecture": "qwen35",
+    "attention.head_count": 16,
+    "attention.head_count_kv": 4,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 256,
+    "block_count": 32,
+    "context_length": 262144,
+    "embedding_length": 2560,
+    "feed_forward_length": 9216,
+    "full_attention_interval": 4,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 4096,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 32,
+    "tensor.attn_k": {
+     "layer": 3,
+     "shape": [
+      2560,
+      1024
+     ]
+    },
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      2560,
+      8192
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:18.016665+05:30",
+   "repo_sha": "e87f176479d0855a907a41277aca2f8ee7a09523"
+  },
+  "qwen3.5-9b": {
+   "gguf_repo": "unsloth/Qwen3.5-9B-GGUF",
+   "header": {
+    "architecture": "qwen35",
+    "attention.head_count": 16,
+    "attention.head_count_kv": 4,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 256,
+    "block_count": 32,
+    "context_length": 262144,
+    "embedding_length": 4096,
+    "feed_forward_length": 12288,
+    "full_attention_interval": 4,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 4096,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 32,
+    "tensor.attn_k": {
+     "layer": 3,
+     "shape": [
+      4096,
+      1024
+     ]
+    },
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      4096,
+      8192
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:23.330913+05:30",
+   "repo_sha": "3885219b6810b007914f3a7950a8d1b469d598a5"
+  },
+  "qwen3.6-27b": {
+   "gguf_repo": "unsloth/Qwen3.6-27B-GGUF",
+   "header": {
+    "architecture": "qwen35",
+    "attention.head_count": 24,
+    "attention.head_count_kv": 4,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 256,
+    "block_count": 64,
+    "context_length": 262144,
+    "embedding_length": 5120,
+    "feed_forward_length": 17408,
+    "full_attention_interval": 4,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 6144,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 48,
+    "tensor.attn_k": {
+     "layer": 3,
+     "shape": [
+      5120,
+      1024
+     ]
+    },
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      5120,
+      10240
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:14:01.129379+05:30",
+   "repo_sha": "82d411acf4a06cfb8d9b073a5211bf410bfc29bf"
+  },
+  "qwen3.6-35b-a3b": {
+   "gguf_repo": "ggml-org/Qwen3.6-35B-A3B-GGUF",
+   "header": {
+    "architecture": "qwen35moe",
+    "attention.head_count": 16,
+    "attention.head_count_kv": 2,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 256,
+    "block_count": 40,
+    "context_length": 262144,
+    "embedding_length": 2048,
+    "expert_count": 256,
+    "expert_feed_forward_length": 512,
+    "expert_shared_feed_forward_length": 512,
+    "expert_used_count": 8,
+    "full_attention_interval": 4,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 4096,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 32,
+    "tensor.attn_k": {
+     "layer": 3,
+     "shape": [
+      2048,
+      512
+     ]
+    },
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      2048,
+      8192
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:13:55.360634+05:30",
+   "repo_sha": "7878dc9a905c7c9379e5e8d6a1aa9affdd6839c5"
+  },
+  "qwen3.8-27b": {
+   "gguf_repo": "ggml-org/Qwen3.8-27B-GGUF",
+   "header": {
+    "architecture": "qwen35",
+    "attention.head_count": 24,
+    "attention.head_count_kv": 4,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.recurrent_layers": [
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false,
+     true,
+     true,
+     true,
+     false
+    ],
+    "attention.value_length": 256,
+    "block_count": 64,
+    "context_length": 262144,
+    "embedding_length": 5120,
+    "feed_forward_length": 17408,
+    "full_attention_interval": 4,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 6144,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 48,
+    "tensor.attn_k": {
+     "layer": 3,
+     "shape": [
+      5120,
+      1024
+     ]
+    },
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      5120,
+      10240
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:13:43.129050+05:30",
+   "repo_sha": "a316ea527fde32c12487be7574e2db5ac2ad2a7e"
+  },
+  "qwen3.8-flash-next": {
+   "gguf_repo": "bartowski/Qwen3.8-Flash-Next-GGUF",
+   "header": {
+    "architecture": "qwen4exp",
+    "attention.compress_ratios": [
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4,
+     0,
+     0,
+     0,
+     4
+    ],
+    "attention.head_count": 24,
+    "attention.head_count_kv": 2,
+    "attention.indexer.head_count": 4,
+    "attention.indexer.key_length": 128,
+    "attention.indexer.top_k": 2048,
+    "attention.key_length": 256,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "attention.value_length": 256,
+    "block_count": 48,
+    "context_length": 262144,
+    "embedding_length": 2560,
+    "embedding_length_per_layer_input": 160,
+    "expert_count": 512,
+    "expert_feed_forward_length": 640,
+    "expert_shared_feed_forward_length": 640,
+    "expert_used_count": 10,
+    "full_attention_interval": 4,
+    "hyper_connection.count": 4,
+    "hyper_connection.low_rank": 320,
+    "ple.conv_kernel": 4,
+    "ple.eos_token_id": 248044,
+    "ple.head_offsets": [
+     0,
+     20000003,
+     40000026,
+     60000059,
+     80000106,
+     100000165,
+     120000228,
+     140000297,
+     160000374,
+     180000455,
+     200000548,
+     220000655,
+     240000802,
+     260000955,
+     280001114,
+     300001275
+    ],
+    "ple.head_vocab_sizes": [
+     20000003,
+     20000023,
+     20000033,
+     20000047,
+     20000059,
+     20000063,
+     20000069,
+     20000077,
+     20000081,
+     20000093,
+     20000107,
+     20000147,
+     20000153,
+     20000159,
+     20000161,
+     20000171
+    ],
+    "ple.heads_per_ngram": 8,
+    "ple.image_token_id": 248056,
+    "ple.layer_multipliers": [
+     23703573157769,
+     20109073645365,
+     8052911324071
+    ],
+    "ple.layers": [
+     1
+    ],
+    "ple.ngram_size": 3,
+    "rope.dimension_count": 64,
+    "rope.dimension_sections": [
+     11,
+     11,
+     10,
+     0
+    ],
+    "rope.freq_base": 10000000.0,
+    "ssm.conv_kernel": 4,
+    "ssm.group_count": 16,
+    "ssm.inner_size": 6144,
+    "ssm.state_size": 128,
+    "ssm.time_step_rank": 48,
+    "tensor.attn_qkv": {
+     "layer": 0,
+     "shape": [
+      2560,
+      10240
+     ]
+    }
+   },
+   "measured_at": "2026-10-23T12:13:49.575671+05:30",
+   "repo_sha": "db3a185731e162be9ffa4d52d20d7509939e60e8"
+  },
+  "smollm3-3b": {
+   "gguf_repo": "unsloth/SmolLM3-3B-GGUF",
+   "header": {
+    "architecture": "smollm3",
+    "attention.head_count": 16,
+    "attention.head_count_kv": 4,
+    "attention.layer_norm_rms_epsilon": 9.999999974752427e-07,
+    "block_count": 36,
+    "context_length": 65536,
+    "embedding_length": 2048,
+    "feed_forward_length": 11008,
+    "rope.dimension_count": 128,
+    "rope.freq_base": 5000000.0,
+    "tensor.attn_k": {
+     "layer": 0,
+     "shape": [
+      2048,
+      512
+     ]
+    },
+    "vocab_size": 128256
+   },
+   "measured_at": "2026-10-23T12:17:44.637206+05:30",
+   "repo_sha": "a7bc17204c8a326d6bd6e466e076959eddae2025"
+  }
+ }
+}
