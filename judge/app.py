@@ -1458,12 +1458,18 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
         # The rule the scores were computed under, from the contract, so the
         # page states the minimum rather than typing it a second time.
         "category_method": category_scores.method(),
+        # ⚠ IT SAID "none is a score" until 2026-10-22, untrue since the category
+        #   score (#540; CLAUDE.md rule 3's second exception). Found in the review
+        #   of #556. No page renders this field today; it is still a sentence the
+        #   API publishes about itself.
         "summary": (
             f"{len(models)} models, compared on what engineers reported about them. "
             f"Every figure here is counted - entries, documents, how each one was "
-            f"phrased - and none is a score. No winner is picked and no total is "
-            f"computed, because the board has no way to weigh a complaint against a "
-            f"recommendation without inventing one."
+            f"phrased - except one score per category, which is worked out from the "
+            f"report counts shown beside it (contract/category_scores.yaml). No "
+            f"overall winner is picked and no total is computed, because the board "
+            f"has no way to weigh a complaint against a recommendation without "
+            f"inventing one."
         ),
     }
 
