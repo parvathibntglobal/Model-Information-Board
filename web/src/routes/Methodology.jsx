@@ -63,7 +63,7 @@ export default function Methodology() {
         <p className="muted" style={{ maxWidth: '72ch', margin: 0 }}>
           We read what engineers write publicly about the AI models they use, check every quoted line against the
           post it came from, and count how many different people reported each model working, failing or neither
-          for each job. We publish those counts, not a score.
+          for each job. We publish those counts; the only score, on comparisons, is worked out from them per category.
         </p>
       </div>
 

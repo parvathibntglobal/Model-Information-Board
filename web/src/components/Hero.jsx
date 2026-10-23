@@ -85,13 +85,14 @@ export default function Hero({ children }) {
             <span className="hero-kicker">Model Information Board</span>
             <Reveal as="h1">Find the best AI model for the job, counted from the engineers who use it.</Reveal>
             <Reveal delay={120}>
+            {/* THE SHORT ANSWER (2026-10-22, approved draft in
+                seo/model-board-short-answers-draft-2026-10-22.md): what the site
+                offers, keyword-led, in one line a snippet can lift. */}
             <p className="hero-sub">
-            An <Link to="/compare"><strong>AI model comparison</strong></Link> built from what engineers publicly report
-            in real work. We check every statement against its source and count how many different people reported a
-            model working, failing or neither for each job: a <Link to="/reviews/jobs/coding-agent">coding agent</Link>,
-            a <Link to="/reviews/jobs/rag">RAG pipeline</Link>, <Link to="/reviews/jobs/code-review">code review</Link>.
-            Not an <strong>LLM leaderboard</strong> score: if the <strong>best LLM for coding</strong> is an open source
-            LLM or a local LLM, the count shows it.
+            What engineers report about AI models in real work: <Link to="/reviews"><strong>AI model reviews</strong></Link> by
+            job and capability, an <Link to="/compare"><strong>AI model comparison</strong></Link>, and{' '}
+            <Link to="/tools">free tools</Link> to price a prompt and filter models by spec. Every statement is checked
+            against its source and counted by person, not ranked on one leaderboard.
           </p>
             </Reveal>
             <Freshness style={{ margin: '10px 0 0' }} />

@@ -225,6 +225,22 @@ export function pickerAlternatives(model, items = []) {
   }
 }
 
+/**
+ * One provider's alternatives (`/alternatives/<provider>`, 2026-10-22): the
+ * other providers' models engineers reported on the same jobs and
+ * capabilities. `provider` is { id, label }.
+ */
+export function pickerProviderAlternatives(provider, items = []) {
+  return {
+    title: fullTitle(`${provider.label} alternatives: AI models engineers report working`),
+    description: clip(`The AI models from other providers that engineers reported working on the same jobs and capabilities as ${provider.label}'s models, counted from their public posts.`),
+    canonical: `/alternatives/${provider.id}`,
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Best AI model picker', path: '/best-ai-model' },
+      { name: `${provider.label} alternatives`, path: `/alternatives/${provider.id}` }],
+    list: { name: `Alternatives to ${provider.label}`, items },
+  }
+}
+
 /** `/ai-models` and `/ai-models/latest`: every model OpenRouter lists. `type` is a
  *  model type key (`image`), `'new'` for the latest releases, or null for All models. */
 const CATALOG_TYPE_NAMES = { text: 'Text', image: 'Image', video: 'Video', speech: 'Speech', audio: 'Audio', transcription: 'Transcription', decisions: 'Decision' }

@@ -6,7 +6,7 @@ import Freshness from '../components/Freshness'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert } from '../components/Icons'
 import { useHead } from '../seo/head'
-import { reportsIndex } from '../seo/pages'
+import { inSentence, reportsIndex } from '../seo/pages'
 import { comparePath } from '../compare/path'
 
 /**
@@ -461,10 +461,12 @@ function AxisView({ v, axes, kind, slug, min, multi, href }) {
  * the nav first used are redirected to their page.
  */
 const SECTIONS = {
-  models: { pill: 'models', title: 'Models', lede: 'Every AI model on our registry that engineers have reported on in real use, with what it has been discussed for.' },
-  jobs: { pill: 'job', title: 'Jobs', lede: 'What people used AI models for, such as coding agents or summarising documents, and which models they reported on for each.' },
-  capabilities: { pill: 'capability', title: 'Capabilities', lede: 'Specific abilities people reported working or failing, such as reasoning, tool use, vision or long context.' },
-  metrics: { pill: 'metric', title: 'Metrics', lede: 'Figures people measured themselves, such as speed, cost or benchmark results, counted by the reports that gave them.' },
+  // THE SHORT ANSWERS (2026-10-22, approved draft): keyword-led, and each is
+  // also its section's search description (seo/pages.js reportsIndex).
+  models: { pill: 'models', title: 'Models', lede: 'AI model reviews from engineers who used them in real work: the jobs, capabilities and benchmarks each model was reported on, counted by person and never quoted.' },
+  jobs: { pill: 'job', title: 'Jobs', lede: 'The best AI model for coding, coding agents, RAG or code review, by what engineers reported working at each job, each job named from the reports themselves.' },
+  capabilities: { pill: 'capability', title: 'Capabilities', lede: 'Which AI models engineers reported good or poor at reasoning, tool use, vision and long context, counted by person for each capability.' },
+  metrics: { pill: 'metric', title: 'Metrics', lede: 'AI model benchmarks, speed and cost that engineers measured themselves, such as SWE-bench, counted by the reports that gave each figure.' },
 }
 
 export default function Reports() {
@@ -568,9 +570,26 @@ export default function Reports() {
     : !sectionKey || sectionKey === 'models'
     ? 'AI model reviews: ranked by engineer reports'
     : `AI model reviews by ${REVIEW_BY[sectionKey] || (section?.title || 'section').toLowerCase()}`
-  const lede = section
+  // ONE ITEM'S SHORT ANSWER (2026-10-22, approved draft): a job's or a model's
+  // page says what it holds; the counts are the page's own, at this threshold.
+  // A job's line names no model (a count, not a verdict).
+  const itemLede = (() => {
+    if (!item || !v || !itemName) return null
+    if (pill === 'job') {
+      const x = (v.byKind.job || []).find((k) => k.axis.slug === item)
+      return x ? `The best AI model for ${inSentence(itemName)}, by what engineers reported: ${plural(x.models.length, 'model')}, each with how many people said it worked or failed.` : null
+    }
+    if (pill === 'models') {
+      const r = v.models.find((m) => modelId(m) === item || m.key === item)
+      if (!r) return null
+      const n = KINDS.reduce((t, k) => t + r.axes[k.id].length, 0)
+      return `${itemName} reviews from engineers: ${plural(n, 'job, capability or metric', 'jobs, capabilities and metrics')}, counted by person and never quoted.`
+    }
+    return null
+  })()
+  const lede = itemLede || (section
     ? section.lede
-    : 'The jobs they used them for, the capabilities they tested and the figures they measured. Everything is counted from our evidence collection and never quoted.'
+    : 'The jobs they used them for, the capabilities they tested and the figures they measured. Everything is counted from our evidence collection and never quoted.')
 
   return (
     <div className="shell section-tight stack stack-4 rp">

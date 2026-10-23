@@ -431,3 +431,46 @@ def test_the_comparison_threshold_is_required(monkeypatch):
     monkeypatch.setattr(config, "_read", without)
     with pytest.raises(seo.IndexingContractError):
         seo.rules()
+
+
+def test_a_provider_with_enough_alternatives_pages_gets_its_own(conn, monkeypatch):
+    """/alternatives/<provider> (2026-10-22) is listed once the provider has
+    `provider_alternatives.min_models` models whose own alternatives page is
+    listed; a provider with fewer is not."""
+    from judge.store import board_entries
+
+    need = seo.rules()["provider_alt_min_models"]
+    rows = [("mv_t", "acme/model-t")] + [(f"mv_a{i}", f"acme/model-{i}") for i in range(need)] \
+        + [("mv_z", "zeta/model-z")]
+    for mv, canon in rows[1:]:
+        conn.execute("INSERT INTO model_version (id, canonical_id, provider, sources, provenance) "
+                     "VALUES (%s, %s, 'x', '{}', 'polled')", (mv, canon))
+        # one board entry each: the model loop only weighs models with entries
+        conn.execute(_ENTRY.replace("'mv_t'", "%s"),
+                     (f"be_{mv}", "tool-use", "Tool use", mv, "d1", f"quote for {mv}"))
+    conn.commit()
+    models = [{"model_canonical": c, "model_key": mv, "voices": 9} for mv, c in rows]
+    sections = {"capability": [{"slug": "tool-use", "voices": 9, "models": models}]}
+    monkeypatch.setattr(board_entries, "board_sections", lambda c, hide_source=None: sections)
+    monkeypatch.setattr(board_entries, "voices_by_model", lambda c, **kw: {mv: 9 for mv, _ in rows},
+                        raising=False)
+    paths = {p["path"]: p["kind"] for p in seo.indexable_pages(conn)["paths"]}
+    assert paths["/alternatives/model-z"] == "model"      # zeta's one model has its own
+    assert paths.get("/alternatives/acme") == "provider_alt"
+    assert "/alternatives/zeta" not in paths               # one model: below the line
+
+
+def test_the_provider_alternatives_threshold_is_required(monkeypatch):
+    from judge import config
+
+    real = config._read
+
+    def without(name):
+        data = dict(real(name) or {})
+        if name == "indexing.yaml":
+            data.pop("provider_alternatives", None)
+        return data
+
+    monkeypatch.setattr(config, "_read", without)
+    with pytest.raises(seo.IndexingContractError):
+        seo.rules()

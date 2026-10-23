@@ -55,6 +55,7 @@ def rules() -> dict:
             "blog_posts": str(raw["blog_posts"]),
             "model_type_min_models": int(raw["model_types"]["min_reported_models"]),
             "compare_min_voices": int(raw["compare_pairs"]["min_voices"]),
+            "provider_alt_min_models": int(raw["provider_alternatives"]["min_models"]),
         }
     except (KeyError, TypeError, ValueError) as exc:
         raise IndexingContractError(
@@ -64,6 +65,10 @@ def rules() -> dict:
     for kind, n in out["min_voices"].items():
         if n < 1:
             raise IndexingContractError(f"`pages.{kind}.min_voices` must be at least 1, not {n}.")
+    if out["provider_alt_min_models"] < 1:
+        raise IndexingContractError(
+            "`provider_alternatives.min_models` must be at least 1, not "
+            f"{out['provider_alt_min_models']}.")
     if out["compare_min_voices"] < 1:
         raise IndexingContractError(
             f"`compare_pairs.min_voices` must be at least 1, not {out['compare_min_voices']}.")
@@ -97,6 +102,9 @@ def indexable_pages(conn: Any) -> dict:
                           /alternatives/:name (the picker's alternatives to it)
         model_in_section  counted for the tally only - no public page shows one
                           model inside one section
+        provider_alt      /alternatives/:provider (2026-10-22) - once the provider
+                          has `provider_alternatives.min_models` models whose
+                          own alternatives page is listed
         compare_pair      /compare/:a-vs-:b (2026-10-21) - two models that both
                           have `compare_pairs.min_voices` in one shared section
         glossary_term     /glossary/:slug - every term in glossary.yaml, which is
@@ -185,6 +193,9 @@ def indexable_pages(conn: Any) -> dict:
     # picker writes its canonical by (web/src/routes/ModelPicker.jsx, altSlug).
     names = Counter(c.split("/", 1)[1] for _, c in registry if c and "/" in c)
 
+    # Per provider, its models whose alternatives page is listed (below).
+    with_alternatives: Counter = Counter()
+
     def alt_slug(canonical: str) -> str:
         name = canonical.split("/", 1)[1]
         return name if names[name] == 1 else canonical.replace("/", "--", 1)
@@ -216,9 +227,18 @@ def indexable_pages(conn: Any) -> dict:
             # metrics alone has no alternatives page (it would read "not found").
             if "/" in canonical and canonical in in_picker:
                 paths.append(f"/alternatives/{alt_slug(canonical)}")
+                with_alternatives[canonical.split("/", 1)[0]] += 1
             for path in paths:
                 out.append({"path": path, "kind": "model", "voices": v,
                             "lastmod": mkey_lastmod.get(mv_id)})
+
+    # A PROVIDER'S ALTERNATIVES (2026-10-22): /alternatives/openai, once that
+    # many of its models have an alternatives page of their own. Not when the
+    # provider id is also a model's name - the picker reads a model first.
+    for provider, n in sorted(with_alternatives.items()):
+        if n >= r["provider_alt_min_models"] and names[provider] == 0:
+            out.append({"path": f"/alternatives/{quote(provider, safe='')}", "kind": "provider_alt",
+                        "voices": None})
 
     # MODEL TYPE PAGES (2026-10-21): /ai-models/image lists the image models
     # engineers reported on, and stays empty until one has a voice. Counted by

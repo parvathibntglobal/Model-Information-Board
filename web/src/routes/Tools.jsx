@@ -42,7 +42,7 @@ export default function Tools() {
         <span className="go-badge go-models page-tag" style={{ alignSelf: 'flex-start' }}>Tools</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Free AI model tools</h1>
         <p className="muted" style={{ maxWidth: '72ch', margin: 0 }}>
-          Which models engineers reported working for your job, what every model advertises, and what your prompt would cost on each one.
+          Free AI model tools: a picker for the best model for your job, a pricing and specs table, and an LLM cost calculator. No sign-in.
         </p>
       </div>
       <div style={{ display: 'grid', gap: 'var(--s3)', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>

@@ -202,6 +202,23 @@ function Lifecycle({ m }) {
   )
 }
 
+/**
+ * THE SHORT ANSWER (2026-10-22, approved draft): "<model> pricing", the price
+ * and context as listed, and how many engineers reported on it - each part
+ * only where the catalogue has it (rule 6: nothing guessed).
+ */
+function shortAnswer(m) {
+  const price = m.price_state === 'free' ? 'free, as OpenRouter lists it'
+    : m.price_state === 'priced' && m.price_in != null && m.price_out != null
+      ? `${fmtUsd(m.price_in)} per million input tokens and ${fmtUsd(m.price_out)} output`
+      : 'no per-token price published'
+  const ctx = m.context ? `, ${fmtCtx(m.context)} context window` : ''
+  const said = m.voices > 0
+    ? ` ${m.voices} ${m.voices === 1 ? 'engineer has' : 'engineers have'} reported on it, in ${m.reports} ${m.reports === 1 ? 'post' : 'posts'}.`
+    : ' No engineer reports on it yet.'
+  return `${m.name} pricing: ${price}${ctx}.${said}`
+}
+
 export default function ModelPage({ id }) {
   const [state, setState] = useState({ m: null, err: null, absent: false })
   useEffect(() => {
@@ -238,6 +255,7 @@ export default function ModelPage({ id }) {
           {m.listed_at && <span className="cat-reads">Listed {fmtDate(m.listed_at)}</span>}
           <span className="cat-id">{m.id}</span>
         </div>
+        <p className="mp2-answer" style={{ maxWidth: '78ch', margin: 0 }}>{shortAnswer(m)}</p>
         {m.description && <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.description}</p>}
         <Freshness modelIds={[m.id]} style={{ margin: 0 }} />
         <div className="mp2-actions">
