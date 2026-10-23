@@ -1,0 +1,65 @@
+# HOW THE LOCAL VRAM TOOL TURNS A FILE SIZE INTO "FITS" (PROPOSED 2026-10-23,
+# docs/proposals/can-i-run-it.md). Every constant the arithmetic uses is here
+# and nowhere in code (rules 5 and 12): the reader of judge/ finds a KeyError,
+# never a default, if a key is missing.
+#
+# ⚠ THE FIGURE A PAGE SHOWS IS THE MEASURED FILE SIZE (rule 3). The size of the
+#   exact GGUF file, read from Hugging Face. Everything below goes only into the
+#   ESTIMATED total and its band, and the page labels that total "estimate" and
+#   says in words what it adds.
+
+# The quantizations a reader can pick. Each must be a key under every model's
+# `files` in local_models.yaml.
+quants: [Q4_K_M, Q8_0]
+
+# Context lengths a reader can pick, in tokens. A model whose header states a
+# smaller maximum is capped to it, and the page says so.
+contexts: [4096, 8192, 32768, 131072]
+
+# Bytes per cached element. The KV cache holds a key and a value per layer per
+# token: 2 x layers x kv_heads x head_dim x bytes, per token.
+#   f16    llama.cpp's default cache type.
+#   q8_0   llama.cpp's 8-bit cache: 32 values in 34 bytes.
+kv_cache_bytes: {f16: 2.0, q8_0: 1.0625}
+
+# What the runtime needs beyond weights and cache: CUDA/Metal context and
+# compute buffers. AN ESTIMATE, not a measurement - llama.cpp's own figure
+# varies with batch size and backend. Recorded as one number so a reader can
+# see it, and so a measurement can replace it in one place.
+runtime_overhead_gib: 1.0
+
+# Splitting across several discrete cards (layer split in llama.cpp) pays the
+# runtime overhead once per card. The weights and cache divide; this does not.
+overhead_per_card: true
+
+# The share of a Mac's unified memory the GPU may use by default. macOS caps
+# it below the total; the exact cap varies by memory size and is not published
+# by Apple. ⚠ OPEN QUESTION FOR REVIEW: 0.75 is the figure commonly quoted for
+# larger machines; smaller ones are reported lower. A lower number makes the
+# tool say "won't fit" more often, which is the cheaper mistake.
+apple_gpu_share: 0.75
+
+# Bands, as a share of the memory the model may use. A band is a word on the
+# page, never a number (rule 3's "consensus is a phrase").
+#   fits        total at or below `fits_at_most` of the budget
+#   tight       above that, at or below the whole budget
+#   won't fit   above the budget
+bands:
+  fits_at_most: 0.85
+
+# When a header field the cache arithmetic needs is missing - or the model uses
+# an attention type the arithmetic does not model (sliding-window layers whose
+# pattern the header does not state, linear/state-space layers, latent
+# attention) - the tool computes the FULL-ATTENTION cache, which is an upper
+# bound, and says "upper bound" on the row. An upper bound can only make a
+# model look bigger than it is; a guess could make it look smaller (rule 12).
+cache_when_unmodelled: upper_bound
+
+# Reading a GGUF header: ranged requests of this many bytes, stopping at the
+# first one that completes the key/value section. That last step can run past
+# the metadata by up to one step; those bytes are discarded unread, and tensors
+# are never parsed or stored. `max_header_bytes` is where the collector gives up
+# and records the model's header as unread (rule 6), rather than reading on.
+header_read:
+  chunk_bytes: 4194304
+  max_header_bytes: 33554432
