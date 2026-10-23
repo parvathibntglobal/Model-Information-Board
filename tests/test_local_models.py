@@ -251,6 +251,21 @@ def test_the_hardware_list_loads_grouped_and_every_mac_has_its_share():
     assert macs and all(s == view.gpu_share(gib, table) for gib, s in macs.items())
 
 
+def test_an_unchecked_device_says_so_and_none_is_defaulted(monkeypatch):
+    """#559 review: the six AMD cards' pages would not load, and the page has to
+    show that, not only the contract. A device with no flag is refused."""
+    devices = view.hardware()
+    assert sorted(d["id"] for d in devices if d["checked"] is False) == [
+        "rx-7600", "rx-7700-xt", "rx-7800-xt", "rx-7900-xt", "rx-7900-xtx", "rx-9070-xt"]
+    settings = view.inference_settings()
+    raw = view._read("local_hardware.yaml")
+    unflagged = {**raw, "devices": [{k: v for k, v in d.items() if k != "checked"}
+                                    for d in raw["devices"]]}
+    monkeypatch.setattr(view, "_read", lambda name: unflagged)
+    with pytest.raises(view.LocalModelsContractError):
+        view.hardware(settings)
+
+
 def test_a_mac_takes_the_largest_row_at_or_below_its_memory():
     table = [{"from_gib": 0, "share": 0.66}, {"from_gib": 64, "share": 0.75}]
     assert [view.gpu_share(g, table) for g in (8, 48, 63.9, 64, 512)] == [

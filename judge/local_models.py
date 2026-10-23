@@ -106,17 +106,20 @@ def hardware(settings: dict | None = None) -> list[dict[str, Any]]:
         order = [g for g, _ in groups]
         devices = [{"id": str(d["id"]), "name": str(d["name"]), "kind": str(d["kind"]),
                     "memory_gib": float(d["memory_gib"]), "group": labels[str(d["group"])],
-                    "source": sources[str(d["source"])], "_order": order.index(str(d["group"]))}
+                    "source": sources[str(d["source"])], "checked": d["checked"],
+                    "_order": order.index(str(d["group"]))}
                    for d in raw["devices"]]
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise LocalModelsContractError(
             f"contract/local_hardware.yaml is missing or malformed at {exc}.") from exc
+    # `checked` is required and must be a real boolean: a device whose figure
+    # nobody has found on its page must say so, never default to checked.
     bad = [d["id"] for d in devices if d["kind"] not in ("discrete", "unified")
-           or d["memory_gib"] <= 0]
+           or d["memory_gib"] <= 0 or not isinstance(d["checked"], bool)]
     ids = [d["id"] for d in devices]
     if bad or len(set(ids)) != len(ids):
         raise LocalModelsContractError(
-            f"local_hardware.yaml: bad kind/memory {bad}, or duplicate ids.")
+            f"local_hardware.yaml: bad kind, memory or checked flag {bad}, or duplicate ids.")
     devices.sort(key=lambda d: d.pop("_order"))
     for d in devices:
         if d["kind"] == "unified":

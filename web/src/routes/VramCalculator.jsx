@@ -107,7 +107,7 @@ export default function VramCalculator() {
                 {[...new Set(devices.map((d) => d.group))].map((g) => (
                   <optgroup key={g} label={g}>
                     {devices.filter((d) => d.group === g).map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} · {d.memory_gib} GiB</option>
+                      <option key={d.id} value={d.id}>{d.name} · {d.memory_gib} GiB{d.checked ? '' : ' (not yet checked)'}</option>
                     ))}
                   </optgroup>
                 ))}
@@ -157,6 +157,9 @@ export default function VramCalculator() {
               {device.kind === 'unified'
                 ? <>macOS lets the GPU use only part of a Mac&apos;s unified memory, and a smaller part on smaller Macs. The groups below count only that part.</>
                 : <>{cards > 1 ? `${cards} × ${device.memory_gib} GiB, split by layer across the cards.` : `${device.memory_gib} GiB of graphics memory.`}</>}
+              {!device.checked && (
+                <> This card&apos;s memory is the size it is sold with, not yet checked against <a href={device.source} target="_blank" rel="noopener noreferrer">the maker&apos;s page</a>.</>
+              )}
             </p>
           </section>
 
