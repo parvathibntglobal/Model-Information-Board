@@ -153,15 +153,14 @@ function QuoteCard({ q }) {
   )
 }
 
-// THE REPORTS BEHIND A SIDE (2026-10-21): the evidence feed for this model on
-// this job or capability, one side. These counts are ENGINEERS; the feed lists
-// the reports those engineers wrote on that side - the same people, counted as
-// reports there. Neutral is not linked: here it is any neutral mention, in the
-// feed a report that took no side, and those are different populations.
-function SideCount({ to, n }) {
-  return n > 0 && to
-    ? <FeedLink to={to} className="ev-open" title={`Open the reports these ${engineers(n)} wrote`}>{engineers(n)}</FeedLink>
-    : <>{engineers(n)}</>
+// A COUNT HERE IS ENGINEERS, AND IS NOT A LINK (2026-10-23, #558 review). The
+// number is distinct authors per side; the feed lists REPORTS, including ones
+// with no recorded author, so "3 engineers" could open four reports and the 3
+// would appear nowhere on the page it opened (rule 7). The way in is a separate
+// link that names what it opens and carries no number. Neutral is not linked:
+// here it is any neutral mention, in the feed a report that took no side.
+function SideCount({ n }) {
+  return <>{engineers(n)}</>
 }
 
 function Side({ title, tone, quotes, count, empty, to }) {
@@ -170,7 +169,12 @@ function Side({ title, tone, quotes, count, empty, to }) {
   // quote - and must say that, not "nobody" (rule 4).
   return (
     <section className={`lv-side lv-side-${tone}`}>
-      <h2>{title} <span><SideCount to={to} n={count} /></span></h2>
+      <h2>{title} <span><SideCount n={count} /></span></h2>
+      {count > 0 && to && (
+        <FeedLink to={to} className="ev-open" fallback={null}>
+          Read the reports on this side, in our words →
+        </FeedLink>
+      )}
       {quotes.length === 0
         ? <p className="lv-none">{count > 0
           ? `${engineers(count)} counted here, from posts that are not quoted on public pages.`
@@ -213,8 +217,8 @@ export function Wall({ rest }) {
             <span className="lv-kicker">{w.section === 'best_for' ? 'Job' : 'Capability'} · claim and counter-claim</span>
             <h1>{name} on {w.topic}</h1>
             <p className="lv-sub">
-              <b className="lv-pos"><SideCount to={feed('positive')} n={w.working} /></b> {reports(w.working)} it working ·{' '}
-              <b className="lv-neg"><SideCount to={feed('negative')} n={w.problems} /></b> {reports(w.problems)} problems
+              <b className="lv-pos"><SideCount n={w.working} /></b> {reports(w.working)} it working ·{' '}
+              <b className="lv-neg"><SideCount n={w.problems} /></b> {reports(w.problems)} problems
               {w.neutral > 0 && <> · {engineers(w.neutral)} neutral</>}
             </p>
             {w.about && <p className="lv-about">{w.about}</p>}

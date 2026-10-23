@@ -120,19 +120,19 @@ export function AnswersFor({ rest }) {
                 ) : (
                   <>
                     <p className="qa-rep">
-                      {/* LINKED ONLY WHEN ONE TOPIC IS BEHIND THE COUNT: several
-                          topics have no single feed filter, so no link (never a
-                          guess). Engineers here; the feed lists their reports on
-                          that side. Neutral mentions are a different population. */}
-                      <b>Reported:</b> {a.topics.length === 1 && a.working > 0
-                        ? <FeedLink to={evidencePath(d.model.id, { section: 'capability', slug: a.topics[0].slug, polarity: 'positive' })}
-                                className="ev-open" title={`Open the reports these ${engineers(a.working)} wrote`}>{engineers(a.working)}</FeedLink>
-                        : engineers(a.working)} {reports(a.working)} it working,{' '}
-                      {a.topics.length === 1 && a.problems > 0
-                        ? <FeedLink to={evidencePath(d.model.id, { section: 'capability', slug: a.topics[0].slug, polarity: 'negative' })}
-                                className="ev-open" title={`Open the reports these ${a.problems} engineers wrote`}>{a.problems}</FeedLink>
-                        : a.problems} {reports(a.problems)} problems
+                      {/* THE COUNTS ARE ENGINEERS AND ARE NOT LINKS (2026-10-23,
+                          #558 review): the feed lists REPORTS, so a linked "3"
+                          could open four and appear nowhere there (rule 7). The
+                          way in is the separate link below, only when one topic
+                          is behind the count - several topics have no single
+                          feed filter, so no link rather than a guess. */}
+                      <b>Reported:</b> {engineers(a.working)} {reports(a.working)} it working,{' '}
+                      {a.problems} {reports(a.problems)} problems
                       {a.neutral ? `, ${a.neutral} mention it` : ''}.
+                      {a.topics.length === 1 && (a.working > 0 || a.problems > 0) && (
+                        <>{' '}<FeedLink to={evidencePath(d.model.id, { section: 'capability', slug: a.topics[0].slug })}
+                                         className="ev-open" fallback={null}>Read the reports in our words →</FeedLink></>
+                      )}
                     </p>
                     {[a.sample_working, a.sample_problems].filter(Boolean).map((q, k) => (
                       <blockquote key={k} className={`lv-quote qa-q-${q.polarity}`}>

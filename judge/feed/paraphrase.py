@@ -9,8 +9,10 @@ STORED ONCE CODE HAS CHECKED ITS SHAPE (judge/feed/checks.py), with no person
 reading each one - which is what makes this rule 2's first caller whose text
 reaches a page unreviewed, and why the PROPOSED rule-2 amendment
 (docs/proposals/evidence-feed.md) has to land before it reaches main. A
-refused paraphrase is asked for once more, with the reason; refused twice, the
-report stays in the feed with its source and "not paraphrased yet" (rule 4).
+refused paraphrase is asked for again, with the reason, up to
+`paraphrase.attempts` calls in all (contract/evidence_feed.yaml; 4 on
+2026-10-23); refused every time, the report stays in the feed with its source
+and "not paraphrased yet" (rule 4).
 
 NEWEST FIRST, so a partial run fills the top of every feed - the part a reader
 sees - before the archive.

@@ -43,33 +43,63 @@ The header carries both units the site uses — reports (everywhere) and entries
 
 ## Amendment 1: rule 2
 
-Rule 2 allows two stages to call a model; the blog generator (2026-10-06) and
-the quiz drafter (2026-10-15) were added as the same shape: **a model drafts, a
-person approves, nothing reaches a page unread**. The summary keeps that shape.
-**The paraphrases do not**, and that is the decision:
+Rule 2 names two stages that may call a model (extract, ask) and records a
+third, the blog generator (2026-10-06, #508), as the same shape: **a model
+drafts, a person approves, nothing reaches a page unread**. The quiz drafter
+(2026-10-15, spend stage `quiz`) is that shape too but is **not recorded in
+rule 2** - corrected here from "fifth caller" after review on #558; recording it
+is its own change. The summary keeps that shape. **The paraphrases do not**,
+and that is the decision:
 
 > 4,122 reports exist today (shared DB, 2026-10-21) and about 500 arrive a
 > week. Nobody can approve them one by one. So a paraphrase is stored once
 > **code** has checked its shape, and published without a person reading it.
 
-Proposed text, to append to rule 2 in `CLAUDE.md`:
+Proposed text, added to rule 2 in `CLAUDE.md` in this PR and marked PROPOSED
+there, so the amendment and the code land in the same merge:
 
-> **The evidence feed is the fifth caller, and the first whose text reaches a
-> page without a person reading each item** (`judge/feed/`, 2026-10-XX). A
-> paraphrase restates one report; it is stored only after code checks that it
-> copies no run longer than `max_copied_words` from the source, carries no
-> number the source does not, names no handle, link or embed-only platform, and
-> fits the length. Whether it is *faithful* is left to the reader, which is why
-> every item carries its source one click away and the polarity shown is the
-> extractor's, never the paraphraser's. The summary keeps the guard of the blog
-> and the quiz: a person approves it. Nothing the feed's model writes counts,
-> weights, orders, filters or labels anything.
+> **A fourth recorded caller, PROPOSED 2026-10-23 (#558): the evidence feed,
+> `judge/feed/` - the first whose text reaches a page without a person reading
+> each item.** A paraphrase restates one report. It is stored only after code
+> checks, and the code checks exactly this (`judge/feed/checks.py`):
+> - **copying:** no run of consecutive words longer than `max_copied_words`
+>   shared with the source; a word is letters or digits in any script, and in
+>   Chinese, Japanese or Korean each character is one word;
+> - **numbers:** every number in digits appears exactly in the source ("4" does
+>   not match "4.1"); a number from the model's name only right after the word
+>   it follows in the name ("GLM 5", not "costs 5"); the words two..ninety,
+>   hundred, thousand, million, billion, dozen and percent appear in the source
+>   as words or digits (a multiplier after "per" or after a sourced number is a
+>   unit, "per million tokens");
+> - **identity:** no URL, no bare domain other than the vendor's own in the
+>   model's name (`huggingface.co` is refused, `Z.ai` for a Z.ai model is not),
+>   no `@`, `u/` or `r/` handle, no "reddit", "subreddit", "redditor",
+>   "twitter", "tweet" or "x.com";
+> - **length:** non-empty and within `max_chars`.
+>
+> **Not checked, so nobody assumes it is:** "one", "half", "twice" and other
+> number words outside that list; a shortened decimal when the short form is
+> also in the source ("4.1" written "4" next to a "GLM 4"); a bare "X"; a
+> community named without `r/`; a domain on a top-level name not in the list;
+> and faithfulness - a number that is in the source but attached to the wrong
+> thing passes. The source sits one click from every item for that reason, and
+> the polarity shown is the extractor's, never the paraphraser's. The summary
+> keeps the guard of the blog generator: a person approves it. Nothing the
+> feed's model writes counts, weights, orders, filters or labels anything.
 
-What code **cannot** check, stated so nobody assumes it does: faithfulness. The
-number check proves each number appears *somewhere* in the report's excerpts,
-not that it is attached to the right thing — seen in the trial, where a
-paraphrase paired "121 tokens per second prefill" from one excerpt with a
-checkpoint from another. The source link is the reader's check.
+What tightening these cost, measured 2026-10-23 over the 4,102 paraphrases
+stored on the local copy (a population the earlier checks had already passed,
+so it says what the NEW rules refuse, not how good the old ones were): **34
+would now be refused** - 27 number words (mostly the model counting things
+itself: "seven metrics", "four categories"), 5 version numbers written without
+the model's name, 2 bare domains. A first draft that also refused number words
+after "per" and a word-before rule for shortened decimals refused 181, most of
+them "per million tokens" and "79" for "79.0", and was cut back.
+`docs/measurements/feed-checks-tightened-2026-10-23.*`.
+
+What the trial found about faithfulness: a paraphrase paired "121 tokens per
+second prefill" from one excerpt with a checkpoint from another. Every number
+was in the source; the pairing was wrong. The source link is the reader's check.
 
 ## Amendment 2: `contract/publication.yaml` `evidence_feed`
 
@@ -90,7 +120,7 @@ Grok 4.7, copied read-only from the shared DB into a throwaway local database;
 
 | | |
 |---|---|
-| Reports paraphrased | **218 of 237** stored (92.0%) after one retry each; 19 refused twice and listed without text — 17 for copying more than 6 consecutive words, 2 for length |
+| Reports paraphrased | **218 of 237** stored (92.0%) after one retry each; 19 refused twice and listed without text — 17 for copying more than 6 consecutive words, 2 for length. (That trial ran at 2 attempts; the contract now says 4.) |
 | Paraphrase cost | **$0.0202** for those 237 reports, 26 calls — so the 4,122-report corpus is about **$0.35** once |
 | Summaries | both stored after prompt fixes (below); 402 and 566 words; 0 and 8 flags |
 | Embeds | 152 of 161 Reddit/X documents embeddable; 9 Reddit link posts had no post address because their raw payloads are not on the machine that ran it |

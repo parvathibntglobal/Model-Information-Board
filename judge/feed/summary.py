@@ -326,23 +326,30 @@ def _cited(conn, model: dict, ids: list[str]) -> dict[str, dict]:
     """Each cited report as the page shows it: date, paraphrase, source."""
     if not ids:
         return {}
+    from judge.config import evidence_feed_settings
+
     reports = {d: es for d, es in by_report(model_entries(conn, model)).items() if d in set(ids)}
     embeds = {
-        d: {"outcome": o, "url": u, "title": t, "author": a, "community": c}
-        for d, o, u, t, a, c in conn.execute(
-            "SELECT document_id, outcome, url, title, author, community FROM feed_embed "
-            "WHERE document_id = ANY(%s)",
+        d: {"outcome": o, "url": u}
+        for d, o, u in conn.execute(
+            "SELECT document_id, outcome, url FROM feed_embed WHERE document_id = ANY(%s)",
             (ids,),
         ).fetchall()
     }
-    texts = dict(
-        conn.execute(
-            "SELECT DISTINCT ON (document_id) document_id, text FROM feed_paraphrase "
-            "WHERE model_version_id = %s AND document_id = ANY(%s) "
-            "ORDER BY document_id, generated_at DESC",
-            (model["key"], ids),
+    # THE FEED'S RULE FOR A CURRENT PARAPHRASE (2026-10-23, #558 review): the
+    # current prompt version, written from the excerpts the report has now. An
+    # approved summary's citation shows "not paraphrased yet" rather than a
+    # paraphrase the feed itself has stopped showing.
+    version = evidence_feed_settings()["paraphrase"]["prompt_version"]
+    texts = {
+        d: text
+        for d, text, digest in conn.execute(
+            "SELECT document_id, text, excerpts_digest FROM feed_paraphrase "
+            "WHERE model_version_id = %s AND prompt_version = %s AND document_id = ANY(%s)",
+            (model["key"], version, ids),
         ).fetchall()
-    )
+        if d in reports and digest == excerpts_digest(reports[d])
+    }
     out = {}
     for d in ids:
         es = reports.get(d)
@@ -411,8 +418,12 @@ def current(conn, model_id: str) -> dict:
             for es in by_report(model_entries(conn, model)).values()
             if es[0]["posted_at"] and es[0]["posted_at"] > newest
         )
-    out.pop("flags", None)
-    out.pop("review_note", None)
+    # THE PUBLIC TAB'S FIELDS ONLY (rule 9, #558 review). Flags and the review
+    # note are the reviewer's; the proposer model, when it was drafted and the
+    # row id are Admin's (listing()) - the tab says "drafted by a language model
+    # and approved by a person on <reviewed_at>" and reads none of them.
+    for admin_only in ("flags", "review_note", "proposer_model", "generated_at", "id"):
+        out.pop(admin_only, None)
     return {"model": model, "summary": out, "state": "approved", "reports_since": since}
 
 
@@ -440,7 +451,15 @@ def counts(conn) -> dict[str, int]:
 
 def models_due(conn, paraphrase_version: str, min_reports: int) -> list[dict[str, Any]]:
     """Models with enough paraphrased reports and nothing newer than their last
-    draft: no draft yet, or a report posted after the newest one drafted from."""
+    draft: no draft yet, or a report posted after the newest one drafted from.
+
+    A REJECTED DRAFT COUNTS AS DRAFTED (2026-10-23, #558 review). Counting only
+    pending and approved meant a rejected model was drafted again on every
+    `--summaries --apply` run, up to `summary.attempts` paid calls each time,
+    from the same reports a person had just turned down. It is drafted again
+    once a newer report arrives. A draft the checks refused is not stored, so it
+    is still retried on the next run - bounded by `summary.attempts` calls per
+    model per run, and listed by name in that run's report."""
     rows = conn.execute(
         "SELECT fp.model_version_id, count(*), max(d.created_at) FROM feed_paraphrase fp "
         "JOIN document d ON d.id = fp.document_id WHERE fp.prompt_version = %s "
@@ -450,7 +469,7 @@ def models_due(conn, paraphrase_version: str, min_reports: int) -> list[dict[str
     last = dict(
         conn.execute(
             "SELECT model_version_id, max(newest_report_at) FROM feed_summary "
-            "WHERE state IN ('pending', 'approved') GROUP BY 1"
+            "WHERE state IN ('pending', 'approved', 'rejected', 'superseded') GROUP BY 1"
         ).fetchall()
     )
     due = []

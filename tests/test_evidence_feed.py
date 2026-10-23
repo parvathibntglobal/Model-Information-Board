@@ -11,8 +11,9 @@ What these hold, in the order a reader would worry about them:
     of a report, from any source.
 
     THE CHECKS DECIDE, THE MODEL PROPOSES. A paraphrase that copies the
-    source or adds a number is refused, asked again once, and if refused again
-    the report stays in the feed without text - never dropped (rule 4).
+    source or adds a number is refused and asked again, up to the contract's
+    `attempts`; refused every time, the report stays in the feed without text -
+    never dropped (rule 4).
 
     A SUMMARY IS SEEN ONLY ONCE A PERSON APPROVED IT.
 
@@ -355,16 +356,21 @@ class TestThePopulationIsTheCounts:
         assert out["counts"]["voices"] == 3  # au1 twice; d6 has no author
         assert {i["id"] for i in out["items"]} == {"d1", "d2", "d3", "d4", "d6"}
 
-    def test_a_section_page_and_the_feed_agree(self, conn):
-        """The number on the capability page IS the feed's number."""
+    @pytest.mark.parametrize("hidden", [(), ("reddit",)])
+    def test_a_section_page_and_the_feed_agree(self, conn, monkeypatch, hidden):
+        """The number on the capability page IS the feed's number - with nothing
+        left out of totals (today), and with a source left out, which is what
+        `totals_include_withheld: false` would do. Both sides use the reports
+        page's rule (judge/reports.py), not a copy (#558 review)."""
         from judge.store.board_entries import board_sections
 
-        sections = board_sections(conn, hide_source=lambda s: False)
+        monkeypatch.setattr(publication, "hidden_from_counts", lambda: hidden)
+        sections = board_sections(conn, hide_source=lambda s: s in set(hidden))
         page = next(i for i in sections["capability"] if i["slug"] in ("tool-use", "tool_use"))
         row = next(m for m in page["models"] if m["model_key"] == "mv_a")
 
         out = _feed(conn, section="capability", slug="tool-use")
-        assert out["counts"]["reports"] == row["reports"] == 4
+        assert out["counts"]["reports"] == row["reports"] == (4 if not hidden else 3)
         assert out["counts"]["voices"] == row["voices"]
         assert out["counts"]["reports_by_polarity"] == row["report_split"]
 
@@ -519,7 +525,10 @@ class TestSummaries:
         second = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
         summary.review(conn, second["id"], "approve")
         assert summary.counts(conn) == {"approved": 1, "superseded": 1}
-        assert summary.current(conn, "acme/text-a")["summary"]["id"] == second["id"]
+        assert [s["id"] for s in summary.listing(conn, "approved")] == [second["id"]]
+        # The public tab carries no reviewer or Admin field (rule 9).
+        public = summary.current(conn, "acme/text-a")["summary"]
+        assert not {"id", "flags", "review_note", "proposer_model", "generated_at"} & set(public)
 
     def test_refused_twice_is_not_stored(self, conn):
         _paraphrase_all(conn)
@@ -755,3 +764,116 @@ def test_the_seated_list_is_a_public_read():
     from judge.gate import PUBLIC_READ_PATHS
 
     assert "/feed/models" in PUBLIC_READ_PATHS
+
+
+# ── the #558 review: what the checks catch, and what they do not (2026-10-23) ─
+
+
+def _p(text, excerpts, label="Z.ai: GLM 5", topics=()):
+    return checks.paraphrase_problem(text, excerpts, label, max_chars=320,
+                                     max_copied_words=6, topics=list(topics))
+
+
+class TestTheChecksCatchWhatTheAmendmentSays:
+    """Parvathi's five cases, each of which passed before."""
+
+    def test_a_number_written_as_words(self):
+        assert "ninety" in _p("Roughly ninety percent faster than before.", ["much faster now"])
+
+    def test_percent_needs_a_percentage_in_the_source(self):
+        assert "percent" in _p("Faster by some percent.", ["much faster now"])
+        assert _p("Faster by 40 percent.", ["it is 40% faster"]) is None
+
+    def test_a_copied_sentence_in_a_script_without_spaces(self):
+        """Each character is a word, so a copied Chinese sentence is a long run."""
+        src = "这个模型在长上下文任务中表现非常好而且速度很快"
+        assert "copies" in _p(src, [src])
+
+    def test_a_bare_domain_is_a_link(self):
+        assert "link" in _p("Found the weights via huggingface.co last week.", ["new weights"])
+
+    def test_a_number_from_the_model_name_only_inside_the_name(self):
+        assert _p("GLM 5 handled the task well.", ["handled the task well"]) is None
+        assert "adds a number" in _p("GLM 5 costs 5 dollars.", ["it is cheap"])
+
+    def test_a_decimal_shortened_where_the_short_form_is_not_in_the_source(self):
+        assert "adds a number" in _p("Scored 4 on the test.", ["scored 4.1 on the test"])
+
+    def test_the_vendor_domain_in_the_label_may_be_written(self):
+        assert _p("Z.ai released GLM 5 for coding.", ["released for coding"]) is None
+
+
+class TestWhatTheChecksDoNotCatch:
+    """Pinned so the rule-2 text and the code cannot drift apart: each of these
+    passes, and docs/proposals/evidence-feed.md says so."""
+
+    def test_a_shortened_decimal_when_the_short_form_is_also_in_the_source(self):
+        assert _p("Scored 4 on the test.", ["Scored 4.1 on GLM 4"]) is None
+
+    def test_a_bare_x_and_a_community_without_r_slash(self):
+        assert _p("Posted on X in LocalLLaMA about speed.", ["it is fast"]) is None
+
+    def test_a_unit_word_after_per_is_not_a_count(self):
+        assert _p("Costs $0.15 per million tokens.", ["$0.15/M tokens"]) is None
+
+    def test_a_name_that_starts_with_a_number_word(self):
+        assert _p("Built a game in three.js with it.", ["built a game with it"]) is None
+
+
+def test_the_shipped_retry_setting_is_what_the_code_reads(conn):
+    """contract/evidence_feed.yaml `paraphrase.attempts` (4 on 2026-10-23), not
+    the tests' 2: a paraphrase refused every time is asked for that many times,
+    then listed without text."""
+    from judge.config import evidence_feed_settings
+
+    shipped = evidence_feed_settings()["paraphrase"]["attempts"]
+    assert shipped >= 2
+    units = [u for u in paraphrase.pending(conn, "p1")[0] if u["document_id"] == "d1"]
+    too_long = {"paraphrases": [{"id": "R1", "text": "x " * 400}]}
+    model = FakeModel(*[too_long] * shipped)
+    report = paraphrase.run(conn, units, {**P_SETTINGS, "attempts": shipped}, call=model)
+    assert len(model.asked) == report["calls"] == shipped
+    assert report["stored"] == 0
+
+
+def test_a_rejected_draft_is_not_redrafted_until_a_newer_report(conn):
+    """#558 review: a rejected model was drafted again on every run, from the
+    same reports a person had just turned down."""
+    _paraphrase_all(conn)
+    assert [d["model_key"] for d in summary.models_due(conn, "p1", 1)] == ["mv_a"]
+    page = {"paragraphs": [{"text": "Tool selection is described as strong.", "cites": ["R1"]}]}
+    out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
+    summary.review(conn, out["id"], "reject")
+    assert summary.models_due(conn, "p1", 1) == []
+    # A report newer than the rejected draft was written from: due again.
+    conn.execute("UPDATE feed_summary SET newest_report_at = newest_report_at - interval '1 day'")
+    assert [d["model_key"] for d in summary.models_due(conn, "p1", 1)] == ["mv_a"]
+
+
+def test_the_public_payloads_carry_only_fields_with_a_reader(conn):
+    """Rule 9 for routes the API-field audit cannot analyse (/feed and
+    /feed/summary return a call, so scripts/audit_api_fields.py waives them).
+    Each key here has a reader, named; a new key fails until it is named too.
+
+    Read by web/src/routes/Evidence.jsx and web/src/evidence/parts.jsx:
+      item: id (list key), posted_at (Posted), polarity (PolarityChip), tags
+      (section+slug as key, name shown), paraphrase, source (SourceLine).
+      feed: model.label/.canonical, filter.name, counts.*, paraphrased,
+      matching, page.pages, items.
+      summary: paragraphs, cited, reports_used, reports_available,
+      newest_report_at, reviewed_at, state; reports_since.
+    DECLARED UNCONSUMED: model.key, filter.section/.slug/.category/.polarity,
+    page.page/.per_page - the request echoed back, so a response names what it
+    answers; no page reads them, none is costly, and none is a figure."""
+    _paraphrase_all(conn)
+    feed = _feed(conn)
+    assert set(feed) == {"model", "filter", "counts", "paraphrased", "matching", "page", "items"}
+    assert set(feed["items"][0]) == {"id", "posted_at", "polarity", "tags", "paraphrase", "source"}
+    assert all(set(t) == {"section", "slug", "name"} for i in feed["items"] for t in i["tags"])
+    page = {"paragraphs": [{"text": "Tool selection is described as strong.", "cites": ["R1"]}]}
+    out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
+    summary.review(conn, out["id"], "approve")
+    live = summary.current(conn, "acme/text-a")
+    assert set(live) == {"model", "summary", "state", "reports_since"}
+    assert set(live["summary"]) == {"state", "paragraphs", "reports_used", "reports_available",
+                                    "newest_report_at", "reviewed_at", "cited"}

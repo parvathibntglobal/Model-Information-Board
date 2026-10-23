@@ -59,20 +59,18 @@ export function PolarityChip({ polarity }) {
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
 /**
- * The platform's own markup, rebuilt from the fields we stored and only for a
- * URL of the expected shape - anything else draws nothing. The same rules as
- * the blog's `embedBlock` (web/src/board/views.js); its script turns the
- * blockquote into the post, with its author and date.
+ * The platform's own markup, built from the post's URL ALONE and only for a URL
+ * of the expected shape - anything else draws nothing. The platform's script
+ * turns the blockquote into the post and shows its title, author and community
+ * itself; none of those pass through our API (2026-10-23, #558 review). The
+ * blog's `embedBlock` (web/src/board/views.js) still rebuilds them from its
+ * reviewed drafts, which is a different payload.
  */
 function embedMarkup(s) {
   if (s.platform === 'reddit') {
     const u = String(s.url || '')
-    const m = u.match(/^https:\/\/www\.reddit\.com\/r\/(\w+)\/comments\/\w+/)
-    if (!m) return ''
-    const author = /^[\w-]{1,40}$/.test(s.author || '') ? s.author : ''
-    return `<blockquote class="reddit-embed-bq" style="height:316px"><a href="${esc(u)}">${esc(s.title || 'View this post on Reddit')}</a><br> by `
-      + (author ? `<a href="https://www.reddit.com/user/${esc(author)}/">u/${esc(author)}</a>` : 'a Reddit user')
-      + ` in <a href="https://www.reddit.com/r/${esc(m[1])}/">${esc(m[1])}</a></blockquote>`
+    if (!/^https:\/\/www\.reddit\.com\/r\/\w+\/comments\/\w+/.test(u)) return ''
+    return `<blockquote class="reddit-embed-bq" style="height:316px"><a href="${esc(u)}">View this post on Reddit</a></blockquote>`
   }
   if (s.platform === 'x') {
     const m = String(s.url || '').match(/^https:\/\/(?:x|twitter)\.com\/(\w+)\/status\/(\d+)/)

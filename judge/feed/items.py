@@ -107,7 +107,12 @@ def require_seated(conn, model: dict) -> None:
 
 
 def model_entries(conn, model: dict) -> list[dict]:
-    """Every non-declined entry about the model, with its document."""
+    """Every non-declined entry about the model, with its document, less the
+    sources a public TOTAL leaves out (`publication.hidden_from_counts()`) -
+    the same rule the reports page and Compare count with (judge/reports.py),
+    so the feed's numbers move with theirs if `totals_include_withheld` ever
+    changes. Today it is true and nothing is left out."""
+    hidden = set(publication.hidden_from_counts())
     rows = conn.execute(
         "SELECT be.id, be.section, COALESCE(be.ruling_target, be.slug), be.name, "
         "       be.unit, be.value_verbatim, be.quote, be.polarity, be.document_id, "
@@ -135,6 +140,7 @@ def model_entries(conn, model: dict) -> list[dict]:
             "parent_proposed": r[13],
         }
         for r in rows
+        if r[9] not in hidden
     ]
 
 
@@ -244,14 +250,11 @@ def cite_source(entry: dict, embed: dict | None) -> dict:
             return {"kind": "pending", "platform": platform}
         if embed["outcome"] != "embeddable":
             return {"kind": "unavailable", "platform": platform, "reason": embed["outcome"]}
-        return {
-            "kind": "embed",
-            "platform": source,
-            "url": embed["url"],
-            "title": embed["title"],
-            "author": embed["author"],
-            "community": embed["community"],
-        }
+        # THE URL ONLY (2026-10-23, #558 review). The post's title, its
+        # author's name and its community are the platform's to show, inside
+        # its own embed in the reader's browser - never in our JSON, where a
+        # title would be an author's words passing through our API.
+        return {"kind": "embed", "platform": source, "url": embed["url"]}
     url = (
         entry["url"]
         if isinstance(entry["url"], str) and entry["url"].startswith("https://")
@@ -343,10 +346,9 @@ def feed(
             ).fetchall()
         }
         embeds = {
-            d: {"outcome": o, "url": u, "title": t, "author": a, "community": c}
-            for d, o, u, t, a, c in conn.execute(
-                "SELECT document_id, outcome, url, title, author, community FROM feed_embed "
-                "WHERE document_id = ANY(%s)",
+            d: {"outcome": o, "url": u}
+            for d, o, u in conn.execute(
+                "SELECT document_id, outcome, url FROM feed_embed WHERE document_id = ANY(%s)",
                 (doc_ids,),
             ).fetchall()
         }
@@ -365,19 +367,19 @@ def feed(
         # ONE TAG PER NAME AS THE READER SEES IT. Two slugs, or two sections,
         # filed under one heading read as the same word twice on the item
         # (seen on the first live render, 2026-10-21). The first keeps its link.
+        # (A per-tag polarity list was sent too, and nothing read it - removed
+        # 2026-10-23 under rule 9; the item's own `polarity` is what shows.)
         tags = {}
         for e in es:
             name = e["name"] or e["slug"]
-            tags.setdefault(
-                name.strip().lower(),
-                {"section": e["section"], "slug": e["slug"], "name": name, "polarities": set()},
-            )["polarities"].add(e["polarity"])
+            tags.setdefault(name.strip().lower(),
+                            {"section": e["section"], "slug": e["slug"], "name": name})
         items.append(
             {
                 "id": doc_id,
                 "posted_at": _iso(first["posted_at"]),
                 "polarity": report_polarity(es),
-                "tags": [{**t, "polarities": sorted(t["polarities"])} for t in tags.values()],
+                "tags": list(tags.values()),
                 # None when not written yet, or written from different excerpts:
                 # the page says "not paraphrased yet" and the source is still there.
                 "paraphrase": found[0] if current else None,
