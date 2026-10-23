@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { useHead } from '../seo/head'
 import { FOOTER, MENU, SECTIONS, isMissingMain, sitePath, useKitePulse, usePrototype } from './site'
+import { KITE_PULSE_OPEN } from './status'
 import './site.css'
 
 /**
@@ -98,7 +99,12 @@ const pagesOf = (model, names, except = []) =>
   model.site.filter((p) => names.includes(p.section) && !except.includes(p.url)
     && !SECTIONS.some((s) => s.hub === p.url))
 
+/** Closed while its team works inside it (status.js): every page goes to the admin. */
 export default function KitePulse() {
+  return KITE_PULSE_OPEN ? <KitePulseSite /> : <Navigate to="/admin" replace />
+}
+
+function KitePulseSite() {
   useHead({ title: 'Kite Pulse — site preview', noindex: true })
   useFonts()
   const { model, err } = useKitePulse()
