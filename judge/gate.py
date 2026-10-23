@@ -125,6 +125,10 @@ PUBLIC_READ_PATHS = frozenset({
     "/discussions",
     # 2026-10-20: the glossary index (judge/glossary.py) - reviewed copy, no source text.
     "/glossary-terms",
+    # 2026-10-23: the local VRAM tool (judge/local_models.py) - file sizes and
+    # header fields measured from Hugging Face, prices from our own registry,
+    # and contract constants. No quote or text from any source.
+    "/local-models",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

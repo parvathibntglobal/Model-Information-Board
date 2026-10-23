@@ -211,6 +211,9 @@ def test_the_public_list_names_only_reads_that_were_checked():
         "/seo/indexable", "/blog-posts", "/compare", "/discussions",
         # 2026-10-20: the glossary - reviewed copy from glossary.yaml, no source text
         "/glossary-terms",
+        # 2026-10-23: the local VRAM tool - measured file sizes and header fields,
+        # registry prices, contract constants; no source text
+        "/local-models",
     } == gate.PUBLIC_READ_PATHS
     assert gate.PUBLIC_READ_PREFIXES == ("/model-catalog/", "/glossary-terms/")
 

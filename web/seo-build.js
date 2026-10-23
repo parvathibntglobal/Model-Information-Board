@@ -16,7 +16,7 @@
  * Kept in step with contract/indexing.yaml's `always` list.
  */
 export const STRUCTURAL_PATHS = [
-  '/', '/blogs', '/tools', '/best-ai-model', '/ai-model-pricing', '/token-counter',
+  '/', '/blogs', '/tools', '/best-ai-model', '/ai-model-pricing', '/token-counter', '/local-llm-vram-calculator',
   '/ai-models', '/ai-models/latest', '/compare', '/reviews', '/reviews/jobs', '/reviews/capabilities', '/reviews/metrics',
   '/glossary', '/methodology',
 ]

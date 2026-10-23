@@ -18,6 +18,7 @@ const LINKS = [
     { to: '/best-ai-model', label: 'Best AI model picker' },
     { to: '/ai-model-pricing', label: 'AI model pricing & specs table' },
     { to: '/token-counter', label: 'LLM cost calculator' },
+    { to: '/local-llm-vram-calculator', label: 'Can I run it? VRAM calculator' },
   ] },
   // MODELS, A MEGA MENU (2026-10-14): explore on the left, the seven model
   // types on the right. Every model OpenRouter lists lives at /ai-models; the

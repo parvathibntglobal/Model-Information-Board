@@ -19,13 +19,15 @@
 # `count` is NOT here: the page lets a reader pick 1, 2, 3 or 4 of a discrete
 # card ("Dual RTX 4090"), and local_inference.yaml says what splitting costs.
 
+# Each source is where its devices' figures are checked, and `label` is the
+# heading the page groups them under, in this order.
 sources:
-  nvidia: https://www.nvidia.com/en-us/geforce/graphics-cards/compare/
-  nvidia_laptop: https://www.nvidia.com/en-us/geforce/laptops/compare/
-  nvidia_datacenter: https://www.nvidia.com/en-us/data-center/
-  amd: https://www.amd.com/en/products/graphics/desktops/radeon.html
-  intel: https://www.intel.com/content/www/us/en/products/details/discrete-gpus/arc.html
-  apple: https://www.apple.com/mac/compare/
+  nvidia: {label: NVIDIA GeForce, url: "https://www.nvidia.com/en-us/geforce/graphics-cards/compare/"}
+  nvidia_laptop: {label: NVIDIA GeForce laptop, url: "https://www.nvidia.com/en-us/geforce/laptops/compare/"}
+  amd: {label: AMD Radeon, url: "https://www.amd.com/en/products/graphics/desktops/radeon.html"}
+  intel: {label: Intel Arc, url: "https://www.intel.com/content/www/us/en/products/details/discrete-gpus/arc.html"}
+  apple: {label: Mac (unified memory), url: "https://www.apple.com/mac/compare/"}
+  nvidia_datacenter: {label: Data centre and cloud, url: "https://www.nvidia.com/en-us/data-center/"}
 
 devices:
   # ── NVIDIA GeForce, desktop ──────────────────────────────────────────────

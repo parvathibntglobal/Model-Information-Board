@@ -224,6 +224,29 @@ CREATE TABLE model_catalog (
 
 CREATE INDEX model_catalog_seen_idx ON model_catalog (last_seen_at);
 
+-- The measured GGUF files behind the local VRAM tool (2026-10-23,
+-- migrations/20261023T1000_local_model_file.sql says what each column means).
+-- WHO WRITES: collect/local_models/poll.py. WHO READS: judge/local_models.py.
+CREATE TABLE local_model_file (
+  model_id          text NOT NULL,
+  quant             text NOT NULL,
+  gguf_repo         text NOT NULL,
+  files             text[] NOT NULL,
+  bytes             bigint,
+  missing_files     text[] NOT NULL DEFAULT '{}',
+  header            jsonb,
+  header_note       text,
+  repo_sha          text,
+  raw_ref           text,
+  measured_at       timestamptz NOT NULL,
+  pipeline_version  text NOT NULL,
+  PRIMARY KEY (model_id, quant),
+  CONSTRAINT local_model_file_bytes_ck CHECK (bytes IS NULL OR bytes > 0),
+  CONSTRAINT local_model_file_size_or_missing_ck
+    CHECK ((bytes IS NULL) = (cardinality(missing_files) > 0)),
+  CONSTRAINT local_model_file_header_or_note_ck CHECK ((header IS NULL) = (header_note IS NOT NULL))
+);
+
 
 -- ============================================================================
 --  THE INTERFACE — collect/ fills these, judge/ reads them.
