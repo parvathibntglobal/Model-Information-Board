@@ -133,7 +133,7 @@ export default function FeedSummaryPanel() {
           </p>
         )
         : last.stored
-          ? <p className="lv-note">Stored for review, written from {last.reports_used} of {last.reports_available} reports{(last.flags || []).length ? `, ${last.flags.length} flagged` : ''}.</p>
+          ? <p className="lv-note">Stored for review, written from {last.reports_used} of {last.reports_available} paraphrased reports{(last.flags || []).length ? `, ${last.flags.length} flagged` : ''}.</p>
           : <p className="lv-note lv-warn">Refused by the checks, twice: {last.refused}</p>)}
 
       <div className="lv-seg" role="group" aria-label="Which summaries">

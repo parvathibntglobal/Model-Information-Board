@@ -901,14 +901,6 @@ columns:
       reviewed: false
       state: read
   feed_embed:
-    author:
-      reviewed: true
-      state: write_only
-      why: 'Reddit oEmbed author_name, kept as the record of what the resolver saw. Not published since 2026-10-23 (#558 review): the official embed shows the author itself in the reader''s browser, so no handle passes through /feed. Written by scripts/build_evidence_feed.py embeds(). Migration 20261021T1000 (PROPOSED).'
-    community:
-      reviewed: true
-      state: write_only
-      why: 'The subreddit, from the post address, kept as the resolver''s record. Not published since 2026-10-23 (#558 review); the embed shows it. Written by scripts/build_evidence_feed.py embeds(). Migration 20261021T1000 (PROPOSED).'
     document_id:
       reviewed: false
       state: read
@@ -925,14 +917,10 @@ columns:
       reviewed: false
       state: defaulted
       why: 'When the post address was resolved. Defaulted by the database; read by nothing yet - its intended reader is a re-resolve of rows older than a month (deleted posts). Migration 20261021T1000 (PROPOSED).'
-    title:
-      reviewed: true
-      state: write_only
-      why: 'Reddit oEmbed title, kept as the resolver''s record. Not published since 2026-10-23 (#558 review): a post title is its author''s words, so it reaches a reader only inside the platform''s own embed. Written by scripts/build_evidence_feed.py embeds(). Migration 20261021T1000 (PROPOSED).'
     url:
       reviewed: false
       state: read
-      why: 'The POST address an official embed needs, not document.url (a link post''s url is the linked content). Written by scripts/build_evidence_feed.py embeds(), read by judge/feed/items.py cite_source(). Migration 20261021T1000 (PROPOSED).'
+      why: 'The post''s ID-ONLY address (reddit.com/comments/<post>/, x.com/i/status/<id>), not document.url (a link post''s url is the linked content): no subreddit, slug or handle. Written by scripts/build_evidence_feed.py embeds(), read by judge/feed/items.py cite_source(), which sends only the ids. Migration 20261021T1000 (PROPOSED).'
   feed_paraphrase:
     document_id:
       reviewed: false

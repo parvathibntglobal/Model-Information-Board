@@ -59,23 +59,32 @@ export function PolarityChip({ polarity }) {
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
 /**
- * The platform's own markup, built from the post's URL ALONE and only for a URL
- * of the expected shape - anything else draws nothing. The platform's script
- * turns the blockquote into the post and shows its title, author and community
- * itself; none of those pass through our API (2026-10-23, #558 review). The
- * blog's `embedBlock` (web/src/board/views.js) still rebuilds them from its
- * reviewed drafts, which is a different payload.
+ * The platform's own markup, built from the post's IDS ALONE and only for ids
+ * of the expected shape - anything else draws nothing. Our API sends no URL
+ * (2026-10-23, #558 second review): a Reddit permalink names the community and
+ * carries the title's words in its slug, an X URL the author's handle. So the
+ * address is rebuilt here without them, in the forms each platform resolves:
+ *   Reddit  /comments/<post>/ (comment: /comments/<post>/_/<comment>/) - Reddit
+ *           redirects these to the full permalink; its embed script reads the
+ *           link's path
+ *   X       /i/status/<id> - X's widget script takes the status id from the
+ *           `/status/<id>` in the link, whatever precedes it
+ * The platform's script turns the blockquote into the post and shows its title,
+ * author and community itself. The blog's `embedBlock` (web/src/board/views.js)
+ * still rebuilds those from its reviewed drafts, which is a different payload.
  */
 function embedMarkup(s) {
   if (s.platform === 'reddit') {
-    const u = String(s.url || '')
-    if (!/^https:\/\/www\.reddit\.com\/r\/\w+\/comments\/\w+/.test(u)) return ''
+    const post = String(s.post_id || '')
+    const comment = s.comment_id == null ? '' : String(s.comment_id)
+    if (!/^[a-z0-9]+$/i.test(post) || (comment && !/^[a-z0-9]+$/i.test(comment))) return ''
+    const u = `https://www.reddit.com/comments/${post}/${comment ? `_/${comment}/` : ''}`
     return `<blockquote class="reddit-embed-bq" style="height:316px"><a href="${esc(u)}">View this post on Reddit</a></blockquote>`
   }
   if (s.platform === 'x') {
-    const m = String(s.url || '').match(/^https:\/\/(?:x|twitter)\.com\/(\w+)\/status\/(\d+)/)
-    if (!m) return ''
-    return `<blockquote class="twitter-tweet" data-theme="dark" data-dnt="true"><a href="https://twitter.com/${esc(m[1])}/status/${esc(m[2])}">View this post on X</a></blockquote>`
+    const id = String(s.status_id || '')
+    if (!/^\d+$/.test(id)) return ''
+    return `<blockquote class="twitter-tweet" data-theme="dark" data-dnt="true"><a href="https://twitter.com/i/status/${esc(id)}">View this post on X</a></blockquote>`
   }
   return ''
 }

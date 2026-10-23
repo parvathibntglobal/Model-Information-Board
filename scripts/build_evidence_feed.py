@@ -79,13 +79,32 @@ def _post_address(source: str, url: str | None, text_ref: str | None, reader) ->
     return full if full and REDDIT_POST.match(full) else None
 
 
-def embeds(conn, *, apply: bool, limit: int | None) -> dict:
-    """One `feed_embed` row per Reddit/X document behind a board entry."""
+#: Reddit's oEmbed answers that mean the post itself is gone or hidden. Only
+#: these are stored as `unavailable`: the row is permanent (it is never
+#: retried), and the page tells readers the post was deleted or removed.
+GONE = (403, 404)
+
+
+def embeds(conn, *, apply: bool, limit: int | None, client=None, reader=None,
+           sleep=time.sleep) -> dict:
+    """One `feed_embed` row per Reddit/X document behind a board entry.
+
+    A FAILURE TO ASK IS NOT AN ANSWER (2026-10-23, #558 second review). A 429,
+    a 5xx, a blocked User-Agent or a dropped connection says nothing about the
+    post, so nothing is stored for it: the document stays pending and the next
+    run asks again, and the report counts it under `retry_later` by reason.
+    Storing those as `unavailable` - as this did - labelled live posts "deleted"
+    for good after one rate-limited stretch (rules 6 and 12).
+
+    WHAT IS STORED IS THE ID-ONLY ADDRESS (`judge.feed.items.canonical_embed_url`):
+    no subreddit, no title slug, no handle. The full permalink is used only to
+    ask Reddit's oEmbed, and kept nowhere."""
     import httpx
 
     from collect.rawstore import RawStore
     from collect.rawstore_reader import RawStoreReader
     from judge import publication
+    from judge.feed.items import canonical_embed_url, embed_ids
 
     embed_only = list(publication.evidence_feed_terms()["embed_only"])
     rows = conn.execute(
@@ -97,51 +116,54 @@ def embeds(conn, *, apply: bool, limit: int | None) -> dict:
         (embed_only,),
     ).fetchall()
     rows = rows[:limit] if limit else rows
-    report = {"pending": len(rows), "embeddable": 0, "no_post_address": 0, "unavailable": 0}
+    report = {"pending": len(rows), "embeddable": 0, "no_post_address": 0, "unavailable": 0,
+              "retry_later": {}}
     if not apply:
         return report
-    ua = os.environ.get("USER_AGENT")
-    if not ua:
-        raise SystemExit("USER_AGENT is not set; Reddit's oEmbed needs an identifying User-Agent")
-    reader = RawStoreReader(RawStore(os.environ.get("RAW_STORE_PATH") or "./raw_store"))
+    own_client = client is None
+    if own_client:
+        ua = os.environ.get("USER_AGENT")
+        if not ua:
+            raise SystemExit(
+                "USER_AGENT is not set; Reddit's oEmbed needs an identifying User-Agent")
+        client = httpx.Client(headers={"User-Agent": ua}, timeout=20, follow_redirects=True)
+    if reader is None:
+        reader = RawStoreReader(RawStore(os.environ.get("RAW_STORE_PATH") or "./raw_store"))
     last = 0.0
-    with httpx.Client(headers={"User-Agent": ua}, timeout=20, follow_redirects=True) as client:
+    try:
         for doc, source, url, text_ref in rows:
             address = _post_address(source, url, text_ref, reader)
-            fields = {"title": None, "author": None, "community": None}
-            outcome = "embeddable" if address else "no_post_address"
-            if address and source == "reddit":
+            ids = embed_ids(source, address) if address else None
+            outcome = "embeddable" if ids else "no_post_address"
+            if ids and source == "reddit":
                 wait = OEMBED_INTERVAL_S - (time.monotonic() - last)
                 if wait > 0:
-                    time.sleep(wait)
+                    sleep(wait)
                 last = time.monotonic()
-                r = client.get("https://www.reddit.com/oembed", params={"url": address})
-                if r.status_code == 200:
-                    o = r.json()
-                    fields = {
-                        "title": o.get("title") or "",
-                        "author": o.get("author_name") or "",
-                        "community": REDDIT_POST.match(address).group(1),
-                    }
-                else:
+                try:
+                    r = client.get("https://www.reddit.com/oembed", params={"url": address})
+                except httpx.HTTPError as e:
+                    reason = type(e).__name__
+                    report["retry_later"][reason] = report["retry_later"].get(reason, 0) + 1
+                    continue
+                if r.status_code in GONE:
                     # Deleted or removed: said on the page, never an embed of nothing.
-                    outcome, address = "unavailable", None
+                    outcome = "unavailable"
+                elif r.status_code != 200:
+                    reason = f"HTTP {r.status_code}"
+                    report["retry_later"][reason] = report["retry_later"].get(reason, 0) + 1
+                    continue
             conn.execute(
-                "INSERT INTO feed_embed "
-                "(document_id, platform, outcome, url, title, author, community) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (document_id) DO NOTHING",
-                (
-                    doc,
-                    source,
-                    outcome,
-                    address,
-                    fields["title"],
-                    fields["author"],
-                    fields["community"],
-                ),
+                "INSERT INTO feed_embed (document_id, platform, outcome, url) "
+                "VALUES (%s,%s,%s,%s) ON CONFLICT (document_id) DO NOTHING",
+                (doc, source, outcome,
+                 canonical_embed_url(source, ids) if outcome == "embeddable" else None),
             )
             report[outcome] += 1
             conn.commit()
+    finally:
+        if own_client:
+            client.close()
     return report
 
 

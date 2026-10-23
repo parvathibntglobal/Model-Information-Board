@@ -210,6 +210,11 @@ def _public_view(monkeypatch):
     publication.evidence_feed_terms.cache_clear()
 
 
+#: Real shapes, slug and handle included: neither may reach a public payload.
+REDDIT_PERMALINK = "https://www.reddit.com/r/ClaudeCode/comments/1wdtrsa/im_done_with_opus_5/"
+X_STATUS = "https://x.com/somehandle/status/1849000000000000001"
+LEAKS = ("ClaudeCode", "im_done", "opus_5", "somehandle")
+
 ROWS = [
     # doc, source, author, posted, section, slug, polarity, ruling
     (
@@ -312,8 +317,10 @@ def conn(test_dsn):
             if doc not in seen:
                 seen.add(doc)
                 url = (
-                    "https://www.reddit.com/r/test/comments/abc/t/"
+                    REDDIT_PERMALINK
                     if source == "reddit"
+                    else X_STATUS
+                    if source == "x"
                     else f"https://example.test/{doc}"
                 )
                 c.execute(
@@ -395,15 +402,15 @@ class TestWhatReachesThePage:
     def test_reddit_is_an_embed_and_never_its_document_link(self, conn):
         by_id = {i["id"]: i for i in _feed(conn)["items"]}
         assert by_id["d2"]["source"] == {"kind": "pending", "platform": "Reddit"}
+        # A row written before the id-only change still holds the slugged
+        # permalink: the payload carries its ids and nothing else either way.
         conn.execute(
-            "INSERT INTO feed_embed "
-            "(document_id, platform, outcome, url, title, author, community) "
-            "VALUES ('d2', 'reddit', 'embeddable', "
-            "'https://www.reddit.com/r/test/comments/abc/t/', "
-            "'A title', 'someone', 'test')"
+            "INSERT INTO feed_embed (document_id, platform, outcome, url) "
+            "VALUES ('d2', 'reddit', 'embeddable', %s)",
+            (REDDIT_PERMALINK,),
         )
         src = {i["id"]: i for i in _feed(conn)["items"]}["d2"]["source"]
-        assert src["kind"] == "embed" and src["platform"] == "reddit"
+        assert src == {"kind": "embed", "platform": "reddit", "post_id": "1wdtrsa"}
 
     def test_other_sources_link_and_arxiv_is_acknowledged(self, conn):
         by_id = {i["id"]: i for i in _feed(conn)["items"]}
@@ -877,3 +884,152 @@ def test_the_public_payloads_carry_only_fields_with_a_reader(conn):
     assert set(live) == {"model", "summary", "state", "reports_since"}
     assert set(live["summary"]) == {"state", "paragraphs", "reports_used", "reports_available",
                                     "newest_report_at", "reviewed_at", "cited"}
+
+
+# ── embeds travel as ids (#558 second review) ────────────────────────────────
+
+
+class TestEmbedIds:
+    @pytest.mark.parametrize("url, ids", [
+        (REDDIT_PERMALINK, {"post_id": "1wdtrsa"}),
+        ("https://www.reddit.com/r/LocalLLaMA/comments/1abc2de/some_title/kx9y8z7/?context=3",
+         {"post_id": "1abc2de", "comment_id": "kx9y8z7"}),
+        ("https://www.reddit.com/comments/1wdtrsa/", {"post_id": "1wdtrsa"}),
+        ("https://www.reddit.com/comments/1abc2de/_/kx9y8z7/",
+         {"post_id": "1abc2de", "comment_id": "kx9y8z7"}),
+    ])
+    def test_reddit_ids_from_any_form(self, url, ids):
+        assert items.embed_ids("reddit", url) == ids
+        # The stored form round-trips, and carries no community or slug.
+        canonical = items.canonical_embed_url("reddit", ids)
+        assert items.embed_ids("reddit", canonical) == ids
+        assert "/r/" not in canonical and "title" not in canonical
+
+    def test_x_ids_and_no_handle(self):
+        ids = items.embed_ids("x", X_STATUS)
+        assert ids == {"status_id": "1849000000000000001"}
+        assert items.canonical_embed_url("x", ids) == "https://x.com/i/status/1849000000000000001"
+
+    @pytest.mark.parametrize("platform, url", [
+        ("reddit", "https://example.test/r/x/comments/abc/"),
+        ("reddit", "https://www.reddit.com/user/someone/"),
+        ("x", "https://x.com/somehandle"),
+        ("x", None),
+    ])
+    def test_an_unrecognised_address_is_no_embed(self, platform, url):
+        assert items.embed_ids(platform, url) is None
+
+    def test_an_x_item_sends_its_status_id_only(self):
+        entry = {"source": "x", "url": X_STATUS}
+        src = items.cite_source(entry, {"outcome": "embeddable", "url": X_STATUS})
+        assert src == {"kind": "embed", "platform": "x", "status_id": "1849000000000000001"}
+
+
+def test_no_community_slug_or_handle_reaches_either_payload(conn):
+    conn.execute(
+        "INSERT INTO feed_embed (document_id, platform, outcome, url) "
+        "VALUES ('d2', 'reddit', 'embeddable', %s)", (REDDIT_PERMALINK,))
+    _paraphrase_all(conn)
+    page = {"paragraphs": [{"text": "Others describe broken arguments on 4.1.", "cites": ["R2"]}]}
+    out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
+    summary.review(conn, out["id"], "approve")
+    live = summary.current(conn, "acme/text-a")
+    assert "d2" in live["summary"]["cited"]
+    for payload in (str(_feed(conn)), str(live)):
+        for leak in LEAKS:
+            assert leak not in payload, leak
+
+
+def _load_build_script():
+    import importlib.util
+
+    path = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "build_evidence_feed.py"
+    spec = importlib.util.spec_from_file_location("build_evidence_feed", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _oembed(status=None, raise_=None):
+    import httpx
+
+    def handler(request):
+        assert request.url.host == "www.reddit.com" and request.url.path == "/oembed"
+        if raise_ is not None:
+            raise raise_
+        return httpx.Response(status, json={"title": "t", "author_name": "a"})
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+class TestResolvingEmbeds:
+    """#558 second review: only a post that is gone is stored as unavailable; a
+    failure to ask leaves the document pending, counted by reason."""
+
+    def _run(self, conn, client):
+        build = _load_build_script()
+        return build.embeds(conn, apply=True, limit=None, client=client, reader=object(),
+                            sleep=lambda s: None)
+
+    def _row(self, conn):
+        return conn.execute(
+            "SELECT outcome, url FROM feed_embed WHERE document_id = 'd2'").fetchone()
+
+    @pytest.mark.parametrize("status", [429, 500, 503])
+    def test_a_failure_to_ask_is_not_stored(self, conn, status):
+        report = self._run(conn, _oembed(status))
+        assert self._row(conn) is None
+        assert report["retry_later"] == {f"HTTP {status}": 1}
+        assert report["unavailable"] == 0
+
+    def test_a_transport_error_is_not_stored(self, conn):
+        import httpx
+
+        report = self._run(conn, _oembed(raise_=httpx.ReadTimeout("slow")))
+        assert self._row(conn) is None and report["retry_later"] == {"ReadTimeout": 1}
+
+    @pytest.mark.parametrize("status", [403, 404])
+    def test_a_gone_post_is_stored_as_unavailable(self, conn, status):
+        report = self._run(conn, _oembed(status))
+        assert self._row(conn) == ("unavailable", None) and report["unavailable"] == 1
+
+    def test_a_live_post_is_stored_by_its_ids_alone(self, conn):
+        self._run(conn, _oembed(200))
+        assert self._row(conn) == ("embeddable", "https://www.reddit.com/comments/1wdtrsa/")
+
+    def test_a_retried_document_is_asked_again(self, conn):
+        self._run(conn, _oembed(429))
+        self._run(conn, _oembed(200))
+        assert self._row(conn)[0] == "embeddable"
+
+
+def test_summaries_are_drafted_for_seated_models_only(conn, monkeypatch):
+    """#558 second review: /feed/summary refuses an unseated model, so a draft
+    for one could only be paid for and queued, never shown."""
+    _paraphrase_all(conn)
+    assert [d["model_key"] for d in summary.models_due(conn, "p1", 1)] == ["mv_a"]
+    monkeypatch.setattr(items, "_seated_names", lambda conn: [])
+    assert summary.models_due(conn, "p1", 1) == []
+
+
+def test_a_summary_citation_follows_the_feeds_withheld_rule(conn, monkeypatch):
+    """#558 second review: if the feed ever stops drawing on a withheld source,
+    an approved summary's citation of it must stop too."""
+    _paraphrase_all(conn)
+    page = {"paragraphs": [{"text": "Others describe broken arguments on 4.1.", "cites": ["R2"]}]}
+    out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
+    summary.review(conn, out["id"], "approve")
+    shown = summary.current(conn, "acme/text-a")["summary"]["cited"]["d2"]
+    assert shown["paraphrase"]
+    terms = {**publication.evidence_feed_terms(), "may_draw_on_withheld": False}
+
+    def stand_in():
+        return terms
+
+    stand_in.cache_clear = lambda: None  # the autouse fixture clears the real cache
+    monkeypatch.setattr(publication, "evidence_feed_terms", stand_in)
+    monkeypatch.setattr(publication, "withheld_publicly", lambda source: source == "reddit")
+    cited = summary.current(conn, "acme/text-a")["summary"]["cited"]["d2"]
+    assert cited["paraphrase"] is None and cited["source"] == {"kind": "withheld"}
+    feed_item = {i["id"]: i for i in _feed(conn)["items"]}["d2"]
+    assert feed_item["paraphrase"] is None and feed_item["source"] == {"kind": "withheld"}

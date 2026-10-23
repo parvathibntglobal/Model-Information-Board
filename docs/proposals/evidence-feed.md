@@ -112,6 +112,24 @@ cite Reddit and X **only** by official embed (loaded when the reader asks),
 link every other source, attach arXiv's acknowledgement. No verbatim quote from
 any source. The board itself is unchanged.
 
+**An embed travels as ids, never as a URL** (#558 second review, 2026-10-23).
+A Reddit permalink names the subreddit and carries the post title's words in its
+slug; an X URL carries the handle. So `feed_embed` stores the id-only address
+(`reddit.com/comments/<post>/`, `x.com/i/status/<id>`), the API sends only the
+ids, and the browser builds the embed's link from them. The platform's own
+script then shows the title, author and community in the reader's browser.
+Only a 403 or 404 from Reddit's oEmbed is stored as "unavailable"; a rate limit,
+a server error or a dropped connection leaves the post pending, to be asked again.
+
+**The feed overrides the board's "no per-platform count"** for the feed only:
+items name their platform and can be narrowed to one polarity, so a reader can
+count one platform's items. `contract/publication.yaml` `evidence_feed` says so.
+
+**Spend has no dollar ceiling**, only `--limit` and `--model` on a manual run,
+at the measured cost: $0.0202 for 237 reports on two models, 218 of them
+paraphrased after one retry (the trial below). Summaries are drafted for seated
+models only.
+
 ## What the trial measured
 
 A real run on a local copy of two models' evidence (DeepSeek V4 Flash and

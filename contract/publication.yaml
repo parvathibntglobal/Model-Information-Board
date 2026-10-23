@@ -116,6 +116,13 @@ evidence_feed:
   #   - every other source is cited with its platform name and a link;
   #     arXiv carries `credits.arxiv_acknowledgement` wherever it appears.
   #   - no verbatim quote from ANY source reaches the feed.
+  #   - THE FEED OVERRIDES "NO PER-PLATFORM COUNT" (above), for the feed only
+  #     (PROPOSED 2026-10-23, #558 second review). Each item names its platform
+  #     - "arXiv ↗", "Show the original post on Reddit" - and the list can be
+  #     narrowed to one polarity, so a reader CAN count one platform's items
+  #     for a model, e.g. its negative reports from Reddit. The feed prints no
+  #     such count itself; it does not prevent a reader making one, and this
+  #     line says so rather than leaving the board's rule to read as covering it.
   # The board itself stays as `withheld_from_public` says.
   #
   # Must be true or false, and a list. Absent raises (rule 6).

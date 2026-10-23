@@ -30,6 +30,7 @@ from typing import Any
 
 from psycopg.types.json import Jsonb
 
+from judge import publication
 from judge.feed import checks
 from judge.feed.items import (
     by_report,
@@ -39,6 +40,7 @@ from judge.feed.items import (
     report_polarity,
     require_seated,
     resolve_model,
+    seated_keys,
 )
 from judge.feed.llm import FeedModelUnavailable, call_tool
 
@@ -350,6 +352,11 @@ def _cited(conn, model: dict, ids: list[str]) -> dict[str, dict]:
         ).fetchall()
         if d in reports and digest == excerpts_digest(reports[d])
     }
+    # THE FEED'S WITHHELD RULE TOO (2026-10-23, #558 second review): if the
+    # terms ever stop the feed drawing on a withheld source, an approved
+    # summary's citation of it shows no text and no source either - the feed
+    # (items.feed) and its summary must never disagree about what is shown.
+    may_draw = publication.evidence_feed_terms()["may_draw_on_withheld"]
     out = {}
     for d in ids:
         es = reports.get(d)
@@ -357,13 +364,14 @@ def _cited(conn, model: dict, ids: list[str]) -> dict[str, dict]:
             # Cited when drafted, since declined or removed: said, not hidden.
             out[d] = {"id": d, "gone": True}
             continue
+        hidden = publication.withheld_publicly(es[0]["source"]) and not may_draw
         out[d] = {
             "id": d,
             "gone": False,
             "posted_at": es[0]["posted_at"].isoformat() if es[0]["posted_at"] else None,
             "polarity": report_polarity(es),
-            "paraphrase": texts.get(d),
-            "source": cite_source(es[0], embeds.get(d)),
+            "paraphrase": None if hidden else texts.get(d),
+            "source": {"kind": "withheld"} if hidden else cite_source(es[0], embeds.get(d)),
         }
     return out
 
@@ -459,7 +467,12 @@ def models_due(conn, paraphrase_version: str, min_reports: int) -> list[dict[str
     from the same reports a person had just turned down. It is drafted again
     once a newer report arrives. A draft the checks refused is not stored, so it
     is still retried on the next run - bounded by `summary.attempts` calls per
-    model per run, and listed by name in that run's report."""
+    model per run, and listed by name in that run's report.
+
+    SEATED MODELS ONLY (2026-10-23, #558 second review). The public summary
+    refuses a model the models page does not list (`require_seated`), so a
+    draft for one could never be shown - only paid for and queued in Admin."""
+    seated = seated_keys(conn)
     rows = conn.execute(
         "SELECT fp.model_version_id, count(*), max(d.created_at) FROM feed_paraphrase fp "
         "JOIN document d ON d.id = fp.document_id WHERE fp.prompt_version = %s "
@@ -474,6 +487,8 @@ def models_due(conn, paraphrase_version: str, min_reports: int) -> list[dict[str
     )
     due = []
     for key, n, newest in rows:
+        if key not in seated:
+            continue
         drafted: datetime | None = last.get(key)
         if drafted is None or (newest is not None and newest > drafted):
             due.append({"model_key": key, "paraphrased": n})

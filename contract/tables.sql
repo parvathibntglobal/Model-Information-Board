@@ -1926,11 +1926,13 @@ CREATE TABLE IF NOT EXISTS feed_embed (
   document_id  text PRIMARY KEY REFERENCES document (id),
   platform     text NOT NULL,
   outcome      text NOT NULL,
+  -- The ID-ONLY address (judge/feed/items.py canonical_embed_url):
+  -- reddit.com/comments/<post>/[_/<comment>/] or x.com/i/status/<id>. No
+  -- subreddit, no title slug, no handle; the payload carries only the ids.
+  -- (Reddit's oEmbed title, author and community were stored here until the
+  -- #558 second review, 2026-10-23: nothing read them, and the embed shows
+  -- them itself. Dropped before this migration first ran on a shared DB.)
   url          text,
-  -- Reddit only: what Reddit's oEmbed returned, which its markup needs.
-  title        text,
-  author       text,
-  community    text,
   resolved_at  timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT feed_embed_platform_ck CHECK (platform IN ('reddit', 'x')),
   CONSTRAINT feed_embed_outcome_ck

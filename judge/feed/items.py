@@ -29,11 +29,54 @@ for a source in `embed_only`, a link otherwise. NEVER a quote, from any source.
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import datetime
 from typing import Any
 
 from judge import publication
 from judge.store.board_entries import metric_withholding, spelling_key
+
+# AN EMBED TRAVELS AS IDS, NEVER AS A URL (2026-10-23, #558 second review). A
+# Reddit permalink carries the subreddit and the post title's words in its slug
+# (`/r/ClaudeCode/comments/1wdtrsa/im_done_with_opus_5/`), and an X URL carries
+# the author's handle (`x.com/<handle>/status/<id>`). So the stored address is
+# reduced to the ids here, the payload carries only those, and the browser
+# builds the embed's address from them (web/src/evidence/parts.jsx).
+#   Reddit   /comments/<post>/ ... and, for a comment, the id after the slug
+#   X        /status/<id>, any handle or `i`
+_REDDIT_IDS = re.compile(
+    r"^https://(?:www\.)?reddit\.com/(?:r/\w+/)?comments/([a-z0-9]+)"
+    r"(?:/[^/?#]+(?:/([a-z0-9]+))?)?/?(?:[?#].*)?$",
+    re.I,
+)
+_X_IDS = re.compile(r"^https://(?:www\.)?(?:x|twitter)\.com/\w+/status/(\d+)(?:[/?#].*)?$", re.I)
+
+
+def embed_ids(platform: str, url: str | None) -> dict | None:
+    """The ids an embed needs, from any form of the post's address; None when
+    the address is not one we recognise - never a guess."""
+    if not isinstance(url, str):
+        return None
+    if platform == "reddit":
+        m = _REDDIT_IDS.match(url)
+        if not m:
+            return None
+        ids = {"post_id": m.group(1).lower()}
+        if m.group(2):
+            ids["comment_id"] = m.group(2).lower()
+        return ids
+    if platform == "x":
+        m = _X_IDS.match(url)
+        return {"status_id": m.group(1)} if m else None
+    return None
+
+
+def canonical_embed_url(platform: str, ids: dict) -> str:
+    """The id-only address `feed_embed.url` stores: no subreddit, no slug, no handle."""
+    if platform == "reddit":
+        tail = f"_/{ids['comment_id']}/" if ids.get("comment_id") else ""
+        return f"https://www.reddit.com/comments/{ids['post_id']}/{tail}"
+    return f"https://x.com/i/status/{ids['status_id']}"
 
 #: `document.source` -> the name a reader knows. An unknown source shows its
 #: stored value rather than a guess.
@@ -250,11 +293,14 @@ def cite_source(entry: dict, embed: dict | None) -> dict:
             return {"kind": "pending", "platform": platform}
         if embed["outcome"] != "embeddable":
             return {"kind": "unavailable", "platform": platform, "reason": embed["outcome"]}
-        # THE URL ONLY (2026-10-23, #558 review). The post's title, its
-        # author's name and its community are the platform's to show, inside
-        # its own embed in the reader's browser - never in our JSON, where a
-        # title would be an author's words passing through our API.
-        return {"kind": "embed", "platform": source, "url": embed["url"]}
+        # THE IDS ONLY (2026-10-23, #558 second review). Not even the URL: a
+        # permalink names the community and carries the title's words, an X
+        # URL the handle. The post's title, author and community are the
+        # platform's to show, inside its own embed in the reader's browser.
+        ids = embed_ids(source, embed["url"])
+        if ids is None:
+            return {"kind": "unavailable", "platform": platform, "reason": "no_post_address"}
+        return {"kind": "embed", "platform": source, **ids}
     url = (
         entry["url"]
         if isinstance(entry["url"], str) and entry["url"].startswith("https://")
