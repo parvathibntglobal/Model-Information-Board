@@ -1,0 +1,483 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Team AI Coding Analytics</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Track AI coding tool usage across every developer, tool and project: see who uses what, check what you can answer today, and copy a usage report outline.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Solutions","item":"/solutions"},{"@type":"ListItem","position":3,"name":"AI coding analytics","item":"/ai-coding-analytics"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can companies track AI usage?","acceptedAnswer":{"@type":"Answer","text":"Yes. Companies track AI coding tool usage through each vendor's admin console, through API usage reports, and through tools that read the session history AI coding assistants keep on each developer's computer. What they can see depends on the method: vendor consoles cover one tool each, and session history covers every tool it supports in one view."}},
+{"@type":"Question","name":"How do companies track AI coding tool usage?","acceptedAnswer":{"@type":"Answer","text":"Most start with vendor admin consoles, which show seats and some usage for one tool at a time. Teams that use several tools add a spreadsheet of exports, or a tool that collects sessions across all of them and splits usage by person, team, project and period. Whatever the method, tell developers what is collected and why before you start."}},
+{"@type":"Question","name":"How many developers on my team actively use AI coding assistants?","acceptedAnswer":{"@type":"Answer","text":"Define \"active\" first, for example at least one AI coding session in the period, then count people in scope who meet it, across every tool. Counting per tool overstates adoption when one person uses three tools, and understates it when people use a tool your consoles do not cover. Account for leave, or a week off looks like non-adoption."}},
+{"@type":"Question","name":"How do I measure AI coding tool adoption on my team?","acceptedAnswer":{"@type":"Answer","text":"Track three things per period: the share of people in scope who used any AI coding tool, which tools and how many accounts each runs under, and where the work happened by project. Split by team and by start date to see how quickly new developers adopt. Adoption shows use, not value; measure delivery and quality separately."}},
+{"@type":"Question","name":"How do I compare AI tool usage across Cursor, Claude Code and Copilot?","acceptedAnswer":{"@type":"Answer","text":"Compare the same measures for each tool over the same period: active people, sessions, tokens where the tool reports them, and projects. Vendor consoles define these differently, so a comparison built from three consoles mixes three definitions. Collecting sessions from all tools in one place gives one definition for every tool."}},
+{"@type":"Question","name":"How do I compare AI coding tool usage across teams?","acceptedAnswer":{"@type":"Answer","text":"Record which team each person belonged to and when, then split the same usage measures by team for the same period. Without dated team membership, a re-organisation moves usage between teams after the fact. Compare teams, never individuals, and read usage alongside the kind of work each team does."}},
+{"@type":"Question","name":"How do I find out which projects my team uses AI on the most?","acceptedAnswer":{"@type":"Answer","text":"Tie each AI session to the repository it ran in, then add up sessions or tokens per repository and map repositories to projects. Watch for the same repository cloned under different folder names on different machines, which splits one project into two."}},
+{"@type":"Question","name":"How can I see AI coding tool usage across my entire engineering organisation?","acceptedAnswer":{"@type":"Answer","text":"You need one collection method that covers every tool your developers use, plus a record of who belongs to which team. Kite Pulse gives admins a Company Overview with active people and hours, project health and tool use across the organisation, and managers see their own reporting line."}},
+{"@type":"Question","name":"Can I track AI coding tool usage over days, weeks and months?","acceptedAnswer":{"@type":"Answer","text":"Yes. Keep the period fixed when you compare, because usage swings with releases, holidays and on-call rotas. In Kite Pulse, Team AI Usage shows tokens per developer, per tool and per period, and Reports produce a summary for any period as a spreadsheet, or by email on a schedule."}},
+{"@type":"Question","name":"How can I track which AI models my team uses?","acceptedAnswer":{"@type":"Answer","text":"Start with the usage reports of the model providers and the AI tools' admin consoles, which often break usage down by model for API-billed plans. Subscription plans show less. Model mix matters for cost and for plan limits, because some plans cap a model's weekly use separately."}},
+{"@type":"Question","name":"Which developers use AI coding assistants the most, and which not at all?","acceptedAnswer":{"@type":"Answer","text":"You can see it, but use it to offer help, not to rank people. Heavy use may mean a large task or a tool stuck in a loop; no use may mean leave, a role that does not code, or a tool your collection does not cover. Check those before drawing a conclusion, and talk to the person rather than about them."}},
+{"@type":"Question","name":"Which AI coding tool is my team most productive with?","acceptedAnswer":{"@type":"Answer","text":"Usage data alone cannot tell you. A tool can be used most because it is the default, not because it helps most. To answer it, compare delivery and quality metrics for work done with each tool over the same period, with a baseline."}},
+{"@type":"Question","name":"What metrics should I use to measure AI-assisted development?","acceptedAnswer":{"@type":"Answer","text":"For usage: active people, sessions, tokens and estimated cost per tool, team and project. For results: lead time, change failure rate and rework against a baseline. For experience: where AI sessions get stuck, such as repeated failing commands and abandoned approaches. Usage metrics describe adoption; only the other two describe value."}},
+{"@type":"Question","name":"What is the best dashboard for AI-assisted engineering teams?","acceptedAnswer":{"@type":"Answer","text":"The one that covers every AI tool your team uses, splits usage by person, team, project and period, shows cost and plan limits, and is clear with developers about what it collects. Check where the data is stored, whether it reads source code, and whether it ranks individuals before you choose."}}
+]}
+]}
+</script>
+<style>
+/* Layout: a problem-first solution page in one reading column; sample team data, a self-check and a report builder, then what Kite Pulse can and cannot see. Same system as the other Kite Pulse pages. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --t1:#2747D6; --t2:#C9771A; --t3:#1F8A5B; --t4:#8A3FB8; --t5:#0E7C93;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19;
+  --t1:#8299FF; --t2:#F0A640; --t3:#4CC48F; --t4:#C38BEA; --t5:#4FC3DA; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19;
+  --t1:#8299FF; --t2:#F0A640; --t3:#4CC48F; --t4:#C38BEA; --t5:#4FC3DA; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --t1:#2747D6; --t2:#C9771A; --t3:#1F8A5B; --t4:#8A3FB8; --t5:#0E7C93; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:920px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.topbar .brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.topbar .brand span{color:var(--accent)}
+.topbar .mine{margin-left:auto;display:flex;align-items:baseline;gap:8px}
+.topbar .mine b{font-family:var(--mono);font-size:1.1rem;color:var(--accent)}
+.topbar .mine small{color:var(--muted);font-size:.8rem}
+.toggle{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:20px}
+.hero p.lede{font-size:1.2rem;color:var(--muted)}
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:18px 20px;display:grid;gap:8px}
+.def p{font-size:1.05rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.sm{padding:6px 12px;font-size:.85rem;border-radius:8px}
+
+section.block{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.head{display:grid;gap:10px}
+.head p{color:var(--muted)}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.tool-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
+.tool-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--bg);padding:8px 14px;cursor:pointer;font-weight:600;font-size:.9rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 13px;cursor:pointer;font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:8px}
+.chip .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.chip[aria-pressed="true"] .dot{background:var(--accent)}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .kpmark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p + p{margin-top:8px}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+/* sample: vendor panels */
+.vendors{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.vpanel{border:1.5px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px;align-content:start;background:var(--bg)}
+.vpanel h3{font-size:.92rem;display:flex;align-items:center;gap:8px}
+.vpanel h3 i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.vpanel ul{list-style:none;margin:0;padding:0;font-size:.85rem;display:grid;gap:2px}
+.vpanel li{display:flex;justify-content:space-between;gap:8px}
+.vpanel small{color:var(--muted);font-size:.75rem}
+/* sample: one view */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--sunk);border-radius:10px;padding:12px 14px;display:grid;gap:2px}
+.tile b{font-family:var(--mono);font-size:1.5rem;font-weight:600;line-height:1.15}
+.tile span{font-size:.83rem;color:var(--muted)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.c,th.c{text-align:center}
+.cell{display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-family:var(--mono);font-size:.82rem;text-align:center}
+.legendrow{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);align-items:center}
+.projbars{display:grid;gap:8px}
+.pb{display:grid;grid-template-columns:130px 1fr 56px;gap:10px;align-items:center;font-size:.9rem}
+.pb .track{height:14px;background:var(--sunk);border-radius:5px;display:flex;overflow:hidden}
+.pb .track span{height:100%}
+.pb .v{font-family:var(--mono);text-align:right;font-size:.85rem}
+
+/* self-check */
+.checks{display:grid;gap:10px}
+.ck{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
+.ck p{font-size:.96rem}
+.ck .seg button{padding:6px 11px;font-size:.84rem}
+.vis{display:grid;gap:10px;background:var(--sunk);border-radius:10px;padding:14px 16px}
+.stack{display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--line)}
+.stack span{height:100%}
+
+/* builder */
+.outline{background:var(--sunk);border-radius:10px;padding:16px 18px;font-family:var(--mono);font-size:.85rem;white-space:pre-wrap;line-height:1.7;overflow-x:auto;margin:0}
+.copyta{width:100%;min-height:160px;font-family:var(--mono);font-size:.85rem;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:10px}
+.field{display:grid;gap:6px}
+.field .lab{font-weight:600;font-size:.93rem}
+
+/* sees */
+.sees{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.sees > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.sees .yes{background:var(--good-soft)}
+.sees .no{background:var(--sunk)}
+.sees h3{font-size:1rem}
+.sees ul{margin:0;padding-left:1.1em;display:grid;gap:5px;font-size:.93rem}
+
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.85}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.related a{display:grid;gap:4px;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.related a:hover{border-color:var(--accent)}
+.related a span{color:var(--muted);font-size:.88rem}
+.related a b{color:var(--accent)}
+details.faq{border-bottom:1px solid var(--line);padding-block:14px}
+details.faq summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details.faq p{margin-top:8px;color:var(--muted)}
+body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .tool{padding:16px}
+  .topbar .brand{display:none}
+  .ck{grid-template-columns:1fr}
+  .pb{grid-template-columns:96px 1fr 48px;gap:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span> · Solutions</div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+    <div class="mine"><small>What you can answer today</small><b id="barVis" class="num">—</b></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Solution · AI coding analytics</div>
+    <h1>Track AI coding tool usage across every developer, tool and project</h1>
+    <p class="lede">Your team uses Claude Code, Cursor, Copilot and more. Each vendor shows you its own slice. Nobody can say who uses what, on which project, or how that is changing.</p>
+    <div class="def">
+      <p><b>AI coding analytics is tracking how a team uses AI coding assistants: who uses which tools, how much, on which projects, and at what cost.</b> An AI coding analytics platform brings every tool into one view, split by person, team, project and period, so AI-assisted development can be managed like any other part of engineering.</p>
+    </div>
+    <div class="row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#one-view">See the sample team</a></div>
+    <div class="seo"><b>SEO</b>Provisional main keyword "track ai coding tool usage" (open decision #5: the sheet's main is TBD). Chosen because its results are team usage trackers, unlike "ai adoption tracking" (government surveys) and "ai coding tool usage analytics" (the Jellyfish list the homepage already competes with). Searches run 23 Oct 2026 on a non-Google engine; confirm on Google. Title tag on build: "Track AI Coding Tool Usage Across Your Team | Kite Pulse" (56 characters). Meta description 153 characters. The bolded definition carries "ai coding analytics platform" and "ai assisted development analytics".</div>
+  </header>
+
+  <section class="block" id="one-view">
+    <div class="head">
+      <h2>One AI usage dashboard for developers instead of five</h2>
+      <p>Here is one sample team of nine developers and one week of AI coding sessions. First, the way most managers see it: one admin console per vendor. Then the same week in one view.</p>
+    </div>
+    <div class="tool">
+      <div class="tool-label">Sample team · one week</div>
+      <div class="seg" id="viewSeg" role="group" aria-label="View">
+        <button type="button" data-v="vendor" aria-pressed="false">Five vendor consoles</button>
+        <button type="button" data-v="one" aria-pressed="true">One view</button>
+      </div>
+      <div id="vendorView" hidden>
+        <div class="vendors" id="vendors"></div>
+        <p class="small muted" style="margin-top:12px">Each console lists its own users and counts sessions its own way. To answer "who is using AI?" you would merge five lists by hand, and two people appear in none of them.</p>
+      </div>
+      <div id="oneView" style="display:grid;gap:16px">
+        <div class="tiles" id="tiles"></div>
+        <div class="scroll"><table>
+          <thead><tr id="mxHead"></tr></thead>
+          <tbody id="mxBody"></tbody>
+        </table></div>
+        <div class="legendrow"><span>Sessions this week. Sorted by name: usage is not a performance measure.</span></div>
+        <h3>Where the AI work went, by project</h3>
+        <div class="projbars" id="projBars"></div>
+      </div>
+      <p class="small muted">Example data, not a real team.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "ai usage dashboard for developers", "ai coding tools usage analytics for teams" and "track ai coding tool usage across team". Answers "How do I see which developers on my team are using AI coding tools?", "What percentage of my team actively uses AI coding assistants?" and "Which developers aren't using AI at all?" through the sample (leave is shown, so absence does not read as non-adoption).</div>
+  </section>
+
+  <section class="block" id="self-check">
+    <div class="head">
+      <h2>AI adoption tracking: what can you answer today?</h2>
+      <p>Eight questions engineering leaders get asked about AI coding tools. For each one, say whether you could answer it this afternoon. The answers are filled in with a typical starting point; change them to yours.</p>
+    </div>
+    <div class="tool">
+      <div class="tool-label">Self-check · 8 questions</div>
+      <div class="checks" id="checks"></div>
+      <div class="vis" id="vis" aria-live="polite"></div>
+    </div>
+    <div class="seo"><b>SEO</b>H2 carries "ai adoption tracking". The eight questions are the sheet's FAQ rows phrased as a checklist, so the section also answers "how do companies track ai usage" without a product pitch.</div>
+  </section>
+
+  <section class="block" id="report">
+    <div class="head">
+      <h2>AI coding assistant metrics for your usage report</h2>
+      <p>Pick who the report is for and how often it goes out. The outline lists the sections and defines each measure, so this month's numbers can be compared with next month's. Every measure is about teams and tools, not ranking individuals.</p>
+    </div>
+    <div class="tool">
+      <div class="tool-label">Report builder · copy the outline</div>
+      <div class="field"><div class="lab" id="aLab">Who reads it?</div>
+        <div class="seg" id="aSeg" role="group" aria-labelledby="aLab">
+          <button type="button" data-v="lead" aria-pressed="false">Team lead</button>
+          <button type="button" data-v="manager" aria-pressed="true">Engineering manager</button>
+          <button type="button" data-v="exec" aria-pressed="false">Executives and finance</button>
+        </div></div>
+      <div class="field"><div class="lab" id="pLab">How often?</div>
+        <div class="seg" id="pSeg" role="group" aria-labelledby="pLab">
+          <button type="button" data-v="week" aria-pressed="false">Weekly</button>
+          <button type="button" data-v="month" aria-pressed="true">Monthly</button>
+          <button type="button" data-v="quarter" aria-pressed="false">Quarterly</button>
+        </div></div>
+      <div class="field"><div class="lab" id="tLab">Tools your team uses</div><div class="chips" id="tChips" role="group" aria-labelledby="tLab"></div></div>
+      <pre class="outline" id="outline"></pre>
+      <div class="row"><button class="btn" type="button" id="copyOut">Copy outline</button><span id="copyMsg" class="muted small" aria-live="polite"></span></div>
+      <textarea class="copyta" id="outText" readonly hidden aria-label="Report outline text"></textarea>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "ai coding assistant metrics", "ai pair programming metrics" and "What metrics should I use to measure AI-assisted development?". Audiences come from the Product Guide's "Day to day, by role" table.</div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="head">
+      <h2>How Kite Pulse tracks AI coding tool usage</h2>
+      <p>A small background program on each developer's computer picks up the session history the AI coding assistants already keep, strips out secrets, and sends it to your team's own Kite Pulse server. It covers ten tools: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot, Cline, Roo Code, Kilo Code, OpenCode and Aider. That includes agentic coding sessions, where an assistant runs commands and edits files on its own.</p>
+    </div>
+    <div class="sees">
+      <div class="yes"><h3>What you see</h3><ul>
+        <li><b>Team AI Usage:</b> tokens used per developer, per tool and per period, with an estimated cost per tool where it can be worked out.</li>
+        <li><b>Tool Accounts:</b> how many separate accounts each AI tool is used under, which reveals shared logins.</li>
+        <li><b>Organization Projects:</b> every project with its sessions, contributors and last activity.</li>
+        <li><b>Org Overview</b> and, for admins, <b>Company Overview</b>: who is active, and tool use across the organisation.</li>
+        <li><b>Plan headroom:</b> who is close to a Claude plan limit.</li>
+        <li><b>Reports:</b> a team or company summary for any period, as a spreadsheet or by scheduled email. <b>Teams</b> records membership over time, so reports can be split by team.</li>
+      </ul></div>
+      <div class="no"><h3>What it does not see</h3><ul>
+        <li>Your source files. It does not open or upload them.</li>
+        <li>Keystrokes, screenshots or websites. It reads only the AI tools' own session records.</li>
+        <li>AI tools outside the ten it supports.</li>
+        <li>Anything before the developer confirms which projects to sync. Nothing uploads until then.</li>
+        <li>Secrets. They are removed on the developer's computer before upload.</li>
+      </ul></div>
+    </div>
+    <div class="kp"><div class="kpmark">Kite Pulse</div><div>
+      <p>Data goes only to the server your team runs, on your own network or cloud account, with no vendor cloud in between. A manager sees only their own reporting line, enforced by the server. A Transparency page shows each developer every data point collected about them and who can see it.</p>
+      <p>Cost figures are estimates for decisions, not a replacement for the vendor's invoice.</p>
+    </div></div>
+    <div class="seo"><b>SEO</b>Covers "team usage tracking claude code codex opencode", "agentic coding analytics" and "agentic coding dashboard", and "how to monitor ai coding assistant usage" through the method, without the word "monitoring" (keywords-to-avoid tab). Every line is from the Product Guide: "What Kite Pulse is", "Key features" 1, 3, 4, 5 and 6, "Privacy and trust" and the FAQ on cost figures. Trends and Comparisons are switched off and not mentioned.</div>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See AI coding tool usage across your whole team</h3>
+      <p>A single place to see AI-assisted development across people, projects and tools, running on a server the team controls.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+    <div class="related">
+      <a href="/ai-cost-tracking"><b>AI coding cost tracking</b><span>Turn usage into cost per person, team and project.</span></a>
+      <a href="/shadow-ai"><b>Shadow AI coding tools</b><span>Tools your developers use that nobody approved.</span></a>
+      <a href="/blog/measure-developer-productivity-ai"><b>Measuring AI's effect on productivity</b><span>Usage shows adoption. This shows whether it helps.</span></a>
+      <a href="/integrations"><b>Integrations</b><span>The ten AI coding tools Kite Pulse reads.</span></a>
+    </div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>AI coding analytics: questions</h2>
+    <div>
+      <details class="faq" open><summary>Can companies track AI usage?</summary><p>Yes. Companies track AI coding tool usage through each vendor's admin console, through API usage reports, and through tools that read the session history AI coding assistants keep on each developer's computer. What they can see depends on the method: vendor consoles cover one tool each, and session history covers every tool it supports in one view.</p></details>
+      <details class="faq"><summary>How do companies track AI coding tool usage?</summary><p>Most start with vendor admin consoles, which show seats and some usage for one tool at a time. Teams that use several tools add a spreadsheet of exports, or a tool that collects sessions across all of them and splits usage by person, team, project and period. Whatever the method, tell developers what is collected and why before you start.</p></details>
+      <details class="faq"><summary>How many developers on my team actively use AI coding assistants?</summary><p>Define "active" first, for example at least one AI coding session in the period, then count people in scope who meet it, across every tool. Counting per tool overstates adoption when one person uses three tools, and understates it when people use a tool your consoles do not cover. Account for leave, or a week off looks like non-adoption.</p></details>
+      <details class="faq"><summary>How do I measure AI coding tool adoption on my team?</summary><p>Track three things per period: the share of people in scope who used any AI coding tool, which tools and how many accounts each runs under, and where the work happened by project. Split by team and by start date to see how quickly new developers adopt. Adoption shows use, not value; measure delivery and quality separately.</p></details>
+      <details class="faq"><summary>How do I compare AI tool usage across Cursor, Claude Code and Copilot?</summary><p>Compare the same measures for each tool over the same period: active people, sessions, tokens where the tool reports them, and projects. Vendor consoles define these differently, so a comparison built from three consoles mixes three definitions. Collecting sessions from all tools in one place gives one definition for every tool.</p></details>
+      <details class="faq"><summary>How do I compare AI coding tool usage across teams?</summary><p>Record which team each person belonged to and when, then split the same usage measures by team for the same period. Without dated team membership, a re-organisation moves usage between teams after the fact. Compare teams, never individuals, and read usage alongside the kind of work each team does.</p></details>
+      <details class="faq"><summary>How do I find out which projects my team uses AI on the most?</summary><p>Tie each AI session to the repository it ran in, then add up sessions or tokens per repository and map repositories to projects. Watch for the same repository cloned under different folder names on different machines, which splits one project into two.</p></details>
+      <details class="faq"><summary>How can I see AI coding tool usage across my entire engineering organisation?</summary><p>You need one collection method that covers every tool your developers use, plus a record of who belongs to which team. Kite Pulse gives admins a Company Overview with active people and hours, project health and tool use across the organisation, and managers see their own reporting line.</p></details>
+      <details class="faq"><summary>Can I track AI coding tool usage over days, weeks and months?</summary><p>Yes. Keep the period fixed when you compare, because usage swings with releases, holidays and on-call rotas. In Kite Pulse, Team AI Usage shows tokens per developer, per tool and per period, and Reports produce a summary for any period as a spreadsheet, or by email on a schedule.</p></details>
+      <details class="faq"><summary>How can I track which AI models my team uses?</summary><p>Start with the usage reports of the model providers and the AI tools' admin consoles, which often break usage down by model for API-billed plans. Subscription plans show less. Model mix matters for cost and for plan limits, because some plans cap a model's weekly use separately.</p></details>
+      <details class="faq"><summary>Which developers use AI coding assistants the most, and which not at all?</summary><p>You can see it, but use it to offer help, not to rank people. Heavy use may mean a large task or a tool stuck in a loop; no use may mean leave, a role that does not code, or a tool your collection does not cover. Check those before drawing a conclusion, and talk to the person rather than about them.</p></details>
+      <details class="faq"><summary>Which AI coding tool is my team most productive with?</summary><p>Usage data alone cannot tell you. A tool can be used most because it is the default, not because it helps most. To answer it, compare delivery and quality metrics for work done with each tool over the same period, with a baseline.</p></details>
+      <details class="faq"><summary>What metrics should I use to measure AI-assisted development?</summary><p>For usage: active people, sessions, tokens and estimated cost per tool, team and project. For results: lead time, change failure rate and rework against a baseline. For experience: where AI sessions get stuck, such as repeated failing commands and abandoned approaches. Usage metrics describe adoption; only the other two describe value.</p></details>
+      <details class="faq"><summary>What is the best dashboard for AI-assisted engineering teams?</summary><p>The one that covers every AI tool your team uses, splits usage by person, team, project and period, shows cost and plan limits, and is clear with developers about what it collects. Check where the data is stored, whether it reads source code, and whether it ranks individuals before you choose.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>All 25 FAQ rows answered in 14 items. Merged: 289/290 ("can/do companies track"), 291/292 into "How do companies track"; 329/331/430/476 into "How many developers"; 330/439 into adoption; 461/478/536 into teams; 434/479 into periods; 435/436 into one answer without ranking framing; 336/481 into models. Row 481 notes "check with product: per-model usage view": the answer names no Kite Pulse per-model view, because the Product Guide does not describe one.</div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /ai-coding-analytics page. The sample team, its sessions and projects, and the pre-filled self-check answers are examples.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE_TEAM: example data, not a real team. sessions per tool this week. */
+  const TOOLS=[{id:'cc',n:'Claude Code',c:'--t1'},{id:'cur',n:'Cursor',c:'--t2'},{id:'cop',n:'GitHub Copilot',c:'--t3'},{id:'cdx',n:'Codex',c:'--t4'},{id:'gem',n:'Gemini CLI',c:'--t5'}];
+  const SAMPLE_TEAM=[
+    {n:'Ana',team:'Payments',s:{cc:14,cur:6}},
+    {n:'Ben',team:'Payments',s:{cop:9}},
+    {n:'Chloé',team:'Mobile',s:{cur:11,cop:4,cc:3}},
+    {n:'Dev',team:'Platform',s:{cc:18,cdx:5}},
+    {n:'Eitan',team:'Mobile',s:{cur:7}},
+    {n:'Fatima',team:'Platform',s:{gem:6,cc:2}},
+    {n:'Grace',team:'Payments',s:{cop:3}},
+    {n:'Hiro',team:'Mobile',s:{},leave:true},
+    {n:'Ines',team:'Platform',s:{}}
+  ];
+  const SAMPLE_PROJECTS=[['checkout-api',31],['mobile-app',25],['infra',22],['admin-dashboard',10],['docs',3]];
+
+  const CHECKS=[
+    {q:'Which developers used an AI coding tool this month?',a:'some'},
+    {q:'Which tools they used, and under how many accounts?',a:'some'},
+    {q:'Which projects got the most AI work?',a:'no'},
+    {q:'How usage differs between teams?',a:'no'},
+    {q:'How usage changed over the last three months?',a:'no'},
+    {q:'What AI coding tools cost, per tool and per team?',a:'some'},
+    {q:'Who is close to an AI plan\'s usage limit?',a:'no'},
+    {q:'Who is on leave, so absence is not read as non-adoption?',a:'yes'}
+  ];
+  const FIX=[
+    'Get every tool into one list of people and accounts first. Everything else is split from that list.',
+    'Merge accounts per person and retire shared logins, so usage can be attributed.',
+    'Tie each session to the repository it ran in, then map repositories to projects.',
+    'Record team membership with dates, so a re-organisation does not move past usage between teams.',
+    'Keep a fixed period and a monthly snapshot, so this month can be compared with the last.',
+    'Attach a price to each tool\'s usage, and label the result as an estimate.',
+    'Check plan usage before large tasks, so nobody loses half a day to a limit mid-task.',
+    'Record leave and on-call rotas next to usage.'
+  ];
+
+  const AUD={
+    lead:{n:'Team lead',secs:[
+      ['Who is active','People in scope who used any AI coding tool in the period, and on which tools.'],
+      ['Where the work went','Sessions per project, and projects several people worked on together.'],
+      ['Plan limits','People close to a plan\'s usage limit before the next large task.'],
+      ['Leave and on-call','Who was away, so their numbers are read in context.']]},
+    manager:{n:'Engineering manager',secs:[
+      ['Adoption','Share of people in scope who used any AI coding tool in the period, per team.'],
+      ['Usage by tool','Active people, sessions and tokens per tool.'],
+      ['Usage by project','Sessions and tokens per project; projects that went quiet.'],
+      ['Accounts','Accounts per tool; shared logins and seats with no use.'],
+      ['Where work got stuck','Repeated failing commands and the most common error types.'],
+      ['Change since last period','Each measure above against the previous period, with notes on releases, leave and re-organisations.']]},
+    exec:{n:'Executives and finance',secs:[
+      ['Adoption','Share of people using AI coding tools, per team, and the trend over the last three periods.'],
+      ['Cost','Estimated cost per tool, team and project for the period (estimates, not the invoice).'],
+      ['Seats','Seats paid for against seats used, per tool; shared and unused accounts.'],
+      ['Tool mix','Which tools carry most of the work, and whether that is changing.']]}
+  };
+  const PER={week:'week',month:'month',quarter:'quarter'};
+  const ALLTOOLS=['Claude Code','Codex','Gemini CLI','Cursor','GitHub Copilot','Cline','Roo Code','Kilo Code','OpenCode','Aider'];
+
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* sample team */
+  const tot=p=>Object.values(p.s).reduce((a,b)=>a+b,0);
+  function renderVendors(){
+    $('vendors').innerHTML=TOOLS.map(t=>{const users=SAMPLE_TEAM.filter(p=>p.s[t.id]);
+      return `<div class="vpanel"><h3><i style="background:var(${t.c})"></i>${t.n}</h3><small>${users.length} user${users.length===1?'':'s'}</small><ul>${users.map(p=>`<li><span>${p.n}</span><span class="num">${p.s[t.id]}</span></li>`).join('')}</ul></div>`;}).join('');
+  }
+  function renderOne(){
+    const max=Math.max(...SAMPLE_TEAM.flatMap(p=>Object.values(p.s)));
+    $('mxHead').innerHTML='<th>Developer</th><th>Team</th>'+TOOLS.map(t=>`<th class="c">${t.n}</th>`).join('')+'<th class="c">Total</th>';
+    $('mxBody').innerHTML=SAMPLE_TEAM.map(p=>`<tr><td><b>${p.n}</b>${p.leave?' <span class="pill">on leave</span>':''}</td><td class="muted">${p.team}</td>${TOOLS.map(t=>{const v=p.s[t.id]||0;
+      return `<td class="c">${v?`<span class="cell" style="background:color-mix(in srgb,var(${t.c}) ${Math.round(15+v/max*55)}%,transparent)">${v}</span>`:'<span class="muted">·</span>'}</td>`;}).join('')}<td class="c num">${tot(p)||'<span class="muted">0</span>'}</td></tr>`).join('');
+    const inScope=SAMPLE_TEAM.filter(p=>!p.leave),active=inScope.filter(p=>tot(p)>0),multi=SAMPLE_TEAM.filter(p=>Object.keys(p.s).length>1);
+    const none=inScope.filter(p=>!tot(p));
+    $('tiles').innerHTML=[[`${active.length} of ${inScope.length}`,'developers at work used an AI tool'],[SAMPLE_TEAM.filter(p=>p.leave).length,'on leave, left out of the count'],[multi.length,'used two or more tools'],[none.length,'used none: worth a conversation']]
+      .map(([b,s])=>`<div class="tile"><b>${b}</b><span>${s}</span></div>`).join('');
+    const pmax=Math.max(...SAMPLE_PROJECTS.map(p=>p[1]));
+    $('projBars').innerHTML=SAMPLE_PROJECTS.map(([n,v])=>`<div class="pb"><span class="num" style="font-size:.85rem">${n}</span><div class="track"><span style="width:${(v/pmax*100).toFixed(1)}%;background:var(--accent)"></span></div><span class="v">${v}</span></div>`).join('');
+  }
+  $('viewSeg').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b)return;
+    [...$('viewSeg').children].forEach(x=>x.setAttribute('aria-pressed',x===b));
+    const one=b.dataset.v==='one';$('oneView').hidden=!one;$('vendorView').hidden=one;});
+
+  /* self-check */
+  const LBL={yes:'Yes, easily',some:'With effort',no:'No'};
+  function renderChecks(){
+    $('checks').innerHTML=CHECKS.map((c,i)=>`<div class="ck"><p>${esc(c.q)}</p><div class="seg" role="group" aria-label="${esc(c.q)}">${Object.entries(LBL).map(([k,l])=>`<button type="button" data-i="${i}" data-v="${k}" aria-pressed="${c.a===k}">${l}</button>`).join('')}</div></div>`).join('');
+  }
+  function renderVis(){
+    const n={yes:0,some:0,no:0};CHECKS.forEach(c=>n[c.a]++);
+    $('barVis').textContent=`${n.yes} of 8`;
+    const first=CHECKS.findIndex(c=>c.a==='no'),firstSome=CHECKS.findIndex(c=>c.a==='some');
+    const k=first>=0?first:firstSome;
+    $('vis').innerHTML=`<p><b>You can answer ${n.yes} of 8 easily, ${n.some} with effort, and ${n.no} not at all.</b></p>
+      <div class="stack" role="img" aria-label="${n.yes} easily, ${n.some} with effort, ${n.no} not at all"><span style="width:${n.yes/8*100}%;background:var(--good)"></span><span style="width:${n.some/8*100}%;background:var(--cost)"></span><span style="width:${n.no/8*100}%;background:var(--bad)"></span></div>
+      ${k>=0?`<p><span class="pill ${first>=0?'bad':'warn'}">Fix first</span> ${esc(CHECKS[k].q)} ${esc(FIX[k])}</p>`:'<p><span class="pill good">Covered</span> You can answer all eight. Make sure the answers come from one definition of "active" across every tool.</p>'}`;
+  }
+  $('checks').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;CHECKS[b.dataset.i].a=b.dataset.v;renderChecks();renderVis();
+    const nb=$('checks').querySelector(`button[data-i="${b.dataset.i}"][data-v="${b.dataset.v}"]`);nb&&nb.focus();});
+
+  /* report builder */
+  const R={aud:'manager',per:'month',tools:new Set(['Claude Code','Cursor','GitHub Copilot'])};
+  function seg(id,key){$(id).addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b)return;R[key]=b.dataset.v;
+    [...$(id).children].forEach(x=>x.setAttribute('aria-pressed',x===b));renderOutline();});}
+  seg('aSeg','aud');seg('pSeg','per');
+  function renderTools(){$('tChips').innerHTML=ALLTOOLS.map(t=>`<button type="button" class="chip" data-t="${t}" aria-pressed="${R.tools.has(t)}"><span class="dot"></span>${t}</button>`).join('');}
+  $('tChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const t=b.dataset.t;
+    if(R.tools.has(t)){if(R.tools.size>1)R.tools.delete(t);}else R.tools.add(t);renderTools();renderOutline();
+    const nb=$('tChips').querySelector(`[data-t="${t}"]`);nb&&nb.focus();});
+  function renderOutline(){
+    const a=AUD[R.aud],p=PER[R.per],tools=[...R.tools];
+    const lines=[
+      `AI coding tool usage report: ${a.n.toLowerCase()}, every ${p}`,
+      `Tools covered: ${tools.join(', ')}`,
+      ``,
+      `Definitions (keep these fixed from one report to the next)`,
+      `- Active: at least one AI coding session in the ${p}.`,
+      `- In scope: people on the team for the whole ${p}, not on leave.`,
+      `- Session: one sitting with an AI coding tool, ending after 30 minutes without activity.`,
+      ``,
+      ...a.secs.map(([h,d],i)=>`${i+1}. ${h}\n   ${d}`),
+      ``,
+      `Rules: report teams and tools, not a ranking of people. Read usage with leave and releases in mind. Usage shows adoption, not value.`
+    ];
+    $('outline').textContent=lines.join('\n');
+    $('outText').value=lines.join('\n');
+  }
+  $('copyOut').addEventListener('click',()=>{const t=$('outText').value;
+    const fallback=()=>{const ta=$('outText');ta.hidden=false;ta.select();$('copyMsg').textContent='Select the text below and copy it.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fallback);}catch(e){fallback();}});
+
+  renderVendors();renderOne();renderChecks();renderVis();renderTools();renderOutline();
+})();
+</script>
+
+</body></html>

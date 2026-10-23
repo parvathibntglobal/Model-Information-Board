@@ -1,0 +1,711 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Claude Code Usage Limits Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How Claude Code usage limits work: session and weekly limits by plan, when they reset, what uses them fastest, and what to do at the limit.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of numbered steps, each pairing crawlable explanation with one hands-on tool; a sticky ledger carries the reader's plan and where they stand. Same tokens as the other Kite Pulse guides. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:1px 6px;border-radius:5px}
+sup a{font-family:var(--mono);font-size:.7em;text-decoration:none;margin-left:2px}
+
+/* sticky ledger */
+.ledger{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.ledger .wrap{display:flex;align-items:center;gap:14px;padding-block:10px;flex-wrap:wrap}
+.ledger .brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.ledger .brand span{color:var(--accent)}
+.ledger .state{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;font-size:.85rem;color:var(--muted)}
+.ledger .state b{font-family:var(--mono);color:var(--ink);font-size:.95rem}
+.ledger .state b.warn{color:var(--cost)} .ledger .state b.bad{color:var(--bad)}
+.steps{display:flex;gap:4px;width:100%}
+.steps i{flex:1;height:3px;border-radius:2px;background:var(--line);transition:background .3s}
+.steps i.on{background:var(--accent)}
+.toggle{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+/* hero */
+.hero{padding-block:52px 30px;display:grid;gap:18px}
+.answer{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:16px 20px;display:grid;gap:8px}
+.answer p{font-size:1.08rem}
+.meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem;color:var(--muted)}
+.meta span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:middle}
+.toc{display:flex;flex-wrap:wrap;gap:8px}
+.toc a{font-size:.85rem;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+/* sections */
+section.step{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.step-head{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.step-no{font-family:var(--mono);font-weight:600;font-size:.85rem;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 9px;margin-top:4px}
+.step-head > div{display:grid;gap:10px;min-width:0}
+.step-head p{color:var(--muted)}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.tool-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tool-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.note{font-size:.88rem;color:var(--muted)}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+/* controls */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:600;font-size:.93rem}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.field{display:grid;gap:6px;min-width:0}
+.field label,.field .lbl{font-weight:600;font-size:.95rem;display:flex;justify-content:space-between;gap:12px}
+.field output{font-family:var(--mono);color:var(--accent);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,input[type=time]{border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--bg)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+/* plan card */
+.plancard{display:grid;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.plancard .pr{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:14px;padding:11px 14px;border-bottom:1px solid var(--line);font-size:.95rem}
+.plancard .pr:last-child{border-bottom:0}
+.plancard .pr b{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+.plancard .unk{color:var(--muted);font-style:italic}
+
+/* timeline */
+.tl{width:100%;height:auto;display:block}
+.tl text{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.tl .lbl{font-family:var(--body);font-size:12px;font-weight:700;fill:var(--ink)}
+.big{display:flex;gap:28px;flex-wrap:wrap}
+.big div{display:grid;gap:2px}
+.big b{font-family:var(--mono);font-size:1.65rem;font-weight:600;line-height:1.1}
+.big b.warn{color:var(--cost)} .big b.bad{color:var(--bad)} .big b.good{color:var(--good)}
+.big span{color:var(--muted);font-size:.85rem}
+
+/* runway */
+.runway{display:grid;gap:8px}
+.bar{position:relative;height:18px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.bar span{position:absolute;inset:0 auto 0 0;border-radius:6px;transition:width .35s}
+.bar .used{background:var(--accent)}
+.bar .proj{background:repeating-linear-gradient(135deg,var(--cost) 0 6px,var(--cost-soft) 6px 11px);opacity:.85}
+.bar .cap{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);left:100%}
+.verdict{border-radius:10px;padding:12px 14px;font-size:.97rem}
+.verdict.ok{background:var(--good-soft)} .verdict.warn{background:var(--cost-soft)} .verdict.bad{background:var(--bad-soft)}
+
+/* habits */
+.habits{display:grid;gap:8px}
+.habit{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.habit input{width:18px;height:18px;margin-top:3px;accent-color:var(--accent)}
+.habit.on{border-color:var(--accent);background:var(--accent-soft)}
+.habit b{display:block}
+.habit small{color:var(--muted);font-size:.86rem}
+.fixes{display:grid;gap:10px;counter-reset:fx}
+.fix{border-left:3px solid var(--accent);padding:2px 0 2px 12px}
+.fix p{font-size:.95rem}
+.fix q{display:block;color:var(--muted);font-size:.88rem;margin-top:3px;quotes:"\201C" "\201D"}
+
+/* reports */
+.reports{display:grid;gap:12px}
+.report{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:8px;background:var(--bg)}
+.report blockquote{margin:0;font-size:1rem}
+.report .by{font-size:.85rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.pill.neg{background:var(--bad-soft);color:var(--bad)} .pill.pos{background:var(--good-soft);color:var(--good)}
+.empty{border:1.5px dashed var(--line);border-radius:12px;padding:20px;display:grid;gap:6px;color:var(--muted);background:var(--bg)}
+.empty b{color:var(--ink);font-family:var(--display)}
+
+/* week */
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.day{border:1.5px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;background:var(--bg);display:grid;gap:4px}
+.day[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.day[disabled]{opacity:.4;cursor:not-allowed}
+.day b{font-size:.82rem}
+.day span{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+
+/* decision tree */
+.tree{display:grid;gap:14px}
+.qa{display:grid;gap:8px}
+.qa > b{font-size:1rem}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 14px;cursor:pointer;font-size:.95rem}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt code{background:transparent;padding:0}
+.leaf{border-radius:12px;background:var(--sunk);padding:16px 18px;display:grid;gap:10px}
+.leaf ol,.leaf ul{margin:0;padding-left:1.2em;display:grid;gap:6px;max-width:68ch}
+.leaf q{color:var(--muted);quotes:"\201C" "\201D"}
+
+/* checklist */
+.plan{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.plan li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
+.plan input{width:18px;height:18px;margin-top:4px;accent-color:var(--accent)}
+.plan li.done-item label{color:var(--muted);text-decoration:line-through}
+.plan small{display:block;color:var(--muted);font-size:.84rem}
+
+/* team table */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk)}
+th button{all:unset;cursor:pointer}
+th button:focus-visible{outline:2px solid var(--accent)}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.mini{display:inline-block;width:70px;height:8px;border-radius:4px;background:var(--sunk);vertical-align:middle;margin-right:8px;overflow:hidden}
+.mini span{display:block;height:100%}
+.v-old{color:var(--cost);font-weight:700}
+
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+details.faq{border-bottom:1px solid var(--line);padding-block:14px}
+details.faq summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details.faq p{margin-top:8px;color:var(--muted)}
+.sources ol{margin:0;padding-left:1.3em;display:grid;gap:6px;font-size:.92rem}
+.sources li span{color:var(--muted)}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .tool{padding:16px}
+  .step-head{grid-template-columns:1fr;gap:8px}
+  .step-no{justify-self:start}
+  .ledger .brand{display:none}
+  .ledger .state{margin-left:0}
+  .plancard .pr{grid-template-columns:1fr;gap:2px}
+  .days{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="ledger">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span> · Guides</div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+    <div class="state" aria-live="polite">
+      <span>Plan <b id="lgPlan">Max 5x</b></span>
+      <span>Session <b id="lgSession">40%</b></span>
+      <span>Week <b id="lgWeek">55%</b></span>
+    </div>
+    <div class="steps" id="stepBar" aria-hidden="true"></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Guide · Claude Code</div>
+    <h1>Claude Code usage limits: how they work and how to make them last</h1>
+    <div class="answer">
+      <p><b>Claude Code usage limits are the caps on how much you can use Claude Code on a Claude subscription.</b> Paid plans have two: a session limit that resets every five hours, and a weekly limit that resets once a week. Both are shared with Claude chat, and Max plans add a separate weekly limit for Fable.</p>
+    </div>
+    <div class="meta"><span>Facts checked <time datetime="2026-10-22">22 October 2026</time></span><span>By the Kite Pulse team</span><span>9 steps, about 8 minutes</span></div>
+    <nav class="toc" aria-label="Steps">
+      <a href="#plan">1 Your plan</a><a href="#resets">2 Reset windows</a><a href="#left">3 What's left</a><a href="#fastest">4 What uses it fastest</a><a href="#reports">5 What engineers report</a><a href="#week">6 Plan your week</a><a href="#hit">7 I hit my limit</a><a href="#habits">8 Habits</a><a href="#team">9 Team view</a>
+    </nav>
+    <div class="seo"><b>SEO</b>Title tag on build: "Claude Code usage limits explained | Kite Pulse" (46 characters). Main keyword "claude code usage limits" is in the H1, URL and first sentence. The bold first sentence is the definition Google snippets and AI answers quote. Every fact on this page comes from Anthropic's help center or Claude Code docs, numbered in Sources; no limit numbers are invented, because Anthropic publishes none.</div>
+  </header>
+
+  <!-- 1 -->
+  <section class="step" id="plan" data-step>
+    <div class="step-head"><div class="step-no">01</div><div>
+      <h2>Claude weekly limits by plan: start with yours</h2>
+      <p>Which limits apply depends on how you pay for Claude Code. Pro and Max have a five-hour session limit and a weekly limit, shared across Claude and Claude Code.<sup><a href="#src-1">1</a></sup> Max 5x and Max 20x give five and twenty times Pro's per-session allowance.<sup><a href="#src-3">3</a></sup> Team and seat-based Enterprise seats draw from a per-seat allowance whose size depends on the seat tier.<sup><a href="#src-8">8</a></sup> With an API key you pay per token instead.<sup><a href="#src-8">8</a></sup> Anthropic does not publish fixed message or token counts for any plan.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Pick your plan</div>
+      <div class="chips" id="planChips" role="group" aria-label="Your plan"></div>
+      <div class="plancard" id="planCard" aria-live="polite"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "claude weekly limits by plan", "claude weekly limit pro vs max" and "claude team premium seat usage". Every cell is a quoted fact with its source; unknown cells say "Anthropic does not publish this" rather than guessing.</div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="resets" data-step>
+    <div class="step-head"><div class="step-no">02</div><div>
+      <h2>When do Claude limits reset? The 5-hour and weekly windows</h2>
+      <p>The <b>session limit</b> resets every five hours.<sup><a href="#src-2">2</a></sup> On Team and Enterprise seats Anthropic describes it as a rolling five-hour window.<sup><a href="#src-8">8</a></sup> The <b>weekly limit</b> is not rolling: it resets at a fixed time each week that is assigned to your account.<sup><a href="#src-3">3</a></sup> The help pages do not say exactly when a five-hour window starts, so read the reset times from Claude Code's <code>/usage</code> screen or claude.ai <b>Settings → Usage</b>, then set them below.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Reset timeline</div>
+      <div class="grid2">
+        <div class="field"><label for="sessReset">Session resets in <output id="sessResetOut" class="num"></output></label><input type="range" id="sessReset" min="5" max="300" step="5" value="150"></div>
+        <div class="field"><span class="lbl">Weekly reset (from Settings → Usage)</span>
+          <div class="row"><select id="wkDay" aria-label="Weekly reset day"></select><input type="time" id="wkTime" value="09:00" aria-label="Weekly reset time"></div></div>
+      </div>
+      <svg class="tl" id="timeline" viewBox="0 0 680 150" role="img" aria-label="Timeline of this week with the current five-hour session and the weekly reset"></svg>
+      <div class="big">
+        <div><b class="num" id="sessIn"></b><span>until the session resets</span></div>
+        <div><b class="num" id="wkIn"></b><span>until the weekly limit resets</span></div>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Answers "when do claude weekly limits reset", "is claude weekly limit rolling", "claude weekly limit vs 5 hour limit", "claude weekly limit vs session limit", "claude code limit reset time" and "how does claude weekly limit work".</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="left" data-step>
+    <div class="step-head"><div class="step-no">03</div><div>
+      <h2>How close am I to the limit? Check your remaining usage</h2>
+      <p>In Claude Code, <code>/usage</code> shows your plan usage bars, activity stats and a usage breakdown,<sup><a href="#src-8">8</a></sup> and <code>/status</code> shows your remaining allocation.<sup><a href="#src-1">1</a></sup> On claude.ai the same bars are under Settings → Usage.<sup><a href="#src-5">5</a></sup> Enter the two percentages here to see whether today's session and this week's limit will last at your current pace. This is an estimate from your own numbers: usage is rarely even through a day.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Will my usage last?</div>
+      <div class="grid2">
+        <div class="field"><label for="sessUsed">Session used <output id="sessUsedOut" class="num"></output></label><input type="range" id="sessUsed" min="0" max="100" value="40"></div>
+        <div class="field"><label for="wkUsed">Week used <output id="wkUsedOut" class="num"></output></label><input type="range" id="wkUsed" min="0" max="100" value="55"></div>
+      </div>
+      <div class="runway">
+        <div class="note">This session (used so far, then projected to the reset)</div>
+        <div class="bar" id="sessBar"><span class="proj"></span><span class="used"></span><i class="cap"></i></div>
+        <div class="verdict" id="sessVerdict" aria-live="polite"></div>
+      </div>
+      <div class="runway">
+        <div class="note">This week (used so far, then projected to the weekly reset)</div>
+        <div class="bar" id="wkBar"><span class="proj"></span><span class="used"></span><i class="cap"></i></div>
+        <div class="verdict" id="wkVerdict" aria-live="polite"></div>
+      </div>
+      <p class="note">How it works: your pace is the share used so far divided by the time since the window started (five hours, or seven days, minus the time left until the reset you set in step 2). The projection carries that pace to the reset.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "how to check claude weekly limit", "claude code remaining usage", "claude approaching weekly limit", "how to predict claude code usage" and the FAQ "Will my Claude usage last the whole workday?". The method is written out under the tool so a crawler reads it.</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step" id="fastest" data-step>
+    <div class="step-head"><div class="step-no">04</div><div>
+      <h2>Why Claude Code usage runs out fast, and what uses it most</h2>
+      <p>Anthropic lists what drives usage: the length and complexity of your conversations, the features you use, the model, and the effort level.<sup><a href="#src-2">2</a></sup> In Claude Code the biggest driver is context: it sends your full conversation with every request, so a one-line question in a session that has been open all day still draws usage for the whole conversation.<sup><a href="#src-8">8</a></sup> Tick what sounds like your week to see the fixes Anthropic recommends for each.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Check your habits</div>
+      <div class="habits" id="habitList"></div>
+      <div class="fixes" id="fixes" aria-live="polite"></div>
+      <p class="note">To see your own breakdown, run <code>/usage</code> in Claude Code: on Pro, Max, Team and Enterprise it attributes recent usage to skills, subagents, plugins and MCP servers, and recommends changes.<sup><a href="#src-8">8</a></sup></p>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "claude opus uses limit fast", "claude code subagents use too many tokens", "claude code parallel sessions usage limit", "claude code usage running out fast", "claude code large codebase token usage", "claude code usage spike" and "claude usage meter jumped". Each fix quotes the Claude Code docs.</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="step" id="reports" data-step>
+    <div class="step-head"><div class="step-no">05</div><div>
+      <h2>What engineers report about Claude Code limits</h2>
+      <p>Reports from public discussions about hitting Claude limits, each quoted with its source and a link. They are collected by the Model Information Board, which keeps only quotes it can match word for word to the original post. Reddit and X posts appear through the platforms' own embeds.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">From public discussions</div>
+      <div class="reports" id="reports"></div>
+    </div>
+    <div class="seo"><b>Prototype</b>Filled from the Model Information Board export (web/src/kitepulse/data/board-reports.json) once the shared database is connected. Until then the section says so. Rules on publish: Reddit and X only as official embeds; every other quote with platform credit and link; no per-platform counts.</div>
+  </section>
+
+  <!-- 6 -->
+  <section class="step" id="week" data-step>
+    <div class="step-head"><div class="step-no">06</div><div>
+      <h2>Plan your week so the weekly limit lasts</h2>
+      <p>A weekly limit runs out on the day you use most. Split what you have left across the days you will actually work before the reset, and keep heavy work, such as long agent runs, for days with room. Your week left comes from step 3 and the reset day from step 2.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Weekly budget</div>
+      <div class="field"><span class="lbl">Days you will work before the weekly reset</span><div class="days" id="days" role="group" aria-label="Working days before the weekly reset"></div></div>
+      <div class="big">
+        <div><b class="num" id="wkLeft"></b><span>of the weekly limit left</span></div>
+        <div><b class="num" id="perDay"></b><span>to use per working day</span></div>
+      </div>
+      <p class="note" id="weekNote"></p>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "avoid hitting claude limit", "claude weekly limit reached" and "claude code weekly rate limits".</div>
+  </section>
+
+  <!-- 7 -->
+  <section class="step" id="hit" data-step>
+    <div class="step-head"><div class="step-no">07</div><div>
+      <h2>Claude Code limit reached: what to do now</h2>
+      <p>What you can do depends on which limit you hit. A session or weekly limit is shared across all models, so switching models with <code>/model</code> does not restore access; after an Opus or Sonnet limit, switching to a model outside that family does.<sup><a href="#src-8">8</a></sup> Pick the message you saw.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">I hit my limit</div>
+      <div class="tree" id="tree"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "claude code hit limit mid task", "claude code weekly limit reached", "claude extra usage cost", "claude code subscription vs api billing" and the Team phrase "limit reached, contact an admin to keep working". Message names are quoted from the Claude Code docs.</div>
+  </section>
+
+  <!-- 8 -->
+  <section class="step" id="habits" data-step>
+    <div class="step-head"><div class="step-no">08</div><div>
+      <h2>Habits that make Claude limits last longer</h2>
+      <p>These come from Anthropic's usage-limit best practices and the Claude Code cost guide. The list starts with the fixes for the habits you ticked in step 4. Copy it into your team notes.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Your checklist</div>
+      <ul class="plan" id="checklist"></ul>
+      <div class="row"><button class="btn" type="button" id="copyList">Copy checklist</button><span id="copyMsg" class="note" aria-live="polite"></span></div>
+      <textarea id="listText" readonly hidden aria-label="Checklist text"></textarea>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="step" id="team" data-step>
+    <div class="step-head"><div class="step-no">09</div><div>
+      <h2>Team view: who is close to their Claude limit?</h2>
+      <p>Everything above helps one person. A lead needs to know who on the team is about to hit a limit before it costs them half a day. Anthropic's analytics dashboard shows daily active users, sessions and contribution metrics, and on Team and Enterprise the spend report covers usage-credit spend; usage inside the seat allowance is not metered in dollars.<sup><a href="#src-8">8</a></sup> Below is what a per-person headroom view looks like, using a sample team.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Plan headroom, worst first <span class="sample">Sample team</span></div>
+      <div class="scroll"><table>
+        <thead><tr>
+          <th>Developer</th><th>Plan</th>
+          <th><button type="button" data-sort="session">5-hour window</button></th>
+          <th><button type="button" data-sort="week">Weekly</button></th>
+          <th><button type="button" data-sort="model">Model weekly</button></th>
+          <th>Claude Code</th>
+        </tr></thead>
+        <tbody id="teamBody"></tbody>
+      </table></div>
+      <p class="note">Example data for a fictional team. Sorted by the column you pick; the version column marks anyone on an older Claude Code release than the rest of the team.</p>
+      <div class="kp"><div class="mark">Kite Pulse</div><p>Plan headroom in Kite Pulse shows who is close to a Claude plan limit (the 5-hour window, the weekly window, or a model's weekly window), worst first. It also flags people on an out-of-date Claude Code version. See <a href="/plan-headroom">Plan headroom for teams</a> and <a href="/ai-cost-tracking">how to track AI coding costs</a>.</p></div>
+    </div>
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See your whole team's limits in one place</h3>
+      <p>Kite Pulse shows how much of each plan's limit is used, for each person and across the team, on a server your team controls.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <section class="step" id="faq">
+    <h2>Claude Code usage limits: questions</h2>
+    <div id="faqList"></div>
+    <div class="seo"><b>SEO</b>All 18 FAQ rows mapped to this page in the keyword sheet, answered from the sources below. Marked up with FAQPage JSON-LD (moved into the head on build).</div>
+  </section>
+
+  <section class="step sources" id="sources">
+    <h2>Sources</h2>
+    <p class="note">Read on 22 October 2026. Anthropic's help pages carry no calendar dates, and limits change, so this guide is re-checked monthly.</p>
+    <ol>
+      <li id="src-1"><a href="https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan">Use Claude Code with your Pro or Max plan</a> <span>Claude Help Center</span></li>
+      <li id="src-2"><a href="https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work">How do usage and length limits work?</a> <span>Claude Help Center</span></li>
+      <li id="src-3"><a href="https://support.claude.com/en/articles/11049741-what-is-the-max-plan">What is the Max plan?</a> <span>Claude Help Center</span></li>
+      <li id="src-4"><a href="https://support.claude.com/en/articles/8325606-what-is-the-pro-plan">What is the Pro plan?</a> <span>Claude Help Center</span></li>
+      <li id="src-5"><a href="https://support.claude.com/en/articles/9797557-usage-limit-best-practices">Usage limit best practices</a> <span>Claude Help Center</span></li>
+      <li id="src-6"><a href="https://support.claude.com/en/articles/12429409-manage-usage-credits-for-paid-claude-plans">Manage usage credits for paid Claude plans</a> <span>Claude Help Center</span></li>
+      <li id="src-7"><a href="https://support.claude.com/en/articles/11845131-use-claude-code-with-your-team-or-enterprise-plan">Use Claude Code with your Team or Enterprise plan</a> <span>Claude Help Center</span></li>
+      <li id="src-8"><a href="https://code.claude.com/docs/en/costs">Manage costs effectively</a> <span>Claude Code docs</span></li>
+    </ol>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /claude-code-usage-limits guide. Plan facts are quoted from Anthropic's pages as read on 22 October 2026. The sample team, its names and its usage figures are examples.</div></footer>
+
+<script type="application/ld+json" id="faqLd"></script>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const src=n=>`<sup><a href="#src-${n}">${n}</a></sup>`;
+
+  /* PLAN FACTS - copied from web/src/kitepulse/data/claude-plans.json (checked 2026-10-22).
+     Every value is quoted or paraphrased from the numbered source; null means Anthropic does not publish it. */
+  const PLANS=[
+    {id:'pro',name:'Pro',price:['$20 per month (US)',4],size:['More usage per session than the Free plan',4],
+     session:['Resets every five hours',4],weekly:['Yes, across all models',4],model:[null],
+     wrap:['Up to once per weekly usage period',1],
+     past:['Wait for the reset, turn on usage credits (billed at standard API rates), or upgrade to Max 5x if you hit limits often',1]},
+    {id:'max5',name:'Max 5x',price:['$100 per month',3],size:["5× Pro's per-session allowance",3],
+     session:['Resets every five hours',3],weekly:['Yes, across all models; resets at a fixed time assigned to your account',3],
+     model:['A separate weekly limit for Fable',1],wrap:['Each time you reach a five-hour limit, within your weekly limit',1],
+     past:['Wait for the reset, turn on usage credits, or upgrade to Max 20x if you hit limits often',1]},
+    {id:'max20',name:'Max 20x',price:['$200 per month',3],size:["20× Pro's per-session allowance",3],
+     session:['Resets every five hours',3],weekly:['Yes, across all models; resets at a fixed time assigned to your account',3],
+     model:['A separate weekly limit for Fable',1],wrap:['Each time you reach a five-hour limit, within your weekly limit',1],
+     past:['Wait for the reset, or turn on usage credits',1]},
+    {id:'team',name:'Team / seat-based Enterprise',price:[null],size:['Depends on seat tier: Premium seats offer more usage for team members with heavier workloads',7],
+     session:['A rolling five-hour window',8],weekly:['A weekly window, shared with Claude chat and Cowork',8],model:[null],wrap:[null],
+     past:['An admin can turn on usage credits so members keep working; a member without billing access sends a request to admins with /usage-credits',8]},
+    {id:'ent',name:'Usage-based Enterprise',price:[null],size:['There are no per-seat usage limits',7],
+     session:[null],weekly:[null],model:[null],wrap:[null],past:[null]},
+    {id:'api',name:'API key (Claude Console)',price:['Billed per token',8],size:['Usage is billed per token to your organization',8],
+     session:['Your organization\'s API rate limits apply; Claude Code traffic counts toward them',8],weekly:[null],model:[null],wrap:[null],
+     past:['Workspace spend limits and rate limits set by your organization',8]}
+  ];
+  const ROWS=[['price','Price'],['size','Allowance'],['session','Session limit'],['weekly','Weekly limit'],['model','Model weekly limit'],['wrap','Wrap-up allowance'],['past','Past the limit']];
+  const S={plan:'max5',sessReset:150,wkDay:1,wkTime:'09:00',sessUsed:40,wkUsed:55,habits:new Set(['long','opus']),days:null,sort:'session',tree:[]};
+
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* step bar */
+  const stepEls=[...document.querySelectorAll('[data-step]')];
+  $('stepBar').innerHTML=stepEls.map(()=>'<i></i>').join('');
+  const pips=[...$('stepBar').children];
+  function onScroll(){const y=innerHeight*0.45;stepEls.forEach((s,i)=>pips[i].classList.toggle('on',s.getBoundingClientRect().top<y));}
+  addEventListener('scroll',onScroll,{passive:true});
+
+  /* 1 plan */
+  function renderPlan(){
+    $('planChips').innerHTML=PLANS.map(p=>`<button type="button" class="chip" data-id="${p.id}" aria-pressed="${p.id===S.plan}">${esc(p.name)}</button>`).join('');
+    const p=PLANS.find(x=>x.id===S.plan);
+    $('planCard').innerHTML=ROWS.map(([k,l])=>{const [t,n]=p[k];
+      return `<div class="pr"><b>${l}</b><span>${t?esc(t)+src(n):'<span class="unk">Anthropic does not publish this for this plan</span>'}</span></div>`;}).join('');
+    $('lgPlan').textContent=p.name;
+  }
+  $('planChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;S.plan=b.dataset.id;renderPlan();renderTree();});
+
+  /* 2 timeline */
+  const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  $('wkDay').innerHTML=DAYS.map((d,i)=>`<option value="${i}"${i===S.wkDay?' selected':''}>${d}</option>`).join('');
+  const fmtDur=m=>{m=Math.max(0,Math.round(m));const d=Math.floor(m/1440),h=Math.floor(m%1440/60),mm=m%60;return d?`${d}d ${h}h`:h?`${h}h ${String(mm).padStart(2,'0')}m`:`${mm}m`;};
+  function nextWeekly(now){
+    const [hh,mm]=S.wkTime.split(':').map(Number);
+    const t=new Date(now);t.setHours(hh||0,mm||0,0,0);
+    let add=(S.wkDay-t.getDay()+7)%7;t.setDate(t.getDate()+add);
+    if(t<=now)t.setDate(t.getDate()+7);
+    return t;
+  }
+  function times(){
+    const now=new Date();const sess=new Date(now.getTime()+S.sessReset*60000);const wk=nextWeekly(now);
+    return {now,sess,wk,sessStart:new Date(sess.getTime()-5*3600000),wkStart:new Date(wk.getTime()-7*86400000)};
+  }
+  function renderTimeline(){
+    const T=times();const W=680,L=20,R=660,span=T.wk-T.wkStart;
+    const x=d=>L+(R-L)*Math.min(1,Math.max(0,(d-T.wkStart)/span));
+    let s=`<text class="lbl" x="${L}" y="18">This week, from your last weekly reset to the next</text>`;
+    s+=`<rect x="${L}" y="44" width="${R-L}" height="26" rx="6" style="fill:var(--sunk)"/>`;
+    s+=`<rect x="${L}" y="44" width="${Math.max(0,x(T.now)-L)}" height="26" rx="6" style="fill:var(--accent-soft)"/>`;
+    for(let i=0;i<=7;i++){const d=new Date(T.wkStart.getTime()+i*86400000);const xx=x(d);
+      s+=`<line x1="${xx}" y1="40" x2="${xx}" y2="74" style="stroke:var(--line);stroke-width:1"/>`;
+      if(i<7)s+=`<text x="${xx+4}" y="88">${DAYS[d.getDay()].slice(0,3)}</text>`;}
+    const sx=x(T.sessStart),ex=x(T.sess);
+    s+=`<rect x="${sx}" y="50" width="${Math.max(3,ex-sx)}" height="14" rx="4" style="fill:var(--cost)"/>`;
+    s+=`<text x="${Math.min(ex+6,R-120)}" y="112" style="fill:var(--cost)">5-hour session ends ${T.sess.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</text>`;
+    s+=`<line x1="${x(T.now)}" y1="34" x2="${x(T.now)}" y2="80" style="stroke:var(--ink);stroke-width:2"/>`;
+    s+=`<text x="${Math.min(x(T.now)+4,R-30)}" y="32" style="fill:var(--ink)">now</text>`;
+    s+=`<text x="${R-150}" y="136">weekly reset ${DAYS[T.wk.getDay()].slice(0,3)} ${S.wkTime}</text>`;
+    s+=`<line x1="${R}" y1="40" x2="${R}" y2="80" style="stroke:var(--accent);stroke-width:3"/>`;
+    $('timeline').innerHTML=s;
+    $('sessResetOut').textContent=fmtDur(S.sessReset);
+    $('sessIn').textContent=fmtDur(S.sessReset);
+    $('wkIn').textContent=fmtDur((T.wk-T.now)/60000);
+  }
+  $('sessReset').addEventListener('input',e=>{S.sessReset=+e.target.value;update();});
+  $('wkDay').addEventListener('change',e=>{S.wkDay=+e.target.value;S.days=null;update();});
+  $('wkTime').addEventListener('change',e=>{S.wkTime=e.target.value||'09:00';S.days=null;update();});
+
+  /* 3 runway */
+  $('sessUsed').addEventListener('input',e=>{S.sessUsed=+e.target.value;update();});
+  $('wkUsed').addEventListener('input',e=>{S.wkUsed=+e.target.value;update();});
+  function runway(used,elapsed,left,unitDay){
+    if(used>=100)return {proj:100,cls:'bad',text:'You have reached this limit. See step 7.'};
+    if(elapsed<=0||used===0)return {proj:used,cls:'ok',text:'Not enough of the window has passed to estimate a pace yet.'};
+    const pace=used/elapsed,proj=used+pace*left;
+    if(proj<=100)return {proj,cls:proj>85?'warn':'ok',text:`At this pace you reach about ${Math.round(proj)}% by the reset, so it should last${proj>85?', with little to spare':''}.`};
+    const toFull=(100-used)/pace,early=left-toFull;
+    return {proj:100,cls:'bad',text:`At this pace you hit the limit in about ${fmtDur(toFull)}, ${fmtDur(early)} before it resets.`};
+  }
+  function setBar(id,used,proj){const b=$(id);b.querySelector('.used').style.width=used+'%';b.querySelector('.proj').style.width=Math.min(100,proj)+'%';}
+  function renderRunway(){
+    const T=times();
+    $('sessUsedOut').textContent=S.sessUsed+'%';$('wkUsedOut').textContent=S.wkUsed+'%';
+    const s=runway(S.sessUsed,300-S.sessReset,S.sessReset);
+    setBar('sessBar',S.sessUsed,s.proj);$('sessVerdict').className='verdict '+s.cls;$('sessVerdict').textContent=s.text;
+    const wkLeftMin=(T.wk-T.now)/60000,wkElapsed=7*1440-wkLeftMin;
+    const w=runway(S.wkUsed,wkElapsed,wkLeftMin);
+    setBar('wkBar',S.wkUsed,w.proj);$('wkVerdict').className='verdict '+w.cls;$('wkVerdict').textContent=w.text;
+    const lg=(el,v,r)=>{el.textContent=v+'%';el.className=r.cls==='bad'?'bad':r.cls==='warn'?'warn':'';};
+    lg($('lgSession'),S.sessUsed,s);lg($('lgWeek'),S.wkUsed,w);
+  }
+
+  /* 4 habits - each fix quotes the Claude Code docs (source 8) unless marked */
+  const HABITS=[
+    {id:'opus',t:'Opus is my default model for everything',why:'Model choice changes how much each request uses.',
+     fix:'Use Sonnet for most coding work and keep Opus for hard problems.',q:'Sonnet handles most coding tasks well and costs less than Opus. Reserve Opus for complex architectural decisions or multi-step reasoning.',n:8},
+    {id:'long',t:'I keep one session open all day',why:'The whole conversation is sent with every request.',
+     fix:'Run /clear when you switch to unrelated work.',q:'Stale context wastes tokens on every subsequent message.',n:8},
+    {id:'break',t:'I come back to old sessions after long breaks',why:'Your first message after a break can miss the cache.',
+     fix:'Start a fresh session for new work instead of reviving an old one.',q:'your first message after a break longer than the cache lifetime misses the cache and reprocesses your full context.',n:8},
+    {id:'sub',t:'I use subagents or workflows a lot',why:'Each subagent sends its own requests.',
+     fix:'Give simple subagent tasks a smaller model.',q:"The subagent's own requests still draw on your usage. To spend less on them, choose a smaller model for a subagent.",n:8},
+    {id:'team',t:'I run agent teams',why:'Every teammate has its own context window.',
+     fix:'Keep teams small and shut teammates down when they finish.',q:'Agent teams use approximately 7x more tokens than standard sessions when teammates run in plan mode.',n:8},
+    {id:'parallel',t:'I run several Claude Code sessions at once',why:'Each session draws on the same plan limits.',
+     fix:'Run fewer sessions in parallel when you are near a limit.',q:'Per-developer costs vary widely based on model selection, codebase size, and usage patterns such as running multiple instances or automation.',n:8},
+    {id:'big',t:'My CLAUDE.md is long',why:'CLAUDE.md is loaded into every session.',
+     fix:'Move workflow-specific instructions into skills.',q:'Aim to keep CLAUDE.md under 200 lines by including only essentials.',n:8},
+    {id:'mcp',t:'I have many MCP servers connected',why:'Tool listings and results add to context.',
+     fix:'Disable servers you are not using; prefer CLI tools such as gh.',q:'Run /mcp to see configured servers and disable any you\'re not actively using.',n:8},
+    {id:'effort',t:'I leave effort on high or max',why:'Higher effort uses more tokens.',
+     fix:'Lower the effort level with /effort for simple tasks.',q:'Higher effort uses more tokens.',n:2},
+    {id:'vague',t:'I ask broad things like "improve this codebase"',why:'Broad requests make Claude read many files.',
+     fix:'Name the file and the change you want.',q:'Vague requests like "improve this codebase" trigger broad scanning.',n:8},
+    {id:'loop',t:'I use /loop or scheduled tasks',why:'They run even while you are away.',
+     fix:'Stop loops you no longer need; check them in /usage.',q:'a session-scoped scheduled task fires on its interval even while the session is idle, sending your full context each time',n:8},
+    {id:'compact',t:'I run /compact on huge sessions',why:'Compacting reads the whole conversation.',
+     fix:'Use /clear when you do not need the history.',q:'/compact reads the conversation it summarizes, so compacting a large context is itself a large request. When you want a fresh start instead of continuity, /clear costs nothing',n:8}
+  ];
+  function renderHabits(){
+    $('habitList').innerHTML=HABITS.map(h=>`<label class="habit${S.habits.has(h.id)?' on':''}" for="h-${h.id}"><input type="checkbox" id="h-${h.id}" data-id="${h.id}"${S.habits.has(h.id)?' checked':''}><span><b>${esc(h.t)}</b><small>${esc(h.why)}</small></span></label>`).join('');
+    const on=HABITS.filter(h=>S.habits.has(h.id));
+    $('fixes').innerHTML=on.length?`<h3>Your fixes</h3>`+on.map(h=>`<div class="fix"><p><b>${esc(h.fix)}</b></p><q>${esc(h.q)}</q>${src(h.n)}</div>`).join('')
+      :'<p class="note">Tick a habit above to see the matching fix.</p>';
+  }
+  $('habitList').addEventListener('change',e=>{const id=e.target.dataset.id;if(!id)return;e.target.checked?S.habits.add(id):S.habits.delete(id);renderHabits();renderChecklist();});
+
+  /* 5 reports - filled from the Model Information Board export; empty until it runs */
+  const REPORTS=[];
+  function renderReports(){
+    if(!REPORTS.length){
+      $('reports').innerHTML=`<div class="empty"><b>Not loaded yet</b><span>Engineer reports about Claude limits will appear here once the Model Information Board's export is connected. Nothing is shown in the meantime, so no quote on this page is a placeholder.</span></div>`;return;}
+    $('reports').innerHTML=REPORTS.map(r=>{
+      const pol=r.polarity==='negative'?'<span class="pill neg">reports a problem</span>':r.polarity==='positive'?'<span class="pill pos">reports it working</span>':'<span class="pill">neutral</span>';
+      if(r.platform==='reddit'||r.platform==='x'){
+        return `<div class="report"><blockquote class="${r.platform==='reddit'?'reddit-embed-bq':'twitter-tweet'}"><a href="${esc(r.url)}">View this post on ${r.platform==='reddit'?'Reddit':'X'}</a></blockquote><div class="by">${pol}<span>${esc(r.model||'')}</span><span>${esc(r.date||'')}</span></div></div>`;}
+      return `<div class="report"><blockquote>"${esc(r.quote)}"</blockquote><div class="by">${pol}<span>${esc(r.source)}</span><a href="${esc(r.url)}">Read the original</a><span>${esc(r.date||'')}</span></div></div>`;}).join('');
+  }
+
+  /* 6 week */
+  function renderWeek(){
+    const T=times();const list=[];const d=new Date(T.now);d.setHours(0,0,0,0);
+    for(let i=0;i<7;i++){const day=new Date(d.getTime()+i*86400000);if(day>=T.wk&&!(i===0))break;list.push(day);if(day.toDateString()===T.wk.toDateString())break;}
+    if(!S.days)S.days=new Set(list.filter(x=>x.getDay()!==0&&x.getDay()!==6).map(x=>x.toDateString()));
+    const left=Math.max(0,100-S.wkUsed),n=list.filter(x=>S.days.has(x.toDateString())).length;
+    $('days').innerHTML=list.map(x=>{const k=x.toDateString(),on=S.days.has(k);
+      return `<button type="button" class="day" data-k="${k}" aria-pressed="${on}"><b>${DAYS[x.getDay()].slice(0,3)}</b><span>${on&&n?Math.round(left/n)+'%':'—'}</span></button>`;}).join('');
+    $('wkLeft').textContent=left+'%';
+    $('perDay').textContent=n?`${(left/n).toFixed(left/n<10?1:0)}%`:'—';
+    $('weekNote').textContent=n?`Split evenly across ${n} working day${n>1?'s':''} before the reset on ${DAYS[T.wk.getDay()]} at ${S.wkTime}.`:'Pick at least one working day.';
+  }
+  $('days').addEventListener('click',e=>{const b=e.target.closest('.day');if(!b)return;const k=b.dataset.k;S.days.has(k)?S.days.delete(k):S.days.add(k);renderWeek();});
+
+  /* 7 decision tree */
+  const TEAMISH=()=>S.plan==='team'||S.plan==='ent';
+  const TREE={q:'Which message did you see?',o:[
+    {t:'"Usage limit reached · wrapping up"',leaf:()=>`<p>Claude Code is using the <b>wrap-up allowance</b>.${src(1)}</p><ul>
+      <li><q>Claude Code may keep working briefly so it can finish the step in progress.</q></li>
+      <li><q>This wrap-up allowance is small and capped, and the usage counts toward your weekly limit.</q></li>
+      <li><q>It applies only to a response that's already in progress, not to a new message you send after reaching your limit.</q></li>
+      <li>On Pro it applies up to once per weekly usage period; on Max, each time you reach a five-hour limit. It is rolling out gradually.</li></ul>
+      <p>Next, let it finish, then follow the "session or weekly limit" path.</p>`},
+    {t:'"You\'ve hit your session limit" or "You\'ve hit your weekly limit"',next:{q:'Can you wait for the reset?',o:[
+      {t:'Yes, I can wait',leaf:()=>`<p>The message shows when the window resets.${src(8)} On Claude Code v2.1.234 or later you can wait and let the interrupted task continue automatically after the reset; pick it from <code>/rate-limit-options</code>.${src(8)}</p><p>Use step 2 to see when your session and week reset, and step 6 to spread the rest of the week.</p>`},
+      {t:'No, I need to keep working',leaf:()=>TEAMISH()?
+        `<p>On a Team or Enterprise seat, run <code>/usage-credits</code>:${src(8)}</p><ul>
+        <li>With billing access, it opens Organization settings → Usage, where usage credits and spend limits are set.</li>
+        <li>Without billing access, it asks you to confirm, then <b>sends a request to your organization's admins</b>: this is the "contact an admin to keep working" path.</li></ul>
+        <p>Admins can turn on usage credits so members keep working past their included limits.${src(7)}</p>`
+        :`<ol><li><b>Turn on usage credits</b> in claude.ai Settings → Usage (or run <code>/usage-credits</code>). <q>Usage credits are billed at standard API rates.</q>${src(6)} You can set a monthly spend limit.</li>
+        <li><b>Or upgrade</b>: Anthropic suggests Max 5x if you hit Pro's limits often, and Max 20x from Max 5x.${src(1)} A new plan's limits apply right away.${src(2)}</li>
+        <li><b>Do not set an API key by accident:</b> with <code>ANTHROPIC_API_KEY</code> set, Claude Code uses it instead of your subscription and you pay API charges.${src(1)}</li></ol>
+        <p class="note">Monthly API credits included with Max plans can't be used in Claude Code or the Claude apps.${src(1)}</p>`}]}},
+    {t:'"You\'ve hit your Opus limit" or "You\'ve hit your Sonnet limit"',leaf:()=>`<p>This is a model-specific limit. <q>switching to a model outside that family with /model does keep the developer working.</q>${src(8)}</p><p>Switch with <code>/model</code> and keep that model for hard problems once it resets.</p>`},
+    {t:'"You\'ve hit your individual spend limit", "org\'s monthly spend limit" or "team\'s shared budget"',leaf:()=>`<p>Your request would be billed to usage credits, and those credits have reached a spend limit.${src(8)}</p><ul><li>On Pro or Max, raise or remove your monthly spend limit when Claude Code prompts you.</li><li>On Team or Enterprise, an admin raises the named limit in Organization settings → Usage. If the message also names a plan reset time, you can wait until then.</li></ul>`},
+    {t:'A context or auto-compact warning',leaf:()=>`<p>This is <b>not a usage limit</b>. The conversation is close to the session's auto-compact window.${src(8)} Use <code>/clear</code> for unrelated work, or <code>/compact</code> with instructions on what to keep. See step 4.</p>`},
+    {t:'I was charged API rates unexpectedly',leaf:()=>`<p>Check for an API key: <q>If you have an ANTHROPIC_API_KEY environment variable set on your system, Claude Code will use this API key for authentication instead of your Claude subscription.</q>${src(1)} That bills API usage instead of your plan's included usage. To stay on your plan, decline the API credit option when it is offered.${src(1)}</p>`}
+  ]};
+  function renderTree(){
+    let node=TREE,html='';
+    for(let depth=0;;depth++){
+      const pick=S.tree[depth];
+      html+=`<div class="qa"><b>${esc(node.q)}</b><div class="opts">${node.o.map((o,i)=>`<button type="button" class="opt" data-d="${depth}" data-i="${i}" aria-pressed="${pick===i}">${esc(o.t)}</button>`).join('')}</div></div>`;
+      if(pick==null)break;const o=node.o[pick];
+      if(o.leaf){html+=`<div class="leaf">${o.leaf()}</div>`;break;}
+      node=o.next;
+    }
+    $('tree').innerHTML=html;
+  }
+  $('tree').addEventListener('click',e=>{const b=e.target.closest('.opt');if(!b)return;const d=+b.dataset.d;S.tree=S.tree.slice(0,d);S.tree[d]=+b.dataset.i;renderTree();
+    const nb=$('tree').querySelector(`.opt[data-d="${d}"][data-i="${b.dataset.i}"]`);nb&&nb.focus();});
+
+  /* 8 checklist */
+  const GENERAL=[
+    ['Check /usage or Settings → Usage before starting long work','Plan usage bars show your session and weekly use.'],
+    ['Plan before you prompt, and put clear, detailed instructions in each message','"Planning helps reduce the number of back-and-forth messages needed."'],
+    ['Use plan mode (Shift+Tab) for complex tasks','"preventing expensive re-work when the initial direction is wrong."'],
+    ['Stop early when Claude heads the wrong way (Escape, /rewind)','From the Claude Code cost guide.'],
+    ['Give Claude tests or expected output to check its own work','"When Claude can verify its own work, it catches issues before you need to request fixes."']
+  ];
+  function renderChecklist(){
+    const prev=new Set([...$('checklist').querySelectorAll('input:checked')].map(i=>i.dataset.k));
+    const items=[...HABITS.filter(h=>S.habits.has(h.id)).map(h=>[h.fix,`For: ${h.t.toLowerCase()}`]),...GENERAL];
+    $('checklist').innerHTML=items.map(([t,s],i)=>{const k=t;const on=prev.has(k);
+      return `<li class="${on?'done-item':''}"><input type="checkbox" id="cl-${i}" data-k="${esc(k)}"${on?' checked':''}><span><label for="cl-${i}">${esc(t)}</label><small>${esc(s)}</small></span></li>`;}).join('');
+    $('listText').value='Claude Code usage limits: habits checklist\n'+items.map(([t],i)=>`${i+1}. ${t}`).join('\n');
+  }
+  $('checklist').addEventListener('change',e=>{const li=e.target.closest('li');li&&li.classList.toggle('done-item',e.target.checked);});
+  $('copyList').addEventListener('click',()=>{const t=$('listText').value;
+    const fb=()=>{const ta=$('listText');ta.hidden=false;ta.style.width='100%';ta.rows=8;ta.select();$('copyMsg').textContent='Select the text below and copy it.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fb);}catch(e){fb();}});
+
+  /* 9 sample team - fictional, labelled as such on the page */
+  const SAMPLE_TEAM=[
+    {n:'Priya',plan:'Max 5x',session:92,week:71,model:40,v:'2.1.305'},
+    {n:'Marco',plan:'Pro',session:64,week:88,model:null,v:'2.1.305'},
+    {n:'Lena',plan:'Max 20x',session:35,week:52,model:81,v:'2.1.305'},
+    {n:'Tomás',plan:'Pro',session:18,week:34,model:null,v:'2.1.198'},
+    {n:'Inés',plan:'Max 5x',session:77,week:93,model:66,v:'2.1.305'},
+    {n:'Kofi',plan:'Team premium',session:48,week:41,model:null,v:'2.1.305'},
+    {n:'Mei',plan:'Team standard',session:85,week:62,model:null,v:'2.1.210'}
+  ];
+  const tone=v=>v==null?'var(--line)':v>=90?'var(--bad)':v>=75?'var(--cost)':'var(--good)';
+  const cell=v=>v==null?'<span class="note">not on this plan</span>':`<span class="mini"><span style="width:${v}%;background:${tone(v)}"></span></span><span class="num">${v}%</span>`;
+  function renderTeam(){
+    const latest=SAMPLE_TEAM.map(r=>r.v).sort().pop();
+    const rows=[...SAMPLE_TEAM].sort((a,b)=>(b[S.sort]??-1)-(a[S.sort]??-1));
+    $('teamBody').innerHTML=rows.map(r=>`<tr><td><b>${esc(r.n)}</b></td><td>${esc(r.plan)}</td><td>${cell(r.session)}</td><td>${cell(r.week)}</td><td>${cell(r.model)}</td><td class="num${r.v!==latest?' v-old':''}">${esc(r.v)}${r.v!==latest?' · older':''}</td></tr>`).join('');
+  }
+  document.querySelectorAll('th button[data-sort]').forEach(b=>b.addEventListener('click',()=>{S.sort=b.dataset.sort;renderTeam();}));
+
+  /* FAQ - the 18 questions mapped to this page in the keyword sheet */
+  const FAQ=[
+    ['How do Claude Code usage limits work?','Paid plans have two limits: a session limit that resets every five hours and a weekly limit that resets once a week. They are shared across Claude and Claude Code, so all activity in both counts against the same limits. Max plans also have a separate weekly limit for Fable.'],
+    ['How often do Claude Code limits reset?','The session limit resets every five hours. The weekly limit resets at a fixed time each week that is assigned to your account; check it in Settings → Usage.'],
+    ['Is the Claude weekly limit a rolling window?','No. The weekly limit resets at a fixed time each week assigned to your account. The five-hour session limit is the rolling one: Anthropic describes Team and Enterprise seats as resetting on a rolling five-hour window.'],
+    ['What is the Claude Code session limit?','It is the limit that resets every five hours. Pro gives more usage per session than Free, and Max 5x and Max 20x give five and twenty times Pro\'s per-session allowance. Anthropic does not publish the allowance as a number of messages or tokens.'],
+    ['Are Claude limits weekly or monthly?','Paid plans have a five-hour session limit and a weekly limit. Anthropic also says it may limit usage in other ways, such as weekly and monthly caps or model and feature usage, at its discretion.'],
+    ['What is the difference between Claude\'s session limit, weekly limit and model limit?','The session limit resets every five hours and the weekly limit once a week; both are shared across all models, so switching models does not help when you hit them. A model limit, such as an Opus or Sonnet limit, applies to one model family, and switching to a model outside that family keeps you working.'],
+    ['How much Claude usage do I have left this week?','Run /usage in Claude Code to see your plan usage bars, or open Settings → Usage on claude.ai. /status also shows your remaining allocation. Step 3 above estimates whether it will last until the reset.'],
+    ['Will my Claude usage last the whole workday?','It depends on your pace. Enter your session and weekly percentages in step 3: the tool carries your pace so far to the next reset and tells you whether you are likely to run out before it.'],
+    ['Why does Claude Code use up my limit so fast?','Claude Code sends your full conversation with every request, and each tool use sends another request with its results. Long sessions, subagents, agent teams, scheduled loops and large contexts all add up. Run /usage to see what your recent usage went on.'],
+    ['Why do long conversations use more Claude Code usage?','Because the whole conversation is sent with each request, a one-line question in a session that has been open all day still draws usage for the whole conversation. Anthropic also notes that longer conversations that trigger automatic context management consume more of your usage limit. Use /clear between unrelated tasks.'],
+    ['Why does Opus use up my Claude limit faster?','Anthropic lists the model you use among the factors that affect usage, and says Sonnet handles most coding tasks well and costs less than Opus. Reserve Opus for complex architectural decisions or multi-step reasoning.'],
+    ['Why are Claude Code limits so low?','Limits depend on your plan, the model, the effort level and how much context each request carries. Most fast drains come from long sessions, Opus as the default model, subagents and parallel sessions; step 4 shows the fixes. If you hit limits often, Anthropic suggests a larger plan.'],
+    ['What is going on with Claude usage limits?','Anthropic changes plan limits from time to time and says it may add other caps at its discretion. This guide quotes Anthropic\'s current help pages and is re-checked monthly; the date it was last checked is at the top.'],
+    ['How do I increase my Claude Code limit?','Upgrade your plan (Pro to Max 5x, or Max 5x to Max 20x), or turn on usage credits, which continue your work at standard API rates up to a monthly spend limit you set. On Team, a Premium seat offers more usage than a Standard one.'],
+    ['How do I avoid Claude Code limits?','Clear context between tasks, use Sonnet for routine work, give subagents a smaller model, keep CLAUDE.md short, disable unused MCP servers, and plan your week around your weekly reset. Step 8 builds a checklist.'],
+    ['What should I do when my Claude Code limit is reached?','Check which message you saw. For a session or weekly limit, wait for the reset or turn on usage credits; for an Opus or Sonnet limit, switch model; on Team or Enterprise, run /usage-credits to reach your admins. Step 7 walks through each case.'],
+    ['What is the difference between Claude plan limits and API billing?','A subscription includes usage within its session and weekly limits. With an API key, Claude Code is billed per token at API rates, and an ANTHROPIC_API_KEY on your system makes Claude Code use the key instead of your subscription. Usage credits on a plan are also billed at standard API rates.'],
+    ['Is a Claude Team premium seat enough for developers?','Anthropic says Premium seats offer more usage for team members with heavier workloads, and advises budgeting more for a coding seat than a chat seat, because each Claude Code turn carries file contents, tool calls and multi-step reasoning. It does not publish seat allowances as numbers.']
+  ];
+  $('faqList').innerHTML=FAQ.map(([q,a],i)=>`<details class="faq"${i===0?' open':''}><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('');
+  $('faqLd').textContent=JSON.stringify({'@context':'https://schema.org','@type':'FAQPage',mainEntity:FAQ.map(([q,a])=>({'@type':'Question',name:q,acceptedAnswer:{'@type':'Answer',text:a}}))});
+
+  function update(){renderTimeline();renderRunway();renderWeek();}
+  renderPlan();renderHabits();renderReports();renderTree();renderChecklist();renderTeam();update();onScroll();
+  setInterval(()=>{renderTimeline();renderRunway();},60000);
+})();
+</script>
+
+</body></html>

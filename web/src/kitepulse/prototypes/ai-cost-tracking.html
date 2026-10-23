@@ -1,0 +1,638 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AI Coding Cost Tracking Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column of numbered steps, each pairing crawlable explanation with one hands-on tool; a sticky ledger bar carries the reader's running estimate. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --t1:#2747D6; --t2:#C9771A; --t3:#1F8A5B; --t4:#8A3FB8; --t5:#0E7C93; --t6:#B8405E;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19;
+  --t1:#8299FF; --t2:#F0A640; --t3:#4CC48F; --t4:#C38BEA; --t5:#4FC3DA; --t6:#EE8AA3; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19;
+  --t1:#8299FF; --t2:#F0A640; --t3:#4CC48F; --t4:#C38BEA; --t5:#4FC3DA; --t6:#EE8AA3; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* sticky ledger */
+.ledger{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.ledger .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.ledger .brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.ledger .brand span{color:var(--accent)}
+.ledger .total{margin-left:auto;display:flex;align-items:baseline;gap:8px}
+.ledger .total b{font-family:var(--mono);font-size:1.15rem;color:var(--cost)}
+.ledger .total small{color:var(--muted);font-size:.8rem}
+.steps{display:flex;gap:4px;width:100%}
+.steps i{flex:1;height:3px;border-radius:2px;background:var(--line);transition:background .3s}
+.steps i.on{background:var(--accent)}
+.toggle{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+/* hero */
+.hero{padding-block:56px 32px;display:grid;gap:20px}
+.hero p.lede{font-size:1.2rem;color:var(--muted)}
+.hero .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.hero .meta span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:middle}
+.toc{display:flex;flex-wrap:wrap;gap:8px}
+.toc a{font-size:.85rem;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:4px 10px;border-radius:999px}
+.toc a:hover{border-color:var(--accent);color:var(--accent)}
+
+/* sections */
+section.step{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.step-head{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.step-no{font-family:var(--mono);font-weight:600;font-size:.85rem;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:6px 9px;margin-top:4px}
+.step-head > div{display:grid;gap:10px;min-width:0}
+.step-head p{color:var(--muted)}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.tool-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
+.tool-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.prose{display:grid;gap:12px}
+.prose ul{margin:0;padding-left:1.2em;max-width:65ch}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+/* controls */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:8px;transition:border-color .15s,background .15s}
+.chip .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.chip[aria-pressed="true"] .dot{background:var(--c)}
+.field{display:grid;gap:6px}
+.field label{font-weight:600;font-size:.95rem;display:flex;justify-content:space-between;gap:12px}
+.field label output{font-family:var(--mono);color:var(--accent);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.formula{font-family:var(--mono);font-size:.95rem;background:var(--sunk);border-radius:10px;padding:14px 16px;overflow-x:auto;line-height:1.9}
+.formula .op{color:var(--muted)}
+.formula .res{color:var(--cost);font-weight:600}
+.big{display:flex;gap:28px;flex-wrap:wrap}
+.big div{display:grid;gap:2px}
+.big b{font-family:var(--mono);font-size:1.8rem;font-weight:600;line-height:1.1}
+.big b.cost{color:var(--cost)}
+.big span{color:var(--muted);font-size:.85rem}
+.money{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden;max-width:140px}
+.money span{padding:0 8px;color:var(--muted);font-family:var(--mono)}
+.money input{border:0;background:transparent;padding:6px 8px 6px 0;width:100%;font-family:var(--mono)}
+
+/* tables */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk)}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+td input.rate{width:84px;border:1.5px solid var(--line);border-radius:6px;padding:4px 6px;background:var(--bg);font-family:var(--mono);text-align:right}
+td select{border:1.5px solid var(--line);border-radius:6px;padding:4px 6px;background:var(--bg);max-width:160px}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:middle}
+
+/* infographic */
+.flow{width:100%;height:auto;display:block}
+.flow text{font-family:var(--body);fill:var(--ink)}
+.flow .lbl{font-size:13px;font-weight:600}
+.flow .sub{font-size:11px;fill:var(--muted)}
+.flow .lane{stroke:var(--line);stroke-width:2;fill:none;stroke-dasharray:4 5}
+.flow .pkt{animation:travel 3.2s linear infinite}
+@keyframes travel{0%{transform:translateX(0);opacity:0}8%{opacity:1}88%{opacity:1}100%{transform:translateX(330px);opacity:0}}
+.flow-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+
+/* chart */
+.bars{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:150px 1fr 90px;gap:12px;align-items:center}
+.bar-row .name{font-weight:600;font-size:.93rem}
+.bar-track{height:22px;background:var(--sunk);border-radius:6px;display:flex;overflow:hidden}
+.bar-track span{height:100%;transition:width .4s ease}
+.bar-track .usage{background-image:repeating-linear-gradient(135deg,transparent 0 4px,rgba(255,255,255,.35) 4px 7px)}
+.bar-row .v{font-family:var(--mono);text-align:right;font-size:.93rem}
+.axis{display:grid;grid-template-columns:150px 1fr 90px;gap:12px;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.axis div.ticks{display:flex;justify-content:space-between}
+.legend{display:flex;gap:18px;font-size:.85rem;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;background:var(--muted);margin-right:6px;vertical-align:middle}
+.legend i.u{background-image:repeating-linear-gradient(135deg,transparent 0 3px,var(--bg) 3px 5px)}
+
+/* methods */
+.methods{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.method{border:1.5px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px;align-content:start;background:var(--bg);transition:border-color .2s,transform .2s}
+.method.best{border-color:var(--accent);background:var(--accent-soft)}
+.method .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.method.best .tag{color:var(--accent)}
+.rating{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:.88rem}
+.rating .pips{display:flex;gap:3px;align-items:center}
+.rating .pips i{width:14px;height:6px;border-radius:2px;background:var(--line)}
+.rating .pips i.on{background:var(--ink)}
+.method p{font-size:.92rem;color:var(--muted)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--bg);padding:8px 14px;cursor:pointer;font-weight:600;font-size:.9rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* allocation */
+.alloc{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px}
+.proj-bars{display:grid;gap:12px;align-content:start}
+.proj{display:grid;gap:4px}
+.proj .top{display:flex;justify-content:space-between;font-size:.9rem;font-weight:600}
+.proj .track{height:12px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.proj .track span{display:block;height:100%;border-radius:6px;transition:width .35s}
+.path{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.done{font-weight:600;color:var(--good)}
+.video{aspect-ratio:16/9;max-width:100%;border-radius:12px;background:var(--ink);color:var(--bg);display:grid;place-items:center;position:relative;overflow:hidden}
+.video .play{width:58px;height:58px;border-radius:50%;background:var(--bg);display:grid;place-items:center}
+.video .play::after{content:"";border-left:16px solid var(--ink);border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px}
+.video .cap{position:absolute;left:14px;bottom:12px;right:14px;font-size:.85rem;opacity:.85;display:flex;justify-content:space-between;gap:8px}
+
+/* quiz */
+tr.flaggable{cursor:pointer}
+tr.flaggable:hover td{background:var(--sunk)}
+tr.flagged td{background:var(--cost-soft)}
+tr.flagged td:first-child{box-shadow:inset 4px 0 0 var(--cost)}
+tr.right td{background:var(--good-soft)}
+tr.right td:first-child{box-shadow:inset 4px 0 0 var(--good)}
+tr.wrong td{background:var(--bad-soft)}
+tr.wrong td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+.pill{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.feedback{display:grid;gap:8px}
+.feedback p{font-size:.95rem}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.accent{background:var(--accent);color:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* plan */
+.plan{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.plan li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
+.plan input{width:18px;height:18px;margin-top:4px;accent-color:var(--accent)}
+.plan li.done-item span{color:var(--muted);text-decoration:line-through}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .bar-row,.axis{grid-template-columns:96px 1fr 72px;gap:8px}
+  .bar-row .name{font-size:.82rem}
+  .alloc{grid-template-columns:1fr}
+  .tool{padding:16px}
+  .step-head{grid-template-columns:1fr;gap:8px}
+  .step-no{justify-self:start}
+  .ledger .brand{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .flow .pkt{animation:none}
+  *{transition:none!important}
+}
+</style>
+
+<div class="ledger">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span> · Guides</div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+    <div class="total"><small>Your estimate</small><b id="ledgerTotal" class="num">$0</b><small>/ month</small></div>
+    <div class="steps" id="stepBar" aria-hidden="true"></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Guide · AI spend</div>
+    <h1>How to track AI coding costs across developers, teams and projects</h1>
+    <p class="lede">Work through this guide with your own numbers. By the end you will have a monthly estimate, a split by tool and project, a list of accounts to check, and a tracking plan you can copy.</p>
+    <div class="meta"><span>9 steps, about 8 minutes</span><span>Works with any AI coding tool</span><span>No sign-up</span></div>
+    <nav class="toc" aria-label="Steps">
+      <a href="#setup">1 Your setup</a><a href="#blackbox">2 The black box</a><a href="#tokens">3 Tokens to dollars</a><a href="#estimate">4 Your estimate</a><a href="#methods">5 Ways to track</a><a href="#allocate">6 Split by project</a><a href="#waste">7 Spot waste</a><a href="#billable">8 Billable view</a><a href="#plan">9 Your plan</a>
+    </nav>
+    <div class="seo"><b>SEO</b>H1 matches the target query "AI coding cost tracking". Every step below has a real H2 and a paragraph of server-rendered text, so Google and AI answer engines can read the method without running the widgets.</div>
+  </header>
+
+  <!-- 1 -->
+  <section class="step" id="setup" data-step>
+    <div class="step-head"><div class="step-no">01</div><div>
+      <h2>Start with what your team actually uses</h2>
+      <p>AI coding costs come from two places: <b>seats</b> (a flat monthly price per developer) and <b>usage</b> (pay-per-token billing, or overage above a plan's included amount). Most teams run more than one tool, so list every tool first. Pick yours below. The rest of the guide uses these answers.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Your setup</div>
+      <div class="field"><label>Which AI coding tools does your team pay for?</label><div class="chips" id="toolChips"></div></div>
+      <div class="field"><label for="devs">Developers using AI tools <output id="devsOut" class="num"></output></label><input type="range" id="devs" min="1" max="300" value="25"></div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="blackbox" data-step>
+    <div class="step-head"><div class="step-no">02</div><div>
+      <h2>Why AI spend turns into a black box</h2>
+      <p>Each tool bills separately, often on a company card or a single admin account. Finance sees a handful of invoices. Nobody sees which developer, team or project the spend belongs to, and shared logins hide it further.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">How the bill loses detail</div>
+      <svg class="flow" id="flowSvg" viewBox="0 0 640 250" role="img" aria-label="Sessions from several developers and tools flow into one monthly invoice with no breakdown"></svg>
+      <div class="flow-legend"><span>Left: what actually happens (who, which tool, which repo)</span><span>Right: what the invoice tells you</span></div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="tokens" data-step>
+    <div class="step-head"><div class="step-no">03</div><div>
+      <h2>Turn tokens into dollars</h2>
+      <p>Usage-billed tools charge by <b>tokens</b>, the units of text sent to and returned by the model. A long agent session that reads a codebase can use hundreds of thousands of tokens. The formula for one developer's monthly usage cost is:</p>
+      <p><b>sessions per day × tokens per session × working days × price per token</b></p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Calculator</div>
+      <div class="grid2">
+        <div class="field"><label for="sessions">AI sessions per developer per day <output id="sessionsOut" class="num"></output></label><input type="range" id="sessions" min="1" max="30" value="6"></div>
+        <div class="field"><label for="tpsess">Tokens per session <output id="tpsessOut" class="num"></output></label><input type="range" id="tpsess" min="10000" max="1000000" step="10000" value="180000"></div>
+      </div>
+      <div class="field"><label for="demoRate">Example price per 1M tokens</label><div class="money"><span>$</span><input id="demoRate" type="number" min="0" step="0.5" value="6"></div></div>
+      <div class="formula" id="formula" aria-live="polite"></div>
+      <div class="big">
+        <div><b class="num" id="tokPerDev"></b><span>tokens per developer per month</span></div>
+        <div><b class="num cost" id="costPerDev"></b><span>usage cost per developer per month</span></div>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>The formula is written as plain text above the calculator, so it can be quoted in a featured snippet or AI answer.</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step" id="estimate" data-step>
+    <div class="step-head"><div class="step-no">04</div><div>
+      <h2>Estimate your monthly AI coding spend</h2>
+      <p>Add seats and usage for every tool. Seat cost is developers × seat price. Usage cost is your monthly tokens × each tool's price per token. The rates below are examples only. Replace them with the prices in your own contracts.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Your estimate, by tool</div>
+      <div class="scroll"><table>
+        <thead><tr><th>Tool</th><th class="r">Seat $/dev/mo</th><th class="r">Usage $/1M tokens</th></tr></thead>
+        <tbody id="rateBody"></tbody>
+      </table></div>
+      <div class="legend"><span><i></i>Seats</span><span><i class="u"></i>Usage</span></div>
+      <div class="bars" id="bars"></div>
+      <div class="axis" id="axis"></div>
+      <div class="big">
+        <div><b class="num cost" id="estTotal"></b><span>estimated per month</span></div>
+        <div><b class="num" id="estPerDev"></b><span>per developer</span></div>
+        <div><b class="num" id="estYear"></b><span>per year</span></div>
+      </div>
+      <p style="font-size:.9rem;color:var(--muted)">Usage is split evenly across the selected tools. In practice one tool usually carries most sessions, which is exactly what tracking per tool reveals.</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="step" id="methods" data-step>
+    <div class="step-head"><div class="step-no">05</div><div>
+      <h2>Three ways to track AI coding costs</h2>
+      <p>There are three common approaches. Each one trades setup effort against detail. Pick what matters most to you and see which fits.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Compare methods</div>
+      <div class="seg" id="prioSeg" role="group" aria-label="What matters most">
+        <button type="button" data-p="effort" aria-pressed="false">Low setup effort</button>
+        <button type="button" data-p="detail" aria-pressed="true">Per-project detail</button>
+        <button type="button" data-p="fresh" aria-pressed="false">Up-to-date numbers</button>
+      </div>
+      <div class="methods" id="methodCards"></div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="step" id="allocate" data-step>
+    <div class="step-head"><div class="step-no">06</div><div>
+      <h2>Split cost by person and project</h2>
+      <p>A total tells you how much. Allocation tells you where. The most reliable signal is the repository each AI session ran in, because it maps directly to a project. Try it: assign the sample sessions below and watch the project view build up.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Try it · sample sessions</div>
+      <div class="alloc">
+        <div class="scroll"><table>
+          <thead><tr><th>Session</th><th class="r">Cost</th><th>Project</th></tr></thead>
+          <tbody id="sessBody"></tbody>
+        </table></div>
+        <div class="proj-bars" id="projBars"></div>
+      </div>
+      <div class="kp"><div class="mark">Kite Pulse</div><p>Assigning sessions by hand works for eight rows, not eight thousand. Kite Pulse reads the session history your AI tools already keep, including the repository path, and assigns cost per person, project and tool automatically.</p></div>
+      <div class="video" role="img" aria-label="Video placeholder: Team AI Usage walkthrough"><div class="play"></div><div class="cap"><span>Team AI Usage, per developer and per tool</span><span class="num">0:20</span></div></div>
+    </div>
+    <div class="seo"><b>Prototype</b>Video frame is a placeholder for a 20-second screen clip. Use a poster image plus a transcript so the clip is indexable.</div>
+  </section>
+
+  <!-- 7 -->
+  <section class="step" id="waste" data-step>
+    <div class="step-head"><div class="step-no">07</div><div>
+      <h2>Spot shared and unused accounts</h2>
+      <p>Two problems hide in almost every account list: <b>shared accounts</b>, where several people use one login so cost cannot be attributed, and <b>unused seats</b>, where you pay for someone who stopped using the tool. Tap the rows you think are a problem, then check your answers.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Quiz · sample account list</div>
+      <div class="scroll"><table>
+        <thead><tr><th>Tool</th><th>Account</th><th>People seen</th><th>Last active</th><th class="r">Tokens, 30 days</th></tr></thead>
+        <tbody id="quizBody"></tbody>
+      </table></div>
+      <div class="row"><button class="btn" type="button" id="checkQuiz">Check answers</button><button class="btn ghost" type="button" id="resetQuiz">Reset</button><span id="flagCount" style="color:var(--muted);font-size:.9rem"></span></div>
+      <div class="feedback" id="quizFeedback" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="step" id="billable" data-step>
+    <div class="step-head"><div class="step-no">08</div><div>
+      <h2>Build a billable view for clients</h2>
+      <p>Agencies and consultancies often pass AI cost on to clients. Once cost is split by project, billable amount is project cost × (1 + markup). This uses the project split from step 6.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Billable calculator</div>
+      <div class="field"><label for="markup">Markup <output id="markupOut" class="num"></output></label><input type="range" id="markup" min="0" max="100" value="20"></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Project</th><th class="r">AI cost</th><th class="r">Billable</th></tr></thead>
+        <tbody id="billBody"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="step" id="plan" data-step>
+    <div class="step-head"><div class="step-no">09</div><div>
+      <h2>Your AI cost tracking plan</h2>
+      <p>This checklist is built from your answers above. Copy it into your team's tracker.</p>
+    </div></div>
+    <div class="tool">
+      <div class="tool-label">Generated for your setup</div>
+      <ul class="plan" id="planList"></ul>
+      <div class="row"><button class="btn" type="button" id="copyPlan">Copy plan</button><span id="copyMsg" style="color:var(--muted);font-size:.9rem" aria-live="polite"></span></div>
+      <textarea id="planText" readonly hidden></textarea>
+    </div>
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Skip the spreadsheet</h3>
+      <p>Kite Pulse shows token use and estimated cost per person, project, tool and period, finds shared and unused accounts, and builds the billable view for you.</p>
+      <button class="btn" type="button">Set this up in Kite Pulse</button>
+    </div>
+  </section>
+
+  <section class="step" id="faq">
+    <h2>Questions about AI coding cost tracking</h2>
+    <div>
+      <details open><summary>Are tracked cost figures exact?</summary><p>Token counts can be exact when they come from session history. Dollar amounts are estimates built from list or contract prices, so treat them as a guide for decisions. Your vendor's invoice stays the source of truth for what you paid.</p></details>
+      <details><summary>What is the difference between seat cost and usage cost?</summary><p>Seat cost is a flat monthly price per developer. Usage cost depends on tokens consumed, either on pay-per-token plans or as overage above an included amount.</p></details>
+      <details><summary>How do I track AI cost per project?</summary><p>Tie each AI session to the repository it ran in, then add up tokens per repository and map repositories to projects. Manual tagging works for small teams. Automatic session capture scales better.</p></details>
+      <details><summary>How often should I review AI coding spend?</summary><p>Monthly for budgets and billing, weekly while you are rolling out a new tool or plan, so spikes and unused seats show up early.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Mark up this block with FAQPage schema. These questions match "People also ask" phrasing for the keyword.</div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /ai-cost-tracking guide. All prices, names and accounts are examples.</div></footer>
+
+<script>
+(function(){
+  const TOOLS=[
+    {id:'claude',name:'Claude Code',seat:0,rate:6,c:'--t1'},
+    {id:'cursor',name:'Cursor',seat:40,rate:0,c:'--t2'},
+    {id:'copilot',name:'GitHub Copilot',seat:19,rate:0,c:'--t3'},
+    {id:'codex',name:'OpenAI Codex',seat:0,rate:5,c:'--t4'},
+    {id:'gemini',name:'Gemini Code Assist',seat:19,rate:0,c:'--t5'},
+    {id:'windsurf',name:'Windsurf',seat:30,rate:0,c:'--t6'}
+  ];
+  const S={sel:new Set(['claude','cursor','copilot']),devs:25,sessions:6,tps:180000,demoRate:6,markup:20,prio:'detail'};
+  const $=id=>document.getElementById(id);
+  const usd=(v,d=0)=>'$'+v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const short=v=>v>=1e9?(v/1e9).toFixed(1)+'B':v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?Math.round(v/1e3)+'K':String(v);
+  const WORKDAYS=21;
+
+  /* step bar */
+  const stepsEls=[...document.querySelectorAll('[data-step]')];
+  $('stepBar').innerHTML=stepsEls.map(()=>'<i></i>').join('');
+  const pips=[...$('stepBar').children];
+  function onScroll(){const y=window.innerHeight*0.45;stepsEls.forEach((s,i)=>pips[i].classList.toggle('on',s.getBoundingClientRect().top<y));}
+  addEventListener('scroll',onScroll,{passive:true});
+
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* 1 setup */
+  function renderChips(){
+    $('toolChips').innerHTML=TOOLS.map(t=>`<button type="button" class="chip" style="--c:var(${t.c})" data-id="${t.id}" aria-pressed="${S.sel.has(t.id)}"><span class="dot"></span>${t.name}</button>`).join('');
+  }
+  $('toolChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const id=b.dataset.id;
+    if(S.sel.has(id)){if(S.sel.size>1)S.sel.delete(id);}else S.sel.add(id);renderChips();update();});
+  $('devs').addEventListener('input',e=>{S.devs=+e.target.value;update();});
+
+  /* 2 flow svg */
+  function renderFlow(){
+    const sel=TOOLS.filter(t=>S.sel.has(t.id)).slice(0,5);
+    const devs=['Priya','Marco','Lena','Tomás','Inés'];
+    const top=30,gap=sel.length>1?190/(sel.length-1):0;
+    let s='';
+    sel.forEach((t,i)=>{const y=sel.length>1?top+i*gap:125;
+      s+=`<text class="lbl" x="0" y="${y-4}">${t.name}</text><text class="sub" x="0" y="${y+12}">${devs[i%5]}, ${devs[(i+2)%5]} · repo ${['checkout-api','mobile-app','infra','web','docs'][i%5]}</text>`;
+      s+=`<path class="lane" id="lane-${i}" d="M150 ${y} C 300 ${y}, 330 125, 470 125"/>`;
+      for(let k=0;k<3;k++){s+=`<circle class="dot-pkt" data-lane="${i}" data-off="${(k/3+i*.09)%1}" r="5" style="fill:var(${t.c})"/>`;}
+    });
+    s+=`<rect x="476" y="62" width="160" height="126" rx="10" style="fill:var(--surface);stroke:var(--ink);stroke-width:1.5"/>
+      <text class="lbl" x="492" y="88">Monthly invoices</text>
+      <text class="sub" x="492" y="108">${sel.length} vendor${sel.length>1?'s':''}, 1 card</text>
+      <text x="492" y="146" style="font-family:var(--mono);font-size:20px;font-weight:600;fill:var(--cost)" id="flowTotal"></text>
+      <text class="sub" x="492" y="172">Per person? Per project? ?</text>`;
+    $('flowSvg').innerHTML=s;
+    flowDots=[...$('flowSvg').querySelectorAll('.dot-pkt')].map(c=>{const p=$('lane-'+c.dataset.lane);return {c,p,len:p.getTotalLength(),off:+c.dataset.off};});
+    drawFlow(performance.now());
+  }
+  let flowDots=[];
+  const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function drawFlow(now){
+    flowDots.forEach(d=>{const f=reduceMotion?d.off:((now/3600)+d.off)%1;const pt=d.p.getPointAtLength(f*d.len);
+      d.c.setAttribute('cx',pt.x);d.c.setAttribute('cy',pt.y);d.c.setAttribute('opacity',f>.94?((1-f)/.06).toFixed(2):1);});
+  }
+  if(!reduceMotion){(function loop(t){drawFlow(t);requestAnimationFrame(loop);})(performance.now());}
+
+  /* 3 tokens */
+  $('sessions').addEventListener('input',e=>{S.sessions=+e.target.value;update();});
+  $('tpsess').addEventListener('input',e=>{S.tps=+e.target.value;update();});
+  $('demoRate').addEventListener('input',e=>{S.demoRate=Math.max(0,+e.target.value||0);update();});
+
+  /* 4 rates */
+  function renderRates(){
+    $('rateBody').innerHTML=TOOLS.filter(t=>S.sel.has(t.id)).map(t=>`<tr><td><span class="swatch" style="background:var(${t.c})"></span>${t.name}</td>
+      <td class="r"><input class="rate" type="number" min="0" step="1" id="seat-${t.id}" data-id="${t.id}" data-k="seat" value="${t.seat}" aria-label="${t.name} seat price"></td>
+      <td class="r"><input class="rate" type="number" min="0" step="0.5" id="rate-${t.id}" data-id="${t.id}" data-k="rate" value="${t.rate}" aria-label="${t.name} usage price"></td></tr>`).join('');
+  }
+  $('rateBody').addEventListener('input',e=>{const i=e.target;if(!i.dataset.id)return;TOOLS.find(t=>t.id===i.dataset.id)[i.dataset.k]=Math.max(0,+i.value||0);update(false);});
+
+  function compute(){
+    const tokDev=S.sessions*S.tps*WORKDAYS, tokAll=tokDev*S.devs;
+    const sel=TOOLS.filter(t=>S.sel.has(t.id));
+    const share=tokAll/sel.length;
+    const rows=sel.map(t=>({t,seat:S.devs*t.seat,usage:share/1e6*t.rate}));
+    const total=rows.reduce((a,r)=>a+r.seat+r.usage,0);
+    return {tokDev,rows,total};
+  }
+  function niceMax(v){if(v<=0)return 100;const p=Math.pow(10,Math.floor(Math.log10(v)));for(const m of [1,2,2.5,5,10]){if(m*p>=v)return m*p;}return 10*p;}
+
+  /* 5 methods */
+  const METHODS=[
+    {name:'Vendor dashboards',tag:'Built in',r:{effort:3,detail:1,fresh:2},
+     body:'Each tool\'s admin console shows seats and some usage. Free and already there, but one tool at a time, and rarely split by project.'},
+    {name:'Spreadsheet from exports',tag:'Manual',r:{effort:1,detail:2,fresh:1},
+     body:'Pull invoices and usage exports into a sheet each month and tag rows by hand. Flexible, but slow, and always a month behind.'},
+    {name:'Automatic session capture',tag:'e.g. Kite Pulse',r:{effort:2,detail:3,fresh:3},
+     body:'A small agent reads each developer\'s AI session history and reports tokens per person, repository and tool. Needs a one-time install. Cost is estimated from your prices.'}
+  ];
+  const PL={effort:'Low setup effort',detail:'Per-project detail',fresh:'Up-to-date'};
+  function renderMethods(){
+    const best=METHODS.reduce((b,m)=>m.r[S.prio]>b.r[S.prio]?m:b,METHODS[0]);
+    $('methodCards').innerHTML=METHODS.map(m=>`<div class="method${m===best?' best':''}"><div class="tag">${m===best?'Best for '+PL[S.prio].toLowerCase()+' · ':''}${m.tag}</div><h3>${m.name}</h3>
+      <div class="rating">${Object.keys(PL).map(k=>`<span>${PL[k]}</span><span class="pips" aria-label="${m.r[k]} of 3">${[1,2,3].map(n=>`<i class="${n<=m.r[k]?'on':''}"></i>`).join('')}</span>`).join('')}</div><p>${m.body}</p></div>`).join('');
+  }
+  $('prioSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.prio=b.dataset.p;
+    [...$('prioSeg').children].forEach(x=>x.setAttribute('aria-pressed',x===b));renderMethods();});
+
+  /* 6 allocation */
+  const PROJ=[{id:'checkout',name:'Checkout API',c:'--t1'},{id:'mobile',name:'Mobile app',c:'--t3'},{id:'internal',name:'Internal tools',c:'--t4'}];
+  const SESS=[
+    {dev:'Priya',tool:'Claude Code',path:'~/code/checkout-api',tok:4200000,p:'checkout'},
+    {dev:'Marco',tool:'Cursor',path:'~/work/mobile-app/ios',tok:2600000,p:'mobile'},
+    {dev:'Lena',tool:'Claude Code',path:'~/code/checkout-api/tests',tok:1800000,p:''},
+    {dev:'Tomás',tool:'Copilot',path:'~/src/admin-dashboard',tok:900000,p:'internal'},
+    {dev:'Inés',tool:'Claude Code',path:'~/work/mobile-app/android',tok:3100000,p:''},
+    {dev:'Priya',tool:'Cursor',path:'~/code/billing-scripts',tok:700000,p:''},
+    {dev:'Marco',tool:'Claude Code',path:'~/work/mobile-app',tok:2200000,p:'mobile'},
+    {dev:'Lena',tool:'Copilot',path:'~/code/checkout-api',tok:1200000,p:''}
+  ];
+  const SRATE=6;
+  const sCost=s=>s.tok/1e6*SRATE;
+  function renderSess(){
+    $('sessBody').innerHTML=SESS.map((s,i)=>`<tr><td><div><b>${s.dev}</b> · ${s.tool}</div><div class="path">${s.path}</div></td><td class="r num">${usd(sCost(s),2)}</td>
+      <td><select id="sess-${i}" data-i="${i}" aria-label="Project for ${s.dev}'s session"><option value="">Unassigned</option>${PROJ.map(p=>`<option value="${p.id}"${s.p===p.id?' selected':''}>${p.name}</option>`).join('')}</select></td></tr>`).join('');
+  }
+  $('sessBody').addEventListener('change',e=>{const i=e.target.dataset.i;if(i==null)return;SESS[i].p=e.target.value;renderAlloc();});
+  function projTotals(){const m={};PROJ.forEach(p=>m[p.id]=0);m['']=0;SESS.forEach(s=>m[s.p]+=sCost(s));return m;}
+  function renderAlloc(){
+    const m=projTotals(),max=Math.max(...Object.values(m),1),total=SESS.reduce((a,s)=>a+sCost(s),0);
+    const list=[...PROJ,{id:'',name:'Unassigned',c:'--muted'}];
+    const un=SESS.filter(s=>!s.p).length;
+    $('projBars').innerHTML=list.map(p=>`<div class="proj"><div class="top"><span>${p.name}</span><span class="num">${usd(m[p.id],2)}</span></div><div class="track"><span style="width:${(m[p.id]/max*100).toFixed(1)}%;background:var(${p.c})"></span></div></div>`).join('')
+      +`<p style="font-size:.9rem;color:var(--muted)">${un?`${un} session${un>1?'s':''} still unassigned (${Math.round(m['']/total*100)}% of cost). Hint: look at the repository path.`:'<span class="done">All sessions assigned.</span> You now know where every dollar went.'}</p>`;
+    renderBill();
+  }
+
+  /* 7 quiz */
+  const ACC=[
+    {tool:'Claude Code',acct:'dev-team@acme.example',people:'3 (Priya, Marco, Lena)',last:'Today',tok:38200000,bad:'shared'},
+    {tool:'Cursor',acct:'tomas@acme.example',people:'1',last:'Today',tok:5100000},
+    {tool:'GitHub Copilot',acct:'ines@acme.example',people:'1',last:'47 days ago',tok:0,bad:'unused'},
+    {tool:'Cursor',acct:'marco@acme.example',people:'1',last:'Yesterday',tok:6400000},
+    {tool:'Claude Code',acct:'lena@acme.example',people:'1',last:'Today',tok:9800000},
+    {tool:'GitHub Copilot',acct:'tomas@acme.example',people:'1',last:'3 days ago',tok:2300000}
+  ];
+  const flags=new Set();let checked=false;
+  function renderQuiz(){
+    $('quizBody').innerHTML=ACC.map((a,i)=>{let cls='flaggable';
+      if(checked){const f=flags.has(i);cls+=(a.bad&&f)?' right':(a.bad||f)?' wrong':'';}else if(flags.has(i))cls+=' flagged';
+      return `<tr class="${cls}" data-i="${i}" tabindex="0" aria-pressed="${flags.has(i)}"><td>${a.tool}</td><td class="num" style="font-size:.85rem">${a.acct}</td><td>${a.people}</td><td>${a.last}</td><td class="r num">${short(a.tok)}</td></tr>`;}).join('');
+    $('flagCount').textContent=flags.size?`${flags.size} flagged`:'Nothing flagged yet';
+  }
+  function toggleRow(e){const tr=e.target.closest('tr[data-i]');if(!tr||checked)return;const i=+tr.dataset.i;flags.has(i)?flags.delete(i):flags.add(i);renderQuiz();
+    const n=$('quizBody').querySelector(`tr[data-i="${i}"]`);n&&n.focus();}
+  $('quizBody').addEventListener('click',toggleRow);
+  $('quizBody').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleRow(e);}});
+  $('checkQuiz').addEventListener('click',()=>{checked=true;renderQuiz();
+    const found=ACC.filter((a,i)=>a.bad&&flags.has(i)).length,extra=[...flags].filter(i=>!ACC[i].bad).length;
+    const seat=TOOLS.find(t=>t.id==='copilot').seat;
+    $('quizFeedback').innerHTML=`<p><b>You found ${found} of 2${extra?`, with ${extra} false alarm${extra>1?'s':''}`:''}.</b></p>
+      <p><span class="pill warn">Shared</span> <b>dev-team@</b> is used by three people. Its 38.2M tokens cannot be split by person or project, so this cost is invisible to your per-project view. Give each person their own account.</p>
+      <p><span class="pill warn">Unused</span> <b>ines@</b> on Copilot has had no activity for 47 days. At ${usd(seat)} a month that is ${usd(seat*12)} a year for nothing. Remove the seat or reassign it.</p>`;});
+  $('resetQuiz').addEventListener('click',()=>{flags.clear();checked=false;$('quizFeedback').innerHTML='';renderQuiz();});
+
+  /* 8 billable */
+  $('markup').addEventListener('input',e=>{S.markup=+e.target.value;$('markupOut').textContent=S.markup+'%';renderBill();});
+  function renderBill(){
+    const m=projTotals(),k=1+S.markup/100;let tc=0,tb=0;
+    const rows=PROJ.map(p=>{tc+=m[p.id];tb+=m[p.id]*k;return `<tr><td><span class="swatch" style="background:var(${p.c})"></span>${p.name}</td><td class="r num">${usd(m[p.id],2)}</td><td class="r num"><b>${usd(m[p.id]*k,2)}</b></td></tr>`;}).join('');
+    const un=m['']?`<tr><td style="color:var(--muted)">Unassigned (not billable)</td><td class="r num" style="color:var(--muted)">${usd(m[''],2)}</td><td class="r num" style="color:var(--muted)">–</td></tr>`:'';
+    $('billBody').innerHTML=rows+un+`<tr><td><b>Total billable</b></td><td class="r num">${usd(tc,2)}</td><td class="r num" style="color:var(--cost)"><b>${usd(tb,2)}</b></td></tr>`;
+  }
+
+  /* 9 plan */
+  function renderPlan(c){
+    const sel=TOOLS.filter(t=>S.sel.has(t.id));
+    const seatTools=sel.filter(t=>t.seat>0).map(t=>t.name),useTools=sel.filter(t=>t.rate>0).map(t=>t.name);
+    const items=[
+      `List every AI coding tool and account your ${S.devs} developers use (${sel.map(t=>t.name).join(', ')}).`,
+      seatTools.length?`Pull seat assignments from the admin console of ${seatTools.join(', ')} and match each seat to one person.`:null,
+      useTools.length?`Turn on usage reporting for ${useTools.join(', ')} so you can see tokens per person, not only per invoice.`:null,
+      `Give everyone their own login. Retire shared accounts so cost can be attributed.`,
+      `Map repositories to projects, so each session's tokens land on the right project.`,
+      `Set a monthly budget. Your current estimate is ${usd(c.total)} a month, about ${usd(c.total/S.devs)} per developer.`,
+      `Review monthly: remove seats inactive for 30+ days and check for spikes per project.`,
+      `If you bill clients, apply a ${S.markup}% markup to project cost and share the per-project report.`
+    ].filter(Boolean);
+    const prev=[...$('planList').querySelectorAll('input')].map(i=>i.checked);
+    $('planList').innerHTML=items.map((t,i)=>`<li class="${prev[i]?'done-item':''}"><input type="checkbox" id="plan-${i}"${prev[i]?' checked':''}><span><label for="plan-${i}">${t}</label></span></li>`).join('');
+    $('planText').value='AI coding cost tracking plan\n'+items.map((t,i)=>`${i+1}. ${t}`).join('\n');
+  }
+  $('planList').addEventListener('change',e=>{const li=e.target.closest('li');li&&li.classList.toggle('done-item',e.target.checked);});
+  $('copyPlan').addEventListener('click',()=>{const t=$('planText').value;
+    const fallback=()=>{const ta=$('planText');ta.hidden=false;ta.style.width='100%';ta.rows=8;ta.select();$('copyMsg').textContent='Select all and copy the text below.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fallback);}catch(e){fallback();}});
+
+  /* master update */
+  function update(rerenderRates=true){
+    $('devsOut').textContent=S.devs;
+    $('sessionsOut').textContent=S.sessions;
+    $('tpsessOut').textContent=short(S.tps);
+    const c=compute();
+    const dc=c.tokDev/1e6*S.demoRate;
+    $('formula').innerHTML=`<span>${S.sessions}</span> <span class="op">sessions ×</span> <span>${S.tps.toLocaleString('en-US')}</span> <span class="op">tokens ×</span> <span>${WORKDAYS}</span> <span class="op">days =</span> <span>${short(c.tokDev)}</span> <span class="op">tokens</span><br>
+      <span>${short(c.tokDev)}</span> <span class="op">÷ 1M ×</span> <span>${usd(S.demoRate,2)}</span> <span class="op">=</span> <span class="res">${usd(dc,2)} per developer per month</span>`;
+    $('tokPerDev').textContent=short(c.tokDev);
+    $('costPerDev').textContent=usd(dc);
+    if(rerenderRates){renderRates();renderFlow();}
+    const max=niceMax(Math.max(...c.rows.map(r=>r.seat+r.usage),1));
+    $('bars').innerHTML=c.rows.map(r=>`<div class="bar-row"><div class="name"><span class="swatch" style="background:var(${r.t.c})"></span>${r.t.name}</div>
+      <div class="bar-track" title="Seats ${usd(r.seat)}, usage ${usd(r.usage)}"><span style="width:${(r.seat/max*100).toFixed(2)}%;background:var(${r.t.c})"></span><span class="usage" style="width:${(r.usage/max*100).toFixed(2)}%;background-color:var(${r.t.c});opacity:.75"></span></div>
+      <div class="v">${usd(r.seat+r.usage)}</div></div>`).join('');
+    $('axis').innerHTML=`<div></div><div class="ticks">${[0,.25,.5,.75,1].map(f=>`<span>${f===0?'$0':usd(max*f)}</span>`).join('')}</div><div></div>`;
+    $('estTotal').textContent=usd(c.total);
+    $('estPerDev').textContent=usd(c.total/S.devs);
+    $('estYear').textContent=usd(c.total*12);
+    $('ledgerTotal').textContent=usd(c.total);
+    const ft=document.getElementById('flowTotal');if(ft)ft.textContent=usd(c.total);
+    renderPlan(c);
+  }
+
+  renderChips();renderMethods();renderSess();renderAlloc();renderQuiz();
+  $('markupOut').textContent=S.markup+'%';
+  update();onScroll();
+})();
+</script>
+
+</body></html>

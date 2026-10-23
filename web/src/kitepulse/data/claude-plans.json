@@ -1,0 +1,79 @@
+{
+  "_about": "Claude plan and Claude Code usage-limit facts for the Kite Pulse guides. Every fact carries the exact sentence it was taken from and its source page. Read by /claude-code-usage-limits (copied into the prototype's PLAN_FACTS on the checked date) and meant for /plan-headroom and /ai-coding-assistant-pricing. Anthropic's help pages show no calendar dates ('Updated over a week ago'), so `checked` is the date a person read them. Re-check monthly: limits change.",
+  "checked": "2026-10-22",
+  "checked_by": "Kite Pulse team (to be named)",
+  "not_published_by_anthropic": [
+    "Fixed message, token or hour counts per plan: limits are stated as relative sizes and reset rules only",
+    "Exactly when a five-hour session window starts",
+    "Per-seat allowances for Team Standard and Premium seats compared with Pro or Max",
+    "Team plan price (claude.com/pricing not yet read for this file)"
+  ],
+  "sources": {
+    "cc_pro_max": "https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan",
+    "limits": "https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work",
+    "max": "https://support.claude.com/en/articles/11049741-what-is-the-max-plan",
+    "pro": "https://support.claude.com/en/articles/8325606-what-is-the-pro-plan",
+    "best_practices": "https://support.claude.com/en/articles/9797557-usage-limit-best-practices",
+    "credits": "https://support.claude.com/en/articles/12429409-manage-usage-credits-for-paid-claude-plans",
+    "cc_team": "https://support.claude.com/en/articles/11845131-use-claude-code-with-your-team-or-enterprise-plan",
+    "cc_costs": "https://code.claude.com/docs/en/costs"
+  },
+  "rules": {
+    "two_limits": { "source": "limits", "quote": "Paid plans have two types of usage limits: a session limit that resets every five hours, and weekly limits that reset once every week." },
+    "shared": { "source": "cc_pro_max", "quote": "These limits are shared across Claude and Claude Code, meaning all activity in both tools counts against the same limits." },
+    "weekly_reset_time": { "source": "max", "quote": "The weekly limit resets at a fixed time each week that is assigned to your account." },
+    "team_rolling": { "source": "cc_costs", "quote": "On Claude for Teams and Enterprise plans, each member's Claude Code usage draws from a per-seat allowance that resets on a rolling five-hour window and a weekly window." },
+    "warnings": { "source": "cc_pro_max", "quote": "To help you monitor your usage, you'll see warning messages as you approach any limit." },
+    "other_caps": { "source": "max", "quote": "we may limit your usage in other ways, such as weekly and monthly caps or model and feature usage, at our discretion." },
+    "factors": { "source": "limits", "quote": "the length and complexity of your conversations, the features you use, which Claude model you're chatting with, and the effort level you've selected" },
+    "session_shared_across_models": { "source": "cc_costs", "quote": "a seat-based usage window on a subscription plan, shared across all models, so the developer can't restore access by switching models with `/model`." },
+    "model_limit_switch": { "source": "cc_costs", "quote": "After the model-specific \"You've hit your Opus limit\" or \"You've hit your Sonnet limit\" message, switching to a model outside that family with `/model` does keep the developer working." }
+  },
+  "plans": [
+    { "id": "pro", "name": "Pro",
+      "price": { "text": "$20 per month (US)", "source": "pro", "quote": "The Pro plan is available for $20 per month (US), with pricing in your local currency where supported." },
+      "size": { "text": "More usage per session than Free", "source": "pro", "quote": "More usage per session than the Free plan." },
+      "weekly": { "source": "pro", "quote": "Pro plans also have a weekly usage limit that applies across all models." },
+      "wrap_up": { "source": "cc_pro_max", "quote": "On the Pro plan, it applies up to once per weekly usage period." },
+      "past_limit": { "source": "cc_pro_max", "quote": "Consider upgrading to the Max 5x plan if you consistently hit limits and need more capacity for larger repositories." } },
+    { "id": "max5", "name": "Max 5x",
+      "price": { "text": "$100 per month", "source": "max", "quote": "Max 5x: $100 per month" },
+      "size": { "text": "5x Pro's per-session allowance", "source": "max", "quote": "five times the Pro plan's per-session usage allowance" },
+      "weekly": { "source": "max", "quote": "Max plans also have a weekly usage limit that applies across all models." },
+      "model_weekly": { "source": "cc_pro_max", "quote": "Max plans also have a separate weekly limit for Fable." },
+      "wrap_up": { "source": "cc_pro_max", "quote": "On the Max plan, it can apply each time you reach a five-hour session limit, within your weekly limit." } },
+    { "id": "max20", "name": "Max 20x",
+      "price": { "text": "$200 per month", "source": "max", "quote": "Max 20x: $200 per month" },
+      "size": { "text": "20x Pro's per-session allowance", "source": "max", "quote": "20 times the Pro plan's per-session usage allowance" },
+      "weekly": { "source": "max", "quote": "Max plans also have a weekly usage limit that applies across all models." },
+      "model_weekly": { "source": "cc_pro_max", "quote": "Max plans also have a separate weekly limit for Fable." },
+      "wrap_up": { "source": "cc_pro_max", "quote": "On the Max plan, it can apply each time you reach a five-hour session limit, within your weekly limit." } },
+    { "id": "team", "name": "Team / seat-based Enterprise",
+      "price": { "text": "Not checked yet", "source": null, "quote": null },
+      "size": { "text": "Depends on seat tier (Standard or Premium)", "source": "cc_team", "quote": "Premium seats offer more usage for team members with heavier workloads." },
+      "windows": { "source": "cc_costs", "quote": "each member's Claude Code usage draws from a per-seat allowance that resets on a rolling five-hour window and a weekly window." },
+      "past_limit": { "source": "cc_team", "quote": "you can enable usage credits to allow team members to continue working" } },
+    { "id": "enterprise_usage", "name": "Usage-based Enterprise",
+      "size": { "text": "No per-seat usage limits", "source": "cc_team", "quote": "there are no per-seat usage limits." } },
+    { "id": "api", "name": "API key (Claude Console)",
+      "billing": { "source": "cc_costs", "quote": "On the Console and on cloud providers, usage is billed per token to your organization." },
+      "rate_limits": { "source": "cc_costs", "quote": "Claude Code traffic in this workspace counts toward your organization's overall API rate limits." },
+      "env_key": { "source": "cc_pro_max", "quote": "If you have an ANTHROPIC_API_KEY environment variable set on your system, Claude Code will use this API key for authentication instead of your Claude subscription." } }
+  ],
+  "wrap_up": [
+    { "source": "cc_pro_max", "quote": "Claude Code may keep working briefly so it can finish the step in progress." },
+    { "source": "cc_pro_max", "quote": "This wrap-up allowance is small and capped, and the usage counts toward your weekly limit." },
+    { "source": "cc_pro_max", "quote": "It applies only to a response that's already in progress, not to a new message you send after reaching your limit." },
+    { "source": "cc_pro_max", "quote": "It's rolling out gradually, so it may not be available on your account yet." }
+  ],
+  "credits": [
+    { "source": "credits", "quote": "Usage credits are billed at standard API rates." },
+    { "source": "credits", "quote": "a maximum amount you're willing to spend on usage credits each month." },
+    { "source": "cc_pro_max", "quote": "Monthly API credits included with Max plans can't be used in Claude Code or the Claude apps, including for extra usage." }
+  ],
+  "checking": [
+    { "where": "Claude Code /usage", "source": "cc_costs", "quote": "Subscribers see plan usage bars, activity stats, and a usage breakdown on the same screen." },
+    { "where": "Claude Code /status", "source": "cc_pro_max", "quote": "Monitor your remaining allocation using the /status command." },
+    { "where": "claude.ai Settings > Usage", "source": "best_practices", "quote": "Monitor your consumption in Usage settings" }
+  ]
+}

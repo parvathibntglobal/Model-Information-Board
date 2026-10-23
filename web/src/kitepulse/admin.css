@@ -1,0 +1,25 @@
+/* ── Admin -> Kite Pulse SEO (KitePulsePanel.jsx) ─────────────────────────────
+ * Styled with the board's own tokens (styles/tokens.css): this panel is part of
+ * the admin, not of the Kite Pulse site. The site's styles are site.css.
+ *
+ * A page URL that opens that page's brief. A real <button> so it is tabbable,
+ * drawn as a link because what it does is go somewhere. */
+.kp-link{background:none;border:0;padding:0;cursor:pointer;color:var(--info);
+  font-size:inherit;text-align:left;text-decoration:underline;text-underline-offset:3px;
+  text-decoration-color:color-mix(in srgb,var(--info) 40%,transparent)}
+.kp-link:hover{color:var(--text)}
+.kp-link:focus-visible{outline:2px solid var(--info);outline-offset:2px;border-radius:2px}
+.kp-search{flex:1 1 240px;min-width:0}
+/* Keyword map: a page's sub keywords as small tags that wrap. */
+.kp-subs{display:flex;flex-wrap:wrap;gap:4px}
+.kp-sub{font-size:11px;line-height:1.4;padding:2px 7px;border-radius:var(--r-pill);
+  background:var(--surface-2);border:1px solid var(--border-soft);color:var(--text-2)}
+.kp-more{flex-basis:100%;font-size:11px;color:var(--text-3)}
+.kp-more summary{cursor:pointer}
+.kp-more .kp-subs{margin-top:4px}
+.kp-select{flex:0 1 auto;max-width:100%}
+/* A prototype page in the Preview tab. The frame is white because the
+ * prototypes paint their own background; the wrap centres the phone width. */
+.kp-frame-wrap{display:flex;justify-content:center;border:1px solid var(--border);
+  border-radius:var(--r-card);background:var(--surface-2);overflow:hidden}
+.kp-frame{display:block;height:80vh;min-height:520px;max-width:100%;border:0;background:#fff}

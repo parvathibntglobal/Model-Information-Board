@@ -57,6 +57,10 @@ python -m collect.cli db migrate  # needs DATABASE_URL
 python run-backend.py --write     # or --staging for read-only
 cd web && npm install && npm run dev
 ```
+## login details
+Email:     demo@modelboard.dev
+Password:  modelboard-demo
+
 
 Tests: `pytest -q`. The Postgres-backed tests need `TEST_DATABASE_URL`.
 

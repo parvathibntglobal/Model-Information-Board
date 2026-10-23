@@ -76,6 +76,7 @@ const ModelFinder = page(() => import('./routes/ModelFinder'))
 const Admin = page(() => import('./routes/Admin'))
 const BlogLogs = page(() => import('./routes/BlogLogs'))
 const Keywords = page(() => import('./routes/Keywords'))
+const KitePulse = page(() => import('./kitepulse/KitePulseSite'))
 
 /** What a page shows while its chunk downloads: the skeleton the pages use for data. */
 const PAGE_LOADING = (
@@ -125,11 +126,15 @@ export default function App() {
   // and a footer under that layout would put the page back into the scroll it
   // left, taking the side nav up with it.
   const onHome = loc.pathname === '/'
+  // KITE PULSE IS ANOTHER PRODUCT'S SITE (kitepulse/KitePulseSite.jsx): it brings its
+  // own header and footer, and the board's nav above it would make it read as
+  // a board page.
+  const onKitePulse = loc.pathname === '/kite-pulse' || loc.pathname.startsWith('/kite-pulse/')
 
   return (
     <>
       <ScrollToTop />
-      {!onLogin && <Nav session={session} onSignOut={handleSignOut} />}
+      {!onLogin && !onKitePulse && <Nav session={session} onSignOut={handleSignOut} />}
 
       <main>
         <Suspense fallback={PAGE_LOADING}>
@@ -186,6 +191,8 @@ export default function App() {
           <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />
           <Route path="/keywords" element={<MovedTo path="/seo-keywords" />} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
+          {/* Signed in only: an internal preview of another product's site. */}
+          <Route path="/kite-pulse/*" element={<Require session={session}><KitePulse /></Require>} />
 
           {/* NOT A REDIRECT (SEO item 7): an unknown address says so, at that address. */}
           <Route path="*" element={<NotFound />} />
