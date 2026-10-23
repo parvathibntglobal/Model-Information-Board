@@ -54,8 +54,11 @@ R2  No invented numbers. Do not make up statistics, customer counts, time
     - Numbers inside calculators and sample data are allowed ONLY when they are
       visibly labelled as examples ("Sample team", "example prices").
     - A fact about another company (a vendor's price, a plan limit, a study's
-      result) needs a link to its source and a "checked <date>" note. If you
-      cannot verify it, write it as a placeholder and say so on the page.
+      result) needs its source URL and a "checked <date>", recorded in the
+      page's data file (web/src/kitepulse/data/) or its SEO notes, NOT on the
+      page: pages carry no Sources list or citation markers (decided
+      2026-10-23). The page names the source in words ("METR's 2025 study").
+      If you cannot verify it, write it as a placeholder and say so on the page.
 R3  Features switched off in the current release must not be promoted: Trends,
     Activity Rhythm, Coaching & Risk, Cost & ROI, Comparisons, Intelligence,
     Knowledge Base, Tech-Debt Radar, Ask Kite Pulse.
@@ -96,8 +99,7 @@ S7  Crawlable text. Every interactive part (calculator, quiz, simulator) sits
     page makes sense to a reader or crawler that never runs the widget.
 S8  Trust signals on guides and blog posts: a "Guide" or "Article" label above
     the H1; author line ("Kite Pulse team" unless the brief names a person);
-    "Updated <date>"; reading time; a "Sources" list at the end for any outside
-    fact.
+    "Updated <date>"; reading time. No "Sources" list: see R2.
 S9  Internal links: link to every page the brief lists under "Link to", with
     descriptive anchor text (never "click here"). Links between Kite Pulse
     pages use the page URL as given, e.g. href="/ai-cost-tracking".
@@ -118,7 +120,7 @@ Interactive guide (e.g. /ai-cost-tracking)
   step chips that jump to sections -> 5–9 numbered steps, each: H2, a
   paragraph, ONE hands-on tool -> where Kite Pulse saves effort (one callout,
   at the step where doing it by hand stops scaling) -> generated plan or
-  checklist the reader can copy -> FAQ -> CTA -> Sources.
+  checklist the reader can copy -> FAQ -> CTA.
 
 Solution (e.g. /shadow-ai)
   Problem-first H1 in the buyer's words, definition block, CTA -> the problem
@@ -155,7 +157,7 @@ Compare (/compare/<competitor>)
 
 Blog post (/blog/<slug>)
   Article label, H1, author, updated date, reading time -> short answer -> H2
-  sections -> one Kite Pulse callout at most -> related guides -> Sources.
+  sections -> one Kite Pulse callout at most -> related guides.
 
 Glossary (/glossary/<term>)
   H1 "What is <term>?" -> one-sentence bold definition -> 2–3 short sections
@@ -244,7 +246,8 @@ Also:
      you left out, and why.
    - Each FAQ question -> answered (yes/no).
    - Every claim about Kite Pulse -> the Product Guide section it comes from.
-   - Every outside fact -> its source link, or "placeholder, not verified".
+   - Every outside fact -> its source link and checked date (for the data
+     file or SEO notes, not the page), or "placeholder, not verified".
    - Anything in the brief you could not do.
 
 ────────────────────────────────────────────────────────────────────────
@@ -275,7 +278,7 @@ Interactive parts wanted: [from the angle, or "suggest 1–3"]
 |---|---|
 | R1–R2 | The site's credibility depends on it. A page that promises a feature Kite Pulse does not have, or quotes an invented statistic, costs more trust than it earns traffic. The same rule runs the Model Information Board: a model may propose words, never facts. |
 | R3–R4 | From the sheet's **Keywords to Avoid** tab. |
-| S4, S6, S8 | What competitors' ranking pages do, and what AI assistants quote. Mentlio's guides (reviewed 2026-10-22) carry a bolded definition, author, updated date and sources; ours should too. |
+| S4, S6, S8 | What competitors' ranking pages do, and what AI assistants quote. Mentlio's guides (reviewed 2026-10-22) carry a bolded definition, author, updated date and sources; ours carry the first three. Sources were dropped from pages on 2026-10-23 (product decision) and live in each page's data file instead. |
 | S7 | Interactive pages beat text-only competitors, but only if a crawler can read the method without running the widget. |
 | Section 7 | The site preview (`KitePulseSite.jsx`, `EMBED`) hides the prototype's own logo, SEO switch, SEO notes and footer by these class names. A page that renames them shows a second logo inside the site. |
 | Section 8 | The report is what a reviewer checks before the page is saved into `prototypes/`. Without it, review means re-reading the page against the guide by hand. |

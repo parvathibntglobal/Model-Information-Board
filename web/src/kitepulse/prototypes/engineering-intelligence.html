@@ -1,0 +1,462 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Engineering Intelligence Platform</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="What an engineering intelligence platform is for software teams, how outputs and AI sessions differ as sources, and which platform type fits your needs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Solutions","item":"/solutions"},{"@type":"ListItem","position":3,"name":"Engineering intelligence platform","item":"/engineering-intelligence"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"What is an engineering intelligence platform?","acceptedAnswer":{"@type":"Answer","text":"An engineering intelligence platform turns data from software engineering work into a picture leaders can act on: what the team is working on, where work gets stuck, how AI tools are used and what they cost. It is also called software engineering intelligence, or a developer productivity insight platform. The term is also used for hardware and product engineering data platforms, which are a different market."}},
+{"@type":"Question","name":"How do I know what my engineering team is working on right now?","acceptedAnswer":{"@type":"Answer","text":"Use a live view built from the work itself rather than from status updates: who is active, on which project, and since when. Kite Pulse's Org Overview shows who is online, coding, idle or offline, sessions today, active time, a timeline of each person's day and their current project, built from the AI coding sessions the team is already running."}},
+{"@type":"Question","name":"How do I see what my team is working on without status meetings?","acceptedAnswer":{"@type":"Answer","text":"Replace the round of updates with a shared view everyone can read before the meeting: current project per person, and which projects several people touched. Kite Pulse's Collaboration page shows each shared project, the people contributing and how many sessions each spent there, so stand-ups can be about blockers instead of status."}},
+{"@type":"Question","name":"How can I see team activity in real time?","acceptedAnswer":{"@type":"Answer","text":"Real-time activity needs a source that updates as people work. Commits and tickets update when work is finished; AI coding sessions update while it happens. Kite Pulse's Org Overview is a live control room of who is coding, idle or offline and on which project, within a manager's own reporting line."}},
+{"@type":"Question","name":"How can managers spot struggling developers early without surveys?","acceptedAnswer":{"@type":"Answer","text":"Look at the work, not at output counts: very long sessions with little progress, the same command failing again and again, and approaches started and dropped. Treat each as a reason for a supportive check-in, not a judgement, and check leave and on-call first. When data is thin, say so rather than guessing."}},
+{"@type":"Question","name":"How do I spot developers who are stuck in long AI sessions?","acceptedAnswer":{"@type":"Answer","text":"A stuck session is long, and shows repeated failures or the assistant retrying the same fix. Session history records both. Kite Pulse's Error & Command Stats shows failing commands, repeated failure loops and the most common error types across the team, which usually points at a shared cause such as a broken test setup."}},
+{"@type":"Question","name":"How do I identify developers who need support or coaching with AI tools?","acceptedAnswer":{"@type":"Answer","text":"Look for patterns that a tip or a fix would change: the assistant retrying one fix many times, recurring setup failures, or many very short sessions in a day. Offer help to the team first, because the cause is often shared. Never turn these signals into a ranking of people."}},
+{"@type":"Question","name":"How do I account for leave and on-call when measuring AI usage?","acceptedAnswer":{"@type":"Answer","text":"Record them next to the usage data. Without that, a week of leave looks like disengagement and a support rota looks like a focus problem. Kite Pulse's Leave & On-Call page records holidays and duty rotas for exactly this reason."}},
+{"@type":"Question","name":"Which teams are getting the most value from AI coding tools?","acceptedAnswer":{"@type":"Answer","text":"Usage alone cannot tell you: the team using AI most may simply have the most AI-shaped work. Compare delivery and quality metrics for each team against its own baseline from before rollout, and read usage next to them."}},
+{"@type":"Question","name":"How can I identify teams that need more AI training?","acceptedAnswer":{"@type":"Answer","text":"Look for teams where AI sessions often loop: repeated failing commands, the same fix retried, approaches dropped. Those usually point to missing project context, setup problems or tasks that are too large, which training on how to brief an assistant can fix. Low adoption on its own may instead mean the tools do not fit that team's work."}},
+{"@type":"Question","name":"Does an engineering intelligence platform need access to our source code?","acceptedAnswer":{"@type":"Answer","text":"It depends on the platform. Git-based platforms read repository and pull request data. Kite Pulse does not open or upload source files: it reads the session history AI coding tools already keep, plus folder names and repository addresses to tell projects apart, and removes secrets on the developer's computer before upload."}}
+]}
+]}
+</script>
+<style>
+/* Layout: a solution page that defines the category, shows outputs vs process, helps a buyer choose, then shows a sample console. One reading column; same system as the other Kite Pulse pages. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --t1:#2747D6; --t2:#C9771A; --t3:#1F8A5B; --t4:#8A3FB8; --t5:#0E7C93;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19;
+  --t1:#8299FF; --t2:#F0A640; --t3:#4CC48F; --t4:#C38BEA; --t5:#4FC3DA; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19;
+  --t1:#8299FF; --t2:#F0A640; --t3:#4CC48F; --t4:#C38BEA; --t5:#4FC3DA; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --t1:#2747D6; --t2:#C9771A; --t3:#1F8A5B; --t4:#8A3FB8; --t5:#0E7C93; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:940px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.topbar .brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.topbar .brand span{color:var(--accent)}
+.topbar .mine{margin-left:auto;display:flex;align-items:baseline;gap:8px}
+.topbar .mine b{font-family:var(--mono);font-size:1.05rem;color:var(--accent)}
+.topbar .mine small{color:var(--muted);font-size:.8rem}
+.toggle{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:20px}
+.hero p.lede{font-size:1.2rem;color:var(--muted)}
+.def{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:18px 20px;display:grid;gap:8px}
+.def p{font-size:1.05rem}
+.def .note{font-size:.9rem;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.sm{padding:6px 12px;font-size:.85rem;border-radius:8px}
+
+section.block{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.head{display:grid;gap:10px}
+.head p{color:var(--muted)}
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+.tool-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
+.tool-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--bg);padding:8px 14px;cursor:pointer;font-weight:600;font-size:.9rem}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.pill{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .kpmark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p + p{margin-top:8px}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+/* outputs vs process */
+.ovp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.lens{border:1.5px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px;align-content:start;background:var(--bg);transition:opacity .3s,border-color .3s}
+.lens.dim{opacity:.45}
+.lens.on{border-color:var(--accent)}
+.lens h3{font-size:1rem;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.outlist{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:.92rem}
+.outlist li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+.outlist .ic{font-family:var(--mono);font-size:.7rem;background:var(--sunk);border-radius:6px;padding:2px 6px;color:var(--muted);margin-top:2px}
+.days{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.days li{display:grid;grid-template-columns:48px 1fr;gap:10px;transition:opacity .35s,transform .35s}
+.days li.pending{opacity:.1;transform:translateX(6px)}
+.days .d{font-family:var(--mono);font-size:.75rem;color:var(--muted);padding-top:2px}
+.days .ev{display:grid;gap:4px;font-size:.92rem}
+.days .ev .tags{display:flex;gap:6px;flex-wrap:wrap}
+.sum{display:flex;gap:22px;flex-wrap:wrap}
+.sum div{display:grid}
+.sum b{font-family:var(--mono);font-size:1.35rem;font-weight:600;line-height:1.15}
+.sum span{font-size:.8rem;color:var(--muted)}
+
+/* evaluator */
+.needs{display:grid;gap:8px}
+.need{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;background:var(--bg)}
+.need input{width:18px;height:18px;margin-top:3px;accent-color:var(--accent)}
+.need.on{border-color:var(--accent);background:var(--accent-soft)}
+.fits{display:grid;gap:12px}
+.fit{display:grid;grid-template-columns:minmax(0,220px) 1fr 70px;gap:12px;align-items:center}
+.fit .nm{font-weight:700;font-size:.93rem;line-height:1.25}
+.fit .nm small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
+.fit .track{height:16px;background:var(--sunk);border-radius:5px;overflow:hidden;display:flex}
+.fit .track span{height:100%;transition:width .35s}
+.fit .v{font-family:var(--mono);font-size:.85rem;text-align:right}
+.verdict{display:grid;gap:8px;background:var(--sunk);border-radius:10px;padding:14px 16px}
+.copyta{width:100%;min-height:160px;font-family:var(--mono);font-size:.85rem;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:10px}
+
+/* table */
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.c,th.c{text-align:center}
+tr.us td{background:var(--accent-soft)}
+.mk{font-family:var(--mono);font-weight:600}
+.mk.y{color:var(--good)} .mk.p{color:var(--cost)} .mk.n{color:var(--muted)}
+
+/* dashboard */
+.dash{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+.dash-top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--sunk)}
+.dash-top b{font-family:var(--display)}
+.dtabs{display:flex;gap:4px;flex-wrap:wrap;padding:10px 14px 0}
+.dtabs button{border:0;border-bottom:2.5px solid transparent;background:none;padding:8px 10px;cursor:pointer;font-weight:700;font-size:.9rem;color:var(--muted)}
+.dtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.dpanel{padding:14px;display:grid;gap:12px}
+.st{display:inline-flex;align-items:center;gap:6px;font-size:.85rem}
+.st i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.hbars{display:grid;gap:8px}
+.hb{display:grid;grid-template-columns:130px 1fr 70px;gap:10px;align-items:center;font-size:.9rem}
+.hb .track{height:14px;background:var(--sunk);border-radius:5px;overflow:hidden}
+.hb .track span{display:block;height:100%}
+.hb .v{font-family:var(--mono);text-align:right;font-size:.85rem}
+
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.85}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.related a{display:grid;gap:4px;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.related a:hover{border-color:var(--accent)}
+.related a span{color:var(--muted);font-size:.88rem}
+.related a b{color:var(--accent)}
+details.faq{border-bottom:1px solid var(--line);padding-block:14px}
+details.faq summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details.faq p{margin-top:8px;color:var(--muted)}
+body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:700px){
+  body{font-size:16px}
+  .tool{padding:16px}
+  .topbar .brand{display:none}
+  .ovp{grid-template-columns:1fr}
+  .fit{grid-template-columns:1fr 56px;gap:6px 10px}
+  .fit .nm{grid-column:1 / -1}
+  .hb{grid-template-columns:96px 1fr 56px;gap:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span> · Solutions</div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+    <div class="mine"><small>Best fit for your needs</small><b id="barFit">—</b></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Solution · Engineering intelligence</div>
+    <h1>The engineering intelligence platform for teams that build with AI</h1>
+    <p class="lede">Commits, tickets and surveys show what a team delivered. When much of the work happens in conversation with AI coding assistants, the story of how it got there lives in those sessions.</p>
+    <div class="def">
+      <p><b>An engineering intelligence platform turns data from software engineering work into a picture leaders can act on: what the team is working on, where work gets stuck, how AI tools are used, and what they cost.</b> It is also called software engineering intelligence, developer analytics, or a developer productivity insight platform.</p>
+      <p class="note">On this page "engineering" means software engineering. The same term is used for hardware and product engineering data platforms, which are a different market.</p>
+    </div>
+    <div class="row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#fit">Which platform fits us?</a></div>
+    <div class="seo"><b>SEO</b>Title tag on build: "Engineering Intelligence Platform for AI Teams | Kite Pulse" (59 characters). Meta 152 characters. Google results the team pulled on 23 Oct 2026 (India): cortex.io product page; knightconnectai.com (business process meaning); cognitiveclouds.app (concept essay); spread.ai (hardware and product engineering, with FAQ). Only one is about software teams, so the definition says which meaning this page uses. None has an interactive tool. The sheet's 20 Oct list (Uplevel, Gartner) no longer matches: update "Who ranks". "Developer productivity insight platform" is kept from the sheet as Gartner's term; Gartner's page refused an automated read, so the page uses the phrase without attributing it.</div>
+  </header>
+
+  <section class="block" id="outputs-process">
+    <div class="head">
+      <h2>Outputs and process: two sources of engineering intelligence</h2>
+      <p>Most software engineering intelligence reads outputs: commits, pull requests, tickets and survey answers. They tell you what shipped and how long it took. The process behind them, the approaches tried and dropped, the errors and retries, now happens inside AI coding sessions. Here is one feature seen both ways.</p>
+    </div>
+    <div class="tool">
+      <div class="tool-label">One sample feature · two lenses</div>
+      <div class="ovp">
+        <div class="lens" id="lensOut">
+          <h3>What the outputs show <span class="pill">tickets · git</span></h3>
+          <ul class="outlist">
+            <li><span class="ic">TICKET</span><span>KP-142 "Add single sign-on" moved to Done after <b>6 days</b></span></li>
+            <li><span class="ic">PR</span><span>1 pull request, +820 −140, merged after 1 day in review</span></li>
+            <li><span class="ic">GIT</span><span>7 commits by 2 developers</span></li>
+            <li><span class="ic">CYCLE</span><span>Cycle time 6 days, against a team median of 3</span></li>
+          </ul>
+          <p class="small muted">Accurate, and it raises the question it cannot answer: why twice the usual time?</p>
+        </div>
+        <div class="lens on" id="lensProc">
+          <h3>What the sessions show <span class="pill acc">AI sessions</span></h3>
+          <ol class="days" id="days"></ol>
+          <div class="sum" id="procSum"></div>
+        </div>
+      </div>
+      <div class="row"><button class="btn ghost sm" type="button" id="playDays">Replay the week</button><span class="small muted">Example feature, not real data.</span></div>
+    </div>
+    <p>Both lenses matter. Outputs are the right source for delivery metrics such as deployment frequency and cycle time. Sessions are the right source for where the time went and what the team learned on the way.</p>
+    <div class="seo"><b>SEO</b>The brief's "outputs vs process" animation. Wording of the process lens follows the Product Guide: "the questions asked, the approaches tried and dropped, the errors and retries, and the decisions made along the way". Answers "How can managers spot struggling developers early without surveys?" by example.</div>
+  </section>
+
+  <section class="block" id="fit">
+    <div class="head">
+      <h2>Which engineering intelligence platform fits us?</h2>
+      <p>Tick the questions your engineering managers need answered. Each platform type covers some of them well, some partly, and some not at all. The result is honest about when a git and issue-tracker platform is the better choice, and you can copy the questions to ask in every vendor demo.</p>
+    </div>
+    <div class="tool">
+      <div class="tool-label">Evaluator · tick what you need</div>
+      <div class="needs" id="needs"></div>
+      <div class="fits" id="fits"></div>
+      <div class="verdict" id="verdict" aria-live="polite"></div>
+      <div class="row"><button class="btn" type="button" id="copyQs">Copy demo questions</button><span id="copyMsg" class="muted small" aria-live="polite"></span></div>
+      <textarea class="copyta" id="qsText" readonly hidden aria-label="Demo questions"></textarea>
+    </div>
+    <p class="small muted">Coverage is by platform type, not by vendor. Most established platforms now mix sources: LinearB, Jellyfish and Swarmia all list AI coding tools among what they measure (their home pages, read 23 Oct 2026). Ask each vendor which of your questions it answers from which data.</p>
+    <div class="seo"><b>SEO</b>Vendor facts read 23 Oct 2026 from linearb.io, jellyfish.co and swarmia.com home pages (no Sources list on the page, by decision 23 Oct 2026). Covers "developer productivity tool", "engineering manager developer productivity ai" and "ai coding assistant adoption". The coverage scores are our reading of platform TYPES, stated as such; no vendor is scored.</div>
+  </section>
+
+  <section class="block" id="types">
+    <div class="head">
+      <h2>Developer analytics tools compared by data source</h2>
+      <p>The useful way to compare developer productivity analytics is by where the data comes from, because that decides which questions a platform can answer. Most teams end up with more than one source.</p>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>Platform type</th><th>Reads</th><th>Strong at</th><th>Cannot see</th></tr></thead>
+      <tbody>
+        <tr><td><b>Git and issue-tracker platforms</b></td><td>Repositories, pull requests, CI/CD, tickets</td><td>Delivery metrics (DORA), cycle time, review bottlenecks, where time goes by epic</td><td>What happened between commits</td></tr>
+        <tr><td><b>Survey-led developer experience platforms</b></td><td>Developer surveys, often with system data</td><td>How the work feels; friction developers report</td><td>Anything between survey rounds</td></tr>
+        <tr><td><b>Each AI tool's admin console</b></td><td>That vendor's seats and usage</td><td>Seats and usage for one tool</td><td>Other tools; projects; the person across tools</td></tr>
+        <tr class="us"><td><b>AI-session platforms</b> <span class="pill acc">Kite Pulse</span></td><td>The session history AI coding tools keep on each machine</td><td>Who works on what, AI use and cost across ten tools, retries, failing commands, abandoned approaches</td><td>Delivery metrics such as deployment frequency; how the work feels</td></tr>
+      </tbody>
+    </table></div>
+    <p>Comparing specific vendors: <a href="/compare/linearb">Kite Pulse and LinearB</a> · <a href="/compare/jellyfish">Kite Pulse and Jellyfish</a> · <a href="/compare/swarmia">Kite Pulse and Swarmia</a> · <a href="/compare/dx">Kite Pulse and DX</a> · <a href="/compare/github-copilot-metrics">Kite Pulse and GitHub Copilot metrics</a> · <a href="/compare/anthropic-console">Kite Pulse and the Anthropic Console</a></p>
+    <div class="seo"><b>SEO</b>Covers "developer analytics tools", "developer analytics" and "developer productivity analytics". The brief's "platform-type comparison table linking to /compare pages". Vendors are linked, not placed in a type, because they now mix sources.</div>
+  </section>
+
+  <section class="block" id="dashboard">
+    <div class="head">
+      <h2>An engineering visibility tool, live: a sample dashboard</h2>
+      <p>Four views a team lead or engineering manager opens most, with sample data. Click through them. Everything here comes from AI coding sessions the team was already running: nobody filled in a status update.</p>
+    </div>
+    <div class="dash">
+      <div class="dash-top"><b>Kite Pulse · Platform team</b><span class="small muted">Sample data · Thursday 10:40</span></div>
+      <div class="dtabs" role="tablist" id="dtabs"></div>
+      <div class="dpanel" role="tabpanel" id="dpanel"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Covers "engineering visibility tool". The brief's "clickable sample dashboard": four tabs named after real console pages (Org Overview, Organization Projects, Team AI Usage, Error &amp; Command Stats). Answers "How do I know what my engineering team is working on right now?", "without status meetings" and "in real time".</div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="head">
+      <h2>How Kite Pulse works as an engineering intelligence platform</h2>
+      <p>A small background program on each developer's computer picks up the session history the AI coding assistants already keep, strips out secrets, and sends it to your team's own Kite Pulse server. It covers Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot, Cline, Roo Code, Kilo Code, OpenCode and Aider. For scaling AI adoption in engineering, and scaling agentic coding across your organisation, that means one view of every tool rather than one console per vendor, with AI cost per person, project, tool and period.</p>
+    </div>
+    <div class="kp"><div class="kpmark">Kite Pulse</div><div>
+      <p>Its guiding rule is "historian, not critic": it records and describes what happened, and never passes judgement on a person. When there is too little data, an insight says "not enough data" rather than guessing.</p>
+      <p>It does not open or upload a project's source files. Data goes only to the server your team configured; there is no vendor cloud in between. A manager sees only their own reporting line, enforced by the server.</p>
+    </div></div>
+    <div class="seo"><b>SEO</b>Covers "scaling ai adoption in engineering", "scaling agentic coding across your organization", "ai adoption software engineering" and "ai developer productivity cost tracking". All product statements are from the Product Guide ("What Kite Pulse is", "Key features" 1, 3, 4, "Privacy and trust").</div>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See how your team's software is really being built</h3>
+      <p>A single place to see AI-assisted development across people, projects and tools, running on a server the team controls.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+    <div class="related">
+      <a href="/ai-coding-analytics"><b>AI coding analytics</b><span>Track AI coding tool usage across every developer and tool.</span></a>
+      <a href="/blog/measure-developer-productivity-ai"><b>Measuring AI's effect on productivity</b><span>A fair test of whether AI is helping.</span></a>
+      <a href="/blog/developer-experience-metrics"><b>Developer experience metrics</b><span>SPACE, DevEx and DX Core 4, and a scorecard to copy.</span></a>
+      <a href="/features"><b>Features</b><span>Every part of the Kite Pulse console.</span></a>
+    </div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Engineering intelligence platform: questions</h2>
+    <div>
+      <details class="faq" open><summary>What is an engineering intelligence platform?</summary><p>An engineering intelligence platform turns data from software engineering work into a picture leaders can act on: what the team is working on, where work gets stuck, how AI tools are used and what they cost. It is also called software engineering intelligence, or a developer productivity insight platform. The term is also used for hardware and product engineering data platforms, which are a different market.</p></details>
+      <details class="faq"><summary>How do I know what my engineering team is working on right now?</summary><p>Use a live view built from the work itself rather than from status updates: who is active, on which project, and since when. Kite Pulse's Org Overview shows who is online, coding, idle or offline, sessions today, active time, a timeline of each person's day and their current project, built from the AI coding sessions the team is already running.</p></details>
+      <details class="faq"><summary>How do I see what my team is working on without status meetings?</summary><p>Replace the round of updates with a shared view everyone can read before the meeting: current project per person, and which projects several people touched. Kite Pulse's Collaboration page shows each shared project, the people contributing and how many sessions each spent there, so stand-ups can be about blockers instead of status.</p></details>
+      <details class="faq"><summary>How can I see team activity in real time?</summary><p>Real-time activity needs a source that updates as people work. Commits and tickets update when work is finished; AI coding sessions update while it happens. Kite Pulse's Org Overview is a live control room of who is coding, idle or offline and on which project, within a manager's own reporting line.</p></details>
+      <details class="faq"><summary>How can managers spot struggling developers early without surveys?</summary><p>Look at the work, not at output counts: very long sessions with little progress, the same command failing again and again, and approaches started and dropped. Treat each as a reason for a supportive check-in, not a judgement, and check leave and on-call first. When data is thin, say so rather than guessing.</p></details>
+      <details class="faq"><summary>How do I spot developers who are stuck in long AI sessions?</summary><p>A stuck session is long, and shows repeated failures or the assistant retrying the same fix. Session history records both. Kite Pulse's Error &amp; Command Stats shows failing commands, repeated failure loops and the most common error types across the team, which usually points at a shared cause such as a broken test setup.</p></details>
+      <details class="faq"><summary>How do I identify developers who need support or coaching with AI tools?</summary><p>Look for patterns that a tip or a fix would change: the assistant retrying one fix many times, recurring setup failures, or many very short sessions in a day. Offer help to the team first, because the cause is often shared. Never turn these signals into a ranking of people.</p></details>
+      <details class="faq"><summary>How do I account for leave and on-call when measuring AI usage?</summary><p>Record them next to the usage data. Without that, a week of leave looks like disengagement and a support rota looks like a focus problem. Kite Pulse's Leave &amp; On-Call page records holidays and duty rotas for exactly this reason.</p></details>
+      <details class="faq"><summary>Which teams are getting the most value from AI coding tools?</summary><p>Usage alone cannot tell you: the team using AI most may simply have the most AI-shaped work. Compare delivery and quality metrics for each team against its own baseline from before rollout, and read usage next to them.</p></details>
+      <details class="faq"><summary>How can I identify teams that need more AI training?</summary><p>Look for teams where AI sessions often loop: repeated failing commands, the same fix retried, approaches dropped. Those usually point to missing project context, setup problems or tasks that are too large, which training on how to brief an assistant can fix. Low adoption on its own may instead mean the tools do not fit that team's work.</p></details>
+      <details class="faq"><summary>Does an engineering intelligence platform need access to our source code?</summary><p>It depends on the platform. Git-based platforms read repository and pull request data. Kite Pulse does not open or upload source files: it reads the session history AI coding tools already keep, plus folder names and repository addresses to tell projects apart, and removes secrets on the developer's computer before upload.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>All 9 FAQ rows mapped to this page are answered, plus two of ours (what the term means; whether source code access is needed). No merges. Row 358 ("support or coaching") is answered as method: the Coaching &amp; Risk page is switched off in this release and is not mentioned.</div>
+  </section>
+
+</main>
+
+<footer><div class="wrap">Prototype of the /engineering-intelligence page. The sample feature, its sessions, the sample dashboard and the evaluator's coverage ratings are examples and our reading of platform types.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE_FEATURE: example data, not a real team. */
+  const SAMPLE_FEATURE=[
+    {d:'Mon',x:'Ana asks the assistant to compare three sign-on libraries; two are tried and dropped',tags:[['bad','2 approaches dropped']]},
+    {d:'Tue',x:'The test suite fails 9 times in a row: one environment variable missing on CI and locally',tags:[['bad','9 failed test runs'],['warn','1 root cause']]},
+    {d:'Wed',x:'Ben joins. The assistant retries the same token-refresh fix 5 times',tags:[['warn','5 retries']]},
+    {d:'Thu',x:'Ben finds the callback URL must match exactly, including the trailing slash',tags:[['acc','decision recorded']]},
+    {d:'Fri',x:'Pull request opened; review waits a day',tags:[]},
+    {d:'Mon',x:'Merged. The callback-URL rule is written down for the next team',tags:[['good','learning kept']]}
+  ];
+  const PROC_SUM=[['11 h 20','active time, 2 people'],['14','sessions'],['2','approaches dropped'],['9','failed runs, 1 cause']];
+
+  /* NEEDS and platform-type coverage: our reading of TYPES (y = yes, p = partly, n = no). */
+  const TYPES=[
+    {id:'git',n:'Git and issue-tracker platform',s:'reads repositories, PRs, CI, tickets',c:'--t3'},
+    {id:'survey',n:'Survey-led DevEx platform',s:'reads developer surveys',c:'--t2'},
+    {id:'console',n:'Each AI tool\'s admin console',s:'one vendor at a time',c:'--t5'},
+    {id:'session',n:'AI-session platform (Kite Pulse)',s:'reads AI coding session history',c:'--t1'}
+  ];
+  const NEEDS=[
+    {id:'dora',q:'Delivery metrics: deployment frequency, lead time, change failure rate',cov:{git:'y',survey:'n',console:'n',session:'n'},ask:'Which delivery metrics do you report, and from which systems?'},
+    {id:'cycle',q:'Pull request cycle time and review bottlenecks',cov:{git:'y',survey:'n',console:'n',session:'n'},ask:'How do you measure review wait time, and per team or per person?'},
+    {id:'feel',q:'How developers feel about their work',cov:{git:'n',survey:'y',console:'n',session:'p'},ask:'How do you capture how the work feels, and how often do you ask?'},
+    {id:'now',q:'What the team is working on right now, without status meetings',cov:{git:'p',survey:'n',console:'n',session:'y'},ask:'How current is your view of who is working on what?'},
+    {id:'aiuse',q:'How AI coding tools are used, per person, project and tool',cov:{git:'p',survey:'p',console:'p',session:'y'},ask:'Which AI coding tools do you cover, and can you split use by project?'},
+    {id:'aicost',q:'What AI tools cost, and who is close to a plan limit',cov:{git:'p',survey:'n',console:'p',session:'y'},ask:'How do you work out AI cost per team and project, and do you show plan limits?'},
+    {id:'stuck',q:'Where AI-assisted work gets stuck: retries, failing commands, dropped approaches',cov:{git:'n',survey:'p',console:'n',session:'y'},ask:'Can you show where AI-assisted work loops or stalls, and why?'},
+    {id:'self',q:'All data stays on our own servers',cov:{git:'p',survey:'p',console:'n',session:'y'},ask:'Can it run entirely on our infrastructure? Does any data leave it?'},
+    {id:'nocode',q:'No access to our source code',cov:{git:'n',survey:'y',console:'y',session:'y'},ask:'Does your platform read or store our source code?'}
+  ];
+  const on=new Set(['now','aiuse','aicost','stuck','dora']);
+  const VAL={y:1,p:.5,n:0};
+
+  /* SAMPLE_DASH: example data for the sample dashboard. */
+  const SAMPLE_DASH={
+    live:[['Ana','coding','payments-api','4','2 h 05'],['Ben','coding','web-app','3','1 h 40'],['Chloé','idle','mobile-app','2','0 h 55'],['Dev','offline','—','0','0 h 00'],['Eitan','on leave','—','—','—'],['Fatima','coding','infra','5','2 h 30']],
+    projects:[['payments-api','active','3','24','today'],['web-app','active','2','15','today'],['infra','active','1','12','today'],['mobile-app','stable','2','6','yesterday'],['legacy-admin','dormant','0','0','34 days ago']],
+    usage:[['Claude Code',4.1],['Cursor',2.6],['GitHub Copilot',1.2],['Codex',0.8]],
+    stuck:[['npm test (payments-api)','14 failures','missing STRIPE_KEY in test env'],['docker compose up','6 failures','port 5432 already in use'],['pytest -k auth','5 failures','same assertion, 3 sessions']]
+  };
+  const STC={coding:'var(--good)',idle:'var(--cost)',offline:'var(--muted)','on leave':'var(--line)'};
+
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* outputs vs process */
+  $('days').innerHTML=SAMPLE_FEATURE.map(f=>`<li><span class="d">${f.d}</span><div class="ev"><span>${esc(f.x)}</span>${f.tags.length?`<div class="tags">${f.tags.map(([k,t])=>`<span class="pill ${k}">${t}</span>`).join('')}</div>`:''}</div></li>`).join('');
+  $('procSum').innerHTML=PROC_SUM.map(([b,s])=>`<div><b>${b}</b><span>${s}</span></div>`).join('');
+  let timer=null;
+  $('playDays').addEventListener('click',()=>{const items=[...$('days').children];clearInterval(timer);if(reduce)return;
+    $('lensOut').classList.add('dim');items.forEach(li=>li.classList.add('pending'));let i=0;
+    timer=setInterval(()=>{if(i>=items.length){clearInterval(timer);$('lensOut').classList.remove('dim');return;}items[i++].classList.remove('pending');},650);});
+
+  /* evaluator */
+  function renderNeeds(){
+    $('needs').innerHTML=NEEDS.map(n=>`<label class="need${on.has(n.id)?' on':''}" for="n-${n.id}"><input type="checkbox" id="n-${n.id}" data-id="${n.id}"${on.has(n.id)?' checked':''}><span>${esc(n.q)}</span></label>`).join('');
+  }
+  $('needs').addEventListener('change',e=>{const id=e.target.dataset.id;if(!id)return;e.target.checked?on.add(id):on.delete(id);
+    e.target.closest('.need').classList.toggle('on',e.target.checked);renderFit();});
+  function renderFit(){
+    const sel=NEEDS.filter(n=>on.has(n.id)),N=sel.length;
+    const score=t=>sel.reduce((a,n)=>a+VAL[n.cov[t.id]],0);
+    const ranked=TYPES.map(t=>({t,s:score(t)}));
+    $('fits').innerHTML=N?ranked.map(({t,s})=>`<div class="fit"><span class="nm">${t.n}<small>${t.s}</small></span><div class="track"><span style="width:${(s/N*100).toFixed(1)}%;background:var(${t.c})"></span></div><span class="v">${s%1?s.toFixed(1):s} of ${N}</span></div>`).join('')
+      :'<p class="muted">Tick at least one question above.</p>';
+    const best=N?ranked.reduce((a,b)=>b.s>a.s?b:a):null;
+    $('barFit').textContent=best?best.t.n.replace(' (Kite Pulse)','').replace(' platform',''):'—';
+    const gitNeeds=sel.filter(n=>n.cov.git==='y'&&n.cov.session==='n');
+    const sessNeeds=sel.filter(n=>n.cov.session==='y'&&n.cov.git!=='y');
+    let v='';
+    if(!N)v='<p>Tick the questions you need answered to see which platform type covers them.</p>';
+    else{
+      v+=`<p><b>Best single fit: ${best.t.n}</b>, covering ${best.s%1?best.s.toFixed(1):best.s} of your ${N} questions.</p>`;
+      if(gitNeeds.length&&sessNeeds.length)v+=`<p><span class="pill warn">Two sources</span> ${gitNeeds.length} of your questions (${gitNeeds.map(n=>n.q.split(':')[0].toLowerCase()).join('; ')}) need git and CI data, and ${sessNeeds.length} need AI session data. Many teams run one of each.</p>`;
+      else if(gitNeeds.length&&!sessNeeds.length)v+=`<p><span class="pill good">Honest answer</span> Your questions are about delivery from git and CI data. A git and issue-tracker platform fits better than Kite Pulse.</p>`;
+      else if(sessNeeds.length&&!gitNeeds.length)v+=`<p><span class="pill acc">Session data</span> Your questions are about how AI-assisted work happens. That is what session history answers.</p>`;
+      if(on.has('feel'))v+=`<p class="small">How the work feels is best asked directly. Keep a short survey whichever platform you choose.</p>`;
+    }
+    $('verdict').innerHTML=v;
+    $('qsText').value='Questions to ask in every engineering intelligence demo\n'+sel.map((n,i)=>`${i+1}. ${n.ask}`).join('\n')+
+      '\nAlso: Do you rank individual developers? What does each developer see about the data collected on them?';
+  }
+  $('copyQs').addEventListener('click',()=>{const t=$('qsText').value;
+    const fallback=()=>{const ta=$('qsText');ta.hidden=false;ta.select();$('copyMsg').textContent='Select the text below and copy it.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fallback);}catch(e){fallback();}});
+
+  /* sample dashboard */
+  const DT=[['live','Org Overview'],['projects','Organization Projects'],['usage','Team AI Usage'],['stuck','Error & Command Stats']];
+  let dk='live';
+  function renderDash(){
+    $('dtabs').innerHTML=DT.map(([k,n])=>`<button type="button" role="tab" id="dt-${k}" aria-controls="dpanel" aria-selected="${k===dk}" tabindex="${k===dk?0:-1}" data-k="${k}">${esc(n)}</button>`).join('');
+    $('dpanel').setAttribute('aria-labelledby','dt-'+dk);
+    let h='';
+    if(dk==='live'){
+      h=`<p class="small muted">Who is online, coding, idle or offline right now, and on which project.</p><div class="scroll"><table><thead><tr><th>Person</th><th>Status</th><th>Current project</th><th class="c">Sessions today</th><th class="c">Active time</th></tr></thead><tbody>${SAMPLE_DASH.live.map(r=>`<tr><td><b>${r[0]}</b></td><td><span class="st"><i style="background:${STC[r[1]]}"></i>${r[1]}</span></td><td class="num" style="font-size:.85rem">${r[2]}</td><td class="c num">${r[3]}</td><td class="c num">${r[4]}</td></tr>`).join('')}</tbody></table></div>
+      <p class="small muted">Eitan's leave comes from Leave &amp; On-Call, so his week does not read as disengagement.</p>`;
+    }else if(dk==='projects'){
+      const hc={active:'good',stable:'acc',dormant:'warn'};
+      h=`<p class="small muted">Every project with its health, contributors and last activity.</p><div class="scroll"><table><thead><tr><th>Project</th><th>Health</th><th class="c">Contributors</th><th class="c">Sessions this week</th><th>Last activity</th></tr></thead><tbody>${SAMPLE_DASH.projects.map(r=>`<tr><td class="num" style="font-size:.85rem">${r[0]}</td><td><span class="pill ${hc[r[1]]}">${r[1]}</span></td><td class="c num">${r[2]}</td><td class="c num">${r[3]}</td><td>${r[4]}</td></tr>`).join('')}</tbody></table></div>`;
+    }else if(dk==='usage'){
+      const mx=Math.max(...SAMPLE_DASH.usage.map(u=>u[1]));
+      h=`<p class="small muted">Tokens used this week, per tool. Cost is shown as an estimate where it can be worked out.</p><div class="hbars">${SAMPLE_DASH.usage.map(([n,v])=>`<div class="hb"><span>${n}</span><div class="track"><span style="width:${(v/mx*100).toFixed(1)}%;background:var(--accent)"></span></div><span class="v">${v.toFixed(1)}M</span></div>`).join('')}</div>`;
+    }else{
+      h=`<p class="small muted">Failing commands, repeated failure loops and the most common errors across the team.</p><div class="scroll"><table><thead><tr><th>Command</th><th>This week</th><th>Most common cause</th></tr></thead><tbody>${SAMPLE_DASH.stuck.map(r=>`<tr><td class="num" style="font-size:.85rem">${esc(r[0])}</td><td><span class="pill bad">${r[1]}</span></td><td>${esc(r[2])}</td></tr>`).join('')}</tbody></table></div>
+      <p class="small muted">Fourteen failures from one missing test setting is a fix for the team, not a problem with a person.</p>`;
+    }
+    $('dpanel').innerHTML=h;
+  }
+  $('dtabs').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;dk=b.dataset.k;renderDash();$('dt-'+dk).focus();});
+  $('dtabs').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const ks=DT.map(d=>d[0]);let i=ks.indexOf(dk);
+    i=(i+(e.key==='ArrowRight'?1:-1)+ks.length)%ks.length;dk=ks[i];renderDash();$('dt-'+dk).focus();});
+
+  renderNeeds();renderFit();renderDash();
+})();
+</script>
+
+</body></html>

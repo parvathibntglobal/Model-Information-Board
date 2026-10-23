@@ -233,8 +233,6 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 details.faq{border-bottom:1px solid var(--line);padding-block:14px}
 details.faq summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
 details.faq p{margin-top:8px;color:var(--muted)}
-.sources{margin:0;padding-left:1.2em;display:grid;gap:8px;font-size:.92rem}
-.sources small{color:var(--muted)}
 body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
 
 @media (max-width:640px){
@@ -328,7 +326,7 @@ body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border
     <div class="prose">
       <p>The pattern also shows up at industry scale. Google's 2024 DORA report found that "as AI adoption increased, it was accompanied by an estimated decrease in delivery throughput by 1.5%, and an estimated reduction in delivery stability by 7.2%". That is a statistical association across survey respondents, not proof about your team. It is a reason to measure delivery itself rather than the activity that feeds it.</p>
     </div>
-    <div class="seo"><b>SEO</b>The H2 is the AEO question from the sheet, word for word, so an assistant can lift the paragraph under it as the answer. The DORA sentence is quoted verbatim with its source in the list at the end.</div>
+    <div class="seo"><b>SEO</b>The H2 is the AEO question from the sheet, word for word, so an assistant can lift the paragraph under it as the answer. The DORA sentence is quoted verbatim with its source recorded in data/productivity-research.json.</div>
   </section>
 
   <!-- 3 -->
@@ -471,22 +469,9 @@ body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border
     <div class="seo"><b>SEO</b>All 15 FAQ rows mapped to this page are answered. Four near-duplicates are merged: rows 450, 453 and 455 into "Is using AI coding assistants actually making developers more productive?", and 483 into "Does higher AI usage correlate...". FAQPage JSON-LD in the head carries the same text.</div>
   </section>
 
-  <section class="step" id="sources">
-    <h2>Sources</h2>
-    <ol class="sources">
-      <li><a href="https://arxiv.org/abs/2302.06590" rel="noopener">Peng, Kalliamvakou, Cihon, Demirer. The Impact of AI on Developer Productivity: Evidence from GitHub Copilot (2023)</a> <small>checked 22 Oct 2026</small></li>
-      <li><a href="https://arxiv.org/abs/2410.12944" rel="noopener">Paradis et al. How much does AI impact development speed? An enterprise-based randomized controlled trial (2024)</a> <small>checked 22 Oct 2026</small></li>
-      <li><a href="https://arxiv.org/abs/2507.09089" rel="noopener">Becker, Rush, Barnes, Rein. Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity (METR, 2025)</a> <small>checked 22 Oct 2026</small></li>
-      <li><a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/" rel="noopener">METR. Study summary: early-2025 AI and experienced open-source developers</a> <small>checked 22 Oct 2026</small></li>
-      <li><a href="https://metr.org/blog/2026-02-24-uplift-update/" rel="noopener">METR. We are Changing our Developer Productivity Experiment Design (24 Feb 2026)</a> <small>checked 22 Oct 2026</small></li>
-      <li><a href="https://metr.org/blog/2026-05-19-frontier-risk-report/" rel="noopener">METR. Frontier Risk Report, February to March 2026 (19 May 2026)</a> <small>checked 22 Oct 2026</small></li>
-      <li><a href="https://cloud.google.com/blog/products/devops-sre/announcing-the-2024-dora-report" rel="noopener">Google Cloud. Announcing the 2024 DORA report (23 Oct 2024)</a> <small>checked 22 Oct 2026</small></li>
-      <li><a href="https://dora.dev/" rel="noopener">DORA. Software delivery performance metrics</a> <small>definitions of lead time, deployment frequency, change failure rate and time to restore</small></li>
-    </ol>
-  </section>
 </main>
 
-<footer><div class="wrap">Prototype of the /blog/measure-developer-productivity-ai page. The sample team, the sample session and the quiz are examples. Research figures are quoted from the sources listed, checked 22 Oct 2026.</div></footer>
+<footer><div class="wrap">Prototype of the /blog/measure-developer-productivity-ai page. The sample team, the sample session and the quiz are examples. Research figures are quoted from the studies named on the page, checked 22 Oct 2026; sources in data/productivity-research.json.</div></footer>
 
 <script>
 (function(){
