@@ -231,6 +231,10 @@ class TestTheEvidencePipelineNeverReadsIt:
             # models" listings and hover previews. A read path for a page, not
             # the evidence pipeline: nothing there extracts, counts or weights.
             "judge/blog_live.py",
+            # The local VRAM tool (2026-10-23) reads a listed model's API price
+            # and whether it has a model page. A tool page, not the evidence
+            # pipeline: nothing there extracts, counts or weights.
+            "judge/local_models.py",
         }
 
     def test_the_nightly_chain_polls_it_without_depending_on_it(self):

@@ -1269,7 +1269,7 @@ terms_rulings:
   - id: huggingface-api-terms
     party: platform
     platform_host: huggingface.co
-    reviewed_on: 2026-09-09
+    reviewed_on: 2026-10-23
     reviewed_by: parvathi
     basis: public-derived-publication
     review_valid_days: 90
@@ -1281,11 +1281,13 @@ terms_rulings:
       # harvested from here under the identical sentence. See
       # docs/proposals/the-undertaking-replaces-environment.md.
       use_basis: [public-derived-publication]
-      access_path: [api]
+      # gguf-header-range: the local VRAM tool's reads (#559). Recorded, not
+      # checked - see the 2026-10-23 amendment below.
+      access_path: [api, gguf-header-range]
     recorded_evidence:
       republication_claimed: [false]
-      terms_document_read: [false]
-      robots_checked: [false]
+      terms_document_read: [true]
+      robots_checked: [true]
       legal_review_completed: [false]
     summary: |
       AMENDED 2026-10-19 (anooj; reviewed through the PR that carries it).
@@ -1294,6 +1296,54 @@ terms_rulings:
       derived content is published - quotes with the platform's credit and a link, never full text. The reading below is kept as ruled: what was
       read and what was not is unchanged, and the unread terms it lists are
       the accepted risk of publishing, recorded rather than resolved.
+      ---- AMENDED 2026-10-23 (anooj; reviewed by parvathi on #559) ----
+      GGUF HEADER READS, for the local VRAM tool (docs/proposals/can-i-run-it.md).
+      A second access path beside the API: ranged GET requests on
+      `huggingface.co/<repo>/resolve/<commit>/<file>.gguf`, only for the repos
+      and files contract/local_models.yaml lists, reading the file's header -
+      its key/value metadata and tensor list (names and shapes) - in steps of
+      local_inference.yaml `header_read.chunk_bytes`, stopping at the first
+      step that completes it or at `max_header_bytes`. The last step can run
+      past the header by up to one step; those bytes are discarded unread. No
+      tensor is parsed or stored and no file is downloaded whole; a response
+      that ignores the range is refused unread. Measured over the 50 listed
+      files 2026-10-23: the largest header 15.1 MiB, no read past 16 MiB.
+      File sizes and listings come from the documented API.
+
+      WHAT IS PUBLISHED: a file's size, its repo name and a link to the repo at
+      the measured commit. No text from the repo, its card or its files.
+
+      READ 2026-10-23, AND RECORDED HERE RATHER THAN IN `recorded_evidence`:
+        - robots.txt (https://huggingface.co/robots.txt): `User-agent: *`
+          `Allow: /`, a sitemap line, nothing else.
+        - Terms of Service (https://huggingface.co/terms-of-service, "Effective
+          Date: September 15, 2022"): no clause on scraping, crawling or
+          automated access was found. "You may not alter, reproduce, republish,
+          license any of our proprietary materials" covers Hugging Face's own
+          "Website, design, code, graphics, interfaces, trademarks, and logo";
+          uploaded files are users' Content ("You own the Content you
+          create"), here the GGUF repos' owners'.
+        - THE BASIS FOR THE READS: "If you decide to set your Repository
+          public, you grant each User a perpetual, irrevocable, worldwide,
+          royalty-free, non-exclusive license to use, display, publish,
+          reproduce, distribute, and make derivative works of your Content
+          through our Services and functionalities". Every listed GGUF repo
+          is public, and the reads go through the Services (the Hub API and
+          its file endpoint).
+        Both pages were read again by parvathi on 2026-10-23 and match.
+      `recorded_evidence` terms_document_read and robots_checked are now true,
+      flipped TOGETHER with the `huggingface` source's `terms_evidence` (#559):
+      the terms check compares the two, and flipping one side alone would
+      refuse the existing Hugging Face harvester in the scheduled fetch.
+
+      NOT PUT THROUGH THE TERMS CHECK, DELIBERATELY (anooj, 2026-10-23). The
+      review on #559 asked for collect/local_models/poll.py to run
+      `assert_terms_reviewed`, so it would stop when this ruling lapses
+      (`review_valid_days`). Decided against: the team's standing rule is that
+      terms findings inform and never gate what is built. So the second access
+      path is RECORDED here (`access_path` lists `gguf-header-range`) and is
+      not enforced; the harvester, which observes `api`, is checked as before.
+      Whoever re-reviews this ruling re-reads this paragraph with it.
       ---- AS RULED ----
       RULED 2026-09-09. Access is the documented public API at huggingface.co/api
       - repo search and the discussions endpoints - never the site HTML and never
@@ -1651,18 +1701,21 @@ sources:
     provenance: seed
     terms_ruling: huggingface-api-terms
     terms_evidence:
-      checked_on: 2026-09-09
+      checked_on: 2026-10-23
       access_path: api
       republication_claimed: false
-      terms_document_read: false
-      robots_checked: false
+      terms_document_read: true
+      robots_checked: true
       legal_review_completed: false
     tos_notes: >
-      Ruling huggingface-api-terms, 2026-09-09. Documented public JSON API under
-      /api; discussions are read, weights are never downloaded, site HTML is never
-      fetched. NO terms document has been read. Model cards are frequently the
-      vendor describing its own model and must extract as vendor-about-own-product.
-      Internal development only; any external publication requires re-review first.
+      Ruling huggingface-api-terms, 2026-09-09, amended 2026-10-19 (publication)
+      and 2026-10-23 (#559: GGUF header reads; Terms of Service and robots.txt
+      read and quoted in the ruling, by anooj and parvathi). Documented public
+      JSON API under /api; discussions are read, site HTML is never fetched. The
+      local VRAM tool reads only the header and tensor list of listed GGUF files,
+      by range - never tensor data, never a whole file. Model cards are
+      frequently the vendor describing its own model and must extract as
+      vendor-about-own-product.
 
 
 feeds:

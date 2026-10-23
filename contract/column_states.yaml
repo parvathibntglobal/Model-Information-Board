@@ -1121,6 +1121,55 @@ columns:
     quote_ids:
       reviewed: false
       state: read
+  local_model_file:
+    bytes:
+      reviewed: true
+      state: read
+      why: "the measured file size the local VRAM tool shows on each row (judge/local_models.py)"
+    files:
+      reviewed: true
+      state: write_only
+      why: "the exact files the size is the sum of - the measurement's own record, so a row traces to its files. No page reads it; the row links the repo at its commit (#559 review, rule 9)"
+    gguf_repo:
+      reviewed: true
+      state: read
+      why: "the repo the size was measured in, named and linked on the row"
+    header:
+      reviewed: true
+      state: read
+      why: "the GGUF header's attention fields; judge/local_models.py turns them into the cache the estimate adds"
+    header_note:
+      reviewed: true
+      state: read
+      why: "why a header is unread, shown on the row instead of a cache figure (rule 6)"
+    measured_at:
+      reviewed: true
+      state: read
+      why: "the newest across all rows is shown as when the sizes were measured; per row it is not shown"
+    missing_files:
+      reviewed: true
+      state: read
+      why: "the listed files the repo no longer has; the page's not-shown notice says a model's file is missing from its repo rather than not measured (web/src/routes/VramCalculator.jsx)"
+    model_id:
+      reviewed: true
+      state: read
+      why: "joins a row to its contract/local_models.yaml entry"
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "provenance of the measurement; no page needs it"
+    quant:
+      reviewed: true
+      state: read
+      why: "which quantization the row measures"
+    raw_ref:
+      reviewed: true
+      state: write_only
+      why: "the stored Hub API response, for reprocessing without re-fetching; no page reads it"
+    repo_sha:
+      reviewed: true
+      state: read
+      why: "the commit the size was read at; the row links the files at that commit"
   model_alias:
     confidence:
       reviewed: false

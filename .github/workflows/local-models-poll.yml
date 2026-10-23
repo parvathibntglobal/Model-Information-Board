@@ -1,0 +1,66 @@
+name: Local models poll
+
+# THE LOCAL VRAM TOOL'S MEASURED FILES, WEEKLY (2026-10-23,
+# docs/proposals/can-i-run-it.md). For every model contract/local_models.yaml
+# lists: the GGUF files' sizes from the Hugging Face Hub API, and the file's
+# header (attention fields) read by range - never a whole file. Writes
+# `local_model_file`; nothing in the evidence pipeline reads it.
+#
+# Weekly because a GGUF repo rarely changes; each row carries its own
+# measured_at, so a missed week shows as an older date on the page, not as a
+# wrong number. Monday 04:41 UTC, clear of the registry poll's 05:23.
+
+on:
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-models-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      USER_AGENT: ${{ vars.USER_AGENT || secrets.USER_AGENT }}
+      # The Hub API responses go to the shared raw store (`raw_blob`), or they
+      # die with the runner - same reason as scheduled-fetches.yml.
+      RAW_STORE_PATH: raw_store
+      RAW_STORE_REMOTE: postgres
+    steps:
+      - name: Refuse if anything required is missing
+        run: |
+          missing=""
+          [ -n "$DATABASE_URL" ] || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$USER_AGENT" ]   || missing="$missing USER_AGENT"
+          if [ -n "$missing" ]; then
+            echo "::error::local models poll refused, not configured:$missing"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e .
+
+      - name: Measure the listed GGUF files
+        run: >
+          python -m collect.cli ops run
+          --only poll-local-models
+          --journal local-models-journal.jsonl
+
+      - name: Keep the journal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-models-poll-journal
+          path: local-models-journal.jsonl
+          if-no-files-found: warn

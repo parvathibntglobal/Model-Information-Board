@@ -2471,6 +2471,17 @@ def model_catalog() -> dict:
         return catalog_view(conn)
 
 
+@app.get("/local-models")
+def local_models() -> dict:
+    """The local VRAM tool ("Can I run it?"): measured GGUF file sizes, each
+    model's KV-cache shape from its header, the hardware list and every constant
+    the page's estimate uses. See `judge/local_models.py`. Public."""
+    from judge.local_models import local_models_view
+
+    with _conn() as conn:
+        return local_models_view(conn)
+
+
 @app.get("/model-catalog/{model_id:path}")
 def model_catalog_entry(model_id: str) -> dict:
     """One model's page: price, specs, registry facts and engineer voices.
