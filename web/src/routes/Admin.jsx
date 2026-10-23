@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { health, coveragePage, listModels, adminRuns, blogPosts, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
@@ -20,7 +20,7 @@ import QuizPanel from '../components/QuizPanel'
 import FeedSummaryPanel from '../components/FeedSummaryPanel'
 import DiscussionsPanel from '../components/DiscussionsPanel'
 import KitePulsePanel from '../kitepulse/KitePulsePanel'
-import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart, IconLayers } from '../components/Icons'
+import { IconAlert, IconArrow, IconClock, IconFilter, IconGrid, IconHeart, IconSearch } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 
@@ -195,7 +195,7 @@ function CollectEvidence() {
 // ONE ICON PER GROUP, the same ones the section headers use.
 const GROUP_ICONS = {
   Health: IconHeart, Evidence: IconFilter, 'Board & content': IconGrid, Operations: IconClock,
-  Projects: IconLayers,
+  SEO: IconSearch,
 }
 
 const SECTIONS = [
@@ -347,32 +347,47 @@ const SECTIONS = [
     blurb: 'Account, stack, running commit and every operational cap',
     render: () => <SettingsPanel />,
   },
-  // OTHER PRODUCTS' WEBSITES, managed from this admin. Everything above is the
-  // Model Information Board itself; a project here has its own pages and
-  // keywords and shares none of the evidence pipeline. Kite Pulse is SEO only.
-  //
-  // `href` makes an entry a LINK OUT of the admin rather than a panel in it:
-  // "Kite Pulse" opens that product's site preview (kitepulse/KitePulseSite.jsx).
-  {
-    id: 'kite-pulse-site',
-    group: 'Projects',
-    title: 'Kite Pulse',
-    blurb: 'Open the site: home, solutions, guides, blog',
-    href: '/kite-pulse',
-  },
+]
+
+// KITE PULSE'S OWN ADMIN: another product's website, sharing none of the
+// evidence pipeline. SEO only today; its next section is one entry here.
+const KITE_SECTIONS = [
   {
     id: 'kite-pulse',
-    title: 'Kite Pulse SEO',
+    group: 'SEO',
+    title: 'Kite SEO',
     blurb: 'Pages, keywords and AI-answer tracking',
     render: () => <KitePulsePanel />,
   },
 ]
 
-// GROUPS WITH NO SECTIONS YET, drawn after the ones above. A group is
-// otherwise only the label on the first section of its run, so an empty one
-// has nowhere to live in SECTIONS. Projects was one (added 2026-10-21 by
-// anooj) until Kite Pulse filled it on 2026-10-22.
-const EMPTY_GROUPS = []
+/**
+ * PROJECTS (2026-10-23): the admin runs separate products, and opening it shows
+ * them. Each has its own sections; `?p=` names the project in the URL, `?s=`
+ * the section within it.
+ *
+ * SECTION IDS STAY UNIQUE ACROSS PROJECTS, and that is what keeps old links
+ * working: `?s=board`, `?s=blogs` or `?s=kite-pulse` with no `?p=` opens the
+ * project that section belongs to (`projectOf`), so a link somebody sent
+ * before projects existed still lands where it pointed.
+ */
+const PROJECTS = [
+  {
+    id: 'mib',
+    name: 'Model Information Board',
+    blurb: 'Evidence, the board and its content, operations and settings',
+    sections: SECTIONS,
+  },
+  {
+    id: 'kite-pulse',
+    name: 'Kite Pulse',
+    blurb: 'Kite Pulse SEO: pages, keywords and AI-answer tracking',
+    sections: KITE_SECTIONS,
+    site: '/kite-pulse',
+  },
+]
+
+const projectOf = (sectionId) => PROJECTS.find((pr) => pr.sections.some((x) => x.id === sectionId))
 
 /** `/health` plus whether the database answered. Needs no database itself. */
 function ServicePanel({ hp, cov }) {
@@ -430,9 +445,10 @@ export default function Admin() {
   // section rather than rendering nothing.
   const [params, setParams] = useSearchParams()
   const wanted = params.get('s')
-  // A link entry has nothing to render, so it can never be the active section.
-  const active = SECTIONS.find((x) => x.id === wanted && !x.href) || SECTIONS[0]
-  const navigate = useNavigate()
+  // No project named and no section that belongs to one: the project list.
+  const project = PROJECTS.find((pr) => pr.id === params.get('p')) || (wanted && projectOf(wanted)) || null
+  const sections = project ? project.sections : []
+  const active = project ? (sections.find((x) => x.id === wanted) || sections[0]) : null
 
   // A LINK TO A LOW SECTION OPENS WITH ITS NAV ITEM IN VIEW. The nav scrolls
   // inside its own pane, so `?s=settings` would otherwise select an item the
@@ -440,7 +456,7 @@ export default function Admin() {
   const nav = useRef(null)
   useEffect(() => {
     nav.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [active.id])
+  }, [active?.id])
 
   // BLOG DRAFTS WAITING FOR A DECISION, counted beside "Blogs" in the nav so
   // they do not sit unnoticed. Stored drafts still pending review, plus draft
@@ -462,14 +478,46 @@ export default function Admin() {
     read()
     window.addEventListener('admin:blogs-changed', read)
     return () => { alive = false; window.removeEventListener('admin:blogs-changed', read) }
-  }, [active.id])
+  }, [active?.id])
+
+  if (!project) {
+    return (
+      <div className="shell section-tight stack stack-4 adm-page">
+        <div className="stack stack-1">
+          <span className="eyebrow">Operations</span>
+          <h1 style={{ fontSize: 'var(--fs-display)' }}>Projects</h1>
+          <p className="muted">Each project has its own admin. Pick one.</p>
+        </div>
+        <div className="adm-projects">
+          {PROJECTS.map((pr) => (
+            // PUSH, NOT REPLACE: from a project, Back returns to this list.
+            <button key={pr.id} type="button" className="card adm-project"
+                    onClick={() => setParams({ p: pr.id })}>
+              <span className="adm-project-name">{pr.name}</span>
+              <span className="muted">{pr.blurb}</span>
+              <span className="adm-project-meta">
+                {pr.sections.length} {pr.sections.length === 1 ? 'section' : 'sections'}
+                <IconArrow width={14} height={14} />
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="shell section-tight stack stack-4 adm-page">
       <div className="stack stack-1">
-        <span className="eyebrow">Operations</span>
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>Admin</h1>
-        <p className="muted">Read straight off the backend. Nothing on this page is synthesised.</p>
+        <nav className="tc-trail label" aria-label="Breadcrumb">
+          <Link to="/admin">Projects</Link> <span aria-hidden="true">/</span> {project.name}
+        </nav>
+        <h1 style={{ fontSize: 'var(--fs-display)' }}>{project.name}</h1>
+        <p className="muted">
+          {/* The board's claim, not every project's: Kite Pulse reads its keyword sheet. */}
+          {project.id === 'mib' && 'Read straight off the backend. Nothing on this page is synthesised.'}
+          {project.site && <Link to={project.site}>Open the {project.name} site preview →</Link>}
+        </p>
       </div>
 
       <div className="adm">
@@ -482,7 +530,7 @@ export default function Admin() {
               sections under it on a guide line, so what belongs to what is
               visible. A group label opens each run of SECTIONS - it only names
               the order there, it never moves a section. */}
-          {SECTIONS.reduce((runs, sec) => {
+          {sections.reduce((runs, sec) => {
             if (sec.group || !runs.length) runs.push({ group: sec.group, items: [] })
             runs[runs.length - 1].items.push(sec)
             return runs
@@ -500,8 +548,8 @@ export default function Admin() {
                   key={sec.id}
                   type="button"
                   aria-current={sec.id === active.id ? 'page' : undefined}
-                  onClick={() => sec.href ? navigate(sec.href) : setParams(
-                    sec.id === SECTIONS[0].id ? {} : { s: sec.id },
+                  onClick={() => setParams(
+                    sec.id === sections[0].id ? { p: project.id } : { p: project.id, s: sec.id },
                     // REPLACE, NOT PUSH. Switching panels is not navigation a
                     // reader wants to walk back through — Back should leave the
                     // admin page, not step through four tabs they clicked.
@@ -511,7 +559,6 @@ export default function Admin() {
                   <span className="t">
                     {sec.title}
                     {sec.wired === false && <span className="adm-nav-tag">not wired</span>}
-                    {sec.href && <span aria-hidden="true"> →</span>}
                     {sec.id === 'blogs' && blogWaiting && blogWaiting.pending + blogWaiting.unstored > 0 && (
                       <span className="adm-nav-count"
                             title={`${blogWaiting.pending} stored draft(s) pending review, ${blogWaiting.unstored} draft file(s) not yet stored`}>
@@ -522,18 +569,6 @@ export default function Admin() {
                   <span className="d">{sec.blurb}</span>
                 </button>
                 ))}
-              </div>
-            )
-          })}
-          {EMPTY_GROUPS.map((group) => {
-            const Icon = GROUP_ICONS[group]
-            return (
-              <div key={group} className="adm-nav-g" role="group" aria-label={group}>
-                <span className="adm-nav-group" aria-hidden="true">
-                  {Icon && <Icon width={13} height={13} />}
-                  {group}
-                  <span className="n">0</span>
-                </span>
               </div>
             )
           })}
