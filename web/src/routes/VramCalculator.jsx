@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fmtPrice, localModels } from '../api'
 import { modelPagePath } from '../catalog/format'
@@ -28,12 +28,44 @@ const CACHE_WORDS = { f16: 'Standard (16-bit)', q8_0: '8-bit (smaller)' }
 const GROUPS = [
   ['fits', 'Fits', 'Room to spare after the file, the context and the runtime.'],
   ['tight', 'Tight', 'Fits, with little or no room left. Close other GPU apps, or pick a shorter context.'],
-  ['unknown', "Can't tell", "The file and the runtime fit, but how much memory this model's context needs could not be worked out from its file. Never counted as nothing."],
+  ['unknown', "Can't tell", "The file and the runtime fit, but the context's memory is either unknown for this model, or known only as an upper bound that does not fit - so it may or may not. Never counted as nothing."],
   ['wont', "Won't fit", 'Needs more memory than this hardware has. Most can still run partly on the CPU, much more slowly.'],
 ]
 const DEFAULT_HW = 'rtx-4060'
 const fmtTokens = (n) => (n >= 1024 ? `${Math.round(n / 1024)}K` : String(n))
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+const NEW_TAB = <span className="sr-only"> (opens in a new tab)</span>
+
+/**
+ * A row of choices that behaves as a radio group: one tab stop, arrow keys move
+ * the choice (WAI-ARIA radio group pattern; #559 review).
+ */
+function Seg({ label, options, value, onChange }) {
+  const refs = useRef([])
+  const at = Math.max(0, options.findIndex((o) => o.value === value))
+  const onKeyDown = (e) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+    if (!step) return
+    e.preventDefault()
+    const next = (at + step + options.length) % options.length
+    onChange(options[next].value)
+    refs.current[next] && refs.current[next].focus()
+  }
+  return (
+    <div className="vr-field">
+      <span className="label" id={`seg-${label}`}>{label}</span>
+      <div className="vr-seg" role="radiogroup" aria-labelledby={`seg-${label}`} onKeyDown={onKeyDown}>
+        {options.map((o, i) => (
+          <button key={String(o.value)} type="button" role="radio" aria-checked={value === o.value}
+                  tabIndex={i === at ? 0 : -1} ref={(el) => { refs.current[i] = el }}
+                  className={value === o.value ? 'on' : ''} onClick={() => onChange(o.value)}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function VramCalculator() {
   useHead(localVram())
@@ -81,6 +113,14 @@ export default function VramCalculator() {
     return out
   }, [rows])
 
+  // Not shown, in words: a listed file gone from its repo is not "not measured yet".
+  const notShown = data ? [
+    ...grouped.unmeasured.map(({ m }) => ((m.quants[quant] && m.quants[quant].missing_files.length)
+      ? `${m.name} (its ${quant} file is no longer in its repository)`
+      : `${m.name} (not measured yet)`)),
+    ...data.not_measured.map((m) => `${m.name} (not measured yet)`),
+  ] : []
+
   return (
     <div className="shell section-tight stack stack-4">
       <div className="stack stack-1">
@@ -114,57 +154,31 @@ export default function VramCalculator() {
               </select>
             </label>
             {device.kind === 'discrete' && (
-              <div className="vr-field">
-                <span className="label">How many</span>
-                <div className="vr-seg" role="radiogroup" aria-label="How many cards">
-                  {[1, 2, 3, 4].map((n) => (
-                    <button key={n} type="button" role="radio" aria-checked={cards === n}
-                            className={cards === n ? 'on' : ''} onClick={() => set({ n })}>{n}×</button>
-                  ))}
-                </div>
-              </div>
+              <Seg label="How many" value={cards} onChange={(n) => set({ n })}
+                   options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n}×` }))} />
             )}
-            <div className="vr-field">
-              <span className="label">Quantization</span>
-              <div className="vr-seg" role="radiogroup" aria-label="Quantization">
-                {c.quants.map((k) => (
-                  <button key={k} type="button" role="radio" aria-checked={quant === k}
-                          className={quant === k ? 'on' : ''} onClick={() => set({ q: k })}>
-                    {QUANT_WORDS[k] || k} <span>{k}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="vr-field">
-              <span className="label">Context length</span>
-              <div className="vr-seg" role="radiogroup" aria-label="Context length">
-                {c.contexts.map((t) => (
-                  <button key={t} type="button" role="radio" aria-checked={tokens === t}
-                          className={tokens === t ? 'on' : ''} onClick={() => set({ ctx: t })}>{fmtTokens(t)}</button>
-                ))}
-              </div>
-            </div>
-            <div className="vr-field">
-              <span className="label">KV cache</span>
-              <div className="vr-seg" role="radiogroup" aria-label="KV cache type">
-                {Object.keys(c.kv_cache_bytes).map((k) => (
-                  <button key={k} type="button" role="radio" aria-checked={cacheType === k}
-                          className={cacheType === k ? 'on' : ''} onClick={() => set({ kv: k })}>{CACHE_WORDS[k] || k}</button>
-                ))}
-              </div>
-            </div>
+            <Seg label="Quantization" value={quant} onChange={(k) => set({ q: k })}
+                 options={c.quants.map((k) => ({ value: k, label: <>{QUANT_WORDS[k] || k} <span>{k}</span></> }))} />
+            <Seg label="Context length" value={tokens} onChange={(t) => set({ ctx: t })}
+                 options={c.contexts.map((t) => ({ value: t, label: fmtTokens(t) }))} />
+            <Seg label="KV cache" value={cacheType} onChange={(k) => set({ kv: k })}
+                 options={Object.keys(c.kv_cache_bytes).map((k) => ({ value: k, label: CACHE_WORDS[k] || k }))} />
             <p className="dim vr-budget">
               {device.kind === 'unified'
                 ? <>macOS lets the GPU use only part of a Mac&apos;s unified memory, and a smaller part on smaller Macs. The groups below count only that part.</>
                 : <>{cards > 1 ? `${cards} × ${device.memory_gib} GiB, split by layer across the cards.` : `${device.memory_gib} GiB of graphics memory.`}</>}
               {!device.checked && (
-                <> This card&apos;s memory is the size it is sold with, not yet checked against <a href={device.source} target="_blank" rel="noopener noreferrer">the maker&apos;s page</a>.</>
+                <> This card&apos;s memory is the size it is sold with, not yet checked against <a href={device.source} target="_blank" rel="noopener noreferrer">the maker&apos;s page{NEW_TAB}</a>.</>
               )}
             </p>
           </section>
 
           <input className="vr-search" type="search" value={q} onChange={(e) => setQ(e.target.value)}
                  placeholder="Search models (Llama, Qwen, Gemma...)" aria-label="Search models" />
+
+          <p className="sr-only" aria-live="polite">
+            {GROUPS.map(([key, title]) => `${title}: ${plural(grouped[key].length, 'model')}`).join('. ')}.
+          </p>
 
           {GROUPS.map(([key, title, note]) => (key === 'unknown' && !grouped.unknown.length ? null : (
             <section key={key} className="stack stack-2" aria-label={title}>
@@ -178,10 +192,9 @@ export default function VramCalculator() {
             </section>
           )))}
 
-          {(grouped.unmeasured.length > 0 || data.not_measured.length > 0) && (
+          {notShown.length > 0 && (
             <Notice icon={<IconAlert />}>
-              Not shown, because their {quant} file has not been measured yet:{' '}
-              {[...grouped.unmeasured.map((r) => r.m.name), ...data.not_measured].join(', ')}.
+              Not shown, because their {quant} size is not known: {notShown.join(', ')}.
               A missing size is never estimated.
             </Notice>
           )}
@@ -198,9 +211,10 @@ export default function VramCalculator() {
               worked out from the layers and attention heads stated in the file&apos;s own header, and an
               allowance for the runtime{c.overhead_per_card ? ' on each card' : ''}. A model fits when all of that
               leaves room to spare, and is tight when it only just fits. Where the header does not say exactly
-              which layers keep the context, the context is counted as if every layer did, so a model can only
-              look bigger than it is - the row says so. Where it cannot be worked out at all, the model is
-              &quot;can&apos;t tell&quot; rather than counted as needing nothing.
+              which layers keep the context, the context is counted as if every layer did - enough to show a
+              model fits, never to show it does not, so such a model that does not fit at its most is
+              &quot;can&apos;t tell&quot;. Where the context cannot be worked out at all, the model is
+              &quot;can&apos;t tell&quot; too, rather than counted as needing nothing.
             </p>
             {data.measured_at && <p className="dim">Sizes measured {String(data.measured_at).slice(0, 10)}; re-measured weekly.</p>}
           </section>
@@ -213,6 +227,7 @@ export default function VramCalculator() {
 function Row({ m, e, quant }) {
   const f = m.quants[quant]
   const tree = `https://huggingface.co/${m.gguf_repo}/tree/${f.repo_sha || 'main'}`
+  const boundOver = e.group === 'unknown' && e.cacheKnown && e.upperBound
   return (
     <li className="card vr-row">
       <div className="vr-name">
@@ -221,7 +236,7 @@ function Row({ m, e, quant }) {
       </div>
       <div className="vr-size">
         <span className="tnum vr-file">{fmtGiB(e.fileBytes)}</span>
-        <span className="dim">{quant} file, measured · <a href={tree} target="_blank" rel="noopener noreferrer">{m.gguf_repo}</a></span>
+        <span className="dim">{quant} file, measured · <a href={tree} target="_blank" rel="noopener noreferrer">{m.gguf_repo}{NEW_TAB}</a></span>
       </div>
       <div className="vr-est">
         <span className="dim">
@@ -229,6 +244,7 @@ function Row({ m, e, quant }) {
             ? `Plus the memory a ${e.context.capped ? '' : fmtTokens(e.context.tokens) + ' '}context needs, and the runtime.`
             : "How much memory this model's context needs is unknown."}
         </span>
+        {boundOver && <span className="dim">Counted at its most, the context does not fit; this model&apos;s real need is smaller, so it may.</span>}
         {e.upperBound && <span className="dim">Context counted at its most: {m.cache.why}.</span>}
         {!e.cacheKnown && m.cache.why && <span className="dim">{m.cache.why}.</span>}
         {e.context.capped && <span className="dim">This model takes at most {fmtTokens(e.context.tokens)} tokens, so that is what is counted.</span>}

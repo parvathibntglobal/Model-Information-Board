@@ -224,3 +224,38 @@ review.
 - `docs/measurements/local-model-tensor-check-2026-10-23.py` / `.out.txt`: the
   key-projection shapes of both Nemo files, Phi-4 mini, Llama 3.1 8B and Gemma 4
   12B, and both Nemo files' exact byte sizes.
+
+## Second review (#559, 2026-10-23), and what changed
+
+- **A bound can prove "fits", never "won't fit"** (rule 6). An upper-bound
+  context that does not fit now gives "can't tell", with the row saying the
+  model's real need is smaller. Before, Gemma 3 27B on one 24 GiB card at 32K
+  read "won't fit" although llama.cpp fits it.
+- **A failed poll keeps last week's row.** A non-200 from the Hub API, a
+  dropped connection, or a header read that fails for a reason that is not about
+  the file (rate limit, server error, a 206 at the wrong offset, a step longer
+  than asked) is TRANSIENT: nothing about the files is written, an existing row
+  is kept as it was, and the run counts it (`kept_after_failure`). Only a real
+  absence from a successful listing writes `missing_files`.
+- **The reader cannot be stopped by one file.** Every malformed header is
+  `NotGGUF` (a Unicode digit in a tensor name, an unknown type); non-finite
+  floats are dropped before jsonb; each ranged step must start where it was
+  asked and return no more than asked; the number of steps is bounded.
+- **The terms check: recorded, not enforced** (anooj's decision). The ruling's
+  `access_path` lists `gguf-header-range` and says why the poller is not put
+  through `assert_terms_reviewed`: terms findings inform and never gate what is
+  built.
+- **Rule 9.** The API no longer sends `files`, `original`, `architecture` or a
+  per-quant date; `files` is write-only in `column_states.yaml`, and
+  `missing_files` is read - the not-shown notice says a file is gone from its
+  repository rather than "not measured".
+- **Windowed layers hold window + 512** (`window_extra_tokens`, llama.cpp's
+  default n_ubatch), so "exact" stays exact for Gemma 4. Cell padding is not
+  counted and says so.
+- **The count runs on the polled headers**
+  (`docs/measurements/local-model-headers-polled-2026-10-23.json`): the listed
+  bartowski Nemo, with the tensor list, so the head-size check runs on the 49
+  files that have a key projection. Still 41 / 8 / 1.
+- **Accessibility:** the choice rows are radio groups with arrow keys and one
+  tab stop; the group counts are announced (`aria-live`); links that open a new
+  tab say so; the not-shown notice uses display names.

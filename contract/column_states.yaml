@@ -1125,11 +1125,11 @@ columns:
     bytes:
       reviewed: true
       state: read
-      why: "the measured file size the local VRAM tool shows (judge/local_models.py)"
+      why: "the measured file size the local VRAM tool shows on each row (judge/local_models.py)"
     files:
       reviewed: true
-      state: read
-      why: "the files measured, named on the tool's row so a reader can find them"
+      state: write_only
+      why: "the exact files the size is the sum of - the measurement's own record, so a row traces to its files. No page reads it; the row links the repo at its commit (#559 review, rule 9)"
     gguf_repo:
       reviewed: true
       state: read
@@ -1145,11 +1145,11 @@ columns:
     measured_at:
       reviewed: true
       state: read
-      why: "shown as when the sizes were measured"
+      why: "the newest across all rows is shown as when the sizes were measured; per row it is not shown"
     missing_files:
       reviewed: true
       state: read
-      why: "the listed files the repo no longer has, shown where the size would be"
+      why: "the listed files the repo no longer has; the page's not-shown notice says a model's file is missing from its repo rather than not measured (web/src/routes/VramCalculator.jsx)"
     model_id:
       reviewed: true
       state: read

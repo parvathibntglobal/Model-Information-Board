@@ -36,6 +36,7 @@ from collect.local_models.poll import (
     LocalModel,
     LocalModelsContractError,
     ReadSettings,
+    Transient,
     load_models,
     measure,
     read_header,
@@ -45,6 +46,11 @@ from judge import local_models as view
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "contract" / "tables.sql"
+# The first probe's headers: kept for the cases that need unsloth's rejected
+# Nemo. The count runs on POLLED - the real poll's headers, tensor list and the
+# listed (bartowski) Nemo included (#559 review, point 8).
+POLLED = json.loads((ROOT / "docs" / "measurements" / "local-model-headers-polled-2026-10-23.json")
+                    .read_text(encoding="utf-8"))["models"]
 HEADERS = json.loads((ROOT / "docs" / "measurements" / "local-model-headers-2026-10-23.json")
                      .read_text(encoding="utf-8"))
 
@@ -113,6 +119,24 @@ class TestTheHeaderReader:
         with pytest.raises(gguf.Incomplete):
             gguf.parse_header(whole[: end - 1])
 
+    def test_a_unicode_digit_in_a_tensor_name_cannot_stop_the_run(self):
+        """'\u00b2'.isdigit() is True and int('\u00b2') raises (#559 review)."""
+        listing = (("blk.\u00b2.attn_k.weight", [4096, 1024]),
+                   ("blk.3.attn_k.weight", [4096, 1024]))
+        fields, _ = gguf.parse_header(gguf_bytes(tensors=listing))
+        assert fields["tensor.attn_k"] == {"layer": 3, "shape": [4096, 1024]}
+
+    def test_a_non_finite_float_is_dropped_not_stored(self):
+        """jsonb refuses NaN, and one would abort the run's transaction."""
+        nan = _kv("llama.rope.freq_scale", 6, struct.pack("<f", float("nan")))
+        fields, _ = gguf.parse_header(gguf_bytes(extra=nan, extra_pairs=1))
+        assert "rope.freq_scale" not in fields and fields["block_count"] == 32
+
+    def test_any_malformed_header_is_not_gguf_never_a_bare_error(self):
+        bad = gguf_bytes(extra=_kv("llama.x", 99, b""), extra_pairs=1)  # unknown type
+        with pytest.raises(gguf.NotGGUF):
+            gguf.parse_header(bad)
+
     def test_not_a_gguf_file_is_refused(self):
         with pytest.raises(gguf.NotGGUF):
             gguf.parse_header(b"PK\x03\x04" + b"\x00" * 64)
@@ -130,7 +154,8 @@ FILE = "https://huggingface.co/x/resolve/s/f.gguf"
 READ = ReadSettings(quants=("Q4_K_M", "Q8_0"), chunk_bytes=64, max_header_bytes=4096)
 
 
-def _hub(file_bytes: bytes, *, siblings, sha="abc123", honour_range=True, api_status=200):
+def _hub(file_bytes: bytes, *, siblings, sha="abc123", honour_range=True, api_status=200,
+         range_status=206, wrong_offset=False, oversize=False):
     seen: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -143,7 +168,12 @@ def _hub(file_bytes: bytes, *, siblings, sha="abc123", honour_range=True, api_st
         if not honour_range or not rng:
             return httpx.Response(200, content=file_bytes)
         start, end = (int(x) for x in rng.removeprefix("bytes=").split("-"))
-        return httpx.Response(206, content=file_bytes[start:end + 1])
+        if range_status != 206:
+            return httpx.Response(range_status)
+        sent = start + 1 if wrong_offset else start
+        body = file_bytes[sent:end + 1 + (64 if oversize else 0)]
+        return httpx.Response(206, content=body, headers={
+            "Content-Range": f"bytes {sent}-{sent + len(body) - 1}/{len(file_bytes)}"})
 
     return httpx.Client(transport=httpx.MockTransport(handler)), seen
 
@@ -170,8 +200,18 @@ class TestReadingByRange:
 
     def test_a_response_that_ignores_the_range_is_refused_unread(self):
         client, _ = _hub(gguf_bytes(), siblings=[], honour_range=False)
-        fields, note = read_header(client, _NoWait(), FILE, READ)
-        assert fields is None and "HTTP 200 to a ranged request" in note
+        with pytest.raises(Transient, match="HTTP 200 to a ranged request"):
+            read_header(client, _NoWait(), FILE, READ)
+
+    def test_a_range_that_starts_elsewhere_is_refused(self):
+        client, _ = _hub(gguf_bytes(), siblings=[], wrong_offset=True)
+        with pytest.raises(Transient, match="Content-Range"):
+            read_header(client, _NoWait(), FILE, READ)
+
+    def test_a_step_longer_than_asked_is_refused(self):
+        client, _ = _hub(gguf_bytes(), siblings=[], oversize=True)
+        with pytest.raises(Transient, match="more than the 64 bytes"):
+            read_header(client, _NoWait(), FILE, READ)
 
     def test_a_header_past_the_limit_is_recorded_unread(self):
         client, _ = _hub(gguf_bytes(), siblings=[])
@@ -185,7 +225,8 @@ class TestMeasuring:
         sib = [{"rfilename": "Test-8B-Q4_K_M.gguf", "size": 4_900_000_000},
                {"rfilename": "Test-8B-Q8_0.gguf", "size": 8_500_000_000}]
         client, seen = _hub(gguf_bytes(), siblings=sib, sha="feedbeef")
-        rows = measure(client, _NoWait(), _Store(), MODEL, READ)
+        rows, transient = measure(client, _NoWait(), _Store(), MODEL, READ)
+        assert transient is None
         assert [(r["quant"], r["bytes"], r["missing_files"]) for r in rows] == [
             ("Q4_K_M", 4_900_000_000, []), ("Q8_0", 8_500_000_000, [])]
         assert rows[0]["header"]["block_count"] == 32 and rows[0]["header_note"] is None
@@ -196,7 +237,7 @@ class TestMeasuring:
         sib = [{"rfilename": "Test-8B-Q4_K_M.gguf", "size": 4_900_000_000},
                {"rfilename": "Test-8B-Q8_0-renamed.gguf", "size": 8_500_000_000}]
         client, _ = _hub(gguf_bytes(), siblings=sib)
-        rows = {r["quant"]: r for r in measure(client, _NoWait(), _Store(), MODEL, READ)}
+        rows = {r["quant"]: r for r in measure(client, _NoWait(), _Store(), MODEL, READ)[0]}
         assert rows["Q8_0"]["bytes"] is None
         assert rows["Q8_0"]["missing_files"] == ["Test-8B-Q8_0.gguf"]
         assert rows["Q4_K_M"]["bytes"] == 4_900_000_000
@@ -209,14 +250,24 @@ class TestMeasuring:
                {"rfilename": "Big-Q4_K_M-00002-of-00002.gguf", "size": 32},
                {"rfilename": "Big-Q8_0.gguf", "size": 70}]
         client, _ = _hub(gguf_bytes(), siblings=sib)
-        rows = {r["quant"]: r for r in measure(client, _NoWait(), _Store(), split, READ)}
+        rows = {r["quant"]: r for r in measure(client, _NoWait(), _Store(), split, READ)[0]}
         assert rows["Q4_K_M"]["bytes"] == 42
 
-    def test_an_unreadable_repo_is_recorded_not_dropped(self):
-        client, _ = _hub(gguf_bytes(), siblings=[], api_status=404)
-        rows = measure(client, _NoWait(), _Store(), MODEL, READ)
-        assert all(r["bytes"] is None and r["header"] is None for r in rows)
-        assert rows[0]["header_note"] == "HTTP 404 from the Hub API"
+    def test_a_failed_api_call_writes_nothing(self):
+        """#559 review: a 429 used to write every file as missing. Nothing is
+        known about the files, so nothing is written and the stored row stays."""
+        for status in (404, 429, 503):
+            client, _ = _hub(gguf_bytes(), siblings=[], api_status=status)
+            rows, transient = measure(client, _NoWait(), _Store(), MODEL, READ)
+            assert rows == [] and transient == f"HTTP {status} from the Hub API"
+
+    def test_a_failed_header_read_is_transient(self):
+        sib = [{"rfilename": "Test-8B-Q4_K_M.gguf", "size": 4_900_000_000},
+               {"rfilename": "Test-8B-Q8_0.gguf", "size": 8_500_000_000}]
+        client, _ = _hub(gguf_bytes(), siblings=sib, range_status=503)
+        rows, transient = measure(client, _NoWait(), _Store(), MODEL, READ)
+        assert "HTTP 503" in transient
+        assert rows[0]["header"] is None and rows[0]["bytes"] == 4_900_000_000
 
 
 # ── the contract ──────────────────────────────────────────────────────────────
@@ -385,12 +436,15 @@ class TestTheCacheShape:
         assert shape["basis"] == "unknown" and shape["full_elements"] is None
 
     def test_the_measured_split_is_41_exact_8_upper_bound_1_unknown(self):
-        """The count in the proposal, recomputed (rule 11) over the 50 headers
-        measured 2026-10-23. Was 43 / 7 before review: Llama 4 Scout became an
-        upper bound and Qwen3.8 Flash Next unknown."""
-        bases = [_shape(_header(m))["basis"] for m in HEADERS]
+        """The count in the proposal, recomputed (rule 11) over the 50 headers the
+        real poll stored 2026-10-23 - the listed files, with the tensor list, so
+        the head-size check runs on every one that has a key projection (49)."""
+        bases = [_shape(m["header"])["basis"] for m in POLLED.values()]
         counts = (bases.count("exact"), bases.count("upper_bound"), bases.count("unknown"))
-        assert counts == (41, 8, 1)
+        assert len(POLLED) == 50 and counts == (41, 8, 1)
+        assert POLLED["mistral-nemo-12b"]["gguf_repo"].startswith("bartowski/")
+        shaped = [m for m in POLLED.values() if any(k.startswith("tensor.") for k in m["header"])]
+        assert len(shaped) == 49
 
 
 # ── the page's arithmetic, run in node ────────────────────────────────────────
@@ -435,6 +489,12 @@ class TestTheGroups:
         assert js["unknown8gb"]["cacheKnown"] is False
         assert js["unknownTooBig"]["group"] == "wont"
 
+    def test_an_upper_bound_over_budget_is_cant_tell_never_wont(self, js):
+        """#559 review: a bound can prove fits or tight, never won't fit."""
+        assert js["boundOver"]["group"] == "unknown" and js["boundOver"]["upperBound"]
+        assert js["boundFits"]["group"] == "fits"
+        assert js["exactOver"]["group"] == "wont"
+
     def test_a_missing_size_is_no_group(self, js):
         assert js["missing"] is None
 
@@ -449,7 +509,9 @@ class TestTheGroups:
     def test_the_cache_arithmetic(self, js):
         assert js["cache"]["llama8k"] == GIB
         assert js["cache"]["llama8kQ8"] == pytest.approx(GIB * 1.0625 / 2)
-        assert js["cache"]["gemma32k"] == 2 * (8192 * 32768 + 163840 * 1024)
+        # A windowed layer holds window + 512 (llama.cpp's n_ubatch): 1024 + 512.
+        assert js["cache"]["gemma32k"] == 2 * (8192 * 32768 + 163840 * 1536)
+        assert js["cache"]["noWindowExtra"] == "throws"
         assert js["cache"]["hybrid8k"] == 2 * 32768 * 8192 + 156_893_184
         assert js["cache"]["unknown"] is None
 
@@ -492,14 +554,30 @@ def test_the_view_lists_measured_models_and_names_the_rest(conn, monkeypatch):
         "output_modalities, pricing, last_seen_at, price_in, price_out) "
         "VALUES ('f/a', 'f', 'A', '{text}', '{text}', '{}', now(), 0.1, 0.3)")
     out = view.local_models_view(conn)
-    assert out["not_measured"] == ["b"]
+    assert out["not_measured"] == [{"id": "b", "name": "B"}]
     (a,) = out["models"]
     assert a["quants"]["Q4_K_M"]["bytes"] == 5 * GIB
     assert a["quants"]["Q8_0"]["bytes"] is None and a["quants"]["Q8_0"]["missing_files"]
     assert a["cache"]["basis"] == "exact" and a["on_catalog"] and a["price_out"] == 0.3
-    assert set(out["constants"]) >= {"quants", "contexts", "kv_cache_bytes", "fits_at_most"}
+    assert set(out["constants"]) >= {"quants", "contexts", "kv_cache_bytes", "fits_at_most",
+                                     "window_extra_tokens"}
+    # Rule 9 (#559 review): only what the page reads.
+    assert not {"files", "original", "architecture"} & set(a)
+    assert set(a["quants"]["Q4_K_M"]) == {"bytes", "missing_files", "repo_sha"}
     # The Mac share travels on each Mac, from the memory-size table.
     assert all("gpu_share" in d for d in out["hardware"] if d["kind"] == "unified")
+
+
+def test_a_transient_failure_keeps_the_stored_row(conn):
+    """One 429 must not replace last week's measurement (#559 review)."""
+    write_rows(conn, [_row("a", "Q4_K_M", 5 * GIB, _header("llama-3.1-8b"))])
+    later = _row("a", "Q4_K_M", 6 * GIB, None)
+    later["header_note"] = "header not read this time: HTTP 503"
+    write_rows(conn, [later], keep_existing=True)
+    size, header = conn.execute("SELECT bytes, header FROM local_model_file").fetchone()
+    assert size == 5 * GIB and header is not None
+    write_rows(conn, [_row("z", "Q4_K_M", 2 * GIB, None)], keep_existing=True)
+    assert conn.execute("SELECT count(*) FROM local_model_file").fetchone()[0] == 2
 
 
 def test_a_size_without_its_files_or_a_header_without_a_reason_is_refused(conn):

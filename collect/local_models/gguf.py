@@ -26,6 +26,7 @@ its header and its key projection says 128.
 
 from __future__ import annotations
 
+import math
 import struct
 
 MAGIC = b"GGUF"
@@ -52,7 +53,20 @@ class NotGGUF(ValueError):
 
 def parse_header(buf: bytes) -> tuple[dict, int]:
     """`(fields, end)`: the kept key/values and key-projection shape, and where
-    the tensor list ends - the last byte of metadata before any tensor data."""
+    the tensor list ends - the last byte of metadata before any tensor data.
+
+    Anything malformed raises `NotGGUF` - never a bare ValueError or
+    struct.error - so one odd file is recorded as unread and cannot stop the
+    run (#559 review: `int('²')` raised past the caller)."""
+    try:
+        return _parse(buf)
+    except (struct.error, ValueError, OverflowError) as exc:
+        if isinstance(exc, NotGGUF):
+            raise
+        raise NotGGUF(f"malformed header: {type(exc).__name__}: {exc}") from exc
+
+
+def _parse(buf: bytes) -> tuple[dict, int]:
     if len(buf) < 24:
         raise Incomplete
     if buf[:4] != MAGIC:
@@ -82,7 +96,9 @@ def parse_header(buf: bytes) -> tuple[dict, int]:
 def _key_projection(name: str) -> str | None:
     """`attn_k` / `attn_qkv` for a layer's key (or fused) projection weight."""
     parts = name.split(".")
-    if len(parts) == 4 and parts[0] == "blk" and parts[1].isdigit() and parts[3] == "weight":
+    # isascii + isdecimal: str.isdigit() accepts "²", which int() refuses.
+    layer = parts[1] if len(parts) == 4 else ""
+    if parts[0] == "blk" and layer.isascii() and layer.isdecimal() and parts[3] == "weight":
         return parts[2] if parts[2] in ("attn_k", "attn_qkv") else None
     return None
 
@@ -95,9 +111,17 @@ def keep_fields(raw: dict) -> dict:
     prefix = f"{arch}."
     kept = {"architecture": arch}
     for key, value in raw.items():
-        if key.startswith(prefix):
+        if key.startswith(prefix) and _finite(value):
             kept[key[len(prefix):]] = value
     return kept
+
+
+def _finite(value) -> bool:
+    """A NaN or an infinity cannot be stored as jsonb, and one would abort the
+    run's transaction. No field the arithmetic reads is a float, so a
+    non-finite one is dropped rather than refused."""
+    values = value if isinstance(value, list) else [value]
+    return all(not isinstance(v, float) or math.isfinite(v) for v in values)
 
 
 class _Reader:

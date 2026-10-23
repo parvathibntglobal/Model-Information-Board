@@ -55,6 +55,7 @@ def inference_settings() -> dict[str, Any]:
             "quants": [str(q) for q in raw["quants"]],
             "contexts": [int(c) for c in raw["contexts"]],
             "kv_cache_bytes": {str(k): float(v) for k, v in raw["kv_cache_bytes"].items()},
+            "window_extra_tokens": int(raw["window_extra_tokens"]),
             "recurrent_state_bytes": float(raw["recurrent_state_bytes"]),
             "runtime_overhead_gib": float(raw["runtime_overhead_gib"]),
             "overhead_per_card": bool(raw["overhead_per_card"]),
@@ -83,6 +84,8 @@ def inference_settings() -> dict[str, Any]:
     if not 0 < out["fits_at_most"] <= 1:
         raise LocalModelsContractError(
             "local_inference.yaml: bands.fits_at_most must be in (0, 1].")
+    if out["window_extra_tokens"] < 0:
+        raise LocalModelsContractError("local_inference.yaml: window_extra_tokens >= 0.")
     if out["runtime_overhead_gib"] < 0 or out["recurrent_state_bytes"] <= 0:
         raise LocalModelsContractError(
             "local_inference.yaml: runtime_overhead_gib >= 0 and recurrent_state_bytes > 0.")
@@ -295,7 +298,7 @@ def _head_size_contradiction(header, kv_heads, heads, caching, windowed_active, 
 
 
 ROWS_SQL = """
-SELECT model_id, quant, gguf_repo, files, bytes, missing_files, header, header_note,
+SELECT model_id, quant, gguf_repo, bytes, missing_files, header, header_note,
        repo_sha, measured_at
   FROM local_model_file
  WHERE model_id = ANY(%s)
@@ -322,39 +325,43 @@ def local_models_view(conn) -> dict[str, Any]:
     catalog = {r[0]: r for r in conn.execute(
         PRICES_SQL, ([m["openrouter"] for m in listed if m["openrouter"]],)).fetchall()}
 
-    models, not_measured = [], []
+    # Rule 9 (#559 review): only what the page reads. `files`, `original`,
+    # `architecture` and a per-quant date had no reader and are not sent; the
+    # files stay in the table as the measurement's record.
+    models, not_measured, newest = [], [], None
     for m in listed:
         measured = by_model.get(m["id"])
         if not measured:
-            not_measured.append(m["id"])
+            not_measured.append({"id": m["id"], "name": m["name"]})
             continue
         first = measured.get(settings["quants"][0]) or next(iter(measured.values()))
-        header, header_note = first[6], first[7]
+        header, header_note = first[5], first[6]
         shape = cache_shape(header, settings)
         if header is None and header_note:
             shape["why"] = header_note
         listed_on_catalog = catalog.get(m["openrouter"]) if m["openrouter"] else None
+        for r in measured.values():
+            newest = r[8] if newest is None or r[8] > newest else newest
         models.append({
-            **m,
-            "architecture": (header or {}).get("architecture"),
+            "id": m["id"], "name": m["name"], "family": m["family"],
+            "openrouter": m["openrouter"],
+            "gguf_repo": first[2],  # the repo the size was measured in
             "on_catalog": listed_on_catalog is not None,
             "price_in": _price(listed_on_catalog[1]) if listed_on_catalog else None,
             "price_out": _price(listed_on_catalog[2]) if listed_on_catalog else None,
             "quants": {
-                q: {"bytes": r[4], "files": list(r[3]), "missing_files": list(r[5]),
-                    "repo_sha": r[8], "measured_at": r[9].isoformat()}
+                q: {"bytes": r[3], "missing_files": list(r[4]), "repo_sha": r[7]}
                 for q, r in measured.items() if q in settings["quants"]
             },
             "cache": shape,
         })
-    newest = max((q["measured_at"] for m in models for q in m["quants"].values()), default=None)
     constants = {k: settings[k] for k in ("quants", "contexts", "kv_cache_bytes",
-                                          "runtime_overhead_gib", "overhead_per_card",
-                                          "fits_at_most")}
+                                          "window_extra_tokens", "runtime_overhead_gib",
+                                          "overhead_per_card", "fits_at_most")}
     return {
         "constants": constants,
         "hardware": hardware(settings),
         "models": models,
         "not_measured": not_measured,
-        "measured_at": newest,
+        "measured_at": newest.isoformat() if newest else None,
     }

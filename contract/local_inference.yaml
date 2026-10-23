@@ -25,6 +25,14 @@ contexts: [4096, 8192, 32768, 131072]
 #   q8_0   llama.cpp's 8-bit cache: 32 values in 34 bytes.
 kv_cache_bytes: {f16: 2.0, q8_0: 1.0625}
 
+# A sliding-window layer's cache holds the window PLUS one micro-batch, not
+# the window alone: llama.cpp sizes it at window + n_ubatch cells, and n_ubatch
+# defaults to 512. So a windowed layer counts min(context, window + this).
+# Cell padding (llama.cpp rounds the cache up to a multiple of 256) is not
+# counted: under 256 tokens' worth per layer, inside the runtime allowance.
+# (#559 review question, 2026-10-23.)
+window_extra_tokens: 512
+
 # A state-space layer (Mamba-2, Gated DeltaNet) keeps a fixed recurrent state
 # instead of a per-token cache, in f32: (conv_kernel - 1) x (inner_size +
 # 2 x group_count x state_size) + state_size x inner_size elements per layer.
@@ -68,10 +76,13 @@ apple_gpu_share:
 #   fits        estimate at or below `fits_at_most` of the budget
 #   tight       above that, at or below the whole budget
 #   won't fit   above the budget
-#   can't tell  the context's memory is unknown (rule 6) and the file plus the
-#               runtime allowance alone are within the budget. An unknown cache
-#               is never counted as zero; if the file and allowance alone exceed
-#               the budget, it is "won't fit", which is certain either way.
+#   can't tell  the file plus the runtime allowance fit, but the context's
+#               memory either is unknown (rule 6), or is only an UPPER BOUND and
+#               the bound does not fit. A bound can prove "fits" or "tight",
+#               never "won't fit" (#559 review: Gemma 3 27B on a 24 GiB card
+#               fits in llama.cpp and the bound said otherwise). An unknown
+#               cache is never counted as zero; if the file and allowance alone
+#               exceed the budget, it is "won't fit", which is certain either way.
 bands:
   fits_at_most: 0.85
 

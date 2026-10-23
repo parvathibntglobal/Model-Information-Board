@@ -8,11 +8,14 @@
  *
  *   weights   the measured GGUF file size (the sum of its parts)
  *   cache     bytes per element x (full elements x tokens
- *             + windowed elements x min(tokens, window)) + a fixed recurrent state
+ *             + windowed elements x min(tokens, window + window_extra_tokens))
+ *             + a fixed recurrent state
  *   need      weights + cache + runtime allowance (once per card when split)
  *   budget    memory x cards (a graphics card) | memory x the Mac's GPU share
- *   group     fits | tight | wont | unknown (the cache could not be worked out
- *             and the file plus allowance alone are within budget - rule 6)
+ *   group     fits | tight | wont | unknown. "unknown" (can't tell) when the
+ *             file plus allowance fit but the cache is unknown (rule 6), or is
+ *             only an upper bound that does not fit: a bound can prove fits or
+ *             tight, never won't fit (#559 review).
  */
 
 export const GIB = 2 ** 30
@@ -24,9 +27,12 @@ export function effectiveContext(cache, tokens) {
 }
 
 /** Bytes beyond the file, or null when the header did not let us know (rule 6). */
-export function cacheBytes(cache, tokens, bytesPerElement) {
+export function cacheBytes(cache, tokens, bytesPerElement, windowExtra) {
+  // Required, never defaulted (rule 12): a missing constant must fail, not count 0.
+  if (typeof windowExtra !== 'number') throw new Error('cacheBytes: window_extra_tokens is required')
   if (!cache || cache.basis === 'unknown' || cache.full_elements == null) return null
-  const windowed = (cache.windowed || []).reduce((s, w) => s + w.elements * Math.min(tokens, w.window), 0)
+  // llama.cpp holds window + one micro-batch for a windowed layer.
+  const windowed = (cache.windowed || []).reduce((s, w) => s + w.elements * Math.min(tokens, w.window + windowExtra), 0)
   return bytesPerElement * (cache.full_elements * tokens + windowed) + (cache.fixed_bytes || 0)
 }
 
@@ -46,23 +52,26 @@ export function estimate(model, { quant, tokens, cacheType, device, cards }, con
   if (!file || file.bytes == null) return null
   const n = device.kind === 'unified' ? 1 : cards
   const ctx = effectiveContext(model.cache, tokens)
-  const cache = cacheBytes(model.cache, ctx.tokens, constants.kv_cache_bytes[cacheType])
+  const cache = cacheBytes(model.cache, ctx.tokens, constants.kv_cache_bytes[cacheType], constants.window_extra_tokens)
   const overhead = constants.runtime_overhead_gib * GIB * (constants.overhead_per_card ? n : 1)
   const budget = budgetBytes(device, n)
   const floor = file.bytes + overhead
+  const upperBound = !!(model.cache && model.cache.basis === 'upper_bound')
   let group
   if (floor > budget) group = 'wont' // certain whatever the cache is
   else if (cache == null) group = 'unknown'
   else {
     const need = floor + cache
-    group = need <= constants.fits_at_most * budget ? 'fits' : need <= budget ? 'tight' : 'wont'
+    if (need <= constants.fits_at_most * budget) group = 'fits'
+    else if (need <= budget) group = 'tight'
+    else group = upperBound ? 'unknown' : 'wont' // a bound over budget proves nothing
   }
   return {
     fileBytes: file.bytes,
     group,
     context: ctx,
     cacheKnown: cache != null,
-    upperBound: model.cache && model.cache.basis === 'upper_bound',
+    upperBound,
   }
 }
 

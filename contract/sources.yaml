@@ -1281,7 +1281,9 @@ terms_rulings:
       # harvested from here under the identical sentence. See
       # docs/proposals/the-undertaking-replaces-environment.md.
       use_basis: [public-derived-publication]
-      access_path: [api]
+      # gguf-header-range: the local VRAM tool's reads (#559). Recorded, not
+      # checked - see the 2026-10-23 amendment below.
+      access_path: [api, gguf-header-range]
     recorded_evidence:
       republication_claimed: [false]
       terms_document_read: [true]
@@ -1333,6 +1335,15 @@ terms_rulings:
       flipped TOGETHER with the `huggingface` source's `terms_evidence` (#559):
       the terms check compares the two, and flipping one side alone would
       refuse the existing Hugging Face harvester in the scheduled fetch.
+
+      NOT PUT THROUGH THE TERMS CHECK, DELIBERATELY (anooj, 2026-10-23). The
+      review on #559 asked for collect/local_models/poll.py to run
+      `assert_terms_reviewed`, so it would stop when this ruling lapses
+      (`review_valid_days`). Decided against: the team's standing rule is that
+      terms findings inform and never gate what is built. So the second access
+      path is RECORDED here (`access_path` lists `gguf-header-range`) and is
+      not enforced; the harvester, which observes `api`, is checked as before.
+      Whoever re-reviews this ruling re-reads this paragraph with it.
       ---- AS RULED ----
       RULED 2026-09-09. Access is the documented public API at huggingface.co/api
       - repo search and the discussions endpoints - never the site HTML and never
