@@ -93,7 +93,7 @@ function headline(p) {
 
 const sectionHref = (s) => (s.hub ? sitePath(s.hub) : s.slug ? `/kite-pulse/${s.slug}` : '/kite-pulse')
 const sectionByName = (name) => SECTIONS.find((s) => s.name === name)
-const manageHref = (url) => `/admin?s=kite-pulse&kp=pages&kpp=${encodeURIComponent(url)}`
+const manageHref = (url) => `/admin?p=kite-pulse&s=kite-pulse&kp=pages&kpp=${encodeURIComponent(url)}`
 const pagesOf = (model, names, except = []) =>
   model.site.filter((p) => names.includes(p.section) && !except.includes(p.url)
     && !SECTIONS.some((s) => s.hub === p.url))
@@ -116,7 +116,7 @@ export default function KitePulse() {
           <span><b>Kite Pulse</b> · internal site preview, not public</span>
           <span className="kps-preview-links">
             {page && <Link to={manageHref(page.url)}>Page brief</Link>}
-            <Link to="/admin?s=kite-pulse">Manage pages &amp; keywords</Link>
+            <Link to="/admin?p=kite-pulse&s=kite-pulse">Manage pages &amp; keywords</Link>
             <Link to="/admin">← Admin</Link>
           </span>
         </div>
@@ -125,7 +125,7 @@ export default function KitePulse() {
       {model && <Announcement model={model} />}
       {model && <Header model={model} page={page} path={path} />}
 
-      <main className="kps-main">
+      <main>
         {err && <div className="kps-wrap kps-note">The keyword sheet could not be loaded: {err}</div>}
         {!model && !err && <div className="kps-wrap"><div className="kps-skel" /></div>}
         {model && (
