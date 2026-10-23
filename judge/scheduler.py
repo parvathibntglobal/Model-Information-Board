@@ -7,7 +7,7 @@ model, and posts `summarise_runs` to an issue. The runner is disabled by default
 
 ⚠ THIS DECIDES ORDER, NEVER MEMBERSHIP-BY-SKIPPING. A tracked, in-window model
   that is due is always in the list. The selection rule is "first fetch on
-  registry arrival, then a weekly cadence, oldest first" - it never drops a
+  registry arrival, then every third night, oldest first" - it never drops a
   model on a yield guess, because a model a schedule stopped fetching reads
   exactly like one nobody discusses (rule 4). Yield-ordering within a night is a
   later refinement and needs the end-record fields (#489) to have accumulated.
@@ -24,10 +24,12 @@ from functools import lru_cache
 class Policy:
     """`contract/scheduler.yaml`: cadence and the two thread caps (rule 5).
 
-    Were code constants (7, 100, 25) until 2026-10-05; moved unchanged.
+    Were code constants (7 days, 100, 25) until 2026-10-05; moved unchanged.
+    The cadence is in HOURS since 2026-10-21 (60, every third night) - the
+    contract says why days could not express it.
     """
 
-    cadence_days: int
+    cadence_hours: int
     first_fetch_thread_cap: int
     refresh_thread_cap: int
 
@@ -44,7 +46,7 @@ def policy() -> Policy:
 
     raw = _read("scheduler.yaml") or {}
     values = {}
-    for key in ("cadence_days", "first_fetch_thread_cap", "refresh_thread_cap"):
+    for key in ("cadence_hours", "first_fetch_thread_cap", "refresh_thread_cap"):
         v = raw.get(key)
         if not isinstance(v, int) or isinstance(v, bool) or v < 1:
             raise SchedulerPolicyError(
@@ -85,7 +87,7 @@ def rank_due(
     """
     rules = rules or policy()
     due: list[DueModel] = []
-    cutoff = now - timedelta(days=rules.cadence_days)
+    cutoff = now - timedelta(hours=rules.cadence_hours)
     for r in rows:
         if not r.get("tracked") or not r.get("in_window"):
             continue

@@ -35,8 +35,8 @@ const GIVES = [
 // which flickers instead of stopping. Screen readers get every line once, as
 // text; the moving copy is hidden from them.
 const CLOSING = [
-  { line: 'Find the best AI model for the job.', to: '/model-picker', cta: 'Pick a model' },
-  { line: 'Browse every AI model, by provider and type.', to: '/catalog', cta: 'Browse models' },
+  { line: 'Find the best AI model for the job.', to: '/best-ai-model', cta: 'Pick a model' },
+  { line: 'Browse every AI model, by provider and type.', to: '/ai-models', cta: 'Browse models' },
   { line: 'Price your prompt on every model.', to: '/tools', cta: 'Try the tools' },
   { line: 'Go deeper with evidence-based AI blogs.', to: '/blogs', cta: 'Read the blogs' },
 ]
@@ -142,7 +142,7 @@ export default function Landing() {
             <span className="eyebrow">Models and comparisons</span>
             <h2>Every AI model, compared on the evidence</h2>
           </div>
-          <Link to="/catalog" className="go-badge go-models" aria-label="Open all models">Models <span aria-hidden="true">→</span></Link>
+          <Link to="/ai-models" className="go-badge go-models" aria-label="Open all models">Models <span aria-hidden="true">→</span></Link>
         </div>
         {/* SIX TURNING CARDS (2026-10-15): Compare, then the Models menu's
             entries, read from the published pages (components/ModelsShowcase.jsx). */}

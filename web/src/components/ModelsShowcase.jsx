@@ -4,6 +4,7 @@ import { modelCatalog, reportsPage } from '../api'
 import { MODEL_TYPES } from '../catalog/types'
 import { fmtDate, modelPagePath } from '../catalog/format'
 import { useInView } from './ui'
+import { comparePath } from '../compare/path'
 
 /**
  * MODELS AND COMPARISONS AS A SHOWCASE (2026-10-15), the way the Board's
@@ -15,9 +16,9 @@ import { useInView } from './ui'
  * WHERE EACH READS:
  *   Compare        the landing's comparison box as it was: "Compare up to
  *                  three AI models" and its inverted pyramid of pairs and trios.
- *   Most reported  `/reports`, at the Models pages' floor: a model counts on a
+ *   Most reported  `/reviews`, at the Models pages' floor: a model counts on a
  *                  job, capability or metric only where 5+ people reported.
- *   the rest       `/model-catalog`, the /catalog pages' own data.
+ *   the rest       `/model-catalog`, the /ai-models pages' own data.
  * Every row opens the page the menu would. A card with nothing to show is left
  * out - nothing is invented to fill one.
  *
@@ -70,7 +71,7 @@ function buildCards(cat, reported) {
   const cards = [{
     key: 'compare', q: 'Compare up to three AI models', k: 'AI model comparison', tint: 'var(--warn)', pyramid: COMPARES,
     note: 'Opus vs Sonnet vs Gemini Flash and more — every job and capability they have reports on, side by side.',
-    more: { to: '/compare', label: 'Compare models' },
+    more: { to: '/compare', label: 'AI model comparison' },
   }]
   const names = Object.fromEntries((cat?.providers || []).flatMap((p) => p.ids.map((i) => [i, p.name])))
   const list = cat?.models || []
@@ -79,24 +80,24 @@ function buildCards(cat, reported) {
     cards.push({
       key: 'all', q: 'Which models do engineers use?', k: `All models · ${voiced.length} reported`, tint: 'var(--pass)', grid: true,
       rows: voiced.slice(0, ROWS).map((m) => ({ to: modelPagePath(m.id), top: names[m.provider] || PROVIDERS[m.provider] || m.provider, name: m.name, pill: plural(m.voices, 'voice') })),
-      more: { to: '/catalog', label: 'All models' },
+      more: { to: '/ai-models', label: 'All models' },
     })
   }
   const byId = Object.fromEntries(list.map((m) => [m.id, m]))
   const fresh = (cat?.new_releases || []).map((id) => byId[id]).filter(Boolean).slice(0, ROWS)
   if (fresh.length) {
     cards.push({
-      key: 'new', q: 'What just came out?', k: 'New releases', tint: 'var(--info)',
+      key: 'new', q: 'What just came out?', k: 'Latest AI model releases', tint: 'var(--info)',
       rows: fresh.map((m) => ({ to: modelPagePath(m.id), name: m.name, by: names[m.provider] || PROVIDERS[m.provider] || m.provider,
         pill: fmtDate(m.listed_at).replace(/ \d{4}$/, '') })),
-      more: { to: '/catalog/new', label: 'All new releases' },
+      more: { to: '/ai-models/latest', label: 'All latest releases' },
     })
   }
   if (reported.length) {
     cards.push({
-      key: 'reported', q: 'Where is the evidence deepest?', k: 'Most reported', tint: 'color-mix(in srgb,var(--pass) 50%,var(--info))',
-      rows: reported.slice(0, ROWS).map((r) => ({ to: `/reports/models/${r.canonical}`, name: shortName(r.label), pill: plural(r.total, 'topic') })),
-      more: { to: '/reports/models', label: 'All reported models' },
+      key: 'reported', q: 'Where is the evidence deepest?', k: 'AI model reviews', tint: 'color-mix(in srgb,var(--pass) 50%,var(--info))',
+      rows: reported.slice(0, ROWS).map((r) => ({ to: `/reviews/models/${r.canonical}`, name: shortName(r.label), pill: plural(r.total, 'topic') })),
+      more: { to: '/reviews/models', label: 'All reported models' },
     })
   }
   // the six types with the most models; the card's link opens all of them
@@ -105,16 +106,16 @@ function buildCards(cat, reported) {
     cards.push({
       key: 'types', q: 'What kind of model do I need?', k: 'Model types', tint: 'color-mix(in srgb,var(--info) 55%,var(--fail))', grid: true,
       rows: [...types].sort((a, b) => cat.types[b.key] - cat.types[a.key]).slice(0, ROWS)
-        .map((t) => ({ to: `/catalog?type=${t.key}`, top: t.note, name: t.label, pill: plural(cat.types[t.key], 'model') })),
-      more: { to: '/catalog', label: `All ${types.length} types` },
+        .map((t) => ({ to: `/ai-models/${t.key}`, top: t.note, name: t.label, pill: plural(cat.types[t.key], 'model') })),
+      more: { to: '/ai-models', label: `All ${types.length} types` },
     })
   }
   const provs = [...(cat?.providers || [])].sort((a, b) => b.voiced - a.voiced || b.models - a.models).slice(0, ROWS)
   if (provs.length) {
     cards.push({
       key: 'providers', q: 'Who makes them?', k: `Providers · ${cat.providers.length}`, tint: 'color-mix(in srgb,var(--warn) 55%,var(--fail))', grid: true,
-      rows: provs.map((p) => ({ to: `/catalog?provider=${p.id}`, top: `${p.voiced} with reports`, name: p.name, pill: plural(p.models, 'model') })),
-      more: { to: '/catalog', label: 'All providers' },
+      rows: provs.map((p) => ({ to: `/ai-models?provider=${p.id}`, top: `${p.voiced} with reports`, name: p.name, pill: plural(p.models, 'model') })),
+      more: { to: '/ai-models', label: 'All providers' },
     })
   }
   return cards
@@ -184,7 +185,7 @@ export default function ModelsShowcase() {
                         pairs, each row a little narrower and centred */}
                     <div className="vs-list vs-pyramid">
                       {c.pyramid.map((ms, k) => (
-                        <Link key={ms.map((m) => m.id).join()} to={`/compare?ids=${ms.map((m) => m.id).join(',')}`}
+                        <Link key={ms.map((m) => m.id).join()} to={comparePath(ms.map((m) => m.id))}
                               className={`vs${ms.length === 3 ? ' vs3' : ''}`} tabIndex={at === 'front' ? 0 : -1}
                               style={{ '--i': k, '--w': `${100 - k * 9}%` }}>
                           {ms.map((m, j) => (

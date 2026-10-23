@@ -1458,12 +1458,18 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
         # The rule the scores were computed under, from the contract, so the
         # page states the minimum rather than typing it a second time.
         "category_method": category_scores.method(),
+        # ⚠ IT SAID "none is a score" until 2026-10-22, untrue since the category
+        #   score (#540; CLAUDE.md rule 3's second exception). Found in the review
+        #   of #556. No page renders this field today; it is still a sentence the
+        #   API publishes about itself.
         "summary": (
             f"{len(models)} models, compared on what engineers reported about them. "
             f"Every figure here is counted - entries, documents, how each one was "
-            f"phrased - and none is a score. No winner is picked and no total is "
-            f"computed, because the board has no way to weigh a complaint against a "
-            f"recommendation without inventing one."
+            f"phrased - except one score per category, which is worked out from the "
+            f"report counts shown beside it (contract/category_scores.yaml). No "
+            f"overall winner is picked and no total is computed, because the board "
+            f"has no way to weigh a complaint against a recommendation without "
+            f"inventing one."
         ),
     }
 
@@ -2338,7 +2344,7 @@ def _fetch_runs_from_db(flat: str, hex_chars: set[str]) -> list[tuple[str, str, 
 
 
 @app.get("/seo/indexable")
-def seo_indexable() -> dict:
+def seo_indexable(export: bool = False) -> dict:
     """The paths worth indexing, by `contract/indexing.yaml` (SEO item 5, proposed).
 
     Read by `web/src/seo/indexable.js`: a page whose canonical path is not in
@@ -2346,16 +2352,90 @@ def seo_indexable() -> dict:
     Nothing here makes the site indexable - `web/index.html`'s `noindex`
     governs every page today.
 
-    PATHS ONLY. `judge/seo.py` also computes per-kind tallies and the rules it
-    applied; they stay in Python until something reads them (an Admin panel, the
-    sitemap generator), because an emitted field with no reader is rule 9's
-    defect. Counted on the PUBLIC view whatever view this server runs.
+    PATHS ONLY, unless `?export=1`. Counted on the PUBLIC view whatever view
+    this server runs.
+
+    `?export=1` (2026-10-21) is the file `scripts/export_indexable_paths.py`
+    writes, field for field, for an OPEN build: web/Dockerfile fetches it from
+    PRERENDER_API before `vite build`, because the node image cannot reach the
+    database and pre-rendering already needs this API (#552). Its reader is the
+    build (web/seo-build.js `readPaths`, vite.config.js `seoFiles` for the
+    sitemap's <lastmod>), not a page, so the pages keep the short answer.
     """
+    # KEPT FOR A FEW MINUTES (2026-10-20). Every public page asks for this on
+    # load, and working it out reads each model's evidence one query at a time
+    # (board_entries.evidence_for_model) plus the glossary file - ~13 s on the
+    # local database, during which the page says noindex. Which pages are worth
+    # indexing changes when evidence arrives, not between two page loads, so
+    # one answer serves everyone for _INDEXABLE_TTL_S. A failure is not kept.
+    # The return stays a literal so scripts/audit_api_fields.py can read the
+    # field it emits (contract/api_fields.yaml declares `paths`).
+    #
+    # NOBODY WAITS ON A REFRESH (review of #552, item 4). Only the first call
+    # works the list out while it waits; once there is a list, an old one is
+    # answered at once and ONE background refresh replaces it. A refresh that
+    # fails keeps the old list, and the next call tries again.
+    result, generated_at = _indexable_current()
+    paths = [p["path"] for p in result["paths"]]
+    if export:
+        # What the build reads of scripts/export_indexable_paths.py's file, and
+        # no more (rule 9): `rule` and `tallies` are for a person reading the
+        # script's output, and nothing in the build reads them. A date only
+        # where a real one exists (rule 6); `generated_at` is when the list was
+        # WORKED OUT, not when this request read the cache.
+        return {
+            "generated_at": generated_at,
+            "paths": paths,
+            "lastmod": {p["path"]: p["lastmod"] for p in result["paths"] if p.get("lastmod")},
+        }
+    return {"paths": paths}
+
+
+_INDEXABLE_TTL_S = 300
+#: [worked out at (monotonic), result, generated_at] - empty until the first answer.
+_indexable_cache: list = []
+_indexable_lock = threading.Lock()
+#: The background refresh in flight, if any (one at a time).
+_indexable_refresh: list = []
+
+
+def _indexable_work() -> list:
+    """Work the list out once: the cache entry, not yet stored."""
     from judge import seo
 
     with _conn() as conn:
         result = seo.indexable_pages(conn)
-    return {"paths": [p["path"] for p in result["paths"]]}
+    return [time.monotonic(), result, datetime.now(UTC).isoformat(timespec="seconds")]
+
+
+def _indexable_refresh_now() -> None:
+    try:
+        entry = _indexable_work()
+        with _indexable_lock:
+            _indexable_cache[:] = entry
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "seo: refreshing /seo/indexable failed; the previous list stays")
+    finally:
+        with _indexable_lock:
+            _indexable_refresh.clear()
+
+
+def _indexable_current() -> tuple[dict, str]:
+    """The current list and when it was worked out; see `seo_indexable`."""
+    with _indexable_lock:
+        entry = list(_indexable_cache)
+        if entry and time.monotonic() - entry[0] >= _INDEXABLE_TTL_S and not _indexable_refresh:
+            thread = threading.Thread(target=_indexable_refresh_now,
+                                      name="seo-indexable-refresh", daemon=True)
+            _indexable_refresh.append(thread)
+            thread.start()
+        if entry:
+            return entry[1], entry[2]
+        # The first answer: worked out here, under the lock, so callers that
+        # arrive together wait for one computation rather than each doing it.
+        _indexable_cache[:] = _indexable_work()
+        return _indexable_cache[1], _indexable_cache[2]
 
 
 @app.get("/freshness")

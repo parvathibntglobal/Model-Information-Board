@@ -95,10 +95,58 @@ export function definedTerm(site, t) {
   return out
 }
 
+/**
+ * A free tool that runs in the browser (2026-10-21): the cost calculator, the
+ * pricing table, the picker and the comparison. Its name, address and
+ * description are the page's own; "free" is what the site states. No rating,
+ * no review count - the tools have none.
+ */
+export function webApplication(site, head) {
+  if (!site || !head || !head.app || !head.app.name || !head.canonical) return null
+  const out = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: head.app.name,
+    url: abs(site, head.canonical),
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Any',
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    publisher: { '@type': 'Organization', name: ORG, url: abs(site, '/') },
+  }
+  if (head.description) out.description = head.description
+  return out
+}
+
+/**
+ * A list the page shows, in the page's own order (2026-10-21): the models on
+ * All models or one type, the newest releases, the models or jobs a reviews
+ * page ranks. `list.items` is [{ name, path }]; nothing is listed that the
+ * page does not show, and an empty list writes nothing.
+ *
+ * THE FIRST ITEM_LIST_MAX ONLY (review of #552): All models would otherwise
+ * put every model in one script block, and a search engine gains nothing from
+ * the length. `numberOfItems` counts what is listed here.
+ */
+export const ITEM_LIST_MAX = 100
+export function itemList(site, list) {
+  if (!site || !list || !Array.isArray(list.items)) return null
+  const items = list.items.filter((it) => it && it.name && it.path).slice(0, ITEM_LIST_MAX)
+  if (!items.length) return null
+  const out = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    numberOfItems: items.length,
+    itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, url: abs(site, it.path) })),
+  }
+  if (list.name) out.name = list.name
+  return out
+}
+
 /** Everything a head asks for, built for `site`; [] when closed or nothing applies. */
 export function structuredFor(site, head) {
   if (!site || !head) return []
   return [breadcrumbList(site, head.breadcrumbs), article(site, head.article), webPage(site, head),
-    definedTerm(site, head.definedTerm)]
+    definedTerm(site, head.definedTerm), webApplication(site, head), itemList(site, head.list)]
     .filter(Boolean)
 }

@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { reportsPage, listRegistry, fetchAll, BoardUnreadable } from '../api'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert } from '../components/Icons'
 import { useHead } from '../seo/head'
-import { modelPicker } from '../seo/pages'
+import { inSentence, modelPicker, pickerAlternatives, pickerJob, pickerProviderAlternatives } from '../seo/pages'
+import { comparePath, isReadable, resolveSlugs, slugOf } from '../compare/path'
+import Freshness from '../components/Freshness'
+import NotFound from '../components/NotFound'
 import { SECTION_OF_KIND, evidencePath } from '../catalog/format'
 
 /**
@@ -13,7 +16,7 @@ import { SECTION_OF_KIND, evidencePath } from '../catalog/format'
  * top of the page follows the agreed layout (a sentence to fill in, the four
  * start-from chips, one search box, examples); the results keep every filter.
  *
- * TWO SOURCES, KEPT APART. The evidence is `/reports` (judge/reports.py): the
+ * TWO SOURCES, KEPT APART. The evidence is `/reviews` (judge/reports.py): the
  * board's counts over the PUBLIC view, never a quote, link or author. Prices
  * are the registry's (`/models`): what providers ADVERTISE, never evidence, and
  * a model with no published price shows "—", never $0.
@@ -31,7 +34,35 @@ import { SECTION_OF_KIND, evidencePath } from '../catalog/format'
  * THE ADDRESS HOLDS THE SEARCH (`?model=&job=&capability=&price=` and the
  * compare picks as `&cmp=`), so a result can be sent to somebody and opens as
  * they saw it.
+ *
+ * ONE JOB ALONE IS A PAGE OF ITS OWN (2026-10-21): `/best-ai-model/coding-agent`,
+ * with its own title, heading and canonical - "best AI model for coding
+ * agents" is what people search, and under `?job=` every job shared the
+ * picker's one title and canonical, so none could be listed. Any other mix of
+ * filters stays in the query. `?job=x` on its own moves to the path.
+ *
+ * SO IS ONE MODEL'S ALTERNATIVES (2026-10-21): `/alternatives/gpt-6-astra` -
+ * "gpt-6 astra alternatives" is the search. The model is named by the part of
+ * its id after the provider, as a comparison is (compare/path.js), or by
+ * `provider--model` if two providers share that name. The model the picker puts
+ * in the compare tray by itself is not repeated in the address (`cmp=`). Its
+ * heading stays the picker's (her call, 2026-10-21): the title and the results'
+ * own heading ("Alternatives to ...") name the model.
+ *
+ * SO IS ONE PROVIDER'S (2026-10-22): `/alternatives/openai` - "openai
+ * alternatives" is searched. The provider is named by its id in the model ids
+ * (`openai`, `x-ai`); a model's name is tried first, and no provider id is also
+ * a model name today. It lists the jobs and capabilities that provider's
+ * models were reported on, and, for each, the OTHER providers' models.
+ *
+ * A GROUP READS AS `?job-group=software-development` or
+ * `?capability-group=instruction-and-reliability`. Its id is `parent:<group>`,
+ * which came out as `?capability=parent%3A...` and, for a job group, as
+ * `/best-ai-model/parent%3A...`; both still open. A group is a reading aid over
+ * its jobs, never a page of its own, so it is never the job address.
  */
+const GROUP = 'parent:'
+
 
 const COMPARE_MAX = 3
 const THIN = 3
@@ -97,6 +128,8 @@ const providerOf = (m) => {
   return m.canonical && m.canonical.includes('/') ? m.canonical.split('/')[0] : ''
 }
 const modelId = (m) => m.canonical || m.key
+/** The provider in a readable id (`openai/gpt-6-sol` -> `openai`); none for an internal key. */
+const providerIdOf = (m) => (isReadable(modelId(m)) ? modelId(m).split('/')[0] : '')
 const rate = (r) => (r == null ? '—' : r === 0 ? '$0' : `$${r < 0.1 ? r.toPrecision(2) : r.toFixed(2)}`)
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
@@ -229,7 +262,7 @@ function ModelCard({ m, refPrice, price, cmp, why, axis }) {
       {saves != null && <div className="mp-save">↓ saves {rate(saves)} per 1M input</div>}
       <div className="mp-card-foot">
         <span className="mp-actions">
-          <Link to={`/reports/models/${id}`} className="mp-link">Model page</Link>
+          <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
           <CompareBox id={id} cmp={cmp} />
         </span>
       </div>
@@ -371,7 +404,7 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
                   : peopleText(c.m)}
               </div>
               <div className="mp-pick-foot">
-                <Link to={`/reports/models/${id}`} className="mp-link">Model page</Link>
+                <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
                 <CompareBox id={id} cmp={cmp} />
               </div>
             </div>
@@ -384,9 +417,10 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
 
 // ── the page ─────────────────────────────────────────────────────────────────
 export default function ModelPicker() {
-  useHead(modelPicker())
   const navigate = useNavigate()
-  const [sp, setSp] = useSearchParams()
+  const { pathname } = useLocation()
+  const { job: jobPath, model: altPath } = useParams()
+  const [sp] = useSearchParams()
   const [data, setData] = useState(null)
   const [registry, setRegistry] = useState(null)
   const [err, setErr] = useState(null)
@@ -406,6 +440,8 @@ export default function ModelPicker() {
   const comboRef = useRef(null)
   const resultsRef = useRef(null)
   const restored = useRef(false)
+  // A job or model address that names nothing: 'job' or 'model' (shown as not found, noindex).
+  const [missing, setMissing] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -470,7 +506,7 @@ export default function ModelPicker() {
     const groups = Object.entries(idx.parents)
       .map(([pid, name]) => ({ pid, name, n: idx.members(t, pid).length }))
       .filter((g) => g.n > 1)
-      .map((g) => ({ id: `parent:${g.pid}`, label: g.name, pre: 'group', sub: `${g.n} capabilities, shown separately` }))
+      .map((g) => ({ id: `parent:${g.pid}`, label: g.name, pre: 'group', sub: `${g.n} ${t === 'job' ? 'jobs' : 'capabilities'}, shown separately` }))
     return groups.concat(axes)
   }
   const shownOpts = useMemo(() => {
@@ -485,9 +521,20 @@ export default function ModelPicker() {
     if (!idx || restored.current) return
     restored.current = true
     const f = {}
+    const altId = altPath ? resolveSlugs([altPath], idx.list.map((r) => ({ id: modelId(r) }))).ids[0] : null
+    const groupOf = (t) => (sp.get(`${t}-group`) ? `${GROUP}${sp.get(`${t}-group`)}` : null)
     for (const t of ORDER) {
-      const id = sp.get(t)
+      const id = sp.get(t) || { job: jobPath || groupOf('job'), model: altId, capability: groupOf('capability') }[t] || null
       if (id) { const label = labelFor(t, id); if (label) f[t] = { id, label } }
+    }
+    if (jobPath && !f.job) { setMissing('job'); return }
+    if (altPath && !f.model) {
+      const pid = decodeURIComponent(altPath)
+      const own = idx.list.filter((r) => providerIdOf(r) === pid)
+      if (!own.length) { setMissing('model'); return }
+      setSettings((s) => ({ ...s, cheaper: false }))
+      setRan({ provider: { id: pid, label: providerOf(own[0]) || pid } })
+      return
     }
     const picks = (sp.get('cmp') || '').split(',').filter((id) => idx.byId.has(id)).slice(0, COMPARE_MAX)
     if (picks.length) setCmpIds(picks)
@@ -501,13 +548,48 @@ export default function ModelPicker() {
   useEffect(() => {
     if (!restored.current) return
     const next = new URLSearchParams()
-    for (const t of ORDER) if (ran && ran[t]) next.set(t, ran[t].id)
-    if (cmpIds.length) next.set('cmp', cmpIds.join(','))
-    if (next.toString() !== sp.toString()) setSp(next, { replace: true })
+    const own = jobOnly ? `/best-ai-model/${encodeURIComponent(ran.job.id)}`
+      : altOnly ? `/alternatives/${encodeURIComponent(altSlug(ran.model.id))}`
+      : ran?.provider ? `/alternatives/${encodeURIComponent(ran.provider.id)}` : null
+    if (own) {
+      if (pathname !== own || sp.toString()) navigate(own, { replace: true })
+      return
+    }
+    for (const t of ORDER) {
+      if (!ran || !ran[t]) continue
+      const id = String(ran[t].id)
+      if ((t === 'job' || t === 'capability') && id.startsWith(GROUP)) next.set(`${t}-group`, id.slice(GROUP.length))
+      else next.set(t, id)
+    }
+    // The searched model sits in the tray by itself; the address does not repeat it.
+    const onlyTheModel = ran?.model && cmpIds.length === 1 && cmpIds[0] === ran.model.id
+    if (cmpIds.length && !onlyTheModel) next.set('cmp', cmpIds.join(','))
+    if (pathname !== '/best-ai-model' || next.toString() !== sp.toString()) {
+      navigate(`/best-ai-model${next.toString() ? `?${next}` : ''}`, { replace: true })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ran, cmpIds])
 
   const has = (f) => ORDER.some((k) => f && f[k])
+  // One job and nothing else: the page /best-ai-model/<job> (see the note at the top).
+  const jobOnly = !!(ran && ran.job && !String(ran.job.id).startsWith(GROUP)
+    && !ORDER.some((k) => k !== 'job' && ran[k]) && !cmpIds.length)
+  // The job a job page is about, for its short answer.
+  const jobAxis = jobOnly ? idx?.axes.find((a) => a.kind === 'job' && a.slug === ran.job.id) : null
+  // One model and nothing else (the tray holding only it): /alternatives/<model>.
+  const altOnly = !!(ran && ran.model && isReadable(ran.model.id) && !ORDER.some((k) => k !== 'model' && ran[k])
+    && cmpIds.every((c) => c === ran.model.id))
+  // The model's name in its address; `provider--model` if another provider uses the same name.
+  const altSlug = (id) => {
+    const name = slugOf(id)
+    const twins = (idx?.list || []).filter((r) => isReadable(modelId(r)) && slugOf(modelId(r)) === name).length
+    return twins > 1 ? id.replace('/', '--') : name
+  }
+  // A job or model address waits for its item to be known before it names itself.
+  useHead(jobOnly ? pickerJob(ran.job)
+    : altOnly ? pickerAlternatives({ ...ran.model, slug: altSlug(ran.model.id) })
+    : ran?.provider ? pickerProviderAlternatives(ran.provider)
+    : (jobPath || altPath) && !ran ? null : modelPicker())
   function run(f = filters, scroll = true, keepCmp = cmpIds) {
     if (!has(f)) { setRan(null); return }
     const firstOfKind = !ran || !!ran.model !== !!f.model
@@ -709,6 +791,69 @@ export default function ModelPicker() {
     )
   }
 
+  /**
+   * One provider's alternatives (`/alternatives/<provider>`): every job and
+   * capability its models were reported on, most of its voices first, and on
+   * each the other providers' models, grouped by what their reports say.
+   * Counts only, as everywhere in the picker; no price comparison, because a
+   * provider has no one price.
+   */
+  function ProviderResults({ p }) {
+    const own = idx.list.filter((r) => providerIdOf(r) === p.id)
+    const ownKeys = new Set(own.map((r) => r.key))
+    const byAxis = new Map()
+    for (const r of own) {
+      for (const { a, m } of r.axes) {
+        if (settings.kind !== 'all' && a.kind !== settings.kind) continue
+        const row = byAxis.get(a) || { a, mine: [] }
+        row.mine.push({ r, m })
+        byAxis.set(a, row)
+      }
+    }
+    // Everything its models were reported on, for the sentence; the panels keep
+    // only what clears the reader's "from N+ people" setting.
+    const reportedOn = byAxis.size
+    let rows = [...byAxis.values()]
+      .filter(({ mine }) => mine.some(({ m }) => m.voices >= settings.minV))
+      .map((row) => ({ ...row, voices: row.mine.reduce((n, { m }) => n + m.voices, 0) }))
+      .sort((x, y) => (KIND_ORDER[x.a.kind] - KIND_ORDER[y.a.kind]) || y.voices - x.voices || x.a.name.localeCompare(y.a.name))
+    const othersOf = (a) => a.models.filter((x) => !ownKeys.has(x.key)).sort(sorter)
+    const cands = rows.flatMap(({ a }) => othersOf(a).map((m) => ({ m, on: a.name })))
+    const total = rows.length
+    rows = rows.slice(0, axesShown)
+    return (
+      <>
+        <div className="mp-res-head">
+          <h2>Alternatives to {p.label} models</h2>
+          <p>{plural(own.length, `${p.label} model`)} reported on {plural(reportedOn, 'job or capability', 'jobs and capabilities')} · the other providers&apos; models reported on the same</p>
+        </div>
+        <ActiveChips />
+        <TopPicks cands={cands} priceOf={priceOf} cmp={cmp} minV={settings.minV} />
+        {!rows.length && <Relax>Nothing of this kind is reported for {p.label} from {settings.minV}+ people yet.</Relax>}
+        {rows.map(({ a, mine }) => {
+          const others = othersOf(a)
+          const empty = <Relax>No other provider&apos;s model has reports on this{settings.minV > 0 ? ` from ${settings.minV}+ people` : ''} yet.</Relax>
+          return panel({ a, count: visibleCount(others), children: (
+            <>
+              <ParentNav a={a} />
+              <div className="mp-self">
+                <b>{p.label}</b>
+                <span>{mine.map(({ r, m }) => `${shortName(r)} (${peopleText(m)})`).join(' · ')}</span>
+              </div>
+              {others.length ? (
+                <Grouped list={others} refPrice={null} priceOf={priceOf} cmp={cmp} settings={settings}
+                         openKey={a.kind + a.slug} open={open} toggleOpen={toggleOpen} whyFor={whyFor(a.kind, a.slug)} empty={empty}
+                         labelFor={(g) => (g.id === 'working' ? 'Other providers reported working on this'
+                           : g.id === 'problems' ? 'Other providers reported not working on this' : g.label)} />
+              ) : empty}
+            </>
+          ) })
+        })}
+        {total > axesShown && <div className="mp-center"><button type="button" className="mp-more" onClick={() => setAxesShown((n) => n + 6)}>Show more ({total - axesShown} of {total} left)</button></div>}
+      </>
+    )
+  }
+
   function AxisResults({ F }) {
     const priceBand = bandOf(F), sel = selectedAxes(F)
     const inB = (m) => !priceBand || inBand(priceBand, priceOf(m))
@@ -757,7 +902,7 @@ export default function ModelPicker() {
                     </div>
                     <div className="mp-card-foot">
                       <span className="mp-actions">
-                        <Link to={`/reports/models/${modelId(r)}`} className="mp-link">Model page</Link>
+                        <Link to={`/reviews/models/${modelId(r)}`} className="mp-link">Model page</Link>
                         <CompareBox id={modelId(r)} cmp={cmp} />
                       </span>
                     </div>
@@ -840,7 +985,7 @@ export default function ModelPicker() {
                   )}
                   <div className="mp-card-foot">
                     <span className="mp-actions">
-                      <Link to={`/reports/models/${id}`} className="mp-link">Model page</Link>
+                      <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
                       <CompareBox id={id} cmp={cmp} />
                     </span>
                   </div>
@@ -886,17 +1031,31 @@ export default function ModelPicker() {
   }, [idx, prices])
   const cmpModels = cmpIds.map((id) => idx?.byId.get(id)).filter(Boolean)
 
+  // NOT A SOFT 404 (2026-10-21): an unknown /best-ai-model/<job> or
+  // /alternatives/<model> said nothing and kept the site's default head.
+  if (missing) return <NotFound what={missing} back={{ to: '/best-ai-model', label: 'Open the best AI model picker' }} />
+
   return (
     <div className={`shell section-tight stack stack-4 mp mp-layout${cmpIds.length ? ' mp-with-tray' : ''}`}>
       <div className="stack stack-1">
         <span className="go-badge go-models page-tag" style={{ alignSelf: 'flex-start' }}>Tools</span>
+        {/* ONE HEADING FOR EVERY VIEW (her call, 2026-10-21): a job's or a
+            model's page names itself in its title and its results' heading. */}
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Best <span className="mp-accent-text">AI model</span> picker</h1>
-        <p className="mp-sub">Find the best AI model for the job, or a cheaper alternative to the one you use.</p>
+        {/* THE SHORT ANSWER (2026-10-22, approved draft): a job's, a model's or a
+            provider's page says what it is in one line; the picker's own otherwise.
+            The job line names no model (her call: a count, not a verdict). */}
+        <p className="mp-sub">{
+          jobOnly ? `The best AI model for ${inSentence(ran.job.label)}, by what engineers reported: ${plural(jobAxis?.models.length || 0, 'model')}, each with how many people said it worked or failed.`
+            : altOnly ? `${ran.model.label} alternatives engineers reported working on the same jobs and capabilities, with each one's price.`
+            : ran?.provider ? `${ran.provider.label} alternatives: models from other providers that engineers reported working where ${ran.provider.label}'s ${plural(idx?.list.filter((r) => providerIdOf(r) === ran.provider.id).length || 0, 'model')} were used.`
+            : 'Find the best AI model for the job, or a cheaper alternative to the one you use.'
+        }</p>
         <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>
-          Start from the job you need done to find the models engineers reported working for it, or from a model
-          you already use to find alternatives that worked as well and cost less. Narrow it by capability or
-          budget, and see what each one costs beside the evidence.
+          Pick a job or a model you use to see what engineers reported working, a cheaper alternative, and each
+          model&apos;s price beside its counts. <Link to="/methodology">How we count reports</Link>.
         </p>
+        {!jobOnly && !altOnly && !ran?.provider && <Freshness style={{ margin: 0 }} />}
       </div>
 
       {unreadable && <Unreadable detail={unreadable} />}
@@ -1049,7 +1208,8 @@ export default function ModelPicker() {
             </div>
           </aside>
           <div className="mp-main">
-            {ran.model
+            {ran.provider ? <ProviderResults p={ran.provider} />
+              : ran.model
               ? (idx.byId.get(ran.model.id) ? <ModelResults r={idx.byId.get(ran.model.id)} F={ran} /> : <div className="mp-none">That model is not on the board.</div>)
               : (ran.job || ran.capability) ? <AxisResults F={ran} />
                 : <BudgetResults b={bandOf(ran)} />}
@@ -1093,7 +1253,7 @@ export default function ModelPicker() {
           ))}
           <button type="button" className="mp-textbtn" onClick={() => setCmpIds([])}>Clear</button>
           <button type="button" className="mp-find" disabled={cmpModels.length < 2}
-                  onClick={() => navigate(`/compare?ids=${encodeURIComponent(cmpModels.map(modelId).join(','))}&from=reports`)}>
+                  onClick={() => navigate(comparePath(cmpModels.map(modelId), { from: 'reports' }))}>
             {cmpModels.length < 2 ? 'Tick one more to compare' : 'Compare →'}
           </button>
         </div>

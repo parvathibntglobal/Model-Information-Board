@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   comparePage, listModels, fetchAll, fmtPrice, fmtTokens, BoardUnreadable, modelPath, modelCatalog,
 } from '../api'
@@ -9,6 +9,7 @@ import Freshness from '../components/Freshness'
 import { getSession } from '../auth'
 import { useHead } from '../seo/head'
 import { comparePage as compareHead } from '../seo/pages'
+import { comparePath, isReadable, parsePair, resolveSlugs } from '../compare/path'
 import { evidencePath } from '../catalog/format'
 
 //: The endpoint's own cap (`COMPARE_MAX` in judge/app.py). Repeated here rather
@@ -17,7 +18,8 @@ import { evidencePath } from '../catalog/format'
 const COMPARE_MAX = 3
 
 /**
- * Two or three models side by side — `/compare?ids=a,b[,c]`.
+ * Two or three models side by side — `/compare/<a>-vs-<b>[-vs-<c>]` (compare/path.js);
+ * the older `/compare?ids=a,b[,c]` still opens it and moves to the readable path.
  *
  * THE DEMO'S TABLE HAD NINE ROWS AND THIS ONE CANNOT. Verdict, best-for, cost,
  * context and report counts all have a source in the database. Licence,
@@ -40,7 +42,7 @@ const COMPARE_MAX = 3
  * reports on every model, a comparison IS a spec sheet and says so.
  */
 export default function Compare() {
-  const [sp, setSp] = useSearchParams()
+  const [sp] = useSearchParams()
   // OPENED FROM REPORTS (`?from=reports`, 2026-10-14). Reports is counts only and
   // never quotes, so a comparison started there leaves out "In their words".
   // Opened from the Models list, the page is unchanged.
@@ -49,7 +51,33 @@ export default function Compare() {
   // the counts only (judge/app.py: compare_page), so the page leaves out what
   // it no longer has rather than showing an empty "In their words".
   const fromReports = sp.get('from') === 'reports' || !getSession()
-  const ids = (sp.get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean)
+  // `from` travels in the address only when it was asked for, so a visitor's
+  // links stay clean - a signed-out visitor gets counts only either way.
+  const from = sp.get('from') === 'reports' ? 'reports' : undefined
+  const navigate = useNavigate()
+  // THE READABLE PATH (2026-10-20): `/compare/grok-4.6-vs-gpt-6-sol`. Its names
+  // resolve through the catalogue; until they do there are no ids to compare.
+  const { pair } = useParams()
+  const [named, setNamed] = useState(null)   // { ids, unknown } for `pair`
+  useEffect(() => {
+    if (!pair) { setNamed(null); return }
+    let alive = true
+    const slugs = parsePair(pair)
+    modelCatalog()
+      .then((c) => { if (alive) setNamed(resolveSlugs(slugs, c.models || [])) })
+      .catch(() => { if (alive) setNamed({ ids: [], unknown: slugs }) })
+    return () => { alive = false }
+  }, [pair])
+  const queryIds = (sp.get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean)
+  const ids = pair ? (named ? named.ids : []) : queryIds
+  // AN OLD `?ids=` LINK MOVES TO THE READABLE PATH, replacing the history entry,
+  // when every id has a readable name; internal ids keep the query form.
+  useEffect(() => {
+    if (!pair && queryIds.length >= 2 && queryIds.every(isReadable)) {
+      navigate(comparePath(queryIds, { from }), { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pair, sp.get('ids')])
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
   //: The registry, for the picker. Loaded lazily - a reader who never opens
   //: the picker never pays for it, and a comparison that renders is more
@@ -73,7 +101,7 @@ export default function Compare() {
       })
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sp.get('ids')])
+  }, [ids.join(',')])
 
   //: ⚠ THE COMPARISON COULD NOT BE CHANGED FROM THE COMPARISON. `?ids=` was
   //:   read once and never written, so swapping one model meant going back to
@@ -89,7 +117,7 @@ export default function Compare() {
     const trimmed = next.slice(0, COMPARE_MAX)
     if (trimmed.length < 2) return   // the endpoint needs two; refuse here
     // keep `from` so changing the models does not bring the quotes back
-    setSp(fromReports ? { ids: trimmed.join(','), from: 'reports' } : { ids: trimmed.join(',') })
+    navigate(comparePath(trimmed, { from }))
   }
 
   // A MODEL IS DROPPED BY EITHER OF ITS IDS. The address may name it by its
@@ -100,15 +128,33 @@ export default function Compare() {
   const dropModel = (m) => setIds(ids.filter((x) => x !== m.model_version_id && x !== m.canonical_id))
   const addModel = (id) => { if (!ids.includes(id)) setIds([...ids, id]) }
 
-  if (ids.length < 2) {
+  if (pair && !named) {
+    return <div className="shell section-tight"><div className="skel" style={{ height: 320 }} /></div>
+  }
+  if (pair && named.unknown.length) {
     return (
       <div className="shell section-tight stack stack-3">
         <span className="eyebrow">AI model comparison</span>
         <h1>Compare models side by side</h1>
+        <Notice icon={<IconAlert />}>
+          No listed model is called {named.unknown.map((m) => `“${m}”`).join(' or ')}.{' '}
+          <Link to="/compare">Pick the models to compare</Link>.
+        </Notice>
+      </div>
+    )
+  }
+
+  if (ids.length < 2) {
+    return (
+      <div className="shell section-tight stack stack-3">
+        <span className="eyebrow">Compare up to three AI models</span>
+        <h1>AI model comparison</h1>
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '70ch' }}>
-          Pick two or three models to compare what engineers have actually reported
-          about them — counted, side by side, with no synthesised score and no winner
-          picked for you.
+          Compare AI models side by side, such as Claude vs GPT, on what engineers
+          reported about each, with the counts and a score for each category they
+          share. No overall winner is picked.
+          {/* "NO SYNTHESISED SCORE" came off this line on 2026-10-22: the page has
+              shown a category score since #540, so the promise was untrue. */}
           {/* ⚠ THIS PROMISED "what their providers advertise against what
               engineers have actually reported". The spec sheet came off this
               page on 2026-09-23, so the page's own empty state described a
@@ -116,7 +162,7 @@ export default function Compare() {
               before picking anything. */}
         </p>
         <StartCompare picked={ids}
-                      onCompare={(chosen) => setSp(fromReports ? { ids: chosen.join(','), from: 'reports' } : { ids: chosen.join(',') })} />
+                      onCompare={(chosen) => navigate(comparePath(chosen, { from }))} />
       </div>
     )
   }
@@ -131,7 +177,7 @@ export default function Compare() {
         </Notice>
         {!fromReports && (
           <p style={{ marginTop: 'var(--s3)' }}>
-            <Link to="/catalog" className="mb-link">← All models</Link>
+            <Link to="/ai-models" className="mb-link">← All models</Link>
           </p>
         )}
       </div>
@@ -170,7 +216,7 @@ export default function Compare() {
       <div className="stack stack-2">
         {/* NO "← All models" FROM REPORTS: the reader came from Reports → AI
             models, not from the models list. */}
-        {!fromReports && <Link to="/catalog" className="mb-link" style={{ fontSize: 'var(--fs-xs)' }}>← All models</Link>}
+        {!fromReports && <Link to="/ai-models" className="mb-link" style={{ fontSize: 'var(--fs-xs)' }}>← All models</Link>}
         <span className="eyebrow">AI model comparison</span>
         {/* THE NAMES WITHOUT THE VENDOR PREFIX ("Anthropic: Claude Opus 5" ->
             "Claude Opus 5"): shorter, and the form people search ("claude vs
@@ -184,8 +230,10 @@ export default function Compare() {
             change as the scores, so the page never says "never scored" while
             showing one. What stays true: no overall winner is picked. */}
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch' }}>
-          What engineers reported about each model, side by side: a score per category with the reports it comes from,
-          and each model&apos;s price and specs. Compare models within a category; no overall winner is picked.
+          {/* Opens with "<A> vs <B>", the search (2026-10-22, approved short answer). */}
+          {models.map((m) => shortName(m.display_name)).join(' vs ')}: what engineers reported about each model, side by
+          side - a score per category with the reports it comes from, and each model&apos;s price and specs. Compare
+          models within a category; no overall winner is picked.
         </p>
         <HowToRead method={state.data.category_method} />
       </div>
@@ -279,8 +327,8 @@ export default function Compare() {
 
       <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
         Change the selection on {fromReports
-          ? <Link to="/reports" className="mb-link">Models</Link>
-          : <>the <Link to="/catalog" className="mb-link">models list</Link></>}.
+          ? <Link to="/reviews" className="mb-link">Models</Link>
+          : <>the <Link to="/ai-models" className="mb-link">models list</Link></>}.
       </p>
     </div>
   )
@@ -589,8 +637,8 @@ function HowToRead({ method }) {
 }
 
 // THE MODEL'S PAGE IN THE NEW DESIGN (2026-10-15): price, workload cost, specs
-// and voices (/catalog/model/...). Was /models, the roster behind sign-in.
-const modelLink = (m) => `/catalog/model/${modelPath(m.canonical_id || m.model_version_id)}`
+// and voices (/ai-models/...). Was /models, the roster behind sign-in.
+const modelLink = (m) => `/ai-models/${modelPath(m.canonical_id || m.model_version_id)}`
 // The evidence feed takes either id shape (judge/feed/items.py resolve_model).
 const feedId = (m) => m.canonical_id || m.model_version_id
 

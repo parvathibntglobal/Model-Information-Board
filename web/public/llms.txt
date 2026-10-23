@@ -1,0 +1,28 @@
+# Model Information Board
+
+> What engineers report about AI models in production, counted by job, capability and metric, beside each model's list price, context window and features. Free tools to pick a model, find one by spec and price a prompt.
+
+The board reads public posts by engineers about AI models, files each report under the job it was about (for example coding agents, code review, RAG), the capability it shows (for example reasoning, long context) or the metric it gives (for example cost per million tokens, time to first token), and counts the reports: how many say a model worked, did not, or neither. Model prices and specs are the providers' own published figures.
+
+## Models
+
+- [All AI models](/ai-models): every listed model by provider and type, with list prices and context window
+- [Latest AI model releases](/ai-models/latest): the most recently listed models, newest first
+- [AI model comparison](/compare): up to three models side by side, at /compare/<model>-vs-<model>
+- [AI model reviews](/reviews): AI models ranked by engineer reports
+- [AI model reviews by job](/reviews/jobs): which models engineers report working for each job
+- [AI model reviews by capability](/reviews/capabilities)
+- [AI model reviews by metric](/reviews/metrics)
+
+## Free AI model tools
+
+- [Best AI model picker](/best-ai-model): models engineers reported working for a job or a capability; one job alone is its own page, /best-ai-model/<job>
+- [AI model pricing & specs table](/ai-model-pricing): every model's price per token, context window and features, filterable
+- [LLM cost calculator & token counter](/token-counter): count a prompt's tokens and price it on several models
+
+## Reading
+
+- [Blogs](/blogs): posts on AI models, written from the reports
+- [AI glossary](/glossary): one short paragraph on each AI model term, from tokens to retrieval-augmented generation
+- [Discussions](/discussions): readers' own experiences with AI models, shown beside the reports and never added to the counts
+- [Methodology](/methodology): how a report is found, checked against its post and counted, and the fixed rule behind every verdict

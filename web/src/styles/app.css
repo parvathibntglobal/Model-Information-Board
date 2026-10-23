@@ -2102,6 +2102,8 @@ a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:
 /* the post's own photo fills the card (2026-10-20); figures keep `contain` */
 .bs-img.bs-photo{padding:0}
 .bs-img.bs-photo img{object-fit:cover}
+.adm-subtable{margin-top:8px;font-size:var(--fs-xs)}
+.adm-subtable td,.adm-subtable th{padding:4px 8px}
 
 /* A COUNT THAT OPENS ITS REPORTS (2026-10-21, PROPOSED): the voices, splits and
    bars on Catalog, Compare and Reports link into the evidence feed, narrowed the

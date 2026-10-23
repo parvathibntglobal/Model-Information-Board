@@ -96,15 +96,15 @@ def test_no_blog_link_goes_behind_the_sign_in(out):
 
 def test_a_vendor_dropped_name_links_to_the_public_page(out):
     links = _by_text(out)
-    assert links["Opus 5"]["href"] == "/catalog/model/anthropic/claude-opus-5"
-    assert links["Opus 5.5"]["href"] == "/catalog/model/anthropic/claude-opus-5.5"
+    assert links["Opus 5"]["href"] == "/ai-models/anthropic/claude-opus-5"
+    assert links["Opus 5.5"]["href"] == "/ai-models/anthropic/claude-opus-5.5"
 
 
 def test_a_separator_is_not_part_of_the_name(out):
     """Rule 10: "GLM-5.3" and "GLM 5.3" are one model. Only the first in a
     paragraph is linked, which is the existing first-mention rule."""
     links = _by_text(out)
-    assert links["GLM-5.3"]["href"] == "/catalog/model/z-ai/glm-5.3"
+    assert links["GLM-5.3"]["href"] == "/ai-models/z-ai/glm-5.3"
 
 
 def test_a_name_that_fits_two_models_links_to_neither(out):
@@ -127,7 +127,7 @@ def test_a_model_without_a_public_page_keeps_its_card_and_no_link(out):
 def test_a_vs_b_in_the_text_opens_the_comparison(out):
     link = _by_text(out)["Opus 5.5 vs GPT-6 Astra"]
     assert link["cls"] == "es-vs"
-    assert link["href"] == "/compare?ids=anthropic%2Fclaude-opus-5.5%2Copenai%2Fgpt-6-astra"
+    assert link["href"] == "/compare/claude-opus-5.5-vs-gpt-6-astra"
 
 
 def test_one_model_against_itself_is_not_a_comparison(out):
@@ -138,7 +138,7 @@ def test_one_model_against_itself_is_not_a_comparison(out):
 def test_a_two_model_post_links_its_comparison(out):
     head = [a for a in out["posts"]["pair"]["links"] if a["text"].startswith("Compare ")]
     assert [a["href"] for a in head] == [
-        "/compare?ids=anthropic%2Fclaude-opus-5.5%2Copenai%2Fgpt-6-astra"]
+        "/compare/claude-opus-5.5-vs-gpt-6-astra"]
 
 
 def test_a_vs_title_that_names_no_model_gets_no_comparison(out):
@@ -150,5 +150,5 @@ def test_without_the_catalog_list_no_model_page_is_linked(tmp_path):
     that might 404. Comparisons need no catalog page and still link."""
     out = _render(tmp_path, catalog=None)
     links = out["posts"]["pair"]["links"]
-    assert not [a for a in links if a["href"].startswith("/catalog")]
+    assert not [a for a in links if a["href"].startswith("/ai-models")]
     assert [a for a in links if a["cls"] == "es-vs"]

@@ -106,12 +106,12 @@ export default function TokenCounter() {
     <div className="shell section-tight stack stack-4">
       <div className="stack stack-1">
         <nav className="tc-trail label" aria-label="Breadcrumb">
-          <Link to="/models">Models</Link> <span aria-hidden="true">/</span> Token counter
+          <Link to="/tools">Tools</Link> <span aria-hidden="true">/</span> LLM cost calculator
         </nav>
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>LLM token counter</h1>
+        <h1 style={{ fontSize: 'var(--fs-display)' }}>LLM cost calculator &amp; token counter</h1>
         <p className="tc-lead">
-          Paste a prompt, a document or a model's answer. The count runs in your browser,
-          and the table prices that text on every model that publishes a per-token rate.
+          Count tokens and see the LLM API cost of a prompt or a document on every model that publishes a
+          per-token price. Counted in your browser; your text never leaves the page.
         </p>
       </div>
 

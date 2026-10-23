@@ -1113,6 +1113,36 @@ function reviewOf(p){
   return p.review || 'draft';
 }
 const day = (ts) => ts ? String(ts).slice(0, 10) : '';
+// THE DATE A READER SEES (2026-10-21, review of #552): under the title, from
+// the same `published_at` the JSON-LD's datePublished reads (seo/structured.js),
+// so the two cannot disagree. A post with no recorded approval shows none -
+// never a generation date dressed as a publication date (rule 6). UTC and a
+// fixed locale, so the pre-rendered page and the app write the same words.
+function publishedOn(p){
+  if(!p || !p.published_at) return '';
+  const d = new Date(p.published_at);
+  if(isNaN(d)) return '';
+  const words = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  return `<span>Published <time datetime="${esc(p.published_at)}">${esc(words)}</time></span>`;
+}
+
+// THE LINE UNDER THE TITLE, FROM THE POST'S STATE NOW (2026-10-21). `meta` is
+// frozen when a post is GENERATED - [its generation date, "~N min read",
+// "Draft — not reviewed"] (generate_sample_blogs.py) - and was printed as is,
+// so every approved post told readers it was an unreviewed draft, dated the
+// day it was written rather than published. What came from the generator and
+// is still true (the read time) stays; the date and the review state are read
+// from `published_at` and the review, the same fields the footer uses.
+const META_DATE = /^\d{1,2} [A-Za-z]+ \d{4}$/;
+function byline(p){
+  const meta = (p.meta || []).map(String);
+  const kept = meta.filter(m => !META_DATE.test(m.trim()) && !/^Draft\b/.test(m.trim()));
+  const review = reviewOf(p);
+  // A draft has no publication date: it keeps the date it was written, as before.
+  const when = publishedOn(p) || meta.filter(m => META_DATE.test(m.trim())).map(m => `<span>${esc(m)}</span>`).join('');
+  const state = review === 'approved' ? '' : review === 'rejected' ? '<span>Rejected in review</span>' : '<span>Draft — not reviewed</span>';
+  return when + kept.map(m => `<span>${esc(m)}</span>`).join('') + state;
+}
 
 // THE PAGES OFFERED UNDER THE INDEX. Only the post directory since 2026-10-19
 // (anooj): the live and reference pages - where engineers disagree, this week,
@@ -1524,7 +1554,7 @@ function matrixTable(m, filter){
 }
 function matrixCards(m){
   return `<section class="es-mcards"><h2 id="es-matrix">${essayText(m.head.text)}</h2><div class="grid">${(m.table.rows || []).map(r =>
-    `<div class="mc"><h4>${essayText(r[0])}</h4><p class="bad"><b>Breaks</b>${essayText(r[1])}</p>
+    `<div class="mc"><h3>${essayText(r[0])}</h3><p class="bad"><b>Breaks</b>${essayText(r[1])}</p>
       <p class="good"><b>Holds</b>${essayText(r[2])}</p><p class="rt"><b>Use</b>${routeBadge(r[3])}</p></div>`).join('')}</div></section>`;
 }
 function treeClick(tr, title){
@@ -1541,7 +1571,7 @@ function tocList(secs, cls, tag){
   return `<ol class="${cls}">${secs.map((s, i) => {
     const t = essayText(s.head.text);
     const k = `<span class="k">${tag(i + 1)}</span>`;
-    return `<li>${s.head.id ? `<a data-toc="es-${esc(s.head.id)}">${k}<span>${t}</span></a>` : `${k}<span>${t}</span>`}</li>`;
+    return `<li>${s.head.id ? `<a href="#es-${esc(s.head.id)}" data-toc="es-${esc(s.head.id)}">${k}<span>${t}</span></a>` : `${k}<span>${t}</span>`}</li>`;
   }).join('')}</ol>`;
 }
 function findingsCol(sp, status, title, cls){
@@ -1587,7 +1617,7 @@ function layerMap(p, secs, conf){
   const bands = sp
     ? sp.items.map((x, k) => `<details class="band" style="margin-left:${k * 12}px"><summary>${essayText(x.layer)}</summary>
         <p>${essayText(x.role)}</p><p class="fail"><b>Contains</b>${essayText(x.failure_contained)}</p></details>`).join('')
-    : secs.map((s, k) => `<a class="band" style="margin-left:${k * 12}px" ${s.head.id ? `data-toc="es-${esc(s.head.id)}"` : ''}>${essayText(s.head.text)}</a>`).join('');
+    : secs.map((s, k) => `<a class="band" style="margin-left:${k * 12}px" ${s.head.id ? `href="#es-${esc(s.head.id)}" data-toc="es-${esc(s.head.id)}"` : ''}>${essayText(s.head.text)}</a>`).join('');
   return `<section class="es-map"><div class="lbl">The architecture${sp ? ' · open a layer' : ' · jump to a component'}</div>
     <div class="stack">${bands}</div><p class="cap"><b>${esc(conf.lead)}</b> ${essayText(p.lead)}</p></section>`;
 }
@@ -1599,7 +1629,7 @@ function claimWall(sp){
       <label><input type="radio" name="es-cl" class="fp">Partly holds</label>
       <label><input type="radio" name="es-cl" class="fn">Does not hold</label></div>
     <div class="grid">${sp.items.map(x => `<div class="cl c-${cls(x.status)}"><span class="stamp">${esc(x.status)}</span>
-      <h4>${essayText(x.claim)}</h4><p>${essayText(x.finding)}</p></div>`).join('')}</div></section>`;
+      <h3>${essayText(x.claim)}</h3><p>${essayText(x.finding)}</p></div>`).join('')}</div></section>`;
 }
 // THE GLOSSARY of a topic synthesis: the terms a newcomer meets, defined once.
 function glossaryBox(sp){
@@ -1651,12 +1681,12 @@ function radarList(sp){
       <label><input type="radio" name="es-rd" checked>Everything</label>${stages.map((st, i) =>
       `<label><input type="radio" name="es-rd" class="f${i}">${esc(st)}</label>`).join('')}</div>
     <div class="grid">${sp.items.map(x => `<div class="rd s${k(x.stage)}"><span class="stage">${esc(x.stage)}</span>
-      <h4>${essayText(x.item)}</h4><p>${essayText(x.what)}</p><p class="why">${essayText(x.why)}</p>${refLink(x)}</div>`).join('')}</div></section>`;
+      <h3>${essayText(x.item)}</h3><p>${essayText(x.what)}</p><p class="why">${essayText(x.why)}</p>${refLink(x)}</div>`).join('')}</div></section>`;
 }
 // DEBATE: the sides beside each other, each with where it breaks.
 function sidesBox(sp){
   return `<section class="es-sides"><div class="lbl">${esc(sp.title || 'Two sides')}</div><div class="grid">${sp.items.map((x, i) =>
-    `<div class="side"><span class="n">${String.fromCharCode(65 + i)}</span><h4>${essayText(x.side)}</h4>`
+    `<div class="side"><span class="n">${String.fromCharCode(65 + i)}</span><h3>${essayText(x.side)}</h3>`
     + `<p>${essayText(x.case)}</p><details><summary>Where it breaks</summary><p>${essayText(x.weakness)}</p></details></div>`).join('')}</div></section>`;
 }
 // FIELD GUIDE: a checklist with a tally, like the runbook's.
@@ -1679,7 +1709,7 @@ function probeList(sp){
 /* ---------- interactive posts, phase 1 (docs/proposals/interactive-blogs.md) ----------
  * OPT-IN PER POST: `"interactive": true`. Three things, none of them typed by the
  * model that wrote the post:
- *   entity links  a model's name links to its PUBLIC page (/catalog/model/...);
+ *   entity links  a model's name links to its PUBLIC page (/ai-models/...);
  *                 first mention per paragraph, longest name first, so "GPT-6.1
  *                 Sol Pro" is never split into "GPT-6.1 Sol" (rule 10: the whole
  *                 identifier). Every registry model, by its display name or its
@@ -1979,7 +2009,7 @@ function vPost(slug){
       esc(shortName(va))} and ${esc(shortName(vb))} side by side →</a></p>` : '';
   const toc = [...secs.filter(s => s.head.id).map(s => [`es-${s.head.id}`, s.head.text]),
     ...(parts.matrix ? [['es-matrix', parts.matrix.head.text]] : []), ...(parts.tree ? [['es-decision', 'Decision tree']] : [])]
-    .map(([id, t]) => `<li><a data-toc="${esc(id)}">${essayText(t)}</a></li>`).join('');
+    .map(([id, t]) => `<li><a href="#${esc(id)}" data-toc="${esc(id)}">${essayText(t)}</a></li>`).join('');
   const tags = (p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('');
   const dec = (p.decisions||[]).map(d=>`<li>${essayText(d)}</li>`).join('');
   const picksSide = L === 'versus' && V === 'b' && sp && sp.type === 'picks'
@@ -2005,7 +2035,7 @@ function vPost(slug){
     <div class="es-crumb"><a${goAttrs('blogs')}>All essays</a></div>
     <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div><h1>${esc(p.title)}</h1>
       <p class="es-dek">${esc(p.dek)}</p>
-      <div class="es-byline">${(p.meta||[]).map(m=>`<span>${esc(m)}</span>`).join('')}</div>
+      <div class="es-byline">${byline(p)}</div>
       ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
     <div class="es-layout">
       <article class="es-article">

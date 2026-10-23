@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { modelCatalogEntry, reportsPage } from '../api'
+import Freshness from '../components/Freshness'
+import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { catalogModelHead } from '../seo/pages'
 import { DAYS_PER_MONTH, fmtUsd as fmtCost, workloadCost } from '../tokens/cost'
@@ -215,24 +217,44 @@ function Lifecycle({ m }) {
   )
 }
 
+/**
+ * THE SHORT ANSWER (2026-10-22, approved draft): "<model> pricing", the price
+ * and context as listed, and how many engineers reported on it - each part
+ * only where the catalogue has it (rule 6: nothing guessed).
+ */
+function shortAnswer(m) {
+  const price = m.price_state === 'free' ? 'free, as OpenRouter lists it'
+    : m.price_state === 'priced' && m.price_in != null && m.price_out != null
+      ? `${fmtUsd(m.price_in)} per million input tokens and ${fmtUsd(m.price_out)} output`
+      : 'no per-token price published'
+  const ctx = m.context ? `, ${fmtCtx(m.context)} context window` : ''
+  const said = m.voices > 0
+    ? ` ${m.voices} ${m.voices === 1 ? 'engineer has' : 'engineers have'} reported on it, in ${m.reports} ${m.reports === 1 ? 'post' : 'posts'}.`
+    : ' No engineer reports on it yet.'
+  return `${m.name} pricing: ${price}${ctx}.${said}`
+}
+
 export default function ModelPage({ id }) {
-  const [state, setState] = useState({ m: null, err: null })
+  const [state, setState] = useState({ m: null, err: null, absent: false })
   useEffect(() => {
     let alive = true
     setState({ m: null, err: null })
     modelCatalogEntry(id)
       .then((m) => alive && setState({ m, err: null }))
-      .catch((e) => alive && setState({ m: null, err: e.message || 'This model could not be read.' }))
+      .catch((e) => alive && setState({ m: null, err: e.message || 'This model could not be read.', absent: e.status === 404 }))
     return () => { alive = false }
   }, [id])
   const m = state.m
   useHead(m ? catalogModelHead(m) : null)
 
+  // NOT A SOFT 404 (2026-10-21): a model the catalogue does not list is "not
+  // found" and noindex, not a page with an error line and the site's head.
+  if (state.absent) return <NotFound what="model" back={{ to: '/ai-models', label: 'All AI models' }} />
   if (state.err) {
     return (
       <div className="shell section-tight stack stack-2">
         <p className="cat-hint">{state.err}</p>
-        <Link to="/catalog">← All models</Link>
+        <Link to="/ai-models">← All models</Link>
       </div>
     )
   }
@@ -241,14 +263,16 @@ export default function ModelPage({ id }) {
   return (
     <div className="shell section-tight stack stack-4 mp2">
       <div className="stack stack-1">
-        <p className="crumb"><Link to="/catalog">Models</Link><i>/</i><Link to={`/catalog?provider=${encodeURIComponent(m.provider)}`}>{m.provider_name}</Link></p>
+        <p className="crumb"><Link to="/ai-models">Models</Link><i>/</i><Link to={`/ai-models?provider=${encodeURIComponent(m.provider)}`}>{m.provider_name}</Link></p>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>{m.name}</h1>
         <div className="cat-badges">
           {m.types.map((t) => <span key={t} className={`cat-type t-${t}`}>{typeLabel(t)}</span>)}
           {m.listed_at && <span className="cat-reads">Listed {fmtDate(m.listed_at)}</span>}
           <span className="cat-id">{m.id}</span>
         </div>
+        <p className="mp2-answer" style={{ maxWidth: '78ch', margin: 0 }}>{shortAnswer(m)}</p>
         {m.description && <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.description}</p>}
+        <Freshness modelIds={[m.id]} style={{ margin: 0 }} />
         <div className="mp2-actions">
           {m.in_registry
             ? <Link to={`/compare?ids=${encodeURIComponent(m.id)}`} className="btn btn-ghost">Compare with…</Link>

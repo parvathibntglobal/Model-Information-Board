@@ -121,11 +121,15 @@ def test_the_page_sends_no_text():
     assert re.findall(r"\b(list[A-Z]\w*)\(", page) == ["listRegistry"]
 
 
-def test_the_models_page_links_to_it_beside_compare():
+def test_the_tools_live_on_the_public_pages_not_the_signed_in_list():
+    """Since 2026-10-21 the cost calculator and the pricing table are reached
+    from the public Tools page, menu and footer; the signed-in models list no
+    longer carries its own buttons for them."""
     models = (WEB / "routes" / "Models.jsx").read_text(encoding="utf-8")
-    counter = models.index('to="/token-counter"')
-    finder = models.index('to="/model-finder"')
-    assert counter < finder < models.index("Compare models")
+    assert 'to="/token-counter"' not in models and 'to="/ai-model-pricing"' not in models
+    for f in ("routes/Tools.jsx", "components/Nav.jsx", "components/Footer.jsx"):
+        src = (WEB / f).read_text(encoding="utf-8")
+        assert "'/token-counter'" in src and "'/ai-model-pricing'" in src, f
 
 
 # ── will it fit, and a workload per month ─────────────────────────────────

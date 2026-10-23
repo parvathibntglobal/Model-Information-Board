@@ -20,6 +20,7 @@
 
 import { sessionToken } from '../auth'
 import { bust, cached } from './cache'
+import { markSharedNames } from '../compare/path'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -320,7 +321,12 @@ export const freshness = () => cached('freshness', () => request('/freshness'), 
 // (judge/reports.py). Cached like the board, which it is read from.
 export const reportsPage = () => cached('reports', () => request('/reports'), { ttl: BOARD_TTL_MS })
 // The Models pages: OpenRouter's whole list by provider and type (judge/catalog.py).
-export const modelCatalog = () => cached('catalog', () => request('/model-catalog'), { ttl: BOARD_TTL_MS })
+// Reading the catalogue also tells comparison addresses which model names two
+// providers share (compare/path.js `markSharedNames`).
+export const modelCatalog = () => cached('catalog', () => request('/model-catalog').then((v) => {
+  markSharedNames(v?.models)
+  return v
+}), { ttl: BOARD_TTL_MS })
 // One model's page: price, specs, registry facts and engineer voices.
 export const modelCatalogEntry = (id) => request(`/model-catalog/${modelPath(id)}`)
 

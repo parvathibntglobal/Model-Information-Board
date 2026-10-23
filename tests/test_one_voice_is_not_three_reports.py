@@ -65,8 +65,10 @@ class TestTheCountIsSourcesNotRows:
 
     def test_both_readers_select_the_author(self):
         # `board_sections` AND `evidence_for_model`. The model page inherited
-        # exactly the same inflation.
-        assert self._src().count("d.author_id") == 2
+        # exactly the same inflation. `voices_by_model` (2026-10-21, #552) is
+        # the third: every model's voices at once for judge/seo.py, held equal
+        # to `evidence_for_model` in tests/test_seo_indexable_pages.py.
+        assert self._src().count("d.author_id") == 3
 
     def test_reports_counts_distinct_documents(self):
         src = self._src()

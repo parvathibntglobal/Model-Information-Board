@@ -127,6 +127,53 @@ def test_a_broken_file_is_refused_with_every_reason(tmp_path):
     assert "category" in str(e.value) and "not in the glossary" in str(e.value)
 
 
+# ── the cache (2026-10-21, #552) ────────────────────────────────────────────
+
+
+def _count_reads(monkeypatch) -> list:
+    reads = []
+    real = glossary._read
+    monkeypatch.setattr(glossary, "_read", lambda p: reads.append(p) or real(p))
+    return reads
+
+
+def test_the_file_is_read_once_until_it_changes(monkeypatch):
+    """Parsing and checking cost ~117 ms a call; a page should not pay it."""
+    glossary._CACHE.clear()
+    reads = _count_reads(monkeypatch)
+    first = glossary.load()
+    assert glossary.load() == first and glossary.index()["terms"]
+    assert len(reads) == 1
+
+
+def test_an_edited_file_is_read_again_without_a_restart(tmp_path, monkeypatch):
+    f = tmp_path / "g.yaml"
+    f.write_text(yaml.safe_dump({"terms": []}), encoding="utf-8")
+    reads = _count_reads(monkeypatch)
+    assert glossary.load(f) == []
+    f.write_text(yaml.safe_dump({"terms": []}) + "\n# edited\n", encoding="utf-8")
+    glossary.load(f)
+    assert reads == [f, f], "a changed size or mtime must mean a fresh read"
+
+
+def test_what_one_caller_changes_the_next_is_not_served():
+    glossary._CACHE.clear()
+    mine = glossary.load()
+    mine[0]["term"] = "CHANGED"
+    mine[0]["aka"].append("CHANGED")
+    fresh = glossary.load()
+    assert fresh[0]["term"] != "CHANGED" and "CHANGED" not in fresh[0]["aka"]
+
+
+def test_a_broken_file_is_never_kept(tmp_path):
+    f = tmp_path / "g.yaml"
+    f.write_text(yaml.safe_dump({"terms": [{**GOOD, "category": "misc"}]}), encoding="utf-8")
+    for _ in range(2):
+        with pytest.raises(glossary.GlossaryError):
+            glossary.load(f)
+    assert f not in glossary._CACHE
+
+
 # ── the pages ───────────────────────────────────────────────────────────────
 
 

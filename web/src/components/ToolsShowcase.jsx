@@ -15,7 +15,7 @@ import { useInView } from './ui'
  *     the counts after each filter, the rows, and each model's input rate are
  *     what the tools themselves would show. Nothing is drawn until it is read.
  *   - Best AI model picker shows the top three for coding agents from
- *     `/reports` as of 12 Oct (the team's 2026-10-15 database), fixed so the
+ *     `/reviews` as of 12 Oct (the team's 2026-10-15 database), fixed so the
  *     preview always plays the same; it says the date on its face.
  *   - The token figure in the counter preview is an estimate (about four
  *     characters a token) and says "≈"; the tool counts with o200k exactly.
@@ -50,7 +50,7 @@ function useTyped(text, ms = 38, startAfter = 300) {
 
 // The picker's own flow, played out: "Search by" Jobs, type, choose the
 // suggestion, and the models engineers reported working arrive - the three
-// with the most people on coding agents in `/reports` as of 12 Oct.
+// with the most people on coding agents in `/reviews` as of 12 Oct.
 const PICKS = [
   { name: 'DeepSeek V4 Flash', by: 'DeepSeek', people: 13, pos: 15, neg: 0 },
   { name: 'GPT-6 Astra', by: 'OpenAI', people: 10, pos: 8, neg: 1 },
@@ -248,11 +248,11 @@ function TokenPreview({ models }) {
 /* ------------------------------------------------------------- the frame */
 
 const TOOLS = [
-  { key: 'picker', to: '/model-picker?job=coding-agent', path: '/model-picker', icon: '◎', name: 'Best AI model picker',
+  { key: 'picker', to: '/best-ai-model/coding-agent', path: '/best-ai-model', icon: '◎', name: 'Best AI model picker',
     line: 'Type a job, see which models engineers reported working.', cta: 'Open the picker', App: PickerPreview, live: false, ms: 9000 },
-  { key: 'specs', to: '/model-finder', path: '/model-finder', icon: '▤', name: 'Model specs finder',
-    line: 'Tick what you need: context, price, tools. Watch the list narrow.', cta: 'Open specs finder', App: SpecsPreview, live: true },
-  { key: 'tokens', to: '/token-counter', path: '/token-counter', icon: '#', name: 'Token counter',
+  { key: 'specs', to: '/ai-model-pricing', path: '/ai-model-pricing', icon: '▤', name: 'AI model pricing & specs table',
+    line: 'Tick what you need: context, price, tools. Watch the list narrow.', cta: 'Open the pricing & specs table', App: SpecsPreview, live: true },
+  { key: 'tokens', to: '/token-counter', path: '/token-counter', icon: '#', name: 'LLM cost calculator',
     line: 'Paste a prompt, see what it costs on each model.', cta: 'Open token counter', App: TokenPreview, live: true },
 ]
 

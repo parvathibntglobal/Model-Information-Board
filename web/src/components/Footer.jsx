@@ -14,7 +14,7 @@ import { fmtDate, modelPagePath } from '../catalog/format'
  *
  * POPULAR MODELS ARE READ, NOT TYPED: the six models with the most engineer
  * voices in `/model-catalog` (the All models page's own order), each opening
- * its /catalog page. The hand-typed list went stale as soon as the data moved.
+ * its /ai-models page. The hand-typed list went stale as soon as the data moved.
  * The column is left out if the catalogue cannot be read.
  *
  * THE PLATFORMS ARE READ TOO: from `/faq`, the same public-view list the FAQ's
@@ -22,27 +22,28 @@ import { fmtDate, modelPagePath } from '../catalog/format'
  */
 
 const TOOLS = [
-  { t: 'Best AI model picker', to: '/model-picker' },
-  { t: 'Model specs finder', to: '/model-finder' },
-  { t: 'Token counter', to: '/token-counter' },
+  { t: 'Best AI model picker', to: '/best-ai-model' },
+  { t: 'AI model pricing & specs table', to: '/ai-model-pricing' },
+  { t: 'LLM cost calculator', to: '/token-counter' },
   { t: 'AI model comparison', to: '/compare' },
 ]
 
 const MODELS = [
-  { t: 'All models', to: '/catalog' },
-  { t: 'New releases', to: '/catalog/new' },
-  { t: 'Most reported', to: '/reports/models' },
+  { t: 'All models', to: '/ai-models' },
+  { t: 'Latest AI model releases', to: '/ai-models/latest' },
+  { t: 'AI model reviews', to: '/reviews' },
   { t: 'Evidence feed', to: '/evidence' },
-  { t: 'By job', to: '/reports/jobs' },
-  { t: 'By capability', to: '/reports/capabilities' },
+  { t: 'By job', to: '/reviews/jobs' },
+  { t: 'By capability', to: '/reviews/capabilities' },
 ]
 
 const SITE = [
   { t: 'Home', to: '/' },
   { t: 'Blogs', to: '/blogs' },
-  { t: 'Glossary', to: '/glossary' },
+  { t: 'AI glossary', to: '/glossary' },
   { t: 'Tools', to: '/tools' },
   { t: 'Discussions', to: '/discussions' },
+  { t: 'Methodology', to: '/methodology' },
   { t: 'FAQ', href: '/#faq' },
 ]
 

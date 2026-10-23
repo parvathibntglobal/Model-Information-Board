@@ -7,9 +7,13 @@
 # models (judge/scheduler.py, contract/scheduler.yaml) and runs fetch_model for
 # each, exactly as the Fetch button does.
 #
-# OFF UNTIL A PERSON TURNS IT ON. Nothing harvests unless the repository
-# variable SCHEDULER_ENABLED is `1`. Unset, the job ends green having done
-# nothing - a switch that is off is not a failure.
+# ON SINCE 2026-10-21, AND STILL A PERSON'S SWITCH. Nothing harvests unless the
+# repository variable SCHEDULER_ENABLED is `1`. Unset, the job ends green having
+# done nothing - a switch that is off is not a failure.
+#
+# NIGHTLY, AND EACH MODEL EVERY THIRD NIGHT (contract/scheduler.yaml
+# `cadence_hours: 60`): every tracked model twice a week or more, about 11 a
+# night, rather than all of them in one run that would not fit the job.
 #
 # THREE THINGS AN ACTION CHANGES, stated so nobody is surprised by them:
 #   1. THE 6-HOUR JOB LIMIT. A first fetch at the 100-thread cap measured
