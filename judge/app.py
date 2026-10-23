@@ -2924,8 +2924,34 @@ def evidence_feed(model: str, section: str | None = None, slug: str | None = Non
                               prompt_version=cfg["paraphrase"]["prompt_version"])
     except items.UnknownModel:
         raise HTTPException(status_code=404, detail=f"{model} is not in the registry") from None
+    except items.NotSeated as e:
+        return _not_seated(e)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+def _not_seated(e: LookupError):
+    # Rule 6: say why the page is empty, not only that it is. `seated: false`
+    # tells the page this is a real model whose feed is withheld, not a bad
+    # address - both are 404, and only one is "there is no model here".
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=404, content={
+        "detail": f"{e.args[0]} is not on the models page, so its reports are stored but "
+                  f"not shown in the evidence feed.",
+        "seated": False,
+    })
+
+
+@app.get("/feed/models")
+def evidence_feed_models() -> dict:
+    """The ids, in both shapes, of the models whose feed is shown - the models
+    page's seated list (judge/feed/items.py `seated_keys`). Pages read it to
+    link a count into the feed only where the feed will answer. Public."""
+    from judge.feed import items
+
+    with _conn() as conn:
+        return {"ids": sorted(items.seated_keys(conn))}
 
 
 @app.get("/feed/summary")
@@ -2939,6 +2965,8 @@ def evidence_feed_summary(model: str) -> dict:
             return summary.current(conn, model)
     except items.UnknownModel:
         raise HTTPException(status_code=404, detail=f"{model} is not in the registry") from None
+    except items.NotSeated as e:
+        return _not_seated(e)
 
 
 @app.get("/feed/summaries")

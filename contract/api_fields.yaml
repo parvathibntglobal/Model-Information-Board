@@ -318,6 +318,11 @@ fields:
     routes:
     - /discussions/delete
     state: consumed
+  ids:
+    reviewed: false
+    routes:
+    - /feed/models
+    state: consumed
   items:
     reviewed: false
     routes:

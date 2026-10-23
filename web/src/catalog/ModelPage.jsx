@@ -9,6 +9,7 @@ import { DAYS_PER_MONTH, fmtUsd as fmtCost, workloadCost } from '../tokens/cost'
 import PersonaPicker from '../tokens/PersonaPicker'
 import { PERSONAS } from '../tokens/personas'
 import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
+import FeedLink from '../components/FeedLink'
 import { typeLabel } from './types'
 
 /**
@@ -115,10 +116,10 @@ function Voices({ m }) {
         <h2 className="mp2-h">What engineers report</h2>
         {/* EVERY COUNT HERE OPENS ITS REPORTS (2026-10-21): the evidence feed,
             narrowed the way the number was counted. */}
-        <Link to={evidencePath(m.id)} className="mp2-count ev-open"
+        <FeedLink to={evidencePath(m.id)} className="mp2-count ev-open"
               title={`Read the ${m.reports} reports behind this count`}>
           <b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} reports
-        </Link>
+        </FeedLink>
       </div>
       {axes == null ? <div className="skel" style={{ height: 120 }} /> : (
         <ul className="mp2-axes">
@@ -127,14 +128,14 @@ function Voices({ m }) {
             const at = { section: SECTION_OF_KIND[a.kind], slug: a.slug }
             // A zero opens nothing: an empty list says less than the 0 does.
             const side = (k, cls) => (s[k] ? (
-              <Link to={evidencePath(m.id, { ...at, polarity: k })} className={`${cls} ev-open`}
-                    title={`Read the ${s[k]} ${k} reports on ${a.name}`}>{s[k]}</Link>
+              <FeedLink to={evidencePath(m.id, { ...at, polarity: k })} className={`${cls} ev-open`}
+                    title={`Read the ${s[k]} ${k} reports on ${a.name}`}>{s[k]}</FeedLink>
             ) : <span className={cls}>0</span>)
             return (
               <li key={`${a.kind}:${a.slug}`}>
                 <span className="mp2-kind">{KIND_LABEL[a.kind] || a.kind}</span>
-                <Link to={evidencePath(m.id, at)} className="mp2-axis ev-open"
-                      title={`Read the ${row.reports} reports on ${a.name}`}>{a.name}</Link>
+                <FeedLink to={evidencePath(m.id, at)} className="mp2-axis ev-open"
+                      title={`Read the ${row.reports} reports on ${a.name}`}>{a.name}</FeedLink>
                 {/* A METRIC CARRIES NO POLARITY (2026-10-15): a stated figure is
                     not praised or criticised, so its row shows no split. */}
                 {a.kind === 'metric' ? <span /> : (
@@ -142,10 +143,10 @@ function Voices({ m }) {
                     {side('positive', 'p')}{side('negative', 'n')}{side('neutral', 'z')}
                   </span>
                 )}
-                <Link to={evidencePath(m.id, at)} className="mp2-v ev-open"
+                <FeedLink to={evidencePath(m.id, at)} className="mp2-v ev-open"
                       title={`Read the reports these ${row.voices} voices wrote on ${a.name}`}>
                   {row.voices} {row.voices === 1 ? 'voice' : 'voices'}
-                </Link>
+                </FeedLink>
               </li>
             )
           })}

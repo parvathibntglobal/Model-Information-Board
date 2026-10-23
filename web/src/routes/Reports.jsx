@@ -9,6 +9,7 @@ import { useHead } from '../seo/head'
 import { inSentence, reportsIndex } from '../seo/pages'
 import { comparePath } from '../compare/path'
 import { SECTION_OF_KIND, evidencePath } from '../catalog/format'
+import SeatedFeedLink from '../components/FeedLink'
 
 /**
  * REPORTS (2026-10-14): the demo's Reports page (model-information-board-home-
@@ -109,11 +110,12 @@ function build(axes, min, multi) {
 // ── into the evidence feed ──────────────────────────────────────────────────
 // A count opens its reports. Inside a tile or row that is itself clickable, so
 // the click and Enter stop here rather than also opening the tile.
+// A link only for a seated model (components/FeedLink.jsx).
 const stop = (e) => e.stopPropagation()
-function FeedLink({ to, title, className = 'ev-open', style, children }) {
+function FeedLink({ to, title, className = 'ev-open', style, fallback, children }) {
   return (
-    <Link to={to} className={className} style={style} title={title} aria-label={title}
-          onClick={stop} onKeyDown={stop}>{children}</Link>
+    <SeatedFeedLink to={to} className={className} style={style} title={title} aria-label={title}
+                    fallback={fallback} onClick={stop} onKeyDown={stop}>{children}</SeatedFeedLink>
   )
 }
 
@@ -318,7 +320,7 @@ function ModelView({ v, id, min, multi, href }) {
           <h2>{shortName(r)}</h2>
           {r.canonical && <div className="rp-mid">{r.canonical}</div>}
         </div>
-        <Link to={evidencePath(modelId(r))} className="ev-open">Every report on {shortName(r)} →</Link>
+        <FeedLink to={evidencePath(modelId(r))} fallback={null}>Every report on {shortName(r)} →</FeedLink>
       </div>
       <div className="rp-chips">
         {KINDS.map((k) => { const n = r.axes[k.id].length; return <span key={k.id} className="rp-chip">{n} {n === 1 ? k.one : k.label.toLowerCase()}</span> })}

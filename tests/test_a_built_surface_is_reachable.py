@@ -85,6 +85,9 @@ NOT_ADMIN_PANELS = {
     # Hover previews (2026-10-15): mounted once by App.jsx for the whole site,
     # not a panel - it renders a card over any link to a model or a topic.
     "HoverPreview",
+    # A count's link into the evidence feed, for a seated model only
+    # (2026-10-23): mounted by the Models pages, Compare, Reports and the blogs.
+    "FeedLink",
 }
 
 

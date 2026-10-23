@@ -129,8 +129,9 @@ PUBLIC_READ_PATHS = frozenset({
     # (judge/feed/). Our paraphrases, tags, dates and sources - an official
     # embed for Reddit and X, a link otherwise - and never a quote, under
     # contract/publication.yaml `evidence_feed`. Drafts (/feed/summaries)
-    # still need a token.
-    "/feed", "/feed/summary",
+    # still need a token. /feed/models (2026-10-23) is the seated ids the
+    # pages link into the feed for - model ids only.
+    "/feed", "/feed/summary", "/feed/models",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

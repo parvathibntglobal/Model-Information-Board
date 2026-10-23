@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { modelCatalog } from '../api'
 import ModelPage from '../catalog/ModelPage'
 import { evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath } from '../catalog/format'
+import FeedLink from '../components/FeedLink'
 import { MODEL_TYPES, typeLabel } from '../catalog/types'
 import { useHead } from '../seo/head'
 import { catalogIndex } from '../seo/pages'
@@ -66,10 +67,13 @@ function ModelCard({ m, providerName, showProvider = true }) {
       <div className="cat-foot">
         {m.voices
           ? (
-            <Link to={evidencePath(m.id)} className="cat-voices ev-open cat-raised"
-                  title={`Read the ${m.reports} ${m.reports === 1 ? 'report' : 'reports'} behind this count`}>
+            <FeedLink to={evidencePath(m.id)} className="cat-voices ev-open cat-raised"
+                  title={`Read the ${m.reports} ${m.reports === 1 ? 'report' : 'reports'} behind this count`}
+                  // Unseated: plain text, NOT raised - a raised span would take the
+                  // card's click on that spot and open nothing.
+                  fallback={<span className="cat-voices"><b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} {m.reports === 1 ? 'report' : 'reports'}</span>}>
               <b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} {m.reports === 1 ? 'report' : 'reports'}
-            </Link>
+            </FeedLink>
           )
           : <span className="cat-na">No engineer voices yet</span>}
         <span className="cat-open">Open →</span>

@@ -6,6 +6,7 @@ import { useHead } from '../seo/head'
 import { liveDisagree as disagreeHead, liveWall as wallHead } from '../seo/pages'
 import { SECTION_OF, day, engineers, glossaryPath, modelHref, shortName, topicHref, wallPath, problems as problemsOf, reports } from './live'
 import { evidencePath } from '../catalog/format'
+import FeedLink from '../components/FeedLink'
 
 /**
  * WHERE ENGINEERS DISAGREE, AND ONE CLAIM WALL (2026-10-15).
@@ -159,7 +160,7 @@ function QuoteCard({ q }) {
 // feed a report that took no side, and those are different populations.
 function SideCount({ to, n }) {
   return n > 0 && to
-    ? <Link to={to} className="ev-open" title={`Open the reports these ${engineers(n)} wrote`}>{engineers(n)}</Link>
+    ? <FeedLink to={to} className="ev-open" title={`Open the reports these ${engineers(n)} wrote`}>{engineers(n)}</FeedLink>
     : <>{engineers(n)}</>
 }
 

@@ -9,6 +9,7 @@ import { comparePath, isReadable, resolveSlugs, slugOf } from '../compare/path'
 import Freshness from '../components/Freshness'
 import NotFound from '../components/NotFound'
 import { SECTION_OF_KIND, evidencePath } from '../catalog/format'
+import FeedLink from '../components/FeedLink'
 
 /**
  * BEST AI MODEL PICKER (2026-10-14), from model-alternatives-demo.html: the
@@ -179,8 +180,8 @@ const Badge = ({ ph }) => <span className={`mp-badge mp-b-${ph.c}`}><i />{ph.t}<
 // No axis known, no link: a number is never pointed at a guess.
 const feedFor = (m, axis, polarity) => evidencePath(modelId(m), { section: SECTION_OF_KIND[axis.kind], slug: axis.slug, polarity })
 const Side = ({ m, axis, p, n, className }) => (axis && n > 0
-  ? <Link to={feedFor(m, axis, p)} className={`${className} ev-open`} onClick={(e) => e.stopPropagation()}
-          title={`Open the ${n} ${p} ${n === 1 ? 'report' : 'reports'} behind this count`}>{n}</Link>
+  ? <FeedLink to={feedFor(m, axis, p)} className={`${className} ev-open`} fallback={<b className={className}>{n}</b>} onClick={(e) => e.stopPropagation()}
+          title={`Open the ${n} ${p} ${n === 1 ? 'report' : 'reports'} behind this count`}>{n}</FeedLink>
   : <b className={className}>{n}</b>)
 const Counts = ({ s, m, axis }) => (
   <span className="mp-counts" title="positive · negative · neutral reports">
@@ -246,11 +247,11 @@ function ModelCard({ m, refPrice, price, cmp, why, axis }) {
       </div>
       <div className="mp-card-mid" title={splitTitle(m.split, m.newest)}>
         {axis
-          ? <Link to={feedFor(m, axis)} className="ev-chiplink" title={`Open the ${plural(m.reports, 'report')} behind this split`}><Donut m={m} /></Link>
+          ? <FeedLink to={feedFor(m, axis)} className="ev-chiplink" title={`Open the ${plural(m.reports, 'report')} behind this split`}><Donut m={m} /></FeedLink>
           : <Donut m={m} />}
         <div className="mp-card-facts">
           <div className="mp-people">{axis
-            ? <Link to={feedFor(m, axis)} className="ev-open" title={`Open the ${plural(m.reports, 'report')} these people wrote`}>{peopleText(m)}</Link>
+            ? <FeedLink to={feedFor(m, axis)} className="ev-open" title={`Open the ${plural(m.reports, 'report')} these people wrote`}>{peopleText(m)}</FeedLink>
             : peopleText(m)}</div>
           {m.voices < THIN && <span className="mp-thin">thin evidence</span>}
           {stale && <div className="mp-stale">{stale}</div>}
@@ -379,7 +380,7 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
     (c) => {
       const text = `${plural(c.m.split.positive, 'positive report')}${c.on ? ` on ${c.on}` : ''}`
       return c.axis
-        ? <Link to={feedFor(c.m, c.axis, 'positive')} className="ev-open" title={`Open the ${text}`}>{text}</Link>
+        ? <FeedLink to={feedFor(c.m, c.axis, 'positive')} className="ev-open" title={`Open the ${text}`}>{text}</FeedLink>
         : text
     })
   add([...working].filter((c) => priceOf(c.m) != null).sort((a, b) => priceOf(a.m) - priceOf(b.m) || b.m.voices - a.m.voices)[0], 'Cheapest reported working',
@@ -400,7 +401,7 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
               <div className="mp-pick-why">
                 {why(c) && <>{why(c)} · </>}
                 {c.axis
-                  ? <Link to={feedFor(c.m, c.axis)} className="ev-open" title={`Open the ${plural(c.m.reports, 'report')} on ${c.on}`}>{peopleText(c.m)}</Link>
+                  ? <FeedLink to={feedFor(c.m, c.axis)} className="ev-open" title={`Open the ${plural(c.m.reports, 'report')} on ${c.on}`}>{peopleText(c.m)}</FeedLink>
                   : peopleText(c.m)}
               </div>
               <div className="mp-pick-foot">

@@ -68,6 +68,44 @@ def resolve_model(conn, model_id: str) -> dict:
     return {"key": row[0], "canonical": row[1], "label": row[2]}
 
 
+# STORED FOR EVERY MODEL, SHOWN FOR THE SEATED ONES (2026-10-23). Paraphrases
+# are written for every model with reports - 130 on the local copy that day, 26
+# of them seated - but the public feed shows only the models the models page
+# lists. "Seated" is that page's own rule (judge/tracked.py `all_tracked`), read
+# here rather than copied, so seating a model in contract/tracked_models.yaml
+# opens its feed with nothing else to change.
+#
+# ⚠ EITHER ID SHAPE. A tracked entry names a row by `id` OR `canonical_id`:
+#   Fable 5.1 is `anthropic/claude-fable-5-1` in the file and
+#   `anthropic/claude-fable-5.1` as its canonical id. Comparing one shape found
+#   it unseated with 194 paraphrased reports.
+
+
+class NotSeated(LookupError):
+    """The model has a registry row but is not on the models page."""
+
+
+def _seated_names(conn) -> list[str]:
+    from judge.tracked import all_tracked
+
+    return [t.registry for t in all_tracked(conn) if t.registry]
+
+
+def seated_keys(conn) -> set[str]:
+    """Every id, in both shapes, of a model the models page lists."""
+    names = _seated_names(conn)
+    rows = conn.execute(
+        "SELECT id, canonical_id FROM model_version WHERE id = ANY(%s) OR canonical_id = ANY(%s)",
+        (names, names),
+    ).fetchall()
+    return {key for row in rows for key in row if key}
+
+
+def require_seated(conn, model: dict) -> None:
+    if not {model["key"], model["canonical"]} & seated_keys(conn):
+        raise NotSeated(model["label"])
+
+
 def model_entries(conn, model: dict) -> list[dict]:
     """Every non-declined entry about the model, with its document."""
     rows = conn.execute(
@@ -265,6 +303,7 @@ def feed(
 
     terms = publication.evidence_feed_terms()
     model = resolve_model(conn, model_id)
+    require_seated(conn, model)
     category_name = None
     if category is not None:
         narrowed, category_name = _in_category(model_entries(conn, model), category)

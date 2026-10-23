@@ -11,6 +11,7 @@ import { useHead } from '../seo/head'
 import { comparePage as compareHead } from '../seo/pages'
 import { comparePath, isReadable, parsePair, resolveSlugs } from '../compare/path'
 import { evidencePath } from '../catalog/format'
+import FeedLink from '../components/FeedLink'
 
 //: The endpoint's own cap (`COMPARE_MAX` in judge/app.py). Repeated here rather
 //: than fetched because the picker has to refuse BEFORE the request: a reader
@@ -580,8 +581,8 @@ function Polarity({ split, open }) {
         // EACH CHIP OPENS ITS REPORTS (2026-10-21): the evidence feed, one side.
         // These are ENTRIES; the feed lists the reports holding them and says both.
         return open && k !== 'other' ? (
-          <Link key={k} to={open(k)} className="ev-chiplink"
-                title={`Open the reports behind these ${split[k]} ${k} entries`}>{badge}</Link>
+          <FeedLink key={k} to={open(k)} className="ev-chiplink" fallback={badge}
+                title={`Open the reports behind these ${split[k]} ${k} entries`}>{badge}</FeedLink>
         ) : badge
       })}
     </span>
@@ -660,12 +661,12 @@ function HeadToHead({ models }) {
               {m.canonical_id && <span className="mono dim h2h-id">{m.canonical_id}</span>}
               {split.total ? (
                 <>
-                  <Link to={evidencePath(feedId(m))} className="tnum h2h-n ev-open"
+                  <FeedLink to={evidencePath(feedId(m))} className="tnum h2h-n ev-open"
                         title={`Read the ${pol.documents ?? split.total} posts behind these counts`}>
                     <b>{split.total}</b> {split.total === 1 ? 'entry' : 'entries'}
                     {pol.documents != null && <> · <b>{pol.documents}</b> {pol.documents === 1 ? 'post' : 'posts'}</>}
                     {platforms > 0 && <> · <b>{platforms}</b> {platforms === 1 ? 'platform' : 'platforms'}</>}
-                  </Link>
+                  </FeedLink>
                   <Polarity split={split} open={(k) => evidencePath(feedId(m), { polarity: k })} />
                 </>
               ) : (
@@ -777,10 +778,10 @@ function PriceAndSpecs({ models }) {
 function CountLink({ id, category, polarity, n }) {
   if (!n) return <>{n} {polarity}</>
   return (
-    <Link to={evidencePath(id, { category, polarity })} className="ev-open"
+    <FeedLink to={evidencePath(id, { category, polarity })} className="ev-open"
           title={`Open the ${n} ${polarity} ${n === 1 ? 'report' : 'reports'} behind this count`}>
       {n} {polarity}
-    </Link>
+    </FeedLink>
   )
 }
 
@@ -799,18 +800,18 @@ function ScoreCell({ c, id }) {
   if (c.state === 'too_few') {
     return (
       <>
-        <Link to={evidencePath(id, { category: c.key })} className="cs-few ev-open" title={all}>
+        <FeedLink to={evidencePath(id, { category: c.key })} className="cs-few ev-open" title={all}>
           Too few reports to score
-        </Link>
+        </FeedLink>
         {counts}
       </>
     )
   }
   return (
     <>
-      <Link to={evidencePath(id, { category: c.key })} className="cs-score tnum ev-open" title={all}>
+      <FeedLink to={evidencePath(id, { category: c.key })} className="cs-score tnum ev-open" title={all}>
         {c.score}<span className="cs-of">/100</span>
-      </Link>
+      </FeedLink>
       {counts}
     </>
   )

@@ -37,6 +37,7 @@ from judge.feed.items import (
     excerpts_digest,
     model_entries,
     report_polarity,
+    require_seated,
     resolve_model,
 )
 from judge.feed.llm import FeedModelUnavailable, call_tool
@@ -382,8 +383,10 @@ def _shape(conn, model: dict, row) -> dict:
 
 
 def current(conn, model_id: str) -> dict:
-    """What the public Summary tab shows: the approved summary, or only its state."""
+    """What the public Summary tab shows: the approved summary, or only its state.
+    Refuses an unseated model (items.NotSeated), as the feed does."""
     model = resolve_model(conn, model_id)
+    require_seated(conn, model)
     row = conn.execute(
         "SELECT id, paragraphs, flags, reports_used, reports_available, newest_report_at, "
         "       proposer_model, generated_at, reviewed_at, review_note, state "

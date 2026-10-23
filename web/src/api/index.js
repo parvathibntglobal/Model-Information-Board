@@ -411,6 +411,9 @@ export const evidenceFeed = (model, { section, slug, category, polarity, page } 
   return request(`/feed?${q}`)
 }
 export const evidenceSummary = (model) => request(`/feed/summary?${new URLSearchParams({ model })}`)
+// The models whose feed is shown (the models page's seated list), in both id
+// shapes. Cached like the board: it changes when a model is seated, not per view.
+export const feedModels = () => cached('feed-models', () => request('/feed/models'), { ttl: BOARD_TTL_MS })
 export const feedSummaries = (state = 'pending') => request(`/feed/summaries?state=${encodeURIComponent(state)}`)
 export const draftFeedSummary = (model) => request('/feed/summaries/draft', { method: 'POST', body: { model } })
 export const reviewFeedSummary = (id, decision, note) =>

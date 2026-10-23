@@ -16,6 +16,9 @@ What these hold, in the order a reader would worry about them:
 
     A SUMMARY IS SEEN ONLY ONCE A PERSON APPROVED IT.
 
+    STORED FOR EVERY MODEL, SHOWN FOR THE SEATED ONES. The fixture model is
+    seated by default (`_seated`); the tests at the end unseat it.
+
 Requires a database for the middle sections. See docs/dev-database.md.
 """
 
@@ -187,6 +190,13 @@ class TestSummaryChecks:
 
 
 # ── the database ──────────────────────────────────────────────────────────
+
+
+@pytest.fixture(autouse=True)
+def _seated(monkeypatch):
+    """The fixture model is on the models page unless a test says otherwise -
+    contract/tracked_models.yaml names real models, not `acme/text-a`."""
+    monkeypatch.setattr(items, "_seated_names", lambda conn: ["acme/text-a"])
 
 
 @pytest.fixture(autouse=True)
@@ -694,3 +704,54 @@ def test_a_bare_number_citation_is_its_report_id(conn):
     bad = {"paragraphs": [{"text": "Tool selection is described as strong.", "cites": ["99"]}]}
     out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(bad, bad))
     assert not out["stored"] and "not given" in out["refused"]
+
+
+# ── stored for every model, shown for the seated ones (2026-10-23) ───────────
+
+
+def test_an_unseated_model_is_stored_but_not_shown(conn, monkeypatch):
+    """A model off the models page keeps its rows; the feed and the public
+    summary refuse it with a reason, never an empty list (rule 6)."""
+    monkeypatch.setattr(items, "_seated_names", lambda conn: [])
+    with pytest.raises(items.NotSeated):
+        _feed(conn)
+    with pytest.raises(items.NotSeated):
+        summary.current(conn, "acme/text-a")
+
+
+def test_seated_by_row_id_is_seated_by_canonical_id_too(conn, monkeypatch):
+    """contract/tracked_models.yaml names Fable 5.1 by its row id
+    (`claude-fable-5-1`) and links use its canonical id (`claude-fable-5.1`).
+    Comparing one shape found it unseated with 194 paraphrased reports."""
+    monkeypatch.setattr(items, "_seated_names", lambda conn: ["mv_a"])
+    assert items.seated_keys(conn) == {"mv_a", "acme/text-a"}
+    assert _feed(conn)["counts"]["reports"] == 5
+
+
+def test_the_feed_api_says_why_an_unseated_model_is_withheld(conn, monkeypatch):
+    import contextlib
+
+    from fastapi.testclient import TestClient
+
+    from judge import app as app_module
+
+    monkeypatch.setattr(app_module, "_conn", lambda: contextlib.nullcontext(conn))
+    client = TestClient(app_module.app)
+    assert client.get("/feed/models").json() == {"ids": ["acme/text-a", "mv_a"]}
+
+    monkeypatch.setattr(items, "_seated_names", lambda conn: [])
+    for path in ("/feed?model=acme/text-a", "/feed/summary?model=acme/text-a"):
+        r = client.get(path)
+        assert r.status_code == 404, path
+        assert r.json()["seated"] is False
+        assert "not on the models page" in r.json()["detail"]
+    # A bad address is still a bad address, and says so differently.
+    r = client.get("/feed?model=nobody/none")
+    assert r.status_code == 404 and "seated" not in r.json()
+    assert client.get("/feed/models").json() == {"ids": []}
+
+
+def test_the_seated_list_is_a_public_read():
+    from judge.gate import PUBLIC_READ_PATHS
+
+    assert "/feed/models" in PUBLIC_READ_PATHS

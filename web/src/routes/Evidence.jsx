@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { evidenceFeed, evidenceSummary, modelCatalog } from '../api'
+import { evidenceFeed, evidenceSummary, feedModels, modelCatalog } from '../api'
 import { evidencePath, modelPagePath } from '../catalog/format'
 import { PolarityChip, Posted, Report, SourceLine } from '../evidence/parts'
 import { useHead } from '../seo/head'
@@ -11,7 +11,7 @@ import '../styles/evidence.css'
  * THE EVIDENCE FEED (2026-10-21, PROPOSED): every report behind a model's
  * counts, in our own words, newest first, each with its source below it.
  *
- *   /evidence                  pick a model (those with engineer voices)
+ *   /evidence                  pick a model (seated, with engineer voices)
  *   /evidence/<vendor>/<model> its feed; ?section=&slug= narrows it to one job,
  *                              capability or metric, ?polarity= to one side,
  *                              ?tab=summary opens the approved summary
@@ -33,13 +33,20 @@ const REFRESH_MS = 5 * 60 * 1000
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 
+// THE SEATED MODELS ONLY (2026-10-23): every model with reports has its
+// paraphrases stored, and the feed shows the ones the models page lists
+// (judge/feed/items.py `seated_keys`). Not-yet-loaded or unreadable seated list
+// shows the error, never every model (rule 6).
 function Picker() {
   const [state, setState] = useState({ models: null, err: null })
   const [q, setQ] = useState('')
   useEffect(() => {
     let alive = true
-    modelCatalog()
-      .then((v) => alive && setState({ models: (v.models || []).filter((m) => m.voices > 0), err: null }))
+    Promise.all([modelCatalog(), feedModels()])
+      .then(([v, s]) => {
+        const seated = new Set(s.ids || [])
+        alive && setState({ models: (v.models || []).filter((m) => m.voices > 0 && seated.has(m.id)), err: null })
+      })
       .catch((e) => alive && setState({ models: null, err: e.message || 'The models could not be read.' }))
     return () => { alive = false }
   }, [])
@@ -267,7 +274,7 @@ export default function Evidence() {
     setBase(null)
     evidenceFeed(id, { section, slug, category })
       .then((d) => alive && setBase(d))
-      .catch((e) => alive && setBase({ notFound: e.status === 404, err: e.message, model: { label: id, canonical: id } }))
+      .catch((e) => alive && setBase({ notFound: e.status === 404 && !(e.body && e.body.seated === false), err: e.message, model: { label: id, canonical: id } }))
     return () => { alive = false }
   }, [id, section, slug, category])
   const model = base && !base.err ? base.model : null
