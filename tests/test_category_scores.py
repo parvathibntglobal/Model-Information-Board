@@ -174,8 +174,13 @@ CODE = "\n".join(
 
 
 def test_the_counts_sit_beside_every_score():
+    # Since 2026-10-21 each count is a link to the reports behind it in the
+    # evidence feed (CountLink), which still prints "<n> <polarity>".
     cell = CODE.split("function ScoreCell")[1].split("\nfunction ")[0]
-    assert "{c.positive} positive · {c.negative} negative · {c.neutral} neutral" in cell
+    for pol in ("positive", "negative", "neutral"):
+        assert f'polarity="{pol}" n={{c.{pol}}}' in cell, pol
+    link = CODE.split("function CountLink")[1].split("\nfunction ")[0]
+    assert link.count("{n} {polarity}") == 2  # linked, and plain when zero
     scored = cell.split("cs-score")[1]
     assert "{counts}" in scored
 

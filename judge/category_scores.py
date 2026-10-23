@@ -33,20 +33,39 @@ from judge.config import board_ordering_z, category_scores, slug_parents
 from judge.store.board_entries import _wilson_lower
 
 
-def score_categories(rows, cfg: dict, leaf_parent: dict, z: float) -> list[dict]:
-    """rows: (section, slug, parent_proposed, document_id, polarity) for ONE model."""
+def filer(cfg: dict, leaf_parent: dict):
+    """`(section, slug, parent_proposed) -> category key or None`: where one
+    entry is filed. ONE DEFINITION, used by the score here and by the evidence
+    feed's category filter (judge/feed/items.py), so the reports a category's
+    counts are made of and the reports its link opens cannot drift apart."""
     headings = {s: set(m.values()) for s, m in leaf_parent.items()}
     owner = cfg["parent_to_category"]
-    docs: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
-    for section, slug, proposed, doc, polarity in rows:
+
+    def file(section: str, slug: str | None, proposed: str | None) -> str | None:
         parent = leaf_parent.get(section, {}).get((slug or "").strip().lower())
         if parent is None and proposed in headings.get(section, set()):
             parent = proposed
-        key = owner.get((section, parent)) if parent else None
+        return owner.get((section, parent)) if parent else None
+
+    return file
+
+
+def counted_polarity(section: str, polarity: str, cfg: dict) -> str:
+    """The polarity an entry counts with in a category: its own in a scored
+    section, `neutral` otherwise (a metric's polarity is never scored)."""
+    scored = section in cfg["scored_sections"] and polarity in ("positive", "negative")
+    return polarity if scored else "neutral"
+
+
+def score_categories(rows, cfg: dict, leaf_parent: dict, z: float) -> list[dict]:
+    """rows: (section, slug, parent_proposed, document_id, polarity) for ONE model."""
+    file = filer(cfg, leaf_parent)
+    docs: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
+    for section, slug, proposed, doc, polarity in rows:
+        key = file(section, slug, proposed)
         if key is None:
             continue
-        scored = section in cfg["scored_sections"] and polarity in ("positive", "negative")
-        docs[key][doc].add(polarity if scored else "neutral")
+        docs[key][doc].add(counted_polarity(section, polarity, cfg))
     out = []
     for cat in cfg["categories"]:
         d = docs.get(cat["key"], {})

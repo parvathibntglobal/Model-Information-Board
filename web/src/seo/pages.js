@@ -346,6 +346,29 @@ export function reportsIndex(section = null, item = null, items = []) {
 }
 
 /**
+ * `/evidence` and one model's feed (2026-10-21, PROPOSED). NOINDEX while the
+ * feed is proposed: its paraphrases are written by a model and its terms are
+ * not ratified (contract/publication.yaml `evidence_feed`), so it is not put in
+ * front of a search engine before they are.
+ */
+export function evidenceHead(label = null, id = null) {
+  if (!label || !id) {
+    return {
+      title: fullTitle('Evidence feed: the reports behind every count'),
+      description: 'Every report behind the counts on this site, in our own words, newest first, each with a link to its source.',
+      canonical: '/evidence',
+      noindex: true,
+    }
+  }
+  return {
+    title: fullTitle(`${label}: the reports behind the counts`),
+    description: clip(`Every report engineers wrote about ${label}, in our own words, newest first, each with its source.`),
+    canonical: `/evidence/${id}`,
+    noindex: true,
+  }
+}
+
+/**
  * `/discussions` (2026-10-20): readers' own experience with AI models, by
  * topic. INDEXABLE NOW - the page carries its topics and their copy whether or
  * not any post has been approved yet, so it is never an empty result. Measured

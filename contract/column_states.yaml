@@ -900,6 +900,117 @@ columns:
     url:
       reviewed: false
       state: read
+  feed_embed:
+    document_id:
+      reviewed: false
+      state: read
+      why: 'The Reddit/X document this cites. Written by scripts/build_evidence_feed.py embeds(), read by judge/feed/items.py feed() and summary.py _cited(). Migration 20261021T1000 (PROPOSED).'
+    outcome:
+      reviewed: false
+      state: read
+      why: 'embeddable | no_post_address | unavailable - the page says which. Written by scripts/build_evidence_feed.py embeds(), read by judge/feed/items.py cite_source(). Migration 20261021T1000 (PROPOSED).'
+    platform:
+      reviewed: false
+      state: write_only
+      why: 'reddit | x. Written by scripts/build_evidence_feed.py embeds(); judge/feed/ reads the platform from document.source instead, so this is the row''s own record of what it resolved. Migration 20261021T1000 (PROPOSED).'
+    resolved_at:
+      reviewed: false
+      state: defaulted
+      why: 'When the post address was resolved. Defaulted by the database; read by nothing yet - its intended reader is a re-resolve of rows older than a month (deleted posts). Migration 20261021T1000 (PROPOSED).'
+    url:
+      reviewed: false
+      state: read
+      why: 'The post''s ID-ONLY address (reddit.com/comments/<post>/, x.com/i/status/<id>), not document.url (a link post''s url is the linked content): no subreddit, slug or handle. Written by scripts/build_evidence_feed.py embeds(), read by judge/feed/items.py cite_source(), which sends only the ids. Migration 20261021T1000 (PROPOSED).'
+  feed_paraphrase:
+    document_id:
+      reviewed: false
+      state: read
+      why: 'The report (one document about one model). Written by judge/feed/paraphrase.py _store(), read by judge/feed/items.py feed(), summary.py, paraphrase.pending(). Migration 20261021T1000 (PROPOSED).'
+    excerpts_digest:
+      reviewed: false
+      state: read
+      why: 'sha256 of the excerpts it was written from; a mismatch means stale and re-drafted. Written by judge/feed/paraphrase.py _store(), read by items.py feed() and paraphrase.pending(). Migration 20261021T1000 (PROPOSED).'
+    generated_at:
+      reviewed: false
+      state: read
+      why: 'When it was written. Defaulted/updated by judge/feed/paraphrase.py _store(); selected by judge/feed/items.py feed(). Migration 20261021T1000 (PROPOSED).'
+    model_version_id:
+      reviewed: false
+      state: read
+      why: 'The resolved registry id. Written by judge/feed/paraphrase.py _store(), read by every judge/feed/ reader. Migration 20261021T1000 (PROPOSED).'
+    prompt_version:
+      reviewed: false
+      state: read
+      why: 'contract/evidence_feed.yaml paraphrase.prompt_version; an older version is not current. Written by paraphrase.py _store(), read by items.py feed() and paraphrase.pending(). Migration 20261021T1000 (PROPOSED).'
+    proposer_model:
+      reviewed: false
+      state: write_only
+      why: 'The model OpenRouter SERVED. Written by judge/feed/paraphrase.py _store(); read by nothing yet - its intended reader is the feed note naming the paraphraser, once the page shows it per item. Migration 20261021T1000 (PROPOSED).'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'The run that wrote it, matching spend_ledger.run_id. Written by judge/feed/paraphrase.py _store(); read by nothing yet - its intended reader is a per-run cost report. Migration 20261021T1000 (PROPOSED).'
+    text:
+      reviewed: false
+      state: read
+      why: 'The paraphrase the feed shows. Written by judge/feed/paraphrase.py _store() after judge/feed/checks.py, read by items.py feed() and summary.py. Migration 20261021T1000 (PROPOSED).'
+  feed_summary:
+    flags:
+      reviewed: false
+      state: read
+      why: 'Soft-check findings (quantity words) for the reviewer. Written by judge/feed/summary.py draft(), read by summary.listing() for Admin. Migration 20261021T1000 (PROPOSED).'
+    generated_at:
+      reviewed: false
+      state: read
+      why: 'When drafted. Defaulted by the database, read by summary.py listing() for its order and shown in Admin. Migration 20261021T1000 (PROPOSED).'
+    id:
+      reviewed: false
+      state: read
+      why: 'fs_ + random hex. Written by judge/feed/summary.py draft(), read by review() and every listing. Migration 20261021T1000 (PROPOSED).'
+    model_version_id:
+      reviewed: false
+      state: read
+      why: 'The model summarised. Written by judge/feed/summary.py draft(), read by current(), listing(), models_due(). Migration 20261021T1000 (PROPOSED).'
+    newest_report_at:
+      reviewed: false
+      state: read
+      why: 'When the newest report it was written from was POSTED; current() counts reports since. Written by summary.py draft(), read by current() and models_due(). Migration 20261021T1000 (PROPOSED).'
+    paragraphs:
+      reviewed: false
+      state: read
+      why: '[{text, cites}] - the page''s text and what each paragraph rests on. Written by judge/feed/summary.py draft() after checks, read by current() and listing(). Migration 20261021T1000 (PROPOSED).'
+    prompt_version:
+      reviewed: false
+      state: write_only
+      why: 'contract/evidence_feed.yaml summary.prompt_version. Written by judge/feed/summary.py draft(); read by nothing yet - its intended reader is a re-draft of summaries written under an older prompt. Migration 20261021T1000 (PROPOSED).'
+    proposer_model:
+      reviewed: false
+      state: read
+      why: 'The model OpenRouter SERVED. Written by judge/feed/summary.py draft(), read by listing()/current() and shown in Admin. Migration 20261021T1000 (PROPOSED).'
+    reports_available:
+      reviewed: false
+      state: read
+      why: 'The denominator (rule 7): paraphrased reports the model had. Written by summary.py draft(), read by current() and listing(). Migration 20261021T1000 (PROPOSED).'
+    reports_used:
+      reviewed: false
+      state: read
+      why: 'How many of them it was written from (the newest). Written by summary.py draft(), read by current() and listing(). Migration 20261021T1000 (PROPOSED).'
+    review_note:
+      reviewed: false
+      state: read
+      why: 'The reviewer''s note. Written by judge/feed/summary.py review(), read by listing() for Admin. Migration 20261021T1000 (PROPOSED).'
+    reviewed_at:
+      reviewed: false
+      state: read
+      why: 'When approved, rejected or superseded. Written by summary.py review() and draft(), read by current() (newest approved) and listing(). Migration 20261021T1000 (PROPOSED).'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'The run that drafted it, matching spend_ledger.run_id. Written by judge/feed/summary.py draft(); read by nothing yet - its intended reader is a per-run cost report. Migration 20261021T1000 (PROPOSED).'
+    state:
+      reviewed: false
+      state: read
+      why: 'pending | approved | rejected | superseded. Written by summary.py draft()/review(), read by current(), listing(), counts(), models_due(). Migration 20261021T1000 (PROPOSED).'
   fetch_log:
     at:
       reviewed: true

@@ -29,6 +29,9 @@ const LINKS = [
       { to: '/ai-models/latest', label: 'Latest AI model releases', note: 'The newest listings' },
       { to: '/compare', label: 'AI model comparison', note: 'Up to three, side by side' },
       { to: '/reviews', label: 'AI model reviews', note: 'Ranked by engineer reports' },
+      // THE EVIDENCE FEED (2026-10-21, PROPOSED): the reports behind a count, each
+      // in our own words with its source. Every count on these pages links in too.
+      { to: '/evidence', label: 'Evidence feed', note: 'The reports behind every count' },
       // On every page through the menu (2026-10-21): the footer is on the home page only.
       { to: '/methodology', label: 'How we count reports', note: 'Methodology' },
     ],

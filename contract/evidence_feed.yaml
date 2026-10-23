@@ -1,0 +1,109 @@
+# The evidence feed: every report behind a model's counts, in our own words,
+# newest first, with its source beside it - and a one-page summary of them
+# (judge/feed/, /evidence on the site).
+#
+# ⚠ PROPOSED 2026-10-21 BY anooj, ON BRANCH feat/evidence-feed - NOT RATIFIED.
+#   contract/ gets two eyes: this file reaches main only through a reviewed PR,
+#   and only together with the rule-2 amendment it depends on
+#   (docs/proposals/evidence-feed.md).
+#
+# WHY IT EXISTS. Every page that shows "20 voices", "3 negative" or a bar on
+# Most reported shows a COUNT a reader cannot check. The feed is the drill-down
+# from a number to the reports it counted: same population, same filters, so a
+# reader can open each one at its source.
+#
+# A MODEL WRITES TWO THINGS HERE, AND NEITHER DECIDES ANYTHING (rule 2):
+#   paraphrase   one or two sentences per report, from the verified quotes of
+#                that report. Code checks its SHAPE (below) before it is stored;
+#                what it says is checkable by the reader, one click away.
+#   summary      one page per model, from the paraphrases. Code checks its
+#                shape, then a PERSON approves it in Admin before anyone sees it.
+# Nothing here counts, weights, orders, filters or labels. The polarity on each
+# item is the extractor's, never the paraphraser's.
+#
+# ABSENT IS NOT PERMISSIVE (rule 6, rule 12): a missing key raises. There is no
+# default for any of these in code (judge/config.py evidence_feed_settings).
+
+version: "0.1"
+status: proposed
+proposed_on: 2026-10-21
+proposed_by: anooj
+
+paraphrase:
+  # Via OpenRouter. Spend is the `feed` stage of spend_ledger, outside the
+  # daily extraction cap, at the cost OpenRouter reports for each call.
+  model: deepseek/deepseek-v4-flash
+  # Sent as OpenRouter's `reasoning.effort`. `none` turns thinking off - the
+  # extractor's setting, for its reason (judge/extract/client.py): DeepSeek V4
+  # Flash reasons by default, reasoning tokens are billed as output and count
+  # against max_tokens. The first live summary run (2026-10-21) spent its
+  # whole 3,200-token budget reasoning and never reached the tool call.
+  reasoning_effort: none
+  # Bump when the prompt or the checks change: a paraphrase written under an
+  # older version is re-drafted, never silently kept as current.
+  #
+  # KEPT AT p1 THROUGH ONE CHANGE (2026-10-21): the longer limit and the
+  # main-points line for a report with many excerpts only widen what may be
+  # written. Every paraphrase stored under p1 passes the checks as they stand,
+  # so re-drafting 4,058 of them would buy nothing. A change that narrows the
+  # checks or changes what a paraphrase says still bumps it.
+  prompt_version: "p1"
+  # Reports per call. One call is one batch.
+  per_call: 20
+  # Calls per batch: the first, and re-asks of only what was refused, each
+  # given the refused text and the reason - for a copy, the exact phrase. Was
+  # one re-ask: on 2026-10-21 that left 664 of 3,884 reports refused (562 for
+  # copying), listed with their source and no text.
+  attempts: 4
+  # The longest paraphrase stored, in characters.
+  max_chars: 320
+  # ...and for a report with at least `many_excerpts` excerpts, which cannot say
+  # its main points in 320 (2026-10-21: the last 44 of 4,102 unparaphrased
+  # reports had a median of 8.5 excerpts, up to 29). Those are also told to
+  # cover the main points and leave a figure out rather than change it.
+  many_excerpts: 6
+  max_chars_many_excerpts: 480
+  # THE PARAPHRASE CHECK: the longest run of consecutive words it may share
+  # with the excerpts it was written from. Over this, it is a quote in
+  # disguise - which for Reddit and X is exactly what the embed-only rule
+  # forbids - and it is refused.
+  max_copied_words: 6
+
+summary:
+  model: deepseek/deepseek-v4-flash
+  reasoning_effort: none
+  prompt_version: "s2"
+  # The newest reports a summary is written from. A model with more says so on
+  # the page ("written from the newest N of M reports") - rule 7.
+  max_reports: 400
+  # A model needs this many paraphrased reports before a summary is drafted.
+  # Below it, the tab says there is not enough to summarise.
+  min_reports: 5
+  # One page. Was 450; the first live drafts (2026-10-21, two models) ran to
+  # 516 and 530 words with a lower target asked for, so the limit is a page
+  # and the prompt asks for 70% of it.
+  max_words: 600
+  max_paragraphs: 7
+  # Drafts per model per run: each refusal is sent back with its reason. The
+  # first live run failed three different checks on its first two drafts.
+  attempts: 3
+  # The summary is written from our paraphrases, which may already share up
+  # to `paraphrase.max_copied_words` words with a source - so one more word
+  # beside a reused phrase crosses that line by accident. Its own limit,
+  # still well short of a quoted sentence.
+  max_copied_words: 8
+  # WORDS THAT CLAIM A QUANTITY. Shown to the reviewer as a flag, not refused
+  # (rule 8: an unmeasured check ships as a weight). "Most engineers" is a
+  # consensus claim, and consensus is assembled from counts by code, never by
+  # a model (rule 3) - the reviewer decides whether a flagged one stays.
+  quantity_words: [most, majority, minority, many, few, several, numerous,
+                   everyone, everybody, nobody, "no one", consensus,
+                   overwhelmingly, widely, universally, unanimous, unanimously,
+                   # Added after the first live drafts (2026-10-21): "consistently
+                   # praised", "appear repeatedly" make the same claim.
+                   consistently, repeatedly, commonly, frequently, often, generally,
+                   multiple, widespread]
+
+page:
+  # Items per page of the feed.
+  per_page: 30

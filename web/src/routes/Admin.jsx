@@ -17,6 +17,7 @@ import ModelProposal from '../components/ModelProposal'
 import SchedulerPanel from '../components/SchedulerPanel'
 import BlogsPanel from '../components/BlogsPanel'
 import QuizPanel from '../components/QuizPanel'
+import FeedSummaryPanel from '../components/FeedSummaryPanel'
 import DiscussionsPanel from '../components/DiscussionsPanel'
 import { IconAlert, IconClock, IconFilter, IconGrid, IconHeart, IconLayers } from '../components/Icons'
 import { useHead } from '../seo/head'
@@ -301,6 +302,12 @@ const SECTIONS = [
     title: 'Quiz',
     blurb: 'General questions for the daily quiz, drafted by a model and approved here',
     render: () => <QuizPanel />,
+  },
+  {
+    id: 'feed-summaries',
+    title: 'Feed summaries',
+    blurb: 'Each model’s evidence summary, drafted by a model and approved here (proposed)',
+    render: () => <FeedSummaryPanel />,
   },
   {
     id: 'discussions',

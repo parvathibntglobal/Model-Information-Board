@@ -8,6 +8,8 @@ import { IconAlert } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { inSentence, reportsIndex } from '../seo/pages'
 import { comparePath } from '../compare/path'
+import { SECTION_OF_KIND, evidencePath } from '../catalog/format'
+import SeatedFeedLink from '../components/FeedLink'
 
 /**
  * REPORTS (2026-10-14): the demo's Reports page (model-information-board-home-
@@ -17,8 +19,10 @@ import { comparePath } from '../compare/path'
  *
  * THE DATA IS `/reports` (judge/reports.py): the board's own counts over the
  * PUBLIC view, so a withheld source adds nothing here. No quote, link, author
- * or platform name reaches this page; it is self-contained and links nowhere
- * outside Reports.
+ * or platform name reaches this page. Its one way out is the EVIDENCE FEED
+ * (2026-10-21, PROPOSED): the counts on a model's tile and on each ranked row
+ * open the reports behind them, narrowed the way they were counted - our
+ * paraphrases with their sources, never a quote (routes/Evidence.jsx).
  *
  * THE ADDRESS HOLDS THE STATE: each section is its own page (see the routes
  * above `Reports`), with `?min=3|10` and `?multi=1` for the threshold. A view
@@ -103,27 +107,47 @@ function build(axes, min, multi) {
   return { models: shown, all: models, byKind }
 }
 
+// ── into the evidence feed ──────────────────────────────────────────────────
+// A count opens its reports. Inside a tile or row that is itself clickable, so
+// the click and Enter stop here rather than also opening the tile.
+// A link only for a seated model (components/FeedLink.jsx).
+const stop = (e) => e.stopPropagation()
+function FeedLink({ to, title, className = 'ev-open', style, fallback, children }) {
+  return (
+    <SeatedFeedLink to={to} className={className} style={style} title={title} aria-label={title}
+                    fallback={fallback} onClick={stop} onKeyDown={stop}>{children}</SeatedFeedLink>
+  )
+}
+
 // ── pictures ────────────────────────────────────────────────────────────────
-function VChart({ s }) {
+// `to(polarity)`, when given, makes each count open that side's reports in the
+// evidence feed; the picture then holds links, so it is a group, not an img.
+function VChart({ s, to }) {
   const vals = [['pos', 'positive', s.positive], ['neg', 'negative', s.negative], ['neu', 'neutral', s.neutral]]
+  const num = (word, v) => (to && v > 0
+    ? <FeedLink to={to(word)} title={`Open the ${v} ${word} ${v === 1 ? 'report' : 'reports'} behind this count`}>{v}</FeedLink>
+    : v)
   const nz = vals.filter((v) => v[2] > 0)
   if (nz.length === 1) {
     const [c, word, v] = nz[0]
     const col = c === 'pos' ? 'var(--pass)' : c === 'neg' ? 'var(--fail)' : 'var(--neutral)'
     return (
-      <div className="rp-oneline" role="img" aria-label={`All ${v} reports ${word}`}>
+      <div className="rp-oneline" role={to ? 'group' : 'img'} aria-label={`All ${v} reports ${word}`}>
         <div className="rp-line" style={{ background: col }} />
-        <div className="rp-cap" style={{ color: c === 'neu' ? 'var(--rp-text-1)' : col }}>All {plural(v, 'report')} {word}</div>
+        <div className="rp-cap" style={{ color: c === 'neu' ? 'var(--rp-text-1)' : col }}>
+          {to ? <FeedLink to={to(word)} title={`Open the ${plural(v, 'report')} behind this count`}>All {plural(v, 'report')} {word}</FeedLink>
+            : <>All {plural(v, 'report')} {word}</>}
+        </div>
       </div>
     )
   }
   const max = Math.max(1, ...vals.map((v) => v[2]))
   return (
     <>
-      <div className="rp-vchart" role="img" aria-label={`${s.positive} positive, ${s.negative} negative, ${s.neutral} neutral`}>
-        {vals.map(([c, , v]) => (
+      <div className="rp-vchart" role={to ? 'group' : 'img'} aria-label={`${s.positive} positive, ${s.negative} negative, ${s.neutral} neutral`}>
+        {vals.map(([c, word, v]) => (
           <div key={c} className={`rp-vcol rp-v-${v ? c : 'zero'}`}>
-            <span className="rp-val">{v}</span>
+            <span className="rp-val">{num(word, v)}</span>
             <span className="rp-vb" style={{ height: v ? Math.max(6, (72 * v) / max) : 2 }} />
           </div>
         ))}
@@ -296,6 +320,7 @@ function ModelView({ v, id, min, multi, href }) {
           <h2>{shortName(r)}</h2>
           {r.canonical && <div className="rp-mid">{r.canonical}</div>}
         </div>
+        <FeedLink to={evidencePath(modelId(r))} fallback={null}>Every report on {shortName(r)} →</FeedLink>
       </div>
       <div className="rp-chips">
         {KINDS.map((k) => { const n = r.axes[k.id].length; return <span key={k.id} className="rp-chip">{n} {n === 1 ? k.one : k.label.toLowerCase()}</span> })}
@@ -315,9 +340,16 @@ function ModelView({ v, id, min, multi, href }) {
                         onClick={() => window.scrollTo({ top: 0 })}>
                     <div className="rp-t-name">{axis.name}</div>
                     <div className={`rp-phrase rp-ph-${ph.c}`}>{ph.t}</div>
-                    <VChart s={m.split} />
+                    <VChart s={m.split} to={(p) => evidencePath(modelId(r), { section: SECTION_OF_KIND[k.id], slug: axis.slug, polarity: p })} />
                     <div className="rp-nums">
-                      <span><b>{m.voices}</b> voices</span><span><b>{m.reports}</b> reports</span>
+                      <FeedLink to={evidencePath(modelId(r), { section: SECTION_OF_KIND[k.id], slug: axis.slug })}
+                                title={`Read the reports these ${m.voices} voices wrote on ${axis.name}`}>
+                        <b>{m.voices}</b> voices
+                      </FeedLink>
+                      <FeedLink to={evidencePath(modelId(r), { section: SECTION_OF_KIND[k.id], slug: axis.slug })}
+                                title={`Read the ${m.reports} reports on ${axis.name} for ${shortName(r)}`}>
+                        <b>{m.reports}</b> reports
+                      </FeedLink>
                       <span><b>{m.platforms}</b> platform{m.platforms === 1 ? '' : 's'}</span>
                       {k.id === 'metric' && m.figures > 0 && <span><b>{m.figures}</b> figures</span>}
                     </div>
@@ -375,6 +407,8 @@ function AxisView({ v, axes, kind, slug, min, multi, href }) {
   const models = hit ? hit.models : []
   const hidden = a.models.length - models.length
   const scale = Math.max(1, ...models.map((m) => Math.max(m.split.positive, m.split.negative)))
+  // The feed narrowed to this job, capability or metric - the population every row counts.
+  const at = { section: SECTION_OF_KIND[k.id], slug: a.slug }
   let rank = 0
   const row = (m) => {
     rank += 1
@@ -385,16 +419,27 @@ function AxisView({ v, axes, kind, slug, min, multi, href }) {
             onClick={() => window.scrollTo({ top: 0 })}>
         <span className="rp-rk">{String(rank).padStart(2, '0')}</span>
         <span className="rp-nm"><span className="rp-prov">{providerOf(m)}</span>{shortName(m)}</span>
-        <span className="rp-div" role="img" aria-label={`${s.positive} positive, ${s.negative} negative`}>
+        {/* NOT role="img" since 2026-10-21: its two numbers are links into the
+            feed, and an image's children are hidden from assistive technology.
+            Each link names its count in its own label. */}
+        <span className="rp-div">
           <span className="rp-mid" />
           {s.negative > 0 && <span className="rp-neg" style={{ width: `${wn}%` }} />}
           {s.positive > 0 && <span className="rp-pos" style={{ width: `${wp}%` }} />}
-          <span className="rp-lab rp-l" style={{ right: `calc(50% + ${wn}% + 6px)` }}>{s.negative}</span>
-          <span className="rp-lab rp-r" style={{ left: `calc(50% + ${wp}% + 6px)` }}>{s.positive}</span>
+          <FeedLink to={evidencePath(modelId(m), { ...at, polarity: 'negative' })} className="rp-lab rp-l rp-lablink"
+                    style={{ right: `calc(50% + ${wn}% + 6px)` }}
+                    title={`Open the ${s.negative} negative reports on ${a.name} for ${shortName(m)}`}>{s.negative}</FeedLink>
+          <FeedLink to={evidencePath(modelId(m), { ...at, polarity: 'positive' })} className="rp-lab rp-r rp-lablink"
+                    style={{ left: `calc(50% + ${wp}% + 6px)` }}
+                    title={`Open the ${s.positive} positive reports on ${a.name} for ${shortName(m)}`}>{s.positive}</FeedLink>
         </span>
         <span className="rp-side">
-          <span className="rp-neu">{s.neutral} neutral</span>{s.both > 0 && ` · ${s.both} said both`}<br />
-          {m.voices} voices · {m.reports} reports{k.id === 'metric' && m.figures > 0 && <><br />{m.figures} figures</>}
+          <FeedLink to={evidencePath(modelId(m), { ...at, polarity: 'neutral' })} className="rp-neu ev-open"
+                    title={`Open the ${s.neutral} neutral reports on ${a.name} for ${shortName(m)}`}>{s.neutral} neutral</FeedLink>
+          {s.both > 0 && ` · ${s.both} said both`}<br />
+          {m.voices} voices · <FeedLink to={evidencePath(modelId(m), at)}
+                                        title={`Read the ${m.reports} reports on ${a.name} for ${shortName(m)}`}>{m.reports} reports</FeedLink>
+          {k.id === 'metric' && m.figures > 0 && <><br />{m.figures} figures</>}
         </span>
         <span className={`rp-ph rp-ph-${ph.c}`}>{ph.t}</span>
       </Link>

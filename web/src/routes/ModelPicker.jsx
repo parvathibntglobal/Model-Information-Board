@@ -8,6 +8,8 @@ import { inSentence, modelPicker, pickerAlternatives, pickerJob, pickerProviderA
 import { comparePath, isReadable, resolveSlugs, slugOf } from '../compare/path'
 import Freshness from '../components/Freshness'
 import NotFound from '../components/NotFound'
+import { SECTION_OF_KIND, evidencePath } from '../catalog/format'
+import FeedLink from '../components/FeedLink'
 
 /**
  * BEST AI MODEL PICKER (2026-10-14), from model-alternatives-demo.html: the
@@ -172,9 +174,20 @@ function SplitBar({ m }) {
   )
 }
 const Badge = ({ ph }) => <span className={`mp-badge mp-b-${ph.c}`}><i />{ph.t}</span>
-const Counts = ({ s }) => (
+// THE REPORTS BEHIND A NUMBER (2026-10-21): the evidence feed for this model on
+// this job or capability (`axis` = { kind, slug }), one side for one count. The
+// same population /reports counts - judge/feed/items.py narrows the same way.
+// No axis known, no link: a number is never pointed at a guess.
+const feedFor = (m, axis, polarity) => evidencePath(modelId(m), { section: SECTION_OF_KIND[axis.kind], slug: axis.slug, polarity })
+const Side = ({ m, axis, p, n, className }) => (axis && n > 0
+  ? <FeedLink to={feedFor(m, axis, p)} className={`${className} ev-open`} fallback={<b className={className}>{n}</b>} onClick={(e) => e.stopPropagation()}
+          title={`Open the ${n} ${p} ${n === 1 ? 'report' : 'reports'} behind this count`}>{n}</FeedLink>
+  : <b className={className}>{n}</b>)
+const Counts = ({ s, m, axis }) => (
   <span className="mp-counts" title="positive · negative · neutral reports">
-    <b className="mp-p">{s.positive}</b> · <b className="mp-ng">{s.negative}</b> · <b className="mp-u">{s.neutral}</b>
+    <Side m={m} axis={axis} p="positive" n={s.positive} className="mp-p" /> ·{' '}
+    <Side m={m} axis={axis} p="negative" n={s.negative} className="mp-ng" /> ·{' '}
+    <Side m={m} axis={axis} p="neutral" n={s.neutral} className="mp-u" />
   </span>
 )
 
@@ -217,7 +230,7 @@ const CompareBox = ({ id, cmp, label }) => {
 /** One model on one job or capability: the verdict, the price, the donut and
  *  how many people. Exact counts and dates are in the hover; "Also reported
  *  working on" says why it is worth a look beyond this one item. */
-function ModelCard({ m, refPrice, price, cmp, why }) {
+function ModelCard({ m, refPrice, price, cmp, why, axis }) {
   const ph = phrase(m.split)
   const id = modelId(m)
   const saves = ph.c === 'working' && refPrice != null && price != null && price < refPrice ? refPrice - price : null
@@ -233,9 +246,13 @@ function ModelCard({ m, refPrice, price, cmp, why }) {
         <div className="mp-name">{shortName(m)}</div>
       </div>
       <div className="mp-card-mid" title={splitTitle(m.split, m.newest)}>
-        <Donut m={m} />
+        {axis
+          ? <FeedLink to={feedFor(m, axis)} className="ev-chiplink" title={`Open the ${plural(m.reports, 'report')} behind this split`}><Donut m={m} /></FeedLink>
+          : <Donut m={m} />}
         <div className="mp-card-facts">
-          <div className="mp-people">{peopleText(m)}</div>
+          <div className="mp-people">{axis
+            ? <FeedLink to={feedFor(m, axis)} className="ev-open" title={`Open the ${plural(m.reports, 'report')} these people wrote`}>{peopleText(m)}</FeedLink>
+            : peopleText(m)}</div>
           {m.voices < THIN && <span className="mp-thin">thin evidence</span>}
           {stale && <div className="mp-stale">{stale}</div>}
         </div>
@@ -256,7 +273,7 @@ function ModelCard({ m, refPrice, price, cmp, why }) {
 
 /** THE CHART VIEW of one group: negative reports left of the line, positive
  *  right, every row on ONE scale. Neutral is a count beside it, not a bar. */
-function GroupChart({ ms, refPrice, priceOf, cmp }) {
+function GroupChart({ ms, refPrice, priceOf, cmp, axis }) {
   const scale = Math.max(1, ...ms.map((m) => Math.max(m.split.positive, m.split.negative)))
   return (
     <div className="mp-chart" role="table" aria-label="Positive and negative reports per model">
@@ -279,10 +296,10 @@ function GroupChart({ ms, refPrice, priceOf, cmp }) {
               <i className="mp-div-mid" />
               {s.negative > 0 && <i className="mp-div-neg" style={{ width: `${wn}%` }} />}
               {s.positive > 0 && <i className="mp-div-pos" style={{ width: `${wp}%` }} />}
-              <b style={{ right: `calc(50% + ${wn}% + 5px)` }}>{s.negative}</b>
-              <b style={{ left: `calc(50% + ${wp}% + 5px)` }}>{s.positive}</b>
+              <b style={{ right: `calc(50% + ${wn}% + 5px)` }}><Side m={m} axis={axis} p="negative" n={s.negative} /></b>
+              <b style={{ left: `calc(50% + ${wp}% + 5px)` }}><Side m={m} axis={axis} p="positive" n={s.positive} /></b>
             </span>
-            <span className="mp-chart-side">{s.neutral} · {m.voices || '—'}</span>
+            <span className="mp-chart-side"><Side m={m} axis={axis} p="neutral" n={s.neutral} /> · {m.voices || '—'}</span>
             <CompareBox id={id} cmp={cmp} label={`Compare ${shortName(m)}`} />
           </div>
         )
@@ -293,7 +310,7 @@ function GroupChart({ ms, refPrice, priceOf, cmp }) {
 
 /** Cards grouped by what the reports say. The first group is open; the weaker
  *  ones are one-line headers until opened. Three cards per group until asked. */
-function Grouped({ list, refPrice, priceOf, cmp, settings, labelFor, openKey, open, toggleOpen, whyFor, empty }) {
+function Grouped({ list, refPrice, priceOf, cmp, settings, labelFor, openKey, open, toggleOpen, whyFor, empty, axis }) {
   const visible = list.filter((m) => m.voices >= settings.minV && (settings.problems || phrase(m.split).c !== 'problems'))
   const present = GROUPS.filter((g) => g.id !== 'problems' || settings.problems)
     .map((g) => ({ g, ms: visible.filter((m) => phrase(m.split).c === g.id) }))
@@ -305,10 +322,10 @@ function Grouped({ list, refPrice, priceOf, cmp, settings, labelFor, openKey, op
   const body = (g, ms) => {
     const shown = open.has(keyOf(g)) ? ms : ms.slice(0, 3)
     return settings.view === 'chart'
-      ? <GroupChart ms={shown} refPrice={refPrice} priceOf={priceOf} cmp={cmp} />
+      ? <GroupChart ms={shown} refPrice={refPrice} priceOf={priceOf} cmp={cmp} axis={axis} />
       : (
         <div className="mp-cards">
-          {shown.map((m) => <ModelCard key={m.key} m={m} refPrice={refPrice} price={priceOf(m)} cmp={cmp} why={whyFor ? whyFor(m) : null} />)}
+          {shown.map((m) => <ModelCard key={m.key} m={m} refPrice={refPrice} price={priceOf(m)} cmp={cmp} why={whyFor ? whyFor(m) : null} axis={axis} />)}
         </div>
       )
   }
@@ -357,8 +374,15 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
     if (hit) hit.labels.push(label)
     else picks.push({ c, labels: [label], why })
   }
+  // The positive count links to those reports when the pick knows its job or
+  // capability (`c.axis`); the price line is not a count and links nowhere.
   add([...working].sort((a, b) => b.m.split.positive - a.m.split.positive || b.m.voices - a.m.voices)[0], 'Most reported working',
-    (c) => `${plural(c.m.split.positive, 'positive report')}${c.on ? ` on ${c.on}` : ''}`)
+    (c) => {
+      const text = `${plural(c.m.split.positive, 'positive report')}${c.on ? ` on ${c.on}` : ''}`
+      return c.axis
+        ? <FeedLink to={feedFor(c.m, c.axis, 'positive')} className="ev-open" title={`Open the ${text}`}>{text}</FeedLink>
+        : text
+    })
   add([...working].filter((c) => priceOf(c.m) != null).sort((a, b) => priceOf(a.m) - priceOf(b.m) || b.m.voices - a.m.voices)[0], 'Cheapest reported working',
     (c) => `${rate(priceOf(c.m))} per 1M input`)
   add([...working].sort((a, b) => b.m.voices - a.m.voices || b.m.reports - a.m.reports)[0], 'Most people reporting', () => null)
@@ -374,7 +398,12 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
               <div className="mp-pick-labels">{labels.map((l) => <span key={l} className="mp-pick-label">{l}</span>)}</div>
               <div className="mp-pick-name"><small>{providerOf(c.m)}</small>{shortName(c.m)}</div>
               <div className="mp-pick-line"><Badge ph={phrase(c.m.split)} /><span className="mp-pick-price">{rate(priceOf(c.m))}<small> /1M in</small></span></div>
-              <div className="mp-pick-why">{[why(c), peopleText(c.m)].filter(Boolean).join(' · ')}</div>
+              <div className="mp-pick-why">
+                {why(c) && <>{why(c)} · </>}
+                {c.axis
+                  ? <FeedLink to={feedFor(c.m, c.axis)} className="ev-open" title={`Open the ${plural(c.m.reports, 'report')} on ${c.on}`}>{peopleText(c.m)}</FeedLink>
+                  : peopleText(c.m)}
+              </div>
               <div className="mp-pick-foot">
                 <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
                 <CompareBox id={id} cmp={cmp} />
@@ -718,7 +747,7 @@ export default function ModelPicker() {
       return [...others].sort(sorter)
     }
     // the short answer looks across EVERY row, not just the ones on screen
-    const cands = rows.flatMap(({ a }) => othersOf(a).map((m) => ({ m, on: a.name })))
+    const cands = rows.flatMap(({ a }) => othersOf(a).map((m) => ({ m, on: a.name, axis: a })))
     const total = rows.length
     rows = rows.slice(0, axesShown)
     return (
@@ -744,14 +773,14 @@ export default function ModelPicker() {
                     <b>{shortName(r)}</b>
                     <span className={`mp-phrase mp-ph-${ph.c}`} style={{ margin: 0 }}>{ph.t}</span>
                     <span style={{ minWidth: 120, flex: '0 1 160px' }}><SplitBar m={m} /></span>
-                    <span>{peopleText(m)}</span><Counts s={m.split} />
+                    <span>{peopleText(m)}</span><Counts s={m.split} m={m} axis={a} />
                     {m.voices < THIN && <span className="mp-thin">thin evidence</span>}
                   </>
                 ) : <><b>{shortName(r)}</b><span className="mp-dim">no reports on this yet</span></>}
               </div>
               {others.length ? (
                 <Grouped list={others} refPrice={mine} priceOf={priceOf} cmp={cmp} settings={settings}
-                         openKey={a.kind + a.slug} open={open} toggleOpen={toggleOpen} whyFor={whyFor(a.kind, a.slug)} empty={empty}
+                         openKey={a.kind + a.slug} open={open} toggleOpen={toggleOpen} whyFor={whyFor(a.kind, a.slug)} empty={empty} axis={a}
                          labelFor={(g) => (g.id === 'working' ? `Also reported working on this${cheap}`
                            : g.id === 'problems' ? `Reported not working on this${cheap}` : g.label)} />
               ) : empty}
@@ -841,8 +870,8 @@ export default function ModelPicker() {
     // the short answer: from "all of them" when there is such a list, else the first item
     const lead = sel[0]?.a
     const cands = all && all.length
-      ? all.map((r) => ({ m: plain[0].a.models.find((x) => x.key === r.key), on: plain[0].a.name }))
-      : lead ? lead.models.filter(inB).map((m) => ({ m, on: lead.name })) : []
+      ? all.map((r) => ({ m: plain[0].a.models.find((x) => x.key === r.key), on: plain[0].a.name, axis: plain[0].a }))
+      : lead ? lead.models.filter(inB).map((m) => ({ m, on: lead.name, axis: lead })) : []
     return (
       <>
         <div className="mp-res-head">
@@ -870,7 +899,7 @@ export default function ModelPicker() {
                     </div>
                     <div><div className="mp-prov">{providerOf(r)}</div><div className="mp-name">{shortName(r)}</div></div>
                     <div className="mp-meta" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                      {plain.map(({ a }) => { const m = a.models.find((x) => x.key === r.key); return <span key={a.slug}>{a.name}: {peopleText(m)} · <Counts s={m.split} /></span> })}
+                      {plain.map(({ a }) => { const m = a.models.find((x) => x.key === r.key); return <span key={a.slug}>{a.name}: {peopleText(m)} · <Counts s={m.split} m={m} axis={a} /></span> })}
                     </div>
                     <div className="mp-card-foot">
                       <span className="mp-actions">
@@ -891,7 +920,7 @@ export default function ModelPicker() {
             <>
               {!group && <ParentNav a={a} />}
               <Grouped list={list} priceOf={priceOf} cmp={cmp} settings={settings} openKey={a.kind + a.slug} open={open} toggleOpen={toggleOpen}
-                       whyFor={whyFor(a.kind, a.slug)} empty={empty} />
+                       whyFor={whyFor(a.kind, a.slug)} empty={empty} axis={a} />
             </>
           ) })
         })}
@@ -908,7 +937,7 @@ export default function ModelPicker() {
     // each model's best-supported working item, for the short answer
     const cands = ms.map((r) => {
       const best = [...r.axes].sort((x, y) => y.m.split.positive - x.m.split.positive || y.m.voices - x.m.voices)[0]
-      return best ? { m: best.m, on: best.a.name } : null
+      return best ? { m: best.m, on: best.a.name, axis: best.a } : null
     }).filter(Boolean)
     const chip = ({ a, m }) => {
       const ph = phrase(m.split)
