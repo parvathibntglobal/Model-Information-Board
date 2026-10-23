@@ -10,6 +10,8 @@ import { getSession } from '../auth'
 import { useHead } from '../seo/head'
 import { comparePage as compareHead } from '../seo/pages'
 import { comparePath, isReadable, parsePair, resolveSlugs } from '../compare/path'
+import { evidencePath } from '../catalog/format'
+import FeedLink from '../components/FeedLink'
 
 //: The endpoint's own cap (`COMPARE_MAX` in judge/app.py). Repeated here rather
 //: than fetched because the picker has to refuse BEFORE the request: a reader
@@ -149,9 +151,11 @@ export default function Compare() {
         <span className="eyebrow">Compare up to three AI models</span>
         <h1>AI model comparison</h1>
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '70ch' }}>
-          Pick two or three models to compare what engineers have actually reported
-          about them — counted, side by side, with no synthesised score and no winner
-          picked for you.
+          Compare AI models side by side, such as Claude vs GPT, on what engineers
+          reported about each, with the counts and a score for each category they
+          share. No overall winner is picked.
+          {/* "NO SYNTHESISED SCORE" came off this line on 2026-10-22: the page has
+              shown a category score since #540, so the promise was untrue. */}
           {/* ⚠ THIS PROMISED "what their providers advertise against what
               engineers have actually reported". The spec sheet came off this
               page on 2026-09-23, so the page's own empty state described a
@@ -227,8 +231,10 @@ export default function Compare() {
             change as the scores, so the page never says "never scored" while
             showing one. What stays true: no overall winner is picked. */}
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch' }}>
-          What engineers reported about each model, side by side: a score per category with the reports it comes from,
-          and each model&apos;s price and specs. Compare models within a category; no overall winner is picked.
+          {/* Opens with "<A> vs <B>", the search (2026-10-22, approved short answer). */}
+          {models.map((m) => shortName(m.display_name)).join(' vs ')}: what engineers reported about each model, side by
+          side - a score per category with the reports it comes from, and each model&apos;s price and specs. Compare
+          models within a category; no overall winner is picked.
         </p>
         <HowToRead method={state.data.category_method} />
       </div>
@@ -551,7 +557,7 @@ function ChangeModels({ ids, models, roster, onLoad, onAdd, onDrop }) {
  *   cell into nine chips across three columns. What must never be dropped is a
  *   non-zero, which is why every count present is rendered whatever its size.
  */
-function Polarity({ split }) {
+function Polarity({ split, open }) {
   if (!split.total) return <span className="dim" style={{ fontSize: 11 }}>none</span>
   const chips = [
     ['positive', 'pass'],
@@ -562,15 +568,23 @@ function Polarity({ split }) {
 
   return (
     <span className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
-      {chips.map(([k, tone]) => (
-        <Badge key={k} tone={tone}>
-          <span className="tnum">{split[k]}</span>{' '}
-          {/* ⚠ THE WORD, NOT JUST THE COLOUR. Three coloured numbers with no
-              labels is identity by colour alone, and red/green is the pair
-              most readers lose. */}
-          {k === 'other' ? 'unlabelled' : k}
-        </Badge>
-      ))}
+      {chips.map(([k, tone]) => {
+        const badge = (
+          <Badge key={k} tone={tone}>
+            <span className="tnum">{split[k]}</span>{' '}
+            {/* ⚠ THE WORD, NOT JUST THE COLOUR. Three coloured numbers with no
+                labels is identity by colour alone, and red/green is the pair
+                most readers lose. */}
+            {k === 'other' ? 'unlabelled' : k}
+          </Badge>
+        )
+        // EACH CHIP OPENS ITS REPORTS (2026-10-21): the evidence feed, one side.
+        // These are ENTRIES; the feed lists the reports holding them and says both.
+        return open && k !== 'other' ? (
+          <FeedLink key={k} to={open(k)} className="ev-chiplink" fallback={badge}
+                title={`Open the reports behind these ${split[k]} ${k} entries`}>{badge}</FeedLink>
+        ) : badge
+      })}
     </span>
   )
 }
@@ -626,6 +640,8 @@ function HowToRead({ method }) {
 // THE MODEL'S PAGE IN THE NEW DESIGN (2026-10-15): price, workload cost, specs
 // and voices (/ai-models/...). Was /models, the roster behind sign-in.
 const modelLink = (m) => `/ai-models/${modelPath(m.canonical_id || m.model_version_id)}`
+// The evidence feed takes either id shape (judge/feed/items.py resolve_model).
+const feedId = (m) => m.canonical_id || m.model_version_id
 
 /** One card per model: who it is and what was written about it, counted. */
 function HeadToHead({ models }) {
@@ -645,12 +661,13 @@ function HeadToHead({ models }) {
               {m.canonical_id && <span className="mono dim h2h-id">{m.canonical_id}</span>}
               {split.total ? (
                 <>
-                  <span className="tnum h2h-n">
+                  <FeedLink to={evidencePath(feedId(m))} className="tnum h2h-n ev-open"
+                        title={`Read the ${pol.documents ?? split.total} posts behind these counts`}>
                     <b>{split.total}</b> {split.total === 1 ? 'entry' : 'entries'}
                     {pol.documents != null && <> · <b>{pol.documents}</b> {pol.documents === 1 ? 'post' : 'posts'}</>}
                     {platforms > 0 && <> · <b>{platforms}</b> {platforms === 1 ? 'platform' : 'platforms'}</>}
-                  </span>
-                  <Polarity split={split} />
+                  </FeedLink>
+                  <Polarity split={split} open={(k) => evidencePath(feedId(m), { polarity: k })} />
                 </>
               ) : (
                 <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Nobody has written about it yet.</span>
@@ -753,25 +770,48 @@ function PriceAndSpecs({ models }) {
    No cell is highlighted as the winner.
    ══════════════════════════════════════════════════════════════════════ */
 
-function ScoreCell({ c }) {
+// EACH COUNT OPENS ITS REPORTS (2026-10-21): the evidence feed filtered to this
+// category (judge/category_scores.py `filer`, the same filing as the score) and
+// one side, counted as the score counts it - a metric entry is neutral here. A
+// zero links nowhere. `both` does not link: no one filter is "both sides", and
+// the positive and negative lists each already include those reports.
+function CountLink({ id, category, polarity, n }) {
+  if (!n) return <>{n} {polarity}</>
+  return (
+    <FeedLink to={evidencePath(id, { category, polarity })} className="ev-open"
+          title={`Open the ${n} ${polarity} ${n === 1 ? 'report' : 'reports'} behind this count`}>
+      {n} {polarity}
+    </FeedLink>
+  )
+}
+
+function ScoreCell({ c, id }) {
   if (!c || c.state === 'none') return <span className="cs-none">No reports</span>
   const counts = (
     <span className="cs-counts">
-      {c.positive} positive · {c.negative} negative · {c.neutral} neutral
+      <CountLink id={id} category={c.key} polarity="positive" n={c.positive} /> ·{' '}
+      <CountLink id={id} category={c.key} polarity="negative" n={c.negative} /> ·{' '}
+      <CountLink id={id} category={c.key} polarity="neutral" n={c.neutral} />
       {c.both > 0 && <> · {c.both} both</>}
     </span>
   )
+  // THE SCORE OPENS THE WHOLE CATEGORY: every report it was computed from.
+  const all = `Open the ${c.reports} ${c.reports === 1 ? 'report' : 'reports'} in ${c.name}`
   if (c.state === 'too_few') {
     return (
       <>
-        <span className="cs-few">Too few reports to score</span>
+        <FeedLink to={evidencePath(id, { category: c.key })} className="cs-few ev-open" title={all}>
+          Too few reports to score
+        </FeedLink>
         {counts}
       </>
     )
   }
   return (
     <>
-      <span className="cs-score tnum">{c.score}<span className="cs-of">/100</span></span>
+      <FeedLink to={evidencePath(id, { category: c.key })} className="cs-score tnum ev-open" title={all}>
+        {c.score}<span className="cs-of">/100</span>
+      </FeedLink>
       {counts}
     </>
   )
@@ -805,7 +845,7 @@ function CategoryScores({ models, method }) {
             {models.map((m) => (
               <span key={m.model_version_id} className="st-cell cs-cell">
                 <span className="st-cell-name">{shortName(m.display_name)}</span>
-                <ScoreCell c={of(m, cat.key)} />
+                <ScoreCell c={of(m, cat.key)} id={feedId(m)} />
               </span>
             ))}
           </div>

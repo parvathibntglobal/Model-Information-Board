@@ -56,6 +56,28 @@ These are the rules a helpful refactor will otherwise quietly violate.
    `EXTRACTION_DAILY_BUDGET_USD` covers extraction and the Ask box only, so a
    blog run never spends the extraction budget. Admin -> API usage shows it by
    month; each Admin-started run is also summarised in `blog_generation_run`.
+
+   **A fourth recorded caller, PROPOSED 2026-10-23 (#558, for Parvathi's
+   review; not in force until that PR merges): the evidence feed,
+   `judge/feed/`, the first whose text reaches a page without a person reading
+   each item.** A paraphrase restates one report and is stored only after code
+   checks, and the code checks exactly this (`judge/feed/checks.py`): no run of
+   consecutive words longer than `max_copied_words` shared with the source (a
+   Chinese, Japanese or Korean character is one word); every number in digits
+   appears exactly in the source, and a number from the model's name only right
+   after the word it follows there; the number words two..ninety, hundred,
+   thousand, million, billion, dozen and percent appear in the source; no URL,
+   no bare domain but the vendor's own, no `@`/`u/`/`r/` handle, no
+   reddit/subreddit/redditor/twitter/tweet/x.com; a bounded length. **Not
+   checked:** other number words ("one", "half"), a shortened decimal whose short
+   form is also in the source, a bare "X", a community named without `r/`, and
+   faithfulness - which is why every item carries its source one click away and
+   shows the extractor's polarity, never the paraphraser's. Its summaries keep
+   the blog's guard: a person approves each one. Its calls are `spend_ledger`
+   stage `feed`. Argument and measurements: `docs/proposals/evidence-feed.md`.
+   (The quiz drafter, stage `quiz`, also calls a model and is not recorded
+   here; that is its own change.)
+
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 

@@ -1458,12 +1458,18 @@ def compare_page(ids: str = "", request: Request = None) -> dict:
         # The rule the scores were computed under, from the contract, so the
         # page states the minimum rather than typing it a second time.
         "category_method": category_scores.method(),
+        # ⚠ IT SAID "none is a score" until 2026-10-22, untrue since the category
+        #   score (#540; CLAUDE.md rule 3's second exception). Found in the review
+        #   of #556. No page renders this field today; it is still a sentence the
+        #   API publishes about itself.
         "summary": (
             f"{len(models)} models, compared on what engineers reported about them. "
             f"Every figure here is counted - entries, documents, how each one was "
-            f"phrased - and none is a score. No winner is picked and no total is "
-            f"computed, because the board has no way to weigh a complaint against a "
-            f"recommendation without inventing one."
+            f"phrased - except one score per category, which is worked out from the "
+            f"report counts shown beside it (contract/category_scores.yaml). No "
+            f"overall winner is picked and no total is computed, because the board "
+            f"has no way to weigh a complaint against a recommendation without "
+            f"inventing one."
         ),
     }
 
@@ -2465,6 +2471,17 @@ def model_catalog() -> dict:
         return catalog_view(conn)
 
 
+@app.get("/local-models")
+def local_models() -> dict:
+    """The local VRAM tool ("Can I run it?"): measured GGUF file sizes, each
+    model's KV-cache shape from its header, the hardware list and every constant
+    the page's estimate uses. See `judge/local_models.py`. Public."""
+    from judge.local_models import local_models_view
+
+    with _conn() as conn:
+        return local_models_view(conn)
+
+
 @app.get("/model-catalog/{model_id:path}")
 def model_catalog_entry(model_id: str) -> dict:
     """One model's page: price, specs, registry facts and engineer voices.
@@ -2891,6 +2908,132 @@ def quiz_bank_review(req: QuizReviewRequest) -> dict:
         raise HTTPException(status_code=400, detail=str(e)) from None
     if found is None:
         raise HTTPException(status_code=404, detail="no such question")
+    return found
+
+
+# THE EVIDENCE FEED (2026-10-21, PROPOSED - docs/proposals/evidence-feed.md):
+# the reports behind a count, each in our own words with its source, and a
+# person-approved summary per model. See judge/feed/.
+
+
+@app.get("/feed")
+def evidence_feed(model: str, section: str | None = None, slug: str | None = None,
+                  category: str | None = None, polarity: str | None = None,
+                  page: int = 1) -> dict:
+    """One page of a model's reports, newest posted first, narrowed the way the
+    count the reader came from was. A public read (judge/gate.py): paraphrases,
+    tags, dates and sources only - never a quote."""
+    from judge.config import evidence_feed_settings
+    from judge.feed import items
+
+    cfg = evidence_feed_settings()
+    try:
+        with _conn() as conn:
+            return items.feed(conn, model, section=section or None, slug=slug or None,
+                              category=category or None, polarity=polarity or None, page=page,
+                              per_page=cfg["page"]["per_page"],
+                              prompt_version=cfg["paraphrase"]["prompt_version"])
+    except items.UnknownModel:
+        raise HTTPException(status_code=404, detail=f"{model} is not in the registry") from None
+    except items.NotSeated as e:
+        return _not_seated(e)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+def _not_seated(e: LookupError):
+    # Rule 6: say why the page is empty, not only that it is. `seated: false`
+    # tells the page this is a real model whose feed is withheld, not a bad
+    # address - both are 404, and only one is "there is no model here".
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=404, content={
+        "detail": f"{e.args[0]} is not on the models page, so its reports are stored but "
+                  f"not shown in the evidence feed.",
+        "seated": False,
+    })
+
+
+@app.get("/feed/models")
+def evidence_feed_models() -> dict:
+    """The ids, in both shapes, of the models whose feed is shown - the models
+    page's seated list (judge/feed/items.py `seated_keys`). Pages read it to
+    link a count into the feed only where the feed will answer. Public."""
+    from judge.feed import items
+
+    with _conn() as conn:
+        return {"ids": sorted(items.seated_keys(conn))}
+
+
+@app.get("/feed/summary")
+def evidence_feed_summary(model: str) -> dict:
+    """The APPROVED summary for a model, or only whether one is awaiting review.
+    A draft never leaves Admin. A public read (judge/gate.py)."""
+    from judge.feed import items, summary
+
+    try:
+        with _conn() as conn:
+            return summary.current(conn, model)
+    except items.UnknownModel:
+        raise HTTPException(status_code=404, detail=f"{model} is not in the registry") from None
+    except items.NotSeated as e:
+        return _not_seated(e)
+
+
+@app.get("/feed/summaries")
+def evidence_feed_summaries(state: str = "pending") -> dict:
+    """Admin: summary drafts in one state, with what each paragraph cites and
+    the soft-check flags, for the person who approves them."""
+    from judge.feed import summary
+
+    try:
+        with _conn() as conn:
+            return {"counts": summary.counts(conn), "items": summary.listing(conn, state)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
+
+class FeedSummaryDraftRequest(BaseModel):
+    model: str
+
+
+@app.post("/feed/summaries/draft")
+def evidence_feed_summary_draft(req: FeedSummaryDraftRequest) -> dict:
+    """Up to `summary.attempts` paid calls. What passes the checks is stored
+    `pending`; otherwise `stored: false` with every attempt's reason - a
+    failed call included, so it is a 200 that says why, not a 502."""
+    from judge.config import evidence_feed_settings
+    from judge.feed import items, summary
+
+    cfg = evidence_feed_settings()
+    try:
+        with _conn() as conn:
+            return summary.draft(
+                conn, req.model, cfg["summary"], cfg["paraphrase"]["prompt_version"]
+            )
+    except items.UnknownModel:
+        raise HTTPException(status_code=404, detail=f"{req.model} is not in the registry") from None
+    except summary.NotEnoughReports as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+
+class FeedSummaryReviewRequest(BaseModel):
+    id: str
+    decision: str
+    note: str | None = None
+
+
+@app.post("/feed/summaries/review")
+def evidence_feed_summary_review(req: FeedSummaryReviewRequest) -> dict:
+    from judge.feed import summary
+
+    try:
+        with _conn() as conn:
+            found = summary.review(conn, req.id, req.decision, req.note)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+    if found is None:
+        raise HTTPException(status_code=404, detail="no such summary")
     return found
 
 

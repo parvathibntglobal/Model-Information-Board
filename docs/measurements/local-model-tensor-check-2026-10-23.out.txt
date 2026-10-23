@@ -1,0 +1,27 @@
+== unsloth/Mistral-Nemo-Instruct-2407-GGUF: metadata ends 7.50 MiB, tensor list ends 7.52 MiB, read 8 MiB
+   emb=5120 heads=32 kv_heads=8 key_length=None rope.dim=160
+   blk.0.attn_k.weight [5120, 1024]
+   blk.0.attn_q.weight [5120, 4096]
+   blk.0.attn_v.weight [5120, 1024]
+== bartowski/Mistral-Nemo-Instruct-2407-GGUF: metadata ends 7.50 MiB, tensor list ends 7.52 MiB, read 8 MiB
+   emb=5120 heads=32 kv_heads=8 key_length=128 rope.dim=128
+   blk.0.attn_k.weight [5120, 1024]
+   blk.0.attn_q.weight [5120, 4096]
+   blk.0.attn_v.weight [5120, 1024]
+== unsloth/Phi-4-mini-instruct-GGUF: metadata ends 7.86 MiB, tensor list ends 7.87 MiB, read 8 MiB
+   emb=3072 heads=24 kv_heads=8 key_length=None rope.dim=96
+== bartowski/Meta-Llama-3.1-8B-Instruct-GGUF: metadata ends 7.46 MiB, tensor list ends 7.48 MiB, read 8 MiB
+   emb=4096 heads=32 kv_heads=8 key_length=None rope.dim=128
+   blk.0.attn_k.weight [4096, 1024]
+   blk.0.attn_q.weight [4096, 4096]
+   blk.0.attn_v.weight [4096, 1024]
+== unsloth/gemma-4-12b-it-GGUF: metadata ends 15.05 MiB, tensor list ends 15.09 MiB, read 16 MiB
+   emb=3840 heads=16 kv_heads=None key_length=512 rope.dim=512
+   blk.0.attn_k.weight [3840, 2048]
+   blk.0.attn_q.weight [3840, 4096]
+   blk.0.attn_v.weight [3840, 2048]
+--- exact sizes, Hub API blobs=true:
+    unsloth/Mistral-Nemo-Instruct-2407-GGUF Mistral-Nemo-Instruct-2407.Q4_K_M.gguf 7477204512 bytes sha 6ce5144b3ed09c5cf26c7c127f7fb2e67de659d3
+    unsloth/Mistral-Nemo-Instruct-2407-GGUF Mistral-Nemo-Instruct-2407.Q8_0.gguf 13022369312 bytes sha 6ce5144b3ed09c5cf26c7c127f7fb2e67de659d3
+    bartowski/Mistral-Nemo-Instruct-2407-GGUF Mistral-Nemo-Instruct-2407-Q4_K_M.gguf 7477208192 bytes sha a2dd64a0a76ea1bdb2bb6ab6fa5496b003c7c908
+    bartowski/Mistral-Nemo-Instruct-2407-GGUF Mistral-Nemo-Instruct-2407-Q8_0.gguf 13022372992 bytes sha a2dd64a0a76ea1bdb2bb6ab6fa5496b003c7c908

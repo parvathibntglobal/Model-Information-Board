@@ -8,7 +8,8 @@ import { catalogModelHead } from '../seo/pages'
 import { DAYS_PER_MONTH, fmtUsd as fmtCost, workloadCost } from '../tokens/cost'
 import PersonaPicker from '../tokens/PersonaPicker'
 import { PERSONAS } from '../tokens/personas'
-import { fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
+import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
+import FeedLink from '../components/FeedLink'
 import { typeLabel } from './types'
 
 /**
@@ -113,24 +114,39 @@ function Voices({ m }) {
     <section className="card stack stack-2">
       <div className="mp2-row">
         <h2 className="mp2-h">What engineers report</h2>
-        <span className="mp2-count"><b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} reports</span>
+        {/* EVERY COUNT HERE OPENS ITS REPORTS (2026-10-21): the evidence feed,
+            narrowed the way the number was counted. */}
+        <FeedLink to={evidencePath(m.id)} className="mp2-count ev-open"
+              title={`Read the ${m.reports} reports behind this count`}>
+          <b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} reports
+        </FeedLink>
       </div>
       {axes == null ? <div className="skel" style={{ height: 120 }} /> : (
         <ul className="mp2-axes">
           {top.map(({ a, row }) => {
             const s = row.split || {}
+            const at = { section: SECTION_OF_KIND[a.kind], slug: a.slug }
+            // A zero opens nothing: an empty list says less than the 0 does.
+            const side = (k, cls) => (s[k] ? (
+              <FeedLink to={evidencePath(m.id, { ...at, polarity: k })} className={`${cls} ev-open`}
+                    title={`Read the ${s[k]} ${k} reports on ${a.name}`}>{s[k]}</FeedLink>
+            ) : <span className={cls}>0</span>)
             return (
               <li key={`${a.kind}:${a.slug}`}>
                 <span className="mp2-kind">{KIND_LABEL[a.kind] || a.kind}</span>
-                <span className="mp2-axis">{a.name}</span>
+                <FeedLink to={evidencePath(m.id, at)} className="mp2-axis ev-open"
+                      title={`Read the ${row.reports} reports on ${a.name}`}>{a.name}</FeedLink>
                 {/* A METRIC CARRIES NO POLARITY (2026-10-15): a stated figure is
                     not praised or criticised, so its row shows no split. */}
                 {a.kind === 'metric' ? <span /> : (
                   <span className="mp2-split" title="Positive / negative / neutral reports">
-                    <i className="p">{s.positive || 0}</i><i className="n">{s.negative || 0}</i><i className="z">{s.neutral || 0}</i>
+                    {side('positive', 'p')}{side('negative', 'n')}{side('neutral', 'z')}
                   </span>
                 )}
-                <span className="mp2-v">{row.voices} {row.voices === 1 ? 'voice' : 'voices'}</span>
+                <FeedLink to={evidencePath(m.id, at)} className="mp2-v ev-open"
+                      title={`Read the reports these ${row.voices} voices wrote on ${a.name}`}>
+                  {row.voices} {row.voices === 1 ? 'voice' : 'voices'}
+                </FeedLink>
               </li>
             )
           })}
@@ -202,6 +218,23 @@ function Lifecycle({ m }) {
   )
 }
 
+/**
+ * THE SHORT ANSWER (2026-10-22, approved draft): "<model> pricing", the price
+ * and context as listed, and how many engineers reported on it - each part
+ * only where the catalogue has it (rule 6: nothing guessed).
+ */
+function shortAnswer(m) {
+  const price = m.price_state === 'free' ? 'free, as OpenRouter lists it'
+    : m.price_state === 'priced' && m.price_in != null && m.price_out != null
+      ? `${fmtUsd(m.price_in)} per million input tokens and ${fmtUsd(m.price_out)} output`
+      : 'no per-token price published'
+  const ctx = m.context ? `, ${fmtCtx(m.context)} context window` : ''
+  const said = m.voices > 0
+    ? ` ${m.voices} ${m.voices === 1 ? 'engineer has' : 'engineers have'} reported on it, in ${m.reports} ${m.reports === 1 ? 'post' : 'posts'}.`
+    : ' No engineer reports on it yet.'
+  return `${m.name} pricing: ${price}${ctx}.${said}`
+}
+
 export default function ModelPage({ id }) {
   const [state, setState] = useState({ m: null, err: null, absent: false })
   useEffect(() => {
@@ -238,6 +271,7 @@ export default function ModelPage({ id }) {
           {m.listed_at && <span className="cat-reads">Listed {fmtDate(m.listed_at)}</span>}
           <span className="cat-id">{m.id}</span>
         </div>
+        <p className="mp2-answer" style={{ maxWidth: '78ch', margin: 0 }}>{shortAnswer(m)}</p>
         {m.description && <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.description}</p>}
         <Freshness modelIds={[m.id]} style={{ margin: 0 }} />
         <div className="mp2-actions">

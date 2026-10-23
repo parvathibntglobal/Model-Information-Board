@@ -32,6 +32,13 @@ const TOOLS = [
     body: "Counted with OpenAI's o200k tokenizer, in your browser. See the cost as input or output on each model, and whether it fits each model's context. Your text never leaves the page.",
     cta: 'Open token counter',
   },
+  {
+    to: '/local-llm-vram-calculator',
+    name: 'Can I run it? VRAM calculator',
+    title: 'Which open models fit your GPU or Mac',
+    body: 'Pick your graphics card or Mac and see which open models fit in its memory at 4-bit or 8-bit. Sizes are measured from each model file; whether it fits is a labelled estimate.',
+    cta: 'Open the VRAM calculator',
+  },
 ]
 
 export default function Tools() {
@@ -42,7 +49,7 @@ export default function Tools() {
         <span className="go-badge go-models page-tag" style={{ alignSelf: 'flex-start' }}>Tools</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Free AI model tools</h1>
         <p className="muted" style={{ maxWidth: '72ch', margin: 0 }}>
-          Which models engineers reported working for your job, what every model advertises, and what your prompt would cost on each one.
+          Free AI model tools: a picker for the best model for your job, a pricing and specs table, and an LLM cost calculator. No sign-in.
         </p>
       </div>
       <div style={{ display: 'grid', gap: 'var(--s3)', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>

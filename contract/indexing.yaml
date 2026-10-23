@@ -75,6 +75,7 @@ always:
   - /best-ai-model
   - /ai-model-pricing
   - /token-counter
+  - /local-llm-vram-calculator
   - /ai-models
   - /ai-models/latest
   - /compare
@@ -84,6 +85,13 @@ always:
   - /reviews/metrics
   - /glossary
   - /methodology
+
+# One provider's alternatives (/alternatives/<provider>, e.g. /alternatives/openai;
+# 2026-10-22): the other providers' models engineers reported on the same jobs
+# and capabilities. Listed once the provider has this many models whose own
+# alternatives page is listed; with one, it would repeat that model's page.
+provider_alternatives:
+  min_models: 2
 
 # A comparison of two models (/compare/<a>-vs-<b>; review of #552, item 9,
 # option A): listed when BOTH models have at least this many distinct public

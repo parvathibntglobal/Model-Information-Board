@@ -329,6 +329,9 @@ export const modelCatalog = () => cached('catalog', () => request('/model-catalo
 }), { ttl: BOARD_TTL_MS })
 // One model's page: price, specs, registry facts and engineer voices.
 export const modelCatalogEntry = (id) => request(`/model-catalog/${modelPath(id)}`)
+// The local VRAM tool (judge/local_models.py): measured GGUF sizes, cache shapes,
+// hardware and constants. Re-measured weekly, so the default cache is plenty.
+export const localModels = () => cached('local-models', () => request('/local-models'))
 
 export const coveragePage = () => request('/coverage')
 
@@ -395,6 +398,29 @@ export const quizBank = (state = 'pending') => request(`/quiz-bank?state=${encod
 export const draftQuizQuestions = (topic) => request('/quiz-bank/draft', { method: 'POST', body: { topic } })
 export const reviewQuizQuestion = (id, decision, note) =>
   request('/quiz-bank/review', { method: 'POST', body: { id, decision, note: note || null } })
+
+// THE EVIDENCE FEED (judge/feed/, 2026-10-21, PROPOSED): the reports behind a
+// count, each in our own words with its source, and a person-approved summary.
+// The two reads are public; the drafts and their review need a token.
+// NOT CACHED: this is the page that says "live", and a refetch on focus that
+// came back from a cache would say it falsely.
+export const evidenceFeed = (model, { section, slug, category, polarity, page } = {}) => {
+  const q = new URLSearchParams({ model })
+  if (category) q.set('category', category)
+  if (section) q.set('section', section)
+  if (slug) q.set('slug', slug)
+  if (polarity) q.set('polarity', polarity)
+  if (page && page > 1) q.set('page', String(page))
+  return request(`/feed?${q}`)
+}
+export const evidenceSummary = (model) => request(`/feed/summary?${new URLSearchParams({ model })}`)
+// The models whose feed is shown (the models page's seated list), in both id
+// shapes. Cached like the board: it changes when a model is seated, not per view.
+export const feedModels = () => cached('feed-models', () => request('/feed/models'), { ttl: BOARD_TTL_MS })
+export const feedSummaries = (state = 'pending') => request(`/feed/summaries?state=${encodeURIComponent(state)}`)
+export const draftFeedSummary = (model) => request('/feed/summaries/draft', { method: 'POST', body: { model } })
+export const reviewFeedSummary = (id, decision, note) =>
+  request('/feed/summaries/review', { method: 'POST', body: { id, decision, note: note || null } })
 
 // THE DISCUSSIONS PAGE (judge/discussions.py, 2026-10-20). The page reads the
 // topics and APPROVED posts and posts without a token (the one public write);

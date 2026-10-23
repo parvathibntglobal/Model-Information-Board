@@ -25,6 +25,7 @@ const TOOLS = [
   { t: 'Best AI model picker', to: '/best-ai-model' },
   { t: 'AI model pricing & specs table', to: '/ai-model-pricing' },
   { t: 'LLM cost calculator', to: '/token-counter' },
+  { t: 'Can I run it? VRAM calculator', to: '/local-llm-vram-calculator' },
   { t: 'AI model comparison', to: '/compare' },
 ]
 
@@ -32,6 +33,7 @@ const MODELS = [
   { t: 'All models', to: '/ai-models' },
   { t: 'Latest AI model releases', to: '/ai-models/latest' },
   { t: 'AI model reviews', to: '/reviews' },
+  { t: 'Evidence feed', to: '/evidence' },
   { t: 'By job', to: '/reviews/jobs' },
   { t: 'By capability', to: '/reviews/capabilities' },
 ]

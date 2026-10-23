@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { modelCatalog } from '../api'
 import ModelPage from '../catalog/ModelPage'
-import { fmtCtx, fmtDate, fmtUsd, modelPagePath } from '../catalog/format'
+import { evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath } from '../catalog/format'
+import FeedLink from '../components/FeedLink'
 import { MODEL_TYPES, typeLabel } from '../catalog/types'
 import { useHead } from '../seo/head'
 import { catalogIndex } from '../seo/pages'
@@ -37,10 +38,15 @@ function Price({ m, side }) {
   return <b>{fmtUsd(v)}</b>
 }
 
+// ⚠ THE CARD IS NOT ONE LINK ANY MORE (2026-10-21). Its voices count opens the
+//   evidence feed, and a link cannot sit inside a link. So the card is a box,
+//   its model link is stretched over it (`.cat-stretch`), and the count is a
+//   second link raised above that - the whole card still opens the model.
 function ModelCard({ m, providerName, showProvider = true }) {
   const reads = m.inputs.filter((i) => i !== 'text')
   return (
-    <Link to={modelPagePath(m.id)} className="cat-card">
+    <div className="cat-card cat-card-box">
+      <Link to={modelPagePath(m.id)} className="cat-stretch" aria-label={`${m.name}: open its page`} />
       <div className="cat-card-top">
         {showProvider ? <span className="eyebrow">{providerName}</span> : <span />}
         {m.listed_at && <span className="cat-date">Listed {fmtDate(m.listed_at)}</span>}
@@ -60,11 +66,19 @@ function ModelCard({ m, providerName, showProvider = true }) {
       </div>
       <div className="cat-foot">
         {m.voices
-          ? <span className="cat-voices"><b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} {m.reports === 1 ? 'report' : 'reports'}</span>
+          ? (
+            <FeedLink to={evidencePath(m.id)} className="cat-voices ev-open cat-raised"
+                  title={`Read the ${m.reports} ${m.reports === 1 ? 'report' : 'reports'} behind this count`}
+                  // Unseated: plain text, NOT raised - a raised span would take the
+                  // card's click on that spot and open nothing.
+                  fallback={<span className="cat-voices"><b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} {m.reports === 1 ? 'report' : 'reports'}</span>}>
+              <b>{m.voices}</b> {m.voices === 1 ? 'voice' : 'voices'} · {m.reports} {m.reports === 1 ? 'report' : 'reports'}
+            </FeedLink>
+          )
           : <span className="cat-na">No engineer voices yet</span>}
         <span className="cat-open">Open →</span>
       </div>
-    </Link>
+    </div>
   )
 }
 
@@ -234,9 +248,12 @@ export default function Catalog() {
   }
 
   const title = isNew ? 'Latest AI model releases' : type ? `${typeLabel(type)} models` : 'All models'
+  // THE SHORT ANSWERS (2026-10-22, approved draft): keyword-led.
   const lede = isNew
-    ? `The ${view?.new_releases?.length || 40} models OpenRouter listed most recently, newest first.`
-    : 'The models engineers have reported on, most voices first. Pick a type, then a provider, to narrow the list.'
+    ? `The latest AI models: the ${view?.new_releases?.length || 40} most recently listed, newest first, with price, context window and type.`
+    : type
+      ? `${typeLabel(type)} AI models engineers have reported on, by provider, with price and context window.`
+      : 'A list of AI models engineers have reported on, by provider and type (text, image, video, speech and more), most-reported first. Pick a type, then a provider.'
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -249,6 +266,7 @@ export default function Catalog() {
           <Link to="/ai-models/latest" className={isNew ? 'on' : ''}>Latest AI model releases</Link>
           <Link to="/compare">AI model comparison</Link>
           <Link to="/reviews">AI model reviews</Link>
+          <Link to="/evidence">Evidence feed</Link>
         </nav>
       </div>
 

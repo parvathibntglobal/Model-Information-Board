@@ -167,6 +167,21 @@ export function tokenCounter() {
   }
 }
 
+/**
+ * "Can I run it?" (2026-10-23, docs/proposals/can-i-run-it.md): which open
+ * models fit a reader's graphics card or Mac. A tool, so `app` gives it the
+ * WebApplication JSON-LD like the token counter.
+ */
+export function localVram() {
+  return {
+    title: fullTitle('Can I Run It? Local LLM VRAM Calculator'),
+    description: 'Pick your GPU or Mac and see which open models fit in its memory at 4-bit or 8-bit, from the measured size of each model file. Free, no sign-in.',
+    canonical: '/local-llm-vram-calculator',
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Can I run it?', path: '/local-llm-vram-calculator' }],
+    app: { name: 'Can I run it? Local LLM VRAM calculator' },
+  }
+}
+
 export function modelFinder() {
   return {
     title: fullTitle('AI Model Pricing & Specs Table'),
@@ -222,6 +237,22 @@ export function pickerAlternatives(model, items = []) {
     breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Best AI model picker', path: '/best-ai-model' },
       { name: `${model.label} alternatives`, path: `/alternatives/${model.slug}` }],
     list: { name: `Alternatives to ${model.label}`, items },
+  }
+}
+
+/**
+ * One provider's alternatives (`/alternatives/<provider>`, 2026-10-22): the
+ * other providers' models engineers reported on the same jobs and
+ * capabilities. `provider` is { id, label }.
+ */
+export function pickerProviderAlternatives(provider, items = []) {
+  return {
+    title: fullTitle(`${provider.label} alternatives: AI models engineers report working`),
+    description: clip(`The AI models from other providers that engineers reported working on the same jobs and capabilities as ${provider.label}'s models, counted from their public posts.`),
+    canonical: `/alternatives/${provider.id}`,
+    breadcrumbs: [{ name: 'Tools', path: '/tools' }, { name: 'Best AI model picker', path: '/best-ai-model' },
+      { name: `${provider.label} alternatives`, path: `/alternatives/${provider.id}` }],
+    list: { name: `Alternatives to ${provider.label}`, items },
   }
 }
 
@@ -311,6 +342,29 @@ export function reportsIndex(section = null, item = null, items = []) {
     canonical: section.key === 'models' ? '/reviews' : base,
     breadcrumbs: [REVIEWS_CRUMB, ...(section.key === 'models' ? [] : [{ name: section.title, path: base }])],
     list: { name: section.key === 'models' ? 'AI models ranked by engineer reports' : `AI model reviews by ${REVIEW_NOUN[section.key] || section.title.toLowerCase()}`, items },
+  }
+}
+
+/**
+ * `/evidence` and one model's feed (2026-10-21, PROPOSED). NOINDEX while the
+ * feed is proposed: its paraphrases are written by a model and its terms are
+ * not ratified (contract/publication.yaml `evidence_feed`), so it is not put in
+ * front of a search engine before they are.
+ */
+export function evidenceHead(label = null, id = null) {
+  if (!label || !id) {
+    return {
+      title: fullTitle('Evidence feed: the reports behind every count'),
+      description: 'Every report behind the counts on this site, in our own words, newest first, each with a link to its source.',
+      canonical: '/evidence',
+      noindex: true,
+    }
+  }
+  return {
+    title: fullTitle(`${label}: the reports behind the counts`),
+    description: clip(`Every report engineers wrote about ${label}, in our own words, newest first, each with its source.`),
+    canonical: `/evidence/${id}`,
+    noindex: true,
   }
 }
 

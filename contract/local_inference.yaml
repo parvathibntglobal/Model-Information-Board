@@ -1,0 +1,114 @@
+# HOW THE LOCAL VRAM TOOL TURNS A FILE SIZE INTO "FITS" (PROPOSED 2026-10-23,
+# docs/proposals/can-i-run-it.md). Every constant the arithmetic uses is here
+# and nowhere in code (rules 5 and 12): the reader of judge/ finds a KeyError,
+# never a default, if a key is missing.
+#
+# ⚠ THE ONLY FIGURE A PAGE SHOWS IS THE MEASURED FILE SIZE (rule 3), in GiB:
+#   the size of the exact GGUF file, read from Hugging Face. Everything below
+#   goes only into the GROUP - fits, tight, won't fit, can't tell - which is a
+#   word on the page. No total, no cache size and none of these constants is
+#   shown as a number; the page says in words what the group adds to the file.
+#   Revised 2026-10-23 after review on #559: the first draft showed an
+#   estimated total, which rule 3 does not allow without an amendment.
+
+# The quantizations a reader can pick. Each must be a key under every model's
+# `files` in local_models.yaml.
+quants: [Q4_K_M, Q8_0]
+
+# Context lengths a reader can pick, in tokens. A model whose header states a
+# smaller maximum is capped to it, and the page says so in words.
+contexts: [4096, 8192, 32768, 131072]
+
+# Bytes per cached element. The KV cache holds a key and a value per caching
+# layer per token: kv_heads x (key length + value length) x bytes, per token.
+#   f16    llama.cpp's default cache type.
+#   q8_0   llama.cpp's 8-bit cache: 32 values in 34 bytes.
+kv_cache_bytes: {f16: 2.0, q8_0: 1.0625}
+
+# A sliding-window layer's cache holds the window PLUS one micro-batch, not
+# the window alone: llama.cpp sizes it at window + n_ubatch cells, and n_ubatch
+# defaults to 512. So a windowed layer counts min(context, window + this).
+# Cell padding (llama.cpp rounds the cache up to a multiple of 256) is not
+# counted: under 256 tokens' worth per layer, inside the runtime allowance.
+# (#559 review question, 2026-10-23.)
+window_extra_tokens: 512
+
+# A state-space layer (Mamba-2, Gated DeltaNet) keeps a fixed recurrent state
+# instead of a per-token cache, in f32: (conv_kernel - 1) x (inner_size +
+# 2 x group_count x state_size) + state_size x inner_size elements per layer.
+# About 150 MiB for Qwen3.6 27B's 48 such layers - small, but leaving it out
+# would undercount, so it is added.
+recurrent_state_bytes: 4
+
+# What the runtime needs beyond weights and cache: CUDA/Metal context and
+# compute buffers. AN ESTIMATE, not a measurement - llama.cpp's own figure
+# varies with batch size and backend. It also stands in for the memory a
+# desktop's display and OS hold on the card, which is unmeasured. Never shown
+# as a number; the page calls it "an allowance for the runtime".
+runtime_overhead_gib: 1.0
+
+# Splitting across several discrete cards (layer split in llama.cpp) pays the
+# runtime overhead once per card. The weights and cache divide; this does not.
+overhead_per_card: true
+
+# The share of a Mac's unified memory the GPU may use by default, BY MEMORY
+# SIZE. A Mac takes the row with the largest `from_gib` at or below its memory.
+# Apple publishes no figure; each row says what it rests on, and a size with no
+# report takes the lower share - saying "won't fit" more often is the cheaper
+# mistake. llama.cpp prints the real figure at startup
+# (`recommendedMaxWorkingSetSize`); a measurement on a given size replaces its row.
+apple_gpu_share:
+  - from_gib: 0
+    share: 0.66
+    evidence: >-
+      An 8 GB M1 reports recommendedMaxWorkingSetSize = 5726.63 MB, two thirds of
+      8 GiB (https://github.com/ggerganov/llama.cpp/issues/5207). No report was
+      found for 16 to 48 GB; they take this, the lower share.
+  - from_gib: 64
+    share: 0.75
+    evidence: >-
+      Reported as about three quarters on 64 GB and larger Macs (a 64 GB Mac
+      allows about 48 GB). Not published by Apple; to be replaced by a
+      measurement.
+
+# Groups, as a share of the memory the model may use. A group is a word on the
+# page, never a number (rule 3's "consensus is a phrase").
+#   fits        estimate at or below `fits_at_most` of the budget
+#   tight       above that, at or below the whole budget
+#   won't fit   above the budget
+#   can't tell  the file plus the runtime allowance fit, but the context's
+#               memory either is unknown (rule 6), or is only an UPPER BOUND and
+#               the bound does not fit. A bound can prove "fits" or "tight",
+#               never "won't fit" (#559 review: Gemma 3 27B on a 24 GiB card
+#               fits in llama.cpp and the bound said otherwise). An unknown
+#               cache is never counted as zero; if the file and allowance alone
+#               exceed the budget, it is "won't fit", which is certain either way.
+bands:
+  fits_at_most: 0.85
+
+# WHAT THE HEADER DOES NOT SETTLE.
+#
+# A sliding window counts only with a stated per-layer pattern. A window of 0,
+# or one at or above the model's maximum context, is full attention (Phi-4 mini
+# states 262144, Phi-4 reasoning plus states 0). A window with no pattern is
+# computed as full attention: an UPPER BOUND, and the row says so.
+#
+# Architectures whose attention llama.cpp sets in code rather than reading from
+# the header. Computed as full attention - an upper bound, with this reason.
+attention_not_in_header:
+  llama4: "chunked attention on three of every four layers, which llama.cpp sets in code and the header does not state"
+#
+# Header keys that mean the attention has a part the arithmetic does not model
+# at all - not even as a bound (an indexer keeps its own cache). A model whose
+# header has any key starting with one of these is "can't tell" for context
+# memory, never a guessed figure.
+unmodelled_attention_keys: [attention.indexer, attention.compress_ratios]
+
+# Reading a GGUF header: ranged requests of this many bytes, stopping at the
+# first one that completes the key/value section and the tensor list (names
+# and shapes - never tensor data). That last step can run past them by up to
+# one step; those bytes are discarded unread. `max_header_bytes` is where the
+# collector gives up and records the model's header as unread (rule 6).
+header_read:
+  chunk_bytes: 4194304
+  max_header_bytes: 33554432

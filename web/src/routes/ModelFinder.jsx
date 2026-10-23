@@ -98,8 +98,9 @@ export default function ModelFinder() {
         </nav>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>AI model pricing &amp; specs table</h1>
         <p className="tc-lead">
-          Tick what your feature needs - what the model must read and write, and what it must support.
-          These are what each model is listed as doing, not what engineers found; each model's page has the reports.
+          AI model pricing and specs{view?.models ? ` for ${view.models.length} models` : ''}: price per million tokens,
+          context window, and features such as tool calling and vision. Tick what your feature needs; these are what
+          providers advertise, not what engineers found.
         </p>
       </div>
 

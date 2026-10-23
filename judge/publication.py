@@ -118,6 +118,26 @@ def derived_posts_embed_only() -> tuple[str, ...]:
 
 
 @lru_cache(maxsize=1)
+def evidence_feed_terms() -> dict:
+    """`contract/publication.yaml` `evidence_feed` (PROPOSED 2026-10-21): whether
+    the feed may draw on withheld sources, and which it may cite ONLY as an
+    official embed. Both required: absent raises (rule 6) - the feed must never
+    infer permission from a missing key, nor publish a link it was not given."""
+    from judge.config import _read
+
+    raw = (_read("publication.yaml") or {}).get("evidence_feed") or {}
+    may = raw.get("may_draw_on_withheld")
+    embed = raw.get("embed_only")
+    if not isinstance(may, bool) or not isinstance(embed, list):
+        raise PublicationConfigError(
+            "contract/publication.yaml `evidence_feed` needs `may_draw_on_withheld` "
+            f"(true/false) and `embed_only` (a list); got {may!r} and {embed!r}. "
+            "Refusing rather than guessing what the feed may show."
+        )
+    return {"may_draw_on_withheld": may, "embed_only": tuple(str(s).strip() for s in embed)}
+
+
+@lru_cache(maxsize=1)
 def arxiv_acknowledgement() -> str:
     """The line arXiv's API terms ask for, as `contract/publication.yaml` gives it.
 

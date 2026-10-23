@@ -379,8 +379,11 @@ class TestTheSchemaSaysWhatItIsFor:
         # 'quiz' - the quiz question drafter, the blog's draft-then-approve
         # shape - was ADDED 2026-10-15 by anooj (20261015T1400) and is
         # PROPOSED: it needs the same agreement the blog generator had.
+        # 'feed' - the evidence feed's paraphraser and summariser - was ADDED
+        # 2026-10-21 by anooj (20261021T1000) and is PROPOSED with the rule-2
+        # amendment in docs/proposals/evidence-feed.md.
         assert (
-            "spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog', 'quiz'))"
+            "spend_ledger_stage_ck CHECK (stage IN ('extract', 'ask', 'blog', 'quiz', 'feed'))"
             in self._tables()
         )
 

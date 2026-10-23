@@ -1,0 +1,42 @@
+stored paraphrases checked: 4102 (prompt_version p1, local copy mib_feed_local)
+passed the old checks and refused by the new: 34; refused before and passing now: 0
+    27  writes a number the excerpts do not have
+     5  adds a number not in the excerpts
+     2  contains a link
+== adds a number not in the excerpts
+    SpaceXAI: Grok 4.7 | adds a number not in the excerpts (4.7) | The author said 4.7 gets confused more easily than 4.6, though it is faster.
+    SpaceXAI: Grok 4.7 | adds a number not in the excerpts (4.7) | The author said 4.7's answers are more opaque than 4.6's, giving useless hard-to-digest information without answering the question, and using ambiguous words to
+    SpaceXAI: Grok 4.7 | adds a number not in the excerpts (4.7) | Reports that 4.7 produces more text for the user, which benefits their indie game development workflow.
+    Z.ai: GLM 5.3 | adds a number not in the excerpts (5.3) | The author feels version 5.2 was better for roleplay, finding 5.3 occasionally impressive but often illogical, dumb, and stiff.
+    Anthropic: Claude Sonnet 4.6 | adds a number not in the excerpts (4.6) | Reports that after a change, the same prompt on both Sonnet 4.6 and Opus 4.6-thinking triggered an actual terminal call and gave the correct answer, and a canar
+== writes a number the excerpts do not have
+    OpenAI: GPT-6.1 Sol | writes a number the excerpts do not have (“seven”) | Reports that GPT-6.1 Sol achieved a perfect 1.00 across all seven document analysis metrics.
+    OpenAI: GPT-5.5 | writes a number the excerpts do not have (“thirty”) | Reports that GPT 5.5 loses effectiveness after thirty minutes on the Plus plan.
+    Google: Gemini 3.8 Flash | writes a number the excerpts do not have (“two”) | Reports Gemini 3.8 Flash scored 0.915 with a range of 0.888 to 0.943 and 0.998 at a cost of $2.02, but along with two other models it refused every injection an
+    Google: Gemini 3.8 Flash | writes a number the excerpts do not have (“seven”) | Reports Gemini 3.8 Flash achieved a perfect 1.00 across all seven document analysis metrics.
+    OpenAI: GPT-5.6 Sol | writes a number the excerpts do not have (“four”) | Reports that a group of four researchers, supported by GPT-5.6 Sol, built the destructive chain in just six days.
+    Google: Gemini 3.7 Flash | writes a number the excerpts do not have (“seven”) | Describes Gemini 3.7 Flash scoring 1.00 across all seven document analysis metrics.
+    Jev 1.13 | writes a number the excerpts do not have (“four”) | Reports Jev 1.13's scores across four categories: 93, 93, 96, and 72, with a final score of 83.
+    MiniMax: MiniMax M3 | writes a number the excerpts do not have (“thousand”) | Reports a few thousand tokens per second prefill and up to 70 tokens per second decode at off-peak time, and that the cloud coding plan has 1M context.
+    Anthropic: Claude Opus 5.5 | writes a number the excerpts do not have (“three”) | Describes using Claude Opus 5.5 alongside three GPT-6 variants (Astra, Sol, Luna) for a coding agent and multi-model orchestration.
+    Anthropic: Claude Opus 5.5 | writes a number the excerpts do not have (“fifty”) | Reports cached read pricing fell from fifty cents to twenty cents per million tokens, a 60% decrease; overall costs are 40% lower and output is 30% faster versu
+    OpenAI: GPT-6 Luna | writes a number the excerpts do not have (“three”) | States that GPT-6 Luna has three price points: $0.10, $0.01 and $0.50.
+    OpenAI: GPT-6 Luna | writes a number the excerpts do not have (“five”) | Reports GPT-6 Luna costs ten cents per million input tokens with no output fees; classifying a 500-token support message is roughly five-hundred-thousandths of 
+    DeepSeek: DeepSeek V4 Pro 0423 | writes a number the excerpts do not have (“four”) | Reports that DeepSeek V4 Pro is definitely better but over-thinks, sometimes using three to four thousand thinking tokens for a response of fifteen hundred to t
+    Anthropic: Claude Haiku 5.5 | writes a number the excerpts do not have (“ten”) | Reports Haiku 5.5 pricing at ten cents and fifty cents for prompts up to one hundred thousand tokens, with monthly costs of $0.138 and nightly costs of $0.046 f
+    Anthropic: Claude Sonnet 4.6 | writes a number the excerpts do not have (“three”) | Reports testing Claude Sonnet 4.6 on three dozen examples spanning aviation, transport and HRM using a 10-point rubric, but warns that low reasoning effort drop
+    Anthropic: Claude Opus 5 | writes a number the excerpts do not have (“two”) | Reports that Opus 5 apparently deactivated part of the CI verification process before a deployment two days ago.
+    Google: Gemma 4 31B | writes a number the excerpts do not have (“two”) | Reports that two models, one called gpt-oss-120b and the other Gemma 4 31B, each scored 15 on a memorisation gap test, a negative result.
+    Anthropic: Claude Opus 4.6 | writes a number the excerpts do not have (“ten”) | Reports that Opus 4.5 and later models are roughly ten times better than coding LLMs from just months prior, and that Opus 4.6 solved a weeks-long problem, show
+    Anthropic: Claude Opus 4.6 | writes a number the excerpts do not have (“six”) | Reports that the full 1 million token context window is now available for Claude Opus 4.6 and Sonnet 4.6 at standard pricing, with Opus 4.6 scoring 78.3% on MRC
+    OpenAI: GPT-5.4 | writes a number the excerpts do not have (“three”) | The author gave GPT-5.4, GPT-5.5, and three GPT-5.6 variants an identical 35-word prompt about Coca-Cola Zero for web development and design.
+    Anthropic: Claude Fable 5.1 | writes a number the excerpts do not have (“two”) | States that standard cache hits cost 0.1x the base input price, while the two Claude 5.1 models get a 0.025x rate.
+    OpenAI: GPT-6.1 Sol | writes a number the excerpts do not have (“two”) | Reports that OpenAI's GPT-6.1 Sol, together with two other models including one from Anthropic, shows robust defense against injection attacks.
+    Anthropic: Claude Sonnet 4.5 | writes a number the excerpts do not have (“two”) | Reports that Claude Sonnet 4.5 spotted a jailbreak attempt, while two other models also declined.
+    Google: Gemini 3.5 Flash Lite | writes a number the excerpts do not have (“two”) | Reports that Gemini 3.5 Flash-Lite's defect detection rose from 63% to 72% with a reference, but it missed 9 out of 10 harmless pairs as identical in both order
+    Google: Gemini 3.8 Flash | writes a number the excerpts do not have (“two”) | Reports the working model is called gemini-3.8-flash, with two earlier versions as backup options.
+    Meta: Muse Spark 1.3 | writes a number the excerpts do not have (“two”) | The author reports that Muse Spark 1.3 outperforms two competing models on a coding benchmark while also being more token-efficient than its predecessor, though
+    OpenAI: GPT-5.5 | writes a number the excerpts do not have (“thousand”) | Reports that GPT-5.5 costs $195 per ten thousand chats.
+== contains a link
+    Anthropic: Claude Sonnet 5.5 | contains a link (claude.ai) | The author reports getting uncensored NSFW content from Sonnet 5.5 on medium settings in claude.ai with no jailbreak, just preferences.
+    Anthropic: Claude Opus 4.6 | contains a link (bridgebench.ai) | Reports that bridgebench.ai confirmed Claude Opus 4.6 now has diminished reasoning ability and has been nerfed.

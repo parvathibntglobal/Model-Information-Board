@@ -65,11 +65,13 @@ const Methodology = page(() => import('./routes/Methodology'))
 const ModelPicker = page(() => import('./routes/ModelPicker'))
 const Reports = page(() => import('./routes/Reports'))
 const Catalog = page(() => import('./routes/Catalog'))
+const Evidence = page(() => import('./routes/Evidence'))
 const Discussions = page(() => import('./routes/Discussions'))
 const ModelDetail = page(() => import('./routes/ModelDetail'))
 const Models = page(() => import('./routes/Models'))
 const Compare = page(() => import('./routes/Compare'))
 const TokenCounter = page(() => import('./routes/TokenCounter'))
+const VramCalculator = page(() => import('./routes/VramCalculator'))
 const ModelFinder = page(() => import('./routes/ModelFinder'))
 const Admin = page(() => import('./routes/Admin'))
 const BlogLogs = page(() => import('./routes/BlogLogs'))
@@ -165,6 +167,9 @@ export default function App() {
           <Route path="/ai-models/*" element={<Catalog />} />
           {/* The Models pages were /catalog until 2026-10-21; an old link moves to the same page. */}
           <Route path="/catalog/*"   element={<CatalogMoved />} />
+          {/* THE EVIDENCE FEED (2026-10-21, PROPOSED): public, like Reports - the
+              reports behind every count, paraphrased, each with its source. */}
+          <Route path="/evidence/*"  element={<Evidence />} />
           <Route path="/discussions" element={<Discussions />} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           {/* BEFORE `/models/*`, and outside it. The comparison is entered from
@@ -179,6 +184,7 @@ export default function App() {
           {/* Entered from the models list, beside Compare; top-level paths for the
               same reason as /compare - `/models/*` is a model id. */}
           <Route path="/token-counter" element={<TokenCounter />} />
+          <Route path="/local-llm-vram-calculator" element={<VramCalculator />} />
           <Route path="/ai-model-pricing"  element={<ModelFinder />} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
