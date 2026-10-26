@@ -3762,6 +3762,14 @@ _ACCESS = {
         "evidence": "contract/sources.yaml `access_path: api`",
         "metered": False,
     },
+    "v2ex": {
+        "method": "free API",
+        "detail": "V2EX's documented v1 API: each AI board's newest topics and their replies.",
+        "uses_credential": False,
+        "credential_note": "No key. The v1 endpoints are anonymous.",
+        "evidence": "contract/sources.yaml `access_path: api`",
+        "metered": False,
+    },
     "blogs": {
         "method": "public feeds, then the article",
         "detail": (
