@@ -268,13 +268,22 @@ class FeedRun:
           reassuring count the same number, which is why the branch is gone
           rather than corrected.
 
-        ⚠ AN ENTRY SKIPPED AS ALREADY STORED IS KEPT (2026-10-26). Its body
-          reached `raw/` on an earlier run and the corpus holds it. Leaving it
-          out would make every quiet night of a healthy feed read
-          `items_kept = 0` - the alarm FR-10 exists to raise, raised by our
-          own politeness.
+        ⚠ AN ENTRY SKIPPED AS ALREADY STORED IS NOT KEPT (2026-10-26, #564
+          review). Counting it hid a broken feed: once article requests start
+          failing, the stored entries kept this figure above zero night after
+          night and the zero-yield alarm could never fire. So this counts only
+          bodies stored ON THIS RUN, and the alarm FR-10 wants is
+          `articles_requested` against this figure: requested and none stored
+          is a broken feed, while nothing requested (everything already held)
+          is a quiet night. `already_stored` says which of the two it was.
         """
-        return sum(1 for article in self.articles if article.stored) + self.already_stored
+        return sum(1 for article in self.articles if article.stored)
+
+    @property
+    def articles_requested(self) -> int:
+        """Article requests this run made: entries neither held nor deferred.
+        Zero on a feed-only run, which carves rather than requests."""
+        return len(self.articles) if self.fetch_articles else 0
 
     @property
     def http_errors(self) -> int:

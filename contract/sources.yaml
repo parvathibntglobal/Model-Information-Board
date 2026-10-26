@@ -614,7 +614,8 @@ terms_rulings:
     party: platform
     platform_host: substack.com
     reviewed_on: 2026-10-26
-    reviewed_by: anooj
+    #: anooj wrote the ruling; parvathi read the current terms on #564's review.
+    reviewed_by: anooj, parvathi
     basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
@@ -628,13 +629,24 @@ terms_rulings:
       custom domain (the feed's generator says `Substack`). Seated 2026-10-26
       on the team's decision to take newsletters, and the 2026-09-18 refusal
       recorded under `blog-class-a-self-hosted` is SUPERSEDED BY THAT
-      DECISION, NOT BY A NEW READING. What that refusal found still stands as
-      written: robots allowed the feed and article paths, and Substack's
-      Acceptable Use Policy prohibits crawling any page or portion of the
-      platform and separately prohibits storing any significant portion of
-      its content, unconditionally. The team read that policy and decided to
-      take the feeds anyway; that is the accepted risk, recorded here so it
-      is never mistaken for a permission.
+      DECISION, NOT BY A NEW READING.
+
+      THE DECISION. Taken by the team, including the MD, who discussed the
+      terms issue and decided to set the terms aside for now and take them up
+      later; given to anooj on 2026-10-26. Its stated purpose: populate the
+      platform with diverse sources, to review how it behaves when it is rich
+      in data. No date was set for taking the terms up again, and this ruling
+      does not invent one.
+
+      THE TERMS, AS READ. `https://substack.com/tos` - the Acceptable Use
+      Policy is a section of that page, not a separate one - "Last Updated:
+      October 6, 2026", read 2026-10-26 by parvathi on #564's review, after
+      the 2026-09-18 reading. Both clauses that refusal rested on are still
+      there verbatim. It prohibits use that "'Crawls,' 'scrapes,' or
+      'spiders' any page, data, or portion of Substack (through use of manual
+      or automated means)", and use that "Copies or stores any significant
+      portion of the content on Substack". Taking the feeds anyway is the
+      accepted risk, recorded here so it is never mistaken for a permission.
 
       WHAT THIS RULING DOES TO KEEP THAT RISK SMALL, and every item is a
       mechanism rather than an intention:
@@ -651,8 +663,9 @@ terms_rulings:
       exactly the "storing" clause; it is stored because rule 1 verifies
       every quote against the text the extractor was shown.
 
-      RE-REVIEW REQUIRED BEFORE: any article fetch, any monetization, or any
-      change to Substack's policy that the team has not read.
+      RE-REVIEW REQUIRED BEFORE: any article fetch, any monetization, any
+      change to Substack's policy after October 6, 2026 that the team has not
+      read, or the team taking the terms up again as it said it would.
 
     live_preconditions:
       robots_status: [rules, no-rules]
@@ -663,7 +676,7 @@ terms_rulings:
       # what we hold of those entries is the free part, and that is all.
       feed_carries_full_text: [true, partial]
       login_required: [false]
-      # The policy was read (2026-09-18) and is the reason this ruling exists.
+      # Read 2026-09-18, and again 2026-10-26 at the October 6 revision.
       terms_document_read: [true]
 
   # ── Newsletters on a platform: beehiiv ───────────────────────────────────
@@ -672,22 +685,30 @@ terms_rulings:
     party: platform
     platform_host: beehiiv.com
     reviewed_on: 2026-10-26
-    reviewed_by: anooj
+    reviewed_by: anooj, parvathi
     basis: public-derived-publication
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: false
     summary: >-
       A newsletter whose feed beehiiv serves (rss.beehiiv.com). Seated
-      2026-10-26 on the team's decision to take newsletters from Substack and
-      other platforms. Same mechanisms as `newsletter-substack-feed-only`:
+      2026-10-26 on the same team decision as `newsletter-substack-feed-only`
+      (the team, including the MD: terms set aside for now and taken up
+      later, to populate the platform with diverse sources). Same mechanisms:
       feed only, robots re-read every run, quote + attribution + link.
 
-      BEEHIIV'S TERMS HAVE NOT BEEN READ, and this says so rather than letting
-      the Substack reading stand in for it: a platform's terms are its own
-      document. Recorded as the accepted risk of the team's decision.
+      THE TERMS, AS READ. `https://beehiiv.com/tou`, "Date last modified:
+      October 6, 2026", read 2026-10-26 by parvathi on #564's review. §3 "Use
+      Restrictions" (vi) prohibits users to "engage in or use any data
+      mining, robots, crawling, scraping or data gathering or extraction
+      methods." No RSS or feed clause, and nothing specific on publishers'
+      content, was found. So beehiiv sits exactly where Substack does: a
+      prohibition, taken as the accepted risk of the team's decision, and
+      recorded so it is never mistaken for a permission.
 
-      RE-REVIEW REQUIRED BEFORE: any article fetch, or any monetization.
+      RE-REVIEW REQUIRED BEFORE: any article fetch, any monetization, any
+      change to beehiiv's terms after October 6, 2026 that the team has not
+      read, or the team taking the terms up again.
 
     live_preconditions:
       robots_status: [rules, no-rules]
@@ -696,7 +717,8 @@ terms_rulings:
     recorded_evidence:
       feed_carries_full_text: [true, partial]
       login_required: [false]
-      terms_document_read: [false]
+      # Read 2026-10-26 (beehiiv.com/tou, October 6, 2026 revision).
+      terms_document_read: [true]
 
   # ── The blog platform row, which is not a fetch target ───────────────────
   - id: blog-umbrella-not-a-fetch-target
@@ -3917,7 +3939,7 @@ feeds:
       feed_carries_full_text: true
       paywall_observed: false
       login_required: false
-      terms_document_read: false
+      terms_document_read: true
       feed_type: rss20
     measured:
       checked_on: 2026-10-26
@@ -3953,7 +3975,9 @@ feeds:
     tos_notes: >-
       Ruling newsletter-beehiiv-feed-only, evidence checked 2026-10-26.
       Feed served from rss.beehiiv.com, robots.txt 200, feed path allowed.
-      FEED ONLY: no article page is requested. beehiiv's terms NOT READ.
+      FEED ONLY: no article page is requested. beehiiv's terms read
+      2026-10-26 and they prohibit scraping (§3(vi)); taken as the accepted
+      risk of the team's decision - see the ruling.
 
 # ----------------------------------------------------------------------------
 #  Newsletters checked on 2026-10-26 and NOT seated, with the reason:

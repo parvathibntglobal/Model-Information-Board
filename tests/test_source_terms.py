@@ -177,8 +177,28 @@ def test_the_newsletter_rulings_are_feed_only_and_record_the_decision():
     assert substack.platform_host == "substack.com"
     assert beehiiv.platform_host == "beehiiv.com"
     assert "SUPERSEDED BY THAT" in substack.summary and "accepted risk" in substack.summary
-    assert "NOT BEEN READ" in beehiiv.summary
     assert "SUPERSEDED 2026-10-26" in SOURCES_YAML.read_text(encoding="utf-8")
+    # #564 review: who decided, and the page, date and words each reading rests on.
+    for ruling in (substack, beehiiv):
+        assert "the MD" in ruling.summary, ruling.id
+        assert "accepted risk" in ruling.summary, ruling.id
+    assert "https://substack.com/tos" in substack.summary
+    assert "October 6, 2026" in substack.summary and "'scrapes,'" in substack.summary
+    assert "https://beehiiv.com/tou" in beehiiv.summary
+    assert "crawling, scraping" in beehiiv.summary
+    assert "NOT BEEN READ" not in beehiiv.summary
+
+
+def test_a_harvest_refuses_a_feed_with_no_source_row():
+    """#564 review: between merging a feed and `registry load-sources`, its
+    ledger row would be refused while its documents landed. The script must
+    refuse such a feed by name, before any request, and exit non-zero."""
+    src = (CONTRACT_DIR.parent / "scripts" / "harvest_blogs.py").read_text(encoding="utf-8")
+    loop = src[src.index("for feed in feeds:\n                feed_id"):]
+    assert loop.index("if feed_id in unloaded:") < loop.index("fetcher_for_source(")
+    assert "SELECT id FROM source WHERE id = ANY(%s)" in src
+    tail = src[src.rindex("if unloaded:"):]
+    assert "return 1" in tail
 
 
 def test_import_ai_is_not_seated_twice():
