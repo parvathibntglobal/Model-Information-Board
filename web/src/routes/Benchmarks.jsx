@@ -449,11 +449,52 @@ function BenchTable({ data }) {
 
 /* ── changelog, runs, unmatched, review ──────────────────────────────────── */
 
-function Changelog({ data }) {
+// The changelog's filter pills. The server filters the WHOLE changelog (judge
+// CHANGE_KINDS) and counts each kind. "Score/Rank changes" are a value that
+// moved on the same source; "Moved up/down" is any change with a direction,
+// including another source taking the cell over.
+const CHANGE_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'score', label: 'Score changes' },
+  { key: 'rank', label: 'Rank changes' },
+  { key: 'up', label: 'Moved up ▲' },
+  { key: 'down', label: 'Moved down ▼' },
+  { key: 'added', label: 'New values' },
+  { key: 'removed', label: 'Removed' },
+  { key: 'source_changed', label: 'Source switched' },
+  { key: 'variant_added', label: 'New rows' },
+]
+
+function Changelog({ data: all }) {
   const [openRuns, setOpenRuns] = useState({})
-  if (!data) return <p className="muted">Loading…</p>
-  if (data.error) return <p className="bm-error">{data.error}</p>
-  if (!data.entries.length) return <p className="muted">No changes yet. The first run will add every value it finds.</p>
+  const [filter, setFilter] = useState('all')
+  const [filtered, setFiltered] = useState(null)
+  useEffect(() => {
+    if (filter === 'all') return undefined
+    let alive = true
+    setFiltered(null)
+    benchmarksChanges(null, filter)
+      .then((d) => { if (alive) setFiltered(d) })
+      .catch((e) => { if (alive) setFiltered({ error: e.message }) })
+    return () => { alive = false }
+  }, [filter, all])
+  const data = filter === 'all' ? all : filtered
+  if (!all) return <p className="muted">Loading…</p>
+  if (all.error) return <p className="bm-error">{all.error}</p>
+  if (!all.entries.length) return <p className="muted">No changes yet. The first run will add every value it finds.</p>
+  const counts = { ...all.counts, all: all.total }
+  const pills = (
+    <div className="bm-chips" role="group" aria-label="Show changes of one kind">
+      {CHANGE_FILTERS.map((f) => (
+        <button key={f.key} type="button" className={`bm-chip${filter === f.key ? ' on' : ''}`}
+                aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} disabled={!counts[f.key]}>
+          {f.label} <span className="bm-chip-n">{counts[f.key]}</span>
+        </button>
+      ))}
+    </div>
+  )
+  if (!data) return <div className="stack stack-3">{pills}<p className="muted">Loading…</p></div>
+  if (data.error) return <div className="stack stack-3">{pills}<p className="bm-error">{data.error}</p></div>
   const byRun = []
   for (const e of data.entries) {
     if (!byRun.length || byRun[byRun.length - 1].run !== e.run_id) byRun.push({ run: e.run_id, items: [] })
@@ -461,10 +502,15 @@ function Changelog({ data }) {
   }
   return (
     <div className="stack stack-3">
+      {pills}
+      {byRun.length === 0 && <p className="muted">No changes of this kind yet.</p>}
+      {data.entries.length >= 300 && (
+        <p className="muted bm-small">Showing the newest {data.entries.length} of these.</p>
+      )}
       {byRun.map(({ run, items }) => {
         const added = items.filter((e) => e.type === 'added').length
         const initial = added === items.filter((e) => e.type !== 'variant_added').length && items.length > 20
-        const open = openRuns[run] ?? !initial
+        const open = openRuns[run] ?? (filter !== 'all' || !initial)
         return (
           <div key={run} className="bm-log card">
             <div className="bm-log-head">

@@ -39,6 +39,8 @@
 .bm-chip{height:30px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--border);
   background:var(--surface);color:var(--text-2);font-size:var(--fs-xs)}
 .bm-chip:hover{color:var(--text);border-color:var(--border-strong)}
+.bm-chip:disabled{opacity:.4;cursor:default}
+.bm-chip-n{margin-left:4px;font-family:var(--font-mono);font-size:10px;opacity:.7}
 .bm-chip.on{background:var(--text);color:#0C0C0E;border-color:var(--text)}
 .bm-toggles{display:flex;gap:var(--s2);font-size:var(--fs-xs);color:var(--text-2)}
 .bm-toggles label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}

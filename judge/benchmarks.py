@@ -414,15 +414,36 @@ def _iso(value) -> str | None:
 # ── changelog and runs ───────────────────────────────────────────────────────
 
 
-def changelog(conn, *, limit: int = 300, run_id: int | None = None) -> dict[str, Any]:
+#: The Changelog's filter pills (2026-10-26). "score"/"rank": a value that moved
+#: on the same source; "up"/"down": any change with a direction, including
+#: another source taking the cell over. Fixed SQL only - never user text.
+CHANGE_KINDS = {
+    "score": "c.change_type = 'updated' AND c.metric <> 'rank'",
+    "rank": "c.change_type = 'updated' AND c.metric = 'rank'",
+    "up": "c.direction = 'better'",
+    "down": "c.direction = 'worse'",
+    "added": "c.change_type = 'added'",
+    "removed": "c.change_type = 'removed'",
+    "source_changed": "c.change_type = 'source_changed'",
+    "variant_added": "c.change_type = 'variant_added'",
+}
+
+
+def changelog(
+    conn, *, limit: int = 300, run_id: int | None = None, kind: str | None = None
+) -> dict[str, Any]:
     _, columns = _columns()
     labels = {
         r[0]: r[1] for r in conn.execute("SELECT row_id, display_label FROM bench_row").fetchall()
     }
     names = {s["id"]: s["name"] for s in _seeds()}
-    where, params = "", []
+    conditions, params = [], []
     if run_id is not None:
-        where, params = "WHERE c.run_id = %s", [run_id]
+        conditions.append("c.run_id = %s")
+        params.append(run_id)
+    if kind in CHANGE_KINDS:
+        conditions.append(f"({CHANGE_KINDS[kind]})")
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     rows = conn.execute(
         "SELECT c.id, c.run_id, c.changed_at, c.row_id, c.benchmark_key, c.metric, c.change_type, "
         "c.old_raw, c.new_raw, c.old_source, c.new_source, "
@@ -459,6 +480,7 @@ def changelog(conn, *, limit: int = 300, run_id: int | None = None) -> dict[str,
                 "changed_at": _iso(at),
                 "row": labels.get(row_id) or names.get(row_id) or row_id,
                 "column": column["label"] if column else None,
+                "metric": metric,  # score | rank | rating: the Changelog filters on it
                 "type": kind,
                 "old": old,
                 "new": new,
@@ -472,7 +494,11 @@ def changelog(conn, *, limit: int = 300, run_id: int | None = None) -> dict[str,
             }
         )
     total = conn.execute("SELECT count(*) FROM bench_change").fetchone()[0]
-    return {"entries": entries, "total": total}
+    counts = {
+        key: conn.execute(f"SELECT count(*) FROM bench_change c WHERE {sql}").fetchone()[0]  # noqa: S608
+        for key, sql in CHANGE_KINDS.items()
+    }
+    return {"entries": entries, "total": total, "counts": counts, "kind": kind or "all"}
 
 
 def runs(conn, *, limit: int = 30) -> dict[str, Any]:

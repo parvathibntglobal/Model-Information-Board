@@ -1484,6 +1484,27 @@ class TestListAndReleaseChanges:
         ).fetchone()[0]
         assert moved == 2  # both moves are in the changelog
 
+    def test_the_changelog_filters_the_whole_log_by_kind(self, conn, monkeypatch):
+        from judge import benchmarks as page
+
+        monkeypatch.setattr(page, "_seeds", lambda: [{"id": s.id, "name": s.name} for s in SEEDS])
+        old = {"GPT 6 Astra": 86.1, "Kimi K3": 85.9}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(old, "2026-10-14")})
+        swapped = {"Kimi K3": 86.2, "GPT 6 Astra": 86.1}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(swapped, "2026-10-14")})
+        everything = page.changelog(conn)
+        assert everything["counts"]["rank"] == 2 and everything["counts"]["score"] == 1
+        ranks = page.changelog(conn, kind="rank")["entries"]
+        assert len(ranks) == 2 and all(
+            e["metric"] == "rank" and e["type"] == "updated" for e in ranks
+        )
+        up = page.changelog(conn, kind="up")["entries"]
+        assert up and all(e["direction"] == "better" for e in up)
+        # Anything else is not a filter: the whole log comes back, never an error.
+        assert len(page.changelog(conn, kind="1; DROP TABLE x")["entries"]) == len(
+            everything["entries"]
+        )
+
 
 class TestRowsNoSourceLists:
     """A row a run created goes once no source lists it (2026-10-26): Qwen3.8 Flash,
