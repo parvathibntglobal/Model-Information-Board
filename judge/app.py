@@ -3762,6 +3762,19 @@ _ACCESS = {
         "evidence": "contract/sources.yaml `access_path: api`",
         "metered": False,
     },
+    "forum:discuss.ai.google.dev": {
+        "method": "public forum JSON, where robots.txt allows",
+        "detail": (
+            "The Google AI Developers Forum's own JSON: the newest-topic listing, "
+            "each topic, and its opening post's markdown. Its search is "
+            "disallowed by robots.txt and never used; robots.txt is re-read on "
+            "every run, because Google's terms make it the permission."
+        ),
+        "uses_credential": False,
+        "credential_note": "No key. Public pages only.",
+        "evidence": "contract/sources.yaml `access_path: discourse-json`",
+        "metered": False,
+    },
     "blogs": {
         "method": "public feeds, then the article",
         "detail": (

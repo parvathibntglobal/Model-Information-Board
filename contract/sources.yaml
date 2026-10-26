@@ -1496,6 +1496,87 @@ terms_rulings:
       external user, any monetization, downloading weights, or fetching
       huggingface.co HTML rather than the API.
 
+  # ── Google AI Developers Forum (Discourse) ───────────────────────────────
+  - id: google-ai-developers-forum
+    party: platform
+    platform_host: discuss.ai.google.dev
+    reviewed_on: 2026-10-26
+    reviewed_by: anooj
+    basis: public-derived-publication
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    live_preconditions:
+      use_basis: [public-derived-publication]
+      access_path: [discourse-json]
+      # The terms make robots.txt the permission, so every path this source
+      # requests is re-tested against it on every run, before the first
+      # request (collect/adapters/discourse.py `observe`).
+      robots_status: [rules]
+      listing_path_allowed: [true]
+      topic_path_allowed: [true]
+      raw_path_allowed: [true]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [true]
+      robots_checked: [true]
+      legal_review_completed: [false]
+    summary: |
+      RULED 2026-10-26 (anooj; for review on the PR that carries it). The
+      forum's `/tos` redirects to the Google Terms of Service
+      (policies.google.com/terms, "Effective July 30, 2026"), read that day.
+      Its one clause on automated access, under "Don't abuse our services",
+      prohibits "using automated means to access content from any of our
+      services in violation of the machine-readable instructions on our web
+      pages (for example, robots.txt files that disallow crawling, training,
+      or other activities)".
+
+      SO ROBOTS.TXT IS THE PERMISSION, and it was read the same day. For
+      `User-agent: *` it disallows /admin/, /auth/, /email/, /session,
+      /user-api-key, /badges, /my, /search, /tag/*/l, /g, /t/*/*.rss and
+      /c/*.rss. This source requests only what is left: the newest-created
+      listing (`/latest.json?order=created`), a topic's JSON (`/t/<id>.json`)
+      and its opening post's markdown (`/raw/<id>/1`). `/search` is
+      disallowed, so there is NO per-model search here: the forum is read as
+      a nightly listing, and extraction finds the models in it.
+
+      The three paths are live preconditions, observed through the same
+      robots gate the blogs use on every run. The day robots.txt disallows
+      one of them, this source refuses before its first request.
+
+      MEASURED 2026-10-26: 3,022 topics in 30 days (`/categories.json`
+      `topics_month`; gemini-api 1,712, antigravity 665, ai-studio 588). Mostly
+      operational - 429s, quota, behaviour regressions - and first-hand.
+
+      ROBOTS.TXT PERMITS THE READING; THIS IS WHAT THE QUOTING RESTS ON (added
+      after #568's review). The same Terms, under "Other content", say of
+      content other people post on Google services: "You may not use this
+      content without that person or organization's permission, or as
+      otherwise allowed by law." Forum posts are other users' content, and the
+      board quotes them. We have no permission from the authors, so the basis
+      is the second half - "as otherwise allowed by law": a short quotation,
+      attributed and linked, for commentary and comparison, never the full
+      text, as the use-basis undertaking at the top of this file commits for
+      every source. That is a reliance on the quotation allowances of the
+      applicable law (fair dealing / fair use) for criticism, review and
+      comparison - which allowance applies depends on where we operate, so
+      no single doctrine is named - recorded here as the accepted basis, not
+      as a permission anybody granted.
+
+      PUBLICATION, ON PURPOSE (2026-10-26, anooj, after #568's review). Forum
+      posts are QUOTED on public pages like Hacker News and dev.to - not
+      withheld, not embed-only. A public page credits the PLATFORM NAME and
+      LINKS THE TOPIC, and shows no forum username or user id: no identity we
+      do not hold (the adapter stores only the forum-local numeric id), and
+      the reader can open the post (judge/feed/items.py `cite_source`).
+
+      UNRESOLVED, DELIBERATELY RECORDED: posts carry no stated licence for
+      quotation; the basis above is reliance on the law, which is weaker than
+      a licence and is the accepted risk.
+
+      RE-REVIEW REQUIRED BEFORE: any monetization, any path robots.txt does not
+      allow, or a change to Google's terms after July 30, 2026.
+
 
 sources:
 
@@ -1831,6 +1912,28 @@ sources:
       by range - never tensor data, never a whole file. Model cards are
       frequently the vendor describing its own model and must extract as
       vendor-about-own-product.
+
+  - id: forum:discuss.ai.google.dev
+    platform: forum
+    endpoint: https://discuss.ai.google.dev
+    base_trust: 0.80
+    provenance: seed
+    terms_ruling: google-ai-developers-forum
+    terms_evidence:
+      checked_on: 2026-10-26
+      access_path: discourse-json
+      robots_status: rules
+      republication_claimed: false
+      terms_document_read: true
+      robots_checked: true
+      legal_review_completed: false
+    tos_notes: >
+      Ruling google-ai-developers-forum, 2026-10-26. Google's Terms of Service
+      (effective 2026-07-30) forbid automated access only against robots.txt;
+      robots.txt disallows /search, so the forum is read as a nightly listing of
+      its newest topics, never searched, and every path is re-tested against
+      robots.txt on every run. base_trust 0.80, as Hacker News: first-hand
+      developer reports attributable to an account, often operational.
 
 
 feeds:

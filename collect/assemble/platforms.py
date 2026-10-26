@@ -44,7 +44,7 @@ from dataclasses import dataclass, field
 #: each has its own driver with platform-specific prose extraction and ranking,
 #: and folding them in here would mean re-deriving rules that are already
 #: settled elsewhere.
-PLATFORMS = ("arxiv", "devto", "hackernews", "huggingface", "x")
+PLATFORMS = ("arxiv", "devto", "forum", "hackernews", "huggingface", "x")
 
 
 @dataclass

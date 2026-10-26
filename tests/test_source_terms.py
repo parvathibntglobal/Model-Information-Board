@@ -70,6 +70,10 @@ _PLATFORM_OBSERVATIONS = {
     "scraper_provider": "twitter241",
     "credential_present": True,
     "search_endpoint": "/articles/search",
+    # The Google AI forum's paths, as a healthy run's robots gate sees them.
+    "listing_path_allowed": True,
+    "topic_path_allowed": True,
+    "raw_path_allowed": True,
 }
 
 
@@ -96,8 +100,9 @@ def test_every_declared_platform_is_the_expected_one():
     here means the preconditions hold, never that the terms were cleared.
     """
     ids = {s["id"] for s in _contract()["sources"]}
+    # The Google AI Developers Forum added 2026-10-26.
     assert ids == {"github", "blogs", "reddit", "arxiv", "x",
-                   "devto", "hackernews", "huggingface"}
+                   "devto", "hackernews", "huggingface", "forum:discuss.ai.google.dev"}
 
 
 def test_base_trust_matches_the_documented_weights():
@@ -126,6 +131,9 @@ def test_base_trust_matches_the_documented_weights():
       devto 0.60       user-authored, and the platform is dense with tutorial and
                        SEO filler. Level with X for the same reason: the signal
                        is there and the ratio is poor.
+      forum:discuss.ai.google.dev 0.80  added 2026-10-26: first-hand developer
+                       reports, attributable to an account, often operational.
+                       Level with Hacker News.
     """
     trust = {s["id"]: s["base_trust"] for s in _contract()["sources"]}
     assert trust == {
@@ -137,6 +145,7 @@ def test_base_trust_matches_the_documented_weights():
         "arxiv": 0.70,
         "x": 0.60,
         "devto": 0.60,
+        "forum:discuss.ai.google.dev": 0.80,
     }
 
 
@@ -401,11 +410,11 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 36  # eight platforms + twenty-eight feeds. 12 before
+    assert len(rows) == 37  # nine platforms + twenty-eight feeds. 12 before
     #                        2026-09-08, 14 after arXiv and X, 17 after dev.to
     #                        / HN / Hugging Face, 26 after the 2026-09-21
     #                        class A re-review seated nine blogs, 36 after the
-    #                        2026-10-26 newsletters.
+    #                        2026-10-26 newsletters, 37 with the Google AI forum.
     assert rows["blog:simonwillison.net"]["provenance"] == "seed"
     assert rows["blog:simonwillison.net"]["terms_checked_on"] == REVIEWED_ON
     assert all(row["base_trust"] for row in rows.values())

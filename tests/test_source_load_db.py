@@ -70,16 +70,16 @@ def test_every_source_row_lands(conn):
     """
     report = load_source_rows(conn)
     # 17 until the 2026-09-21 class A re-review seated nine more blogs; 26
-    # until ten newsletters were seated on 2026-10-26.
-    assert (report.inserted, report.updated, report.unchanged) == (36, 0, 0)
+    # until ten newsletters were seated on 2026-10-26, 36 until the Google AI forum.
+    assert (report.inserted, report.updated, report.unchanged) == (37, 0, 0)
 
     rows = _rows(conn)
-    assert len(rows) == 36
+    assert len(rows) == 37
     # THE SET, which the docstring says is the assertion that matters. A count
     # passes on a file that lost `reddit` and gained two others; this does not.
     assert {r["platform"] for r in rows.values()} == {
         "github", "blog", "reddit", "arxiv", "x",
-        "devto", "hackernews", "huggingface",
+        "devto", "hackernews", "huggingface", "forum",
     }
     # 10 until the 2026-09-21 class A re-review, 19 until the 2026-10-26
     # newsletters; 29 = 28 feeds + umbrella.
@@ -96,7 +96,7 @@ def test_a_second_load_changes_nothing(conn):
     conn.commit()
 
     again = load_source_rows(conn)
-    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 36)
+    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 37)
     assert again.changed_columns == {}
 
 
@@ -109,7 +109,7 @@ def test_a_changed_ruling_shows_up_as_one_updated_row(conn):
     conn.commit()
 
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 35)
+    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 36)
     assert report.changed_columns == {"blog:hamel.dev": ["tos_notes"]}
 
 
