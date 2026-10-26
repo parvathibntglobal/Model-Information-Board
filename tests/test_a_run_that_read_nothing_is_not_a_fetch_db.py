@@ -60,6 +60,18 @@ def test_nothing_new_and_nothing_unreadable_is_a_real_success(conn):
     assert "mv_quiet" in _successes(conn)
 
 
+def test_an_ok_collect_only_run_counts_on_its_harvest(conn):
+    """2026-10-26: FETCH_EXTRACT=off reads nothing by design, and the runner
+    could not read 1,648 threads, so without this clause no run counted."""
+    _run(conn, "r6", "mv_collect", {"kind": "end", "status": "ok", "threads_read": 0,
+                                    "threads_unreadable_here": 1648,
+                                    "extract_skipped": True})
+    _run(conn, "r7", "mv_collect_err", {"kind": "end", "status": "error",
+                                        "extract_skipped": True})
+    got = _successes(conn)
+    assert "mv_collect" in got and "mv_collect_err" not in got
+
+
 def test_runs_from_before_the_field_are_judged_as_before(conn):
     _run(conn, "r4", "mv_old", {"kind": "end", "status": "ok"})
     _run(conn, "r5", "mv_err", {"kind": "end", "status": "error"})

@@ -55,6 +55,7 @@ from collect.assemble import prose  # noqa: E402
 from judge import fetch_console  # noqa: E402
 from judge.extract.client import extractor_model  # noqa: E402
 from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
+from judge.scheduler import extract_enabled  # noqa: E402
 
 log = logging.getLogger(__name__)
 from collect.config import settings  # noqa: E402
@@ -162,6 +163,12 @@ MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "50"))
 #:   Turning it on is a spend decision, so the wording changed and the default
 #:   did not.
 FETCH_BACKLOG = os.getenv("FETCH_BACKLOG", "").strip().lower() in {"1", "on", "true", "yes"}
+
+#: WHETHER THIS RUN EXTRACTS. `FETCH_EXTRACT=off` is a collect-only run: every
+#: stage up to triage runs and E5 is skipped by name (`judge.scheduler.
+#: extract_enabled` says why the scheduled workflow sets it). Read once here so
+#: a bad value refuses before the first request, not after the harvest.
+FETCH_EXTRACT = extract_enabled(os.getenv("FETCH_EXTRACT"))
 
 #: Said on every stage line that leaves threads unread. One string, so the
 #: claim is made once and tested once (`tests/test_fetch_model.py`).
@@ -3833,12 +3840,21 @@ def main(argv: list[str] | None = None) -> int:
             _safe_rollback(db.raw)
             prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
 
-        try:
-            extract_and_curate(db.live(prog), prog, release_date=release_date,
-                               surfaces=variants, model_version_id=args.model_version_id)
-        except Exception as exc:
-            _safe_rollback(db.raw)
-            prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])
+        if not FETCH_EXTRACT:
+            # On the end record, so the scheduler counts a clean harvest as a
+            # fetch and its summary says "collect-only" rather than "read 0".
+            prog.record_summary(extract_skipped=True)
+            prog.stage("E5", "Extract", "skipped",
+                       detail="collect-only run (FETCH_EXTRACT=off): the documents "
+                              "harvested above are stored and stay unread until an "
+                              "extracting run reads them; no model was called")
+        else:
+            try:
+                extract_and_curate(db.live(prog), prog, release_date=release_date,
+                                   surfaces=variants, model_version_id=args.model_version_id)
+            except Exception as exc:
+                _safe_rollback(db.raw)
+                prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])
 
         # THE EXIT CODE IS THE SAME CLAIM IN THE OTHER CHANNEL. A run that
         # reports `error` in its log and 0 to its caller has only moved the
