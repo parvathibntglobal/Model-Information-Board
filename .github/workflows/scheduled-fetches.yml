@@ -149,15 +149,34 @@ jobs:
       - if: steps.gate.outputs.enabled == 'true'
         run: pip install -e .
 
+      # THE BLOG AND NEWSLETTER FEEDS, ONCE A NIGHT, BEFORE THE MODELS
+      # (2026-10-26). A feed has no per-model search (fetch_model's E2B), so
+      # every seated feed in contract/sources.yaml is harvested wholesale here
+      # and each model's E5 reads the threads that name it. --new-only: an
+      # entry already stored is not requested again. --max-new-articles 10:
+      # at most ten article requests per self-hosted feed a night, newest
+      # first, so a long backlog (swyx.io: 432 entries, 25 stored) is caught
+      # up over nights instead of overrunning the step. Feed-only newsletters
+      # make no article request at all. A failure here turns the job red and
+      # the models still run. Skipped when a manual run scopes SOURCES to
+      # platforms that are not blogs.
+      - name: Harvest the blog and newsletter feeds
+        if: >-
+          steps.gate.outputs.enabled == 'true'
+          && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'blog'))
+        timeout-minutes: 20
+        run: python scripts/harvest_blogs.py --new-only --max-new-articles 10
+
       - name: Fetch the due models
-        if: steps.gate.outputs.enabled == 'true'
-        # --job-limit-minutes 355 matches timeout-minutes: a fetch still running
-        # at 345 min is stopped by the runner, which then posts the summary.
-        # Each thread commits as it finishes, so that loses one thread at most
-        # and the model stays due. That makes a late launch cheap, so
-        # --deadline-minutes 300 starts models until minute 300.
+        if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
+        # --job-limit-minutes 335 is timeout-minutes (355) less the feed step's
+        # 20: a fetch still running at 325 min of THIS step is stopped by the
+        # runner, which then posts the summary. Each thread commits as it
+        # finishes, so that loses one thread at most and the model stays due.
+        # That makes a late launch cheap, so --deadline-minutes 300 starts
+        # models until minute 300.
         run: |
-          args="--job-limit-minutes 355 --deadline-minutes 300"
+          args="--job-limit-minutes 335 --deadline-minutes 300"
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

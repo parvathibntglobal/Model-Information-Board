@@ -116,6 +116,13 @@ def main(argv: list[str] | None = None) -> int:
                         help="stop after N feeds. 0 means every feed.")
     parser.add_argument("--dry-run", action="store_true",
                         help="fetch and assemble, write nothing, report what would land")
+    parser.add_argument("--new-only", action="store_true",
+                        help="do not re-request the article of an entry already stored "
+                             "as a document. For the nightly run; a feed is still read "
+                             "in full, and skipped entries are counted")
+    parser.add_argument("--max-new-articles", type=int, default=None,
+                        help="request at most N articles per feed, newest first; the "
+                             "rest are counted as deferred and asked for next run")
     args = parser.parse_args(argv)
 
     contract = load_sources()
@@ -191,14 +198,46 @@ def main(argv: list[str] | None = None) -> int:
               "contexts": 0, "nothing_extracted": 0, "already_present": 0,
               "members_unresolved": 0, "unreadable_after_write": 0,
               "author_rows": 0, "authors_attached_to_existing": 0,
-              "entries_without_byline": 0,
+              "entries_without_byline": 0, "articles_already_stored": 0,
+              "articles_requested": 0, "articles_deferred": 0, "no_source_row": 0,
               "harvest_runs_opened": 0, "harvest_runs_closed": 0}
+
+    # A FEED WITH NO `source` ROW IS REFUSED BY NAME (2026-10-26, #564 review).
+    # `harvest_run.source_id` is a foreign key, so its ledger row would be
+    # refused while its documents still landed: a partial write (rule 12).
+    # It happens between merging a feed and running `registry load-sources`.
+    # So it makes no request and writes nothing, the rest of the feeds run,
+    # and the exit code is 1 so the nightly step goes red and says which.
+    unloaded: set[str] = set()
+    if conn is not None:
+        ids = [f["id"] for f in feeds]
+        have = {r[0] for r in conn.execute("SELECT id FROM source WHERE id = ANY(%s)", (ids,))}
+        unloaded = set(ids) - have
+        for feed_id in sorted(unloaded):
+            print(f"  {feed_id:38s} REFUSED: no `source` row - run "
+                  "`python -m collect.cli registry load-sources` first")
+
+    # THE NIGHTLY RUN DOES NOT RE-REQUEST WHAT IT HOLDS (2026-10-26). One read
+    # of the keys `write_blog_run` inserts under - `(source, external_id)`,
+    # source always `blog` - so an entry already stored costs no request.
+    # Without a connection (a dry run) there is nothing to read, and every
+    # article is requested as before.
+    held: frozenset[str] = frozenset()
+    if args.new_only and conn is not None:
+        from collect.assemble.article import BLOG_SOURCE
+
+        held = frozenset(r[0] for r in conn.execute(
+            "SELECT external_id FROM document WHERE source = %s", (BLOG_SOURCE,)))
+        print(f"  --new-only: {len(held):,} blog document(s) already stored")
 
     try:
         with build_client() as client:
             robots = RobotsGate(client, user_agent=settings().user_agent)
             for feed in feeds:
                 feed_id = feed["id"]
+                if feed_id in unloaded:
+                    totals["no_source_row"] += 1
+                    continue
                 try:
                     fetcher = fetcher_for_source(
                         feed, robots=robots, rulings=contract.rulings,
@@ -241,8 +280,12 @@ def main(argv: list[str] | None = None) -> int:
                         print(f"  {feed_id:38s} harvest_run not opened: "
                               f"{type(error).__name__}: {error}")
 
-                run = fetcher.harvest_feed(feed["endpoint"])
+                run = fetcher.harvest_feed(feed["endpoint"], skip_entry_ids=held,
+                                           max_articles=args.max_new_articles)
                 totals["feeds"] += 1
+                totals["articles_already_stored"] += run.already_stored
+                totals["articles_requested"] += run.articles_requested
+                totals["articles_deferred"] += run.articles_deferred
                 if run.outcome != "fetched":
                     print(f"  {feed_id:38s} {run.outcome}")
                     _close(conn, opened, run, totals)
@@ -287,6 +330,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {key:20s} {value}")
     if args.dry_run:
         print("\ndry run: nothing was written")
+    if unloaded:
+        print(f"\n{len(unloaded)} feed(s) refused for want of a `source` row: "
+              + ", ".join(sorted(unloaded)), file=sys.stderr)
+        return 1
     return 0
 
 

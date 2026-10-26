@@ -3776,8 +3776,13 @@ def main(argv: list[str] | None = None) -> int:
         # Blogs have no per-model search — they are RSS/feed-based, harvested
         # wholesale, so a model-name query cannot target them (rule 7: say what
         # the run did NOT do rather than let its absence read as coverage).
+        # Since 2026-10-26 the scheduled workflow harvests every seated blog and
+        # newsletter feed once a night, before the models; E5 reads those
+        # threads like any other unread thread that names this model.
         prog.stage("E2B", "Harvest · Blogs", "skipped",
-                   detail="blogs are feed-based — no per-model search; not run for one model")
+                   detail="blogs and newsletters are feed-based — no per-model search; "
+                          "harvested once a night for every model by "
+                          "scripts/harvest_blogs.py (scheduled-fetches workflow)")
 
         # dev.to, Hacker News and Hugging Face. Ruled on 2026-09-09, so they run
         # now; each still gates itself, and a ruling that lapses or whose
