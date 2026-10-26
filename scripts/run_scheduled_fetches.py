@@ -66,6 +66,14 @@ def _read_only_dsn() -> str:
 #:   with no unreadable threads and nothing new is a real "nothing to do", and
 #:   still counts. Runs before `threads_unreadable_here` existed carry no field
 #:   and are judged as before.
+#:
+#: ⚠ A COLLECT-ONLY RUN COUNTS ON ITS HARVEST (2026-10-26). It reads no thread
+#:   by design (`FETCH_EXTRACT=off`), and 1,648 threads were unreadable on the
+#:   runner, so neither clause above could ever hold: from 2026-10-22 no
+#:   scheduled run counted, every model was due every night, and 12-15 models
+#:   at the tail went unfetched on each of 10-23, 10-24 and 10-25 when the
+#:   time budget ran out. An `ok` collect-only run did what it was for -
+#:   `ok` already means no stage errored (#327) - so it counts.
 LAST_SUCCESS = """
     SELECT r.model_version_id, max(e.at)
       FROM fetch_log r
@@ -73,7 +81,8 @@ LAST_SUCCESS = """
      WHERE r.kind = 'run'
        AND (e.payload->>'status') = 'ok'
        AND (coalesce((e.payload->>'threads_read')::int, 0) > 0
-            OR coalesce((e.payload->>'threads_unreadable_here')::int, 0) = 0)
+            OR coalesce((e.payload->>'threads_unreadable_here')::int, 0) = 0
+            OR (e.payload->>'extract_skipped') = 'true')
      GROUP BY r.model_version_id
 """
 
@@ -151,7 +160,13 @@ def run_one(due, *, sources: str | None, development_write: bool,
     # printed first, `_end_record` found no such log, and EVERY model reported
     # "no end record" in the public summary while its fetch ran normally.
     # Minting the id here leaves nothing to parse.
-    run_id = f"{due.model_version_id}-{uuid.uuid4().hex[:8]}"
+    #
+    # NO SLASH IN THE ID (2026-10-26). A registry row id can be a canonical id
+    # (`openai/gpt-6-astra`), and the id names the local log file, so the slash
+    # made a directory nobody created: GPT-6 Astra reported "no end record"
+    # every night and was never fetched by this runner. The admin's Fetch
+    # button has always replaced it (judge/app.py).
+    run_id = f"{due.model_version_id.replace('/', '_')}-{uuid.uuid4().hex[:8]}"
     cmd = [sys.executable, "-m", "scripts.fetch_model", due.model_version_id,
            "--run-id", run_id]
     if sources:
@@ -258,13 +273,19 @@ def main(argv: list[str] | None = None) -> int:
     # An unset budget refuses (rule 6): fetch_model would run uncapped-by-cap.
     from judge import spend_ledger
 
-    raw_cap = os.getenv("EXTRACTION_DAILY_BUDGET_USD")
-    if raw_cap is None or not raw_cap.strip():
-        raise SystemExit(
-            "EXTRACTION_DAILY_BUDGET_USD is not set; refusing to run a batch whose "
-            "spend nothing caps (docs/ops-scheduled-fetches.md, step 2)"
-        )
-    cap = float(raw_cap)
+    # A COLLECT-ONLY BATCH SPENDS NOTHING, so it needs no cap and checks none.
+    # Read with the same function `fetch_model` uses, so the two cannot
+    # disagree about whether this batch extracts.
+    extracting = scheduler.extract_enabled(os.getenv("FETCH_EXTRACT"))
+    cap = None
+    if extracting:
+        raw_cap = os.getenv("EXTRACTION_DAILY_BUDGET_USD")
+        if raw_cap is None or not raw_cap.strip():
+            raise SystemExit(
+                "EXTRACTION_DAILY_BUDGET_USD is not set; refusing to run a batch whose "
+                "spend nothing caps (docs/ops-scheduled-fetches.md, step 2)"
+            )
+        cap = float(raw_cap)
 
     records = []
     started = time.monotonic()
@@ -294,8 +315,8 @@ def main(argv: list[str] | None = None) -> int:
                                 "status": "not run: this job's time budget is spent"})
             print(f"deadline reached after {elapsed:.0f} min; {len(due) - i} model(s) not run")
             break
-        spent = spend_ledger.spent_today()
-        if spent >= cap:
+        spent = spend_ledger.spent_today() if extracting else 0.0
+        if extracting and spent >= cap:
             for rest in due[i:]:
                 records.append({"model": rest.display_name,
                                 "status": "not run: daily budget spent"})

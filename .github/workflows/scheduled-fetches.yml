@@ -104,6 +104,12 @@ jobs:
       RAW_STORE_REMOTE: postgres
       MAX_MODELS: ${{ inputs.max_models }}
       SOURCES: ${{ inputs.sources }}
+      # COLLECT-ONLY (2026-10-26): harvest every due model, extract nothing.
+      # The team has no working OpenRouter key; with the dead one every run
+      # sent its threads, got no answer and counted as no fetch at all. Set
+      # back to "on" when a key is in the secrets, and the key and the budget
+      # become required again.
+      FETCH_EXTRACT: "off"
     steps:
       - name: Is the scheduler switched on?
         id: gate
@@ -115,10 +121,13 @@ jobs:
           fi
           missing=""
           [ -n "$DATABASE_URL" ]                || missing="$missing STAGING_DATABASE_URL"
-          [ -n "$OPENROUTER_API_KEY" ]          || missing="$missing OPENROUTER_API_KEY"
           [ -n "$USER_AGENT" ]                  || missing="$missing USER_AGENT"
-          [ -n "$EXTRACTION_DAILY_BUDGET_USD" ] || missing="$missing EXTRACTION_DAILY_BUDGET_USD"
           [ -n "$SCHEDULER_ISSUE" ]             || missing="$missing SCHEDULER_ISSUE"
+          # The key and the budget matter only to a batch that extracts.
+          if [ "$FETCH_EXTRACT" != "off" ]; then
+            [ -n "$OPENROUTER_API_KEY" ]          || missing="$missing OPENROUTER_API_KEY"
+            [ -n "$EXTRACTION_DAILY_BUDGET_USD" ] || missing="$missing EXTRACTION_DAILY_BUDGET_USD"
+          fi
           if [ -n "$missing" ]; then
             echo "::error::scheduler switched on but not configured:$missing"
             exit 1
