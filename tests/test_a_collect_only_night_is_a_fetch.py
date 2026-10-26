@@ -110,9 +110,12 @@ def test_a_slash_in_the_row_id_never_reaches_the_run_id(monkeypatch):
     assert seen["cmd"][seen["cmd"].index("scripts.fetch_model") + 1] == "openai/gpt-6-astra"
 
 
-def test_the_workflow_runs_collect_only_and_asks_for_the_key_only_when_extracting():
+def test_the_workflow_names_its_extract_switch_and_asks_for_the_key_only_when_extracting():
+    """The switch is set explicitly, to one of the two values, never left to a
+    default; extracting since the 2026-10-26 key. The gate still asks for the
+    key and the budget only when it is on."""
     wf = (ROOT / ".github" / "workflows" / "scheduled-fetches.yml").read_text(encoding="utf-8")
-    assert 'FETCH_EXTRACT: "off"' in wf
+    assert 'FETCH_EXTRACT: "on"' in wf or 'FETCH_EXTRACT: "off"' in wf
     gate = wf[wf.index('if [ "$FETCH_EXTRACT" != "off" ]'):]
     assert "OPENROUTER_API_KEY" in gate.split("fi", 1)[0]
 

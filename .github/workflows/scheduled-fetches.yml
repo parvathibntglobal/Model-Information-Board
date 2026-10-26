@@ -104,12 +104,13 @@ jobs:
       RAW_STORE_REMOTE: postgres
       MAX_MODELS: ${{ inputs.max_models }}
       SOURCES: ${{ inputs.sources }}
-      # COLLECT-ONLY (2026-10-26): harvest every due model, extract nothing.
-      # The team has no working OpenRouter key; with the dead one every run
-      # sent its threads, got no answer and counted as no fetch at all. Set
-      # back to "on" when a key is in the secrets, and the key and the budget
-      # become required again.
-      FETCH_EXTRACT: "off"
+      # EXTRACTING AGAIN (2026-10-26): a new OpenRouter key is in the secrets
+      # (verified live that day: limit $50, nothing spent). It was "off" -
+      # collect-only - from #563 while the old key was dead; set it to "off"
+      # again if the key stops answering, and the key and the budget stop
+      # being required. EXTRACTION_DAILY_BUDGET_USD caps each night ($2.00 on
+      # 2026-10-26), so at full spend the $50 key lasts about 25 nights.
+      FETCH_EXTRACT: "on"
     steps:
       - name: Is the scheduler switched on?
         id: gate
