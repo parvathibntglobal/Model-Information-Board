@@ -1611,23 +1611,51 @@ terms_rulings:
         - robots.txt (bsky.app): `User-Agent: *` / `Allow: /`; the file says
           bots "may crawl anything on this domain" and points bulk users to the
           protocol API, which is the route this adapter takes.
-        - Developer guidelines (bsky.network/docs/developer-guidelines,
-          undated): ONE OBLIGATION, quoted - "All services must have a method
-          for deleting content a user has requested to be deleted."
+        - Developer guidelines (bsky-docs repository,
+          docs/support/developer-guidelines.md, undated; re-read in full
+          2026-10-26 - the first reading said ONE obligation and missed two).
+          THREE APPLY TO A SERVICE THAT ONLY READS, quoted:
+            3. "All services must have a method for deleting content a user
+               has requested to be deleted."
+            5. "Developers must maintain updated contact information accessible
+               to the public including an email address that is regularly
+               monitored."
+            7. "Developers should keep records of all reports of violations
+               and their responses".
+          Items 1, 2, 4 and 6 concern apps with posting, reporting or end-user
+          accounts, which this service does not have.
 
-      THE OBLIGATION, AND HOW IT IS MET. A request to remove a Bluesky post is
-      handled as any takedown here: the raw payload is tombstoned (NFR-6) and
-      the claims from it withdrawn. `deletion_on_request_honoured` records that
-      commitment; it is a promise this ruling makes, so breaking it voids the
-      ruling.
+      THE OBLIGATIONS, AND HOW THEY ARE MET. A request to remove a Bluesky
+      post is handled as any takedown here: the raw payload is tombstoned
+      (NFR-6) and the claims from it withdrawn. `deletion_on_request_honoured`
+      records that commitment; it is a promise this ruling makes, so breaking
+      it voids the ruling.
+      ⚠ OPEN ON THE PR THAT CARRIES THIS: the public, monitored contact address
+      that guideline 5 requires, and where request records are kept
+      (guideline 7). Bluesky quotes do not reach a public page before both are
+      named here.
+
+      PUBLICATION, ON PURPOSE (2026-10-26, anooj, after #567's review). Bluesky
+      is QUOTED like Hacker News and dev.to - not withheld, and not embed-only
+      like X. The Terms of Service set no embed or attribution requirement,
+      users "retain ownership" of their posts, and "Bluesky does not control
+      how others may use your Content"; we quote a short excerpt, never full
+      text, under the use-basis undertaking at the top of this file. A public
+      page credits the PLATFORM NAME and LINKS THE POST, and shows no handle,
+      display name or DID: no identity we do not hold, and the reader can open
+      the post (judge/feed/items.py `cite_source`). The link itself is the
+      post's address, `bsky.app/profile/<did>/post/<rkey>`.
 
       UNRESOLVED, DELIBERATELY RECORDED:
-        - Posts are user-authored with no stated licence for quotation; we
-          publish quote + credit + link under the use-basis undertaking, never
-          full text.
         - Some accounts are automated (price and release bots). They are kept,
           not filtered: a filter whose error rate nobody has measured ships as a
           weight, never a gate (rule 8).
+        - Non-English posts are kept (`document.lang` is recorded, not
+          filtered); quotes verify in the original script. The "7 of 25
+          first-hand" estimate was read from English posts only.
+        - A model name inside a longer one ("GLM 5.3" in "GLM 5.3 Flash") is
+          kept by the adapter and separated at extraction by the longer name,
+          as on every source; per-model retrieval counts are not exact.
 
       RE-REVIEW REQUIRED BEFORE: any monetization, any use of the firehose or a
       PDS rather than the AppView search, or fetching bsky.app HTML.
@@ -2010,7 +2038,9 @@ sources:
       credential; site HTML is never fetched. Terms of Service (14 Aug 2025)
       carry no scraping or AI clause; robots.txt allows everything. The
       developer guidelines require deleting content a user asks to have
-      deleted, and this source commits to it. base_trust 0.60, as X: short
+      deleted, a public monitored contact address, and records of requests;
+      this source commits to all three. Quoted like Hacker News, credited as
+      the platform with a link to the post. base_trust 0.60, as X: short
       social posts.
 
 

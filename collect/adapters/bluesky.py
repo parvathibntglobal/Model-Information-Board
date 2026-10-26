@@ -13,9 +13,9 @@ which is why the endpoint is named here rather than left to a default.
 
 TERMS (`contract/sources.yaml`, ruling `bluesky-appview-terms`). The Terms of
 Service carry no clause on reading or scraping; robots.txt allows everything.
-The developer guidelines carry ONE OBLIGATION, recorded in the ruling: "All
-services must have a method for deleting content a user has requested to be
-deleted."
+The developer guidelines carry three obligations for a service that only
+reads, all recorded in the ruling: delete content a user asks to have deleted,
+publish a monitored contact address, and keep records of requests.
 
 WHAT IS STORED. Each post as the search returned it, one payload per post -
 `text_ref` names the post, never the search page, for the content-hash reason
