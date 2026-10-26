@@ -186,8 +186,8 @@ columns:
       state: read
     new_value:
       reviewed: true
-      state: write_only
-      why: 'The value in one unit, written by store.write_changes() so a change is comparable across sources that print differently; the page shows old_raw/new_raw instead (raw values only, 2026-10-22). Intended reader: the phase-2 rollback. Migration 20261022T1200.'
+      state: read
+      why: 'The value in one unit, written by store.write_changes() so a change is comparable across sources that print differently. Read by judge/benchmarks.py changelog() to size a move (a score moving 1 point or more is a "mover"); the page still shows old_raw/new_raw (raw values only, 2026-10-22). Migration 20261022T1200.'
     note:
       reviewed: true
       state: read
@@ -200,22 +200,26 @@ columns:
       state: read
     old_value:
       reviewed: true
-      state: write_only
-      why: 'The value in one unit, written by store.write_changes() so a change is comparable across sources that print differently; the page shows old_raw/new_raw instead (raw values only, 2026-10-22). Intended reader: the phase-2 rollback. Migration 20261022T1200.'
+      state: read
+      why: 'The value in one unit, written by store.write_changes() so a change is comparable across sources that print differently. Read by judge/benchmarks.py changelog() to size a move (a score moving 1 point or more is a "mover"); the page still shows old_raw/new_raw (raw values only, 2026-10-22). Migration 20261022T1200.'
     rank_out_of_new:
       reviewed: true
-      state: write_only
-      why: 'How many entries the board had, written by store.write_changes() so a rank change caused only by board growth can be told apart (doc 22.2 #12). Intended reader: the Updates page. Migration 20261022T1200.'
+      state: read
+      why: 'How many entries the board had when the new rank was read; shown on the Changelog next to the rank. Migration 20261022T1200.'
     rank_out_of_old:
       reviewed: true
-      state: write_only
-      why: 'How many entries the board had, written by store.write_changes() so a rank change caused only by board growth can be told apart (doc 22.2 #12). Intended reader: the Updates page. Migration 20261022T1200.'
+      state: read
+      why: 'How many entries the board had, written by store.write_changes() and shown on the Changelog ("34 of 49 -> 16 of 30") so a rank change caused only by board growth can be told apart (doc 22.2 #12). Migration 20261022T1200.'
     reason:
       reviewed: true
       state: read
     row_id:
       reviewed: true
       state: read
+    source_date:
+      reviewed: true
+      state: read
+      why: 'The source''s own date for the new value, written by store.write_changes(); judge/benchmarks.py changelog() uses it to tag a fresh result (dated recently) apart from a backfill. Migration 20261022T1200.'
     run_id:
       reviewed: true
       state: read

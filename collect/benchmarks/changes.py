@@ -59,6 +59,7 @@ def diff(
                     "new_raw": new.raw_text,
                     "new_source": new.source_key,
                     "rank_out_of_new": new.rank_out_of,
+                    "source_date": new.source_date,
                     "needs_review": new.needs_review,
                 }
             )
@@ -95,6 +96,7 @@ def diff(
                     "new_source": new.source_key,
                     "rank_out_of_old": old.rank_out_of,
                     "rank_out_of_new": new.rank_out_of,
+                    "source_date": new.source_date,
                     "direction": direction(config, benchmark_key, metric, old.value, new.value),
                     "needs_review": new.needs_review,
                 }

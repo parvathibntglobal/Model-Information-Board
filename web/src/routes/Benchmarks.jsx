@@ -465,6 +465,52 @@ const CHANGE_FILTERS = [
   { key: 'variant_added', label: 'New rows' },
 ]
 
+// NEWS-WORTHY (judge NEWS_KINDS): what happened, not just what the board read.
+const NEWS_FILTERS = [
+  { key: 'news', label: 'All news-worthy', hint: 'Debuts, fresh results and movers together' },
+  { key: 'debut', label: 'Debuts', hint: 'A model released in the last 60 days showing up on a benchmark' },
+  { key: 'fresh', label: 'Fresh results', hint: 'A new value the source itself dates within the last 30 days' },
+  { key: 'mover', label: 'Movers', hint: 'A rank move, or a score moving 1 point or more, on the same release' },
+]
+const NEWS_LABEL = { debut: 'debut', fresh: 'fresh', mover: 'mover' }
+
+function NewsMenu({ filter, counts, onPick }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return undefined
+    const away = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', away)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc) }
+  }, [open])
+  const current = NEWS_FILTERS.find((f) => f.key === filter)
+  return (
+    <div className="bm-news" ref={ref}>
+      <button type="button" className={`bm-chip bm-news-btn${current ? ' on' : ''}`} aria-haspopup="menu"
+              aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        {current ? current.label : 'News-worthy'} <span className="bm-chip-n">{counts[current?.key || 'news'] ?? 0}</span> ▾
+      </button>
+      {open && (
+        <div className="bm-news-menu" role="menu">
+          {NEWS_FILTERS.map((f) => (
+            <button key={f.key} type="button" role="menuitemradio" aria-checked={filter === f.key}
+                    className={`bm-news-item${filter === f.key ? ' on' : ''}`} disabled={!counts[f.key]}
+                    onClick={() => { onPick(f.key); setOpen(false) }}>
+              <span className="bm-news-label">{f.label} <span className="bm-chip-n">{counts[f.key] ?? 0}</span></span>
+              <span className="muted bm-small">{f.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// "16 of 30" for a rank, as the board stood when it was read.
+const withOutOf = (value, outOf) => (value == null ? '—' : outOf ? `${value} of ${outOf}` : value)
+
 function Changelog({ data: all }) {
   const [openRuns, setOpenRuns] = useState({})
   const [filter, setFilter] = useState('all')
@@ -484,13 +530,16 @@ function Changelog({ data: all }) {
   if (!all.entries.length) return <p className="muted">No changes yet. The first run will add every value it finds.</p>
   const counts = { ...all.counts, all: all.total }
   const pills = (
-    <div className="bm-chips" role="group" aria-label="Show changes of one kind">
-      {CHANGE_FILTERS.map((f) => (
-        <button key={f.key} type="button" className={`bm-chip${filter === f.key ? ' on' : ''}`}
-                aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} disabled={!counts[f.key]}>
-          {f.label} <span className="bm-chip-n">{counts[f.key]}</span>
-        </button>
-      ))}
+    <div className="bm-filters">
+      <div className="bm-chips" role="group" aria-label="Show changes of one kind">
+        {CHANGE_FILTERS.map((f) => (
+          <button key={f.key} type="button" className={`bm-chip${filter === f.key ? ' on' : ''}`}
+                  aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} disabled={!counts[f.key]}>
+            {f.label} <span className="bm-chip-n">{counts[f.key]}</span>
+          </button>
+        ))}
+      </div>
+      <NewsMenu filter={filter} counts={counts} onPick={setFilter} />
     </div>
   )
   if (!data) return <div className="stack stack-3">{pills}<p className="muted">Loading…</p></div>
@@ -529,12 +578,13 @@ function Changelog({ data: all }) {
                     <tr key={e.id} className={e.needs_review ? 'bm-flag' : ''}>
                       <td><span className={`bm-type bm-t-${e.type}`}>{e.type.replace('_', ' ')}</span>
                         {e.direction === 'better' && <span className="bm-better"> ▲</span>}
-                        {e.direction === 'worse' && <span className="bm-worse"> ▼</span>}</td>
+                        {e.direction === 'worse' && <span className="bm-worse"> ▼</span>}
+                        {e.news && <span className={`bm-newstag bm-news-${e.news}`}>{NEWS_LABEL[e.news]}</span>}</td>
                       <td>{e.row}</td>
                       <td>{e.column || <span className="muted">{e.note}</span>}
                         {e.column && e.note && <div className="muted bm-small">{e.note}</div>}</td>
-                      <td className="bm-num">{e.old ?? '—'}</td>
-                      <td className="bm-num">{e.new ?? '—'}</td>
+                      <td className="bm-num">{withOutOf(e.old, e.old_out_of)}</td>
+                      <td className="bm-num">{withOutOf(e.new, e.new_out_of)}</td>
                       <td className="muted">{e.new_source || e.old_source || ''}</td>
                     </tr>
                   ))}

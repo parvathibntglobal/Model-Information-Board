@@ -23,7 +23,7 @@ import subprocess
 import sys
 import uuid
 from contextlib import contextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -429,14 +429,94 @@ CHANGE_KINDS = {
 }
 
 
+#: NEWS-WORTHY (Parvathi, 2026-10-26). A changelog entry is news when it says
+#: something happened, not just that the board learned a value:
+#:   debut  a value for a model released in the last DEBUT_DAYS (registry
+#:          release date) - a new model showing up on a benchmark
+#:   fresh  a new value the source itself dates within FRESH_DAYS of the run
+#:          (an older model's new result, not a backfill)
+#:   mover  a value that moved on the same source and the same release: any
+#:          rank move, a score by MOVER_POINTS or more, a rating by MOVER_RATING
+#: Everything else - a source's FIRST read (its baseline: every value is new to
+#: the board then), a value the board only now read, a source taking a cell
+#: over, a new release resetting a board - is not news.
+DEBUT_DAYS = 60
+FRESH_DAYS = 30
+MOVER_POINTS = 1.0
+MOVER_RATING = 10.0
+NEWS_KINDS = ("news", "debut", "fresh", "mover")
+
+
+def _day(text: Any) -> date | None:
+    try:
+        return date.fromisoformat(str(text)[:10])
+    except (TypeError, ValueError):
+        return None
+
+
+def _release_dates(conn) -> dict[str, date]:
+    try:
+        rows = conn.execute(
+            "SELECT canonical_id, release_date FROM model_version WHERE release_date IS NOT NULL"
+        ).fetchall()
+    except Exception:  # noqa: BLE001 - no registry table here: no debuts
+        conn.rollback()
+        return {}
+    return {model_id: released for model_id, released in rows}
+
+
+def _baselines(conn) -> dict[str, int]:
+    """Each source's first run that wrote a value: everything it added then is a
+    first read, not news."""
+    return dict(
+        conn.execute(
+            "SELECT new_source, min(run_id) FROM bench_change "
+            "WHERE new_source IS NOT NULL GROUP BY new_source"
+        ).fetchall()
+    )
+
+
+def _news(
+    change: dict[str, Any], released: dict[str, date], baseline: dict[str, int]
+) -> str | None:
+    """Which kind of news one change is, or None."""
+    on = _day(change["changed_at"])
+    if change["type"] == "added" and baseline.get(change["new_source"]) == change["run_id"]:
+        return None
+    if change["type"] == "added" and on:
+        model = change["row_id"].split(":")[0].split("@")[0]
+        if model in released and 0 <= (on - released[model]).days <= DEBUT_DAYS:
+            return "debut"
+        dated = _day(change["source_date"])
+        if dated and 0 <= (on - dated).days <= FRESH_DAYS:
+            return "fresh"
+        return None
+    if change["type"] == "updated" and not (change["note"] or "").startswith("new release"):
+        if change["metric"] == "rank":
+            return "mover"
+        if change["old_value"] is None or change["new_value"] is None:
+            return None
+        step = abs(change["new_value"] - change["old_value"])
+        return (
+            "mover"
+            if step >= (MOVER_RATING if change["metric"] == "rating" else MOVER_POINTS)
+            else None
+        )
+    return None
+
+
 def changelog(
     conn, *, limit: int = 300, run_id: int | None = None, kind: str | None = None
 ) -> dict[str, Any]:
+    """The changelog, newest first, with each entry's news tag. `kind` is one of
+    CHANGE_KINDS (filtered in SQL) or NEWS_KINDS (tagged, then filtered)."""
     _, columns = _columns()
     labels = {
         r[0]: r[1] for r in conn.execute("SELECT row_id, display_label FROM bench_row").fetchall()
     }
     names = {s["id"]: s["name"] for s in _seeds()}
+    released = _release_dates(conn)
+    baseline = _baselines(conn)
     conditions, params = [], []
     if run_id is not None:
         conditions.append("c.run_id = %s")
@@ -444,13 +524,16 @@ def changelog(
     if kind in CHANGE_KINDS:
         conditions.append(f"({CHANGE_KINDS[kind]})")
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    # A news filter is decided per entry, so it reads the whole log and keeps
+    # the newest `limit` that match; the SQL kinds are cut by the database.
+    cap = "" if kind in NEWS_KINDS else "LIMIT %s"
     rows = conn.execute(
         "SELECT c.id, c.run_id, c.changed_at, c.row_id, c.benchmark_key, c.metric, c.change_type, "
-        "c.old_raw, c.new_raw, c.old_source, c.new_source, "
-        "c.direction, c.reason, c.actor, c.note, c.needs_review, r.dry_run "
-        f"FROM bench_change c JOIN bench_run r ON r.id = c.run_id {where} "
-        "ORDER BY c.id DESC LIMIT %s",
-        (*params, limit),
+        "c.old_value, c.new_value, c.old_raw, c.new_raw, c.old_source, c.new_source, "
+        "c.rank_out_of_old, c.rank_out_of_new, c.source_date, "
+        "c.direction, c.reason, c.actor, c.note, c.needs_review "
+        f"FROM bench_change c {where} ORDER BY c.id DESC {cap}",  # noqa: S608
+        (*params, limit) if cap else tuple(params),
     ).fetchall()
     entries = []
     for (
@@ -460,45 +543,101 @@ def changelog(
         row_id,
         bench,
         metric,
-        kind,
+        change_type,
+        old_value,
+        new_value,
         old,
         new,
         old_src,
         new_src,
+        out_of_old,
+        out_of_new,
+        source_date,
         direction,
         reason,
         actor,
         note,
         needs_review,
-        _dry,
     ) in rows:
         column = columns.get(f"{bench}_{metric}") if bench else None
-        entries.append(
-            {
-                "id": cid,
-                "run_id": rid,
-                "changed_at": _iso(at),
-                "row": labels.get(row_id) or names.get(row_id) or row_id,
-                "column": column["label"] if column else None,
-                "metric": metric,  # score | rank | rating: the Changelog filters on it
-                "type": kind,
-                "old": old,
-                "new": new,
-                "old_source": old_src,
-                "new_source": new_src,
-                "direction": direction,
-                "reason": reason,
-                "actor": actor,
-                "note": note,
-                "needs_review": needs_review,
-            }
-        )
+        entry = {
+            "id": cid,
+            "run_id": rid,
+            "changed_at": _iso(at),
+            "row_id": row_id,
+            "row": labels.get(row_id) or names.get(row_id) or row_id,
+            "column": column["label"] if column else None,
+            "metric": metric,  # score | rank | rating: the Changelog filters on it
+            "type": change_type,
+            "old": old,
+            "new": new,
+            "old_value": old_value,
+            "new_value": new_value,
+            # A rank is a place among the models the board lists: "16 of 30".
+            "old_out_of": out_of_old,
+            "new_out_of": out_of_new,
+            "source_date": source_date,
+            "old_source": old_src,
+            "new_source": new_src,
+            "direction": direction,
+            "reason": reason,
+            "actor": actor,
+            "note": note,
+            "needs_review": needs_review,
+        }
+        entry["news"] = _news(entry, released, baseline)
+        if kind in NEWS_KINDS and (entry["news"] is None or kind not in ("news", entry["news"])):
+            continue
+        entries.append(entry)
+        if len(entries) >= limit:
+            break
     total = conn.execute("SELECT count(*) FROM bench_change").fetchone()[0]
     counts = {
         key: conn.execute(f"SELECT count(*) FROM bench_change c WHERE {sql}").fetchone()[0]  # noqa: S608
         for key, sql in CHANGE_KINDS.items()
     }
+    counts.update(_news_counts(conn, released, baseline))
     return {"entries": entries, "total": total, "counts": counts, "kind": kind or "all"}
+
+
+def _news_counts(conn, released: dict[str, date], baseline: dict[str, int]) -> dict[str, int]:
+    found = {k: 0 for k in NEWS_KINDS}
+    for (
+        run_id,
+        source,
+        row_id,
+        metric,
+        change_type,
+        old_value,
+        new_value,
+        at,
+        source_date,
+        note,
+    ) in conn.execute(
+        "SELECT run_id, new_source, row_id, metric, change_type, old_value, new_value, "
+        "changed_at, source_date, note FROM bench_change "
+        "WHERE change_type IN ('added', 'updated')"
+    ).fetchall():
+        tag = _news(
+            {
+                "run_id": run_id,
+                "new_source": source,
+                "row_id": row_id,
+                "metric": metric,
+                "type": change_type,
+                "old_value": old_value,
+                "new_value": new_value,
+                "changed_at": at,
+                "source_date": source_date,
+                "note": note,
+            },
+            released,
+            baseline,
+        )
+        if tag:
+            found[tag] += 1
+            found["news"] += 1
+    return found
 
 
 def runs(conn, *, limit: int = 30) -> dict[str, Any]:

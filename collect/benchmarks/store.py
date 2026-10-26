@@ -438,8 +438,8 @@ def write_changes(conn, run_id: int, changes: list[dict[str, Any]]) -> None:
         conn.execute(
             "INSERT INTO bench_change (run_id, row_id, benchmark_key, metric, change_type, "
             "old_value, new_value, old_raw, new_raw, old_source, new_source, rank_out_of_old, "
-            "rank_out_of_new, direction, reason, actor, note, needs_review) VALUES "
-            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "rank_out_of_new, source_date, direction, reason, actor, note, needs_review) VALUES "
+            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (
                 run_id,
                 ch["row_id"],
@@ -454,6 +454,7 @@ def write_changes(conn, run_id: int, changes: list[dict[str, Any]]) -> None:
                 ch.get("new_source"),
                 ch.get("rank_out_of_old"),
                 ch.get("rank_out_of_new"),
+                ch.get("source_date"),
                 ch.get("direction"),
                 ch["reason"],
                 ch["actor"],

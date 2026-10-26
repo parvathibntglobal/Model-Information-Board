@@ -14,7 +14,7 @@ import io
 import json
 import shutil
 import tempfile
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import psycopg
@@ -1504,6 +1504,66 @@ class TestListAndReleaseChanges:
         assert len(page.changelog(conn, kind="1; DROP TABLE x")["entries"]) == len(
             everything["entries"]
         )
+
+
+class TestNewsWorthy:
+    """Debut / fresh / mover tags on the changelog (Parvathi, 2026-10-26): what
+    happened, not just what the board read."""
+
+    RELEASED = {"lab/new": date(2026, 10, 1), "lab/old": date(2025, 1, 1)}
+    BASELINE = {"src": 1}
+
+    def _tag(self, **change):
+        from judge import benchmarks as page
+
+        base = {
+            "run_id": 5,
+            "new_source": "src",
+            "row_id": "lab/old:max",
+            "metric": "score",
+            "type": "added",
+            "old_value": None,
+            "new_value": 80.0,
+            "changed_at": "2026-10-26T10:00:00+00:00",
+            "source_date": None,
+            "note": None,
+        }
+        return page._news({**base, **change}, self.RELEASED, self.BASELINE)
+
+    def test_a_recent_model_showing_up_is_a_debut(self):
+        assert self._tag(row_id="lab/new:max") == "debut"
+        assert self._tag(row_id="lab/new@0902") == "debut"  # a dated release of it too
+
+    def test_an_old_model_with_a_recently_dated_value_is_fresh(self):
+        assert self._tag(source_date="2026-10-20") == "fresh"
+        assert self._tag(source_date="2026-08-01") is None  # dated long ago: a backfill
+        assert self._tag() is None  # no date at all: a backfill
+
+    def test_a_sources_first_read_is_never_news(self):
+        assert self._tag(run_id=1, row_id="lab/new:max") is None
+
+    def test_movers_are_real_moves_on_the_same_release(self):
+        moved = {"type": "updated", "old_value": 70.0}
+        assert self._tag(**moved, new_value=72.0) == "mover"
+        assert self._tag(**moved, new_value=70.4) is None  # under a point: noise
+        assert self._tag(type="updated", metric="rank", old_value=5, new_value=4) == "mover"
+        reset = {**moved, "new_value": 60.0, "note": "new release 2026-10-25 (was 2026-10-14)"}
+        assert self._tag(**reset) is None
+        assert self._tag(type="source_changed", old_value=70.0, new_value=90.0) is None
+
+    def test_the_changelog_filters_and_counts_news(self, conn, monkeypatch):
+        from judge import benchmarks as page
+
+        monkeypatch.setattr(page, "_seeds", lambda: [{"id": s.id, "name": s.name} for s in SEEDS])
+        old = {"GPT 6 Astra": 86.1, "Kimi K3": 70.0}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(old, "2026-10-14")})
+        moved = {"GPT 6 Astra": 86.1, "Kimi K3": 75.0}  # same release, +5 points
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(moved, "2026-10-14")})
+        log = page.changelog(conn)
+        assert log["counts"]["mover"] >= 1 and log["counts"]["news"] >= log["counts"]["mover"]
+        movers = page.changelog(conn, kind="mover")["entries"]
+        assert movers and all(e["news"] == "mover" for e in movers)
+        assert any(e["row"].startswith("Kimi K3") and e["new"] == "75.0" for e in movers)
 
 
 class TestRowsNoSourceLists:

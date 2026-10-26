@@ -2134,6 +2134,9 @@ CREATE TABLE IF NOT EXISTS bench_change (
   new_source       text,
   rank_out_of_old  integer,
   rank_out_of_new  integer,
+  -- The source's own date for the new value (an entry or release date), as
+  -- given; NULL when the source states none. Tells a fresh result from a backfill.
+  source_date      text,
   -- better | worse | same, worked out from the column's direction (ranks: lower is better).
   direction        text,
   reason           text NOT NULL,
