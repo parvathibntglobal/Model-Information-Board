@@ -51,7 +51,7 @@ given the reports, newest first, each already restated in our own words, with
 the date it was posted, the topics it was filed under and its reaction.
 
 Write {min_p} to {max_p} short paragraphs. Aim for about {target} words; more than
-{max_words} words in all is refused.
+{max_words} words in all is refused, so stay well under it.
 - Organise by theme: what people used it for and found working, what they
   found failing, the conditions that made the difference, where reports
   disagree, and anything that changed over time.
@@ -59,14 +59,33 @@ Write {min_p} to {max_p} short paragraphs. Aim for about {target} words; more th
   claim a quantity (most, many, few, majority, everyone, nobody). Describe what
   was reported; the citations show who reported it.
 - Every paragraph cites the ids of the reports it rests on, and only those.
-  The ids run from R1 to R{last}; there are no others.
-- No measured figures: no prices, speeds, scores, sizes, percentages or
-  counts - the feed beside this page carries every one with its source.
-  Model names and version numbers are fine, written as the reports write
-  them; any other number you do write must appear in a report you cite.
+  The ids run from R1 to R{last}; there are no others. Ids go ONLY in the
+  `cites` list - never in the paragraph's text, not even in brackets.
+
+- Write no measured figures: no prices, speeds, scores, sizes, percentages,
+  context lengths or counts - the feed beside this page carries every one
+  with its source. Describe them in words instead ("faster", "cheaper",
+  "a long context").
+- Model names and version numbers are fine, written exactly as the reports
+  write them. Any other digit must appear in a report cited IN THAT SAME
+  PARAGRAPH; when in doubt, leave the number out.
+- Never reuse more than five words in a row from any report.
 - Report, do not judge. Never say whether a report is right.
 - Do not name authors, handles, communities, websites or platforms; no links,
   no quotation marks, no headings, no bullet points, no recommendation.
+
+BEFORE YOU SUBMIT, read every sentence once more for numbers. A draft is
+refused for any of these, even used loosely as a figure of speech:
+- a report id in the text ("(R12)", "R4 and R9") - ids belong in `cites`;
+- a date, month or year ("in October", "2026") - write "earlier" or "more
+  recently" instead;
+- a number word: two, three, four, ten, twenty, dozens, hundreds, thousands,
+  millions. Common slips and what to write instead:
+    "hundreds of lines" -> "large files"
+    "thousands of tokens" -> "long inputs"
+    "three times" / "a few times" -> "more than once"
+    "two models" -> "both models"
+    "dozens of steps" -> "long multi-step tasks"
 
 Return the paragraphs through the submit_summary tool.
 """
@@ -198,12 +217,14 @@ def draft(
     run_id = f"feed_s_{uuid.uuid4().hex[:12]}"
     # A TARGET BELOW THE LIMIT: asked for "at most 450", the first live run
     # (2026-10-21) wrote 516 twice. The limit is still what the check enforces.
+    # HALF THE LIMIT since prompt s3 (2026-10-26): asked for 70% (420 of 600),
+    # drafts still ran to 602-657 words and were refused.
     system = SYSTEM.format(
         model=model["label"],
         min_p=min(3, settings["max_paragraphs"]),
         max_p=settings["max_paragraphs"],
         max_words=settings["max_words"],
-        target=round(settings["max_words"] * 0.7),
+        target=round(settings["max_words"] * 0.5),
         last=len(used),
     )
     user = _user_message(model["label"], used)
