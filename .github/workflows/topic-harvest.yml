@@ -1,0 +1,78 @@
+# The blog's topic harvest, nightly (2026-10-26).
+#
+# scripts/harvest_topics.py fills `topic_item`: what the field is writing about,
+# for OUR blog - arXiv categories, every seated blog and newsletter feed, and
+# Hacker News, dev.to and Hugging Face daily papers searched by each topic's
+# own terms. No model is called. Until now it ran only when somebody clicked
+# Harvest in Admin -> Blogs; the newsletters seated in #564 reach it here.
+#
+# A WORKFLOW OF ITS OWN, not a step in scheduled-fetches.yml. A full harvest
+# took 550 seconds on 2026-10-26 (511 papers, 1,234 feed posts, 1,987 platform
+# items, measured as a dry run), and as a step it would come out of the model
+# fetch's time budget. Run separately it costs that job nothing. It runs an
+# hour and a half before the 20:30 fetch.
+#
+# Writes are to `topic_item` only: ON CONFLICT DO NOTHING, then a re-label of
+# stored items against today's topics. judge/writeguard refuses a remote write
+# unless ENVIRONMENT=staging, which is why it is set here, on purpose.
+
+name: Topic harvest
+
+on:
+  schedule:
+    - cron: "0 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: topic-harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      USER_AGENT: ${{ vars.USER_AGENT }}
+      # The same switch as the scheduled fetches: one place turns every
+      # scheduled harvest off.
+      SCHEDULER_ENABLED: ${{ vars.SCHEDULER_ENABLED }}
+      RAW_STORE_PATH: raw_store
+      RAW_STORE_REMOTE: postgres
+    steps:
+      - name: Is the scheduler switched on?
+        id: gate
+        run: |
+          if [ "$SCHEDULER_ENABLED" != "1" ]; then
+            echo "::notice::SCHEDULER_ENABLED is not 1 - nothing harvested. This is the switch, not a failure."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=""
+          [ -n "$DATABASE_URL" ] || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$USER_AGENT" ]   || missing="$missing USER_AGENT"
+          if [ -n "$missing" ]; then
+            echo "::error::topic harvest switched on but not configured:$missing"
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v5
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - if: steps.gate.outputs.enabled == 'true'
+        run: pip install -e .
+
+      - name: Harvest the blog's topics
+        if: steps.gate.outputs.enabled == 'true'
+        run: python scripts/harvest_topics.py
