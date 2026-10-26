@@ -121,6 +121,7 @@ _PLATFORM_LABELS = {
     "hackernews": "Hacker News",
     "devto": "dev.to",
     "huggingface": "Hugging Face",
+    "forum": "developer forums",
     "github": "GitHub",
     "x": "X",
     "reddit": "Reddit",

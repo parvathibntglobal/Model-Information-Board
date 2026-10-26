@@ -167,16 +167,29 @@ jobs:
         timeout-minutes: 20
         run: python scripts/harvest_blogs.py --new-only --max-new-articles 10
 
+      # THE DEVELOPER FORUMS, ONCE A NIGHT, BEFORE THE MODELS (2026-10-26).
+      # The Google AI Developers Forum's robots.txt disallows search, so it is
+      # read as a listing of its newest topics (scripts/harvest_forums.py) and
+      # each model's fetch reads the threads that name it. At most 150 new
+      # topics a night, two requests each, a second apart: about 5 minutes.
+      # Same failure rule as the feeds: red job, models still run.
+      - name: Harvest the developer forums
+        if: >-
+          !cancelled() && steps.gate.outputs.enabled == 'true'
+          && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'forum'))
+        timeout-minutes: 15
+        run: python scripts/harvest_forums.py --max-new-topics 150
+
       - name: Fetch the due models
         if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
-        # --job-limit-minutes 335 is timeout-minutes (355) less the feed step's
-        # 20: a fetch still running at 325 min of THIS step is stopped by the
-        # runner, which then posts the summary. Each thread commits as it
-        # finishes, so that loses one thread at most and the model stays due.
-        # That makes a late launch cheap, so --deadline-minutes 300 starts
-        # models until minute 300.
+        # --job-limit-minutes 320 is timeout-minutes (355) less the feed step's
+        # 20 and the forum step's 15: a fetch still running at 310 min of THIS
+        # step is stopped by the runner, which then posts the summary. Each
+        # thread commits as it finishes, so that loses one thread at most and
+        # the model stays due. That makes a late launch cheap, so
+        # --deadline-minutes 300 starts models until minute 300.
         run: |
-          args="--job-limit-minutes 335 --deadline-minutes 300"
+          args="--job-limit-minutes 320 --deadline-minutes 300"
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

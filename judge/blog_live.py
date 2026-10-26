@@ -48,6 +48,7 @@ SOURCE_LABEL = {
     "github": "GitHub",
     "blog": "Blog",
     "huggingface": "Hugging Face",
+    "forum": "Developer forum",
 }
 
 _SLUG = "COALESCE(be.ruling_target, be.slug)"
