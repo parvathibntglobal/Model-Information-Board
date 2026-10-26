@@ -93,7 +93,6 @@ SECTION_WORDS = {"best_for": "used for", "capability": "capability", "metric": "
 def pending(conn, prompt_version: str, *, model_key: str | None = None) -> tuple[list[dict], int]:
     """`(reports whose current paraphrase is missing or stale, newest first;
     how many were left out because the terms do not allow their source)`."""
-    terms = publication.evidence_feed_terms()
     rows = conn.execute(
         "SELECT v.id, coalesce(v.display_name, v.canonical_id, v.id), be.document_id, "
         "       be.section, COALESCE(be.ruling_target, be.slug), be.name, be.polarity, be.quote, "
@@ -131,7 +130,9 @@ def pending(conn, prompt_version: str, *, model_key: str | None = None) -> tuple
     }
     out, not_allowed = [], 0
     for k, u in units.items():
-        if publication.withheld_publicly(u["source"]) and not terms["may_draw_on_withheld"]:
+        # A held source is not paraphrased either: a paraphrase nobody can be
+        # shown is spend for nothing (2026-10-26, #567 review).
+        if publication.feed_hides(u["source"]):
             not_allowed += 1
             continue
         u["digest"] = excerpts_digest(u["entries"])

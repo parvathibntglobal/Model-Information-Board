@@ -144,6 +144,22 @@ evidence_feed:
   embed_only:
     - reddit
     - x
+  # HELD (2026-10-26, #567 review): sources whose terms carry a condition not
+  # yet met. A held source's reports stay LISTED and COUNTED but show no
+  # paraphrase and no source - `{"kind": "withheld"}` - whatever
+  # `may_draw_on_withheld` says, and the paraphraser spends nothing on them
+  # (judge/publication.py `feed_hides`, used by the feed, its summaries and
+  # the paraphraser alike).
+  #
+  # bluesky: its developer guidelines require a public, monitored contact
+  # address and a request log before we show its users' posts. Removed in the
+  # same change as its lines under `withheld_from_public` and
+  # `derived_posts.embed_only`, so all three surfaces release together.
+  #
+  # Must be a list. Absent raises (rule 6); an empty list is a definite answer
+  # - "nothing held" - never what a missing key means.
+  held:
+    - bluesky
 
 credits:
   # ARXIV'S ACKNOWLEDGEMENT, as its API terms ask (2026-10-19, review of #535).
