@@ -1548,9 +1548,29 @@ terms_rulings:
       `topics_month`; gemini-api 1,712, antigravity 665, ai-studio 588). Mostly
       operational - 429s, quota, behaviour regressions - and first-hand.
 
-      UNRESOLVED, DELIBERATELY RECORDED: posts are user-authored with no
-      stated licence for quotation; we publish quote + credit + link under the
-      use-basis undertaking, never full text.
+      ROBOTS.TXT PERMITS THE READING; THIS IS WHAT THE QUOTING RESTS ON (added
+      after #568's review). The same Terms, under "Other content", say of
+      content other people post on Google services: "You may not use this
+      content without that person or organization's permission, or as
+      otherwise allowed by law." Forum posts are other users' content, and the
+      board quotes them. We have no permission from the authors, so the basis
+      is the second half - "as otherwise allowed by law": a short quotation,
+      attributed and linked, for commentary and comparison, never the full
+      text, as the use-basis undertaking at the top of this file commits for
+      every source. That is a reliance on the law's quotation and fair-use
+      allowances, recorded here as the accepted basis, not as a permission
+      anybody granted.
+
+      PUBLICATION, ON PURPOSE (2026-10-26, anooj, after #568's review). Forum
+      posts are QUOTED on public pages like Hacker News and dev.to - not
+      withheld, not embed-only. A public page credits the PLATFORM NAME and
+      LINKS THE TOPIC, and shows no forum username or user id: no identity we
+      do not hold (the adapter stores only the forum-local numeric id), and
+      the reader can open the post (judge/feed/items.py `cite_source`).
+
+      UNRESOLVED, DELIBERATELY RECORDED: posts carry no stated licence for
+      quotation; the basis above is reliance on the law, which is weaker than
+      a licence and is the accepted risk.
 
       RE-REVIEW REQUIRED BEFORE: any monetization, any path robots.txt does not
       allow, or a change to Google's terms after July 30, 2026.
