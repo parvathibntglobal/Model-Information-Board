@@ -259,11 +259,7 @@ class Run:
         got: Fetched = self.fetcher.fetch(source, wait_for=_wait_text(source))
         result.http_status = got.http_status
         if not got.ok:
-            status = (
-                "BLOCK"
-                if got.error in ("blocked_page", "robots_denied", "data_files_off")
-                else "FAIL"
-            )
+            status = "BLOCK" if got.error in ("blocked_page", "robots_denied") else "FAIL"
             result.status = status
             result.errors.append(f"{got.error}: {got.detail}")
             self.c.line("FETCH", status, f"{got.error}: {got.detail}")
@@ -272,12 +268,14 @@ class Run:
         previous_hash = store.last_snapshot_hash(self.conn, source.key)
         result.size_bytes = got.size
         result.content_changed = previous_hash != got.content_hash
+        # Fetched live. The page saved last run is only COMPARED (by hash), never
+        # read - only "Re-parse saved pages" (--use-snapshot) reads saved pages.
         changed = (
-            "first copy saved"
+            "fetched live · first copy saved"
             if previous_hash is None
-            else "content CHANGED since the last copy"
+            else "fetched live · content CHANGED vs the page saved last run"
             if result.content_changed
-            else "content unchanged since the last copy"
+            else "fetched live · content unchanged vs the page saved last run"
         )
         tries = f" · {got.attempts} attempts" if got.attempts > 1 else ""
         self.c.line("FETCH", "OK", f"HTTP {got.http_status} · {_size(got.size)} · {changed}{tries}")
@@ -793,17 +791,10 @@ def _run_body(
             "WARN",
             f"closed abandoned run(s) {abandoned}: their process stopped without finishing",
         )
-    data_files = "on" if config.settings["allow_data_files"] else "off"
     c.line(
-        "SETUP", "OK", f"allow_data_files={data_files} · robots.txt respected · no API keys, no LLM"
+        "SETUP", "OK", "scraping only · robots.txt respected · no data files, no API keys, no LLM"
     )
     sources = _scope(config, scope)
-    if not config.settings["allow_data_files"]:
-        # Scraping first (Parvathi, 2026-10-22): a source that only reads a data
-        # file is not asked at all while the switch is off.
-        for s in (s for s in sources if s.method == "data_file"):
-            c.line("SETUP", "SKIP", f"{s.key}: a data file, and allow_data_files is off")
-        sources = [s for s in sources if s.method != "data_file"]
     c.line(
         "SETUP", "OK", f"sources in scope: {len(sources)}  ({', '.join(s.key for s in sources)})"
     )
@@ -869,12 +860,10 @@ def _run_body(
     # A source no longer read (disabled, renamed, removed, or a data file while
     # those are off) keeps its stored values as stale: they stop competing, so a
     # renamed source's old values cannot linger in the table (2026-10-26).
-    readable = {
-        s.key
-        for s in config.sources
-        if s.enabled and (s.method != "data_file" or config.settings["allow_data_files"])
-    }
-    retired_sources = sorted({o.source_key for o in previous_obs} - readable)
+    readable = {s.key for s in config.sources if s.enabled}
+    # Sources no longer read whose values are not stale yet: said once, on the run
+    # that marks them stale - not on every run after (2026-10-26).
+    unread_sources = sorted({o.source_key for o in previous_obs if not o.stale} - readable)
     combined = [
         o
         for o in previous_obs
@@ -888,12 +877,12 @@ def _run_body(
             for o in previous_obs
             if o.source_key == result.key and o.key not in fresh and _mark_stale(o)
         )
-    if retired_sources:
+    if unread_sources:
         c.line(
             "MERGE",
             "SKIP",
             f"values from sources no longer read are kept as stale and not published: "
-            f"{', '.join(retired_sources)}",
+            f"{', '.join(unread_sources)}",
         )
     decisions = merge(config, combined, run_id=run_id)
     cells = {k: d.cell for k, d in decisions.items()}
@@ -985,7 +974,7 @@ def _run_body(
                     )
             for result in refreshed.values():
                 store.replace_source_observations(conn, result.key, result.new)
-            store.mark_sources_stale(conn, retired_sources)
+            store.mark_sources_stale(conn, unread_sources)
             store.publish_cells(conn, cells)
             pruned = store.prune_rows(conn)
             store.write_changes(conn, run_id, changes)

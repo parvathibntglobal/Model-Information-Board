@@ -125,7 +125,7 @@ def _seeds() -> list[dict[str, str]]:
 def _columns() -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
     raw = _yaml("benchmarks.yaml")
     benches = sorted(
-        (b for b in raw["benchmarks"] if b.get("status", "active") == "active"),
+        raw["benchmarks"],
         key=lambda b: (b["category"], b["order"]),
     )
     sections = []
@@ -183,6 +183,7 @@ def table(conn) -> dict[str, Any]:
         row_id,
         benchmark_key,
         metric,
+        value,
         rank_high,
         tied,
         rank_out_of,
@@ -198,7 +199,7 @@ def table(conn) -> dict[str, Any]:
         collected_at,
         needs_review,
     ) in conn.execute(
-        "SELECT row_id, benchmark_key, metric, rank_high, tied, rank_out_of, rank_board, "
+        "SELECT row_id, benchmark_key, metric, value, rank_high, tied, rank_out_of, rank_board, "
         "variant, benchmark_version, source_key, url, raw_text, raw_model_name, source_date, "
         "setting_not_stated, collected_at, needs_review FROM bench_cell"
     ).fetchall():
@@ -209,6 +210,9 @@ def table(conn) -> dict[str, Any]:
         source = sources.get(source_key, {})
         cells.setdefault(row_id, {})[key] = {
             "display": raw_text,
+            # The value in one unit (0.912 and 91.2% are both 91.2): for SORTING a
+            # column only - the page always shows `display` (2026-10-26).
+            "sort": value,
             "tied": tied,
             "rank_high": rank_high,
             "source": source_key,
@@ -322,13 +326,11 @@ def _saved_pages(conn) -> int:
 FETCHERS = {
     "static": "Plain HTTP request (httpx, identifying User-Agent, robots.txt checked first)",
     "browser": "Headless browser (Playwright Chromium, same User-Agent, robots.txt checked first)",
-    "data_file": "Download of a file the site offers (only while allow_data_files is on)",
 }
 READERS = {
     "html_table": "HTML table (BeautifulSoup + lxml)",
     "embedded_json": "Data block inside the page (<script> JSON)",
     "next_flight": "Data inside the page (Next.js page data)",
-    "zip_csv": "CSV files inside a zip",
 }
 
 
@@ -340,7 +342,6 @@ def _sources_view(
 ):
     """Every configured source: its link, how it is fetched and read, what it fills,
     and what the last published run got from it."""
-    allow_data_files = bool(_yaml("module_settings.yaml").get("allow_data_files"))
     last: dict[str, dict[str, Any]] = {}
     for run_id, finished, report in conn.execute(
         "SELECT id, finished_at, report FROM bench_run WHERE NOT dry_run AND status <> 'running' "
@@ -361,8 +362,6 @@ def _sources_view(
                     fills.append(columns[c]["label"])
         if not s["enabled"]:
             state, why = "disabled", s.get("why_disabled")
-        elif s["method"] == "data_file" and not allow_data_files:
-            state, why = "skipped", "A data file, and allow_data_files is off (scraping only)."
         else:
             state, why = "enabled", None
         seen = last.get(s["key"])

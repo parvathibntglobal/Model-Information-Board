@@ -1,19 +1,21 @@
 """The Benchmarks page's scraper (collect/benchmarks/) and its page reads (judge/benchmarks.py).
 
 No test here touches a live site (doc 22.3 #19). Pages are small hand-written
-copies of the real structures read on 2026-10-22 - the Aider table with its
-`details-row` rows, the SWE-bench `<script id="leaderboard-data">` block, the
-LiveBench name cell with its "open" badge and setting tooltip, and an Epoch AI
-zip of CSVs - so each parser is checked against the shape it was built for.
+copies of the real structures read on 2026-10-22 - the SWE-bench
+`<script id="leaderboard-data">` block, the LiveBench name cell with its "open"
+badge and setting tooltip, Scale's Next.js data - plus two test-only sources
+(tests/fixtures/benchmarks/): a printed HTML board and a page of embedded JSON
+tables, so each parser is checked against the shape it was built for.
 """
 
 from __future__ import annotations
 
 import io
 import json
+import shutil
 import tempfile
-import zipfile
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import psycopg
 import pytest
@@ -29,8 +31,46 @@ from collect.benchmarks.parse import parse
 from collect.benchmarks.runner import run
 from collect.benchmarks.store import StoredCell, StoredObservation
 from collect.benchmarks.values import parse_rank, parse_score
-from collect.config import CONTRACT_DIR
+from collect.config import CONTRACT_DIR, REPO_ROOT
 from tests.conftest import assert_disposable, assert_safe_target
+
+
+def _test_config_dir() -> Path:
+    """The shipped config plus the test-only sources and the columns only they
+    fill (tests/fixtures/benchmarks/). A real run never reads them."""
+    target = Path(tempfile.mkdtemp(prefix="bench-config-"))
+    for name in (CONTRACT_DIR / "benchmarks").glob("*.yaml"):
+        shutil.copy(name, target / name.name)
+    fixtures = REPO_ROOT / "tests" / "fixtures" / "benchmarks"
+    for shipped, extra, key in (
+        ("sources.yaml", "fixture_sources.yaml", "sources"),
+        ("benchmarks.yaml", "fixture_benchmarks.yaml", "benchmarks"),
+    ):
+        items = (fixtures / extra).read_text(encoding="utf-8").split(f"\n{key}:\n", 1)[1]
+        path = target / shipped
+        path.write_text(
+            path.read_text(encoding="utf-8").rstrip() + "\n\n" + items, encoding="utf-8"
+        )
+    # The JSON fixture's SWE-bench values carry its harness as the test setup.
+    benches = target / "benchmarks.yaml"
+    benches.write_text(
+        benches.read_text(encoding="utf-8").replace(
+            'accept: ["mini-SWE-agent"] }', 'accept: ["mini-SWE-agent", "fixture harness"] }'
+        ),
+        encoding="utf-8",
+    )
+    return target
+
+
+TEST_CONFIG_DIR = _test_config_dir()
+
+
+@pytest.fixture(autouse=True)
+def _page_reads_the_test_config(monkeypatch):
+    from judge import benchmarks as page
+
+    monkeypatch.setattr(page, "CONFIG_DIR", TEST_CONFIG_DIR)
+
 
 SEEDS = [
     SeedModel("openai/gpt-6-astra", "GPT 6 Astra"),
@@ -43,7 +83,7 @@ SEEDS = [
 
 @pytest.fixture(scope="module")
 def config():
-    return load()
+    return load(TEST_CONFIG_DIR)
 
 
 @pytest.fixture(scope="module")
@@ -239,20 +279,21 @@ class TestMatching:
         )
         assert r.match("Claude Opus 5.5 (xhigh with fallback)").row.setting == "xhigh"
 
-    def test_plain_gpt_5_5_never_lands_on_gpt_5_5_codex(self, config):
-        # GPT-5.5 Codex is tracked under the registry id openai/gpt-5.5, and the
-        # registry's aliases for it are plain "gpt-5.5" spellings (2026-10-22).
+    def test_plain_gpt_5_5_fills_the_gpt_5_5_codex_row(self, config):
+        # The tracked "GPT-5.5 Codex" is openai/gpt-5.5 - Codex is the tool, not
+        # another model (Parvathi, 2026-10-26). GPT-5.5 Pro stays its own model.
         codex = SeedModel("openai/gpt-5.5", "GPT-5.5 Codex")
-        r = Resolver(config, [codex], {"openai/gpt-5.5": ["gpt-5.5", "gpt 5.5", "GPT-5.5"]})
-        for name in ("GPT-5.5", "gpt-5.5_none", "openai/gpt-5.5", "GPT-5.5 (xhigh)"):
-            assert r.match(name).row is None, name
+        pro = SeedModel("openai/gpt-5.5-pro", "GPT-5.5 Pro")
+        r = Resolver(config, [codex], {"openai/gpt-5.5": ["gpt-5.5", "gpt 5.5"]}, [pro])
+        assert r.match("GPT-5.5").row.row_id == "openai/gpt-5.5"
+        assert r.match("GPT-5.5 (xhigh)").row.row_id == "openai/gpt-5.5:xhigh"
         assert r.match("GPT-5.5 Codex").row.row_id == "openai/gpt-5.5"
-        assert r.match("gpt-5.5-codex (high)").row.row_id == "openai/gpt-5.5:high"
+        assert r.match("GPT-5.5 Pro").row.row_id == "openai/gpt-5.5-pro"
 
 
 # ── parsing ──────────────────────────────────────────────────────────────────
 
-AIDER = (
+TABLE_PAGE = (
     b"""<html><body><p>"""
     + b"x" * 3000
     + b"""</p><table>
@@ -293,19 +334,21 @@ def _swebench(entries):
     )
 
 
-def _epoch_zip(files):
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w") as z:
-        z.writestr("README.md", "CC BY 4.0")
-        for name, rows in files.items():
-            header = list(rows[0])
-            lines = [",".join(header)] + [",".join(str(r[h]) for h in header) for r in rows]
-            z.writestr(name, "\n".join(lines) + "\n")
-    return buf.getvalue()
+def _json_page(tables):
+    """A page that ships its tables as <script type="application/json" id=...>."""
+    blocks = b"".join(
+        b'<script type="application/json" id="'
+        + key.encode()
+        + b'">'
+        + json.dumps(rows).encode()
+        + b"</script>"
+        for key, rows in tables.items()
+    )
+    return b"<html><body>" + b"x" * 3000 + blocks + b"</body></html>"
 
 
-EPOCH_FILES = {
-    "gpqa_diamond.csv": [
+JSON_TABLES = {
+    "gpqa_diamond": [
         {
             "Model version": "gpt-6-astra_max",
             "mean_score": "0.9577",
@@ -322,28 +365,28 @@ EPOCH_FILES = {
             "Started at": "2026-08-30T14:57:43.000Z",
         },
     ],
-    "otis_mock_aime_2024_2025.csv": [
+    "fx_math_a": [
         {
             "Model version": "gpt-6-astra_max",
             "mean_score": "1.0",
             "Started at": "2026-08-30T14:57:43.000Z",
         },
     ],
-    "frontiermath_tiers_1_3_v2.csv": [
+    "fx_math_b": [
         {
             "Model version": "claude-opus-5-5_max",
             "mean_score": "0.9123",
             "Started at": "2026-09-01T00:00:00.000Z",
         },
     ],
-    "math_level_5.csv": [
+    "fx_math_c": [
         {
             "Model version": "old-model",
             "mean_score": "0.5",
             "Started at": "2025-01-01T00:00:00.000Z",
         },
     ],
-    "swe_bench_verified.csv": [
+    "swe_bench_verified": [
         {
             "Model version": "claude-opus-5-5",
             "mean_score": "0.75",
@@ -355,7 +398,7 @@ EPOCH_FILES = {
             "Started at": "2026-02-18T00:00:00.000Z",
         },
     ],
-    "hle_external.csv": [
+    "hle_external": [
         {"Model version": "gpt-6-astra_unknown", "Accuracy": "0.548"},
     ],
 }
@@ -468,9 +511,7 @@ class TestParse:
         assert parsed.rows_parsed == 4 and kimi.raw_text == "0.9116" and kimi.variant == "TIGER-Lab"
 
     def test_html_table_skips_detail_rows_and_ranks_by_row_order_with_ties(self, config):
-        parsed = parse(
-            config.source("aider_leaderboard"), AIDER, url="https://aider.chat/docs/leaderboards/"
-        )
+        parsed = parse(config.source("table_fixture"), TABLE_PAGE, url="https://example.test/table")
         assert parsed.rows_parsed == 4 and not parsed.problems
         ranks = {
             o.raw_model_name: (o.raw_text, o.rank_out_of)
@@ -487,11 +528,11 @@ class TestParse:
         }
 
     def test_a_missing_header_is_layout_changed_and_blocks(self, config):
-        page = AIDER.replace(b"Percent correct", b"Pass rate")
-        parsed = parse(config.source("aider_leaderboard"), page, url="u")
+        page = TABLE_PAGE.replace(b"Percent correct", b"Pass rate")
+        parsed = parse(config.source("table_fixture"), page, url="u")
         assert parsed.blocked and parsed.problems[0][0] == "table_not_found"
-        page = AIDER.replace(b"<th>Model</th>", b"<th>Name</th>")
-        parsed = parse(config.source("aider_leaderboard"), page, url="u")
+        page = TABLE_PAGE.replace(b"<th>Model</th>", b"<th>Name</th>")
+        parsed = parse(config.source("table_fixture"), page, url="u")
         assert parsed.blocked and parsed.problems[0][0] == "layout_changed"
 
     def test_livebench_reads_the_name_span_and_the_setting_tooltip(self, config):
@@ -525,20 +566,18 @@ class TestParse:
         assert {(o.metric, o.raw_text) for o in mine} == {("score", "80.0"), ("rank", "2")}
         assert all(o.variant == "mini-SWE-agent" and o.raw_setting == "max" for o in mine)
 
-    def test_zip_csv_reads_every_mapped_file(self, config):
-        parsed = parse(
-            config.source("epoch_hub"), _epoch_zip(EPOCH_FILES), url="https://epoch.ai/benchmarks"
-        )
+    def test_embedded_json_reads_every_mapped_table(self, config):
+        parsed = parse(config.source("json_fixture"), _json_page(JSON_TABLES), url="u")
         assert parsed.tables_found == 6 and not parsed.problems
         swe = [o for o in parsed.observations if o.benchmark == "swe_bench_verified"]
-        assert {o.variant for o in swe} == {"Epoch AI harness"} and {
+        assert {o.variant for o in swe} == {"fixture harness"} and {
             o.collected_on for o in swe
         } == {"2026-02-10", "2026-02-18"}
 
-    def test_a_missing_file_in_the_zip_blocks_the_source(self, config):
-        files = dict(EPOCH_FILES)
-        files.pop("gpqa_diamond.csv")
-        parsed = parse(config.source("epoch_hub"), _epoch_zip(files), url="u")
+    def test_a_missing_data_block_blocks_the_source(self, config):
+        tables = dict(JSON_TABLES)
+        tables.pop("gpqa_diamond")
+        parsed = parse(config.source("json_fixture"), _json_page(tables), url="u")
         assert parsed.blocked
 
 
@@ -584,8 +623,8 @@ def _obs(
 
 
 class TestMerge:
-    def test_a_retired_column_publishes_nothing(self, config):
-        assert config.benchmarks["mmlu"].status == "retired"
+    def test_a_column_no_longer_configured_publishes_nothing(self, config):
+        assert "mmlu" not in config.benchmarks  # removed 2026-10-26
         assert merge(config, [_obs("vendor", 88.0, bench="mmlu", priority=90)], run_id=1) == {}
 
     def test_a_disagreement_names_the_raw_text_and_the_compared_number(self, config):
@@ -600,7 +639,7 @@ class TestMerge:
     def test_the_highest_priority_wins_and_a_disagreement_is_flagged(self, config):
         d = merge(
             config,
-            [_obs("epoch_hub", 90.0, priority=70), _obs("vendor", 95.0, priority=90)],
+            [_obs("json_fixture", 90.0, priority=70), _obs("vendor", 95.0, priority=90)],
             run_id=1,
         )
         cell = d[("openai/gpt-6-astra", "gpqa_diamond", "score")]
@@ -637,10 +676,10 @@ class TestMerge:
                 priority=60,
             ),
             _obs(
-                "epoch_hub",
+                "json_fixture",
                 78.0,
                 bench="swe_bench_verified",
-                variant="Epoch AI harness",
+                variant="fixture harness",
                 priority=70,
             ),
         ]
@@ -664,17 +703,17 @@ class TestDuplicates:
     def test_latest_takes_the_newest_rerun(self, config):
         obs = [
             _obs(
-                "epoch_hub",
+                "json_fixture",
                 75.0,
                 bench="swe_bench_verified",
-                variant="Epoch AI harness",
+                variant="fixture harness",
                 date="2026-02-10",
             ),
             _obs(
-                "epoch_hub",
+                "json_fixture",
                 78.0,
                 bench="swe_bench_verified",
-                variant="Epoch AI harness",
+                variant="fixture harness",
                 date="2026-02-18",
             ),
         ]
@@ -726,13 +765,13 @@ class TestChanges:
         prev = {
             k("gpqa_diamond"): _cell(90.0),
             k("hle"): _cell(40.0, bench="hle"),
-            k("mmlu"): _cell(80.0, bench="mmlu"),
-            k("mmmu"): _cell(70.0, bench="mmmu"),
+            k("mmlu_pro"): _cell(80.0, bench="mmlu_pro"),
+            k("mmmu_pro"): _cell(70.0, bench="mmmu_pro"),
         }
         new = {
             k("gpqa_diamond"): _cell(92.0),
             k("hle"): _cell(40.0, bench="hle", source="b"),
-            k("mmlu"): _cell(80.0, bench="mmlu"),
+            k("mmlu_pro"): _cell(80.0, bench="mmlu_pro"),
             k("livebench"): _cell(60.0, bench="livebench"),
         }
         types = {
@@ -742,7 +781,7 @@ class TestChanges:
         assert types == {
             "gpqa_diamond": "updated",
             "hle": "source_changed",
-            "mmmu": "removed",
+            "mmmu_pro": "removed",
             "livebench": "added",
         }
 
@@ -756,51 +795,44 @@ class TestChanges:
 
 class TestConfig:
     def test_the_shipped_config_passes(self, config):
-        # Scraping first (2026-10-22): the shipped config reads no data files.
-        assert config.settings["allow_data_files"] is False
+        # Scraping only (2026-10-22): there is no data-file method at all.
+        from collect.benchmarks.config import METHODS
+
+        assert {"static", "browser"} == METHODS and "allow_data_files" not in config.settings
         enabled = {s.key for s in config.sources if s.enabled}
         assert {"livebench_leaderboard", "arc_prize", "scale_swe_bench_pro", "vals_ioi"} <= enabled
-        assert (
-            "epoch_hub" not in enabled and "aider_leaderboard" not in enabled
-        )  # retired 2026-10-23
         for s in config.sources:
             assert s.license and s.attribution
 
-    def test_an_enabled_source_feeding_a_retired_column_stops_startup(self, tmp_path):
-        for name in (CONTRACT_DIR / "benchmarks").glob("*.yaml"):
-            (tmp_path / name.name).write_text(name.read_text(encoding="utf-8"), encoding="utf-8")
-        sources = tmp_path / "sources.yaml"
-        text = sources.read_text(encoding="utf-8")
-        start = text.index("  - key: aider_leaderboard")
-        sources.write_text(
-            text[:start] + text[start:].replace("    enabled: false\n", "    enabled: true\n", 1),
-            encoding="utf-8",
-        )
-        with pytest.raises(ConfigError) as caught:
-            load(tmp_path)
-        assert any("aider_polyglot, which is retired" in p for p in caught.value.problems)
+    def test_the_shipped_config_lists_only_sources_a_run_reads(self):
+        # Disabled sources only printed a SKIP line every run (removed 2026-10-26).
+        shipped = load()
+        assert shipped.sources and all(s.enabled for s in shipped.sources)
+        assert not {s.key for s in shipped.sources} & {"table_fixture", "json_fixture"}
+        assert not {k for k in shipped.benchmarks if k.startswith("fx_")}
 
-    def test_retired_columns_are_not_on_the_page(self):
+    def test_removed_columns_are_not_on_the_page(self):
         from judge import benchmarks as page
 
-        _sections, columns = page._columns()
+        sections, columns = page._columns()
         assert "mmlu_score" not in columns and "arena_rating" not in columns
+        assert "human_pref" not in {s["key"] for s in sections}
         assert {"arc_agi_2_score", "aime_2026_score", "swe_bench_pro_score"} <= set(columns)
 
     def test_a_mapping_to_a_metric_the_column_does_not_have_stops_startup(self, tmp_path):
-        for name in (CONTRACT_DIR / "benchmarks").glob("*.yaml"):
+        for name in TEST_CONFIG_DIR.glob("*.yaml"):
             (tmp_path / name.name).write_text(name.read_text(encoding="utf-8"), encoding="utf-8")
         sources = tmp_path / "sources.yaml"
         sources.write_text(
             sources.read_text(encoding="utf-8").replace(
-                '"Percent correct": { benchmark: aider_polyglot, metric: score',
-                '"Percent correct": { benchmark: aider_polyglot, metric: rating',
+                '"Percent correct": { benchmark: fx_coding, metric: score',
+                '"Percent correct": { benchmark: fx_coding, metric: rating',
             ),
             encoding="utf-8",
         )
         with pytest.raises(ConfigError) as caught:
             load(tmp_path)
-        assert any("aider_polyglot_rating" in p for p in caught.value.problems)
+        assert any("fx_coding_rating" in p for p in caught.value.problems)
 
 
 # ── a whole run, against a disposable database ───────────────────────────────
@@ -852,9 +884,9 @@ def conn(test_dsn):
 
 
 PAGES = {
-    "aider_leaderboard": AIDER,
+    "table_fixture": TABLE_PAGE,
     "livebench_leaderboard": LIVEBENCH,
-    "epoch_hub": _epoch_zip(EPOCH_FILES),
+    "json_fixture": _json_page(JSON_TABLES),
     "swebench_leaderboard": _swebench(
         [{"model_display": "Other", "agent": "X", "resolved": 85.0, "date": "2026-01-01"}]
     ),
@@ -865,31 +897,21 @@ PAGES = {
 LOG_DIR = tempfile.mkdtemp(prefix="bench-test-logs-")
 
 
-def _run(conn, pages, *, data_files=True, aliases=None, fetcher=None, registry=None, **kw):
-    """A run over the hand-written pages. `data_files` turns allow_data_files on
-    for it, so the Epoch path stays tested while the shipped config has it off."""
+def _run(conn, pages, *, aliases=None, fetcher=None, registry=None, **kw):
+    """A run over the hand-written pages, with the two test-only sources on."""
     import dataclasses
 
     from collect.benchmarks import runner
 
-    config = load()
-    # The fixture pages are Aider's table and Epoch AI's zip, which exercise the
-    # HTML-table and zip-CSV readers. Both sources, and the columns only they
-    # fill, were retired from the shipped config on 2026-10-23; the tests switch
-    # them back on here, and only here.
-    fixture_sources = {"aider_leaderboard", "epoch_hub"}
-    fixture_columns = {"aider_polyglot", "otis_mock_aime", "frontiermath", "math_l5"}
+    config = load(TEST_CONFIG_DIR)
+    fixture_sources = {"table_fixture", "json_fixture"}
     config = dataclasses.replace(
         config,
-        settings={**config.settings, "allow_data_files": data_files, "log_dir": LOG_DIR},
+        settings={**config.settings, "log_dir": LOG_DIR},
         sources=tuple(
             dataclasses.replace(s, enabled=True) if s.key in fixture_sources else s
             for s in config.sources
         ),
-        benchmarks={
-            k: dataclasses.replace(b, status="active") if k in fixture_columns else b
-            for k, b in config.benchmarks.items()
-        },
     )
     out = io.StringIO()
     original = runner.load
@@ -1022,7 +1044,7 @@ class TestNameDecisions:
         data = page.unmatched(conn)
         assert all(g["name"] != "Some Other Model" for g in data["groups"])  # not in the registry
         group = next(g for g in data["groups"] if g["name"] == "gpt-6-astra")
-        assert not group["decidable"] and group["sources"] == ["epoch_hub"]
+        assert not group["decidable"] and group["sources"] == ["json_fixture"]
         with pytest.raises(page.DecisionRefused):
             page.decide(conn, key=group["key"], name=group["name"], action="alias", target="nope/x")
         page.decide(conn, key=group["key"], name=group["name"], action="ignore", target=None)
@@ -1043,6 +1065,18 @@ class TestRegistryModels:
         assert r.match("GPT-6 Astra").row.row_id == "openai/gpt-6-astra"  # tracked wins
         assert "openai/gpt-6-astra-dup" not in r.registry_ids and r.warnings
         assert r.match("gpt-5.4 (high)").row.row_id == "openai/gpt-5.4:high"
+
+    def test_the_same_id_spelled_with_a_dot_is_an_alias_not_a_duplicate(self, config):
+        # The registry's anthropic/claude-fable-5.1 is the tracked
+        # anthropic/claude-fable-5-1 (2026-10-26): folded in, with no warning.
+        seeds = [*SEEDS, SeedModel("anthropic/claude-fable-5-1", "Claude Fable 5.1")]
+        dotted = SeedModel("anthropic/claude-fable-5.1", "Claude Fable 5.1")
+        r = Resolver(
+            config, seeds, {"anthropic/claude-fable-5.1": ["Fable 5.1 Thinking"]}, [dotted]
+        )
+        assert not r.warnings and "anthropic/claude-fable-5.1" not in r.registry_ids
+        assert r.match("anthropic/claude-fable-5.1").row.row_id == "anthropic/claude-fable-5-1"
+        assert r.match("Fable 5.1 Thinking").row.row_id == "anthropic/claude-fable-5-1"
 
     def test_gemini_3_flash_is_not_the_preview(self, config):
         # The registry lists "Gemini 3 Flash" as an alias of the PREVIEW; the two
@@ -1066,7 +1100,7 @@ class TestRegistryModels:
         assert r.match("gemini-3-flash-preview").row.row_id == "google/gemini-3-flash-preview"
 
     def test_a_declared_model_outside_the_registry_is_a_config_problem(self, tmp_path):
-        for name in (CONTRACT_DIR / "benchmarks").glob("*.yaml"):
+        for name in TEST_CONFIG_DIR.glob("*.yaml"):
             (tmp_path / name.name).write_text(name.read_text(encoding="utf-8"), encoding="utf-8")
         extras = tmp_path / "model_extras.yaml"
         extras.write_text(
@@ -1099,15 +1133,6 @@ class TestRegistryModels:
 
 
 class TestScrapingFirst:
-    def test_with_data_files_off_the_download_is_never_requested(self, conn):
-        fetcher = FakeFetcher(PAGES)
-        code, out = _run(conn, PAGES, data_files=False, fetcher=fetcher)
-        assert code == 0 and "epoch_hub" not in fetcher.calls
-        assert "allow_data_files is off" in out
-        cells = store.load_cells(conn)
-        assert ("openai/gpt-6-astra:max", "livebench", "score") in cells
-        assert not any(c.source_key == "epoch_hub" for c in cells.values())
-
     def test_a_registry_alias_matches_exactly(self, conn):
         page = LIVEBENCH.replace(b">GPT-6 Astra</span>", b">Astra Six</span>")
         code, _ = _run(
@@ -1126,13 +1151,15 @@ class TestARun:
         cells = store.load_cells(conn)
         astra = cells[("openai/gpt-6-astra:max", "gpqa_diamond", "score")]
         assert (
-            astra.value == 95.77 and astra.raw_text == "0.9577" and astra.source_key == "epoch_hub"
+            astra.value == 95.77
+            and astra.raw_text == "0.9577"
+            and astra.source_key == "json_fixture"
         )
         assert cells[("openai/gpt-6-astra:max", "livebench", "rank")].value == 1
-        assert cells[("openai/gpt-6-astra:max", "aider_polyglot", "score")].value == 91.0
-        # the newest Epoch re-run, in Epoch's harness
+        assert cells[("openai/gpt-6-astra:max", "fx_coding", "score")].value == 91.0
+        # the newest re-run, in the fixture's harness
         swe = cells[("anthropic/claude-opus-5.5", "swe_bench_verified", "score")]
-        assert swe.value == 78.0 and swe.variant == "Epoch AI harness"
+        assert swe.value == 78.0 and swe.variant == "fixture harness"
         # "_unknown": the model's own row, marked
         assert cells[("openai/gpt-6-astra", "hle", "score")].setting_not_stated
         rows = store.existing_rows(conn)
@@ -1187,7 +1214,7 @@ class TestARun:
         assert "0 new review items" in out
 
     def test_a_source_no_longer_read_stops_publishing_and_goes_stale(self, conn):
-        # 2026-10-26: renaming matharena_aime_2025 left its values in the table,
+        # 2026-10-26: renaming a source left its values in the table,
         # because only sources read in a run were cleaned up.
         _run(conn, PAGES)
         assert ("openai/gpt-6-astra:max", "livebench", "score") in store.load_cells(conn)
@@ -1277,10 +1304,11 @@ class TestARun:
         # RAW: exactly what the source printed - no "%" added, no conversion, no rounding
         assert cell["display"] == "0.9577" and cell["raw_text"] == "0.9577" and cell["source_label"]
         assert "value" not in cell  # the one-unit figure is for the checks only
+        assert cell["sort"] == pytest.approx(95.77)  # ...and for sorting the column
         assert child["cells"]["livebench_rank"]["display"] == "1"
         assert child["cells"]["livebench_score"]["display"] == "86.1"
         in_table = {s["key"] for s in data["sources"] if s["in_table"]}
-        assert in_table >= {"epoch_hub", "livebench_leaderboard"} and "attribution" not in data
+        assert in_table >= {"json_fixture", "livebench_leaderboard"} and "attribution" not in data
         assert data["counts"]["benchmarks"] < data["counts"]["columns"]
         log = page.changelog(conn)
         assert log["total"] > 0 and log["entries"][0]["type"] in ("added", "variant_added")

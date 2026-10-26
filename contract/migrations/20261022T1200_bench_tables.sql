@@ -89,7 +89,7 @@ CREATE TABLE bench_observation (
   tied                boolean NOT NULL DEFAULT false,
   rank_out_of         integer,
   rank_board          text,
-  -- The test setup ("mini-SWE-agent", "Epoch AI harness"); NULL = none stated.
+  -- The test setup ("mini-SWE-agent", "Claude Code"); NULL = none stated.
   variant             text,
   raw_text            text NOT NULL,
   raw_model_name      text NOT NULL,

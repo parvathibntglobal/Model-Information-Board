@@ -1,0 +1,15 @@
+# Test-only columns, filled only by the fixture sources (fixture_sources.yaml).
+# tests/test_benchmarks.py adds them to a copy of the shipped benchmarks.yaml.
+benchmarks:
+  - { key: fx_coding, label: "Fixture coding", category: coding, order: 9,
+      metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] } }
+  - { key: fx_math_a, label: "Fixture math A", category: math, order: 9,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] } }
+  - { key: fx_math_b, label: "Fixture math B", category: math, order: 9,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      benchmark_version: "fixture v2", variant_rule: { accept: [null] } }
+  - { key: fx_math_c, label: "Fixture math C", category: math, order: 9,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] } }

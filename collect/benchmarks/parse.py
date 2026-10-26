@@ -2,7 +2,7 @@
 
     html_table     the first <table> whose text contains `must_contain`
     embedded_json  a <script id=...> JSON block the page ships its own data in
-    zip_csv        one CSV inside a zip the site offers for download
+    next_flight    the Next.js flight data (self.__next_f) the page is built from
 
 Every table becomes rows of `{header: raw text}`, then raw observations, one
 per (row, mapped header). Nothing is converted here: values stay text until
@@ -17,11 +17,8 @@ sorts by. A rank among our own tracked models is never computed (Parvathi,
 
 from __future__ import annotations
 
-import csv
-import io
 import json
 import re
-import zipfile
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -212,14 +209,6 @@ def locate_embedded_json(html: bytes | str, locate: dict[str, Any]) -> list[dict
     return records if isinstance(records, list) else None
 
 
-def locate_zip_csv(content: bytes, locate: dict[str, Any]) -> list[dict[str, str]] | None:
-    archive = zipfile.ZipFile(io.BytesIO(content))
-    if locate["file"] not in archive.namelist():
-        return None
-    text = archive.read(locate["file"]).decode("utf-8-sig")
-    return list(csv.DictReader(io.StringIO(text)))
-
-
 # ── reshape ──────────────────────────────────────────────────────────────────
 
 
@@ -245,7 +234,7 @@ def parse(source: Source, content: bytes, *, url: str) -> Parsed:
     for index, table in enumerate(source.tables):
         try:
             _parse_table(source, index, table, content, url, out)
-        except (ValueError, KeyError, zipfile.BadZipFile, json.JSONDecodeError) as error:
+        except (ValueError, KeyError, json.JSONDecodeError) as error:
             out.problems.append(
                 ("table_not_found", f"table {index + 1}: {type(error).__name__}: {error}")
             )
@@ -256,7 +245,7 @@ def _parse_table(
     source: Source, index: int, table: Table, content: bytes, url: str, out: Parsed
 ) -> None:
     kind = table.locate["type"]
-    where = f"table {index + 1}" + (f" ({table.locate['file']})" if kind == "zip_csv" else "")
+    where = f"table {index + 1}"
     if kind == "html_table":
         found = locate_html_table(content, table.locate, table)
         if found is None:
@@ -277,7 +266,7 @@ def _parse_table(
             return
         rows = records
         headers = sorted({k for r in rows for k in r})
-    elif kind == "embedded_json":
+    else:  # embedded_json
         records = locate_embedded_json(content, table.locate)
         if records is None:
             out.problems.append(
@@ -289,15 +278,6 @@ def _parse_table(
             return
         rows = records
         headers = sorted({k for r in rows for k in r})
-    else:
-        records = locate_zip_csv(content, table.locate)
-        if records is None:
-            out.problems.append(
-                ("table_not_found", f"{where}: {table.locate['file']} is not in the download")
-            )
-            return
-        rows = records
-        headers = list(rows[0].keys()) if rows else []
     out.tables_found += 1
     release = None
     if table.release_selector:

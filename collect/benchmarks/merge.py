@@ -137,8 +137,8 @@ def merge(
     by_cell: dict[tuple[str, str, str], list[StoredObservation]] = {}
     for o in observations:
         bench = config.benchmarks.get(o.benchmark_key)
-        if bench is None or bench.status != "active":
-            continue  # a retired column publishes nothing; its stored values are kept
+        if bench is None:
+            continue  # a column no longer configured publishes nothing
         by_cell.setdefault(o.key, []).append(o)
     decisions: dict[tuple[str, str, str], Decision] = {}
     for key, group in by_cell.items():

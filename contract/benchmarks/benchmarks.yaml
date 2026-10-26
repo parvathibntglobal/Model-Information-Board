@@ -8,11 +8,9 @@
 # (benchmark revisions; weekly) | live (ratings and every rank; daily).
 # There is no scheduler yet: runs are started by hand.
 #
-# status: active | retired. A RETIRED column is not shown and no enabled source
-# may feed it (checked at startup); its stored values and changelog are kept.
-# On 2026-10-23 (Parvathi) the columns no scrapeable source could fill for the
-# tracked models were retired and replaced by benchmarks whose own or
-# independent boards list them - each replacement is named on the retired line.
+# A column no scrapeable source can fill for the tracked models is removed
+# from this file, not kept switched off (2026-10-26); values already stored
+# for it stop being published.
 #
 # variant_rule.accept: the test setups a column takes, earliest preferred.
 # null = no setup stated; "*" = any setup the board states, recorded on the
@@ -24,55 +22,54 @@ categories:
   - { key: agents,     label: "Agents & Tools",        order: 3 }
   - { key: math,       label: "Math",                  order: 4 }
   - { key: multimodal, label: "Multimodal",            order: 5 }
-  - { key: human_pref, label: "Human Preference",      order: 6 }
-  - { key: general,    label: "General",               order: 7 }
+  - { key: general,    label: "General",               order: 6 }
 
 benchmarks:
   # ── knowledge & reasoning ────────────────────────────────────────────────
   # The MMLU-Pro board marks each row "TIGER-Lab" (their own run) or
   # "Self-Reported" (the vendor's number); their own run is preferred.
-  - { key: mmlu_pro,      label: "MMLU-Pro",      category: knowledge, order: 2, status: active,
+  - { key: mmlu_pro,      label: "MMLU-Pro",      category: knowledge, order: 2,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: ["TIGER-Lab", "Self-Reported", null] } }
-  - { key: gpqa_diamond,  label: "GPQA Diamond",  category: knowledge, order: 3, status: active,
+  - { key: gpqa_diamond,  label: "GPQA Diamond",  category: knowledge, order: 3,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
   # rank: the position on HLE's own board (labs.scale.com, Scale AI co-created HLE).
-  - { key: hle,           label: "Humanity's Last Exam", category: knowledge, order: 4, status: active,
+  - { key: hle,           label: "Humanity's Last Exam", category: knowledge, order: 4,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
   # ARC Prize's own leaderboard (arcprize.org), added 2026-10-23.
-  - { key: arc_agi_1,     label: "ARC-AGI-1",     category: knowledge, order: 5, status: active,
+  - { key: arc_agi_1,     label: "ARC-AGI-1",     category: knowledge, order: 5,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
-  - { key: arc_agi_2,     label: "ARC-AGI-2",     category: knowledge, order: 6, status: active,
+  - { key: arc_agi_2,     label: "ARC-AGI-2",     category: knowledge, order: 6,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
 
   # ── coding ───────────────────────────────────────────────────────────────
   # The column means "the model in the standard harness": the official board's
-  # own bash-only agent first, then Epoch AI's harness. Commercial agent systems
-  # (TRAE, live-SWE-agent, ...) are a different setup and never fill it.
-  - { key: swe_bench_verified, label: "SWE-bench Verified", category: coding, order: 1, status: active,
+  # own bash-only agent (mini-SWE-agent). Commercial agent systems (TRAE,
+  # live-SWE-agent, ...) are a different setup and never fill it.
+  - { key: swe_bench_verified, label: "SWE-bench Verified", category: coding, order: 1,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
-      variant_rule: { accept: ["mini-SWE-agent", "Epoch AI harness"] }, duplicates: match_variant }
+      variant_rule: { accept: ["mini-SWE-agent"] }, duplicates: match_variant }
   # Scale AI's own board (SWE-Bench Pro, public set, Full view). Each model is run
   # under one agent (Claude Code, Codex, mini-swe-agent); the agent is recorded on
   # the value. Added 2026-10-23.
-  - { key: swe_bench_pro, label: "SWE-Bench Pro", category: coding, order: 2, status: active,
+  - { key: swe_bench_pro, label: "SWE-Bench Pro", category: coding, order: 2,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
       variant_rule: { accept: ["*"] } }
   # Score only, run by Vals AI. The rank came from the official board alone, which
   # has not been updated since May 2025 and lists no registry model (2026-10-26).
-  - { key: livecodebench,  label: "LiveCodeBench",  category: coding, order: 3, status: active,
+  - { key: livecodebench,  label: "LiveCodeBench",  category: coding, order: 3,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: live,
       variant_rule: { accept: [null] } }
   # International Olympiad in Informatics problems, run by Vals AI. Added 2026-10-23.
-  - { key: ioi,            label: "IOI",            category: coding, order: 4, status: active,
+  - { key: ioi,            label: "IOI",            category: coding, order: 4,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
   # Scientific coding, run by Artificial Analysis. Added 2026-10-23.
-  - { key: scicode,        label: "SciCode",        category: coding, order: 5, status: active,
+  - { key: scicode,        label: "SciCode",        category: coding, order: 5,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
 
@@ -80,74 +77,39 @@ benchmarks:
   # Vals AI's run, every model in one harness (Mini-SWE-agent). Terminal-Bench's
   # own board (tbench.ai) lists each model under several agents, so it is not
   # used for this column. Added 2026-10-23.
-  - { key: terminal_bench_4, label: "Terminal-Bench 4.0", category: agents, order: 1, status: active,
+  - { key: terminal_bench_4, label: "Terminal-Bench 4.0", category: agents, order: 1,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: ["Mini-SWE-agent"] } }
   # Building a working app from a description, run by Vals AI in OpenHands. Added 2026-10-23.
-  - { key: vibe_code, label: "Vibe Code Bench", category: agents, order: 2, status: active,
+  - { key: vibe_code, label: "Vibe Code Bench", category: agents, order: 2,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: ["OpenHands"] } }
 
   # ── math ─────────────────────────────────────────────────────────────────
   # MathArena's own board, AIME 2026 (?comp=aime--aime_2026). Added 2026-10-23.
-  - { key: aime_2026,    label: "AIME 2026",     category: math, order: 1, status: active,
+  - { key: aime_2026,    label: "AIME 2026",     category: math, order: 1,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: static,
       variant_rule: { accept: [null] } }
   # NOT AIME 2025 either: Vals AI's AIME is AIME 2024 and AIME 2025 together,
   # one accuracy over both papers (vals.ai/benchmarks/aime, checked 2026-10-22).
-  - { key: aime_2024_25, label: "AIME 2024+2025", category: math, order: 2, status: active,
+  - { key: aime_2024_25, label: "AIME 2024+2025", category: math, order: 2,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
   # Writing proofs, run by Vals AI. Added 2026-10-23.
-  - { key: proof_bench,  label: "ProofBench",    category: math, order: 3, status: active,
+  - { key: proof_bench,  label: "ProofBench",    category: math, order: 3,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
 
   # ── multimodal ───────────────────────────────────────────────────────────
-  - { key: mmmu_pro, label: "MMMU-Pro", category: multimodal, order: 2, status: active,
+  - { key: mmmu_pro, label: "MMMU-Pro", category: multimodal, order: 2,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] } }
   # Issues with images (screenshots, diagrams), run by Vals AI. Added 2026-10-23.
   - { key: swe_bench_multimodal, label: "SWE-bench Multimodal", category: multimodal, order: 3,
-      status: active, metrics: [score], score_unit: percent, higher_is_better: true,
+      metrics: [score], score_unit: percent, higher_is_better: true,
       volatility: rolling, variant_rule: { accept: [null] } }
 
   # ── general ──────────────────────────────────────────────────────────────
-  - { key: livebench, label: "LiveBench (Overall)", category: general, order: 1, status: active,
+  - { key: livebench, label: "LiveBench (Overall)", category: general, order: 1,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
-      variant_rule: { accept: [null] } }
-
-  # ── retired 2026-10-23 (no scrapeable source lists the tracked models) ───
-  - { key: mmlu,          label: "MMLU",          category: knowledge, order: 1, status: retired,   # -> ARC-AGI-1/2
-      metrics: [score], score_unit: percent, higher_is_better: true, volatility: static,
-      variant_rule: { accept: ["5-shot", null] } }
-  - { key: aider_polyglot, label: "Aider Polyglot", category: coding, order: 9, status: retired,    # -> Terminal-Bench 4.0
-      metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
-      variant_rule: { accept: [null] } }
-  - { key: humaneval_plus, label: "HumanEval+",     category: coding, order: 9, status: retired,    # -> IOI
-      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
-      variant_rule: { accept: [null] } }
-  - { key: bigcodebench,   label: "BigCodeBench",   category: coding, order: 9, status: retired,    # -> SWE-Bench Pro
-      metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
-      variant_rule: { accept: [null] } }
-  - { key: bfcl, label: "Berkeley Function Calling", category: agents, order: 9, status: retired,  # -> Vibe Code Bench
-      metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
-      variant_rule: { accept: [null] } }
-  - { key: aime_2025,    label: "AIME 2025",     category: math, order: 9, status: retired,           # -> AIME 2026
-      metrics: [score], score_unit: percent, higher_is_better: true, volatility: static,
-      variant_rule: { accept: [null] } }
-  - { key: otis_mock_aime, label: "OTIS Mock AIME 2024–25", category: math, order: 9, status: retired,  # -> SciCode
-      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
-      variant_rule: { accept: [null] } }
-  - { key: math_l5,      label: "MATH Level 5",  category: math, order: 9, status: retired,           # -> ProofBench
-      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
-      variant_rule: { accept: [null] } }
-  - { key: frontiermath, label: "FrontierMath (Tiers 1–3)", category: math, order: 9, status: retired,  # -> ProofBench
-      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
-      benchmark_version: "tiers 1-3 v2", variant_rule: { accept: [null] } }
-  - { key: mmmu,     label: "MMMU",     category: multimodal, order: 9, status: retired,             # -> SWE-bench Multimodal
-      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
-      variant_rule: { accept: [null] } }
-  - { key: arena, label: "Chatbot Arena", category: human_pref, order: 9, status: retired,           # blocked (403)
-      metrics: [rating, rank], rating_range: [500, 3000], higher_is_better: true, volatility: live,
       variant_rule: { accept: [null] } }

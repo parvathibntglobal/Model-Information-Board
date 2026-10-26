@@ -1,14 +1,11 @@
 # Where the Benchmarks page's numbers come from (workflow doc 3.3, 3.5, 4.1).
 #
-# Every source is one page (or one data file the site publishes for its own
-# page), with the mapping that reads it. Nothing here calls an API with a key,
-# an account or a paid plan, and nothing asks a language model anything
-# (Parvathi, 2026-10-22).
+# Every source is one public page, with the mapping that reads it. Nothing here
+# downloads a data file, calls an API with a key, an account or a paid plan, or
+# asks a language model anything (Parvathi, 2026-10-22).
 #
 # method      static     plain HTTP GET (collect/http.py build_client, robots.txt respected)
 #             browser    headless Chromium with the same User-Agent, for JS-built tables
-#             data_file  a file the site offers its visitors (doc 4.1 steps 5-8);
-#                        only while module_settings.yaml allow_data_files is true
 #
 # priority    the trust tier (doc 3.8): manual 100, vendor 90, the benchmark's own
 #             leaderboard 80, independent evaluator 70, re-published numbers 60.
@@ -24,24 +21,6 @@
 # `layout_changed` and keeps its previous values.
 
 sources:
-  # ── the benchmark's own leaderboards ─────────────────────────────────────
-  - key: aider_leaderboard
-    label: "Aider LLM Leaderboards"
-    kind: leaderboard
-    priority: 80
-    enabled: false
-    why_disabled: "Its column, Aider Polyglot, is retired (2026-10-23): the board lists none of the tracked models. Replaced by Terminal-Bench 4.0."
-    method: static
-    url: https://aider.chat/docs/leaderboards/
-    license: "Not stated on the page."
-    attribution: "Aider LLM Leaderboards, aider.chat"
-    tables:
-      - locate: { type: html_table, must_contain: "Percent correct", skip_row_class: details-row }
-        model_column: "Model"
-        benchmark_map:
-          "Percent correct": { benchmark: aider_polyglot, metric: score, scale: percent }
-        rank: { benchmark: aider_polyglot, from: row_order, board: "aider/polyglot" }
-
   - key: swebench_leaderboard
     label: "SWE-bench leaderboard"
     kind: leaderboard
@@ -61,7 +40,7 @@ sources:
         date_field: date
         # The board can list one model twice under the same agent (GPT 5.2 (high),
         # mini-SWE-agent: 72.8 and 71.8, two submission dates). The newest is
-        # taken, as for Epoch AI's re-runs (2026-10-26).
+        # taken (2026-10-26).
         duplicates: latest
         benchmark_map:
           resolved: { benchmark: swe_bench_verified, metric: score, scale: percent }
@@ -172,24 +151,6 @@ sources:
         # Sorted by Overall on load ("Overall ▼"); the rank is the row position.
         rank: { benchmark: livebench, from: row_order, board: "livebench/overall" }
 
-  - key: livecodebench_leaderboard
-    label: "LiveCodeBench"
-    kind: leaderboard
-    priority: 80
-    enabled: false
-    why_disabled: "Not updated since May 2025 (newest problems 5/1/2025; its data file lists the same 28 models), and none of them is in the registry (2026-10-26). LiveCodeBench scores come from Vals AI."
-    method: browser
-    url: https://livecodebench.github.io/leaderboard.html
-    license: "Not stated on the page."
-    attribution: "LiveCodeBench, livecodebench.github.io"
-    tables:
-      # The default date window of the page's slider is what is read. The
-      # window is not stated in the table, so no benchmark_version is recorded.
-      - locate: { type: html_table, must_contain: "Pass@1" }
-        model_column: "Model"
-        benchmark_map:
-          "Pass@1": { benchmark: livecodebench, metric: score, scale: percent }
-
   - key: matharena_aime_2026
     label: "MathArena (AIME 2026)"
     kind: leaderboard
@@ -197,8 +158,7 @@ sources:
     enabled: true
     method: browser
     # The query string opens the AIME 2026 competition directly (no click needed).
-    # AIME 2025 (the retired column) listed none of the tracked models; AIME 2026
-    # lists DeepSeek V4 Pro, V4 Flash and Kimi K3 (2026-10-23).
+    # It lists DeepSeek V4 Pro, V4 Flash and Kimi K3 (2026-10-23).
     url: https://matharena.ai/?comp=aime--aime_2026
     license: "Not stated on the page."
     attribution: "MathArena, matharena.ai (ETH Zurich SRI Lab)"
@@ -470,128 +430,3 @@ sources:
         model_field: shortName
         benchmark_map:
           scicode: { benchmark: scicode, metric: score, scale: fraction }
-
-  # ── independent evaluator: Epoch AI ──────────────────────────────────────
-  # A DATA FILE, SO IT IS SKIPPED while module_settings.yaml allow_data_files is
-  # off (scraping first, 2026-10-22). Epoch AI's visible pages draw their
-  # results in a chart (canvas) built from CSV files the page downloads; there
-  # is no table of model scores on the page to scrape. So with data files off,
-  # GPQA Diamond, OTIS Mock AIME, FrontierMath and Epoch's HLE / SWE-bench
-  # numbers have no source for the tracked models until vendor model cards
-  # (doc 3.5, tier 90) are added. Kept configured so that turning the switch
-  # on is a one-line decision.
-  - key: epoch_hub
-    label: "Epoch AI Benchmarking Hub"
-    kind: evaluator
-    priority: 70
-    enabled: false
-    why_disabled: "A data file (allow_data_files is off), and three of its columns (OTIS Mock AIME, FrontierMath, MATH Level 5) are retired (2026-10-23)."
-    method: data_file
-    # The download the hub offers its visitors on /benchmarks/use-this-data.
-    url: https://epoch.ai/data/benchmark_data.zip
-    page_url: https://epoch.ai/benchmarks
-    license: "CC BY 4.0 (README.md inside the download)"
-    attribution: "Epoch AI, 'Capabilities & benchmarking', epoch.ai/benchmarks (CC BY 4.0)"
-    tables:
-      - locate: { type: zip_csv, file: gpqa_diamond.csv }
-        model_column: "Model version"
-        date_column: "Started at"
-        benchmark_map:
-          "mean_score": { benchmark: gpqa_diamond, metric: score, scale: fraction }
-      - locate: { type: zip_csv, file: otis_mock_aime_2024_2025.csv }
-        model_column: "Model version"
-        date_column: "Started at"
-        benchmark_map:
-          "mean_score": { benchmark: otis_mock_aime, metric: score, scale: fraction }
-      - locate: { type: zip_csv, file: frontiermath_tiers_1_3_v2.csv }
-        model_column: "Model version"
-        date_column: "Started at"
-        benchmark_map:
-          "mean_score": { benchmark: frontiermath, metric: score, scale: fraction }
-      - locate: { type: zip_csv, file: math_level_5.csv }
-        model_column: "Model version"
-        date_column: "Started at"
-        benchmark_map:
-          "mean_score": { benchmark: math_l5, metric: score, scale: fraction }
-      # Epoch AI's own run of SWE-bench Verified, in its own harness. A model run
-      # twice is a re-run of the same setup, so the newest run is taken.
-      - locate: { type: zip_csv, file: swe_bench_verified.csv }
-        model_column: "Model version"
-        date_column: "Started at"
-        variant: "Epoch AI harness"
-        duplicates: latest
-        benchmark_map:
-          "mean_score": { benchmark: swe_bench_verified, metric: score, scale: fraction }
-      # "_external" files are numbers Epoch AI re-publishes from the benchmark's
-      # own authors, so they rank as re-published (60), below the original board.
-      - locate: { type: zip_csv, file: hle_external.csv }
-        model_column: "Model version"
-        priority: 60
-        duplicates: latest
-        benchmark_map:
-          "Accuracy": { benchmark: hle, metric: score, scale: fraction }
-
-  # ── configured, not enabled ──────────────────────────────────────────────
-  # Each says why. Enabling one is a mapping check against the live page first
-  # (doc 3.7: dry run, then enable).
-  - key: arena_leaderboard
-    label: "LMArena text leaderboard"
-    kind: leaderboard
-    priority: 80
-    enabled: false
-    why_disabled: "403 Forbidden to plain HTTP and to the headless browser (2026-10-22). Access control is not worked around."
-    method: browser
-    url: https://lmarena.ai/leaderboard/text
-    license: "Not checked."
-    attribution: "LMArena, lmarena.ai"
-    tables: []
-
-  - key: bigcodebench_leaderboard
-    label: "BigCodeBench"
-    kind: leaderboard
-    priority: 80
-    enabled: false
-    why_disabled: "Renders (#, Model, Pass@1), but which split the default view shows (Hard/Full x Complete/Instruct) is not pinned yet, and it lists none of the tracked models (2026-10-22)."
-    method: browser
-    url: https://bigcode-bench.github.io/
-    license: "Not checked."
-    attribution: "BigCodeBench, bigcode-bench.github.io"
-    tables: []
-
-  - key: evalplus_leaderboard
-    label: "EvalPlus (HumanEval+)"
-    kind: leaderboard
-    priority: 80
-    enabled: false
-    why_disabled: "Two tables with identical headers (#, Model, pass@1); which is HumanEval+ is not pinned yet. Lists none of the tracked models (2026-10-22)."
-    method: browser
-    url: https://evalplus.github.io/leaderboard.html
-    license: "Not checked."
-    attribution: "EvalPlus, evalplus.github.io"
-    tables: []
-
-  - key: bfcl_leaderboard
-    label: "Berkeley Function Calling Leaderboard"
-    kind: leaderboard
-    priority: 80
-    enabled: false
-    why_disabled: "Two-row grouped headers (Agentic / Multi Turn / ...); the Overall column is not mapped yet. Lists none of the tracked models (2026-10-22)."
-    method: browser
-    url: https://gorilla.cs.berkeley.edu/leaderboard.html
-    license: "Not checked."
-    attribution: "BFCL, gorilla.cs.berkeley.edu"
-    tables: []
-
-
-  - key: mmmu_leaderboard
-    label: "MMMU"
-    kind: leaderboard
-    priority: 80
-    enabled: false
-    why_disabled: "Timed out after 45 s in the headless browser (2026-10-22)."
-    method: browser
-    url: https://mmmu-benchmark.github.io/
-    license: "Not checked."
-    attribution: "MMMU, mmmu-benchmark.github.io"
-    tables: []
-

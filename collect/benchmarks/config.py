@@ -27,8 +27,8 @@ FILES = (
 )
 
 METRICS = {"score", "rank", "rating"}
-METHODS = {"static", "browser", "data_file"}
-LOCATE_TYPES = {"html_table", "embedded_json", "next_flight", "zip_csv"}
+METHODS = {"static", "browser"}
+LOCATE_TYPES = {"html_table", "embedded_json", "next_flight"}
 SCALES = {"percent", "fraction"}
 DUPLICATES = {"match_variant", "latest", "identical"}
 
@@ -47,7 +47,6 @@ class Benchmark:
     label: str
     category: str
     order: int
-    status: str
     metrics: tuple[str, ...]
     higher_is_better: bool
     volatility: str
@@ -200,7 +199,6 @@ def load(directory: Path = CONFIG_DIR) -> Config:
             label=b["label"],
             category=b["category"],
             order=int(b["order"]),
-            status=b["status"],
             metrics=metrics,
             higher_is_better=bool(b["higher_is_better"]),
             volatility=b["volatility"],
@@ -249,11 +247,6 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                         f"{where}: {header!r} maps to unknown benchmark {target.get('benchmark')!r}"
                     )
                     continue
-                if s["enabled"] and bench.status != "active":
-                    problems.append(
-                        f"{where}: {header!r} feeds {bench.key}, which is {bench.status} - "
-                        "disable the source or the mapping"
-                    )
                 metric = target.get("metric")
                 if metric not in METRICS:
                     problems.append(
@@ -358,7 +351,6 @@ def load(directory: Path = CONFIG_DIR) -> Config:
 
     settings_raw = raw["module_settings.yaml"]
     for required in (
-        "allow_data_files",
         "respect_robots",
         "timeouts",
         "retries",

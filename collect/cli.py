@@ -56,7 +56,6 @@ def _cmd_db_init(args: argparse.Namespace) -> int:
     return 0
 
 
-
 def _cmd_db_check(args: argparse.Namespace) -> int:
     """Report pending migrations. Applies nothing, writes nothing.
 
@@ -116,7 +115,6 @@ def _cmd_db_migrate(args: argparse.Namespace) -> int:
         conn.close()
 
 
-
 def _gate(conn=None) -> None:
     """The startup checks, on WRITE commands only. Issue #27.
 
@@ -126,9 +124,7 @@ def _gate(conn=None) -> None:
     from collect.ops.preflight import preflight
     from collect.registry.policy import load_registry_policy
 
-    report = preflight(
-        conn, environment=settings().environment, policy=load_registry_policy()
-    )
+    report = preflight(conn, environment=settings().environment, policy=load_registry_policy())
     print(report.summary())
 
 
@@ -410,7 +406,7 @@ def _refuse_to_discard_review(out: Path, *, force: bool) -> str | None:
         "is a human decision."
         if found
         else "No review markers were found, which is NOT evidence that nobody "
-             "edited it — a reviewer accepting an entry leaves no word behind."
+        "edited it — a reviewer accepting an entry leaves no word behind."
     )
     return (
         f"refusing to overwrite {out}: it already exists and this generator "
@@ -440,9 +436,7 @@ def _cmd_registry_tracked_set(args: argparse.Namespace) -> int:
         summarise,
     )
 
-    observed = attributable(
-        json.loads(Path(args.surfaces).read_text(encoding="utf-8"))
-    )
+    observed = attributable(json.loads(Path(args.surfaces).read_text(encoding="utf-8")))
 
     conn = connect()
     try:
@@ -489,8 +483,9 @@ def _cmd_registry_tracked_set(args: argparse.Namespace) -> int:
     bound_days, rpm = _load_rotation()
     staleness = implied_staleness_days(n, daily_request_cap=daily_cap, requests_per_model=rpm)
     print()
-    print(f"  rotation : {n} tracked -> {staleness}-night pass, "
-          f"staleness bound {bound_days:.0f} days")
+    print(
+        f"  rotation : {n} tracked -> {staleness}-night pass, staleness bound {bound_days:.0f} days"
+    )
     try:
         assert_staleness_within_bound(n)
     except StalenessBoundError as exc:
@@ -661,8 +656,9 @@ def _cmd_registry_poll_catalog(args: argparse.Namespace) -> int:
         _gate(conn)
         with build_client() as client:
             counts, unstorable = poll_catalog(conn, client)
-    print(f"catalogue: {counts['listed']} listed "
-          f"({counts['added']} new, {counts['updated']} updated)")
+    print(
+        f"catalogue: {counts['listed']} listed ({counts['added']} new, {counts['updated']} updated)"
+    )
     if unstorable:
         print(f"NOT WRITTEN, value out of column range: {'; '.join(unstorable)}")
         return 1
@@ -861,19 +857,25 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
             for model, v in by_model.items()
         }
         total = sum(planned.values())
-        fits = [m for m in planned if sum(
-            planned[x] for x in list(planned)[: list(planned).index(m) + 1]
-        ) <= cap]
-        print(f"plan     : {len(by_model)} seated model(s), {len(selected)} entr(ies), "
-              f"{total} request(s) planned against a cap of {cap} request(s) / "
-              f"{contract_minutes} minute(s)")
+        fits = [
+            m
+            for m in planned
+            if sum(planned[x] for x in list(planned)[: list(planned).index(m) + 1]) <= cap
+        ]
+        print(
+            f"plan     : {len(by_model)} seated model(s), {len(selected)} entr(ies), "
+            f"{total} request(s) planned against a cap of {cap} request(s) / "
+            f"{contract_minutes} minute(s)"
+        )
         # A PLAN IS NOT A CLEARANCE. `_gate` is not called here and the terms gate
         # above covers NFR-5 only, so this output says what a sweep would cost and
         # nothing about whether one may run. Saying so, because two days of
         # readiness readings came off this path.
         print("           (plan only — `_gate` not run, so this is not a clearance)")
-        print(f"           {len(fits)} model(s) fit the cap, "
-              f"{len(by_model) - len(fits)} would be unreached")
+        print(
+            f"           {len(fits)} model(s) fit the cap, "
+            f"{len(by_model) - len(fits)} would be unreached"
+        )
         return 0
 
     # AN UNAUTHENTICATED SWEEP IS NOT A SWEEP, AND IT DOES NOT LOOK LIKE A
@@ -910,13 +912,16 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
         )
         return 2
 
-    with build_client(
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
-    ) as client, transaction() as conn:
+    with (
+        build_client(
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+        ) as client,
+        transaction() as conn,
+    ):
         _gate(conn)
         from collect.adapters.github import GitHubHarvester
 
@@ -926,8 +931,13 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
             max_fetch_per_query=args.max_fetch_per_query,
         )
         report = sweep_github(
-            conn, harvester, entries=selected, scope=scope, cap=cap,
-            max_minutes=args.max_minutes, cadence=budget_cadence,
+            conn,
+            harvester,
+            entries=selected,
+            scope=scope,
+            cap=cap,
+            max_minutes=args.max_minutes,
+            cadence=budget_cadence,
         )
     print(report.summary())
     return 0
@@ -1030,9 +1040,7 @@ def _cmd_assemble_github(args: argparse.Namespace) -> int:
 
     with transaction() as conn:
         _gate(conn)
-        report = assemble_github_documents(
-            conn, store=RawStore(Path(args.store)), limit=args.limit
-        )
+        report = assemble_github_documents(conn, store=RawStore(Path(args.store)), limit=args.limit)
     print(report.summary())
     return 0
 
@@ -1051,9 +1059,7 @@ def _cmd_assemble_reddit(args: argparse.Namespace) -> int:
 
     with transaction() as conn:
         _gate(conn)
-        report = assemble_reddit_documents(
-            conn, store=RawStore(Path(args.store)), limit=args.limit
-        )
+        report = assemble_reddit_documents(conn, store=RawStore(Path(args.store)), limit=args.limit)
     print(report.summary())
     return 0
 
@@ -1153,8 +1159,10 @@ def _cmd_registry_load_tracked_set(args: argparse.Namespace) -> int:
         print(prepared.summary())
         for entry in prepared.entries:
             counts = entry.counts
-            print(f"  {entry.canonical_id:<40} {counts['insert']} insert, "
-                  f"{counts['unchanged']} unchanged, {counts['replace']} supersede")
+            print(
+                f"  {entry.canonical_id:<40} {counts['insert']} insert, "
+                f"{counts['unchanged']} unchanged, {counts['replace']} supersede"
+            )
         for reason in prepared.refusals:
             print(f"  REFUSED  {reason}")
         return 1 if prepared.refusals else 0
@@ -1192,8 +1200,10 @@ def _cmd_registry_seat_alias(args: argparse.Namespace) -> int:
         print(f"  surface : {entry.surface}")
         for v in entry.variants:
             print(f"  variant : {v}")
-        print(f"  incomplete: {list(entry.incomplete) or 'none'}"
-              f"   blocking: {list(entry.blocking_incomplete) or 'none'}")
+        print(
+            f"  incomplete: {list(entry.incomplete) or 'none'}"
+            f"   blocking: {list(entry.blocking_incomplete) or 'none'}"
+        )
         return 0
 
     with transaction() as conn:
@@ -1255,9 +1265,14 @@ def _cmd_benchmarks_run(args: argparse.Namespace) -> int:
         if not args.dry_run:
             _gate(conn)
         return run(
-            conn=conn, trigger=args.trigger, scope=args.scope, dry_run=args.dry_run,
-            use_snapshot=args.use_snapshot, verbosity=args.verbosity,
-            request_id=args.request_id, actor=args.actor,
+            conn=conn,
+            trigger=args.trigger,
+            scope=args.scope,
+            dry_run=args.dry_run,
+            use_snapshot=args.use_snapshot,
+            verbosity=args.verbosity,
+            request_id=args.request_id,
+            actor=args.actor,
         )
     except RunRefused as refusal:
         print(str(refusal), file=sys.stderr)
@@ -1285,9 +1300,11 @@ def _cmd_benchmarks_check(args: argparse.Namespace) -> int:
         print(f"  - {problem}")
     enabled = [s.key for s in config.sources if s.enabled]
     disabled = [s.key for s in config.sources if not s.enabled]
-    print(f"ok: {len(config.benchmarks)} benchmarks in {len(config.categories)} sections, "
-          f"{len(enabled)} enabled sources ({', '.join(enabled)}), {len(disabled)} disabled, "
-          f"{len(seeds)} seed models, allow_data_files={config.settings['allow_data_files']}")
+    print(
+        f"ok: {len(config.benchmarks)} benchmarks in {len(config.categories)} sections, "
+        f"{len(enabled)} enabled sources ({', '.join(enabled)}), {len(disabled)} disabled, "
+        f"{len(seeds)} seed models"
+    )
     return 1 if resolver.problems else 0
 
 
@@ -1305,33 +1322,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     db_init.set_defaults(func=_cmd_db_init)
 
-    db_check = db_sub.add_parser(
-        "check", help="report pending migrations without applying them")
+    db_check = db_sub.add_parser("check", help="report pending migrations without applying them")
     db_check.set_defaults(func=_cmd_db_check)
 
     db_migrate = db_sub.add_parser(
-        "migrate", help="apply pending migrations from contract/migrations/")
+        "migrate", help="apply pending migrations from contract/migrations/"
+    )
     db_migrate.set_defaults(func=_cmd_db_migrate)
 
     benchmarks = sub.add_parser("benchmarks", help="the Benchmarks page's scraper (bench_ tables)")
     bench_sub = benchmarks.add_subparsers(dest="command", required=True)
     bench_run = bench_sub.add_parser("run", help="fetch every enabled source and publish the table")
-    bench_run.add_argument("--scope", default="all",
-                           help="all (default), one source key, or one benchmark key")
-    bench_run.add_argument("--dry-run", action="store_true",
-                           help="everything except publish: print what would change")
-    bench_run.add_argument("--use-snapshot", action="store_true",
-                           help="re-parse each source's last saved copy instead of fetching")
-    bench_run.add_argument("--verbosity", choices=("quiet", "normal", "verbose"), default=None,
-                           help="terminal detail (default from module_settings.yaml; "
-                                "the log file is always verbose)")
-    bench_run.add_argument("--trigger", default="manual_run",
-                           choices=("manual_run", "page_button", "scheduled"))
+    bench_run.add_argument(
+        "--scope", default="all", help="all (default), one source key, or one benchmark key"
+    )
+    bench_run.add_argument(
+        "--dry-run", action="store_true", help="everything except publish: print what would change"
+    )
+    bench_run.add_argument(
+        "--use-snapshot",
+        action="store_true",
+        help="re-parse each source's last saved copy instead of fetching",
+    )
+    bench_run.add_argument(
+        "--verbosity",
+        choices=("quiet", "normal", "verbose"),
+        default=None,
+        help="terminal detail (default from module_settings.yaml; the log file is always verbose)",
+    )
+    bench_run.add_argument(
+        "--trigger", default="manual_run", choices=("manual_run", "page_button", "scheduled")
+    )
     bench_run.add_argument("--request-id", default=None, help="set by the page's Run button")
     bench_run.add_argument("--actor", default="admin")
     bench_run.set_defaults(func=_cmd_benchmarks_run)
     bench_check = bench_sub.add_parser(
-        "check", help="check contract/benchmarks/*.yaml (L1); no database")
+        "check", help="check contract/benchmarks/*.yaml (L1); no database"
+    )
     bench_check.set_defaults(func=_cmd_benchmarks_check)
 
     registry = sub.add_parser("registry", help="the model registry")
@@ -1341,85 +1368,108 @@ def build_parser() -> argparse.ArgumentParser:
     check.set_defaults(func=_cmd_registry_check_sources)
 
     propose_aliases = reg_sub.add_parser(
-        "propose-aliases",
-        help="propose alias surfaces from the registry and observed documents")
+        "propose-aliases", help="propose alias surfaces from the registry and observed documents"
+    )
     propose_aliases.add_argument(
-        "--surfaces", help="surface-extract JSON; omitted means recall unmeasured")
+        "--surfaces", help="surface-extract JSON; omitted means recall unmeasured"
+    )
     propose_aliases.add_argument("--out", help="write the reviewable skeleton here")
     propose_aliases.add_argument(
-        "--force", action="store_true",
+        "--force",
+        action="store_true",
         help="overwrite an existing --out. Refused by default: the artifact is the "
-             "authority and this generator cannot reproduce a review")
+        "authority and this generator cannot reproduce a review",
+    )
     propose_aliases.add_argument(
-        "--mention-floor", type=int,
+        "--mention-floor",
+        type=int,
         help="narrow to the tracked set: attested mentions to qualify by count. "
-        "Requires --launch-window-days and --surfaces.")
+        "Requires --launch-window-days and --surfaces.",
+    )
     propose_aliases.add_argument(
-        "--launch-window-days", type=int,
+        "--launch-window-days",
+        type=int,
         help="days since release inside which a model qualifies regardless of "
-        "mentions. Requires --mention-floor.")
+        "mentions. Requires --mention-floor.",
+    )
     propose_aliases.set_defaults(func=_cmd_registry_propose_aliases)
 
     assemble = sub.add_parser("assemble", help="E3 — turn documents into thread_context")
     assemble_sub = assemble.add_subparsers(dest="assemble_command", required=True)
     asm_gh = assemble_sub.add_parser(
-        "github", help="assemble stored GitHub issues into thread_context rows")
+        "github", help="assemble stored GitHub issues into thread_context rows"
+    )
     asm_gh.add_argument("--store", default="./raw_store")
     asm_gh.add_argument("--limit", type=int, default=None)
     asm_gh.set_defaults(func=_cmd_assemble_github)
 
     asm_reddit = assemble_sub.add_parser(
-        "reddit", help="assemble stored Reddit comment trees into thread_context rows")
+        "reddit", help="assemble stored Reddit comment trees into thread_context rows"
+    )
     asm_reddit.add_argument("--store", default="./raw_store")
     asm_reddit.add_argument("--limit", type=int, default=None)
     asm_reddit.set_defaults(func=_cmd_assemble_reddit)
 
     ops = sub.add_parser("ops", help="the nightly chain and its checks")
     ops_sub = ops.add_subparsers(dest="ops_command", required=True)
-    ops_pre = ops_sub.add_parser(
-        "preflight", help="the startup checks, without running the chain")
+    ops_pre = ops_sub.add_parser("preflight", help="the startup checks, without running the chain")
     ops_pre.set_defaults(func=_cmd_ops_preflight)
     ops_sweep = ops_sub.add_parser(
         "sweep-github",
         help="sweep GitHub for every seated model, recording each query in harvest_run",
     )
     ops_sweep.add_argument(
-        "--cadence", default="daily", choices=("daily", "weekly", "all"),
-        help="which query entries to issue (default daily)")
+        "--cadence",
+        default="daily",
+        choices=("daily", "weekly", "all"),
+        help="which query entries to issue (default daily)",
+    )
     ops_sweep.add_argument(
-        "--cap", type=int, default=None,
-        help="request budget; defaults to contract/harvest.yaml max_requests")
+        "--cap",
+        type=int,
+        default=None,
+        help="request budget; defaults to contract/harvest.yaml max_requests",
+    )
     ops_sweep.add_argument("--scope", action="append", help="repeatable repo: qualifier")
     ops_sweep.add_argument("--store", default="./_sweep_store")
     ops_sweep.add_argument("--max-fetch-per-query", type=int, default=15)
     ops_sweep.add_argument(
-        "--max-minutes", type=int, default=None,
+        "--max-minutes",
+        type=int,
+        default=None,
         help="wall-clock ceiling; defaults to contract/harvest.yaml max_minutes "
-             "for this cadence. Checked as well as the request count, because a "
-             "throttle moves one and not the other")
+        "for this cadence. Checked as well as the request count, because a "
+        "throttle moves one and not the other",
+    )
     ops_sweep.add_argument(
-        "--dry-run", action="store_true",
-        help="print the plan and the models the cap would not reach")
+        "--dry-run",
+        action="store_true",
+        help="print the plan and the models the cap would not reach",
+    )
     ops_sweep.set_defaults(func=_cmd_ops_sweep_github)
 
     ops_sweep_reddit = ops_sub.add_parser(
         "sweep-reddit",
         help="E2 - the Reddit LISTING sweep (no query; the sieve narrows)",
     )
+    ops_sweep_reddit.add_argument("--store", default="raw_store", help="raw store path")
     ops_sweep_reddit.add_argument(
-        "--store", default="raw_store", help="raw store path"
-    )
-    ops_sweep_reddit.add_argument(
-        "--pages", type=int, default=None,
+        "--pages",
+        type=int,
+        default=None,
         help="pages per subreddit; defaults to contract/sources.yaml. CHANGING IT "
-             "CHANGES THE DENOMINATOR of every rate the run reports.",
+        "CHANGES THE DENOMINATOR of every rate the run reports.",
     )
     ops_sweep_reddit.add_argument(
-        "--limit-subreddits", type=int, default=None,
+        "--limit-subreddits",
+        type=int,
+        default=None,
         help="list only the first N contracted subreddits (a smoke run)",
     )
     ops_sweep_reddit.add_argument(
-        "--subreddits", nargs="*", default=None,
+        "--subreddits",
+        nargs="*",
+        default=None,
         help="restrict to these contracted subreddits",
     )
     ops_sweep_reddit.add_argument("--cap", type=int, default=None)
@@ -1429,38 +1479,52 @@ def build_parser() -> argparse.ArgumentParser:
     ops_run = ops_sub.add_parser("run", help="run the nightly chain")
     ops_run.add_argument("--journal", help="append-only JSONL record of every stage")
     ops_run.add_argument(
-        "--no-database", action="store_true",
-        help="run without a connection; every stage that needs one refuses and says so")
+        "--no-database",
+        action="store_true",
+        help="run without a connection; every stage that needs one refuses and says so",
+    )
     ops_run.add_argument(
-        "--no-network", action="store_true",
+        "--no-network",
+        action="store_true",
         help="run without an HTTP client; poll-registry refuses and says so. "
-             "The OpenRouter feed needs no credential, so the default is on.")
+        "The OpenRouter feed needs no credential, so the default is on.",
+    )
     ops_run.add_argument(
-        "--only", action="append", metavar="STAGE",
+        "--only",
+        action="append",
+        metavar="STAGE",
         help="run just this stage and what it depends on. Repeatable. The "
-             "summary names how many of the full chain were NOT attempted, "
-             "because those are not refusals. An unknown name refuses and "
-             "lists the stages the chain has.")
+        "summary names how many of the full chain were NOT attempted, "
+        "because those are not refusals. An unknown name refuses and "
+        "lists the stages the chain has.",
+    )
     ops_run.add_argument(
-        "--force", action="store_true",
+        "--force",
+        action="store_true",
         help="proceed even though a previous run never finished. Without this, "
-             "an unfinished job_run row refuses the chain and names it.")
+        "an unfinished job_run row refuses the chain and names it.",
+    )
     ops_run.set_defaults(func=_cmd_ops_run)
 
     tracked = reg_sub.add_parser(
-        "tracked-set",
-        help="which models get swept, and the mention curve it was cut from (#33)")
+        "tracked-set", help="which models get swept, and the mention curve it was cut from (#33)"
+    )
     tracked.add_argument("--surfaces", required=True, help="surface-extract JSON")
     tracked.add_argument(
-        "--mention-floor", type=int, required=True,
-        help="attested mentions at or above which a model qualifies by count")
+        "--mention-floor",
+        type=int,
+        required=True,
+        help="attested mentions at or above which a model qualifies by count",
+    )
     tracked.add_argument(
-        "--launch-window-days", type=int, required=True,
-        help="days since release inside which a model qualifies regardless")
+        "--launch-window-days",
+        type=int,
+        required=True,
+        help="days since release inside which a model qualifies regardless",
+    )
     # Rule 7: the extract's denominator is not derivable from the extract, so
     # the caller states it and it is printed beside every figure.
-    tracked.add_argument(
-        "--documents", type=int, help="documents the extract was drawn from")
+    tracked.add_argument("--documents", type=int, help="documents the extract was drawn from")
     tracked.add_argument("--platform", help="platform the extract was drawn from")
     tracked.add_argument("-v", "--verbose", action="store_true", help="list the set")
     tracked.set_defaults(func=_cmd_registry_tracked_set)
@@ -1478,7 +1542,7 @@ def build_parser() -> argparse.ArgumentParser:
     catalog = reg_sub.add_parser(
         "poll-catalog",
         help="OpenRouter's whole model list, every output type, into model_catalog "
-             "(the Models pages; never read by the evidence pipeline)",
+        "(the Models pages; never read by the evidence pipeline)",
     )
     catalog.set_defaults(func=_cmd_registry_poll_catalog)
 
@@ -1508,18 +1572,14 @@ def build_parser() -> argparse.ArgumentParser:
         "load-sources",
         help="load contract/sources.yaml into `source`. harvest_run FKs to it.",
     )
-    load_src.add_argument(
-        "--dry-run", action="store_true", help="build rows, touch nothing"
-    )
+    load_src.add_argument("--dry-run", action="store_true", help="build rows, touch nothing")
     load_src.set_defaults(func=_cmd_registry_load_sources)
 
     load_caps = reg_sub.add_parser(
         "load-capabilities",
         help="load contract/capabilities.yaml into `capability`. claim FKs to it.",
     )
-    load_caps.add_argument(
-        "--dry-run", action="store_true", help="parse and report, touch nothing"
-    )
+    load_caps.add_argument("--dry-run", action="store_true", help="parse and report, touch nothing")
     load_caps.set_defaults(func=_cmd_registry_load_capabilities)
 
     seat_alias = reg_sub.add_parser(
@@ -1537,9 +1597,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="write a reviewed-seats manifest for the entries you have reviewed",
     )
     attest.add_argument(
-        "--seated-by", default="attested",
+        "--seated-by",
+        default="attested",
         help="which grounds to attest (default attested; launch-window entries are "
-             "Engineer 2's to rule on)",
+        "Engineer 2's to rule on)",
     )
     attest.add_argument("--reviewed-by", required=True, help="who reviewed them")
     attest.add_argument("--finding", default="", help="what the review concluded")
@@ -1557,7 +1618,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="print the plan and write nothing"
     )
     load_tracked.add_argument(
-        "--allow-supersede", action="store_true",
+        "--allow-supersede",
+        action="store_true",
         help="permit closing a live alias row's validity window",
     )
     load_tracked.set_defaults(func=_cmd_registry_load_tracked_set)
@@ -1567,8 +1629,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     pop = triage_sub.add_parser(
         "population",
-        help="the alias surfaces the entity gate resolves against, and their "
-        "fingerprint",
+        help="the alias surfaces the entity gate resolves against, and their fingerprint",
     )
     pop.add_argument(
         "--no-declared",

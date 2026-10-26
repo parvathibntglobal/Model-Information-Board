@@ -2,15 +2,9 @@
 #
 # SCRAPING IS THE WAY DATA COMES IN (Parvathi, 2026-10-22): runs will be
 # scheduled later, and every source is read from its page - static HTML, or
-# the page rendered in a headless browser. No keys, no accounts, nothing paid.
-#
-# allow_data_files: OFF. The doc's fallback steps 5-8 (a CSV or zip a site
-# offers, a file in its repository) are not relied on. A source whose only
-# method is a data file (Epoch AI's download, sources.yaml `epoch_hub`) is
-# skipped without a request while this is false. Turning it on is a decision,
-# not a fix: see the note on `epoch_hub`.
+# the page rendered in a headless browser. No data-file downloads, no keys,
+# no accounts, nothing paid.
 
-allow_data_files: false
 respect_robots: true                 # fetch nothing robots.txt refuses
 timeouts:
   static_seconds: 30

@@ -18,10 +18,10 @@ import '../styles/benchmarks.css'
 
 /**
  * BENCHMARKS (2026-10-22, Parvathi): signed in. Published benchmark results for
- * the tracked text models, as each source publishes them - leaderboard pages and
- * the data files their sites offer, scraped by collect/benchmarks/ into the
- * bench_ tables (BENCHMARK_PIPELINE_WORKFLOW.md). No key, no paid service, no
- * language model anywhere in it.
+ * the tracked text models, as each source publishes them - public leaderboard
+ * pages, scraped by collect/benchmarks/ into the bench_ tables
+ * (BENCHMARK_PIPELINE_WORKFLOW.md). No data-file downloads, no key, no paid
+ * service, no language model anywhere in it.
  *
  * RAW VALUES ONLY (2026-10-22). Every cell is the source's own text ("88.0",
  * "1"), with the source, link and date behind it. No unit is added, nothing is
@@ -214,8 +214,89 @@ function RunPanel({ onFinished, viewRun, clearView, savedPages }) {
 
 /* ── the table ───────────────────────────────────────────────────────────── */
 
+// A model's place in a sorted column: the best value on its own row or any of
+// its setting rows (the column's own direction decides which is best).
+function bestValue(row, column) {
+  const values = [row.cells[column.key], ...row.children.map((c) => c.cells[column.key])]
+    .filter((cell) => cell && cell.sort != null)
+    .map((cell) => cell.sort)
+  if (!values.length) return null
+  return column.better === 'lower' ? Math.min(...values) : Math.max(...values)
+}
+
+function sortRows(rows, columns, sort) {
+  if (!sort) return rows
+  const column = columns.find((c) => c.key === sort.key)
+  const name = sort.key === 'model'
+  if (!name && !column) return rows
+  const sign = sort.dir === 'best' ? 1 : -1
+  const groupOf = (r) => (r.group === 'tracked' ? 0 : 1)
+  return [...rows].sort((a, b) => {
+    if (groupOf(a) !== groupOf(b)) return groupOf(a) - groupOf(b) // tracked stay first
+    if (name) return sign * a.label.localeCompare(b.label)
+    const va = bestValue(a, column)
+    const vb = bestValue(b, column)
+    if (va == null || vb == null) return va == null ? (vb == null ? 0 : 1) : -1 // no value: last
+    const better = column.better === 'lower' ? va - vb : vb - va
+    return sign * better || a.label.localeCompare(b.label)
+  })
+}
+
+// Every heading shows an arrow, so it reads as sortable: ↕ not sorted, ↓ best
+// first (A-Z for the model name), ↑ worst first (Z-A). A third click resets.
+function SortHeader({ id, label, sort, setSort, className, title, rowSpan }) {
+  const on = sort?.key === id
+  const next = () => setSort(!on ? { key: id, dir: 'best' } : sort.dir === 'best' ? { key: id, dir: 'worst' } : null)
+  const arrow = !on ? '↕' : sort.dir === 'best' ? '↓' : '↑'
+  return (
+    <th className={className} title={title} rowSpan={rowSpan} scope="col"
+        aria-sort={on ? (sort.dir === 'best' ? 'descending' : 'ascending') : 'none'}>
+      <button type="button" className={`bm-sort${on ? ' on' : ''}`} onClick={next}>
+        <span className="bm-sort-label">{label}</span>
+        <span className="bm-arrow" aria-hidden="true">{arrow}</span>
+      </button>
+    </th>
+  )
+}
+
+const MODEL_WIDTH = 260
+const CHAR_PX = 7.4      // the 12px monospace digits the cells use
+const BADGE_PX = 40      // a "new" / ▲ badge after the value
+const PAD_PX = 26
+
+// Each column as wide as its longest value (as printed), so nothing is cut off;
+// the heading wraps to fit. Both halves of the table use these widths.
+function columnWidths(rows, columns) {
+  const widths = {}
+  for (const c of columns) {
+    // At least the longest word of the heading (it wraps between words) plus its arrow.
+    const word = Math.max(...c.label.split(/\s+/).map((w) => w.length))
+    let px = Math.max(96, PAD_PX + 20 + word * 8)
+    for (const row of rows) {
+      for (const cells of [row.cells, ...row.children.map((ch) => ch.cells)]) {
+        const cell = cells[c.key]
+        if (!cell) continue
+        const need = PAD_PX + String(cell.display).length * CHAR_PX + (cell.badges?.length ? BADGE_PX : 0)
+        if (need > px) px = need
+      }
+    }
+    widths[c.key] = Math.min(Math.ceil(px), 280)
+  }
+  return widths
+}
+
+function Cols({ columns, widths }) {
+  return (
+    <colgroup>
+      <col style={{ width: MODEL_WIDTH }} />
+      {columns.map((c) => <col key={c.key} style={{ width: widths[c.key] }} />)}
+    </colgroup>
+  )
+}
+
 function BenchTable({ data }) {
   const [section, setSection] = useState('all')
+  const [sort, setSort] = useState(null) // { key, dir: 'best' | 'worst' } - best first, then worst first, then off
   const [showSettings, setShowSettings] = useState(true)
   const [hideEmpty, setHideEmpty] = useState(true)
   const [collapsed, setCollapsed] = useState({})
@@ -235,6 +316,20 @@ function BenchTable({ data }) {
     .filter((s) => s.columns.length)
   const emptyColumns = data.sections.flatMap((s) => s.columns).filter((c) => !filled.has(c.key))
   const columns = sections.flatMap((s) => s.columns)
+  const rows = sortRows(data.rows, columns, sort)
+  const widths = useMemo(() => columnWidths(data.rows, data.sections.flatMap((s) => s.columns)), [data])
+  const width = MODEL_WIDTH + columns.reduce((sum, c) => sum + widths[c.key], 0)
+
+  // The heading sits in its own strip that stays under the app bar while the
+  // page scrolls, and carries the sideways scrollbar; the rows scroll sideways
+  // with it. Fixed column widths keep the two lined up exactly.
+  const headRef = useRef(null)
+  const bodyRef = useRef(null)
+  const follow = (from, to) => () => {
+    if (from.current && to.current && to.current.scrollLeft !== from.current.scrollLeft) {
+      to.current.scrollLeft = from.current.scrollLeft
+    }
+  }
 
   const n = data.counts
   return (
@@ -262,32 +357,43 @@ function BenchTable({ data }) {
       {columns.length === 0 ? (
         <p className="muted">No source has published a value for these columns yet.</p>
       ) : (
-        <div className="bm-scroll">
-          <table className="bm-table">
-            <thead>
-              <tr>
-                <th rowSpan={2} className="bm-model-h">Model</th>
-                {sections.map((s) => <th key={s.key} colSpan={s.columns.length} className="bm-sec">{s.label}</th>)}
-              </tr>
-              <tr>
-                {columns.map((c) => (
-                  <th key={c.key} className="bm-col" title={`${c.label}${c.benchmark_version ? ` (${c.benchmark_version})` : ''} · ${c.better} is better`}>
-                    {c.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+        <div className="bm-grid">
+          <div className="bm-head" ref={headRef} onScroll={follow(headRef, bodyRef)}>
+            <table className="bm-table" style={{ width }}>
+              <Cols columns={columns} widths={widths} />
+              <thead>
+                <tr>
+                  <SortHeader id="model" label="Model" sort={sort} setSort={setSort} className="bm-model-h" rowSpan={2}
+                              title="Sort by name: A-Z, then Z-A, then the usual order (tracked models stay first)" />
+                  {sections.map((s) => <th key={s.key} colSpan={s.columns.length} className="bm-sec" scope="colgroup">{s.label}</th>)}
+                </tr>
+                <tr>
+                  {columns.map((c) => (
+                    <SortHeader key={c.key} id={c.key} label={c.label} sort={sort} setSort={setSort} className="bm-col"
+                                title={`${c.label}${c.benchmark_version ? ` (${c.benchmark_version})` : ''} · ${c.better} is better. `
+                                  + 'Click to sort by value: best first, then worst first, then the usual order. A model sorts '
+                                  + 'by its best value on any of its rows; tracked models stay above the others.'} />
+                  ))}
+                </tr>
+              </thead>
+            </table>
+          </div>
+          <div className="bm-body" ref={bodyRef} onScroll={follow(bodyRef, headRef)}>
+          <table className="bm-table" style={{ width }}>
+            <Cols columns={columns} widths={widths} />
             <tbody>
-              {data.rows.map((row, i) => {
+              {rows.map((row, i) => {
                 const open = showSettings && !collapsed[row.row_id]
-                const firstRegistry = row.group === 'registry' && data.rows[i - 1]?.group !== 'registry'
+                const firstRegistry = row.group === 'registry' && rows[i - 1]?.group !== 'registry'
                 return (
                   <Fragment key={row.row_id}>
                     {firstRegistry && (
                       <tr className="bm-group">
                         <th scope="rowgroup" colSpan={columns.length + 1}>
-                          Other models (not tracked)
-                          <span className="muted"> · registry models, and a few declared in model_extras.yaml, listed here because a source published them</span>
+                          <span className="bm-group-label">
+                            Other models (not tracked)
+                            <span className="muted"> · registry models, listed here because a source published them</span>
+                          </span>
                         </th>
                       </tr>
                     )}
@@ -316,6 +422,7 @@ function BenchTable({ data }) {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
       {hideEmpty && emptyColumns.length > 0 && (
@@ -534,7 +641,7 @@ function Review({ data }) {
 }
 
 function Sources({ sources }) {
-  const order = { enabled: 0, skipped: 1, disabled: 2 }
+  const order = { enabled: 0, disabled: 1 }
   const list = [...sources].sort((a, b) => order[a.state] - order[b.state])
   return (
     <div className="stack stack-2">
@@ -550,7 +657,7 @@ function Sources({ sources }) {
               <td>
                 <a href={s.url} target="_blank" rel="noreferrer noopener nofollow">{s.label}</a>
                 <div className="muted bm-small">{s.url}</div>
-                <span className={`bm-status bm-s-${s.state === 'enabled' ? 'ok' : s.state === 'skipped' ? 'partial' : 'error'}`}>
+                <span className={`bm-status bm-s-${s.state === 'enabled' ? 'ok' : 'error'}`}>
                   {s.state}
                 </span>
                 {s.in_table && <span className="bm-status bm-s-ok">in the table</span>}

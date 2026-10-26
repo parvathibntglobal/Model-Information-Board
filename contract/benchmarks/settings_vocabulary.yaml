@@ -4,9 +4,9 @@
 # `unknown_setting` review item. A test SETUP (5-shot, an agent system) is a
 # variant on the value, never a setting row.
 #
-# `max` IS ITS OWN SETTING, NOT `high`. Epoch AI publishes both
-# `claude-fable-5_high` and `claude-fable-5_max` for one model, so folding
-# them would put two different results in one row (2026-10-22).
+# `max` IS ITS OWN SETTING, NOT `high`. Sources list both "(high)" and "(max)"
+# for one model (Artificial Analysis, ARC Prize), so folding them would put two
+# different results in one row (2026-10-22).
 
 #
 # "<effort> WITH FALLBACK" IS THAT EFFORT (Parvathi, 2026-10-22). Artificial
@@ -17,7 +17,7 @@
 #
 # "THINKING, <EFFORT>" AND "<EFFORT> THINKING" ARE THAT EFFORT (2026-10-26):
 # ARC Prize writes "GPT-5.1 (Thinking, Low)", Scale "(xhigh thinking)",
-# Epoch/others "(thinking high)". A thinking TOKEN BUDGET ("Thinking, 16K",
+# and also "(thinking high)". A thinking TOKEN BUDGET ("Thinking, 16K",
 # "120K, Low") is a different kind of setting and stays in Review; so do
 # "Reasoning" and "Refine." until someone says what they are.
 
@@ -38,8 +38,8 @@ settings:
              "thinking none", "non-reasoning"]
   # ── added 2026-10-26 (Parvathi: "add these to settings") ────────────────
   # A THINKING TOKEN BUDGET is its own setting, never folded into an effort:
-  # "Claude Haiku 4.5 (Thinking 16K)" (ARC Prize), "claude-opus-4-6_32K"
-  # (Epoch AI) - the bare budget means the same thing there.
+  # "Claude Haiku 4.5 (Thinking 16K)", "Opus 4.5 (Thinking, 16K)" (ARC Prize);
+  # a bare budget ("16K") means the same thing.
   thinking-1k:   ["thinking 1k", "thinking, 1k", "1k"]
   thinking-8k:   ["thinking 8k", "thinking, 8k", "8k"]
   thinking-16k:  ["thinking 16k", "thinking, 16k", "16k"]
@@ -69,7 +69,7 @@ not_stated: ["unknown", "unspecified", "with fallback"]
 patterns:
   - "\\s*\\(([^)]+)\\)\\s*$"                     # "gpt-5 (high)"
   - "\\s*\\[([^\\]]+)\\]\\s*$"                   # "gpt-5 [high]"
-  - "_([A-Za-z0-9]+)$"                           # "gpt-6-astra_max", "claude-opus-4-6_32K" (Epoch AI)
+  - "_([A-Za-z0-9]+)$"                           # "gpt-6-astra_max", "claude-opus-4-6_32K"
   - "[- ](max|xhigh|high|medium|low|minimal|thinking)$"   # "gpt-5-high", "gpt-5 thinking"
 
 # A DATED RELEASE at the end of a model's name (Parvathi, 2026-10-23). When the

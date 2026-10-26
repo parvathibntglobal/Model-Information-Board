@@ -266,6 +266,18 @@ class Resolver:
             keys -= {normalize_name(n) for n in (extras.not_names if extras else ())}
             keys.discard("")
             clash = sorted({self.index[k] for k in keys if k in self.index})
+            same = [c for c in clash if normalize_name(c) == normalize_name(model.id)]
+            if same:
+                # The SAME model under another spelling of the tracked id: the
+                # registry's anthropic/claude-fable-5.1 is the tracked
+                # anthropic/claude-fable-5-1 (a dot for a hyphen; Parvathi,
+                # 2026-10-26). Its names are aliases of the tracked row - no
+                # second row, no warning.
+                for key in keys:
+                    if key not in self.index and self.blocked.get(key) != same[0]:
+                        self.index[key] = same[0]
+                        self.registry_alias_count += 1
+                continue
             if clash:
                 self.warnings.append(
                     f"registry model {model.id} shares a name with tracked {clash[0]} - "

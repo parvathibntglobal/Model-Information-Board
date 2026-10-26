@@ -50,11 +50,11 @@ z-ai/glm-5.3:   # GLM 5.3
 moonshotai/kimi-k3:   # Kimi K3
   aliases: []
 openai/gpt-5.5:   # GPT-5.5 Codex
-  # The tracked entry is GPT-5.5 CODEX, but its registry id is openai/gpt-5.5 and
-  # the registry's aliases for it are plain "gpt-5.5" spellings. Plain GPT-5.5 is
-  # a different model (Parvathi, 2026-10-22), so only Codex names match here.
+  # The tracked "GPT-5.5 Codex" IS openai/gpt-5.5: "Codex" is the tool it is used
+  # through, and the registry has no separate 5.5 Codex model (see the note in
+  # contract/tracked_models.yaml). So plain GPT-5.5 values fill this row
+  # (Parvathi, 2026-10-26). GPT-5.5 Pro is its own registry model.
   aliases: ["gpt-5.5-codex"]
-  not_names: ["openai/gpt-5.5", "gpt-5.5"]
 google/gemini-3.8-flash:   # Gemini 3.8 Flash
   aliases: []
 openai/gpt-6-sol:   # GPT-6 Sol

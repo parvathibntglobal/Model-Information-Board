@@ -4,8 +4,8 @@
                User-Agent), robots.txt asked first, 3 retries with 2/4/8 s backoff
     browser    headless Chromium in its own process, fresh context, downloads
                off, the same User-Agent, robots.txt asked first
-    data_file  a file the site offers its visitors; only while
-               `allow_data_files` is true (doc 4.1 steps 5-8)
+
+Scraping only: no data-file downloads, no API keys (Parvathi, 2026-10-22).
 
 L2 (doc 20.1) is checked here: HTTP 200, a minimum size, not a block page.
 A failure is a value, never an exception: the runner records it and moves on
@@ -41,9 +41,7 @@ class Fetched:
     content: bytes = b""
     content_type: str = ""
     final_url: str | None = None
-    error: str | None = (
-        None  # reason code: fetch_error | blocked_page | robots_denied | data_files_off
-    )
+    error: str | None = None  # reason code: fetch_error | blocked_page | robots_denied
     detail: str = ""
     attempts: int = 0
 
@@ -83,14 +81,6 @@ class Fetcher:
     # ── entry point ──────────────────────────────────────────────────────
 
     def fetch(self, source: Source, *, wait_for: str | None = None) -> Fetched:
-        if source.method == "data_file" and not self.config.settings["allow_data_files"]:
-            return Fetched(
-                ok=False,
-                method=source.method,
-                url=source.url,
-                error="data_files_off",
-                detail="allow_data_files is false in module_settings.yaml",
-            )
         if self.config.settings["respect_robots"]:
             decision = self.robots.allows(source.url)
             if not decision.allowed:
@@ -106,7 +96,7 @@ class Fetcher:
         else:
             got = self._static(source.url, method=source.method)
         if got.ok:
-            self._check_l2(got, html=source.method != "data_file")
+            self._check_l2(got)
         return got
 
     # ── methods ──────────────────────────────────────────────────────────
@@ -176,7 +166,7 @@ class Fetcher:
                     )
                     page = context.new_page()
                     # "load", then a SHORT wait for the network to go quiet: a page
-                    # with analytics beacons (epoch.ai) never goes idle, and
+                    # with analytics beacons never goes idle, and
                     # waiting for it timed out with the table already drawn.
                     response = page.goto(url, wait_until="load", timeout=self.browser_timeout_ms)
                     with contextlib.suppress(PlaywrightError):
@@ -215,19 +205,18 @@ class Fetcher:
 
     # ── L2 ───────────────────────────────────────────────────────────────
 
-    def _check_l2(self, got: Fetched, *, html: bool) -> None:
+    def _check_l2(self, got: Fetched) -> None:
         rules = self.config.validation["fetch"]
         if got.size < int(rules["min_bytes"]):
             got.ok, got.error = False, "blocked_page"
             got.detail = f"only {got.size} bytes (minimum {rules['min_bytes']})"
             return
-        if html:
-            head = visible_text(got.content[:200_000])[:4000].lower()
-            for marker in rules["block_page_markers"]:
-                if marker.lower() in head:
-                    got.ok, got.error = False, "blocked_page"
-                    got.detail = f"block-page marker {marker!r} in the page text"
-                    return
+        head = visible_text(got.content[:200_000])[:4000].lower()
+        for marker in rules["block_page_markers"]:
+            if marker.lower() in head:
+                got.ok, got.error = False, "blocked_page"
+                got.detail = f"block-page marker {marker!r} in the page text"
+                return
 
 
 _TAGS = re.compile(rb"<(script|style)\b.*?</\1>|<[^>]+>", re.S | re.I)
