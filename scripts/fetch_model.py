@@ -204,6 +204,15 @@ _MAX_PROSE_DRIFT = 8
 #: grows: 20 variants x 6 queries is 120 searches nobody asked for.
 MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
 
+#: GitHub Discussions (E2G): one GraphQL search per spelling of the model, at
+#: one rate-limit point each from the 5,000-an-hour GraphQL budget - a
+#: different bucket from the 30-a-minute REST search the issues arm spends.
+#: Six covers every alias set seated on 2026-10-26; more spellings than that
+#: are deduplicated forms, not more evidence.
+MAX_DISCUSSION_SEARCHES = int(os.getenv("FETCH_MAX_DISCUSSION_SEARCHES", "6"))
+#: Sieve survivors kept per search, newest first.
+DISCUSSIONS_KEPT_PER_SEARCH = int(os.getenv("FETCH_DISCUSSIONS_PER_SEARCH", "25"))
+
 #: X pages per model. NOT a post count - twitter241 ignores `count` and
 #: paginates by cursor, so a page is 20 posts however many are asked for, and
 #: this is the only depth lever there is. Three pages is ~60 retrieved against
@@ -1218,6 +1227,68 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
                sieve_kept=kept, sieve_candidates=candidates,
                documents_inserted=inserted,
                detail="; ".join(parts))
+    return inserted
+
+
+def harvest_github_discussions(conn, prog: Progress, variants: list[str]) -> int:
+    """E2G harvest - GitHub Discussions naming this model, appended to `document`.
+
+    The `github` terms gate first (same source, same API), then one GraphQL
+    search per distinct spelling, sieved on every spelling, written through the
+    issues arm's writer so a discussion is a document exactly as an issue is.
+    Returns the number of documents newly inserted.
+    """
+    from datetime import UTC, datetime
+
+    from collect.adapters.github import write_issue_documents
+    from collect.adapters.github_discussions import DiscussionHarvester, discussion_query
+
+    contract = load_sources()
+    gh = next(s for s in contract.platforms if s["id"] == "github")
+    assert_terms_reviewed([gh], rulings=contract.rulings,
+                          observations={"github": {"access_path": "api"}},
+                          today=datetime.now(UTC).date())
+
+    # One search per distinct QUERY: two spellings can render to the same
+    # one (`github_alias_form` hyphenates a trailing numeral).
+    seen: dict[str, str] = {}
+    for v in variants:
+        seen.setdefault(discussion_query(v), v)
+    planned = list(seen.values())[:MAX_DISCUSSION_SEARCHES]
+    prog.stage("E2G", "Harvest · GitHub Discussions", "running",
+               planned_requests=len(planned),
+               detail=f"GraphQL discussion search for {len(planned)} spelling(s)"
+                      + (f" of {len(seen)} (cap {MAX_DISCUSSION_SEARCHES})"
+                         if len(seen) > len(planned) else ""))
+
+    client = build_client(timeout=30.0, headers={
+        "Authorization": f"Bearer {settings().github_token}",
+    })
+    harvester = DiscussionHarvester(client=client, store=RawStore(Path(settings().raw_store_path)),
+                                    max_keep_per_query=DISCUSSIONS_KEPT_PER_SEARCH)
+    _ensure_github_source(conn)
+
+    inserted = 0
+    for surface in planned:
+        run = harvester.harvest(surface, variants)
+        if run.stored:
+            inserted += write_issue_documents(conn, run.stored)["inserted"]
+            conn.commit()
+
+    t = harvester.totals()
+    parts = [f"{inserted} new document(s) appended",
+             f"{t['stored']} of {t['retrieved']} named the model",
+             f"{t['search_calls']} search call(s)"]
+    if t["http_errors"]:
+        parts.append(f"{t['http_errors']} error(s)")
+    if t["rate_limited_queries"]:
+        parts.append(f"{t['rate_limited_queries']} search(es) throttled")
+    # Every search failing is not a quiet board, and must not read as one.
+    status = "error" if t["http_errors"] and not t["retrieved"] else "ok"
+    prog.stage("E2G", "Harvest · GitHub Discussions", status,
+               search_calls=t["search_calls"], http_errors=t["http_errors"],
+               retrieved=t["retrieved"], sieve_kept=t["stored"],
+               documents_inserted=inserted, detail="; ".join(parts))
     return inserted
 
 
@@ -3741,8 +3812,16 @@ def main(argv: list[str] | None = None) -> int:
                 harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap)
             except Exception as exc:
                 prog.stage("E2", "Harvest", "error", detail=str(exc).splitlines()[0][:200])
+            # Discussions ride the `github` scope: same terms, same API, same
+            # document shape (collect/adapters/github_discussions.py).
+            try:
+                harvest_github_discussions(db.live(prog), prog, variants)
+            except Exception as exc:
+                prog.stage("E2G", "Harvest · GitHub Discussions", "error",
+                           detail=str(exc).splitlines()[0][:200])
         else:
             prog.stage("E2", "Harvest", "skipped", detail=scope_skip)
+            prog.stage("E2G", "Harvest · GitHub Discussions", "skipped", detail=scope_skip)
 
         if "reddit" in sources:
             try:
