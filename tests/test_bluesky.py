@@ -84,7 +84,13 @@ def test_the_contract_rules_on_bluesky_and_the_gate_reads_it():
     contract = load_sources()
     src = next(s for s in contract.platforms if s["id"] == "bluesky")
     ruling = contract.rulings[src["terms_ruling"]]
-    assert "deleting content a user has requested to be deleted" in ruling.summary
+    summary = " ".join(ruling.summary.split())  # a quote may wrap across lines
+    # All three developer-guideline obligations, quoted (#567 review).
+    assert "deleting content a user has requested to be deleted" in summary
+    assert "email address that is regularly monitored" in summary
+    assert "keep records of all reports" in summary
+    # Quoted on purpose, credited as the platform with a link - no identity shown.
+    assert "PUBLICATION, ON PURPOSE" in summary and "PLATFORM NAME" in summary
     assert_terms_reviewed([src], rulings=contract.rulings,
                           observations={"bluesky": bluesky.observe_bluesky_use()})
     wrong = dict(bluesky.observe_bluesky_use(), search_endpoint="/app.bsky.feed.getTimeline")
