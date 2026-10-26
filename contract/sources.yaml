@@ -1622,18 +1622,27 @@ terms_rulings:
                monitored."
             7. "Developers should keep records of all reports of violations
                and their responses".
-          Items 1, 2, 4 and 6 concern apps with posting, reporting or end-user
-          accounts, which this service does not have.
+          TWO MORE ARE TAKEN AS APPLYING (#567 review), because our pages
+          will show Bluesky posts a reader may want to report:
+            2.1 "A method to report illegal content";
+            4.  "Developers must have a system for appropriately responding to
+                all user reports of violations within their apps."
+          Items 1, 2.2, 2.3 and 6 concern apps where users post, follow or
+          hold accounts, which this service does not have.
 
       THE OBLIGATIONS, AND HOW THEY ARE MET. A request to remove a Bluesky
       post is handled as any takedown here: the raw payload is tombstoned
       (NFR-6) and the claims from it withdrawn. `deletion_on_request_honoured`
       records that commitment; it is a promise this ruling makes, so breaking
-      it voids the ruling.
-      ⚠ OPEN ON THE PR THAT CARRIES THIS: the public, monitored contact address
-      that guideline 5 requires, and where request records are kept
-      (guideline 7). Bluesky quotes do not reach a public page before both are
-      named here.
+      it voids the ruling. ONE CONTACT ADDRESS SERVES ALL FOUR: a removal
+      request (3), a report of a quoted post (2.1, 4) and the public contact
+      itself (5), and every request and our response is logged (7).
+      ⚠ OPEN, AND ENFORCED UNTIL IT IS NOT: the address and where the log is
+      kept are to be decided by anooj and recorded here, with the date, when
+      decided - as #564 recorded the newsletter decision. Until then `bluesky`
+      is in contract/publication.yaml `withheld_from_public` and
+      `derived_posts.embed_only`, so its posts reach no public page; both
+      lines come out in the same change that names the address.
 
       PUBLICATION, ON PURPOSE (2026-10-26, anooj, after #567's review). Bluesky
       is QUOTED like Hacker News and dev.to - not withheld, and not embed-only
