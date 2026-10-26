@@ -159,6 +159,37 @@ def test_yield_counts_are_the_fr10_figures(tmp_path):
     assert run.http_errors == 0
 
 
+def test_an_entry_already_stored_is_not_requested_and_still_counts_as_kept(tmp_path):
+    """2026-10-26, for the nightly harvest. An entry whose document exists costs
+    no request, is counted, and keeps FR-10's yield honest: a quiet night of a
+    healthy feed must not read `items_kept = 0`."""
+    site = rss_site()
+    fetcher, _, _ = build(site, tmp_path)
+    first = fetcher.harvest_feed(FEED_URL)
+    held = first.articles[0]
+
+    site.requests.clear()
+    run = fetcher.harvest_feed(FEED_URL, skip_entry_ids=frozenset({held.entry.entry_id}))
+    assert run.already_stored == 1
+    assert [a.entry.entry_id for a in run.articles] != [held.entry.entry_id]
+    assert len(run.articles) == 1
+    assert run.items_fetched == 2 and run.items_kept == 2
+    asked = {str(r.url) for r in site.requests}
+    assert held.url not in asked, "the held entry's article was requested again"
+
+
+def test_a_cap_requests_the_newest_and_defers_the_rest(tmp_path):
+    """The nightly cap: newest first, the rest counted and still unheld."""
+    site = rss_site()
+    fetcher, _, _ = build(site, tmp_path)
+    run = fetcher.harvest_feed(FEED_URL, max_articles=1)
+    assert len(run.articles) == 1 and run.articles_deferred == 1
+    assert run.items_kept == 1, "a deferred entry is not kept - nothing of it is stored"
+    dates = [e.published_at for e in run.feed.entries if e.published_at]
+    if len(dates) == 2:
+        assert run.articles[0].entry.published_at == max(dates)
+
+
 def test_re_fetching_unchanged_bytes_is_a_no_op_in_the_store(tmp_path):
     """Content addressing makes a repeat harvest idempotent (NFR-4)."""
     fetcher, _, _ = build(rss_site(), tmp_path)

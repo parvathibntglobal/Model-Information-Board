@@ -205,6 +205,9 @@ terms_rulings:
           portion of the platform and separately prohibited storing any
           significant portion of its content; the prohibition was
           UNCONDITIONAL, so internal-development-only did not reach it.
+          SUPERSEDED 2026-10-26 BY THE TEAM'S DECISION to take newsletters,
+          feed only: see `newsletter-substack-feed-only`. The finding above is
+          unchanged; the decision is what changed.
         - SWYX.IO, 2026-09-21, PERMITTED, AND IT IS THE FIRST FEED IN THIS FILE
           WITH `terms_document_read: true`. See that row. The terms document
           affirmatively permits what this project publishes, in its own words:
@@ -603,6 +606,96 @@ terms_rulings:
       login_required: [false]
       # As class A. The summary states "Medium's terms of service have not been
       # read"; this records it where a reader that is not a person can see it.
+      terms_document_read: [false]
+
+  # ── Newsletters on a platform: Substack ──────────────────────────────────
+  - id: newsletter-substack-feed-only
+    class: C
+    party: platform
+    platform_host: substack.com
+    reviewed_on: 2026-10-26
+    reviewed_by: anooj
+    basis: public-derived-publication
+    review_valid_days: 90
+    evidence_valid_days: 90
+
+    #: FEED ONLY. The feed is what Substack syndicates; no article page is
+    #: requested, so nothing is crawled that the publisher did not push.
+    fetch_articles: false
+
+    summary: >-
+      A newsletter Substack serves, from substack.com or from a publisher's
+      custom domain (the feed's generator says `Substack`). Seated 2026-10-26
+      on the team's decision to take newsletters, and the 2026-09-18 refusal
+      recorded under `blog-class-a-self-hosted` is SUPERSEDED BY THAT
+      DECISION, NOT BY A NEW READING. What that refusal found still stands as
+      written: robots allowed the feed and article paths, and Substack's
+      Acceptable Use Policy prohibits crawling any page or portion of the
+      platform and separately prohibits storing any significant portion of
+      its content, unconditionally. The team read that policy and decided to
+      take the feeds anyway; that is the accepted risk, recorded here so it
+      is never mistaken for a permission.
+
+      WHAT THIS RULING DOES TO KEEP THAT RISK SMALL, and every item is a
+      mechanism rather than an intention:
+        - feed only (`fetch_articles: false`): the fetcher refuses to request
+          an article URL from these hosts, and raises if asked to;
+        - one feed request per host per night, robots.txt re-read on every
+          run (`live_preconditions`), identifying User-Agent;
+        - published as quote + attribution + link under the use-basis
+          undertaking at the top of this file, never full text;
+        - a body cut at the paywall stays cut: only the free part the feed
+          carries exists for us, and nothing works around it.
+
+      The feed body is stored (raw payload, content-hash addressed), which is
+      exactly the "storing" clause; it is stored because rule 1 verifies
+      every quote against the text the extractor was shown.
+
+      RE-REVIEW REQUIRED BEFORE: any article fetch, any monetization, or any
+      change to Substack's policy that the team has not read.
+
+    live_preconditions:
+      robots_status: [rules, no-rules]
+      feed_path_allowed: [true]
+      use_basis: [public-derived-publication]
+    recorded_evidence:
+      # `partial` is a feed whose newest window has entries cut at the paywall:
+      # what we hold of those entries is the free part, and that is all.
+      feed_carries_full_text: [true, partial]
+      login_required: [false]
+      # The policy was read (2026-09-18) and is the reason this ruling exists.
+      terms_document_read: [true]
+
+  # ── Newsletters on a platform: beehiiv ───────────────────────────────────
+  - id: newsletter-beehiiv-feed-only
+    class: C
+    party: platform
+    platform_host: beehiiv.com
+    reviewed_on: 2026-10-26
+    reviewed_by: anooj
+    basis: public-derived-publication
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: false
+    summary: >-
+      A newsletter whose feed beehiiv serves (rss.beehiiv.com). Seated
+      2026-10-26 on the team's decision to take newsletters from Substack and
+      other platforms. Same mechanisms as `newsletter-substack-feed-only`:
+      feed only, robots re-read every run, quote + attribution + link.
+
+      BEEHIIV'S TERMS HAVE NOT BEEN READ, and this says so rather than letting
+      the Substack reading stand in for it: a platform's terms are its own
+      document. Recorded as the accepted risk of the team's decision.
+
+      RE-REVIEW REQUIRED BEFORE: any article fetch, or any monetization.
+
+    live_preconditions:
+      robots_status: [rules, no-rules]
+      feed_path_allowed: [true]
+      use_basis: [public-derived-publication]
+    recorded_evidence:
+      feed_carries_full_text: [true, partial]
+      login_required: [false]
       terms_document_read: [false]
 
   # ── The blog platform row, which is not a fetch target ───────────────────
@@ -3204,6 +3297,678 @@ feeds:
       MEDIUM'S TERMS PAGE NOT READ. The article refusal rests on robots, which
       is enough to refuse and would not be enough to permit.
 
+
+  # ── Newsletters (2026-10-26) ──────────────────────────────────────────────
+  #
+  # Ten of the twenty newsletters probed on 2026-10-26: full text in the feed
+  # (whole or up to a paywall cut), active, and naming models. Latent Space is
+  # self-hosted and sits under class A; the rest are platform-hosted and feed
+  # only. Import AI is already here as blog:jack-clark.net - all 10 of that
+  # feed's items are in its Substack feed - so it is not seated twice. The
+  # other nine are listed as rejected below the feeds, with why.
+
+  - id: blog:latent.space
+    platform: blog
+    endpoint: https://latent.space/feed
+    site: https://latent.space/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-10-12
+      newest: 2026-10-24
+      span_days: 12
+      days_since_newest: 1
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 43181
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 17
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 6
+      resolves_to_voices: null
+    notes: >-
+      Mixed: about half the window is `[AINews]` recaps of what people
+      posted elsewhere (aggregation, weak as first-hand evidence) and
+      half is podcast transcripts and practitioner essays. NOT SUBSTACK:
+      served from its own host, no Substack generator in the feed; the
+      swyx.io row above records the same check from the other side. 20
+      entries 2026-10-12 to 2026-10-24; median body 43,181 characters;
+      20 of 20 full length, 0 cut at the paywall. Bylines: Latent.Space
+      7, Latent Space 7, swyx .ai 2.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-10-26.
+      robots.txt 200 (`User-agent: * / Allow: / / Disallow: /api/`); feed
+      and article paths allowed. Sample article
+      https://latent.space/p/ainews-kimi-31/ returned 200, 167,416 bytes,
+      no paywall or login marker. TERMS PAGE NOT READ.
+
+  - id: blog:www.oneusefulthing.org
+    platform: blog
+    endpoint: https://www.oneusefulthing.org/feed
+    site: https://www.oneusefulthing.org/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2025-09-29
+      newest: 2026-10-20
+      span_days: 386
+      days_since_newest: 5
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 10864
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 20
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      First-hand reports of using models, closest of the ten to what the
+      board collects - from an academic power user rather than an
+      engineer. 20 entries 2025-09-29 to 2026-10-20; median body 10,864
+      characters; 20 of 20 full length, 0 cut at the paywall. Bylines:
+      Ethan Mollick 20.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
+      Served by Substack (feed generator `Substack`). robots.txt 200,
+      feed path allowed. FEED ONLY: no article page is requested; content
+      is the feed body, and where Substack cut it at the paywall only the
+      free part exists for us. Substack's terms are the party speaking, and
+      the ruling records how they were weighed.
+
+  - id: blog:www.bensbites.com
+    platform: blog
+    endpoint: https://www.bensbites.com/feed
+    site: https://www.bensbites.com/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-08-28
+      newest: 2026-10-22
+      span_days: 55
+      days_since_newest: 3
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 5391
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 18
+      byline_source: feed_declared
+      entry_bylines_present: 1
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      First-person notes on building with agents, plus a link digest. ON
+      SUBSTACK, NOT BEEHIIV as it was described to us: the feed's
+      generator is Substack. The feed names one author at channel level;
+      1 of 20 entries carries its own byline. 20 entries 2026-08-28 to
+      2026-10-22; median body 5,391 characters; 20 of 20 full length, 0
+      cut at the paywall. Bylines: Ben Tossell 1.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
+      Served by Substack (feed generator `Substack`). robots.txt 200,
+      feed path allowed. FEED ONLY: no article page is requested; content
+      is the feed body, and where Substack cut it at the paywall only the
+      free part exists for us. Substack's terms are the party speaking, and
+      the ruling records how they were weighed.
+
+  - id: blog:www.interconnects.ai
+    platform: blog
+    endpoint: https://www.interconnects.ai/feed
+    site: https://www.interconnects.ai/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: partial
+      paywall_observed: true
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-07-22
+      newest: 2026-10-25
+      span_days: 95
+      days_since_newest: 0
+      truncated: true
+      full_text_entries: 15
+      paywall_cut_entries: 5
+      median_body_chars: 10835
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 17
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 2
+      resolves_to_voices: 2
+    notes: >-
+      Research analysis and open-model roundups, with some first-hand
+      use. 20 entries 2026-07-22 to 2026-10-25; median body 10,835
+      characters; 15 of 20 full length, 5 cut at the paywall. Bylines:
+      Nathan Lambert 17, Florian Brand 3.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
+      Served by Substack (feed generator `Substack`). robots.txt 200,
+      feed path allowed. FEED ONLY: no article page is requested; content
+      is the feed body, and where Substack cut it at the paywall only the
+      free part exists for us. Substack's terms are the party speaking, and
+      the ruling records how they were weighed.
+
+  - id: blog:epochai.substack.com
+    platform: blog
+    endpoint: https://epochai.substack.com/feed
+    site: https://epochai.substack.com/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-06-11
+      newest: 2026-10-23
+      span_days: 134
+      days_since_newest: 2
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 8003
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 17
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 14
+      resolves_to_voices: 14
+    notes: >-
+      Benchmark, economics and capability analysis, written by many
+      staff authors. epoch.ai serves no feed of its own: /gradient-
+      updates/feed, /feed.xml and /rss.xml all returned 404. 20 entries
+      2026-06-11 to 2026-10-23; median body 8,003 characters; 20 of 20
+      full length, 0 cut at the paywall. Bylines: Elliot Stewart 6, JS
+      Denain 2, Mike Mantell 1.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
+      Served by Substack (feed generator `Substack`). robots.txt 200,
+      feed path allowed. FEED ONLY: no article page is requested; content
+      is the feed body, and where Substack cut it at the paywall only the
+      free part exists for us. Substack's terms are the party speaking, and
+      the ruling records how they were weighed.
+
+  - id: blog:magazine.sebastianraschka.com
+    platform: blog
+    endpoint: https://magazine.sebastianraschka.com/feed
+    site: https://magazine.sebastianraschka.com/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: partial
+      paywall_observed: true
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2025-09-06
+      newest: 2026-10-24
+      span_days: 413
+      days_since_newest: 1
+      truncated: true
+      full_text_entries: 14
+      paywall_cut_entries: 6
+      median_body_chars: 34369
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 17
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      Architecture explainers and research summaries.
+      sebastianraschka.com/rss_feed.xml is a different feed and carries
+      summaries only (157 of 157 under 500 characters), so the Substack
+      host is the one with bodies. 20 entries 2025-09-06 to 2026-10-24;
+      median body 34,369 characters; 14 of 20 full length, 6 cut at the
+      paywall. Bylines: Sebastian Raschka, PhD 20.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
+      Served by Substack (feed generator `Substack`). robots.txt 200,
+      feed path allowed. FEED ONLY: no article page is requested; content
+      is the feed body, and where Substack cut it at the paywall only the
+      free part exists for us. Substack's terms are the party speaking, and
+      the ruling records how they were weighed.
+
+  - id: blog:cameronrwolfe.substack.com
+    platform: blog
+    endpoint: https://cameronrwolfe.substack.com/feed
+    site: https://cameronrwolfe.substack.com/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: partial
+      paywall_observed: true
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2025-07-28
+      newest: 2026-10-21
+      span_days: 450
+      days_since_newest: 4
+      truncated: true
+      full_text_entries: 18
+      paywall_cut_entries: 2
+      median_body_chars: 72943
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 18
+      byline_source: entry
+      entry_bylines_present: 19
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      Long research surveys; the longest bodies of the ten. 20 entries
+      2025-07-28 to 2026-10-21; median body 72,943 characters; 18 of 20
+      full length, 2 cut at the paywall. Bylines: Cameron R. Wolfe,
+      Ph.D. 19.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
+      Served by Substack (feed generator `Substack`). robots.txt 200,
+      feed path allowed. FEED ONLY: no article page is requested; content
+      is the feed body, and where Substack cut it at the paywall only the
+      free part exists for us. Substack's terms are the party speaking, and
+      the ruling records how they were weighed.
+
+  - id: blog:chinai.substack.com
+    platform: blog
+    endpoint: https://chinai.substack.com/feed
+    site: https://chinai.substack.com/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-05-18
+      newest: 2026-10-19
+      span_days: 154
+      days_since_newest: 6
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 8057
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 14
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      Translations and analysis of China's AI discourse, policy and
+      industry. 20 entries 2026-05-18 to 2026-10-19; median body 8,057
+      characters; 20 of 20 full length, 0 cut at the paywall. Bylines:
+      Jeffrey Ding 20.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
+      Served by Substack (feed generator `Substack`). robots.txt 200,
+      feed path allowed. FEED ONLY: no article page is requested; content
+      is the feed body, and where Substack cut it at the paywall only the
+      free part exists for us. Substack's terms are the party speaking, and
+      the ruling records how they were weighed.
+
+  - id: blog:www.understandingai.org
+    platform: blog
+    endpoint: https://www.understandingai.org/feed
+    site: https://www.understandingai.org/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: partial
+      paywall_observed: true
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-06-15
+      newest: 2026-10-19
+      span_days: 126
+      days_since_newest: 6
+      truncated: true
+      full_text_entries: 10
+      paywall_cut_entries: 10
+      median_body_chars: 5718
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 8
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 4
+      resolves_to_voices: 4
+    notes: >-
+      Explanatory journalism - secondary reporting more than first-hand
+      use. Half the window is cut at the paywall, the most of any feed
+      seated here. 20 entries 2026-06-15 to 2026-10-19; median body
+      5,718 characters; 10 of 20 full length, 10 cut at the paywall.
+      Bylines: Timothy B. Lee 9, Kai Williams 8, Dan Kagan-Kans 2.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
+      Served by Substack (feed generator `Substack`). robots.txt 200,
+      feed path allowed. FEED ONLY: no article page is requested; content
+      is the feed body, and where Substack cut it at the paywall only the
+      free part exists for us. Substack's terms are the party speaking, and
+      the ruling records how they were weighed.
+
+  - id: blog:www.theneurondaily.com
+    platform: blog
+    endpoint: https://rss.beehiiv.com/feeds/N4eCstxvgX.xml
+    site: https://www.theneurondaily.com/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-beehiiv-feed-only
+    terms_evidence:
+      checked_on: 2026-10-26
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
+      # the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-10-26
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-10-07
+      newest: 2026-10-25
+      span_days: 18
+      days_since_newest: 0
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 10095
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word. A collocation count, not `version_rate`,
+      # which was not measured for these rows.
+      names_a_model_family: 17
+      byline_source: entry
+      entry_bylines_present: 17
+      distinct_entry_bylines: 3
+      resolves_to_voices: 3
+    notes: >-
+      Daily news digest with commentary: weak as first-hand evidence,
+      strong on which models people are talking about. The site's /feed
+      redirects to a 404 page; the feed is the one its homepage
+      advertises on rss.beehiiv.com. 20 entries 2026-10-07 to
+      2026-10-25; median body 10,095 characters; 20 of 20 full length, 0
+      cut at the paywall. Bylines: Grant Harvey 10, Eric Gerard Ruiz 5,
+      Corey Noles 2.
+    tos_notes: >-
+      Ruling newsletter-beehiiv-feed-only, evidence checked 2026-10-26.
+      Feed served from rss.beehiiv.com, robots.txt 200, feed path allowed.
+      FEED ONLY: no article page is requested. beehiiv's terms NOT READ.
+
+# ----------------------------------------------------------------------------
+#  Newsletters checked on 2026-10-26 and NOT seated, with the reason:
+#
+#    importai.substack.com      already seated as blog:jack-clark.net (same posts).
+#    dblalock.substack.com      Davis Summarizes Papers: newest item 2024-08-26.
+#    thegradient.pub (Ghost)    newest item 2026-02-18; dormant.
+#    newsletter.semianalysis    20 of 20 cut at the paywall; hardware economics.
+#    therundown.ai/feed         teasers only, median 47 characters.
+#    alphasignal.ai/feed.xml    teasers only, median 147; newsroom rewrites.
+#    tldr.tech/api/rss/ai       title and link only, no body.
+#    pub.towardsai.net/feed     7 of 10 "continue reading" stubs (Medium).
+#    superhuman.ai, The Batch   no feed found at /feed, /rss, /rss.xml or in
+#                               the page markup.
+# ----------------------------------------------------------------------------
 
 # ----------------------------------------------------------------------------
 #  Checked and rejected on 2026-08-14, recorded so the next person does not

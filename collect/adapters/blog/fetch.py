@@ -225,6 +225,14 @@ class FeedRun:
     #: what "kept" means, so the run has to know.
     fetch_articles: bool = True
 
+    #: Entries whose article was not requested because a document for them is
+    #: already stored (`harvest_feed`'s `skip_entry_ids`).
+    already_stored: int = 0
+
+    #: Entries not held and not requested this run, because `max_articles` was
+    #: reached. Not kept: nothing of theirs is stored yet.
+    articles_deferred: int = 0
+
     @property
     def items_fetched(self) -> int:
         """Entries the feed offered. Zero on a 304 — see `harvest_run_fields`."""
@@ -259,8 +267,14 @@ class FeedRun:
           the bodies (`carve_entry_bodies`) makes the honest count and the
           reassuring count the same number, which is why the branch is gone
           rather than corrected.
+
+        ⚠ AN ENTRY SKIPPED AS ALREADY STORED IS KEPT (2026-10-26). Its body
+          reached `raw/` on an earlier run and the corpus holds it. Leaving it
+          out would make every quiet night of a healthy feed read
+          `items_kept = 0` - the alarm FR-10 exists to raise, raised by our
+          own politeness.
         """
-        return sum(1 for article in self.articles if article.stored)
+        return sum(1 for article in self.articles if article.stored) + self.already_stored
 
     @property
     def http_errors(self) -> int:
@@ -684,7 +698,9 @@ class BlogFetcher:
 
     # ── one feed, end to end ─────────────────────────────────────────────
 
-    def harvest_feed(self, feed_url: str, *, fetch_articles: bool | None = None) -> FeedRun:
+    def harvest_feed(self, feed_url: str, *, fetch_articles: bool | None = None,
+                     skip_entry_ids: frozenset[str] = frozenset(),
+                     max_articles: int | None = None) -> FeedRun:
         """Fetch a feed and its entries' articles. One `harvest_run` worth of work.
 
         `fetch_articles` defaults to what the source's terms ruling permits.
@@ -692,6 +708,19 @@ class BlogFetcher:
         quietly declining: a caller who wanted articles and got none would
         read the empty list as "this feed has no entries", which is rule 4 —
         an absence that reads as a finding.
+
+        `skip_entry_ids` (2026-10-26): entries already stored as documents, whose
+        article is NOT requested again. A nightly harvest would otherwise GET
+        every article in every feed every night - 432 for swyx.io alone - to
+        insert nothing (`ON CONFLICT DO NOTHING`). Counted on the run as
+        `already_stored`, never dropped silently. A feed-only run carves from
+        bytes it already has, so it needs no skip.
+
+        `max_articles`: at most this many article requests, newest entries
+        first. The rest are counted as `articles_deferred` and are still unheld,
+        so the next run asks for them. It bounds a night that meets a long
+        backlog (swyx.io: 432 entries, 25 stored on 2026-10-26) inside the
+        workflow step's time limit. None means no cap.
         """
         if fetch_articles is None:
             fetch_articles = self._fetch_articles
@@ -706,12 +735,21 @@ class BlogFetcher:
         feed = self.fetch_feed(feed_url)
 
         articles: list[ArticleFetch] = []
+        already_stored = deferred = 0
         if feed.outcome == "fetched":
-            articles = (
-                [self.fetch_article(entry) for entry in feed.entries]
-                if fetch_articles
-                else self.carve_entry_bodies(feed)
-            )
+            if fetch_articles:
+                wanted = [e for e in feed.entries if e.entry_id not in skip_entry_ids]
+                already_stored = len(feed.entries) - len(wanted)
+                if max_articles is not None and len(wanted) > max_articles:
+                    # Newest first; an undated entry goes last, not first.
+                    wanted.sort(key=lambda e: (e.published_at is not None,
+                                               e.published_at.timestamp() if e.published_at else 0),
+                                reverse=True)
+                    deferred = len(wanted) - max_articles
+                    wanted = wanted[:max_articles]
+                articles = [self.fetch_article(entry) for entry in wanted]
+            else:
+                articles = self.carve_entry_bodies(feed)
 
         return FeedRun(
             feed_url=feed_url,
@@ -727,6 +765,8 @@ class BlogFetcher:
             pipeline_version=self._pipeline_version,
             source_id=self._source_id,
             fetch_articles=fetch_articles,
+            already_stored=already_stored,
+            articles_deferred=deferred,
         )
 
 

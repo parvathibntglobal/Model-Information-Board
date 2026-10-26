@@ -116,6 +116,13 @@ def main(argv: list[str] | None = None) -> int:
                         help="stop after N feeds. 0 means every feed.")
     parser.add_argument("--dry-run", action="store_true",
                         help="fetch and assemble, write nothing, report what would land")
+    parser.add_argument("--new-only", action="store_true",
+                        help="do not re-request the article of an entry already stored "
+                             "as a document. For the nightly run; a feed is still read "
+                             "in full, and skipped entries are counted")
+    parser.add_argument("--max-new-articles", type=int, default=None,
+                        help="request at most N articles per feed, newest first; the "
+                             "rest are counted as deferred and asked for next run")
     args = parser.parse_args(argv)
 
     contract = load_sources()
@@ -191,8 +198,22 @@ def main(argv: list[str] | None = None) -> int:
               "contexts": 0, "nothing_extracted": 0, "already_present": 0,
               "members_unresolved": 0, "unreadable_after_write": 0,
               "author_rows": 0, "authors_attached_to_existing": 0,
-              "entries_without_byline": 0,
+              "entries_without_byline": 0, "articles_already_stored": 0,
+              "articles_deferred": 0,
               "harvest_runs_opened": 0, "harvest_runs_closed": 0}
+
+    # THE NIGHTLY RUN DOES NOT RE-REQUEST WHAT IT HOLDS (2026-10-26). One read
+    # of the keys `write_blog_run` inserts under - `(source, external_id)`,
+    # source always `blog` - so an entry already stored costs no request.
+    # Without a connection (a dry run) there is nothing to read, and every
+    # article is requested as before.
+    held: frozenset[str] = frozenset()
+    if args.new_only and conn is not None:
+        from collect.assemble.article import BLOG_SOURCE
+
+        held = frozenset(r[0] for r in conn.execute(
+            "SELECT external_id FROM document WHERE source = %s", (BLOG_SOURCE,)))
+        print(f"  --new-only: {len(held):,} blog document(s) already stored")
 
     try:
         with build_client() as client:
@@ -241,8 +262,11 @@ def main(argv: list[str] | None = None) -> int:
                         print(f"  {feed_id:38s} harvest_run not opened: "
                               f"{type(error).__name__}: {error}")
 
-                run = fetcher.harvest_feed(feed["endpoint"])
+                run = fetcher.harvest_feed(feed["endpoint"], skip_entry_ids=held,
+                                           max_articles=args.max_new_articles)
                 totals["feeds"] += 1
+                totals["articles_already_stored"] += run.already_stored
+                totals["articles_deferred"] += run.articles_deferred
                 if run.outcome != "fetched":
                     print(f"  {feed_id:38s} {run.outcome}")
                     _close(conn, opened, run, totals)
