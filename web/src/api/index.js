@@ -433,6 +433,22 @@ export const reviewDiscussion = (id, decision, note) =>
   request('/discussions/review', { method: 'POST', body: { id, decision, note: note || null } })
 export const deleteDiscussion = (id) => request('/discussions/delete', { method: 'POST', body: { id } })
 
+// THE BENCHMARKS PAGE (judge/benchmarks.py, 2026-10-22). Signed in: every call
+// carries the token. Values are the sources' own; the page formats, never computes.
+export const benchmarksTable = () => request('/benchmarks/table')
+export const benchmarksChanges = (runId) =>
+  request(`/benchmarks/changes${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`)
+export const benchmarksRuns = () => request('/benchmarks/runs')
+export const benchmarksRunLog = ({ runId, requestId }) =>
+  request(`/benchmarks/run-log?${runId ? `run_id=${encodeURIComponent(runId)}` : `request_id=${encodeURIComponent(requestId)}`}`)
+export const benchmarksUnmatched = () => request('/benchmarks/unmatched')
+export const decideBenchmarkName = ({ key, name, action, target }) =>
+  request('/benchmarks/names/decide', { method: 'POST', body: { key, name, action, target: target || null } })
+export const undoBenchmarkName = (key) => request('/benchmarks/names/undo', { method: 'POST', body: { key } })
+export const benchmarksReview = () => request('/benchmarks/review')
+export const startBenchmarksRun = ({ dryRun = false, useSnapshot = false } = {}) =>
+  request('/benchmarks/run', { method: 'POST', body: { dry_run: dryRun, use_snapshot: useSnapshot } })
+
 // HOW A POST IS MADE, AND THE WRITING PACKS (judge/blog_method.py, 2026-10-16).
 export const blogMethod = () => request('/blog-posts/method')
 export const blogPacks = () => request('/blog-posts/packs')

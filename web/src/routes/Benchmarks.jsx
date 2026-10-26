@@ -1,0 +1,643 @@
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  BoardUnreadable,
+  benchmarksChanges,
+  benchmarksReview,
+  benchmarksRunLog,
+  benchmarksRuns,
+  benchmarksTable,
+  benchmarksUnmatched,
+  decideBenchmarkName,
+  startBenchmarksRun,
+  undoBenchmarkName,
+} from '../api'
+import { Unreadable } from '../components/ui'
+import { useHead } from '../seo/head'
+import { PRIVATE } from '../seo/pages'
+import '../styles/benchmarks.css'
+
+/**
+ * BENCHMARKS (2026-10-22, Parvathi): signed in. Published benchmark results for
+ * the tracked text models, as each source publishes them - leaderboard pages and
+ * the data files their sites offer, scraped by collect/benchmarks/ into the
+ * bench_ tables (BENCHMARK_PIPELINE_WORKFLOW.md). No key, no paid service, no
+ * language model anywhere in it.
+ *
+ * RAW VALUES ONLY (2026-10-22). Every cell is the source's own text ("88.0",
+ * "1"), with the source, link and date behind it. No unit is added, nothing is
+ * rounded, and the page computes nothing - no local rank, no percentile, no score.
+ *
+ * ROWS ARE MODELS AND THEIR SETTINGS. A source that publishes "GPT 6 Astra (max)"
+ * fills the (max) row under GPT 6 Astra, never the model's own row: results at
+ * different reasoning efforts are different results.
+ *
+ * THE RUN BUTTON starts a background run (judge/benchmarks.py start_run) and the
+ * terminal below shows its log live. Admin edits of single cells come in phase 2.
+ */
+
+const TABS = [
+  ['table', 'Table'],
+  ['changes', 'Changelog'],
+  ['runs', 'Runs'],
+  ['unmatched', 'Unmatched names'],
+  ['review', 'Review'],
+  ['sources', 'Sources'],
+]
+
+const fmtWhen = (iso) => (iso
+  ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  : '')
+
+function cellTitle(cell, column) {
+  if (!cell) return 'No source publishes this yet.'
+  const lines = [
+    `${column.label}: ${cell.display}  (as the source printed it)`,
+    `Source: ${cell.source_label}`,
+    `Name on the source: "${cell.raw_name}"`,
+  ]
+  if (cell.variant) lines.push(`Test setup: ${cell.variant}`)
+  if (cell.benchmark_version) lines.push(`Benchmark version: ${cell.benchmark_version}`)
+  if (cell.rank_board) lines.push(`Board: ${cell.rank_board}${cell.rank_out_of ? `, ${cell.rank_out_of} entries when read` : ''}`)
+  if (cell.tied) lines.push('Tied with another entry')
+  if (cell.source_date) lines.push(`Source's date: ${cell.source_date}`)
+  if (cell.collected_at) lines.push(`Collected: ${fmtWhen(cell.collected_at)}`)
+  if (cell.setting_not_stated) lines.push('The source does not state the setting.')
+  if (cell.needs_review) lines.push('Flagged for review: sources disagree.')
+  return lines.join('\n')
+}
+
+function Cell({ cell, column }) {
+  if (!cell) return <td className="bm-c bm-empty" title={cellTitle(null, column)}>—</td>
+  const recent = cell.badges?.includes('new') ? 'new' : cell.badges?.includes('changed') ? 'changed' : null
+  return (
+    <td className={`bm-c${cell.needs_review ? ' bm-flag' : ''}`} title={cellTitle(cell, column)}>
+      <a href={cell.url} target="_blank" rel="noreferrer noopener nofollow" className="bm-v">{cell.display}</a>
+      {recent && (
+        <span className={`bm-badge bm-${recent}${cell.direction ? ` bm-${cell.direction}` : ''}`}>
+          {recent === 'new' ? 'new' : cell.direction === 'better' ? '▲' : cell.direction === 'worse' ? '▼' : '•'}
+        </span>
+      )}
+    </td>
+  )
+}
+
+function useBenchData(tab, refreshKey) {
+  const [table, setTable] = useState(null)
+  const [error, setError] = useState(null)
+  const [extra, setExtra] = useState({})
+  useEffect(() => {
+    let alive = true
+    benchmarksTable()
+      .then((d) => { if (alive) { setTable(d); setError(null) } })
+      .catch((e) => { if (alive) setError(e) })
+    return () => { alive = false }
+  }, [refreshKey])
+  useEffect(() => {
+    let alive = true
+    const load = { changes: benchmarksChanges, runs: benchmarksRuns, unmatched: benchmarksUnmatched, review: benchmarksReview }[tab]
+    if (!load) return undefined
+    load()
+      .then((d) => { if (alive) setExtra((x) => ({ ...x, [tab]: d })) })
+      .catch((e) => { if (alive) setExtra((x) => ({ ...x, [tab]: { error: e.message } })) })
+    return () => { alive = false }
+  }, [tab, refreshKey])
+  return { table, error, extra }
+}
+
+/* ── the run panel and its terminal ──────────────────────────────────────── */
+
+function Terminal({ log, running, title }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (ref.current) ref.current.scrollTop = ref.current.scrollHeight
+  }, [log])
+  return (
+    <div className="bm-term-wrap">
+      <div className="bm-term-bar">
+        <span className={`bm-dot${running ? ' bm-dot-live' : ''}`} aria-hidden="true" />
+        <span>{title}</span>
+      </div>
+      <pre className="bm-term" ref={ref} aria-live="polite">{log || (running ? 'Starting…' : '')}</pre>
+    </div>
+  )
+}
+
+function RunPanel({ onFinished, viewRun, clearView, savedPages }) {
+  const [watch, setWatch] = useState(null)        // { requestId } | { runId }
+  const [log, setLog] = useState('')
+  const [run, setRun] = useState(null)
+  const [done, setDone] = useState(true)
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const finished = useRef(onFinished)
+  finished.current = onFinished
+
+  useEffect(() => {
+    if (viewRun) { setWatch({ runId: viewRun }); setDone(false); setLog(''); setError(null) }
+  }, [viewRun])
+
+  useEffect(() => {
+    if (!watch) return undefined
+    let alive = true
+    let timer
+    const poll = async () => {
+      try {
+        const d = await benchmarksRunLog(watch)
+        if (!alive) return
+        if (d.found) {
+          setLog(d.log)
+          setRun(d.run)
+          if (d.done) {
+            setDone(true)
+            if (watch.requestId) finished.current?.()
+            return
+          }
+        }
+        timer = setTimeout(poll, 1500)
+      } catch (e) {
+        if (alive) { setError(e.message); setDone(true) }
+      }
+    }
+    poll()
+    return () => { alive = false; clearTimeout(timer) }
+  }, [watch])
+
+  const start = async (opts) => {
+    setBusy(true); setError(null); clearView?.()
+    try {
+      const r = await startBenchmarksRun(opts)
+      setLog(''); setRun(null); setDone(false)
+      setWatch({ requestId: r.request_id })
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const running = watch && !done
+  const title = run
+    ? `Run #${run.id}${run.dry_run ? ' (dry run)' : ''} · ${run.status}${run.finished_at ? ` · finished ${fmtWhen(run.finished_at)}` : ''}`
+    : running ? 'Waiting for the run to start…' : 'Terminal'
+  return (
+    <section className="bm-run card" aria-label="Run">
+      <div className="bm-run-head">
+        <div className="stack stack-1">
+          <h2 className="bm-h2">Run</h2>
+          <p className="muted bm-small">
+            Fetches every enabled source once, politely (robots.txt, an identifying User-Agent), and publishes what
+            changed. The terminal shows the run&apos;s log as it happens.
+          </p>
+        </div>
+        <div className="bm-actions">
+          <button type="button" className="btn btn-primary" disabled={busy || running} onClick={() => start({})}>
+            {running ? 'Running…' : 'Run now'}
+          </button>
+          <button type="button" className="btn btn-ghost" disabled={busy || running} onClick={() => start({ dryRun: true })}
+                  title="Everything except publish: shows what would change">
+            Preview (dry run)
+          </button>
+          <button type="button" className="btn btn-ghost" disabled={busy || running || !savedPages}
+                  onClick={() => start({ useSnapshot: true })}
+                  title={savedPages
+                    ? "Re-parse each source's last saved copy; no site is asked"
+                    : 'No page has been saved yet - make a real run first'}>
+            Re-parse saved pages
+          </button>
+        </div>
+      </div>
+      {error && <p className="bm-error" role="alert">{error}</p>}
+      {(watch || log) && <Terminal log={log} running={running} title={title} />}
+    </section>
+  )
+}
+
+/* ── the table ───────────────────────────────────────────────────────────── */
+
+function BenchTable({ data }) {
+  const [section, setSection] = useState('all')
+  const [showSettings, setShowSettings] = useState(true)
+  const [hideEmpty, setHideEmpty] = useState(true)
+  const [collapsed, setCollapsed] = useState({})
+
+  const filled = useMemo(() => {
+    const has = new Set()
+    for (const row of data.rows) {
+      for (const k of Object.keys(row.cells)) has.add(k)
+      for (const child of row.children) for (const k of Object.keys(child.cells)) has.add(k)
+    }
+    return has
+  }, [data])
+
+  const sections = data.sections
+    .filter((s) => section === 'all' || s.key === section)
+    .map((s) => ({ ...s, columns: s.columns.filter((c) => !hideEmpty || filled.has(c.key)) }))
+    .filter((s) => s.columns.length)
+  const emptyColumns = data.sections.flatMap((s) => s.columns).filter((c) => !filled.has(c.key))
+  const columns = sections.flatMap((s) => s.columns)
+
+  const n = data.counts
+  return (
+    <div className="stack stack-2">
+      <p className="bm-totals">
+        <b>{n.models + n.registry_models}</b> models <span className="muted">({n.models} tracked · {n.registry_models} registry)</span>
+        {' · '}<b>{n.columns}</b> benchmark columns <span className="muted">({n.benchmarks} benchmarks)</span>
+        {' · '}<b>{n.filled_cells}</b> values
+      </p>
+      <div className="bm-filters">
+        <div className="bm-chips" role="group" aria-label="Sections">
+          {[{ key: 'all', label: 'All sections' }, ...data.sections].map((s) => (
+            <button key={s.key} type="button" className={`bm-chip${section === s.key ? ' on' : ''}`}
+                    aria-pressed={section === s.key} onClick={() => setSection(s.key)}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <div className="bm-toggles">
+          <label><input type="checkbox" checked={showSettings} onChange={(e) => setShowSettings(e.target.checked)} /> Setting rows</label>
+          <label><input type="checkbox" checked={hideEmpty} onChange={(e) => setHideEmpty(e.target.checked)} /> Hide empty columns</label>
+        </div>
+      </div>
+
+      {columns.length === 0 ? (
+        <p className="muted">No source has published a value for these columns yet.</p>
+      ) : (
+        <div className="bm-scroll">
+          <table className="bm-table">
+            <thead>
+              <tr>
+                <th rowSpan={2} className="bm-model-h">Model</th>
+                {sections.map((s) => <th key={s.key} colSpan={s.columns.length} className="bm-sec">{s.label}</th>)}
+              </tr>
+              <tr>
+                {columns.map((c) => (
+                  <th key={c.key} className="bm-col" title={`${c.label}${c.benchmark_version ? ` (${c.benchmark_version})` : ''} · ${c.better} is better`}>
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((row, i) => {
+                const open = showSettings && !collapsed[row.row_id]
+                const firstRegistry = row.group === 'registry' && data.rows[i - 1]?.group !== 'registry'
+                return (
+                  <Fragment key={row.row_id}>
+                    {firstRegistry && (
+                      <tr className="bm-group">
+                        <th scope="rowgroup" colSpan={columns.length + 1}>
+                          Other models (not tracked)
+                          <span className="muted"> · registry models, and a few declared in model_extras.yaml, listed here because a source published them</span>
+                        </th>
+                      </tr>
+                    )}
+                    <tr className="bm-row">
+                      <th scope="row" className="bm-model">
+                        {showSettings && row.children.length > 0 && (
+                          <button type="button" className="bm-twisty" aria-expanded={open}
+                                  aria-label={`${open ? 'Hide' : 'Show'} ${row.label} settings`}
+                                  onClick={() => setCollapsed((c) => ({ ...c, [row.row_id]: open }))}>
+                            {open ? '▾' : '▸'}
+                          </button>
+                        )}
+                        <span>{row.label}</span>
+                        {row.children.length > 0 && <span className="bm-n">{row.children.length}</span>}
+                      </th>
+                      {columns.map((c) => <Cell key={c.key} cell={row.cells[c.key]} column={c} />)}
+                    </tr>
+                    {open && row.children.map((child) => (
+                      <tr key={child.row_id} className="bm-row bm-child">
+                        <th scope="row" className="bm-model bm-setting">{child.dated ? child.label : `(${child.setting})`}</th>
+                        {columns.map((c) => <Cell key={c.key} cell={child.cells[c.key]} column={c} />)}
+                      </tr>
+                    ))}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {hideEmpty && emptyColumns.length > 0 && (
+        <p className="muted bm-small">
+          {emptyColumns.length} column{emptyColumns.length === 1 ? ' has' : 's have'} no value from any source yet,
+          for any tracked model: {emptyColumns.map((c) => c.label).join(', ')}. An empty column means no source we read
+          lists these models there - not a low result.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/* ── changelog, runs, unmatched, review ──────────────────────────────────── */
+
+function Changelog({ data }) {
+  const [openRuns, setOpenRuns] = useState({})
+  if (!data) return <p className="muted">Loading…</p>
+  if (data.error) return <p className="bm-error">{data.error}</p>
+  if (!data.entries.length) return <p className="muted">No changes yet. The first run will add every value it finds.</p>
+  const byRun = []
+  for (const e of data.entries) {
+    if (!byRun.length || byRun[byRun.length - 1].run !== e.run_id) byRun.push({ run: e.run_id, items: [] })
+    byRun[byRun.length - 1].items.push(e)
+  }
+  return (
+    <div className="stack stack-3">
+      {byRun.map(({ run, items }) => {
+        const added = items.filter((e) => e.type === 'added').length
+        const initial = added === items.filter((e) => e.type !== 'variant_added').length && items.length > 20
+        const open = openRuns[run] ?? !initial
+        return (
+          <div key={run} className="bm-log card">
+            <div className="bm-log-head">
+              <strong>Run #{run}</strong>
+              <span className="muted">{fmtWhen(items[0].changed_at)} · {items.length} entr{items.length === 1 ? 'y' : 'ies'}
+                {initial ? ' · first import' : ''}</span>
+              <button type="button" className="btn btn-ghost bm-small" onClick={() => setOpenRuns((o) => ({ ...o, [run]: !open }))}>
+                {open ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {open && (
+              <table className="bm-list">
+                <thead><tr><th>Change</th><th>Row</th><th>Column</th><th>Old</th><th>New</th><th>Source</th></tr></thead>
+                <tbody>
+                  {items.map((e) => (
+                    <tr key={e.id} className={e.needs_review ? 'bm-flag' : ''}>
+                      <td><span className={`bm-type bm-t-${e.type}`}>{e.type.replace('_', ' ')}</span>
+                        {e.direction === 'better' && <span className="bm-better"> ▲</span>}
+                        {e.direction === 'worse' && <span className="bm-worse"> ▼</span>}</td>
+                      <td>{e.row}</td>
+                      <td>{e.column || <span className="muted">{e.note}</span>}
+                        {e.column && e.note && <div className="muted bm-small">{e.note}</div>}</td>
+                      <td className="bm-num">{e.old ?? '—'}</td>
+                      <td className="bm-num">{e.new ?? '—'}</td>
+                      <td className="muted">{e.new_source || e.old_source || ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function Runs({ data, onView }) {
+  if (!data) return <p className="muted">Loading…</p>
+  if (data.error) return <p className="bm-error">{data.error}</p>
+  if (!data.runs.length) return <p className="muted">No runs yet.</p>
+  return (
+    <table className="bm-list">
+      <thead><tr><th>Run</th><th>Started</th><th>Trigger</th><th>Status</th><th>Sources</th><th>Cells</th><th>Changes</th><th /></tr></thead>
+      <tbody>
+        {data.runs.map((r) => {
+          const sources = Object.entries(r.sources || {})
+          const ok = sources.filter(([, s]) => s.status === 'OK').length
+          return (
+            <tr key={r.id}>
+              <td>#{r.id}{r.dry_run && <span className="bm-pill">dry run</span>}</td>
+              <td>{fmtWhen(r.started_at)}</td>
+              <td className="muted">{r.trigger.replace('_', ' ')}</td>
+              <td><span className={`bm-status bm-s-${r.status}`}>{r.status.replace('_', ' ')}</span></td>
+              <td title={sources.map(([k, s]) => `${k}: ${s.status}${s.errors?.length ? ` - ${s.errors[0]}` : ''}`).join('\n')}>
+                {sources.length ? `${ok} of ${sources.length} read` : '—'}
+              </td>
+              <td className="bm-num">{r.totals?.cells ?? '—'}</td>
+              <td className="bm-num">{r.totals?.changes ?? '—'}</td>
+              <td><button type="button" className="btn btn-ghost bm-small" onClick={() => onView(r.id)}>Log</button></td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
+const ACTION_LABEL = { alias: 'Same model as', new_row: 'Added as new row', ignore: 'Ignored' }
+
+function UnmatchedRow({ group, onDone }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const act = async (action, target = null) => {
+    setBusy(true); setError(null)
+    try {
+      await decideBenchmarkName({ key: group.key, name: group.name, action, target })
+      onDone()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <tr>
+      <td>
+        <strong>{group.name}</strong>
+        {group.similar_to.length > 0 && (
+          <div className="bm-small">looks like: {group.similar_to.map((t) => t.name).join(' · ')}</div>
+        )}
+        {group.raw_names.some((n) => n !== group.name) && (
+          <div className="muted bm-small">as written: {group.raw_names.join(' · ')}</div>
+        )}
+      </td>
+      <td className="bm-small">{group.sources.length} · <span className="muted">{group.sources.join(', ')}</span></td>
+      <td className="muted bm-small">{group.reasons.map((r) => r.replaceAll('_', ' ')).join(', ')}</td>
+      <td>
+        {group.decidable ? (
+          <div className="bm-decide">
+            {group.similar_to.map((t) => (
+              <button key={t.id} type="button" className="btn btn-ghost bm-small" disabled={busy}
+                      title={t.id} onClick={() => act('alias', t.id)}>
+                Same model as {t.name}
+              </button>
+            ))}
+            <button type="button" className="btn btn-quiet bm-small" disabled={busy} onClick={() => act('ignore')}>Ignore</button>
+          </div>
+        ) : <span className="muted bm-small">a setting word for a known model - see Review</span>}
+        {error && <div className="bm-error">{error}</div>}
+      </td>
+    </tr>
+  )
+}
+
+function Unmatched({ data, onChanged }) {
+  if (!data) return <p className="muted">Loading…</p>
+  if (data.error) return <p className="bm-error">{data.error}</p>
+  const names = Object.fromEntries((data.targets || []).map((t) => [t.id, t.name]))
+  const undo = async (key) => { await undoBenchmarkName(key); onChanged() }
+  return (
+    <div className="stack stack-3">
+      <p className="muted bm-small">
+        Only models in the registry are considered. Registry and tracked models are matched exactly; listed here
+        are names that look almost the same as a registry name (same numbers, only words like &quot;Claude&quot; or
+        &quot;Instruct&quot; differ) - confirm with <b>Same model as</b> or Ignore - and known models whose setting or
+        date the run could not read (add the word to <code>contract/benchmarks/settings_vocabulary.yaml</code>).
+        Names of models that are not in the registry are not listed (each run&apos;s log counts them). Earlier
+        decisions stay below and can be undone.
+      </p>
+      {data.groups.length === 0 ? <p className="muted">Nothing unmatched.</p> : (
+        <table className="bm-list">
+          <thead><tr><th>Name</th><th>Sources</th><th>Why</th><th>Decide</th></tr></thead>
+          <tbody>
+            {data.groups.map((g) => <UnmatchedRow key={g.key} group={g} onDone={onChanged} />)}
+          </tbody>
+        </table>
+      )}
+      {data.decisions.length > 0 && (
+        <div className="stack stack-1">
+          <h3 className="bm-h3">Decisions ({data.decisions.length})</h3>
+          <table className="bm-list">
+            <thead><tr><th>Name</th><th>Decision</th><th>When</th><th /></tr></thead>
+            <tbody>
+              {data.decisions.map((d) => (
+                <tr key={d.key}>
+                  <td>{d.name}</td>
+                  <td>{ACTION_LABEL[d.action]}{d.action === 'alias' && <> <b>{names[d.target] || d.target}</b></>}</td>
+                  <td className="muted bm-small">{fmtWhen(d.at)}</td>
+                  <td><button type="button" className="btn btn-quiet bm-small" onClick={() => undo(d.key)}>Undo</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Review({ data }) {
+  if (!data) return <p className="muted">Loading…</p>
+  if (data.error) return <p className="bm-error">{data.error}</p>
+  if (!data.items.length) return <p className="muted">No open review items.</p>
+  return (
+    <div className="stack stack-2">
+      <p className="muted bm-small">Flags from the checks. Each value stays published; resolving them (accept, override,
+        suppress) comes with the admin edits in phase 2.</p>
+      <table className="bm-list">
+        <thead><tr><th>Check</th><th>Source</th><th>Row</th><th>Message</th><th>Run</th></tr></thead>
+        <tbody>
+          {data.items.map((i) => (
+            <tr key={i.id}>
+              <td><span className="bm-type">{i.check.replaceAll('_', ' ')}</span></td>
+              <td className="muted">{i.source || '—'}</td>
+              <td>{i.row || '—'}{i.column ? <span className="muted"> · {i.column}</span> : null}</td>
+              <td>{i.message}</td>
+              <td className="muted">#{i.run_id}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Sources({ sources }) {
+  const order = { enabled: 0, skipped: 1, disabled: 2 }
+  const list = [...sources].sort((a, b) => order[a.state] - order[b.state])
+  return (
+    <div className="stack stack-2">
+      <p className="muted bm-small">
+        Every page a run reads, hardcoded in <code>contract/benchmarks/sources.yaml</code>. A run asks only these
+        pages (and each site&apos;s robots.txt); no other site is searched or visited. Each source is fetched once per run.
+      </p>
+      <table className="bm-list">
+        <thead><tr><th>Source</th><th>Fills</th><th>Fetched by</th><th>Read as</th><th>Last run</th></tr></thead>
+        <tbody>
+          {list.map((s) => (
+            <tr key={s.key}>
+              <td>
+                <a href={s.url} target="_blank" rel="noreferrer noopener nofollow">{s.label}</a>
+                <div className="muted bm-small">{s.url}</div>
+                <span className={`bm-status bm-s-${s.state === 'enabled' ? 'ok' : s.state === 'skipped' ? 'partial' : 'error'}`}>
+                  {s.state}
+                </span>
+                {s.in_table && <span className="bm-status bm-s-ok">in the table</span>}
+                {s.why && <div className="muted bm-small">{s.why}</div>}
+                {s.attribution && (
+                  <div className="muted bm-small">{s.attribution}{s.license ? ` · ${s.license}` : ''}</div>
+                )}
+              </td>
+              <td>{s.fills.length ? s.fills.join(', ') : <span className="muted">—</span>}</td>
+              <td className="bm-small">{s.fetcher}</td>
+              <td className="bm-small">{s.readers.join(', ') || '—'}</td>
+              <td className="bm-small">
+                {s.last ? (
+                  <>
+                    <div>run #{s.last.run_id} · {s.last.status}{s.last.http_status ? ` · HTTP ${s.last.http_status}` : ''}</div>
+                    <div className="muted">{s.last.rows ?? 0} rows read · {s.last.matched ?? 0} tracked models · {s.last.values ?? 0} values</div>
+                    {s.last.error && <div className="bm-error">{s.last.error}</div>}
+                  </>
+                ) : <span className="muted">not read yet</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/* ── the page ────────────────────────────────────────────────────────────── */
+
+export default function Benchmarks() {
+  useHead(PRIVATE.benchmarks)
+  const [tab, setTab] = useState('table')
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [viewRun, setViewRun] = useState(null)
+  const { table, error, extra } = useBenchData(tab, refreshKey)
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), [])
+
+  if (error) {
+    return (
+      <div className="shell section-tight stack stack-3">
+        <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
+        {error instanceof BoardUnreadable
+          ? <Unreadable detail={error.message} compact />
+          : <p className="bm-error">{error.message}</p>}
+      </div>
+    )
+  }
+
+  const last = table?.last_run
+  return (
+    <div className="shell section-tight stack stack-4 bm-page">
+      <div className="stack stack-1">
+        <span className="eyebrow">Signed in</span>
+        <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
+        <p className="muted">
+          Published benchmark results for the {table?.counts.models ?? 'tracked'} tracked text models, scraped from
+          public leaderboard pages. Each value is exactly what its source printed - hover it for the source, the name
+          the source uses and the date. Nothing here is converted or computed by the board.
+        </p>
+        {last && (
+          <p className="muted bm-small">
+            Last published run #{last.id}, {last.status}, {fmtWhen(last.finished_at || last.started_at)}
+            {table && <> · {table.counts.setting_rows} setting rows · sources and their attribution are on the Sources tab</>}
+          </p>
+        )}
+      </div>
+
+      <RunPanel onFinished={refresh} viewRun={viewRun} clearView={() => setViewRun(null)}
+                savedPages={table?.counts.saved_pages ?? 0} />
+
+      <nav className="bm-tabs" aria-label="Benchmarks views">
+        {TABS.map(([id, label]) => (
+          <button key={id} type="button" className={`bm-tab${tab === id ? ' on' : ''}`}
+                  aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {tab === 'table' && (table ? <BenchTable data={table} /> : <p className="muted">Loading…</p>)}
+      {tab === 'changes' && <Changelog data={extra.changes} />}
+      {tab === 'runs' && <Runs data={extra.runs} onView={(id) => { setViewRun(id); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />}
+      {tab === 'unmatched' && <Unmatched data={extra.unmatched} onChanged={refresh} />}
+      {tab === 'review' && <Review data={extra.review} />}
+      {tab === 'sources' && (table ? <Sources sources={table.sources} /> : <p className="muted">Loading…</p>)}
+
+    </div>
+  )
+}

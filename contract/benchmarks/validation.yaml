@@ -1,0 +1,18 @@
+# Thresholds for the checks (workflow doc section 20.2).
+
+fetch:
+  min_bytes: 2000
+  block_page_markers: ["captcha", "access denied", "are you a robot", "cf-challenge", "just a moment..."]
+structure:
+  max_row_count_change: 0.5          # +-50% vs the source's previous run
+tolerance:                           # L6 cross-source agreement
+  percent: 2.0
+  points: 0.3
+  rating: 15
+  rank: 0
+jump:                                # L7 vs the previous value from the same source
+  percent: 15.0
+  rating: 100
+  # No rank threshold: a rank moving is never flagged - it moves whenever the
+  # board's list changes (2026-10-26).
+mass_disappearance: 0.5              # fewer than half last run's observations -> keep the old ones

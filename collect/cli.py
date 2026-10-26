@@ -1241,6 +1241,56 @@ def _report_seat(report: dict) -> int:
     return 0
 
 
+def _cmd_benchmarks_run(args: argparse.Namespace) -> int:
+    """The Benchmarks page's scraper: fetch, parse, match, merge, publish.
+
+    Writes only `bench_` tables. Started by hand or by the page's Run button,
+    which spawns this command in the background (judge/benchmarks.py).
+    """
+    from collect.benchmarks.runner import RunRefused, run
+    from collect.db import connect
+
+    conn = connect()
+    try:
+        if not args.dry_run:
+            _gate(conn)
+        return run(
+            conn=conn, trigger=args.trigger, scope=args.scope, dry_run=args.dry_run,
+            use_snapshot=args.use_snapshot, verbosity=args.verbosity,
+            request_id=args.request_id, actor=args.actor,
+        )
+    except RunRefused as refusal:
+        print(str(refusal), file=sys.stderr)
+        return 2
+    finally:
+        conn.close()
+
+
+def _cmd_benchmarks_check(args: argparse.Namespace) -> int:
+    """L1: load and check contract/benchmarks/*.yaml. No database, no network."""
+    from collect.benchmarks.config import ConfigError, load
+    from collect.benchmarks.host_adapter import get_seed_models
+    from collect.benchmarks.match import Resolver
+
+    try:
+        config = load()
+    except ConfigError as error:
+        print("contract/benchmarks/ failed its checks:")
+        for problem in error.problems:
+            print(f"  - {problem}")
+        return 1
+    seeds = get_seed_models()
+    resolver = Resolver(config, seeds)
+    for problem in resolver.problems:
+        print(f"  - {problem}")
+    enabled = [s.key for s in config.sources if s.enabled]
+    disabled = [s.key for s in config.sources if not s.enabled]
+    print(f"ok: {len(config.benchmarks)} benchmarks in {len(config.categories)} sections, "
+          f"{len(enabled)} enabled sources ({', '.join(enabled)}), {len(disabled)} disabled, "
+          f"{len(seeds)} seed models, allow_data_files={config.settings['allow_data_files']}")
+    return 1 if resolver.problems else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="collect", description=__doc__)
     sub = parser.add_subparsers(dest="group", required=True)
@@ -1262,6 +1312,27 @@ def build_parser() -> argparse.ArgumentParser:
     db_migrate = db_sub.add_parser(
         "migrate", help="apply pending migrations from contract/migrations/")
     db_migrate.set_defaults(func=_cmd_db_migrate)
+
+    benchmarks = sub.add_parser("benchmarks", help="the Benchmarks page's scraper (bench_ tables)")
+    bench_sub = benchmarks.add_subparsers(dest="command", required=True)
+    bench_run = bench_sub.add_parser("run", help="fetch every enabled source and publish the table")
+    bench_run.add_argument("--scope", default="all",
+                           help="all (default), one source key, or one benchmark key")
+    bench_run.add_argument("--dry-run", action="store_true",
+                           help="everything except publish: print what would change")
+    bench_run.add_argument("--use-snapshot", action="store_true",
+                           help="re-parse each source's last saved copy instead of fetching")
+    bench_run.add_argument("--verbosity", choices=("quiet", "normal", "verbose"), default=None,
+                           help="terminal detail (default from module_settings.yaml; "
+                                "the log file is always verbose)")
+    bench_run.add_argument("--trigger", default="manual_run",
+                           choices=("manual_run", "page_button", "scheduled"))
+    bench_run.add_argument("--request-id", default=None, help="set by the page's Run button")
+    bench_run.add_argument("--actor", default="admin")
+    bench_run.set_defaults(func=_cmd_benchmarks_run)
+    bench_check = bench_sub.add_parser(
+        "check", help="check contract/benchmarks/*.yaml (L1); no database")
+    bench_check.set_defaults(func=_cmd_benchmarks_check)
 
     registry = sub.add_parser("registry", help="the model registry")
     reg_sub = registry.add_subparsers(dest="command", required=True)

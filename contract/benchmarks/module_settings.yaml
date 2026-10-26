@@ -1,0 +1,22 @@
+# How the benchmark scraper behaves (workflow doc 4, 4.1, 23).
+#
+# SCRAPING IS THE WAY DATA COMES IN (Parvathi, 2026-10-22): runs will be
+# scheduled later, and every source is read from its page - static HTML, or
+# the page rendered in a headless browser. No keys, no accounts, nothing paid.
+#
+# allow_data_files: OFF. The doc's fallback steps 5-8 (a CSV or zip a site
+# offers, a file in its repository) are not relied on. A source whose only
+# method is a data file (Epoch AI's download, sources.yaml `epoch_hub`) is
+# skipped without a request while this is false. Turning it on is a decision,
+# not a fix: see the note on `epoch_hub`.
+
+allow_data_files: false
+respect_robots: true                 # fetch nothing robots.txt refuses
+timeouts:
+  static_seconds: 30
+  browser_seconds: 45
+  run_minutes: 20
+retries: 3
+snapshots_kept_per_source: 10
+log_dir: collect/benchmarks/logs     # one file per run (git-ignored)
+verbosity: normal                    # quiet | normal | verbose
