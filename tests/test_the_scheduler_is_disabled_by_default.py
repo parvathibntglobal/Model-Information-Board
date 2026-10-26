@@ -250,6 +250,21 @@ class TestThePolicyIsContract:
         scheduler.policy.cache_clear()
         p = scheduler.policy()
         assert (p.cadence_hours, p.first_fetch_thread_cap, p.refresh_thread_cap) == (60, 100, 25)
+        # Fresh evidence only, added 2026-10-26.
+        assert p.extraction_window_days == 14
+
+    def test_a_missing_window_refuses_rather_than_reading_everything(self, monkeypatch):
+        """No window is not "no limit": it refuses (rule 12)."""
+        import judge.config as config
+
+        doc = {"cadence_hours": 60, "first_fetch_thread_cap": 100, "refresh_thread_cap": 25}
+        monkeypatch.setattr(config, "_read", lambda name: doc)
+        scheduler.policy.cache_clear()
+        try:
+            with pytest.raises(scheduler.SchedulerPolicyError):
+                scheduler.policy()
+        finally:
+            scheduler.policy.cache_clear()
 
     @pytest.mark.parametrize("bad", [None, 0, -3, "7", True])
     def test_a_missing_or_bad_value_refuses(self, monkeypatch, bad):

@@ -52,6 +52,9 @@ class Policy:
     cadence_hours: int
     first_fetch_thread_cap: int
     refresh_thread_cap: int
+    #: Days back a thread's newest dated post may be for a fetch to extract it
+    #: (2026-10-26: fresh evidence only). Older unread threads stay stored.
+    extraction_window_days: int
 
 
 class SchedulerPolicyError(RuntimeError):
@@ -66,7 +69,8 @@ def policy() -> Policy:
 
     raw = _read("scheduler.yaml") or {}
     values = {}
-    for key in ("cadence_hours", "first_fetch_thread_cap", "refresh_thread_cap"):
+    for key in ("cadence_hours", "first_fetch_thread_cap", "refresh_thread_cap",
+                "extraction_window_days"):
         v = raw.get(key)
         if not isinstance(v, int) or isinstance(v, bool) or v < 1:
             raise SchedulerPolicyError(

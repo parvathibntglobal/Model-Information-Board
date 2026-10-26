@@ -538,8 +538,16 @@ def test_the_naming_scan_counts_what_it_could_not_read():
         def fetchall(self):
             return [("tc_a", "flattened/a"), ("tc_b", "flattened/b"), ("tc_c", "flattened/c")]
 
+        def fetchone(self):
+            # The window's count: unread threads older than it, and undated ones.
+            return (40, 3)
+
     class _Conn:
-        def execute(self, *a, **k):
+        def __init__(self):
+            self.sql: list[str] = []
+
+        def execute(self, sql, *a, **k):
+            self.sql.append(sql)
             return _Rows()
 
     class _Store:
@@ -549,8 +557,28 @@ def test_the_naming_scan_counts_what_it_could_not_read():
             raise FileNotFoundError(ref)
 
     counts = {}
+    conn = _Conn()
     naming, total = fetch_model.threads_naming_the_model(
-        _Conn(), _Store(), ["acme model 7"], counts=counts)
+        conn, _Store(), ["acme model 7"], counts=counts)
     assert total == 3
     assert counts["unreadable"] == 2
     assert naming == {"tc_a"}
+    # FRESH EVIDENCE ONLY (2026-10-26): the scan is scoped to the window, and
+    # what the window left is counted rather than silent.
+    assert fetch_model.FRESH_THREAD_SQL in conn.sql[0]
+    assert (counts["outside_window"], counts["undated"]) == (40, 3)
+    assert counts["window_days"] == fetch_model.extraction_window_days()
+
+
+def test_the_window_is_contract_and_scopes_both_selections():
+    """One window, from contract/scheduler.yaml, in BOTH selections - a thread
+    left out of the naming scan must not come back as backlog or own harvest."""
+    import inspect
+
+    from judge.scheduler import policy
+
+    policy.cache_clear()
+    assert policy().extraction_window_days == 14
+    src = inspect.getsource(fetch_model.build_thread_inputs)
+    assert "+ FRESH_THREAD_SQL +" in src
+    assert "extraction_window_days()" in src

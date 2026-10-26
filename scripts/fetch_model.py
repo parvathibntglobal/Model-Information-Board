@@ -2094,6 +2094,24 @@ def longer_registry_surfaces(conn, model_version_id: str | None, surfaces) -> li
     return sorted(out)
 
 
+#: FRESH EVIDENCE ONLY (2026-10-26): a thread is a candidate only if one of its
+#: posts is dated inside `contract/scheduler.yaml` `extraction_window_days`.
+#: The same clause in both selections below, so an old thread cannot come in
+#: through the other one. `%s` is the window in days.
+FRESH_THREAD_SQL = (
+    "  AND EXISTS (SELECT 1 FROM document dw "
+    "              WHERE dw.id = ANY(tc.member_document_ids) "
+    "                AND dw.created_at >= now() - make_interval(days => %s)) "
+)
+
+
+def extraction_window_days() -> int:
+    """The window, from the contract; a missing or bad value refuses (rule 12)."""
+    from judge.scheduler import policy
+
+    return policy().extraction_window_days
+
+
 def threads_naming_the_model(
     conn, store, surfaces, *, longer=(), counts: dict | None = None
 ) -> tuple[set[str], int]:
@@ -2161,16 +2179,34 @@ def threads_naming_the_model(
     if own is None:
         return set(), 0
     longer_rx = _compile_surfaces(longer)
-    rows = conn.execute(
-        "SELECT tc.id, tc.flattened_text_ref FROM thread_context tc "
+    window = extraction_window_days()
+    unread = (
+        "FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
         "              WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
         "  AND NOT EXISTS (SELECT 1 FROM thread_extraction te "
         "                  WHERE te.thread_context_id = tc.id "
         "                    AND te.pipeline_version = %s "
-        "                    AND te.content_fingerprint IS NOT NULL)",
-        (PIPELINE_VERSION,),
+        "                    AND te.content_fingerprint IS NOT NULL) "
+    )
+    rows = conn.execute(
+        "SELECT tc.id, tc.flattened_text_ref " + unread + FRESH_THREAD_SQL,
+        (PIPELINE_VERSION, window),
     ).fetchall()
+    if counts is not None:
+        # WHAT THE WINDOW LEFT, COUNTED: unread threads outside it, and those
+        # with no dated post at all. Said on the stage line, never silent.
+        left = conn.execute(
+            "SELECT count(*) FILTER (WHERE newest IS NOT NULL), "
+            "       count(*) FILTER (WHERE newest IS NULL) "
+            "FROM (SELECT (SELECT max(d.created_at) FROM document d "
+            "              WHERE d.id = ANY(tc.member_document_ids)) AS newest "
+            + unread + ") t "
+            "WHERE newest IS NULL OR newest < now() - make_interval(days => %s)",
+            (PIPELINE_VERSION, window),
+        ).fetchone()
+        counts["outside_window"], counts["undated"] = left
+        counts["window_days"] = window
     naming = set()
     unreadable = 0
     for tc_id, ref in rows:
@@ -2327,6 +2363,11 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
         # harvest ahead of the rest when both are unnamed - a thread harvested
         # now for this model that happens not to spell a seated surface is
         # still likelier to be its evidence than a week-old dev.to article.
+        #
+        # ── FRESH EVIDENCE ONLY (2026-10-26). The window that scopes
+        # `threads_naming_the_model`, here too, so neither the run's own
+        # harvest nor the backlog brings back a thread older than it.
+        + FRESH_THREAD_SQL +
         "ORDER BY (tc.id = ANY(%s)) DESC, "
         "         EXISTS (SELECT 1 FROM document d "
         "                 WHERE d.id = ANY(tc.member_document_ids) "
@@ -2343,7 +2384,7 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
         # `since` absent means nothing to scope on - every row scores 0 on the
         # first key and the ordering degrades to the within-tier one, rather
         # than the query refusing or silently scoping to "since the epoch".
-        (PIPELINE_VERSION, list(naming) or [""],
+        (PIPELINE_VERSION, extraction_window_days(), list(naming) or [""],
          since or datetime.max.replace(tzinfo=UTC),
          max(limit * 8, 200)),
     ).fetchall()
@@ -2802,6 +2843,20 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # that read nothing because nothing was readable must not look like a run
     # that found nothing to read.
     prog.record_summary(threads_unreadable_here=scan_unreadable)
+    # FRESH EVIDENCE ONLY: what the window left, said rather than implied - a
+    # run that skipped 300 old threads must not read as a corpus with nothing
+    # to read (rule 4). Counts over every unread thread, not this model's.
+    prog.record_summary(threads_outside_window=scan.get("outside_window"),
+                        threads_undated=scan.get("undated"))
+    prog.stage("E5", "Extract", "running",
+               window_days=scan.get("window_days"),
+               threads_outside_window=scan.get("outside_window"),
+               threads_undated=scan.get("undated"),
+               detail=f"fresh evidence only: threads with a post in the last "
+                      f"{scan.get('window_days')} days are candidates; "
+                      f"{scan.get('outside_window', 0):,} older and "
+                      f"{scan.get('undated', 0):,} undated unread thread(s) are left, "
+                      f"stored and unread (contract/scheduler.yaml)")
     threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming,
         include_backlog=FETCH_BACKLOG)
