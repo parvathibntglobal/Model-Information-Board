@@ -58,7 +58,7 @@
 #     is the billing unit, not the medium.
 #
 #   THE FOURTH AND FIFTH WERE NOT SEATED, BECAUSE THEY DID NOT NEED TO BE.
-#   Wan 3.0 was dropped at Parvathi's request. GPT-5.5 Codex turned out to name
+#   Wan 3.0 was dropped at Parvathi's request. The list's "GPT-5.5 Codex" turned out to name
 #   a model the registry already holds under a different spelling - see the note
 #   on its entry below, which is the only place in this file where a `registry:`
 #   value is an INTERPRETATION of the source list rather than a lookup of it.
@@ -149,7 +149,7 @@
 #
 #   This note used to name five, and three of those names have since been
 #   resolved rather than left. Wan 3.0 and Qwen3.5 Omni Flash were dropped at
-#   Parvathi's request. GPT-5.5 Codex is NOT undiscussed - re-pointed at
+#   Parvathi's request. GPT-5.5 (listed as "GPT-5.5 Codex") is NOT undiscussed - re-pointed at
 #   `openai/gpt-5.5` it is the single most-discussed model in the whole corpus,
 #   228 attested mentions. It read as silent only because it was pointed at
 #   nothing.
@@ -233,7 +233,13 @@ models:
     registry: moonshotai/kimi-k3
     kind: text
 
-  # ⚠ THE SOURCE LIST SAID "GPT-5.5 Codex". THIS ROW IS `openai/gpt-5.5`, AND
+  # ⚠ RENAMED "GPT-5.5 Codex" -> "GPT-5.5" (Parvathi, 2026-10-26). There is no
+  #   model called GPT-5.5 Codex: OpenAI released ONE model, GPT-5.5, which
+  #   supports Codex (the coding tool). The old name was our mistake, copied from
+  #   the source list on 2026-09-15; every page, the Benchmarks table included,
+  #   now names it GPT-5.5, and results written for it either way are its.
+  #
+  # THE SOURCE LIST SAID "GPT-5.5 Codex". THIS ROW IS `openai/gpt-5.5`, AND
   #   THE DIFFERENCE IS THE WHOLE NOTE.
   #
   #   It carried `registry: null` until 2026-09-15 and rendered as an
@@ -280,7 +286,7 @@ models:
   #   ⚠ THE PAGE WILL NOW SAY "OpenAI: GPT-5.5", NOT "GPT-5.5 Codex", because
   #     every displayed figure is read from the registry row. That is the point
   #     rather than a side effect: the board shows the model it actually has.
-  - name: GPT-5.5 Codex
+  - name: GPT-5.5
     registry: openai/gpt-5.5
     kind: text
 

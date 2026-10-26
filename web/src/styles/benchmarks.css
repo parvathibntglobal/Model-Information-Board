@@ -18,6 +18,9 @@
 .bm-term-wrap{border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;background:#08080A}
 .bm-term-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border-soft);
   font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-2);background:var(--bg-elev)}
+.bm-term-close{margin-left:auto;padding:2px 10px;border:1px solid var(--border);border-radius:var(--r-pill);
+  font-family:var(--font-sans, inherit);font-size:var(--fs-xs);color:var(--text-2);background:transparent;cursor:pointer}
+.bm-term-close:hover{color:var(--text);border-color:var(--border-strong)}
 .bm-dot{width:8px;height:8px;border-radius:50%;background:var(--text-3)}
 .bm-dot-live{background:var(--pass);box-shadow:0 0 0 3px var(--pass-dim);animation:bm-pulse 1.4s var(--ease) infinite}
 @keyframes bm-pulse{50%{opacity:.45}}

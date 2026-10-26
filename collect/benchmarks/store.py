@@ -223,13 +223,20 @@ def ensure_row(
     source_key: str | None,
     dated: str | None = None,
 ) -> bool:
-    """True when the row is new."""
+    """True when the row is new. An existing row takes the label it is given now,
+    so a renamed model ("GPT-5.5 Codex" -> "GPT-5.5", 2026-10-26) is not left
+    under its old name."""
     inserted = conn.execute(
         "INSERT INTO bench_row (row_id, host_model_id, setting, dated, display_label, "
         "auto_created, first_seen_source) VALUES (%s, %s, %s, %s, %s, %s, %s) "
         "ON CONFLICT (row_id) DO NOTHING RETURNING row_id",
         (row_id, host_model_id, setting, dated, label, auto_created, source_key),
     ).fetchone()
+    if inserted is None:
+        conn.execute(
+            "UPDATE bench_row SET display_label = %s WHERE row_id = %s AND display_label <> %s",
+            (label, row_id, label),
+        )
     return inserted is not None
 
 

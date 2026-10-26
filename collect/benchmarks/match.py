@@ -197,8 +197,8 @@ class Resolver:
         self.warnings: list[str] = []
         self.registry_alias_count = 0
         # `not_names`: spellings that are a DIFFERENT model, though the seed's own
-        # registry id or the registry's aliases would match them (GPT-5.5 Codex is
-        # tracked under `openai/gpt-5.5`, and plain GPT-5.5 is another model).
+        # registry id or the registry's aliases would match them (the registry
+        # lists "Gemini 3 Flash" as an alias of Gemini 3 Flash PREVIEW).
         self.blocked = {
             normalize_name(n): seed.id
             for seed in seeds

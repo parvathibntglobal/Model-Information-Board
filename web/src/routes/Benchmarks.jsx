@@ -106,7 +106,7 @@ function useBenchData(tab, refreshKey) {
 
 /* ── the run panel and its terminal ──────────────────────────────────────── */
 
-function Terminal({ log, running, title }) {
+function Terminal({ log, running, title, onClose }) {
   const ref = useRef(null)
   useEffect(() => {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight
@@ -116,6 +116,11 @@ function Terminal({ log, running, title }) {
       <div className="bm-term-bar">
         <span className={`bm-dot${running ? ' bm-dot-live' : ''}`} aria-hidden="true" />
         <span>{title}</span>
+        {onClose && (
+          <button type="button" className="bm-term-close" onClick={onClose} aria-label="Close the log">
+            Close ✕
+          </button>
+        )}
       </div>
       <pre className="bm-term" ref={ref} aria-live="polite">{log || (running ? 'Starting…' : '')}</pre>
     </div>
@@ -176,6 +181,12 @@ function RunPanel({ onFinished, viewRun, clearView, savedPages }) {
   }
 
   const running = watch && !done
+  // A finished run's log (one opened from the Runs tab, or a run that has just
+  // ended) can be closed; a run still going stays on screen until it ends.
+  const close = () => {
+    clearView?.()
+    setWatch(null); setLog(''); setRun(null); setError(null); setDone(true)
+  }
   const title = run
     ? `Run #${run.id}${run.dry_run ? ' (dry run)' : ''} · ${run.status}${run.finished_at ? ` · finished ${fmtWhen(run.finished_at)}` : ''}`
     : running ? 'Waiting for the run to start…' : 'Terminal'
@@ -207,7 +218,7 @@ function RunPanel({ onFinished, viewRun, clearView, savedPages }) {
         </div>
       </div>
       {error && <p className="bm-error" role="alert">{error}</p>}
-      {(watch || log) && <Terminal log={log} running={running} title={title} />}
+      {(watch || log) && <Terminal log={log} running={running} title={title} onClose={running ? null : close} />}
     </section>
   )
 }

@@ -279,16 +279,39 @@ class TestMatching:
         )
         assert r.match("Claude Opus 5.5 (xhigh with fallback)").row.setting == "xhigh"
 
-    def test_plain_gpt_5_5_fills_the_gpt_5_5_codex_row(self, config):
-        # The tracked "GPT-5.5 Codex" is openai/gpt-5.5 - Codex is the tool, not
-        # another model (Parvathi, 2026-10-26). GPT-5.5 Pro stays its own model.
-        codex = SeedModel("openai/gpt-5.5", "GPT-5.5 Codex")
+    def test_gpt_5_5_and_gpt_5_5_codex_are_one_row(self, config):
+        # One model; Codex is a tool it supports (Parvathi, 2026-10-26). Results
+        # written either way fill the same row. GPT-5.5 Pro stays its own model.
+        gpt55 = SeedModel("openai/gpt-5.5", "GPT-5.5")
         pro = SeedModel("openai/gpt-5.5-pro", "GPT-5.5 Pro")
-        r = Resolver(config, [codex], {"openai/gpt-5.5": ["gpt-5.5", "gpt 5.5"]}, [pro])
+        r = Resolver(config, [gpt55], {"openai/gpt-5.5": ["gpt-5.5", "gpt 5.5"]}, [pro])
         assert r.match("GPT-5.5").row.row_id == "openai/gpt-5.5"
         assert r.match("GPT-5.5 (xhigh)").row.row_id == "openai/gpt-5.5:xhigh"
         assert r.match("GPT-5.5 Codex").row.row_id == "openai/gpt-5.5"
+        assert r.match("GPT-5.5 Codex (high)").row.row_id == "openai/gpt-5.5:high"
         assert r.match("GPT-5.5 Pro").row.row_id == "openai/gpt-5.5-pro"
+
+    def test_a_renamed_model_keeps_no_old_label(self, conn):
+        store.ensure_row(
+            conn,
+            row_id="m",
+            host_model_id="m",
+            setting=None,
+            label="Old Name",
+            auto_created=False,
+            source_key=None,
+        )
+        assert not store.ensure_row(
+            conn,
+            row_id="m",
+            host_model_id="m",
+            setting=None,
+            label="New Name",
+            auto_created=False,
+            source_key=None,
+        )
+        label = conn.execute("SELECT display_label FROM bench_row WHERE row_id = 'm'").fetchone()
+        assert label[0] == "New Name"
 
 
 # ── parsing ──────────────────────────────────────────────────────────────────
