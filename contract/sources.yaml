@@ -1577,6 +1577,61 @@ terms_rulings:
       RE-REVIEW REQUIRED BEFORE: any monetization, any path robots.txt does not
       allow, or a change to Google's terms after July 30, 2026.
 
+  # ── Bluesky, via the public AppView ──────────────────────────────────────
+  - id: bluesky-appview-terms
+    party: platform
+    platform_host: bsky.app
+    reviewed_on: 2026-10-26
+    reviewed_by: anooj
+    basis: public-derived-publication
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    live_preconditions:
+      use_basis: [public-derived-publication]
+      access_path: [api]
+      search_endpoint: ["/app.bsky.feed.searchPosts"]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [true]
+      robots_checked: [true]
+      legal_review_completed: [false]
+      deletion_on_request_honoured: [true]
+    summary: |
+      RULED 2026-10-26 (anooj; for review on the PR that carries it). Access is
+      Bluesky's public AppView API, `app.bsky.feed.searchPosts` at
+      `api.bsky.app`, with no credential - the developer docs say these
+      endpoints "do not support authentication" and carry "generous
+      rate-limits". Site HTML is never fetched.
+
+      WHAT WAS READ, 2026-10-26:
+        - Terms of Service (bsky.social/about/support/tos, "Last Updated" 14
+          Aug 2025): no clause on reading, crawling or scraping, and none on AI
+          use of public posts.
+        - robots.txt (bsky.app): `User-Agent: *` / `Allow: /`; the file says
+          bots "may crawl anything on this domain" and points bulk users to the
+          protocol API, which is the route this adapter takes.
+        - Developer guidelines (bsky.network/docs/developer-guidelines,
+          undated): ONE OBLIGATION, quoted - "All services must have a method
+          for deleting content a user has requested to be deleted."
+
+      THE OBLIGATION, AND HOW IT IS MET. A request to remove a Bluesky post is
+      handled as any takedown here: the raw payload is tombstoned (NFR-6) and
+      the claims from it withdrawn. `deletion_on_request_honoured` records that
+      commitment; it is a promise this ruling makes, so breaking it voids the
+      ruling.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - Posts are user-authored with no stated licence for quotation; we
+          publish quote + credit + link under the use-basis undertaking, never
+          full text.
+        - Some accounts are automated (price and release bots). They are kept,
+          not filtered: a filter whose error rate nobody has measured ships as a
+          weight, never a gate (rule 8).
+
+      RE-REVIEW REQUIRED BEFORE: any monetization, any use of the firehose or a
+      PDS rather than the AppView search, or fetching bsky.app HTML.
+
 
 sources:
 
@@ -1934,6 +1989,29 @@ sources:
       its newest topics, never searched, and every path is re-tested against
       robots.txt on every run. base_trust 0.80, as Hacker News: first-hand
       developer reports attributable to an account, often operational.
+
+  - id: bluesky
+    platform: bluesky
+    endpoint: https://api.bsky.app/xrpc/app.bsky.feed.searchPosts
+    base_trust: 0.60
+    provenance: seed
+    terms_ruling: bluesky-appview-terms
+    terms_evidence:
+      checked_on: 2026-10-26
+      access_path: api
+      search_endpoint: "/app.bsky.feed.searchPosts"
+      republication_claimed: false
+      terms_document_read: true
+      robots_checked: true
+      legal_review_completed: false
+      deletion_on_request_honoured: true
+    tos_notes: >
+      Ruling bluesky-appview-terms, 2026-10-26. Public AppView search API, no
+      credential; site HTML is never fetched. Terms of Service (14 Aug 2025)
+      carry no scraping or AI clause; robots.txt allows everything. The
+      developer guidelines require deleting content a user asks to have
+      deleted, and this source commits to it. base_trust 0.60, as X: short
+      social posts.
 
 
 feeds:

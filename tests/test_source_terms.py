@@ -61,6 +61,10 @@ def _observations(source, *, allowed=True):
         # that has to know which platform it is describing drifts from the
         # adapters it is modelling.
         **_PLATFORM_OBSERVATIONS,
+        # A SEARCH ENDPOINT IS PER PLATFORM since Bluesky (2026-10-26) became
+        # the second source to rule on one: each observes its own, as recorded.
+        **({"search_endpoint": evidence["search_endpoint"]}
+           if evidence.get("search_endpoint") else {}),
     }
 
 
@@ -100,9 +104,9 @@ def test_every_declared_platform_is_the_expected_one():
     here means the preconditions hold, never that the terms were cleared.
     """
     ids = {s["id"] for s in _contract()["sources"]}
-    # The Google AI Developers Forum added 2026-10-26.
-    assert ids == {"github", "blogs", "reddit", "arxiv", "x",
-                   "devto", "hackernews", "huggingface", "forum:discuss.ai.google.dev"}
+    # The Google AI Developers Forum and Bluesky added 2026-10-26.
+    assert ids == {"github", "blogs", "reddit", "arxiv", "x", "devto", "hackernews",
+                   "huggingface", "forum:discuss.ai.google.dev", "bluesky"}
 
 
 def test_base_trust_matches_the_documented_weights():
@@ -134,6 +138,8 @@ def test_base_trust_matches_the_documented_weights():
       forum:discuss.ai.google.dev 0.80  added 2026-10-26: first-hand developer
                        reports, attributable to an account, often operational.
                        Level with Hacker News.
+      bluesky 0.60     added 2026-10-26: short social posts, with price and
+                       release bots among the engineers. Level with X.
     """
     trust = {s["id"]: s["base_trust"] for s in _contract()["sources"]}
     assert trust == {
@@ -146,6 +152,7 @@ def test_base_trust_matches_the_documented_weights():
         "x": 0.60,
         "devto": 0.60,
         "forum:discuss.ai.google.dev": 0.80,
+        "bluesky": 0.60,
     }
 
 
@@ -410,11 +417,12 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 37  # nine platforms + twenty-eight feeds. 12 before
+    assert len(rows) == 38  # ten platforms + twenty-eight feeds. 12 before
     #                        2026-09-08, 14 after arXiv and X, 17 after dev.to
     #                        / HN / Hugging Face, 26 after the 2026-09-21
     #                        class A re-review seated nine blogs, 36 after the
-    #                        2026-10-26 newsletters, 37 with the Google AI forum.
+    #                        2026-10-26 newsletters, 37 with the Google AI forum,
+    #                        38 with Bluesky.
     assert rows["blog:simonwillison.net"]["provenance"] == "seed"
     assert rows["blog:simonwillison.net"]["terms_checked_on"] == REVIEWED_ON
     assert all(row["base_trust"] for row in rows.values())

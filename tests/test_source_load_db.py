@@ -70,16 +70,17 @@ def test_every_source_row_lands(conn):
     """
     report = load_source_rows(conn)
     # 17 until the 2026-09-21 class A re-review seated nine more blogs; 26
-    # until ten newsletters were seated on 2026-10-26, 36 until the Google AI forum.
-    assert (report.inserted, report.updated, report.unchanged) == (37, 0, 0)
+    # until ten newsletters were seated on 2026-10-26, 36 until the Google AI forum,
+    # 37 until Bluesky.
+    assert (report.inserted, report.updated, report.unchanged) == (38, 0, 0)
 
     rows = _rows(conn)
-    assert len(rows) == 37
+    assert len(rows) == 38
     # THE SET, which the docstring says is the assertion that matters. A count
     # passes on a file that lost `reddit` and gained two others; this does not.
     assert {r["platform"] for r in rows.values()} == {
         "github", "blog", "reddit", "arxiv", "x",
-        "devto", "hackernews", "huggingface", "forum",
+        "devto", "hackernews", "huggingface", "forum", "bluesky",
     }
     # 10 until the 2026-09-21 class A re-review, 19 until the 2026-10-26
     # newsletters; 29 = 28 feeds + umbrella.

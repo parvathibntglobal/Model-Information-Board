@@ -122,6 +122,7 @@ _PLATFORM_LABELS = {
     "devto": "dev.to",
     "huggingface": "Hugging Face",
     "forum": "developer forums",
+    "bluesky": "Bluesky",
     "github": "GitHub",
     "x": "X",
     "reddit": "Reddit",

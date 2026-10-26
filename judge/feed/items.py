@@ -87,6 +87,7 @@ PLATFORMS = {
     "blog": "Blog",
     "huggingface": "Hugging Face",
     "forum": "Developer forum",
+    "bluesky": "Bluesky",
     "arxiv": "arXiv",
     "reddit": "Reddit",
     "x": "X",

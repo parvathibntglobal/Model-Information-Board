@@ -94,7 +94,8 @@ MAX_FETCH_THREAD_CHARS = 30_000
 
 #: Sources dedupe runs over. Every one has a prose extractor; a source
 #: without one is refused by `dedupe_write` rather than signed raw.
-DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "huggingface")
+DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "huggingface",
+                  "bluesky")
 
 #: How many threads ONE fetch may send to the language model.
 #:
@@ -1785,11 +1786,13 @@ UNIFORM_PLATFORMS = (
     ("devto",       "E2D", "Harvest · dev.to",       2),
     ("hackernews",  "E2H", "Harvest · Hacker News",  2),
     ("huggingface", "E2F", "Harvest · Hugging Face", 1),
+    ("bluesky",     "E2K", "Harvest · Bluesky",      3),
 )
 
 #: Every per-model harvest source, by the id `--sources` selects on. `blogs` is
 #: not here: it is feed-based, never runs per model, and is always a named skip.
-ALL_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "huggingface")
+ALL_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "huggingface",
+               "bluesky")
 
 
 def selected_sources(raw: str | None) -> set[str]:
@@ -1828,6 +1831,8 @@ def _harvester_factory(platform_id: str):
         from collect.adapters.hackernews import harvester_for_source
     elif platform_id == "huggingface":
         from collect.adapters.huggingface import harvester_for_source
+    elif platform_id == "bluesky":
+        from collect.adapters.bluesky import harvester_for_source
     else:
         raise ValueError(f"no uniform factory for {platform_id!r}")
     return harvester_for_source
