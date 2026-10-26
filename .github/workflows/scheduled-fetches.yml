@@ -168,16 +168,28 @@ jobs:
         timeout-minutes: 20
         run: python scripts/harvest_blogs.py --new-only --max-new-articles 10
 
+      # V2EX'S AI BOARDS, ONCE A NIGHT, BEFORE THE MODELS (2026-10-26). Its v1
+      # API lists boards and has no search, so the boards on the contract row
+      # are read here and each model's fetch reads the threads that name it.
+      # About 55 requests, two seconds apart: two minutes. Same failure rule as
+      # the feeds: red job, models still run.
+      - name: Harvest V2EX
+        if: >-
+          !cancelled() && steps.gate.outputs.enabled == 'true'
+          && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'v2ex'))
+        timeout-minutes: 5
+        run: python scripts/harvest_v2ex.py --max-topics 50
+
       - name: Fetch the due models
         if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
-        # --job-limit-minutes 335 is timeout-minutes (355) less the feed step's
-        # 20: a fetch still running at 325 min of THIS step is stopped by the
-        # runner, which then posts the summary. Each thread commits as it
-        # finishes, so that loses one thread at most and the model stays due.
-        # That makes a late launch cheap, so --deadline-minutes 300 starts
-        # models until minute 300.
+        # --job-limit-minutes 330 is timeout-minutes (355) less the feed step's
+        # 20 and V2EX's 5: a fetch still running at 320 min of THIS step is
+        # stopped by the runner, which then posts the summary. Each thread
+        # commits as it finishes, so that loses one thread at most and the
+        # model stays due. That makes a late launch cheap, so
+        # --deadline-minutes 300 starts models until minute 300.
         run: |
-          args="--job-limit-minutes 335 --deadline-minutes 300"
+          args="--job-limit-minutes 330 --deadline-minutes 300"
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

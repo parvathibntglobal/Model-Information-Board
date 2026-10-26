@@ -318,6 +318,28 @@ def huggingface_prose(blob: str) -> str:
     )
 
 
+def v2ex_prose(blob: str) -> str:
+    """A V2EX payload -> what its author wrote. TWO SHAPES, as `reddit_prose`:
+
+        a topic   its title plus the author's markdown `content` (the root)
+        a reply   the reply's `content` (a child of the topic's thread)
+
+    A board listing is a LIST and is not one document; it never reaches here
+    because the adapter stores items, but a list is refused by name anyway.
+    """
+    payload = _loaded(blob, what="v2ex payload")
+    kind = payload.get("kind")
+    if kind == "v2ex_topic":
+        text = f"{payload.get('title') or ''}{TITLE_SEPARATOR}{payload.get('content') or ''}"
+    elif kind == "v2ex_reply":
+        text = payload.get("content") or ""
+    else:
+        raise NotAPayload("v2ex payload: neither a topic nor a reply")
+    if not text.strip():
+        raise NotAPayload(f"v2ex {kind}: no text")
+    return text
+
+
 def x_post_prose(blob: str) -> str:
     """An X post payload -> its text. THREE PLACES IT CAN BE, in one order.
 
@@ -393,6 +415,7 @@ PROSE_BY_SOURCE = {
     "hackernews": hackernews_prose,
     "huggingface": huggingface_prose,
     "x": x_post_prose,
+    "v2ex": v2ex_prose,
 }
 
 

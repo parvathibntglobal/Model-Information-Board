@@ -1496,6 +1496,61 @@ terms_rulings:
       external user, any monetization, downloading weights, or fetching
       huggingface.co HTML rather than the API.
 
+  # ── V2EX, via its documented v1 API ──────────────────────────────────────
+  - id: v2ex-api
+    party: platform
+    platform_host: www.v2ex.com
+    reviewed_on: 2026-10-26
+    reviewed_by: anooj
+    basis: public-derived-publication
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    live_preconditions:
+      use_basis: [public-derived-publication]
+      access_path: [api]
+      api_version: [v1]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_exists: [false]
+      robots_checked: [true]
+      legal_review_completed: [false]
+    summary: |
+      RULED 2026-10-26 (anooj; for review on the PR that carries it). Access is
+      V2EX's documented v1 API (v2ex.com/help/api), anonymous:
+      `/api/topics/show.json?node_name=<board>` and
+      `/api/replies/show.json?topic_id=<id>`. Site HTML is never fetched.
+
+      WHAT WAS FOUND, 2026-10-26:
+        - NO TERMS OF SERVICE EXIST. /tos is a 404 and /terms is a
+          dictionary entry; the privacy page carries no scraping clause and the
+          about page only community rules. Recorded as
+          `terms_document_exists: false` - a finding about places checked,
+          not a permission.
+        - The help page states the limit: 600 requests an hour per IP. A night
+          here is about 55, two seconds apart.
+        - robots.txt (`User-agent: *`) disallows only /backstage/, /signin,
+          /signout and /settings.
+
+      WHY V2EX AND NOT QIITA OR ZENN. All three were measured the same day as
+      active, first-hand, non-English communities. Under the stack rule -
+      official APIs and public feeds, robots.txt respected - only V2EX has a
+      route: Qiita's own robots.txt disallows its API (`Disallow: /api/*`)
+      and its tag feed carries ~140-character summaries; Zenn has no official
+      API and its feed carries ~300-character summaries. Both are left for a
+      team decision rather than built.
+
+      LANGUAGE. The boards are Chinese-language. Quotes are verified
+      verbatim, in the original script, with NFKC folding on both sides
+      (judge/extract/verify.py), and never translated (rule 1).
+
+      UNRESOLVED, DELIBERATELY RECORDED: posts are user-authored with no
+      stated licence for quotation; we publish quote + credit + link under the
+      use-basis undertaking, never full text.
+
+      RE-REVIEW REQUIRED BEFORE: any monetization, the v2 API (which needs an
+      account's token), fetching site HTML, or V2EX publishing terms.
+
 
 sources:
 
@@ -1831,6 +1886,31 @@ sources:
       by range - never tensor data, never a whole file. Model cards are
       frequently the vendor describing its own model and must extract as
       vendor-about-own-product.
+
+  - id: v2ex
+    platform: v2ex
+    endpoint: https://www.v2ex.com/api
+    base_trust: 0.75
+    provenance: seed
+    terms_ruling: v2ex-api
+    # The AI boards read each night: each one's ten newest topics, with replies.
+    # Measured 2026-10-26, the ten newest span about a day on `openai` and a
+    # month on `deepseek`.
+    nodes: [openai, claude, localllm, gemini, deepseek]
+    terms_evidence:
+      checked_on: 2026-10-26
+      access_path: api
+      api_version: v1
+      republication_claimed: false
+      terms_document_exists: false
+      robots_checked: true
+      legal_review_completed: false
+    tos_notes: >
+      Ruling v2ex-api, 2026-10-26. Documented v1 API, anonymous; site HTML is
+      never fetched. No terms of service exist; robots.txt disallows only
+      account pages. Five AI boards are read nightly, topic and replies as one
+      thread. base_trust 0.75: first-hand developer discussion, often short
+      questions answered in replies.
 
 
 feeds:

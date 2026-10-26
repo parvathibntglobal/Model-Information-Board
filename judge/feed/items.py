@@ -86,6 +86,7 @@ PLATFORMS = {
     "github": "GitHub",
     "blog": "Blog",
     "huggingface": "Hugging Face",
+    "v2ex": "V2EX",
     "arxiv": "arXiv",
     "reddit": "Reddit",
     "x": "X",
