@@ -1,0 +1,33 @@
+# Thresholds for the checks (workflow doc section 20.2).
+
+fetch:
+  min_bytes: 2000
+  block_page_markers: ["captcha", "access denied", "are you a robot", "cf-challenge", "just a moment..."]
+# L3, the page's shape against the source's last TAKEN read (PR #573 review: at
+# 50% a page rendering 60% of its table passed, and its other figures left the
+# page). A shrink is the dangerous direction, so it is the strict one.
+structure:
+  max_row_shrink: 0.2                # fewer than 80% of the rows -> blocked
+  max_row_growth: 0.5                # 50% more rows -> taken only if the values read both times agree
+  # A board really can get shorter. A smaller size read this many times in a row
+  # (the blocked reads included) is the board's new size, and is taken; a page
+  # that renders partly rarely repeats the same count.
+  stable_reads: 3
+tolerance:                           # L6 cross-source agreement
+  percent: 2.0
+  points: 0.3
+  rating: 15
+  rank: 0
+jump:                                # L7 vs the previous value from the same source
+  percent: 15.0
+  rating: 100
+  # No rank threshold: a rank moving is never flagged - it moves whenever the
+  # board's list changes (2026-10-26).
+# NEWS-WORTHY changelog entries (judge/benchmarks.py; the page shows these
+# numbers from the API, never its own copy).
+news:
+  debut_days: 60          # a model released this recently showing up on a board
+  fresh_days: 30          # a value the source itself dates this recently
+  mover_points: 1.0       # a score moving this much on the same release
+  mover_rating: 10.0      # a rating moving this much
+mass_disappearance: 0.8              # fewer than 80% of the last taken read's values -> blocked

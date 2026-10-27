@@ -1,0 +1,118 @@
+# The Benchmarks page's sections and columns (BENCHMARK_PIPELINE_WORKFLOW.md
+# section 3.2, 2026-10-22). Each (benchmark, metric) pair is one column,
+# named <key>_<metric>. Values are shown RAW, exactly as the source publishes
+# them, with their source, link and date: no derived rank or percentile
+# (Parvathi, 2026-10-22 - CLAUDE.md rule 3).
+#
+# volatility: static (vendor-published once; re-check monthly) | rolling
+# (benchmark revisions; weekly) | live (ratings and every rank; daily).
+# There is no scheduler yet: runs are started by hand.
+#
+# A column no scrapeable source can fill for the tracked models is removed
+# from this file, not kept switched off (2026-10-26); values already stored
+# for it stop being published.
+#
+# duplicates (required): what to do when one page lists a cell twice -
+#   match_variant (the accepted test setup decides), latest, identical.
+#
+# variant_rule.accept: the test setups a column takes, earliest preferred.
+# null = no setup stated; "*" = any setup the board states, recorded on the
+# value (for a column defined as "as the board ran it").
+
+categories:
+  - { key: knowledge,  label: "Knowledge & Reasoning", order: 1 }
+  - { key: coding,     label: "Coding",                order: 2 }
+  - { key: agents,     label: "Agents & Tools",        order: 3 }
+  - { key: math,       label: "Math",                  order: 4 }
+  - { key: multimodal, label: "Multimodal",            order: 5 }
+  - { key: general,    label: "General",               order: 6 }
+
+benchmarks:
+  # ── knowledge & reasoning ────────────────────────────────────────────────
+  # The MMLU-Pro board marks each row "TIGER-Lab" (their own run) or
+  # "Self-Reported" (the vendor's number); their own run is preferred.
+  - { key: mmlu_pro,      label: "MMLU-Pro",      category: knowledge, order: 2,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: ["TIGER-Lab", "Self-Reported", null] }, duplicates: match_variant }
+  - { key: gpqa_diamond,  label: "GPQA Diamond",  category: knowledge, order: 3,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # rank: the position on HLE's own board (labs.scale.com, Scale AI co-created HLE).
+  - { key: hle,           label: "Humanity's Last Exam", category: knowledge, order: 4,
+      metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # ARC Prize's own leaderboard (arcprize.org), added 2026-10-23.
+  - { key: arc_agi_1,     label: "ARC-AGI-1",     category: knowledge, order: 5,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  - { key: arc_agi_2,     label: "ARC-AGI-2",     category: knowledge, order: 6,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+
+  # ── coding ───────────────────────────────────────────────────────────────
+  # The column means "the model in the standard harness": the official board's
+  # own bash-only agent (mini-SWE-agent). Commercial agent systems (TRAE,
+  # live-SWE-agent, ...) are a different setup and never fill it.
+  - { key: swe_bench_verified, label: "SWE-bench Verified", category: coding, order: 1,
+      metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
+      variant_rule: { accept: ["mini-SWE-agent"] }, duplicates: match_variant }
+  # Scale AI's own board (SWE-Bench Pro, public set, Full view). Each model is run
+  # under one agent (Claude Code, Codex, mini-swe-agent); the agent is recorded on
+  # the value. Added 2026-10-23.
+  - { key: swe_bench_pro, label: "SWE-Bench Pro", category: coding, order: 2,
+      metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
+      variant_rule: { accept: ["*"] }, duplicates: match_variant }
+  # Score only, run by Vals AI. The rank came from the official board alone, which
+  # has not been updated since May 2025 and lists no registry model (2026-10-26).
+  - { key: livecodebench,  label: "LiveCodeBench",  category: coding, order: 3,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # International Olympiad in Informatics problems, run by Vals AI. Added 2026-10-23.
+  - { key: ioi,            label: "IOI",            category: coding, order: 4,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # Scientific coding, run by Artificial Analysis. Added 2026-10-23.
+  - { key: scicode,        label: "SciCode",        category: coding, order: 5,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+
+  # ── agents ───────────────────────────────────────────────────────────────
+  # Vals AI's run, every model in one harness (Mini-SWE-agent). Terminal-Bench's
+  # own board (tbench.ai) lists each model under several agents, so it is not
+  # used for this column. Added 2026-10-23.
+  - { key: terminal_bench_4, label: "Terminal-Bench 4.0", category: agents, order: 1,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: ["Mini-SWE-agent"] }, duplicates: match_variant }
+  # Building a working app from a description, run by Vals AI in OpenHands. Added 2026-10-23.
+  - { key: vibe_code, label: "Vibe Code Bench", category: agents, order: 2,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: ["OpenHands"] }, duplicates: match_variant }
+
+  # ── math ─────────────────────────────────────────────────────────────────
+  # MathArena's own board, AIME 2026 (?comp=aime--aime_2026). Added 2026-10-23.
+  - { key: aime_2026,    label: "AIME 2026",     category: math, order: 1,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: static,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # NOT AIME 2025 either: Vals AI's AIME is AIME 2024 and AIME 2025 together,
+  # one accuracy over both papers (vals.ai/benchmarks/aime, checked 2026-10-22).
+  - { key: aime_2024_25, label: "AIME 2024+2025", category: math, order: 2,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # Writing proofs, run by Vals AI. Added 2026-10-23.
+  - { key: proof_bench,  label: "ProofBench",    category: math, order: 3,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+
+  # ── multimodal ───────────────────────────────────────────────────────────
+  - { key: mmmu_pro, label: "MMMU-Pro", category: multimodal, order: 2,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # Issues with images (screenshots, diagrams), run by Vals AI. Added 2026-10-23.
+  - { key: swe_bench_multimodal, label: "SWE-bench Multimodal", category: multimodal, order: 3,
+      metrics: [score], score_unit: percent, higher_is_better: true,
+      volatility: rolling, variant_rule: { accept: [null] }, duplicates: match_variant }
+
+  # ── general ──────────────────────────────────────────────────────────────
+  - { key: livebench, label: "LiveBench (Overall)", category: general, order: 1,
+      metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }

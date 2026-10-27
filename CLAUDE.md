@@ -560,6 +560,24 @@ These are the rules a helpful refactor will otherwise quietly violate.
 - One adapter class per platform. **Official APIs and public feeds only** -
   no scraping, no paywall circumvention, `robots.txt` respected, identifying
   User-Agent with a contact URL.
+
+  **The one exception: the Benchmarks page (`collect/benchmarks/`, Parvathi,
+  2026-10-22; recorded with PR #573).** Published benchmark leaderboards have no
+  API or feed, so their public pages are fetched - a plain request, or a headless
+  browser for a page built in JavaScript. Its conditions are not settings:
+
+  1. Only the pages listed in `contract/benchmarks/sources.yaml`, each with its
+     license and attribution; nothing is crawled or discovered.
+  2. `robots.txt` is always asked, for every page a redirect leads to as well;
+     there is no switch to turn it off. Identifying User-Agent, as above.
+  3. No logins, paywalls, API keys, language models or data-file downloads.
+  4. Values are shown exactly as the page prints them, with source, link and
+     date (rule 3 holds: ranks are the board's own - printed, its row order
+     checked against its scores, or its order by its own sort field).
+  5. Every distinct fetched page is kept, content-hash addressed, as the raw
+     payload; none is deleted.
+
+  Anything else that wants to scrape needs its own recorded exception here.
 - The evidence pipeline is a **nightly batch**. The answer path reads a
   materialised view and never touches the pipeline.
 - Published content is *quote + attribution + link*, never full text.

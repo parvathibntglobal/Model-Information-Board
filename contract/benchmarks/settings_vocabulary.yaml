@@ -1,0 +1,90 @@
+# Words sources use for how a MODEL was run (reasoning effort, thinking mode),
+# mapped to one standard setting (workflow doc 3.1 / 6.1). Only words listed
+# here can create a setting row under a seed model; anything else becomes an
+# `unknown_setting` review item. A test SETUP (5-shot, an agent system) is a
+# variant on the value, never a setting row.
+#
+# `max` IS ITS OWN SETTING, NOT `high`. Sources list both "(high)" and "(max)"
+# for one model (Artificial Analysis, ARC Prize), so folding them would put two
+# different results in one row (2026-10-22).
+
+#
+# "<effort> WITH FALLBACK" IS THAT EFFORT (Parvathi, 2026-10-22). Artificial
+# Analysis names Anthropic models "Claude Opus 5.5 (max with fallback)"; the
+# value fills the (max) row and the source's full name stays on the value
+# (raw_model_name, shown in its tooltip).
+
+#
+# "THINKING, <EFFORT>" AND "<EFFORT> THINKING" ARE THAT EFFORT (2026-10-26):
+# ARC Prize writes "GPT-5.1 (Thinking, Low)", Scale "(xhigh thinking)",
+# and also "(thinking high)". A thinking TOKEN BUDGET ("Thinking, 16K",
+# "120K, Low") is a different kind of setting and stays in Review; so do
+# "Reasoning" and "Refine." until someone says what they are.
+
+settings:
+  max:      ["max", "max effort", "maximum", "max with fallback", "thinking, max", "thinking max",
+             "max thinking"]
+  xhigh:    ["xhigh", "x-high", "extra high", "reasoning: xhigh", "xhigh with fallback",
+             "thinking, xhigh", "thinking xhigh", "xhigh thinking"]
+  high:     ["high", "reasoning: high", "high effort", "reasoning high", "high with fallback",
+             "thinking, high", "thinking high", "high thinking"]
+  medium:   ["medium", "reasoning: medium", "med", "reasoning medium", "medium with fallback",
+             "thinking, medium", "thinking medium", "medium thinking"]
+  low:      ["low", "reasoning: low", "reasoning low", "thinking, low", "thinking low",
+             "low thinking"]
+  minimal:  ["minimal"]
+  # `none` is not `minimal`: OpenAI models offer both efforts.
+  none:     ["none", "no reasoning", "non-thinking", "nonthinking", "thinking, none",
+             "thinking none", "non-reasoning"]
+  # ── added 2026-10-26 (Parvathi: "add these to settings") ────────────────
+  # A THINKING TOKEN BUDGET is its own setting, never folded into an effort:
+  # "Claude Haiku 4.5 (Thinking 16K)", "Opus 4.5 (Thinking, 16K)" (ARC Prize);
+  # a bare budget ("16K") means the same thing.
+  thinking-1k:   ["thinking 1k", "thinking, 1k", "1k"]
+  thinking-8k:   ["thinking 8k", "thinking, 8k", "8k"]
+  thinking-16k:  ["thinking 16k", "thinking, 16k", "16k"]
+  thinking-32k:  ["thinking 32k", "thinking, 32k", "32k"]
+  thinking-64k:  ["thinking 64k", "thinking, 64k", "64k"]
+  # A budget AND an effort, as ARC Prize writes Claude Opus 4.6: "(120K, Low)".
+  120k-low:      ["120k, low", "120k low"]
+  120k-medium:   ["120k, medium", "120k medium"]
+  120k-high:     ["120k, high", "120k high"]
+  120k-max:      ["120k, max", "120k max"]
+  # xAI's reasoning mode ("Grok 4.20 (Reasoning)") is the thinking setting; the
+  # BETA of that mode is its own row, never mixed with the released one.
+  reasoning-beta: ["beta reasoning"]
+  # ARC Prize's model type "Refinement": a refinement system built around the
+  # model ("GPT-5.2 (Refine.)"), not the plain model - so its own row.
+  refinement:    ["refine.", "refine", "refinement"]
+  thinking: ["thinking", "extended thinking", "with thinking", "reasoning mode", "think", "reasoning"]
+
+# Words that say the source does NOT know the setting. The value goes to the
+# base row, with "setting not stated" in its metadata (doc 6.1, last row).
+# "with fallback" with no effort word ("Claude Fable 5 (with fallback)",
+# Artificial Analysis) says how it was run, not at which setting.
+not_stated: ["unknown", "unspecified", "with fallback"]
+
+# How a setting is found at the END of a model name. The first group is the
+# setting word, the text before the match is the model name.
+patterns:
+  - "\\s*\\(([^)]+)\\)\\s*$"                     # "gpt-5 (high)"
+  - "\\s*\\[([^\\]]+)\\]\\s*$"                   # "gpt-5 [high]"
+  - "_([A-Za-z0-9]+)$"                           # "gpt-6-astra_max", "claude-opus-4-6_32K"
+# NOT a bare trailing word ("gpt-5-high", "qwen3 max"): a word that can be part of
+# a model's own name ("Qwen3 Max", "Kimi K2 Thinking", "GPT-5.1 Codex Max") must
+# not be split off as a setting (PR #573 review: "qwen3-max" became qwen3 at max,
+# "gpt-5.5-codex-max" became GPT-5.5 at max). A table that writes settings that
+# way says so with `bare_setting_words` (sources.yaml).
+
+# A DATED RELEASE at the end of a model's name (Parvathi, 2026-10-23). When the
+# rest of the name is a model we know exactly, the name gets its own row under
+# that model, labelled with the date as the source wrote it - "Gemini 3 Flash
+# (12/25)", "DeepSeek V4 Pro 0813". A dated release is never the model's own
+# row. Group 1 is the date; it must also read as a real date (month 1-12).
+date_patterns:
+  - '\s*\((\d{1,2}/\d{2})\)$'           # "(12/25)"                 month/year
+  - '\s*\((\d{4}-\d{2}-\d{2})\)$'       # "(2025-11-18)"
+  - '[-_ ](\d{4}-\d{2}-\d{2})$'         # "gpt-5.2-2025-12-11"
+  - '[-_ ](\d{8})$'                     # "claude-opus-4-20250514"
+  - '[-_ ](\d{4})$'                     # "DeepSeek V4 Pro 0813"    month+day
+  - '\s*\(((?:January|February|March|April|May|June|July|August|September|October|November|December) \d{4})\)$'   # "GPT-4o (November 2024)"

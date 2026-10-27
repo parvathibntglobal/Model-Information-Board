@@ -1,0 +1,76 @@
+# Per seed model: the names sources use for it (workflow doc 3.1), keyed by the
+# registry id in contract/tracked_models.yaml. The id and the name are always
+# accepted, and matching ignores case, spaces, dots, dashes and an "org/" prefix,
+# so "Claude Opus 5.5", "claude-opus-5-5" and "anthropic/claude-opus-5.5" are one
+# name already. Add here only spellings that differ beyond that - the run's
+# unmatched-names list says which. Only the tracked TEXT models are seeds
+# (Parvathi, 2026-10-22).
+#
+# auto_add_settings (default true): a source naming "<model> (high)" creates a
+# setting row under the model. allowed_settings limits which settings may.
+#
+# not_names: spellings that are a DIFFERENT model even though this model's own
+# registry id or the registry's aliases would match them. Checked by a person.
+
+# ── models that are not tracked ─────────────────────────────────────────────
+# Registry models get rows below the tracked ones when a source lists them.
+# Entries here only correct that, for one exact model each:
+#
+#   not_names         as above, for a registry model
+#
+# Only registry models get rows (Parvathi, 2026-10-26); a model the registry
+# has no entry for is not given one here.
+#
+# Gemini 3 Flash and Gemini 3 Flash PREVIEW are kept apart (Parvathi,
+# 2026-10-23): the registry lists "Gemini 3 Flash" as an alias of the preview,
+# and has no entry for the released model, so "Gemini 3 Flash" gets no row.
+google/gemini-3-flash-preview:   # Gemini 3 Flash Preview (registry)
+  not_names: ["Gemini 3 Flash"]
+
+# ── tracked models ─────────────────────────────────────────────────────────
+anthropic/claude-fable-5-1:   # Claude Fable 5.1
+  # Scale's HLE board and Terminal-Bench write it without "Claude" (2026-10-22).
+  aliases: ["Fable 5.1"]
+openai/gpt-6-astra:   # GPT 6 Astra
+  aliases: []
+deepseek/deepseek-v4-pro:   # DeepSeek V4 Pro
+  aliases: []
+deepseek/deepseek-v4-flash:   # DeepSeek V4 Flash
+  aliases: []
+minimax/minimax-m3:   # MiniMax M3
+  aliases: []
+anthropic/claude-opus-5:   # Claude Opus 5
+  aliases: []
+openai/gpt-5.6-sol:   # GPT-5.6 Sol
+  aliases: []
+x-ai/grok-4.6:   # Grok 4.6
+  aliases: []
+z-ai/glm-5.3:   # GLM 5.3
+  aliases: []
+moonshotai/kimi-k3:   # Kimi K3
+  aliases: []
+openai/gpt-5.5:   # GPT-5.5
+  # One model; Codex is a tool it supports, not another model (Parvathi,
+  # 2026-10-26). A result a source writes as "GPT-5.5 Codex" is GPT-5.5's, so
+  # both spellings fill this row. GPT-5.5 Pro is its own registry model.
+  aliases: ["GPT-5.5 Codex"]
+google/gemini-3.8-flash:   # Gemini 3.8 Flash
+  aliases: []
+openai/gpt-6-sol:   # GPT-6 Sol
+  aliases: []
+anthropic/claude-opus-5.5:   # Claude Opus 5.5
+  aliases: []
+x-ai/grok-4.7:   # Grok 4.7
+  aliases: []
+anthropic/claude-opus-4.6:   # Claude Opus 4.6
+  aliases: []
+openai/gpt-6-luna:   # GPT-6 Luna
+  aliases: []
+anthropic/claude-sonnet-5.5:   # Claude Sonnet 5.5
+  aliases: []
+openai/gpt-6.1-sol:   # GPT-6.1 Sol
+  aliases: []
+openai/gpt-6.1-sol-pro:   # GPT-6.1 Sol Pro
+  aliases: []
+typesafe/jev-1.13:   # Jev 1.13
+  aliases: []

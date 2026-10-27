@@ -1,0 +1,434 @@
+# Where the Benchmarks page's numbers come from (workflow doc 3.3, 3.5, 4.1).
+#
+# Every source is one public page, with the mapping that reads it. Nothing here
+# downloads a data file, calls an API with a key, an account or a paid plan, or
+# asks a language model anything (Parvathi, 2026-10-22).
+#
+# method      static     plain HTTP GET (collect/http.py build_client, robots.txt respected)
+#             browser    headless Chromium with the same User-Agent, for JS-built tables
+#
+# priority    the trust tier (doc 3.8): manual 100, vendor 90, the benchmark's own
+#             leaderboard 80, independent evaluator 70, re-published numbers 60.
+#             A table may set its own priority when it re-publishes others' numbers.
+#
+# Each source has one or more `tables`. A table says how to find the data in
+# what was fetched (`locate`), which field is the model, and which header
+# becomes which (benchmark, metric). `metric` is always written out: the
+# classify-by-guess rules in doc section 7 are never used here.
+#
+# CHECKED BY HAND ON 2026-10-22 (fetched once each, headers and model names
+# read). Sites change: a header that disappears stops the source with
+# `layout_changed` and keeps its previous values.
+
+sources:
+  - key: swebench_leaderboard
+    label: "SWE-bench leaderboard"
+    kind: leaderboard
+    priority: 80
+    enabled: true
+    method: static
+    url: https://www.swebench.com/
+    license: "Not stated on the page."
+    attribution: "SWE-bench, swebench.com"
+    tables:
+      # The page carries its whole leaderboard in <script id="leaderboard-data">,
+      # which is the page's own content rather than an API (doc 5, embedded_data).
+      - locate: { type: embedded_json, script_id: leaderboard-data, list_where: { name: Verified }, records: results }
+        model_field: model_display
+        setting_field: reasoning_effort
+        variant_field: agent
+        date_field: date
+        # The board can list one model twice under the same agent (GPT 5.2 (high),
+        # mini-SWE-agent: 72.8 and 71.8, two submission dates). The newest is
+        # taken (2026-10-26).
+        duplicates: latest
+        benchmark_map:
+          resolved: { benchmark: swe_bench_verified, metric: score, scale: percent }
+        # The board lists entries by % resolved; the rank is that position.
+        rank: { benchmark: swe_bench_verified, from: order_by, field: resolved, board: "swebench/verified" }
+
+  - key: hle_lastexam
+    label: "Humanity's Last Exam"
+    kind: leaderboard
+    priority: 80
+    enabled: true
+    method: static
+    url: https://lastexam.ai/
+    license: "Not stated on the page."
+    attribution: "Humanity's Last Exam, lastexam.ai (CAIS and Scale AI)"
+    tables:
+      - locate: { type: html_table, must_contain: "Calibration Error" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy (%)": { benchmark: hle, metric: score, scale: percent }
+
+  - key: scale_hle
+    label: "Humanity's Last Exam (Scale AI board)"
+    kind: leaderboard
+    priority: 80
+    enabled: true
+    method: static
+    url: https://labs.scale.com/leaderboard/humanitys_last_exam
+    license: "Not stated on the page."
+    attribution: "Scale AI Labs leaderboard, Humanity's Last Exam (CAIS and Scale AI)"
+    tables:
+      # The board's own entries are in its Next.js page data: one object per
+      # entry with model, rank, score (accuracy %) and when it was evaluated.
+      - locate: { type: next_flight, object_start: '{"model":"', required_keys: [model, rank, score, company], unique_key: model }
+        model_field: model
+        # The board writes the thinking variant bare: "gpt-5.1-thinking".
+        bare_setting_words: [thinking]
+        date_field: createdAt
+        benchmark_map:
+          score: { benchmark: hle, metric: score, scale: percent }
+          rank:  { benchmark: hle, metric: rank }
+        rank_board: "scale/hle"
+
+  - key: arc_prize
+    label: "ARC Prize leaderboard"
+    kind: leaderboard
+    priority: 80
+    enabled: true
+    method: browser
+    url: https://arcprize.org/leaderboard
+    license: "Not stated on the page."
+    attribution: "ARC Prize Foundation, arcprize.org"
+    tables:
+      # One row per system, the setting in brackets ("GPT-6.1 Sol (Max)"). A cell
+      # holds score and cost per task together ("93.5%, $0.065/task"); the raw
+      # text is shown as printed, the first number is the score. ARC-AGI-3 is a
+      # different scoring (with a cost budget) and is not mapped. Added 2026-10-23.
+      - locate: { type: html_table, must_contain: "ARC-AGI-2" }
+        model_column: "AI System"
+        benchmark_map:
+          "ARC-AGI-1": { benchmark: arc_agi_1, metric: score, scale: percent }
+          "ARC-AGI-2": { benchmark: arc_agi_2, metric: score, scale: percent }
+
+  - key: scale_swe_bench_pro
+    label: "SWE-Bench Pro (Scale AI board)"
+    kind: leaderboard
+    priority: 80
+    enabled: true
+    method: static
+    url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2?tab=full
+    license: "Not stated on the page."
+    attribution: "Scale AI Labs leaderboard, SWE-Bench Pro"
+    tables:
+      # The page data holds a Full and a Hard view; only the Full view's entries
+      # are read. Each entry is "Opus 5 (Claude Code) xhigh": the model, the agent
+      # in brackets (recorded as the value's test setup), then the setting.
+      # Added 2026-10-23.
+      - locate: { type: next_flight, object_start: '{"key":"full"', required_keys: [key, label, entries], records: entries, unique_key: model }
+        model_field: model
+        name_pattern: '^(?P<model>.+?) \((?P<variant>[^)]+)\)(?: (?P<setting>\S+))?$'
+        date_field: createdAt
+        benchmark_map:
+          score: { benchmark: swe_bench_pro, metric: score, scale: percent }
+          rank:  { benchmark: swe_bench_pro, metric: rank }
+        rank_board: "scale/swe-bench-pro-full"
+
+  - key: livebench_leaderboard
+    label: "LiveBench"
+    kind: leaderboard
+    priority: 80
+    enabled: true
+    method: browser
+    url: https://livebench.ai/
+    license: "Not stated on the page."
+    attribution: "LiveBench, livebench.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Overall" }
+        model_column: "Model"
+        # The cell is <span class="nm" data-tip="Kimi K3 · reasoning effort: max">Kimi K3</span>
+        # <span class="opn">open</span>: the name is the span, the "open" badge is not
+        # part of it, and the tooltip states the reasoning effort the row was run at.
+        model_selector: "span.nm"
+        # "Release 2026-10-25" above the table: each value's date, and a new
+        # release is recognised as one (its changes are not flagged as jumps).
+        release_selector: ".lb-tl-head .date"
+        setting_attr: "data-tip"
+        setting_pattern: "reasoning effort:\\s*([A-Za-z-]+)"
+        benchmark_map:
+          "Overall": { benchmark: livebench, metric: score, scale: percent }
+        # Sorted by Overall on load ("Overall ▼"); the rank is the row position.
+        rank: { benchmark: livebench, from: row_order, board: "livebench/overall" }
+
+  - key: matharena_aime_2026
+    label: "MathArena (AIME 2026)"
+    kind: leaderboard
+    priority: 80
+    enabled: true
+    method: browser
+    # The query string opens the AIME 2026 competition directly (no click needed).
+    # It lists DeepSeek V4 Pro, V4 Flash and Kimi K3 (2026-10-23).
+    url: https://matharena.ai/?comp=aime--aime_2026
+    license: "Not stated on the page."
+    attribution: "MathArena, matharena.ai (ETH Zurich SRI Lab)"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy (± 95% CI)" }
+        model_column: "Model Name"
+        benchmark_map:
+          "Accuracy (± 95% CI)": { benchmark: aime_2026, metric: score, scale: percent }
+
+  - key: mmlu_pro_space
+    label: "MMLU-Pro (TIGER-Lab)"
+    kind: leaderboard
+    priority: 80
+    enabled: true
+    method: browser
+    # The Space's app itself (huggingface.co/spaces/TIGER-Lab/MMLU-Pro frames it).
+    url: https://tiger-lab-mmlu-pro.hf.space/
+    page_url: https://huggingface.co/spaces/TIGER-Lab/MMLU-Pro
+    license: "Not stated on the page."
+    attribution: "MMLU-Pro leaderboard, TIGER-Lab"
+    tables:
+      # Two tables with the same headers: a one-row pinned copy, then the board.
+      # 61 models on 2026-10-22, none of the tracked ones.
+      - locate: { type: html_table, must_contain: "Data Source", min_rows: 5 }
+        model_column: "Models"
+        variant_field: "Data Source"         # "TIGER-Lab" (their run) or "Self-Reported"
+        benchmark_map:
+          "Overall": { benchmark: mmlu_pro, metric: score, scale: fraction }
+
+  # ── independent evaluator: Artificial Analysis ─────────────────────────────────
+  # One page per benchmark, each listing the models it charts (10-18 of the
+  # tracked ones on 2026-10-22). The values are in the page's own Next.js data
+  # (`self.__next_f`), one object per model with its name and its results; the
+  # chart is drawn from it. Artificial Analysis runs these evaluations itself,
+  # so it ranks as an independent evaluator (70), below the benchmark's own board.
+  # The setting is in the name: "GPT-6 Astra (max)".
+  - key: aa_gpqa_diamond
+    label: "Artificial Analysis · GPQA Diamond"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://artificialanalysis.ai/evaluations/gpqa-diamond
+    license: "Not stated on the page."
+    attribution: "Artificial Analysis, artificialanalysis.ai"
+    tables:
+      - locate: { type: next_flight, object_start: '{"id":"', required_keys: [shortName, creator, gpqa], unique_key: slug }
+        model_field: shortName
+        benchmark_map:
+          gpqa: { benchmark: gpqa_diamond, metric: score, scale: fraction }
+
+  - key: aa_hle
+    label: "Artificial Analysis · Humanity's Last Exam"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://artificialanalysis.ai/evaluations/humanitys-last-exam
+    license: "Not stated on the page."
+    attribution: "Artificial Analysis, artificialanalysis.ai"
+    tables:
+      - locate: { type: next_flight, object_start: '{"id":"', required_keys: [shortName, creator, hle], unique_key: slug }
+        model_field: shortName
+        benchmark_map:
+          hle: { benchmark: hle, metric: score, scale: fraction }
+
+  - key: aa_mmmu_pro
+    label: "Artificial Analysis · MMMU-Pro"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://artificialanalysis.ai/evaluations/mmmu-pro
+    license: "Not stated on the page."
+    attribution: "Artificial Analysis, artificialanalysis.ai"
+    tables:
+      - locate: { type: next_flight, object_start: '{"id":"', required_keys: [shortName, creator, mmmuPro], unique_key: slug }
+        model_field: shortName
+        benchmark_map:
+          mmmuPro: { benchmark: mmmu_pro, metric: score, scale: fraction }
+
+  # ── independent evaluator: Vals AI ────────────────────────────────────────────────────────
+  # Vals AI runs each benchmark itself and publishes one page per benchmark, as
+  # a plain HTML table (Rank, Model, Accuracy). Each page's own heading says what
+  # it measures, and two are not what the URL suggests (checked 2026-10-22):
+  #   /benchmarks/aime   is AIME 2024 + AIME 2025 together  -> aime_2024_25
+  #   /benchmarks/mmmu   is MMMU Pro                        -> mmmu_pro
+  # The rank column is Vals AI's own position among the models it tested; it is
+  # not mapped, because these columns are score-only.
+  - key: vals_gpqa
+    label: "Vals AI · GPQA Diamond"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/gpqa
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: gpqa_diamond, metric: score, scale: percent }
+
+  - key: vals_mmlu_pro
+    label: "Vals AI · MMLU Pro"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/mmlu_pro
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: mmlu_pro, metric: score, scale: percent }
+
+  - key: vals_aime
+    label: "Vals AI · AIME 2024+2025"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/aime
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: aime_2024_25, metric: score, scale: percent }
+
+  - key: vals_mmmu_pro
+    label: "Vals AI · MMMU Pro"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/mmmu
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: mmmu_pro, metric: score, scale: percent }
+
+  - key: vals_livecodebench
+    label: "Vals AI · LiveCodeBench"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/lcb
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: livecodebench, metric: score, scale: percent }
+
+  - key: vals_swebench_verified
+    label: "Vals AI · SWE-bench Verified"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/swebench
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Score" }
+        model_column: "Model"
+        variant_field: "Harness"        # e.g. "Mini-SWE-agent", the official bash-only agent
+        benchmark_map:
+          "Score": { benchmark: swe_bench_verified, metric: score, scale: percent }
+
+  - key: vals_terminal_bench_4
+    label: "Vals AI · Terminal-Bench 4.0"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/terminal-bench-4
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Score" }
+        model_column: "Model"
+        variant_field: "Harness"
+        benchmark_map:
+          "Score": { benchmark: terminal_bench_4, metric: score, scale: percent }
+
+  - key: vals_ioi
+    label: "Vals AI · IOI"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/ioi
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: ioi, metric: score, scale: percent }
+
+  - key: vals_vibe_code
+    label: "Vals AI · Vibe Code Bench"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/vibe-code
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Score" }
+        model_column: "Model"
+        variant_field: "Harness"
+        benchmark_map:
+          "Score": { benchmark: vibe_code, metric: score, scale: percent }
+
+  - key: vals_proof_bench
+    label: "Vals AI · ProofBench"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/proof_bench
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: proof_bench, metric: score, scale: percent }
+
+  - key: vals_swebench_multimodal
+    label: "Vals AI · SWE-bench Multimodal"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/swebench-multimodal
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: swe_bench_multimodal, metric: score, scale: percent }
+
+  - key: aa_scicode
+    label: "Artificial Analysis · SciCode"
+    kind: evaluator
+    priority: 70
+    enabled: true
+    method: static
+    url: https://artificialanalysis.ai/evaluations/scicode
+    license: "Not stated on the page."
+    attribution: "Artificial Analysis, artificialanalysis.ai"
+    tables:
+      - locate: { type: next_flight, object_start: '{"id":"', required_keys: [shortName, creator, scicode], unique_key: slug }
+        model_field: shortName
+        benchmark_map:
+          scicode: { benchmark: scicode, metric: score, scale: fraction }

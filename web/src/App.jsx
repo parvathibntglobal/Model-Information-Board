@@ -67,6 +67,7 @@ const Reports = page(() => import('./routes/Reports'))
 const Catalog = page(() => import('./routes/Catalog'))
 const Evidence = page(() => import('./routes/Evidence'))
 const Discussions = page(() => import('./routes/Discussions'))
+const Benchmarks = page(() => import('./routes/Benchmarks'))
 const ModelDetail = page(() => import('./routes/ModelDetail'))
 const Models = page(() => import('./routes/Models'))
 const Compare = page(() => import('./routes/Compare'))
@@ -188,6 +189,7 @@ export default function App() {
           <Route path="/ai-model-pricing"  element={<ModelFinder />} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
+          <Route path="/benchmarks" element={<Require session={session}><Benchmarks /></Require>} />
           <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />
           <Route path="/keywords" element={<MovedTo path="/seo-keywords" />} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />

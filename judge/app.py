@@ -3137,6 +3137,126 @@ def discussions_delete(req: DiscussionDeleteRequest) -> dict:
     return {"id": req.id, "state": "deleted"}
 
 
+# THE BENCHMARKS PAGE (2026-10-22, Parvathi): signed in only (every route here
+# needs the token - none is in judge/gate.py's public lists). Published
+# benchmark results for the tracked text models, scraped by collect/benchmarks/
+# into the bench_ tables. See judge/benchmarks.py.
+
+
+def _bench(read):
+    from judge import benchmarks
+
+    try:
+        with benchmarks.connection() as conn:
+            return read(benchmarks, conn)
+    except benchmarks.BenchmarksUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+
+
+@app.get("/benchmarks/table")
+def benchmarks_table() -> dict:
+    """The wide table: sections, columns, model rows with their setting rows."""
+    return _bench(lambda b, conn: b.table(conn))
+
+
+@app.get("/benchmarks/changes")
+def benchmarks_changes(
+    run_id: int | None = None, limit: int = 300, kind: str | None = None
+) -> dict:
+    """The changelog, newest first; one run's entries with `run_id`, one kind of
+    change with `kind` (score, rank, up, down, added, removed, ...)."""
+    return _bench(
+        lambda b, conn: b.changelog(conn, limit=min(max(limit, 1), 2000), run_id=run_id, kind=kind)
+    )
+
+
+@app.get("/benchmarks/runs")
+def benchmarks_runs(limit: int = 30) -> dict:
+    """Run history with each run's per-source status."""
+    return _bench(lambda b, conn: b.runs(conn, limit=min(max(limit, 1), 200)))
+
+
+@app.get("/benchmarks/run-log")
+def benchmarks_run_log(run_id: int | None = None, request_id: str | None = None) -> dict:
+    """One run's terminal output: live from its log file while it runs."""
+    if run_id is None and not request_id:
+        raise HTTPException(status_code=422, detail="run_id or request_id is required")
+    return _bench(lambda b, conn: b.run_detail(conn, run_id=run_id, request_id=request_id))
+
+
+@app.get("/benchmarks/unmatched")
+def benchmarks_unmatched() -> dict:
+    """Names sources list that match no tracked model, with close suggestions."""
+    return _bench(lambda b, conn: b.unmatched(conn))
+
+
+class BenchmarkNameDecision(BaseModel):
+    key: str
+    name: str
+    action: str
+    target: str | None = None
+
+
+@app.post("/benchmarks/names/decide")
+def benchmarks_name_decide(req: BenchmarkNameDecision) -> dict:
+    """A person's decision about an unmatched name: same model as / new row /
+    ignore. Stored in bench_name_decision; the next run or re-parse applies it."""
+    from judge import benchmarks
+
+    try:
+        benchmarks.refuse_unless_local()
+        with benchmarks.connection() as conn:
+            return benchmarks.decide(
+                conn, key=req.key, name=req.name, action=req.action, target=req.target
+            )
+    except benchmarks.BenchmarksUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+    except benchmarks.DecisionRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+
+
+class BenchmarkNameUndo(BaseModel):
+    key: str
+
+
+@app.post("/benchmarks/names/undo")
+def benchmarks_name_undo(req: BenchmarkNameUndo) -> dict:
+    """Remove a decision; the name returns to the Unmatched list on the next run."""
+    from judge import benchmarks
+
+    try:
+        benchmarks.refuse_unless_local()
+    except benchmarks.DecisionRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
+    return _bench(lambda b, conn: b.undo_decision(conn, key=req.key))
+
+
+@app.get("/benchmarks/review")
+def benchmarks_review() -> dict:
+    """Open review items (flags from the checks)."""
+    return _bench(lambda b, conn: b.review_items(conn))
+
+
+class BenchmarkRunRequest(BaseModel):
+    dry_run: bool = False
+    use_snapshot: bool = False
+
+
+@app.post("/benchmarks/run")
+def benchmarks_run(req: BenchmarkRunRequest) -> dict:
+    """Start a run in the background; poll /benchmarks/run-log with the
+    returned request_id. 409 while another run is going."""
+    from judge import benchmarks
+
+    try:
+        with benchmarks.connection() as conn:
+            return benchmarks.start_run(conn, dry_run=req.dry_run, use_snapshot=req.use_snapshot)
+    except benchmarks.BenchmarksUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+    except benchmarks.RunRefused as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+
+
 class BlogGenerateRequest(BaseModel):
     count: int = 3
 

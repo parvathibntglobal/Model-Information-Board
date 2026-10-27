@@ -54,6 +54,7 @@ const LINKS = [
 const SIGNED_IN = [
   { to: '/models', label: 'Models', nofollow: true },
   { to: '/board', label: 'Board', nofollow: true },
+  { to: '/benchmarks', label: 'Benchmarks', nofollow: true },
   { to: '/admin', label: 'Admin', nofollow: true },
   { to: '/seo-keywords', label: 'SEO keywords', nofollow: true },
 ]

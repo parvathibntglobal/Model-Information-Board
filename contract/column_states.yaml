@@ -87,6 +87,412 @@ columns:
     merged_at:
       reviewed: false
       state: reserved
+  bench_cell:
+    benchmark_key:
+      reviewed: true
+      state: read
+    benchmark_version:
+      reviewed: true
+      state: read
+    collected_at:
+      reviewed: true
+      state: read
+    metric:
+      reviewed: true
+      state: read
+    needs_review:
+      reviewed: true
+      state: read
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: 'The pipeline that wrote the row (collect/benchmarks/store.PIPELINE_VERSION), so a change to parsing, matching or merging is re-runnable and diffable (CLAUDE.md conventions; PR #573 review). Written by store.publish_cells(). Intended reader: a re-run diff. Migration 20261022T1200.'
+    rank_board:
+      reviewed: true
+      state: read
+    rank_high:
+      reviewed: true
+      state: read_not_by_query
+      why: 'The upper end of a tied rank range ("3-5"). Read by collect/benchmarks/store.py load_cells() through the _CELL_COLUMNS constant (a column list the audit cannot see in an f-string), so the next run compares it; the page shows the raw rank text instead, so the API no longer sends it (PR #573 review, rule 9). Migration 20261022T1200.'
+    rank_out_of:
+      reviewed: true
+      state: read
+    raw_model_name:
+      reviewed: true
+      state: read
+    raw_text:
+      reviewed: true
+      state: read
+    row_id:
+      reviewed: true
+      state: read
+    run_id:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_cells() through the _CELL_COLUMNS constant; the run that last decided the cell. Migration 20261022T1200.'
+    setting_not_stated:
+      reviewed: true
+      state: read
+    source_date:
+      reviewed: true
+      state: read
+    source_key:
+      reviewed: true
+      state: read
+    tied:
+      reviewed: true
+      state: read
+    updated_at:
+      reviewed: true
+      state: write_only
+      why: 'When the cell was last written. Written by collect/benchmarks/store.py publish_cells(); the page shows collected_at instead (when the source was read). Intended reader: the phase-2 cell detail view. Migration 20261022T1200.'
+    url:
+      reviewed: true
+      state: read
+    value:
+      reviewed: true
+      state: read_not_by_query
+      why: 'The value in one unit, used by the checks only and never shown (the page shows raw_text). Read by collect/benchmarks/store.py load_cells() through the _CELL_COLUMNS constant, which the changes stage diffs. Migration 20261022T1200.'
+    variant:
+      reviewed: true
+      state: read
+  bench_change:
+    actor:
+      reviewed: true
+      state: read
+    benchmark_key:
+      reviewed: true
+      state: read
+    change_type:
+      reviewed: true
+      state: read
+    changed_at:
+      reviewed: true
+      state: defaulted
+      why: 'When the change was recorded; DEFAULT now(). Read by judge/benchmarks.py table() (recent badges) and changelog(). Migration 20261022T1200.'
+    direction:
+      reviewed: true
+      state: read
+    id:
+      reviewed: true
+      state: read
+    metric:
+      reviewed: true
+      state: read
+    needs_review:
+      reviewed: true
+      state: read
+    new_raw:
+      reviewed: true
+      state: read
+      why: 'The new value as its source printed it. Written by store.write_changes(), read by judge/benchmarks.py changelog() and shown in the Changelog tab. Migration 20261022T1200.'
+    new_source:
+      reviewed: true
+      state: read
+    new_value:
+      reviewed: true
+      state: read
+      why: 'The value in one unit, written by store.write_changes() so a change is comparable across sources that print differently. Read by judge/benchmarks.py changelog() to size a move (a score moving 1 point or more is a "mover"); the page still shows old_raw/new_raw (raw values only, 2026-10-22). Migration 20261022T1200.'
+    note:
+      reviewed: true
+      state: read
+    old_raw:
+      reviewed: true
+      state: read
+      why: 'The old value as its source printed it. Written by collect/benchmarks/store.py write_changes(), read by judge/benchmarks.py changelog() and shown in the Changelog tab. Migration 20261022T1200.'
+    old_source:
+      reviewed: true
+      state: read
+    old_value:
+      reviewed: true
+      state: read
+      why: 'The value in one unit, written by store.write_changes() so a change is comparable across sources that print differently. Read by judge/benchmarks.py changelog() to size a move (a score moving 1 point or more is a "mover"); the page still shows old_raw/new_raw (raw values only, 2026-10-22). Migration 20261022T1200.'
+    rank_out_of_new:
+      reviewed: true
+      state: read
+      why: 'How many entries the board had when the new rank was read; shown on the Changelog next to the rank. Migration 20261022T1200.'
+    rank_out_of_old:
+      reviewed: true
+      state: read
+      why: 'How many entries the board had, written by store.write_changes() and shown on the Changelog ("34 of 49 -> 16 of 30") so a rank change caused only by board growth can be told apart (doc 22.2 #12). Migration 20261022T1200.'
+    reason:
+      reviewed: true
+      state: read
+    row_id:
+      reviewed: true
+      state: read
+    source_date:
+      reviewed: true
+      state: read
+      why: 'The source''s own date for the new value, written by store.write_changes(); judge/benchmarks.py changelog() uses it to tag a fresh result (dated recently) apart from a backfill. Migration 20261022T1200.'
+    run_id:
+      reviewed: true
+      state: read
+  bench_name_decision:
+    action:
+      reviewed: true
+      state: read
+      why: 'alias | new_row | ignore. Written by judge/benchmarks.py decide(), read by collect/benchmarks/store.py load_name_decisions() which the runner applies, and by unmatched() for the Decisions list. Migration 20261022T1200.'
+    actor:
+      reviewed: true
+      state: read
+      why: 'Who decided. Written by decide(), read by unmatched() for the Decisions list. Migration 20261022T1200.'
+    created_at:
+      reviewed: true
+      state: read
+      why: 'When the decision was made. Written by decide() on update, read by unmatched() and load_name_decisions() for their order. Migration 20261022T1200.'
+    name:
+      reviewed: true
+      state: read
+      why: 'The name as shown in the Unmatched list. Written by decide(), read by load_name_decisions() (an alias or a new row is made from it) and unmatched(). Migration 20261022T1200.'
+    name_key:
+      reviewed: true
+      state: read
+      why: 'The normalised name, the key. Written by decide(), read by load_name_decisions(), unmatched() and undo_decision(). Migration 20261022T1200.'
+    target_model_id:
+      reviewed: true
+      state: read
+      why: 'For alias: the tracked or registry model the name is. Written by decide(), read by load_name_decisions() and unmatched(). Migration 20261022T1200.'
+  bench_observation:
+    benchmark_key:
+      reviewed: true
+      state: read
+    collected_at:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    metric:
+      reviewed: true
+      state: read
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: 'The pipeline that wrote the row (collect/benchmarks/store.PIPELINE_VERSION), so a change to parsing, matching or merging is re-runnable and diffable (CLAUDE.md conventions; PR #573 review). Written by store.replace_source_observations(). Intended reader: a re-run diff. Migration 20261022T1200.'
+    priority:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    rank_board:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    rank_high:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    rank_out_of:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    raw_model_name:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    raw_text:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    row_id:
+      reviewed: true
+      state: read
+    run_id:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    setting_not_stated:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    source_date:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    source_key:
+      reviewed: true
+      state: read
+    stale:
+      reviewed: true
+      state: read
+    tied:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    url:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    value:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+    variant:
+      reviewed: true
+      state: read_not_by_query
+      why: 'Read by collect/benchmarks/store.py load_observations() through the _OBS_COLUMNS constant (a column list the audit cannot see in an f-string); merge.py uses it to pick each cell''s value. Migration 20261022T1200.'
+  bench_review_item:
+    benchmark_key:
+      reviewed: true
+      state: read
+    check_code:
+      reviewed: true
+      state: read
+    created_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(). Read by judge/benchmarks.py review_items() for the Review tab. Migration 20261022T1200.'
+    id:
+      reviewed: true
+      state: read
+    message:
+      reviewed: true
+      state: read
+    metric:
+      reviewed: true
+      state: read
+    row_id:
+      reviewed: true
+      state: read
+    run_id:
+      reviewed: true
+      state: read
+    severity:
+      reviewed: true
+      state: read
+    source_key:
+      reviewed: true
+      state: read
+    status:
+      reviewed: true
+      state: read
+      why: 'DEFAULT ''open''; resolving an item (accept/override/suppress) is a phase-2 admin edit. Read by collect/benchmarks/store.py write_review_items() (an item already open is not added again) and count_open_review_items(), and by judge/benchmarks.py review_items() for the Review tab. Migration 20261022T1200.'
+  bench_row:
+    auto_created:
+      reviewed: true
+      state: write_only
+      why: 'True for a setting row the run created (doc 6.1). Written by collect/benchmarks/store.py ensure_row(); intended reader: the phase-2 admin row view (hide/merge rows). Migration 20261022T1200.'
+    dated:
+      reviewed: true
+      state: read
+      why: 'The release date as the source wrote it, for a dated release row. Written by collect/benchmarks/store.py ensure_row(), read by judge/benchmarks.py table() to nest the row under its model. Migration 20261022T1200.'
+    display_label:
+      reviewed: true
+      state: read
+    first_seen_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(): when a setting row was first created. Intended reader: the phase-2 admin row view; nothing reads it yet. Migration 20261022T1200.'
+    first_seen_source:
+      reviewed: true
+      state: write_only
+      why: 'The source that first published the setting. Written by store.ensure_row(); the changelog''s variant_added note carries the same fact for the page. Intended reader: the phase-2 admin row view. Migration 20261022T1200.'
+    host_model_id:
+      reviewed: true
+      state: read
+    row_id:
+      reviewed: true
+      state: read
+    setting:
+      reviewed: true
+      state: read
+  bench_run:
+    dry_run:
+      reviewed: true
+      state: read
+    finished_at:
+      reviewed: true
+      state: read
+    id:
+      reviewed: true
+      state: read
+    log_text:
+      reviewed: true
+      state: read
+    report:
+      reviewed: true
+      state: read
+    request_id:
+      reviewed: true
+      state: read
+    scope:
+      reviewed: true
+      state: read
+    started_at:
+      reviewed: true
+      state: read
+    status:
+      reviewed: true
+      state: read
+    trigger:
+      reviewed: true
+      state: read
+  bench_snapshot:
+    body_gz:
+      reviewed: true
+      state: read
+    content_hash:
+      reviewed: true
+      state: read
+    fetched_at:
+      reviewed: true
+      state: read
+    final_url:
+      reviewed: true
+      state: read
+    http_status:
+      reviewed: true
+      state: read
+    id:
+      reviewed: true
+      state: read
+    method:
+      reviewed: true
+      state: read
+    run_id:
+      reviewed: true
+      state: read
+    size_bytes:
+      reviewed: true
+      state: write_only
+      why: 'Size of the saved page before gzip. Written by store.save_snapshot(); the run report carries size_bytes per source for the page. Intended reader: a snapshot list in phase 2. Migration 20261022T1200.'
+    source_key:
+      reviewed: true
+      state: read
+    url:
+      reviewed: true
+      state: read
+  bench_unmatched:
+    base_key:
+      reviewed: true
+      state: read
+      why: 'base_name normalised, the key a decision is stored under. Written by store.replace_source_unmatched(), read by judge/benchmarks.py unmatched() to group names and hide decided ones. Migration 20261022T1200.'
+    base_name:
+      reviewed: true
+      state: read
+      why: 'The name without a setting or date at its end. Written by store.replace_source_unmatched(), read by judge/benchmarks.py unmatched() as the group name on the Unmatched tab. Migration 20261022T1200.'
+    first_seen:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(). Intended reader: the phase-2 alias-upkeep view; the Unmatched tab shows last_seen and seen_count. Migration 20261022T1200.'
+    last_seen:
+      reviewed: true
+      state: write_only
+      why: 'When a source last listed the name. Written by store.replace_source_unmatched(); the Unmatched tab shows the sources instead. Intended reader: an age filter on that tab. Migration 20261022T1200.'
+    raw_name:
+      reviewed: true
+      state: read
+    similar_to:
+      reviewed: true
+      state: read
+      why: 'For reason similar_to_registry, the registry/tracked model ids the name is very close to (match.Resolver.similar). Written by store.replace_source_unmatched(), read by judge/benchmarks.py unmatched() for the Same model as buttons. Migration 20261022T1200.'
+    reason:
+      reviewed: true
+      state: read
+    seen_count:
+      reviewed: true
+      state: read
+    source_key:
+      reviewed: true
+      state: read
   blog_generation_run:
     cost_usd:
       reviewed: false

@@ -1,0 +1,71 @@
+# Test-only sources. Never read by a real run: tests/test_benchmarks.py adds
+# them to a copy of the shipped config. `table_fixture` exercises the HTML-table
+# reader with a printed board (row-order ranks, a skipped details row);
+# `json_fixture` exercises embedded-JSON tables with dates, a stated test setup,
+# a re-published table at a lower priority and the "latest" duplicates policy.
+sources:
+  - key: table_fixture
+    label: "Table fixture"
+    kind: leaderboard
+    priority: 80
+    enabled: false
+    why_disabled: "Test fixture."
+    method: static
+    url: https://example.test/table
+    license: "Test fixture."
+    attribution: "Table fixture"
+    tables:
+      - locate: { type: html_table, must_contain: "Percent correct", skip_row_class: details-row }
+        model_column: "Model"
+        benchmark_map:
+          "Percent correct": { benchmark: fx_coding, metric: score, scale: percent }
+        rank: { benchmark: fx_coding, from: row_order, board: "fixture/table" }
+
+  - key: json_fixture
+    label: "JSON fixture"
+    kind: evaluator
+    priority: 70
+    enabled: false
+    why_disabled: "Test fixture."
+    method: static
+    url: https://example.test/json
+    license: "Test fixture."
+    attribution: "JSON fixture"
+    tables:
+      - locate: { type: embedded_json, script_id: gpqa_diamond }
+        model_field: "Model version"
+        date_field: "Started at"
+        benchmark_map:
+          "mean_score": { benchmark: gpqa_diamond, metric: score, scale: fraction }
+      - locate: { type: embedded_json, script_id: fx_math_a }
+        model_field: "Model version"
+        date_field: "Started at"
+        benchmark_map:
+          "mean_score": { benchmark: fx_math_a, metric: score, scale: fraction }
+      - locate: { type: embedded_json, script_id: fx_math_b }
+        model_field: "Model version"
+        date_field: "Started at"
+        benchmark_map:
+          "mean_score": { benchmark: fx_math_b, metric: score, scale: fraction }
+      - locate: { type: embedded_json, script_id: fx_math_c }
+        model_field: "Model version"
+        date_field: "Started at"
+        benchmark_map:
+          "mean_score": { benchmark: fx_math_c, metric: score, scale: fraction }
+      # The evaluator's own run, in its own harness; a model run twice is a
+      # re-run of the same setup, so the newest run is taken.
+      - locate: { type: embedded_json, script_id: swe_bench_verified }
+        model_field: "Model version"
+        date_field: "Started at"
+        variant: "fixture harness"
+        duplicates: latest
+        benchmark_map:
+          "mean_score": { benchmark: swe_bench_verified, metric: score, scale: fraction }
+      # Numbers the evaluator re-publishes from the benchmark's own authors, so
+      # they rank as re-published (60), below the original board.
+      - locate: { type: embedded_json, script_id: hle_external }
+        model_field: "Model version"
+        priority: 60
+        duplicates: latest
+        benchmark_map:
+          "Accuracy": { benchmark: hle, metric: score, scale: fraction }
