@@ -97,7 +97,7 @@ def test_a_second_load_changes_nothing(conn):
     conn.commit()
 
     again = load_source_rows(conn)
-    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 37)
+    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 38)
     assert again.changed_columns == {}
 
 
@@ -110,7 +110,7 @@ def test_a_changed_ruling_shows_up_as_one_updated_row(conn):
     conn.commit()
 
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 36)
+    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 37)
     assert report.changed_columns == {"blog:hamel.dev": ["tos_notes"]}
 
 
