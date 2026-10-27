@@ -1,0 +1,124 @@
+# The Benchmarks page's scraper, as a GitHub Action (2026-10-27, Parvathi).
+#
+# A full run reads all 23 sources (contract/benchmarks/sources.yaml) and
+# publishes the table to the shared database - the same command as a run from
+# a laptop: `python -m collect.cli benchmarks run --trigger scheduled`.
+#
+# CHROMIUM LIVES ONLY ON THE RUNNER. Four sources build their table in the
+# browser (ARC Prize, LiveBench, MathArena, the MMLU-Pro Space). The backend
+# image has no browser and keeps none (the team, 2026-10-27: "not now" for the
+# image); this job installs the `benchmarks-browser` extra and Chromium for the
+# one run, on GitHub's throwaway machine. The site is never touched.
+#
+# TWICE A WEEK, AND A PERSON'S SWITCH. The schedule does nothing unless the
+# repository variable BENCHMARKS_SCHEDULE_ENABLED is `1` - set it after a manual
+# run (Actions > Benchmarks > Run workflow) has read well from GitHub's
+# machines. A manual run always runs. A source a site refuses from a runner's
+# address keeps its previous values, and the run log says which and why.
+#
+# ONE RUN AT A TIME. The run takes a database lock (collect/benchmarks/store.py),
+# so a scheduled run and the page's Run button cannot overlap; the concurrency
+# group below also queues a second dispatch instead of starting it.
+#
+# NOT BESIDE THE OTHER JOBS. 01:30 UTC Tuesday and Friday is clear of the
+# registry poll (05:23, 17:23), the merged-PR check (06:17), the topic harvest
+# (19:00), the nightly fetches (20:30) and the Monday jobs. The run writes only
+# the bench_ tables, which no other job touches.
+#
+# THE LOGS ARE PUBLIC. The run prints source names, counts and its decisions -
+# no database host, machine name or key (checked on run #2's log, 2026-10-27).
+# No artifacts are uploaded; the full log is saved with the run in the database
+# and shown on the page.
+#
+# SET BEFORE THE SCHEDULE (repository settings - names only here):
+#   secrets    STAGING_DATABASE_URL (exists) - the shared database the site reads
+#   variables  USER_AGENT (exists), BENCHMARKS_SCHEDULE_ENABLED=1 - last.
+
+name: Benchmarks
+
+on:
+  schedule:
+    # 01:30 UTC = 07:00 IST, Tuesday and Friday. GitHub may start a scheduled
+    # run late under load; nothing here depends on the minute.
+    - cron: "30 1 * * 2,5"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "all (default), one source key, or one benchmark key"
+        required: false
+        default: "all"
+      dry_run:
+        description: "Read and compare, publish nothing"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmarks
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # Fetching stops at module_settings.yaml `run_minutes` (20); publishing to
+    # the shared database took ~28 min from a laptop on 2026-10-27.
+    timeout-minutes: 90
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      USER_AGENT: ${{ vars.USER_AGENT }}
+      BENCHMARKS_SCHEDULE_ENABLED: ${{ vars.BENCHMARKS_SCHEDULE_ENABLED }}
+      SCOPE: ${{ inputs.scope }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Is this run switched on and configured?
+        id: gate
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$BENCHMARKS_SCHEDULE_ENABLED" != "1" ]; then
+            echo "::notice::BENCHMARKS_SCHEDULE_ENABLED is not 1 - nothing read. This is the switch, not a failure."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=""
+          [ -n "$DATABASE_URL" ] || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$USER_AGENT" ]   || missing="$missing USER_AGENT"
+          if [ -n "$missing" ]; then
+            echo "::error::benchmarks run not configured:$missing"
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v5
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install, with the browser extra
+        if: steps.gate.outputs.enabled == 'true'
+        run: pip install -e ".[benchmarks-browser]"
+
+      - name: Install Chromium for this run only
+        if: steps.gate.outputs.enabled == 'true'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run the benchmarks scraper
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          scope="${SCOPE:-all}"
+          if ! printf '%s' "$scope" | grep -Eq '^[a-z0-9_]+$'; then
+            echo "::error::scope must be 'all' or one source/benchmark key, got: $scope"
+            exit 1
+          fi
+          trigger=manual_run
+          [ "${{ github.event_name }}" = "schedule" ] && trigger=scheduled
+          args="--trigger $trigger --actor github-actions --scope $scope"
+          [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
+          python -m collect.cli benchmarks run $args
