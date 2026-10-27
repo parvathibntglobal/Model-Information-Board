@@ -103,6 +103,7 @@ export const PROTOTYPES = {
   '/blog/measure-developer-productivity-ai': { file: 'measure-developer-productivity-ai', artifact: 'https://claude.ai/artifact/Vgu3LkaSxjcPmEESmxzfBk' },
   '/blog/developer-experience-metrics': { file: 'developer-experience-metrics', artifact: 'https://claude.ai/artifact/Ung7TRao4PaUmSpoLDbMZJ' },
   '/ai-coding-analytics': { file: 'ai-coding-analytics', artifact: 'https://claude.ai/artifact/BgJQA795gFVyAQLTpazzLK' },
+  '/engineering-intelligence': { file: 'engineering-intelligence', artifact: 'https://claude.ai/artifact/TmPhBF3zMcrMyQhtKS2WJQ' },
 }
 // One lazy chunk per prototype, downloaded only when it is shown.
 const PROTOTYPE_FILES = import.meta.glob('./prototypes/*.html', { query: '?raw', import: 'default' })

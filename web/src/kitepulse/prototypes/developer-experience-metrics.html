@@ -212,8 +212,6 @@ td .x:hover{color:var(--bad)}
 details.faq{border-bottom:1px solid var(--line);padding-block:14px}
 details.faq summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
 details.faq p{margin-top:8px;color:var(--muted)}
-.sources{margin:0;padding-left:1.2em;display:grid;gap:8px;font-size:.92rem}
-.sources small{color:var(--muted)}
 body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
 
 @media (max-width:640px){
@@ -397,17 +395,9 @@ body > footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border
     <div class="seo"><b>SEO</b>The keyword sheet maps no FAQ or AEO rows to this page. These ten questions are ours, written from the brief's angle and common phrasings; check them against "People also ask" before publishing. FAQPage JSON-LD carries the same text.</div>
   </section>
 
-  <section class="step" id="sources">
-    <h2>Sources</h2>
-    <ol class="sources">
-      <li><a href="https://doi.org/10.1145/3453928" rel="noopener">Forsgren, Storey, Maddila, Zimmermann, Houck, Butler. The SPACE of Developer Productivity. Communications of the ACM 64(6), June 2021</a> <small>read 22 Oct 2026; also in ACM Queue 19(1), 2021 (<a href="https://www.microsoft.com/en-us/research/publication/the-space-of-developer-productivity-theres-more-to-it-than-you-think/" rel="noopener">Microsoft Research page</a>)</small></li>
-      <li><a href="https://queue.acm.org/detail.cfm?id=3595878" rel="noopener">Noda, Storey, Forsgren, Greiler. DevEx: What Actually Drives Productivity. ACM Queue 21(2), March–April 2023</a> <small>read 22 Oct 2026</small></li>
-      <li><a href="https://newsletter.getdx.com/p/introducing-the-dx-core-4" rel="noopener">Abi Noda. Introducing the DX Core 4. DX newsletter, 10 December 2024</a> <small>read 22 Oct 2026</small></li>
-    </ol>
-  </section>
 </main>
 
-<footer><div class="wrap">Prototype of the /blog/developer-experience-metrics page. The sample session and the pre-filled pulse-check answers are examples. Effort ratings are our estimates. Framework dimensions and named metrics are from the sources listed, read 22 Oct 2026.</div></footer>
+<footer><div class="wrap">Prototype of the /blog/developer-experience-metrics page. The sample session and the pre-filled pulse-check answers are examples. Effort ratings are our estimates. Framework dimensions and named metrics are from the SPACE and DevEx papers and DX's DX Core 4 announcement, read 22 Oct 2026; sources in data/devex-frameworks.json.</div></footer>
 
 <script>
 (function(){

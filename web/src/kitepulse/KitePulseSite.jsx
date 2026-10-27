@@ -3,6 +3,10 @@ import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { useHead } from '../seo/head'
 import { FOOTER, MENU, SECTIONS, isMissingMain, sitePath, useKitePulse, usePrototype } from './site'
 import { KITE_PULSE_OPEN } from './status'
+import {
+  CostByProject, DayTimeline, HoneycombRipple, HowItWorks, KpiTiles, PersonalView, PlanHeadroom, ProjectHealth, Reveal, SampleBadge,
+  Screenshot, SessionsByTool, dashboard, useInView,
+} from './HomeCharts'
 import './site.css'
 
 /**
@@ -23,7 +27,9 @@ import './site.css'
  * ⚠ THE HOME PAGE'S WORDS ARE THE PRODUCT GUIDE'S, VERBATIM. The headline is
  * the one the keyword sheet plans (row 1, Content Gap / Angle). Nothing here
  * describes the product in words the guide does not use; what is not built yet
- * (the sample dashboard, demo booking) says so where it would be.
+ * (demo booking) says so where it would be. The charts are HomeCharts.jsx and
+ * their figures `data/home-dashboard.json`, badged "Sample data" until real
+ * figures replace the placeholders.
  *
  * What a page shows depends on how far it has got:
  *   prototype          the prototype itself, running, in a sandboxed frame
@@ -248,24 +254,44 @@ const PROBLEMS = [
 ]
 
 // From the Product Guide, "Key features": one tab per group, its own words.
+// `Charts` is what the tab shows beside them, drawn from data/home-dashboard.json.
 const FEATURE_TABS = [
-  { id: 'usage', label: 'Usage & cost', links: ['/ai-cost-tracking', '/plan-headroom', '/shadow-ai'], points: [
+  { id: 'usage', label: 'Usage & cost', Charts: () => <><CostByProject /><PlanHeadroom /></>,
+    links: ['/ai-cost-tracking', '/plan-headroom', '/shadow-ai'], points: [
     'Team AI Usage: tokens used per developer, per tool and per period, with an estimated cost per tool where it can be worked out.',
     'Plan headroom (a tab on Team AI Usage): who is close to a Claude plan limit (the 5-hour window, the weekly window, or a model\'s weekly window), worst first.',
     'Tool Accounts: how many separate accounts each AI tool is used under. It reveals shared logins, or one person holding two accounts.',
   ] },
-  { id: 'team', label: 'Team', links: ['/features', '/engineering-intelligence'], points: [
+  { id: 'team', label: 'Team', Charts: DayTimeline, links: ['/features', '/engineering-intelligence'], points: [
     'Org Overview is a live control room: who is online, coding, idle or offline, sessions today, active time, a timeline of each person\'s day, and their current project.',
     'Collaboration shows who works on what together: each shared project, the people contributing, and how many sessions each spent there.',
   ] },
-  { id: 'projects', label: 'Projects', links: ['/features'], points: [
+  { id: 'projects', label: 'Projects', Charts: ProjectHealth, links: ['/features'], points: [
     'Organization Projects lists every project with its health (active, stable or dormant), sessions, contributors and last activity.',
     'Duplicate Detection groups folders that look like the same repository on different machines, and offers to merge them.',
   ] },
-  { id: 'personal', label: 'Personal', links: ['/features'], points: [
+  { id: 'personal', label: 'Personal', Charts: PersonalView, links: ['/features'], points: [
     'My Scorecard & Insights shows active hours, sessions, messages, lines changed, commits and projects, led by a "Top 3 to act on" list.',
     'Working style: a label such as builder, explorer, debugger or communicator, worked out from the person\'s own tool mix.',
   ] },
+]
+
+// Under the hero buttons. From the Product Guide: "What makes it valuable" and
+// the FAQ on which computers it runs on.
+const TRUST = [
+  'Runs on the team\'s own server',
+  'Works fully without any AI service',
+  'Windows and macOS',
+]
+
+// From the Product Guide, "How it works at a glance" and "Getting started".
+const STEPS = [
+  ['A desktop program on each developer\'s computer',
+    'Picks up the session history those assistants already keep, strips out secrets, and sends it to the team\'s own Kite Pulse server.'],
+  ['A server the team runs',
+    'On the team\'s own network, or on a cloud server. Data goes only to the server the team configured; there is no vendor cloud in between.'],
+  ['A web console everyone signs in to',
+    'Turns those sessions into a clear picture: who is working on what, how AI tools are used, what they cost, and where work gets stuck.'],
 ]
 
 // From the Product Guide, "What the desktop program reads, and why".
@@ -299,25 +325,66 @@ function Home({ model }) {
   const tools = pagesOf(model, ['Integrations'])
   const guides = pagesOf(model, ['Guides & tools'])
   const home = byUrl('/')
+  const [consoleRef, consoleIn] = useInView(0.2)
 
   return (
     <>
       <section className="kps-hero">
+        <HoneycombRipple />
         <div className="kps-wrap kps-hero-in">
-          {home?.main && <span className="kps-eyebrow">{home.main}</span>}
-          <h1>AI coding analytics: see how your team really uses AI coding assistants</h1>
-          <p className="kps-lede">
-            Kite Pulse shows a team how its software is really being built, now that much of that work
-            happens in conversation with AI coding assistants.
-          </p>
-          <div className="kps-row">
-            <Link to="#book-a-demo" className="kps-btn">Book a demo</Link>
-            <Link to="#platform" className="kps-btn kps-btn-ghost">See the platform</Link>
+          <div className="kps-hero-copy">
+            {home?.main && <span className="kps-eyebrow">{home.main}</span>}
+            <h1>AI coding analytics: see how your team <span className="kps-mark">really uses</span> AI coding assistants</h1>
+            <p className="kps-lede">
+              Kite Pulse shows a team how its software is really being built, now that much of that work
+              happens in conversation with AI coding assistants.
+            </p>
+            <div className="kps-row">
+              <Link to="#book-a-demo" className="kps-btn">Book a demo</Link>
+              <Link to="#platform" className="kps-btn kps-btn-ghost">See the platform</Link>
+            </div>
+            <ul className="kps-trust">
+              {TRUST.map((t) => <li key={t}>{t}</li>)}
+            </ul>
+          </div>
+          <div ref={consoleRef} className={`kps-console${consoleIn ? ' is-in' : ''}`} aria-label="Sample of the Kite Pulse console">
+            <div className="kps-console-bar">
+              <span aria-hidden="true"><i /><i /><i /></span>
+              <b>Org Overview</b>
+              <span className="kps-live"><i aria-hidden="true" />Live</span>
+              {dashboard.sample && <SampleBadge />}
+            </div>
+            <div className="kps-console-body">
+              <KpiTiles run={consoleIn} />
+              <div className="kps-console-chart">
+                <span className="kps-console-h">AI sessions per day, by tool</span>
+                <SessionsByTool bare />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="kps-band" id="problem">
+      <section className="kps-strip" id="integrations">
+        <div className="kps-wrap kps-strip-in">
+          <span className="kps-eyebrow">Collects sessions from</span>
+          {/* Two copies side by side scroll as one loop; the second is hidden from
+              screen readers and the keyboard, so each tool is announced once. */}
+          <div className="kps-marquee">
+            <div className="kps-marquee-track">
+              {[0, 1].map((copy) => (
+                <div key={copy} className="kps-strip-tools" aria-hidden={copy ? 'true' : undefined}>
+                  {tools.map((p) => (
+                    <Link key={p.url} to={sitePath(p.url)} tabIndex={copy ? -1 : undefined}>{linkName(p)}</Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Reveal className="kps-band" id="problem">
         <div className="kps-wrap kps-stack">
           <div className="kps-stack-s">
             <span className="kps-eyebrow">The problem</span>
@@ -326,19 +393,19 @@ function Home({ model }) {
               Organisations are spending heavily on these tools but have no truthful way to see what they get back.
             </p>
           </div>
-          <div className="kps-grid kps-grid-2">
+          <ol className="kps-problems">
             {PROBLEMS.map(([title, today, helps]) => (
-              <div key={title} className="kps-panel">
+              <li key={title}>
                 <h3>{title}</h3>
                 <p className="kps-muted">{today}</p>
-                <p><b>Kite Pulse:</b> {helps}</p>
-              </div>
+                <p className="kps-helps">{helps}</p>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
-      </section>
+      </Reveal>
 
-      <section className="kps-band" id="platform">
+      <Reveal className="kps-band" id="platform">
         <div className="kps-wrap kps-stack">
           <div className="kps-stack-s">
             <span className="kps-eyebrow">The platform</span>
@@ -351,7 +418,8 @@ function Home({ model }) {
               </button>
             ))}
           </div>
-          <div className="kps-feature" role="tabpanel">
+          {/* Keyed by tab, so a switch fades the panel in and its charts grow again. */}
+          <div key={tab} className="kps-feature" role="tabpanel">
             <div className="kps-stack-s">
               <ul className="kps-points">{feature.points.map((pt) => <li key={pt}>{pt}</li>)}</ul>
               <div className="kps-row">
@@ -360,15 +428,42 @@ function Home({ model }) {
                 ))}
               </div>
             </div>
-            <div className="kps-placeholder" role="img" aria-label="Sample dashboard, not built yet">
-              <span>Sample dashboard</span>
-              <small>Placeholder. The clickable sample dashboard the keyword sheet plans for the home page is not built yet.</small>
-            </div>
+            <div className="kps-feature-charts"><feature.Charts /></div>
           </div>
         </div>
-      </section>
+      </Reveal>
 
-      <section className="kps-band" id="privacy">
+      <Reveal className="kps-band" id="how-it-works">
+        <div className="kps-wrap kps-stack">
+          <div className="kps-stack-s">
+            <span className="kps-eyebrow">How it works</span>
+            <h2>Kite Pulse has three parts: a desktop program on each developer&apos;s computer, a server the team runs, and a web console everyone signs in to.</h2>
+          </div>
+          <HowItWorks steps={STEPS} />
+          <p>
+            Only new, secret-free, encrypted activity leaves a computer, and only after the developer confirms their
+            projects. The server turns it into figures that people read in the console, or that an approved AI
+            assistant can query.
+          </p>
+        </div>
+      </Reveal>
+
+      <Reveal className="kps-band" id="console">
+        <div className="kps-wrap kps-stack">
+          <div className="kps-stack-s">
+            <span className="kps-eyebrow">Inside the console</span>
+            <h2>One view across many tools</h2>
+            <p className="kps-lede">
+              Ten AI coding tools in one consistent picture, instead of ten separate dashboards or none.
+            </p>
+          </div>
+          <div className="kps-shots">
+            {dashboard.screenshots.map((s) => <Screenshot key={s.id} shot={s} />)}
+          </div>
+        </div>
+      </Reveal>
+
+      <Reveal className="kps-band" id="privacy">
         <div className="kps-wrap kps-stack">
           <div className="kps-stack-s">
             <span className="kps-eyebrow">Privacy</span>
@@ -391,25 +486,10 @@ function Home({ model }) {
             ))}
           </div>
         </div>
-      </section>
-
-      <section className="kps-band" id="integrations">
-        <div className="kps-wrap kps-stack">
-          <div className="kps-stack-s">
-            <span className="kps-eyebrow">Integrations</span>
-            <h2>One view across many tools</h2>
-            <p className="kps-lede">
-              Ten AI coding tools in one consistent picture, instead of ten separate dashboards or none.
-            </p>
-          </div>
-          <div className="kps-tools">
-            {tools.map((p) => <Link key={p.url} to={sitePath(p.url)} className="kps-tool">{linkName(p)}</Link>)}
-          </div>
-        </div>
-      </section>
+      </Reveal>
 
       {guides.length > 0 && (
-        <section className="kps-band" id="guides">
+        <Reveal className="kps-band" id="guides">
           <div className="kps-wrap kps-stack">
             <div className="kps-stack-s">
               <span className="kps-eyebrow">Guides &amp; tools</span>
@@ -420,10 +500,10 @@ function Home({ model }) {
                 .map((p) => <PageCard key={p.url} page={p} big={!!p.prototype} />)}
             </div>
           </div>
-        </section>
+        </Reveal>
       )}
 
-      <section className="kps-band" id="faq">
+      <Reveal className="kps-band" id="faq">
         <div className="kps-wrap kps-stack">
           <h2>Frequently asked questions</h2>
           <div className="kps-faq">
@@ -432,11 +512,12 @@ function Home({ model }) {
             ))}
           </div>
         </div>
-      </section>
+      </Reveal>
 
-      <section className="kps-band" id="book-a-demo">
+      <Reveal className="kps-band" id="book-a-demo">
         <div className="kps-wrap">
           <div className="kps-cta">
+            <HoneycombRipple />
             <h2>A single place to see AI-assisted development across people, projects and tools, running on a server the team controls.</h2>
             <div className="kps-row">
               <button type="button" className="kps-btn kps-btn-inv" disabled aria-describedby="demo-note">Book a demo</button>
@@ -444,7 +525,7 @@ function Home({ model }) {
             <small id="demo-note">Placeholder. There is no booking link yet.</small>
           </div>
         </div>
-      </section>
+      </Reveal>
     </>
   )
 }

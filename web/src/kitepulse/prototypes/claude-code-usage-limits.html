@@ -190,8 +190,6 @@ td.r,th.r{text-align:right}
 details.faq{border-bottom:1px solid var(--line);padding-block:14px}
 details.faq summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
 details.faq p{margin-top:8px;color:var(--muted)}
-.sources ol{margin:0;padding-left:1.3em;display:grid;gap:6px;font-size:.92rem}
-.sources li span{color:var(--muted)}
 footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
 
 @media (max-width:640px){
@@ -231,14 +229,14 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
     <nav class="toc" aria-label="Steps">
       <a href="#plan">1 Your plan</a><a href="#resets">2 Reset windows</a><a href="#left">3 What's left</a><a href="#fastest">4 What uses it fastest</a><a href="#reports">5 What engineers report</a><a href="#week">6 Plan your week</a><a href="#hit">7 I hit my limit</a><a href="#habits">8 Habits</a><a href="#team">9 Team view</a>
     </nav>
-    <div class="seo"><b>SEO</b>Title tag on build: "Claude Code usage limits explained | Kite Pulse" (46 characters). Main keyword "claude code usage limits" is in the H1, URL and first sentence. The bold first sentence is the definition Google snippets and AI answers quote. Every fact on this page comes from Anthropic's help center or Claude Code docs, numbered in Sources; no limit numbers are invented, because Anthropic publishes none.</div>
+    <div class="seo"><b>SEO</b>Title tag on build: "Claude Code usage limits explained | Kite Pulse" (46 characters). Main keyword "claude code usage limits" is in the H1, URL and first sentence. The bold first sentence is the definition Google snippets and AI answers quote. Every fact on this page comes from Anthropic's help center or Claude Code docs, each with its exact sentence and URL in data/claude-plans.json (no Sources list on the page, by decision 23 Oct 2026); no limit numbers are invented, because Anthropic publishes none.</div>
   </header>
 
   <!-- 1 -->
   <section class="step" id="plan" data-step>
     <div class="step-head"><div class="step-no">01</div><div>
       <h2>Claude weekly limits by plan: start with yours</h2>
-      <p>Which limits apply depends on how you pay for Claude Code. Pro and Max have a five-hour session limit and a weekly limit, shared across Claude and Claude Code.<sup><a href="#src-1">1</a></sup> Max 5x and Max 20x give five and twenty times Pro's per-session allowance.<sup><a href="#src-3">3</a></sup> Team and seat-based Enterprise seats draw from a per-seat allowance whose size depends on the seat tier.<sup><a href="#src-8">8</a></sup> With an API key you pay per token instead.<sup><a href="#src-8">8</a></sup> Anthropic does not publish fixed message or token counts for any plan.</p>
+      <p>Which limits apply depends on how you pay for Claude Code. Pro and Max have a five-hour session limit and a weekly limit, shared across Claude and Claude Code. Max 5x and Max 20x give five and twenty times Pro's per-session allowance. Team and seat-based Enterprise seats draw from a per-seat allowance whose size depends on the seat tier. With an API key you pay per token instead. Anthropic does not publish fixed message or token counts for any plan.</p>
     </div></div>
     <div class="tool">
       <div class="tool-label">Pick your plan</div>
@@ -252,7 +250,7 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
   <section class="step" id="resets" data-step>
     <div class="step-head"><div class="step-no">02</div><div>
       <h2>When do Claude limits reset? The 5-hour and weekly windows</h2>
-      <p>The <b>session limit</b> resets every five hours.<sup><a href="#src-2">2</a></sup> On Team and Enterprise seats Anthropic describes it as a rolling five-hour window.<sup><a href="#src-8">8</a></sup> The <b>weekly limit</b> is not rolling: it resets at a fixed time each week that is assigned to your account.<sup><a href="#src-3">3</a></sup> The help pages do not say exactly when a five-hour window starts, so read the reset times from Claude Code's <code>/usage</code> screen or claude.ai <b>Settings → Usage</b>, then set them below.</p>
+      <p>The <b>session limit</b> resets every five hours. On Team and Enterprise seats Anthropic describes it as a rolling five-hour window. The <b>weekly limit</b> is not rolling: it resets at a fixed time each week that is assigned to your account. The help pages do not say exactly when a five-hour window starts, so read the reset times from Claude Code's <code>/usage</code> screen or claude.ai <b>Settings → Usage</b>, then set them below.</p>
     </div></div>
     <div class="tool">
       <div class="tool-label">Reset timeline</div>
@@ -274,7 +272,7 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
   <section class="step" id="left" data-step>
     <div class="step-head"><div class="step-no">03</div><div>
       <h2>How close am I to the limit? Check your remaining usage</h2>
-      <p>In Claude Code, <code>/usage</code> shows your plan usage bars, activity stats and a usage breakdown,<sup><a href="#src-8">8</a></sup> and <code>/status</code> shows your remaining allocation.<sup><a href="#src-1">1</a></sup> On claude.ai the same bars are under Settings → Usage.<sup><a href="#src-5">5</a></sup> Enter the two percentages here to see whether today's session and this week's limit will last at your current pace. This is an estimate from your own numbers: usage is rarely even through a day.</p>
+      <p>In Claude Code, <code>/usage</code> shows your plan usage bars, activity stats and a usage breakdown, and <code>/status</code> shows your remaining allocation. On claude.ai the same bars are under Settings → Usage. Enter the two percentages here to see whether today's session and this week's limit will last at your current pace. This is an estimate from your own numbers: usage is rarely even through a day.</p>
     </div></div>
     <div class="tool">
       <div class="tool-label">Will my usage last?</div>
@@ -301,13 +299,13 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
   <section class="step" id="fastest" data-step>
     <div class="step-head"><div class="step-no">04</div><div>
       <h2>Why Claude Code usage runs out fast, and what uses it most</h2>
-      <p>Anthropic lists what drives usage: the length and complexity of your conversations, the features you use, the model, and the effort level.<sup><a href="#src-2">2</a></sup> In Claude Code the biggest driver is context: it sends your full conversation with every request, so a one-line question in a session that has been open all day still draws usage for the whole conversation.<sup><a href="#src-8">8</a></sup> Tick what sounds like your week to see the fixes Anthropic recommends for each.</p>
+      <p>Anthropic lists what drives usage: the length and complexity of your conversations, the features you use, the model, and the effort level. In Claude Code the biggest driver is context: it sends your full conversation with every request, so a one-line question in a session that has been open all day still draws usage for the whole conversation. Tick what sounds like your week to see the fixes Anthropic recommends for each.</p>
     </div></div>
     <div class="tool">
       <div class="tool-label">Check your habits</div>
       <div class="habits" id="habitList"></div>
       <div class="fixes" id="fixes" aria-live="polite"></div>
-      <p class="note">To see your own breakdown, run <code>/usage</code> in Claude Code: on Pro, Max, Team and Enterprise it attributes recent usage to skills, subagents, plugins and MCP servers, and recommends changes.<sup><a href="#src-8">8</a></sup></p>
+      <p class="note">To see your own breakdown, run <code>/usage</code> in Claude Code: on Pro, Max, Team and Enterprise it attributes recent usage to skills, subagents, plugins and MCP servers, and recommends changes.</p>
     </div>
     <div class="seo"><b>SEO</b>Covers "claude opus uses limit fast", "claude code subagents use too many tokens", "claude code parallel sessions usage limit", "claude code usage running out fast", "claude code large codebase token usage", "claude code usage spike" and "claude usage meter jumped". Each fix quotes the Claude Code docs.</div>
   </section>
@@ -347,7 +345,7 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
   <section class="step" id="hit" data-step>
     <div class="step-head"><div class="step-no">07</div><div>
       <h2>Claude Code limit reached: what to do now</h2>
-      <p>What you can do depends on which limit you hit. A session or weekly limit is shared across all models, so switching models with <code>/model</code> does not restore access; after an Opus or Sonnet limit, switching to a model outside that family does.<sup><a href="#src-8">8</a></sup> Pick the message you saw.</p>
+      <p>What you can do depends on which limit you hit. A session or weekly limit is shared across all models, so switching models with <code>/model</code> does not restore access; after an Opus or Sonnet limit, switching to a model outside that family does. Pick the message you saw.</p>
     </div></div>
     <div class="tool">
       <div class="tool-label">I hit my limit</div>
@@ -374,7 +372,7 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
   <section class="step" id="team" data-step>
     <div class="step-head"><div class="step-no">09</div><div>
       <h2>Team view: who is close to their Claude limit?</h2>
-      <p>Everything above helps one person. A lead needs to know who on the team is about to hit a limit before it costs them half a day. Anthropic's analytics dashboard shows daily active users, sessions and contribution metrics, and on Team and Enterprise the spend report covers usage-credit spend; usage inside the seat allowance is not metered in dollars.<sup><a href="#src-8">8</a></sup> Below is what a per-person headroom view looks like, using a sample team.</p>
+      <p>Everything above helps one person. A lead needs to know who on the team is about to hit a limit before it costs them half a day. Anthropic's analytics dashboard shows daily active users, sessions and contribution metrics, and on Team and Enterprise the spend report covers usage-credit spend; usage inside the seat allowance is not metered in dollars. Below is what a per-person headroom view looks like, using a sample team.</p>
     </div></div>
     <div class="tool">
       <div class="tool-label">Plan headroom, worst first <span class="sample">Sample team</span></div>
@@ -401,23 +399,9 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
   <section class="step" id="faq">
     <h2>Claude Code usage limits: questions</h2>
     <div id="faqList"></div>
-    <div class="seo"><b>SEO</b>All 18 FAQ rows mapped to this page in the keyword sheet, answered from the sources below. Marked up with FAQPage JSON-LD (moved into the head on build).</div>
+    <div class="seo"><b>SEO</b>All 18 FAQ rows mapped to this page in the keyword sheet, answered from Anthropic's pages recorded in data/claude-plans.json. Marked up with FAQPage JSON-LD (moved into the head on build).</div>
   </section>
 
-  <section class="step sources" id="sources">
-    <h2>Sources</h2>
-    <p class="note">Read on 22 October 2026. Anthropic's help pages carry no calendar dates, and limits change, so this guide is re-checked monthly.</p>
-    <ol>
-      <li id="src-1"><a href="https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan">Use Claude Code with your Pro or Max plan</a> <span>Claude Help Center</span></li>
-      <li id="src-2"><a href="https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work">How do usage and length limits work?</a> <span>Claude Help Center</span></li>
-      <li id="src-3"><a href="https://support.claude.com/en/articles/11049741-what-is-the-max-plan">What is the Max plan?</a> <span>Claude Help Center</span></li>
-      <li id="src-4"><a href="https://support.claude.com/en/articles/8325606-what-is-the-pro-plan">What is the Pro plan?</a> <span>Claude Help Center</span></li>
-      <li id="src-5"><a href="https://support.claude.com/en/articles/9797557-usage-limit-best-practices">Usage limit best practices</a> <span>Claude Help Center</span></li>
-      <li id="src-6"><a href="https://support.claude.com/en/articles/12429409-manage-usage-credits-for-paid-claude-plans">Manage usage credits for paid Claude plans</a> <span>Claude Help Center</span></li>
-      <li id="src-7"><a href="https://support.claude.com/en/articles/11845131-use-claude-code-with-your-team-or-enterprise-plan">Use Claude Code with your Team or Enterprise plan</a> <span>Claude Help Center</span></li>
-      <li id="src-8"><a href="https://code.claude.com/docs/en/costs">Manage costs effectively</a> <span>Claude Code docs</span></li>
-    </ol>
-  </section>
 </main>
 
 <footer><div class="wrap">Prototype of the /claude-code-usage-limits guide. Plan facts are quoted from Anthropic's pages as read on 22 October 2026. The sample team, its names and its usage figures are examples.</div></footer>
@@ -427,7 +411,7 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
 (function(){
   const $=id=>document.getElementById(id);
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const src=n=>`<sup><a href="#src-${n}">${n}</a></sup>`;
+  const src=()=>''; // citation markers removed 23 Oct 2026; sources live in data/claude-plans.json
 
   /* PLAN FACTS - copied from web/src/kitepulse/data/claude-plans.json (checked 2026-10-22).
      Every value is quoted or paraphrased from the numbered source; null means Anthropic does not publish it. */

@@ -72,7 +72,12 @@ paraphrase:
 summary:
   model: deepseek/deepseek-v4-flash
   reasoning_effort: none
-  prompt_version: "s2"
+  # s3 (2026-10-26): the prompt spells out the number rules the checks
+  # enforce - no dates or years, no number words, digits only from a report
+  # cited in the same paragraph, at most five words in a row from a report -
+  # and asks for half the word limit. On 2026-10-26, 11 of 26 models were
+  # refused all three s2 attempts, every one on those rules or on length.
+  prompt_version: "s3"
   # The newest reports a summary is written from. A model with more says so on
   # the page ("written from the newest N of M reports") - rule 7.
   max_reports: 400

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { health, coveragePage, listModels, adminRuns, blogPosts, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
@@ -360,6 +360,15 @@ const KITE_SECTIONS = [
     blurb: 'Pages, keywords and AI-answer tracking',
     render: () => <KitePulsePanel />,
   },
+  {
+    // A PAGE, NOT A PANEL: `href` opens the site at /kite-pulse in this window,
+    // as the header link it replaced did. A new browser tab would ask for
+    // sign-in again.
+    id: 'kite-site',
+    title: 'Site preview',
+    blurb: 'Open the Kite Pulse website',
+    href: '/kite-pulse',
+  },
 ]
 
 /**
@@ -384,7 +393,6 @@ const PROJECTS = [
     name: 'Kite Pulse',
     blurb: 'Kite Pulse SEO: pages, keywords and AI-answer tracking',
     sections: KITE_SECTIONS,
-    site: '/kite-pulse',
     // LOCKED while its team works inside it (kitepulse/status.js): the card
     // shows and cannot be opened, and no URL reaches its sections.
     locked: !KITE_PULSE_OPEN,
@@ -453,7 +461,9 @@ export default function Admin() {
   // No project named and no section that belongs to one: the project list.
   const project = OPENABLE.find((pr) => pr.id === params.get('p')) || (wanted && projectOf(wanted)) || null
   const sections = project ? project.sections : []
-  const active = project ? (sections.find((x) => x.id === wanted) || sections[0]) : null
+  // A section with `href` is a link out and has nothing to render here.
+  const active = project ? (sections.find((x) => x.id === wanted && !x.href) || sections[0]) : null
+  const navigate = useNavigate()
 
   // A LINK TO A LOW SECTION OPENS WITH ITS NAV ITEM IN VIEW. The nav scrolls
   // inside its own pane, so `?s=settings` would otherwise select an item the
@@ -527,7 +537,6 @@ export default function Admin() {
         <p className="muted">
           {/* The board's claim, not every project's: Kite Pulse reads its keyword sheet. */}
           {project.id === 'mib' && 'Read straight off the backend. Nothing on this page is synthesised.'}
-          {project.site && <Link to={project.site}>Open the {project.name} site preview →</Link>}
         </p>
       </div>
 
@@ -559,7 +568,7 @@ export default function Admin() {
                   key={sec.id}
                   type="button"
                   aria-current={sec.id === active.id ? 'page' : undefined}
-                  onClick={() => setParams(
+                  onClick={() => sec.href ? navigate(sec.href) : setParams(
                     sec.id === sections[0].id ? { p: project.id } : { p: project.id, s: sec.id },
                     // REPLACE, NOT PUSH. Switching panels is not navigation a
                     // reader wants to walk back through — Back should leave the

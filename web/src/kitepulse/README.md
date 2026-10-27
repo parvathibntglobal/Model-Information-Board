@@ -14,6 +14,9 @@ and nothing else). Code outside `web/` would not reach the deployed site.
 | File | What it is |
 |---|---|
 | `KitePulseSite.jsx` | The Kite Pulse website, previewed at `/kite-pulse`: header and menus, home page, section lists, every page, footer |
+| `HomeCharts.jsx` | The home page's charts, KPI tiles and screenshot slots (plain SVG, no chart library) |
+| `data/home-dashboard.json` | Every figure those charts show, and which screenshot goes where. Placeholders while `"sample": true`, and every chart says "Sample data" until it is false |
+| `screens/` | Console screenshots for the home page, named in `home-dashboard.json` |
 | `site.css` | The website's look, matching the prototype pages |
 | `KitePulsePanel.jsx` | Admin → **Kite Pulse SEO**: Overview, Pages (with each page's brief and preview), Keywords, AEO tracking, Competitors, Settings |
 | `admin.css` | Styles for that admin panel |
@@ -53,6 +56,14 @@ py -3.12 web/src/kitepulse/import_sheet.py
 URL (`/claude-code-usage-limits` becomes `claude-code-usage-limits.html`). Then
 add one line to `PROTOTYPES` in `site.js` with the page URL, file name and
 artifact link.
+
+**Real figures for the home page charts.** Replace the values in
+`data/home-dashboard.json` (keep its shape), say where they came from in
+`source`, then set `sample` to `false`.
+
+**A console screenshot.** Save it in `screens/` (png, jpg or webp) and put the
+file name in that screenshot's `file` in `data/home-dashboard.json`. A name with
+no file behind it shows "File not found" on the page, not an empty slot.
 
 **A proposed page was added to the sheet's Page Map.** Delete it from
 `PROPOSED` in `site.js`. Until you do, the sheet's entry wins anyway.
