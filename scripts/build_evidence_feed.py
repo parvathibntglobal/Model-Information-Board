@@ -228,6 +228,28 @@ def main(argv: list[str] | None = None) -> int:
                             else f"not stored - {out['refused']}"
                         )
                     )
+    return _flush_spend() if args.apply else 0
+
+
+def _flush_spend() -> int:
+    """Send the calls the shared spend table missed during the run (2026-10-26).
+
+    Every call is in this machine's spend file; the shared table is what every
+    machine's daily cap reads, and a slow connection mid-run skips it. One
+    patient attempt here, and if rows still did not get there the run SAYS SO
+    and exits 1 - spend the cap cannot see is not a quiet success.
+    """
+    from judge import spend_ledger
+
+    sent = spend_ledger.flush_unmirrored()
+    if sent.written:
+        print(f"spend: {sent.written} call(s) the shared ledger missed during the run, now sent")
+    left = spend_ledger.unmirrored_count()
+    if left:
+        print(f"spend: {left} call(s) are NOT in the shared ledger ({sent.reason or sent.status}); "
+              f"they are in {spend_ledger.ledger_path()} - run "
+              "`python scripts/backfill_telemetry.py --apply`", file=sys.stderr)
+        return 1
     return 0
 
 

@@ -3412,6 +3412,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # SPEND THE SHARED TABLE NEVER GOT (#393), said only when it happened. The
     # rows are in this machine's ledger file; every OTHER machine's cap is
     # short by them until the backfill runs.
+    # ONE PATIENT ATTEMPT FIRST (2026-10-26): a slow connection mid-run skips
+    # the shared table, so the calls it missed are sent here before counting.
+    spend_ledger.flush_unmirrored()
     unmirrored = spend_ledger.unmirrored_count() - unmirrored_before
     if unmirrored:
         detail += (
@@ -3711,7 +3714,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    run_id = args.run_id or f"{args.model_version_id}-{uuid.uuid4().hex[:8]}"
+    # NO SLASH IN THE ID (2026-10-26). It names the log file under var/fetch,
+    # and a canonical id like `deepseek/deepseek-v4-flash` made a directory
+    # nobody created: a hand run died before it started. The scheduler (#563)
+    # and the Admin button already replace it; this was the third path.
+    run_id = args.run_id or (
+        f"{args.model_version_id.replace('/', '_')}-{uuid.uuid4().hex[:8]}")
     # THE BACKEND DOES NOT READ THIS, AND THE COMMENT SAYING SO WAS WRONG.
     #
     # A bare `print(run_id)` stood here under "the backend reads this to know
