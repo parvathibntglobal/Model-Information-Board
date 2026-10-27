@@ -308,7 +308,6 @@ class Run:
                 http_status=got.http_status,
                 content=got.content,
                 content_hash=got.content_hash,
-                keep=int(self.config.settings["snapshots_kept_per_source"]),
             )
         return got.content, got.url
 

@@ -11,6 +11,7 @@ timeouts:
   browser_seconds: 45
   run_minutes: 20
 retries: 3
-snapshots_kept_per_source: 10
+# Fetched pages are kept once per distinct content and never deleted (raw
+# payloads are immutable; PR #573 review). There is no keep-N setting.
 log_dir: collect/benchmarks/logs     # one file per run (git-ignored)
 verbosity: normal                    # quiet | normal | verbose

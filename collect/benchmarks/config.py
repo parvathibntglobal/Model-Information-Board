@@ -367,7 +367,6 @@ def load(directory: Path = CONFIG_DIR) -> Config:
     for required in (
         "timeouts",
         "retries",
-        "snapshots_kept_per_source",
         "log_dir",
         "verbosity",
     ):

@@ -38,6 +38,7 @@ CREATE TABLE bench_run (
   -- run can be read on the page after the log file is gone.
   log_text      text,
   CONSTRAINT bench_run_status_ck CHECK (status IN ('running', 'ok', 'partial', 'error', 'dry_run')),
+  CONSTRAINT bench_run_trigger_ck CHECK (trigger IN ('manual_run', 'page_button', 'scheduled')),
   CONSTRAINT bench_run_finished_ck CHECK ((status = 'running') = (finished_at IS NULL))
 );
 CREATE INDEX bench_run_started_idx ON bench_run (started_at DESC);
@@ -64,7 +65,7 @@ CREATE INDEX bench_row_model_idx ON bench_row (host_model_id);
 -- can be re-parsed without fetching it again (doc 4, use_snapshot).
 CREATE TABLE bench_snapshot (
   id            bigserial PRIMARY KEY,
-  run_id        bigint NOT NULL REFERENCES bench_run (id) ON DELETE CASCADE,
+  run_id        bigint NOT NULL REFERENCES bench_run (id),
   source_key    text NOT NULL,
   method        text NOT NULL,
   url           text NOT NULL,
@@ -101,6 +102,9 @@ CREATE TABLE bench_observation (
   run_id              bigint NOT NULL REFERENCES bench_run (id),
   collected_at        timestamptz NOT NULL,
   stale               boolean NOT NULL DEFAULT false,
+  -- The pipeline that read it (collect/benchmarks/store.PIPELINE_VERSION): a
+  -- change to parsing, matching or merging is re-runnable and diffable.
+  pipeline_version    text NOT NULL,
   PRIMARY KEY (source_key, row_id, benchmark_key, metric),
   CONSTRAINT bench_observation_metric_ck CHECK (metric IN ('score', 'rank', 'rating'))
 );
@@ -127,6 +131,8 @@ CREATE TABLE bench_cell (
   needs_review        boolean NOT NULL DEFAULT false,
   run_id              bigint NOT NULL REFERENCES bench_run (id),
   updated_at          timestamptz NOT NULL DEFAULT now(),
+  -- As on bench_observation: the pipeline that published it.
+  pipeline_version    text NOT NULL,
   PRIMARY KEY (row_id, benchmark_key, metric),
   CONSTRAINT bench_cell_metric_ck CHECK (metric IN ('score', 'rank', 'rating'))
 );
@@ -161,7 +167,8 @@ CREATE TABLE bench_change (
   note             text,
   needs_review     boolean NOT NULL DEFAULT false,
   CONSTRAINT bench_change_type_ck CHECK (change_type IN
-    ('added', 'updated', 'removed', 'source_changed', 'variant_added'))
+    ('added', 'updated', 'removed', 'source_changed', 'variant_added')),
+  CONSTRAINT bench_change_direction_ck CHECK (direction IN ('better', 'worse', 'same'))
 );
 CREATE INDEX bench_change_run_idx ON bench_change (run_id);
 CREATE INDEX bench_change_at_idx ON bench_change (changed_at DESC);
@@ -182,7 +189,8 @@ CREATE TABLE bench_review_item (
   created_at     timestamptz NOT NULL DEFAULT now(),
   -- resolved: a later run that read the same source no longer raised it
   -- (the name now matches, the duplicate is decided, ...). Set by the run.
-  CONSTRAINT bench_review_status_ck CHECK (status IN ('open', 'accepted', 'overridden', 'rejected', 'resolved'))
+  CONSTRAINT bench_review_status_ck CHECK (status IN ('open', 'accepted', 'overridden', 'rejected', 'resolved')),
+  CONSTRAINT bench_review_severity_ck CHECK (severity IN ('flag', 'block'))
 );
 CREATE INDEX bench_review_status_idx ON bench_review_item (status, created_at DESC);
 

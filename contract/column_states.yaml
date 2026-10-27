@@ -103,6 +103,10 @@ columns:
     needs_review:
       reviewed: true
       state: read
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: 'The pipeline that wrote the row (collect/benchmarks/store.PIPELINE_VERSION), so a change to parsing, matching or merging is re-runnable and diffable (CLAUDE.md conventions; PR #573 review). Written by store.publish_cells(). Intended reader: a re-run diff. Migration 20261022T1200.'
     rank_board:
       reviewed: true
       state: read
@@ -259,6 +263,10 @@ columns:
     metric:
       reviewed: true
       state: read
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: 'The pipeline that wrote the row (collect/benchmarks/store.PIPELINE_VERSION), so a change to parsing, matching or merging is re-runnable and diffable (CLAUDE.md conventions; PR #573 review). Written by store.replace_source_observations(). Intended reader: a re-run diff. Migration 20261022T1200.'
     priority:
       reviewed: true
       state: read_not_by_query

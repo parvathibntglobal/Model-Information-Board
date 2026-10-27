@@ -1346,6 +1346,22 @@ class TestARun:
         last = conn.execute("SELECT max(run_id) FROM bench_change").fetchone()[0]
         assert last == 1 and "content unchanged" in out
 
+    def test_a_fetched_page_is_kept_once_per_content_and_never_deleted(self, conn):
+        # PR #573 review: keeping 10 per source deleted raw pages. Raw payloads
+        # are immutable and content-hash addressed.
+        count = "SELECT count(*) FROM bench_snapshot WHERE source_key = 'livebench_leaderboard'"
+        _run(conn, PAGES)
+        _run(conn, PAGES)  # same content: not stored again
+        assert conn.execute(count).fetchone()[0] == 1
+        for i in range(12):  # more distinct versions than the old limit of 10
+            page = _livebench({"GPT 6 Astra": 80 + i * 0.1, "Kimi K3": 70})
+            _run(conn, {**PAGES, "livebench_leaderboard": page})
+        assert conn.execute(count).fetchone()[0] == 13
+        versions = conn.execute(
+            "SELECT DISTINCT pipeline_version FROM bench_observation"
+        ).fetchall()
+        assert versions == [(store.PIPELINE_VERSION,)]
+
     def test_an_item_a_later_run_does_not_raise_is_resolved(self, conn):
         _run(conn, PAGES)
         open_before = conn.execute(

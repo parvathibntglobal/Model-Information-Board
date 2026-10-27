@@ -17,6 +17,12 @@ from typing import Any
 ADVISORY_LOCK = 724_201_022
 
 
+#: Carried by every observation and published cell (CLAUDE.md: every derived row
+#: carries pipeline_version). Bump it when parsing, matching, values or merging
+#: change what a page turns into, so the change is re-runnable and diffable.
+PIPELINE_VERSION = "benchmarks-1"
+
+
 @dataclass
 class StoredObservation:
     source_key: str
@@ -163,8 +169,14 @@ def save_snapshot(
     http_status: int | None,
     content: bytes,
     content_hash: str,
-    keep: int,
-) -> None:
+) -> bool:
+    """Keep the fetched page, once per distinct content (CLAUDE.md: raw payloads
+    are immutable and content-hash addressed). A page unchanged since its last
+    copy is not stored again; NO copy is ever deleted (PR #573 review: the old
+    keep-10 pruning deleted raw pages). True when a new copy was stored."""
+    last = last_snapshot_hash(conn, source_key)
+    if last == content_hash:
+        return False
     conn.execute(
         "INSERT INTO bench_snapshot (run_id, source_key, method, url, final_url, http_status, "
         "content_hash, size_bytes, body_gz) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
@@ -180,12 +192,7 @@ def save_snapshot(
             gzip.compress(content),
         ),
     )
-    conn.execute(
-        "DELETE FROM bench_snapshot WHERE source_key = %s AND id NOT IN ("
-        "SELECT id FROM bench_snapshot WHERE source_key = %s "
-        "ORDER BY fetched_at DESC, id DESC LIMIT %s)",
-        (source_key, source_key, keep),
-    )
+    return True
 
 
 def last_snapshot(conn, source_key: str) -> dict[str, Any] | None:
@@ -292,9 +299,10 @@ def replace_source_observations(
         conn.execute(
             "INSERT INTO bench_observation (source_key, row_id, benchmark_key, metric, value, "
             "rank_high, tied, rank_out_of, rank_board, variant, raw_text, raw_model_name, url, "
-            "source_date, setting_not_stated, priority, run_id, collected_at, stale) "
+            "source_date, setting_not_stated, priority, run_id, collected_at, stale, "
+            "pipeline_version) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-            "false) "
+            "false, %s) "
             "ON CONFLICT (source_key, row_id, benchmark_key, metric) DO UPDATE SET "
             "value = EXCLUDED.value, rank_high = EXCLUDED.rank_high, tied = EXCLUDED.tied, "
             "rank_out_of = EXCLUDED.rank_out_of, rank_board = EXCLUDED.rank_board, "
@@ -302,7 +310,8 @@ def replace_source_observations(
             "raw_model_name = EXCLUDED.raw_model_name, url = EXCLUDED.url, "
             "source_date = EXCLUDED.source_date, setting_not_stated = EXCLUDED.setting_not_stated, "
             "priority = EXCLUDED.priority, run_id = EXCLUDED.run_id, "
-            "collected_at = EXCLUDED.collected_at, stale = false",
+            "collected_at = EXCLUDED.collected_at, stale = false, "
+            "pipeline_version = EXCLUDED.pipeline_version",
             (
                 o.source_key,
                 o.row_id,
@@ -322,6 +331,7 @@ def replace_source_observations(
                 o.priority,
                 o.run_id,
                 o.collected_at,
+                PIPELINE_VERSION,
             ),
         )
     return len(gone)
@@ -411,8 +421,8 @@ def publish_cells(conn, cells: dict[tuple[str, str, str], StoredCell]) -> None:
             "INSERT INTO bench_cell (row_id, benchmark_key, metric, value, rank_high, tied, "
             "rank_out_of, rank_board, variant, benchmark_version, source_key, url, raw_text, "
             "raw_model_name, source_date, setting_not_stated, collected_at, needs_review, run_id, "
-            "updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
-            "%s, %s, %s, now()) "
+            "pipeline_version, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, "
+            "%s, %s, %s, %s, %s, %s, %s, %s, %s, now()) "
             "ON CONFLICT (row_id, benchmark_key, metric) DO UPDATE SET "
             "value = EXCLUDED.value, rank_high = EXCLUDED.rank_high, tied = EXCLUDED.tied, "
             "rank_out_of = EXCLUDED.rank_out_of, rank_board = EXCLUDED.rank_board, "
@@ -421,7 +431,8 @@ def publish_cells(conn, cells: dict[tuple[str, str, str], StoredCell]) -> None:
             "raw_model_name = EXCLUDED.raw_model_name, source_date = EXCLUDED.source_date, "
             "setting_not_stated = EXCLUDED.setting_not_stated, "
             "collected_at = EXCLUDED.collected_at, "
-            "needs_review = EXCLUDED.needs_review, run_id = EXCLUDED.run_id, updated_at = now()",
+            "needs_review = EXCLUDED.needs_review, run_id = EXCLUDED.run_id, "
+            "pipeline_version = EXCLUDED.pipeline_version, updated_at = now()",
             (
                 c.row_id,
                 c.benchmark_key,
@@ -442,6 +453,7 @@ def publish_cells(conn, cells: dict[tuple[str, str, str], StoredCell]) -> None:
                 c.collected_at,
                 c.needs_review,
                 c.run_id,
+                PIPELINE_VERSION,
             ),
         )
 
