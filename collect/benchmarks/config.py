@@ -242,6 +242,15 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                     f"{where}: locate.type {locate.get('type')!r} "
                     f"is not one of {sorted(LOCATE_TYPES)}"
                 )
+            rank = t.get("rank") or {}
+            if rank.get("from") == "row_order" and not any(
+                m.get("benchmark") == rank.get("benchmark") and m.get("metric") == "score"
+                for m in t["benchmark_map"].values()
+            ):
+                problems.append(
+                    f"{where}: a row_order rank needs the same benchmark's score in the "
+                    "table, to check the rows really are in score order"
+                )
             if not (t.get("model_column") or t.get("model_field")):
                 problems.append(f"{where}: names no model_column or model_field")
             for header, target in t["benchmark_map"].items():

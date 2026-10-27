@@ -41,7 +41,7 @@ _STANDALONE = re.compile(r"(?<![a-z0-9.\-])-?\d+(?:\.\d+)?(?:e-?\d+)?(?P<pct>\s*
 _THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
 
 
-def _the_number(text: str) -> tuple[float | None, str | None]:
+def the_number(text: str) -> tuple[float | None, str | None]:
     """The one number a cell states, or why there is not exactly one.
 
     Taking the FIRST number was wrong (PR #573 review): "$1.20 / 45.1%" stored
@@ -65,7 +65,7 @@ def _the_number(text: str) -> tuple[float | None, str | None]:
 def parse_score(text: str, scale: str) -> Value:
     if _clean(text) in EMPTY_TOKENS:
         return Value(empty=True)
-    n, error = _the_number(text)
+    n, error = the_number(text)
     if error:
         return Value(error=error)
     if scale == "fraction":
@@ -80,7 +80,7 @@ def parse_score(text: str, scale: str) -> Value:
 def parse_rating(text: str, rating_range: tuple[int, int]) -> Value:
     if _clean(text) in EMPTY_TOKENS:
         return Value(empty=True)
-    value, error = _the_number(text)
+    value, error = the_number(text)
     if error:
         return Value(error=error)
     n = round(value)

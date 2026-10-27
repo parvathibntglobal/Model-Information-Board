@@ -519,6 +519,26 @@ class TestParse:
             ("Other", "0.5"),
         }
 
+    def test_row_positions_are_ranks_only_on_a_board_in_score_order(self, config):
+        # PR #573 review: with rank.from row_order, the row order was trusted.
+        sorted_page = _livebench({"Kimi K3": 70, "GPT 6 Astra": 60})
+        ranks = [
+            o.raw_text
+            for o in parse(
+                config.source("livebench_leaderboard"), sorted_page, url="u"
+            ).observations
+            if o.metric == "rank"
+        ]
+        assert ranks == ["1", "2"]
+        shuffled = parse(
+            config.source("livebench_leaderboard"),
+            _livebench({"GPT 6 Astra": 60, "Kimi K3": 70}),
+            url="u",
+        )
+        assert "rank_order_unsorted" in [c for c, _ in shuffled.problems]
+        assert not shuffled.blocked
+        assert {o.metric for o in shuffled.observations} == {"score"}  # scores still read
+
     def test_a_table_can_say_it_writes_a_setting_bare(self, config):
         # Scale HLE writes "gpt-5.1-thinking": its table lists "thinking" as a bare
         # setting word. Only there is a bare trailing word read as a setting.

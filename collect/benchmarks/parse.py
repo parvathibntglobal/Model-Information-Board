@@ -25,6 +25,7 @@ from typing import Any
 from bs4 import BeautifulSoup
 
 from collect.benchmarks.config import Source, Table
+from collect.benchmarks.values import the_number
 
 _FOOTNOTES = re.compile(r"[*†‡§¹²³⁴⁵⁶⁷⁸⁹⁰]+")
 _ARROWS = re.compile(r"[↑↓▲▼△▽⬆⬇]")
@@ -225,8 +226,10 @@ def _competition_ranks(values: list[float | None]) -> list[int | None]:
 
 
 def _number(text: Any) -> float | None:
-    match = re.search(r"-?\d+(?:\.\d+)?", str(text or "").replace(",", ""))
-    return float(match.group(0)) if match else None
+    """The cell's one number, read as strictly as a value is (values.the_number);
+    None for a cell that cannot be read - it never decides an order."""
+    number, error = the_number(text)
+    return None if error else number
 
 
 def parse(source: Source, content: bytes, *, url: str) -> Parsed:
@@ -318,12 +321,25 @@ def _parse_table(
             ),
             None,
         )
-        previous_score, previous_rank = object(), 0
-        for position, row in enumerate(rows, start=1):
-            score = _number(row.get(actual[score_header])) if score_header else None
-            if score is None or score != previous_score:
-                previous_rank, previous_score = position, score
-            rank_values[position - 1] = previous_rank
+        # The row position is the rank only if the board really is in score
+        # order (PR #573 review: the order was trusted). Scores must not rise
+        # down the page; if they do, no rank is read and the scores still are.
+        scores = [_number(row.get(actual[score_header])) for row in rows]
+        known = [s for s in scores if s is not None]
+        if any(later > earlier for earlier, later in zip(known, known[1:], strict=False)):
+            out.problems.append(
+                (
+                    "rank_order_unsorted",
+                    f"{where}: the rows are not in {score_header!r} order, so their "
+                    "positions are not ranks; no rank read",
+                )
+            )
+        else:
+            previous_score, previous_rank = object(), 0
+            for position, score in enumerate(scores, start=1):
+                if score is None or score != previous_score:
+                    previous_rank, previous_score = position, score
+                rank_values[position - 1] = previous_rank
     elif rank.get("from") == "order_by":
         values = [_number(row.get(rank["field"])) for row in rows]
         rank_values = _competition_ranks(values)
