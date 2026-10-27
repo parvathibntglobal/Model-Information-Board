@@ -15,15 +15,18 @@
 # run (Actions > Benchmarks > Run workflow) has read well from GitHub's
 # machines. A manual run always runs. A source a site refuses from a runner's
 # address keeps its previous values, and the run log says which and why.
+# This is a SECOND switch, separate from the nightly fetches' SCHEDULER_ENABLED:
+# to pause every scheduled job, set both to something other than `1`.
 #
 # ONE RUN AT A TIME. The run takes a database lock (collect/benchmarks/store.py),
 # so a scheduled run and the page's Run button cannot overlap; the concurrency
 # group below also queues a second dispatch instead of starting it.
 #
-# NOT BESIDE THE OTHER JOBS. 01:30 UTC Tuesday and Friday is clear of the
-# registry poll (05:23, 17:23), the merged-PR check (06:17), the topic harvest
-# (19:00), the nightly fetches (20:30) and the Monday jobs. The run writes only
-# the bench_ tables, which no other job touches.
+# OTHER JOBS MAY BE RUNNING, AND THAT IS HARMLESS. 01:30 UTC Tuesday and Friday
+# is no other job's start time, but the nightly fetches are scheduled for
+# 20:30 and GitHub often starts them late - on 2026-10-26/27 they ran 23:56 to
+# 05:12 UTC (Anooj, PR #577) - so a benchmarks run will often overlap them.
+# The run writes only the bench_ tables, which no other job touches.
 #
 # THE LOGS ARE PUBLIC. The run prints source names, counts and its decisions -
 # no database host, machine name or key (checked on run #2's log, 2026-10-27).
