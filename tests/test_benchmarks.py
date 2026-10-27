@@ -1457,6 +1457,32 @@ class TestStartingARun:
         with pytest.raises(page.RunRefused, match="local-only"):
             page.start_run(None, dry_run=True, use_snapshot=False)
 
+    @pytest.mark.parametrize(
+        "dsn,local",
+        [
+            ("postgresql://postgres@localhost:5433/x", True),
+            ("postgresql:///x", True),  # a socket on this machine
+            ("host=db.railway.internal dbname=x user=u", False),  # keyword DSN: was "local"
+            ("host=localhost dbname=x", False),  # unreadable as a URL: the safe side
+            ("postgresql://u@db.example.com/x", False),
+            (None, False),
+        ],
+    )
+    def test_only_a_url_naming_this_machine_is_local(self, dsn, local):
+        # PR #573 review: a DSN with no URL hostname counted as local.
+        from judge import benchmarks as page
+
+        assert page.is_local(dsn) is local
+
+    def test_name_decisions_are_local_only_too(self, monkeypatch):
+        from judge import benchmarks as page
+
+        monkeypatch.setenv("BENCHMARKS_DATABASE_URL", "host=db.railway.internal dbname=x")
+        with pytest.raises(page.DecisionRefused, match="local-only"):
+            page.refuse_unless_local()
+        monkeypatch.setenv("BENCHMARKS_DATABASE_URL", "postgresql://postgres@localhost:5433/x")
+        page.refuse_unless_local()  # no error
+
     def test_reparse_is_refused_until_a_page_has_been_saved(self, conn, monkeypatch, test_dsn):
         # Run #1 on 2026-10-22: Re-parse pressed on an empty database ran, and
         # every source failed "no snapshot". It is refused before it starts now.

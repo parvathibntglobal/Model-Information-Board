@@ -3204,6 +3204,7 @@ def benchmarks_name_decide(req: BenchmarkNameDecision) -> dict:
     from judge import benchmarks
 
     try:
+        benchmarks.refuse_unless_local()
         with benchmarks.connection() as conn:
             return benchmarks.decide(
                 conn, key=req.key, name=req.name, action=req.action, target=req.target
@@ -3221,6 +3222,12 @@ class BenchmarkNameUndo(BaseModel):
 @app.post("/benchmarks/names/undo")
 def benchmarks_name_undo(req: BenchmarkNameUndo) -> dict:
     """Remove a decision; the name returns to the Unmatched list on the next run."""
+    from judge import benchmarks
+
+    try:
+        benchmarks.refuse_unless_local()
+    except benchmarks.DecisionRefused as e:
+        raise HTTPException(status_code=422, detail=str(e)) from None
     return _bench(lambda b, conn: b.undo_decision(conn, key=req.key))
 
 

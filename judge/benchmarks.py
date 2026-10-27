@@ -26,15 +26,15 @@ from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 import yaml
 from psycopg import errors
 
+from judge.writeguard import is_local as writeguard_is_local
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "contract" / "benchmarks"
 TRACKED_MODELS = REPO_ROOT / "contract" / "tracked_models.yaml"
-LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
 
 #: The order setting rows are listed under their model.
 SETTING_ORDER = (
@@ -76,10 +76,11 @@ def database_url() -> str | None:
 
 
 def is_local(dsn: str | None) -> bool:
-    if not dsn:
-        return False
-    host = urlparse(dsn).hostname
-    return host in LOCAL_HOSTS or host is None
+    """The board's own check (judge/writeguard.py): only a postgres URL naming
+    this machine is local. A keyword DSN ("host=... dbname=...") or anything
+    else unreadable counts as REMOTE - it used to count as local when it had no
+    URL hostname, which unlocked runs against Railway (PR #573 review)."""
+    return bool(dsn) and writeguard_is_local(dsn)
 
 
 @contextmanager
@@ -815,6 +816,17 @@ ACTIONS = ("alias", "ignore")
 
 class DecisionRefused(ValueError):
     pass
+
+
+def refuse_unless_local() -> None:
+    """Name decisions write, so like runs they are local-only while the page is
+    being built: the configured database is the shared one by default
+    (PR #573 review)."""
+    if not is_local(database_url()):
+        raise DecisionRefused(
+            "name decisions are local-only while the Benchmarks page is being built: "
+            "the benchmarks database is not on this machine"
+        )
 
 
 def decide(
