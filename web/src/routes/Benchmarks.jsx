@@ -51,7 +51,9 @@ const fmtWhen = (iso) => (iso
 function cellTitle(cell, column) {
   if (!cell) return 'No source publishes this yet.'
   const lines = [
-    `${column.label}: ${cell.display}  (as the source printed it)`,
+    cell.rounded_from
+      ? `${column.label}: ${cell.display}  (rounded from the source's ${cell.rounded_from})`
+      : `${column.label}: ${cell.display}  (as the source printed it)`,
     `Source: ${cell.source_label}`,
     `Name on the source: "${cell.raw_name}"`,
   ]
@@ -526,6 +528,10 @@ function Changelog({ data: all }) {
   const [openRuns, setOpenRuns] = useState({})
   const [filter, setFilter] = useState('all')
   const [filtered, setFiltered] = useState(null)
+  // Older runs' changes, loaded a batch at a time ("Load older runs").
+  const [older, setOlder] = useState([])
+  const [loadingOlder, setLoadingOlder] = useState(false)
+  useEffect(() => { setOlder([]) }, [filter, all])
   useEffect(() => {
     if (filter === 'all') return undefined
     let alive = true
@@ -555,8 +561,16 @@ function Changelog({ data: all }) {
   )
   if (!data) return <div className="stack stack-3">{pills}<p className="muted">Loading…</p></div>
   if (data.error) return <div className="stack stack-3">{pills}<p className="bm-error">{data.error}</p></div>
+  const last = older.length ? older[older.length - 1] : data
+  const loadOlder = () => {
+    setLoadingOlder(true)
+    benchmarksChanges(null, filter, last.older_than)
+      .then((d) => setOlder((o) => [...o, d]))
+      .catch((e) => setOlder((o) => [...o, { entries: [], more: false, error: e.message }]))
+      .finally(() => setLoadingOlder(false))
+  }
   const byRun = []
-  for (const e of data.entries) {
+  for (const e of [...data.entries, ...older.flatMap((d) => d.entries)]) {
     if (!byRun.length || byRun[byRun.length - 1].run !== e.run_id) byRun.push({ run: e.run_id, items: [] })
     byRun[byRun.length - 1].items.push(e)
   }
@@ -564,9 +578,6 @@ function Changelog({ data: all }) {
     <div className="stack stack-3">
       {pills}
       {byRun.length === 0 && <p className="muted">No changes of this kind yet.</p>}
-      {data.entries.length >= 300 && (
-        <p className="muted bm-small">Showing the newest {data.entries.length} of these.</p>
-      )}
       {byRun.map(({ run, items }) => {
         const initial = (all.baseline_runs || []).includes(run)
         const open = openRuns[run] ?? (filter !== 'all' || !initial)
@@ -605,38 +616,66 @@ function Changelog({ data: all }) {
           </div>
         )
       })}
+      {last.error && <p className="bm-error">{last.error}</p>}
+      {last.more && (
+        <button type="button" className="btn btn-ghost bm-small" style={{ alignSelf: 'flex-start' }} onClick={loadOlder} disabled={loadingOlder}>
+          {loadingOlder ? 'Loading…' : 'Load older runs'}
+        </button>
+      )}
     </div>
   )
 }
 
 function Runs({ data, onView }) {
+  // Older runs, loaded a batch at a time ("Show older runs").
+  const [older, setOlder] = useState([])
+  const [loadingOlder, setLoadingOlder] = useState(false)
+  const [olderError, setOlderError] = useState(null)
+  useEffect(() => { setOlder([]); setOlderError(null) }, [data])
   if (!data) return <p className="muted">Loading…</p>
   if (data.error) return <p className="bm-error">{data.error}</p>
   if (!data.runs.length) return <p className="muted">No runs yet.</p>
+  const all = [...data.runs, ...older.flatMap((d) => d.runs)]
+  const more = older.length ? older[older.length - 1].more : data.more
+  const loadOlder = () => {
+    setLoadingOlder(true); setOlderError(null)
+    benchmarksRuns(all[all.length - 1].id)
+      .then((d) => setOlder((o) => [...o, d]))
+      .catch((e) => setOlderError(e.message))
+      .finally(() => setLoadingOlder(false))
+  }
   return (
-    <table className="bm-list">
-      <thead><tr><th>Run</th><th>Started</th><th>Trigger</th><th>Status</th><th>Sources</th><th>Cells</th><th>Changes</th><th /></tr></thead>
-      <tbody>
-        {data.runs.map((r) => {
-          const sources = Object.entries(r.sources || {})
-          const ok = sources.filter(([, s]) => s.status === 'OK').length
-          return (
-            <tr key={r.id}>
-              <td>#{r.id}{r.dry_run && <span className="bm-pill">dry run</span>}</td>
-              <td>{fmtWhen(r.started_at)}</td>
-              <td className="muted">{r.trigger.replace('_', ' ')}{r.scope !== 'all' && ` · ${r.scope}`}</td>
-              <td><span className={`bm-status bm-s-${r.status}`}>{r.status.replace('_', ' ')}</span></td>
-              <td title={sources.map(([k, s]) => `${k}: ${s.status}${s.errors?.length ? ` - ${s.errors[0]}` : ''}`).join('\n')}>
-                {sources.length ? `${ok} of ${sources.length} read` : '—'}
-              </td>
-              <td className="bm-num">{r.totals?.cells ?? '—'}</td>
-              <td className="bm-num">{r.totals?.changes ?? '—'}</td>
-              <td><button type="button" className="btn btn-ghost bm-small" onClick={() => onView(r.id)}>Log</button></td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
+    <div className="stack stack-3">
+      <table className="bm-list">
+        <thead><tr><th>Run</th><th>Started</th><th>Trigger</th><th>Status</th><th>Sources</th><th>Cells</th><th>Changes</th><th /></tr></thead>
+        <tbody>
+          {all.map((r) => {
+            const sources = Object.entries(r.sources || {})
+            const ok = sources.filter(([, s]) => s.status === 'OK').length
+            return (
+              <tr key={r.id}>
+                <td>#{r.id}{r.dry_run && <span className="bm-pill">dry run</span>}</td>
+                <td>{fmtWhen(r.started_at)}</td>
+                <td className="muted">{r.trigger.replace('_', ' ')}{r.scope !== 'all' && ` · ${r.scope}`}</td>
+                <td><span className={`bm-status bm-s-${r.status}`}>{r.status.replace('_', ' ')}</span></td>
+                <td title={sources.map(([k, s]) => `${k}: ${s.status}${s.errors?.length ? ` - ${s.errors[0]}` : ''}`).join('\n')}>
+                  {sources.length ? `${ok} of ${sources.length} read` : '—'}
+                </td>
+                <td className="bm-num">{r.totals?.cells ?? '—'}</td>
+                <td className="bm-num">{r.totals?.changes ?? '—'}</td>
+                <td><button type="button" className="btn btn-ghost bm-small" onClick={() => onView(r.id)}>Log</button></td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {olderError && <p className="bm-error">{olderError}</p>}
+      {more && (
+        <button type="button" className="btn btn-ghost bm-small" style={{ alignSelf: 'flex-start' }} onClick={loadOlder} disabled={loadingOlder}>
+          {loadingOlder ? 'Loading…' : 'Show older runs'}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -835,8 +874,9 @@ export default function Benchmarks() {
         <p className="muted">
           Published benchmark results for the {table?.counts.models ?? 'tracked'} tracked text models, scraped from
           public leaderboard pages. Each value is exactly what its source printed - hover it for the source, the name
-          the source uses and the date. Nothing is converted. A rank is the board&apos;s own: printed by it, its row
-          order (checked against its scores), or its order by its own sort field.
+          the source uses and the date. Nothing is converted, except a score printed as a long fraction (0.8769...):
+          it shows as its percentage rounded to two decimals (87.69), and the hover shows the original. A rank is the
+          board&apos;s own: printed by it, its row order (checked against its scores), or its order by its own sort field.
         </p>
         {last && (
           <p className="muted bm-small">

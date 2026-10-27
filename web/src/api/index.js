@@ -436,13 +436,14 @@ export const deleteDiscussion = (id) => request('/discussions/delete', { method:
 // THE BENCHMARKS PAGE (judge/benchmarks.py, 2026-10-22). Signed in: every call
 // carries the token. Values are the sources' own; the page formats, never computes.
 export const benchmarksTable = () => request('/benchmarks/table')
-export const benchmarksChanges = (runId, kind) => {
+export const benchmarksChanges = (runId, kind, beforeRun) => {
   const q = new URLSearchParams()
   if (runId) q.set('run_id', runId)
   if (kind && kind !== 'all') q.set('kind', kind)
+  if (beforeRun) q.set('before_run', beforeRun)
   return request(`/benchmarks/changes${q.toString() ? `?${q}` : ''}`)
 }
-export const benchmarksRuns = () => request('/benchmarks/runs')
+export const benchmarksRuns = (before) => request(`/benchmarks/runs${before ? `?before=${encodeURIComponent(before)}` : ''}`)
 export const benchmarksRunLog = ({ runId, requestId }) =>
   request(`/benchmarks/run-log?${runId ? `run_id=${encodeURIComponent(runId)}` : `request_id=${encodeURIComponent(requestId)}`}`)
 export const benchmarksUnmatched = () => request('/benchmarks/unmatched')

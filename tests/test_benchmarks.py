@@ -1499,20 +1499,24 @@ class TestARun:
         astra = next(r for r in data["rows"] if r["row_id"] == "openai/gpt-6-astra")
         child = next(c for c in astra["children"] if c["setting"] == "max")
         cell = child["cells"]["gpqa_diamond_score"]
-        # RAW: exactly what the source printed - no "%" added, no conversion, no rounding
-        assert cell["display"] == "0.9577" and cell["source_label"]
-        assert "raw_text" not in cell  # display IS the raw text; sent once (rule 9)
+        # A long fraction shows as its percentage, rounded to two decimals, and
+        # the hover keeps the source's own text (Parvathi, 2026-10-27).
+        assert cell["display"] == "95.77" and cell["rounded_from"] == "0.9577"
+        assert cell["source_label"]
+        assert "raw_text" not in cell  # sent once: as display, or as rounded_from
         assert "value" not in cell  # the one-unit figure is for the checks only
         assert cell["sort"] == pytest.approx(95.77)  # ...and for sorting the column
+        # Everything else is exactly what the source printed.
         assert child["cells"]["livebench_rank"]["display"] == "1"
         assert child["cells"]["livebench_score"]["display"] == "86.1"
+        assert child["cells"]["livebench_score"]["rounded_from"] is None
         in_table = {s["key"] for s in data["sources"] if s["in_table"]}
         assert in_table >= {"json_fixture", "livebench_leaderboard"} and "attribution" not in data
         assert data["counts"]["benchmarks"] < data["counts"]["columns"]
         log = page.changelog(conn)
         assert log["total"] > 0 and log["entries"][0]["type"] in ("added", "variant_added")
         added = {(e["row"], e["column"]): e["new"] for e in log["entries"] if e["type"] == "added"}
-        assert added[("GPT 6 Astra (max)", "GPQA Diamond")] == "0.9577"
+        assert added[("GPT 6 Astra (max)", "GPQA Diamond")] == "95.77"
         runs = page.runs(conn)["runs"]
         detail = page.run_detail(conn, run_id=runs[0]["id"])
         assert detail["done"] and "BENCHMARK RUN" in detail["log"]
@@ -1528,12 +1532,41 @@ class TestStartingARun:
         assert code == 0, out
         assert conn.autocommit
 
-    def test_a_non_local_target_is_refused(self, monkeypatch):
+    def test_development_pointed_at_a_remote_database_cannot_start_a_run(self, monkeypatch):
+        # A laptop in development mode must not write the shared database: the
+        # fixture guard is off there (judge/writeguard.py).
         from judge import benchmarks as page
 
+        monkeypatch.setenv("ENVIRONMENT", "development")
         monkeypatch.setenv("BENCHMARKS_DATABASE_URL", "postgresql://u@db.example.com:5432/x")
-        with pytest.raises(page.RunRefused, match="local-only"):
+        with pytest.raises(page.RunRefused, match="ENVIRONMENT=development"):
             page.start_run(None, dry_run=True, use_snapshot=False)
+
+    @pytest.mark.parametrize(
+        "environment,dsn,allowed",
+        [
+            ("development", "postgresql://postgres@localhost:5433/x", True),  # local work
+            ("development", "postgresql://u@db.example.com/x", False),  # laptop -> shared
+            ("development", "host=db.example.com dbname=x", False),  # keyword DSN: remote
+            ("production", "postgresql://u@db.example.com/x", True),  # the production site
+            ("staging", "postgresql://u@db.example.com/x", True),
+        ],
+    )
+    def test_run_and_decisions_work_locally_and_in_production(
+        self, monkeypatch, environment, dsn, allowed
+    ):
+        # Parvathi, 2026-10-27: the Run button and name decisions are needed on
+        # the production site; only the development + remote pairing is refused.
+        from judge import benchmarks as page
+
+        monkeypatch.setenv("ENVIRONMENT", environment)
+        monkeypatch.setenv("BENCHMARKS_DATABASE_URL", dsn)
+        assert (page.refuse_unsafe_write("a benchmark run") is None) is allowed
+        if allowed:
+            page.refuse_unsafe_decision()
+        else:
+            with pytest.raises(page.DecisionRefused):
+                page.refuse_unsafe_decision()
 
     @pytest.mark.parametrize(
         "dsn,local",
@@ -1551,15 +1584,6 @@ class TestStartingARun:
         from judge import benchmarks as page
 
         assert page.is_local(dsn) is local
-
-    def test_name_decisions_are_local_only_too(self, monkeypatch):
-        from judge import benchmarks as page
-
-        monkeypatch.setenv("BENCHMARKS_DATABASE_URL", "host=db.railway.internal dbname=x")
-        with pytest.raises(page.DecisionRefused, match="local-only"):
-            page.refuse_unless_local()
-        monkeypatch.setenv("BENCHMARKS_DATABASE_URL", "postgresql://postgres@localhost:5433/x")
-        page.refuse_unless_local()  # no error
 
     def test_reparse_is_refused_until_a_page_has_been_saved(self, conn, monkeypatch, test_dsn):
         # Run #1 on 2026-10-22: Re-parse pressed on an empty database ran, and
@@ -1736,6 +1760,65 @@ class TestListAndReleaseChanges:
         assert len(page.changelog(conn, kind="1; DROP TABLE x")["entries"]) == len(
             everything["entries"]
         )
+
+    def test_the_page_lists_history_a_batch_at_a_time_and_deletes_nothing(self, conn, monkeypatch):
+        # A display limit (Parvathi, 2026-10-27): the page lists the newest
+        # runs and changes; "Show older" pages back. Nothing is removed.
+        from judge import benchmarks as page
+
+        monkeypatch.setattr(page, "_seeds", lambda: [{"id": s.id, "name": s.name} for s in SEEDS])
+        monkeypatch.setattr(
+            page, "page_limits", lambda: {"runs_shown": 2, "changelog_runs_shown": 1}
+        )
+        for scores in ({"GPT 6 Astra": 86.1}, {"GPT 6 Astra": 86.4}, {"GPT 6 Astra": 86.9}):
+            _run(conn, {**PAGES, "livebench_leaderboard": _livebench(scores, "2026-10-14")})
+        stored_runs = conn.execute("SELECT count(*) FROM bench_run").fetchone()[0]
+        stored_changes = conn.execute("SELECT count(*) FROM bench_change").fetchone()[0]
+
+        first = page.runs(conn)
+        assert len(first["runs"]) == 2 and first["more"]
+        rest = page.runs(conn, before=first["runs"][-1]["id"])
+        assert [r["id"] for r in rest["runs"]] == [first["runs"][-1]["id"] - 1]
+        assert not rest["more"]
+
+        newest = page.changelog(conn)
+        assert {e["run_id"] for e in newest["entries"]} == {newest["older_than"]}
+        assert newest["more"] and newest["total"] == stored_changes
+        seen = set()
+        batch = newest
+        while True:
+            seen |= {e["id"] for e in batch["entries"]}
+            if not batch["more"]:
+                break
+            batch = page.changelog(conn, before_run=batch["older_than"])
+        assert len(seen) == stored_changes  # paging back reaches every change
+        # One run's own entries are never cut by the window.
+        assert page.changelog(conn, run_id=newest["older_than"])["entries"]
+        assert conn.execute("SELECT count(*) FROM bench_run").fetchone()[0] == stored_runs
+        assert conn.execute("SELECT count(*) FROM bench_change").fetchone()[0] == stored_changes
+
+
+class TestLongFractionsShowRounded:
+    # Parvathi, 2026-10-27: "0.876878612716763" in a percent column reads as a
+    # bug; it shows as 87.69. Nothing else changes.
+    @pytest.mark.parametrize(
+        ("raw", "value", "metric", "shown"),
+        [
+            ("0.876878612716763", 87.69, "score", "87.69"),
+            ("0.825", 82.5, "score", "82.5"),
+            ("0.9", 90.0, "score", "0.9"),  # one or two decimals: as printed
+            ("0.87", 87.0, "score", "0.87"),
+            ("88.7", 88.7, "score", "88.7"),
+            ("88.7%", 88.7, "score", "88.7%"),
+            ("0.825", 0.83, "score", "0.825"),  # a percent column's 0.825%: as printed
+            ("0.8250", 0.825, "rating", "0.8250"),  # only scores
+            (None, None, "score", None),
+        ],
+    )
+    def test_only_long_fractions_are_rounded(self, raw, value, metric, shown):
+        from judge import benchmarks as page
+
+        assert page.shown(raw, value, metric) == shown
 
 
 class TestNewsWorthy:
