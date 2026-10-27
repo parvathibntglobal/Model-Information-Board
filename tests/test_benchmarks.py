@@ -806,6 +806,13 @@ class TestMerge:
         # Within tier 2, Artificial Analysis is ranked before Vals AI.
         assert config.source("aa_gpqa_diamond").priority > config.source("vals_gpqa").priority
 
+    def test_the_page_describes_the_tiers_in_the_scrapers_words(self):
+        # The judge keeps its own copy (it never imports collect); they must not drift.
+        from collect.benchmarks.config import TIERS as SCRAPER_TIERS
+        from judge.benchmarks import TIERS as PAGE_TIERS
+
+        assert PAGE_TIERS == SCRAPER_TIERS
+
     def test_a_source_without_a_tier_stops_startup(self, tmp_path):
         import shutil as _shutil
 

@@ -280,13 +280,15 @@ def table(conn) -> dict[str, Any]:
     # themselves - values stored before the run marked ties (2026-10-27), and a
     # board that prints "25" twice, are ties too - naming the models it ties with.
     labels = {r[0]: r[4] for r in rows}
-    rank_groups: dict[tuple[str, str, float], list[str]] = {}
+    rank_groups: dict[tuple[str, str, str, float], list[str]] = {}
     for row_id, by_key in cells.items():
         for key, cell in by_key.items():
             if key.endswith("_rank"):
-                group = (key, cell["rank_board"] or "", cell["sort"])
+                # The same source too: two boards without a board name are
+                # still two boards.
+                group = (key, cell["source"], cell["rank_board"] or "", cell["sort"])
                 rank_groups.setdefault(group, []).append(row_id)
-    for (key, _, _), members in rank_groups.items():
+    for (key, _, _, _), members in rank_groups.items():
         # One board entry filling two rows (a model and its setting row) is
         # one entry, not a tie: only different names on the board count.
         names = {cells[m][key]["raw_name"] for m in members}

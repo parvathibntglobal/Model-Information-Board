@@ -534,6 +534,7 @@ const withOutOf = (value, outOf) => (value == null ? '—' : outOf ? `${value} o
 // The Old / New hover in the Changelog: the same facts a table cell's hover
 // gives - the value, the source's own text, the source and its tier (2026-10-27).
 function sideTitle(e, side) {
+  if (!e.old_detail && !e.new_detail) return undefined // e.g. a setting row added: no values
   const value = side === 'old' ? e.old : e.new
   const detail = side === 'old' ? e.old_detail : e.new_detail
   if (value == null || !detail) return side === 'old' ? 'No value before this run.' : 'No value after this run.'
@@ -632,7 +633,7 @@ function Changelog({ data: all }) {
                         {e.column && e.note && <div className="muted bm-small">{e.note}</div>}</td>
                       <td className="bm-num" title={sideTitle(e, 'old')}>{withOutOf(e.old, e.old_out_of)}</td>
                       <td className="bm-num" title={sideTitle(e, 'new')}>{withOutOf(e.new, e.new_out_of)}</td>
-                      <td className="muted">{e.new_source || e.old_source || ''}</td>
+                      <td className="muted">{e.new_detail?.source_label || e.old_detail?.source_label || ''}</td>
                     </tr>
                   ))}
                 </tbody>
