@@ -318,6 +318,23 @@ def huggingface_prose(blob: str) -> str:
     )
 
 
+def forum_topic_prose(blob: str) -> str:
+    """A Discourse topic payload -> its title plus the opening post's markdown.
+
+    `raw`, from the forum's `/raw/<id>/1`: what the author typed, so a quote is
+    checked against their words and never against rendered HTML
+    (collect/adapters/discourse.py). A listing page has `topic_list` and covers
+    thirty topics; it is refused by name.
+    """
+    payload = _loaded(blob, what="forum topic payload")
+    if "topic_list" in payload or ("title" not in payload and "raw" not in payload):
+        raise NotAPayload("forum payload: not one topic (a listing, or no title or raw)")
+    text = f"{payload.get('title') or ''}{TITLE_SEPARATOR}{payload.get('raw') or ''}"
+    if not text.strip():
+        raise NotAPayload("forum topic payload: title and raw are both empty")
+    return text
+
+
 def x_post_prose(blob: str) -> str:
     """An X post payload -> its text. THREE PLACES IT CAN BE, in one order.
 
@@ -393,6 +410,7 @@ PROSE_BY_SOURCE = {
     "hackernews": hackernews_prose,
     "huggingface": huggingface_prose,
     "x": x_post_prose,
+    "forum": forum_topic_prose,
 }
 
 

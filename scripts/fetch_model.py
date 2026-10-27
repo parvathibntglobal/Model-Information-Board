@@ -55,6 +55,7 @@ from collect.assemble import prose  # noqa: E402
 from judge import fetch_console  # noqa: E402
 from judge.extract.client import extractor_model  # noqa: E402
 from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
+from judge.scheduler import extract_enabled  # noqa: E402
 
 log = logging.getLogger(__name__)
 from collect.config import settings  # noqa: E402
@@ -163,6 +164,12 @@ MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "50"))
 #:   did not.
 FETCH_BACKLOG = os.getenv("FETCH_BACKLOG", "").strip().lower() in {"1", "on", "true", "yes"}
 
+#: WHETHER THIS RUN EXTRACTS. `FETCH_EXTRACT=off` is a collect-only run: every
+#: stage up to triage runs and E5 is skipped by name (`judge.scheduler.
+#: extract_enabled` says why the scheduled workflow sets it). Read once here so
+#: a bad value refuses before the first request, not after the harvest.
+FETCH_EXTRACT = extract_enabled(os.getenv("FETCH_EXTRACT"))
+
 #: Said on every stage line that leaves threads unread. One string, so the
 #: claim is made once and tested once (`tests/test_fetch_model.py`).
 NO_SCHEDULED_READER = (
@@ -196,6 +203,15 @@ _MAX_PROSE_DRIFT = 8
 #: still stops an unbounded cross-product if the variant or capability list
 #: grows: 20 variants x 6 queries is 120 searches nobody asked for.
 MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
+
+#: GitHub Discussions (E2G): one GraphQL search per spelling of the model, at
+#: one rate-limit point each from the 5,000-an-hour GraphQL budget - a
+#: different bucket from the 30-a-minute REST search the issues arm spends.
+#: Six covers every alias set seated on 2026-10-26; more spellings than that
+#: are deduplicated forms, not more evidence.
+MAX_DISCUSSION_SEARCHES = int(os.getenv("FETCH_MAX_DISCUSSION_SEARCHES", "6"))
+#: Sieve survivors kept per search, newest first.
+DISCUSSIONS_KEPT_PER_SEARCH = int(os.getenv("FETCH_DISCUSSIONS_PER_SEARCH", "25"))
 
 #: X pages per model. NOT a post count - twitter241 ignores `count` and
 #: paginates by cursor, so a page is 20 posts however many are asked for, and
@@ -1214,6 +1230,68 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
     return inserted
 
 
+def harvest_github_discussions(conn, prog: Progress, variants: list[str]) -> int:
+    """E2G harvest - GitHub Discussions naming this model, appended to `document`.
+
+    The `github` terms gate first (same source, same API), then one GraphQL
+    search per distinct spelling, sieved on every spelling, written through the
+    issues arm's writer so a discussion is a document exactly as an issue is.
+    Returns the number of documents newly inserted.
+    """
+    from datetime import UTC, datetime
+
+    from collect.adapters.github import write_issue_documents
+    from collect.adapters.github_discussions import DiscussionHarvester, discussion_query
+
+    contract = load_sources()
+    gh = next(s for s in contract.platforms if s["id"] == "github")
+    assert_terms_reviewed([gh], rulings=contract.rulings,
+                          observations={"github": {"access_path": "api"}},
+                          today=datetime.now(UTC).date())
+
+    # One search per distinct QUERY: two spellings can render to the same
+    # one (`github_alias_form` hyphenates a trailing numeral).
+    seen: dict[str, str] = {}
+    for v in variants:
+        seen.setdefault(discussion_query(v), v)
+    planned = list(seen.values())[:MAX_DISCUSSION_SEARCHES]
+    prog.stage("E2G", "Harvest · GitHub Discussions", "running",
+               planned_requests=len(planned),
+               detail=f"GraphQL discussion search for {len(planned)} spelling(s)"
+                      + (f" of {len(seen)} (cap {MAX_DISCUSSION_SEARCHES})"
+                         if len(seen) > len(planned) else ""))
+
+    client = build_client(timeout=30.0, headers={
+        "Authorization": f"Bearer {settings().github_token}",
+    })
+    harvester = DiscussionHarvester(client=client, store=RawStore(Path(settings().raw_store_path)),
+                                    max_keep_per_query=DISCUSSIONS_KEPT_PER_SEARCH)
+    _ensure_github_source(conn)
+
+    inserted = 0
+    for surface in planned:
+        run = harvester.harvest(surface, variants)
+        if run.stored:
+            inserted += write_issue_documents(conn, run.stored)["inserted"]
+            conn.commit()
+
+    t = harvester.totals()
+    parts = [f"{inserted} new document(s) appended",
+             f"{t['stored']} of {t['retrieved']} named the model",
+             f"{t['search_calls']} search call(s)"]
+    if t["http_errors"]:
+        parts.append(f"{t['http_errors']} error(s)")
+    if t["rate_limited_queries"]:
+        parts.append(f"{t['rate_limited_queries']} search(es) throttled")
+    # Every search failing is not a quiet board, and must not read as one.
+    status = "error" if t["http_errors"] and not t["retrieved"] else "ok"
+    prog.stage("E2G", "Harvest · GitHub Discussions", status,
+               search_calls=t["search_calls"], http_errors=t["http_errors"],
+               retrieved=t["retrieved"], sieve_kept=t["stored"],
+               documents_inserted=inserted, detail="; ".join(parts))
+    return inserted
+
+
 def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str,
                           *, read_on: str) -> None:
     """Persist the latest RapidAPI quota reading. Delegates to `collect.usage`.
@@ -2016,6 +2094,24 @@ def longer_registry_surfaces(conn, model_version_id: str | None, surfaces) -> li
     return sorted(out)
 
 
+#: FRESH EVIDENCE ONLY (2026-10-26): a thread is a candidate only if one of its
+#: posts is dated inside `contract/scheduler.yaml` `extraction_window_days`.
+#: The same clause in both selections below, so an old thread cannot come in
+#: through the other one. `%s` is the window in days.
+FRESH_THREAD_SQL = (
+    "  AND EXISTS (SELECT 1 FROM document dw "
+    "              WHERE dw.id = ANY(tc.member_document_ids) "
+    "                AND dw.created_at >= now() - make_interval(days => %s)) "
+)
+
+
+def extraction_window_days() -> int:
+    """The window, from the contract; a missing or bad value refuses (rule 12)."""
+    from judge.scheduler import policy
+
+    return policy().extraction_window_days
+
+
 def threads_naming_the_model(
     conn, store, surfaces, *, longer=(), counts: dict | None = None
 ) -> tuple[set[str], int]:
@@ -2083,16 +2179,34 @@ def threads_naming_the_model(
     if own is None:
         return set(), 0
     longer_rx = _compile_surfaces(longer)
-    rows = conn.execute(
-        "SELECT tc.id, tc.flattened_text_ref FROM thread_context tc "
+    window = extraction_window_days()
+    unread = (
+        "FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
         "              WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
         "  AND NOT EXISTS (SELECT 1 FROM thread_extraction te "
         "                  WHERE te.thread_context_id = tc.id "
         "                    AND te.pipeline_version = %s "
-        "                    AND te.content_fingerprint IS NOT NULL)",
-        (PIPELINE_VERSION,),
+        "                    AND te.content_fingerprint IS NOT NULL) "
+    )
+    rows = conn.execute(
+        "SELECT tc.id, tc.flattened_text_ref " + unread + FRESH_THREAD_SQL,
+        (PIPELINE_VERSION, window),
     ).fetchall()
+    if counts is not None:
+        # WHAT THE WINDOW LEFT, COUNTED: unread threads outside it, and those
+        # with no dated post at all. Said on the stage line, never silent.
+        left = conn.execute(
+            "SELECT count(*) FILTER (WHERE newest IS NOT NULL), "
+            "       count(*) FILTER (WHERE newest IS NULL) "
+            "FROM (SELECT (SELECT max(d.created_at) FROM document d "
+            "              WHERE d.id = ANY(tc.member_document_ids)) AS newest "
+            + unread + ") t "
+            "WHERE newest IS NULL OR newest < now() - make_interval(days => %s)",
+            (PIPELINE_VERSION, window),
+        ).fetchone()
+        counts["outside_window"], counts["undated"] = left
+        counts["window_days"] = window
     naming = set()
     unreadable = 0
     for tc_id, ref in rows:
@@ -2249,6 +2363,11 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
         # harvest ahead of the rest when both are unnamed - a thread harvested
         # now for this model that happens not to spell a seated surface is
         # still likelier to be its evidence than a week-old dev.to article.
+        #
+        # ── FRESH EVIDENCE ONLY (2026-10-26). The window that scopes
+        # `threads_naming_the_model`, here too, so neither the run's own
+        # harvest nor the backlog brings back a thread older than it.
+        + FRESH_THREAD_SQL +
         "ORDER BY (tc.id = ANY(%s)) DESC, "
         "         EXISTS (SELECT 1 FROM document d "
         "                 WHERE d.id = ANY(tc.member_document_ids) "
@@ -2265,7 +2384,7 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
         # `since` absent means nothing to scope on - every row scores 0 on the
         # first key and the ordering degrades to the within-tier one, rather
         # than the query refusing or silently scoping to "since the epoch".
-        (PIPELINE_VERSION, list(naming) or [""],
+        (PIPELINE_VERSION, extraction_window_days(), list(naming) or [""],
          since or datetime.max.replace(tzinfo=UTC),
          max(limit * 8, 200)),
     ).fetchall()
@@ -2724,6 +2843,20 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # that read nothing because nothing was readable must not look like a run
     # that found nothing to read.
     prog.record_summary(threads_unreadable_here=scan_unreadable)
+    # FRESH EVIDENCE ONLY: what the window left, said rather than implied - a
+    # run that skipped 300 old threads must not read as a corpus with nothing
+    # to read (rule 4). Counts over every unread thread, not this model's.
+    prog.record_summary(threads_outside_window=scan.get("outside_window"),
+                        threads_undated=scan.get("undated"))
+    prog.stage("E5", "Extract", "running",
+               window_days=scan.get("window_days"),
+               threads_outside_window=scan.get("outside_window"),
+               threads_undated=scan.get("undated"),
+               detail=f"fresh evidence only: threads with a post in the last "
+                      f"{scan.get('window_days')} days are candidates; "
+                      f"{scan.get('outside_window', 0):,} older and "
+                      f"{scan.get('undated', 0):,} undated unread thread(s) are left, "
+                      f"stored and unread (contract/scheduler.yaml)")
     threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming,
         include_backlog=FETCH_BACKLOG)
@@ -3279,6 +3412,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # SPEND THE SHARED TABLE NEVER GOT (#393), said only when it happened. The
     # rows are in this machine's ledger file; every OTHER machine's cap is
     # short by them until the backfill runs.
+    # ONE PATIENT ATTEMPT FIRST (2026-10-26): a slow connection mid-run skips
+    # the shared table, so the calls it missed are sent here before counting.
+    spend_ledger.flush_unmirrored()
     unmirrored = spend_ledger.unmirrored_count() - unmirrored_before
     if unmirrored:
         detail += (
@@ -3578,7 +3714,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    run_id = args.run_id or f"{args.model_version_id}-{uuid.uuid4().hex[:8]}"
+    # NO SLASH IN THE ID (2026-10-26). It names the log file under var/fetch,
+    # and a canonical id like `deepseek/deepseek-v4-flash` made a directory
+    # nobody created: a hand run died before it started. The scheduler (#563)
+    # and the Admin button already replace it; this was the third path.
+    run_id = args.run_id or (
+        f"{args.model_version_id.replace('/', '_')}-{uuid.uuid4().hex[:8]}")
     # THE BACKEND DOES NOT READ THIS, AND THE COMMENT SAYING SO WAS WRONG.
     #
     # A bare `print(run_id)` stood here under "the backend reads this to know
@@ -3734,8 +3875,16 @@ def main(argv: list[str] | None = None) -> int:
                 harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap)
             except Exception as exc:
                 prog.stage("E2", "Harvest", "error", detail=str(exc).splitlines()[0][:200])
+            # Discussions ride the `github` scope: same terms, same API, same
+            # document shape (collect/adapters/github_discussions.py).
+            try:
+                harvest_github_discussions(db.live(prog), prog, variants)
+            except Exception as exc:
+                prog.stage("E2G", "Harvest · GitHub Discussions", "error",
+                           detail=str(exc).splitlines()[0][:200])
         else:
             prog.stage("E2", "Harvest", "skipped", detail=scope_skip)
+            prog.stage("E2G", "Harvest · GitHub Discussions", "skipped", detail=scope_skip)
 
         if "reddit" in sources:
             try:
@@ -3769,8 +3918,13 @@ def main(argv: list[str] | None = None) -> int:
         # Blogs have no per-model search — they are RSS/feed-based, harvested
         # wholesale, so a model-name query cannot target them (rule 7: say what
         # the run did NOT do rather than let its absence read as coverage).
+        # Since 2026-10-26 the scheduled workflow harvests every seated blog and
+        # newsletter feed once a night, before the models; E5 reads those
+        # threads like any other unread thread that names this model.
         prog.stage("E2B", "Harvest · Blogs", "skipped",
-                   detail="blogs are feed-based — no per-model search; not run for one model")
+                   detail="blogs and newsletters are feed-based — no per-model search; "
+                          "harvested once a night for every model by "
+                          "scripts/harvest_blogs.py (scheduled-fetches workflow)")
 
         # dev.to, Hacker News and Hugging Face. Ruled on 2026-09-09, so they run
         # now; each still gates itself, and a ruling that lapses or whose
@@ -3833,12 +3987,21 @@ def main(argv: list[str] | None = None) -> int:
             _safe_rollback(db.raw)
             prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
 
-        try:
-            extract_and_curate(db.live(prog), prog, release_date=release_date,
-                               surfaces=variants, model_version_id=args.model_version_id)
-        except Exception as exc:
-            _safe_rollback(db.raw)
-            prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])
+        if not FETCH_EXTRACT:
+            # On the end record, so the scheduler counts a clean harvest as a
+            # fetch and its summary says "collect-only" rather than "read 0".
+            prog.record_summary(extract_skipped=True)
+            prog.stage("E5", "Extract", "skipped",
+                       detail="collect-only run (FETCH_EXTRACT=off): the documents "
+                              "harvested above are stored and stay unread until an "
+                              "extracting run reads them; no model was called")
+        else:
+            try:
+                extract_and_curate(db.live(prog), prog, release_date=release_date,
+                                   surfaces=variants, model_version_id=args.model_version_id)
+            except Exception as exc:
+                _safe_rollback(db.raw)
+                prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])
 
         # THE EXIT CODE IS THE SAME CLAIM IN THE OTHER CHANNEL. A run that
         # reports `error` in its log and 0 to its caller has only moved the

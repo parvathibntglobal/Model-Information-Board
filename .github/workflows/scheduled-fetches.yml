@@ -104,6 +104,13 @@ jobs:
       RAW_STORE_REMOTE: postgres
       MAX_MODELS: ${{ inputs.max_models }}
       SOURCES: ${{ inputs.sources }}
+      # EXTRACTING AGAIN (2026-10-26): a new OpenRouter key is in the secrets
+      # (verified live that day: limit $50, nothing spent). It was "off" -
+      # collect-only - from #563 while the old key was dead; set it to "off"
+      # again if the key stops answering, and the key and the budget stop
+      # being required. EXTRACTION_DAILY_BUDGET_USD caps each night ($2.00 on
+      # 2026-10-26), so at full spend the $50 key lasts about 25 nights.
+      FETCH_EXTRACT: "on"
     steps:
       - name: Is the scheduler switched on?
         id: gate
@@ -115,10 +122,13 @@ jobs:
           fi
           missing=""
           [ -n "$DATABASE_URL" ]                || missing="$missing STAGING_DATABASE_URL"
-          [ -n "$OPENROUTER_API_KEY" ]          || missing="$missing OPENROUTER_API_KEY"
           [ -n "$USER_AGENT" ]                  || missing="$missing USER_AGENT"
-          [ -n "$EXTRACTION_DAILY_BUDGET_USD" ] || missing="$missing EXTRACTION_DAILY_BUDGET_USD"
           [ -n "$SCHEDULER_ISSUE" ]             || missing="$missing SCHEDULER_ISSUE"
+          # The key and the budget matter only to a batch that extracts.
+          if [ "$FETCH_EXTRACT" != "off" ]; then
+            [ -n "$OPENROUTER_API_KEY" ]          || missing="$missing OPENROUTER_API_KEY"
+            [ -n "$EXTRACTION_DAILY_BUDGET_USD" ] || missing="$missing EXTRACTION_DAILY_BUDGET_USD"
+          fi
           if [ -n "$missing" ]; then
             echo "::error::scheduler switched on but not configured:$missing"
             exit 1
@@ -140,15 +150,47 @@ jobs:
       - if: steps.gate.outputs.enabled == 'true'
         run: pip install -e .
 
+      # THE BLOG AND NEWSLETTER FEEDS, ONCE A NIGHT, BEFORE THE MODELS
+      # (2026-10-26). A feed has no per-model search (fetch_model's E2B), so
+      # every seated feed in contract/sources.yaml is harvested wholesale here
+      # and each model's E5 reads the threads that name it. --new-only: an
+      # entry already stored is not requested again. --max-new-articles 10:
+      # at most ten article requests per self-hosted feed a night, newest
+      # first, so a long backlog (swyx.io: 432 entries, 25 stored) is caught
+      # up over nights instead of overrunning the step. Feed-only newsletters
+      # make no article request at all. A failure here turns the job red and
+      # the models still run. Skipped when a manual run scopes SOURCES to
+      # platforms that are not blogs.
+      - name: Harvest the blog and newsletter feeds
+        if: >-
+          steps.gate.outputs.enabled == 'true'
+          && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'blog'))
+        timeout-minutes: 20
+        run: python scripts/harvest_blogs.py --new-only --max-new-articles 10
+
+      # THE DEVELOPER FORUMS, ONCE A NIGHT, BEFORE THE MODELS (2026-10-26).
+      # The Google AI Developers Forum's robots.txt disallows search, so it is
+      # read as a listing of its newest topics (scripts/harvest_forums.py) and
+      # each model's fetch reads the threads that name it. At most 150 new
+      # topics a night, two requests each, a second apart: about 5 minutes.
+      # Same failure rule as the feeds: red job, models still run.
+      - name: Harvest the developer forums
+        if: >-
+          !cancelled() && steps.gate.outputs.enabled == 'true'
+          && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'forum'))
+        timeout-minutes: 15
+        run: python scripts/harvest_forums.py --max-new-topics 150
+
       - name: Fetch the due models
-        if: steps.gate.outputs.enabled == 'true'
-        # --job-limit-minutes 355 matches timeout-minutes: a fetch still running
-        # at 345 min is stopped by the runner, which then posts the summary.
-        # Each thread commits as it finishes, so that loses one thread at most
-        # and the model stays due. That makes a late launch cheap, so
+        if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
+        # --job-limit-minutes 320 is timeout-minutes (355) less the feed step's
+        # 20 and the forum step's 15: a fetch still running at 310 min of THIS
+        # step is stopped by the runner, which then posts the summary. Each
+        # thread commits as it finishes, so that loses one thread at most and
+        # the model stays due. That makes a late launch cheap, so
         # --deadline-minutes 300 starts models until minute 300.
         run: |
-          args="--job-limit-minutes 355 --deadline-minutes 300"
+          args="--job-limit-minutes 320 --deadline-minutes 300"
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

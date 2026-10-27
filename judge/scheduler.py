@@ -20,6 +20,26 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 
 
+def extract_enabled(raw: str | None) -> bool:
+    """`FETCH_EXTRACT`: whether a fetch run extracts. Unset means on.
+
+    COLLECT-ONLY (2026-10-26). `off` makes a run harvest, assemble, dedupe,
+    score and triage, and skip E5 by name. The scheduled workflow sets it while
+    the team has no working OpenRouter key: with a dead key E5 sent every
+    thread, got no answer, ended `ok` with 0 read, and `LAST_SUCCESS` then
+    counted no run at all, so every model was due every night and the tail
+    of the list never ran inside the time budget.
+
+    Unset stays `on` because that is what the admin's Fetch button has always
+    done. Any other value refuses: a typo must neither quietly spend nor
+    quietly not (rule 12).
+    """
+    value = (raw if raw is not None else "on").strip().lower()
+    if value not in {"on", "off"}:
+        raise SystemExit(f"FETCH_EXTRACT must be 'on' or 'off', not {raw!r}")
+    return value == "on"
+
+
 @dataclass(frozen=True)
 class Policy:
     """`contract/scheduler.yaml`: cadence and the two thread caps (rule 5).
@@ -32,6 +52,9 @@ class Policy:
     cadence_hours: int
     first_fetch_thread_cap: int
     refresh_thread_cap: int
+    #: Days back a thread's newest dated post may be for a fetch to extract it
+    #: (2026-10-26: fresh evidence only). Older unread threads stay stored.
+    extraction_window_days: int
 
 
 class SchedulerPolicyError(RuntimeError):
@@ -46,7 +69,8 @@ def policy() -> Policy:
 
     raw = _read("scheduler.yaml") or {}
     values = {}
-    for key in ("cadence_hours", "first_fetch_thread_cap", "refresh_thread_cap"):
+    for key in ("cadence_hours", "first_fetch_thread_cap", "refresh_thread_cap",
+                "extraction_window_days"):
         v = raw.get(key)
         if not isinstance(v, int) or isinstance(v, bool) or v < 1:
             raise SchedulerPolicyError(
@@ -113,6 +137,7 @@ def rank_due(
 _SAFE_FIELDS = (
     "status", "documents_appended", "harvest_arms_errored", "harvest_http_errors",
     "threads_read", "claims_verified", "claims_stored", "threads_unreadable_here",
+    "extract_skipped",
 )
 
 
@@ -137,11 +162,15 @@ def summarise_runs(records: list[dict]) -> str:
 
     for rec in records:
         errored = rec.get("harvest_arms_errored") or []
+        # A COLLECT-ONLY RUN READ NOTHING BY DESIGN. Its 0 is not "found
+        # nothing to read", so the cell says which it is (rule 4).
+        read = ("not run: collect-only" if rec.get("extract_skipped")
+                else cell(rec, "threads_read"))
         lines.append(
             f"| {rec.get('model') or rec.get('model_version_id') or '?'} "
             f"| {rec.get('status') or '?'} "
             f"| {cell(rec, 'documents_appended')} "
-            f"| {cell(rec, 'threads_read')} "
+            f"| {read} "
             # VERIFIED, NOT STORED (2026-10-05). Since #502 evidence is
             # written as board entries and `claims_stored` is 0 on every run,
             # so this column read 0 for every model while each produced
@@ -156,6 +185,11 @@ def summarise_runs(records: list[dict]) -> str:
     lines += ["", f"{ok} of {len(records)} ended ok. "
               "A model absent from this list was not due; a count shown as `-` was "
               "not reported by that run, which is not the same as zero."]
+    collect_only = sum(1 for r in records if r.get("extract_skipped"))
+    if collect_only:
+        lines += ["", f"{collect_only} of {len(records)} ran collect-only "
+                  "(`FETCH_EXTRACT=off`): harvested and stored, nothing extracted. "
+                  "Their threads stay unread until an extracting run reads them."]
     return "\n".join(lines) + "\n"
 
 

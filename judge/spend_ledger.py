@@ -335,9 +335,60 @@ class Mirrored:
 #: reconciles this machine's whole file against the table for that.
 _unmirrored_rows = 0
 
+#: THE CALLS THEMSELVES, not only their count (2026-10-26), so the end of a run
+#: can send them (`flush_unmirrored`). Measured that day: a feed run from a
+#: laptop made 92 calls and the shared table got 35 - Railway's proxy often
+#: takes longer than TELEMETRY_CONNECT_TIMEOUT to answer, and each miss starts
+#: a 30-second pause in which every call is skipped.
+_unmirrored_calls: list = []
+
 
 def unmirrored_count() -> int:
     return _unmirrored_rows
+
+
+#: How long the END-OF-RUN flush waits for the database. Not the per-call 2s:
+#: the per-call wait runs before every model call and must stay short; this
+#: runs once, after the money is spent, when waiting is cheap and a miss is not.
+FLUSH_CONNECT_TIMEOUT = 15
+
+
+def flush_unmirrored(dsn: str | None = None) -> Mirrored:
+    """Send this process's unmirrored calls, once, with a patient connection.
+
+    For the END of a run: `build_evidence_feed.py` and `fetch_model.py` call it
+    so a slow connection during the run does not leave the shared cap short.
+    It ignores the backoff - one deliberate attempt is what a backoff exists to
+    make room for - and on success the calls leave the pending list and the
+    count. Never raises. What it could not send stays pending and counted, and
+    the caller says so; the rows are in the file either way.
+    """
+    global _unmirrored_rows
+    pending = list(_unmirrored_calls)
+    if not pending:
+        return Mirrored(MIRROR_NOTHING_TO_SEND, 0)
+    reset_telemetry_backoff()
+    conn, status, reason = _telemetry_connect(dsn, timeout=FLUSH_CONNECT_TIMEOUT)
+    if conn is None:
+        return Mirrored(status, len(pending), 0, reason)
+    try:
+        with conn, conn.cursor() as cur:
+            cur.executemany(
+                "insert into spend_ledger "
+                "(id, at, stage, model, input_tokens, output_tokens, usd, "
+                " unpriced, machine, run_id) "
+                "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                "on conflict (id) do nothing",
+                [(c.id, c.at, c.stage, c.model, c.input_tokens, c.output_tokens,
+                  c.usd, c.unpriced, c.machine or machine(), c.run_id) for c in pending],
+            )
+    except Exception as exc:  # noqa: BLE001 - see append_to_database
+        return Mirrored(MIRROR_FAILED, len(pending), 0, _describe(exc))
+    finally:
+        conn.close()
+    del _unmirrored_calls[: len(pending)]
+    _unmirrored_rows = max(0, _unmirrored_rows - len(pending))
+    return Mirrored(MIRROR_WRITTEN, len(pending), len(pending))
 
 
 def append_to_database(calls: Iterable[Call], *, dsn: str | None = None) -> Mirrored:
@@ -364,6 +415,7 @@ def append_to_database(calls: Iterable[Call], *, dsn: str | None = None) -> Mirr
     """
     global _unmirrored_rows
     try:
+        calls = list(calls)
         rows = [
             (
                 c.id, c.at, c.stage, c.model, c.input_tokens, c.output_tokens,
@@ -394,6 +446,7 @@ def append_to_database(calls: Iterable[Call], *, dsn: str | None = None) -> Mirr
                 conn.close()
         if result.unmirrored:
             _unmirrored_rows += result.unmirrored
+            _unmirrored_calls.extend(calls)
             (log.error if result.status == MIRROR_FAILED else log.warning)(
                 "spend_ledger: %d row(s) NOT mirrored to the shared table "
                 "(%s: %s); %d so far in this process. They are in %s, and "
@@ -437,7 +490,7 @@ def _telemetry_connection(dsn: str | None):
     return _telemetry_connect(dsn)[0]
 
 
-def _telemetry_connect(dsn: str | None):
+def _telemetry_connect(dsn: str | None, *, timeout: float = TELEMETRY_CONNECT_TIMEOUT):
     """`(connection | None, MIRROR_* status, reason)` - the WHY that
     `_telemetry_connection` drops and `append_to_database` must not (#393)."""
     global _unreachable_until, _unreachable_reason
@@ -475,7 +528,7 @@ def _telemetry_connect(dsn: str | None):
     if not url:
         return None, MIRROR_NOT_CONFIGURED, None
     try:
-        conn = psycopg.connect(url, connect_timeout=TELEMETRY_CONNECT_TIMEOUT)
+        conn = psycopg.connect(url, connect_timeout=timeout)
     except Exception as exc:  # noqa: BLE001
         _unreachable_until = time.monotonic() + TELEMETRY_RETRY_AFTER_SECONDS
         _unreachable_reason = _describe(exc)

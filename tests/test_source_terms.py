@@ -70,6 +70,10 @@ _PLATFORM_OBSERVATIONS = {
     "scraper_provider": "twitter241",
     "credential_present": True,
     "search_endpoint": "/articles/search",
+    # The Google AI forum's paths, as a healthy run's robots gate sees them.
+    "listing_path_allowed": True,
+    "topic_path_allowed": True,
+    "raw_path_allowed": True,
 }
 
 
@@ -96,8 +100,9 @@ def test_every_declared_platform_is_the_expected_one():
     here means the preconditions hold, never that the terms were cleared.
     """
     ids = {s["id"] for s in _contract()["sources"]}
+    # The Google AI Developers Forum added 2026-10-26.
     assert ids == {"github", "blogs", "reddit", "arxiv", "x",
-                   "devto", "hackernews", "huggingface"}
+                   "devto", "hackernews", "huggingface", "forum:discuss.ai.google.dev"}
 
 
 def test_base_trust_matches_the_documented_weights():
@@ -126,6 +131,9 @@ def test_base_trust_matches_the_documented_weights():
       devto 0.60       user-authored, and the platform is dense with tutorial and
                        SEO filler. Level with X for the same reason: the signal
                        is there and the ratio is poor.
+      forum:discuss.ai.google.dev 0.80  added 2026-10-26: first-hand developer
+                       reports, attributable to an account, often operational.
+                       Level with Hacker News.
     """
     trust = {s["id"]: s["base_trust"] for s in _contract()["sources"]}
     assert trust == {
@@ -137,6 +145,7 @@ def test_base_trust_matches_the_documented_weights():
         "arxiv": 0.70,
         "x": 0.60,
         "devto": 0.60,
+        "forum:discuss.ai.google.dev": 0.80,
     }
 
 
@@ -150,18 +159,62 @@ def test_every_source_and_feed_has_tos_notes():
 # ── the seeded feeds ──────────────────────────────────────────────────────
 
 
-def test_eighteen_feeds_are_seeded():
-    """Eighteen, not nineteen. Dropbox is dropped on data quality, not terms.
+def test_twenty_eight_feeds_are_seeded():
+    """Twenty-eight. Dropbox is dropped on data quality, not terms.
 
     Was nine until 2026-09-21, when the class A re-review seated three feeds
-    proposed in #372 and six probed the same day. The count is asserted rather
-    than derived because a feed arriving without a re-reading of the ruling is
-    exactly what the `RE-REVIEW REQUIRED BEFORE` clause exists to stop, and a
-    test that counts whatever it finds would not notice.
+    proposed in #372 and six probed the same day; eighteen until 2026-10-26,
+    when ten newsletters were seated (one class A, nine on the two newsletter
+    platform rulings). The count is asserted rather than derived because a
+    feed arriving without a re-reading of the ruling is exactly what the
+    `RE-REVIEW REQUIRED BEFORE` clause exists to stop, and a test that counts
+    whatever it finds would not notice.
     """
     feeds = _contract()["feeds"]
-    assert len(feeds) == 18
+    assert len(feeds) == 28
     assert not any("dropbox" in f["id"] for f in feeds)
+
+
+def test_the_newsletter_rulings_are_feed_only_and_record_the_decision():
+    """2026-10-26: Substack's 2026-09-18 refusal is superseded by the team's
+    decision, not by a new reading - and the ruling must say so, or it reads
+    as a permission nobody granted."""
+    rulings = load_sources().rulings
+    substack = rulings["newsletter-substack-feed-only"]
+    beehiiv = rulings["newsletter-beehiiv-feed-only"]
+    assert substack.fetch_articles is False and beehiiv.fetch_articles is False
+    assert substack.platform_host == "substack.com"
+    assert beehiiv.platform_host == "beehiiv.com"
+    assert "SUPERSEDED BY THAT" in substack.summary and "accepted risk" in substack.summary
+    assert "SUPERSEDED 2026-10-26" in SOURCES_YAML.read_text(encoding="utf-8")
+    # #564 review: who decided, and the page, date and words each reading rests on.
+    for ruling in (substack, beehiiv):
+        assert "the MD" in ruling.summary, ruling.id
+        assert "accepted risk" in ruling.summary, ruling.id
+    assert "https://substack.com/tos" in substack.summary
+    assert "October 6, 2026" in substack.summary and "'scrapes,'" in substack.summary
+    assert "https://beehiiv.com/tou" in beehiiv.summary
+    assert "crawling, scraping" in beehiiv.summary
+    assert "NOT BEEN READ" not in beehiiv.summary
+
+
+def test_a_harvest_refuses_a_feed_with_no_source_row():
+    """#564 review: between merging a feed and `registry load-sources`, its
+    ledger row would be refused while its documents landed. The script must
+    refuse such a feed by name, before any request, and exit non-zero."""
+    src = (CONTRACT_DIR.parent / "scripts" / "harvest_blogs.py").read_text(encoding="utf-8")
+    loop = src[src.index("for feed in feeds:\n                feed_id"):]
+    assert loop.index("if feed_id in unloaded:") < loop.index("fetcher_for_source(")
+    assert "SELECT id FROM source WHERE id = ANY(%s)" in src
+    tail = src[src.rindex("if unloaded:"):]
+    assert "return 1" in tail
+
+
+def test_import_ai_is_not_seated_twice():
+    """Its Substack feed carries every post blog:jack-clark.net does."""
+    ids = {f["id"] for f in _contract()["feeds"]}
+    assert "blog:jack-clark.net" in ids
+    assert not any("importai" in i for i in ids)
 
 
 def test_dropbox_is_recorded_as_checked_and_rejected():
@@ -238,8 +291,11 @@ def test_the_two_classes_split_self_hosted_from_platform_hosted():
         "blog:medium.com/airbnb-engineering",
         "blog:netflixtechblog.com",
     ]
-    # 7 until 2026-09-21, 16 after the re-review seated nine more.
-    assert len(by_class["A"]) == 16
+    # 7 until 2026-09-21, 16 after the re-review seated nine more, 17 when
+    # Latent Space (self-hosted) was seated with the newsletters, 2026-10-26.
+    assert len(by_class["A"]) == 17
+    # Class C: newsletter platforms, feed only. Eight on Substack, one on beehiiv.
+    assert len(by_class["C"]) == 9
 
 
 def test_the_medium_ruling_is_feed_only_and_says_why():
@@ -354,10 +410,11 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 26  # eight platforms + eighteen feeds. 12 before
+    assert len(rows) == 37  # nine platforms + twenty-eight feeds. 12 before
     #                        2026-09-08, 14 after arXiv and X, 17 after dev.to
     #                        / HN / Hugging Face, 26 after the 2026-09-21
-    #                        class A re-review seated nine blogs.
+    #                        class A re-review seated nine blogs, 36 after the
+    #                        2026-10-26 newsletters, 37 with the Google AI forum.
     assert rows["blog:simonwillison.net"]["provenance"] == "seed"
     assert rows["blog:simonwillison.net"]["terms_checked_on"] == REVIEWED_ON
     assert all(row["base_trust"] for row in rows.values())

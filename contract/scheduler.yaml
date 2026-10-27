@@ -35,3 +35,15 @@ first_fetch_thread_cap: 100
 
 #: FETCH_MAX_THREADS for a refresh: most of the backlog is already extracted.
 refresh_thread_cap: 25
+
+#: FRESH EVIDENCE ONLY: days back a thread's newest dated post may be, for a
+#: fetch to extract it (2026-10-26, anooj). The goal is fresh data twice a
+#: week, so an unread thread whose every post is older than this is LEFT, not
+#: extracted - it stays stored and is never deleted. Applies to every fetch,
+#: scheduled or from the Admin button.
+#:
+#: Dated by `document.created_at`, when the author posted. A thread with no
+#: dated post cannot be judged fresh and is not selected; each run COUNTS
+#: those and the stale ones on its E5 stage line, so "left because old or
+#: undated" never reads as "nothing to read" (rule 4, rule 6).
+extraction_window_days: 14

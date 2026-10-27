@@ -775,89 +775,9 @@ class GitHubHarvester:
         conflict affects no rows, so `cur.rowcount` over the batch counts the
         inserts that actually happened.
         """
-        from collect.assemble.authors import from_github, write_authors
-
-        hits = [issue.hit for issue in run.stored]
-        extraction = from_github(hits)
-        author_counts = write_authors(conn, extraction.rows, batch=batch)
-
-        rows = [
-            {
-                "id": stable_id("doc", DOCUMENT_SOURCE, issue.external_id),
-                "source": DOCUMENT_SOURCE,
-                "external_id": issue.external_id,
-                "url": issue.html_url,
-                "created_at": issue.hit.created_at,
-                "text_ref": issue.ref,
-                "content_hash": issue.content_hash,
-                "engagement": json.dumps(
-                    {"comments": issue.hit.comment_count, "reactions": issue.hit.reactions}
-                ),
-                "author_id": github_author_id(issue.hit),
-                # RETRIEVAL PROVENANCE. github is the only source that renders a
-                # query, so it is the only one that can carry a run id — and the
-                # two columns move together or the CHECK refuses the row.
-                #
-                # `not_recorded` when no id was passed, NOT `no_run_for_source`:
-                # a run exists for every github document, so the honest reading
-                # of a missing id is that this caller did not supply one. A
-                # default claiming github has no runs would be false and
-                # unfalsifiable from the row.
-                "harvest_run_id": harvest_run_id,
-                "retrieval_provenance": (
-                    "run_recorded" if harvest_run_id else "not_recorded"
-                ),
-            }
-            for issue in run.stored
-        ]
-        statement = (
-            "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
-            "text_ref, content_hash, engagement, author_id, status, "
-            "harvest_run_id, retrieval_provenance) "
-            "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
-            "%(text_ref)s, %(content_hash)s, %(engagement)s, %(author_id)s, 'kept', "
-            "%(harvest_run_id)s, %(retrieval_provenance)s) "
-            "ON CONFLICT (source, external_id) DO NOTHING"
+        return write_issue_documents(
+            conn, run.stored, batch=batch, harvest_run_id=harvest_run_id
         )
-        inserted = 0
-        with conn.cursor() as cur:
-            for start in range(0, len(rows), batch):
-                cur.executemany(statement, rows[start:start + batch])
-                inserted += max(0, cur.rowcount)
-
-        # AND ATTRIBUTE THE ROWS THAT ALREADY EXISTED. `ON CONFLICT DO NOTHING`
-        # is right for every other column and wrong for this one: the 27 github
-        # documents written before `author_id` existed would otherwise stay
-        # anonymous through every future sweep, because the conflict is silent
-        # and the row looks written. Guarded by `author_id IS NULL`, so a real
-        # attribution is never replaced by a later parse. Same fix, same
-        # reasoning, as `reddit_write.write_documents`.
-        attributions = [
-            {"id": r["id"], "author_id": r["author_id"]}
-            for r in rows if r["author_id"] is not None
-        ]
-        attributed = 0
-        if attributions:
-            with conn.cursor() as cur:
-                for start in range(0, len(attributions), batch):
-                    cur.executemany(
-                        "UPDATE document SET author_id = %(author_id)s "
-                        "WHERE id = %(id)s AND author_id IS NULL",
-                        attributions[start:start + batch],
-                    )
-                    attributed += max(0, cur.rowcount)
-        return {
-            "inserted": inserted,
-            "seen": len(rows),
-            "authors_attached_to_existing": max(0, attributed - inserted),
-            "authors_inserted": author_counts["inserted"],
-            "distinct_authors": extraction.distinct_authors,
-            # NAMED RATHER THAN DROPPED. A hit from a deleted account has no
-            # `user.id` and therefore no voice; the count separates "few voices"
-            # from "few ATTRIBUTABLE voices", which are different findings.
-            "documents_without_author": sum(1 for r in rows if r["author_id"] is None),
-            "unattributable": extraction.unattributable,
-        }
 
     #: What `filter_reasons` records for a comment whose author GitHub declares
     #: a bot. Named rather than inlined so `/filtered` and this write path
@@ -1051,3 +971,103 @@ class GitHubHarvester:
         if run.http_errors:
             return "error"
         return "ok"
+
+
+def write_issue_documents(
+    conn,
+    stored: Sequence[StoredIssue],
+    *,
+    batch: int = 500,
+    harvest_run_id: str | None = None,
+) -> dict[str, int]:
+    """`GitHubHarvester.write_documents`, for any list of stored GitHub items.
+
+    Moved out of the method on 2026-10-26 so GitHub Discussions
+    (`collect/adapters/github_discussions.py`) write through the SAME path:
+    authors first, one `document` per item, `ON CONFLICT DO NOTHING`, and the
+    late attribution of rows that already existed. The method's docstring
+    says why each of those is the way it is.
+    """
+    from collect.assemble.authors import from_github, write_authors
+
+    hits = [issue.hit for issue in stored]
+    extraction = from_github(hits)
+    author_counts = write_authors(conn, extraction.rows, batch=batch)
+
+    rows = [
+        {
+            "id": stable_id("doc", DOCUMENT_SOURCE, issue.external_id),
+            "source": DOCUMENT_SOURCE,
+            "external_id": issue.external_id,
+            "url": issue.html_url,
+            "created_at": issue.hit.created_at,
+            "text_ref": issue.ref,
+            "content_hash": issue.content_hash,
+            "engagement": json.dumps(
+                {"comments": issue.hit.comment_count, "reactions": issue.hit.reactions}
+            ),
+            "author_id": github_author_id(issue.hit),
+            # RETRIEVAL PROVENANCE. github is the only source that renders a
+            # query, so it is the only one that can carry a run id — and the
+            # two columns move together or the CHECK refuses the row.
+            #
+            # `not_recorded` when no id was passed, NOT `no_run_for_source`:
+            # a run exists for every github document, so the honest reading
+            # of a missing id is that this caller did not supply one. A
+            # default claiming github has no runs would be false and
+            # unfalsifiable from the row.
+            "harvest_run_id": harvest_run_id,
+            "retrieval_provenance": (
+                "run_recorded" if harvest_run_id else "not_recorded"
+            ),
+        }
+        for issue in stored
+    ]
+    statement = (
+        "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
+        "text_ref, content_hash, engagement, author_id, status, "
+        "harvest_run_id, retrieval_provenance) "
+        "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
+        "%(text_ref)s, %(content_hash)s, %(engagement)s, %(author_id)s, 'kept', "
+        "%(harvest_run_id)s, %(retrieval_provenance)s) "
+        "ON CONFLICT (source, external_id) DO NOTHING"
+    )
+    inserted = 0
+    with conn.cursor() as cur:
+        for start in range(0, len(rows), batch):
+            cur.executemany(statement, rows[start:start + batch])
+            inserted += max(0, cur.rowcount)
+
+    # AND ATTRIBUTE THE ROWS THAT ALREADY EXISTED. `ON CONFLICT DO NOTHING`
+    # is right for every other column and wrong for this one: the 27 github
+    # documents written before `author_id` existed would otherwise stay
+    # anonymous through every future sweep, because the conflict is silent
+    # and the row looks written. Guarded by `author_id IS NULL`, so a real
+    # attribution is never replaced by a later parse. Same fix, same
+    # reasoning, as `reddit_write.write_documents`.
+    attributions = [
+        {"id": r["id"], "author_id": r["author_id"]}
+        for r in rows if r["author_id"] is not None
+    ]
+    attributed = 0
+    if attributions:
+        with conn.cursor() as cur:
+            for start in range(0, len(attributions), batch):
+                cur.executemany(
+                    "UPDATE document SET author_id = %(author_id)s "
+                    "WHERE id = %(id)s AND author_id IS NULL",
+                    attributions[start:start + batch],
+                )
+                attributed += max(0, cur.rowcount)
+    return {
+        "inserted": inserted,
+        "seen": len(rows),
+        "authors_attached_to_existing": max(0, attributed - inserted),
+        "authors_inserted": author_counts["inserted"],
+        "distinct_authors": extraction.distinct_authors,
+        # NAMED RATHER THAN DROPPED. A hit from a deleted account has no
+        # `user.id` and therefore no voice; the count separates "few voices"
+        # from "few ATTRIBUTABLE voices", which are different findings.
+        "documents_without_author": sum(1 for r in rows if r["author_id"] is None),
+        "unattributable": extraction.unattributable,
+    }
