@@ -1592,6 +1592,16 @@ class TestARun:
         assert log["total"] > 0 and log["entries"][0]["type"] in ("added", "variant_added")
         added = {(e["row"], e["column"]): e["new"] for e in log["entries"] if e["type"] == "added"}
         assert added[("GPT 6 Astra (max)", "GPQA Diamond")] == "95.77"
+        # The Changelog's Old / New hover has what a cell's hover has (2026-10-27).
+        entry = next(
+            e
+            for e in log["entries"]
+            if e["type"] == "added"
+            and (e["row"], e["column"]) == ("GPT 6 Astra (max)", "GPQA Diamond")
+        )
+        assert entry["old_detail"] is None
+        assert entry["new_detail"]["printed"] == "0.9577" and entry["new_detail"]["tier"] == 2
+        assert entry["new_detail"]["source_label"] and entry["new_detail"]["tier_label"]
         runs = page.runs(conn)["runs"]
         detail = page.run_detail(conn, run_id=runs[0]["id"])
         assert detail["done"] and "BENCHMARK RUN" in detail["log"]

@@ -608,6 +608,21 @@ def page_limits() -> dict[str, int]:
     return {k: int(page[k]) for k in ("runs_shown", "changelog_runs_shown")}
 
 
+def _side(
+    sources: dict[str, dict[str, Any]], source_key: str | None, raw: str | None, display: str | None
+) -> dict[str, Any] | None:
+    """One side (old or new) of a changelog entry, for its hover."""
+    if source_key is None and raw is None:
+        return None
+    source = sources.get(source_key or "", {})
+    return {
+        "source_label": source.get("label", source_key),
+        "tier": source.get("tier"),
+        "tier_label": TIERS.get(source.get("tier")),
+        "printed": raw if raw is not None and raw != display else None,
+    }
+
+
 def changelog(
     conn,
     *,
@@ -624,6 +639,7 @@ def changelog(
     runs exist and `older_than` is the `before_run` that lists them. `limit` is
     only a safety cap on entries."""
     _, columns = _columns()
+    sources = _sources()
     labels = {
         r[0]: r[1] for r in conn.execute("SELECT row_id, display_label FROM bench_row").fetchall()
     }
@@ -690,6 +706,7 @@ def changelog(
         needs_review,
     ) in rows:
         column = columns.get(f"{bench}_{metric}") if bench else None
+        old_shown, new_shown = shown(old, old_value, metric), shown(new, new_value, metric)
         entry = {
             "id": cid,
             "run_id": rid,
@@ -699,8 +716,8 @@ def changelog(
             "column": column["label"] if column else None,
             "metric": metric,  # score | rank | rating: the Changelog filters on it
             "type": change_type,
-            "old": shown(old, old_value, metric),
-            "new": shown(new, new_value, metric),
+            "old": old_shown,
+            "new": new_shown,
             "old_value": old_value,
             "new_value": new_value,
             # A rank is a place among the models the board lists: "16 of 30".
@@ -716,6 +733,11 @@ def changelog(
             "actor": actor,
             "note": note,
             "needs_review": needs_review,
+            # For the Old / New hover, as a table cell has (2026-10-27): the
+            # source's own text when it differs from what is shown, and the
+            # source with its tier.
+            "old_detail": _side(sources, old_src, old, old_shown),
+            "new_detail": _side(sources, new_src, new, new_shown),
         }
         entry["news"] = _news(entry, released, baseline, rules)
         # Read by the tagging above, not by the page (rule 9).

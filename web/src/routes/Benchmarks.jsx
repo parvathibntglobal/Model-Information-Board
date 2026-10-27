@@ -531,6 +531,25 @@ function NewsMenu({ filter, counts, rules, onPick }) {
 // "16 of 30" for a rank, as the board stood when it was read.
 const withOutOf = (value, outOf) => (value == null ? '—' : outOf ? `${value} of ${outOf}` : value)
 
+// The Old / New hover in the Changelog: the same facts a table cell's hover
+// gives - the value, the source's own text, the source and its tier (2026-10-27).
+function sideTitle(e, side) {
+  const value = side === 'old' ? e.old : e.new
+  const detail = side === 'old' ? e.old_detail : e.new_detail
+  if (value == null || !detail) return side === 'old' ? 'No value before this run.' : 'No value after this run.'
+  const lines = [
+    detail.printed
+      ? `${e.column || ''}: ${value}  (the source printed ${detail.printed})`
+      : `${e.column || ''}: ${value}  (as the source printed it)`,
+    `Source: ${detail.source_label}${detail.tier ? ` · tier ${detail.tier}, ${detail.tier_label}` : ''}`,
+  ]
+  if (side === 'new' && e.source_date) lines.push(`Source's date: ${e.source_date}`)
+  if (side === 'new') lines.push(`Read: ${fmtWhen(e.changed_at)} (run #${e.run_id})`)
+  if (e.type === 'source_changed' && side === 'new') lines.push('Another source took this cell over - the model did not move.')
+  return lines.join('
+')
+}
+
 function Changelog({ data: all }) {
   const [openRuns, setOpenRuns] = useState({})
   const [filter, setFilter] = useState('all')
@@ -612,8 +631,8 @@ function Changelog({ data: all }) {
                       <td>{e.row}</td>
                       <td>{e.column || <span className="muted">{e.note}</span>}
                         {e.column && e.note && <div className="muted bm-small">{e.note}</div>}</td>
-                      <td className="bm-num">{withOutOf(e.old, e.old_out_of)}</td>
-                      <td className="bm-num">{withOutOf(e.new, e.new_out_of)}</td>
+                      <td className="bm-num" title={sideTitle(e, 'old')}>{withOutOf(e.old, e.old_out_of)}</td>
+                      <td className="bm-num" title={sideTitle(e, 'new')}>{withOutOf(e.new, e.new_out_of)}</td>
                       <td className="muted">{e.new_source || e.old_source || ''}</td>
                     </tr>
                   ))}
