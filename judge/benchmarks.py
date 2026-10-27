@@ -30,6 +30,7 @@ from typing import Any
 import yaml
 from psycopg import errors
 
+from judge import writeguard
 from judge.writeguard import is_local as writeguard_is_local
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -831,15 +832,33 @@ class DecisionRefused(ValueError):
     pass
 
 
-def refuse_unless_local() -> None:
-    """Name decisions write, so like runs they are local-only while the page is
-    being built: the configured database is the shared one by default
-    (PR #573 review)."""
-    if not is_local(database_url()):
-        raise DecisionRefused(
-            "name decisions are local-only while the Benchmarks page is being built: "
-            "the benchmarks database is not on this machine"
+def refuse_unsafe_write(command: str) -> str | None:
+    """Why the page may not write here, or None when it may.
+
+    The board's own rule (judge/writeguard.py): every combination writes EXCEPT
+    ENVIRONMENT=development pointed at a database that is not this machine -
+    development switches the fixture guard off, so a laptop must not write the
+    shared database. So the Run button and name decisions work on the local
+    database and in production (Parvathi, 2026-10-27; they were local-only).
+    In production the run itself goes through the CLI's preflight, fixture
+    checks included, before it writes anything.
+    """
+    try:
+        writeguard.check(database_url(), command=command)
+    except writeguard.UnsafeWriteRefused:
+        return (
+            f"{command} is refused here: this backend runs with ENVIRONMENT=development "
+            "and the benchmarks database is not on this machine. Use your local "
+            "database, or do it on the production site."
         )
+    return None
+
+
+def refuse_unsafe_decision() -> None:
+    """Name decisions (decide/undo): refused only where a write is unsafe."""
+    why = refuse_unsafe_write("a name decision")
+    if why:
+        raise DecisionRefused(why)
 
 
 def decide(
@@ -910,11 +929,9 @@ def review_items(conn, *, limit: int = 200) -> dict[str, Any]:
 def start_run(conn, *, dry_run: bool, use_snapshot: bool) -> dict[str, Any]:
     """Spawn the run in the background and return the id the page polls by."""
     dsn = database_url()
-    if not is_local(dsn):
-        raise RunRefused(
-            "runs are local-only while the Benchmarks page is being built: "
-            "the benchmarks database is not on this machine"
-        )
+    why = refuse_unsafe_write("a benchmark run")
+    if why:
+        raise RunRefused(why)
     running = _running(conn)
     if running is not None:
         raise RunRefused(f"run #{running['id']} is still running (one run at a time)")

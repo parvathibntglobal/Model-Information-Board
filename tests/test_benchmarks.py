@@ -1528,12 +1528,41 @@ class TestStartingARun:
         assert code == 0, out
         assert conn.autocommit
 
-    def test_a_non_local_target_is_refused(self, monkeypatch):
+    def test_development_pointed_at_a_remote_database_cannot_start_a_run(self, monkeypatch):
+        # A laptop in development mode must not write the shared database: the
+        # fixture guard is off there (judge/writeguard.py).
         from judge import benchmarks as page
 
+        monkeypatch.setenv("ENVIRONMENT", "development")
         monkeypatch.setenv("BENCHMARKS_DATABASE_URL", "postgresql://u@db.example.com:5432/x")
-        with pytest.raises(page.RunRefused, match="local-only"):
+        with pytest.raises(page.RunRefused, match="ENVIRONMENT=development"):
             page.start_run(None, dry_run=True, use_snapshot=False)
+
+    @pytest.mark.parametrize(
+        "environment,dsn,allowed",
+        [
+            ("development", "postgresql://postgres@localhost:5433/x", True),  # local work
+            ("development", "postgresql://u@db.example.com/x", False),  # laptop -> shared
+            ("development", "host=db.example.com dbname=x", False),  # keyword DSN: remote
+            ("production", "postgresql://u@db.example.com/x", True),  # the production site
+            ("staging", "postgresql://u@db.example.com/x", True),
+        ],
+    )
+    def test_run_and_decisions_work_locally_and_in_production(
+        self, monkeypatch, environment, dsn, allowed
+    ):
+        # Parvathi, 2026-10-27: the Run button and name decisions are needed on
+        # the production site; only the development + remote pairing is refused.
+        from judge import benchmarks as page
+
+        monkeypatch.setenv("ENVIRONMENT", environment)
+        monkeypatch.setenv("BENCHMARKS_DATABASE_URL", dsn)
+        assert (page.refuse_unsafe_write("a benchmark run") is None) is allowed
+        if allowed:
+            page.refuse_unsafe_decision()
+        else:
+            with pytest.raises(page.DecisionRefused):
+                page.refuse_unsafe_decision()
 
     @pytest.mark.parametrize(
         "dsn,local",
@@ -1551,15 +1580,6 @@ class TestStartingARun:
         from judge import benchmarks as page
 
         assert page.is_local(dsn) is local
-
-    def test_name_decisions_are_local_only_too(self, monkeypatch):
-        from judge import benchmarks as page
-
-        monkeypatch.setenv("BENCHMARKS_DATABASE_URL", "host=db.railway.internal dbname=x")
-        with pytest.raises(page.DecisionRefused, match="local-only"):
-            page.refuse_unless_local()
-        monkeypatch.setenv("BENCHMARKS_DATABASE_URL", "postgresql://postgres@localhost:5433/x")
-        page.refuse_unless_local()  # no error
 
     def test_reparse_is_refused_until_a_page_has_been_saved(self, conn, monkeypatch, test_dsn):
         # Run #1 on 2026-10-22: Re-parse pressed on an empty database ran, and

@@ -3207,7 +3207,7 @@ def benchmarks_name_decide(req: BenchmarkNameDecision) -> dict:
     from judge import benchmarks
 
     try:
-        benchmarks.refuse_unless_local()
+        benchmarks.refuse_unsafe_decision()
         with benchmarks.connection() as conn:
             return benchmarks.decide(
                 conn, key=req.key, name=req.name, action=req.action, target=req.target
@@ -3228,7 +3228,7 @@ def benchmarks_name_undo(req: BenchmarkNameUndo) -> dict:
     from judge import benchmarks
 
     try:
-        benchmarks.refuse_unless_local()
+        benchmarks.refuse_unsafe_decision()
     except benchmarks.DecisionRefused as e:
         raise HTTPException(status_code=422, detail=str(e)) from None
     return _bench(lambda b, conn: b.undo_decision(conn, key=req.key))
