@@ -1360,7 +1360,40 @@ columns:
       reviewed: false
       state: read
       why: 'The paraphrase the feed shows. Written by judge/feed/paraphrase.py _store() after judge/feed/checks.py, read by items.py feed() and summary.py. Migration 20261021T1000 (PROPOSED).'
+  feed_paraphrase_refusal:
+    document_id:
+      reviewed: false
+      state: read
+      why: 'The report refused. Written by judge/feed/paraphrase.py _refuse(), read by paraphrase.pending(). Migration 20261027T1200 (PROPOSED).'
+    excerpts_digest:
+      reviewed: false
+      state: read
+      why: 'The excerpts it was asked from; a new digest means ask again. Written by paraphrase.py _refuse(), read by paraphrase.pending(). Migration 20261027T1200 (PROPOSED).'
+    model_version_id:
+      reviewed: false
+      state: read
+      why: 'The resolved registry id. Written by paraphrase.py _refuse(), read by paraphrase.pending(). Migration 20261027T1200 (PROPOSED).'
+    prompt_version:
+      reviewed: false
+      state: read
+      why: 'A new prompt version asks again. Written by paraphrase.py _refuse(), read by paraphrase.pending(). Migration 20261027T1200 (PROPOSED).'
+    reason:
+      reviewed: false
+      state: read
+      why: 'The last attempt''s reason. Written by paraphrase.py _refuse(), read by paraphrase.refusals() for the run report. Migration 20261027T1200 (PROPOSED).'
+    refused_at:
+      reviewed: false
+      state: write_only
+      why: 'When refused. Defaulted by the database; read by nothing yet - its intended reader is an Admin list of refused reports. Migration 20261027T1200 (PROPOSED).'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'The run that was refused, matching spend_ledger.run_id. Written by paraphrase.py _refuse(); read by nothing yet - its intended reader is a per-run cost report. Migration 20261027T1200 (PROPOSED).'
   feed_summary:
+    changes:
+      reviewed: false
+      state: read
+      why: 'Each edited point of a revision - before, after, the reports it adds, why. Written by judge/feed/revise.py revise(), read by summary.listing() and shown side by side in Admin (FeedSummaryPanel.jsx). Migration 20261027T1200 (PROPOSED).'
     flags:
       reviewed: false
       state: read
@@ -1385,6 +1418,10 @@ columns:
       reviewed: false
       state: read
       why: '[{text, cites}] - the page''s text and what each paragraph rests on. Written by judge/feed/summary.py draft() after checks, read by current() and listing(). Migration 20261021T1000 (PROPOSED).'
+    parent_id:
+      reviewed: false
+      state: read
+      why: 'The approved summary a revision edits. Written by judge/feed/revise.py revise(), read by summary.review() (a revision of a summary no longer live is refused), listing() and current() (the page says revised). Migration 20261027T1200 (PROPOSED).'
     prompt_version:
       reviewed: false
       state: write_only
@@ -1417,6 +1454,55 @@ columns:
       reviewed: false
       state: read
       why: 'pending | approved | rejected | superseded. Written by summary.py draft()/review(), read by current(), listing(), counts(), models_due(). Migration 20261021T1000 (PROPOSED).'
+  feed_summary_attempt:
+    attempted_at:
+      reviewed: false
+      state: read
+      why: 'When attempted; the weekly cadence counts from it. Defaulted by the database, read by revise.revisions_due(). Migration 20261027T1200 (PROPOSED).'
+    detail:
+      reviewed: false
+      state: read
+      why: 'Why refused or why nothing changed. Written by summary.py record_attempt(), read by summary.attempts() for Admin and the run report. Migration 20261027T1200 (PROPOSED).'
+    id:
+      reviewed: true
+      state: read
+      why: 'bigserial. Read by judge/feed/summary.py attempts(), as the tiebreak in its ORDER BY so two attempts in the same instant list newest first; written by the database default. Migration 20261027T1200 (PROPOSED).'
+    kind:
+      reviewed: false
+      state: read
+      why: 'draft | revision. Written by summary.py record_attempt(), read by summary.attempts(). Migration 20261027T1200 (PROPOSED).'
+    model_version_id:
+      reviewed: false
+      state: read
+      why: 'The model. Written by summary.py record_attempt(), read by models_due(), revisions_due() and attempts(). Migration 20261027T1200 (PROPOSED).'
+    newest_report_at:
+      reviewed: false
+      state: read
+      why: 'The newest report the attempt considered; not asked again until a newer one arrives. Written by summary.py record_attempt(), read by summary.models_due() and revise.revisions_due(). Migration 20261027T1200 (PROPOSED).'
+    outcome:
+      reviewed: false
+      state: read
+      why: 'stored | refused | no_change. Written by summary.py record_attempt(), read by attempts(). Migration 20261027T1200 (PROPOSED).'
+    parent_id:
+      reviewed: false
+      state: read
+      why: 'The approved summary a revision started from. Written by summary.py record_attempt(), read by revise.revisions_due(). Migration 20261027T1200 (PROPOSED).'
+    prompt_version:
+      reviewed: false
+      state: write_only
+      why: 'contract/evidence_feed.yaml summary or revision prompt_version. Written by summary.py record_attempt(); read by nothing yet - its intended reader is a re-run after a prompt change. Migration 20261027T1200 (PROPOSED).'
+    reports_considered:
+      reviewed: false
+      state: read
+      why: 'How many reports it was given (rule 7). Written by summary.py record_attempt(), read by attempts(). Migration 20261027T1200 (PROPOSED).'
+    run_id:
+      reviewed: false
+      state: write_only
+      why: 'Matching spend_ledger.run_id. Written by summary.py record_attempt(); read by nothing yet - its intended reader is a per-run cost report. Migration 20261027T1200 (PROPOSED).'
+    summary_id:
+      reviewed: false
+      state: read
+      why: 'The feed_summary row it stored, when stored. Written by summary.py record_attempt(), read by attempts(). Migration 20261027T1200 (PROPOSED).'
   fetch_log:
     at:
       reviewed: true

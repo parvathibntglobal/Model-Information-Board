@@ -1,0 +1,100 @@
+# The evidence feed's upkeep (2026-10-27, PROPOSED; agreed with anooj before it
+# was built, docs/proposals/evidence-feed-agent.md).
+#
+# NIGHTLY, AFTER THE FETCH: the reports fetched tonight get their paraphrase
+# (and Reddit/X their embed) tonight, so the feed's top is the newest evidence.
+# Triggered when "Scheduled fetches" finishes, whatever its conclusion - a red
+# fetch job still stores the models it reached. No approval step: each
+# paraphrase is checked in code, and its source is one click away.
+#
+# WEEKLY, MONDAY 07:00 UTC: first drafts for models with no summary, and a
+# point-level REVISION of every approved summary with newer reports
+# (judge/feed/revise.py). Both are stored `pending` for a person in Admin.
+#
+# SPEND CAPS live in contract/evidence_feed.yaml `schedule` ($1 a night, $1 a
+# week), read by `--cap`, never repeated here (rule 5). A refusal is stored, so
+# neither run pays twice for the same refused report or summary (Parvathi's
+# #558 condition; feed_paraphrase_refusal, feed_summary_attempt).
+#
+# Writes are derived rows on the shared DB. judge/writeguard refuses a remote
+# write unless ENVIRONMENT=staging, which is why it is set here, on purpose.
+#
+# ⚠ NEEDS MIGRATION 20261027T1200_feed_agent.sql ON THE SHARED DB FIRST. Without
+#   it the first query on feed_paraphrase_refusal fails, loudly.
+
+name: Evidence feed
+
+on:
+  workflow_run:
+    workflows: ["Scheduled fetches"]
+    types: [completed]
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      run:
+        description: "nightly (paraphrases) or weekly (summaries)"
+        required: true
+        default: nightly
+        type: choice
+        options: [nightly, weekly]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evidence-feed
+  cancel-in-progress: false
+
+jobs:
+  feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+      USER_AGENT: ${{ vars.USER_AGENT }}
+      SCHEDULER_ENABLED: ${{ vars.SCHEDULER_ENABLED }}
+      RAW_STORE_PATH: raw_store
+      RAW_STORE_REMOTE: postgres
+      WHICH: ${{ github.event_name == 'schedule' && 'weekly' || github.event_name == 'workflow_dispatch' && inputs.run || 'nightly' }}
+    steps:
+      - name: Is the scheduler switched on?
+        id: gate
+        run: |
+          if [ "$SCHEDULER_ENABLED" != "1" ]; then
+            echo "::notice::SCHEDULER_ENABLED is not 1 - nothing written. This is the switch, not a failure."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=""
+          [ -n "$DATABASE_URL" ]       || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$OPENROUTER_API_KEY" ] || missing="$missing OPENROUTER_API_KEY"
+          [ -n "$USER_AGENT" ]         || missing="$missing USER_AGENT"
+          if [ -n "$missing" ]; then
+            echo "::error::evidence feed switched on but not configured:$missing"
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v5
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - if: steps.gate.outputs.enabled == 'true'
+        run: pip install -e .
+
+      - name: Nightly - embeds and paraphrases for tonight's reports
+        if: steps.gate.outputs.enabled == 'true' && env.WHICH == 'nightly'
+        run: python scripts/build_evidence_feed.py --embeds --paraphrase --apply --cap nightly
+
+      - name: Weekly - first drafts and point-level revisions, for review in Admin
+        if: steps.gate.outputs.enabled == 'true' && env.WHICH == 'weekly'
+        run: python scripts/build_evidence_feed.py --summaries --revise --apply --cap weekly

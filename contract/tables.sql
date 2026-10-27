@@ -1989,13 +1989,19 @@ CREATE TABLE IF NOT EXISTS feed_summary (
   generated_at       timestamptz NOT NULL DEFAULT now(),
   reviewed_at        timestamptz,
   review_note        text,
+  -- A REVISION IS A SUMMARY WITH A PARENT (2026-10-27, PROPOSED,
+  -- 20261027T1200_feed_agent.sql): the approved summary it edits, and each
+  -- edited point - before, after, the reports it adds, why. A draft has neither.
+  parent_id          text REFERENCES feed_summary (id),
+  changes            jsonb,
   CONSTRAINT feed_summary_state_ck
     CHECK (state IN ('pending', 'approved', 'rejected', 'superseded')),
   -- A decision has a time; a pending draft has none.
   CONSTRAINT feed_summary_reviewed_ck CHECK ((state = 'pending') = (reviewed_at IS NULL)),
   CONSTRAINT feed_summary_paragraphs_ck
     CHECK (jsonb_typeof(paragraphs) = 'array' AND jsonb_array_length(paragraphs) > 0),
-  CONSTRAINT feed_summary_reports_ck CHECK (0 < reports_used AND reports_used <= reports_available)
+  CONSTRAINT feed_summary_reports_ck CHECK (0 < reports_used AND reports_used <= reports_available),
+  CONSTRAINT feed_summary_revision_ck CHECK ((parent_id IS NULL) = (changes IS NULL))
 );
 
 CREATE INDEX IF NOT EXISTS feed_summary_model_state_idx ON feed_summary (model_version_id, state, generated_at DESC);
@@ -2216,3 +2222,44 @@ CREATE TABLE IF NOT EXISTS bench_name_decision (
   CONSTRAINT bench_name_decision_action_ck CHECK (action IN ('alias', 'new_row', 'ignore')),
   CONSTRAINT bench_name_decision_target_ck CHECK ((action = 'alias') = (target_model_id IS NOT NULL))
 );
+
+-- THE FEED AGENT'S MEMORY OF REFUSALS (2026-10-27, PROPOSED,
+-- 20261027T1200_feed_agent.sql). Nothing is scheduled until a refusal is
+-- remembered (Parvathi, #558): an unstored refusal is paid for again every run.
+-- A paraphrase the checks refused, for the excerpts it was asked from; asked
+-- again only when the excerpts or the prompt version change.
+CREATE TABLE IF NOT EXISTS feed_paraphrase_refusal (
+  document_id       text NOT NULL REFERENCES document (id),
+  model_version_id  text NOT NULL REFERENCES model_version (id),
+  prompt_version    text NOT NULL,
+  excerpts_digest   text NOT NULL,
+  reason            text NOT NULL,
+  run_id            text NOT NULL,
+  refused_at        timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (document_id, model_version_id, prompt_version)
+);
+
+-- Every summary attempt and its outcome: stored, refused, or no change. The
+-- weekly cadence counts from `attempted_at`; a model is not asked again until a
+-- report newer than `newest_report_at` arrives.
+CREATE TABLE IF NOT EXISTS feed_summary_attempt (
+  id                  bigserial PRIMARY KEY,
+  model_version_id    text NOT NULL REFERENCES model_version (id),
+  kind                text NOT NULL,
+  outcome             text NOT NULL,
+  parent_id           text REFERENCES feed_summary (id),
+  summary_id          text REFERENCES feed_summary (id),
+  newest_report_at    timestamptz,
+  reports_considered  integer NOT NULL,
+  detail              text,
+  prompt_version      text NOT NULL,
+  run_id              text NOT NULL,
+  attempted_at        timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT feed_summary_attempt_kind_ck CHECK (kind IN ('draft', 'revision')),
+  CONSTRAINT feed_summary_attempt_outcome_ck CHECK (outcome IN ('stored', 'refused', 'no_change')),
+  CONSTRAINT feed_summary_attempt_stored_ck CHECK ((outcome = 'stored') = (summary_id IS NOT NULL)),
+  CONSTRAINT feed_summary_attempt_parent_ck CHECK ((kind = 'revision') = (parent_id IS NOT NULL)),
+  CONSTRAINT feed_summary_attempt_reports_ck CHECK (reports_considered >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS feed_summary_attempt_model_idx ON feed_summary_attempt (model_version_id, attempted_at DESC);
