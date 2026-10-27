@@ -27,6 +27,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from psycopg import pq
+
 from collect.benchmarks import store
 from collect.benchmarks.changes import diff
 from collect.benchmarks.config import Config, ConfigError, Source, load
@@ -624,6 +626,11 @@ def run(
 ) -> int:
     """Returns the process exit code: 0 ok / partial / dry run, 1 error, 3 refused."""
     started = time.monotonic()
+    # The CLI's startup checks (preflight) read inside a transaction and leave it
+    # open; autocommit cannot be switched on mid-transaction (PR #573 review).
+    # Whatever they did is theirs to keep, so it is committed, not rolled back.
+    if not conn.autocommit and conn.info.transaction_status != pq.TransactionStatus.IDLE:
+        conn.commit()
     conn.autocommit = True
     try:
         config = load()

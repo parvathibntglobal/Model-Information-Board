@@ -1343,6 +1343,15 @@ class TestARun:
 
 
 class TestStartingARun:
+    def test_a_run_starts_on_a_connection_left_in_a_transaction(self, conn):
+        # PR #573 review, the blocker: the CLI's preflight reads and leaves a
+        # transaction open, and switching to autocommit then raised.
+        conn.autocommit = False
+        conn.execute("SELECT 1")
+        code, out = _run(conn, PAGES)
+        assert code == 0, out
+        assert conn.autocommit
+
     def test_a_non_local_target_is_refused(self, monkeypatch):
         from judge import benchmarks as page
 
