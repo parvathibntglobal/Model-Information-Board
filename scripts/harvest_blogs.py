@@ -46,6 +46,10 @@ from collect.http import build_client  # noqa: E402
 from collect.ids import stable_id  # noqa: E402
 from collect.ops.ledger import close_harvest_run, open_harvest_run  # noqa: E402
 from collect.rawstore import RawStore  # noqa: E402
+from collect.registry.assertions import (  # noqa: E402
+    TermsNotReviewedError,
+    assert_terms_reviewed,
+)
 from collect.registry.sources import load_sources  # noqa: E402
 
 #: `FeedRun.outcome` AND `harvest_run.outcome` ARE DIFFERENT VOCABULARIES, and
@@ -156,6 +160,31 @@ def main(argv: list[str] | None = None) -> int:
         for feed_id, observed in observations.items():
             print(f"  {feed_id:38s} robots={observed.get('robots_status')} "
                   f"feed_allowed={observed.get('feed_path_allowed')}")
+
+        # ── ONE FEED THAT FAILS ITS TERMS NO LONGER STOPS THE OTHERS ─────────
+        #
+        # The terms check ran over every feed at once, so one refusal refused
+        # the whole harvest. On 2026-10-27 the nightly run harvested NONE of 28
+        # feeds because Substack refused robots.txt to GitHub's runners for 3
+        # newsletters (`robots=refused`), which their ruling correctly does not
+        # accept. The check is unchanged and still applies to every feed that is
+        # harvested: it now runs per feed first, a feed that fails is named and
+        # left out, and the preflight runs over the rest. The exit code is 1 when
+        # any feed was refused, as for a feed with no `source` row below, so the
+        # nightly step still goes red and says which.
+        refused_terms: dict[str, str] = {}
+        for feed in feeds:
+            try:
+                assert_terms_reviewed([feed], rulings=contract.rulings,
+                                      observations=observations)
+            except TermsNotReviewedError as error:
+                lines = str(error).splitlines()
+                refused_terms[feed["id"]] = (
+                    "; ".join(x.strip(" -") for x in lines[1:]) or lines[0]
+                )
+        for feed_id, why in refused_terms.items():
+            print(f"  {feed_id:38s} REFUSED by its terms check, left out: {why}")
+        feeds = [f for f in feeds if f["id"] not in refused_terms]
 
         if not args.dry_run:
             from collect.db import connect
@@ -330,11 +359,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {key:20s} {value}")
     if args.dry_run:
         print("\ndry run: nothing was written")
+    if refused_terms:
+        print(f"\n{len(refused_terms)} feed(s) refused by their terms check and not "
+              "harvested: " + ", ".join(sorted(refused_terms)), file=sys.stderr)
     if unloaded:
         print(f"\n{len(unloaded)} feed(s) refused for want of a `source` row: "
               + ", ".join(sorted(unloaded)), file=sys.stderr)
-        return 1
-    return 0
+    return 1 if (unloaded or refused_terms) else 0
 
 
 if __name__ == "__main__":
