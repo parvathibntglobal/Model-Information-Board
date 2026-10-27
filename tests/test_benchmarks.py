@@ -1152,6 +1152,32 @@ class TestRegistryModels:
     """Untracked registry models with aliases get rows below the tracked ones,
     only once a source lists them (Parvathi, 2026-10-22)."""
 
+    class _Failing:
+        """A connection whose registry read fails with `error`."""
+
+        autocommit = True
+
+        def __init__(self, error):
+            self.error = error
+
+        def execute(self, *_args, **_kwargs):
+            raise self.error
+
+    def test_no_registry_tables_is_said_and_any_other_failure_raises(self):
+        # PR #573 review (rule 6): an unreadable registry read as "no registry".
+        from psycopg import errors
+
+        from collect.benchmarks.host_adapter import get_registry_aliases, get_registry_models
+
+        absent = self._Failing(errors.UndefinedTable("model_version"))
+        assert get_registry_models(absent) is None
+        assert get_registry_aliases(absent, SEEDS) is None
+        broken = self._Failing(psycopg.OperationalError("connection lost"))
+        with pytest.raises(psycopg.OperationalError):
+            get_registry_models(broken)
+        with pytest.raises(psycopg.OperationalError):
+            get_registry_aliases(broken, SEEDS)
+
     def test_a_registry_model_sharing_a_tracked_models_name_is_left_out(self, config):
         dup = SeedModel("openai/gpt-6-astra-dup", "GPT-6 Astra")  # a second entry, same model
         other = SeedModel("openai/gpt-5.4", "GPT-5.4")

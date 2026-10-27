@@ -29,6 +29,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import yaml
+from psycopg import errors
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "contract" / "benchmarks"
@@ -459,7 +460,7 @@ def _release_dates(conn) -> dict[str, date]:
         rows = conn.execute(
             "SELECT canonical_id, release_date FROM model_version WHERE release_date IS NOT NULL"
         ).fetchall()
-    except Exception:  # noqa: BLE001 - no registry table here: no debuts
+    except errors.UndefinedTable:  # no registry here: no debuts. Other errors raise.
         conn.rollback()
         return {}
     return {model_id: released for model_id, released in rows}
@@ -795,7 +796,7 @@ def decision_targets(conn) -> list[dict[str, str]]:
         rows = conn.execute(
             "SELECT DISTINCT canonical_id, display_name FROM model_version ORDER BY 1"
         ).fetchall()
-    except Exception:  # noqa: BLE001 - no registry table here: tracked models only
+    except errors.UndefinedTable:  # no registry here: tracked models only. Others raise.
         conn.rollback()
         rows = []
     seen: set[str] = set()

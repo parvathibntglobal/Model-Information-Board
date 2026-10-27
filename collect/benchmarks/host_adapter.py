@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import yaml
+from psycopg import errors
 
 from collect.config import CONTRACT_DIR
 
@@ -24,13 +25,16 @@ class SeedModel:
     name: str  # the display name, e.g. "Claude Opus 5.5"
 
 
-def get_registry_aliases(conn, seeds: list[SeedModel]) -> dict[str, list[str]]:
+def get_registry_aliases(conn, seeds: list[SeedModel]) -> dict[str, list[str]] | None:
     """The aliases the registry already holds for each seed (`model_alias`).
 
     Each alias's surface and its spelled-out variants, joined to the seed by its
     model_version's canonical id. An alias past its `valid_until` (e.g. "Astra"
-    once a second Astra shipped) or before its `valid_from` is left out. A
-    database without the registry tables gives no aliases, not an error.
+    once a second Astra shipped) or before its `valid_from` is left out.
+
+    None when this database has no registry tables at all. Any OTHER failure
+    raises: an unreadable registry must not read as one with no aliases
+    (rule 6; PR #573 review).
     """
     ids = [s.id for s in seeds]
     try:
@@ -42,9 +46,9 @@ def get_registry_aliases(conn, seeds: list[SeedModel]) -> dict[str, list[str]]:
             "AND (ma.valid_from IS NULL OR ma.valid_from <= current_date)",
             (ids,),
         ).fetchall()
-    except Exception:  # noqa: BLE001 - no registry here: the config aliases still apply
+    except errors.UndefinedTable:
         conn.rollback() if not conn.autocommit else None
-        return {}
+        return None
     out: dict[str, list[str]] = {}
     for model_id, surface, variants in rows:
         names = out.setdefault(model_id, [])
@@ -54,7 +58,7 @@ def get_registry_aliases(conn, seeds: list[SeedModel]) -> dict[str, list[str]]:
     return out
 
 
-def get_registry_models(conn) -> list[SeedModel]:
+def get_registry_models(conn) -> list[SeedModel] | None:
     """Every registry model that is NOT tracked (Parvathi, 2026-10-22 / 10-23).
 
     They get rows below the tracked models - only when a source lists them, never
@@ -63,8 +67,8 @@ def get_registry_models(conn) -> list[SeedModel]:
     aliases where the registry has them (48 of 247 models on 2026-10-22).
 
     The display name drops the "Provider: " prefix the router adds
-    ("Anthropic: Claude Fable 5" -> "Claude Fable 5"). A database without the
-    registry tables gives none.
+    ("Anthropic: Claude Fable 5" -> "Claude Fable 5"). None when this database
+    has no registry tables; any other failure raises (rule 6).
     """
     raw = yaml.safe_load(TRACKED_MODELS.read_text(encoding="utf-8"))
     tracked = {entry["registry"] for entry in raw["models"] if entry.get("registry")}
@@ -72,9 +76,9 @@ def get_registry_models(conn) -> list[SeedModel]:
         rows = conn.execute(
             "SELECT DISTINCT canonical_id, display_name FROM model_version ORDER BY canonical_id"
         ).fetchall()
-    except Exception:  # noqa: BLE001 - no registry here: tracked models only
+    except errors.UndefinedTable:
         conn.rollback() if not conn.autocommit else None
-        return []
+        return None
     out = []
     seen: set[str] = set()
     for canonical_id, display_name in rows:

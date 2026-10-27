@@ -784,12 +784,19 @@ def _run_body(
     decisions = store.load_name_decisions(conn)
     if registry_models is None:
         registry_models = get_registry_models(conn)
+        if registry_models is None:
+            c.line(
+                "SETUP",
+                "WARN",
+                "this database has no registry tables: tracked models only",
+            )
+            registry_models = []
     # ONLY REGISTRY MODELS GET ROWS (Parvathi, 2026-10-26): an "Add as new row"
     # decision for a model outside the registry is no longer applied. The page no
     # longer offers it; one left in the table is skipped and named here.
     skipped_rows = [name for _key, name, action, _ in decisions if action == "new_row"]
     if registry_aliases is None:
-        registry_aliases = get_registry_aliases(conn, [*seeds, *registry_models])
+        registry_aliases = get_registry_aliases(conn, [*seeds, *registry_models]) or {}
     resolver = Resolver(config, seeds, registry_aliases, registry_models)
     # "Same model as ..." decisions: the name becomes an exact alias of that model.
     for _key, name, action, target in decisions:
