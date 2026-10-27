@@ -461,7 +461,15 @@ def evidence_feed_settings() -> dict:
                              "none, low, medium or high")
         return v
 
+    def dollars(b: dict, where: str, key: str) -> float:
+        v = b.get(key)
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 < v <= 50:
+            raise ValueError(f"contract/evidence_feed.yaml: {where}.{key} must be a dollar "
+                             "figure above 0 and at most 50")
+        return float(v)
+
     p, s, pg = block("paraphrase"), block("summary"), block("page")
+    rv, sc = block("revision"), block("schedule")
     words = s.get("quantity_words")
     if not isinstance(words, list) or not all(isinstance(w, str) and w.strip() for w in words):
         raise ValueError(
@@ -490,6 +498,18 @@ def evidence_feed_settings() -> dict:
             "attempts": count(s, "summary", "attempts", 1, 5),
             "max_copied_words": count(s, "summary", "max_copied_words", 2, 20),
             "quantity_words": [w.strip().lower() for w in words],
+        },
+        "revision": {
+            "prompt_version": text(rv, "revision", "prompt_version"),
+            "every_days": count(rv, "revision", "every_days", 1, 90),
+            "min_new_reports": count(rv, "revision", "min_new_reports", 1, 100),
+            "max_changes": count(rv, "revision", "max_changes", 1, 10),
+            "max_point_sentences": count(rv, "revision", "max_point_sentences", 1, 5),
+            "attempts": count(rv, "revision", "attempts", 1, 5),
+        },
+        "schedule": {
+            "nightly_feed_usd": dollars(sc, "schedule", "nightly_feed_usd"),
+            "weekly_summary_usd": dollars(sc, "schedule", "weekly_summary_usd"),
         },
         "page": {"per_page": count(pg, "page", "per_page", 5, 200)},
     }

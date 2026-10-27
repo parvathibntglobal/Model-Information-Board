@@ -233,7 +233,11 @@ function Summary({ id }) {
             report count, and must not read as if it were (rule 7). */}
         Written from the newest {s.reports_used} of {plural(s.reports_available, 'paraphrased report')}, up to {day(s.newest_report_at)}.
         {' '}{d.reports_since} {d.reports_since === 1 ? 'report' : 'reports'} posted since {d.reports_since === 1 ? 'is' : 'are'} not in it.
-        {' '}Drafted by a language model and approved by a person on {day(s.reviewed_at)}.
+        {/* A WEEKLY REVISION SAYS SO (2026-10-27): its newest points were added by a
+            model from newer reports and approved by a person, like the draft. */}
+        {' '}{s.revised
+          ? `Drafted by a language model, last revised from newer reports, and approved by a person on ${day(s.reviewed_at)}.`
+          : `Drafted by a language model and approved by a person on ${day(s.reviewed_at)}.`}
       </p>
       <h3 className="ev-h3">The reports it cites</h3>
       <ol className="ev-cites">

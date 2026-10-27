@@ -14,6 +14,11 @@ refused paraphrase is asked for again, with the reason, up to
 2026-10-23); refused every time, the report stays in the feed with its source
 and "not paraphrased yet" (rule 4).
 
+A REFUSAL IS REMEMBERED (2026-10-27, `feed_paraphrase_refusal`). Before the
+nightly schedule, a refused report was asked for again on every run - harmless
+by hand, unbounded repeat spend on a schedule (Parvathi's #558 condition). It
+is asked again only when its excerpts change or the prompt version does.
+
 NEWEST FIRST, so a partial run fills the top of every feed - the part a reader
 sees - before the archive.
 """
@@ -28,7 +33,7 @@ from typing import Any
 from judge import publication
 from judge.feed import checks
 from judge.feed.items import excerpts_digest
-from judge.feed.llm import FeedModelUnavailable, call_tool
+from judge.feed.llm import BudgetSpent, FeedModelUnavailable, call_tool
 
 #: The longest excerpt text sent per report. Measured 2026-10-21 over 4,122
 #: reports on the shared DB: 208 characters on average, 464 at the 90th
@@ -129,13 +134,23 @@ def pending(conn, prompt_version: str, *, model_key: str | None = None) -> tuple
             (prompt_version, model_key) if model_key else (prompt_version,),
         ).fetchall()
     }
+    # REFUSED FOR THESE EXCERPTS UNDER THIS PROMPT: not asked again until one
+    # of the two changes (the module docstring says why).
+    refused = {
+        (m, d): digest
+        for d, m, digest in conn.execute(
+            "SELECT document_id, model_version_id, excerpts_digest FROM feed_paraphrase_refusal "
+            "WHERE prompt_version = %s" + (" AND model_version_id = %s" if model_key else ""),
+            (prompt_version, model_key) if model_key else (prompt_version,),
+        ).fetchall()
+    }
     out, not_allowed = [], 0
     for k, u in units.items():
         if publication.withheld_publicly(u["source"]) and not terms["may_draw_on_withheld"]:
             not_allowed += 1
             continue
         u["digest"] = excerpts_digest(u["entries"])
-        if stored.get(k) != u["digest"]:
+        if stored.get(k) != u["digest"] and refused.get(k) != u["digest"]:
             out.append(u)
     out.sort(
         key=lambda u: (
@@ -245,6 +260,36 @@ def _store(conn, unit: dict, text: str, served: str, settings: dict, run_id: str
             run_id,
         ),
     )
+    conn.execute(
+        "DELETE FROM feed_paraphrase_refusal "
+        "WHERE document_id = %s AND model_version_id = %s AND prompt_version = %s",
+        (unit["document_id"], unit["model_key"], settings["prompt_version"]),
+    )
+
+
+def _refuse(conn, unit: dict, reason: str, settings: dict, run_id: str) -> None:
+    """Remember that every attempt was refused, for these excerpts and this prompt."""
+    conn.execute(
+        "INSERT INTO feed_paraphrase_refusal (document_id, model_version_id, prompt_version, "
+        "  excerpts_digest, reason, run_id) VALUES (%s,%s,%s,%s,%s,%s) "
+        "ON CONFLICT (document_id, model_version_id, prompt_version) DO UPDATE SET "
+        "  excerpts_digest = EXCLUDED.excerpts_digest, reason = EXCLUDED.reason, "
+        "  run_id = EXCLUDED.run_id, refused_at = now()",
+        (unit["document_id"], unit["model_key"], settings["prompt_version"], unit["digest"],
+         reason, run_id),
+    )
+
+
+def refusals(conn, prompt_version: str) -> dict[str, int]:
+    """Reports held back as refused under this prompt, by reason - for the run
+    report, so a skipped report is counted and not silently absent (rule 4)."""
+    out: dict[str, int] = {}
+    for (reason,) in conn.execute(
+        "SELECT reason FROM feed_paraphrase_refusal WHERE prompt_version = %s", (prompt_version,)
+    ).fetchall():
+        kind = re.sub(r"\d+", "N", reason.split(" (")[0])
+        out[kind] = out.get(kind, 0) + 1
+    return out
 
 
 def run(
@@ -257,7 +302,11 @@ def run(
     log: Callable[[str], Any] = lambda s: None,
 ) -> dict:
     """Paraphrase `units`, a batch per call, one model per batch. Counted:
-    stored, refused by reason, and calls that failed outright (rule 4)."""
+    stored, refused by reason, and calls that failed outright (rule 4).
+
+    A run whose spend cap is reached (`llm.capped`) STOPS: the reports not yet
+    asked stay pending for the next run, and are counted as such, never as
+    refused - a cap is not a verdict on the report."""
     run_id = f"feed_p_{uuid.uuid4().hex[:12]}"
     report = {
         "run_id": run_id,
@@ -267,12 +316,19 @@ def run(
         "asked_again": 0,
         "refused": {},
         "failed_calls": [],
+        "stopped": None,
+        "left_for_next_run": 0,
     }
     by_model: dict[str, list[dict]] = {}
     for u in units:
         by_model.setdefault(u["model_key"], []).append(u)
+    done: set[tuple[str, str]] = set()
     for model_key, mine in by_model.items():
+        if report["stopped"]:
+            break
         for start in range(0, len(mine), settings["per_call"]):
+            if report["stopped"]:
+                break
             batch = mine[start : start + settings["per_call"]]
             reasons: dict[str, tuple[str, str]] = {}
             todo = batch
@@ -285,6 +341,10 @@ def run(
                     # The gist only once the full paraphrase has had its re-asks.
                     ids, got, served = _ask(todo, settings, run_id, call, reasons or None,
                                             gist=last and attempt >= 3)
+                except BudgetSpent as e:
+                    report["calls"] -= 1
+                    report["stopped"] = str(e)
+                    break
                 except FeedModelUnavailable as e:
                     report["failed_calls"].append(f"{model_key}: {e}")
                     break
@@ -306,6 +366,7 @@ def run(
                     if problem is None:
                         _store(conn, unit, text, served, settings, run_id)
                         report["stored"] += 1
+                        done.add((unit["model_key"], unit["document_id"]))
                     elif not last:
                         retry.append(unit)
                         if attempt == 1:
@@ -316,10 +377,17 @@ def run(
                         # one reason, counted once per report.
                         reason = re.sub(r"\d+", "N", problem.split(" (")[0])
                         report["refused"][reason] = report["refused"].get(reason, 0) + 1
+                        _refuse(conn, unit, problem, settings, run_id)
+                        done.add((unit["model_key"], unit["document_id"]))
                 if commit:
                     conn.commit()
                 if not retry:
                     break
                 todo, reasons = retry, next_reasons
             log(f"{model_key}: {report['stored']} stored so far, {report['calls']} calls")
+    if report["stopped"]:
+        # Not refused and not stored: asked for again next run, and said so.
+        report["left_for_next_run"] = sum(
+            1 for u in units if (u["model_key"], u["document_id"]) not in done
+        )
     return report

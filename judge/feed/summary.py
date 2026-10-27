@@ -19,6 +19,12 @@ so a reader can check each claim against them.
 THE DENOMINATOR TRAVELS WITH IT (rule 7): written from the newest
 `reports_used` of `reports_available` paraphrased reports, and the page counts
 how many have been posted since.
+
+DRAFTED ONCE, THEN REVISED (2026-10-27, judge/feed/revise.py). The schedule
+drafts a model's first summary here and never redrafts an approved one: each
+week it proposes point-level edits to it instead. Every attempt, stored or
+refused, is a `feed_summary_attempt` row, so a refused draft is not paid for
+again until a newer report arrives (Parvathi's #558 condition).
 """
 
 from __future__ import annotations
@@ -42,7 +48,7 @@ from judge.feed.items import (
     resolve_model,
     seated_keys,
 )
-from judge.feed.llm import FeedModelUnavailable, call_tool
+from judge.feed.llm import BudgetSpent, FeedModelUnavailable, call_tool
 
 SYSTEM = """\
 You write a one-page summary of what engineers have reported about {model},
@@ -228,7 +234,7 @@ def draft(
         last=len(used),
     )
     user = _user_message(model["label"], used)
-    reason, reasons = None, []
+    reason, reasons, answered = None, [], False
     for _attempt in range(settings["attempts"]):
         message = (
             user
@@ -249,11 +255,17 @@ def draft(
                 max_tokens=4 * settings["max_words"] + 800,
                 reasoning_effort=settings["reasoning_effort"],
             )
+        except BudgetSpent as e:
+            # NOT AN ATTEMPT: the cap stopped the run before the call.
+            reason = str(e)
+            reasons.append(reason)
+            break
         except FeedModelUnavailable as e:
             # AN ATTEMPT THAT FAILED, not a run that did: counted like a refusal.
             reason = str(e)
             reasons.append(reason)
             continue
+        answered = True
         paragraphs = [_with_ids(p) for p in (args.get("paragraphs") or []) if isinstance(p, dict)]
         reason, flags = checks.summary_problems(
             paragraphs,
@@ -268,7 +280,18 @@ def draft(
         if reason is None:
             break
         reasons.append(reason)
+    newest = max((r["posted_at"] for r in used if r["posted_at"]), default=None)
     if reason is not None:
+        # REMEMBERED, so the schedule does not pay for it again until a newer
+        # report arrives - unless no call was made at all (a spend cap, a dead
+        # key), which is not a verdict on these reports.
+        if answered:
+            record_attempt(conn, model["key"], "draft", "refused", parent_id=None,
+                           summary_id=None, newest=newest, considered=len(used),
+                           detail="; then ".join(reasons),
+                           prompt_version=settings["prompt_version"], run_id=run_id)
+            if commit:
+                conn.commit()
         # EVERY attempt's reason: the last alone hides what the first got wrong.
         return {
             "stored": False,
@@ -281,7 +304,6 @@ def draft(
         {"text": p["text"].strip(), "cites": [rid[c]["id"] for c in dict.fromkeys(p["cites"])]}
         for p in paragraphs
     ]
-    newest = max((r["posted_at"] for r in used if r["posted_at"]), default=None)
     summary_id = f"fs_{uuid.uuid4().hex}"
     # ONE PENDING DRAFT PER MODEL: an older one is superseded, with the time.
     conn.execute(
@@ -307,6 +329,9 @@ def draft(
             run_id,
         ),
     )
+    record_attempt(conn, model["key"], "draft", "stored", parent_id=None, summary_id=summary_id,
+                   newest=newest, considered=len(used), detail=None,
+                   prompt_version=settings["prompt_version"], run_id=run_id)
     if commit:
         conn.commit()
     return {
@@ -325,12 +350,26 @@ def review(conn, summary_id: str, decision: str, note: str | None = None) -> dic
     if decision not in ("approve", "reject"):
         raise ValueError("decision must be approve or reject")
     row = conn.execute(
-        "SELECT model_version_id, state FROM feed_summary WHERE id = %s", (summary_id,)
+        "SELECT model_version_id, state, parent_id FROM feed_summary WHERE id = %s", (summary_id,)
     ).fetchone()
     if row is None:
         return None
     if row[1] != "pending":
         raise ValueError(f"this summary is {row[1]}, not pending")
+    if decision == "approve" and row[2] is not None:
+        # A REVISION EDITS ONE APPROVED SUMMARY. If another has been approved
+        # since, approving this would silently undo it: refused, so the
+        # reviewer rejects it and the next weekly run revises the live one.
+        live = conn.execute(
+            "SELECT id FROM feed_summary WHERE model_version_id = %s AND state = 'approved' "
+            "ORDER BY reviewed_at DESC LIMIT 1",
+            (row[0],),
+        ).fetchone()
+        if live is None or live[0] != row[2]:
+            raise ValueError(
+                "this revision edits a summary that is no longer the live one; reject it, "
+                "and the next weekly run will revise the summary now shown"
+            )
     if decision == "approve":
         conn.execute(
             "UPDATE feed_summary SET state = 'superseded' "
@@ -398,13 +437,16 @@ def _cited(conn, model: dict, ids: list[str]) -> dict[str, dict]:
 
 
 def _shape(conn, model: dict, row) -> dict:
-    (sid, paragraphs, flags, used, available, newest, served, generated, reviewed, note, state) = (
-        row
-    )
+    (sid, paragraphs, flags, used, available, newest, served, generated, reviewed, note, state,
+     parent_id, changes) = row
     ids = list(dict.fromkeys(c for p in paragraphs for c in p["cites"]))
     return {
         "id": sid,
         "state": state,
+        # A REVISION'S EDITS, for Admin to show before against after
+        # (FeedSummaryPanel.jsx); None for a first draft.
+        "parent_id": parent_id,
+        "changes": changes,
         "paragraphs": paragraphs,
         "flags": flags,
         "reports_used": used,
@@ -425,7 +467,7 @@ def current(conn, model_id: str) -> dict:
     require_seated(conn, model)
     row = conn.execute(
         "SELECT id, paragraphs, flags, reports_used, reports_available, newest_report_at, "
-        "       proposer_model, generated_at, reviewed_at, review_note, state "
+        "       proposer_model, generated_at, reviewed_at, review_note, state, parent_id, changes "
         "FROM feed_summary WHERE model_version_id = %s AND state = 'approved' "
         "ORDER BY reviewed_at DESC LIMIT 1",
         (model["key"],),
@@ -451,7 +493,11 @@ def current(conn, model_id: str) -> dict:
     # note are the reviewer's; the proposer model, when it was drafted and the
     # row id are Admin's (listing()) - the tab says "drafted by a language model
     # and approved by a person on <reviewed_at>" and reads none of them.
-    for admin_only in ("flags", "review_note", "proposer_model", "generated_at", "id"):
+    # A REVISION SAYS SO (2026-10-27): "revised and approved by a person on
+    # <reviewed_at>" (Evidence.jsx). Which points changed is Admin's.
+    out["revised"] = out["parent_id"] is not None
+    for admin_only in ("flags", "review_note", "proposer_model", "generated_at", "id",
+                       "parent_id", "changes"):
         out.pop(admin_only, None)
     return {"model": model, "summary": out, "state": "approved", "reports_since": since}
 
@@ -462,7 +508,8 @@ def listing(conn, state: str = "pending") -> list[dict]:
         raise ValueError("state must be pending, approved, rejected or superseded")
     rows = conn.execute(
         "SELECT model_version_id, id, paragraphs, flags, reports_used, reports_available, "
-        "       newest_report_at, proposer_model, generated_at, reviewed_at, review_note, state "
+        "       newest_report_at, proposer_model, generated_at, reviewed_at, review_note, state, "
+        "       parent_id, changes "
         "FROM feed_summary WHERE state = %s "
         "ORDER BY generated_at DESC LIMIT 100",
         (state,),
@@ -486,9 +533,15 @@ def models_due(conn, paraphrase_version: str, min_reports: int) -> list[dict[str
     pending and approved meant a rejected model was drafted again on every
     `--summaries --apply` run, up to `summary.attempts` paid calls each time,
     from the same reports a person had just turned down. It is drafted again
-    once a newer report arrives. A draft the checks refused is not stored, so it
-    is still retried on the next run - bounded by `summary.attempts` calls per
-    model per run, and listed by name in that run's report.
+    once a newer report arrives.
+
+    A REFUSED DRAFT COUNTS TOO (2026-10-27): it is a `feed_summary_attempt`
+    row, so the schedule does not pay for the same refusal every week.
+
+    AN APPROVED OR WAITING SUMMARY IS NEVER REDRAFTED HERE (2026-10-27). An
+    approved one is revised point by point (judge/feed/revise.py); a waiting one
+    waits for its reviewer. A full redraft of a live summary is a person's
+    choice: `build_evidence_feed.py --summaries --model <id> --apply`.
 
     SEATED MODELS ONLY (2026-10-23, #558 second review). The public summary
     refuses a model the models page does not list (`require_seated`), so a
@@ -500,17 +553,58 @@ def models_due(conn, paraphrase_version: str, min_reports: int) -> list[dict[str
         "GROUP BY 1 HAVING count(*) >= %s",
         (paraphrase_version, min_reports),
     ).fetchall()
+    live = {
+        k
+        for (k,) in conn.execute(
+            "SELECT DISTINCT model_version_id FROM feed_summary "
+            "WHERE state IN ('pending', 'approved')"
+        ).fetchall()
+    }
     last = dict(
         conn.execute(
-            "SELECT model_version_id, max(newest_report_at) FROM feed_summary "
-            "WHERE state IN ('pending', 'approved', 'rejected', 'superseded') GROUP BY 1"
+            "SELECT model_version_id, max(newest_report_at) FROM ("
+            "  SELECT model_version_id, newest_report_at FROM feed_summary "
+            "  UNION ALL "
+            "  SELECT model_version_id, newest_report_at FROM feed_summary_attempt "
+            "  WHERE kind = 'draft') t GROUP BY 1"
         ).fetchall()
     )
     due = []
     for key, n, newest in rows:
-        if key not in seated:
+        if key not in seated or key in live:
             continue
         drafted: datetime | None = last.get(key)
         if drafted is None or (newest is not None and newest > drafted):
             due.append({"model_key": key, "paraphrased": n})
     return due
+
+
+def record_attempt(conn, model_key: str, kind: str, outcome: str, *, parent_id: str | None,
+                   summary_id: str | None, newest: datetime | None, considered: int,
+                   detail: str | None, prompt_version: str, run_id: str) -> None:
+    """One `feed_summary_attempt` row: what was tried, on what, and how it ended."""
+    conn.execute(
+        "INSERT INTO feed_summary_attempt (model_version_id, kind, outcome, parent_id, "
+        "  summary_id, newest_report_at, reports_considered, detail, prompt_version, run_id) "
+        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (model_key, kind, outcome, parent_id, summary_id, newest, considered, detail,
+         prompt_version, run_id),
+    )
+
+
+def attempts(conn, limit: int = 40) -> list[dict]:
+    """Admin: the newest attempts, so a refused draft or a week with nothing
+    to change is visible, not just absent (rule 4)."""
+    rows = conn.execute(
+        "SELECT a.model_version_id, coalesce(v.display_name, v.canonical_id, v.id), a.kind, "
+        "       a.outcome, a.summary_id, a.reports_considered, a.detail, a.attempted_at "
+        "FROM feed_summary_attempt a JOIN model_version v ON v.id = a.model_version_id "
+        "ORDER BY a.attempted_at DESC, a.id DESC LIMIT %s",
+        (limit,),
+    ).fetchall()
+    return [
+        {"model_key": k, "model_label": label, "kind": kind, "outcome": outcome,
+         "summary_id": sid, "reports_considered": n, "detail": detail,
+         "attempted_at": at.isoformat()}
+        for k, label, kind, outcome, sid, n, detail, at in rows
+    ]

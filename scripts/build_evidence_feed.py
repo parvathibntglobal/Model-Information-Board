@@ -4,10 +4,20 @@
     python scripts/build_evidence_feed.py --embeds --apply     # resolve Reddit/X embeds
     python scripts/build_evidence_feed.py --paraphrase --apply [--model ID] [--limit N]
     python scripts/build_evidence_feed.py --summaries --apply [--model ID]
+    python scripts/build_evidence_feed.py --revise --apply [--model ID]
+    ... --max-usd 1.0      # stop before the call that would start past $1
 
 Run after extraction: a report extracted tonight is paraphrased tonight, so
 the feed's newest items are the newest reports. Order matters only for
 summaries, which are written from paraphrases.
+
+ON A SCHEDULE (2026-10-27, .github/workflows/evidence-feed.yml): nightly,
+`--embeds --paraphrase --apply --max-usd <schedule.nightly_feed_usd>`; weekly,
+`--summaries --revise --apply --max-usd <schedule.weekly_summary_usd>`.
+`--summaries` drafts only models with no approved or waiting summary; an
+approved one is REVISED point by point (`--revise`, judge/feed/revise.py) and
+never redrafted by the schedule. `--summaries --model ID` still redrafts one
+model by hand, whatever it has.
 
 A SCRIPT, NOT judge/, BECAUSE IT COMPOSES THE TWO LANES. A Reddit link post's
 `document.url` is the LINKED content, not the thread, so the post address an
@@ -172,23 +182,38 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--embeds", action="store_true")
     ap.add_argument("--paraphrase", action="store_true")
     ap.add_argument("--summaries", action="store_true")
+    ap.add_argument("--revise", action="store_true",
+                    help="propose point-level revisions of approved summaries (weekly)")
     ap.add_argument("--model", help="one model, by canonical or registry id")
     ap.add_argument("--limit", type=int, help="at most this many reports or documents")
+    cap = ap.add_mutually_exclusive_group()
+    cap.add_argument("--max-usd", type=float, default=None,
+                     help="stop before any call once this many dollars are spent in this run")
+    cap.add_argument("--cap", choices=("nightly", "weekly"),
+                     help="the schedule's cap from contract/evidence_feed.yaml `schedule`, so "
+                          "the workflow does not repeat the figure (rule 5)")
     ap.add_argument("--apply", action="store_true", help="write; without it, report only")
     args = ap.parse_args(argv)
     _env()
 
     from judge.config import evidence_feed_settings
-    from judge.feed import paraphrase, summary
+    from judge.feed import llm, paraphrase, revise, summary
     from judge.feed.items import resolve_model
     from judge.feed.llm import FeedModelUnavailable
 
     cfg = evidence_feed_settings()
     p_cfg = cfg["paraphrase"]
     s_cfg = cfg["summary"]
+    r_cfg = cfg["revision"]
+    if args.cap:
+        key = {"nightly": "nightly_feed_usd", "weekly": "weekly_summary_usd"}[args.cap]
+        args.max_usd = cfg["schedule"][key]
+    # EVERY PAID CALL GOES THROUGH THE CAP when one is given; without one a
+    # hand run is bounded by its flags, as before.
+    call = llm.capped(args.max_usd) if args.max_usd is not None else llm.call_tool
     with _connect(writing=args.apply) as conn:
         model_key = resolve_model(conn, args.model)["key"] if args.model else None
-        nothing = not (args.embeds or args.paraphrase or args.summaries)
+        nothing = not (args.embeds or args.paraphrase or args.summaries or args.revise)
 
         if args.embeds or nothing:
             print("embeds:", embeds(conn, apply=args.apply and args.embeds, limit=args.limit))
@@ -199,12 +224,15 @@ def main(argv: list[str] | None = None) -> int:
             )
             units = units[: args.limit] if args.limit else units
             calls = sum(-(-n // p_cfg["per_call"]) for n in _per_model(units).values())
+            held = paraphrase.refusals(conn, p_cfg["prompt_version"])
             print(
                 f"paraphrase: {len(units)} reports pending, about {calls} calls"
                 + (f"; {not_allowed} left out by the publication terms" if not_allowed else "")
+                + (f"; {sum(held.values())} held back as refused until their excerpts change "
+                   f"({', '.join(f'{k}: {n}' for k, n in held.items())})" if held else "")
             )
             if args.apply and args.paraphrase and units:
-                report = paraphrase.run(conn, units, p_cfg, log=print)
+                report = paraphrase.run(conn, units, p_cfg, call=call, log=print)
                 print("paraphrase:", json.dumps(report, indent=2))
 
         if args.summaries or nothing:
@@ -213,11 +241,12 @@ def main(argv: list[str] | None = None) -> int:
                 if model_key
                 else summary.models_due(conn, p_cfg["prompt_version"], s_cfg["min_reports"])
             )
-            print(f"summaries: {len(due)} models due for a draft")
+            print(f"summaries: {len(due)} models due for a first draft")
             if args.apply and args.summaries:
                 for d in due:
                     try:
-                        out = summary.draft(conn, d["model_key"], s_cfg, p_cfg["prompt_version"])
+                        out = summary.draft(conn, d["model_key"], s_cfg, p_cfg["prompt_version"],
+                                            call=call)
                     except (summary.NotEnoughReports, FeedModelUnavailable) as e:
                         out = {"stored": False, "refused": str(e)}
                     print(
@@ -228,6 +257,41 @@ def main(argv: list[str] | None = None) -> int:
                             else f"not stored - {out['refused']}"
                         )
                     )
+                    if isinstance(out.get("refused"), str) and "cap is spent" in out["refused"]:
+                        print("  stopped: the run's spend cap is reached; the rest wait a week")
+                        break
+
+        if args.revise or nothing:
+            if model_key:
+                due, skipped = [{"model_key": model_key}], []
+            else:
+                due, skipped = revise.revisions_due(conn, p_cfg["prompt_version"], r_cfg)
+            print(f"revisions: {len(due)} models due, {len(skipped)} not")
+            for s in skipped:
+                print(f"  {s['model_key']}: not revised - {s['why']}")
+            if args.apply and args.revise:
+                for d in due:
+                    out = revise.revise(conn, d["model_key"], s_cfg, r_cfg,
+                                        p_cfg["prompt_version"], call=call)
+                    line = {
+                        "stored": lambda o: f"stored {o['id']}, {len(o['changes'])} change(s) "
+                                            f"from {o['new_reports']} new reports, for review",
+                        "no_change": lambda o: f"no change from {o['new_reports']} new reports "
+                                               f"- {o['why']}",
+                        "refused": lambda o: f"refused - {o['refused']}",
+                        "not_due": lambda o: f"not due - {o['why']}",
+                    }[out["outcome"]](out)
+                    print(f"  {d['model_key']}: {line}")
+                    capped = out["outcome"] == "refused" and not out.get("recorded")
+                    if capped and "cap is spent" in out["refused"]:
+                        print("  stopped: the run's spend cap is reached; the rest wait a week")
+                        break
+
+        if args.max_usd is not None:
+            s = llm.spent()
+            print(f"spend: ${s['usd']:.4f} of the ${args.max_usd:.2f} cap over {s['calls']} "
+                  f"call(s)" + (f"; {s['unreported']} reported no cost, so this is a floor"
+                                if s["unreported"] else ""))
     return _flush_spend() if args.apply else 0
 
 

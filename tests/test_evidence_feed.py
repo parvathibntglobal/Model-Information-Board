@@ -852,8 +852,12 @@ def test_a_rejected_draft_is_not_redrafted_until_a_newer_report(conn):
     out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
     summary.review(conn, out["id"], "reject")
     assert summary.models_due(conn, "p1", 1) == []
-    # A report newer than the rejected draft was written from: due again.
+    # A report newer than the rejected draft was written from: due again. The
+    # draft's attempt row records the same newest report (2026-10-27).
     conn.execute("UPDATE feed_summary SET newest_report_at = newest_report_at - interval '1 day'")
+    conn.execute(
+        "UPDATE feed_summary_attempt SET newest_report_at = newest_report_at - interval '1 day'"
+    )
     assert [d["model_key"] for d in summary.models_due(conn, "p1", 1)] == ["mv_a"]
 
 
@@ -868,7 +872,8 @@ def test_the_public_payloads_carry_only_fields_with_a_reader(conn):
       feed: model.label/.canonical, filter.name, counts.*, paraphrased,
       matching, page.pages, items.
       summary: paragraphs, cited, reports_used, reports_available,
-      newest_report_at, reviewed_at, state; reports_since.
+      newest_report_at, reviewed_at, state, revised (2026-10-27: "last revised
+      from newer reports"); reports_since.
     DECLARED UNCONSUMED: model.key, filter.section/.slug/.category/.polarity,
     page.page/.per_page - the request echoed back, so a response names what it
     answers; no page reads them, none is costly, and none is a figure."""
@@ -883,7 +888,7 @@ def test_the_public_payloads_carry_only_fields_with_a_reader(conn):
     live = summary.current(conn, "acme/text-a")
     assert set(live) == {"model", "summary", "state", "reports_since"}
     assert set(live["summary"]) == {"state", "paragraphs", "reports_used", "reports_available",
-                                    "newest_report_at", "reviewed_at", "cited"}
+                                    "newest_report_at", "reviewed_at", "cited", "revised"}
 
 
 # ── embeds travel as ids (#558 second review) ────────────────────────────────

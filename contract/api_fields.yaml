@@ -45,6 +45,12 @@ fields:
     routes:
     - /admin/stages
     state: no_consumer
+  attempts:
+    reviewed: true
+    routes:
+    - /feed/summaries
+    state: consumed
+    why: 'Newest draft and revision attempts (2026-10-27, judge/feed/summary.py attempts()), read by web/src/components/FeedSummaryPanel.jsx so a refusal or a week with no change shows as such in Admin.'
   auth:
     reviewed: false
     routes:

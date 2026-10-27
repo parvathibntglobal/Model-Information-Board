@@ -109,6 +109,45 @@ summary:
                    consistently, repeatedly, commonly, frequently, often, generally,
                    multiple, widespread]
 
+# THE WEEKLY REVISION (2026-10-27, PROPOSED by anooj, docs/proposals/
+# evidence-feed-agent.md). Once a model has an approved summary, the schedule
+# never rewrites it: it REVISES it, point by point. The model is shown the
+# approved summary sentence by sentence and only the reports posted since, and
+# may replace a point, add one, or add a paragraph - or change nothing, which
+# is the expected answer most weeks. Code applies the edits, so every sentence
+# not edited stays exactly as approved, and every edit must cite at least one
+# of the new reports. A person approves each revision in Admin, as a draft.
+# Uses summary.model, .reasoning_effort, .max_words, .max_paragraphs,
+# .max_copied_words and .quantity_words: a revised page is held to the same
+# checks as a drafted one, and never grows past them.
+revision:
+  # Bump when the revision prompt or its checks change.
+  prompt_version: "r1"
+  # A model is revised at most once in this many days, counted from its last
+  # attempt - stored, refused or no change alike.
+  every_days: 7
+  # And only when at least this many paraphrased reports were posted after
+  # the approved summary's newest. Fewer, and no call is made.
+  min_new_reports: 1
+  # The most edited points in one revision. A point is added only when it has
+  # become evident and relevant enough to belong on the page (anooj,
+  # 2026-10-27): "it doesn't mean to rewrite the whole 2 para".
+  max_changes: 2
+  # A point is one or two sentences.
+  max_point_sentences: 2
+  # Calls per model per revision, each re-ask given the refusal reason.
+  attempts: 3
+
+# THE SCHEDULE'S SPEND CAPS (2026-10-27, anooj), in US dollars at the cost
+# OpenRouter reports, per run of .github/workflows/evidence-feed.yml. A run
+# stops before the call that would start after its cap is reached, so it can
+# overshoot by one call (about a cent), and says what it left undone.
+schedule:
+  # The nightly run: paraphrases for the reports fetched that night.
+  nightly_feed_usd: 1.0
+  # The weekly run: revisions, and first drafts for models with none.
+  weekly_summary_usd: 1.0
+
 page:
   # Items per page of the feed.
   per_page: 30

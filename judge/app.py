@@ -2983,12 +2983,15 @@ def evidence_feed_summary(model: str) -> dict:
 @app.get("/feed/summaries")
 def evidence_feed_summaries(state: str = "pending") -> dict:
     """Admin: summary drafts in one state, with what each paragraph cites and
-    the soft-check flags, for the person who approves them."""
+    the soft-check flags, for the person who approves them - and the newest
+    draft and revision attempts, so a refusal or a week with nothing to change
+    shows as such rather than as nothing (2026-10-27)."""
     from judge.feed import summary
 
     try:
         with _conn() as conn:
-            return {"counts": summary.counts(conn), "items": summary.listing(conn, state)}
+            return {"counts": summary.counts(conn), "items": summary.listing(conn, state),
+                    "attempts": summary.attempts(conn)}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from None
 

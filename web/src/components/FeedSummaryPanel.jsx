@@ -22,21 +22,90 @@ const TABS = [['pending', 'Waiting'], ['approved', 'Approved'], ['rejected', 'Re
 
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'no date')
 
+const OP = { replace: 'Replaces', add: 'Adds after', new_paragraph: 'New paragraph after' }
+
+/**
+ * A REVISION'S EDITS (2026-10-27, judge/feed/revise.py): each point before and
+ * after, the new reports it cites and the proposer's reason. Every sentence not
+ * listed here is the approved text unchanged - code spliced the edits in.
+ */
+function Changes({ s }) {
+  return (
+    <div className="stack stack-2">
+      <p className="dim">
+        A weekly revision of the live summary: {s.changes.length} {s.changes.length === 1 ? 'point' : 'points'} changed,
+        everything else exactly as approved. Approving it replaces the live summary.
+      </p>
+      {s.changes.map((c, i) => (
+        <div key={i} className="ev-item">
+          <div className="ev-meta"><b>{OP[c.op] || c.op} {c.at}</b></div>
+          {c.before && <p className="ev-text ev-dim"><s>{c.before}</s></p>}
+          <p className="ev-text">{c.after}</p>
+          <p className="dim qb-why">Why: {c.reason}</p>
+          <details>
+            <summary className="dim">The {c.cites.length} new {c.cites.length === 1 ? 'report' : 'reports'} it cites</summary>
+            <div className="ev-list" style={{ marginTop: 8 }}>
+              {c.cites.map((d) => {
+                const r = s.cited[d]
+                if (!r || r.gone) return <p key={d} className="ev-dim">A cited report has since been removed from the board.</p>
+                return (
+                  <div key={d} className="ev-item">
+                    <div className="ev-meta"><Posted at={r.posted_at} /><PolarityChip polarity={r.polarity} /></div>
+                    {r.paraphrase ? <p className="ev-text">{r.paraphrase}</p> : <p className="ev-text ev-dim">No paraphrase.</p>}
+                    <SourceLine source={r.source} />
+                  </div>
+                )
+              })}
+            </div>
+          </details>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const OUTCOME = { stored: 'stored for review', refused: 'refused by the checks', no_change: 'nothing worth changing' }
+
+function Attempts({ items }) {
+  if (!items || items.length === 0) return null
+  return (
+    <details>
+      <summary className="dim">Recent drafts and weekly revisions, including refusals and weeks with no change</summary>
+      <div className="ev-list" style={{ marginTop: 8 }}>
+        {items.map((a, i) => (
+          <div key={i} className="ev-item">
+            <div className="ev-meta">
+              <b>{a.model_label}</b>
+              <span className="dim">{a.kind === 'revision' ? 'revision' : 'first draft'} · {day(a.attempted_at)} · {OUTCOME[a.outcome] || a.outcome}</span>
+              <span className="dim">from {a.reports_considered} {a.reports_considered === 1 ? 'report' : 'reports'}</span>
+            </div>
+            {a.detail && <p className="ev-text ev-dim">{a.detail}</p>}
+            {a.summary_id && <p className="dim mono">{a.summary_id}</p>}
+          </div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
 function Draft({ s, onDecide, busy }) {
   const [note, setNote] = useState('')
   const flagged = new Map()
   for (const f of s.flags || []) flagged.set(f.paragraph, [...(flagged.get(f.paragraph) || []), f])
+  const revision = Boolean(s.parent_id)
   return (
     <div className="qb-item">
       <div className="qb-meta">
         <b>{s.model.label}</b>
         <span className="dim mono">{s.model.canonical}</span>
-        <span className="dim">drafted {day(s.generated_at)} by <span className="mono">{s.proposer_model}</span></span>
+        <span className="dim">{revision ? 'revised' : 'drafted'} {day(s.generated_at)} by <span className="mono">{s.proposer_model}</span></span>
       </div>
       <p className="dim">
         Written from the newest {s.reports_used} of {s.reports_available} paraphrased reports, up to {day(s.newest_report_at)}.
         {(s.flags || []).length > 0 && ` ${(s.flags || []).length} flagged for a quantity word.`}
       </p>
+      {revision && s.changes && <Changes s={s} />}
+      {revision && <p className="dim">The whole page as it would read:</p>}
       {s.paragraphs.map((p, i) => {
         const flags = flagged.get(i + 1) || []
         return (
@@ -135,6 +204,8 @@ export default function FeedSummaryPanel() {
         : last.stored
           ? <p className="lv-note">Stored for review, written from {last.reports_used} of {last.reports_available} paraphrased reports{(last.flags || []).length ? `, ${last.flags.length} flagged` : ''}.</p>
           : <p className="lv-note lv-warn">Refused by the checks, twice: {last.refused}</p>)}
+
+      <Attempts items={data.attempts} />
 
       <div className="lv-seg" role="group" aria-label="Which summaries">
         {TABS.map(([k, label]) => (
