@@ -12,6 +12,7 @@ replaced, so the test is about the control flow alone.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 from pathlib import Path
 
@@ -20,16 +21,21 @@ from collect.adapters.blog.fetch import observe_use_basis
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _script():
+def _script(monkeypatch):
+    """The script, with no HTTP client at all: observing and fetching are faked
+    by each test, so nothing here may depend on a machine's USER_AGENT (CI has
+    none; a developer's .env does, which hid this on the first run)."""
     path = ROOT / "scripts" / "harvest_blogs.py"
     spec = importlib.util.spec_from_file_location("harvest_blogs", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "build_client", lambda: contextlib.nullcontext(None))
+    monkeypatch.setattr(module, "RobotsGate", lambda *a, **k: None)
     return module
 
 
 def test_a_refused_feed_is_named_and_left_out_and_the_rest_still_run(monkeypatch, capsys):
-    hb = _script()
+    hb = _script(monkeypatch)
     feeds = [f for f in hb.load_sources().feeds if f["id"] in
              ("blog:simonwillison.net", "blog:epochai.substack.com", "blog:hamel.dev")]
     assert len(feeds) == 3
@@ -63,7 +69,7 @@ def test_a_refused_feed_is_named_and_left_out_and_the_rest_still_run(monkeypatch
 
 
 def test_with_nothing_refused_the_exit_code_is_zero(monkeypatch, capsys):
-    hb = _script()
+    hb = _script(monkeypatch)
     feeds = [f for f in hb.load_sources().feeds if f["id"] == "blog:simonwillison.net"]
     contract = hb.load_sources()
     monkeypatch.setattr(hb, "load_sources", lambda: type("C", (), {
