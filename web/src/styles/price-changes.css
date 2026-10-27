@@ -1,0 +1,51 @@
+/* The Price changelog page (routes/PriceChanges.jsx). Tokens from tokens.css only. */
+
+.pc-page h1{font-size:var(--fs-display)}
+.pc-page header p{max-width:80ch}
+.pc-small{font-size:var(--fs-xs)}
+.pc-error{color:var(--fail);font-size:var(--fs-sm)}
+.pc-caveat{max-width:80ch;padding:var(--s2);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);
+  border-radius:var(--r-sm);background:var(--warn-dim);color:var(--text);font-size:var(--fs-sm)}
+.pc-caveat strong{color:var(--warn)}
+
+.pc-stats{display:flex;gap:var(--s4);flex-wrap:wrap}
+
+.pc-filters{display:flex;gap:var(--s2);align-items:center;flex-wrap:wrap}
+.pc-chips{display:flex;gap:6px;flex-wrap:wrap}
+.pc-chip{height:30px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--border);
+  background:var(--surface);color:var(--text-2);font-size:var(--fs-xs);cursor:pointer}
+.pc-chip:hover{color:var(--text);border-color:var(--border-strong)}
+.pc-chip.on{background:var(--text);color:#0C0C0E;border-color:var(--text)}
+.pc-chip:disabled{opacity:.4;cursor:default}
+.pc-chip-n{margin-left:4px;font-family:var(--font-mono);font-size:10px;opacity:.7}
+
+/* The News-worthy menu: the same shape as Benchmarks' (styles/benchmarks.css). */
+.pc-news-wrap{position:relative}
+.pc-news-btn{white-space:nowrap}
+.pc-news-menu{position:absolute;left:0;top:calc(100% + 6px);z-index:20;min-width:320px;padding:6px;
+  display:flex;flex-direction:column;gap:2px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--r-card);box-shadow:0 12px 32px rgba(0,0,0,.45)}
+.pc-news-item{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px}
+.pc-news-item:hover,.pc-news-item.on{background:var(--surface-3)}
+.pc-news-item:focus-visible{outline:2px solid var(--text-2)}
+.pc-news-item:disabled{opacity:.45;cursor:default}
+.pc-news-label{font-size:var(--fs-sm);color:var(--text)}
+.pc-sel{display:flex;gap:6px;align-items:center;font-size:var(--fs-xs);color:var(--text-2)}
+.pc-sel select{height:30px;padding:0 8px;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font-size:var(--fs-xs)}
+
+.pc-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s1)}
+.pc-row{padding:var(--s2) var(--card-pad);display:flex;flex-direction:column;gap:var(--s1)}
+.pc-news{border-color:color-mix(in srgb,var(--pass) 28%,var(--border))}
+.pc-head{display:flex;justify-content:space-between;gap:var(--s2);align-items:flex-start;flex-wrap:wrap}
+.pc-name{font-weight:600;color:var(--text)}
+a.pc-name:hover{text-decoration:underline}
+.pc-flags{display:flex;gap:6px;flex-wrap:wrap}
+.pc-moves{display:flex;gap:var(--s3);flex-wrap:wrap}
+.pc-move{display:flex;gap:8px;align-items:baseline;font-size:var(--fs-sm)}
+.pc-same{color:var(--text-3)}
+.pc-k{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.pc-pct{font-weight:600}
+.pc-down{color:var(--pass)}
+.pc-up{color:var(--fail)}
+

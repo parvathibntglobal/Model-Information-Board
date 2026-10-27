@@ -3440,6 +3440,19 @@ def admin_seo_keyword_plan() -> dict:
     return keyword_plan.load()
 
 
+@app.get("/admin/price-changes")
+def admin_price_changes(days: int | None = None) -> dict:
+    """Price changelog: every OpenRouter list-price change the registry poll has
+    seen in the window, newest first, with fixed flags (cut, rise, free, wave,
+    settling, bounced) and `newsworthy`. One source and unconfirmed: every row
+    says so. Thresholds from contract/price_changes.yaml. Signed-in only. See
+    judge/price_changes.py."""
+    from judge import price_changes
+
+    with _conn() as conn:
+        return price_changes.changes(conn, days=days)
+
+
 @app.get("/changelog")
 def changelog_page(days: int = 30) -> dict:
     """FR-27. What changed, and whether it was us or the world."""

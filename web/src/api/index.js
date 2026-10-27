@@ -615,6 +615,8 @@ export const adminScheduler = () => request('/admin/scheduler')
 export const adminSeoKeywords = () => request('/admin/seo-keywords')
 // Keyword plan: which keywords to use on which public page, and pages/tools worth adding.
 export const adminSeoKeywordPlan = () => request('/admin/seo-keyword-plan')
+// Price changelog: OpenRouter list-price changes the registry poll has seen, with fixed flags.
+export const adminPriceChanges = (days) => request(`/admin/price-changes${days ? `?days=${days}` : ''}`)
 
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`
