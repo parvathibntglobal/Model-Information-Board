@@ -913,6 +913,28 @@ class TestConfig:
         assert "human_pref" not in {s["key"] for s in sections}
         assert {"arc_agi_2_score", "aime_2026_score", "swe_bench_pro_score"} <= set(columns)
 
+    @pytest.mark.parametrize(
+        "file,old,new,problem",
+        [
+            (
+                "benchmarks.yaml",
+                "accept: [null] }, duplicates: match_variant }",
+                "accept: [null] } }",
+                "duplicates None",
+            ),
+            ("module_settings.yaml", "auto_add_settings: true\n", "", "auto_add_settings"),
+        ],
+    )
+    def test_a_contract_value_left_out_stops_startup(self, tmp_path, file, old, new, problem):
+        # PR #573 review (rules 5/12): no default in code may decide for the contract.
+        for name in TEST_CONFIG_DIR.glob("*.yaml"):
+            (tmp_path / name.name).write_text(name.read_text(encoding="utf-8"), encoding="utf-8")
+        path = tmp_path / file
+        path.write_text(path.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8")
+        with pytest.raises(ConfigError) as caught:
+            load(tmp_path)
+        assert any(problem in p for p in caught.value.problems)
+
     def test_a_mapping_to_a_metric_the_column_does_not_have_stops_startup(self, tmp_path):
         for name in TEST_CONFIG_DIR.glob("*.yaml"):
             (tmp_path / name.name).write_text(name.read_text(encoding="utf-8"), encoding="utf-8")
@@ -1737,7 +1759,7 @@ class TestNewsWorthy:
             "source_date": None,
             "note": None,
         }
-        return page._news({**base, **change}, self.RELEASED, self.BASELINE)
+        return page._news({**base, **change}, self.RELEASED, self.BASELINE, page.news_rules())
 
     def test_a_recent_model_showing_up_is_a_debut(self):
         assert self._tag(row_id="lab/new:max") == "debut"

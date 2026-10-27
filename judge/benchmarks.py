@@ -433,20 +433,25 @@ CHANGE_KINDS = {
 
 #: NEWS-WORTHY (Parvathi, 2026-10-26). A changelog entry is news when it says
 #: something happened, not just that the board learned a value:
-#:   debut  a value for a model released in the last DEBUT_DAYS (registry
+#:   debut  a value for a model released in the last debut_days (registry
 #:          release date) - a new model showing up on a benchmark
-#:   fresh  a new value the source itself dates within FRESH_DAYS of the run
+#:   fresh  a new value the source itself dates within fresh_days of the run
 #:          (an older model's new result, not a backfill)
 #:   mover  a value that moved on the same source and the same release: any
-#:          rank move, a score by MOVER_POINTS or more, a rating by MOVER_RATING
+#:          rank move, a score by mover_points or more, a rating by mover_rating
+#: The numbers are contract/benchmarks/validation.yaml `news` (news_rules()).
 #: Everything else - a source's FIRST read (its baseline: every value is new to
 #: the board then), a value the board only now read, a source taking a cell
 #: over, a new release resetting a board - is not news.
-DEBUT_DAYS = 60
-FRESH_DAYS = 30
-MOVER_POINTS = 1.0
-MOVER_RATING = 10.0
 NEWS_KINDS = ("news", "debut", "fresh", "mover")
+
+
+def news_rules() -> dict[str, float]:
+    """The thresholds, from contract/benchmarks/validation.yaml `news` (rule 5)."""
+    rules = _yaml("validation.yaml")["news"]
+    return {
+        k: float(rules[k]) for k in ("debut_days", "fresh_days", "mover_points", "mover_rating")
+    }
 
 
 def _day(text: Any) -> date | None:
@@ -479,7 +484,10 @@ def _baselines(conn) -> dict[str, int]:
 
 
 def _news(
-    change: dict[str, Any], released: dict[str, date], baseline: dict[str, int]
+    change: dict[str, Any],
+    released: dict[str, date],
+    baseline: dict[str, int],
+    rules: dict[str, float],
 ) -> str | None:
     """Which kind of news one change is, or None."""
     on = _day(change["changed_at"])
@@ -487,10 +495,10 @@ def _news(
         return None
     if change["type"] == "added" and on:
         model = change["row_id"].split(":")[0].split("@")[0]
-        if model in released and 0 <= (on - released[model]).days <= DEBUT_DAYS:
+        if model in released and 0 <= (on - released[model]).days <= rules["debut_days"]:
             return "debut"
         dated = _day(change["source_date"])
-        if dated and 0 <= (on - dated).days <= FRESH_DAYS:
+        if dated and 0 <= (on - dated).days <= rules["fresh_days"]:
             return "fresh"
         return None
     if change["type"] == "updated" and not (change["note"] or "").startswith("new release"):
@@ -501,7 +509,7 @@ def _news(
         step = abs(change["new_value"] - change["old_value"])
         return (
             "mover"
-            if step >= (MOVER_RATING if change["metric"] == "rating" else MOVER_POINTS)
+            if step >= rules["mover_rating" if change["metric"] == "rating" else "mover_points"]
             else None
         )
     return None
@@ -519,6 +527,7 @@ def changelog(
     names = {s["id"]: s["name"] for s in _seeds()}
     released = _release_dates(conn)
     baseline = _baselines(conn)
+    rules = news_rules()
     conditions, params = [], []
     if run_id is not None:
         conditions.append("c.run_id = %s")
@@ -587,7 +596,7 @@ def changelog(
             "note": note,
             "needs_review": needs_review,
         }
-        entry["news"] = _news(entry, released, baseline)
+        entry["news"] = _news(entry, released, baseline, rules)
         if kind in NEWS_KINDS and (entry["news"] is None or kind not in ("news", entry["news"])):
             continue
         entries.append(entry)
@@ -598,11 +607,19 @@ def changelog(
         key: conn.execute(f"SELECT count(*) FROM bench_change c WHERE {sql}").fetchone()[0]  # noqa: S608
         for key, sql in CHANGE_KINDS.items()
     }
-    counts.update(_news_counts(conn, released, baseline))
-    return {"entries": entries, "total": total, "counts": counts, "kind": kind or "all"}
+    counts.update(_news_counts(conn, released, baseline, rules))
+    return {
+        "entries": entries,
+        "total": total,
+        "counts": counts,
+        "kind": kind or "all",
+        "news_rules": rules,
+    }
 
 
-def _news_counts(conn, released: dict[str, date], baseline: dict[str, int]) -> dict[str, int]:
+def _news_counts(
+    conn, released: dict[str, date], baseline: dict[str, int], rules: dict[str, float]
+) -> dict[str, int]:
     found = {k: 0 for k in NEWS_KINDS}
     for (
         run_id,
@@ -635,6 +652,7 @@ def _news_counts(conn, released: dict[str, date], baseline: dict[str, int]) -> d
             },
             released,
             baseline,
+            rules,
         )
         if tag:
             found[tag] += 1

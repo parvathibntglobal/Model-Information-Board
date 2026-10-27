@@ -13,5 +13,10 @@ timeouts:
 retries: 3
 # Fetched pages are kept once per distinct content and never deleted (raw
 # payloads are immutable; PR #573 review). There is no keep-N setting.
+# A source naming "<model> (high)" creates a setting row under the model, unless
+# model_extras.yaml says otherwise for that model (auto_add_settings /
+# allowed_settings). Setting rows are how the table shows effort levels
+# (Parvathi, 2026-10-22). Required: no default in code (PR #573 review).
+auto_add_settings: true
 log_dir: collect/benchmarks/logs     # one file per run (git-ignored)
 verbosity: normal                    # quiet | normal | verbose

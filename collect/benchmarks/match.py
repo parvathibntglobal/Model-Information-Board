@@ -406,9 +406,11 @@ class Resolver:
                 base_name=base,
             )
         extras = self.config.extras.get(seed.id)
-        if extras and (
-            not extras.auto_add_settings
-            or (extras.allowed_settings and setting not in extras.allowed_settings)
+        auto_add = (
+            extras.auto_add_settings if extras else bool(self.config.settings["auto_add_settings"])
+        )
+        if not auto_add or (
+            extras and extras.allowed_settings and setting not in extras.allowed_settings
         ):
             return Match(
                 row=None,

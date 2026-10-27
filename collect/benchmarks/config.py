@@ -192,7 +192,8 @@ def load(directory: Path = CONFIG_DIR) -> Config:
             problems.append(
                 f"benchmarks.yaml: {key} score_unit must be 'percent' (the only unit built)"
             )
-        duplicates = b.get("duplicates", "match_variant")
+        # Required: a default here would decide for the contract (rules 5/12).
+        duplicates = b.get("duplicates")
         if duplicates not in DUPLICATES:
             problems.append(
                 f"benchmarks.yaml: {key} duplicates {duplicates!r} "
@@ -354,7 +355,11 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                 problems.append(f"model_extras.yaml: {model_id} allows unknown setting {setting!r}")
         extras[model_id] = Extras(
             aliases=tuple(entry.get("aliases") or ()),
-            auto_add_settings=bool(entry.get("auto_add_settings", True)),
+            # Per model if the entry says; otherwise the contract's default
+            # (module_settings.yaml) - never one written here (PR #573 review).
+            auto_add_settings=bool(
+                entry.get("auto_add_settings", raw["module_settings.yaml"].get("auto_add_settings"))
+            ),
             allowed_settings=allowed,
             not_names=tuple(entry.get("not_names") or ()),
         )
@@ -365,6 +370,7 @@ def load(directory: Path = CONFIG_DIR) -> Config:
 
     settings_raw = raw["module_settings.yaml"]
     for required in (
+        "auto_add_settings",
         "timeouts",
         "retries",
         "log_dir",

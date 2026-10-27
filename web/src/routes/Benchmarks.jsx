@@ -466,15 +466,16 @@ const CHANGE_FILTERS = [
 ]
 
 // NEWS-WORTHY (judge NEWS_KINDS): what happened, not just what the board read.
+// The numbers in the hints are the server's (contract news rules), never a copy here.
 const NEWS_FILTERS = [
-  { key: 'news', label: 'All news-worthy', hint: 'Debuts, fresh results and movers together' },
-  { key: 'debut', label: 'Debuts', hint: 'A model released in the last 60 days showing up on a benchmark' },
-  { key: 'fresh', label: 'Fresh results', hint: 'A new value the source itself dates within the last 30 days' },
-  { key: 'mover', label: 'Movers', hint: 'A rank move, or a score moving 1 point or more, on the same release' },
+  { key: 'news', label: 'All news-worthy', hint: () => 'Debuts, fresh results and movers together' },
+  { key: 'debut', label: 'Debuts', hint: (r) => `A model released in the last ${r.debut_days} days showing up on a benchmark` },
+  { key: 'fresh', label: 'Fresh results', hint: (r) => `A new value the source itself dates within the last ${r.fresh_days} days` },
+  { key: 'mover', label: 'Movers', hint: (r) => `A rank move, or a score moving ${r.mover_points} point or more, on the same release` },
 ]
 const NEWS_LABEL = { debut: 'debut', fresh: 'fresh', mover: 'mover' }
 
-function NewsMenu({ filter, counts, onPick }) {
+function NewsMenu({ filter, counts, rules, onPick }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useEffect(() => {
@@ -499,7 +500,7 @@ function NewsMenu({ filter, counts, onPick }) {
                     className={`bm-news-item${filter === f.key ? ' on' : ''}`} disabled={!counts[f.key]}
                     onClick={() => { onPick(f.key); setOpen(false) }}>
               <span className="bm-news-label">{f.label} <span className="bm-chip-n">{counts[f.key] ?? 0}</span></span>
-              <span className="muted bm-small">{f.hint}</span>
+              {rules && <span className="muted bm-small">{f.hint(rules)}</span>}
             </button>
           ))}
         </div>
@@ -539,7 +540,7 @@ function Changelog({ data: all }) {
           </button>
         ))}
       </div>
-      <NewsMenu filter={filter} counts={counts} onPick={setFilter} />
+      <NewsMenu filter={filter} counts={counts} rules={all.news_rules} onPick={setFilter} />
     </div>
   )
   if (!data) return <div className="stack stack-3">{pills}<p className="muted">Loading…</p></div>
