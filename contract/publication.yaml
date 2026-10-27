@@ -48,6 +48,13 @@ withheld_from_public:
     - reddit
     - arxiv
     - x
+    # HELD, NOT RULED OUT (2026-10-26, #567 review). Bluesky's developer
+    # guidelines require a public, monitored contact address and records of
+    # requests before we may show its users' posts; until both are named in
+    # contract/sources.yaml `bluesky-appview-terms`, its quotes stay off public
+    # pages. Remove this line, and the one under `derived_posts.embed_only`, in
+    # the same change that names them - so the ruling and the site cannot drift.
+    - bluesky
   # Whether a public TOTAL (voices, reports, entries, models) counts rows from
   # the sources above. true since 2026-10-15 (approved 2026-10-19): totals
   # include every source, and no page shows a per-platform count. Must be true
@@ -94,6 +101,12 @@ derived_posts:
   embed_only:
     - reddit
     - x
+    # HELD (2026-10-26), with `withheld_from_public` above and for the same
+    # reason. Withholding alone would still let a post carry «» fragments of a
+    # Bluesky post with NO credit; listed here, the generator refuses to quote
+    # it, and there is no Bluesky embed yet, so a post cannot carry Bluesky at
+    # all until both lines are removed together.
+    - bluesky
 
 evidence_feed:
   # ⚠ PROPOSED 2026-10-21 by anooj, on branch feat/evidence-feed - NOT RATIFIED.
@@ -131,6 +144,22 @@ evidence_feed:
   embed_only:
     - reddit
     - x
+  # HELD (2026-10-26, #567 review): sources whose terms carry a condition not
+  # yet met. A held source's reports stay LISTED and COUNTED but show no
+  # paraphrase and no source - `{"kind": "withheld"}` - whatever
+  # `may_draw_on_withheld` says, and the paraphraser spends nothing on them
+  # (judge/publication.py `feed_hides`, used by the feed, its summaries and
+  # the paraphraser alike).
+  #
+  # bluesky: its developer guidelines require a public, monitored contact
+  # address and a request log before we show its users' posts. Removed in the
+  # same change as its lines under `withheld_from_public` and
+  # `derived_posts.embed_only`, so all three surfaces release together.
+  #
+  # Must be a list. Absent raises (rule 6); an empty list is a definite answer
+  # - "nothing held" - never what a missing key means.
+  held:
+    - bluesky
 
 credits:
   # ARXIV'S ACKNOWLEDGEMENT, as its API terms ask (2026-10-19, review of #535).

@@ -3895,6 +3895,14 @@ _ACCESS = {
         "evidence": "contract/sources.yaml `access_path: discourse-json`",
         "metered": False,
     },
+    "bluesky": {
+        "method": "free API",
+        "detail": "Bluesky's public AppView search (searchPosts), not the site.",
+        "uses_credential": False,
+        "credential_note": "No key. The public endpoints take no credential.",
+        "evidence": "contract/sources.yaml `access_path: api`",
+        "metered": False,
+    },
     "blogs": {
         "method": "public feeds, then the article",
         "detail": (

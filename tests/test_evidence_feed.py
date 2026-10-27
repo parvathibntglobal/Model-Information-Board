@@ -1033,3 +1033,42 @@ def test_a_summary_citation_follows_the_feeds_withheld_rule(conn, monkeypatch):
     assert cited["paraphrase"] is None and cited["source"] == {"kind": "withheld"}
     feed_item = {i["id"]: i for i in _feed(conn)["items"]}["d2"]
     assert feed_item["paraphrase"] is None and feed_item["source"] == {"kind": "withheld"}
+
+
+def test_a_held_source_is_withheld_even_where_the_feed_may_draw_on_it(conn, monkeypatch):
+    """#567 review: a HELD source (terms with a condition not yet met - Bluesky
+    until its contact address is named) shows no paraphrase and no source on
+    the feed, in its summaries' citations and to the paraphraser, while
+    `may_draw_on_withheld` stays true. Still listed: it is in the count."""
+    _paraphrase_all(conn)
+    page = {"paragraphs": [{"text": "Others describe broken arguments on 4.1.", "cites": ["R2"]}]}
+    out = summary.draft(conn, "acme/text-a", S_SETTINGS, "p1", call=FakeModel(page))
+    summary.review(conn, out["id"], "approve")
+    real = publication.evidence_feed_terms()
+    assert real["may_draw_on_withheld"] is True and "bluesky" in real["held"]
+    terms = {**real, "held": ("reddit",)}  # d2's source, held for the test
+
+    def stand_in():
+        return terms
+
+    stand_in.cache_clear = lambda: None
+    monkeypatch.setattr(publication, "evidence_feed_terms", stand_in)
+    feed_item = {i["id"]: i for i in _feed(conn)["items"]}["d2"]
+    assert feed_item["paraphrase"] is None and feed_item["source"] == {"kind": "withheld"}
+    cited = summary.current(conn, "acme/text-a")["summary"]["cited"]["d2"]
+    assert cited["paraphrase"] is None and cited["source"] == {"kind": "withheld"}
+    assert publication.feed_hides("reddit") and not publication.feed_hides("devto")
+
+
+def test_a_missing_held_list_refuses(monkeypatch):
+    """No `held` key is not "nothing held": it refuses (rule 6)."""
+    import judge.config as config
+
+    doc = {"evidence_feed": {"may_draw_on_withheld": True, "embed_only": ["reddit"]}}
+    monkeypatch.setattr(config, "_read", lambda name: doc)
+    publication.evidence_feed_terms.cache_clear()
+    try:
+        with pytest.raises(publication.PublicationConfigError):
+            publication.evidence_feed_terms()
+    finally:
+        publication.evidence_feed_terms.cache_clear()

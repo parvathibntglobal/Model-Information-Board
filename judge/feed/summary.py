@@ -377,7 +377,6 @@ def _cited(conn, model: dict, ids: list[str]) -> dict[str, dict]:
     # terms ever stop the feed drawing on a withheld source, an approved
     # summary's citation of it shows no text and no source either - the feed
     # (items.feed) and its summary must never disagree about what is shown.
-    may_draw = publication.evidence_feed_terms()["may_draw_on_withheld"]
     out = {}
     for d in ids:
         es = reports.get(d)
@@ -385,7 +384,7 @@ def _cited(conn, model: dict, ids: list[str]) -> dict[str, dict]:
             # Cited when drafted, since declined or removed: said, not hidden.
             out[d] = {"id": d, "gone": True}
             continue
-        hidden = publication.withheld_publicly(es[0]["source"]) and not may_draw
+        hidden = publication.feed_hides(es[0]["source"])
         out[d] = {
             "id": d,
             "gone": False,

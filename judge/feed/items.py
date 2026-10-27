@@ -87,6 +87,7 @@ PLATFORMS = {
     "blog": "Blog",
     "huggingface": "Hugging Face",
     "forum": "Developer forum",
+    "bluesky": "Bluesky",
     "arxiv": "arXiv",
     "reddit": "Reddit",
     "x": "X",
@@ -351,7 +352,6 @@ def feed(
     if page < 1:
         raise ValueError("page starts at 1")
 
-    terms = publication.evidence_feed_terms()
     model = resolve_model(conn, model_id)
     require_seated(conn, model)
     category_name = None
@@ -406,9 +406,7 @@ def feed(
         # LISTED EVEN WHEN NOT SHOWN (rule 4). If the terms ever stop the feed
         # drawing on a withheld source, its reports stay in the list - they are
         # in the count - and say why they carry no text, never just vanish.
-        hidden = (
-            publication.withheld_publicly(first["source"]) and not terms["may_draw_on_withheld"]
-        )
+        hidden = publication.feed_hides(first["source"])
         found = None if hidden else paraphrases.get(doc_id)
         current = found is not None and found[1] == excerpts_digest(full.get(doc_id, es))
         # ONE TAG PER NAME AS THE READER SEES IT. Two slugs, or two sections,
