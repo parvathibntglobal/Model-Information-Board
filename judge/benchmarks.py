@@ -11,14 +11,23 @@ date. No unit is added, nothing is rounded, and nothing here computes a rank, a
 percentile or a score. The one-unit `value` the run stores for its checks is
 not sent to the page.
 
+The one exception (Parvathi, 2026-10-27): a source that prints its scores as
+long fractions ("0.876878612716763") shows the stored percent value rounded to
+two decimals ("87.69"), so the column reads like its other cells. The hover
+keeps the source's own text. See shown().
+
 WHICH DATABASE. `BENCHMARKS_DATABASE_URL` when set, else `DATABASE_URL`.
-While the page is a local build it reads and writes the local database, and
-the Run button refuses a target that is not on this machine.
+The Run button and the name decisions write wherever the board may write
+(judge/writeguard.check): the local database, or any database when ENVIRONMENT
+is not development - so they work on the production site. A run there reads
+the sources that need no browser; the scheduled runs (.github/workflows/
+benchmarks.yml) read all of them.
 """
 
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import uuid
@@ -61,6 +70,8 @@ SETTING_ORDER = (
 )
 #: A change this recent carries the `new` / `changed` badge (doc 25.3).
 RECENT_DAYS = 7
+# A score printed as a fraction with three or more decimals ("0.8769", "0.825").
+LONG_FRACTION = re.compile(r"\s*0\.\d{3,}\s*")
 LOG_TAIL_BYTES = 200_000
 
 
@@ -209,8 +220,11 @@ def table(conn) -> dict[str, Any]:
             continue
         used_sources.add(source_key)
         source = sources.get(source_key, {})
+        display = shown(raw_text, value, metric)
         cells.setdefault(row_id, {})[key] = {
-            "display": raw_text,
+            "display": display,
+            # The source's own text when `display` is its rounded form (shown()).
+            "rounded_from": raw_text if display != raw_text else None,
             # The value in one unit (0.912 and 91.2% are both 91.2): for SORTING a
             # column only - the page always shows `display` (2026-10-26).
             "sort": value,
@@ -511,11 +525,42 @@ def _news(
     return None
 
 
+def shown(raw: str | None, value: float | None, metric: str | None) -> str | None:
+    """What the page prints for a value the source printed as `raw`.
+
+    The source's text, except a score printed as a long fraction: then the
+    stored value (already x100, rounded to 2 decimals by the run) - "0.876878612716763"
+    shows as "87.69", "0.825" as "82.5". Only when the stored value really is the
+    fraction x100, so a percent column's "0.825" (0.825%) is left as printed.
+    """
+    if raw is None or value is None or metric != "score" or not LONG_FRACTION.fullmatch(raw):
+        return raw
+    if abs(float(raw) * 100 - value) > 0.01:
+        return raw
+    return f"{value:.2f}".rstrip("0").rstrip(".")
+
+
+def page_limits() -> dict[str, int]:
+    """How many runs the page lists at a time (module_settings.yaml `page`)."""
+    page = _yaml("module_settings.yaml")["page"]
+    return {k: int(page[k]) for k in ("runs_shown", "changelog_runs_shown")}
+
+
 def changelog(
-    conn, *, limit: int = 300, run_id: int | None = None, kind: str | None = None
+    conn,
+    *,
+    limit: int = 5000,
+    run_id: int | None = None,
+    kind: str | None = None,
+    before_run: int | None = None,
 ) -> dict[str, Any]:
     """The changelog, newest first, with each entry's news tag. `kind` is one of
-    CHANGE_KINDS (filtered in SQL) or NEWS_KINDS (tagged, then filtered)."""
+    CHANGE_KINDS (filtered in SQL) or NEWS_KINDS (tagged, then filtered).
+
+    Without `run_id` it lists the changes of the newest `changelog_runs_shown`
+    runs that have any (older than `before_run` when given); `more` says older
+    runs exist and `older_than` is the `before_run` that lists them. `limit` is
+    only a safety cap on entries."""
     _, columns = _columns()
     labels = {
         r[0]: r[1] for r in conn.execute("SELECT row_id, display_label FROM bench_row").fetchall()
@@ -525,9 +570,25 @@ def changelog(
     baseline = _baselines(conn)
     rules = news_rules()
     conditions, params = [], []
+    more, older_than = False, None
     if run_id is not None:
         conditions.append("c.run_id = %s")
         params.append(run_id)
+    else:
+        shown_runs = page_limits()["changelog_runs_shown"]
+        window = [
+            r[0]
+            for r in conn.execute(
+                "SELECT DISTINCT run_id FROM bench_change WHERE %s::bigint IS NULL OR run_id < %s "
+                "ORDER BY run_id DESC LIMIT %s",
+                (before_run, before_run, shown_runs + 1),
+            ).fetchall()
+        ]
+        more = len(window) > shown_runs
+        window = window[:shown_runs]
+        older_than = window[-1] if window else None
+        conditions.append("c.run_id = ANY(%s)")
+        params.append(window)
     if kind in CHANGE_KINDS:
         conditions.append(f"({CHANGE_KINDS[kind]})")
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
@@ -576,8 +637,8 @@ def changelog(
             "column": column["label"] if column else None,
             "metric": metric,  # score | rank | rating: the Changelog filters on it
             "type": change_type,
-            "old": old,
-            "new": new,
+            "old": shown(old, old_value, metric),
+            "new": shown(new, new_value, metric),
             "old_value": old_value,
             "new_value": new_value,
             # A rank is a place among the models the board lists: "16 of 30".
@@ -612,6 +673,8 @@ def changelog(
         "total": total,
         "counts": counts,
         "kind": kind or "all",
+        "more": more,
+        "older_than": older_than,
         "news_rules": rules,
         # Runs that were some source's first read (all their values new to the
         # board): the page labels them "first import" (PR #573 review).
@@ -662,13 +725,16 @@ def _news_counts(
     return found
 
 
-def runs(conn, *, limit: int = 30) -> dict[str, Any]:
+def runs(conn, *, limit: int | None = None, before: int | None = None) -> dict[str, Any]:
+    """Run history, newest first: `runs_shown` runs (older than `before` when
+    given); `more` says older runs exist."""
+    limit = limit or page_limits()["runs_shown"]
     rows = conn.execute(
         "SELECT id, request_id, trigger, scope, dry_run, status, started_at, finished_at, report "
-        "FROM bench_run ORDER BY id DESC LIMIT %s",
-        (limit,),
+        "FROM bench_run WHERE %s::bigint IS NULL OR id < %s ORDER BY id DESC LIMIT %s",
+        (before, before, limit + 1),
     ).fetchall()
-    return {"runs": [_run_summary(r) for r in rows]}
+    return {"runs": [_run_summary(r) for r in rows[:limit]], "more": len(rows) > limit}
 
 
 def _run_summary(r) -> dict[str, Any]:

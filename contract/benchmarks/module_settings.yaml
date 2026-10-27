@@ -18,5 +18,11 @@ retries: 3
 # allowed_settings). Setting rows are how the table shows effort levels
 # (Parvathi, 2026-10-22). Required: no default in code (PR #573 review).
 auto_add_settings: true
+# How much history the page lists at a time; "Show older" loads the next
+# batch. A display limit only: runs, logs and the changelog are never deleted
+# (Parvathi, 2026-10-27).
+page:
+  runs_shown: 30            # runs in the Runs history (~3-4 months at two a week)
+  changelog_runs_shown: 20  # runs whose changes the Changelog lists
 log_dir: collect/benchmarks/logs     # one file per run (git-ignored)
 verbosity: normal                    # quiet | normal | verbose

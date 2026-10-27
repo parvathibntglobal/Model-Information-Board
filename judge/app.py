@@ -3164,19 +3164,19 @@ def benchmarks_table() -> dict:
 
 @app.get("/benchmarks/changes")
 def benchmarks_changes(
-    run_id: int | None = None, limit: int = 300, kind: str | None = None
+    run_id: int | None = None, kind: str | None = None, before_run: int | None = None
 ) -> dict:
-    """The changelog, newest first; one run's entries with `run_id`, one kind of
-    change with `kind` (score, rank, up, down, added, removed, ...)."""
+    """The changelog, newest first, a batch of runs at a time (`before_run` for
+    older ones); one run's entries with `run_id`, one kind with `kind`."""
     return _bench(
-        lambda b, conn: b.changelog(conn, limit=min(max(limit, 1), 2000), run_id=run_id, kind=kind)
+        lambda b, conn: b.changelog(conn, run_id=run_id, kind=kind, before_run=before_run)
     )
 
 
 @app.get("/benchmarks/runs")
-def benchmarks_runs(limit: int = 30) -> dict:
-    """Run history with each run's per-source status."""
-    return _bench(lambda b, conn: b.runs(conn, limit=min(max(limit, 1), 200)))
+def benchmarks_runs(before: int | None = None) -> dict:
+    """Run history with each run's per-source status, a batch at a time."""
+    return _bench(lambda b, conn: b.runs(conn, before=before))
 
 
 @app.get("/benchmarks/run-log")
