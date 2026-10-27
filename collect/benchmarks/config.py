@@ -87,6 +87,10 @@ class Table:
     #: It becomes each value's source date, and a new release is recognised as
     #: one: its changed values are not flagged as jumps (2026-10-26).
     release_selector: str | None = None
+    #: Setting words this table writes bare at the end of a name, after "-" or a
+    #: space ("gpt-5.1-thinking", Scale HLE). Nowhere else is a bare trailing
+    #: word read as a setting: it can be part of a model's name ("Qwen3 Max").
+    bare_setting_words: tuple[str, ...] = ()
     variant: str | None = None
     rank: dict[str, Any] | None = None
     rank_board: str | None = None
@@ -287,6 +291,7 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                     date_field=t.get("date_field"),
                     date_column=t.get("date_column"),
                     release_selector=t.get("release_selector"),
+                    bare_setting_words=tuple(t.get("bare_setting_words") or ()),
                     variant=t.get("variant"),
                     rank=dict(rank) if rank else None,
                     rank_board=t.get("rank_board"),

@@ -76,6 +76,8 @@ sources:
       # entry with model, rank, score (accuracy %) and when it was evaluated.
       - locate: { type: next_flight, object_start: '{"model":"', required_keys: [model, rank, score, company], unique_key: model }
         model_field: model
+        # The board writes the thinking variant bare: "gpt-5.1-thinking".
+        bare_setting_words: [thinking]
         date_field: createdAt
         benchmark_map:
           score: { benchmark: hle, metric: score, scale: percent }

@@ -350,6 +350,11 @@ def _parse_table(
                     variant = clean_label(parts["variant"])
                 if parts.get("setting"):
                     setting = clean_label(parts["setting"])
+        if table.bare_setting_words and not setting:
+            words = "|".join(re.escape(w) for w in table.bare_setting_words)
+            bare = re.fullmatch(rf"(?P<model>.+?)[- ](?P<setting>{words})", name, re.I)
+            if bare:
+                name, setting = bare["model"], bare["setting"]
         if table.date_column:
             collected = clean_label(row.get(table.date_column))[:10] or None
         elif table.date_field:

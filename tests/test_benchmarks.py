@@ -184,6 +184,27 @@ class TestMatching:
     def test_a_setting_from_its_own_field(self, resolver):
         assert resolver.match("Kimi K3", "max").row.row_id == "moonshotai/kimi-k3:max"
 
+    def test_a_bare_trailing_word_is_not_split_off_as_a_setting(self, config):
+        # PR #573 review: "qwen3-max" became qwen3 at max, and
+        # "gpt-5.5-codex-max" GPT-5.5 at max. "Max" can be part of a model's name.
+        qwen3 = SeedModel("qwen/qwen3", "Qwen3")
+        gpt55 = SeedModel("openai/gpt-5.5", "GPT-5.5")
+        r = Resolver(config, [qwen3, gpt55], {})
+        for name in ("qwen3-max", "Qwen3 Max", "gpt-5.5-codex-max", "qwen3 thinking"):
+            assert r.match(name).row is None, name
+        assert r.match("qwen3 (max)").row.row_id == "qwen/qwen3:max"  # a marked setting still is
+
+    @pytest.mark.parametrize(
+        "name,expected",
+        [
+            ("openai/gpt-5.5", "gpt-5-5"),
+            ("Zonos2 8B / Kokoro 82M", "zonos-2-8-b-kokoro-82-m"),  # not an org prefix
+            ("Gemini 3 Flash (12/25)", "gemini-3-flash-12-25"),
+        ],
+    )
+    def test_only_one_leading_word_is_an_org_prefix(self, name, expected):
+        assert normalize_name(name) == expected
+
     def test_a_lookalike_is_never_matched(self, resolver):
         # GPT-5.6 Luna is not GPT-6 Luna; GPT-6.1 Sol Pro is not GPT-6.1 Sol.
         # And no "closest model" is attached either: a similar name is a different
@@ -497,6 +518,17 @@ class TestParse:
             ("GPT-6 Astra (max)", "0.9606"),
             ("Other", "0.5"),
         }
+
+    def test_a_table_can_say_it_writes_a_setting_bare(self, config):
+        # Scale HLE writes "gpt-5.1-thinking": its table lists "thinking" as a bare
+        # setting word. Only there is a bare trailing word read as a setting.
+        rows = [
+            {"model": "gpt-5.1-thinking", "rank": 3, "score": 30.1, "company": "OpenAI"},
+            {"model": "Qwen3 Max", "rank": 4, "score": 29.0, "company": "Qwen"},
+        ]
+        parsed = parse(config.source("scale_hle"), _next_flight_page(rows), url="u")
+        got = {(o.raw_model_name, o.raw_setting) for o in parsed.observations}
+        assert ("gpt-5.1", "thinking") in got and ("Qwen3 Max", None) in got
 
     def test_scale_entries_split_model_agent_and_setting_from_the_full_view(self, config):
         full = {

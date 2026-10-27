@@ -73,15 +73,18 @@ def similarity_key(name: str) -> tuple[frozenset[str], tuple[str, ...]] | None:
     return words, numbers
 
 
+_ORG_PREFIX = re.compile(r"^[a-z0-9][a-z0-9._-]*/(?=\S)")
+
+
 def normalize_name(name: str) -> str:
     """lowercase -> drop an "org/" prefix -> every run of non [a-z0-9] becomes "-".
 
     "anthropic/claude-opus-5.5", "Claude Opus 5.5" and "claude-opus-5-5" are
-    one name (rule 10: a separator is not part of an identifier).
+    one name (rule 10: a separator is not part of an identifier). The prefix is
+    ONE word before the first "/" ("openai/gpt-5"); any other "/" is a
+    separator - "Zonos2 8B / Kokoro 82M" is not "kokoro-82m" (PR #573 review).
     """
-    s = strip_symbols(name).lower().strip()
-    if "/" in s:
-        s = s.rsplit("/", 1)[1]
+    s = _ORG_PREFIX.sub("", strip_symbols(name).lower().strip(), count=1)
     # A letter touching a digit is a boundary too: "Qwen3.8 27B" and "Qwen 3.8
     # 27B", "Seed2.0-Lite" and "seed-2.0-lite" are one name (2026-10-26).
     s = _LETTER_DIGIT.sub("-", s)

@@ -70,7 +70,11 @@ patterns:
   - "\\s*\\(([^)]+)\\)\\s*$"                     # "gpt-5 (high)"
   - "\\s*\\[([^\\]]+)\\]\\s*$"                   # "gpt-5 [high]"
   - "_([A-Za-z0-9]+)$"                           # "gpt-6-astra_max", "claude-opus-4-6_32K"
-  - "[- ](max|xhigh|high|medium|low|minimal|thinking)$"   # "gpt-5-high", "gpt-5 thinking"
+# NOT a bare trailing word ("gpt-5-high", "qwen3 max"): a word that can be part of
+# a model's own name ("Qwen3 Max", "Kimi K2 Thinking", "GPT-5.1 Codex Max") must
+# not be split off as a setting (PR #573 review: "qwen3-max" became qwen3 at max,
+# "gpt-5.5-codex-max" became GPT-5.5 at max). A table that writes settings that
+# way says so with `bare_setting_words` (sources.yaml).
 
 # A DATED RELEASE at the end of a model's name (Parvathi, 2026-10-23). When the
 # rest of the name is a model we know exactly, the name gets its own row under
