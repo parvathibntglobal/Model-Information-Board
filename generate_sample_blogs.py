@@ -209,7 +209,10 @@ def esc(x) -> str:
 #: How a post names each platform (re-reviewed 2026-10-13: posts name their
 #: sources). `document.source` -> words a reader knows.
 PLATFORM = {"reddit": "Reddit", "x": "X", "devto": "dev.to", "github": "GitHub", "hackernews": "Hacker News",
-            "blog": "an engineering blog", "huggingface": "Hugging Face", "arxiv": "arXiv", "medium": "Medium"}
+            "blog": "an engineering blog", "huggingface": "Hugging Face", "arxiv": "arXiv", "medium": "Medium",
+            # The Google AI Developers Forum (#568): quoted with the platform credited
+            # and the topic linked, like Hacker News (contract/sources.yaml ruling).
+            "forum": "a developer forum"}
 
 
 #: How a sentence NAMES an embedded platform - which is what credits that
