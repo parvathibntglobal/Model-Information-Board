@@ -6,4 +6,4 @@
  * `?s=kite-pulse` fall back to the Projects list, and `/kite-pulse/*`
  * redirects to `/admin`. Turning it back on is this one line.
  */
-export const KITE_PULSE_OPEN = false
+export const KITE_PULSE_OPEN = true

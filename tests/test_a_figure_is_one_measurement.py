@@ -122,7 +122,10 @@ class TestEveryColourNamesATokenThatExists:
         """
         src = ROOT / "web" / "src"
         defined: set[str] = set()
-        for f in sorted(STYLES.glob("*.css")):
+        # Every stylesheet under web/src, as `test_a_class_that_does_not_exist.py`
+        # reads them: Kite Pulse keeps its tokens in kitepulse/site.css, and its
+        # charts (HomeCharts.jsx) colour marks inline with them.
+        for f in sorted(src.rglob("*.css")):
             defined |= set(re.findall(
                 r"(--[a-z0-9-]+)\s*:", _strip_css_comments(f.read_text(encoding="utf-8"))
             ))

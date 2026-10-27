@@ -1,0 +1,98 @@
+{
+  "_about": "The home page's charts read only this file (HomeCharts.jsx). While \"sample\" is true every chart carries a 'Sample data' badge: the figures below are placeholders made up to show the design, not Kite Pulse measurements. Replace them with real figures, say where they came from in \"source\", then set \"sample\" to false.",
+  "sample": true,
+  "source": "",
+  "asOf": "2026-10-23",
+
+  "kpis": [
+    { "label": "Active developers", "value": 24, "format": "int", "note": "this week" },
+    { "label": "AI sessions", "value": 1186, "format": "int", "note": "this week" },
+    { "label": "Active time", "value": 412, "format": "hours", "note": "overlaps counted once" },
+    { "label": "Estimated AI cost", "value": 2318, "format": "usd", "note": "this week, where it can be worked out" }
+  ],
+
+  "sessionsByTool": {
+    "tools": ["Claude Code", "Cursor", "Codex"],
+    "other": "Other tools",
+    "days": [
+      { "date": "2026-10-10", "values": [62, 31, 14, 9] },
+      { "date": "2026-10-11", "values": [12, 6, 2, 1] },
+      { "date": "2026-10-12", "values": [8, 4, 1, 1] },
+      { "date": "2026-10-13", "values": [71, 35, 16, 11] },
+      { "date": "2026-10-14", "values": [78, 33, 19, 10] },
+      { "date": "2026-10-15", "values": [84, 38, 18, 12] },
+      { "date": "2026-10-16", "values": [80, 36, 22, 13] },
+      { "date": "2026-10-17", "values": [66, 30, 17, 9] },
+      { "date": "2026-10-18", "values": [14, 5, 3, 2] },
+      { "date": "2026-10-19", "values": [9, 4, 2, 1] },
+      { "date": "2026-10-20", "values": [82, 37, 21, 12] },
+      { "date": "2026-10-21", "values": [90, 41, 24, 14] },
+      { "date": "2026-10-22", "values": [94, 39, 26, 15] },
+      { "date": "2026-10-23", "values": [88, 42, 25, 13] }
+    ]
+  },
+
+  "costByProject": [
+    { "project": "payments-api", "usd": 642 },
+    { "project": "web-app", "usd": 518 },
+    { "project": "billing-service", "usd": 401 },
+    { "project": "mobile-client", "usd": 287 },
+    { "project": "data-pipeline", "usd": 214 },
+    { "project": "internal-tools", "usd": 96 }
+  ],
+
+  "headroomBands": { "watch": 75, "near": 90 },
+  "planHeadroom": [
+    { "person": "Developer A", "plan": "Claude Max", "window": "Weekly", "usedPct": 94 },
+    { "person": "Developer B", "plan": "Claude Max", "window": "Weekly", "usedPct": 87 },
+    { "person": "Developer C", "plan": "Claude Pro", "window": "5-hour", "usedPct": 78 },
+    { "person": "Developer D", "plan": "Claude Pro", "window": "Weekly", "usedPct": 52 },
+    { "person": "Developer E", "plan": "Claude Max", "window": "Weekly", "usedPct": 31 }
+  ],
+
+  "dayTimeline": {
+    "start": 8,
+    "end": 19,
+    "now": 15.5,
+    "people": [
+      { "person": "Developer A", "project": "payments-api", "status": "coding", "blocks": [[8.5, 10.75], [11.25, 12.5], [13.5, 16]] },
+      { "person": "Developer B", "project": "web-app", "status": "coding", "blocks": [[9, 12], [14, 15.75]] },
+      { "person": "Developer C", "project": "billing-service", "status": "idle", "blocks": [[9.5, 11], [12, 13], [13.75, 14.5]] },
+      { "person": "Developer D", "project": "web-app", "status": "coding", "blocks": [[10, 12.75], [13.5, 15.6]] },
+      { "person": "Developer E", "project": "data-pipeline", "status": "offline", "blocks": [[8, 9.5], [10, 11.5]] }
+    ]
+  },
+
+  "projects": [
+    { "project": "payments-api", "health": "active", "sessions": 312, "contributors": 6, "lastActivity": "today", "weekly": [41, 48, 52, 50, 61, 66, 72, 78] },
+    { "project": "web-app", "health": "active", "sessions": 274, "contributors": 8, "lastActivity": "today", "weekly": [55, 52, 49, 58, 60, 57, 63, 68] },
+    { "project": "billing-service", "health": "stable", "sessions": 121, "contributors": 3, "lastActivity": "yesterday", "weekly": [38, 35, 30, 33, 29, 31, 28, 30] },
+    { "project": "mobile-client", "health": "stable", "sessions": 96, "contributors": 4, "lastActivity": "2 days ago", "weekly": [20, 26, 24, 22, 25, 23, 24, 22] },
+    { "project": "legacy-reports", "health": "dormant", "sessions": 4, "contributors": 1, "lastActivity": "5 weeks ago", "weekly": [14, 9, 6, 3, 1, 0, 0, 0] }
+  ],
+
+  "personal": {
+    "workingStyle": "Builder",
+    "facts": [
+      { "label": "Peak hour", "value": "10:00" },
+      { "label": "Busiest day", "value": "Tuesday" },
+      { "label": "Longest streak", "value": "9 days" },
+      { "label": "Deep-focus sessions", "value": "14" }
+    ],
+    "activeHoursByDay": [
+      { "day": "Mon", "hours": 5.5 },
+      { "day": "Tue", "hours": 6.8 },
+      { "day": "Wed", "hours": 6.1 },
+      { "day": "Thu", "hours": 5.9 },
+      { "day": "Fri", "hours": 4.2 },
+      { "day": "Sat", "hours": 0.6 },
+      { "day": "Sun", "hours": 0 }
+    ]
+  },
+
+  "screenshots": [
+    { "id": "org-overview", "title": "Org Overview", "caption": "Who is online, coding, idle or offline, and a timeline of each person's day.", "file": "" },
+    { "id": "team-ai-usage", "title": "Team AI Usage", "caption": "Tokens used per developer, per tool and per period, with an estimated cost per tool.", "file": "" },
+    { "id": "scorecard", "title": "My Scorecard & Insights", "caption": "Active hours, sessions, messages, lines changed, commits and projects, led by a \"Top 3 to act on\" list.", "file": "" }
+  ]
+}
