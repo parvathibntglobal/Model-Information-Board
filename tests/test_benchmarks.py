@@ -1594,6 +1594,24 @@ class TestNewsWorthy:
         assert any(e["row"].startswith("Kimi K3") and e["new"] == "75.0" for e in movers)
 
 
+class TestARefusedCell:
+    def test_keeps_the_figure_already_published(self, conn):
+        # PR #573 review: a cell that failed to parse made the previous good
+        # value stale, and the figure left the page.
+        good = {"Lab M1": 50, "Lab M2": 40, "Lab M3": 30}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(good)}, registry=LAB)
+        page = _livebench(good).replace(b"<td>50</td>", b"<td>$1 / 3</td>")  # unreadable
+        _, out = _run(conn, {**PAGES, "livebench_leaderboard": page}, registry=LAB)
+        assert "1 kept their previous value" in out
+        cell = store.load_cells(conn)[("lab/m-1:max", "livebench", "score")]
+        assert cell.raw_text == "50"
+        stale = conn.execute(
+            "SELECT stale FROM bench_observation WHERE row_id = 'lab/m-1:max' "
+            "AND benchmark_key = 'livebench' AND metric = 'score'"
+        ).fetchone()[0]
+        assert stale is False
+
+
 class TestRowsNoSourceLists:
     """A row a run created goes once no source lists it (2026-10-26): Qwen3.8 Flash,
     Grok Build 0.1 and eleven setting rows were empty lines on the page."""

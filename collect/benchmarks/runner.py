@@ -70,6 +70,7 @@ class SourceResult:
     matched_names: int = 0
     unmatched_names: int = 0
     rejected: int = 0
+    kept_previous: int = 0  # refused cells that kept their previous value
     flagged: int = 0
     changes: int = 0
     errors: list[str] = field(default_factory=list)
@@ -218,7 +219,13 @@ class Run:
         self.c.line(
             "CHECK",
             "OK",
-            f"{result.rejected} rejected · {result.flagged} flagged · duplicates: {decided}",
+            f"{result.rejected} rejected"
+            + (
+                f" ({result.kept_previous} kept their previous value)"
+                if result.kept_previous
+                else ""
+            )
+            + f" · {result.flagged} flagged · duplicates: {decided}",
         )
         if counts["setup_not_accepted"]:
             self.c.detail(
@@ -401,6 +408,15 @@ class Run:
                 rejects.append(
                     f"{value.error} · {raw.raw_model_name} · {raw.benchmark}_{raw.metric}"
                 )
+                # A cell that cannot be read keeps the value this source gave it
+                # last time, as a failed fetch does (PR #573 review): one bad
+                # read must not take a correct figure off the page.
+                before = self.previous_obs.get(
+                    (source.key, m.row.row_id, raw.benchmark, raw.metric)
+                )
+                if before is not None and not before.stale:
+                    out.append((before, raw.duplicates))
+                    result.kept_previous += 1
                 continue
             if m.row.row_id not in self.known_rows and m.row.row_id not in self.new_rows:
                 self.new_rows[m.row.row_id] = (m.row, source.key)
