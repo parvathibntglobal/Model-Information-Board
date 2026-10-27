@@ -7,6 +7,9 @@ and its raw text; it is never written.
     parse_score("88.7%", "percent")   -> 88.7
     parse_score("0.887", "fraction")  -> 88.7
     parse_score("88.7 ± 1.2", ...)    -> 88.7
+    parse_score("92.1%, $0.48/task")  -> 92.1   (the one number marked %)
+    parse_score("$1.20 / 3.4")        -> REJECTED: two numbers, none marked
+    parse_score("v2: 45.1")           -> 45.1   ("v2", "GPT-5" are names, not numbers)
     parse_rank("T-3")                 -> rank 3, tied
     parse_rank("3–5")                 -> rank 3, rank_high 5
     "—", "n/a", ""                    -> EMPTY (no value, not an error)
@@ -18,7 +21,6 @@ import re
 from dataclasses import dataclass
 
 EMPTY_TOKENS = {"", "-", "—", "–", "n/a", "na", "null", "none", "?", "tbd", "nan"}
-_NUMBER = re.compile(r"-?\d+(?:\.\d+)?(?:e-?\d+)?", re.I)
 
 
 @dataclass
@@ -34,14 +36,38 @@ def _clean(text: str) -> str:
     return str(text or "").strip().lower().replace(",", "").replace(" ", "")
 
 
-def parse_score(text: str, scale: str) -> Value:
-    t = _clean(text)
-    if t in EMPTY_TOKENS:
-        return Value(empty=True)
-    found = _NUMBER.search(t)
+# A number standing on its own: not the "5" of "GPT-5" or the "2" of "v2".
+_STANDALONE = re.compile(r"(?<![a-z0-9.\-])-?\d+(?:\.\d+)?(?:e-?\d+)?(?P<pct>\s*%)?", re.I)
+_THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
+
+
+def _the_number(text: str) -> tuple[float | None, str | None]:
+    """The one number a cell states, or why there is not exactly one.
+
+    Taking the FIRST number was wrong (PR #573 review): "$1.20 / 45.1%" stored
+    1.2 and "v2: 45.1" stored 2.0, both inside 0-100. An uncertainty after "±"
+    is not a second value; a number glued to a name ("GPT-5") is not one at
+    all. Of several numbers, the one marked "%" is the score; otherwise the
+    cell is refused rather than guessed.
+    """
+    t = _THOUSANDS.sub("", str(text or "")).split("±")[0].split("+/-")[0]
+    found = list(_STANDALONE.finditer(t.lower()))
     if not found:
-        return Value(error=f"invalid_value: no number in {text!r}")
-    n = float(found.group(0))
+        return None, f"invalid_value: no number in {text!r}"
+    if len(found) > 1:
+        marked = [m for m in found if m.group("pct")]
+        if len(marked) != 1:
+            return None, f"invalid_value: {text!r} states more than one number"
+        found = marked
+    return float(found[0].group(0).replace("%", "").strip()), None
+
+
+def parse_score(text: str, scale: str) -> Value:
+    if _clean(text) in EMPTY_TOKENS:
+        return Value(empty=True)
+    n, error = _the_number(text)
+    if error:
+        return Value(error=error)
     if scale == "fraction":
         if not 0 <= n <= 1:
             return Value(error=f"invalid_value: {text!r} is outside 0-1 for a fraction")
@@ -52,13 +78,12 @@ def parse_score(text: str, scale: str) -> Value:
 
 
 def parse_rating(text: str, rating_range: tuple[int, int]) -> Value:
-    t = _clean(text)
-    if t in EMPTY_TOKENS:
+    if _clean(text) in EMPTY_TOKENS:
         return Value(empty=True)
-    found = _NUMBER.search(t)
-    if not found:
-        return Value(error=f"invalid_value: no number in {text!r}")
-    n = round(float(found.group(0)))
+    value, error = _the_number(text)
+    if error:
+        return Value(error=error)
+    n = round(value)
     low, high = rating_range
     if not low <= n <= high:
         return Value(error=f"invalid_value: rating {text!r} is outside {low}-{high}")

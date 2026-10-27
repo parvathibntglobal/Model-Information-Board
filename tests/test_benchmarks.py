@@ -121,6 +121,25 @@ class TestValues:
         assert parse_score("1.4", "fraction").error
 
     @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("92.1%, $0.480/task", 92.1),  # ARC Prize: the one number marked %
+            ("$1.20 / 45.1%", 45.1),
+            ("v2: 45.1", 45.1),  # "v2" is a name, not a number
+            ("GPT-5 45.1", 45.1),
+            ("100.00% ± 0.00%", 100.0),  # an uncertainty is not a second value
+        ],
+    )
+    def test_the_score_is_the_cells_one_number(self, text, expected):
+        # PR #573 review: taking the FIRST number stored 1.2 and 2.0 here.
+        assert parse_score(text, "percent").value == expected
+
+    @pytest.mark.parametrize("text", ["$1.20 / 3.4", "45.1 (52.3)", "12% / 15%"])
+    def test_a_cell_with_several_unmarked_numbers_is_refused(self, text):
+        v = parse_score(text, "percent")
+        assert v.value is None and "more than one number" in v.error
+
+    @pytest.mark.parametrize(
         "text,rank,high,tied",
         [
             ("#3", 3, 3, False),
@@ -508,7 +527,7 @@ class TestParse:
             o.raw_text == "50.0" for o in parsed.observations
         )  # the Hard view is not read
 
-    def test_arc_cells_keep_their_raw_text_and_score_the_first_number(self, config):
+    def test_arc_cells_keep_their_raw_text_and_score_the_percent_number(self, config):
         page = (
             b"<html><body>" + b"x" * 3000 + b"<table><tr><th>AI System</th><th>Release Date</th>"
             b"<th>ARC-AGI-1</th><th>ARC-AGI-2</th></tr>"
