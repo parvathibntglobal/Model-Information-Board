@@ -57,6 +57,9 @@ class RawObservation:
     row_index: int = 0
     priority: int | None = None
     duplicates: str | None = None
+    # A rank worked out from the board's order (row_order / order_by) that
+    # another row shares: "25" for three models is a tie (2026-10-27).
+    tied: bool = False
 
 
 @dataclass
@@ -421,6 +424,7 @@ def _parse_table(
                     raw_text=str(rank_values[position]),
                     rank_board=rank.get("board"),
                     rank_out_of=rank_out_of,
+                    tied=rank_values.count(rank_values[position]) > 1,
                     **common,
                 )
             )

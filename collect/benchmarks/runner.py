@@ -468,7 +468,7 @@ class Run:
                         metric=raw.metric,
                         value=value.value,
                         rank_high=value.rank_high if raw.metric == "rank" else None,
-                        tied=value.tied,
+                        tied=value.tied or raw.tied,
                         rank_out_of=raw.rank_out_of if raw.metric == "rank" else None,
                         rank_board=raw.rank_board if raw.metric == "rank" else None,
                         variant=raw.variant,

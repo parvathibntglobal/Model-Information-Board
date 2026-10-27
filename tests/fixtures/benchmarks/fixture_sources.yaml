@@ -7,6 +7,8 @@ sources:
   - key: table_fixture
     label: "Table fixture"
     kind: leaderboard
+    tier: 1
+    tier_note: "Test fixture."
     priority: 80
     enabled: false
     why_disabled: "Test fixture."
@@ -24,6 +26,8 @@ sources:
   - key: json_fixture
     label: "JSON fixture"
     kind: evaluator
+    tier: 2
+    tier_note: "Test fixture."
     priority: 70
     enabled: false
     why_disabled: "Test fixture."

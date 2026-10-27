@@ -13,11 +13,17 @@ review item lists the candidates.
 
 Across sources (10.2) the first rule that decides wins:
 
-    2  drop stale values
-    3  only setups in the accept list; earlier in the list beats later
-    4  highest source priority
-    5  most recent (the source's own date, then when it was collected)
-    6  source key, alphabetical - arbitrary, but always the same
+    2  drop stale values; only setups in the accept list
+    3  the highest TIER (sources.yaml `tier`: 1 the benchmark's own board,
+       2 a reputed evaluator, 3 another third party) - a lower tier fills a cell
+       only when no higher tier has a value (Parvathi, 2026-10-27)
+    4  earlier in the accept list beats later
+    5  highest source priority (the order within a tier)
+    6  most recent (the source's own date, then when it was collected)
+    7  source key, alphabetical - arbitrary, but always the same
+
+Disagreements are still checked across every tier: a lower tier that differs
+from the shown value flags it for review.
 
 Pinned and fill overrides (rules 1 and 7) arrive with the phase-2 admin edits.
 """
@@ -140,25 +146,34 @@ def merge(
         if bench is None:
             continue  # a column no longer configured publishes nothing
         by_cell.setdefault(o.key, []).append(o)
+    # A source no longer configured has only stale values; if one ever competes
+    # it counts as the lowest tier, so it can never outrank a known source.
+    tiers = {s.key: s.tier for s in config.sources}
     decisions: dict[tuple[str, str, str], Decision] = {}
     for key, group in by_cell.items():
         bench = config.benchmarks[key[1]]
-        cands = [o for o in group if not o.stale]  # rule 2
-        if not cands:
+        live = [o for o in group if not o.stale]  # rule 2
+        positions = {id(o): accept_position(o.variant, bench.accept) for o in live}
+        accepted = [o for o in live if positions[id(o)] is not None]  # rule 2
+        if not accepted:
             continue
-        positions = {id(o): accept_position(o.variant, bench.accept) for o in cands}
-        cands = [o for o in cands if positions[id(o)] is not None]  # rule 3
-        if not cands:
-            continue
+        tier_of = {id(o): tiers.get(o.source_key, 3) for o in accepted}
+        top = min(tier_of.values())
+        cands = [o for o in accepted if tier_of[id(o)] == top]  # rule 3
         best = min(positions[id(o)] for o in cands)
-        cands = [o for o in cands if positions[id(o)] == best]
-        winner, rule = _choose(cands)
-        if rule == "single source" and len(cands) < len([o for o in group if not o.stale]):
-            rule = "rule 3 setup"
+        by_setup = [o for o in cands if positions[id(o)] == best]  # rule 4
+        winner, rule = _choose(by_setup)
+        if rule == "single source":
+            if len(cands) < len(accepted):
+                rule = "rule 3 tier"
+            elif len(by_setup) < len(cands):
+                rule = "rule 4 setup"
         flags = []
         tolerance = _tolerance(config, bench, key[2])
-        for o in cands:
-            if o is winner or o.variant != winner.variant:
+        for o in accepted:
+            # The same setup, however a board capitalises it ("Mini-SWE-agent" on
+            # Vals, "mini-SWE-agent" on SWE-bench), as accept_position reads it.
+            if o is winner or (o.variant or "").lower() != (winner.variant or "").lower():
                 continue
             if key[2] == "rank" and (o.rank_board != winner.rank_board):
                 continue
@@ -207,18 +222,18 @@ def merge(
 
 
 def _choose(cands: list[StoredObservation]) -> tuple[StoredObservation, str]:
-    """Rules 4-6, each applied only to what the one before left tied."""
+    """Rules 5-7, each applied only to what the one before left tied."""
     if len(cands) == 1:
         return cands[0], "single source"
     top = max(o.priority for o in cands)
     left = [o for o in cands if o.priority == top]
     if len(left) == 1:
-        return left[0], "rule 4 priority"
+        return left[0], "rule 5 priority"
     newest = max((o.source_date or "", o.collected_at) for o in left)
     recent = [o for o in left if (o.source_date or "", o.collected_at) == newest]
     if len(recent) == 1:
-        return recent[0], "rule 5 recency"
-    return min(recent, key=lambda o: o.source_key), "rule 6 tie-break"
+        return recent[0], "rule 6 recency"
+    return min(recent, key=lambda o: o.source_key), "rule 7 tie-break"
 
 
 def _both(o: StoredObservation) -> str:

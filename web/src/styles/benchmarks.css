@@ -107,6 +107,12 @@
 .bm-badge{margin-left:6px;font-size:10px;padding:0 5px;border-radius:var(--r-pill);vertical-align:1px}
 .bm-new{color:var(--info);background:var(--info-dim)}
 .bm-changed{color:var(--text-2);background:var(--surface-3)}
+.bm-source{color:var(--text-2);background:var(--surface-3)}
+.bm-tier{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:var(--r-pill);white-space:nowrap}
+.bm-tier-1{color:var(--pass);background:var(--pass-dim)}
+.bm-tier-2{color:var(--info);background:var(--info-dim)}
+.bm-tier-3{color:var(--text-2);background:var(--surface-3)}
+.bm-tiers{display:flex;flex-direction:column;gap:4px}
 .bm-changed.bm-better{color:var(--pass);background:var(--pass-dim)}
 .bm-changed.bm-worse{color:var(--fail);background:var(--fail-dim)}
 
