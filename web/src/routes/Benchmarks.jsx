@@ -23,9 +23,11 @@ import '../styles/benchmarks.css'
  * (BENCHMARK_PIPELINE_WORKFLOW.md). No data-file downloads, no key, no paid
  * service, no language model anywhere in it.
  *
- * RAW VALUES ONLY (2026-10-22). Every cell is the source's own text ("88.0",
- * "1"), with the source, link and date behind it. No unit is added, nothing is
- * rounded, and the page computes nothing - no local rank, no percentile, no score.
+ * THE SOURCES' OWN VALUES (2026-10-22). Every cell is a source's published
+ * value, with the source, link and date behind it. A score shows in one style -
+ * a percentage to two decimals, no "%" (2026-10-27) - and the hover keeps the
+ * source's own text; ranks show as printed. The page computes nothing - no local
+ * rank, no percentile, no score.
  *
  * ROWS ARE MODELS AND THEIR SETTINGS. A source that publishes "GPT 6 Astra (max)"
  * fills the (max) row under GPT 6 Astra, never the model's own row: results at
@@ -930,12 +932,10 @@ export default function Benchmarks() {
         <span className="eyebrow">Signed in</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
         <p className="muted">
-          Published benchmark results for the {table?.counts.models ?? 'tracked'} tracked text models, scraped from
-          public leaderboard pages. Each value is its source&apos;s own published number - hover it for the source, the name
-          the source uses and the date. Every score is a percentage, shown with up to two decimals and no % sign
-          (0.8769... and 87.69% both show as 87.69); the hover keeps the source&apos;s own text. A cell shows the most
-          trusted source that has a value - the benchmark&apos;s own leaderboard first (see Sources). A rank is the
-          board&apos;s own: printed by it, its row order (checked against its scores), or its order by its own sort field.
+          Published results for the {table?.counts.models ?? 'tracked'} tracked text models, from public leaderboards.
+          Each cell shows the most trusted source&apos;s value (the benchmark&apos;s own leaderboard first); scores are
+          percentages to two decimals and ranks are the board&apos;s own. Hover a value for its source, the
+          source&apos;s own text and the date.
         </p>
         {last && (
           <p className="muted bm-small">

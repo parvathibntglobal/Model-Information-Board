@@ -4,7 +4,8 @@
 /* The table needs every pixel: this page uses the full window width (the rest of
    the site keeps the --maxw column). Text blocks keep a readable line length. */
 .shell.bm-page{max-width:none}
-.bm-page h1 + p,.bm-page .bm-small{max-width:110ch}
+.bm-page h1 + p{max-width:75ch}
+.bm-page .bm-small{max-width:110ch}
 .bm-small{font-size:var(--fs-xs)}
 .bm-h2{font-size:var(--fs-h3);font-weight:600}
 .bm-h3{font-size:var(--fs-sm);font-weight:600;margin-bottom:var(--s1)}
