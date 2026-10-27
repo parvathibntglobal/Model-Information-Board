@@ -365,7 +365,6 @@ def load(directory: Path = CONFIG_DIR) -> Config:
 
     settings_raw = raw["module_settings.yaml"]
     for required in (
-        "respect_robots",
         "timeouts",
         "retries",
         "snapshots_kept_per_source",

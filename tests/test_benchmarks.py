@@ -1253,6 +1253,45 @@ class TestRegistryModels:
 
 
 class TestScrapingFirst:
+    def _fetcher(self, config, pages):
+        """A Fetcher over a fake web: `pages` maps a URL to (status, headers, body)."""
+        import httpx
+
+        from collect.benchmarks.fetch import Fetcher
+
+        asked = []
+
+        def handler(request):
+            asked.append(str(request.url))
+            status, headers, body = pages.get(str(request.url), (404, {}, b""))
+            return httpx.Response(status, headers=headers, content=body)
+
+        fetcher = Fetcher(config, client=httpx.Client(transport=httpx.MockTransport(handler)))
+        return fetcher, asked
+
+    def test_a_redirect_is_checked_against_robots_before_it_is_followed(self, config):
+        # PR #573 review: only the first URL was checked against robots.txt.
+        import dataclasses
+
+        source = dataclasses.replace(
+            config.source("livebench_leaderboard"), method="static", url="https://a.test/board"
+        )
+        fetcher, asked = self._fetcher(
+            config,
+            {
+                "https://a.test/robots.txt": (200, {}, b"User-agent: *\nAllow: /"),
+                "https://a.test/board": (302, {"location": "https://b.test/private"}, b""),
+                "https://b.test/robots.txt": (200, {}, b"User-agent: *\nDisallow: /private"),
+                "https://b.test/private": (200, {}, b"x" * 5000),
+            },
+        )
+        got = fetcher.fetch(source)
+        assert not got.ok and got.error == "robots_denied" and "redirected to" in got.detail
+        assert "https://b.test/private" not in asked  # never fetched
+
+    def test_robots_txt_cannot_be_switched_off(self, config):
+        assert "respect_robots" not in config.settings
+
     def test_a_registry_alias_matches_exactly(self, conn):
         page = LIVEBENCH.replace(b">GPT-6 Astra</span>", b">Astra Six</span>")
         code, _ = _run(

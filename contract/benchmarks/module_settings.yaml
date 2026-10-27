@@ -5,7 +5,7 @@
 # the page rendered in a headless browser. No data-file downloads, no keys,
 # no accounts, nothing paid.
 
-respect_robots: true                 # fetch nothing robots.txt refuses
+# robots.txt is always respected - not a setting (CLAUDE.md, the Benchmarks exception).
 timeouts:
   static_seconds: 30
   browser_seconds: 45

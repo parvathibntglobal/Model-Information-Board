@@ -28,6 +28,7 @@ from collect.config import settings
 from collect.http import build_client
 
 BACKOFF_SECONDS = (2, 4, 8)
+MAX_REDIRECTS = 5
 #: How long a rendered page may take to go network-quiet before it is read anyway.
 IDLE_WAIT_MS = 10_000
 
@@ -81,34 +82,64 @@ class Fetcher:
     # ── entry point ──────────────────────────────────────────────────────
 
     def fetch(self, source: Source, *, wait_for: str | None = None) -> Fetched:
-        if self.config.settings["respect_robots"]:
-            decision = self.robots.allows(source.url)
-            if not decision.allowed:
-                return Fetched(
-                    ok=False,
-                    method=source.method,
-                    url=source.url,
-                    error="robots_denied",
-                    detail=decision.reason,
-                )
+        # robots.txt is ALWAYS asked - there is no switch to turn it off (CLAUDE.md,
+        # the Benchmarks exception) - and for every page a redirect leads to as
+        # well as the one asked for (PR #573 review).
+        denied = self._robots_denied(source.url, source.method, source.url)
+        if denied:
+            return denied
         if source.method == "browser":
             got = self._browser(source.url, wait_for=wait_for)
+            # The browser follows redirects itself: the page it ended on is
+            # checked after, and its content thrown away if robots.txt refuses it.
+            if got.ok and got.redirected:
+                denied = self._robots_denied(got.final_url, "browser", source.url)
+                if denied:
+                    return denied
         else:
             got = self._static(source.url, method=source.method)
         if got.ok:
             self._check_l2(got)
         return got
 
+    def _robots_denied(self, url: str, method: str, asked: str) -> Fetched | None:
+        decision = self.robots.allows(url)
+        if decision.allowed:
+            return None
+        where = "" if url == asked else f"redirected to {url}: "
+        return Fetched(
+            ok=False,
+            method=method,
+            url=asked,
+            error="robots_denied",
+            detail=where + decision.reason,
+        )
+
     # ── methods ──────────────────────────────────────────────────────────
+
+    def _get(self, url: str, method: str) -> httpx.Response | Fetched:
+        """GET, following redirects one hop at a time and asking robots.txt
+        before each hop: a page robots.txt refuses is never fetched."""
+        for _hop in range(MAX_REDIRECTS + 1):
+            response = self.client.get(url, follow_redirects=False)
+            if not response.is_redirect:
+                return response
+            url = str(response.next_request.url) if response.next_request else url
+            denied = self._robots_denied(url, method, str(response.request.url))
+            if denied:
+                return denied
+        raise httpx.TooManyRedirects(f"more than {MAX_REDIRECTS} redirects")
 
     def _static(self, url: str, *, method: str) -> Fetched:
         last = ""
         for attempt in range(1, self.retries + 2):
             try:
-                response = self.client.get(url)
+                response = self._get(url, method)
             except httpx.HTTPError as error:
                 last = f"{type(error).__name__}: {error}"
             else:
+                if isinstance(response, Fetched):
+                    return response
                 if response.status_code < 500:
                     return Fetched(
                         ok=response.status_code == 200,
