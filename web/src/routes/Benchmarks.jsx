@@ -546,8 +546,7 @@ function sideTitle(e, side) {
   if (side === 'new' && e.source_date) lines.push(`Source's date: ${e.source_date}`)
   if (side === 'new') lines.push(`Read: ${fmtWhen(e.changed_at)} (run #${e.run_id})`)
   if (e.type === 'source_changed' && side === 'new') lines.push('Another source took this cell over - the model did not move.')
-  return lines.join('
-')
+  return lines.join('\n')
 }
 
 function Changelog({ data: all }) {
