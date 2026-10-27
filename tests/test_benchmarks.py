@@ -1500,7 +1500,8 @@ class TestARun:
         child = next(c for c in astra["children"] if c["setting"] == "max")
         cell = child["cells"]["gpqa_diamond_score"]
         # RAW: exactly what the source printed - no "%" added, no conversion, no rounding
-        assert cell["display"] == "0.9577" and cell["raw_text"] == "0.9577" and cell["source_label"]
+        assert cell["display"] == "0.9577" and cell["source_label"]
+        assert "raw_text" not in cell  # display IS the raw text; sent once (rule 9)
         assert "value" not in cell  # the one-unit figure is for the checks only
         assert cell["sort"] == pytest.approx(95.77)  # ...and for sorting the column
         assert child["cells"]["livebench_rank"]["display"] == "1"
@@ -1727,7 +1728,7 @@ class TestListAndReleaseChanges:
         assert everything["counts"]["rank"] == 2 and everything["counts"]["score"] == 1
         ranks = page.changelog(conn, kind="rank")["entries"]
         assert len(ranks) == 2 and all(
-            e["metric"] == "rank" and e["type"] == "updated" for e in ranks
+            e["column"].endswith("rank") and e["type"] == "updated" for e in ranks
         )
         up = page.changelog(conn, kind="up")["entries"]
         assert up and all(e["direction"] == "better" for e in up)

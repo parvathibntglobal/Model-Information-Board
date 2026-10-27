@@ -106,6 +106,10 @@ function useBenchData(tab, refreshKey) {
 
 /* ── the run panel and its terminal ──────────────────────────────────────── */
 
+// A run the page started that has not shown up after this long never will
+// (its process failed to start); the page stops waiting (PR #573 review).
+const NEVER_STARTED_MS = 60_000
+
 function Terminal({ log, running, title, onClose }) {
   const ref = useRef(null)
   useEffect(() => {
@@ -145,10 +149,16 @@ function RunPanel({ onFinished, viewRun, clearView, savedPages }) {
     if (!watch) return undefined
     let alive = true
     let timer
+    const startedAt = Date.now()
     const poll = async () => {
       try {
         const d = await benchmarksRunLog(watch)
         if (!alive) return
+        if (!d.found && Date.now() - startedAt > NEVER_STARTED_MS) {
+          setError('The run did not start within a minute - see the backend log. Nothing was published.')
+          setDone(true)
+          return
+        }
         if (d.found) {
           setLog(d.log)
           setRun(d.run)
@@ -381,7 +391,7 @@ function BenchTable({ data }) {
                 <tr>
                   {columns.map((c) => (
                     <SortHeader key={c.key} id={c.key} label={c.label} sort={sort} setSort={setSort} className="bm-col"
-                                title={`${c.label}${c.benchmark_version ? ` (${c.benchmark_version})` : ''} · ${c.better} is better. `
+                                title={`${c.label}${c.benchmark_version ? ` (${c.benchmark_version})` : ''} · ${c.better} is better · updates: ${c.volatility}. `
                                   + 'Click to sort by value: best first, then worst first, then the usual order. A model sorts '
                                   + 'by its best value on any of its rows; tracked models stay above the others.'} />
                   ))}
@@ -558,13 +568,13 @@ function Changelog({ data: all }) {
         <p className="muted bm-small">Showing the newest {data.entries.length} of these.</p>
       )}
       {byRun.map(({ run, items }) => {
-        const added = items.filter((e) => e.type === 'added').length
-        const initial = added === items.filter((e) => e.type !== 'variant_added').length && items.length > 20
+        const initial = (all.baseline_runs || []).includes(run)
         const open = openRuns[run] ?? (filter !== 'all' || !initial)
         return (
           <div key={run} className="bm-log card">
             <div className="bm-log-head">
               <strong>Run #{run}</strong>
+              <span className="muted bm-small">{items[0].reason?.replace('_', ' ')}{items[0].actor ? ` · by ${items[0].actor}` : ''}</span>
               <span className="muted">{fmtWhen(items[0].changed_at)} · {items.length} entr{items.length === 1 ? 'y' : 'ies'}
                 {initial ? ' · first import' : ''}</span>
               <button type="button" className="btn btn-ghost bm-small" onClick={() => setOpenRuns((o) => ({ ...o, [run]: !open }))}>
@@ -614,7 +624,7 @@ function Runs({ data, onView }) {
             <tr key={r.id}>
               <td>#{r.id}{r.dry_run && <span className="bm-pill">dry run</span>}</td>
               <td>{fmtWhen(r.started_at)}</td>
-              <td className="muted">{r.trigger.replace('_', ' ')}</td>
+              <td className="muted">{r.trigger.replace('_', ' ')}{r.scope !== 'all' && ` · ${r.scope}`}</td>
               <td><span className={`bm-status bm-s-${r.status}`}>{r.status.replace('_', ' ')}</span></td>
               <td title={sources.map(([k, s]) => `${k}: ${s.status}${s.errors?.length ? ` - ${s.errors[0]}` : ''}`).join('\n')}>
                 {sources.length ? `${ok} of ${sources.length} read` : '—'}
@@ -775,13 +785,14 @@ function Sources({ sources }) {
                 )}
               </td>
               <td>{s.fills.length ? s.fills.join(', ') : <span className="muted">—</span>}</td>
-              <td className="bm-small">{s.fetcher}</td>
+              <td className="bm-small">{s.fetcher}
+                <div className="muted">{s.kind} · priority {s.priority} (the higher wins a cell)</div></td>
               <td className="bm-small">{s.readers.join(', ') || '—'}</td>
               <td className="bm-small">
                 {s.last ? (
                   <>
                     <div>run #{s.last.run_id} · {s.last.status}{s.last.http_status ? ` · HTTP ${s.last.http_status}` : ''}</div>
-                    <div className="muted">{s.last.rows ?? 0} rows read · {s.last.matched ?? 0} tracked models · {s.last.values ?? 0} values</div>
+                    <div className="muted">{s.last.rows ?? 0} rows read · {s.last.matched ?? 0} models matched · {s.last.values ?? 0} values</div>
                     {s.last.error && <div className="bm-error">{s.last.error}</div>}
                   </>
                 ) : <span className="muted">not read yet</span>}
@@ -824,7 +835,8 @@ export default function Benchmarks() {
         <p className="muted">
           Published benchmark results for the {table?.counts.models ?? 'tracked'} tracked text models, scraped from
           public leaderboard pages. Each value is exactly what its source printed - hover it for the source, the name
-          the source uses and the date. Nothing here is converted or computed by the board.
+          the source uses and the date. Nothing is converted. A rank is the board&apos;s own: printed by it, its row
+          order (checked against its scores), or its order by its own sort field.
         </p>
         {last && (
           <p className="muted bm-small">

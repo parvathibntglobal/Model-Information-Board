@@ -141,7 +141,6 @@ def _columns() -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
                     "benchmark": b["key"],
                     "label": b["label"] if metric == "score" else f"{b['label']} {metric}",
                     "metric": metric,
-                    "unit": "percent" if metric == "score" else None,
                     "better": "lower"
                     if metric == "rank"
                     else ("higher" if b["higher_is_better"] else "lower"),
@@ -186,7 +185,6 @@ def table(conn) -> dict[str, Any]:
         benchmark_key,
         metric,
         value,
-        rank_high,
         tied,
         rank_out_of,
         rank_board,
@@ -201,7 +199,7 @@ def table(conn) -> dict[str, Any]:
         collected_at,
         needs_review,
     ) in conn.execute(
-        "SELECT row_id, benchmark_key, metric, value, rank_high, tied, rank_out_of, rank_board, "
+        "SELECT row_id, benchmark_key, metric, value, tied, rank_out_of, rank_board, "
         "variant, benchmark_version, source_key, url, raw_text, raw_model_name, source_date, "
         "setting_not_stated, collected_at, needs_review FROM bench_cell"
     ).fetchall():
@@ -216,13 +214,11 @@ def table(conn) -> dict[str, Any]:
             # column only - the page always shows `display` (2026-10-26).
             "sort": value,
             "tied": tied,
-            "rank_high": rank_high,
             "source": source_key,
             "source_label": source.get("label", source_key),
             "url": url,
             "variant": variant,
             "benchmark_version": benchmark_version,
-            "raw_text": raw_text,
             "raw_name": raw_model_name,
             "source_date": source_date,
             "collected_at": collected_at.isoformat() if collected_at else None,
@@ -280,7 +276,6 @@ def table(conn) -> dict[str, Any]:
         return {
             "row_id": model_id,
             "label": label,
-            "model_id": model_id,
             "group": group,
             "cells": cells.get(model_id, {}),
             "children": children,
@@ -597,6 +592,9 @@ def changelog(
             "needs_review": needs_review,
         }
         entry["news"] = _news(entry, released, baseline, rules)
+        # Read by the tagging above, not by the page (rule 9).
+        for internal in ("metric", "old_value", "new_value"):
+            del entry[internal]
         if kind in NEWS_KINDS and (entry["news"] is None or kind not in ("news", entry["news"])):
             continue
         entries.append(entry)
@@ -614,6 +612,9 @@ def changelog(
         "counts": counts,
         "kind": kind or "all",
         "news_rules": rules,
+        # Runs that were some source's first read (all their values new to the
+        # board): the page labels them "first import" (PR #573 review).
+        "baseline_runs": sorted(set(baseline.values())),
     }
 
 
@@ -666,7 +667,7 @@ def runs(conn, *, limit: int = 30) -> dict[str, Any]:
         "FROM bench_run ORDER BY id DESC LIMIT %s",
         (limit,),
     ).fetchall()
-    return {"runs": [_run_summary(r) for r in rows], "running": _running(conn)}
+    return {"runs": [_run_summary(r) for r in rows]}
 
 
 def _run_summary(r) -> dict[str, Any]:
@@ -683,15 +684,9 @@ def _run_summary(r) -> dict[str, Any]:
         "finished_at": _iso(finished),
         "totals": report.get("totals"),
         "sources": {
-            k: {
-                "status": v.get("status"),
-                "method": v.get("method"),
-                "observations": v.get("observations"),
-                "errors": v.get("errors"),
-            }
+            k: {"status": v.get("status"), "errors": v.get("errors")}
             for k, v in (report.get("sources") or {}).items()
         },
-        "coverage": report.get("coverage"),
         "error": report.get("error"),
     }
 
