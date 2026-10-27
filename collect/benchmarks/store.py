@@ -124,16 +124,29 @@ def previous_source_reports(conn) -> dict[str, dict[str, Any]]:
     (status OK), for the L3 row-count and release checks. A blocked read is not a
     baseline: run #44 recorded AA GPQA's blocked 27 rows, which would have let the
     next run through unchecked (2026-10-26)."""
-    rows = conn.execute(
-        "SELECT report FROM bench_run WHERE status IN ('ok', 'partial') AND NOT dry_run "
-        "AND report IS NOT NULL ORDER BY id DESC LIMIT 20"
-    ).fetchall()
-    latest: dict[str, dict[str, Any]] = {}
-    for (report,) in rows:
-        for key, entry in (report or {}).get("sources", {}).items():
-            if entry.get("status") == "OK":
-                latest.setdefault(key, entry)
-    return latest
+    # However long ago it was: a source that kept failing for 20 runs used to
+    # lose its baseline, and with it the guard (PR #573 review).
+    return dict(
+        conn.execute(
+            "SELECT DISTINCT ON (s.key) s.key, s.value FROM bench_run r, "
+            "jsonb_each(r.report -> 'sources') s "
+            "WHERE r.status IN ('ok', 'partial') AND NOT r.dry_run AND r.report IS NOT NULL "
+            "AND s.value ->> 'status' = 'OK' ORDER BY s.key, r.id DESC"
+        ).fetchall()
+    )
+
+
+def recent_source_reads(conn, key: str, n: int) -> list[dict[str, Any]]:
+    """The source's last `n` report entries from real runs, taken or blocked."""
+    return [
+        r[0]
+        for r in conn.execute(
+            "SELECT report -> 'sources' -> %s FROM bench_run "
+            "WHERE NOT dry_run AND report IS NOT NULL AND (report -> 'sources') ? %s "
+            "ORDER BY id DESC LIMIT %s",
+            (key, key, n),
+        ).fetchall()
+    ]
 
 
 # ── snapshots ────────────────────────────────────────────────────────────────

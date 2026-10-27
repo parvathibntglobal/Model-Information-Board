@@ -3,8 +3,16 @@
 fetch:
   min_bytes: 2000
   block_page_markers: ["captcha", "access denied", "are you a robot", "cf-challenge", "just a moment..."]
+# L3, the page's shape against the source's last TAKEN read (PR #573 review: at
+# 50% a page rendering 60% of its table passed, and its other figures left the
+# page). A shrink is the dangerous direction, so it is the strict one.
 structure:
-  max_row_count_change: 0.5          # +-50% vs the source's previous run
+  max_row_shrink: 0.2                # fewer than 80% of the rows -> blocked
+  max_row_growth: 0.5                # 50% more rows -> taken only if the values read both times agree
+  # A board really can get shorter. A smaller size read this many times in a row
+  # (the blocked reads included) is the board's new size, and is taken; a page
+  # that renders partly rarely repeats the same count.
+  stable_reads: 3
 tolerance:                           # L6 cross-source agreement
   percent: 2.0
   points: 0.3
@@ -15,4 +23,4 @@ jump:                                # L7 vs the previous value from the same so
   rating: 100
   # No rank threshold: a rank moving is never flagged - it moves whenever the
   # board's list changes (2026-10-26).
-mass_disappearance: 0.5              # fewer than half last run's observations -> keep the old ones
+mass_disappearance: 0.8              # fewer than 80% of the last taken read's values -> blocked

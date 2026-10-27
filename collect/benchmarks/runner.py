@@ -211,7 +211,7 @@ class Run:
                 f"new release {parsed.release} (last published run read {new_release}): "
                 f"{changed} changed value(s) are the new release's, not flagged as jumps",
             )
-        if self._mass_disappearance(source.key, kept, result):
+        if self._mass_disappearance(source.key, kept, parsed.rows_parsed, new_release, result):
             self._forget(source.key)
             self.new_releases.pop(source.key, None)
             return result
@@ -332,18 +332,38 @@ class Run:
         new_release: str | None,
         result: SourceResult,
     ) -> bool:
-        """L3: a big change in row count is a suspected layout change - unless the
-        list simply changed. AA's GPQA page went from 16 to 27 models with the 16
-        values unchanged (2026-10-26): that is a longer list, not a broken page.
-        So the values listed both times are compared; a new release is let
-        through as well."""
+        """L3: a big change in row count is a suspected layout change.
+
+        GROWTH is taken when the values read both times agree: AA's GPQA page
+        went from 16 to 27 models with the 16 values unchanged (2026-10-26) -
+        a longer list, not a broken page. A SHRINK is never judged that way: a
+        page that renders only part of its table shows the same values for the
+        part it does render (PR #573 review). A shrink is taken only as a new
+        release, or as the board's new size once read `stable_reads` times."""
         before = (self.previous_reports.get(key) or {}).get("rows_parsed")
-        limit = float(self.config.validation["structure"]["max_row_count_change"])
-        if before and abs(rows - before) / before > limit:
-            change = f"{rows} rows, last published run had {before} (more than ±{limit:.0%})"
+        rules = self.config.validation["structure"]
+        if not before or rows == before:
+            return False
+        shrink = rows < before
+        limit = float(rules["max_row_shrink"] if shrink else rules["max_row_growth"])
+        if abs(rows - before) / before > limit:
+            change = (
+                f"{rows} rows, last taken read had {before} "
+                f"(more than {limit:.0%} {'fewer' if shrink else 'more'})"
+            )
             if new_release:
                 self.c.line("CHECK", "OK", f"{change} - a new release, taken")
                 return False
+            if shrink:
+                if self._stable_size(key, rows):
+                    self.c.line(
+                        "CHECK",
+                        "OK",
+                        f"{change} - the same size on {rules['stable_reads']} reads in a "
+                        "row: the board's new size, taken",
+                    )
+                    return False
+                return self._block(f"suspected_layout_change: {change}", result)
             both = [
                 (o.value, b.value)
                 for o in kept
@@ -358,32 +378,42 @@ class Run:
                     "both times are unchanged, so the page reads as before; taken",
                 )
                 return False
-            message = (
+            return self._block(
                 f"suspected_layout_change: {change}; {same} of {len(both)} values listed "
-                "both times are unchanged"
+                "both times are unchanged",
+                result,
             )
-            result.status = "BLOCK"
-            result.errors.append(message)
-            self.c.line("CHECK", "BLOCK", message + "; previous values kept")
-            return True
         return False
 
+    def _stable_size(self, key: str, rows: int) -> bool:
+        """This size was also read on the source's last `stable_reads - 1` reads."""
+        need = int(self.config.validation["structure"]["stable_reads"]) - 1
+        reads = store.recent_source_reads(self.conn, key, need)
+        return len(reads) == need and all((r or {}).get("rows_parsed") == rows for r in reads)
+
+    def _block(self, message: str, result: SourceResult) -> bool:
+        result.status = "BLOCK"
+        result.errors.append(message)
+        self.c.line("CHECK", "BLOCK", message + "; previous values kept")
+        return True
+
     def _mass_disappearance(
-        self, key: str, kept: list[StoredObservation], result: SourceResult
+        self,
+        key: str,
+        kept: list[StoredObservation],
+        rows: int,
+        new_release: str | None,
+        result: SourceResult,
     ) -> bool:
         before = (self.previous_reports.get(key) or {}).get("observations")
         floor = float(self.config.validation["mass_disappearance"])
-        if before and len(kept) < before * floor:
-            message = (
-                f"suspected_layout_change: {len(kept)} observations, "
-                f"last published run had {before} "
-                f"(fewer than {floor:.0%})"
-            )
-            result.status = "BLOCK"
-            result.errors.append(message)
-            self.c.line("CHECK", "BLOCK", message + "; previous values kept")
-            return True
-        return False
+        if not before or len(kept) >= before * floor:
+            return False
+        change = f"{len(kept)} values, last taken read had {before} (fewer than {floor:.0%})"
+        if new_release or self._stable_size(key, rows):
+            self.c.line("CHECK", "OK", f"{change} - a new release or the board's new size, taken")
+            return False
+        return self._block(f"suspected_layout_change: {change}", result)
 
     def _match_and_value(
         self, source: Source, parsed: Parsed, resolver: Resolver, result: SourceResult

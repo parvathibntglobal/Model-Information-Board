@@ -1317,10 +1317,11 @@ class TestARun:
         assert conn.execute("SELECT status FROM bench_run").fetchone()[0] == "dry_run"
 
     def test_a_value_that_drops_off_the_board_goes_stale_and_the_cell_is_removed(self, conn):
-        _run(conn, PAGES)
-        page = LIVEBENCH.replace(b"Kimi K3</span>", b"Kimi K9</span>")
-        pages = {**PAGES, "livebench_leaderboard": page}
-        _run(conn, pages)
+        # Six on the board, one drops off: under the 20% shrink guard.
+        board = {"Kimi K3": 70, **{f"Lab M{i}": 60 - i for i in range(5)}}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(board)}, registry=LAB)
+        board.pop("Kimi K3")
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(board)}, registry=LAB)
         assert ("moonshotai/kimi-k3:max", "livebench", "score") not in store.load_cells(conn)
         removed = conn.execute(
             "SELECT count(*) FROM bench_change WHERE change_type = 'removed'"
@@ -1488,6 +1489,27 @@ class TestListAndReleaseChanges:
         assert parsed.release == "2026-10-25"
         assert {o.collected_on for o in parsed.observations} == {"2026-10-25"}
 
+    def test_a_page_rendering_only_part_of_its_table_is_blocked(self, conn):
+        # PR #573 review: at 50% a page showing 60% of its table passed, and the
+        # rest of its figures left the page. The part it shows reads the same.
+        full = {f"Lab M{i}": 50 + i for i in range(10)}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(full)}, registry=LAB)
+        part = {k: v for k, v in list(full.items())[:6]}
+        _, out = _run(conn, {**PAGES, "livebench_leaderboard": _livebench(part)}, registry=LAB)
+        assert "suspected_layout_change: 6 rows, last taken read had 10" in out
+        assert ("lab/m-9:max", "livebench", "score") in store.load_cells(conn)  # kept
+
+    def test_a_board_that_really_got_shorter_is_taken_on_the_third_read(self, conn):
+        full = {f"Lab M{i}": 50 + i for i in range(10)}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(full)}, registry=LAB)
+        part = {k: v for k, v in list(full.items())[:6]}
+        pages = {**PAGES, "livebench_leaderboard": _livebench(part)}
+        _run(conn, pages, registry=LAB)
+        _run(conn, pages, registry=LAB)
+        _, out = _run(conn, pages, registry=LAB)
+        assert "the board's new size, taken" in out
+        assert ("lab/m-9:max", "livebench", "score") not in store.load_cells(conn)
+
     def test_a_blocked_read_is_not_the_next_baseline(self, conn):
         first = {f"Lab M{i}": 50 + i for i in range(4)}
         page = {**PAGES, "livebench_leaderboard": _livebench(first)}
@@ -1620,10 +1642,10 @@ class TestRowsNoSourceLists:
         return {r[0] for r in conn.execute("SELECT row_id FROM bench_row").fetchall()}
 
     def test_a_model_no_source_lists_any_more_is_removed(self, conn):
-        listed = {"Lab M1": 50, "Lab M2": 40, "Lab M3": 30}
+        listed = {f"Lab M{i}": 50 - i for i in range(1, 7)}  # six; one going is under 20%
         _run(conn, {**PAGES, "livebench_leaderboard": _livebench(listed)}, registry=LAB)
         assert {"lab/m-1", "lab/m-1:max"} <= self._rows(conn)
-        fewer = {"Lab M2": 40, "Lab M3": 30}
+        fewer = {k: v for k, v in listed.items() if k != "Lab M1"}
         _, out = _run(conn, {**PAGES, "livebench_leaderboard": _livebench(fewer)}, registry=LAB)
         rows = self._rows(conn)
         assert "lab/m-1" not in rows and "lab/m-1:max" not in rows
