@@ -185,7 +185,7 @@ class Fetcher:
                 error="fetch_error",
                 detail=(
                     "playwright is not installed "
-                    "(pip install playwright; playwright install chromium)"
+                    "(pip install '.[benchmarks-browser]'; playwright install --with-deps chromium)"
                 ),
             )
         try:
