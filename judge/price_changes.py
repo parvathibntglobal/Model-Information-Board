@@ -38,9 +38,10 @@ defaulted here (rule 12):
 newest poll of any model. The registry poll is not its only writer: the loaders'
 upsert (collect/registry/load.py, `updated_at = now()`) and recompute-window
 (when a model's `in_window` flips) set it too, so a delisted model whose
-`in_window` flipped would look freshly polled. `model_catalog.last_seen_at`
-("the latest poll that listed it", written by the poll alone) is the exact
-signal; moving to it is a follow-up.
+`in_window` flipped would look freshly polled. The catalogue's `last_seen_at`
+(collect/registry/catalog.py: "the latest poll that listed it", written by the
+poll alone) is the exact signal. Moving to it is a follow-up, and it adds this
+module to the list of catalogue readers its tests allow.
 
 A percentage is the plain change between the two observed prices, shown beside
 both of them; a price that was 0 or not stated has none (rule 6).
