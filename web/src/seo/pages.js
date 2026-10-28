@@ -541,6 +541,7 @@ export const PRIVATE = {
   blogLogs: { title: fullTitle('Blog run logs'), noindex: true },
   keywords: { title: fullTitle('SEO keywords'), noindex: true },
   benchmarks: { title: fullTitle('Benchmarks'), noindex: true },
+  priceChanges: { title: fullTitle('Price changelog'), noindex: true },
   notFound: { title: fullTitle('Page not found'), noindex: true },
 }
 

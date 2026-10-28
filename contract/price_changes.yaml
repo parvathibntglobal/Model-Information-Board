@@ -1,0 +1,64 @@
+# The price changelog: which OpenRouter list-price changes are worth a look.
+#
+# PROPOSED 2026-10-27 (parvathi, branch price-changelog/parvathi). A contract
+# change, so it gets a second reviewer like every file here.
+#
+# WHAT IT READS. `pricing_history`, which collect/registry/events.py appends to
+# only when a model's price moves between two polls (twice a day), for the
+# models in the registry. A model's first observation is NOT a change (rule 6:
+# no prior observation is not evidence of a move), so it never appears here.
+#
+# ONE SOURCE, SAID PLAINLY. Every price here is OpenRouter's list price, as we
+# observed it. OpenRouter can move that price without the provider changing
+# anything - a different cheapest host, a promotional endpoint, a re-listing -
+# so a change is "seen on OpenRouter", never "the provider's price", until a
+# person has confirmed it on the provider's own pricing page. Nothing here
+# confirms anything; `confirmed` is always false until that step exists.
+#
+# THE DATE IS THE POLL'S. The move happened somewhere between the poll before
+# and the one that recorded it. The poll is scheduled twice a day but GitHub
+# often starts it hours late, so that gap has no fixed bound; the page says
+# "seen at the poll at <time>", never "changed on".
+#
+# UNMEASURED STARTING VALUES (rule 8; review on #579, 2026-10-28). Every number
+# below is a starting point nobody has checked against changes later confirmed
+# or reverted. Once a person confirms changes on the provider's page, the
+# confirmed and rejected changes are the population to tune them on.
+#
+# FLAGS ARE FIXED RULES, NEVER A JUDGEMENT. Each flag below is a comparison on
+# two observed prices, and `newsworthy` is a fixed combination of them. Change a
+# number here, not in code (rule 5).
+
+version: 1
+
+# A cut or a rise of at least this much (largest of input and output, in
+# percent) is flagged, and is what makes a change newsworthy (with a move to
+# free). Smaller moves are listed but are noise for headlines: rounding, a small
+# host difference. There is no separate minimum: under this rule it would never
+# decide anything (review on #579, 2026-10-28).
+big_change_pct: 20
+
+# A change is SETTLED once it has held this long: no further change for the
+# model within this many hours after it was seen. Until then it is "settling" -
+# a glitch, a promotion or a host switch often reverts within a poll or two.
+hold_hours: 24
+
+# A change is BOUNCED when the model's next change, within this many days,
+# returns it to the price it had before. Typical of OpenRouter switching hosts
+# or ending a promotion; never newsworthy.
+bounce_days: 7
+
+# A provider wave: at least this many of one provider's models changed price
+# on the same day (UTC). A LABEL ONLY, never a reason for "newsworthy": it
+# mostly measures OpenRouter repricing a provider's models in bulk.
+wave_min_models: 3
+
+# NO LONGER POLLED. A model whose last poll is more than this many hours older
+# than the newest poll of any model has left OpenRouter's list (or the registry
+# stopped polling it). Its newest change can never settle, so it says that
+# instead of "settling". At least hold_hours; 36 is a poll and a half late.
+unpolled_hours: 36
+
+# How far back the page looks by default, in days, and the longest it may ask.
+default_window_days: 90
+max_window_days: 365
