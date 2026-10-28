@@ -332,8 +332,10 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                 key=key,
                 label=s["label"],
                 kind=s["kind"],
-                tier=s.get("tier") or max(TIERS),
-                tier_note=s.get("tier_note") or "",
+                # No fallback: a missing tier or note is refused above, and this
+                # source is built before that refusal is raised (PR #580 review).
+                tier=s.get("tier"),
+                tier_note=s.get("tier_note"),
                 priority=s["priority"],
                 enabled=bool(s["enabled"]),
                 method=s["method"],
@@ -396,6 +398,8 @@ def load(directory: Path = CONFIG_DIR) -> Config:
     ):
         if required not in settings_raw:
             problems.append(f"module_settings.yaml: missing {required}")
+    if not isinstance(raw["validation.yaml"].get("percent_scale_check_min_values"), int):
+        problems.append("validation.yaml: percent_scale_check_min_values must be a whole number")
 
     if problems:
         raise ConfigError(problems)

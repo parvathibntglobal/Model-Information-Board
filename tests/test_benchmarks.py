@@ -1874,6 +1874,24 @@ class TestListAndReleaseChanges:
         rows = {r[0] for r in conn.execute("SELECT row_id FROM bench_row").fetchall()}
         assert "lab/m-11" not in rows  # a blocked read adds no rows
 
+    def test_a_percent_column_read_as_fractions_is_blocked(self, conn):
+        # PR #580 review: a board storing 0.63 for 63% passed the 0-100 check
+        # and sat at the bottom of the column, 100 times too small.
+        fractions = {f"Lab M{i}": round(0.40 + i / 100, 2) for i in range(8)}
+        _, out = _run(conn, {**PAGES, "livebench_leaderboard": _livebench(fractions)}, registry=LAB)
+        assert "suspected_wrong_scale: all 8 livebench values are 1 or less" in out
+        assert ("lab/m-0:max", "livebench", "score") not in store.load_cells(conn)
+
+    def test_real_scores_under_one_percent_are_kept(self, conn):
+        # ARC-AGI-3 has many real scores under 1%; one value above 1 shows the
+        # column is a percent column, so none of them is refused.
+        scores = {f"Lab M{i}": 0.2 + i / 10 for i in range(7)}
+        scores["Lab M7"] = 52.7
+        _, out = _run(conn, {**PAGES, "livebench_leaderboard": _livebench(scores)}, registry=LAB)
+        assert "suspected_wrong_scale" not in out
+        cells = store.load_cells(conn)
+        assert cells[("lab/m-0:max", "livebench", "score")].value == pytest.approx(0.2)
+
     def test_a_new_release_is_not_flagged_as_jumps(self, conn):
         old = {"GPT 6 Astra": 86.1, "Kimi K3": 70.2}
         _run(conn, {**PAGES, "livebench_leaderboard": _livebench(old, "2026-10-14")})

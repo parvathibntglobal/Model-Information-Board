@@ -403,6 +403,7 @@ function BenchTable({ data }) {
                   {columns.map((c) => (
                     <SortHeader key={c.key} id={c.key} label={c.label} sort={sort} setSort={setSort} className="bm-col"
                                 title={`${c.label}${c.benchmark_version ? ` (${c.benchmark_version})` : ''} · ${c.better} is better · updates: ${c.volatility}. `
+                                  + (c.setup_note ? `${c.setup_note} ` : '')
                                   + 'Click to sort by value: best first, then worst first, then the usual order. A model sorts '
                                   + 'by its best value on any of its rows; tracked models stay above the others.'} />
                   ))}

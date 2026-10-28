@@ -167,6 +167,9 @@ def _columns() -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
                     else ("higher" if b["higher_is_better"] else "lower"),
                     "volatility": b["volatility"],
                     "benchmark_version": b.get("benchmark_version"),
+                    # What a reader must know before comparing the column's values,
+                    # e.g. that each was run in its own agent (PR #580 review).
+                    "setup_note": b.get("setup_note"),
                 }
                 columns.append(column)
                 by_key[column["key"]] = column

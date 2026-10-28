@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from collect.benchmarks.config import Benchmark, Config
+from collect.benchmarks.config import TIERS, Benchmark, Config
 from collect.benchmarks.store import StoredCell, StoredObservation
 
 
@@ -157,7 +157,7 @@ def merge(
         accepted = [o for o in live if positions[id(o)] is not None]  # rule 2
         if not accepted:
             continue
-        tier_of = {id(o): tiers.get(o.source_key, 3) for o in accepted}
+        tier_of = {id(o): tiers.get(o.source_key, max(TIERS)) for o in accepted}
         top = min(tier_of.values())
         cands = [o for o in accepted if tier_of[id(o)] == top]  # rule 3
         best = min(positions[id(o)] for o in cands)
