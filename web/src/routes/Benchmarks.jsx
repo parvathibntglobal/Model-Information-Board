@@ -77,12 +77,32 @@ function cellTitle(cell, column) {
   return lines.join('\n')
 }
 
-function Cell({ cell, column }) {
+// A rank whose board is not the source of the score beside it (GPQA: the score
+// from Artificial Analysis, the rank from Vals' board) - dimmed and tagged, so
+// "#4" is not read as that score's place (PR #581 review).
+const boardName = (rankBoard) => (rankBoard || '').split('/')[0]
+
+function Cell({ cell, column, dropped, scoreCell }) {
+  if (!cell && dropped) {
+    // The benchmark's own board no longer lists the model: blank, but not
+    // "never measured" (PR #581 review).
+    return (
+      <td className="bm-c bm-empty bm-dropped"
+          title={`Dropped from ${dropped.source_label} on ${fmtWhen(dropped.on)} - the board no longer lists this model. Last value: ${dropped.last}`}>
+        dropped
+      </td>
+    )
+  }
   if (!cell) return <td className="bm-c bm-empty" title={cellTitle(null, column)}>—</td>
   const recent = ['new', 'source', 'changed'].find((b) => cell.badges?.includes(b)) || null
+  const otherBoard = column.metric === 'rank' && scoreCell && scoreCell.source !== cell.source
+  const title = otherBoard
+    ? `${cellTitle(cell, column)}\n\nThis rank is on ${cell.rank_board}; the score in this row is from ${scoreCell.source_label}, so it is not that score's place.`
+    : cellTitle(cell, column)
   return (
-    <td className={`bm-c${cell.needs_review ? ' bm-flag' : ''}`} title={cellTitle(cell, column)}>
+    <td className={`bm-c${cell.needs_review ? ' bm-flag' : ''}${otherBoard ? ' bm-otherboard' : ''}`} title={title}>
       <a href={cell.url} target="_blank" rel="noreferrer noopener nofollow" className="bm-v">{cell.display}</a>
+      {otherBoard && <span className="bm-boardtag">{boardName(cell.rank_board)}</span>}
       {recent && (
         <span className={`bm-badge bm-${recent}${cell.direction ? ` bm-${cell.direction}` : ''}`}>
           {recent === 'new' ? 'new' : recent === 'source' ? 'source' : cell.direction === 'better' ? '▲' : cell.direction === 'worse' ? '▼' : '•'}
@@ -326,8 +346,31 @@ function Cols({ columns, widths }) {
   )
 }
 
+// Which columns the table shows (2026-10-28): with a rank beside most scores
+// the table doubled in width, so scores, ranks or both. Remembered per browser.
+const VIEWS = [
+  { key: 'score', label: 'Scores' },
+  { key: 'rank', label: 'Ranks' },
+  { key: 'both', label: 'Both' },
+]
+const VIEW_KEY = 'bm-view'
+const readView = () => {
+  try {
+    const v = localStorage.getItem(VIEW_KEY)
+    return VIEWS.some((x) => x.key === v) ? v : 'score'
+  } catch {
+    return 'score'
+  }
+}
+const inView = (column, view) => view === 'both' || (view === 'rank') === (column.metric === 'rank')
+
 function BenchTable({ data }) {
   const [section, setSection] = useState('all')
+  const [view, setViewState] = useState(readView)
+  const setView = (v) => {
+    setViewState(v)
+    try { localStorage.setItem(VIEW_KEY, v) } catch { /* storage blocked: this visit only */ }
+  }
   const [sort, setSort] = useState(null) // { key, dir: 'best' | 'worst' } - best first, then worst first, then off
   const [showSettings, setShowSettings] = useState(true)
   const [hideEmpty, setHideEmpty] = useState(true)
@@ -344,9 +387,14 @@ function BenchTable({ data }) {
 
   const sections = data.sections
     .filter((s) => section === 'all' || s.key === section)
-    .map((s) => ({ ...s, columns: s.columns.filter((c) => !hideEmpty || filled.has(c.key)) }))
+    .map((s) => ({
+      ...s,
+      columns: s.columns.filter((c) => inView(c, view) && (!hideEmpty || filled.has(c.key))),
+    }))
     .filter((s) => s.columns.length)
-  const emptyColumns = data.sections.flatMap((s) => s.columns).filter((c) => !filled.has(c.key))
+  const emptyColumns = data.sections
+    .flatMap((s) => s.columns)
+    .filter((c) => inView(c, view) && !filled.has(c.key))
   const columns = sections.flatMap((s) => s.columns)
   const rows = sortRows(data.rows, columns, sort)
   const widths = useMemo(() => columnWidths(data.rows, data.sections.flatMap((s) => s.columns)), [data])
@@ -377,6 +425,15 @@ function BenchTable({ data }) {
             <button key={s.key} type="button" className={`bm-chip${section === s.key ? ' on' : ''}`}
                     aria-pressed={section === s.key} onClick={() => setSection(s.key)}>
               {s.label}
+            </button>
+          ))}
+        </div>
+        <div className="bm-chips" role="group" aria-label="Show scores, ranks or both">
+          {VIEWS.map((v) => (
+            <button key={v.key} type="button" className={`bm-chip${view === v.key ? ' on' : ''}`}
+                    aria-pressed={view === v.key} onClick={() => setView(v.key)}
+                    title={v.key === 'rank' ? 'Each board’s own printed rank, where the board gives one' : undefined}>
+              {v.label}
             </button>
           ))}
         </div>
@@ -442,12 +499,14 @@ function BenchTable({ data }) {
                         <span>{row.label}</span>
                         {row.children.length > 0 && <span className="bm-n">{row.children.length}</span>}
                       </th>
-                      {columns.map((c) => <Cell key={c.key} cell={row.cells[c.key]} column={c} />)}
+                      {columns.map((c) => <Cell key={c.key} cell={row.cells[c.key]} column={c}
+                        dropped={row.dropped?.[c.key]} scoreCell={row.cells[`${c.benchmark}_score`]} />)}
                     </tr>
                     {open && row.children.map((child) => (
                       <tr key={child.row_id} className="bm-row bm-child">
                         <th scope="row" className="bm-model bm-setting">{child.dated ? child.label : `(${child.setting})`}</th>
-                        {columns.map((c) => <Cell key={c.key} cell={child.cells[c.key]} column={c} />)}
+                        {columns.map((c) => <Cell key={c.key} cell={child.cells[c.key]} column={c}
+                          dropped={child.dropped?.[c.key]} scoreCell={child.cells[`${c.benchmark}_score`]} />)}
                       </tr>
                     ))}
                   </Fragment>
@@ -490,12 +549,13 @@ const CHANGE_FILTERS = [
 // NEWS-WORTHY (judge NEWS_KINDS): what happened, not just what the board read.
 // The numbers in the hints are the server's (contract news rules), never a copy here.
 const NEWS_FILTERS = [
-  { key: 'news', label: 'All news-worthy', hint: () => 'Debuts, fresh results and movers together' },
+  { key: 'news', label: 'All news-worthy', hint: () => 'Debuts, fresh results, movers and drops together' },
   { key: 'debut', label: 'Debuts', hint: (r) => `A model released in the last ${r.debut_days} days showing up on a benchmark` },
   { key: 'fresh', label: 'Fresh results', hint: (r) => `A new value the source itself dates within the last ${r.fresh_days} days` },
   { key: 'mover', label: 'Movers', hint: (r) => `A rank move, or a score moving ${r.mover_points} point or more, on the same release` },
+  { key: 'dropped', label: 'Dropped', hint: () => 'A model the benchmark’s own board no longer lists - often retired or withdrawn' },
 ]
-const NEWS_LABEL = { debut: 'debut', fresh: 'fresh', mover: 'mover' }
+const NEWS_LABEL = { debut: 'debut', fresh: 'fresh', mover: 'mover', dropped: 'dropped' }
 
 function NewsMenu({ filter, counts, rules, onPick }) {
   const [open, setOpen] = useState(false)

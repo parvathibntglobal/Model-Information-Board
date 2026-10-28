@@ -547,8 +547,14 @@ class TestNewColumns:
         page = f'<script>self.__next_f.push([1,"{flight}"])</script>'.encode()
         parsed = parse(config.source("tbench_leaderboard"), page, url="https://www.tbench.ai/")
         assert not parsed.problems
-        (o,) = parsed.observations
+        o, rank = parsed.observations
         assert (o.raw_model_name, o.raw_setting, o.variant) == ("Opus 5.5", "max", "Claude Code")
+        # the board's own printed rank, on its own board (2026-10-28)
+        assert (rank.metric, rank.raw_text, rank.rank_board) == (
+            "rank",
+            "1",
+            "tbench/terminal-bench-4",
+        )
         assert (o.benchmark, o.raw_text, o.collected_on) == (
             "terminal_bench_4",
             "64.85",
@@ -587,6 +593,35 @@ class TestNewColumns:
             "apex_1",
             "69.3",
         )
+
+    def test_a_vals_board_gives_its_printed_rank_on_its_own_board(self, config):
+        # 2026-10-28: 14 boards print a rank beside the score; it is read as
+        # printed, never worked out here.
+        page = (
+            b"<table><tr><th>Rank</th><th>Model</th><th>Accuracy</th><th>Cost / Test</th></tr>"
+            b"<tr><td>1</td><td>Claude Sonnet 5.5</td><td>70.85%</td><td>$18.70</td></tr>"
+            b"<tr><td>2</td><td>Claude Opus 5.5</td><td>70.18%</td><td>$28.12</td></tr></table>"
+        )
+        parsed = parse(config.source("vals_index"), page, url="https://www.vals.ai/")
+        ranks = {
+            o.raw_model_name: (o.raw_text, o.rank_board, o.rank_out_of)
+            for o in parsed.observations
+            if o.metric == "rank"
+        }
+        assert ranks == {
+            "Claude Sonnet 5.5": ("1", "vals/vals-index", 2),
+            "Claude Opus 5.5": ("2", "vals/vals-index", 2),
+        }
+
+    def test_every_board_that_prints_a_rank_is_read(self, config):
+        # The 14 pages checked on 2026-10-28; each names its own board.
+        printed = {"tbench_leaderboard", "matharena_aime_2026"} | {
+            s.key for s in config.sources if s.key.startswith("vals_")
+        }
+        for key in printed:
+            table = config.source(key).tables[0]
+            reads_rank = any(t.get("metric") == "rank" for t in table.benchmark_map.values())
+            assert reads_rank and table.rank_board, key
 
     def test_arc_agi_3_takes_the_standard_result_only(self, config):
         page = (
@@ -855,7 +890,8 @@ class TestMerge:
 
     def test_within_a_tier_the_highest_priority_wins_and_a_disagreement_is_flagged(self, config):
         # "a" and "b" are no configured source: both the lowest tier.
-        d = merge(config, [_obs("a", 90.0, priority=70), _obs("b", 95.0, priority=90)], run_id=1)
+        # 7 points apart: beyond GPQA Diamond's 5-point noise margin.
+        d = merge(config, [_obs("a", 88.0, priority=70), _obs("b", 95.0, priority=90)], run_id=1)
         cell = d[("openai/gpt-6-astra", "gpqa_diamond", "score")]
         assert cell.cell.source_key == "b" and cell.rule == "rule 5 priority"
         assert cell.flags and cell.flags[0]["check"] == "disagreement"
@@ -904,13 +940,93 @@ class TestMerge:
         d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "swe_bench_verified", "score")]
         assert d.cell.source_key == "table_fixture" and d.flags
 
-    def test_a_lower_tier_fills_a_cell_only_when_no_higher_tier_has_a_value(self, config):
+    def test_a_lower_tier_fills_a_cell_the_board_never_listed(self, config):
+        obs = [_obs("json_fixture", 75.8, priority=70)]
+        d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")]
+        assert d.cell.source_key == "json_fixture"
+
+    def _held(self, config, gone_rows, listed_rows, reads=()):
+        """Run.held_drops on its own: a board that no longer lists `gone_rows`
+        and does list `listed_rows`; `reads` are its previous reports."""
+        import io as _io
+
+        from collect.benchmarks import runner
+        from collect.benchmarks.console import Console
+
+        run = runner.Run.__new__(runner.Run)
+        run.config, run.conn, run.reviews = config, None, []
+        run.c = Console(verbosity="quiet", log_path=None, stream=_io.StringIO())
+        original = store.recent_source_reads
+        store.recent_source_reads = lambda conn, key, n: list(reads)[:n]
+        try:
+            result = runner.SourceResult(key="livebench_leaderboard", method="browser")
+            result.new = [_obs("livebench_leaderboard", 1.0, row=r) for r in listed_rows]
+            gone = [_obs("livebench_leaderboard", 1.0, row=r) for r in gone_rows]
+            return run.held_drops(result, gone), run.reviews, result
+        finally:
+            store.recent_source_reads = original
+
+    def test_a_board_drop_that_looks_like_a_rename_is_held(self, config):
+        # PR #581 review: "GPT-5.2" -> "GPT-5.2 (high)" makes the old row look
+        # dropped. The model is still on the board, so its value is held.
+        held, reviews, result = self._held(config, ["openai/gpt-5.2"], ["openai/gpt-5.2:high"])
+        assert held == {"openai/gpt-5.2"} and result.held_drops == ["openai/gpt-5.2"]
+        assert reviews[0]["check"] == "suspected_board_rename"
+
+    def test_many_drops_at_once_are_held_and_one_real_drop_is_not(self, config):
+        many = [f"lab/m-{i}" for i in range(4)]  # more than board_drop_hold_above (3)
+        held, reviews, _ = self._held(config, many, ["lab/m-9"])
+        assert held == set(many) and reviews
+        held, reviews, _ = self._held(config, ["lab/m-0"], ["lab/m-9"])
+        assert held == set() and not reviews  # one model gone: a real drop
+
+    def test_a_held_drop_still_gone_on_three_reads_is_taken(self, config):
+        before = [{"held_drops": ["openai/gpt-5.2"]}] * 2  # stable_reads 3: two before this
+        held, reviews, _ = self._held(
+            config, ["openai/gpt-5.2"], ["openai/gpt-5.2:high"], reads=before
+        )
+        assert held == set() and not reviews
+
+    def test_a_model_the_board_dropped_is_blank_not_a_lower_tiers_value(self, config):
+        # Parvathi, 2026-10-28: the benchmark's own board has the final word. A
+        # model it listed and no longer lists is blank - a retired model is news
+        # - never quietly filled from a lower tier.
+        import dataclasses
+
+        read_it = dataclasses.replace(
+            config,
+            sources=tuple(
+                dataclasses.replace(s, enabled=True) if s.key == "table_fixture" else s
+                for s in config.sources
+            ),
+        )
         obs = [
             _obs("table_fixture", 69.0, priority=80, stale=True),  # the board dropped it
             _obs("json_fixture", 75.8, priority=70),
         ]
+        assert ("openai/gpt-6-astra", "gpqa_diamond", "score") not in merge(read_it, obs, run_id=1)
+        # A board we no longer read blanks nothing: its stale values are just old.
+        assert not config.source("table_fixture").enabled
         d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")]
         assert d.cell.source_key == "json_fixture"
+
+    def test_disagreement_needs_more_than_the_benchmarks_noise_margin(self, config):
+        # GPQA Diamond's 198 questions: two honest runs can differ by 5 points
+        # (benchmarks.yaml agreement_margin); the flat 2 points flagged noise.
+        assert config.benchmarks["gpqa_diamond"].agreement_margin == 5.0
+        near = [_obs("a", 92.32, priority=75), _obs("b", 90.15, priority=70)]
+        assert not merge(config, near, run_id=1)[
+            ("openai/gpt-6-astra", "gpqa_diamond", "score")
+        ].flags
+        far = [_obs("a", 92.32, priority=75), _obs("b", 86.0, priority=70)]
+        assert merge(config, far, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")].flags
+        # A gap exactly at the margin is not over it, however binary rounds it.
+        at = [
+            _obs("a", 63.4, bench="swe_bench_verified", variant="mini-SWE-agent", priority=80),
+            _obs("b", 60.2, bench="swe_bench_verified", variant="mini-SWE-agent", priority=70),
+        ]
+        cell = merge(config, at, run_id=1)[("openai/gpt-6-astra", "swe_bench_verified", "score")]
+        assert not cell.flags
 
     def test_every_configured_source_states_a_tier_and_why(self, config):
         assert all(s.tier in (1, 2, 3) and s.tier_note for s in config.sources)
@@ -2051,8 +2167,9 @@ class TestNewsWorthy:
     """Debut / fresh / mover tags on the changelog (Parvathi, 2026-10-26): what
     happened, not just what the board read."""
 
-    RELEASED = {"lab/new": date(2026, 10, 1), "lab/old": date(2025, 1, 1)}
-    BASELINE = {"src": 1}
+    RELEASED = {"lab/new": date(2026, 10, 10), "lab/old": date(2025, 1, 1)}
+    # Each source's first read, per column (2026-10-28).
+    BASELINE = {("src", "gpqa_diamond", "score"): 1, ("src", "arc_agi_3", "score"): 5}
 
     def _tag(self, **change):
         from judge import benchmarks as page
@@ -2061,6 +2178,7 @@ class TestNewsWorthy:
             "run_id": 5,
             "new_source": "src",
             "row_id": "lab/old:max",
+            "benchmark_key": "gpqa_diamond",
             "metric": "score",
             "type": "added",
             "old_value": None,
@@ -2082,6 +2200,72 @@ class TestNewsWorthy:
 
     def test_a_sources_first_read_is_never_news(self):
         assert self._tag(run_id=1, row_id="lab/new:max") is None
+
+    def test_a_new_column_on_an_old_source_is_its_first_read_too(self):
+        # Run #4 (2026-10-28): ARC Prize's new ARC-AGI-3 column made 41 "debut"
+        # items, because only the source's first run counted as its first read.
+        assert self._tag(row_id="lab/new:max", benchmark_key="arc_agi_3") is None
+        assert self._tag(row_id="lab/new:max") == "debut"  # its old column: a real debut
+
+    def test_a_cell_filled_for_the_first_time_is_not_badged_new_unless_it_is_news(
+        self, conn, monkeypatch
+    ):
+        # 2026-10-28: about 1,600 cells carried "new" after run #4. A value
+        # added for a model with no recent release and no recent date is a
+        # board listing it, or us reading it, not news.
+        from judge import benchmarks as page
+
+        monkeypatch.setattr(page, "_seeds", lambda: [{"id": s.id, "name": s.name} for s in SEEDS])
+        four = {f"Lab M{i}": 50 + i for i in range(4)}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(four)}, registry=LAB)
+        five = {**four, "Lab M4": 40}  # Lab M4 listed for the first time
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(five)}, registry=LAB)
+        assert ("lab/m-4:max", "livebench", "score") in store.load_cells(conn)
+        cells = {}
+
+        def walk(rows):
+            for r in rows:
+                cells.update({(r["row_id"], k): c for k, c in r["cells"].items()})
+                walk(r.get("children", []))
+
+        walk(page.table(conn)["rows"])
+        assert not any("new" in c["badges"] for c in cells.values())
+
+    def test_a_debut_is_a_model_released_in_the_last_30_days(self):
+        from judge import benchmarks as page
+
+        assert page.news_rules()["debut_days"] == 30  # was 60 (Parvathi, 2026-10-28)
+        assert self._tag(row_id="lab/new:max", changed_at="2026-11-09T10:00:00+00:00") == "debut"
+        assert self._tag(row_id="lab/new:max", changed_at="2026-11-12T10:00:00+00:00") is None
+
+    def test_a_dropped_cell_says_so_in_the_table(self, conn, monkeypatch):
+        # PR #581 review: a dropped cell is blank like one never measured; the
+        # table says which board dropped it, when, and its last value.
+        from judge import benchmarks as page
+
+        monkeypatch.setattr(page, "_seeds", lambda: [{"id": s.id, "name": s.name} for s in SEEDS])
+        _run(conn, PAGES)
+        run_id = conn.execute("SELECT max(id) FROM bench_run").fetchone()[0]
+        for source in ("livebench_leaderboard", "vals_gpqa"):  # tier 1, then tier 2
+            bench = "livebench" if source == "livebench_leaderboard" else "gpqa_diamond"
+            conn.execute(
+                "INSERT INTO bench_change (run_id, row_id, benchmark_key, metric, change_type, "
+                "old_value, old_raw, old_source, reason, actor) "
+                "VALUES (%s, 'openai/gpt-6-astra', %s, 'score', 'removed', 80.0, '80.0', %s, "
+                "'manual_run', 't')",
+                (run_id, bench, source),
+            )
+        astra = next(r for r in page.table(conn)["rows"] if r["row_id"] == "openai/gpt-6-astra")
+        mark = astra["dropped"]["livebench_score"]
+        assert mark["source_label"] == "LiveBench" and mark["last"] == "80" and mark["on"]
+        assert "gpqa_diamond_score" not in astra["dropped"]  # a lower tier: not the board's word
+
+    def test_a_model_dropped_by_the_benchmarks_own_board_is_news(self):
+        # 2026-10-28: the cell goes blank, and that is often a retired model.
+        assert self._tag(type="removed", old_tier=1, old_value=69.0, new_value=None) == "dropped"
+        # A lower tier dropping it, or a source we stopped reading, is not.
+        assert self._tag(type="removed", old_tier=2, old_value=69.0, new_value=None) is None
+        assert self._tag(type="removed", old_tier=None, old_value=69.0, new_value=None) is None
 
     def test_movers_are_real_moves_on_the_same_release(self):
         moved = {"type": "updated", "old_value": 70.0}

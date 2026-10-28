@@ -171,6 +171,8 @@ sources:
         date_field: "metadata.date"
         benchmark_map:
           "metrics.accuracy": { benchmark: terminal_bench_4, metric: score, scale: percent }
+          rank: { benchmark: terminal_bench_4, metric: rank }
+        rank_board: "tbench/terminal-bench-4"
 
   - key: livebench_leaderboard
     label: "LiveBench"
@@ -218,6 +220,8 @@ sources:
         model_column: "Model Name"
         benchmark_map:
           "Accuracy (± 95% CI)": { benchmark: aime_2026, metric: score, scale: percent }
+          "Rank": { benchmark: aime_2026, metric: rank }
+        rank_board: "matharena/aime-2026"
 
   - key: mmlu_pro_space
     label: "MMLU-Pro (TIGER-Lab)"
@@ -323,6 +327,8 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: gpqa_diamond, metric: score, scale: percent }
+          "Rank": { benchmark: gpqa_diamond, metric: rank }
+        rank_board: "vals/gpqa"
 
   - key: vals_mmlu_pro
     label: "Vals AI · MMLU Pro"
@@ -340,6 +346,8 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: mmlu_pro, metric: score, scale: percent }
+          "Rank": { benchmark: mmlu_pro, metric: rank }
+        rank_board: "vals/mmlu-pro"
 
   - key: vals_aime
     label: "Vals AI · AIME 2024+2025"
@@ -357,6 +365,8 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: aime_2024_25, metric: score, scale: percent }
+          "Rank": { benchmark: aime_2024_25, metric: rank }
+        rank_board: "vals/aime"
 
   - key: vals_mmmu_pro
     label: "Vals AI · MMMU Pro"
@@ -374,6 +384,8 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: mmmu_pro, metric: score, scale: percent }
+          "Rank": { benchmark: mmmu_pro, metric: rank }
+        rank_board: "vals/mmmu-pro"
 
   - key: vals_livecodebench
     label: "Vals AI · LiveCodeBench"
@@ -391,6 +403,8 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: livecodebench, metric: score, scale: percent }
+          "Rank": { benchmark: livecodebench, metric: rank }
+        rank_board: "vals/livecodebench"
 
   - key: vals_swebench_verified
     label: "Vals AI · SWE-bench Verified"
@@ -409,6 +423,8 @@ sources:
         variant_field: "Harness"        # e.g. "Mini-SWE-agent", the official bash-only agent
         benchmark_map:
           "Score": { benchmark: swe_bench_verified, metric: score, scale: percent }
+          "Rank": { benchmark: swe_bench_verified, metric: rank }
+        rank_board: "vals/swe-bench-verified"
 
   - key: vals_terminal_bench_4
     label: "Vals AI · Terminal-Bench 4.0"
@@ -427,6 +443,8 @@ sources:
         variant_field: "Harness"
         benchmark_map:
           "Score": { benchmark: terminal_bench_4, metric: score, scale: percent }
+          "Rank": { benchmark: terminal_bench_4, metric: rank }
+        rank_board: "vals/terminal-bench-4"
 
   - key: vals_ioi
     label: "Vals AI · IOI"
@@ -444,6 +462,8 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: ioi, metric: score, scale: percent }
+          "Rank": { benchmark: ioi, metric: rank }
+        rank_board: "vals/ioi"
 
   - key: vals_vibe_code
     label: "Vals AI · Vibe Code Bench"
@@ -462,6 +482,8 @@ sources:
         variant_field: "Harness"
         benchmark_map:
           "Score": { benchmark: vibe_code, metric: score, scale: percent }
+          "Rank": { benchmark: vibe_code, metric: rank }
+        rank_board: "vals/vibe-code"
 
   - key: vals_proof_bench
     label: "Vals AI · ProofBench"
@@ -479,6 +501,8 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: proof_bench, metric: score, scale: percent }
+          "Rank": { benchmark: proof_bench, metric: rank }
+        rank_board: "vals/proof-bench"
 
   - key: vals_swebench_multimodal
     label: "Vals AI · SWE-bench Multimodal"
@@ -496,6 +520,8 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: swe_bench_multimodal, metric: score, scale: percent }
+          "Rank": { benchmark: swe_bench_multimodal, metric: rank }
+        rank_board: "vals/swe-bench-multimodal"
 
   - key: aa_scicode
     label: "Artificial Analysis · SciCode"
@@ -554,3 +580,5 @@ sources:
         model_column: "Model"
         benchmark_map:
           "Accuracy": { benchmark: vals_index, metric: score, scale: percent }
+          "Rank": { benchmark: vals_index, metric: rank }
+        rank_board: "vals/vals-index"

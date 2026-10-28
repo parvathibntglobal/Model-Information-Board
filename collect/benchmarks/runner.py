@@ -75,6 +75,12 @@ class SourceResult:
     changes: int = 0
     errors: list[str] = field(default_factory=list)
     new: list[StoredObservation] = field(default_factory=list)
+    # Rows a tier-1 board stopped listing that this run held instead of dropping
+    # (Run.held_drops); kept in the report so later runs can tell a lasting drop.
+    held_drops: list[str] = field(default_factory=list)
+    # The board's new size was taken this read (a new release, or the same
+    # smaller size on stable_reads reads): its drops were already confirmed.
+    size_change_taken: bool = False
 
     def report(self) -> dict[str, Any]:
         return {
@@ -92,6 +98,7 @@ class SourceResult:
             "flagged": self.flagged,
             "changes": self.changes,
             "errors": self.errors,
+            "held_drops": self.held_drops,
         }
 
 
@@ -356,9 +363,11 @@ class Run:
             )
             if new_release:
                 self.c.line("CHECK", "OK", f"{change} - a new release, taken")
+                result.size_change_taken = True
                 return False
             if shrink:
                 if self._stable_size(key, rows):
+                    result.size_change_taken = True
                     self.c.line(
                         "CHECK",
                         "OK",
@@ -388,6 +397,62 @@ class Run:
             )
         return False
 
+    def held_drops(self, result: SourceResult, gone: list[StoredObservation]) -> set[str]:
+        """Rows a tier-1 board stopped listing that are held, not dropped.
+
+        A dropped row blanks its cell (merge.py, the board's final word), and a
+        missing row has another cause: a renamed one (PR #581 review). So a drop
+        is held - its values kept, a review item raised - when the board still
+        lists that model under another name or setting, or drops more than
+        validation.yaml `board_drop_hold_above` models in one read. The same
+        rows still gone on `stable_reads` reads in a row are a real drop.
+        """
+        dropped = sorted({o.row_id for o in gone if not o.stale})
+        if not dropped:
+            return set()
+        listed = {_model(o.row_id) for o in result.new}
+        renamed = [r for r in dropped if _model(r) in listed]
+        limit = int(self.config.validation["board_drop_hold_above"])
+        # Many at once is only suspicious while the board's new size is not yet
+        # taken; a size the shape checks already confirmed is not held again.
+        many = len(dropped) > limit and not result.size_change_taken
+        held = dropped if many else renamed
+        if not held:
+            return set()
+        need = int(self.config.validation["structure"]["stable_reads"]) - 1
+        reads = store.recent_source_reads(self.conn, result.key, need)
+        if len(reads) == need and all(
+            sorted((r or {}).get("held_drops") or []) == held for r in reads
+        ):
+            self.c.line(
+                "CHECK",
+                "OK",
+                f"{result.key}: {len(held)} model(s) gone on {need + 1} reads in a row - "
+                "taken as dropped",
+            )
+            return set()
+        why = (
+            f"{len(dropped)} models gone in one read (more than {limit})"
+            if many
+            else "the board still lists the model under another name or setting"
+        )
+        result.held_drops = held
+        self.c.line(
+            "CHECK",
+            "HOLD",
+            f"{result.key}: not dropping {len(held)} model(s) - {why}; previous values kept: "
+            + ", ".join(held[:6])
+            + (" ..." if len(held) > 6 else ""),
+        )
+        self.reviews.append(
+            {
+                "check": "suspected_board_rename",
+                "source_key": result.key,
+                "message": f"no longer listed, held (a rename?): {', '.join(held)} - {why}",
+            }
+        )
+        return set(held)
+
     def _stable_size(self, key: str, rows: int) -> bool:
         """This size was also read on the source's last `stable_reads - 1` reads."""
         need = int(self.config.validation["structure"]["stable_reads"]) - 1
@@ -415,6 +480,7 @@ class Run:
         change = f"{len(kept)} values, last taken read had {before} (fewer than {floor:.0%})"
         if new_release or self._stable_size(key, rows):
             self.c.line("CHECK", "OK", f"{change} - a new release or the board's new size, taken")
+            result.size_change_taken = True
             return False
         return self._block(f"suspected_layout_change: {change}", result)
 
@@ -964,14 +1030,15 @@ def _run_body(
         for o in previous_obs
         if o.source_key not in refreshed and (o.source_key in readable or _mark_stale(o))
     ]
+    tier_one = {s.key for s in config.sources if s.tier == 1}
     for result in refreshed.values():
         fresh = {o.key for o in result.new}
         combined.extend(result.new)
-        combined.extend(
-            o
-            for o in previous_obs
-            if o.source_key == result.key and o.key not in fresh and _mark_stale(o)
-        )
+        gone = [o for o in previous_obs if o.source_key == result.key and o.key not in fresh]
+        # A tier-1 board's drop blanks a cell, so one that looks like a rename
+        # is held (Run.held_drops); everything else gone is stale, as before.
+        held = run.held_drops(result, gone) if result.key in tier_one else set()
+        combined.extend(o for o in gone if o.row_id in held or _mark_stale(o))
     if unread_sources:
         c.line(
             "MERGE",
@@ -1137,6 +1204,11 @@ def _run_body(
     }
     _summary(c, run_id, status, results, started, new_reviews, open_items, report)
     return status, report
+
+
+def _model(row_id: str) -> str:
+    """The model a row belongs to: "openai/gpt-5.2:high" -> "openai/gpt-5.2"."""
+    return row_id.split(":")[0].split("@")[0]
 
 
 def _mark_stale(o: StoredObservation) -> bool:

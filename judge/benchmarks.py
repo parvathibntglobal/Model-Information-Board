@@ -304,19 +304,53 @@ def table(conn) -> dict[str, Any]:
                 labels.get(m) or m for m in members if cells[m][key]["raw_name"] != own
             )
 
+    # The badges. "new" is only an addition that is news - a recently released
+    # model's debut, or a value its source dates as recent (_news). A cell filled
+    # because we started reading a source or a column, or because a board listed
+    # an old model, is not new (Parvathi, 2026-10-28): run #2's whole first
+    # import carried "new" because the first-run check fell on the failed run #1.
     since = datetime.now(UTC) - timedelta(days=RECENT_DAYS)
-    first_run = conn.execute(
-        "SELECT min(id) FROM bench_run WHERE NOT dry_run AND status <> 'running'"
-    ).fetchone()[0]
-    for row_id, benchmark_key, metric, change_type, direction, run_id in conn.execute(
-        "SELECT row_id, benchmark_key, metric, change_type, direction, run_id FROM bench_change "
+    released = _release_dates(conn)
+    baseline = _baselines(conn)
+    rules = news_rules()
+    for (
+        row_id,
+        benchmark_key,
+        metric,
+        change_type,
+        direction,
+        run_id,
+        new_source,
+        changed_at,
+        source_date,
+    ) in conn.execute(
+        "SELECT row_id, benchmark_key, metric, change_type, direction, run_id, new_source, "
+        "changed_at, source_date FROM bench_change "
         "WHERE changed_at >= %s AND change_type IN ('added', 'updated', 'source_changed') "
         "ORDER BY id",
         (since,),
     ).fetchall():
         cell = cells.get(row_id, {}).get(f"{benchmark_key}_{metric}")
-        if cell is None or run_id == first_run:
-            continue  # the first import is not "new" (doc 12: collapse it)
+        if cell is None:
+            continue
+        if change_type == "added":
+            news = _news(
+                {
+                    "type": "added",
+                    "run_id": run_id,
+                    "new_source": new_source,
+                    "row_id": row_id,
+                    "benchmark_key": benchmark_key,
+                    "metric": metric,
+                    "changed_at": changed_at,
+                    "source_date": source_date,
+                },
+                released,
+                baseline,
+                rules,
+            )
+            if news not in ("debut", "fresh"):
+                continue
         badge = {"added": "new", "source_changed": "source"}.get(change_type, "changed")
         cell["badges"] = [b for b in cell["badges"] if b not in ("new", "changed", "source")] + [
             badge
@@ -339,6 +373,38 @@ def table(conn) -> dict[str, Any]:
 
         return sorted(entries, key=key)
 
+    # Cells the benchmark's own board dropped (PR #581 review): blank, like a
+    # cell never measured, so the page says which board dropped the model, when,
+    # and its last value. From each cell's latest changelog entry.
+    tier_of = _read_tiers()
+    dropped: dict[str, dict[str, dict[str, Any]]] = {}
+    for (
+        row_id,
+        benchmark_key,
+        metric,
+        change_type,
+        old_source,
+        old_raw,
+        old_value,
+        at,
+    ) in conn.execute(
+        "SELECT DISTINCT ON (row_id, benchmark_key, metric) row_id, benchmark_key, metric, "
+        "change_type, old_source, old_raw, old_value, changed_at FROM bench_change "
+        "WHERE benchmark_key IS NOT NULL ORDER BY row_id, benchmark_key, metric, id DESC"
+    ).fetchall():
+        key = f"{benchmark_key}_{metric}"
+        if (
+            change_type == "removed"
+            and tier_of.get(old_source) == 1
+            and key in columns
+            and key not in cells.get(row_id, {})
+        ):
+            dropped.setdefault(row_id, {})[key] = {
+                "source_label": sources.get(old_source, {}).get("label", old_source),
+                "on": _iso(at),
+                "last": shown(old_raw, old_value, metric),
+            }
+
     def model_row(model_id: str, label: str, group: str) -> dict[str, Any]:
         # A setting or dated row with no value is not shown (the run removes
         # such rows too; this keeps the page right between runs).
@@ -349,15 +415,17 @@ def table(conn) -> dict[str, Any]:
                 "setting": setting,
                 "dated": dated,
                 "cells": cells.get(row_id, {}),
+                "dropped": dropped.get(row_id, {}),
             }
             for row_id, setting, label, dated in ordered(settings_by_model.get(model_id, []))
-            if cells.get(row_id)
+            if cells.get(row_id) or dropped.get(row_id)
         ]
         return {
             "row_id": model_id,
             "label": label,
             "group": group,
             "cells": cells.get(model_id, {}),
+            "dropped": dropped.get(model_id, {}),
             "children": children,
         }
 
@@ -370,7 +438,13 @@ def table(conn) -> dict[str, Any]:
         if model_id in tracked_ids:
             continue
         row = model_row(model_id, label, "registry")
-        if row["cells"] or any(child["cells"] for child in row["children"]):
+        # Shown while it has a value, or a value its board dropped: the drop
+        # is what the reader should see (PR #581 review).
+        if (
+            row["cells"]
+            or row["dropped"]
+            or any(child["cells"] or child["dropped"] for child in row["children"])
+        ):
             out_rows.append(row)
 
     filled = sum(len(c) for c in cells.values())
@@ -518,11 +592,19 @@ CHANGE_KINDS = {
 #:          (an older model's new result, not a backfill)
 #:   mover  a value that moved on the same source and the same release: any
 #:          rank move, a score by mover_points or more, a rating by mover_rating
+#:   dropped  a value removed because the benchmark's own (tier-1) board no
+#:          longer lists the model - often retired or withdrawn (2026-10-28)
 #: The numbers are contract/benchmarks/validation.yaml `news` (news_rules()).
 #: Everything else - a source's FIRST read (its baseline: every value is new to
 #: the board then), a value the board only now read, a source taking a cell
 #: over, a new release resetting a board - is not news.
-NEWS_KINDS = ("news", "debut", "fresh", "mover")
+NEWS_KINDS = ("news", "debut", "fresh", "mover", "dropped")
+
+
+def _read_tiers() -> dict[str, int]:
+    """The tier of each source we still read. A value removed because we stopped
+    reading a source is not a board dropping a model."""
+    return {k: s.get("tier") for k, s in _sources().items() if s.get("enabled")}
 
 
 def news_rules() -> dict[str, float]:
@@ -551,26 +633,31 @@ def _release_dates(conn) -> dict[str, date]:
     return {model_id: released for model_id, released in rows}
 
 
-def _baselines(conn) -> dict[str, int]:
-    """Each source's first run that wrote a value: everything it added then is a
-    first read, not news."""
-    return dict(
-        conn.execute(
-            "SELECT new_source, min(run_id) FROM bench_change "
-            "WHERE new_source IS NOT NULL GROUP BY new_source"
+def _baselines(conn) -> dict[tuple[str, str, str], int]:
+    """Each source's first run that wrote a value to each column: everything it
+    added then is a first read, not news - a source new to the board, or a new
+    column read from a source we already had. Per source only, ARC Prize's new
+    ARC-AGI-3 column made 41 "debut" items on its first read (run #4,
+    2026-10-28)."""
+    return {
+        (source, benchmark_key, metric): run_id
+        for source, benchmark_key, metric, run_id in conn.execute(
+            "SELECT new_source, benchmark_key, metric, min(run_id) FROM bench_change "
+            "WHERE new_source IS NOT NULL AND benchmark_key IS NOT NULL GROUP BY 1, 2, 3"
         ).fetchall()
-    )
+    }
 
 
 def _news(
     change: dict[str, Any],
     released: dict[str, date],
-    baseline: dict[str, int],
+    baseline: dict[tuple[str, str, str], int],
     rules: dict[str, float],
 ) -> str | None:
     """Which kind of news one change is, or None."""
     on = _day(change["changed_at"])
-    if change["type"] == "added" and baseline.get(change["new_source"]) == change["run_id"]:
+    first_read = (change["new_source"], change["benchmark_key"], change["metric"])
+    if change["type"] == "added" and baseline.get(first_read) == change["run_id"]:
         return None
     if change["type"] == "added" and on:
         model = change["row_id"].split(":")[0].split("@")[0]
@@ -580,6 +667,10 @@ def _news(
         if dated and 0 <= (on - dated).days <= rules["fresh_days"]:
             return "fresh"
         return None
+    if change["type"] == "removed":
+        # The benchmark's own board no longer lists the model (merge.py: its
+        # value is not replaced by a lower tier) - often a retired model.
+        return "dropped" if change.get("old_tier") == 1 else None
     if change["type"] == "updated" and not (change["note"] or "").startswith("new release"):
         if change["metric"] == "rank":
             return "mover"
@@ -645,6 +736,7 @@ def changelog(
     only a safety cap on entries."""
     _, columns = _columns()
     sources = _sources()
+    read_tiers = _read_tiers()
     labels = {
         r[0]: r[1] for r in conn.execute("SELECT row_id, display_label FROM bench_row").fetchall()
     }
@@ -719,6 +811,7 @@ def changelog(
             "row_id": row_id,
             "row": labels.get(row_id) or names.get(row_id) or row_id,
             "column": column["label"] if column else None,
+            "benchmark_key": bench,  # with metric: which first read a value belongs to
             "metric": metric,  # score | rank | rating: the Changelog filters on it
             "type": change_type,
             "old": old_shown,
@@ -743,10 +836,11 @@ def changelog(
             # source with its tier.
             "old_detail": _side(sources, old_src, old, old_shown),
             "new_detail": _side(sources, new_src, new, new_shown),
+            "old_tier": read_tiers.get(old_src),
         }
         entry["news"] = _news(entry, released, baseline, rules)
         # Read by the tagging above, not by the page (rule 9).
-        for internal in ("metric", "old_value", "new_value"):
+        for internal in ("benchmark_key", "metric", "old_value", "new_value", "old_tier"):
             del entry[internal]
         if kind in NEWS_KINDS and (entry["news"] is None or kind not in ("news", entry["news"])):
             continue
@@ -774,13 +868,19 @@ def changelog(
 
 
 def _news_counts(
-    conn, released: dict[str, date], baseline: dict[str, int], rules: dict[str, float]
+    conn,
+    released: dict[str, date],
+    baseline: dict[tuple[str, str, str], int],
+    rules: dict[str, float],
 ) -> dict[str, int]:
     found = {k: 0 for k in NEWS_KINDS}
+    read_tiers = _read_tiers()
     for (
         run_id,
         source,
+        old_source,
         row_id,
+        benchmark_key,
         metric,
         change_type,
         old_value,
@@ -789,15 +889,17 @@ def _news_counts(
         source_date,
         note,
     ) in conn.execute(
-        "SELECT run_id, new_source, row_id, metric, change_type, old_value, new_value, "
-        "changed_at, source_date, note FROM bench_change "
-        "WHERE change_type IN ('added', 'updated')"
+        "SELECT run_id, new_source, old_source, row_id, benchmark_key, metric, change_type, "
+        "old_value, new_value, changed_at, source_date, note FROM bench_change "
+        "WHERE change_type IN ('added', 'updated', 'removed')"
     ).fetchall():
         tag = _news(
             {
                 "run_id": run_id,
                 "new_source": source,
+                "old_tier": read_tiers.get(old_source),
                 "row_id": row_id,
+                "benchmark_key": benchmark_key,
                 "metric": metric,
                 "type": change_type,
                 "old_value": old_value,

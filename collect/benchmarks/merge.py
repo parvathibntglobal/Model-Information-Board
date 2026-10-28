@@ -25,6 +25,18 @@ Across sources (10.2) the first rule that decides wins:
 Disagreements are still checked across every tier: a lower tier that differs
 from the shown value flags it for review.
 
+THE BENCHMARK'S OWN BOARD HAS THE FINAL WORD (Parvathi, 2026-10-28). A model a
+tier-1 board listed and no longer lists - the board read correctly and we still
+read it - is not filled from a lower tier: the cell goes blank, and the
+changelog records it as dropped from that board (a retired or withdrawn model
+is news). A lower tier fills only models the board has never listed. A board
+that failed to load, or looked broken, keeps its previous values as before, so
+it never blanks anything; nor does a source we no longer read.
+
+Agreement margin: two values further apart than the column's
+`agreement_margin` (benchmarks.yaml), or validation.yaml `tolerance` when the
+column sets none, are a disagreement.
+
 Pinned and fill overrides (rules 1 and 7) arrive with the phase-2 admin edits.
 """
 
@@ -134,6 +146,8 @@ def _tolerance(config: Config, bench: Benchmark, metric: str) -> float:
         return float(tol["rank"])
     if metric == "rating":
         return float(tol["rating"])
+    if bench.agreement_margin is not None:
+        return bench.agreement_margin
     return float(tol["percent"])
 
 
@@ -149,6 +163,7 @@ def merge(
     # A source no longer configured has only stale values; if one ever competes
     # it counts as the lowest tier, so it can never outrank a known source.
     tiers = {s.key: s.tier for s in config.sources}
+    read = {s.key for s in config.sources if s.enabled}
     decisions: dict[tuple[str, str, str], Decision] = {}
     for key, group in by_cell.items():
         bench = config.benchmarks[key[1]]
@@ -157,6 +172,10 @@ def merge(
         accepted = [o for o in live if positions[id(o)] is not None]  # rule 2
         if not accepted:
             continue
+        if not any(tiers.get(o.source_key) == 1 for o in accepted) and dropped_by_board(
+            group, bench, tiers, read
+        ):
+            continue  # the board's own word: blank, not a lower tier's value
         tier_of = {id(o): tiers.get(o.source_key, max(TIERS)) for o in accepted}
         top = min(tier_of.values())
         cands = [o for o in accepted if tier_of[id(o)] == top]  # rule 3
@@ -177,7 +196,9 @@ def merge(
                 continue
             if key[2] == "rank" and (o.rank_board != winner.rank_board):
                 continue
-            if abs(o.value - winner.value) > tolerance:
+            # Rounded as the values are (2 decimals): 63.4 - 60.2 is not exactly
+            # 3.2 in binary, and a gap at the margin must not hang on that.
+            if round(abs(o.value - winner.value), 2) > tolerance:
                 flags.append(
                     {
                         "check": "disagreement",
@@ -219,6 +240,24 @@ def merge(
             flags=flags,
         )
     return decisions
+
+
+def dropped_by_board(
+    group: list[StoredObservation],
+    bench: Benchmark,
+    tiers: dict[str, int],
+    read: set[str],
+) -> bool:
+    """A tier-1 board listed this cell and no longer does: its value is stale
+    (the board was read correctly and the model was gone), the board is still
+    one we read, and the value was one the column accepts."""
+    return any(
+        o.stale
+        and tiers.get(o.source_key) == 1
+        and o.source_key in read
+        and accept_position(o.variant, bench.accept) is not None
+        for o in group
+    )
 
 
 def _choose(cands: list[StoredObservation]) -> tuple[StoredObservation, str]:
