@@ -577,6 +577,28 @@ These are the rules a helpful refactor will otherwise quietly violate.
   5. Every distinct fetched page is kept, content-hash addressed, as the raw
      payload; none is deleted.
 
+  **The second exception: link-preview pictures on the News page
+  (`collect/news/preview.py`, anooj, 2026-10-28).** Most news feeds carry no
+  picture (TechCrunch, AIWire, OpenAI, OpenRouter, Mistral, TLDR AI: none,
+  measured 2026-10-28) and TechCrunch's API is disallowed by its robots.txt, so
+  a story whose feed has no picture has its article page asked once for the
+  picture its publisher sets for link previews (`og:image`, else
+  `twitter:image`). Its conditions are not settings:
+
+  1. Only the article links the feeds in `contract/news_sources.yaml` give,
+     only for a story whose feed gave no picture, at most once per story;
+     nothing is crawled or discovered.
+  2. `robots.txt` is always asked, for every redirect hop too; identifying
+     User-Agent, as above.
+  3. Only the page's `<head>` is read - streamed, and closed at `</head>`. The
+     article's text is never read, kept or shown. Only the picture's link is
+     kept; the picture is never downloaded - the reader's browser loads it
+     from the publisher, as a link preview does.
+  4. No logins, paywalls, API keys or language models.
+  5. Each `<head>` read is kept in the raw store, content-hash addressed.
+
+  `link_preview.enabled: false` in the contract switches it off as a whole.
+
   Anything else that wants to scrape needs its own recorded exception here.
 - The evidence pipeline is a **nightly batch**. The answer path reads a
   materialised view and never touches the pipeline.

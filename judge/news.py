@@ -49,7 +49,7 @@ def _contract() -> dict[str, Any]:
 
 ITEMS_SQL = """
 SELECT id, source_key, title, url, published_at, first_seen_at, summary, author,
-       categories, llm_keywords, daily_count, image_url
+       categories, llm_keywords, daily_count, image_url, image_source
 FROM news_item
 WHERE coalesce(published_at, first_seen_at) >= %s
 ORDER BY (published_at IS NULL), coalesce(published_at, first_seen_at) DESC, id
@@ -93,6 +93,8 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "llm_keywords": list(r[9] or []), "daily_count": r[10],
             # The feed's own picture; None means the page draws a card.
             "image_url": r[11],
+            # feed | link_preview: where the picture came from (the page says so).
+            "image_source": r[12],
         }
         for r in rows[: page["max_items"]]
     ]

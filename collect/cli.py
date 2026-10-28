@@ -1259,6 +1259,9 @@ def _cmd_news_harvest(args: argparse.Namespace) -> int:
           f"refused by robots.txt, {counts['failed']} failed; {counts['items_new']} new items")
     for key, what in counts["by_source"].items():
         print(f"  {key:20s} {what}")
+    p = counts["previews"]
+    print(f"link-preview pictures: {p['asked']} articles asked, {p['found']} found, "
+          f"{p['none']} without one, {p['refused']} refused by robots.txt, {p['failed']} failed")
     return 0 if counts["failed"] == 0 else 1
 
 

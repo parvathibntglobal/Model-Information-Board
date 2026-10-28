@@ -65,6 +65,9 @@ class Contract:
     summary_min_words: int
     keywords: re.Pattern
     sources: tuple[Source, ...]
+    #: collect/news/preview.py's settings: enabled, groups, max_per_run,
+    #: look_back_days, max_head_bytes (contract `link_preview`).
+    link_preview: dict[str, Any]
 
 
 def _positive_int(raw: dict, key: str, problems: list[str]) -> int:
@@ -113,7 +116,21 @@ def load_contract(path: Path = CONTRACT) -> Contract:
         raise NewsContractError("contract/news_sources.yaml: " + "; ".join(problems))
     longest_first = sorted(words, key=len, reverse=True)
     pattern = re.compile(r"\b(" + "|".join(re.escape(w) for w in longest_first) + r")\b", re.I)
-    return Contract(max_words, min_words, pattern, tuple(sources))
+    lp = raw.get("link_preview") or {}
+    if not isinstance(lp.get("enabled"), bool):
+        problems.append("link_preview.enabled must be true or false")
+    if not isinstance(lp.get("groups"), list) or not set(lp.get("groups") or []) <= set(GROUPS):
+        problems.append(f"link_preview.groups must be a list drawn from {GROUPS}")
+    for key in ("max_per_run", "look_back_days", "max_head_bytes"):
+        _positive_int(lp, key, problems)
+    skip = lp.get("skip")
+    if not isinstance(skip, dict) or not all(isinstance(v, str) and v for v in skip.values()):
+        problems.append("link_preview.skip must map each skipped source key to why ({} for none)")
+    if problems:
+        raise NewsContractError("contract/news_sources.yaml: " + "; ".join(problems))
+    return Contract(max_words, min_words, pattern, tuple(sources),
+                    {k: lp[k] for k in ("enabled", "groups", "skip", "max_per_run",
+                                        "look_back_days", "max_head_bytes")})
 
 
 # ── the summary, written by code ─────────────────────────────────────────────
@@ -311,10 +328,12 @@ def fold_daily(items: list[dict[str, Any]], source: Source, *,
 
 _INSERT = """
 INSERT INTO news_item (id, source_key, url, title, published_at, summary, author, categories,
-                       image_url, llm_keywords, daily_count, raw_ref, first_seen_at, updated_at,
+                       image_url, image_source, llm_keywords, daily_count, raw_ref,
+                       first_seen_at, updated_at,
                        pipeline_version)
 VALUES (%(id)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s, %(author)s,
-        %(categories)s, %(image_url)s, %(llm_keywords)s, %(daily_count)s, %(raw_ref)s, %(now)s,
+        %(categories)s, %(image_url)s, %(image_source)s, %(llm_keywords)s, %(daily_count)s,
+        %(raw_ref)s, %(now)s,
         %(now)s, %(pipeline_version)s)
 ON CONFLICT (id) DO NOTHING
 RETURNING id
@@ -324,10 +343,12 @@ RETURNING id
 # fewer of the day's items (the API lists the newest 30) leaves it as it was.
 _UPSERT_DAILY = """
 INSERT INTO news_item (id, source_key, url, title, published_at, summary, author, categories,
-                       image_url, llm_keywords, daily_count, raw_ref, first_seen_at, updated_at,
+                       image_url, image_source, llm_keywords, daily_count, raw_ref,
+                       first_seen_at, updated_at,
                        pipeline_version)
 VALUES (%(id)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s, %(author)s,
-        %(categories)s, %(image_url)s, %(llm_keywords)s, %(daily_count)s, %(raw_ref)s, %(now)s,
+        %(categories)s, %(image_url)s, %(image_source)s, %(llm_keywords)s, %(daily_count)s,
+        %(raw_ref)s, %(now)s,
         %(now)s, %(pipeline_version)s)
 ON CONFLICT (id) DO UPDATE SET
   url = EXCLUDED.url, title = EXCLUDED.title, published_at = EXCLUDED.published_at,
@@ -353,6 +374,7 @@ def write_items(conn, source: Source, items: list[dict[str, Any]], raw_ref: str,
             "source_key": source.key, "url": it["url"], "title": it["title"],
             "published_at": it["published_at"], "summary": it["summary"], "author": it["author"],
             "categories": it["categories"], "image_url": it.get("image_url"),
+            "image_source": "feed" if it.get("image_url") else None,
             "llm_keywords": it["llm_keywords"],
             "daily_count": it.get("daily_count"), "raw_ref": raw_ref, "now": now,
             "pipeline_version": version,
@@ -464,4 +486,16 @@ def harvest(conn, client, *, gate=None, store=None, contract: Contract | None = 
         counts["ok"] += 1
         counts["items_new"] += new
         counts["by_source"][source.key] = f"{seen} seen, {new} new"
+    # LINK-PREVIEW PICTURES for the stories whose feed gave none (preview.py:
+    # the recorded exception, with its conditions). After every feed, so a
+    # source failing above never costs another source its pictures.
+    from collect.news.preview import fill_pictures
+
+    groups = set(contract.link_preview["groups"])
+    counts["previews"] = fill_pictures(
+        conn, client, gate, store, settings_=contract.link_preview,
+        source_keys=[s.key for s in contract.sources
+                     if s.group in groups and s.key not in contract.link_preview["skip"]
+                     and (not only or s.key in only)],
+        now=clock())
     return counts

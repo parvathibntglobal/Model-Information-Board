@@ -2278,6 +2278,9 @@ CREATE TABLE IF NOT EXISTS news_item (
   author            text,
   categories        text[] NOT NULL DEFAULT '{}',
   image_url         text,
+  image_source      text,
+  preview_checked_at timestamptz,
+  preview_raw_ref   text,
   llm_keywords      text[] NOT NULL DEFAULT '{}',
   daily_count       integer,
   raw_ref           text NOT NULL,
@@ -2285,7 +2288,9 @@ CREATE TABLE IF NOT EXISTS news_item (
   updated_at        timestamptz NOT NULL,
   pipeline_version  text NOT NULL,
   CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0),
-  CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%')
+  CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%'),
+  CONSTRAINT news_item_image_source_ck CHECK (image_source IN ('feed', 'link_preview')),
+  CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL))
 );
 
 CREATE INDEX IF NOT EXISTS news_item_published_idx ON news_item (published_at DESC);

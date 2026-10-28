@@ -48,6 +48,31 @@ llm_keywords: [llm, llms, "language model", "language models", gpt, chatgpt, cla
                inference, token, tokens, agent, agents, agentic, transformer, rag,
                embedding, embeddings, "open weights", "open-weight"]
 
+# LINK-PREVIEW PICTURES: THE SECOND EXCEPTION TO "NO SCRAPING" (anooj,
+# 2026-10-28; CLAUDE.md records it beside Benchmarks, with its conditions). A
+# story whose feed gives no picture has its article page asked ONCE for the
+# picture its publisher sets for link previews (og:image, else twitter:image):
+# only the page's <head> is read, robots.txt is asked for every hop, and only
+# the picture's link is kept - the picture is never downloaded.
+#   enabled         false stops every article read; the page then draws cards
+#   groups          which source groups (releases have nothing to show)
+#   max_per_run     articles asked per harvest, newest first; the rest wait
+#   look_back_days  how far back a picture-less story is still worth asking for
+#   max_head_bytes  the most of a page read while looking for </head>
+#   skip            sources never asked, each with why. A site that answers with
+#                   a bot challenge is refusing automated readers; we do not get
+#                   around one, and we do not keep knocking.
+link_preview:
+  enabled: true
+  groups: [selected, lab, writer]
+  skip:
+    # openai.com answers article pages with a Cloudflare bot challenge (403,
+    # cf-mitigated: challenge), measured 2026-10-28: 21 of 21 refused.
+    openai: "Cloudflare bot challenge on every article page (2026-10-28)"
+  max_per_run: 80
+  look_back_days: 7
+  max_head_bytes: 262144
+
 # What the News page shows by default, and the longest window it may ask for.
 page:
   default_days: 7

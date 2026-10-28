@@ -2058,7 +2058,11 @@ columns:
     image_url:
       reviewed: true
       state: read
-      why: "the feed's own picture on the story card; NULL draws a card naming the source (web/src/routes/News.jsx)"
+      why: "the picture on the story card; NULL draws a card naming the source (web/src/routes/News.jsx)"
+    image_source:
+      reviewed: true
+      state: read
+      why: "feed or link_preview: shown in the picture's hover so a reader can tell a feed picture from an article's preview image (web/src/routes/News.jsx)"
     llm_keywords:
       reviewed: true
       state: read
@@ -2067,6 +2071,14 @@ columns:
       reviewed: true
       state: write_only
       why: "provenance of the write; no page needs it"
+    preview_checked_at:
+      reviewed: true
+      state: read
+      why: "read by collect/news/preview.py _CANDIDATES so no article is asked twice; no page shows it"
+    preview_raw_ref:
+      reviewed: true
+      state: write_only
+      why: "the stored <head> an og:image was read from, for reprocessing without asking again; no page reads it"
     published_at:
       reviewed: true
       state: read

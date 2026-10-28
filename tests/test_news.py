@@ -27,6 +27,8 @@ summary_max_words: 12
 summary_min_words: 4
 llm_keywords: [llm, claude, tokens, "language model"]
 page: {default_days: 7, max_days: 30, max_items: 600}
+link_preview: {enabled: false, groups: [selected, lab, writer], skip: {}, max_per_run: 10,
+               look_back_days: 7, max_head_bytes: 4096}
 sources:
   - {key: wire, group: selected, label: Wire, kind: feed, url: "https://wire.example/feed.xml",
      terms: "test", daily: false}
@@ -74,6 +76,8 @@ def contract(tmp_path):
 
 def test_the_real_contract_loads_and_llamacpp_is_the_one_daily_source():
     c = news.load_contract()
+    # openai.com challenges bots: never asked for link previews, and says why.
+    assert "openai" in c.link_preview["skip"] and c.link_preview["skip"]["openai"]
     assert {s.key for s in c.sources if s.daily} == {"gh_llamacpp"}
     assert all(s.url.startswith("https://") for s in c.sources)
     assert "gdelt" not in {s.key for s in c.sources}  # dropped 2026-10-28
@@ -274,3 +278,68 @@ def test_the_view_lists_dated_items_first_and_every_source_with_its_last_read(
     assert out["population"]["items_in_window"] == 4 and out["population"]["sources_listed"] == 4
     with pytest.raises(view.NewsRequestError):
         view.news_view(conn, days=31)
+
+
+# ── link-preview pictures (collect/news/preview.py: the recorded exception) ───
+
+from collect.news import preview  # noqa: E402
+
+HEAD = (b'<html><head><title>x</title>'
+        b'<meta property="og:image" content="/img/cover.jpg">'
+        b'<meta name="twitter:image" content="https://cdn.example/tw.jpg"></head>'
+        b'<body>' + b'article text that must never be read ' * 400 + b'</body></html>')
+
+
+def test_the_preview_picture_is_read_from_the_head_and_made_absolute():
+    head = HEAD.decode()
+    assert preview.picture_from_head(head, "https://wire.example/a") == "https://wire.example/img/cover.jpg"
+    secure = '<meta property="og:image:secure_url" content="https://s.example/p.png">' + head
+    assert preview.picture_from_head(secure, "https://wire.example/a") == "https://s.example/p.png"
+    twitter_only = '<meta name="twitter:image" content="https://cdn.example/tw.jpg">'
+    assert preview.picture_from_head(twitter_only, "https://x.example/") == "https://cdn.example/tw.jpg"
+    plain_http = '<meta property="og:image" content="http://x/p.jpg">'
+    assert preview.picture_from_head(plain_http, "https://x/") is None
+    assert preview.picture_from_head("<title>no picture</title>", "https://x/") is None
+
+
+def test_only_the_head_is_read():
+    seen = []
+
+    def handler(request):
+        seen.append(request.url.path)
+        return httpx.Response(200, headers={"content-type": "text/html"}, content=HEAD)
+    with build_client(user_agent=UA, transport=httpx.MockTransport(handler)) as client:
+        read = preview.read_head(client, _Gate(), "https://wire.example/a", 100_000)
+    assert read.outcome == "ok" and read.content.endswith(b"</head>")
+    assert b"article text" not in read.content
+    with build_client(user_agent=UA, transport=httpx.MockTransport(handler)) as client:
+        refused = preview.read_head(client, _Gate(refuse={"wire.example"}),
+                                    "https://wire.example/a", 1)
+    assert refused.content is None and refused.outcome.startswith("robots.txt")
+    assert seen == ["/a"]  # the refused read never reached the page
+
+
+def test_a_story_without_a_feed_picture_is_asked_once(conn, contract):
+    _run(conn, contract)  # previews off in the fixture: nothing asked yet
+    no_pic = conn.execute("SELECT id, url FROM news_item WHERE source_key = 'wire' "
+                          "AND image_url IS NULL").fetchall()
+    assert [u for _, u in no_pic] == ["https://wire.example/b"]
+    asked = []
+
+    def handler(request):
+        asked.append(str(request.url))
+        return httpx.Response(200, headers={"content-type": "text/html"}, content=HEAD)
+    settings_ = {"enabled": True, "groups": ["selected"], "skip": {}, "max_per_run": 10,
+                 "look_back_days": 30, "max_head_bytes": 100_000}
+    now = datetime(2026, 10, 28, 12, tzinfo=UTC)
+    for _ in range(2):
+        with build_client(user_agent=UA, transport=httpx.MockTransport(handler)) as client:
+            preview.fill_pictures(conn, client, _Gate(), _Store(), settings_=settings_,
+                                  source_keys=["wire"], now=now)
+    assert asked == ["https://wire.example/b"]  # once, however many runs
+    row = conn.execute("SELECT image_url, image_source, preview_checked_at IS NOT NULL "
+                       "FROM news_item WHERE url = 'https://wire.example/b'").fetchone()
+    assert row == ("https://wire.example/img/cover.jpg", "link_preview", True)
+    # The story whose feed gave a picture keeps it, marked as the feed's.
+    assert conn.execute("SELECT image_source FROM news_item WHERE url = 'https://wire.example/a'"
+                        ).fetchone() == ("feed",)

@@ -26,8 +26,16 @@
 --                 `feed_summary`). NULL when the source gives nothing to cut
 --   author        as given; NULL when not given
 --   categories    as given; empty when none
---   image_url     the feed's own picture (https only); NULL when it gives none -
---                 the page then draws a card. Never fetched by us
+--   image_url     the story's picture link (https only); NULL when none was
+--                 found - the page then draws a card. The picture itself is
+--                 never downloaded
+--   image_source  feed | link_preview: where image_url came from (the feed
+--                 item, or the article's og:image - collect/news/preview.py,
+--                 CLAUDE.md's second scraping exception). NULL with no picture
+--   preview_checked_at  when the article was asked for its link-preview
+--                 picture; set once, found or not, so no page is asked twice.
+--                 NULL: not asked (it had a feed picture, or it is a release)
+--   preview_raw_ref  raw store ref of the <head> that was read; NULL if none
 --   llm_keywords  the contract's `llm_keywords` this item matched; empty when
 --                 none. A badge, never a default filter (rule 8)
 --   daily_count   a daily entry: how many items it stands for. NULL otherwise
@@ -57,6 +65,9 @@ CREATE TABLE news_item (
   author            text,
   categories        text[] NOT NULL DEFAULT '{}',
   image_url         text,
+  image_source      text,
+  preview_checked_at timestamptz,
+  preview_raw_ref   text,
   llm_keywords      text[] NOT NULL DEFAULT '{}',
   daily_count       integer,
   raw_ref           text NOT NULL,
@@ -64,7 +75,9 @@ CREATE TABLE news_item (
   updated_at        timestamptz NOT NULL,
   pipeline_version  text NOT NULL,
   CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0),
-  CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%')
+  CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%'),
+  CONSTRAINT news_item_image_source_ck CHECK (image_source IN ('feed', 'link_preview')),
+  CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL))
 );
 CREATE INDEX news_item_published_idx ON news_item (published_at DESC);
 CREATE INDEX news_item_seen_idx ON news_item (first_seen_at DESC);

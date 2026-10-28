@@ -47,6 +47,7 @@ function Picture({ it, source, lead = false }) {
     return (
       <div className={`nw-pic${lead ? ' nw-pic-lead' : ''}`}>
         <img src={it.image_url} alt="" loading={lead ? 'eager' : 'lazy'} referrerPolicy="no-referrer"
+             title={it.image_source === 'link_preview' ? "The article's own link-preview picture" : "The feed's picture"}
              onError={() => setBroken(true)} />
       </div>
     )
@@ -177,8 +178,8 @@ export default function News() {
         <h1 className="nw-h1">AI news</h1>
         <p className="muted nw-intro">
           Fresh headlines from AI labs, news sites, writers and release notes, each linking to its source.
-          Summaries are the sources&apos; own words, cut to a few sentences by code; pictures are the
-          feeds&apos; own, or a card naming the source when a feed has none.
+          Summaries are the sources&apos; own words, cut to a few sentences by code. Pictures are the
+          feed&apos;s, else the article&apos;s own link-preview picture, else a card naming the source.
         </p>
       </header>
 
