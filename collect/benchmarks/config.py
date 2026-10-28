@@ -98,11 +98,23 @@ class Table:
     duplicates: str | None = None
 
 
+# How far a source's numbers are trusted (Parvathi, 2026-10-27). The tier
+# decides a cell before anything else (merge.py): a lower tier fills a cell
+# only when no higher tier has a value for it.
+TIERS = {
+    1: "the benchmark's own leaderboard",
+    2: "a reputed independent evaluator",
+    3: "another third party",
+}
+
+
 @dataclass(frozen=True)
 class Source:
     key: str
     label: str
     kind: str
+    tier: int
+    tier_note: str
     priority: int
     enabled: bool
     method: str
@@ -227,6 +239,10 @@ def load(directory: Path = CONFIG_DIR) -> Config:
             )
         if not isinstance(s["priority"], int):
             problems.append(f"sources.yaml: {key} priority must be an integer")
+        if s.get("tier") not in TIERS:
+            problems.append(f"sources.yaml: {key} tier must be one of {sorted(TIERS)}")
+        if not s.get("tier_note"):
+            problems.append(f"sources.yaml: {key} has no tier_note (why it is that tier)")
         if not str(s["url"]).startswith("https://"):
             problems.append(f"sources.yaml: {key} url must be https://")
         for required in ("license", "attribution"):
@@ -316,6 +332,10 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                 key=key,
                 label=s["label"],
                 kind=s["kind"],
+                # No fallback: a missing tier or note is refused above, and this
+                # source is built before that refusal is raised (PR #580 review).
+                tier=s.get("tier"),
+                tier_note=s.get("tier_note"),
                 priority=s["priority"],
                 enabled=bool(s["enabled"]),
                 method=s["method"],
@@ -378,6 +398,8 @@ def load(directory: Path = CONFIG_DIR) -> Config:
     ):
         if required not in settings_raw:
             problems.append(f"module_settings.yaml: missing {required}")
+    if not isinstance(raw["validation.yaml"].get("percent_scale_check_min_values"), int):
+        problems.append("validation.yaml: percent_scale_check_min_values must be a whole number")
 
     if problems:
         raise ConfigError(problems)

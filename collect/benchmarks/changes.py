@@ -3,7 +3,8 @@
     empty -> value                      added
     value -> empty                      removed
     value -> other value, same source   updated  (score/rating diff >= 0.01, any rank change)
-    value -> value from another source  source_changed
+    value -> value from another source  source_changed  (no direction: the
+                                        source changed, not the model)
     same value, same source             nothing
 
 `direction` is worked out here so the page never has to know that a lower
@@ -97,7 +98,9 @@ def diff(
                     "rank_out_of_old": old.rank_out_of,
                     "rank_out_of_new": new.rank_out_of,
                     "source_date": new.source_date,
-                    "direction": direction(config, benchmark_key, metric, old.value, new.value),
+                    "direction": None
+                    if change_type == "source_changed"
+                    else direction(config, benchmark_key, metric, old.value, new.value),
                     "needs_review": new.needs_review,
                 }
             )

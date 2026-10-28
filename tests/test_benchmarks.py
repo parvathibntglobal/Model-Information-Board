@@ -27,7 +27,7 @@ from collect.benchmarks.fetch import Fetched
 from collect.benchmarks.host_adapter import SeedModel
 from collect.benchmarks.match import Resolver, normalize_name
 from collect.benchmarks.merge import dedupe_source, merge
-from collect.benchmarks.parse import parse
+from collect.benchmarks.parse import flatten, labelled_part, parse
 from collect.benchmarks.runner import run
 from collect.benchmarks.store import StoredCell, StoredObservation
 from collect.benchmarks.values import parse_rank, parse_score
@@ -495,6 +495,119 @@ MMLU_PRO = (
 )
 
 
+class TestNewColumns:
+    """ARC-AGI-3, APEX-1, the Vals Index and Terminal-Bench's own board
+    (2026-10-28), each read from a small copy of its page's real data shape."""
+
+    def test_nested_fields_and_list_items_are_named_by_a_path(self):
+        record = {
+            "model": {"modelName": "GPT-6 Astra", "effort": "xhigh"},
+            "passScores": [
+                {"pass": "pass-1", "score": 19.9},
+                {"pass": "mean-score", "score": 69.3},
+            ],
+        }
+        flat = flatten(record)
+        assert flat["model.modelName"] == "GPT-6 Astra" and flat["model.effort"] == "xhigh"
+        assert flat["passScores[pass=mean-score].score"] == 69.3
+        assert flat["passScores[pass=pass-1].score"] == 19.9
+        assert flat["model"] is record["model"]  # the record's own keys stay as they were
+
+    @pytest.mark.parametrize(
+        ("cell", "part"),
+        [
+            (
+                "52.7%, $7.6K (Standard) · 96.2%, $3.8K (Provider Adapter)",
+                "52.7%, $7.6K (Standard)",
+            ),
+            ("49.8%, $5.8K (Standard)", "49.8%, $5.8K (Standard)"),
+            ("97.3%, $4.6K (Provider Adapter)", ""),  # no Standard result: no value
+            ("N/A", ""),
+        ],
+    )
+    def test_only_the_labelled_part_of_a_cell_is_read(self, cell, part):
+        assert labelled_part(cell, "Standard") == part
+
+    def test_terminal_bench_reads_its_own_boards_page_data(self, config):
+        record = {
+            "id": "7b805dbb",
+            "leaderboard_id": "9f96",
+            "rank": 1,
+            "metadata": {
+                "date": "2026-09-22",
+                "agent_display": {"label": "Claude Code"},
+                "model_display": {"label": "Opus 5.5"},
+                "reasoning_effort": "max",
+            },
+            "metrics": {"accuracy": 64.85, "display_accuracy": "**64.8%** ± 3.1%"},
+            "status": "display",
+        }
+        # compact, as the page writes it ('{"id":"...'), inside the push() string
+        flight = json.dumps(json.dumps({"rows": [record]}, separators=(",", ":")))[1:-1]
+        page = f'<script>self.__next_f.push([1,"{flight}"])</script>'.encode()
+        parsed = parse(config.source("tbench_leaderboard"), page, url="https://www.tbench.ai/")
+        assert not parsed.problems
+        (o,) = parsed.observations
+        assert (o.raw_model_name, o.raw_setting, o.variant) == ("Opus 5.5", "max", "Claude Code")
+        assert (o.benchmark, o.raw_text, o.collected_on) == (
+            "terminal_bench_4",
+            "64.85",
+            "2026-09-22",
+        )
+
+    def test_apex_reads_the_mean_score_of_the_global_leaderboard(self, config):
+        data = {
+            "props": {
+                "pageProps": {
+                    "benchmark": {
+                        "globalLeaderboard": [
+                            {
+                                "model": {"modelName": "GPT-6 Astra", "effort": "xhigh"},
+                                "passScores": [
+                                    {"pass": "pass-1", "score": 19.9},
+                                    {"pass": "mean-score", "score": 69.3},
+                                ],
+                            }
+                        ]
+                    },
+                    # a per-domain score elsewhere on the page is not read
+                    "domains": [{"scores": [{"value": 78.1}]}],
+                }
+            }
+        }
+        page = (
+            '<script id="__NEXT_DATA__" type="application/json">' + json.dumps(data) + "</script>"
+        ).encode()
+        parsed = parse(config.source("mercor_apex"), page, url="https://www.mercor.com/")
+        assert not parsed.problems
+        (o,) = parsed.observations
+        assert (o.raw_model_name, o.raw_setting, o.benchmark, o.raw_text) == (
+            "GPT-6 Astra",
+            "xhigh",
+            "apex_1",
+            "69.3",
+        )
+
+    def test_arc_agi_3_takes_the_standard_result_only(self, config):
+        page = (
+            "<table><tr><th>AI System</th><th>Release Date</th><th>ARC-AGI-1</th>"
+            "<th>ARC-AGI-2</th><th>ARC-AGI-3</th></tr>"
+            "<tr><td>GPT-6.1 Sol (Max)</td><td>2026-09-29</td><td>96.5%, $0.095/task</td>"
+            "<td>94.2%, $0.254/task</td>"
+            "<td>52.7%, $7.6K (Standard) · 96.2%, $3.8K (Provider Adapter)</td></tr>"
+            "<tr><td>Gemini 4 Argon (High)</td><td>2026-10-13</td><td>98.5%, $0.162/task</td>"
+            "<td>91.3%, $0.325/task</td><td>97.3%, $4.6K (Provider Adapter)</td></tr></table>"
+        ).encode()
+        parsed = parse(config.source("arc_prize"), page, url="https://arcprize.org/leaderboard")
+        arc3 = {
+            o.raw_model_name: o.raw_text for o in parsed.observations if o.benchmark == "arc_agi_3"
+        }
+        assert arc3["GPT-6.1 Sol (Max)"] == "52.7%, $7.6K (Standard)"
+        assert parse_score(arc3["GPT-6.1 Sol (Max)"], "percent").value == 52.7
+        assert arc3["Gemini 4 Argon (High)"] == ""  # Provider Adapter only: no value
+        assert parse_score(arc3["Gemini 4 Argon (High)"], "percent").empty
+
+
 class TestParse:
     def test_next_flight_reads_the_pages_own_model_objects_once_each(self, config):
         astra = {
@@ -582,9 +695,10 @@ class TestParse:
     def test_arc_cells_keep_their_raw_text_and_score_the_percent_number(self, config):
         page = (
             b"<html><body>" + b"x" * 3000 + b"<table><tr><th>AI System</th><th>Release Date</th>"
-            b"<th>ARC-AGI-1</th><th>ARC-AGI-2</th></tr>"
+            b"<th>ARC-AGI-1</th><th>ARC-AGI-2</th><th>ARC-AGI-3</th></tr>"
             b"<tr><td>GPT-6.1 Sol (Max)</td><td>2026-09-29</td>"
-            b"<td>96.5%, $0.095/task</td><td>94.2%, $0.254/task</td></tr></table></body></html>"
+            b"<td>96.5%, $0.095/task</td><td>94.2%, $0.254/task</td><td>N/A</td></tr>"
+            b"</table></body></html>"
         )
         parsed = parse(config.source("arc_prize"), page, url="u")
         arc2 = next(o for o in parsed.observations if o.benchmark == "arc_agi_2")
@@ -619,6 +733,15 @@ class TestParse:
             "Some Other Model": ("2", 4),
             "Kimi K3": ("2", 4),
             "Claude Opus 5.5": ("4", 4),
+        }
+        # ...and a shared place is a tie (2026-10-27: "25" for three models
+        # showed no "tied").
+        tied = {o.raw_model_name: o.tied for o in parsed.observations if o.metric == "rank"}
+        assert tied == {
+            "gpt-6-astra (max)": False,
+            "Some Other Model": True,
+            "Kimi K3": True,
+            "Claude Opus 5.5": False,
         }
 
     def test_a_missing_header_is_layout_changed_and_blocks(self, config):
@@ -730,15 +853,90 @@ class TestMerge:
         assert "scale_hle says 46.5," in flag["message"]
         assert "aa_hle says 0.587 (= 58.7)" in flag["message"]
 
-    def test_the_highest_priority_wins_and_a_disagreement_is_flagged(self, config):
-        d = merge(
-            config,
-            [_obs("json_fixture", 90.0, priority=70), _obs("vendor", 95.0, priority=90)],
-            run_id=1,
-        )
+    def test_within_a_tier_the_highest_priority_wins_and_a_disagreement_is_flagged(self, config):
+        # "a" and "b" are no configured source: both the lowest tier.
+        d = merge(config, [_obs("a", 90.0, priority=70), _obs("b", 95.0, priority=90)], run_id=1)
         cell = d[("openai/gpt-6-astra", "gpqa_diamond", "score")]
-        assert cell.cell.source_key == "vendor" and cell.rule == "rule 4 priority"
+        assert cell.cell.source_key == "b" and cell.rule == "rule 5 priority"
         assert cell.flags and cell.flags[0]["check"] == "disagreement"
+
+    def test_the_benchmarks_own_board_beats_an_evaluator_whatever_its_priority_or_setup(
+        self, config
+    ):
+        # Parvathi, 2026-10-27: the tier decides first. table_fixture is tier 1,
+        # json_fixture tier 2 - even with a higher priority and an earlier setup.
+        obs = [
+            _obs(
+                "table_fixture",
+                69.0,
+                bench="swe_bench_verified",
+                variant="fixture harness",
+                priority=10,
+            ),
+            _obs(
+                "json_fixture",
+                75.8,
+                bench="swe_bench_verified",
+                variant="mini-SWE-agent",
+                priority=99,
+            ),
+        ]
+        d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "swe_bench_verified", "score")]
+        assert d.cell.source_key == "table_fixture" and d.rule == "rule 3 tier"
+        assert not d.flags  # two setups are not compared with each other
+
+    def test_a_lower_tier_that_differs_on_the_same_setup_flags_the_cell(self, config):
+        obs = [
+            _obs("table_fixture", 69.0, priority=10),
+            _obs("json_fixture", 75.8, priority=99),
+        ]
+        d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")]
+        assert d.cell.source_key == "table_fixture"
+        assert d.flags and d.flags[0]["source_key"] == "json_fixture"
+
+    def test_one_setup_written_with_other_capitals_is_still_compared(self, config):
+        # 2026-10-27: Vals writes "Mini-SWE-agent", the SWE-bench board
+        # "mini-SWE-agent"; 69 vs 75.8 went unflagged.
+        obs = [
+            _obs("table_fixture", 69.0, bench="swe_bench_verified", variant="mini-SWE-agent"),
+            _obs("json_fixture", 75.8, bench="swe_bench_verified", variant="Mini-SWE-agent"),
+        ]
+        d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "swe_bench_verified", "score")]
+        assert d.cell.source_key == "table_fixture" and d.flags
+
+    def test_a_lower_tier_fills_a_cell_only_when_no_higher_tier_has_a_value(self, config):
+        obs = [
+            _obs("table_fixture", 69.0, priority=80, stale=True),  # the board dropped it
+            _obs("json_fixture", 75.8, priority=70),
+        ]
+        d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")]
+        assert d.cell.source_key == "json_fixture"
+
+    def test_every_configured_source_states_a_tier_and_why(self, config):
+        assert all(s.tier in (1, 2, 3) and s.tier_note for s in config.sources)
+        tier = {s.key: s.tier for s in config.sources}
+        assert tier["swebench_leaderboard"] == tier["livebench_leaderboard"] == 1
+        assert tier["aa_gpqa_diamond"] == tier["vals_gpqa"] == tier["matharena_aime_2026"] == 2
+        # Within tier 2, Artificial Analysis is ranked before Vals AI.
+        assert config.source("aa_gpqa_diamond").priority > config.source("vals_gpqa").priority
+
+    def test_the_page_describes_the_tiers_in_the_scrapers_words(self):
+        # The judge keeps its own copy (it never imports collect); they must not drift.
+        from collect.benchmarks.config import TIERS as SCRAPER_TIERS
+        from judge.benchmarks import TIERS as PAGE_TIERS
+
+        assert PAGE_TIERS == SCRAPER_TIERS
+
+    def test_a_source_without_a_tier_stops_startup(self, tmp_path):
+        import shutil as _shutil
+
+        cfg = _test_config_dir()
+        work = tmp_path / "cfg"
+        _shutil.copytree(cfg, work)
+        text = (work / "sources.yaml").read_text(encoding="utf-8")
+        (work / "sources.yaml").write_text(text.replace("    tier: 1\n", "", 1), encoding="utf-8")
+        with pytest.raises(ConfigError, match="tier must be one of"):
+            load(work)
 
     def test_within_tolerance_is_not_flagged(self, config):
         d = merge(config, [_obs("a", 90.0, priority=70), _obs("b", 91.0, priority=90)], run_id=1)
@@ -760,27 +958,13 @@ class TestMerge:
         ]
         assert merge(config, obs, run_id=1) == {}
 
-    def test_the_earlier_accepted_setup_beats_a_higher_priority_later_one(self, config):
+    def test_within_a_tier_the_earlier_accepted_setup_beats_a_higher_priority(self, config):
         obs = [
-            _obs(
-                "swebench_leaderboard",
-                70.0,
-                bench="swe_bench_verified",
-                variant="mini-SWE-agent",
-                priority=60,
-            ),
-            _obs(
-                "json_fixture",
-                78.0,
-                bench="swe_bench_verified",
-                variant="fixture harness",
-                priority=70,
-            ),
+            _obs("a", 70.0, bench="swe_bench_verified", variant="mini-SWE-agent", priority=60),
+            _obs("b", 78.0, bench="swe_bench_verified", variant="fixture harness", priority=70),
         ]
-        cell = merge(config, obs, run_id=1)[
-            ("openai/gpt-6-astra", "swe_bench_verified", "score")
-        ].cell
-        assert cell.source_key == "swebench_leaderboard"
+        d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "swe_bench_verified", "score")]
+        assert d.cell.source_key == "a" and d.rule == "rule 4 setup"
 
     def test_recency_then_alphabetical_decide_ties(self, config):
         d = merge(
@@ -790,7 +974,7 @@ class TestMerge:
         )
         assert d[("openai/gpt-6-astra", "gpqa_diamond", "score")].cell.source_key == "b"
         d = merge(config, [_obs("b", 90.0), _obs("a", 90.0)], run_id=1)
-        assert d[("openai/gpt-6-astra", "gpqa_diamond", "score")].rule == "rule 6 tie-break"
+        assert d[("openai/gpt-6-astra", "gpqa_diamond", "score")].rule == "rule 7 tie-break"
 
 
 class TestDuplicates:
@@ -878,6 +1062,17 @@ class TestChanges:
             "mmmu_pro": "removed",
             "livebench": "added",
         }
+
+    def test_another_source_taking_a_cell_over_is_not_better_or_worse(self, config):
+        # 2026-10-27: GPT-5.2 75.80% (Vals) -> 69.0 (the SWE-bench board) showed
+        # "worse"; the model did not move, the source did.
+        def k(bench):
+            return ("openai/gpt-6-astra", bench, "score")
+
+        prev = {k("gpqa_diamond"): _cell(75.8)}
+        new = {k("gpqa_diamond"): _cell(69.0, source="b")}
+        (entry,) = diff(config, prev, new, reason="manual_run", actor="t")
+        assert entry["change_type"] == "source_changed" and entry["direction"] is None
 
     def test_a_lower_rank_is_better(self, config):
         assert direction(config, "livebench", "rank", 5, 3) == "better"
@@ -1499,14 +1694,15 @@ class TestARun:
         astra = next(r for r in data["rows"] if r["row_id"] == "openai/gpt-6-astra")
         child = next(c for c in astra["children"] if c["setting"] == "max")
         cell = child["cells"]["gpqa_diamond_score"]
-        # A long fraction shows as its percentage, rounded to two decimals, and
+        # A score shows as its percentage, up to two decimals and no "%", and
         # the hover keeps the source's own text (Parvathi, 2026-10-27).
         assert cell["display"] == "95.77" and cell["rounded_from"] == "0.9577"
-        assert cell["source_label"]
+        assert cell["source_label"] and cell["tier"] == 2 and cell["tier_label"]
+        assert isinstance(cell["others"], list) and cell["tied_with"] == []
         assert "raw_text" not in cell  # sent once: as display, or as rounded_from
         assert "value" not in cell  # the one-unit figure is for the checks only
         assert cell["sort"] == pytest.approx(95.77)  # ...and for sorting the column
-        # Everything else is exactly what the source printed.
+        # A rank is exactly what the source printed.
         assert child["cells"]["livebench_rank"]["display"] == "1"
         assert child["cells"]["livebench_score"]["display"] == "86.1"
         assert child["cells"]["livebench_score"]["rounded_from"] is None
@@ -1517,6 +1713,16 @@ class TestARun:
         assert log["total"] > 0 and log["entries"][0]["type"] in ("added", "variant_added")
         added = {(e["row"], e["column"]): e["new"] for e in log["entries"] if e["type"] == "added"}
         assert added[("GPT 6 Astra (max)", "GPQA Diamond")] == "95.77"
+        # The Changelog's Old / New hover has what a cell's hover has (2026-10-27).
+        entry = next(
+            e
+            for e in log["entries"]
+            if e["type"] == "added"
+            and (e["row"], e["column"]) == ("GPT 6 Astra (max)", "GPQA Diamond")
+        )
+        assert entry["old_detail"] is None
+        assert entry["new_detail"]["printed"] == "0.9577" and entry["new_detail"]["tier"] == 2
+        assert entry["new_detail"]["source_label"] and entry["new_detail"]["tier_label"]
         runs = page.runs(conn)["runs"]
         detail = page.run_detail(conn, run_id=runs[0]["id"])
         assert detail["done"] and "BENCHMARK RUN" in detail["log"]
@@ -1668,6 +1874,24 @@ class TestListAndReleaseChanges:
         rows = {r[0] for r in conn.execute("SELECT row_id FROM bench_row").fetchall()}
         assert "lab/m-11" not in rows  # a blocked read adds no rows
 
+    def test_a_percent_column_read_as_fractions_is_blocked(self, conn):
+        # PR #580 review: a board storing 0.63 for 63% passed the 0-100 check
+        # and sat at the bottom of the column, 100 times too small.
+        fractions = {f"Lab M{i}": round(0.40 + i / 100, 2) for i in range(8)}
+        _, out = _run(conn, {**PAGES, "livebench_leaderboard": _livebench(fractions)}, registry=LAB)
+        assert "suspected_wrong_scale: all 8 livebench values are 1 or less" in out
+        assert ("lab/m-0:max", "livebench", "score") not in store.load_cells(conn)
+
+    def test_real_scores_under_one_percent_are_kept(self, conn):
+        # ARC-AGI-3 has many real scores under 1%; one value above 1 shows the
+        # column is a percent column, so none of them is refused.
+        scores = {f"Lab M{i}": 0.2 + i / 10 for i in range(7)}
+        scores["Lab M7"] = 52.7
+        _, out = _run(conn, {**PAGES, "livebench_leaderboard": _livebench(scores)}, registry=LAB)
+        assert "suspected_wrong_scale" not in out
+        cells = store.load_cells(conn)
+        assert cells[("lab/m-0:max", "livebench", "score")].value == pytest.approx(0.2)
+
     def test_a_new_release_is_not_flagged_as_jumps(self, conn):
         old = {"GPT 6 Astra": 86.1, "Kimi K3": 70.2}
         _run(conn, {**PAGES, "livebench_leaderboard": _livebench(old, "2026-10-14")})
@@ -1798,24 +2022,26 @@ class TestListAndReleaseChanges:
         assert conn.execute("SELECT count(*) FROM bench_change").fetchone()[0] == stored_changes
 
 
-class TestLongFractionsShowRounded:
-    # Parvathi, 2026-10-27: "0.876878612716763" in a percent column reads as a
-    # bug; it shows as 87.69. Nothing else changes.
+class TestScoresShowInOneStyle:
+    # Parvathi, 2026-10-27: every score is a percentage, so one column must not
+    # show "75.80%", "69.0" and "0.8769..." side by side. Up to two decimals,
+    # no "%"; ranks and ratings as printed.
     @pytest.mark.parametrize(
         ("raw", "value", "metric", "shown"),
         [
             ("0.876878612716763", 87.69, "score", "87.69"),
             ("0.825", 82.5, "score", "82.5"),
-            ("0.9", 90.0, "score", "0.9"),  # one or two decimals: as printed
-            ("0.87", 87.0, "score", "0.87"),
+            ("75.80%", 75.8, "score", "75.8"),
+            ("69.0", 69.0, "score", "69"),
             ("88.7", 88.7, "score", "88.7"),
-            ("88.7%", 88.7, "score", "88.7%"),
-            ("0.825", 0.83, "score", "0.825"),  # a percent column's 0.825%: as printed
-            ("0.8250", 0.825, "rating", "0.8250"),  # only scores
+            ("0.8%, $0.040/task", 0.8, "score", "0.8"),
+            ("0.825", 0.83, "score", "0.83"),  # a percent column's 0.825%, 2 decimals
+            ("#3", 3.0, "rank", "#3"),  # ranks as printed
+            ("1432", 1432.0, "rating", "1432"),  # ratings as printed
             (None, None, "score", None),
         ],
     )
-    def test_only_long_fractions_are_rounded(self, raw, value, metric, shown):
+    def test_every_score_shows_in_one_style(self, raw, value, metric, shown):
         from judge import benchmarks as page
 
         assert page.shown(raw, value, metric) == shown
@@ -1878,7 +2104,7 @@ class TestNewsWorthy:
         assert log["counts"]["mover"] >= 1 and log["counts"]["news"] >= log["counts"]["mover"]
         movers = page.changelog(conn, kind="mover")["entries"]
         assert movers and all(e["news"] == "mover" for e in movers)
-        assert any(e["row"].startswith("Kimi K3") and e["new"] == "75.0" for e in movers)
+        assert any(e["row"].startswith("Kimi K3") and e["new"] == "75" for e in movers)
 
 
 class TestARefusedCell:

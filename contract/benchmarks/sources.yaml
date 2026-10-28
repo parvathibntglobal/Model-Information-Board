@@ -7,9 +7,17 @@
 # method      static     plain HTTP GET (collect/http.py build_client, robots.txt respected)
 #             browser    headless Chromium with the same User-Agent, for JS-built tables
 #
-# priority    the trust tier (doc 3.8): manual 100, vendor 90, the benchmark's own
-#             leaderboard 80, independent evaluator 70, re-published numbers 60.
-#             A table may set its own priority when it re-publishes others' numbers.
+# tier        how far the source is trusted, and the FIRST thing that decides a
+#             cell (collect/benchmarks/merge.py; Parvathi, 2026-10-27):
+#               1  the benchmark's own leaderboard
+#               2  a reputed independent evaluator that runs the benchmark itself
+#               3  another third party
+#             A lower tier fills a cell only when no higher tier has a value.
+# tier_note   why the source is that tier, shown on the Sources tab. It says only
+#             what the entry's own url and attribution say.
+# priority    the order WITHIN a tier: the benchmark's own leaderboard 80,
+#             Artificial Analysis 75, other evaluators 70. A table may set its own
+#             priority when it re-publishes others' numbers.
 #
 # Each source has one or more `tables`. A table says how to find the data in
 # what was fetched (`locate`), which field is the model, and which header
@@ -24,6 +32,8 @@ sources:
   - key: swebench_leaderboard
     label: "SWE-bench leaderboard"
     kind: leaderboard
+    tier: 1
+    tier_note: "The SWE-bench project's own leaderboard (swebench.com)."
     priority: 80
     enabled: true
     method: static
@@ -50,6 +60,8 @@ sources:
   - key: hle_lastexam
     label: "Humanity's Last Exam"
     kind: leaderboard
+    tier: 1
+    tier_note: "Humanity's Last Exam's own site (lastexam.ai), from its makers CAIS and Scale AI."
     priority: 80
     enabled: true
     method: static
@@ -65,6 +77,8 @@ sources:
   - key: scale_hle
     label: "Humanity's Last Exam (Scale AI board)"
     kind: leaderboard
+    tier: 1
+    tier_note: "Scale AI's board for Humanity's Last Exam, which Scale AI made with CAIS."
     priority: 80
     enabled: true
     method: static
@@ -87,6 +101,8 @@ sources:
   - key: arc_prize
     label: "ARC Prize leaderboard"
     kind: leaderboard
+    tier: 1
+    tier_note: "The ARC Prize Foundation's own leaderboard for ARC-AGI (arcprize.org)."
     priority: 80
     enabled: true
     method: browser
@@ -96,17 +112,22 @@ sources:
     tables:
       # One row per system, the setting in brackets ("GPT-6.1 Sol (Max)"). A cell
       # holds score and cost per task together ("93.5%, $0.065/task"); the raw
-      # text is shown as printed, the first number is the score. ARC-AGI-3 is a
-      # different scoring (with a cost budget) and is not mapped. Added 2026-10-23.
+      # text is shown as printed, the first number is the score. Added 2026-10-23.
+      # ARC-AGI-3 (2026-10-28): its cell holds two results, "52.7%, $7.6K
+      # (Standard) · 96.2%, $3.8K (Provider Adapter)"; only the Standard one is
+      # read (`labelled`), and a cell without it has no ARC-AGI-3 value.
       - locate: { type: html_table, must_contain: "ARC-AGI-2" }
         model_column: "AI System"
         benchmark_map:
           "ARC-AGI-1": { benchmark: arc_agi_1, metric: score, scale: percent }
           "ARC-AGI-2": { benchmark: arc_agi_2, metric: score, scale: percent }
+          "ARC-AGI-3": { benchmark: arc_agi_3, metric: score, scale: percent, labelled: Standard }
 
   - key: scale_swe_bench_pro
     label: "SWE-Bench Pro (Scale AI board)"
     kind: leaderboard
+    tier: 1
+    tier_note: "Scale AI's own leaderboard for SWE-Bench Pro, its benchmark."
     priority: 80
     enabled: true
     method: static
@@ -127,9 +148,35 @@ sources:
           rank:  { benchmark: swe_bench_pro, metric: rank }
         rank_board: "scale/swe-bench-pro-full"
 
+  - key: tbench_leaderboard
+    label: "Terminal-Bench leaderboard"
+    kind: leaderboard
+    tier: 1
+    tier_note: "Terminal-Bench's own leaderboard (tbench.ai); its page data calls it the official leaderboard for Terminal-Bench 4.0."
+    priority: 80
+    enabled: true
+    method: static
+    url: https://www.tbench.ai/
+    license: "Not stated on the page."
+    attribution: "Terminal-Bench, tbench.ai"
+    tables:
+      # The page carries its board in its Next.js data: one record per
+      # submission, the model, its reasoning effort and the agent it ran in
+      # (Claude Code, Codex, mini-SWE-agent, ...), recorded as the test setup.
+      # Checked 2026-10-28: 35 records, all on the 4.0 board.
+      - locate: { type: next_flight, object_start: '{"id":"', required_keys: [id, leaderboard_id, rank, metadata, metrics], unique_key: id }
+        model_field: "metadata.model_display.label"
+        setting_field: "metadata.reasoning_effort"
+        variant_field: "metadata.agent_display.label"
+        date_field: "metadata.date"
+        benchmark_map:
+          "metrics.accuracy": { benchmark: terminal_bench_4, metric: score, scale: percent }
+
   - key: livebench_leaderboard
     label: "LiveBench"
     kind: leaderboard
+    tier: 1
+    tier_note: "LiveBench's own leaderboard (livebench.ai)."
     priority: 80
     enabled: true
     method: browser
@@ -156,7 +203,9 @@ sources:
   - key: matharena_aime_2026
     label: "MathArena (AIME 2026)"
     kind: leaderboard
-    priority: 80
+    tier: 2
+    tier_note: "AIME is a maths competition with no leaderboard of its own; MathArena (ETH Zurich SRI Lab) runs the models on it."
+    priority: 70
     enabled: true
     method: browser
     # The query string opens the AIME 2026 competition directly (no click needed).
@@ -173,6 +222,8 @@ sources:
   - key: mmlu_pro_space
     label: "MMLU-Pro (TIGER-Lab)"
     kind: leaderboard
+    tier: 1
+    tier_note: "TIGER-Lab's own MMLU-Pro leaderboard; TIGER-Lab made MMLU-Pro."
     priority: 80
     enabled: true
     method: browser
@@ -200,7 +251,9 @@ sources:
   - key: aa_gpqa_diamond
     label: "Artificial Analysis · GPQA Diamond"
     kind: evaluator
-    priority: 70
+    tier: 2
+    tier_note: "Artificial Analysis runs the benchmark on the models itself; it did not make the benchmark."
+    priority: 75
     enabled: true
     method: static
     url: https://artificialanalysis.ai/evaluations/gpqa-diamond
@@ -215,7 +268,9 @@ sources:
   - key: aa_hle
     label: "Artificial Analysis · Humanity's Last Exam"
     kind: evaluator
-    priority: 70
+    tier: 2
+    tier_note: "Artificial Analysis runs the benchmark on the models itself; it did not make the benchmark."
+    priority: 75
     enabled: true
     method: static
     url: https://artificialanalysis.ai/evaluations/humanitys-last-exam
@@ -230,7 +285,9 @@ sources:
   - key: aa_mmmu_pro
     label: "Artificial Analysis · MMMU-Pro"
     kind: evaluator
-    priority: 70
+    tier: 2
+    tier_note: "Artificial Analysis runs the benchmark on the models itself; it did not make the benchmark."
+    priority: 75
     enabled: true
     method: static
     url: https://artificialanalysis.ai/evaluations/mmmu-pro
@@ -253,6 +310,8 @@ sources:
   - key: vals_gpqa
     label: "Vals AI · GPQA Diamond"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -268,6 +327,8 @@ sources:
   - key: vals_mmlu_pro
     label: "Vals AI · MMLU Pro"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -283,6 +344,8 @@ sources:
   - key: vals_aime
     label: "Vals AI · AIME 2024+2025"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -298,6 +361,8 @@ sources:
   - key: vals_mmmu_pro
     label: "Vals AI · MMMU Pro"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -313,6 +378,8 @@ sources:
   - key: vals_livecodebench
     label: "Vals AI · LiveCodeBench"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -328,6 +395,8 @@ sources:
   - key: vals_swebench_verified
     label: "Vals AI · SWE-bench Verified"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -344,6 +413,8 @@ sources:
   - key: vals_terminal_bench_4
     label: "Vals AI · Terminal-Bench 4.0"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -360,6 +431,8 @@ sources:
   - key: vals_ioi
     label: "Vals AI · IOI"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -375,6 +448,8 @@ sources:
   - key: vals_vibe_code
     label: "Vals AI · Vibe Code Bench"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -391,6 +466,8 @@ sources:
   - key: vals_proof_bench
     label: "Vals AI · ProofBench"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -406,6 +483,8 @@ sources:
   - key: vals_swebench_multimodal
     label: "Vals AI · SWE-bench Multimodal"
     kind: evaluator
+    tier: 2
+    tier_note: "Vals AI runs the benchmark on the models itself, on its own setup; it did not make the benchmark. Below Artificial Analysis within tier 2."
     priority: 70
     enabled: true
     method: static
@@ -421,7 +500,9 @@ sources:
   - key: aa_scicode
     label: "Artificial Analysis · SciCode"
     kind: evaluator
-    priority: 70
+    tier: 2
+    tier_note: "Artificial Analysis runs the benchmark on the models itself; it did not make the benchmark."
+    priority: 75
     enabled: true
     method: static
     url: https://artificialanalysis.ai/evaluations/scicode
@@ -432,3 +513,44 @@ sources:
         model_field: shortName
         benchmark_map:
           scicode: { benchmark: scicode, metric: score, scale: fraction }
+
+  - key: mercor_apex
+    label: "Mercor · APEX-1"
+    kind: leaderboard
+    tier: 1
+    tier_note: "Mercor's own leaderboard for APEX-1, its benchmark (mercor.com)."
+    priority: 80
+    enabled: true
+    method: static
+    url: https://www.mercor.com/apex/apex-v1-leaderboard/
+    license: "Not stated on the page."
+    attribution: "Mercor, AI Productivity Index (APEX-1), mercor.com"
+    tables:
+      # The page's own data (<script id="__NEXT_DATA__">): one entry per model
+      # and effort in the global leaderboard. Each entry's passScores list holds
+      # the "mean-score" pass, the only one the page offers - its headline score.
+      # Per-job-domain scores elsewhere on the page are not read. Added 2026-10-28.
+      - locate: { type: embedded_json, script_id: __NEXT_DATA__, records: props.pageProps.benchmark.globalLeaderboard }
+        model_field: "model.modelName"
+        setting_field: "model.effort"
+        benchmark_map:
+          "passScores[pass=mean-score].score": { benchmark: apex_1, metric: score, scale: percent }
+
+  - key: vals_index
+    label: "Vals AI · Vals Index"
+    kind: leaderboard
+    tier: 1
+    tier_note: "Vals AI's own index; Vals AI made it."
+    priority: 80
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/vals_index
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      # The leaderboard table (the page's second table is the per-area breakdown
+      # and is not read). Added 2026-10-28.
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: vals_index, metric: score, scale: percent }

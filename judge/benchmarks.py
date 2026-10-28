@@ -11,10 +11,15 @@ date. No unit is added, nothing is rounded, and nothing here computes a rank, a
 percentile or a score. The one-unit `value` the run stores for its checks is
 not sent to the page.
 
-The one exception (Parvathi, 2026-10-27): a source that prints its scores as
-long fractions ("0.876878612716763") shows the stored percent value rounded to
-two decimals ("87.69"), so the column reads like its other cells. The hover
-keeps the source's own text. See shown().
+SCORES IN ONE STYLE (Parvathi, 2026-10-27). Every score is a percentage, so a
+score shows as its stored percent value with up to two decimals and no "%":
+"0.876878612716763" -> 87.69, "75.80%" -> 75.8, "69.0" -> 69. Nothing else is
+converted: ranks and ratings show as printed. The hover keeps the source's own
+text whenever it differs. See shown().
+
+SOURCE TIERS (2026-10-27). Each cell shows the value of the highest-tier source
+that has one (collect/benchmarks/merge.py); its hover names the tier and what
+the other sources say for the same cell.
 
 WHICH DATABASE. `BENCHMARKS_DATABASE_URL` when set, else `DATABASE_URL`.
 The Run button and the name decisions write wherever the board may write
@@ -27,7 +32,6 @@ benchmarks.yml) read all of them.
 from __future__ import annotations
 
 import os
-import re
 import subprocess
 import sys
 import uuid
@@ -70,8 +74,13 @@ SETTING_ORDER = (
 )
 #: A change this recent carries the `new` / `changed` badge (doc 25.3).
 RECENT_DAYS = 7
-# A score printed as a fraction with three or more decimals ("0.8769", "0.825").
-LONG_FRACTION = re.compile(r"\s*0\.\d{3,}\s*")
+# What each tier means, for the page (collect/benchmarks/config.py TIERS -
+# the same words; the judge does not import collect).
+TIERS = {
+    1: "the benchmark's own leaderboard",
+    2: "a reputed independent evaluator",
+    3: "another third party",
+}
 LOG_TAIL_BYTES = 200_000
 
 
@@ -158,6 +167,9 @@ def _columns() -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
                     else ("higher" if b["higher_is_better"] else "lower"),
                     "volatility": b["volatility"],
                     "benchmark_version": b.get("benchmark_version"),
+                    # What a reader must know before comparing the column's values,
+                    # e.g. that each was run in its own agent (PR #580 review).
+                    "setup_note": b.get("setup_note"),
                 }
                 columns.append(column)
                 by_key[column["key"]] = column
@@ -223,8 +235,10 @@ def table(conn) -> dict[str, Any]:
         display = shown(raw_text, value, metric)
         cells.setdefault(row_id, {})[key] = {
             "display": display,
-            # The source's own text when `display` is its rounded form (shown()).
+            # The source's own text when `display` is not exactly it (shown()).
             "rounded_from": raw_text if display != raw_text else None,
+            "tier": source.get("tier"),
+            "tier_label": TIERS.get(source.get("tier")),
             # The value in one unit (0.912 and 91.2% are both 91.2): for SORTING a
             # column only - the page always shows `display` (2026-10-26).
             "sort": value,
@@ -242,7 +256,53 @@ def table(conn) -> dict[str, Any]:
             "setting_not_stated": setting_not_stated,
             "needs_review": needs_review,
             "badges": [],
+            "others": [],
+            "tied_with": [],
         }
+
+    # What every other source says for the same cell: its own latest read
+    # (stale values excluded), lower tiers included, so nothing is hidden.
+    for row_id, benchmark_key, metric, source_key, value, raw_text, variant in conn.execute(
+        "SELECT row_id, benchmark_key, metric, source_key, value, raw_text, variant "
+        "FROM bench_observation WHERE NOT stale ORDER BY source_key"
+    ).fetchall():
+        cell = cells.get(row_id, {}).get(f"{benchmark_key}_{metric}")
+        if cell is None or cell["source"] == source_key:
+            continue
+        other = sources.get(source_key, {})
+        cell["others"].append(
+            {
+                "source_label": other.get("label", source_key),
+                "tier": other.get("tier"),
+                "display": shown(raw_text, value, metric),
+                "variant": variant,
+            }
+        )
+
+    # A tie is the same rank on the same board, so it is read from the ranks
+    # themselves - values stored before the run marked ties (2026-10-27), and a
+    # board that prints "25" twice, are ties too - naming the models it ties with.
+    labels = {r[0]: r[4] for r in rows}
+    rank_groups: dict[tuple[str, str, str, float], list[str]] = {}
+    for row_id, by_key in cells.items():
+        for key, cell in by_key.items():
+            if key.endswith("_rank"):
+                # The same source too: two boards without a board name are
+                # still two boards.
+                group = (key, cell["source"], cell["rank_board"] or "", cell["sort"])
+                rank_groups.setdefault(group, []).append(row_id)
+    for (key, _, _, _), members in rank_groups.items():
+        # One board entry filling two rows (a model and its setting row) is
+        # one entry, not a tie: only different names on the board count.
+        names = {cells[m][key]["raw_name"] for m in members}
+        if len(names) < 2:
+            continue
+        for row_id in members:
+            own = cells[row_id][key]["raw_name"]
+            cells[row_id][key]["tied"] = True
+            cells[row_id][key]["tied_with"] = sorted(
+                labels.get(m) or m for m in members if cells[m][key]["raw_name"] != own
+            )
 
     since = datetime.now(UTC) - timedelta(days=RECENT_DAYS)
     first_run = conn.execute(
@@ -257,9 +317,14 @@ def table(conn) -> dict[str, Any]:
         cell = cells.get(row_id, {}).get(f"{benchmark_key}_{metric}")
         if cell is None or run_id == first_run:
             continue  # the first import is not "new" (doc 12: collapse it)
-        badge = "new" if change_type == "added" else "changed"
-        cell["badges"] = [b for b in cell["badges"] if b not in ("new", "changed")] + [badge]
-        if direction in ("better", "worse"):
+        badge = {"added": "new", "source_changed": "source"}.get(change_type, "changed")
+        cell["badges"] = [b for b in cell["badges"] if b not in ("new", "changed", "source")] + [
+            badge
+        ]
+        # Another source taking the cell over is not the model moving (2026-10-27):
+        # no arrow, even on entries a run wrote with one before that rule.
+        cell.pop("direction", None)
+        if change_type == "updated" and direction in ("better", "worse"):
             cell["direction"] = direction
 
     def ordered(entries):
@@ -385,6 +450,9 @@ def _sources_view(
                 "state": state,
                 "why": why,
                 "kind": s["kind"],
+                "tier": s.get("tier"),
+                "tier_label": TIERS.get(s.get("tier")),
+                "tier_note": s.get("tier_note"),
                 "priority": s["priority"],
                 "fetcher": FETCHERS.get(s["method"], s["method"]),
                 "readers": sorted(set(readers)),
@@ -427,13 +495,14 @@ def _iso(value) -> str | None:
 
 
 #: The Changelog's filter pills (2026-10-26). "score"/"rank": a value that moved
-#: on the same source; "up"/"down": any change with a direction, including
-#: another source taking the cell over. Fixed SQL only - never user text.
+#: on the same source; "up"/"down": the same, by direction - another source
+#: taking the cell over is "source_changed", never up or down (2026-10-27).
+#: Fixed SQL only - never user text.
 CHANGE_KINDS = {
     "score": "c.change_type = 'updated' AND c.metric <> 'rank'",
     "rank": "c.change_type = 'updated' AND c.metric = 'rank'",
-    "up": "c.direction = 'better'",
-    "down": "c.direction = 'worse'",
+    "up": "c.change_type = 'updated' AND c.direction = 'better'",
+    "down": "c.change_type = 'updated' AND c.direction = 'worse'",
     "added": "c.change_type = 'added'",
     "removed": "c.change_type = 'removed'",
     "source_changed": "c.change_type = 'source_changed'",
@@ -528,14 +597,12 @@ def _news(
 def shown(raw: str | None, value: float | None, metric: str | None) -> str | None:
     """What the page prints for a value the source printed as `raw`.
 
-    The source's text, except a score printed as a long fraction: then the
-    stored value (already x100, rounded to 2 decimals by the run) - "0.876878612716763"
-    shows as "87.69", "0.825" as "82.5". Only when the stored value really is the
-    fraction x100, so a percent column's "0.825" (0.825%) is left as printed.
+    A score is a percentage, shown in one style: the stored percent value (the
+    run's reading of `raw`, rounded to 2 decimals) with trailing zeros and no
+    "%" - "0.876878612716763" -> "87.69", "75.80%" -> "75.8", "69.0" -> "69",
+    "0.8%, $0.040/task" -> "0.8". A rank or a rating is shown as printed.
     """
-    if raw is None or value is None or metric != "score" or not LONG_FRACTION.fullmatch(raw):
-        return raw
-    if abs(float(raw) * 100 - value) > 0.01:
+    if raw is None or value is None or metric != "score":
         return raw
     return f"{value:.2f}".rstrip("0").rstrip(".")
 
@@ -544,6 +611,21 @@ def page_limits() -> dict[str, int]:
     """How many runs the page lists at a time (module_settings.yaml `page`)."""
     page = _yaml("module_settings.yaml")["page"]
     return {k: int(page[k]) for k in ("runs_shown", "changelog_runs_shown")}
+
+
+def _side(
+    sources: dict[str, dict[str, Any]], source_key: str | None, raw: str | None, display: str | None
+) -> dict[str, Any] | None:
+    """One side (old or new) of a changelog entry, for its hover."""
+    if source_key is None and raw is None:
+        return None
+    source = sources.get(source_key or "", {})
+    return {
+        "source_label": source.get("label", source_key),
+        "tier": source.get("tier"),
+        "tier_label": TIERS.get(source.get("tier")),
+        "printed": raw if raw is not None and raw != display else None,
+    }
 
 
 def changelog(
@@ -562,6 +644,7 @@ def changelog(
     runs exist and `older_than` is the `before_run` that lists them. `limit` is
     only a safety cap on entries."""
     _, columns = _columns()
+    sources = _sources()
     labels = {
         r[0]: r[1] for r in conn.execute("SELECT row_id, display_label FROM bench_row").fetchall()
     }
@@ -628,6 +711,7 @@ def changelog(
         needs_review,
     ) in rows:
         column = columns.get(f"{bench}_{metric}") if bench else None
+        old_shown, new_shown = shown(old, old_value, metric), shown(new, new_value, metric)
         entry = {
             "id": cid,
             "run_id": rid,
@@ -637,8 +721,8 @@ def changelog(
             "column": column["label"] if column else None,
             "metric": metric,  # score | rank | rating: the Changelog filters on it
             "type": change_type,
-            "old": shown(old, old_value, metric),
-            "new": shown(new, new_value, metric),
+            "old": old_shown,
+            "new": new_shown,
             "old_value": old_value,
             "new_value": new_value,
             # A rank is a place among the models the board lists: "16 of 30".
@@ -647,11 +731,18 @@ def changelog(
             "source_date": source_date,
             "old_source": old_src,
             "new_source": new_src,
-            "direction": direction,
+            # A source switch has no direction (2026-10-27), whatever an older
+            # run stored for it.
+            "direction": None if change_type == "source_changed" else direction,
             "reason": reason,
             "actor": actor,
             "note": note,
             "needs_review": needs_review,
+            # For the Old / New hover, as a table cell has (2026-10-27): the
+            # source's own text when it differs from what is shown, and the
+            # source with its tier.
+            "old_detail": _side(sources, old_src, old, old_shown),
+            "new_detail": _side(sources, new_src, new, new_shown),
         }
         entry["news"] = _news(entry, released, baseline, rules)
         # Read by the tagging above, not by the page (rule 9).

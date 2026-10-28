@@ -4,7 +4,8 @@
 /* The table needs every pixel: this page uses the full window width (the rest of
    the site keeps the --maxw column). Text blocks keep a readable line length. */
 .shell.bm-page{max-width:none}
-.bm-page h1 + p,.bm-page .bm-small{max-width:110ch}
+.bm-page h1 + p{max-width:none}
+.bm-page .bm-small{max-width:110ch}
 .bm-small{font-size:var(--fs-xs)}
 .bm-h2{font-size:var(--fs-h3);font-weight:600}
 .bm-h3{font-size:var(--fs-sm);font-weight:600;margin-bottom:var(--s1)}
@@ -107,6 +108,12 @@
 .bm-badge{margin-left:6px;font-size:10px;padding:0 5px;border-radius:var(--r-pill);vertical-align:1px}
 .bm-new{color:var(--info);background:var(--info-dim)}
 .bm-changed{color:var(--text-2);background:var(--surface-3)}
+.bm-source{color:var(--text-2);background:var(--surface-3)}
+.bm-tier{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:var(--r-pill);white-space:nowrap}
+.bm-tier-1{color:var(--pass);background:var(--pass-dim)}
+.bm-tier-2{color:var(--info);background:var(--info-dim)}
+.bm-tier-3{color:var(--text-2);background:var(--surface-3)}
+.bm-tiers{display:flex;flex-direction:column;gap:4px}
 .bm-changed.bm-better{color:var(--pass);background:var(--pass-dim)}
 .bm-changed.bm-worse{color:var(--fail);background:var(--fail-dim)}
 

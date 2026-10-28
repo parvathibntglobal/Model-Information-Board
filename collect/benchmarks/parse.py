@@ -57,6 +57,9 @@ class RawObservation:
     row_index: int = 0
     priority: int | None = None
     duplicates: str | None = None
+    # A rank worked out from the board's order (row_order / order_by) that
+    # another row shares: "25" for three models is a tie (2026-10-27).
+    tied: bool = False
 
 
 @dataclass
@@ -206,8 +209,40 @@ def locate_embedded_json(html: bytes | str, locate: dict[str, Any]) -> list[dict
         )
         if data is None:
             return None
-    records = data.get(locate["records"]) if locate.get("records") else data
+    # `records` may be a dotted path into the data ("props.pageProps.benchmark.
+    # globalLeaderboard", Mercor's Next.js page data; 2026-10-28).
+    records = data
+    if locate.get("records"):
+        for step in locate["records"].split("."):
+            records = records.get(step) if isinstance(records, dict) else None
     return records if isinstance(records, list) else None
+
+
+def flatten(record: dict[str, Any], prefix: str = "", depth: int = 0) -> dict[str, Any]:
+    """A record's nested fields as flat keys a mapping can name (2026-10-28).
+
+    `{"metrics": {"accuracy": 58.2}}` adds "metrics.accuracy"; a list of objects
+    is reached by one of its fields, so `{"passScores": [{"pass": "mean-score",
+    "score": 69.3}]}` adds "passScores[pass=mean-score].score". The record's own
+    keys are kept as they are, so a mapping that names a top-level field reads
+    exactly what it did before.
+    """
+    out: dict[str, Any] = {}
+    for key, value in record.items():
+        name = f"{prefix}{key}"
+        out[name] = value
+        if depth >= 4:
+            continue
+        if isinstance(value, dict):
+            out.update(flatten(value, f"{name}.", depth + 1))
+        elif isinstance(value, list):
+            for item in value:
+                if not isinstance(item, dict):
+                    continue
+                for field, tag in item.items():
+                    if isinstance(tag, str) and tag:
+                        out.update(flatten(item, f"{name}[{field}={tag}].", depth + 1))
+    return out
 
 
 # ── reshape ──────────────────────────────────────────────────────────────────
@@ -223,6 +258,18 @@ def _competition_ranks(values: list[float | None]) -> list[int | None]:
             previous_rank, previous = position, values[i]
         ranks[i] = previous_rank
     return ranks
+
+
+def labelled_part(text: str, label: str) -> str:
+    """The part of a cell that carries "(label)", when a cell holds several.
+
+    ARC Prize's ARC-AGI-3 cell is "52.7%, $7.6K (Standard) · 96.2%, $3.8K
+    (Provider Adapter)": two results under two setups. `labelled: Standard`
+    reads only the first part; a cell without that part has no value for the
+    column (2026-10-28).
+    """
+    wanted = f"({label})".lower()
+    return next((p.strip() for p in text.split("·") if wanted in p.lower()), "")
 
 
 def _number(text: Any) -> float | None:
@@ -267,7 +314,7 @@ def _parse_table(
                 )
             )
             return
-        rows = records
+        rows = [flatten(r) for r in records]
         headers = sorted({k for r in rows for k in r})
     else:  # embedded_json
         records = locate_embedded_json(content, table.locate)
@@ -279,7 +326,7 @@ def _parse_table(
                 )
             )
             return
-        rows = records
+        rows = [flatten(r) for r in records]
         headers = sorted({k for r in rows for k in r})
     out.tables_found += 1
     release = None
@@ -392,6 +439,8 @@ def _parse_table(
         for header, target in table.benchmark_map.items():
             raw_text = row.get(actual[header])
             raw_text = "" if raw_text is None else str(raw_text)
+            if target.get("labelled"):
+                raw_text = labelled_part(raw_text, target["labelled"])
             if target["metric"] == "rank":
                 out.observations.append(
                     RawObservation(
@@ -421,6 +470,7 @@ def _parse_table(
                     raw_text=str(rank_values[position]),
                     rank_board=rank.get("board"),
                     rank_out_of=rank_out_of,
+                    tied=rank_values.count(rank_values[position]) > 1,
                     **common,
                 )
             )

@@ -23,9 +23,11 @@ import '../styles/benchmarks.css'
  * (BENCHMARK_PIPELINE_WORKFLOW.md). No data-file downloads, no key, no paid
  * service, no language model anywhere in it.
  *
- * RAW VALUES ONLY (2026-10-22). Every cell is the source's own text ("88.0",
- * "1"), with the source, link and date behind it. No unit is added, nothing is
- * rounded, and the page computes nothing - no local rank, no percentile, no score.
+ * THE SOURCES' OWN VALUES (2026-10-22). Every cell is a source's published
+ * value, with the source, link and date behind it. A score shows in one style -
+ * a percentage to two decimals, no "%" (2026-10-27) - and the hover keeps the
+ * source's own text; ranks show as printed. The page computes nothing - no local
+ * rank, no percentile, no score.
  *
  * ROWS ARE MODELS AND THEIR SETTINGS. A source that publishes "GPT 6 Astra (max)"
  * fills the (max) row under GPT 6 Astra, never the model's own row: results at
@@ -52,31 +54,38 @@ function cellTitle(cell, column) {
   if (!cell) return 'No source publishes this yet.'
   const lines = [
     cell.rounded_from
-      ? `${column.label}: ${cell.display}  (rounded from the source's ${cell.rounded_from})`
+      ? `${column.label}: ${cell.display}  (the source printed ${cell.rounded_from})`
       : `${column.label}: ${cell.display}  (as the source printed it)`,
-    `Source: ${cell.source_label}`,
+    `Source: ${cell.source_label}${cell.tier ? ` · tier ${cell.tier}, ${cell.tier_label}` : ''}`,
     `Name on the source: "${cell.raw_name}"`,
   ]
   if (cell.variant) lines.push(`Test setup: ${cell.variant}`)
   if (cell.benchmark_version) lines.push(`Benchmark version: ${cell.benchmark_version}`)
   if (cell.rank_board) lines.push(`Board: ${cell.rank_board}${cell.rank_out_of ? `, ${cell.rank_out_of} entries when read` : ''}`)
-  if (cell.tied) lines.push('Tied with another entry')
+  if (cell.tied) lines.push(cell.tied_with?.length ? `Tied with ${cell.tied_with.join(', ')}` : 'Tied with another entry')
   if (cell.source_date) lines.push(`Source's date: ${cell.source_date}`)
   if (cell.collected_at) lines.push(`Collected: ${fmtWhen(cell.collected_at)}`)
   if (cell.setting_not_stated) lines.push('The source does not state the setting.')
   if (cell.needs_review) lines.push('Flagged for review: sources disagree.')
+  if (cell.badges?.includes('source')) lines.push('Recently taken over by this source (a higher tier, or the only one left) - the model did not move.')
+  if (cell.others?.length) {
+    lines.push('', 'Other sources for this cell (not shown: a higher tier, or the same tier ranked first):')
+    for (const o of cell.others) {
+      lines.push(`  ${o.source_label}${o.tier ? ` (tier ${o.tier})` : ''}: ${o.display}${o.variant ? ` [${o.variant}]` : ''}`)
+    }
+  }
   return lines.join('\n')
 }
 
 function Cell({ cell, column }) {
   if (!cell) return <td className="bm-c bm-empty" title={cellTitle(null, column)}>—</td>
-  const recent = cell.badges?.includes('new') ? 'new' : cell.badges?.includes('changed') ? 'changed' : null
+  const recent = ['new', 'source', 'changed'].find((b) => cell.badges?.includes(b)) || null
   return (
     <td className={`bm-c${cell.needs_review ? ' bm-flag' : ''}`} title={cellTitle(cell, column)}>
       <a href={cell.url} target="_blank" rel="noreferrer noopener nofollow" className="bm-v">{cell.display}</a>
       {recent && (
         <span className={`bm-badge bm-${recent}${cell.direction ? ` bm-${cell.direction}` : ''}`}>
-          {recent === 'new' ? 'new' : cell.direction === 'better' ? '▲' : cell.direction === 'worse' ? '▼' : '•'}
+          {recent === 'new' ? 'new' : recent === 'source' ? 'source' : cell.direction === 'better' ? '▲' : cell.direction === 'worse' ? '▼' : '•'}
         </span>
       )}
     </td>
@@ -394,6 +403,7 @@ function BenchTable({ data }) {
                   {columns.map((c) => (
                     <SortHeader key={c.key} id={c.key} label={c.label} sort={sort} setSort={setSort} className="bm-col"
                                 title={`${c.label}${c.benchmark_version ? ` (${c.benchmark_version})` : ''} · ${c.better} is better · updates: ${c.volatility}. `
+                                  + (c.setup_note ? `${c.setup_note} ` : '')
                                   + 'Click to sort by value: best first, then worst first, then the usual order. A model sorts '
                                   + 'by its best value on any of its rows; tracked models stay above the others.'} />
                   ))}
@@ -524,6 +534,25 @@ function NewsMenu({ filter, counts, rules, onPick }) {
 // "16 of 30" for a rank, as the board stood when it was read.
 const withOutOf = (value, outOf) => (value == null ? '—' : outOf ? `${value} of ${outOf}` : value)
 
+// The Old / New hover in the Changelog: the same facts a table cell's hover
+// gives - the value, the source's own text, the source and its tier (2026-10-27).
+function sideTitle(e, side) {
+  if (!e.old_detail && !e.new_detail) return undefined // e.g. a setting row added: no values
+  const value = side === 'old' ? e.old : e.new
+  const detail = side === 'old' ? e.old_detail : e.new_detail
+  if (value == null || !detail) return side === 'old' ? 'No value before this run.' : 'No value after this run.'
+  const lines = [
+    detail.printed
+      ? `${e.column || ''}: ${value}  (the source printed ${detail.printed})`
+      : `${e.column || ''}: ${value}  (as the source printed it)`,
+    `Source: ${detail.source_label}${detail.tier ? ` · tier ${detail.tier}, ${detail.tier_label}` : ''}`,
+  ]
+  if (side === 'new' && e.source_date) lines.push(`Source's date: ${e.source_date}`)
+  if (side === 'new') lines.push(`Read: ${fmtWhen(e.changed_at)} (run #${e.run_id})`)
+  if (e.type === 'source_changed' && side === 'new') lines.push('Another source took this cell over - the model did not move.')
+  return lines.join('\n')
+}
+
 function Changelog({ data: all }) {
   const [openRuns, setOpenRuns] = useState({})
   const [filter, setFilter] = useState('all')
@@ -605,9 +634,9 @@ function Changelog({ data: all }) {
                       <td>{e.row}</td>
                       <td>{e.column || <span className="muted">{e.note}</span>}
                         {e.column && e.note && <div className="muted bm-small">{e.note}</div>}</td>
-                      <td className="bm-num">{withOutOf(e.old, e.old_out_of)}</td>
-                      <td className="bm-num">{withOutOf(e.new, e.new_out_of)}</td>
-                      <td className="muted">{e.new_source || e.old_source || ''}</td>
+                      <td className="bm-num" title={sideTitle(e, 'old')}>{withOutOf(e.old, e.old_out_of)}</td>
+                      <td className="bm-num" title={sideTitle(e, 'new')}>{withOutOf(e.new, e.new_out_of)}</td>
+                      <td className="muted">{e.new_detail?.source_label || e.old_detail?.source_label || ''}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -797,17 +826,43 @@ function Review({ data }) {
   )
 }
 
+// sources.yaml records "Not stated on the page." when a page gives no licence:
+// a note for us, not for the reader, so only a real licence is shown (2026-10-27).
+const hasLicense = (license) => Boolean(license) && !/^not stated/i.test(license)
+
+// The tiers, in the words sources.yaml and the server use (2026-10-27).
+function TierBadge({ tier }) {
+  return tier ? <span className={`bm-tier bm-tier-${tier}`}>Tier {tier}</span> : null
+}
+
 function Sources({ sources }) {
   const order = { enabled: 0, disabled: 1 }
-  const list = [...sources].sort((a, b) => order[a.state] - order[b.state])
+  const list = [...sources].sort(
+    (a, b) => order[a.state] - order[b.state] || (a.tier ?? 9) - (b.tier ?? 9)
+      || b.priority - a.priority || a.label.localeCompare(b.label),
+  )
+  const tiers = [...new Map(list.filter((s) => s.tier).map((s) => [s.tier, s.tier_label])).entries()].sort()
+  const count = (tier) => list.filter((s) => s.tier === tier).length
   return (
     <div className="stack stack-2">
       <p className="muted bm-small">
         Every page a run reads, hardcoded in <code>contract/benchmarks/sources.yaml</code>. A run asks only these
         pages (and each site&apos;s robots.txt); no other site is searched or visited. Each source is fetched once per run.
       </p>
+      <div className="bm-tiers">
+        {tiers.map(([tier, label]) => (
+          <div key={tier} className="bm-small"><TierBadge tier={tier} /> {label} · {count(tier)} source{count(tier) === 1 ? '' : 's'}</div>
+        ))}
+        {!tiers.some(([t]) => t === 3) && (
+          <div className="bm-small"><TierBadge tier={3} /> another third party · none used now</div>
+        )}
+        <p className="muted bm-small">
+          A cell shows the highest tier that has a value for it. A lower tier fills a cell only when no higher tier
+          has one, and its value is still listed in the cell&apos;s hover when a higher tier is shown.
+        </p>
+      </div>
       <table className="bm-list">
-        <thead><tr><th>Source</th><th>Fills</th><th>Fetched by</th><th>Read as</th><th>Last run</th></tr></thead>
+        <thead><tr><th>Source</th><th>Tier</th><th>Fills</th><th>Fetched by</th><th>Read as</th><th>Last run</th></tr></thead>
         <tbody>
           {list.map((s) => (
             <tr key={s.key}>
@@ -820,12 +875,18 @@ function Sources({ sources }) {
                 {s.in_table && <span className="bm-status bm-s-ok">in the table</span>}
                 {s.why && <div className="muted bm-small">{s.why}</div>}
                 {s.attribution && (
-                  <div className="muted bm-small">{s.attribution}{s.license ? ` · ${s.license}` : ''}</div>
+                  <div className="muted bm-small">{s.attribution}{hasLicense(s.license) ? ` · ${s.license}` : ''}</div>
                 )}
+              </td>
+              <td className="bm-small">
+                <TierBadge tier={s.tier} />
+                <div>{s.tier_label}</div>
+                {s.tier_note && <div className="muted">{s.tier_note}</div>}
+                <div className="muted">priority {s.priority} within the tier</div>
               </td>
               <td>{s.fills.length ? s.fills.join(', ') : <span className="muted">—</span>}</td>
               <td className="bm-small">{s.fetcher}
-                <div className="muted">{s.kind} · priority {s.priority} (the higher wins a cell)</div></td>
+                <div className="muted">{s.kind}</div></td>
               <td className="bm-small">{s.readers.join(', ') || '—'}</td>
               <td className="bm-small">
                 {s.last ? (
@@ -872,11 +933,10 @@ export default function Benchmarks() {
         <span className="eyebrow">Signed in</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
         <p className="muted">
-          Published benchmark results for the {table?.counts.models ?? 'tracked'} tracked text models, scraped from
-          public leaderboard pages. Each value is exactly what its source printed - hover it for the source, the name
-          the source uses and the date. Nothing is converted, except a score printed as a long fraction (0.8769...):
-          it shows as its percentage rounded to two decimals (87.69), and the hover shows the original. A rank is the
-          board&apos;s own: printed by it, its row order (checked against its scores), or its order by its own sort field.
+          Published results for the {table?.counts.models ?? 'tracked'} tracked text models, from public leaderboards.
+          Each cell shows the most trusted source&apos;s value (the benchmark&apos;s own leaderboard first); scores are
+          percentages to two decimals and ranks are the board&apos;s own. Hover a value for its source, the
+          source&apos;s own text and the date.
         </p>
         {last && (
           <p className="muted bm-small">

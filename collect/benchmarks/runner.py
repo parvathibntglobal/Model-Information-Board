@@ -215,6 +215,10 @@ class Run:
             self._forget(source.key)
             self.new_releases.pop(source.key, None)
             return result
+        if self._percent_read_as_fraction(source, kept, result):
+            self._forget(source.key)
+            self.new_releases.pop(source.key, None)
+            return result
         decided = ", ".join(f"{k} {v}" for k, v in counts.items() if v and k != "single") or "none"
         self.c.line(
             "CHECK",
@@ -414,6 +418,38 @@ class Run:
             return False
         return self._block(f"suspected_layout_change: {change}", result)
 
+    def _percent_read_as_fraction(
+        self, source: Source, kept: list[StoredObservation], result: SourceResult
+    ) -> bool:
+        """A column mapped `scale: percent` whose every value is 1 or less.
+
+        A percent value is only checked to be 0-100, so a board that stores
+        0.63 for 63% would pass and sit at the bottom of the column, 100 times
+        too small (PR #580 review). One small value is a real score - ARC-AGI-3
+        has many under 1% - but a whole column of them is a fraction read as a
+        percent: the source is blocked and keeps its previous values.
+        """
+        percent = {
+            target["benchmark"]
+            for table in source.tables
+            for target in table.benchmark_map.values()
+            if target.get("metric") == "score" and target.get("scale") == "percent"
+        }
+        values: dict[str, list[float]] = {}
+        for o in kept:
+            if o.metric == "score" and o.benchmark_key in percent:
+                values.setdefault(o.benchmark_key, []).append(o.value)
+        least = int(self.config.validation["percent_scale_check_min_values"])
+        for benchmark, read in sorted(values.items()):
+            if len(read) >= least and max(read) <= 1:
+                return self._block(
+                    f"suspected_wrong_scale: all {len(read)} {benchmark} values are 1 or "
+                    f"less (highest {max(read):g}) - a fraction read as a percent? "
+                    "the mapping says scale: percent",
+                    result,
+                )
+        return False
+
     def _match_and_value(
         self, source: Source, parsed: Parsed, resolver: Resolver, result: SourceResult
     ) -> list[tuple[StoredObservation, str | None]]:
@@ -468,7 +504,7 @@ class Run:
                         metric=raw.metric,
                         value=value.value,
                         rank_high=value.rank_high if raw.metric == "rank" else None,
-                        tied=value.tied,
+                        tied=value.tied or raw.tied,
                         rank_out_of=raw.rank_out_of if raw.metric == "rank" else None,
                         rank_board=raw.rank_board if raw.metric == "rank" else None,
                         variant=raw.variant,
