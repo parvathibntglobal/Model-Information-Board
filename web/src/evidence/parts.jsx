@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadEmbeds } from '../board/embeds'
+import { currentTheme } from '../theme'
 
 /**
  * THE EVIDENCE FEED'S PARTS (2026-10-21, PROPOSED): when a report was posted,
@@ -84,7 +85,8 @@ function embedMarkup(s) {
   if (s.platform === 'x') {
     const id = String(s.status_id || '')
     if (!/^\d+$/.test(id)) return ''
-    return `<blockquote class="twitter-tweet" data-theme="dark" data-dnt="true"><a href="https://twitter.com/i/status/${esc(id)}">View this post on X</a></blockquote>`
+    // In the site's theme when the post is drawn (2026-10-28).
+    return `<blockquote class="twitter-tweet" data-theme="${currentTheme()}" data-dnt="true"><a href="https://twitter.com/i/status/${esc(id)}">View this post on X</a></blockquote>`
   }
   return ''
 }

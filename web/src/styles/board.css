@@ -256,15 +256,15 @@
 .es-article h3{font-size:1.14rem;margin:2.1rem 0 .2rem;color:var(--es-text)}
 .es-article b{color:var(--es-text)}
 .essay code{font-family:var(--es-mono);font-size:.86em;background:var(--es-panel2);border:1px solid var(--es-line);
-  border-radius:6px;padding:.08rem .36rem;color:#dbe4ff}
-.essay q.es-iq{quotes:"\201C" "\201D";color:#e9eef8;font-style:italic}
+  border-radius:6px;padding:.08rem .36rem;color:var(--es-text)}
+.essay q.es-iq{quotes:"\201C" "\201D";color:var(--es-text);font-style:italic}
 .es-tldr{background:linear-gradient(180deg,var(--es-panel2),var(--es-panel));border:1px solid var(--es-line2);
   border-left:3px solid var(--es-accent);border-radius:var(--es-radius);padding:1.35rem 1.55rem;margin:0 0 2.2rem}
 .es-tldr .lbl{font-family:var(--es-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent)}
-.es-tldr p{margin:.55rem 0 0;color:#dde4ef;font-size:1.06rem}
+.es-tldr p{margin:.55rem 0 0;color:var(--es-text);font-size:1.06rem}
 .es-pq{margin:1.6rem 0;padding:1.1rem 1.35rem;background:var(--es-panel);border:1px solid var(--es-line);
   border-left:3px solid var(--es-accent2);border-radius:0 12px 12px 0}
-.es-pq blockquote{margin:0;font-size:1.05rem;line-height:1.62;color:#e9eef7}
+.es-pq blockquote{margin:0;font-size:1.05rem;line-height:1.62;color:var(--es-text)}
 .es-pq blockquote::before{content:"\201C";color:var(--es-dim);margin-right:.1rem}
 .es-pq figcaption{margin-top:.55rem;font-family:var(--es-mono);font-size:.72rem;color:var(--es-dim);letter-spacing:.04em}
 .es-tbl{border:1px solid var(--es-line);border-radius:12px;overflow:hidden;overflow-x:auto;margin:1.4rem 0 1.2rem}
@@ -578,7 +578,7 @@
 .essay .es-ihint{font-size:.82rem;color:var(--es-muted);border-left:2px solid var(--es-accent);padding:.35rem .7rem;margin:0 0 1.2rem}
 .essay a.es-ent{position:relative;color:inherit;text-decoration:underline dotted var(--es-accent);text-underline-offset:3px;cursor:pointer}
 .essay a.es-ent:hover,.essay a.es-ent:focus{text-decoration-style:solid;outline:none}
-.essay .es-pop{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;min-width:15rem;max-width:20rem;padding:.6rem .75rem;border:1px solid var(--es-line);border-radius:8px;background:var(--es-bg);box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:.8rem;font-style:normal;line-height:1.45;text-align:left;white-space:normal}
+.essay .es-pop{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;min-width:15rem;max-width:20rem;padding:.6rem .75rem;border:1px solid var(--es-line);border-radius:8px;background:var(--es-bg);box-shadow:0 8px 24px rgb(0 0 0 / calc(.35 * var(--shadow-k)));font-size:.8rem;font-style:normal;line-height:1.45;text-align:left;white-space:normal}
 .essay a.es-ent:hover .es-pop,.essay a.es-ent:focus .es-pop{display:flex;flex-direction:column;gap:.15rem}
 .essay .es-pop b{color:var(--es-text);font-size:.86rem}
 .essay .es-pop span{color:var(--es-muted)}
@@ -1022,3 +1022,13 @@
 .bl-pg{color:var(--es-muted)}
 .es-drawn img{background:var(--es-panel)}
 @media (max-width:640px){.bl-list{gap:2.6rem}.bl-fig img{max-height:260px}}
+
+/* LIGHT THEME (2026-10-28): the essay page's own palette. Its code blocks (.es-pre) stay dark on purpose; code reads best dark. The layout accents are darkened to read as text on white. */
+:root[data-theme="light"] .essay{--es-bg:#F7F7F8;--es-panel:#FFFFFF;--es-panel2:#F4F4F5;--es-line:#E4E4E7;--es-line2:#D4D4D8;--es-text:#0C0C0E;--es-body:#2E2E36;--es-muted:#52525B;--es-dim:#63636B;--es-accent:#2F5FD0;--es-accent2:#6B46C1;--es-good:#136B36;--es-warn:#8A5A00}
+:root[data-theme="light"] .essay.layout-report{--es-accent:#8A5A00;--es-accent2:#A14716}
+:root[data-theme="light"] .essay.layout-versus{--es-accent:#2F5FD0;--es-accent2:#B4235A}
+:root[data-theme="light"] .essay.layout-ledger{--es-accent:#136B36;--es-accent2:#2F7A2F}
+:root[data-theme="light"] .essay.layout-runbook{--es-accent:#0B6A8F;--es-accent2:#1F6E9A}
+:root[data-theme="light"] .essay.layout-blueprint{--es-accent:#6B46C1;--es-accent2:#5B45D6}
+:root[data-theme="light"] .essay.layout-brief{--es-accent:#B4235A;--es-accent2:#A12A4A}
+:root[data-theme="light"] .essay.layout-critique{--es-accent:#8A5A00;--es-accent2:#7A5D00}

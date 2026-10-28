@@ -1,5 +1,6 @@
 import { NavLink, Link, useLocation } from 'react-router-dom'
 import { MODEL_TYPES } from '../catalog/types'
+import ThemeToggle from './ThemeToggle'
 
 // THE PUBLIC SECTIONS, in the demo's order (model-information-board-home-demo.html,
 // 2026-10-14): what a reader browses. Every route still sits behind the sign-in
@@ -166,6 +167,7 @@ export default function Nav({ session, onSignOut }) {
         </nav>
 
         <div className="nav-right">
+          <ThemeToggle />
           {session ? (
             <>
               <span className="who"><span className="who-mail">{session.email}</span></span>

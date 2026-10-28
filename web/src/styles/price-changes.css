@@ -15,7 +15,7 @@
 .pc-chip{height:30px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--border);
   background:var(--surface);color:var(--text-2);font-size:var(--fs-xs);cursor:pointer}
 .pc-chip:hover{color:var(--text);border-color:var(--border-strong)}
-.pc-chip.on{background:var(--text);color:#0C0C0E;border-color:var(--text)}
+.pc-chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .pc-chip:disabled{opacity:.4;cursor:default}
 .pc-chip-n{margin-left:4px;font-family:var(--font-mono);font-size:10px;opacity:.7}
 
@@ -24,7 +24,7 @@
 .pc-news-btn{white-space:nowrap}
 .pc-news-menu{position:absolute;left:0;top:calc(100% + 6px);z-index:20;min-width:320px;padding:6px;
   display:flex;flex-direction:column;gap:2px;background:var(--surface-2);border:1px solid var(--border);
-  border-radius:var(--r-card);box-shadow:0 12px 32px rgba(0,0,0,.45)}
+  border-radius:var(--r-card);box-shadow:0 12px 32px rgb(0 0 0 / calc(.45 * var(--shadow-k)))}
 .pc-news-item{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:8px}
 .pc-news-item:hover,.pc-news-item.on{background:var(--surface-3)}
 .pc-news-item:focus-visible{outline:2px solid var(--text-2)}

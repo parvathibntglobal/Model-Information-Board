@@ -10,6 +10,7 @@ import { DB } from './db.js'
 import { goAttrs } from './links.js'
 import { nameIndex, nameKey, namePattern, shortName } from './modelnames.js'
 import { sourceName } from '../sourceName.js'
+import { currentTheme } from '../theme.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
 // Every builder below returns an HTML STRING and BoardView renders it through
@@ -1277,7 +1278,8 @@ function embedBlock(v){
   if(v.platform === 'x'){
     const m = String(v.url || '').match(/^https:\/\/(?:x|twitter)\.com\/(\w+)\/status\/(\d+)/);
     if(!m) return '';
-    return `<figure class="es-embed es-embed-x"><blockquote class="twitter-tweet" data-theme="dark" data-dnt="true">
+    // In the site's theme when the post is drawn (2026-10-28).
+    return `<figure class="es-embed es-embed-x"><blockquote class="twitter-tweet" data-theme="${currentTheme()}" data-dnt="true">
       <a href="https://twitter.com/${esc(m[1])}/status/${esc(m[2])}">View this post on X</a></blockquote>${cap}</figure>`;
   }
   return '';
