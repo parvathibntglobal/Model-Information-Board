@@ -235,6 +235,10 @@ class TestTheEvidencePipelineNeverReadsIt:
             # and whether it has a model page. A tool page, not the evidence
             # pipeline: nothing there extracts, counts or weights.
             "judge/local_models.py",
+            # The News story page (2026-10-28) reads its names to say which
+            # models a story names, and whether each has a model page. A page,
+            # not the evidence pipeline: nothing there extracts, counts or weights.
+            "judge/news.py",
         }
 
     def test_the_nightly_chain_polls_it_without_depending_on_it(self):
