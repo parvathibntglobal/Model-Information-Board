@@ -1,0 +1,749 @@
+{
+ "probed_at": "2026-10-28T09:37:25.527229+00:00",
+ "user_agent": "modelboard/0.1 (+https://github.com/parvathibntglobal/Model-Information-Board)",
+ "sources": [
+  {
+   "key": "aiwire",
+   "group": "selected",
+   "label": "AIWire",
+   "kind": "feed",
+   "url": "https://aiwire.dev/feed.xml",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed by the most specific match, Allow: '/'"
+   },
+   "http": 200,
+   "bytes": 24943,
+   "content_type": "application/rss+xml; charset=utf-8",
+   "items": 50,
+   "undated": 0,
+   "newest": "2026-10-27T15:09:09+00:00",
+   "oldest": "2026-10-20T18:00:24+00:00",
+   "last_48h": 8,
+   "last_7d": 47,
+   "llm_keyword_items": 44,
+   "with_summary": 50,
+   "with_author": 0,
+   "with_image": 0,
+   "with_categories": 0,
+   "sample": [
+    {
+     "title": "Elevated errors for Claude Sonnet 5.5",
+     "at": "2026-10-27T15:09:09+00:00",
+     "link": "https://aiwire.dev/news/5001"
+    },
+    {
+     "title": "6.1 Sol Degraded Model Performance",
+     "at": "2026-10-27T15:02:15+00:00",
+     "link": "https://aiwire.dev/news/5003"
+    },
+    {
+     "title": "Elevated errors for Claude Sonnet 5.5",
+     "at": "2026-10-27T09:14:35+00:00",
+     "link": "https://aiwire.dev/news/4984"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "techcrunch_ai",
+   "group": "selected",
+   "label": "TechCrunch AI",
+   "kind": "feed",
+   "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed: no rule matches this path"
+   },
+   "http": 200,
+   "bytes": 17921,
+   "content_type": "application/rss+xml; charset=UTF-8",
+   "items": 20,
+   "undated": 0,
+   "newest": "2026-10-28T01:15:28+00:00",
+   "oldest": "2026-10-25T16:57:32+00:00",
+   "last_48h": 18,
+   "last_7d": 20,
+   "llm_keyword_items": 11,
+   "with_summary": 20,
+   "with_author": 20,
+   "with_image": 0,
+   "with_categories": 20,
+   "sample": [
+    {
+     "title": "VCs will make billions on Anthropic\u2019s IPO, but Amazon is set to make much (much) more",
+     "at": "2026-10-28T01:15:28+00:00",
+     "link": "https://techcrunch.com/2026/10/27/vcs-will-make-billions-on-anthropics-ipo-but-amazon-is-set-to-make-much-much-more/"
+    },
+    {
+     "title": "Parents sue OpenAI, alleging GPT-4o coached their daughter off seizure medication",
+     "at": "2026-10-27T23:34:27+00:00",
+     "link": "https://techcrunch.com/2026/10/27/parents-sue-openai-alleging-gpt-4o-coached-their-daughter-off-seizure-medication/"
+    },
+    {
+     "title": "The data center boom has an upside: innovation for the US grid",
+     "at": "2026-10-27T22:55:41+00:00",
+     "link": "https://techcrunch.com/2026/10/27/the-data-center-boom-has-an-upside-innovation-for-the-us-grid/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "gdelt",
+   "group": "selected",
+   "label": "GDELT (keyword search, 48 h)",
+   "kind": "gdelt",
+   "url": "https://api.gdeltproject.org/api/v2/doc/doc?query=%28%22large%20language%20model%22%20OR%20LLM%20OR%20OpenAI%20OR%20Anthropic%20OR%20%22Gemini%22%29%20sourcelang%3Aeng&mode=artlist&format=json&maxrecords=75&timespan=48h&sort=datedesc",
+   "robots": {
+    "allowed": true,
+    "reason": "no robots.txt: no rules to break"
+   },
+   "outcome": "error: RemoteProtocolError: Server disconnected without sending a response."
+  },
+  {
+   "key": "openai",
+   "group": "lab",
+   "label": "OpenAI News",
+   "kind": "feed",
+   "url": "https://openai.com/news/rss.xml",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed by the most specific match, Allow: '/'"
+   },
+   "http": 200,
+   "bytes": 810804,
+   "content_type": "text/xml; charset=utf-8",
+   "items": 1331,
+   "undated": 0,
+   "newest": "2026-10-27T15:00:00+00:00",
+   "oldest": "2015-12-11T08:00:00+00:00",
+   "last_48h": 7,
+   "last_7d": 21,
+   "llm_keyword_items": 1041,
+   "with_summary": 1225,
+   "with_author": 0,
+   "with_image": 0,
+   "with_categories": 1186,
+   "sample": [
+    {
+     "title": "Retell uses OpenAI models to help power 100M monthly calls",
+     "at": "2026-10-27T15:00:00+00:00",
+     "link": "https://openai.com/index/retell-ai"
+    },
+    {
+     "title": "OpenAI expands partnership with Oracle to bring its apps to ChatGPT",
+     "at": "2026-10-27T07:00:00+00:00",
+     "link": "https://openai.com/index/oracle-apps-in-chatgpt"
+    },
+    {
+     "title": "How Check Point accelerates vulnerability research with Daybreak",
+     "at": "2026-10-27T00:00:00+00:00",
+     "link": "https://openai.com/index/check-point-daybreak"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "google_deepmind",
+   "group": "lab",
+   "label": "Google DeepMind blog",
+   "kind": "feed",
+   "url": "https://deepmind.google/blog/rss.xml",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed by the most specific match, Allow: '/'"
+   },
+   "http": 200,
+   "bytes": 69055,
+   "content_type": "application/xml",
+   "items": 100,
+   "undated": 0,
+   "newest": "2026-10-27T16:01:38+00:00",
+   "oldest": "2025-11-18T17:49:13+00:00",
+   "last_48h": 1,
+   "last_7d": 2,
+   "llm_keyword_items": 46,
+   "with_summary": 68,
+   "with_author": 0,
+   "with_image": 64,
+   "with_categories": 0,
+   "sample": [
+    {
+     "title": "Genie 4: A new generation of world simulation",
+     "at": "2026-10-27T16:01:38+00:00",
+     "link": "https://deepmind.google/blog/genie-4-a-new-generation-of-world-simulation/"
+    },
+    {
+     "title": "Beyond tree cover: mapping the world\u2019s forest types",
+     "at": "2026-10-22T14:30:24+00:00",
+     "link": "https://deepmind.google/blog/beyond-tree-cover-mapping-the-worlds-forest-types/"
+    },
+    {
+     "title": "Accelerating the search for antimicrobial peptides with Google Antigravity",
+     "at": "2026-10-15T16:08:03+00:00",
+     "link": "https://deepmind.google/blog/accelerating-antimicrobial-discovery/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "google_ai",
+   "group": "lab",
+   "label": "Google AI (The Keyword)",
+   "kind": "feed",
+   "url": "https://blog.google/technology/ai/rss/",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed: no rule matches this path"
+   },
+   "http": 200,
+   "bytes": 30700,
+   "content_type": "application/xml; charset=utf-8",
+   "items": 20,
+   "undated": 0,
+   "newest": "2026-10-26T16:00:00+00:00",
+   "oldest": "2026-09-02T15:40:00+00:00",
+   "last_48h": 1,
+   "last_7d": 1,
+   "llm_keyword_items": 2,
+   "with_summary": 20,
+   "with_author": 17,
+   "with_image": 20,
+   "with_categories": 20,
+   "sample": [
+    {
+     "title": "Our newest AI Quest: Mapping the human brain",
+     "at": "2026-10-26T16:00:00+00:00",
+     "link": "https://blog.google/products-and-platforms/products/education/ai-quests-polar-peaks/"
+    },
+    {
+     "title": "Southeast Asia\u2019s digital economy to hit $368 billion",
+     "at": "2026-10-21T04:00:00+00:00",
+     "link": "https://blog.google/company-news/inside-google/around-the-globe/google-asia/e-conomy-sea-report-2026/"
+    },
+    {
+     "title": "Gemini 4 Argon: Built to solve your hardest problems",
+     "at": "2026-10-13T16:00:00+00:00",
+     "link": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "google_research",
+   "group": "lab",
+   "label": "Google Research blog",
+   "kind": "feed",
+   "url": "https://research.google/blog/rss/",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed by the most specific match, Allow: '/'"
+   },
+   "http": 200,
+   "bytes": 78553,
+   "content_type": "application/rss+xml; charset=utf-8",
+   "items": 100,
+   "undated": 0,
+   "newest": "2026-10-27T17:35:00+00:00",
+   "oldest": "2025-11-13T19:04:00+00:00",
+   "last_48h": 1,
+   "last_7d": 3,
+   "llm_keyword_items": 20,
+   "with_summary": 99,
+   "with_author": 0,
+   "with_image": 100,
+   "with_categories": 99,
+   "sample": [
+    {
+     "title": "The sleep framework: A new way for LLMs to retain knowledge in continual learning",
+     "at": "2026-10-27T17:35:00+00:00",
+     "link": "https://research.google/blog/the-sleep-framework-a-new-way-for-llms-to-retain-knowledge-in-continual-learning/"
+    },
+    {
+     "title": "Bringing foundational models to the front lines of TB screening",
+     "at": "2026-10-23T18:51:33+00:00",
+     "link": "https://research.google/blog/bringing-foundational-models-to-the-front-lines-of-tb-screening/"
+    },
+    {
+     "title": "Empowering frontline maternal care with AI-assisted ultrasound",
+     "at": "2026-10-21T16:23:53+00:00",
+     "link": "https://research.google/blog/empowering-frontline-maternal-care-with-ai-assisted-ultrasound/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "google_developers",
+   "group": "lab",
+   "label": "Google Developers blog",
+   "kind": "feed",
+   "url": "https://developers.googleblog.com/feeds/posts/default",
+   "robots": {
+    "allowed": true,
+    "reason": "no group in this robots.txt applies to our user-agent"
+   },
+   "http": 200,
+   "bytes": 16913,
+   "content_type": "application/rss+xml; charset=utf-8",
+   "items": 20,
+   "undated": 20,
+   "newest": null,
+   "oldest": null,
+   "last_48h": 0,
+   "last_7d": 0,
+   "llm_keyword_items": 16,
+   "with_summary": 20,
+   "with_author": 0,
+   "with_image": 0,
+   "with_categories": 0,
+   "sample": [
+    {
+     "title": "Fast, reliable A2UI, with swappable inference formats",
+     "at": null,
+     "link": "https://developers.googleblog.com/fast-reliable-a2ui/"
+    },
+    {
+     "title": "Building Conversational Commerce with Multi-Agent Swarms on GCP: A Working Prototype",
+     "at": null,
+     "link": "https://developers.googleblog.com/building-conversational-commerce-with-multi-agent-swarms-on-gcp-a-working-prototype/"
+    },
+    {
+     "title": "Preview, edit, and collaborate on markdown (.md) files natively in Google Docs and Drive",
+     "at": null,
+     "link": "https://developers.googleblog.com/preview-edit-and-collaborate-on-markdown-md-files-natively-in-google-docs-and-drive/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "mistral",
+   "group": "lab",
+   "label": "Mistral AI news",
+   "kind": "feed",
+   "url": "https://mistral.ai/news/rss",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed by the most specific match, Allow: '/'"
+   },
+   "http": 200,
+   "bytes": 26862,
+   "content_type": "text/plain; charset=UTF-8",
+   "items": 92,
+   "undated": 0,
+   "newest": "2026-10-21T12:00:20+00:00",
+   "oldest": "2023-09-27T08:00:00+00:00",
+   "last_48h": 0,
+   "last_7d": 1,
+   "llm_keyword_items": 52,
+   "with_summary": 30,
+   "with_author": 0,
+   "with_image": 0,
+   "with_categories": 0,
+   "sample": [
+    {
+     "title": "Mistral Advances AI for Engineering with NVIDIA",
+     "at": "2026-10-21T12:00:20+00:00",
+     "link": "https://mistral.ai/news/mistral-nvidia-ai-for-industrial-engineering/"
+    },
+    {
+     "title": "Voxtral 3",
+     "at": "2026-10-20T12:00:22+00:00",
+     "link": "https://mistral.ai/news/voxtral-3/"
+    },
+    {
+     "title": "Introducing Timestral",
+     "at": "2026-10-15T12:00:00+00:00",
+     "link": "https://mistral.ai/news/timestral/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "openrouter_blog",
+   "group": "lab",
+   "label": "OpenRouter blog",
+   "kind": "feed",
+   "url": "https://openrouter.ai/blog/feed.xml",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed by the most specific match, Allow: '/'"
+   },
+   "http": 200,
+   "bytes": 82184,
+   "content_type": "application/xml",
+   "items": 155,
+   "undated": 0,
+   "newest": "2026-10-27T00:00:00+00:00",
+   "oldest": "2024-12-05T00:00:00+00:00",
+   "last_48h": 1,
+   "last_7d": 1,
+   "llm_keyword_items": 89,
+   "with_summary": 155,
+   "with_author": 0,
+   "with_image": 0,
+   "with_categories": 0,
+   "sample": [
+    {
+     "title": "CSAM Screening Across OpenRouter",
+     "at": "2026-10-27T00:00:00+00:00",
+     "link": "https://openrouter.ai/blog/announcements/csam-screening/"
+    },
+    {
+     "title": "Private Endpoints: Bring Your Fine-Tuned Models and Capacity to OpenRouter",
+     "at": "2026-10-14T00:00:00+00:00",
+     "link": "https://openrouter.ai/blog/announcements/private-endpoints/"
+    },
+    {
+     "title": "ElevenLabs is now on OpenRouter",
+     "at": "2026-10-07T00:00:00+00:00",
+     "link": "https://openrouter.ai/blog/announcements/elevenlabs-on-openrouter/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "simonwillison",
+   "group": "writer",
+   "label": "Simon Willison",
+   "kind": "feed",
+   "url": "https://simonwillison.net/atom/everything/",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed: no rule matches this path"
+   },
+   "http": 200,
+   "bytes": 125418,
+   "content_type": "application/xml; charset=utf-8",
+   "items": 30,
+   "undated": 0,
+   "newest": "2026-10-27T19:34:18+00:00",
+   "oldest": "2026-10-13T13:32:00+00:00",
+   "last_48h": 4,
+   "last_7d": 13,
+   "llm_keyword_items": 25,
+   "with_summary": 30,
+   "with_author": 0,
+   "with_image": 0,
+   "with_categories": 30,
+   "sample": [
+    {
+     "title": "Game Boy Color on My Conference Badge",
+     "at": "2026-10-27T19:34:18+00:00",
+     "link": "https://simonwillison.net/2026/Oct/27/game-boy-color-on-my-conference-badge/"
+    },
+    {
+     "title": "GPT-6.1 Terra",
+     "at": "2026-10-26T23:53:07+00:00",
+     "link": "https://simonwillison.net/2026/Oct/26/gpt-61-terra/"
+    },
+    {
+     "title": "Quoting Jason Koebler",
+     "at": "2026-10-26T19:00:25+00:00",
+     "link": "https://simonwillison.net/2026/Oct/26/jason-koebler/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "latent_space",
+   "group": "writer",
+   "label": "Latent Space (incl. AINews)",
+   "kind": "feed",
+   "url": "https://www.latent.space/feed",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed by the most specific match, Allow: '/'"
+   },
+   "http": 200,
+   "bytes": 1384307,
+   "content_type": "application/rss+xml; charset=utf-8",
+   "items": 20,
+   "undated": 0,
+   "newest": "2026-10-28T08:50:30+00:00",
+   "oldest": "2026-10-14T21:40:52+00:00",
+   "last_48h": 5,
+   "last_7d": 12,
+   "llm_keyword_items": 14,
+   "with_summary": 20,
+   "with_author": 20,
+   "with_image": 18,
+   "with_categories": 2,
+   "sample": [
+    {
+     "title": "[AINews] Anthropic ends Coding Interviews: \"Hunger beats tenure\"",
+     "at": "2026-10-28T08:50:30+00:00",
+     "link": "https://latent.space/p/ainews-anthropic-ends-coding-interviews-hunger-beats-tenure/"
+    },
+    {
+     "title": "How Anthropic ships Claude with Claude: Separating the Brain from the Hands",
+     "at": "2026-10-27T18:53:10+00:00",
+     "link": "https://latent.space/p/opus55/"
+    },
+    {
+     "title": "How Anthropic ships the #1 LLM in the World safely: Separating the Brain from the Hands",
+     "at": "2026-10-27T18:40:19+00:00",
+     "link": "https://latent.space/p/how_anthropic_ships_the_1_llm_in_the_world_safely_separating_the_brain_from_the_hands/"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "tldr_ai",
+   "group": "writer",
+   "label": "TLDR AI",
+   "kind": "feed",
+   "url": "https://tldr.tech/api/rss/ai",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed by the most specific match, Allow: '/'"
+   },
+   "http": 200,
+   "bytes": 7799,
+   "content_type": "text/xml",
+   "items": 20,
+   "undated": 0,
+   "newest": "2026-10-27T00:00:00+00:00",
+   "oldest": "2026-09-30T00:00:00+00:00",
+   "last_48h": 1,
+   "last_7d": 4,
+   "llm_keyword_items": 18,
+   "with_summary": 0,
+   "with_author": 20,
+   "with_image": 0,
+   "with_categories": 20,
+   "sample": [
+    {
+     "title": "GPT-6.1 Terra \u26a1, Anthropic IPO filing \ud83d\udcc8, agent native git \ud83d\udc68\u200d\ud83d\udcbb",
+     "at": "2026-10-27T00:00:00+00:00",
+     "link": "https://tldr.tech/ai/2026-10-27"
+    },
+    {
+     "title": "Apple\u2019s 20B model \ud83d\udcf1, Kimi K3.1 Pro \ud83e\udde0, Block Dessa \ud83d\udde3\ufe0f, frontier training security \ud83d\udd10",
+     "at": "2026-10-26T00:00:00+00:00",
+     "link": "https://tldr.tech/ai/2026-10-26"
+    },
+    {
+     "title": "OpenAI nears $1.25T \ud83d\udcb0,\u00a0 \u2601\ufe0f, 1Password for Agents \ud83d\udd11, Gemini 3.5 Pro postmortem \ud83e\udd16",
+     "at": "2026-10-23T00:00:00+00:00",
+     "link": "https://tldr.tech/ai/2026-10-23"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "interconnects",
+   "group": "writer",
+   "label": "Interconnects",
+   "kind": "feed",
+   "url": "https://www.interconnects.ai/feed",
+   "robots": {
+    "allowed": true,
+    "reason": "allowed: no rule matches this path"
+   },
+   "http": 200,
+   "bytes": 570421,
+   "content_type": "application/xml; charset=utf-8",
+   "items": 20,
+   "undated": 0,
+   "newest": "2026-10-25T11:49:00+00:00",
+   "oldest": "2026-07-22T14:09:04+00:00",
+   "last_48h": 0,
+   "last_7d": 1,
+   "llm_keyword_items": 9,
+   "with_summary": 20,
+   "with_author": 20,
+   "with_image": 17,
+   "with_categories": 0,
+   "sample": [
+    {
+     "title": "Podcast: Kimi K3.1 Pro, the new cyber reality, and Muse musings",
+     "at": "2026-10-25T11:49:00+00:00",
+     "link": "https://www.interconnects.ai/p/podcast-kimi-k31-pro-the-new-cyber"
+    },
+    {
+     "title": "Latest open artifacts (#25): DeepSeek V4.1 Flash 1017, American-made models, and new regulatory controls in the US & Chi",
+     "at": "2026-10-20T17:04:21+00:00",
+     "link": "https://www.interconnects.ai/p/latest-open-artifacts-25-deepseek"
+    },
+    {
+     "title": "Meta shakes up the frontiers, open and closed",
+     "at": "2026-10-17T14:06:54+00:00",
+     "link": "https://www.interconnects.ai/p/meta-shakes-up-the-frontiers-open"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "gh_vllm",
+   "group": "release",
+   "label": "vLLM releases",
+   "kind": "github",
+   "url": "https://api.github.com/repos/vllm-project/vllm/releases?per_page=30",
+   "robots": {
+    "allowed": true,
+    "reason": "no robots.txt: no rules to break"
+   },
+   "http": 200,
+   "bytes": 876916,
+   "content_type": "application/json; charset=utf-8",
+   "items": 30,
+   "undated": 0,
+   "newest": "2026-10-18T06:50:48+00:00",
+   "oldest": "2025-12-19T03:02:22+00:00",
+   "last_48h": 0,
+   "last_7d": 0,
+   "llm_keyword_items": 16,
+   "with_summary": 30,
+   "with_author": 30,
+   "with_image": 0,
+   "with_categories": 0,
+   "sample": [
+    {
+     "title": "v0.32.0",
+     "at": "2026-10-18T06:50:48+00:00",
+     "link": "https://github.com/vllm-project/vllm/releases/tag/v0.32.0"
+    },
+    {
+     "title": "v0.31.0",
+     "at": "2026-10-05T06:44:55+00:00",
+     "link": "https://github.com/vllm-project/vllm/releases/tag/v0.31.0"
+    },
+    {
+     "title": "v0.30.0",
+     "at": "2026-09-22T05:20:54+00:00",
+     "link": "https://github.com/vllm-project/vllm/releases/tag/v0.30.0"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "gh_llamacpp",
+   "group": "release",
+   "label": "llama.cpp releases",
+   "kind": "github",
+   "url": "https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30",
+   "robots": {
+    "allowed": true,
+    "reason": "no robots.txt: no rules to break"
+   },
+   "http": 200,
+   "bytes": 2073475,
+   "content_type": "application/json; charset=utf-8",
+   "items": 30,
+   "undated": 0,
+   "newest": "2026-10-28T09:22:41+00:00",
+   "oldest": "2026-10-26T19:45:36+00:00",
+   "last_48h": 30,
+   "last_7d": 30,
+   "llm_keyword_items": 22,
+   "with_summary": 30,
+   "with_author": 30,
+   "with_image": 0,
+   "with_categories": 30,
+   "sample": [
+    {
+     "title": "b11951",
+     "at": "2026-10-28T09:22:41+00:00",
+     "link": "https://github.com/ggml-org/llama.cpp/releases/tag/b11951"
+    },
+    {
+     "title": "b11946",
+     "at": "2026-10-28T01:58:37+00:00",
+     "link": "https://github.com/ggml-org/llama.cpp/releases/tag/b11946"
+    },
+    {
+     "title": "b11945",
+     "at": "2026-10-28T01:41:27+00:00",
+     "link": "https://github.com/ggml-org/llama.cpp/releases/tag/b11945"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "gh_ollama",
+   "group": "release",
+   "label": "Ollama releases",
+   "kind": "github",
+   "url": "https://api.github.com/repos/ollama/ollama/releases?per_page=30",
+   "robots": {
+    "allowed": true,
+    "reason": "no robots.txt: no rules to break"
+   },
+   "http": 200,
+   "bytes": 921820,
+   "content_type": "application/json; charset=utf-8",
+   "items": 30,
+   "undated": 0,
+   "newest": "2026-10-27T00:07:12+00:00",
+   "oldest": "2026-08-12T22:36:49+00:00",
+   "last_48h": 1,
+   "last_7d": 5,
+   "llm_keyword_items": 23,
+   "with_summary": 30,
+   "with_author": 30,
+   "with_image": 0,
+   "with_categories": 1,
+   "sample": [
+    {
+     "title": "v0.40.12",
+     "at": "2026-10-27T00:07:12+00:00",
+     "link": "https://github.com/ollama/ollama/releases/tag/v0.40.12"
+    },
+    {
+     "title": "v0.40.11",
+     "at": "2026-10-24T00:30:13+00:00",
+     "link": "https://github.com/ollama/ollama/releases/tag/v0.40.11"
+    },
+    {
+     "title": "v0.40.10",
+     "at": "2026-10-23T15:03:59+00:00",
+     "link": "https://github.com/ollama/ollama/releases/tag/v0.40.10"
+    }
+   ],
+   "outcome": "ok"
+  },
+  {
+   "key": "gh_transformers",
+   "group": "release",
+   "label": "transformers releases",
+   "kind": "github",
+   "url": "https://api.github.com/repos/huggingface/transformers/releases?per_page=30",
+   "robots": {
+    "allowed": true,
+    "reason": "no robots.txt: no rules to break"
+   },
+   "http": 200,
+   "bytes": 377344,
+   "content_type": "application/json; charset=utf-8",
+   "items": 30,
+   "undated": 0,
+   "newest": "2026-10-26T18:17:42+00:00",
+   "oldest": "2026-04-09T15:53:11+00:00",
+   "last_48h": 1,
+   "last_7d": 1,
+   "llm_keyword_items": 21,
+   "with_summary": 30,
+   "with_author": 30,
+   "with_image": 0,
+   "with_categories": 0,
+   "sample": [
+    {
+     "title": "Release: v5.21.0",
+     "at": "2026-10-26T18:17:42+00:00",
+     "link": "https://github.com/huggingface/transformers/releases/tag/v5.21"
+    },
+    {
+     "title": "Patch release v5.20.2",
+     "at": "2026-10-19T17:45:37+00:00",
+     "link": "https://github.com/huggingface/transformers/releases/tag/v5.20.2"
+    },
+    {
+     "title": "Release v5.20.1",
+     "at": "2026-10-16T13:02:29+00:00",
+     "link": "https://github.com/huggingface/transformers/releases/tag/v5.20.1"
+    }
+   ],
+   "outcome": "ok"
+  }
+ ]
+}
