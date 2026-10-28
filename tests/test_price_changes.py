@@ -22,17 +22,25 @@ def at(hours_ago: float) -> datetime:
 
 
 class FakeConn:
-    """Answers HISTORY_SQL with rows in its column order, sorted like the query."""
+    """Answers HISTORY_SQL with rows in its column order, sorted like the query,
+    and REGISTRY_SQL with the registry size and the newest poll of any model."""
 
-    def __init__(self, rows):
+    def __init__(self, rows, *, registry=10, newest_poll=NOW):
         self.rows = sorted(rows, key=lambda r: (r[0], r[1]))
+        self.registry = (registry, newest_poll)
+        self.last = None
 
     def execute(self, sql):
-        assert sql == price_changes.HISTORY_SQL
+        assert sql in (price_changes.HISTORY_SQL, price_changes.REGISTRY_SQL)
+        self.last = sql
         return self
 
     def fetchall(self):
         return self.rows
+
+    def fetchone(self):
+        assert self.last == price_changes.REGISTRY_SQL
+        return self.registry
 
 
 def row(mid, seen, pin, pout, *, provider="acme", polled=NOW, cached=None):
@@ -41,8 +49,9 @@ def row(mid, seen, pin, pout, *, provider="acme", polled=NOW, cached=None):
             f"{provider}/{mid}", f"Acme: {mid}", provider, polled)
 
 
-def run(rows, **kw):
-    return price_changes.changes(FakeConn(rows), now=NOW, **kw)
+def run(rows, *, registry=10, newest_poll=NOW, **kw):
+    conn = FakeConn(rows, registry=registry, newest_poll=newest_poll)
+    return price_changes.changes(conn, now=NOW, **kw)
 
 
 def only(data):
@@ -54,6 +63,7 @@ def test_the_contract_is_complete_and_sane():
     r = price_changes.rules()
     assert 0 < r["min_change_pct"] <= r["big_change_pct"]
     assert r["wave_min_models"] >= 2
+    assert r["unpolled_hours"] >= r["hold_hours"]
 
 
 def test_a_missing_threshold_is_refused_not_defaulted(monkeypatch):
@@ -117,9 +127,43 @@ def test_a_provider_wave_needs_enough_models_the_same_day():
     for m in ("a", "b", "c"):
         rows += [row(m, at(200), 1.0, 1.0), row(m, at(100), 0.88, 0.88)]
     data = run(rows)
-    assert all("wave" in c["flags"] and c["newsworthy"] for c in data["changes"])
+    assert all("wave" in c["flags"] and c["wave_size"] == 3 for c in data["changes"])
     two = run(rows[:4])
     assert not any("wave" in c["flags"] for c in two["changes"])
+    assert all(c["wave_size"] is None for c in two["changes"])
+
+
+def test_a_wave_is_a_label_never_a_reason_for_news():
+    """Review on #579: a wave mostly measures OpenRouter repricing in bulk."""
+    small, big = [], []
+    for m in ("a", "b", "c"):
+        small += [row(m, at(200), 1.0, 1.0), row(m, at(100), 0.88, 0.88)]
+        big += [row(m, at(200), 1.0, 1.0), row(m, at(100), 0.5, 0.5)]
+    assert not any(c["newsworthy"] for c in run(small)["changes"])
+    assert all(c["newsworthy"] and "wave" in c["flags"] for c in run(big)["changes"])
+
+
+def test_a_model_no_longer_polled_is_unpolled_not_settling():
+    """Its newest change can never settle; it says why instead of waiting."""
+    left = [row("m", at(200), 1.0, 1.0, polled=at(48)), row("m", at(50), 0.5, 0.5, polled=at(48))]
+    c = only(run(left))
+    assert "unpolled" in c["flags"] and "settling" not in c["flags"]
+    assert c["newsworthy"] is False
+
+
+def test_a_late_poll_run_does_not_make_every_model_unpolled():
+    """Measured from the newest poll of any model, not from the clock."""
+    late = [row("m", at(200), 1.0, 1.0, polled=at(48)), row("m", at(50), 0.5, 0.5, polled=at(48))]
+    c = only(run(late, newest_poll=at(40)))
+    assert "settling" in c["flags"] and "unpolled" not in c["flags"]
+
+
+def test_the_counts_say_what_they_are_counted_over():
+    """Rule 7: registry models with price history, of all registry models."""
+    rows = [row("m", at(200), 1.0, 1.0), row("m", at(100), 0.5, 0.5), row("n", at(100), 1, 1)]
+    data = run(rows, registry=277)
+    assert data["population"] == {"models_with_history": 2, "registry_models": 277}
+    assert data["newest_poll_at"] == NOW.isoformat()
 
 
 def test_the_window_is_clamped_to_the_contract():

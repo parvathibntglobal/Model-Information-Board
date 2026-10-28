@@ -18,14 +18,20 @@ defaulted here (rule 12):
                  `big_change_pct`, down / up
     free         both prices went to 0 from something above 0
     wave         `wave_min_models` or more of one provider's models changed
-                 the same UTC day
+                 the same UTC day. A LABEL, never a trigger (review on #579,
+                 2026-10-28): it mostly measures OpenRouter repricing in bulk.
+                 `wave_size` says how many.
     settling     not yet held `hold_hours`: the model changed again within that
                  time, or has not been polled that long since
+    unpolled     the model's newest change could not settle because the poll
+                 stopped seeing the model: its last poll is more than
+                 `unpolled_hours` older than the newest poll of any model. Not
+                 "settling", which would say we are waiting for something.
     bounced      the model's next change, within `bounce_days`, put it back to
                  the price it had before
 
-    newsworthy   settled, not bounced, at least `min_change_pct`, and one of
-                 cut / rise / free / wave
+    newsworthy   settled, not bounced, still polled, and a cut or rise of at
+                 least `min_change_pct`, or now free
 
 A percentage is the plain change between the two observed prices, shown beside
 both of them; a price that was 0 or not stated has none (rule 6).
@@ -57,6 +63,7 @@ def rules() -> dict[str, Any]:
             "hold_hours": float(raw["hold_hours"]),
             "bounce_days": float(raw["bounce_days"]),
             "wave_min_models": int(raw["wave_min_models"]),
+            "unpolled_hours": float(raw["unpolled_hours"]),
             "default_window_days": int(raw["default_window_days"]),
             "max_window_days": int(raw["max_window_days"]),
         }
@@ -70,6 +77,8 @@ def rules() -> dict[str, Any]:
     if out["hold_hours"] <= 0 or out["bounce_days"] <= 0 or out["wave_min_models"] < 2:
         raise PriceChangesContractError(
             "hold_hours and bounce_days must be positive, wave_min_models at least 2")
+    if out["unpolled_hours"] < out["hold_hours"]:
+        raise PriceChangesContractError("need unpolled_hours >= hold_hours")
     if not 0 < out["default_window_days"] <= out["max_window_days"]:
         raise PriceChangesContractError("need 0 < default_window_days <= max_window_days")
     return out
@@ -100,6 +109,10 @@ HISTORY_SQL = (
     "ORDER BY ph.model_version_id, ph.observed_at"
 )
 
+# The population (rule 7) and the newest poll of any model, which "unpolled" is
+# measured from - so a late or skipped poll run never makes every model unpolled.
+REGISTRY_SQL = "SELECT count(*), max(updated_at) FROM model_version"
+
 
 def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) -> dict[str, Any]:
     """Every price change seen in the window, newest first, with its flags."""
@@ -112,6 +125,7 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
     by_model: dict[str, list[tuple]] = {}
     for row in conn.execute(HISTORY_SQL).fetchall():
         by_model.setdefault(row[0], []).append(row)
+    registry_models, newest_poll = conn.execute(REGISTRY_SQL).fetchone()
 
     out: list[dict[str, Any]] = []
     for rows in by_model.values():
@@ -144,7 +158,12 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
                 flags.append("rise")
             if free:
                 flags.append("free")
-            if not settled:
+            unpolled = bool(
+                not settled and nxt is None and cur[8] is not None and newest_poll is not None
+                and (newest_poll - cur[8]) > timedelta(hours=r["unpolled_hours"]))
+            if unpolled:
+                flags.append("unpolled")
+            elif not settled:
                 flags.append("settling")
             if bounced:
                 flags.append("bounced")
@@ -159,6 +178,7 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
                 "change_pct": moves,
                 "largest_pct": largest,
                 "flags": flags,
+                "wave_size": None,
                 "source": "openrouter",
                 "confirmed": False,
             })
@@ -169,13 +189,13 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
     for c in out:
         if c["provider"] and waves[day_of(c)] >= r["wave_min_models"]:
             c["flags"].append("wave")
+            c["wave_size"] = waves[day_of(c)]
 
     for c in out:
         big = c["largest_pct"] is not None and abs(c["largest_pct"]) >= r["min_change_pct"]
-        c["newsworthy"] = (
-            "settling" not in c["flags"] and "bounced" not in c["flags"]
-            and (big or "free" in c["flags"])
-            and any(f in c["flags"] for f in ("cut", "rise", "free", "wave")))
+        held = not {"settling", "unpolled", "bounced"} & set(c["flags"])
+        c["newsworthy"] = held and (
+            (big and bool({"cut", "rise"} & set(c["flags"]))) or "free" in c["flags"])
 
     out.sort(key=lambda c: c["seen_at"], reverse=True)
     return {
@@ -187,6 +207,13 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
             "newsworthy": sum(c["newsworthy"] for c in out),
             "models": len({c["model_version_id"] for c in out}),
         },
-        "source": "OpenRouter list prices, as observed by the registry poll (twice a day)",
+        # Rule 7: what the counts are counted over. Registry models only; the
+        # wider catalogue keeps current prices, no history (phase 2).
+        "population": {
+            "models_with_history": len(by_model),
+            "registry_models": registry_models,
+        },
+        "source": "OpenRouter list prices, as observed by the registry poll",
+        "newest_poll_at": newest_poll.isoformat() if newest_poll else None,
         "newest_seen_at": out[0]["seen_at"] if out else None,
     }

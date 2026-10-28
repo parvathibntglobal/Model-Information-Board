@@ -15,8 +15,15 @@
 # person has confirmed it on the provider's own pricing page. Nothing here
 # confirms anything; `confirmed` is always false until that step exists.
 #
-# THE DATE IS WHEN WE SAW IT. The move happened somewhere between the poll
-# before and the one that recorded it; the page says "seen", never "changed on".
+# THE DATE IS THE POLL'S. The move happened somewhere between the poll before
+# and the one that recorded it. The poll is scheduled twice a day but GitHub
+# often starts it hours late, so that gap has no fixed bound; the page says
+# "seen at the poll at <time>", never "changed on".
+#
+# UNMEASURED STARTING VALUES (rule 8; review on #579, 2026-10-28). Every number
+# below is a starting point nobody has checked against changes later confirmed
+# or reverted. Once a person confirms changes on the provider's page, the
+# confirmed and rejected changes are the population to tune them on.
 #
 # FLAGS ARE FIXED RULES, NEVER A JUDGEMENT. Each flag below is a comparison on
 # two observed prices, and `newsworthy` is a fixed combination of them. Change a
@@ -25,7 +32,8 @@
 version: 1
 
 # A change smaller than this (largest of input and output, in percent) is noise
-# for headline purposes: rounding, a small host difference.
+# for headline purposes: rounding, a small host difference. Newsworthy needs a
+# cut or rise of at least this, or a move to free.
 min_change_pct: 10
 
 # A cut or a rise of at least this much (largest of input and output) is flagged.
@@ -42,8 +50,15 @@ hold_hours: 24
 bounce_days: 7
 
 # A provider wave: at least this many of one provider's models changed price
-# on the same day (UTC).
+# on the same day (UTC). A LABEL ONLY, never a reason for "newsworthy": it
+# mostly measures OpenRouter repricing a provider's models in bulk.
 wave_min_models: 3
+
+# NO LONGER POLLED. A model whose last poll is more than this many hours older
+# than the newest poll of any model has left OpenRouter's list (or the registry
+# stopped polling it). Its newest change can never settle, so it says that
+# instead of "settling". At least hold_hours; 36 is a poll and a half late.
+unpolled_hours: 36
 
 # How far back the page looks by default, in days, and the longest it may ask.
 default_window_days: 90

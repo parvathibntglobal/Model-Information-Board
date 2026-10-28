@@ -19,44 +19,55 @@ import '../styles/price-changes.css'
  * Confirm on the provider's own page before using a change anywhere public.
  *
  * THE VIEW (`show`) works like Benchmarks' changelog: a News-worthy menu for the
- * kinds of news (cuts, rises, now free, provider waves), and pills for every
- * change, the settling ones and the bounced ones. Counts follow the provider and
- * size filters, so a count is what clicking it shows.
+ * kinds of news (cuts, rises, now free), and pills for every change and the
+ * kinds that are never news on their own (settling, no longer polled, bounced,
+ * provider waves). Counts follow the provider and size filters, so a count is
+ * what clicking it shows.
+ *
+ * A PROVIDER WAVE IS A LABEL (review on #579, 2026-10-28): it mostly measures
+ * OpenRouter repricing a provider's models in bulk, so it adds context ("wave
+ * of 5") and never makes a change news-worthy.
  *
  * Filters live in the address (`?show=cut&provider=qwen&min=20&days=30`),
  * so a view can be sent to somebody.
  */
 
 const WINDOWS = [7, 30, 90, 365]
-// Badge text and its hover definition; the numbers are the server's (contract).
+// Badge tone, text and hover definition; the numbers are the server's (contract).
+const UNPOLLED = (r) => `The poll stopped seeing this model: its last poll is over ${r.unpolled_hours} hours older than the newest poll, so this change can never settle. It may have left OpenRouter's list.`
 const FLAG = {
-  cut: ['pass', 'Cut', (r) => `Input or output price fell at least ${r.big_change_pct}%`],
-  rise: ['fail', 'Rise', (r) => `Input or output price rose at least ${r.big_change_pct}%`],
-  free: ['info', 'Now free', () => 'Both prices went to 0 from a paid price'],
-  wave: ['info', 'Provider wave', (r) => `${r.wave_min_models} or more of this provider's models changed price the same day (UTC)`],
-  settling: ['warn', 'Settling', (r) => `Not yet held ${r.hold_hours} hours without another change: it may still revert`],
-  bounced: ['mute', 'Bounced', (r) => `Back to the previous price within ${r.bounce_days} days: likely a host switch or an ended promotion`],
+  cut: ['pass', () => 'Cut', (r) => `Input or output price fell at least ${r.big_change_pct}%`],
+  rise: ['fail', () => 'Rise', (r) => `Input or output price rose at least ${r.big_change_pct}%`],
+  free: ['info', () => 'Now free', () => 'Both prices went to 0 from a paid price'],
+  wave: ['mute', (c) => `Wave of ${c.wave_size}`,
+    (r, c) => `Part of ${c.wave_size} ${c.provider} price changes the same day (UTC). Context only, never news on its own.`],
+  settling: ['warn', () => 'Settling', (r) => `Not yet held ${r.hold_hours} hours without another change: it may still revert`],
+  unpolled: ['warn', () => 'No longer polled', UNPOLLED],
+  bounced: ['mute', () => 'Bounced', (r) => `Back to the previous price within ${r.bounce_days} days: likely a host switch or an ended promotion`],
 }
 
 // NEWS-WORTHY KINDS: each is a newsworthy change carrying that flag. The numbers
 // in the hints are the server's (contract/price_changes.yaml), never a copy here.
+const NEWS_RULE = (r) => `Settled, not bounced, still polled, and a cut or rise of at least ${r.big_change_pct}%, or now free`
 const NEWS = [
-  { key: 'news', label: 'All news-worthy', hint: (r) => `Settled, not bounced, at least ${r.min_change_pct}%, and one of the kinds below` },
+  { key: 'news', label: 'All news-worthy', hint: NEWS_RULE },
   { key: 'cut', label: 'Cuts', hint: (r) => `Input or output price down at least ${r.big_change_pct}%` },
   { key: 'rise', label: 'Rises', hint: (r) => `Input or output price up at least ${r.big_change_pct}%` },
   { key: 'free', label: 'Now free', hint: () => 'Both prices went to 0 from a paid price' },
-  { key: 'wave', label: 'Provider waves', hint: (r) => `${r.wave_min_models} or more of one provider's models changed the same day (UTC)` },
 ]
-// EVERY CHANGE, and the two kinds that are never news.
+// EVERY CHANGE, and the kinds that are never news on their own.
 const PILLS = [
   { key: 'all', label: 'All changes', hint: () => 'Every price change seen in the window, news-worthy or not' },
   { key: 'settling', label: 'Settling', hint: (r) => `Not yet held ${r.hold_hours} hours without another change: it may still revert` },
+  { key: 'unpolled', label: 'No longer polled', hint: UNPOLLED },
   { key: 'bounced', label: 'Bounced', hint: (r) => `Back to the previous price within ${r.bounce_days} days: likely a host switch or an ended promotion` },
+  { key: 'wave', label: 'Provider waves', hint: (r) => `${r.wave_min_models} or more of one provider's models changed the same day (UTC). Context only, never news on its own.` },
 ]
+const PILL_KEYS = new Set(PILLS.map((f) => f.key))
 const SHOWS = new Set([...NEWS, ...PILLS].map((f) => f.key))
 const matches = (c, show) => (
   show === 'all' ? true
-    : show === 'settling' || show === 'bounced' ? c.flags.includes(show)
+    : PILL_KEYS.has(show) ? c.flags.includes(show)
       : c.newsworthy && (show === 'news' || c.flags.includes(show)))
 
 function NewsMenu({ show, counts, rules, onPick }) {
@@ -163,15 +174,17 @@ export default function PriceChanges() {
       <header className="stack stack-2">
         <h1>Price changelog</h1>
         <p className="dim">
-          Every change to a tracked model's <strong>OpenRouter list price</strong>, as the registry poll saw it
-          (twice a day). Prices are per million tokens. A date is when we <em>saw</em> the change, which happened
-          some time after the poll before. A percentage is the plain change between the two listed prices; a
+          Every change to a tracked model's <strong>OpenRouter list price</strong>, as the registry poll saw it.
+          Prices are per million tokens. A date is the poll that <em>saw</em> the change; it happened some time
+          after the poll before, and the poll can start hours late, so there is no fixed bound. A percentage is the plain change between the two listed prices; a
           price that was 0 or not stated has none. Hover a pill, a menu option or a badge for its rule.
         </p>
         <div className="pc-caveat" role="note">
           <strong>One source, not confirmed.</strong> OpenRouter can change its listed price without the provider
           changing theirs (a different host, a promotion, a re-listing). Check the provider's own pricing page
-          before using a change in anything public.
+          before using a change in anything public. Only input, output and cached-read prices are tracked:
+          long-context tiers, image, audio and per-request prices are not, so a change to only those does not
+          appear here.
         </div>
       </header>
 
@@ -179,10 +192,17 @@ export default function PriceChanges() {
         <>
           <div className="pc-stats">
             <Stat n={data.counts.changes} l={`changes in ${data.window_days} days`} />
-            <Stat n={data.counts.newsworthy} l="newsworthy" title="Settled, not bounced, big enough, and a cut, rise, free or provider wave." />
+            <Stat n={data.counts.newsworthy} l="newsworthy" title={NEWS_RULE(data.rules)} />
             <Stat n={data.counts.models} l="models changed" />
             {data.newest_seen_at && <Stat n={fmtDay(data.newest_seen_at)} l="newest seen" />}
           </div>
+          {/* Rule 7: what these counts are counted over. */}
+          <p className="dim pc-small">
+            Counted over the registry's {data.population.models_with_history} models with price history
+            (of {data.population.registry_models} registry models). The rest of the catalogue keeps only
+            current prices, so its changes are not here.
+            {data.newest_poll_at && <> Newest poll: {fmtSeen(data.newest_poll_at)}.</>}
+          </p>
 
           <div className="pc-filters">
             <div className="pc-chips" role="group" aria-label="Show changes of one kind">
@@ -226,12 +246,14 @@ export default function PriceChanges() {
                         ? <Link to={modelPagePath(c.canonical_id)} className="pc-name">{c.name}</Link>
                         : <span className="pc-name">{c.name}</span>}
                       <span className="dim pc-small">
-                        {c.provider || 'provider not stated'} · seen on OpenRouter {fmtSeen(c.seen_at)}
+                        {c.provider || 'provider not stated'} · seen on OpenRouter at the poll at {fmtSeen(c.seen_at)}
                       </span>
                     </div>
                     <div className="pc-flags">
-                      {c.newsworthy && <Badge tone="pass" title={`Settled, not bounced, at least ${data.rules.min_change_pct}%, and a cut, rise, free or wave. Still unconfirmed.`}>Newsworthy</Badge>}
-                      {c.flags.map((f) => FLAG[f] && <Badge key={f} tone={FLAG[f][0]} title={FLAG[f][2](data.rules)}>{FLAG[f][1]}</Badge>)}
+                      {c.newsworthy && <Badge tone="pass" title={`${NEWS_RULE(data.rules)}. Still unconfirmed.`}>Newsworthy</Badge>}
+                      {c.flags.map((f) => FLAG[f] && (
+                        <Badge key={f} tone={FLAG[f][0]} title={FLAG[f][2](data.rules, c)}>{FLAG[f][1](c)}</Badge>
+                      ))}
                       <Badge tone="mute" title="Not checked against the provider's own pricing page.">Unconfirmed</Badge>
                     </div>
                   </div>
