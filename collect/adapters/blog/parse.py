@@ -101,6 +101,9 @@ class FeedEntry:
     published_at: datetime | None
     summary_html: str | None
     content_html: str | None
+    #: The entry's own tags, as given. Read by Admin -> News (collect/news);
+    #: the blog harvest does not use them. Empty when the feed gives none.
+    categories: tuple[str, ...] = ()
 
     @property
     def fetchable_url(self) -> str | None:
@@ -388,6 +391,9 @@ def parse_feed(
                 published_at=_timestamp_or_none(raw.get("published_parsed")),
                 summary_html=_text_or_none(raw.get("summary")),
                 content_html=_entry_content_html(raw),
+                categories=tuple(
+                    term for t in raw.get("tags") or [] if (term := _text_or_none(t.get("term")))
+                ),
             )
         )
 

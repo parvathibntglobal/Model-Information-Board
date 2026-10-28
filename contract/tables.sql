@@ -2263,3 +2263,47 @@ CREATE TABLE IF NOT EXISTS feed_summary_attempt (
 );
 
 CREATE INDEX IF NOT EXISTS feed_summary_attempt_model_idx ON feed_summary_attempt (model_version_id, attempted_at DESC);
+
+-- Fresh AI news for Admin -> News (2026-10-28, contract/news_sources.yaml;
+-- migrations/20261028T1200_news_item.sql says what each column means).
+-- WHO WRITES: collect/news/harvest.py. WHO READS: judge/news.py.
+-- Never evidence: no claim, quote or board entry is made from a news item.
+CREATE TABLE IF NOT EXISTS news_item (
+  id                text PRIMARY KEY,
+  source_key        text NOT NULL,
+  url               text NOT NULL,
+  title             text NOT NULL,
+  published_at      timestamptz,
+  summary           text,
+  author            text,
+  categories        text[] NOT NULL DEFAULT '{}',
+  llm_keywords      text[] NOT NULL DEFAULT '{}',
+  daily_count       integer,
+  raw_ref           text NOT NULL,
+  first_seen_at     timestamptz NOT NULL,
+  updated_at        timestamptz NOT NULL,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0)
+);
+
+CREATE INDEX IF NOT EXISTS news_item_published_idx ON news_item (published_at DESC);
+CREATE INDEX IF NOT EXISTS news_item_seen_idx ON news_item (first_seen_at DESC);
+
+-- What each source's read did in each run (ok, refused by robots.txt, failed),
+-- so the page says a source is quiet or failing rather than show nothing.
+CREATE TABLE IF NOT EXISTS news_fetch (
+  run_id            text NOT NULL,
+  source_key        text NOT NULL,
+  fetched_at        timestamptz NOT NULL,
+  outcome           text NOT NULL,
+  http_status       integer,
+  detail            text,
+  items_seen        integer,
+  items_new         integer,
+  PRIMARY KEY (run_id, source_key),
+  CONSTRAINT news_fetch_outcome_ck
+    CHECK (outcome IN ('ok', 'robots_refused', 'http_error', 'error')),
+  CONSTRAINT news_fetch_detail_ck CHECK ((outcome = 'ok') = (detail IS NULL))
+);
+
+CREATE INDEX IF NOT EXISTS news_fetch_source_idx ON news_fetch (source_key, fetched_at DESC);

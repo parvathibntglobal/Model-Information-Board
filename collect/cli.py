@@ -1241,6 +1241,27 @@ def _report_seat(report: dict) -> int:
     return 0
 
 
+def _cmd_news_harvest(args: argparse.Namespace) -> int:
+    """Admin -> News: read every source in contract/news_sources.yaml once into
+    `news_item`, recording each read in `news_fetch` (collect/news/harvest.py).
+    Never evidence: no claim, quote or board entry. Gated."""
+    from collect.db import transaction
+    from collect.http import build_client
+    from collect.news.harvest import harvest
+
+    only = set(args.only.split(",")) if args.only else None
+    with transaction() as conn:
+        _gate(conn)
+        # Redirects are followed by hand so that every hop is asked of robots.txt.
+        with build_client(follow_redirects=False) as client:
+            counts = harvest(conn, client, only=only)
+    print(f"news: {counts['sources']} sources read, {counts['ok']} ok, {counts['refused']} "
+          f"refused by robots.txt, {counts['failed']} failed; {counts['items_new']} new items")
+    for key, what in counts["by_source"].items():
+        print(f"  {key:20s} {what}")
+    return 0 if counts["failed"] == 0 else 1
+
+
 def _cmd_benchmarks_run(args: argparse.Namespace) -> int:
     """The Benchmarks page's scraper: fetch, parse, match, merge, publish.
 
@@ -1333,6 +1354,14 @@ def build_parser() -> argparse.ArgumentParser:
     bench_check = bench_sub.add_parser(
         "check", help="check contract/benchmarks/*.yaml (L1); no database")
     bench_check.set_defaults(func=_cmd_benchmarks_check)
+
+    news = sub.add_parser("news", help="Admin -> News: fresh AI headlines (news_ tables)")
+    news_sub = news.add_subparsers(dest="command", required=True)
+    news_harvest = news_sub.add_parser(
+        "harvest", help="read every source in contract/news_sources.yaml once")
+    news_harvest.add_argument("--only", default=None,
+                              help="comma-separated source keys; default every source")
+    news_harvest.set_defaults(func=_cmd_news_harvest)
 
     registry = sub.add_parser("registry", help="the model registry")
     reg_sub = registry.add_subparsers(dest="command", required=True)

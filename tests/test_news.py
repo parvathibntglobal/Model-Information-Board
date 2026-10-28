@@ -1,0 +1,234 @@
+"""Admin -> News (2026-10-28): contract, parsing, the daily fold, the harvest and the view.
+
+The harvest and view tests need Postgres (the `test_dsn` fixture); the rest do not.
+"""
+
+from __future__ import annotations
+
+import json
+import pathlib
+from dataclasses import dataclass
+from datetime import UTC, datetime
+
+import httpx
+import psycopg
+import pytest
+
+from collect.http import build_client
+from collect.news import harvest as news
+from judge import news as view
+
+SCHEMA = pathlib.Path(__file__).resolve().parents[1] / "contract" / "tables.sql"
+UA = "modelboard/0.1 (+https://modelboard.invalid/about)"
+
+CONTRACT_YAML = """
+version: 1
+summary_max_chars: 40
+llm_keywords: [llm, claude, tokens, "language model"]
+page: {default_days: 7, max_days: 30, max_items: 600}
+sources:
+  - {key: wire, group: selected, label: Wire, kind: feed, url: "https://wire.example/feed.xml",
+     terms: "test", daily: false}
+  - {key: rel, group: release, label: Rel, kind: github_releases,
+     url: "https://api.github.example/repos/o/r/releases?per_page=3", terms: "test", daily: true}
+  - {key: shut, group: lab, label: Shut, kind: feed, url: "https://shut.example/rss", terms: "test",
+     daily: false}
+  - {key: down, group: writer, label: Down, kind: feed, url: "https://down.example/rss",
+     terms: "test", daily: false}
+"""
+
+RSS = b"""<?xml version="1.0"?><rss version="2.0"><channel><title>Wire</title>
+<item><title>Claude gets cheaper</title><link>https://wire.example/a</link>
+<pubDate>Tue, 27 Oct 2026 10:00:00 GMT</pubDate><author>Ann</author><category>pricing</category>
+<description>&lt;p&gt;Fewer &lt;b&gt;tokens&lt;/b&gt; per answer &amp;amp; a long tail
+of words here&lt;/p&gt;</description></item>
+<item><title>Undated note</title><link>https://wire.example/b</link>
+<description>Detokenize is not a match</description></item>
+<item><title>No link here</title><pubDate>Tue, 27 Oct 2026 09:00:00 GMT</pubDate></item>
+</channel></rss>"""
+
+def _release(tag, when, **extra):
+    return {"name": tag, "tag_name": tag, "html_url": f"https://gh.example/{tag}",
+            "published_at": when, **extra}
+
+
+RELEASES = [
+    _release("b3", "2026-10-28T09:00:00Z"),
+    _release("b2", "2026-10-28T08:00:00Z"),
+    _release("b1", "2026-10-27T23:00:00Z"),
+    _release("draft", None, draft=True),
+]
+
+
+@pytest.fixture
+def contract(tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML, encoding="utf-8")
+    return news.load_contract(p)
+
+
+# ── the contract ─────────────────────────────────────────────────────────────
+
+def test_the_real_contract_loads_and_llamacpp_is_the_one_daily_source():
+    c = news.load_contract()
+    assert {s.key for s in c.sources if s.daily} == {"gh_llamacpp"}
+    assert all(s.url.startswith("https://") for s in c.sources)
+    assert "gdelt" not in {s.key for s in c.sources}  # dropped 2026-10-28
+
+
+@pytest.mark.parametrize("bad, says", [
+    ("summary_max_chars: 40", "summary_max_chars"),
+    ("daily: false}", "daily must be"),
+    ("kind: feed, url: \"https://wire", "kind must be"),
+])
+def test_a_missing_or_wrong_value_is_refused_not_defaulted(tmp_path, bad, says):
+    broken = {"summary_max_chars: 40": "",
+              "daily: false}": "daily: maybe}",
+              "kind: feed, url: \"https://wire": "kind: page, url: \"https://wire"}
+    text = CONTRACT_YAML.replace(bad, broken[bad], 1)
+    p = tmp_path / "c.yaml"
+    p.write_text(text, encoding="utf-8")
+    with pytest.raises(news.NewsContractError, match=says):
+        news.load_contract(p)
+
+
+# ── parsing ──────────────────────────────────────────────────────────────────
+
+def test_a_feed_keeps_what_it_gives_and_invents_nothing(contract):
+    items = news.parse_feed(RSS, contract)
+    # The item with no link is dropped: it cannot be opened.
+    assert [i["url"] for i in items] == ["https://wire.example/a", "https://wire.example/b"]
+    a, b = items
+    assert a["published_at"] == datetime(2026, 10, 27, 10, tzinfo=UTC)
+    assert a["author"] == "Ann" and a["categories"] == ["pricing"]
+    assert a["summary"].startswith("Fewer tokens per answer & a") and a["summary"].endswith("…")
+    assert len(a["summary"]) == 40
+    assert a["llm_keywords"] == ["claude", "tokens"]
+    # A missing date stays missing (rule 6); a word inside a word is no match.
+    assert b["published_at"] is None and b["llm_keywords"] == []
+
+
+def test_releases_skip_drafts(contract):
+    items = news.parse_github_releases(RELEASES, contract)
+    assert [i["tag"] for i in items] == ["b3", "b2", "b1"]
+    with pytest.raises(ValueError):
+        news.parse_github_releases({"message": "rate limited"}, contract)
+
+
+def test_a_daily_source_folds_each_utc_day_and_a_cut_day_says_at_least(contract):
+    rel = next(s for s in contract.sources if s.key == "rel")
+    items = news.parse_github_releases(RELEASES, contract)
+    folded = {f["daily_day"]: f for f in news.fold_daily(items, rel, window_full=True)}
+    assert folded["2026-10-28"]["daily_count"] == 2
+    assert folded["2026-10-28"]["url"] == "https://gh.example/b3"  # the day's newest
+    assert folded["2026-10-28"]["title"] == "Rel: 2 releases on 2026-10-28 (b2 - b3)"
+    # The window was full, so its oldest day may have had more (rule 7).
+    assert folded["2026-10-27"]["title"].startswith("Rel: at least 1 releases on 2026-10-27")
+    whole = {f["daily_day"]: f for f in news.fold_daily(items, rel, window_full=False)}
+    assert whole["2026-10-27"]["title"] == "Rel: b1"
+
+
+def test_the_window_is_full_only_when_the_read_returned_per_page():
+    assert news._window_full("https://x/releases?per_page=30", 30)
+    assert not news._window_full("https://x/releases?per_page=30", 12)
+    assert not news._window_full("https://x/feed.xml", 500)
+
+
+# ── the harvest and the view (Postgres) ──────────────────────────────────────
+
+@dataclass
+class _Decision:
+    allowed: bool
+    reason: str
+
+
+class _Gate:
+    def __init__(self, refuse=()):
+        self.refuse = set(refuse)
+
+    def allows(self, url):
+        host = url.split("/")[2]
+        refused = host in self.refuse
+        return _Decision(not refused, "disallowed by test" if refused else "ok")
+
+    def min_interval(self, url):
+        return 0.0
+
+
+class _Store:
+    def put(self, data):
+        return type("P", (), {"ref": f"raw/test/{len(data)}"})()
+
+
+def _handler(request: httpx.Request) -> httpx.Response:
+    host = request.url.host
+    if host == "wire.example":
+        return httpx.Response(200, content=RSS)
+    if host == "api.github.example":
+        return httpx.Response(200, content=json.dumps(RELEASES).encode())
+    if host == "down.example":
+        return httpx.Response(503)
+    raise AssertionError(f"unexpected request to {host}")
+
+
+@pytest.fixture
+def conn(test_dsn):
+    with psycopg.connect(test_dsn, connect_timeout=10) as c:
+        c.execute("DROP SCHEMA IF EXISTS public CASCADE")
+        c.execute("CREATE SCHEMA public")
+        c.execute(SCHEMA.read_text(encoding="utf-8"))
+        c.commit()
+        yield c
+
+
+def _run(conn, contract):
+    with build_client(user_agent=UA, transport=httpx.MockTransport(_handler)) as client:
+        return news.harvest(conn, client, gate=_Gate(refuse={"shut.example"}), store=_Store(),
+                            contract=contract,
+                            clock=lambda: datetime(2026, 10, 28, 12, tzinfo=UTC))
+
+
+def test_every_read_is_recorded_and_a_rerun_adds_nothing(conn, contract):
+    first = _run(conn, contract)
+    assert (first["ok"], first["refused"], first["failed"]) == (2, 1, 1)
+    assert first["items_new"] == 2 + 2  # two feed items; two release days
+    reads = dict(conn.execute("SELECT source_key, outcome FROM news_fetch").fetchall())
+    assert reads == {"wire": "ok", "rel": "ok", "shut": "robots_refused", "down": "http_error"}
+    again = _run(conn, contract)
+    assert again["items_new"] == 0
+    assert conn.execute("SELECT count(*) FROM news_item").fetchone()[0] == 4
+
+
+def test_a_daily_entry_grows_and_never_shrinks(conn, contract):
+    _run(conn, contract)
+    rel = next(s for s in contract.sources if s.key == "rel")
+    day = {"url": "https://gh.example/b9", "title": "Rel: 5 releases on 2026-10-28 (b2 - b9)",
+           "published_at": datetime(2026, 10, 28, 11, tzinfo=UTC), "summary": None, "author": None,
+           "categories": [], "llm_keywords": [], "daily_day": "2026-10-28", "daily_count": 5}
+    now = datetime(2026, 10, 28, 13, tzinfo=UTC)
+    assert news.write_items(conn, rel, [day], "raw/x", now) == 0  # grew: an update, not an addition
+    smaller = day | {"daily_count": 1, "title": "smaller"}
+    assert news.write_items(conn, rel, [smaller], "raw/y", now) == 0
+    # By id, not by `published_at::date`: that casts in the session's time zone,
+    # and a UTC day is what the fold groups by.
+    row = conn.execute("SELECT daily_count, title FROM news_item WHERE id = %s",
+                       (news.stable_id("news", "rel", "2026-10-28"),)).fetchone()
+    assert row == (5, "Rel: 5 releases on 2026-10-28 (b2 - b9)")
+
+
+def test_the_view_lists_dated_items_first_and_every_source_with_its_last_read(
+        conn, contract, monkeypatch, tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML, encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    _run(conn, contract)
+    out = view.news_view(conn, days=7, now=datetime(2026, 10, 28, 12, tzinfo=UTC))
+    dated = [i for i in out["items"] if i["published_at"]]
+    assert out["items"][: len(dated)] == dated  # an undated item never sorts as fresh
+    assert out["items"][-1]["published_at"] is None
+    by_key = {s["key"]: s for s in out["sources"]}
+    assert by_key["shut"]["last_read"]["outcome"] == "robots_refused"
+    assert by_key["down"]["last_read"]["http_status"] == 503
+    assert out["population"]["items_in_window"] == 4 and out["population"]["sources_listed"] == 4
+    with pytest.raises(view.NewsRequestError):
+        view.news_view(conn, days=31)

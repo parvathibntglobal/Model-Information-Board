@@ -2001,6 +2001,96 @@ columns:
     updated_at:
       reviewed: false
       state: read
+  news_fetch:
+    detail:
+      reviewed: true
+      state: read
+      why: "why a source's last read was refused or failed, shown on its row in Admin -> News (judge/news.py)"
+    fetched_at:
+      reviewed: true
+      state: read
+      why: "when each source was last read, shown on its row in Admin -> News"
+    http_status:
+      reviewed: true
+      state: read
+      why: "the status a failed read got, shown beside its detail"
+    items_new:
+      reviewed: true
+      state: read
+      why: "how many items a source's last read added, shown on its row"
+    items_seen:
+      reviewed: true
+      state: read
+      why: "how many items a source's last read found, shown on its row"
+    outcome:
+      reviewed: true
+      state: read
+      why: "ok, refused by robots.txt or failed: what each source's last read did (judge/news.py)"
+    run_id:
+      reviewed: true
+      state: write_only
+      why: "groups one harvest's reads; the page shows each source's latest read, not runs"
+    source_key:
+      reviewed: true
+      state: read
+      why: "joins a read to its contract/news_sources.yaml source"
+  news_item:
+    author:
+      reviewed: true
+      state: read
+      why: "shown under the headline when the source gives one (web/src/components/NewsPanel.jsx)"
+    categories:
+      reviewed: true
+      state: read
+      why: "the source's own tags, shown as small chips on the item"
+    daily_count:
+      reviewed: true
+      state: read
+      why: "how many items a daily entry stands for (llama.cpp builds), shown in its title and badge"
+    first_seen_at:
+      reviewed: true
+      state: read
+      why: "orders an item with no published date, and is shown as 'seen' beside it (rule 6)"
+    id:
+      reviewed: true
+      state: read
+      why: "the item's key in the API payload; one row per link, or per source and day"
+    llm_keywords:
+      reviewed: true
+      state: read
+      why: "the LLM badge and the reader's optional filter; never a default filter (rule 8)"
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "provenance of the write; no page needs it"
+    published_at:
+      reviewed: true
+      state: read
+      why: "the source's own date, newest first; NULL shows 'date not given' (rule 6)"
+    raw_ref:
+      reviewed: true
+      state: write_only
+      why: "the stored feed response, for reprocessing without re-fetching; no page reads it"
+    source_key:
+      reviewed: true
+      state: read
+      why: "which source the item came from: its label, group and filter"
+    summary:
+      reviewed: true
+      state: read
+      why: "the source's own summary, shown under the headline"
+    title:
+      reviewed: true
+      state: read
+      why: "the headline the page shows, linking to url"
+    updated_at:
+      reviewed: true
+      state: write_only
+      why: "when a daily entry last gained an item; the page shows first_seen_at and published_at instead"
+    url:
+      reviewed: true
+      state: read
+      why: "the headline's link"
   outcome:
     adopted:
       reviewed: false

@@ -3440,6 +3440,21 @@ def admin_seo_keyword_plan() -> dict:
     return keyword_plan.load()
 
 
+@app.get("/admin/news")
+def admin_news(days: int | None = None) -> dict:
+    """Admin -> News: fresh AI headlines from contract/news_sources.yaml, newest
+    first, with every source's last read (ok, refused, failed). Never evidence.
+    Nothing is filtered server-side; the LLM badge travels on each item.
+    Signed-in only. See judge/news.py."""
+    from judge import news
+
+    try:
+        with _conn() as conn:
+            return news.news_view(conn, days=days)
+    except news.NewsRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/admin/price-changes")
 def admin_price_changes(days: int | None = None) -> dict:
     """Price changelog: every OpenRouter list-price change the registry poll has
