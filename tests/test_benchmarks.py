@@ -547,8 +547,14 @@ class TestNewColumns:
         page = f'<script>self.__next_f.push([1,"{flight}"])</script>'.encode()
         parsed = parse(config.source("tbench_leaderboard"), page, url="https://www.tbench.ai/")
         assert not parsed.problems
-        (o,) = parsed.observations
+        o, rank = parsed.observations
         assert (o.raw_model_name, o.raw_setting, o.variant) == ("Opus 5.5", "max", "Claude Code")
+        # the board's own printed rank, on its own board (2026-10-28)
+        assert (rank.metric, rank.raw_text, rank.rank_board) == (
+            "rank",
+            "1",
+            "tbench/terminal-bench-4",
+        )
         assert (o.benchmark, o.raw_text, o.collected_on) == (
             "terminal_bench_4",
             "64.85",
@@ -587,6 +593,35 @@ class TestNewColumns:
             "apex_1",
             "69.3",
         )
+
+    def test_a_vals_board_gives_its_printed_rank_on_its_own_board(self, config):
+        # 2026-10-28: 14 boards print a rank beside the score; it is read as
+        # printed, never worked out here.
+        page = (
+            b"<table><tr><th>Rank</th><th>Model</th><th>Accuracy</th><th>Cost / Test</th></tr>"
+            b"<tr><td>1</td><td>Claude Sonnet 5.5</td><td>70.85%</td><td>$18.70</td></tr>"
+            b"<tr><td>2</td><td>Claude Opus 5.5</td><td>70.18%</td><td>$28.12</td></tr></table>"
+        )
+        parsed = parse(config.source("vals_index"), page, url="https://www.vals.ai/")
+        ranks = {
+            o.raw_model_name: (o.raw_text, o.rank_board, o.rank_out_of)
+            for o in parsed.observations
+            if o.metric == "rank"
+        }
+        assert ranks == {
+            "Claude Sonnet 5.5": ("1", "vals/vals-index", 2),
+            "Claude Opus 5.5": ("2", "vals/vals-index", 2),
+        }
+
+    def test_every_board_that_prints_a_rank_is_read(self, config):
+        # The 14 pages checked on 2026-10-28; each names its own board.
+        printed = {"tbench_leaderboard", "matharena_aime_2026"} | {
+            s.key for s in config.sources if s.key.startswith("vals_")
+        }
+        for key in printed:
+            table = config.source(key).tables[0]
+            reads_rank = any(t.get("metric") == "rank" for t in table.benchmark_map.values())
+            assert reads_rank and table.rank_board, key
 
     def test_arc_agi_3_takes_the_standard_result_only(self, config):
         page = (
@@ -2051,8 +2086,9 @@ class TestNewsWorthy:
     """Debut / fresh / mover tags on the changelog (Parvathi, 2026-10-26): what
     happened, not just what the board read."""
 
-    RELEASED = {"lab/new": date(2026, 10, 1), "lab/old": date(2025, 1, 1)}
-    BASELINE = {"src": 1}
+    RELEASED = {"lab/new": date(2026, 10, 10), "lab/old": date(2025, 1, 1)}
+    # Each source's first read, per column (2026-10-28).
+    BASELINE = {("src", "gpqa_diamond", "score"): 1, ("src", "arc_agi_3", "score"): 5}
 
     def _tag(self, **change):
         from judge import benchmarks as page
@@ -2061,6 +2097,7 @@ class TestNewsWorthy:
             "run_id": 5,
             "new_source": "src",
             "row_id": "lab/old:max",
+            "benchmark_key": "gpqa_diamond",
             "metric": "score",
             "type": "added",
             "old_value": None,
@@ -2082,6 +2119,43 @@ class TestNewsWorthy:
 
     def test_a_sources_first_read_is_never_news(self):
         assert self._tag(run_id=1, row_id="lab/new:max") is None
+
+    def test_a_new_column_on_an_old_source_is_its_first_read_too(self):
+        # Run #4 (2026-10-28): ARC Prize's new ARC-AGI-3 column made 41 "debut"
+        # items, because only the source's first run counted as its first read.
+        assert self._tag(row_id="lab/new:max", benchmark_key="arc_agi_3") is None
+        assert self._tag(row_id="lab/new:max") == "debut"  # its old column: a real debut
+
+    def test_a_cell_filled_for_the_first_time_is_not_badged_new_unless_it_is_news(
+        self, conn, monkeypatch
+    ):
+        # 2026-10-28: about 1,600 cells carried "new" after run #4. A value
+        # added for a model with no recent release and no recent date is a
+        # board listing it, or us reading it, not news.
+        from judge import benchmarks as page
+
+        monkeypatch.setattr(page, "_seeds", lambda: [{"id": s.id, "name": s.name} for s in SEEDS])
+        four = {f"Lab M{i}": 50 + i for i in range(4)}
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(four)}, registry=LAB)
+        five = {**four, "Lab M4": 40}  # Lab M4 listed for the first time
+        _run(conn, {**PAGES, "livebench_leaderboard": _livebench(five)}, registry=LAB)
+        assert ("lab/m-4:max", "livebench", "score") in store.load_cells(conn)
+        cells = {}
+
+        def walk(rows):
+            for r in rows:
+                cells.update({(r["row_id"], k): c for k, c in r["cells"].items()})
+                walk(r.get("children", []))
+
+        walk(page.table(conn)["rows"])
+        assert not any("new" in c["badges"] for c in cells.values())
+
+    def test_a_debut_is_a_model_released_in_the_last_30_days(self):
+        from judge import benchmarks as page
+
+        assert page.news_rules()["debut_days"] == 30  # was 60 (Parvathi, 2026-10-28)
+        assert self._tag(row_id="lab/new:max", changed_at="2026-11-09T10:00:00+00:00") == "debut"
+        assert self._tag(row_id="lab/new:max", changed_at="2026-11-12T10:00:00+00:00") is None
 
     def test_movers_are_real_moves_on_the_same_release(self):
         moved = {"type": "updated", "old_value": 70.0}

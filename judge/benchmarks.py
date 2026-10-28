@@ -304,19 +304,53 @@ def table(conn) -> dict[str, Any]:
                 labels.get(m) or m for m in members if cells[m][key]["raw_name"] != own
             )
 
+    # The badges. "new" is only an addition that is news - a recently released
+    # model's debut, or a value its source dates as recent (_news). A cell filled
+    # because we started reading a source or a column, or because a board listed
+    # an old model, is not new (Parvathi, 2026-10-28): run #2's whole first
+    # import carried "new" because the first-run check fell on the failed run #1.
     since = datetime.now(UTC) - timedelta(days=RECENT_DAYS)
-    first_run = conn.execute(
-        "SELECT min(id) FROM bench_run WHERE NOT dry_run AND status <> 'running'"
-    ).fetchone()[0]
-    for row_id, benchmark_key, metric, change_type, direction, run_id in conn.execute(
-        "SELECT row_id, benchmark_key, metric, change_type, direction, run_id FROM bench_change "
+    released = _release_dates(conn)
+    baseline = _baselines(conn)
+    rules = news_rules()
+    for (
+        row_id,
+        benchmark_key,
+        metric,
+        change_type,
+        direction,
+        run_id,
+        new_source,
+        changed_at,
+        source_date,
+    ) in conn.execute(
+        "SELECT row_id, benchmark_key, metric, change_type, direction, run_id, new_source, "
+        "changed_at, source_date FROM bench_change "
         "WHERE changed_at >= %s AND change_type IN ('added', 'updated', 'source_changed') "
         "ORDER BY id",
         (since,),
     ).fetchall():
         cell = cells.get(row_id, {}).get(f"{benchmark_key}_{metric}")
-        if cell is None or run_id == first_run:
-            continue  # the first import is not "new" (doc 12: collapse it)
+        if cell is None:
+            continue
+        if change_type == "added":
+            news = _news(
+                {
+                    "type": "added",
+                    "run_id": run_id,
+                    "new_source": new_source,
+                    "row_id": row_id,
+                    "benchmark_key": benchmark_key,
+                    "metric": metric,
+                    "changed_at": changed_at,
+                    "source_date": source_date,
+                },
+                released,
+                baseline,
+                rules,
+            )
+            if news not in ("debut", "fresh"):
+                continue
         badge = {"added": "new", "source_changed": "source"}.get(change_type, "changed")
         cell["badges"] = [b for b in cell["badges"] if b not in ("new", "changed", "source")] + [
             badge
@@ -551,26 +585,31 @@ def _release_dates(conn) -> dict[str, date]:
     return {model_id: released for model_id, released in rows}
 
 
-def _baselines(conn) -> dict[str, int]:
-    """Each source's first run that wrote a value: everything it added then is a
-    first read, not news."""
-    return dict(
-        conn.execute(
-            "SELECT new_source, min(run_id) FROM bench_change "
-            "WHERE new_source IS NOT NULL GROUP BY new_source"
+def _baselines(conn) -> dict[tuple[str, str, str], int]:
+    """Each source's first run that wrote a value to each column: everything it
+    added then is a first read, not news - a source new to the board, or a new
+    column read from a source we already had. Per source only, ARC Prize's new
+    ARC-AGI-3 column made 41 "debut" items on its first read (run #4,
+    2026-10-28)."""
+    return {
+        (source, benchmark_key, metric): run_id
+        for source, benchmark_key, metric, run_id in conn.execute(
+            "SELECT new_source, benchmark_key, metric, min(run_id) FROM bench_change "
+            "WHERE new_source IS NOT NULL AND benchmark_key IS NOT NULL GROUP BY 1, 2, 3"
         ).fetchall()
-    )
+    }
 
 
 def _news(
     change: dict[str, Any],
     released: dict[str, date],
-    baseline: dict[str, int],
+    baseline: dict[tuple[str, str, str], int],
     rules: dict[str, float],
 ) -> str | None:
     """Which kind of news one change is, or None."""
     on = _day(change["changed_at"])
-    if change["type"] == "added" and baseline.get(change["new_source"]) == change["run_id"]:
+    first_read = (change["new_source"], change["benchmark_key"], change["metric"])
+    if change["type"] == "added" and baseline.get(first_read) == change["run_id"]:
         return None
     if change["type"] == "added" and on:
         model = change["row_id"].split(":")[0].split("@")[0]
@@ -719,6 +758,7 @@ def changelog(
             "row_id": row_id,
             "row": labels.get(row_id) or names.get(row_id) or row_id,
             "column": column["label"] if column else None,
+            "benchmark_key": bench,  # with metric: which first read a value belongs to
             "metric": metric,  # score | rank | rating: the Changelog filters on it
             "type": change_type,
             "old": old_shown,
@@ -746,7 +786,7 @@ def changelog(
         }
         entry["news"] = _news(entry, released, baseline, rules)
         # Read by the tagging above, not by the page (rule 9).
-        for internal in ("metric", "old_value", "new_value"):
+        for internal in ("benchmark_key", "metric", "old_value", "new_value"):
             del entry[internal]
         if kind in NEWS_KINDS and (entry["news"] is None or kind not in ("news", entry["news"])):
             continue
@@ -774,13 +814,17 @@ def changelog(
 
 
 def _news_counts(
-    conn, released: dict[str, date], baseline: dict[str, int], rules: dict[str, float]
+    conn,
+    released: dict[str, date],
+    baseline: dict[tuple[str, str, str], int],
+    rules: dict[str, float],
 ) -> dict[str, int]:
     found = {k: 0 for k in NEWS_KINDS}
     for (
         run_id,
         source,
         row_id,
+        benchmark_key,
         metric,
         change_type,
         old_value,
@@ -789,8 +833,8 @@ def _news_counts(
         source_date,
         note,
     ) in conn.execute(
-        "SELECT run_id, new_source, row_id, metric, change_type, old_value, new_value, "
-        "changed_at, source_date, note FROM bench_change "
+        "SELECT run_id, new_source, row_id, benchmark_key, metric, change_type, old_value, "
+        "new_value, changed_at, source_date, note FROM bench_change "
         "WHERE change_type IN ('added', 'updated')"
     ).fetchall():
         tag = _news(
@@ -798,6 +842,7 @@ def _news_counts(
                 "run_id": run_id,
                 "new_source": source,
                 "row_id": row_id,
+                "benchmark_key": benchmark_key,
                 "metric": metric,
                 "type": change_type,
                 "old_value": old_value,

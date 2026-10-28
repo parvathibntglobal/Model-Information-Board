@@ -26,7 +26,7 @@ jump:                                # L7 vs the previous value from the same so
 # NEWS-WORTHY changelog entries (judge/benchmarks.py; the page shows these
 # numbers from the API, never its own copy).
 news:
-  debut_days: 60          # a model released this recently showing up on a board
+  debut_days: 30          # a model released this recently showing up on a board (was 60; Parvathi, 2026-10-28)
   fresh_days: 30          # a value the source itself dates this recently
   mover_points: 1.0       # a score moving this much on the same release
   mover_rating: 10.0      # a rating moving this much
