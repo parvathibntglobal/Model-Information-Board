@@ -373,6 +373,38 @@ def table(conn) -> dict[str, Any]:
 
         return sorted(entries, key=key)
 
+    # Cells the benchmark's own board dropped (PR #581 review): blank, like a
+    # cell never measured, so the page says which board dropped the model, when,
+    # and its last value. From each cell's latest changelog entry.
+    tier_of = _read_tiers()
+    dropped: dict[str, dict[str, dict[str, Any]]] = {}
+    for (
+        row_id,
+        benchmark_key,
+        metric,
+        change_type,
+        old_source,
+        old_raw,
+        old_value,
+        at,
+    ) in conn.execute(
+        "SELECT DISTINCT ON (row_id, benchmark_key, metric) row_id, benchmark_key, metric, "
+        "change_type, old_source, old_raw, old_value, changed_at FROM bench_change "
+        "WHERE benchmark_key IS NOT NULL ORDER BY row_id, benchmark_key, metric, id DESC"
+    ).fetchall():
+        key = f"{benchmark_key}_{metric}"
+        if (
+            change_type == "removed"
+            and tier_of.get(old_source) == 1
+            and key in columns
+            and key not in cells.get(row_id, {})
+        ):
+            dropped.setdefault(row_id, {})[key] = {
+                "source_label": sources.get(old_source, {}).get("label", old_source),
+                "on": _iso(at),
+                "last": shown(old_raw, old_value, metric),
+            }
+
     def model_row(model_id: str, label: str, group: str) -> dict[str, Any]:
         # A setting or dated row with no value is not shown (the run removes
         # such rows too; this keeps the page right between runs).
@@ -383,15 +415,17 @@ def table(conn) -> dict[str, Any]:
                 "setting": setting,
                 "dated": dated,
                 "cells": cells.get(row_id, {}),
+                "dropped": dropped.get(row_id, {}),
             }
             for row_id, setting, label, dated in ordered(settings_by_model.get(model_id, []))
-            if cells.get(row_id)
+            if cells.get(row_id) or dropped.get(row_id)
         ]
         return {
             "row_id": model_id,
             "label": label,
             "group": group,
             "cells": cells.get(model_id, {}),
+            "dropped": dropped.get(model_id, {}),
             "children": children,
         }
 
@@ -404,7 +438,13 @@ def table(conn) -> dict[str, Any]:
         if model_id in tracked_ids:
             continue
         row = model_row(model_id, label, "registry")
-        if row["cells"] or any(child["cells"] for child in row["children"]):
+        # Shown while it has a value, or a value its board dropped: the drop
+        # is what the reader should see (PR #581 review).
+        if (
+            row["cells"]
+            or row["dropped"]
+            or any(child["cells"] or child["dropped"] for child in row["children"])
+        ):
             out_rows.append(row)
 
     filled = sum(len(c) for c in cells.values())

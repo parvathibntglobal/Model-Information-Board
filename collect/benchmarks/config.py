@@ -407,8 +407,9 @@ def load(directory: Path = CONFIG_DIR) -> Config:
     ):
         if required not in settings_raw:
             problems.append(f"module_settings.yaml: missing {required}")
-    if not isinstance(raw["validation.yaml"].get("percent_scale_check_min_values"), int):
-        problems.append("validation.yaml: percent_scale_check_min_values must be a whole number")
+    for whole in ("percent_scale_check_min_values", "board_drop_hold_above"):
+        if not isinstance(raw["validation.yaml"].get(whole), int):
+            problems.append(f"validation.yaml: {whole} must be a whole number")
 
     if problems:
         raise ConfigError(problems)

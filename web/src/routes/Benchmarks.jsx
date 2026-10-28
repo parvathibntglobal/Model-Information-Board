@@ -77,12 +77,32 @@ function cellTitle(cell, column) {
   return lines.join('\n')
 }
 
-function Cell({ cell, column }) {
+// A rank whose board is not the source of the score beside it (GPQA: the score
+// from Artificial Analysis, the rank from Vals' board) - dimmed and tagged, so
+// "#4" is not read as that score's place (PR #581 review).
+const boardName = (rankBoard) => (rankBoard || '').split('/')[0]
+
+function Cell({ cell, column, dropped, scoreCell }) {
+  if (!cell && dropped) {
+    // The benchmark's own board no longer lists the model: blank, but not
+    // "never measured" (PR #581 review).
+    return (
+      <td className="bm-c bm-empty bm-dropped"
+          title={`Dropped from ${dropped.source_label} on ${fmtWhen(dropped.on)} - the board no longer lists this model. Last value: ${dropped.last}`}>
+        dropped
+      </td>
+    )
+  }
   if (!cell) return <td className="bm-c bm-empty" title={cellTitle(null, column)}>—</td>
   const recent = ['new', 'source', 'changed'].find((b) => cell.badges?.includes(b)) || null
+  const otherBoard = column.metric === 'rank' && scoreCell && scoreCell.source !== cell.source
+  const title = otherBoard
+    ? `${cellTitle(cell, column)}\n\nThis rank is on ${cell.rank_board}; the score in this row is from ${scoreCell.source_label}, so it is not that score's place.`
+    : cellTitle(cell, column)
   return (
-    <td className={`bm-c${cell.needs_review ? ' bm-flag' : ''}`} title={cellTitle(cell, column)}>
+    <td className={`bm-c${cell.needs_review ? ' bm-flag' : ''}${otherBoard ? ' bm-otherboard' : ''}`} title={title}>
       <a href={cell.url} target="_blank" rel="noreferrer noopener nofollow" className="bm-v">{cell.display}</a>
+      {otherBoard && <span className="bm-boardtag">{boardName(cell.rank_board)}</span>}
       {recent && (
         <span className={`bm-badge bm-${recent}${cell.direction ? ` bm-${cell.direction}` : ''}`}>
           {recent === 'new' ? 'new' : recent === 'source' ? 'source' : cell.direction === 'better' ? '▲' : cell.direction === 'worse' ? '▼' : '•'}
@@ -479,12 +499,14 @@ function BenchTable({ data }) {
                         <span>{row.label}</span>
                         {row.children.length > 0 && <span className="bm-n">{row.children.length}</span>}
                       </th>
-                      {columns.map((c) => <Cell key={c.key} cell={row.cells[c.key]} column={c} />)}
+                      {columns.map((c) => <Cell key={c.key} cell={row.cells[c.key]} column={c}
+                        dropped={row.dropped?.[c.key]} scoreCell={row.cells[`${c.benchmark}_score`]} />)}
                     </tr>
                     {open && row.children.map((child) => (
                       <tr key={child.row_id} className="bm-row bm-child">
                         <th scope="row" className="bm-model bm-setting">{child.dated ? child.label : `(${child.setting})`}</th>
-                        {columns.map((c) => <Cell key={c.key} cell={child.cells[c.key]} column={c} />)}
+                        {columns.map((c) => <Cell key={c.key} cell={child.cells[c.key]} column={c}
+                          dropped={child.dropped?.[c.key]} scoreCell={child.cells[`${c.benchmark}_score`]} />)}
                       </tr>
                     ))}
                   </Fragment>

@@ -945,6 +945,48 @@ class TestMerge:
         d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")]
         assert d.cell.source_key == "json_fixture"
 
+    def _held(self, config, gone_rows, listed_rows, reads=()):
+        """Run.held_drops on its own: a board that no longer lists `gone_rows`
+        and does list `listed_rows`; `reads` are its previous reports."""
+        import io as _io
+
+        from collect.benchmarks import runner
+        from collect.benchmarks.console import Console
+
+        run = runner.Run.__new__(runner.Run)
+        run.config, run.conn, run.reviews = config, None, []
+        run.c = Console(verbosity="quiet", log_path=None, stream=_io.StringIO())
+        original = store.recent_source_reads
+        store.recent_source_reads = lambda conn, key, n: list(reads)[:n]
+        try:
+            result = runner.SourceResult(key="livebench_leaderboard", method="browser")
+            result.new = [_obs("livebench_leaderboard", 1.0, row=r) for r in listed_rows]
+            gone = [_obs("livebench_leaderboard", 1.0, row=r) for r in gone_rows]
+            return run.held_drops(result, gone), run.reviews, result
+        finally:
+            store.recent_source_reads = original
+
+    def test_a_board_drop_that_looks_like_a_rename_is_held(self, config):
+        # PR #581 review: "GPT-5.2" -> "GPT-5.2 (high)" makes the old row look
+        # dropped. The model is still on the board, so its value is held.
+        held, reviews, result = self._held(config, ["openai/gpt-5.2"], ["openai/gpt-5.2:high"])
+        assert held == {"openai/gpt-5.2"} and result.held_drops == ["openai/gpt-5.2"]
+        assert reviews[0]["check"] == "suspected_board_rename"
+
+    def test_many_drops_at_once_are_held_and_one_real_drop_is_not(self, config):
+        many = [f"lab/m-{i}" for i in range(4)]  # more than board_drop_hold_above (3)
+        held, reviews, _ = self._held(config, many, ["lab/m-9"])
+        assert held == set(many) and reviews
+        held, reviews, _ = self._held(config, ["lab/m-0"], ["lab/m-9"])
+        assert held == set() and not reviews  # one model gone: a real drop
+
+    def test_a_held_drop_still_gone_on_three_reads_is_taken(self, config):
+        before = [{"held_drops": ["openai/gpt-5.2"]}] * 2  # stable_reads 3: two before this
+        held, reviews, _ = self._held(
+            config, ["openai/gpt-5.2"], ["openai/gpt-5.2:high"], reads=before
+        )
+        assert held == set() and not reviews
+
     def test_a_model_the_board_dropped_is_blank_not_a_lower_tiers_value(self, config):
         # Parvathi, 2026-10-28: the benchmark's own board has the final word. A
         # model it listed and no longer lists is blank - a retired model is news
@@ -2195,6 +2237,28 @@ class TestNewsWorthy:
         assert page.news_rules()["debut_days"] == 30  # was 60 (Parvathi, 2026-10-28)
         assert self._tag(row_id="lab/new:max", changed_at="2026-11-09T10:00:00+00:00") == "debut"
         assert self._tag(row_id="lab/new:max", changed_at="2026-11-12T10:00:00+00:00") is None
+
+    def test_a_dropped_cell_says_so_in_the_table(self, conn, monkeypatch):
+        # PR #581 review: a dropped cell is blank like one never measured; the
+        # table says which board dropped it, when, and its last value.
+        from judge import benchmarks as page
+
+        monkeypatch.setattr(page, "_seeds", lambda: [{"id": s.id, "name": s.name} for s in SEEDS])
+        _run(conn, PAGES)
+        run_id = conn.execute("SELECT max(id) FROM bench_run").fetchone()[0]
+        for source in ("livebench_leaderboard", "vals_gpqa"):  # tier 1, then tier 2
+            bench = "livebench" if source == "livebench_leaderboard" else "gpqa_diamond"
+            conn.execute(
+                "INSERT INTO bench_change (run_id, row_id, benchmark_key, metric, change_type, "
+                "old_value, old_raw, old_source, reason, actor) "
+                "VALUES (%s, 'openai/gpt-6-astra', %s, 'score', 'removed', 80.0, '80.0', %s, "
+                "'manual_run', 't')",
+                (run_id, bench, source),
+            )
+        astra = next(r for r in page.table(conn)["rows"] if r["row_id"] == "openai/gpt-6-astra")
+        mark = astra["dropped"]["livebench_score"]
+        assert mark["source_label"] == "LiveBench" and mark["last"] == "80" and mark["on"]
+        assert "gpqa_diamond_score" not in astra["dropped"]  # a lower tier: not the board's word
 
     def test_a_model_dropped_by_the_benchmarks_own_board_is_news(self):
         # 2026-10-28: the cell goes blank, and that is often a retired model.

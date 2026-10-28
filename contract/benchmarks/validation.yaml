@@ -35,3 +35,9 @@ mass_disappearance: 0.8              # fewer than 80% of the last taken read's v
 # gives at least this many, is a fraction read as a percent -> blocked (runner.py
 # _percent_read_as_fraction; PR #580 review). Fewer values prove nothing.
 percent_scale_check_min_values: 5
+# A tier-1 board dropping more than this many models in one read is held - its
+# values kept and a review item raised - rather than blanking that many cells:
+# more likely a rename or a reshuffle than that many retirements (runner.py
+# held_drops; PR #581 review). Held drops still gone on `structure.stable_reads`
+# reads in a row are taken as real.
+board_drop_hold_above: 3
