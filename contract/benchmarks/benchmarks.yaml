@@ -48,6 +48,12 @@ benchmarks:
   - { key: arc_agi_2,     label: "ARC-AGI-2",     category: knowledge, order: 6,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] }, duplicates: match_variant }
+  # ARC-AGI-3, the same board's newest set (added 2026-10-28). The board gives
+  # two results a cell - "Standard" and "Provider Adapter"; this column is the
+  # Standard one only (sources.yaml arc_prize, `labelled: Standard`).
+  - { key: arc_agi_3,     label: "ARC-AGI-3",     category: knowledge, order: 7,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
 
   # ── coding ───────────────────────────────────────────────────────────────
   # The column means "the model in the standard harness": the official board's
@@ -115,4 +121,14 @@ benchmarks:
   # ── general ──────────────────────────────────────────────────────────────
   - { key: livebench, label: "LiveBench (Overall)", category: general, order: 1,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # Mercor's AI Productivity Index, APEX-1: single-turn professional tasks
+  # (banking, consulting, law, medicine), its "Mean Score". Added 2026-10-28.
+  - { key: apex_1, label: "APEX-1", category: general, order: 2,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # Vals AI's own index across its finance, coding, legal and tax benchmarks
+  # (its "Accuracy"). Added 2026-10-28.
+  - { key: vals_index, label: "Vals Index", category: general, order: 3,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] }, duplicates: match_variant }

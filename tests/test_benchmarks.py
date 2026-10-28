@@ -27,7 +27,7 @@ from collect.benchmarks.fetch import Fetched
 from collect.benchmarks.host_adapter import SeedModel
 from collect.benchmarks.match import Resolver, normalize_name
 from collect.benchmarks.merge import dedupe_source, merge
-from collect.benchmarks.parse import parse
+from collect.benchmarks.parse import flatten, labelled_part, parse
 from collect.benchmarks.runner import run
 from collect.benchmarks.store import StoredCell, StoredObservation
 from collect.benchmarks.values import parse_rank, parse_score
@@ -495,6 +495,119 @@ MMLU_PRO = (
 )
 
 
+class TestNewColumns:
+    """ARC-AGI-3, APEX-1, the Vals Index and Terminal-Bench's own board
+    (2026-10-28), each read from a small copy of its page's real data shape."""
+
+    def test_nested_fields_and_list_items_are_named_by_a_path(self):
+        record = {
+            "model": {"modelName": "GPT-6 Astra", "effort": "xhigh"},
+            "passScores": [
+                {"pass": "pass-1", "score": 19.9},
+                {"pass": "mean-score", "score": 69.3},
+            ],
+        }
+        flat = flatten(record)
+        assert flat["model.modelName"] == "GPT-6 Astra" and flat["model.effort"] == "xhigh"
+        assert flat["passScores[pass=mean-score].score"] == 69.3
+        assert flat["passScores[pass=pass-1].score"] == 19.9
+        assert flat["model"] is record["model"]  # the record's own keys stay as they were
+
+    @pytest.mark.parametrize(
+        ("cell", "part"),
+        [
+            (
+                "52.7%, $7.6K (Standard) · 96.2%, $3.8K (Provider Adapter)",
+                "52.7%, $7.6K (Standard)",
+            ),
+            ("49.8%, $5.8K (Standard)", "49.8%, $5.8K (Standard)"),
+            ("97.3%, $4.6K (Provider Adapter)", ""),  # no Standard result: no value
+            ("N/A", ""),
+        ],
+    )
+    def test_only_the_labelled_part_of_a_cell_is_read(self, cell, part):
+        assert labelled_part(cell, "Standard") == part
+
+    def test_terminal_bench_reads_its_own_boards_page_data(self, config):
+        record = {
+            "id": "7b805dbb",
+            "leaderboard_id": "9f96",
+            "rank": 1,
+            "metadata": {
+                "date": "2026-09-22",
+                "agent_display": {"label": "Claude Code"},
+                "model_display": {"label": "Opus 5.5"},
+                "reasoning_effort": "max",
+            },
+            "metrics": {"accuracy": 64.85, "display_accuracy": "**64.8%** ± 3.1%"},
+            "status": "display",
+        }
+        # compact, as the page writes it ('{"id":"...'), inside the push() string
+        flight = json.dumps(json.dumps({"rows": [record]}, separators=(",", ":")))[1:-1]
+        page = f'<script>self.__next_f.push([1,"{flight}"])</script>'.encode()
+        parsed = parse(config.source("tbench_leaderboard"), page, url="https://www.tbench.ai/")
+        assert not parsed.problems
+        (o,) = parsed.observations
+        assert (o.raw_model_name, o.raw_setting, o.variant) == ("Opus 5.5", "max", "Claude Code")
+        assert (o.benchmark, o.raw_text, o.collected_on) == (
+            "terminal_bench_4",
+            "64.85",
+            "2026-09-22",
+        )
+
+    def test_apex_reads_the_mean_score_of_the_global_leaderboard(self, config):
+        data = {
+            "props": {
+                "pageProps": {
+                    "benchmark": {
+                        "globalLeaderboard": [
+                            {
+                                "model": {"modelName": "GPT-6 Astra", "effort": "xhigh"},
+                                "passScores": [
+                                    {"pass": "pass-1", "score": 19.9},
+                                    {"pass": "mean-score", "score": 69.3},
+                                ],
+                            }
+                        ]
+                    },
+                    # a per-domain score elsewhere on the page is not read
+                    "domains": [{"scores": [{"value": 78.1}]}],
+                }
+            }
+        }
+        page = (
+            '<script id="__NEXT_DATA__" type="application/json">' + json.dumps(data) + "</script>"
+        ).encode()
+        parsed = parse(config.source("mercor_apex"), page, url="https://www.mercor.com/")
+        assert not parsed.problems
+        (o,) = parsed.observations
+        assert (o.raw_model_name, o.raw_setting, o.benchmark, o.raw_text) == (
+            "GPT-6 Astra",
+            "xhigh",
+            "apex_1",
+            "69.3",
+        )
+
+    def test_arc_agi_3_takes_the_standard_result_only(self, config):
+        page = (
+            "<table><tr><th>AI System</th><th>Release Date</th><th>ARC-AGI-1</th>"
+            "<th>ARC-AGI-2</th><th>ARC-AGI-3</th></tr>"
+            "<tr><td>GPT-6.1 Sol (Max)</td><td>2026-09-29</td><td>96.5%, $0.095/task</td>"
+            "<td>94.2%, $0.254/task</td>"
+            "<td>52.7%, $7.6K (Standard) · 96.2%, $3.8K (Provider Adapter)</td></tr>"
+            "<tr><td>Gemini 4 Argon (High)</td><td>2026-10-13</td><td>98.5%, $0.162/task</td>"
+            "<td>91.3%, $0.325/task</td><td>97.3%, $4.6K (Provider Adapter)</td></tr></table>"
+        ).encode()
+        parsed = parse(config.source("arc_prize"), page, url="https://arcprize.org/leaderboard")
+        arc3 = {
+            o.raw_model_name: o.raw_text for o in parsed.observations if o.benchmark == "arc_agi_3"
+        }
+        assert arc3["GPT-6.1 Sol (Max)"] == "52.7%, $7.6K (Standard)"
+        assert parse_score(arc3["GPT-6.1 Sol (Max)"], "percent").value == 52.7
+        assert arc3["Gemini 4 Argon (High)"] == ""  # Provider Adapter only: no value
+        assert parse_score(arc3["Gemini 4 Argon (High)"], "percent").empty
+
+
 class TestParse:
     def test_next_flight_reads_the_pages_own_model_objects_once_each(self, config):
         astra = {
@@ -582,9 +695,10 @@ class TestParse:
     def test_arc_cells_keep_their_raw_text_and_score_the_percent_number(self, config):
         page = (
             b"<html><body>" + b"x" * 3000 + b"<table><tr><th>AI System</th><th>Release Date</th>"
-            b"<th>ARC-AGI-1</th><th>ARC-AGI-2</th></tr>"
+            b"<th>ARC-AGI-1</th><th>ARC-AGI-2</th><th>ARC-AGI-3</th></tr>"
             b"<tr><td>GPT-6.1 Sol (Max)</td><td>2026-09-29</td>"
-            b"<td>96.5%, $0.095/task</td><td>94.2%, $0.254/task</td></tr></table></body></html>"
+            b"<td>96.5%, $0.095/task</td><td>94.2%, $0.254/task</td><td>N/A</td></tr>"
+            b"</table></body></html>"
         )
         parsed = parse(config.source("arc_prize"), page, url="u")
         arc2 = next(o for o in parsed.observations if o.benchmark == "arc_agi_2")

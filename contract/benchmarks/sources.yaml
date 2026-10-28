@@ -112,13 +112,16 @@ sources:
     tables:
       # One row per system, the setting in brackets ("GPT-6.1 Sol (Max)"). A cell
       # holds score and cost per task together ("93.5%, $0.065/task"); the raw
-      # text is shown as printed, the first number is the score. ARC-AGI-3 is a
-      # different scoring (with a cost budget) and is not mapped. Added 2026-10-23.
+      # text is shown as printed, the first number is the score. Added 2026-10-23.
+      # ARC-AGI-3 (2026-10-28): its cell holds two results, "52.7%, $7.6K
+      # (Standard) · 96.2%, $3.8K (Provider Adapter)"; only the Standard one is
+      # read (`labelled`), and a cell without it has no ARC-AGI-3 value.
       - locate: { type: html_table, must_contain: "ARC-AGI-2" }
         model_column: "AI System"
         benchmark_map:
           "ARC-AGI-1": { benchmark: arc_agi_1, metric: score, scale: percent }
           "ARC-AGI-2": { benchmark: arc_agi_2, metric: score, scale: percent }
+          "ARC-AGI-3": { benchmark: arc_agi_3, metric: score, scale: percent, labelled: Standard }
 
   - key: scale_swe_bench_pro
     label: "SWE-Bench Pro (Scale AI board)"
@@ -144,6 +147,30 @@ sources:
           score: { benchmark: swe_bench_pro, metric: score, scale: percent }
           rank:  { benchmark: swe_bench_pro, metric: rank }
         rank_board: "scale/swe-bench-pro-full"
+
+  - key: tbench_leaderboard
+    label: "Terminal-Bench leaderboard"
+    kind: leaderboard
+    tier: 1
+    tier_note: "Terminal-Bench's own leaderboard (tbench.ai); its page data calls it the official leaderboard for Terminal-Bench 4.0."
+    priority: 80
+    enabled: true
+    method: static
+    url: https://www.tbench.ai/
+    license: "Not stated on the page."
+    attribution: "Terminal-Bench, tbench.ai"
+    tables:
+      # The page carries its board in its Next.js data: one record per
+      # submission, the model, its reasoning effort and the agent it ran in
+      # (Claude Code, Codex, mini-SWE-agent, ...), recorded as the test setup.
+      # Checked 2026-10-28: 35 records, all on the 4.0 board.
+      - locate: { type: next_flight, object_start: '{"id":"', required_keys: [id, leaderboard_id, rank, metadata, metrics], unique_key: id }
+        model_field: "metadata.model_display.label"
+        setting_field: "metadata.reasoning_effort"
+        variant_field: "metadata.agent_display.label"
+        date_field: "metadata.date"
+        benchmark_map:
+          "metrics.accuracy": { benchmark: terminal_bench_4, metric: score, scale: percent }
 
   - key: livebench_leaderboard
     label: "LiveBench"
@@ -486,3 +513,44 @@ sources:
         model_field: shortName
         benchmark_map:
           scicode: { benchmark: scicode, metric: score, scale: fraction }
+
+  - key: mercor_apex
+    label: "Mercor · APEX-1"
+    kind: leaderboard
+    tier: 1
+    tier_note: "Mercor's own leaderboard for APEX-1, its benchmark (mercor.com)."
+    priority: 80
+    enabled: true
+    method: static
+    url: https://www.mercor.com/apex/apex-v1-leaderboard/
+    license: "Not stated on the page."
+    attribution: "Mercor, AI Productivity Index (APEX-1), mercor.com"
+    tables:
+      # The page's own data (<script id="__NEXT_DATA__">): one entry per model
+      # and effort in the global leaderboard. Each entry's passScores list holds
+      # the "mean-score" pass, the only one the page offers - its headline score.
+      # Per-job-domain scores elsewhere on the page are not read. Added 2026-10-28.
+      - locate: { type: embedded_json, script_id: __NEXT_DATA__, records: props.pageProps.benchmark.globalLeaderboard }
+        model_field: "model.modelName"
+        setting_field: "model.effort"
+        benchmark_map:
+          "passScores[pass=mean-score].score": { benchmark: apex_1, metric: score, scale: percent }
+
+  - key: vals_index
+    label: "Vals AI · Vals Index"
+    kind: leaderboard
+    tier: 1
+    tier_note: "Vals AI's own index; Vals AI made it."
+    priority: 80
+    enabled: true
+    method: static
+    url: https://www.vals.ai/benchmarks/vals_index
+    license: "Not stated on the page."
+    attribution: "Vals AI, vals.ai"
+    tables:
+      # The leaderboard table (the page's second table is the per-area breakdown
+      # and is not read). Added 2026-10-28.
+      - locate: { type: html_table, must_contain: "Accuracy" }
+        model_column: "Model"
+        benchmark_map:
+          "Accuracy": { benchmark: vals_index, metric: score, scale: percent }
