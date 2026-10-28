@@ -31,12 +31,11 @@
 
 version: 1
 
-# A change smaller than this (largest of input and output, in percent) is noise
-# for headline purposes: rounding, a small host difference. Newsworthy needs a
-# cut or rise of at least this, or a move to free.
-min_change_pct: 10
-
-# A cut or a rise of at least this much (largest of input and output) is flagged.
+# A cut or a rise of at least this much (largest of input and output, in
+# percent) is flagged, and is what makes a change newsworthy (with a move to
+# free). Smaller moves are listed but are noise for headlines: rounding, a small
+# host difference. There is no separate minimum: under this rule it would never
+# decide anything (review on #579, 2026-10-28).
 big_change_pct: 20
 
 # A change is SETTLED once it has held this long: no further change for the

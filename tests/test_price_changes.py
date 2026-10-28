@@ -61,7 +61,8 @@ def only(data):
 
 def test_the_contract_is_complete_and_sane():
     r = price_changes.rules()
-    assert 0 < r["min_change_pct"] <= r["big_change_pct"]
+    assert r["big_change_pct"] > 0
+    assert "min_change_pct" not in r
     assert r["wave_min_models"] >= 2
     assert r["unpolled_hours"] >= r["hold_hours"]
 
@@ -69,7 +70,7 @@ def test_the_contract_is_complete_and_sane():
 def test_a_missing_threshold_is_refused_not_defaulted(monkeypatch):
     import judge.config
 
-    monkeypatch.setattr(judge.config, "_read", lambda name: {"min_change_pct": 10})
+    monkeypatch.setattr(judge.config, "_read", lambda name: {"big_change_pct": 20})
     with pytest.raises(price_changes.PriceChangesContractError):
         price_changes.rules()
 

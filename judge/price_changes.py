@@ -30,8 +30,17 @@ defaulted here (rule 12):
     bounced      the model's next change, within `bounce_days`, put it back to
                  the price it had before
 
-    newsworthy   settled, not bounced, still polled, and a cut or rise of at
-                 least `min_change_pct`, or now free
+    newsworthy   settled, not bounced, still polled, and a cut or a rise (so
+                 at least `big_change_pct`), or now free. There is no separate
+                 minimum: one would never decide anything (review on #579).
+
+"LAST POLLED" IS `model_version.updated_at`, read for `unpolled` and as the
+newest poll of any model. The registry poll is not its only writer: the loaders'
+upsert (collect/registry/load.py, `updated_at = now()`) and recompute-window
+(when a model's `in_window` flips) set it too, so a delisted model whose
+`in_window` flipped would look freshly polled. `model_catalog.last_seen_at`
+("the latest poll that listed it", written by the poll alone) is the exact
+signal; moving to it is a follow-up.
 
 A percentage is the plain change between the two observed prices, shown beside
 both of them; a price that was 0 or not stated has none (rule 6).
@@ -58,7 +67,6 @@ def rules() -> dict[str, Any]:
     raw = _read("price_changes.yaml") or {}
     try:
         out = {
-            "min_change_pct": float(raw["min_change_pct"]),
             "big_change_pct": float(raw["big_change_pct"]),
             "hold_hours": float(raw["hold_hours"]),
             "bounce_days": float(raw["bounce_days"]),
@@ -72,8 +80,8 @@ def rules() -> dict[str, Any]:
             f"contract/price_changes.yaml is missing or malformed at {exc}. Every "
             "threshold is required; a defaulted one would flag changes on a number "
             "nobody chose.") from exc
-    if not 0 < out["min_change_pct"] <= out["big_change_pct"]:
-        raise PriceChangesContractError("need 0 < min_change_pct <= big_change_pct")
+    if out["big_change_pct"] <= 0:
+        raise PriceChangesContractError("need big_change_pct > 0")
     if out["hold_hours"] <= 0 or out["bounce_days"] <= 0 or out["wave_min_models"] < 2:
         raise PriceChangesContractError(
             "hold_hours and bounce_days must be positive, wave_min_models at least 2")
@@ -192,10 +200,8 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
             c["wave_size"] = waves[day_of(c)]
 
     for c in out:
-        big = c["largest_pct"] is not None and abs(c["largest_pct"]) >= r["min_change_pct"]
         held = not {"settling", "unpolled", "bounced"} & set(c["flags"])
-        c["newsworthy"] = held and (
-            (big and bool({"cut", "rise"} & set(c["flags"]))) or "free" in c["flags"])
+        c["newsworthy"] = held and bool({"cut", "rise", "free"} & set(c["flags"]))
 
     out.sort(key=lambda c: c["seen_at"], reverse=True)
     return {
