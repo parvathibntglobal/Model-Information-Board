@@ -6,9 +6,11 @@ response is kept in the raw store before anything is parsed, so a parser fix
 reprocesses what was read instead of reading again.
 
 WHAT IS KEPT. What the feed gives: title, link, date, author, categories and
-the summary with its HTML removed, cut to `summary_max_chars`. No article page
-is fetched. A news item is never evidence - nothing here writes a claim, a
-quote or a board entry, and no model reads it.
+a summary written by code from the feed's own words (`feed_summary`), and the
+feed's own picture when it gives one. No article page is fetched: an item whose
+feed has no picture gets a card drawn on the page instead (anooj, 2026-10-28).
+A news item is never evidence - nothing here writes a claim, a quote or a
+board entry, and no model reads it.
 
 A MISSING DATE STAYS MISSING. `published_at` is the source's own date or NULL;
 the time we read it is `first_seen_at`, a different fact (rule 6).
@@ -59,18 +61,28 @@ class Source:
 
 @dataclass(frozen=True)
 class Contract:
-    summary_max_chars: int
+    summary_max_words: int
+    summary_min_words: int
     keywords: re.Pattern
     sources: tuple[Source, ...]
+
+
+def _positive_int(raw: dict, key: str, problems: list[str]) -> int:
+    value = raw.get(key)
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        problems.append(f"{key} must be a positive integer")
+        return 0
+    return value
 
 
 def load_contract(path: Path = CONTRACT) -> Contract:
     """Every value the harvest uses, refused when absent - no defaults here."""
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     problems: list[str] = []
-    cap = raw.get("summary_max_chars")
-    if not isinstance(cap, int) or isinstance(cap, bool) or cap <= 0:
-        problems.append("summary_max_chars must be a positive integer")
+    max_words = _positive_int(raw, "summary_max_words", problems)
+    min_words = _positive_int(raw, "summary_min_words", problems)
+    if max_words and min_words and min_words >= max_words:
+        problems.append("summary_min_words must be below summary_max_words")
     words = raw.get("llm_keywords")
     if not isinstance(words, list) or not words or not all(isinstance(w, str) and w for w in words):
         problems.append("llm_keywords must be a non-empty list of words")
@@ -101,22 +113,108 @@ def load_contract(path: Path = CONTRACT) -> Contract:
         raise NewsContractError("contract/news_sources.yaml: " + "; ".join(problems))
     longest_first = sorted(words, key=len, reverse=True)
     pattern = re.compile(r"\b(" + "|".join(re.escape(w) for w in longest_first) + r")\b", re.I)
-    return Contract(cap, pattern, tuple(sources))
+    return Contract(max_words, min_words, pattern, tuple(sources))
 
 
-# ── parsing ──────────────────────────────────────────────────────────────────
+# ── the summary, written by code ─────────────────────────────────────────────
+#
+# NO MODEL WRITES A SUMMARY (anooj, 2026-10-28: writing our own is too costly).
+# A summary is the source's own words, cut by code: its HTML removed, the
+# boilerplate feeds append dropped, then whole sentences up to
+# `summary_max_words`. A feed whose summary is missing, shorter than
+# `summary_min_words` or only repeats the title falls back to the article
+# content the feed itself carries. Nothing is reworded, and a source that gives
+# neither has no summary - the page shows none rather than an invented one.
 
 _TAGS = re.compile(r"<[^>]+>")
+_BOILERPLATE = [
+    re.compile(r"\bThe post\b.{1,300}?\bappeared first on\b.{1,200}?(?:\.|$)", re.I | re.S),
+    re.compile(r"\b(?:Continue reading|Read more|Read the full (?:story|post|article))\b.*$",
+               re.I | re.S),
+    re.compile(r"\s*(?:\[(?:…|\.\.\.)\]|\[&#8230;\])\s*$"),
+]
+_SENTENCE = re.compile(r"(?<=[.!?…])[\"'”’)]*\s+(?=[\"'“‘(]?[A-Z0-9])")
 
 
-def clean(text: str | None, cap: int) -> str | None:
-    """HTML removed, entities decoded, whitespace collapsed, cut to `cap`. None for empty."""
+def flatten(text: str | None) -> str:
+    """HTML removed, entities decoded, whitespace collapsed."""
     if not text:
-        return None
-    flat = " ".join(html.unescape(_TAGS.sub(" ", text)).split())
+        return ""
+    return " ".join(html.unescape(_TAGS.sub(" ", text)).split())
+
+
+def summarise(text: str | None, max_words: int) -> str | None:
+    """Whole sentences up to `max_words`; a first sentence longer than that is cut
+    at a word and ends with an ellipsis. None when nothing is left."""
+    flat = flatten(text)
+    for pattern in _BOILERPLATE:
+        flat = pattern.sub("", flat).strip()
     if not flat:
         return None
-    return flat if len(flat) <= cap else flat[: cap - 1].rstrip() + "…"
+    kept: list[str] = []
+    count = 0
+    for sentence in _SENTENCE.split(flat):
+        words = sentence.split()
+        if count + len(words) > max_words:
+            if not kept:
+                return " ".join(words[:max_words]).rstrip(",;:-") + "…"
+            break
+        kept.append(sentence)
+        count += len(words)
+    return " ".join(kept) or None
+
+
+def _same_as_title(summary: str | None, title: str) -> bool:
+    norm = lambda s: re.sub(r"\W+", " ", s or "").strip().lower()  # noqa: E731
+    return bool(summary) and norm(summary) in (norm(title), "")
+
+
+def feed_summary(summary_html: str | None, content_html: str | None, title: str,
+                 contract: Contract) -> str | None:
+    """The feed's summary, or its article content when the summary is too thin.
+
+    BELOW `summary_min_words` IT IS NOT A SUMMARY. Google Research's feed puts a
+    topic label where the summary goes ("Generative AI", "Health & Bioscience":
+    130 of 1,824 items under 8 words, 2026-10-28). Shown under a headline, a
+    label reads as the story's gist, so with nothing longer to fall back on the
+    item has no summary (rule 12: a stand-in that looks right is worse than none)."""
+    enough = lambda s: bool(s) and len(s.split()) >= contract.summary_min_words  # noqa: E731
+    first = summarise(summary_html, contract.summary_max_words)
+    if enough(first) and not _same_as_title(first, title):
+        return first
+    fallback = summarise(content_html, contract.summary_max_words)
+    if enough(fallback) and not _same_as_title(fallback, title):
+        return fallback
+    return None
+
+
+_MD_LINK = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
+_MD_NOISE = re.compile(r"[*_`>#]+")
+_URL = re.compile(r"https?://\S+")
+
+
+def release_summary(body: str | None, max_words: int) -> str | None:
+    """Release notes are markdown: the first changes listed, joined, up to
+    `max_words`. Headings ("What's Changed") and bare links are dropped."""
+    if not body:
+        return None
+    points = []
+    for line in body.splitlines():
+        line = line.strip()
+        if (not line or line.startswith("#")
+                or line.lower().startswith(("full changelog", "**full"))):
+            continue
+        # Release notes mix HTML into the markdown (<details>, <summary>).
+        line = _URL.sub("", _MD_LINK.sub(r"\1", _TAGS.sub(" ", line)))
+        # The "by @user in #123" credit, before `#` and `@` are stripped as noise.
+        line = re.sub(r"\s+by\s+@[\w-]+(?:\s+in\s+\S*)?\s*$", "", line)
+        line = _MD_NOISE.sub("", line)
+        line = re.sub(r"^[-+]\s*|^\d+\.\s*", "", line).strip(" -:")
+        if len(line.split()) >= 2:
+            points.append(line.rstrip("."))
+    if not points:
+        return None
+    return summarise("; ".join(points) + ".", max_words)
 
 
 def matched_keywords(pattern: re.Pattern, *texts: str | None) -> list[str]:
@@ -138,10 +236,10 @@ def parse_feed(body: bytes, contract: Contract, *, feed_url: str | None = None,
         title = " ".join((e.title or "").split())
         if not e.url or not title:
             continue
-        summary = clean(e.summary_html, contract.summary_max_chars)
+        summary = feed_summary(e.summary_html, e.content_html, title, contract)
         items.append({
             "url": e.url, "title": title, "published_at": e.published_at, "summary": summary,
-            "author": e.author, "categories": list(e.categories),
+            "author": e.author, "categories": list(e.categories), "image_url": e.image_url,
             "llm_keywords": matched_keywords(contract.keywords, title, summary),
         })
     return items
@@ -157,11 +255,11 @@ def parse_github_releases(data: Any, contract: Contract) -> list[dict[str, Any]]
             continue
         title = (r.get("name") or "").strip() or r.get("tag_name") or ""
         when = r.get("published_at")
-        summary = clean(r.get("body"), contract.summary_max_chars)
+        summary = release_summary(r.get("body"), contract.summary_max_words)
         items.append({
             "url": r["html_url"], "title": title,
             "published_at": datetime.fromisoformat(when.replace("Z", "+00:00")) if when else None,
-            "summary": summary, "author": (r.get("author") or {}).get("login"),
+            "summary": summary, "author": (r.get("author") or {}).get("login"), "image_url": None,
             "categories": ["pre-release"] if r.get("prerelease") else [],
             "llm_keywords": matched_keywords(contract.keywords, title, summary),
             "tag": r.get("tag_name"),
@@ -199,7 +297,10 @@ def fold_daily(items: list[dict[str, Any]], source: Source, *,
                  if n > 1 or floor else f"{source.label}: {names[1]}")
         out.append({
             "url": newest["url"], "title": title, "published_at": newest["published_at"],
-            "summary": None, "author": None, "categories": [],
+            # NO SUMMARY FOR A DAY OF BUILDS. llama.cpp's notes are a list of the
+            # files each build ships ("macOS Apple Silicon (arm64)..."), which as
+            # a summary says nothing; the title says how many builds there were.
+            "summary": None, "author": None, "categories": [], "image_url": None,
             "llm_keywords": sorted({k for it in group for k in it["llm_keywords"]}),
             "daily_day": day, "daily_count": n,
         })
@@ -210,11 +311,11 @@ def fold_daily(items: list[dict[str, Any]], source: Source, *,
 
 _INSERT = """
 INSERT INTO news_item (id, source_key, url, title, published_at, summary, author, categories,
-                       llm_keywords, daily_count, raw_ref, first_seen_at, updated_at,
+                       image_url, llm_keywords, daily_count, raw_ref, first_seen_at, updated_at,
                        pipeline_version)
 VALUES (%(id)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s, %(author)s,
-        %(categories)s, %(llm_keywords)s, %(daily_count)s, %(raw_ref)s, %(now)s, %(now)s,
-        %(pipeline_version)s)
+        %(categories)s, %(image_url)s, %(llm_keywords)s, %(daily_count)s, %(raw_ref)s, %(now)s,
+        %(now)s, %(pipeline_version)s)
 ON CONFLICT (id) DO NOTHING
 RETURNING id
 """
@@ -223,14 +324,15 @@ RETURNING id
 # fewer of the day's items (the API lists the newest 30) leaves it as it was.
 _UPSERT_DAILY = """
 INSERT INTO news_item (id, source_key, url, title, published_at, summary, author, categories,
-                       llm_keywords, daily_count, raw_ref, first_seen_at, updated_at,
+                       image_url, llm_keywords, daily_count, raw_ref, first_seen_at, updated_at,
                        pipeline_version)
 VALUES (%(id)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s, %(author)s,
-        %(categories)s, %(llm_keywords)s, %(daily_count)s, %(raw_ref)s, %(now)s, %(now)s,
-        %(pipeline_version)s)
+        %(categories)s, %(image_url)s, %(llm_keywords)s, %(daily_count)s, %(raw_ref)s, %(now)s,
+        %(now)s, %(pipeline_version)s)
 ON CONFLICT (id) DO UPDATE SET
   url = EXCLUDED.url, title = EXCLUDED.title, published_at = EXCLUDED.published_at,
-  llm_keywords = EXCLUDED.llm_keywords, daily_count = EXCLUDED.daily_count,
+  summary = EXCLUDED.summary, llm_keywords = EXCLUDED.llm_keywords,
+  daily_count = EXCLUDED.daily_count,
   raw_ref = EXCLUDED.raw_ref, updated_at = EXCLUDED.updated_at,
   pipeline_version = EXCLUDED.pipeline_version
 WHERE news_item.daily_count < EXCLUDED.daily_count
@@ -250,7 +352,8 @@ def write_items(conn, source: Source, items: list[dict[str, Any]], raw_ref: str,
                    else stable_id("news", it["url"])),
             "source_key": source.key, "url": it["url"], "title": it["title"],
             "published_at": it["published_at"], "summary": it["summary"], "author": it["author"],
-            "categories": it["categories"], "llm_keywords": it["llm_keywords"],
+            "categories": it["categories"], "image_url": it.get("image_url"),
+            "llm_keywords": it["llm_keywords"],
             "daily_count": it.get("daily_count"), "raw_ref": raw_ref, "now": now,
             "pipeline_version": version,
         }

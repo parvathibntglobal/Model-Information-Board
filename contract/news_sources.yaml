@@ -1,4 +1,5 @@
-# Fresh AI news for Admin -> News (signed in only).
+# Fresh AI news for the News page, /news (signed in only; not in Admin - anooj,
+# 2026-10-28).
 #
 # ⚠ PROPOSED 2026-10-28 by anooj, on branch feat/admin-news - NOT RATIFIED.
 #   Needs the second reviewer like every change under contract/.
@@ -22,10 +23,20 @@ status: proposed
 proposed_on: 2026-10-28
 proposed_by: anooj
 
-# Kept from each item: title, link, date, author, categories, and the source's
-# own summary with its HTML removed, cut to this many characters. No article
-# page is ever fetched; what the feed gives is all we keep.
-summary_max_chars: 600
+# THE SUMMARY IS WRITTEN BY CODE, NEVER BY A MODEL (anooj, 2026-10-28). It is
+# the source's own words: HTML and feed boilerplate removed, then whole
+# sentences up to `summary_max_words`. A feed summary shorter than
+# `summary_min_words`, or one that only repeats the title, gives way to the
+# article content the feed itself carries. A source that gives neither has no
+# summary; nothing is invented (collect/news/harvest.py `feed_summary`).
+summary_max_words: 50
+summary_min_words: 8
+
+# THE PICTURE is the feed's own, when it gives one (Media RSS, an image
+# enclosure, or the first <img> in the item). No article page is ever fetched
+# for one: an item without a picture gets a card drawn on the page naming its
+# source (anooj, 2026-10-28). Measured 2026-10-28: TechCrunch,
+# AIWire, OpenAI, OpenRouter, Mistral, TLDR AI and the release feeds give none.
 
 # THE LLM BADGE. An item whose title or summary contains one of these words
 # (whole words, any case) carries the words it matched. It is a badge the page
@@ -37,7 +48,7 @@ llm_keywords: [llm, llms, "language model", "language models", gpt, chatgpt, cla
                inference, token, tokens, agent, agents, agentic, transformer, rag,
                embedding, embeddings, "open weights", "open-weight"]
 
-# What the Admin page shows by default, and the longest window it may ask for.
+# What the News page shows by default, and the longest window it may ask for.
 page:
   default_days: 7
   max_days: 30

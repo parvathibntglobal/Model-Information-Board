@@ -1,4 +1,5 @@
--- Fresh AI news for Admin -> News. 2026-10-28. contract/news_sources.yaml.
+-- Fresh AI news for the News page (/news, signed in). 2026-10-28.
+-- contract/news_sources.yaml.
 --
 -- Headlines with a link, from the feeds that file lists. Nothing in the
 -- evidence pipeline reads these tables and no model call writes them: a news
@@ -7,7 +8,7 @@
 -- WHO WRITES: collect/news/harvest.py:harvest, from
 -- `python -m collect.cli news harvest` (every 6 hours once switched on,
 -- .github/workflows/news-harvest.yml).
--- WHO READS: judge/news.py:news_view, for GET /admin/news.
+-- WHO READS: judge/news.py:news_view, for GET /news.
 --
 -- news_item, ONE ROW PER ITEM, APPEND-ONLY - except a `daily` source's entry,
 -- which is one row per source and UTC day and is updated as that day's items
@@ -17,13 +18,16 @@
 --   source_key    contract/news_sources.yaml `key`
 --   url           the item's own link; a daily entry links its newest item
 --   title         as the source gives it; a daily entry's is composed
---                 ("15 builds on 2026-10-28: b11937 - b11951")
+--                 ("llama.cpp: 18 releases on 2026-10-27 (b11913 - b11938)")
 --   published_at  the source's own date. NULL when it gives none - never the
 --                 time we saw it (rule 6); the page says "date not given"
---   summary       the source's summary, HTML removed, cut to
---                 `summary_max_chars`. NULL when it gives none
+--   summary       written by code from the source's own words: whole
+--                 sentences up to `summary_max_words` (harvest.py
+--                 `feed_summary`). NULL when the source gives nothing to cut
 --   author        as given; NULL when not given
 --   categories    as given; empty when none
+--   image_url     the feed's own picture (https only); NULL when it gives none -
+--                 the page then draws a card. Never fetched by us
 --   llm_keywords  the contract's `llm_keywords` this item matched; empty when
 --                 none. A badge, never a default filter (rule 8)
 --   daily_count   a daily entry: how many items it stands for. NULL otherwise
@@ -52,13 +56,15 @@ CREATE TABLE news_item (
   summary           text,
   author            text,
   categories        text[] NOT NULL DEFAULT '{}',
+  image_url         text,
   llm_keywords      text[] NOT NULL DEFAULT '{}',
   daily_count       integer,
   raw_ref           text NOT NULL,
   first_seen_at     timestamptz NOT NULL,
   updated_at        timestamptz NOT NULL,
   pipeline_version  text NOT NULL,
-  CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0)
+  CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0),
+  CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%')
 );
 CREATE INDEX news_item_published_idx ON news_item (published_at DESC);
 CREATE INDEX news_item_seen_idx ON news_item (first_seen_at DESC);

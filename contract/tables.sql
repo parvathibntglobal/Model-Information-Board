@@ -2264,7 +2264,7 @@ CREATE TABLE IF NOT EXISTS feed_summary_attempt (
 
 CREATE INDEX IF NOT EXISTS feed_summary_attempt_model_idx ON feed_summary_attempt (model_version_id, attempted_at DESC);
 
--- Fresh AI news for Admin -> News (2026-10-28, contract/news_sources.yaml;
+-- Fresh AI news for the News page, /news (2026-10-28, contract/news_sources.yaml;
 -- migrations/20261028T1200_news_item.sql says what each column means).
 -- WHO WRITES: collect/news/harvest.py. WHO READS: judge/news.py.
 -- Never evidence: no claim, quote or board entry is made from a news item.
@@ -2277,13 +2277,15 @@ CREATE TABLE IF NOT EXISTS news_item (
   summary           text,
   author            text,
   categories        text[] NOT NULL DEFAULT '{}',
+  image_url         text,
   llm_keywords      text[] NOT NULL DEFAULT '{}',
   daily_count       integer,
   raw_ref           text NOT NULL,
   first_seen_at     timestamptz NOT NULL,
   updated_at        timestamptz NOT NULL,
   pipeline_version  text NOT NULL,
-  CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0)
+  CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0),
+  CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%')
 );
 
 CREATE INDEX IF NOT EXISTS news_item_published_idx ON news_item (published_at DESC);

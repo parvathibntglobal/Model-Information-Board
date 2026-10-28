@@ -58,6 +58,7 @@ engineer's words to somebody who did not write them.
 from __future__ import annotations
 
 import calendar
+import html
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -101,9 +102,12 @@ class FeedEntry:
     published_at: datetime | None
     summary_html: str | None
     content_html: str | None
-    #: The entry's own tags, as given. Read by Admin -> News (collect/news);
+    #: The entry's own tags, as given. Read by the News page (collect/news);
     #: the blog harvest does not use them. Empty when the feed gives none.
     categories: tuple[str, ...] = ()
+    #: The entry's own picture, as the feed gives it (`_entry_image`). Read by
+    #: the News page; never fetched or checked here. None when there is none.
+    image_url: str | None = None
 
     @property
     def fetchable_url(self) -> str | None:
@@ -240,6 +244,34 @@ _HEADER_ONLY_BOZO = "NonXMLContentType"
 #: The elements whose CDATA carries a whole post. `content:encoded` is RSS's
 #: full-text element; Atom spells it `content`.
 _BODY_ELEMENTS = frozenset({"encoded", "content"})
+
+
+_IMG_TAG = re.compile(r"<img\b[^>]*?\bsrc=[\"']([^\"']+)[\"']", re.I)
+_IMAGE_FILE = re.compile(r"\.(?:jpe?g|png|webp|gif|avif)(?:[?#]|$)", re.I)
+
+
+def _entry_image(raw: Any) -> str | None:
+    """The entry's own picture, in the order feeds usually give one: a Media RSS
+    image, an image enclosure, then the first <img> in its content or summary.
+
+    Measured on the 17 news feeds, 2026-10-28: Google AI and Research give one
+    on every item (media), Latent Space 19 of 20, Interconnects 17 of 20
+    (enclosure), Simon Willison 11 of 30 (<img> in the body); TechCrunch,
+    AIWire, OpenAI, OpenRouter, Mistral and TLDR give none. Only https URLs
+    are kept - a page served over https cannot show an http image."""
+    candidates: list[str] = []
+    for m in list(raw.get("media_content") or []) + list(raw.get("media_thumbnail") or []):
+        url = m.get("url")
+        if url and (m.get("medium") == "image" or (m.get("type") or "").startswith("image")
+                    or _IMAGE_FILE.search(url)):
+            candidates.append(url)
+    for link in list(raw.get("enclosures") or []) + list(raw.get("links") or []):
+        if (link.get("type") or "").startswith("image") and link.get("href"):
+            candidates.append(link["href"])
+    for block in [c.get("value") for c in raw.get("content") or []] + [raw.get("summary")]:
+        if block and (m := _IMG_TAG.search(block)):
+            candidates.append(html.unescape(m.group(1)))
+    return next((u.strip() for u in candidates if u.strip().startswith("https://")), None)
 
 
 def content_spans(payload: bytes) -> list[tuple[int, int, int]]:
@@ -394,6 +426,7 @@ def parse_feed(
                 categories=tuple(
                     term for t in raw.get("tags") or [] if (term := _text_or_none(t.get("term")))
                 ),
+                image_url=_entry_image(raw),
             )
         )
 

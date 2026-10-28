@@ -2005,11 +2005,11 @@ columns:
     detail:
       reviewed: true
       state: read
-      why: "why a source's last read was refused or failed, shown on its row in Admin -> News (judge/news.py)"
+      why: "why a source's last read was refused or failed, shown on its row on the News page (judge/news.py)"
     fetched_at:
       reviewed: true
       state: read
-      why: "when each source was last read, shown on its row in Admin -> News"
+      why: "when each source was last read, shown on its row on the News page"
     http_status:
       reviewed: true
       state: read
@@ -2038,7 +2038,7 @@ columns:
     author:
       reviewed: true
       state: read
-      why: "shown under the headline when the source gives one (web/src/components/NewsPanel.jsx)"
+      why: "shown on the story card when the source gives one (web/src/routes/News.jsx)"
     categories:
       reviewed: true
       state: read
@@ -2055,6 +2055,10 @@ columns:
       reviewed: true
       state: read
       why: "the item's key in the API payload; one row per link, or per source and day"
+    image_url:
+      reviewed: true
+      state: read
+      why: "the feed's own picture on the story card; NULL draws a card naming the source (web/src/routes/News.jsx)"
     llm_keywords:
       reviewed: true
       state: read
@@ -2078,7 +2082,7 @@ columns:
     summary:
       reviewed: true
       state: read
-      why: "the source's own summary, shown under the headline"
+      why: "the code-written summary on the story card (collect/news/harvest.py feed_summary)"
     title:
       reviewed: true
       state: read

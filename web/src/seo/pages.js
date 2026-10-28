@@ -542,6 +542,7 @@ export const PRIVATE = {
   keywords: { title: fullTitle('SEO keywords'), noindex: true },
   benchmarks: { title: fullTitle('Benchmarks'), noindex: true },
   priceChanges: { title: fullTitle('Price changelog'), noindex: true },
+  news: { title: fullTitle('AI news'), noindex: true },
   notFound: { title: fullTitle('Page not found'), noindex: true },
 }
 

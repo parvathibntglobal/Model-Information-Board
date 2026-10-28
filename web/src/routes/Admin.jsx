@@ -19,7 +19,6 @@ import BlogsPanel from '../components/BlogsPanel'
 import QuizPanel from '../components/QuizPanel'
 import FeedSummaryPanel from '../components/FeedSummaryPanel'
 import DiscussionsPanel from '../components/DiscussionsPanel'
-import NewsPanel from '../components/NewsPanel'
 import KitePulsePanel from '../kitepulse/KitePulsePanel'
 import { KITE_PULSE_OPEN } from '../kitepulse/status'
 import { IconAlert, IconArrow, IconClock, IconFilter, IconGrid, IconHeart, IconSearch } from '../components/Icons'
@@ -299,12 +298,6 @@ const SECTIONS = [
     title: 'Blogs',
     blurb: 'Drafts from the evidence, waiting for approval',
     render: () => <BlogsPanel />,
-  },
-  {
-    id: 'news',
-    title: 'News',
-    blurb: 'Fresh AI headlines from lab, news and release feeds; never evidence',
-    render: () => <NewsPanel />,
   },
   {
     id: 'quiz',

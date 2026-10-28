@@ -3440,12 +3440,13 @@ def admin_seo_keyword_plan() -> dict:
     return keyword_plan.load()
 
 
-@app.get("/admin/news")
-def admin_news(days: int | None = None) -> dict:
-    """Admin -> News: fresh AI headlines from contract/news_sources.yaml, newest
-    first, with every source's last read (ok, refused, failed). Never evidence.
+@app.get("/news")
+def news_page(days: int | None = None) -> dict:
+    """The News page: fresh AI headlines from contract/news_sources.yaml, newest
+    first, each with a code-written summary and the feed's own picture when it
+    has one, and every source's last read (ok, refused, failed). Never evidence.
     Nothing is filtered server-side; the LLM badge travels on each item.
-    Signed-in only. See judge/news.py."""
+    Signed-in only (not a public read: judge/gate.py). See judge/news.py."""
     from judge import news
 
     try:

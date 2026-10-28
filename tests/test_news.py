@@ -23,7 +23,8 @@ UA = "modelboard/0.1 (+https://modelboard.invalid/about)"
 
 CONTRACT_YAML = """
 version: 1
-summary_max_chars: 40
+summary_max_words: 12
+summary_min_words: 4
 llm_keywords: [llm, claude, tokens, "language model"]
 page: {default_days: 7, max_days: 30, max_items: 600}
 sources:
@@ -40,8 +41,10 @@ sources:
 RSS = b"""<?xml version="1.0"?><rss version="2.0"><channel><title>Wire</title>
 <item><title>Claude gets cheaper</title><link>https://wire.example/a</link>
 <pubDate>Tue, 27 Oct 2026 10:00:00 GMT</pubDate><author>Ann</author><category>pricing</category>
-<description>&lt;p&gt;Fewer &lt;b&gt;tokens&lt;/b&gt; per answer &amp;amp; a long tail
-of words here&lt;/p&gt;</description></item>
+<description>&lt;p&gt;Fewer &lt;b&gt;tokens&lt;/b&gt; per answer &amp;amp; less waste. A second
+sentence runs on well past the word limit here.&lt;/p&gt; The post Claude gets cheaper
+appeared first on Wire.</description>
+<enclosure url="https://wire.example/a.jpg" type="image/jpeg" length="1"/></item>
 <item><title>Undated note</title><link>https://wire.example/b</link>
 <description>Detokenize is not a match</description></item>
 <item><title>No link here</title><pubDate>Tue, 27 Oct 2026 09:00:00 GMT</pubDate></item>
@@ -77,12 +80,12 @@ def test_the_real_contract_loads_and_llamacpp_is_the_one_daily_source():
 
 
 @pytest.mark.parametrize("bad, says", [
-    ("summary_max_chars: 40", "summary_max_chars"),
+    ("summary_max_words: 12", "summary_max_words"),
     ("daily: false}", "daily must be"),
     ("kind: feed, url: \"https://wire", "kind must be"),
 ])
 def test_a_missing_or_wrong_value_is_refused_not_defaulted(tmp_path, bad, says):
-    broken = {"summary_max_chars: 40": "",
+    broken = {"summary_max_words: 12": "",
               "daily: false}": "daily: maybe}",
               "kind: feed, url: \"https://wire": "kind: page, url: \"https://wire"}
     text = CONTRACT_YAML.replace(bad, broken[bad], 1)
@@ -101,11 +104,50 @@ def test_a_feed_keeps_what_it_gives_and_invents_nothing(contract):
     a, b = items
     assert a["published_at"] == datetime(2026, 10, 27, 10, tzinfo=UTC)
     assert a["author"] == "Ann" and a["categories"] == ["pricing"]
-    assert a["summary"].startswith("Fewer tokens per answer & a") and a["summary"].endswith("…")
-    assert len(a["summary"]) == 40
+    # Code-written: whole sentences up to the word limit, boilerplate gone.
+    assert a["summary"] == "Fewer tokens per answer & less waste."
+    assert a["image_url"] == "https://wire.example/a.jpg"
     assert a["llm_keywords"] == ["claude", "tokens"]
     # A missing date stays missing (rule 6); a word inside a word is no match.
     assert b["published_at"] is None and b["llm_keywords"] == []
+    assert b["image_url"] is None  # no picture in the feed: the page draws a card
+
+
+def test_the_summary_is_whole_sentences_cut_by_code():
+    s = news.summarise
+    kept = s("One two three. Four five six seven. Eight.", 7)
+    assert kept == "One two three. Four five six seven."
+    # A first sentence longer than the limit is cut at a word, never mid-word.
+    assert s("<p>alpha beta gamma delta epsilon</p>", 3) == "alpha beta gamma…"
+    assert s("Real text. Continue reading the rest of it", 10) == "Real text."
+    assert s("   ", 10) is None and s(None, 10) is None
+
+
+def test_a_thin_summary_falls_back_to_the_feeds_own_content(contract):
+    long = "<p>The content says more. It has several full sentences in it.</p>"
+    assert news.feed_summary("Short.", long, "T", contract) == (
+        "The content says more. It has several full sentences in it.")
+    # A summary that only repeats the title is no summary.
+    assert news.feed_summary("Claude gets cheaper", None, "Claude gets cheaper", contract) is None
+    # Nor is a topic label where the summary goes, with nothing longer to use.
+    assert news.feed_summary("Generative AI", None, "TB screening", contract) is None
+
+
+def test_release_notes_become_their_first_changes():
+    body = "\n".join(["## What's Changed",
+                      "* Fix the CUDA build by @dev in #12",
+                      "* Add a Vulkan backend by @dev2 in #13",
+                      "**Full Changelog**: https://x"])
+    assert news.release_summary(body, 20) == "Fix the CUDA build; Add a Vulkan backend."
+    assert news.release_summary("## Notes only", 20) is None
+
+
+def test_an_image_comes_only_from_the_feed_and_only_over_https():
+    from collect.adapters.blog.parse import _entry_image
+    assert _entry_image({"media_content": [{"url": "https://x/p.png", "medium": "image"}]}) == "https://x/p.png"
+    assert _entry_image({"summary": '<p><img src="http://x/p.jpg"></p>'}) is None  # http: dropped
+    assert _entry_image({"content": [{"value": '<img alt="" src="https://x/q.webp">'}]}) == "https://x/q.webp"
+    assert _entry_image({}) is None
 
 
 def test_releases_skip_drafts(contract):

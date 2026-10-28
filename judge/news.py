@@ -1,4 +1,7 @@
-"""Admin -> News: the fresh headlines collect/news/harvest.py stored (2026-10-28).
+"""The News page (/news, signed in): the headlines collect/news/harvest.py stored.
+
+2026-10-28. Each story carries its code-written summary and the feed's own
+picture when there is one; the page draws a card for the rest.
 
 Read-only. Every source in contract/news_sources.yaml is listed with what its
 last read did - ok, refused by robots.txt, or failed - so a quiet source and a
@@ -46,7 +49,7 @@ def _contract() -> dict[str, Any]:
 
 ITEMS_SQL = """
 SELECT id, source_key, title, url, published_at, first_seen_at, summary, author,
-       categories, llm_keywords, daily_count
+       categories, llm_keywords, daily_count, image_url
 FROM news_item
 WHERE coalesce(published_at, first_seen_at) >= %s
 ORDER BY (published_at IS NULL), coalesce(published_at, first_seen_at) DESC, id
@@ -88,6 +91,8 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "first_seen_at": r[5].isoformat(),
             "summary": r[6], "author": r[7], "categories": list(r[8] or []),
             "llm_keywords": list(r[9] or []), "daily_count": r[10],
+            # The feed's own picture; None means the page draws a card.
+            "image_url": r[11],
         }
         for r in rows[: page["max_items"]]
     ]

@@ -26,7 +26,7 @@ export const STRUCTURAL_PATHS = [
  * pages. /compare left this list on 2026-10-20 - it is a public tool now; a
  * comparison of named models stays noindex through its own head instead.
  */
-export const PRIVATE_PATHS = ['/admin', '/login', '/board', '/models', '/seo-keywords', '/keywords', '/benchmarks', '/price-changes']
+export const PRIVATE_PATHS = ['/admin', '/login', '/board', '/models', '/seo-keywords', '/keywords', '/benchmarks', '/price-changes', '/news']
 
 export function siteOf(siteUrl, publicSite) {
   const site = (siteUrl || '').trim().replace(/\/+$/, '')
