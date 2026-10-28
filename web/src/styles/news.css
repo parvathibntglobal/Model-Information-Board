@@ -84,7 +84,8 @@ a:hover .nw-pic img{transform:scale(1.03)}
 .ns-model-counts{font-size:var(--fs-sm);color:var(--text-2)}
 .ns-model-link{font-size:var(--fs-sm);color:var(--accent);text-decoration:none}
 .ns-model-link:hover{text-decoration:underline}
-.ns-none,.ns-note,.ns-credit{font-size:var(--fs-xs);margin:0}
+.ns-body-one{grid-template-columns:minmax(0,1fr);max-width:900px}
+.ns-note,.ns-credit{font-size:var(--fs-xs);margin:0}
 @media (max-width:960px){.ns-body{grid-template-columns:1fr}.ns-side{position:static}}
 .nw-tags{display:flex;flex-wrap:wrap;gap:6px}
 .nw-tags span{padding:1px 8px;border-radius:var(--r-pill);border:1px solid var(--border);font-size:var(--fs-label);color:var(--text-3)}

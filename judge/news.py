@@ -70,7 +70,7 @@ def _generic_pictures(conn, contract: dict[str, Any]) -> set[str]:
 
 ITEMS_SQL = """
 SELECT id, source_key, title, url, published_at, first_seen_at, summary, author,
-       categories, llm_keywords, daily_count, image_url, image_source
+       categories, llm_keywords, daily_count, image_url, image_source, slug
 FROM news_item
 WHERE coalesce(published_at, first_seen_at) >= %s
 ORDER BY (published_at IS NULL), coalesce(published_at, first_seen_at) DESC, id
@@ -119,6 +119,8 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "image_generic": r[11] in generic,
             # feed | link_preview: where the picture came from (the page says so).
             "image_source": r[12],
+            # The story's address on this site, /news/<slug>.
+            "slug": r[13],
         }
         for r in rows[: page["max_items"]]
     ]
@@ -235,14 +237,17 @@ def mentioned_models(text: str, names: dict[str, str], limit: int) -> list[str]:
     return out
 
 
+# By its address, or by its id - the first story links used ids, and a link
+# somebody kept should still open.
 _STORY_SQL = """
 SELECT id, source_key, title, url, published_at, first_seen_at, summary, author,
-       categories, llm_keywords, daily_count, image_url, image_source
-FROM news_item WHERE id = %s
+       categories, llm_keywords, daily_count, image_url, image_source, slug, summary_source
+FROM news_item WHERE slug = %s OR id = %s
+ORDER BY (slug = %s) DESC LIMIT 1
 """
 
 _RECENT_SQL = """
-SELECT id, source_key, title, url, published_at, first_seen_at, summary, image_url
+SELECT id, source_key, title, url, published_at, first_seen_at, summary, image_url, slug
 FROM news_item
 WHERE id <> %s AND coalesce(published_at, first_seen_at) >= %s
 ORDER BY coalesce(published_at, first_seen_at) DESC
@@ -254,7 +259,7 @@ def _card(r, generic: set[str]) -> dict[str, Any]:
     return {"id": r[0], "source_key": r[1], "title": r[2], "url": r[3],
             "published_at": r[4].isoformat() if r[4] else None,
             "first_seen_at": r[5].isoformat(), "summary": r[6],
-            "image_url": None if r[7] in generic else r[7]}
+            "image_url": None if r[7] in generic else r[7], "slug": r[8]}
 
 
 def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, Any]:
@@ -267,7 +272,7 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
     for key in ("min_name_chars", "max_models", "related_days", "related_max"):
         if not isinstance(rules.get(key), int) or rules[key] <= 0:
             raise ValueError(f"contract/news_sources.yaml: story.{key} must be a positive integer")
-    row = conn.execute(_STORY_SQL, (item_id,)).fetchone()
+    row = conn.execute(_STORY_SQL, (item_id, item_id, item_id)).fetchone()
     if row is None:
         raise NewsNotFound(item_id)
     generic = _generic_pictures(conn, contract)
@@ -289,7 +294,7 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
     wanted = set(ids)
     same_model: list[dict[str, Any]] = []
     same_source: list[dict[str, Any]] = []
-    for r in conn.execute(_RECENT_SQL, (item_id, since)).fetchall():
+    for r in conn.execute(_RECENT_SQL, (row[0], since)).fetchall():
         if wanted and len(same_model) < rules["related_max"]:
             shared = set(mentioned_models(f"{r[2]}. {r[6] or ''}", names, rules["max_models"]))
             if shared & wanted:
@@ -306,6 +311,10 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
             "categories": list(row[8] or []), "llm_keywords": list(row[9] or []),
             "daily_count": row[10], "image_url": None if row[11] in generic else row[11],
             "image_generic": row[11] in generic, "image_source": row[12],
+            "slug": row[13],
+            # feed | feed_content | page_description: which of the source's own
+            # texts the brief was cut from (the page says so under "In brief").
+            "summary_source": row[14],
         },
         "source": {"key": row[1], "label": source.get("label", row[1]),
                    "group": source.get("group"), "terms": source.get("terms")},

@@ -2077,8 +2077,8 @@ columns:
       why: "read by collect/news/preview.py _CANDIDATES so no article is asked twice; no page shows it"
     preview_raw_ref:
       reviewed: true
-      state: write_only
-      why: "the stored <head> an og:image was read from, for reprocessing without asking again; no page reads it"
+      state: read
+      why: "the stored <head> a picture was read from; collect/news/preview.py rebrief_from_stored_heads reads it to re-check a brief without asking the page again. No page reads it"
     published_at:
       reviewed: true
       state: read
@@ -2087,6 +2087,10 @@ columns:
       reviewed: true
       state: write_only
       why: "the stored feed response, for reprocessing without re-fetching; no page reads it"
+    slug:
+      reviewed: true
+      state: read
+      why: "the story's address, /news/<slug>; judge/news.py story_view looks a story up by it"
     source_key:
       reviewed: true
       state: read
@@ -2094,7 +2098,11 @@ columns:
     summary:
       reviewed: true
       state: read
-      why: "the code-written summary on the story card (collect/news/harvest.py feed_summary)"
+      why: "the brief on the story card and page, the source's own words cut by code (collect/news/harvest.py choose_brief)"
+    summary_source:
+      reviewed: true
+      state: read
+      why: "which of the source's texts the brief came from, said under 'In brief' on the story page (web/src/routes/NewsStory.jsx)"
     title:
       reviewed: true
       state: read

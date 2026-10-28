@@ -149,6 +149,11 @@ _BOILERPLATE = [
     re.compile(r"\b(?:Continue reading|Read more|Read the full (?:story|post|article))\b.*$",
                re.I | re.S),
     re.compile(r"\s*(?:\[(?:…|\.\.\.)\]|\[&#8230;\])\s*$"),
+    # Newsletter and podcast lead-ins that open the article content a feed
+    # carries: "Watch the full episode on YouTube As we learned..." (Latent
+    # Space, 2026-10-28). Only at the very start, where they stand alone.
+    re.compile(r"^\s*(?:(?:Watch|Listen to) the full (?:episode|interview|video)(?: on \w+)?"
+               r"|Listen now|Subscribe now|Share this post)\s*[.:!]?\s*", re.I),
 ]
 _SENTENCE = re.compile(r"(?<=[.!?…])[\"'”’)]*\s+(?=[\"'“‘(]?[A-Z0-9])")
 
@@ -162,7 +167,11 @@ def flatten(text: str | None) -> str:
 
 def summarise(text: str | None, max_words: int) -> str | None:
     """Whole sentences up to `max_words`; a first sentence longer than that is cut
-    at a word and ends with an ellipsis. None when nothing is left."""
+    at a word and ends with an ellipsis. None when nothing is left.
+
+    A LAST SENTENCE THE PUBLISHER CUT OFF IS DROPPED when a complete one comes
+    before it: Latent Space's feed ends "...the first profitable quarter in
+    Anthropic..." (2026-10-28), and a brief that stops mid-thought reads broken."""
     flat = flatten(text)
     for pattern in _BOILERPLATE:
         flat = pattern.sub("", flat).strip()
@@ -178,7 +187,18 @@ def summarise(text: str | None, max_words: int) -> str | None:
             break
         kept.append(sentence)
         count += len(words)
+    if len(kept) > 1 and is_cut(kept[-1]):
+        kept.pop()
     return " ".join(kept) or None
+
+
+_CUT = re.compile(r"(?:…|\.\.\.|\[…\]|\[\.\.\.\])\s*$")
+_ENDED = re.compile(r"[.!?][\"'”’)\]]*\s*$")
+
+
+def is_cut(text: str | None) -> bool:
+    """Does this stop mid-thought - an ellipsis, or no closing punctuation?"""
+    return bool(text) and (bool(_CUT.search(text)) or not _ENDED.search(text))
 
 
 def _same_as_title(summary: str | None, title: str) -> bool:
@@ -186,23 +206,34 @@ def _same_as_title(summary: str | None, title: str) -> bool:
     return bool(summary) and norm(summary) in (norm(title), "")
 
 
-def feed_summary(summary_html: str | None, content_html: str | None, title: str,
-                 contract: Contract) -> str | None:
-    """The feed's summary, or its article content when the summary is too thin.
+def choose_brief(candidates: list[tuple[str | None, str]], title: str,
+                 contract: Contract) -> tuple[str | None, str | None]:
+    """(the brief, where it came from) - the best of the source's own words.
+
+    Every candidate is the publisher's text: the feed's summary, the article
+    content the feed carries, or the page's own description tag (preview.py).
+    A complete sentence beats one cut off; among those, the fuller one wins.
 
     BELOW `summary_min_words` IT IS NOT A SUMMARY. Google Research's feed puts a
     topic label where the summary goes ("Generative AI", "Health & Bioscience":
     130 of 1,824 items under 8 words, 2026-10-28). Shown under a headline, a
-    label reads as the story's gist, so with nothing longer to fall back on the
-    item has no summary (rule 12: a stand-in that looks right is worse than none)."""
-    enough = lambda s: bool(s) and len(s.split()) >= contract.summary_min_words  # noqa: E731
-    first = summarise(summary_html, contract.summary_max_words)
-    if enough(first) and not _same_as_title(first, title):
-        return first
-    fallback = summarise(content_html, contract.summary_max_words)
-    if enough(fallback) and not _same_as_title(fallback, title):
-        return fallback
-    return None
+    label reads as the story's gist, so with nothing longer the item has none
+    (rule 12: a stand-in that looks right is worse than none)."""
+    usable = [(text, source) for text, source in candidates
+              if text and len(text.split()) >= contract.summary_min_words
+              and not _same_as_title(text, title)]
+    if not usable:
+        return None, None
+    complete = [c for c in usable if not is_cut(c[0])]
+    return max(complete or usable, key=lambda c: len(c[0].split()))
+
+
+def feed_summary(summary_html: str | None, content_html: str | None, title: str,
+                 contract: Contract) -> tuple[str | None, str | None]:
+    """The feed's own brief: its summary, or the article content it carries."""
+    return choose_brief([(summarise(summary_html, contract.summary_max_words), "feed"),
+                         (summarise(content_html, contract.summary_max_words), "feed_content")],
+                        title, contract)
 
 
 _MD_LINK = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
@@ -253,9 +284,10 @@ def parse_feed(body: bytes, contract: Contract, *, feed_url: str | None = None,
         title = " ".join((e.title or "").split())
         if not e.url or not title:
             continue
-        summary = feed_summary(e.summary_html, e.content_html, title, contract)
+        summary, summary_source = feed_summary(e.summary_html, e.content_html, title, contract)
         items.append({
             "url": e.url, "title": title, "published_at": e.published_at, "summary": summary,
+            "summary_source": summary_source,
             "author": e.author, "categories": list(e.categories), "image_url": e.image_url,
             "llm_keywords": matched_keywords(contract.keywords, title, summary),
         })
@@ -276,7 +308,8 @@ def parse_github_releases(data: Any, contract: Contract) -> list[dict[str, Any]]
         items.append({
             "url": r["html_url"], "title": title,
             "published_at": datetime.fromisoformat(when.replace("Z", "+00:00")) if when else None,
-            "summary": summary, "author": (r.get("author") or {}).get("login"), "image_url": None,
+            "summary": summary, "summary_source": "feed" if summary else None,
+            "author": (r.get("author") or {}).get("login"), "image_url": None,
             "categories": ["pre-release"] if r.get("prerelease") else [],
             "llm_keywords": matched_keywords(contract.keywords, title, summary),
             "tag": r.get("tag_name"),
@@ -327,11 +360,13 @@ def fold_daily(items: list[dict[str, Any]], source: Source, *,
 # ── writing ──────────────────────────────────────────────────────────────────
 
 _INSERT = """
-INSERT INTO news_item (id, source_key, url, title, published_at, summary, author, categories,
+INSERT INTO news_item (id, slug, source_key, url, title, published_at, summary, summary_source,
+                       author, categories,
                        image_url, image_source, llm_keywords, daily_count, raw_ref,
                        first_seen_at, updated_at,
                        pipeline_version)
-VALUES (%(id)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s, %(author)s,
+VALUES (%(id)s, %(slug)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s,
+        %(summary_source)s, %(author)s,
         %(categories)s, %(image_url)s, %(image_source)s, %(llm_keywords)s, %(daily_count)s,
         %(raw_ref)s, %(now)s,
         %(now)s, %(pipeline_version)s)
@@ -342,11 +377,13 @@ RETURNING id
 # A daily entry grows with its day and never shrinks: a later read that sees
 # fewer of the day's items (the API lists the newest 30) leaves it as it was.
 _UPSERT_DAILY = """
-INSERT INTO news_item (id, source_key, url, title, published_at, summary, author, categories,
+INSERT INTO news_item (id, slug, source_key, url, title, published_at, summary, summary_source,
+                       author, categories,
                        image_url, image_source, llm_keywords, daily_count, raw_ref,
                        first_seen_at, updated_at,
                        pipeline_version)
-VALUES (%(id)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s, %(author)s,
+VALUES (%(id)s, %(slug)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s,
+        %(summary_source)s, %(author)s,
         %(categories)s, %(image_url)s, %(image_source)s, %(llm_keywords)s, %(daily_count)s,
         %(raw_ref)s, %(now)s,
         %(now)s, %(pipeline_version)s)
@@ -361,6 +398,45 @@ RETURNING (xmax = 0) AS inserted
 """
 
 
+# ── the story's address ──────────────────────────────────────────────────────
+#
+# A READABLE ADDRESS FROM THE HEADLINE (anooj, 2026-10-28): /news/<slug>, the
+# headline's key words - "VCs will make billions on Anthropic's IPO, but Amazon
+# is set to make much (much) more" is `vcs-make-billions-anthropics-ipo-amazon`.
+# Set once, when the story is first stored, and never changed, so a link stays
+# good. Unique: a second story with the same words gets `-2`, `-3`.
+
+_SLUG_STOP = frozenset("""a an the of to in on for and or but with is are was were be been by at as
+from into its it this that these those how why what when who will can could would should
+your you our we us they their new now has have had just about after more much set get gets
+via vs than then so if not no do does did here there""".split())  # noqa: SIM905
+_SLUG_PREFIX = re.compile(r"^\s*\[[^\]]{1,30}\]\s*")
+
+
+def slug_base(title: str, max_words: int = 6) -> str:
+    """The headline's key words, lowercase, joined by hyphens."""
+    import unicodedata
+
+    text = unicodedata.normalize("NFKD", _SLUG_PREFIX.sub("", title or ""))
+    text = text.encode("ascii", "ignore").decode().lower().replace("'", "").replace("’", "")
+    words = re.findall(r"[a-z0-9]+", text)
+    keep = [w for w in words if w not in _SLUG_STOP] or words
+    return "-".join(keep[:max_words])[:60].strip("-") or "story"
+
+
+def unique_slug(conn, base: str, item_id: str) -> str:
+    """`base`, or `base-2`, `base-3`... - the first no other story holds."""
+    taken = {r[0] for r in conn.execute(
+        "SELECT slug FROM news_item WHERE (slug = %s OR slug LIKE %s) AND id <> %s",
+        (base, base + "-%", item_id)).fetchall()}
+    if base not in taken:
+        return base
+    n = 2
+    while f"{base}-{n}" in taken:
+        n += 1
+    return f"{base}-{n}"
+
+
 def write_items(conn, source: Source, items: list[dict[str, Any]], raw_ref: str,
                 now: datetime) -> int:
     """Rows this read added. A daily entry that grew is an update, not an addition."""
@@ -368,11 +444,16 @@ def write_items(conn, source: Source, items: list[dict[str, Any]], raw_ref: str,
     version = settings().pipeline_version
     for it in items:
         daily = it.get("daily_count") is not None
+        item_id = (stable_id("news", source.key, it["daily_day"]) if daily
+                   else stable_id("news", it["url"]))
+        # A daily entry's address names its day, not its growing count.
+        base = slug_base(f"{source.label} releases {it['daily_day']}" if daily else it["title"],
+                         max_words=8 if daily else 6)
         row = {
-            "id": (stable_id("news", source.key, it["daily_day"]) if daily
-                   else stable_id("news", it["url"])),
+            "id": item_id, "slug": unique_slug(conn, base, item_id),
             "source_key": source.key, "url": it["url"], "title": it["title"],
-            "published_at": it["published_at"], "summary": it["summary"], "author": it["author"],
+            "published_at": it["published_at"], "summary": it["summary"],
+            "summary_source": it.get("summary_source"), "author": it["author"],
             "categories": it["categories"], "image_url": it.get("image_url"),
             "image_source": "feed" if it.get("image_url") else None,
             "llm_keywords": it["llm_keywords"],
@@ -493,7 +574,7 @@ def harvest(conn, client, *, gate=None, store=None, contract: Contract | None = 
 
     groups = set(contract.link_preview["groups"])
     counts["previews"] = fill_pictures(
-        conn, client, gate, store, settings_=contract.link_preview,
+        conn, client, gate, store, settings_=contract.link_preview, contract=contract,
         source_keys=[s.key for s in contract.sources
                      if s.group in groups and s.key not in contract.link_preview["skip"]
                      and (not only or s.key in only)],

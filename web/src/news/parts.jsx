@@ -67,9 +67,9 @@ export function Picture({ it, source, lead = false }) {
   )
 }
 
-/** To the story's page on this site. */
+/** To the story's page on this site, at its readable address (/news/<slug>). */
 export const StoryLink = ({ it, children, className }) => (
-  <Link className={className} to={`/news/${encodeURIComponent(it.id)}`}>{children}</Link>
+  <Link className={className} to={`/news/${encodeURIComponent(it.slug || it.id)}`}>{children}</Link>
 )
 
 /** Straight to the source, for a reader who wants the article and not our page. */

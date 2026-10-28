@@ -25,14 +25,13 @@ import '../styles/news.css'
 
 const list = (names) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
 
-/** Our one line: when the source published it, which models it names, and what
- *  the board holds on the most reported of them. Counts only. */
+/** Our one line: when the source published it and, when it names models, what
+ *  the board holds on the most reported of them. Counts only. A story naming no
+ *  model says nothing about models - absence is not news (anooj, 2026-10-28). */
 function OurLine({ source, story, models }) {
   const said = when(story.published_at)
   const parts = [said ? `${source.label} published this ${said}.` : `${source.label} gives no date for this story.`]
-  if (models.length === 0) {
-    parts.push('It names no model we can match to one entry in our registry.')
-  } else {
+  if (models.length > 0) {
     parts.push(`It names ${list(models.map((m) => m.name))}.`)
     const top = [...models].sort((a, b) => b.voices - a.voices)[0]
     parts.push(top.voices > 0
@@ -117,7 +116,7 @@ export default function NewsStory() {
         {story.author && <p className="nw-byline">By {story.author}</p>}
       </header>
 
-      <div className="ns-body">
+      <div className={models.length ? 'ns-body' : 'ns-body ns-body-one'}>
         <div className="stack stack-3">
           <SourceLink it={story}><Picture it={story} source={source} lead /></SourceLink>
           {story.image_url && (
@@ -132,7 +131,10 @@ export default function NewsStory() {
           <OurLine source={source} story={story} models={models} />
 
           <section className="ns-brief">
-            <h2>In brief <span className="dim">· in {source.label}&apos;s words</span></h2>
+            <h2>
+              In brief <span className="dim">· in {source.label}&apos;s words
+                {story.summary_source === 'page_description' ? ", from the article's own description" : ''}</span>
+            </h2>
             {story.summary
               ? <blockquote>{story.summary}</blockquote>
               : <p className="dim">{source.label}&apos;s feed gives no summary for this story.</p>}
@@ -144,15 +146,15 @@ export default function NewsStory() {
           )}
         </div>
 
-        <aside className="stack stack-3 ns-side" aria-label="Models in this story">
-          <h2 className="nw-latest-head">Models in this story</h2>
-          {models.length === 0
-            ? <p className="dim ns-none">No model named here matches exactly one entry in our registry, so none is linked.</p>
-            : models.map((m) => <ModelCard key={m.id} m={m} />)}
-          <p className="dim ns-note">
-            Matched by code on exact model names; a family name such as &quot;GPT-6&quot; is never linked to one model.
-          </p>
-        </aside>
+        {models.length > 0 && (
+          <aside className="stack stack-3 ns-side" aria-label="Models in this story">
+            <h2 className="nw-latest-head">Models in this story</h2>
+            {models.map((m) => <ModelCard key={m.id} m={m} />)}
+            <p className="dim ns-note">
+              Matched by code on exact model names; a family name such as &quot;GPT-6&quot; is never linked to one model.
+            </p>
+          </aside>
+        )}
       </div>
 
       {related.same_model.length > 0 && (

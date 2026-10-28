@@ -2270,11 +2270,13 @@ CREATE INDEX IF NOT EXISTS feed_summary_attempt_model_idx ON feed_summary_attemp
 -- Never evidence: no claim, quote or board entry is made from a news item.
 CREATE TABLE IF NOT EXISTS news_item (
   id                text PRIMARY KEY,
+  slug              text NOT NULL UNIQUE,
   source_key        text NOT NULL,
   url               text NOT NULL,
   title             text NOT NULL,
   published_at      timestamptz,
   summary           text,
+  summary_source    text,
   author            text,
   categories        text[] NOT NULL DEFAULT '{}',
   image_url         text,
@@ -2290,7 +2292,10 @@ CREATE TABLE IF NOT EXISTS news_item (
   CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0),
   CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%'),
   CONSTRAINT news_item_image_source_ck CHECK (image_source IN ('feed', 'link_preview')),
-  CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL))
+  CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL)),
+  CONSTRAINT news_item_summary_source_ck
+    CHECK (summary_source IN ('feed', 'feed_content', 'page_description')),
+  CONSTRAINT news_item_summary_has_source_ck CHECK ((summary IS NULL) = (summary_source IS NULL))
 );
 
 CREATE INDEX IF NOT EXISTS news_item_published_idx ON news_item (published_at DESC);

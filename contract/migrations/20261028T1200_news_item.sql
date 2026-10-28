@@ -21,9 +21,15 @@
 --                 ("llama.cpp: 18 releases on 2026-10-27 (b11913 - b11938)")
 --   published_at  the source's own date. NULL when it gives none - never the
 --                 time we saw it (rule 6); the page says "date not given"
---   summary       written by code from the source's own words: whole
+--   slug          the story's address, /news/<slug>: the headline's key words
+--                 (harvest.py `slug_base`), set once and never changed; unique
+--   summary       the brief: the source's own words cut by code to whole
 --                 sentences up to `summary_max_words` (harvest.py
---                 `feed_summary`). NULL when the source gives nothing to cut
+--                 `choose_brief`). NULL when the source gives nothing usable
+--   summary_source  feed | feed_content | page_description: which of the
+--                 source's own texts the brief was cut from - the feed's
+--                 summary, the article content the feed carries, or the
+--                 page's own description tag. NULL with no brief
 --   author        as given; NULL when not given
 --   categories    as given; empty when none
 --   image_url     the story's picture link (https only); NULL when none was
@@ -57,11 +63,13 @@
 
 CREATE TABLE news_item (
   id                text PRIMARY KEY,
+  slug              text NOT NULL UNIQUE,
   source_key        text NOT NULL,
   url               text NOT NULL,
   title             text NOT NULL,
   published_at      timestamptz,
   summary           text,
+  summary_source    text,
   author            text,
   categories        text[] NOT NULL DEFAULT '{}',
   image_url         text,
@@ -77,7 +85,10 @@ CREATE TABLE news_item (
   CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0),
   CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%'),
   CONSTRAINT news_item_image_source_ck CHECK (image_source IN ('feed', 'link_preview')),
-  CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL))
+  CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL)),
+  CONSTRAINT news_item_summary_source_ck
+    CHECK (summary_source IN ('feed', 'feed_content', 'page_description')),
+  CONSTRAINT news_item_summary_has_source_ck CHECK ((summary IS NULL) = (summary_source IS NULL))
 );
 CREATE INDEX news_item_published_idx ON news_item (published_at DESC);
 CREATE INDEX news_item_seen_idx ON news_item (first_seen_at DESC);

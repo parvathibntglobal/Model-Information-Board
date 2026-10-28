@@ -130,11 +130,12 @@ def test_the_summary_is_whole_sentences_cut_by_code():
 def test_a_thin_summary_falls_back_to_the_feeds_own_content(contract):
     long = "<p>The content says more. It has several full sentences in it.</p>"
     assert news.feed_summary("Short.", long, "T", contract) == (
-        "The content says more. It has several full sentences in it.")
+        "The content says more. It has several full sentences in it.", "feed_content")
     # A summary that only repeats the title is no summary.
-    assert news.feed_summary("Claude gets cheaper", None, "Claude gets cheaper", contract) is None
+    assert news.feed_summary("Claude gets cheaper", None, "Claude gets cheaper",
+                             contract) == (None, None)
     # Nor is a topic label where the summary goes, with nothing longer to use.
-    assert news.feed_summary("Generative AI", None, "TB screening", contract) is None
+    assert news.feed_summary("Generative AI", None, "TB screening", contract) == (None, None)
 
 
 def test_release_notes_become_their_first_changes():
@@ -410,3 +411,58 @@ def test_a_sources_one_picture_for_every_story_is_withheld(conn, contract, monke
     out = view.news_view(conn, days=7, now=datetime(2026, 10, 28, 12, tzinfo=UTC))
     wire = [i for i in out["items"] if i["source_key"] == "wire"]
     assert wire and all(i["image_url"] is None and i["image_generic"] for i in wire)
+
+
+
+# ── fuller briefs and readable addresses (anooj, 2026-10-28) ────────────────
+
+def test_a_sentence_the_publisher_cut_off_is_dropped():
+    text = "Today is a hard day to cover. Better visualized: the first quarter in Anthropic..."
+    assert news.summarise(text, 40) == "Today is a hard day to cover."
+    assert news.is_cut("in Anthropic...") and news.is_cut("no closing mark")
+    assert not news.is_cut("Why code for the job?")
+
+
+def test_a_complete_page_description_beats_a_teaser(contract):
+    from collect.news.preview import better_brief, description_from_head
+    head = ('<meta property="og:description" content="Anthropic&#39;s board has three '
+            'share classes and a trust.">')
+    assert description_from_head(head).startswith("Anthropic's board")
+    brief, source = better_brief(head, "Who runs Anthropic?", "Here is a clear explanation...",
+                                 "feed", contract)
+    assert source == "page_description" and brief.endswith("and a trust.")
+    # A page with no description leaves the story's brief as it was.
+    assert better_brief("<title>x</title>", "T", "One full sentence of the feed here.",
+                        "feed", contract) == ("One full sentence of the feed here.", "feed")
+
+
+def test_the_address_is_the_headlines_key_words():
+    assert news.slug_base("VCs will make billions on Anthropic’s IPO, but Amazon is set") == (
+        "vcs-make-billions-anthropics-ipo-amazon")
+    assert news.slug_base('[AINews] Anthropic ends Coding Interviews') == (
+        "anthropic-ends-coding-interviews")
+    assert news.slug_base("Introducing GPT-6.1 Terra") == "introducing-gpt-6-1-terra"
+    assert news.slug_base("!!!") == "story"
+
+
+def test_two_stories_with_the_same_words_get_different_addresses(conn, contract):
+    _run(conn, contract)
+    base = news.slug_base("Claude gets cheaper")  # "gets" is a stop word: claude-cheaper
+    assert news.unique_slug(conn, base, "news_other") == f"{base}-2"
+    # A story keeps its own address.
+    own = conn.execute("SELECT id FROM news_item WHERE slug = %s", (base,)).fetchone()[0]
+    assert news.unique_slug(conn, base, own) == base
+
+
+def test_a_story_opens_by_its_address_and_by_its_old_id(conn, contract, monkeypatch, tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML + "story: {min_name_chars: 4, max_models: 6, related_days: 14, "
+                 "related_max: 4}\n", encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    _run(conn, contract)
+    item_id, slug = conn.execute("SELECT id, slug FROM news_item "
+                                 "WHERE url = 'https://wire.example/a'").fetchone()
+    now = datetime(2026, 10, 28, 12, tzinfo=UTC)
+    by_slug = view.story_view(conn, slug, now=now)
+    assert by_slug["story"]["id"] == item_id and by_slug["story"]["slug"] == slug
+    assert view.story_view(conn, item_id, now=now)["story"]["slug"] == slug
