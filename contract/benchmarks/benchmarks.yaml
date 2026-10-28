@@ -83,12 +83,15 @@ benchmarks:
       variant_rule: { accept: [null] }, duplicates: match_variant }
 
   # ── agents ───────────────────────────────────────────────────────────────
-  # Vals AI's run, every model in one harness (Mini-SWE-agent). Terminal-Bench's
-  # own board (tbench.ai) lists each model under several agents, so it is not
-  # used for this column. Added 2026-10-23.
+  # Terminal-Bench's own board (tbench.ai, tier 1) first, each model as it was
+  # submitted - in its maker's agent (Claude Code, Codex, ...), recorded on the
+  # value as its test setup - as SWE-Bench Pro does. Vals AI's run, every model
+  # in Mini-SWE-agent (tier 2), fills a model the official board does not list.
+  # Was Vals only, for one harness (2026-10-23); official first since the source
+  # tiers (Parvathi, 2026-10-28).
   - { key: terminal_bench_4, label: "Terminal-Bench 4.0", category: agents, order: 1,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
-      variant_rule: { accept: ["Mini-SWE-agent"] }, duplicates: match_variant }
+      variant_rule: { accept: ["Mini-SWE-agent", "*"] }, duplicates: match_variant }
   # Building a working app from a description, run by Vals AI in OpenHands. Added 2026-10-23.
   - { key: vibe_code, label: "Vibe Code Bench", category: agents, order: 2,
       metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
