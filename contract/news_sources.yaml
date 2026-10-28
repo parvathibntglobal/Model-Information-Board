@@ -69,9 +69,39 @@ link_preview:
     # openai.com answers article pages with a Cloudflare bot challenge (403,
     # cf-mitigated: challenge), measured 2026-10-28: 21 of 21 refused.
     openai: "Cloudflare bot challenge on every article page (2026-10-28)"
+    # One site-wide picture on every article, so asking gives nothing new:
+    # aiwire.dev/img/og.png on 47 of 47 stories, tldr.tech's logo on 4 of 4.
+    aiwire: "the same site banner on every story (47 of 47, 2026-10-28)"
+    tldr_ai: "the same logo on every story (4 of 4, 2026-10-28)"
   max_per_run: 80
   look_back_days: 7
   max_head_bytes: 262144
+  # A picture one source uses on this many stories or more is its generic
+  # site image, not the story's: the page draws a card instead (judge/news.py).
+  generic_min_stories: 3
+
+# THE STORY PAGE (/news/<id>; anooj, 2026-10-28). Each story opens a page of
+# our own before the source: its picture, the source's summary, and the models
+# it names, each linked to its page with its engineer-report counts.
+#
+# MODELS ARE MATCHED BY CODE, AND ONLY ON NAMES THAT CANNOT BE WORDS. A matcher
+# on a known list once found `free` inside "freeze" and `fusion` inside
+# "confusion" (docs/measurements/control-and-reshape.md), so a name is used only
+# when it carries a version digit ("Claude Sonnet 5.5", "GPT-6.1 Terra"), is at
+# least `min_name_chars` long, and names exactly one model. A bare family name
+# ("Gemini", "Claude") is never linked: it names no single model. Matching is
+# whole-name, case-insensitive, longest name first, so "Claude Opus 5" is never
+# found inside "Claude Opus 5.5" (judge/news.py `mentioned_models`).
+#   min_name_chars   a name shorter than this is never matched
+#   max_models       the most models one story lists
+#   related_days     how far back related stories are looked for
+#   related_max      related stories shown (same model), and as many more from
+#                    the same source
+story:
+  min_name_chars: 4
+  max_models: 6
+  related_days: 14
+  related_max: 4
 
 # What the News page shows by default, and the longest window it may ask for.
 page:

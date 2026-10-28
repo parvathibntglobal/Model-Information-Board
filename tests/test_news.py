@@ -28,7 +28,7 @@ summary_min_words: 4
 llm_keywords: [llm, claude, tokens, "language model"]
 page: {default_days: 7, max_days: 30, max_items: 600}
 link_preview: {enabled: false, groups: [selected, lab, writer], skip: {}, max_per_run: 10,
-               look_back_days: 7, max_head_bytes: 4096}
+               look_back_days: 7, max_head_bytes: 4096, generic_min_stories: 2}
 sources:
   - {key: wire, group: selected, label: Wire, kind: feed, url: "https://wire.example/feed.xml",
      terms: "test", daily: false}
@@ -343,3 +343,70 @@ def test_a_story_without_a_feed_picture_is_asked_once(conn, contract):
     # The story whose feed gave a picture keeps it, marked as the feed's.
     assert conn.execute("SELECT image_source FROM news_item WHERE url = 'https://wire.example/a'"
                         ).fetchone() == ("feed",)
+
+
+# ── a story's page: models named, matched by code (judge/news.py) ───────────
+
+NAMES = {"claude opus 5": "anthropic/claude-opus-5", "claude opus 5.5": "anthropic/claude-opus-5.5",
+         "gpt-6.1 terra": "openai/gpt-6.1-terra", "gpt-6.1": "openai/gpt-6.1"}
+
+
+def test_a_model_is_matched_by_its_whole_name_longest_first():
+    found = view.mentioned_models
+    assert found("Claude Opus 5.5 beats Claude Opus 5", NAMES, 6) == [
+        "anthropic/claude-opus-5.5", "anthropic/claude-opus-5"]
+    # "GPT-6.1" is never found inside "GPT-6.1 Terra", nor a name inside a longer version.
+    assert found("Introducing GPT-6.1 Terra", NAMES, 6) == ["openai/gpt-6.1-terra"]
+    assert found("claude opus 5.55 and claude opus 5x", NAMES, 6) == []
+    assert found("Why GPT-6.1 matters", NAMES, 6) == ["openai/gpt-6.1"]
+    assert found("Nothing named here", NAMES, 6) == [] and found("", NAMES, 6) == []
+
+
+def test_a_name_naming_two_models_is_dropped_and_a_free_listing_is_its_model(conn):
+    rows = [("acme/m-2", "Acme: M 2"), ("acme/m-2:free", "Acme: M 2 (free)"),
+            ("acme/x-1", "Acme: Twin 1"), ("other/x-1", "Other: Twin 1"),
+            ("acme/plain", "Acme: Plain")]
+    for cid, name in rows:
+        conn.execute("INSERT INTO model_catalog (canonical_id, provider, name, input_modalities, "
+                     "output_modalities, pricing, last_seen_at) "
+                     "VALUES (%s, 'acme', %s, '{text}', '{text}', '{}', now())", (cid, name))
+    names, labels = view.model_names(conn, min_chars=3)
+    assert names["m 2"] == "acme/m-2"      # the :free listing folds into the model
+    assert "twin 1" not in names           # two models, one name: dropped, never guessed
+    assert "plain" not in names            # no version digit: could be a word
+    assert labels["acme/m-2"] == "M 2"
+
+
+def test_a_story_page_lists_its_models_and_says_so_when_it_has_none(conn, contract, monkeypatch,
+                                                                   tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML + "story: {min_name_chars: 4, max_models: 6, related_days: 14, "
+                 "related_max: 4}\n", encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    _run(conn, contract)
+    conn.execute("INSERT INTO model_catalog (canonical_id, provider, name, input_modalities, "
+                 "output_modalities, pricing, last_seen_at) VALUES ('anthropic/claude-x-1', "
+                 "'anthropic', 'Anthropic: Claude X 1', '{text}', '{text}', '{}', now())")
+    conn.execute("UPDATE news_item SET title = 'Claude X 1 is out' "
+                 "WHERE url = 'https://wire.example/a'")
+    item = conn.execute("SELECT id FROM news_item WHERE url = 'https://wire.example/a'").fetchone()[0]
+    out = view.story_view(conn, item, now=datetime(2026, 10, 28, 12, tzinfo=UTC))
+    assert out["source"]["label"] == "Wire"
+    assert out["models"] == [{"id": "anthropic/claude-x-1", "name": "Claude X 1", "voices": 0,
+                              "reports": 0, "has_page": True}]
+    with pytest.raises(view.NewsNotFound):
+        view.story_view(conn, "news_nope")
+
+
+
+def test_a_sources_one_picture_for_every_story_is_withheld(conn, contract, monkeypatch, tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML, encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    _run(conn, contract)
+    # Both wire stories get the site banner, as AIWire's og:image does.
+    conn.execute("UPDATE news_item SET image_url = 'https://wire.example/og.png', "
+                 "image_source = 'link_preview' WHERE source_key = 'wire'")
+    out = view.news_view(conn, days=7, now=datetime(2026, 10, 28, 12, tzinfo=UTC))
+    wire = [i for i in out["items"] if i["source_key"] == "wire"]
+    assert wire and all(i["image_url"] is None and i["image_generic"] for i in wire)

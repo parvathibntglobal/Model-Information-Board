@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { newsFeed } from '../api'
 import { Badge } from '../components/ui'
+import { GROUPS, Meta, Picture, StoryLink as Link, ago, full } from '../news/parts'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
 import '../styles/news.css'
@@ -21,66 +22,10 @@ import '../styles/news.css'
  * every source says what its last read did (rule 4).
  */
 
-const GROUPS = [['all', 'All'], ['selected', 'News'], ['lab', 'AI labs'], ['writer', 'Writers'], ['release', 'Releases']]
 const DAYS = [1, 3, 7, 14, 30]
 
-function ago(iso) {
-  if (!iso) return ''
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
-  if (mins < 60) return `${Math.max(mins, 1)} min ago`
-  if (mins < 24 * 60) return `${Math.round(mins / 60)} h ago`
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-}
-const full = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '')
-
-/** A stable colour per source, so its drawn cards are recognisable at a glance. */
-function hueOf(key) {
-  let h = 0
-  for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) % 360
-  return h
-}
-
-/** The picture: the feed's own, or a card drawn naming the source. */
-function Picture({ it, source, lead = false }) {
-  const [broken, setBroken] = useState(false)
-  if (it.image_url && !broken) {
-    return (
-      <div className={`nw-pic${lead ? ' nw-pic-lead' : ''}`}>
-        <img src={it.image_url} alt="" loading={lead ? 'eager' : 'lazy'} referrerPolicy="no-referrer"
-             title={it.image_source === 'link_preview' ? "The article's own link-preview picture" : "The feed's picture"}
-             onError={() => setBroken(true)} />
-      </div>
-    )
-  }
-  // THE DRAWN CARD names the source, not the story: the headline is printed
-  // right under it, and saying it twice reads as a mistake.
-  const h = hueOf(it.source_key)
-  const group = GROUPS.find(([k]) => k === source?.group)?.[1]
-  return (
-    <div className={`nw-pic nw-drawn${lead ? ' nw-pic-lead' : ''}`} aria-hidden="true"
-         style={{ background: `radial-gradient(120% 90% at 85% 10%, hsl(${(h + 40) % 360} 60% 28%), transparent 60%),`
-                  + ` linear-gradient(135deg, hsl(${h} 45% 20%), hsl(${(h + 20) % 360} 50% 10%))` }}>
-      {group && <span className="nw-drawn-group">{group}</span>}
-      <span className="nw-drawn-name" style={{ color: `hsl(${h} 85% 85%)` }}>{source?.label || it.source_key}</span>
-    </div>
-  )
-}
-
-function Meta({ it, source }) {
-  return (
-    <div className="nw-meta">
-      <span className="nw-source">{source?.label || it.source_key}</span>
-      {it.published_at
-        ? <time dateTime={it.published_at} title={full(it.published_at)}>{ago(it.published_at)}</time>
-        : <span title={`First seen ${full(it.first_seen_at)}`}>date not given</span>}
-      {it.llm_keywords.length > 0 && <Badge tone="pass" title={`Matched: ${it.llm_keywords.join(', ')}`}>LLM</Badge>}
-    </div>
-  )
-}
-
-const Link = ({ it, children, className }) => (
-  <a className={className} href={it.url} target="_blank" rel="noopener noreferrer nofollow">{children}</a>
-)
+// A card's picture and headline open the story's page on this site; the ↗ in
+// its meta line goes straight to the source (web/src/news/parts.jsx).
 
 function Lead({ it, source }) {
   return (

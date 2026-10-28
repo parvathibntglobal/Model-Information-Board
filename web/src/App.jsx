@@ -79,6 +79,7 @@ const BlogLogs = page(() => import('./routes/BlogLogs'))
 const Keywords = page(() => import('./routes/Keywords'))
 const PriceChanges = page(() => import('./routes/PriceChanges'))
 const News = page(() => import('./routes/News'))
+const NewsStory = page(() => import('./routes/NewsStory'))
 const KitePulse = page(() => import('./kitepulse/KitePulseSite'))
 
 /** What a page shows while its chunk downloads: the skeleton the pages use for data. */
@@ -195,6 +196,7 @@ export default function App() {
           <Route path="/seo-keywords" element={<Require session={session}><Keywords /></Require>} />
           <Route path="/price-changes" element={<Require session={session}><PriceChanges /></Require>} />
           <Route path="/news" element={<Require session={session}><News /></Require>} />
+          <Route path="/news/:id" element={<Require session={session}><NewsStory /></Require>} />
           <Route path="/keywords" element={<MovedTo path="/seo-keywords" />} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
           {/* Signed in only: an internal preview of another product's site. */}
