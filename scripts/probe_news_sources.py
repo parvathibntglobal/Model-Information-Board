@@ -99,8 +99,9 @@ def _feed_items(body: bytes) -> tuple[list[dict], str | None]:
     parsed = feedparser.parse(body)
     items = []
     for e in parsed.entries:
+        links = e.get("links", [])
         image = bool(e.get("media_content") or e.get("media_thumbnail")
-                     or any(link.get("type", "").startswith("image") for link in e.get("links", [])))
+                     or any(link.get("type", "").startswith("image") for link in links))
         items.append({
             "title": (e.get("title") or "").strip(), "link": e.get("link"),
             "summary": re.sub(r"<[^>]+>", " ", e.get("summary") or ""),
@@ -116,7 +117,8 @@ def _github_items(data: list) -> list[dict]:
         "title": f"{r.get('name') or r.get('tag_name')}", "link": r.get("html_url"),
         "summary": (r.get("body") or "")[:400], "author": (r.get("author") or {}).get("login"),
         "image": False, "categories": ["prerelease"] if r.get("prerelease") else [],
-        "at": datetime.fromisoformat(r["published_at"].replace("Z", "+00:00")) if r.get("published_at") else None,
+        "at": (datetime.fromisoformat(r["published_at"].replace("Z", "+00:00"))
+               if r.get("published_at") else None),
     } for r in data if isinstance(r, dict)]
 
 
@@ -127,7 +129,8 @@ def _gdelt_items(data: dict) -> list[dict]:
         at = datetime.strptime(seen, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC) if seen else None
         out.append({"title": a.get("title") or "", "link": a.get("url"), "summary": "",
                     "author": a.get("domain"), "image": bool(a.get("socialimage")),
-                    "categories": [a.get("sourcecountry")] if a.get("sourcecountry") else [], "at": at})
+                    "categories": [a.get("sourcecountry")] if a.get("sourcecountry") else [],
+                    "at": at})
     return out
 
 
@@ -189,8 +192,9 @@ def main() -> int:
             row.update(_measure(items, now))
             row["outcome"] = problem or ("ok" if items else "ok, but no items")
             results.append(row)
-            print(f"{key:18s} {row['outcome']:16s} items={row.get('items')} 48h={row.get('last_48h')} "
-                  f"7d={row.get('last_7d')} llm={row.get('llm_keyword_items')}", flush=True)
+            print(f"{key:18s} {row['outcome']:16s} items={row.get('items')} "
+                  f"48h={row.get('last_48h')} 7d={row.get('last_7d')} "
+                  f"llm={row.get('llm_keyword_items')}", flush=True)
     Path(args.out).write_text(json.dumps({"probed_at": now.isoformat(), "user_agent": agent,
                                           "sources": results}, indent=1), encoding="utf-8")
     print(f"\nwrote {args.out}")
