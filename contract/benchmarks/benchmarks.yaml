@@ -34,9 +34,14 @@ benchmarks:
   - { key: mmlu_pro,      label: "MMLU-Pro",      category: knowledge, order: 2,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: ["TIGER-Lab", "Self-Reported", null] }, duplicates: match_variant }
+  # agreement_margin: two independent runs of the same model differ by noise
+  # alone. One standard error of their difference at the worst case (50%
+  # correct) is 100 * sqrt(0.5 / questions): 5.0 points for GPQA Diamond's 198
+  # questions. Set only where the benchmark's size is certain; the rest use
+  # validation.yaml `tolerance` (2026-10-28).
   - { key: gpqa_diamond,  label: "GPQA Diamond",  category: knowledge, order: 3,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: rolling,
-      variant_rule: { accept: [null] }, duplicates: match_variant }
+      variant_rule: { accept: [null] }, duplicates: match_variant, agreement_margin: 5.0 }
   # rank: the position on HLE's own board (labs.scale.com, Scale AI co-created HLE).
   - { key: hle,           label: "Humanity's Last Exam", category: knowledge, order: 4,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: rolling,
@@ -59,9 +64,11 @@ benchmarks:
   # The column means "the model in the standard harness": the official board's
   # own bash-only agent (mini-SWE-agent). Commercial agent systems (TRAE,
   # live-SWE-agent, ...) are a different setup and never fill it.
+  # agreement_margin 3.2: SWE-bench Verified's 500 tasks (see gpqa_diamond).
   - { key: swe_bench_verified, label: "SWE-bench Verified", category: coding, order: 1,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: live,
-      variant_rule: { accept: ["mini-SWE-agent"] }, duplicates: match_variant }
+      variant_rule: { accept: ["mini-SWE-agent"] }, duplicates: match_variant,
+      agreement_margin: 3.2 }
   # Scale AI's own board (SWE-Bench Pro, public set, Full view). Each model is run
   # under one agent (Claude Code, Codex, mini-swe-agent); the agent is recorded on
   # the value. Added 2026-10-23.

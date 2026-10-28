@@ -552,11 +552,19 @@ CHANGE_KINDS = {
 #:          (an older model's new result, not a backfill)
 #:   mover  a value that moved on the same source and the same release: any
 #:          rank move, a score by mover_points or more, a rating by mover_rating
+#:   dropped  a value removed because the benchmark's own (tier-1) board no
+#:          longer lists the model - often retired or withdrawn (2026-10-28)
 #: The numbers are contract/benchmarks/validation.yaml `news` (news_rules()).
 #: Everything else - a source's FIRST read (its baseline: every value is new to
 #: the board then), a value the board only now read, a source taking a cell
 #: over, a new release resetting a board - is not news.
-NEWS_KINDS = ("news", "debut", "fresh", "mover")
+NEWS_KINDS = ("news", "debut", "fresh", "mover", "dropped")
+
+
+def _read_tiers() -> dict[str, int]:
+    """The tier of each source we still read. A value removed because we stopped
+    reading a source is not a board dropping a model."""
+    return {k: s.get("tier") for k, s in _sources().items() if s.get("enabled")}
 
 
 def news_rules() -> dict[str, float]:
@@ -619,6 +627,10 @@ def _news(
         if dated and 0 <= (on - dated).days <= rules["fresh_days"]:
             return "fresh"
         return None
+    if change["type"] == "removed":
+        # The benchmark's own board no longer lists the model (merge.py: its
+        # value is not replaced by a lower tier) - often a retired model.
+        return "dropped" if change.get("old_tier") == 1 else None
     if change["type"] == "updated" and not (change["note"] or "").startswith("new release"):
         if change["metric"] == "rank":
             return "mover"
@@ -684,6 +696,7 @@ def changelog(
     only a safety cap on entries."""
     _, columns = _columns()
     sources = _sources()
+    read_tiers = _read_tiers()
     labels = {
         r[0]: r[1] for r in conn.execute("SELECT row_id, display_label FROM bench_row").fetchall()
     }
@@ -783,10 +796,11 @@ def changelog(
             # source with its tier.
             "old_detail": _side(sources, old_src, old, old_shown),
             "new_detail": _side(sources, new_src, new, new_shown),
+            "old_tier": read_tiers.get(old_src),
         }
         entry["news"] = _news(entry, released, baseline, rules)
         # Read by the tagging above, not by the page (rule 9).
-        for internal in ("benchmark_key", "metric", "old_value", "new_value"):
+        for internal in ("benchmark_key", "metric", "old_value", "new_value", "old_tier"):
             del entry[internal]
         if kind in NEWS_KINDS and (entry["news"] is None or kind not in ("news", entry["news"])):
             continue
@@ -820,9 +834,11 @@ def _news_counts(
     rules: dict[str, float],
 ) -> dict[str, int]:
     found = {k: 0 for k in NEWS_KINDS}
+    read_tiers = _read_tiers()
     for (
         run_id,
         source,
+        old_source,
         row_id,
         benchmark_key,
         metric,
@@ -833,14 +849,15 @@ def _news_counts(
         source_date,
         note,
     ) in conn.execute(
-        "SELECT run_id, new_source, row_id, benchmark_key, metric, change_type, old_value, "
-        "new_value, changed_at, source_date, note FROM bench_change "
-        "WHERE change_type IN ('added', 'updated')"
+        "SELECT run_id, new_source, old_source, row_id, benchmark_key, metric, change_type, "
+        "old_value, new_value, changed_at, source_date, note FROM bench_change "
+        "WHERE change_type IN ('added', 'updated', 'removed')"
     ).fetchall():
         tag = _news(
             {
                 "run_id": run_id,
                 "new_source": source,
+                "old_tier": read_tiers.get(old_source),
                 "row_id": row_id,
                 "benchmark_key": benchmark_key,
                 "metric": metric,

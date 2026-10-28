@@ -890,7 +890,8 @@ class TestMerge:
 
     def test_within_a_tier_the_highest_priority_wins_and_a_disagreement_is_flagged(self, config):
         # "a" and "b" are no configured source: both the lowest tier.
-        d = merge(config, [_obs("a", 90.0, priority=70), _obs("b", 95.0, priority=90)], run_id=1)
+        # 7 points apart: beyond GPQA Diamond's 5-point noise margin.
+        d = merge(config, [_obs("a", 88.0, priority=70), _obs("b", 95.0, priority=90)], run_id=1)
         cell = d[("openai/gpt-6-astra", "gpqa_diamond", "score")]
         assert cell.cell.source_key == "b" and cell.rule == "rule 5 priority"
         assert cell.flags and cell.flags[0]["check"] == "disagreement"
@@ -939,13 +940,51 @@ class TestMerge:
         d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "swe_bench_verified", "score")]
         assert d.cell.source_key == "table_fixture" and d.flags
 
-    def test_a_lower_tier_fills_a_cell_only_when_no_higher_tier_has_a_value(self, config):
+    def test_a_lower_tier_fills_a_cell_the_board_never_listed(self, config):
+        obs = [_obs("json_fixture", 75.8, priority=70)]
+        d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")]
+        assert d.cell.source_key == "json_fixture"
+
+    def test_a_model_the_board_dropped_is_blank_not_a_lower_tiers_value(self, config):
+        # Parvathi, 2026-10-28: the benchmark's own board has the final word. A
+        # model it listed and no longer lists is blank - a retired model is news
+        # - never quietly filled from a lower tier.
+        import dataclasses
+
+        read_it = dataclasses.replace(
+            config,
+            sources=tuple(
+                dataclasses.replace(s, enabled=True) if s.key == "table_fixture" else s
+                for s in config.sources
+            ),
+        )
         obs = [
             _obs("table_fixture", 69.0, priority=80, stale=True),  # the board dropped it
             _obs("json_fixture", 75.8, priority=70),
         ]
+        assert ("openai/gpt-6-astra", "gpqa_diamond", "score") not in merge(read_it, obs, run_id=1)
+        # A board we no longer read blanks nothing: its stale values are just old.
+        assert not config.source("table_fixture").enabled
         d = merge(config, obs, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")]
         assert d.cell.source_key == "json_fixture"
+
+    def test_disagreement_needs_more_than_the_benchmarks_noise_margin(self, config):
+        # GPQA Diamond's 198 questions: two honest runs can differ by 5 points
+        # (benchmarks.yaml agreement_margin); the flat 2 points flagged noise.
+        assert config.benchmarks["gpqa_diamond"].agreement_margin == 5.0
+        near = [_obs("a", 92.32, priority=75), _obs("b", 90.15, priority=70)]
+        assert not merge(config, near, run_id=1)[
+            ("openai/gpt-6-astra", "gpqa_diamond", "score")
+        ].flags
+        far = [_obs("a", 92.32, priority=75), _obs("b", 86.0, priority=70)]
+        assert merge(config, far, run_id=1)[("openai/gpt-6-astra", "gpqa_diamond", "score")].flags
+        # A gap exactly at the margin is not over it, however binary rounds it.
+        at = [
+            _obs("a", 63.4, bench="swe_bench_verified", variant="mini-SWE-agent", priority=80),
+            _obs("b", 60.2, bench="swe_bench_verified", variant="mini-SWE-agent", priority=70),
+        ]
+        cell = merge(config, at, run_id=1)[("openai/gpt-6-astra", "swe_bench_verified", "score")]
+        assert not cell.flags
 
     def test_every_configured_source_states_a_tier_and_why(self, config):
         assert all(s.tier in (1, 2, 3) and s.tier_note for s in config.sources)
@@ -2156,6 +2195,13 @@ class TestNewsWorthy:
         assert page.news_rules()["debut_days"] == 30  # was 60 (Parvathi, 2026-10-28)
         assert self._tag(row_id="lab/new:max", changed_at="2026-11-09T10:00:00+00:00") == "debut"
         assert self._tag(row_id="lab/new:max", changed_at="2026-11-12T10:00:00+00:00") is None
+
+    def test_a_model_dropped_by_the_benchmarks_own_board_is_news(self):
+        # 2026-10-28: the cell goes blank, and that is often a retired model.
+        assert self._tag(type="removed", old_tier=1, old_value=69.0, new_value=None) == "dropped"
+        # A lower tier dropping it, or a source we stopped reading, is not.
+        assert self._tag(type="removed", old_tier=2, old_value=69.0, new_value=None) is None
+        assert self._tag(type="removed", old_tier=None, old_value=69.0, new_value=None) is None
 
     def test_movers_are_real_moves_on_the_same_release(self):
         moved = {"type": "updated", "old_value": 70.0}
