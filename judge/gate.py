@@ -136,7 +136,7 @@ PUBLIC_READ_PATHS = frozenset({
     # header fields measured from Hugging Face, prices from our own registry,
     # and contract constants. No quote or text from any source.
     "/local-models",
-    # 2026-10-29 (PROPOSED): the home page's news strip (judge/updates.py
+    # 2026-10-29 (PROPOSED): the home page's updates strip (judge/updates.py
     # published) - the words of updates a person approved AND published, their
     # kind and publish time. Nothing from Manage: no reviewer, draft or style.
     "/updates/published",

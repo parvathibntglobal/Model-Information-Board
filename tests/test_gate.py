@@ -218,7 +218,7 @@ def test_the_public_list_names_only_reads_that_were_checked():
         # 2026-10-23: the local VRAM tool - measured file sizes and header fields,
         # registry prices, contract constants; no source text
         "/local-models",
-        # 2026-10-29 (PROPOSED): the home page's news strip - published words,
+        # 2026-10-29 (PROPOSED): the home page's updates strip - published words,
         # kind and time only (tests/test_updates.py checks what it sends).
         "/updates/published",
     } == gate.PUBLIC_READ_PATHS

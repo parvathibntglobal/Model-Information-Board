@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { publishedUpdates } from '../api'
-import '../styles/news-strip.css'
+import '../styles/updates-strip.css'
 
 /**
- * THE HOME PAGE'S NEWS STRIP (2026-10-29, Parvathi): the updates a person
+ * THE HOME PAGE'S UPDATES STRIP (2026-10-29, Parvathi): the updates a person
  * approved and published on /updates, newest first, in their published words
  * (judge/updates.py published, a public read). Under the hero's chips.
  *
@@ -22,7 +22,7 @@ import '../styles/news-strip.css'
  */
 
 const PX_PER_SECOND = 60
-const SEEN_KEY = 'mb-news-seen'
+const SEEN_KEY = 'mb-ustrip-seen'
 const KIND_TONE = { launch: 'info', price_cut: 'pass', price_rise: 'fail', price_change: 'warn', retiring: 'warn', benchmark: 'mute', roundup: 'info' }
 
 const fmtDay = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -51,29 +51,29 @@ function useReducedMotion() {
 /** One headline in the line: kind, "New", the headline (a button), its date. */
 function Item({ u, isNew, open, onOpen, hidden }) {
   return (
-    <span className="news-item" aria-hidden={hidden || undefined}>
-      <span className={`badge badge-${KIND_TONE[u.kind] || 'mute'} news-kind`}>{u.label}</span>
-      {isNew && <span className="news-new" title="Published since your last visit">New</span>}
-      <button type="button" className="news-head" aria-expanded={open} tabIndex={hidden ? -1 : 0}
+    <span className="ustrip-item" aria-hidden={hidden || undefined}>
+      <span className={`badge badge-${KIND_TONE[u.kind] || 'mute'} ustrip-kind`}>{u.label}</span>
+      {isNew && <span className="ustrip-new" title="Published since your last visit">New</span>}
+      <button type="button" className="ustrip-head" aria-expanded={open} tabIndex={hidden ? -1 : 0}
               onClick={() => onOpen(u.key)} title={open ? 'Hide the detail' : 'Show the detail'}>
         {u.headline}
       </button>
-      <time className="news-when" dateTime={u.published_at}>{fmtDay(u.published_at)}</time>
-      <span className="news-dot" aria-hidden="true">●</span>
+      <time className="ustrip-when" dateTime={u.published_at}>{fmtDay(u.published_at)}</time>
+      <span className="ustrip-dot" aria-hidden="true">●</span>
     </span>
   )
 }
 
 function Detail({ u }) {
   return (
-    <p className="news-detail" id="news-detail">
+    <p className="ustrip-detail" id="ustrip-detail">
       <strong>{u.headline}.</strong> {u.detail}
-      {u.verify && <span className="news-verify"> A listed price: check it on the provider&apos;s own page before relying on it.</span>}
+      {u.verify && <span className="ustrip-verify"> A listed price: check it on the provider&apos;s own page before relying on it.</span>}
     </p>
   )
 }
 
-export default function NewsStrip() {
+export default function UpdatesStrip() {
   const [items, setItems] = useState(null)
   const [openKey, setOpenKey] = useState(null)
   const [at, setAt] = useState(0)
@@ -121,7 +121,7 @@ export default function NewsStrip() {
     else setDuration(Math.max(12, copy.current.scrollWidth / PX_PER_SECOND))
   }, [items, reduced, reps, width])
 
-  if (items === null) return <div className="news-strip news-wait" aria-hidden="true" />
+  if (items === null) return <div className="ustrip-strip ustrip-wait" aria-hidden="true" />
   if (!items.length) return null
 
   const toggle = (key) => setOpenKey((k) => (k === key ? null : key))
@@ -132,15 +132,15 @@ export default function NewsStrip() {
     const u = items[at]
     const go = (step) => { setOpenKey(null); setAt((i) => (i + step + items.length) % items.length) }
     return (
-      <section className="news-strip news-still" aria-label="Latest updates">
-        <div className="news-row">
-          <span className="news-lab">Latest</span>
-          <div className="news-one"><Item u={u} isNew={isNew(u)} open={openKey === u.key} onOpen={toggle} /></div>
+      <section className="ustrip-strip ustrip-still" aria-label="Latest updates">
+        <div className="ustrip-row">
+          <span className="ustrip-lab">Latest</span>
+          <div className="ustrip-one"><Item u={u} isNew={isNew(u)} open={openKey === u.key} onOpen={toggle} /></div>
           {items.length > 1 && (
-            <div className="news-nav">
-              <button type="button" className="news-arrow" onClick={() => go(-1)} aria-label="Previous headline">‹</button>
-              <span className="news-count" aria-live="polite">{at + 1} / {items.length}</span>
-              <button type="button" className="news-arrow" onClick={() => go(1)} aria-label="Next headline">›</button>
+            <div className="ustrip-nav">
+              <button type="button" className="ustrip-arrow" onClick={() => go(-1)} aria-label="Previous headline">‹</button>
+              <span className="ustrip-count" aria-live="polite">{at + 1} / {items.length}</span>
+              <button type="button" className="ustrip-arrow" onClick={() => go(1)} aria-label="Next headline">›</button>
             </div>
           )}
         </div>
@@ -150,15 +150,15 @@ export default function NewsStrip() {
   }
 
   return (
-    <section className="news-strip" aria-label="Latest updates">
-      <div className="news-row">
-        <span className="news-lab"><span className="news-pulse" aria-hidden="true" />Latest</span>
-        <div className={`news-window${open ? ' held' : ''}`} ref={win}>
-          <div className="news-track" style={{ animationDuration: `${duration}s` }}>
+    <section className="ustrip-strip" aria-label="Latest updates">
+      <div className="ustrip-row">
+        <span className="ustrip-lab"><span className="ustrip-pulse" aria-hidden="true" />Latest</span>
+        <div className={`ustrip-window${open ? ' held' : ''}`} ref={win}>
+          <div className="ustrip-track" style={{ animationDuration: `${duration}s` }}>
             {[0, 1].map((half) => (
               // The second half makes the loop seamless; it, and every repeat
               // after the first, is hidden from screen readers and the keyboard.
-              <div key={half} className="news-copy" ref={half === 0 ? copy : undefined}
+              <div key={half} className="ustrip-copy" ref={half === 0 ? copy : undefined}
                    aria-hidden={half === 1 || undefined}>
                 {Array.from({ length: reps }, (_, r) => items.map((u) => (
                   <Item key={`${r}-${u.key}`} u={u} isNew={isNew(u)} open={openKey === u.key} onOpen={toggle}

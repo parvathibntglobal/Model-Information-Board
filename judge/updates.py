@@ -100,6 +100,9 @@ FACTS["retired_group"] = FACTS["retiring_group"]
 
 STATUSES = ("pending", "approved", "declined")
 ACTIONS = ("approve", "decline", "restore", "style", "edit", "publish", "unpublish")
+#: What can still be done to an update that is no longer in the data (its facts
+#: changed, so it is no longer built): take it off the home page, or hide it.
+GONE_ACTIONS = ("unpublish", "decline")
 HEADLINE_MAX = 160
 DETAIL_MAX = 300
 
@@ -149,6 +152,8 @@ def rules() -> dict[str, Any]:
         out = {
             "window_days": int(raw["window_days"]),
             "max_window_days": int(raw["max_window_days"]),
+            "home_days": int(raw["home_days"]),
+            "home_limit": int(raw["home_limit"]),
             "second_check_pct": float(raw["second_check_pct"]),
             "mixed_move_pct": float(raw["mixed_move_pct"]),
             "retiring_ahead_days": int(raw["retiring_ahead_days"]),
@@ -180,6 +185,8 @@ def rules() -> dict[str, Any]:
         ) from exc
     if not 0 < out["window_days"] <= out["max_window_days"]:
         raise UpdatesContractError("need 0 < window_days <= max_window_days")
+    if out["home_days"] < 1 or out["home_limit"] < 1:
+        raise UpdatesContractError("need home_days >= 1 and home_limit >= 1")
     if out["group_min"] < 2 or out["names_shown"] < 1:
         raise UpdatesContractError("need group_min >= 2 and names_shown >= 1")
     unknown = set(out["why_by_set"]) - set(FACTS)
@@ -1032,6 +1039,46 @@ def _reviews(conn) -> dict[str, dict[str, Any]] | None:
     return out
 
 
+def _live_price_keys(conn, r: dict[str, Any], now: datetime) -> set[str]:
+    """The keys of the price updates still built over the longest window: a
+    published price update not among them is no longer news (a cut that did
+    not last, a move that continued) and comes off the home page."""
+    return {u["key"] for u in _prices(conn, r["max_window_days"], r, now)[0]}
+
+
+def _home(
+    rv: dict[str, Any],
+    kind: str,
+    words: tuple[str, str] | None,
+    live_prices: set[str],
+    r: dict[str, Any],
+    now: datetime,
+    *,
+    gone: bool = False,
+) -> dict[str, Any] | None:
+    """A published update's home-page state, or None when it was never
+    published. `on_home` is what published() serves; `removed` says why not."""
+    at = rv.get("home_published_at")
+    if not at:
+        return None
+    removed = None
+    if rv.get("status") != "approved":
+        removed = "not_approved"
+    elif now - at > timedelta(days=r["home_days"]):
+        removed = "expired"
+    elif gone or (kind.startswith("price") and rv["update_key"] not in live_prices):
+        removed = "not_in_data"
+    return {
+        "headline": rv["home_headline"],
+        "detail": rv["home_detail"],
+        "by": _who(rv["home_published_by"]),
+        "at": at.isoformat(),
+        "current": words is not None and (rv["home_headline"], rv["home_detail"]) == words,
+        "on_home": removed is None,
+        "removed": removed,
+    }
+
+
 def _who(email: str | None) -> str | None:
     """What the page shows for a person: the part of their email before the @."""
     return email.split("@")[0] if email else None
@@ -1041,10 +1088,13 @@ def listing(
     conn, *, bench_conn=None, days: int | None = None, now: datetime | None = None
 ) -> dict[str, Any]:
     """Both sections' data: each update with its final words and its review."""
+    now = now or datetime.now(UTC)
     built = build(conn, bench_conn=bench_conn, days=days, now=now)
     reviews = _reviews(conn)
     saving = reviews is not None
     reviews = reviews or {}
+    r = built["rules"]
+    live_prices = _live_price_keys(conn, r, now)
     examples: dict[str, dict[str, Any]] = {}
     for u in built["updates"]:
         examples.setdefault(u["template"], u)
@@ -1055,21 +1105,12 @@ def listing(
             status=status,
             # On News headlines: not declined, and a round-up only once approved.
             published=status != "declined" and (u["kind"] != "roundup" or status == "approved"),
-            # On the home page (to be wired): the words as they were when a
-            # person published them, fixed, so a later template change or edit
-            # never changes a published headline. `current` is false when the
-            # card's words have changed since: the page offers Republish.
-            home=(
-                {
-                    "headline": rv["home_headline"],
-                    "detail": rv["home_detail"],
-                    "by": _who(rv["home_published_by"]),
-                    "at": rv["home_published_at"].isoformat(),
-                    "current": (rv["home_headline"], rv["home_detail"]) == (headline, detail),
-                }
-                if rv.get("home_published_at")
-                else None
-            ),
+            # The home page: the words as they were when a person published
+            # them, fixed, so a later template change or edit never changes a
+            # published headline. `current` is false when the card's words have
+            # changed since (the page offers Republish); `removed` says why it
+            # is no longer on the home page.
+            home=_home(rv, u["kind"], (headline, detail), live_prices, r, now),
             style=style,
             headline=headline,
             detail=detail,
@@ -1082,9 +1123,45 @@ def listing(
         # the page (rule 9).
         for internal in ("facts", "models", "seen_at", "template"):
             del u[internal]
-    r = built.pop("rules")
+    built.pop("rules")
+    # PUBLISHED, NO LONGER BUILT (#585 review). An update's key names its facts,
+    # so a published one stops being built when they change: a cut that did not
+    # last, a launch that became part of a group, or one older than the window.
+    # It is still listed here, in its published words, so it can be taken off
+    # the home page.
+    shown = {u["key"] for u in built["updates"]}
+    for key, rv in reviews.items():
+        if key in shown or not rv.get("home_published_at"):
+            continue
+        at = rv["home_published_at"]
+        built["updates"].append(
+            {
+                "key": key,
+                "kind": rv["kind"],
+                "date": at.astimezone(UTC).date().isoformat(),
+                "label": r["kinds"][rv["kind"]]["label"],
+                "why": "No longer in the data",
+                "source": r["kinds"][rv["kind"]]["source"],
+                "styles": [],
+                "second_check": False,
+                "tracked": False,
+                "upcoming": False,
+                "gone": True,
+                "status": rv["status"],
+                "published": False,
+                "home": _home(rv, rv["kind"], None, live_prices, r, now, gone=True),
+                "style": None,
+                "headline": rv["home_headline"],
+                "detail": rv["home_detail"],
+                "edited": False,
+                "reviewed_by": _who(rv.get("reviewed_by")),
+                "reviewed_at": rv["reviewed_at"].isoformat() if rv.get("reviewed_at") else None,
+                "undo": ({**rv["undo"], "by": _who(rv["undo"]["by"])} if rv.get("undo") else None),
+            }
+        )
     return {
         **built,
+        "home_days": r["home_days"],
         "saving": saving,
         "second_check_pct": r["second_check_pct"],
         "max_window_days": r["max_window_days"],
@@ -1265,6 +1342,10 @@ def review(
     """Apply one decision to one built update (from build(), facts included)."""
     if action not in ACTIONS:
         raise ReviewRefused(f"action must be one of {', '.join(ACTIONS)}")
+    if update.get("gone") and action not in GONE_ACTIONS:
+        raise ReviewRefused(
+            "this update is no longer in the data: it can only be unpublished or declined"
+        )
     _refuse_unsafe_write()
     before = _current(conn, update["key"])
     after = _state(before)
@@ -1316,6 +1397,16 @@ def review(
         "status": after["status"],
         "published": bool(after["home_published_at"]),
     }
+
+
+def stored_update(conn, key: str) -> dict[str, Any] | None:
+    """A published update that is no longer built, from its stored review row,
+    so Manage can still take it off the home page (#585 review). None when
+    there is no such row."""
+    row = _current(conn, key)
+    if row is None or not row.get("home_published_at"):
+        return None
+    return {"key": key, "kind": row["kind"], "styles": [], "facts": {}, "gone": True}
 
 
 def approve_all(conn, updates: list[dict[str, Any]], *, by: str) -> dict[str, Any]:
@@ -1379,30 +1470,34 @@ def undo(conn, key: str, *, by: str) -> dict[str, Any]:
     return {"key": key, "undid": action}
 
 
-# ── the home page's news strip ───────────────────────────────────────────────
+# ── the home page's updates strip ───────────────────────────────────────────────
 
 PUBLISHED_SQL = (
     "SELECT update_key, kind, home_headline, home_detail, home_published_at "
     "FROM update_review "
     "WHERE home_published_at IS NOT NULL AND status = 'approved' AND home_published_at >= %s "
-    "ORDER BY home_published_at DESC LIMIT %s"
+    "ORDER BY home_published_at DESC"
 )
 
 
-def published(
-    conn, *, limit: int = 8, days: int = 30, now: datetime | None = None
-) -> dict[str, Any]:
-    """What the home page shows: the updates a person published, newest first,
-    in the words they were published with. PUBLIC (judge/gate.py): it sends
-    those words, the kind and the publish time, and nothing from Manage - no
-    reviewer, no style, no draft, no update that was not published."""
+def published(conn, *, now: datetime | None = None) -> dict[str, Any]:
+    """What the home page shows: the updates a person published in the last
+    `home_days`, newest first, at most `home_limit`, in the words they were
+    published with (contract/updates.yaml). A price update that is no longer
+    news - a cut that did not last - comes off by itself. PUBLIC (judge/gate.py):
+    it sends those words, the kind and the publish time, and nothing from
+    Manage - no reviewer, no style, no draft, no update that was not published."""
     r = rules()
     now = now or datetime.now(UTC)
     try:
-        rows = conn.execute(PUBLISHED_SQL, (now - timedelta(days=days), limit)).fetchall()
+        rows = conn.execute(PUBLISHED_SQL, (now - timedelta(days=r["home_days"]),)).fetchall()
     except errors.UndefinedTable:
         conn.rollback()
         rows = []
+    if any(kind.startswith("price") for _, kind, *_ in rows):
+        live = _live_price_keys(conn, r, now)
+        rows = [row for row in rows if not row[1].startswith("price") or row[0] in live]
+    rows = rows[: r["home_limit"]]
     return {
         "updates": [
             {

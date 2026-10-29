@@ -626,3 +626,58 @@ def test_one_price_down_and_the_other_up_is_a_price_change_never_cheaper(conn):
         "Pro changes price: input down to $0.3995, output up to $4.20"
     )
     assert "cheaper" not in u["styles"][0]["headline"]
+
+
+# ── the home page after publishing (#585 review) ──────────────────────────────
+
+
+def publish(conn, update):
+    updates.review(conn, update, action="approve", by="p@example.com")
+    updates.review(conn, update, action="publish", by="p@example.com")
+
+
+def test_a_headline_leaves_the_home_page_after_home_days_and_is_listed_as_removed(registry):
+    u = built(registry, "launch")
+    publish(registry, u)
+    days = updates.rules()["home_days"]
+    assert [i["key"] for i in updates.published(registry)["updates"]] == [u["key"]]
+    later = NOW + timedelta(days=days, hours=1)
+    assert updates.published(registry, now=later)["updates"] == []
+    shown = next(
+        i for i in updates.listing(registry, days=90, now=later)["updates"] if i["key"] == u["key"]
+    )
+    assert shown["home"]["on_home"] is False and shown["home"]["removed"] == "expired"
+
+
+def test_a_published_update_no_longer_in_the_data_can_still_be_unpublished(registry):
+    """A published price cut that later did not last stops being built; it is
+    still listed, comes off the home page by itself, and can be unpublished."""
+    u = built(registry, "price_cut")
+    publish(registry, u)
+    price(registry, "eps/cheap", 24, 1, 2)  # back to the settled price: the cut did not last
+    registry.commit()
+    assert updates.published(registry)["updates"] == [], "a reverted cut leaves the home page"
+    gone = next(
+        i for i in updates.listing(registry, days=30, now=NOW)["updates"] if i["key"] == u["key"]
+    )
+    assert gone["gone"] is True and gone["home"]["removed"] == "not_in_data"
+    assert gone["headline"] == u["styles"][0]["headline"], "shown in its published words"
+    stored = updates.stored_update(registry, u["key"])
+    with pytest.raises(updates.ReviewRefused, match="no longer in the data"):
+        updates.review(registry, stored, action="publish", by="p@example.com")
+    updates.review(registry, stored, action="unpublish", by="p@example.com")
+    assert all(i["key"] != u["key"] for i in updates.listing(registry, days=30, now=NOW)["updates"])
+
+
+def test_the_home_page_shows_at_most_home_limit(registry, monkeypatch):
+    every = updates.build(registry, days=30, now=NOW)["updates"]
+    for u in every[:3]:
+        publish(registry, u)
+    real = updates.rules
+
+    def two():
+        r = real()
+        return {**r, "home_limit": 2}
+
+    monkeypatch.setattr(updates, "rules", two)
+    assert len(updates.published(registry)["updates"]) == 2

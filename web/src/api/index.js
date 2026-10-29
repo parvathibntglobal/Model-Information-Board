@@ -634,7 +634,7 @@ export const reviewUpdate = ({ key, action, style, headline, detail, confirm = f
 export const approveAllUpdates = (keys, days) =>
   request('/updates/approve-all', { method: 'POST', body: { keys, days: days || null } })
 export const undoUpdate = (key) => request('/updates/undo', { method: 'POST', body: { key } })
-// The home page's news strip: published updates only. A public read.
+// The home page's updates strip: published updates only. A public read.
 export const publishedUpdates = () => cached('updates-published', () => request('/updates/published'), { ttl: BOARD_TTL_MS })
 
 // Which database this is, what is in it, and whether the schema matches the

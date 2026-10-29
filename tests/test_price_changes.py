@@ -224,3 +224,19 @@ def test_a_newer_step_still_settling_does_not_hide_a_held_move():
     data = by_seen(run([row("m", at(600), 0.14, 0.28), row("m", at(150), 0.03, 0.28),
                         row("m", at(2), 0.029, 0.28)]))
     assert data[at(150).isoformat()]["newsworthy"], "the newer step is still settling"
+
+
+
+def test_a_blip_to_paid_and_back_to_free_is_not_now_free():
+    """#585 review: "now free" is judged from the settled price too."""
+    data = by_seen(run([row("m", at(600), 0, 0), row("m", at(120), 0.2, 0.8),
+                        row("m", at(48), 0, 0)]))
+    back = data[at(48).isoformat()]
+    assert "free" not in back["flags"] and not back["newsworthy"]
+
+
+def test_a_later_price_not_stated_is_not_a_revert():
+    """#585 review, rule 6: an unknown price is no evidence the move did not last."""
+    data = by_seen(run([row("m", at(600), 1.0, 2.0), row("m", at(120), 0.4, 1.0),
+                        row("m", at(60), None, 1.0)]))
+    assert "reverted" not in data[at(120).isoformat()]["flags"]

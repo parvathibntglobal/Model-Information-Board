@@ -211,6 +211,11 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
                 key=lambda f: abs(settled_moves[f]),
                 default=None,
             )
+            # "Now free" is judged from the settled price too (#585 review): a
+            # model free for weeks that went paid for a day and back is not news.
+            if free and not ((settled_before["price_in"] or 0) > 0
+                             or (settled_before["price_out"] or 0) > 0):
+                flags.remove("free")
             recent = [
                 row for row in rows[1:i + 1] if row[1] > seen - timedelta(days=r["unstable_days"])
             ]
@@ -222,7 +227,9 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
                     if later[1] > seen + settle:
                         break
                     back = pct(settled_before[main], _num(later[2 + k_main]))
-                    if back is None or abs(back) < r["big_change_pct"]:
+                    if back is None:
+                        continue  # an unknown price is no evidence either way (rule 6)
+                    if abs(back) < r["big_change_pct"]:
                         flags.append("reverted")
                         break
             out.append({

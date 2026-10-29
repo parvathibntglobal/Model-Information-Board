@@ -36,6 +36,12 @@
 window_days: 30
 max_window_days: 90
 
+# THE HOME PAGE (2026-10-29, Parvathi; #585 review). A published update shows on
+# the home page for this many days from when it was published, then comes off
+# by itself and is listed in Manage under "Removed". At most this many show.
+home_days: 7
+home_limit: 8
+
 # A price move this large (either price, in percent) is marked "Needs a
 # second-source check": big moves on OpenRouter are often a host switch.
 second_check_pct: 50

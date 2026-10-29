@@ -29,14 +29,26 @@ const KIND_TONE = { launch: 'info', price_cut: 'pass', price_rise: 'fail', price
 const STATUSES = [
   { key: 'pending', label: 'Not reviewed', hint: 'Shown on News headlines; nobody has approved or declined it yet' },
   { key: 'approved', label: 'Approved', hint: 'Shown on News headlines, checked by a person' },
-  { key: 'published', label: 'Published', hint: 'On the home page: approved and published' },
+  { key: 'published', label: 'Published', hint: 'On the home page now' },
+  { key: 'removed', label: 'Removed from home', hint: 'Published, then taken off the home page by itself: older than the home page keeps, or no longer in the data' },
   { key: 'declined', label: 'Declined', hint: 'Hidden from News headlines' },
   { key: 'all', label: 'All', hint: 'Every update in the window' },
 ]
 const WINDOWS = [7, 30, 90]
 const PAGE = 40
 /** Whether an update belongs under a review filter; Published is the home page's. */
-const inStatus = (u, key) => (key === 'all' ? true : key === 'published' ? !!u.home : u.status === key)
+const inStatus = (u, key) => (
+  key === 'all' ? true
+    : key === 'published' ? !!u.home?.on_home
+      : key === 'removed' ? !!u.home && !u.home.on_home
+        : u.status === key)
+
+/** Why a published update is no longer on the home page, in words. */
+const removedWhy = (home, days) => ({
+  expired: `published more than ${days} days ago`,
+  not_in_data: 'no longer in the data',
+  not_approved: 'no longer approved',
+}[home.removed] || '')
 
 const fmtDay = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', {
   weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
@@ -76,13 +88,14 @@ function SourceNote({ u }) {
 }
 
 /**
- * PUBLISH TO THE HOME PAGE (2026-10-29): the home page's news strip is not
- * built yet; this stores the decision and the words, fixed, for it to read.
- * ONLY ON APPROVED UPDATES: approving happens in Manage, and an update nobody
- * approved never gets the button. A card whose words changed after
- * publishing offers Republish.
+ * PUBLISH TO THE HOME PAGE (2026-10-29): stores the decision and the words,
+ * fixed, for the home page's updates strip (components/UpdatesStrip.jsx). ONLY ON
+ * APPROVED UPDATES: approving happens in Manage, and an update nobody approved
+ * never gets the button. A card whose words changed after publishing offers
+ * Republish; one taken off the home page by itself (after `home_days`) says
+ * so and can be published again.
  */
-function PublishButton({ u, act, busy, saving }) {
+function PublishButton({ u, act, busy, saving, days }) {
   const off = busy || !saving
   if (!u.home && u.status !== 'approved') return null
   if (!u.home) {
@@ -96,11 +109,15 @@ function PublishButton({ u, act, busy, saving }) {
   }
   return (
     <span className="up-pub">
-      <Badge tone="pass" title={`Published by ${u.home.by}, ${fmtWhen(u.home.at)}`}>On home page</Badge>
-      {!u.home.current && (
+      {u.home.on_home
+        ? <Badge tone="pass" title={`Published by ${u.home.by}, ${fmtWhen(u.home.at)}`}>On home page</Badge>
+        : <Badge tone="mute" title={`Published by ${u.home.by}, ${fmtWhen(u.home.at)}`}>Removed from home: {removedWhy(u.home, days)}</Badge>}
+      {(!u.home.current || !u.home.on_home) && (
         <button type="button" className="btn btn-ghost up-btn" disabled={off}
                 onClick={() => act({ key: u.key, action: 'publish' })}
-                title="The words changed after publishing. Republish to show the new words on the home page.">
+                title={u.home.on_home
+                  ? 'The words changed after publishing. Republish to show the new words on the home page.'
+                  : `Put it back on the home page, in these words, for another ${days} days.`}>
           Republish
         </button>
       )}
@@ -114,7 +131,7 @@ function PublishButton({ u, act, busy, saving }) {
 }
 
 /** One headline card on News headlines. */
-function Headline({ u, pct, act, busy, saving }) {
+function Headline({ u, pct, act, busy, saving, days }) {
   return (
     <article className={`up-card card${u.home ? ' up-on-home' : ''}`}>
       <div className="up-meta">
@@ -129,7 +146,7 @@ function Headline({ u, pct, act, busy, saving }) {
       </div>
       {(u.home || u.status === 'approved') && (
         <div className="up-card-actions">
-          <PublishButton u={u} act={act} busy={busy} saving={saving} />
+          <PublishButton u={u} act={act} busy={busy} saving={saving} days={days} />
         </div>
       )}
     </article>
@@ -170,7 +187,8 @@ function NewsHeadlines({ data, shownItems, more, onMore, act, busy }) {
           <h2 className="up-day-h">{g.label}</h2>
           <div className="up-grid">
             {g.items.map((u) => (
-              <Headline key={u.key} u={u} pct={data.second_check_pct} act={act} busy={busy} saving={data.saving} />
+              <Headline key={u.key} u={u} pct={data.second_check_pct} act={act} busy={busy} saving={data.saving}
+                        days={data.home_days} />
             ))}
           </div>
         </section>
@@ -220,11 +238,20 @@ function ManageRow({ u, data, act, busy }) {
         {u.edited && <Badge tone="info" title="A person's own words replace the style's">Edited</Badge>}
         <Verify u={u} pct={data.second_check_pct} />
         {u.tracked && <Badge tone="mute" title="One of the models on the registry page">Tracked</Badge>}
-        {u.home && (
+        {u.gone && (
+          <Badge tone="warn" title="Its facts changed after it was published (a cut that did not last, a launch that joined a group), so it is no longer built. Shown in its published words so it can be taken off the home page.">
+            No longer in the data
+          </Badge>
+        )}
+        {u.home && (u.home.on_home ? (
           <Badge tone="pass" title={`Published by ${u.home.by}, ${fmtWhen(u.home.at)}${u.home.current ? '' : '. The words changed since: republish from News headlines.'}`}>
             {u.home.current ? 'On home page' : 'On home page (old words)'}
           </Badge>
-        )}
+        ) : (
+          <Badge tone="mute" title={`Published by ${u.home.by}, ${fmtWhen(u.home.at)}`}>
+            Removed from home: {removedWhy(u.home, data.home_days)}
+          </Badge>
+        ))}
       </div>
 
       {editing ? (
@@ -258,9 +285,14 @@ function ManageRow({ u, data, act, busy }) {
 
       {!editing && (
         <div className="up-actions">
-          {u.status !== 'approved' && (
+          {u.status !== 'approved' && !u.gone && (
             <button type="button" className="btn btn-ghost up-btn up-approve" disabled={off}
                     onClick={() => act({ key: u.key, action: 'approve' })}>Approve</button>
+          )}
+          {u.gone && u.home?.on_home && (
+            <button type="button" className="btn btn-ghost up-btn" disabled={off}
+                    onClick={() => act({ key: u.key, action: 'unpublish' })}
+                    title="Take it off the home page now">Unpublish</button>
           )}
           {u.status === 'declined' ? (
             <button type="button" className="btn btn-ghost up-btn" disabled={off}
@@ -271,12 +303,14 @@ function ManageRow({ u, data, act, busy }) {
                     onClick={() => act({ key: u.key, action: 'decline' })}
                     title="Hide it from News headlines">Decline</button>
           )}
+          {!u.gone && (<>
           <button type="button" className={`btn btn-ghost up-btn${picking ? ' on' : ''}`} disabled={u.styles.length < 2}
                   aria-expanded={picking} onClick={() => setPicking((v) => !v)}
                   title="See every style this update can take, worded in full">
             Style: {u.styles.find((st) => st.id === u.style)?.label} · {u.styles.length} to choose
           </button>
           <button type="button" className="btn btn-ghost up-btn" disabled={off} onClick={() => setEditing(true)}>Edit</button>
+          </>)}
           {u.undo && (
             <button type="button" className="btn btn-ghost up-btn" disabled={off} onClick={() => act({ undo: u.key })}
                     title={`Take back: ${u.undo.action} by ${u.undo.by}, ${fmtWhen(u.undo.at)}`}>Undo</button>
@@ -402,7 +436,7 @@ function Info({ data }) {
         <p>
           Updates turns changes the board already tracks into short news headlines, so a reader can see in a
           minute what moved in AI models: what launched, what got cheaper or pricier, what is retiring and what
-          scored well. Approved headlines can be published to the home page as a news strip that keeps readers
+          scored well. Approved headlines can be published to the home page as a strip of headlines that keeps readers
           coming back.
         </p>
         <p>
@@ -468,10 +502,14 @@ function Info({ data }) {
         <h2>Publishing to the home page</h2>
         <p>
           Approve an update in <strong>Manage</strong> first: only approved updates get a
-          <strong> Publish</strong> button on News headlines. Publishing marks it for the home page in its words at
-          that moment. Later edits or style changes do not reach the home page until you
-          <strong> Republish</strong>; <strong>Unpublish</strong> takes it off. The home page strip itself is not
-          built yet: publishing now saves the choice for it.
+          <strong> Publish</strong> button on News headlines. Publishing puts it in the home page&apos;s updates strip
+          in its words at that moment. Later edits or style changes do not reach the home page until you
+          <strong> Republish</strong>; <strong>Unpublish</strong> takes it off.
+        </p>
+        <p>
+          A headline stays on the home page for <strong>{data.home_days} days</strong> from when it was published,
+          then comes off by itself and is listed in Manage under <strong>Removed from home</strong>, where it can be
+          published again. A price headline that is no longer news (a cut that did not last) comes off at once.
         </p>
       </section>
 

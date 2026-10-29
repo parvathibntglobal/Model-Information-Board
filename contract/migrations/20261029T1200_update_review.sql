@@ -9,8 +9,9 @@
 --
 -- WHO WRITES: judge/updates.py review() and undo(), from POST /updates/review
 -- and /updates/undo (any signed-in person).
--- WHO READS: judge/updates.py listing(), for every section of the page; the
--- home page's news strip will read the published words (home_*) once wired.
+-- WHO READS: judge/updates.py listing(), for every section of the page, and
+-- published(), the home page's updates strip (GET /updates/published): the
+-- published words (home_*) of the last `home_days`.
 
 -- ONE ROW PER UPDATE a person has touched. No row: shown, not reviewed yet.
 CREATE TABLE update_review (
@@ -27,7 +28,7 @@ CREATE TABLE update_review (
   detail       text,
   reviewed_by  text NOT NULL,
   reviewed_at  timestamptz NOT NULL DEFAULT now(),
-  -- ON THE HOME PAGE (to be wired): the words as they were when a person
+  -- ON THE HOME PAGE: the words as they were when a person
   -- published the update, kept fixed so a later template change or edit
   -- never changes a published headline. All four NULL: not published.
   home_headline      text,
@@ -63,6 +64,6 @@ CREATE TABLE update_review_log (
 );
 CREATE INDEX update_review_log_key_idx ON update_review_log (update_key, id DESC);
 
--- The home page's read (to be wired): published updates, newest first.
+-- The home page's read (updates.published): published updates, newest first.
 CREATE INDEX update_review_home_idx ON update_review (home_published_at DESC)
   WHERE home_published_at IS NOT NULL;

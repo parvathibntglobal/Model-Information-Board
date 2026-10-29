@@ -3514,6 +3514,9 @@ def _update(updates, conn, bench, key: str, days: int | None) -> dict:
     built = updates.build(conn, bench_conn=bench, days=days)["updates"]
     found = next((u for u in built if u["key"] == key), None)
     if found is None:
+        # A published update no longer built can still come off the home page.
+        found = updates.stored_update(conn, key)
+    if found is None:
         raise HTTPException(status_code=404, detail="no update with that key in this window")
     return found
 
@@ -3535,7 +3538,7 @@ def _updates_errors(write):
 
 @app.get("/updates/published")
 def updates_published() -> dict:
-    """The home page's news strip: the updates a person published, newest
+    """The home page's updates strip: the updates a person published, newest
     first, in their published words. PUBLIC (judge/gate.py) - it sends only
     those words, the kind and the publish time."""
     from judge import updates
