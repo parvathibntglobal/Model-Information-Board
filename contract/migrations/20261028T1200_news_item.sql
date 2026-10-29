@@ -50,10 +50,13 @@
 --                 item, or the article's og:image - collect/news/preview.py,
 --                 CLAUDE.md's second scraping exception). NULL with no picture
 --   preview_checked_at  when the article's link preview got a FINAL answer
---                 (a picture, none, a refusal, a 4xx, or `max_attempts` reached).
+--                 (a picture, none, a robots.txt refusal, a 4xx, or
+--                 `max_attempts` reached).
 --                 NULL: not asked yet, or a failure that may pass is to be retried
---   preview_outcome  found | none | robots_refused | not_https | not_html |
---                 http_error | error - what the last ask did; NULL: never asked.
+--   preview_outcome  found | none | robots_refused | robots_no_answer |
+--                 not_https | not_html | http_error | error - what the last ask
+--                 did; NULL: never asked. robots_no_answer (robots.txt timed
+--                 out or gave a 5xx) is retried; robots_refused is final.
 --                 A failed read is never mistaken for a page with no picture
 --   preview_attempts  how many times the article has been asked
 --   preview_raw_ref  raw store ref of the <head> that was read; NULL if none
@@ -112,7 +115,8 @@ CREATE TABLE news_item (
   CONSTRAINT news_item_feed_summary_has_source_ck
     CHECK ((feed_summary IS NULL) = (feed_summary_source IS NULL)),
   CONSTRAINT news_item_preview_outcome_ck CHECK (preview_outcome IN
-    ('found', 'none', 'robots_refused', 'not_https', 'not_html', 'http_error', 'error')),
+    ('found', 'none', 'robots_refused', 'robots_no_answer', 'not_https', 'not_html',
+     'http_error', 'error')),
   CONSTRAINT news_item_preview_attempts_ck CHECK (preview_attempts >= 0)
 );
 CREATE INDEX news_item_published_idx ON news_item (published_at DESC);

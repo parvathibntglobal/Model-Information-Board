@@ -10,10 +10,10 @@ previews - `og:image`, else `twitter:image` - the tag Slack, X and LinkedIn read
 ITS CONDITIONS ARE NOT SETTINGS:
   1. Only the links the listed feeds themselves give, only for a story with no
      feed picture, until it gets an answer (`preview_checked_at`): a definite
-     one - a picture, none, a refusal, a 4xx - is final; a failure that may pass
-     (a timeout, a 5xx, a 429) is asked again, at most `max_attempts` times in
-     all. Every outcome is kept (`preview_outcome`). Nothing is crawled or
-     discovered.
+     one - a picture, none, a robots.txt refusal, a 4xx - is final; a failure
+     that may pass (a timeout, a 5xx, a 429, a robots.txt that gave no answer)
+     is asked again, at most `max_attempts` times in all. Every outcome is
+     kept (`preview_outcome`). Nothing is crawled or discovered.
   2. robots.txt is asked for the article and for every redirect hop; there is
      no switch to turn it off. Identifying User-Agent.
   3. Only the page's <head> is read: the response is streamed and closed at
@@ -103,6 +103,12 @@ def read_head(client, gate, url: str, max_bytes: int) -> HeadRead:
             return HeadRead(None, None, f"not https: {url[:120]}")
         decision = gate.allows(url)
         if not decision.allowed:
+            # NO ANSWER IS NOT A REFUSAL (#583 review, round 2). The gate fails
+            # closed when robots.txt times out or returns a 5xx, which is right
+            # for this run; recorded as a refusal, one bad minute on the
+            # publisher's side gave up on every story asked during it, for good.
+            if decision.ruling.status == "no-answer":
+                return HeadRead(None, None, f"robots no answer: {decision.reason}")
             return HeadRead(None, None, f"robots.txt: {decision.reason}")
         with client.stream("GET", url, headers={"Accept": "text/html"}) as response:
             if response.is_redirect:
@@ -143,11 +149,15 @@ def outcome_of(read: HeadRead, picture: str | None) -> tuple[str, bool]:
     """(what happened, is it final). A CAUSED ABSENCE IS NOT A FOUND ONE (#583
     review): a timeout and "this page sets no picture" were the same row and
     neither was asked again. Now a definite answer is final, and a failure that
-    may pass - a timeout, a 5xx, a 429, a 408 - is asked again."""
+    may pass - a timeout, a 5xx, a 429, a 408, a robots.txt that gave no
+    answer - is asked again. Only a rule (Disallow, or robots.txt refused with
+    a 401/403) is a final refusal."""
     if read.content is not None:
         return ("found" if picture else "none"), True
     why = read.outcome
-    if why.startswith("robots"):
+    if why.startswith("robots no answer"):
+        return "robots_no_answer", False
+    if why.startswith("robots.txt"):
         return "robots_refused", True
     if why.startswith("not https"):
         return "not_https", True

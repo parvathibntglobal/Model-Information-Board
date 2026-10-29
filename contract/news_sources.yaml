@@ -120,8 +120,9 @@ story:
 # picture gets the drawn card. For a source whose terms allow only what the
 # feed provides, unmodified. TechCrunch's RSS terms read: "you are only
 # permitted to display the content that is provided in the feed ... You may
-# not ... otherwise modify our feed content" (read 2026-10-22). Listing it here
-# is anooj's decision, pending.
+# not ... otherwise modify our feed content" (read 2026-10-22). It is NOT
+# listed: anooj, 2026-10-29, kept it as it is and recorded the accepted risk on
+# its source entry above. Listing it is the way out if TechCrunch asks.
 as_given: {}
 
 # What the News page shows by default, and the longest window it may ask for.
@@ -156,6 +157,22 @@ sources:
     kind: feed
     url: https://techcrunch.com/category/artificial-intelligence/feed/
     terms: "RSS terms allow display with credit to TechCrunch, a link to the article and the feed unchanged; they may ask us to stop. The feed holds about 2 days, hence a read every 6 hours."
+    # ACCEPTED RISK, RECORDED RATHER THAN RESOLVED (anooj, 2026-10-29; #583
+    # review). Terms findings inform and never block (sources.yaml, top), and
+    # this note is the record that goes with that rule.
+    #   WHAT THE TERMS SAY: "you are only permitted to display the content that
+    #     is provided in the feed ... You may not ... otherwise modify our feed
+    #     content" (TechCrunch RSS terms, read 2026-10-22).
+    #   WHAT WE DO ANYWAY: cut its feed summary to `summary_max_words`, may
+    #     show the article page's own description instead when it is the
+    #     fuller brief, and show the picture the article's <head> names for
+    #     link previews (the feed carries none). Always with credit to
+    #     TechCrunch and a link to the article.
+    #   WHO DECIDED, WHEN: anooj, 2026-10-29 - TechCrunch stays a source with
+    #     its pictures; it is not dropped and not listed in `as_given`.
+    #   THE WAY OUT IS ONE LINE: `as_given: {techcrunch_ai: "<reason>"}` shows
+    #     its summary whole and stops its link previews; removing the source
+    #     is the step after that. Either, the day TechCrunch asks us.
     daily: false
 
   # ── AI labs: official feeds, no rule against headline plus link ───────────

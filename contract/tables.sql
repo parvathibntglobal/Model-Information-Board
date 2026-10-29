@@ -2304,7 +2304,8 @@ CREATE TABLE IF NOT EXISTS news_item (
   CONSTRAINT news_item_feed_summary_has_source_ck
     CHECK ((feed_summary IS NULL) = (feed_summary_source IS NULL)),
   CONSTRAINT news_item_preview_outcome_ck CHECK (preview_outcome IN
-    ('found', 'none', 'robots_refused', 'not_https', 'not_html', 'http_error', 'error')),
+    ('found', 'none', 'robots_refused', 'robots_no_answer', 'not_https', 'not_html',
+     'http_error', 'error')),
   CONSTRAINT news_item_preview_attempts_ck CHECK (preview_attempts >= 0)
 );
 

@@ -185,19 +185,33 @@ def test_the_window_is_full_only_when_the_read_returned_per_page():
 # ── the harvest and the view (Postgres) ──────────────────────────────────────
 
 @dataclass
+class _Ruling:
+    status: str
+
+
+@dataclass
 class _Decision:
     allowed: bool
     reason: str
+    ruling: _Ruling
 
 
 class _Gate:
-    def __init__(self, refuse=()):
+    """`refuse`: hosts whose robots.txt disallows; `silent`: hosts whose
+    robots.txt gave no answer (timed out, 5xx) - the real gate fails closed on
+    both, and says which in `ruling.status`."""
+
+    def __init__(self, refuse=(), silent=()):
         self.refuse = set(refuse)
+        self.silent = set(silent)
 
     def allows(self, url):
         host = url.split("/")[2]
+        if host in self.silent:
+            return _Decision(False, "robots.txt gave no answer (test)", _Ruling("no-answer"))
         refused = host in self.refuse
-        return _Decision(not refused, "disallowed by test" if refused else "ok")
+        return _Decision(not refused, "disallowed by test" if refused else "ok",
+                         _Ruling("rules"))
 
     def min_interval(self, url):
         return 0.0
@@ -594,3 +608,20 @@ def test_a_source_shown_as_given_keeps_its_summary_whole(tmp_path):
                    encoding="utf-8")
     with pytest.raises(news.NewsContractError, match="unknown sources"):
         news.load_contract(bad)
+
+
+
+def test_a_robots_txt_that_gave_no_answer_is_retried_and_a_disallow_is_not(conn, contract):
+    """#583 review, round 2: one bad minute on a publisher's robots.txt must not
+    give up on every story asked during it."""
+    _run(conn, contract)
+    asked = []
+
+    def page(request):
+        asked.append(request.url.host)
+        return httpx.Response(200)
+    _preview(conn, page, gate=_Gate(silent={"wire.example"}))
+    assert _row(conn) == (None, "robots_no_answer", 1, False)   # not final: asked again
+    assert asked == []                                           # and the page was not read
+    _preview(conn, page, gate=_Gate(refuse={"wire.example"}))
+    assert _row(conn) == (None, "robots_refused", 2, True)      # an actual Disallow is final

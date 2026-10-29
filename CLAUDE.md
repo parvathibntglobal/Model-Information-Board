@@ -587,7 +587,8 @@ These are the rules a helpful refactor will otherwise quietly violate.
 
   1. Only the article links the feeds in `contract/news_sources.yaml` give,
      only for a story whose feed gave no picture, until it has a final answer:
-     a failure that may pass (a timeout, a 5xx, a 429) is asked again, at most
+     a failure that may pass (a timeout, a 5xx, a 429, or a `robots.txt` that
+     gave no answer - only an actual refusal is final) is asked again, at most
      `link_preview.max_attempts` times in all, and every outcome is recorded.
      Nothing is crawled or discovered.
   2. `robots.txt` is always asked, for every redirect hop too; identifying

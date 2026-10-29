@@ -223,8 +223,10 @@ def model_names(conn, *, min_chars: int) -> tuple[dict[str, str], dict[str, str]
 
 def name_pattern(names: dict[str, str]) -> re.Pattern:
     """One pattern for every name: whole names only, longest first. Built once
-    per request - rebuilt for each of 600 related stories it took 395 ms of a
-    story page (#583 review, timed 2026-10-29 on the shared DB's size)."""
+    per request. Matching 600 related stories, the most a story page asks, took
+    395 ms with it rebuilt per story and 85 ms built once (#583 review, timed
+    2026-10-29 on a local copy of the shared DB's size: 717 catalogue models,
+    2,070 stories)."""
     alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
     return re.compile(rf"(?<![\w.\-])({alternation})(?![\w]|[.\-]\w)", re.I)
 
