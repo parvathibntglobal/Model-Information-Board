@@ -617,6 +617,10 @@ export const adminSeoKeywords = () => request('/admin/seo-keywords')
 export const adminSeoKeywordPlan = () => request('/admin/seo-keyword-plan')
 // Price changelog: OpenRouter list-price changes the registry poll has seen, with fixed flags.
 export const adminPriceChanges = (days) => request(`/admin/price-changes${days ? `?days=${days}` : ''}`)
+// The News page: fresh AI headlines (judge/news.py). Signed in.
+export const newsFeed = (days) => request(`/news${days ? `?days=${days}` : ''}`)
+// One story's page: what its source gave, the models it names, related stories.
+export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
 
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`

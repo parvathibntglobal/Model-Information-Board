@@ -2263,3 +2263,70 @@ CREATE TABLE IF NOT EXISTS feed_summary_attempt (
 );
 
 CREATE INDEX IF NOT EXISTS feed_summary_attempt_model_idx ON feed_summary_attempt (model_version_id, attempted_at DESC);
+
+-- Fresh AI news for the News page, /news (2026-10-28, contract/news_sources.yaml;
+-- migrations/20261028T1200_news_item.sql says what each column means).
+-- WHO WRITES: collect/news/harvest.py. WHO READS: judge/news.py.
+-- Never evidence: no claim, quote or board entry is made from a news item.
+CREATE TABLE IF NOT EXISTS news_item (
+  id                text PRIMARY KEY,
+  slug              text NOT NULL UNIQUE,
+  source_key        text NOT NULL,
+  url               text NOT NULL,
+  title             text NOT NULL,
+  published_at      timestamptz,
+  summary           text,
+  summary_source    text,
+  feed_summary      text,
+  feed_summary_source text,
+  author            text,
+  categories        text[] NOT NULL DEFAULT '{}',
+  image_url         text,
+  image_source      text,
+  preview_checked_at timestamptz,
+  preview_outcome   text,
+  preview_attempts  integer NOT NULL DEFAULT 0,
+  preview_raw_ref   text,
+  llm_keywords      text[] NOT NULL DEFAULT '{}',
+  daily_count       integer,
+  raw_ref           text NOT NULL,
+  first_seen_at     timestamptz NOT NULL,
+  updated_at        timestamptz NOT NULL,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT news_item_daily_count_ck CHECK (daily_count IS NULL OR daily_count > 0),
+  CONSTRAINT news_item_image_https_ck CHECK (image_url IS NULL OR image_url LIKE 'https://%'),
+  CONSTRAINT news_item_image_source_ck CHECK (image_source IN ('feed', 'link_preview')),
+  CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL)),
+  CONSTRAINT news_item_summary_source_ck
+    CHECK (summary_source IN ('feed', 'feed_content', 'page_description')),
+  CONSTRAINT news_item_summary_has_source_ck CHECK ((summary IS NULL) = (summary_source IS NULL)),
+  CONSTRAINT news_item_feed_summary_source_ck CHECK (feed_summary_source IN ('feed', 'feed_content')),
+  CONSTRAINT news_item_feed_summary_has_source_ck
+    CHECK ((feed_summary IS NULL) = (feed_summary_source IS NULL)),
+  CONSTRAINT news_item_preview_outcome_ck CHECK (preview_outcome IN
+    ('found', 'none', 'robots_refused', 'robots_no_answer', 'not_https', 'not_html',
+     'http_error', 'error')),
+  CONSTRAINT news_item_preview_attempts_ck CHECK (preview_attempts >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS news_item_published_idx ON news_item (published_at DESC);
+CREATE INDEX IF NOT EXISTS news_item_seen_idx ON news_item (first_seen_at DESC);
+
+-- What each source's read did in each run (ok, refused by robots.txt, failed),
+-- so the page says a source is quiet or failing rather than show nothing.
+CREATE TABLE IF NOT EXISTS news_fetch (
+  run_id            text NOT NULL,
+  source_key        text NOT NULL,
+  fetched_at        timestamptz NOT NULL,
+  outcome           text NOT NULL,
+  http_status       integer,
+  detail            text,
+  items_seen        integer,
+  items_new         integer,
+  PRIMARY KEY (run_id, source_key),
+  CONSTRAINT news_fetch_outcome_ck
+    CHECK (outcome IN ('ok', 'robots_refused', 'http_error', 'error')),
+  CONSTRAINT news_fetch_detail_ck CHECK ((outcome = 'ok') = (detail IS NULL))
+);
+
+CREATE INDEX IF NOT EXISTS news_fetch_source_idx ON news_fetch (source_key, fetched_at DESC);

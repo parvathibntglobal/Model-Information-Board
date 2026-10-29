@@ -3440,6 +3440,37 @@ def admin_seo_keyword_plan() -> dict:
     return keyword_plan.load()
 
 
+@app.get("/news")
+def news_page(days: int | None = None) -> dict:
+    """The News page: fresh AI headlines from contract/news_sources.yaml, newest
+    first, each with a code-written summary and the feed's own picture when it
+    has one, and every source's last read (ok, refused, failed). Never evidence.
+    Nothing is filtered server-side; the LLM badge travels on each item.
+    Signed-in only (not a public read: judge/gate.py). See judge/news.py."""
+    from judge import news
+
+    try:
+        with _conn() as conn:
+            return news.news_view(conn, days=days)
+    except news.NewsRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/news/{item_id}")
+def news_story(item_id: str) -> dict:
+    """One story's page: what its source gave (title, summary, picture), the
+    models it names - matched by code on exact registry names, each with the
+    site's own engineer counts - and related stories. Never evidence; no model
+    writes anything. Signed-in only. See judge/news.py story_view."""
+    from judge import news
+
+    try:
+        with _conn() as conn:
+            return news.story_view(conn, item_id)
+    except news.NewsNotFound as exc:
+        raise HTTPException(status_code=404, detail="no such story") from exc
+
+
 @app.get("/admin/price-changes")
 def admin_price_changes(days: int | None = None) -> dict:
     """Price changelog: every OpenRouter list-price change the registry poll has

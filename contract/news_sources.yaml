@@ -1,0 +1,287 @@
+# Fresh AI news for the News page, /news (signed in only; not in Admin - anooj,
+# 2026-10-28).
+#
+# ⚠ PROPOSED 2026-10-28 by anooj, on branch feat/admin-news - NOT RATIFIED.
+#   Needs the second reviewer like every change under contract/.
+#
+# WHAT THIS IS. Headlines with a link, from feeds the publishers offer: AI
+# labs, a few writers, two news outlets, and release notes. Nothing here is
+# evidence for the board - no claim, quote or board entry is made from a news
+# item, and no model call reads one. collect/news/harvest.py reads these;
+# judge/news.py serves them to the News page (/news, signed in).
+#
+# CHOSEN ON 2026-10-22 (fresh, free, terms checked) and probed on 2026-10-28:
+# docs/measurements/news-sources-probe-2026-10-28.json. GDELT was selected and
+# then dropped (anooj, 2026-10-28): its API closed the connection on every try.
+#
+# ROBOTS.TXT IS ASKED BEFORE EVERY READ, every redirect hop included
+# (collect/adapters/blog/robots.py, which matches `*` and `$` rules). That is
+# why the GitHub releases come from the API: github.com disallows `*.atom`.
+
+version: 1
+status: proposed
+proposed_on: 2026-10-28
+proposed_by: anooj
+
+# THE SUMMARY IS WRITTEN BY CODE, NEVER BY A MODEL (anooj, 2026-10-28). It is
+# the source's own words: HTML and feed boilerplate removed, then whole
+# sentences up to `summary_max_words`. A feed summary shorter than
+# `summary_min_words`, or one that only repeats the title, gives way to the
+# article content the feed itself carries. A source that gives neither has no
+# summary; nothing is invented (collect/news/harvest.py `feed_summary`).
+summary_max_words: 50
+summary_min_words: 8
+
+# THE PICTURE is the feed's own, when it gives one (Media RSS, an image
+# enclosure, or the first <img> in the item). Failing that, the article's own
+# link-preview picture, read from its page's <head> (`link_preview` below, the
+# recorded exception). Failing both, a card drawn on the page naming its source
+# (anooj, 2026-10-28). Measured 2026-10-28: TechCrunch, AIWire, OpenAI,
+# OpenRouter, Mistral, TLDR AI and the release feeds give none in the feed.
+
+# THE LLM BADGE. An item whose title or summary contains one of these words
+# (whole words, any case) carries the words it matched. It is a badge the page
+# shows and a filter a reader may turn on - never a filter applied by default,
+# because nobody has measured what it misses (rule 8; anooj, 2026-10-28).
+llm_keywords: [llm, llms, "language model", "language models", gpt, chatgpt, claude,
+               gemini, gemma, llama, mistral, qwen, deepseek, grok, kimi, glm, minimax,
+               openai, anthropic, "reasoning model", "fine-tuning", "fine-tune",
+               inference, token, tokens, agent, agents, agentic, transformer, rag,
+               embedding, embeddings, "open weights", "open-weight"]
+
+# LINK-PREVIEW PICTURES: THE SECOND EXCEPTION TO "NO SCRAPING" (anooj,
+# 2026-10-28; CLAUDE.md records it beside Benchmarks, with its conditions). A
+# story whose feed gives no picture has its article page asked ONCE for the
+# picture its publisher sets for link previews (og:image, else twitter:image):
+# only the page's <head> is read, robots.txt is asked for every hop, and only
+# the picture's link is kept - the picture is never downloaded.
+#   enabled         false stops every article read; the page then draws cards
+#   groups          which source groups (releases have nothing to show)
+#   max_per_run     articles asked per harvest, newest first; the rest wait
+#   max_attempts    asks per story in all: a failure that may pass (a timeout,
+#                   a 5xx, a 429) is asked again until this many, then given up
+#                   and recorded as such (`preview_outcome`)
+#   look_back_days  how far back a picture-less story is still worth asking for
+#   max_head_bytes  the most of a page read while looking for </head>
+#   skip            sources never asked, each with why. A site that answers with
+#                   a bot challenge is refusing automated readers; we do not get
+#                   around one, and we do not keep knocking.
+link_preview:
+  enabled: true
+  groups: [selected, lab, writer]
+  skip:
+    # openai.com answers article pages with a Cloudflare bot challenge (403,
+    # cf-mitigated: challenge), measured 2026-10-28: 21 of 21 refused.
+    openai: "Cloudflare bot challenge on every article page (2026-10-28)"
+    # One site-wide picture on every article, so asking gives nothing new:
+    # aiwire.dev/img/og.png on 47 of 47 stories, tldr.tech's logo on 4 of 4.
+    aiwire: "the same site banner on every story (47 of 47, 2026-10-28)"
+    tldr_ai: "the same logo on every story (4 of 4, 2026-10-28)"
+  max_per_run: 80
+  max_attempts: 3
+  look_back_days: 7
+  max_head_bytes: 262144
+  # A picture one source uses on this many stories or more is its generic
+  # site image, not the story's: the page draws a card instead (judge/news.py).
+  generic_min_stories: 3
+
+# THE STORY PAGE (/news/<id>; anooj, 2026-10-28). Each story opens a page of
+# our own before the source: its picture, the source's summary, and the models
+# it names, each linked to its page with its engineer-report counts.
+#
+# MODELS ARE MATCHED BY CODE, AND ONLY ON NAMES THAT CANNOT BE WORDS. A matcher
+# on a known list once found `free` inside "freeze" and `fusion` inside
+# "confusion" (docs/measurements/control-and-reshape.md), so a name is used only
+# when it carries a version digit ("Claude Sonnet 5.5", "GPT-6.1 Terra"), is at
+# least `min_name_chars` long, and names exactly one model. A bare family name
+# ("Gemini", "Claude") is never linked: it names no single model. Matching is
+# whole-name, case-insensitive, longest name first, so "Claude Opus 5" is never
+# found inside "Claude Opus 5.5" (judge/news.py `mentioned_models`).
+#   min_name_chars   a name shorter than this is never matched
+#
+# THE STORY'S ADDRESS (/news/<slug>) is its headline's key words, set when it is
+# first stored and NEVER changed - not when a publisher later edits the
+# headline. A stable link is the point; do not "fix" an old slug to match.
+#
+#   max_models       the most models one story lists
+#   related_days     how far back related stories are looked for
+#   related_max      related stories shown (same model), and as many more from
+#                    the same source
+story:
+  min_name_chars: 4
+  max_models: 6
+  related_days: 14
+  related_max: 4
+
+# SHOWN AS THE FEED GIVES IT (#583 review, 2026-10-29). A source listed here
+# is displayed exactly as its feed provides it: the feed's summary whole (its
+# HTML removed for display, nothing cut, reworded or swapped for the page's
+# description), and never asked for a link preview - a story without a feed
+# picture gets the drawn card. For a source whose terms allow only what the
+# feed provides, unmodified. TechCrunch's RSS terms read: "you are only
+# permitted to display the content that is provided in the feed ... You may
+# not ... otherwise modify our feed content" (read 2026-10-22). It is NOT
+# listed: anooj, 2026-10-29, kept it as it is and recorded the accepted risk on
+# its source entry above. Listing it is the way out if TechCrunch asks.
+as_given: {}
+
+# What the News page shows by default, and the longest window it may ask for.
+page:
+  default_days: 7
+  max_days: 30
+  max_items: 600
+
+# SOURCES
+#   key       stable id, stored on every item
+#   group     selected | lab | writer | release   (the page's filter)
+#   label     the name the page shows
+#   kind      feed            RSS or Atom
+#             github_releases GitHub's REST API, /repos/{owner}/{repo}/releases
+#   url       what is read
+#   terms     what we may do with it, as read on 2026-10-22
+#   daily     true: all of one UTC day's items become ONE entry ("15 builds on
+#             2026-10-28"). For a source that publishes automated builds many
+#             times a day (llama.cpp: 30 in 48 hours, 2026-10-28; anooj).
+sources:
+  # ── selected: fresh, free, and the terms allow it ──────────────────────────
+  - key: aiwire
+    group: selected
+    label: AIWire
+    kind: feed
+    url: https://aiwire.dev/feed.xml
+    terms: "CC BY 4.0: commercial use allowed with credit and a link."
+    daily: false
+  - key: techcrunch_ai
+    group: selected
+    label: TechCrunch AI
+    kind: feed
+    url: https://techcrunch.com/category/artificial-intelligence/feed/
+    terms: "RSS terms allow display with credit to TechCrunch, a link to the article and the feed unchanged; they may ask us to stop. The feed holds about 2 days, hence a read every 6 hours."
+    # ACCEPTED RISK, RECORDED RATHER THAN RESOLVED (anooj, 2026-10-29; #583
+    # review). Terms findings inform and never block (sources.yaml, top), and
+    # this note is the record that goes with that rule.
+    #   WHAT THE TERMS SAY: "you are only permitted to display the content that
+    #     is provided in the feed ... You may not ... otherwise modify our feed
+    #     content" (TechCrunch RSS terms, read 2026-10-22).
+    #   WHAT WE DO ANYWAY: cut its feed summary to `summary_max_words`, may
+    #     show the article page's own description instead when it is the
+    #     fuller brief, and show the picture the article's <head> names for
+    #     link previews (the feed carries none). Always with credit to
+    #     TechCrunch and a link to the article.
+    #   WHO DECIDED, WHEN: anooj, 2026-10-29 - TechCrunch stays a source with
+    #     its pictures; it is not dropped and not listed in `as_given`.
+    #   THE WAY OUT IS ONE LINE: `as_given: {techcrunch_ai: "<reason>"}` shows
+    #     its summary whole and stops its link previews; removing the source
+    #     is the step after that. Either, the day TechCrunch asks us.
+    daily: false
+
+  # ── AI labs: official feeds, no rule against headline plus link ───────────
+  - key: openai
+    group: lab
+    label: OpenAI News
+    kind: feed
+    url: https://openai.com/news/rss.xml
+    terms: "Official feed; no licence stated, nothing against headline plus link."
+    daily: false
+  - key: google_deepmind
+    group: lab
+    label: Google DeepMind
+    kind: feed
+    url: https://deepmind.google/blog/rss.xml
+    terms: "Official feed; no licence stated, nothing against headline plus link."
+    daily: false
+  - key: google_ai
+    group: lab
+    label: Google AI (The Keyword)
+    kind: feed
+    url: https://blog.google/technology/ai/rss/
+    terms: "Official feed; no licence stated, nothing against headline plus link."
+    daily: false
+  - key: google_research
+    group: lab
+    label: Google Research
+    kind: feed
+    url: https://research.google/blog/rss/
+    terms: "Official feed; no licence stated, nothing against headline plus link."
+    daily: false
+  - key: google_developers
+    group: lab
+    label: Google Developers
+    kind: feed
+    url: https://developers.googleblog.com/feeds/posts/default
+    terms: "Official feed; no licence stated, nothing against headline plus link. Its items carry no date (2026-10-28): shown as 'date not given'."
+    daily: false
+  - key: mistral
+    group: lab
+    label: Mistral AI
+    kind: feed
+    url: https://mistral.ai/news/rss
+    terms: "Official feed; no licence stated, nothing against headline plus link."
+    daily: false
+  - key: openrouter_blog
+    group: lab
+    label: OpenRouter blog
+    kind: feed
+    url: https://openrouter.ai/blog/feed.xml
+    terms: "Official feed; no licence stated, nothing against headline plus link."
+    daily: false
+
+  # ── writers and newsletters ────────────────────────────────────────────────
+  - key: simonwillison
+    group: writer
+    label: Simon Willison
+    kind: feed
+    url: https://simonwillison.net/atom/everything/
+    terms: "Author's own feed; no licence stated, nothing against headline plus link."
+    daily: false
+  - key: latent_space
+    group: writer
+    label: Latent Space (incl. AINews)
+    kind: feed
+    url: https://www.latent.space/feed
+    terms: "Newsletter's own feed; no licence stated, nothing against headline plus link."
+    daily: false
+  - key: tldr_ai
+    group: writer
+    label: TLDR AI
+    kind: feed
+    url: https://tldr.tech/api/rss/ai
+    terms: "Newsletter's own feed; no licence stated, nothing against headline plus link. Items carry no summary."
+    daily: false
+  - key: interconnects
+    group: writer
+    label: Interconnects
+    kind: feed
+    url: https://www.interconnects.ai/feed
+    terms: "Newsletter's own feed; no licence stated, nothing against headline plus link."
+    daily: false
+
+  # ── releases, through the GitHub API ──────────────────────────────────────
+  - key: gh_vllm
+    group: release
+    label: vLLM
+    kind: github_releases
+    url: https://api.github.com/repos/vllm-project/vllm/releases?per_page=30
+    terms: "GitHub REST API; public release metadata."
+    daily: false
+  - key: gh_llamacpp
+    group: release
+    label: llama.cpp
+    kind: github_releases
+    url: https://api.github.com/repos/ggml-org/llama.cpp/releases?per_page=30
+    terms: "GitHub REST API; public release metadata."
+    daily: true
+  - key: gh_ollama
+    group: release
+    label: Ollama
+    kind: github_releases
+    url: https://api.github.com/repos/ollama/ollama/releases?per_page=30
+    terms: "GitHub REST API; public release metadata."
+    daily: false
+  - key: gh_transformers
+    group: release
+    label: Hugging Face transformers
+    kind: github_releases
+    url: https://api.github.com/repos/huggingface/transformers/releases?per_page=30
+    terms: "GitHub REST API; public release metadata."
+    daily: false

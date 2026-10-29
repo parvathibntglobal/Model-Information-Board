@@ -57,6 +57,7 @@ const SIGNED_IN = [
   { to: '/board', label: 'Board', nofollow: true },
   { to: '/benchmarks', label: 'Benchmarks', nofollow: true },
   { to: '/price-changes', label: 'Price changelog', nofollow: true },
+  { to: '/news', label: 'News', nofollow: true },
   { to: '/admin', label: 'Admin', nofollow: true },
   { to: '/seo-keywords', label: 'SEO keywords', nofollow: true },
 ]
