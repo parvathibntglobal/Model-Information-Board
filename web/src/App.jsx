@@ -121,13 +121,15 @@ export default function App() {
   }, [])
 
   const onLogin = loc.pathname === '/login'
-  // The footer is the landing page's: its columns are a site map and a list of
-  // evidence platforms, which belong where a visitor first arrives. The board,
-  // model and compare pages end on their own content. /admin must never have
-  // one: it fills the viewport and scrolls inside its own panes (`.adm-page`),
-  // and a footer under that layout would put the page back into the scroll it
-  // left, taking the side nav up with it.
-  const onHome = loc.pathname === '/'
+  // THE FOOTER IS ON EVERY PAGE (2026-10-29, anooj). It was the landing page's
+  // alone, so a visitor who arrived on a blog, a review or a tool from search
+  // reached the end of the page with no site map. Three places go without it:
+  //  - /login, which hides the nav too and fills the screen on its own;
+  //  - /admin and its sub-pages: /admin fills the viewport and scrolls inside
+  //    its own panes (`.adm-page`), and a footer under that layout would put
+  //    the page back into the scroll it left, taking the side nav up with it;
+  //  - Kite Pulse, below, which brings its own footer.
+  const onAdmin = loc.pathname === '/admin' || loc.pathname.startsWith('/admin/')
   // KITE PULSE IS ANOTHER PRODUCT'S SITE (kitepulse/KitePulseSite.jsx): it brings its
   // own header and footer, and the board's nav above it would make it read as
   // a board page.
@@ -204,7 +206,7 @@ export default function App() {
         </Suspense>
       </main>
 
-      {onHome && <Footer />}
+      {!onLogin && !onAdmin && !onKitePulse && <Footer />}
       {/* HOVER PREVIEWS OFF (2026-10-19, anooj): components/HoverPreview.jsx
           is kept; mounting it here again turns them back on. */}
     </>
