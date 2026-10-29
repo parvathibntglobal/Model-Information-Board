@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Hero from '../components/Hero'
+import NewsStrip from '../components/NewsStrip'
 import ReportExamples from '../components/ReportExamples'
 import ToolsShowcase from '../components/ToolsShowcase'
 import ModelsShowcase from '../components/ModelsShowcase'
@@ -89,8 +90,12 @@ export default function Landing() {
         {/* NO SEARCH BOX HERE (2026-10-15): it searched the Board, behind the
             sign-in. The Best AI model picker is the public search; the chips
             below the hero open it. */}
-        <Hero />
-
+        {/* THE NEWS CRAWL (2026-10-29): headlines published from /updates, in
+            Hero's slot between the hero card and the Popular searches chips -
+            on the first screen. Draws nothing until something is published. */}
+        <Hero>
+          <NewsStrip />
+        </Hero>
       </section>
 
       {/* NO COUNTS ROW (2026-10-15): "models discussed", "board entries" and

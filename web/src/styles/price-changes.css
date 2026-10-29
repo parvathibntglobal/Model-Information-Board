@@ -1,12 +1,16 @@
 /* The Price changelog page (routes/PriceChanges.jsx). Tokens from tokens.css only. */
 
 .pc-page h1{font-size:var(--fs-display)}
-.pc-page header p{max-width:80ch}
+.pc-page header p{max-width:none}
 .pc-small{font-size:var(--fs-xs)}
 .pc-error{color:var(--fail);font-size:var(--fs-sm)}
-.pc-caveat{max-width:80ch;padding:var(--s2);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);
+.pc-caveat{padding:var(--s2);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);
   border-radius:var(--r-sm);background:var(--warn-dim);color:var(--text);font-size:var(--fs-sm)}
 .pc-caveat strong{color:var(--warn)}
+/* The folded "how to read" detail, under the intro. */
+.pc-howto{font-size:var(--fs-sm);color:var(--text-2)}
+.pc-howto summary{cursor:pointer;color:var(--text);width:max-content}
+.pc-howto ul{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.55}
 
 .pc-stats{display:flex;gap:var(--s4);flex-wrap:wrap}
 
@@ -42,6 +46,8 @@
 a.pc-name:hover{text-decoration:underline}
 .pc-flags{display:flex;gap:6px;flex-wrap:wrap}
 .pc-moves{display:flex;gap:var(--s3);flex-wrap:wrap}
+.pc-basis{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.pc-basis-news{color:var(--pass);cursor:help}
 .pc-move{display:flex;gap:8px;align-items:baseline;font-size:var(--fs-sm)}
 .pc-same{color:var(--text-3)}
 .pc-k{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}

@@ -185,3 +185,42 @@ def test_the_changelog_is_not_a_public_read():
     with pytest.MonkeyPatch.context() as m:
         m.setenv("API_TOKEN", "s3cret")
         assert TestClient(app).get("/admin/price-changes").status_code == 401
+
+
+
+# ── the settled price (2026-10-29) ────────────────────────────────────────────
+
+
+def by_seen(data):
+    return {c["seen_at"]: c for c in data["changes"]}
+
+
+def test_a_rebound_to_the_usual_price_is_not_newsworthy():
+    """$0.15 -> $0.045 -> $0.15: from the price just before, the last step is
+    +233%; from the settled price nothing changed, and the cut did not last."""
+    data = by_seen(run([row("m", at(400), 0.15, 0.5), row("m", at(120), 0.045, 0.14),
+                        row("m", at(48), 0.15, 0.5)]))
+    cut, back = data[at(120).isoformat()], data[at(48).isoformat()]
+    assert "rise" in back["flags"] and back["largest_pct"] > 200  # the step, as before
+    assert back["settled_pct"]["price_in"] == 0.0 and not back["newsworthy"]
+    assert "reverted" in cut["flags"] and not cut["newsworthy"]
+
+
+def test_a_price_that_keeps_flipping_is_unstable():
+    rows = [row("m", at(h), p, 0.4) for h, p in ((400, 0.3), (300, 0.1), (200, 0.3), (100, 0.1))]
+    newest = by_seen(run(rows))[at(100).isoformat()]
+    assert "unstable" in newest["flags"] and not newest["newsworthy"]
+
+
+def test_one_move_in_two_steps_is_told_by_the_later_step():
+    data = by_seen(run([row("m", at(600), 0.14, 0.28), row("m", at(150), 0.03, 0.32),
+                        row("m", at(60), 0.021, 0.32)]))
+    first, later = data[at(150).isoformat()], data[at(60).isoformat()]
+    assert "superseded" in first["flags"] and not first["newsworthy"]
+    assert later["newsworthy"] and later["settled_before"]["price_in"] == 0.14
+
+
+def test_a_newer_step_still_settling_does_not_hide_a_held_move():
+    data = by_seen(run([row("m", at(600), 0.14, 0.28), row("m", at(150), 0.03, 0.28),
+                        row("m", at(2), 0.029, 0.28)]))
+    assert data[at(150).isoformat()]["newsworthy"], "the newer step is still settling"

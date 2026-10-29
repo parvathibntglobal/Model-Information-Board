@@ -62,3 +62,23 @@ unpolled_hours: 36
 # How far back the page looks by default, in days, and the longest it may ask.
 default_window_days: 90
 max_window_days: 365
+
+# THE SETTLED PRICE (2026-10-29, Parvathi). A move is judged from the price that
+# held this many days before it (or the first price seen), not the price just
+# before: a router's price flipping $0.15 -> $0.045 -> $0.15 made the last step
+# "+233%" and newsworthy, though over the week nothing changed. A later price
+# inside this window back near the settled one marks the change `reverted`.
+settle_days: 7
+# A model whose price changed this many times inside this many days is
+# `unstable` (host or promotion flipping): listed, never newsworthy.
+unstable_changes: 3
+unstable_days: 14
+
+# HOW A MOVE IS WRITTEN on the page (2026-10-29, Parvathi). A percentage from a
+# near-zero price means nothing ($0.0052 -> $0.15 is "+2784.6%": a promotion
+# ending), so below this price per million tokens the page shows the two
+# prices and "from near-zero" instead of a figure. Above it, a rise of 100% or
+# more is written as a multiple ("3x higher"), the rest as a whole percent
+# (a cut never passes -100%, so it always reads). The exact
+# percentage stays in the hover. Display only: no flag or threshold uses it.
+near_zero_price: 0.01

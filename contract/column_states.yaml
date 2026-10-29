@@ -1816,17 +1816,20 @@ columns:
       state: read
   model_event:
     detected_at:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: defaulted
+      why: 'Defaulted by the database when the registry poll records the event. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. It is the update''s seen time.'
     id:
       reviewed: false
       state: write_only
     model_version_id:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'Written by collect/registry/events.py. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. Joins the event to its model_version row.'
     occurred_at:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'Written by collect/registry/events.py. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. The release day when model_version.release_date is empty.'
     payload:
       reviewed: false
       state: write_only
@@ -1834,8 +1837,9 @@ columns:
       reviewed: false
       state: reserved
     type:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'Written by collect/registry/events.py. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. Filtered to new-model.'
   model_catalog:
     canonical_id:
       reviewed: true
@@ -2741,6 +2745,92 @@ columns:
     url:
       reviewed: true
       state: read
+  update_review:
+    detail:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews() for listing(): a person''s own detail replaces the style''s. Migration 20261029T1200 (PROPOSED).'
+    headline:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews() for listing(): a person''s own headline replaces the style''s. Migration 20261029T1200 (PROPOSED).'
+    home_detail:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py review() action publish (POST /updates/review), cleared by unpublish and decline; read by updates._reviews() for listing(): the detail as published, kept fixed for the home page. Migration 20261029T1200 (PROPOSED).'
+    home_headline:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py review() action publish (POST /updates/review), cleared by unpublish and decline; read by updates._reviews() for listing(): the headline as published, kept fixed for the home page. Migration 20261029T1200 (PROPOSED).'
+    home_published_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py review() action publish (POST /updates/review), cleared by unpublish and decline; read by updates._reviews() for listing(): when it was published; NULL means not on the home page. Migration 20261029T1200 (PROPOSED).'
+    home_published_by:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py review() action publish (POST /updates/review), cleared by unpublish and decline; read by updates._reviews() for listing(): who published it, shown on the card. Migration 20261029T1200 (PROPOSED).'
+    kind:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._current() into the log''s before/after, so an undo puts it back. Migration 20261029T1200 (PROPOSED).'
+    reviewed_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews(); Manage shows when. Migration 20261029T1200 (PROPOSED).'
+    reviewed_by:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews(); Manage shows who (the part of the email before the @). Migration 20261029T1200 (PROPOSED).'
+    status:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews(): declined hides the update from News headlines. Migration 20261029T1200 (PROPOSED).'
+    style:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews(): the chosen contract/updates.yaml style. Migration 20261029T1200 (PROPOSED).'
+    update_key:
+      reviewed: false
+      state: read
+      why: 'Written by judge/updates.py _write() (POST /updates/review, /updates/approve-all), read by updates._reviews() and _current(): which built update a decision is about. Migration 20261029T1200 (PROPOSED).'
+  update_review_log:
+    acted_at:
+      reviewed: false
+      state: defaulted
+      why: 'Written by updates._write() (defaulted), read by updates._reviews(): when the change Undo would take back was made. Migration 20261029T1200 (PROPOSED).'
+    acted_by:
+      reviewed: false
+      state: read
+      why: 'Written by updates._write(), read by updates._reviews(): who made the change Undo would take back. Migration 20261029T1200 (PROPOSED).'
+    action:
+      reviewed: false
+      state: read
+      why: 'Written by updates._write(), read by updates._reviews() and undo(): what Undo would take back. Migration 20261029T1200 (PROPOSED).'
+    after:
+      reviewed: false
+      state: write_only
+      why: 'The review row after the change. Written by updates._write(); read by nothing yet - its intended reader is a history view in Manage. Migration 20261029T1200 (PROPOSED).'
+    before:
+      reviewed: false
+      state: read
+      why: 'The review row before the change (NULL: none). Written by updates._write(), read by updates.undo(), which puts it back. Migration 20261029T1200 (PROPOSED).'
+    id:
+      reviewed: false
+      state: read
+      why: 'Generated; read by updates.undo() to mark the change it undid. Migration 20261029T1200 (PROPOSED).'
+    undone_at:
+      reviewed: false
+      state: read
+      why: 'Written by updates.undo(), read by updates._reviews() and undo(): an undone change is not undone again. Migration 20261029T1200 (PROPOSED).'
+    undone_by:
+      reviewed: false
+      state: write_only
+      why: 'Written by updates.undo(); read by nothing yet - its intended reader is a history view in Manage. Migration 20261029T1200 (PROPOSED).'
+    update_key:
+      reviewed: false
+      state: read
+      why: 'Written by updates._write(), read by updates._reviews() and undo(). Migration 20261029T1200 (PROPOSED).'
   watermark:
     cursor:
       reviewed: false

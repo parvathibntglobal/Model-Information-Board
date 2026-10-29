@@ -70,6 +70,9 @@ COMPONENTS = ROOT / "web" / "src" / "components"
 NOT_ADMIN_PANELS = {
     "AuraField", "BlogShowcase", "Faq", "FluidCanvas", "Footer", "Freshness", "Hero",
     "ModelEvidence", "Nav", "OrbitHub", "SiteSearch", "Icons", "ui",
+    # The home page's news strip (2026-10-29): mounted by routes/Landing.jsx
+    # under the hero, reading the published updates.
+    "NewsStrip",
     # The landing's three examples from Reports (2026-10-15): mounted by
     # routes/Landing.jsx in the "LLM leaderboard alternative" panel.
     "ReportExamples",

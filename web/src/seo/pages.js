@@ -543,6 +543,7 @@ export const PRIVATE = {
   benchmarks: { title: fullTitle('Benchmarks'), noindex: true },
   priceChanges: { title: fullTitle('Price changelog'), noindex: true },
   news: { title: fullTitle('AI news'), noindex: true },
+  updates: { title: fullTitle('Updates'), noindex: true },
   notFound: { title: fullTitle('Page not found'), noindex: true },
 }
 

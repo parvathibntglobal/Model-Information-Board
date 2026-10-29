@@ -1,0 +1,368 @@
+# The Updates page: which registry facts become a headline, and how each is worded.
+#
+# PROPOSED 2026-10-29 (parvathi, branch updates/parvathi). A contract change, so
+# it gets a second reviewer like every file here.
+#
+# WHAT IT READS. Nothing new is collected for this page. Every update is built
+# from data the board already holds (judge/updates.py):
+#   launch      model_event 'new-model' + the model_version row it names
+#   price_cut   judge/price_changes.changes(), `newsworthy` only - so the
+#   price_rise  20% rule, the hold and the bounce check are price_changes.yaml's,
+#               never a second copy here
+#   retiring    model_version.retirement_date
+#   benchmark   judge/benchmarks.changelog() news tags: debut, fresh, and
+#               mover (a score move, or a new #1 - never another place change).
+#               A model a board stops listing is never an update: it stays in
+#               the Benchmarks changelog to check. Thresholds are
+#               contract/benchmarks/validation.yaml's.
+#   roundup     a weekly summary of the launches and price changes above;
+#               published only once a person approves it (see `roundups`)
+#
+# AUTO-PUBLISHED. Every update shows on the page as soon as it is built. A
+# signed-in person can approve it, decline it (hides it), pick another style,
+# or edit its words; those decisions live in update_review, keyed by the
+# update's `key`, and never change the facts.
+#
+# CODE TEMPLATES, NO WRITER. Every headline and detail below is filled from
+# the update's facts with Python's str.format, nothing else. A style that names
+# a fact the update does not have (no price listed, say) is not offered for it.
+# Placeholders each set may use are listed in judge/updates.py FACTS; a test
+# fails on any other.
+#
+# UNMEASURED STARTING VALUES (rule 8). The numbers below are first choices,
+# not tuned on anything.
+
+# How far back the page looks by default, and the most it will.
+window_days: 30
+max_window_days: 90
+
+# A price move this large (either price, in percent) is marked "Needs a
+# second-source check": big moves on OpenRouter are often a host switch.
+second_check_pct: 50
+
+# PRICES ARE MEASURED FROM THE SETTLED PRICE (2026-10-29). A listed price can
+# flip between hosts or promotions every few days ($0.15 -> $0.37 -> $0.045 ->
+# $0.15). Which price changes are news is decided by contract/price_changes.yaml
+# (settle_days, unstable_changes, unstable_days), shared with the Price
+# changelog; headlines show the settled price and the new one - never a
+# percentage.
+
+# INPUT AND OUTPUT MOVED APART. When one price falls and the other rises, each
+# by at least this much (percent, from the settled price), the update is a
+# "price change" of its own - never "gets cheaper" while output got dearer.
+mixed_move_pct: 10
+
+# A retirement shows from this many days before its date to this many after.
+retiring_ahead_days: 60
+retired_back_days: 14
+
+# Two or more of one provider's launches (same day), price moves (same day,
+# same direction) or retirements (same date) become one grouped update.
+group_min: 2
+
+# A grouped update names this many models, then "and N more".
+names_shown: 3
+
+# What the page says each kind is, why it is news, and where it came from.
+kinds:
+  launch:
+    label: Launch
+    why: New in the registry
+    source: Registry listing (OpenRouter), first seen by the registry poll.
+  price_cut:
+    label: Price cut
+    why: Price down 20% or more
+    source: The listed price on OpenRouter, seen by the registry poll. It can be the provider's own change or only OpenRouter's, so verify it on the provider's pricing page.
+  price_rise:
+    label: Price rise
+    why: Price up 20% or more
+    source: The listed price on OpenRouter, seen by the registry poll. It can be the provider's own change or only OpenRouter's, so verify it on the provider's pricing page.
+  price_change:
+    label: Price change
+    why: Input and output moved apart
+    source: The listed price on OpenRouter, seen by the registry poll. It can be the provider's own change or only OpenRouter's, so verify it on the provider's pricing page.
+  retiring:
+    label: Retiring
+    why: Retirement date listed
+    source: Retirement date from the registry listing (OpenRouter).
+  benchmark:
+    label: Benchmarks
+    why: New benchmark result
+    source: The benchmark's published board, read by the benchmarks run.
+
+  roundup:
+    label: Round-up
+    why: Weekly summary
+    source: Counted from this page's launches and newsworthy OpenRouter price changes for that week.
+
+# Weekly round-ups: one per completed week (Monday to Sunday, UTC) in the
+# window, built from the same launches and price changes as the updates above.
+# A round-up is a summary, so unlike every other update it is NOT published
+# until a person approves it in Manage.
+roundups:
+  # A week with fewer launches, or fewer price changes, gets no round-up of that kind.
+  min_items: 3
+  # "Most from OpenAI (4), Qwen (3) and Google (2)" names this many providers.
+  providers_shown: 3
+  # A launch counts as "1M+ context" at this many tokens (1,000,000).
+  long_context_tokens: 1000000
+
+# A shape of update whose reason differs from its kind's `why` above.
+why_by_set:
+  price_free: Now free
+  retired: Retirement date passed
+  retired_group: Retirement date passed
+  bench_top: New leader on a board
+  bench_mover: Score moved on a board
+
+# What each set of styles is for, as the Info tab names it.
+set_labels:
+  launch: One new model
+  launch_group: Several new models from one provider, same day
+  price_cut: One model's price falls
+  price_rise: One model's price rises
+  price_free: A model becomes free
+  price_mixed: One price falls while the other rises
+  price_cut_group: Several of one provider's prices fall, same day
+  price_rise_group: Several of one provider's prices rise, same day
+  retiring: A model's retirement date is coming up
+  retiring_group: Several of one provider's models retire, same date
+  retired: A model's retirement date has passed
+  retired_group: Several models' retirement date has passed
+  bench_debut: A model's first score on one benchmark
+  bench_debut_group: A model's first scores on several benchmarks
+  bench_top: A new #1 on a benchmark
+  bench_mover: A benchmark score moves
+  bench_fresh: A newly published benchmark result
+  roundup_launch: The week's launches
+  roundup_price: The week's price moves
+
+# The styles (fourth pass, 2026-10-29: written the way a news desk writes).
+#   - HEADLINE: who or what, an active verb, the number that makes it news.
+#     Present tense, about ten words, no jargon a reader has to decode.
+#   - DETAIL (the deck): what the headline does not say - the before and
+#     after, what the model is, what a reader using it should do. It never
+#     repeats the headline's words.
+#   - No date in the words: every card carries its own date.
+#   - A price is attributed to OpenRouter only in the "On OpenRouter" style.
+#     The other styles keep the model as the subject, never the provider:
+#     a listed price can move without the provider changing anything, and
+#     every price card carries a "Verify with the provider" mark instead.
+# `id` is what a person picks in Manage; the first style of a set is the default.
+templates:
+  launch:
+    - id: plain
+      label: Plain
+      headline: "{provider} launches {name}"
+      detail: "The new model reads up to {context} tokens at once. {pricing}."
+    - id: context
+      label: Context first
+      headline: "{name} debuts with a {context}-token context window"
+      detail: "The newest model from {provider}. {pricing}."
+    # Offered only when the listing is missing its price or context window.
+    - id: name
+      label: Name only
+      headline: "{provider} launches {name}"
+      detail: "An early listing for {provider}'s newest model: {unlisted}."
+  launch_group:
+    - id: plain
+      label: Plain
+      headline: "{provider} launches {count} models at once"
+      detail: "The new line-up: {names}."
+    - id: names
+      label: Names first
+      headline: "{provider} unveils {names_short}"
+      detail: "{count} new models arrived on the same day."
+
+  price_cut:
+    - id: plain
+      label: Plain
+      headline: "{name} gets cheaper: {main_field} {main_before} → {main_after}"
+      detail: "Per million tokens, input is now {after_in} (was {before_in}) and output {after_out} (was {before_out})."
+    - id: numbers
+      label: Numbers first
+      headline: "{name} {main_field} price drops to {main_after}"
+      detail: "It was {main_before} per million tokens. In full: input {before_in} → {after_in}, output {before_out} → {after_out}."
+    - id: provider
+      label: Provider first
+      headline: "Price cut for {provider}'s {name}"
+      detail: "Per million tokens: input {before_in} → {after_in}, output {before_out} → {after_out}."
+    - id: openrouter
+      label: On OpenRouter
+      headline: "{name} gets cheaper on OpenRouter"
+      detail: "OpenRouter now lists {after_in} input and {after_out} output per million tokens; it listed {before_in} and {before_out}."
+  price_rise:
+    - id: plain
+      label: Plain
+      headline: "{name} costs more: {main_field} {main_before} → {main_after}"
+      detail: "Per million tokens, input is now {after_in} (was {before_in}) and output {after_out} (was {before_out})."
+    - id: numbers
+      label: Numbers first
+      headline: "{name} {main_field} price climbs to {main_after}"
+      detail: "It was {main_before} per million tokens. In full: input {before_in} → {after_in}, output {before_out} → {after_out}."
+    - id: provider
+      label: Provider first
+      headline: "Price rise for {provider}'s {name}"
+      detail: "Per million tokens: input {before_in} → {after_in}, output {before_out} → {after_out}."
+    - id: openrouter
+      label: On OpenRouter
+      headline: "{name} costs more on OpenRouter"
+      detail: "OpenRouter now lists {after_in} input and {after_out} output per million tokens; it listed {before_in} and {before_out}."
+  price_free:
+    - id: plain
+      label: Plain
+      headline: "{name} is now free"
+      detail: "It used to cost {before_in} per million input tokens and {before_out} per million output tokens."
+    - id: provider
+      label: Provider first
+      headline: "{provider}'s {name} drops its price to zero"
+      detail: "Input was {before_in} and output {before_out} per million tokens; both are now free."
+    - id: openrouter
+      label: On OpenRouter
+      headline: "{name} is now free on OpenRouter"
+      detail: "OpenRouter listed it at {before_in} input and {before_out} output per million tokens before."
+  price_mixed:
+    - id: plain
+      label: Plain
+      headline: "{name} changes price: input {in_word} to {after_in}, output {out_word} to {after_out}"
+      detail: "Per million tokens, input was {before_in} and output {before_out}. One got cheaper, the other dearer."
+    - id: provider
+      label: Provider first
+      headline: "New pricing for {provider}'s {name}"
+      detail: "Per million tokens: input {before_in} → {after_in}, output {before_out} → {after_out}."
+    - id: openrouter
+      label: On OpenRouter
+      headline: "{name} changes price on OpenRouter"
+      detail: "OpenRouter now lists {after_in} input (was {before_in}) and {after_out} output (was {before_out}) per million tokens."
+  price_cut_group:
+    - id: plain
+      label: Plain
+      headline: "{count} {provider} models get cheaper"
+      detail: "Per million tokens: {price_list}."
+    - id: names
+      label: Names first
+      headline: "Price cuts for {names_short}"
+      detail: "{count} {provider} models got cheaper at once. Per million tokens: {price_list}."
+    - id: openrouter
+      label: On OpenRouter
+      headline: "{count} {provider} models get cheaper on OpenRouter"
+      detail: "OpenRouter's new prices per million tokens: {price_list}."
+  price_rise_group:
+    - id: plain
+      label: Plain
+      headline: "{count} {provider} models get pricier"
+      detail: "Per million tokens: {price_list}."
+    - id: names
+      label: Names first
+      headline: "Price rises for {names_short}"
+      detail: "{count} {provider} models got pricier at once. Per million tokens: {price_list}."
+    - id: openrouter
+      label: On OpenRouter
+      headline: "{count} {provider} models cost more on OpenRouter"
+      detail: "OpenRouter's new prices per million tokens: {price_list}."
+
+  retiring:
+    - id: plain
+      label: Plain
+      headline: "{name} to be retired {when}"
+      detail: "{provider} lists {date_full} as the model's retirement date. Anyone using it should plan a switch before then."
+    - id: provider
+      label: Provider first
+      headline: "{provider} sets a {date} retirement for {name}"
+      detail: "That is {when}. Teams using the model should move to another before then."
+  retiring_group:
+    - id: plain
+      label: Plain
+      headline: "{provider} to retire {count} models {when}"
+      detail: "{names} all reach their retirement date on {date_full}. Users should plan a switch."
+    - id: names
+      label: Names first
+      headline: "{names_short} to be retired {when}"
+      detail: "{count} {provider} models share the {date_full} retirement date."
+  retired:
+    - id: plain
+      label: Plain
+      headline: "{name} is retired"
+      detail: "{provider}'s model reached its listed retirement date {when}, on {date_full}."
+    - id: provider
+      label: Provider first
+      headline: "{provider} retires {name}"
+      detail: "The model's listed retirement date, {date_full}, has passed."
+  retired_group:
+    - id: plain
+      label: Plain
+      headline: "{provider} retires {count} models"
+      detail: "{names} reached their listed retirement date on {date_full}."
+    - id: names
+      label: Names first
+      headline: "{names_short} are retired"
+      detail: "{count} {provider} models passed their retirement date {when}."
+
+  bench_debut:
+    - id: plain
+      label: Plain
+      headline: "{name} scores {score} in its {board} debut"
+      detail: "Its first published result on the benchmark, {timing}."
+    - id: board
+      label: Board first
+      headline: "First {board} score for {name}: {score}"
+      detail: "Posted on the benchmark's own leaderboard."
+  bench_debut_group:
+    - id: plain
+      label: Plain
+      headline: "{name} posts first scores on {count} benchmarks"
+      detail: "Results so far: {boards}."
+    - id: timing
+      label: Timing first
+      headline: "{name}'s first benchmark results arrive {timing}"
+      detail: "{boards}."
+  bench_top:
+    - id: plain
+      label: Plain
+      headline: "{name} takes the top spot on {board}"
+      detail: "It climbs from {old_rank} to first among {out_of} models on the benchmark's own leaderboard."
+    - id: board
+      label: Board first
+      headline: "New leader on {board}: {name}"
+      detail: "Up from {old_rank} of {out_of} models."
+  bench_mover:
+    - id: plain
+      label: Plain
+      headline: "{name} {moves} to {new} on {board}"
+      detail: "A move of {delta} points from {old}, on the benchmark's own leaderboard."
+    - id: board
+      label: Board first
+      headline: "{board}: {name} {moves} to {new}"
+      detail: "Previously {old}; a change of {delta} points."
+  bench_fresh:
+    - id: plain
+      label: Plain
+      headline: "{name} scores {score} on {board}"
+      detail: "A new result, published by the benchmark on {source_date}."
+    - id: board
+      label: Board first
+      headline: "New {board} result: {name} at {score}"
+      detail: "Posted on the benchmark's own leaderboard."
+
+  roundup_launch:
+    - id: plain
+      label: Plain
+      headline: "Week in launches: {count} new models"
+      detail: "The busiest makers were {providers}; {long_context} of the new models read 1M+ tokens at once."
+    - id: names
+      label: Names first
+      headline: "{count} AI models launched in the past seven days"
+      detail: "Among them: {names}."
+  roundup_price:
+    - id: plain
+      label: Plain
+      headline: "Week in prices: {cuts}, {rises}"
+      detail: "{count} models changed price; most of the moves were for {providers}."
+    - id: count
+      label: Count first
+      headline: "{count} AI models changed price in the past seven days"
+      detail: "{cheaper} and {pricier}; most of the moves were for {providers}."
+    - id: openrouter
+      label: On OpenRouter
+      headline: "Week on OpenRouter: {cuts}, {rises}"
+      detail: "{count} models changed their listed price; most of the moves were for {providers}."

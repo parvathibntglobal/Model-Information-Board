@@ -29,10 +29,23 @@ defaulted here (rule 12):
                  "settling", which would say we are waiting for something.
     bounced      the model's next change, within `bounce_days`, put it back to
                  the price it had before
+    unstable     `unstable_changes` or more changes inside `unstable_days`:
+                 a price flipping between hosts or promotions
+    reverted     a later price inside `settle_days` came back near the
+                 SETTLED price (below) - the move did not last
+    superseded   a later change that has held moved on from the same settled
+                 price: one move in two steps, told by the later one
 
-    newsworthy   settled, not bounced, still polled, and a cut or a rise (so
-                 at least `big_change_pct`), or now free. There is no separate
-                 minimum: one would never decide anything (review on #579).
+    newsworthy   held (not settling, unpolled or bounced), not unstable,
+                 reverted or superseded, and a move of at least
+                 `big_change_pct` FROM THE SETTLED PRICE, or now free.
+
+THE SETTLED PRICE (2026-10-29, Parvathi). A move used to be measured from the
+price just before it, so a router's price flipping $0.15 -> $0.045 -> $0.15 made
+the last step "+233%" and newsworthy, though over the week nothing changed.
+Now `settled_before` is the price that held `settle_days` before the change
+(or the first price seen), `settled_pct` the move from it, and `newsworthy` is
+decided on that. cut / rise still describe the step itself, as before.
 
 "LAST POLLED" IS `model_version.updated_at`, read for `unpolled` and as the
 newest poll of any model. The registry poll is not its only writer: the loaders'
@@ -73,6 +86,10 @@ def rules() -> dict[str, Any]:
             "bounce_days": float(raw["bounce_days"]),
             "wave_min_models": int(raw["wave_min_models"]),
             "unpolled_hours": float(raw["unpolled_hours"]),
+            "settle_days": float(raw["settle_days"]),
+            "unstable_changes": int(raw["unstable_changes"]),
+            "unstable_days": float(raw["unstable_days"]),
+            "near_zero_price": float(raw["near_zero_price"]),
             "default_window_days": int(raw["default_window_days"]),
             "max_window_days": int(raw["max_window_days"]),
         }
@@ -86,6 +103,11 @@ def rules() -> dict[str, Any]:
     if out["hold_hours"] <= 0 or out["bounce_days"] <= 0 or out["wave_min_models"] < 2:
         raise PriceChangesContractError(
             "hold_hours and bounce_days must be positive, wave_min_models at least 2")
+    if out["settle_days"] <= 0 or out["unstable_days"] <= 0 or out["unstable_changes"] < 2:
+        raise PriceChangesContractError(
+            "settle_days and unstable_days must be positive, unstable_changes at least 2")
+    if out["near_zero_price"] <= 0:
+        raise PriceChangesContractError("need near_zero_price > 0")
     if out["unpolled_hours"] < out["hold_hours"]:
         raise PriceChangesContractError("need unpolled_hours >= hold_hours")
     if not 0 < out["default_window_days"] <= out["max_window_days"]:
@@ -176,6 +198,33 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
                 flags.append("settling")
             if bounced:
                 flags.append("bounced")
+
+            # The settled price: what held settle_days before this change, or
+            # the first price seen. The move that decides `newsworthy`.
+            settle = timedelta(days=r["settle_days"])
+            prior = [row for row in rows[:i] if row[1] <= seen - settle]
+            base = prior[-1] if prior else rows[0]
+            settled_before = {f: _num(base[2 + k]) for k, f in enumerate(FIELDS)}
+            settled_moves = {f: pct(settled_before[f], after[f]) for f in FIELDS}
+            main = max(
+                (f for f in ("price_in", "price_out") if settled_moves[f]),
+                key=lambda f: abs(settled_moves[f]),
+                default=None,
+            )
+            recent = [
+                row for row in rows[1:i + 1] if row[1] > seen - timedelta(days=r["unstable_days"])
+            ]
+            if len(recent) >= r["unstable_changes"]:
+                flags.append("unstable")
+            if main is not None:
+                k_main = FIELDS.index(main)
+                for later in rows[i + 1:]:
+                    if later[1] > seen + settle:
+                        break
+                    back = pct(settled_before[main], _num(later[2 + k_main]))
+                    if back is None or abs(back) < r["big_change_pct"]:
+                        flags.append("reverted")
+                        break
             out.append({
                 "model_version_id": cur[0],
                 "canonical_id": cur[5],
@@ -186,6 +235,10 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
                 "after": after,
                 "change_pct": moves,
                 "largest_pct": largest,
+                "settled_before": settled_before,
+                "settled_pct": settled_moves,
+                "settled_field": main,
+                "settled_largest_pct": settled_moves[main] if main else None,
                 "flags": flags,
                 "wave_size": None,
                 "source": "openrouter",
@@ -200,9 +253,26 @@ def changes(conn: Any, *, days: int | None = None, now: datetime | None = None) 
             c["flags"].append("wave")
             c["wave_size"] = waves[day_of(c)]
 
+    # One move in two steps ($0.14 -> $0.03 -> $0.021 from the same settled
+    # price) is told once, by its latest step that has HELD - a newer step still
+    # settling does not hide the move that already held.
+    latest: dict[tuple, str] = {}
     for c in out:
-        held = not {"settling", "unpolled", "bounced"} & set(c["flags"])
-        c["newsworthy"] = held and bool({"cut", "rise", "free"} & set(c["flags"]))
+        if {"settling", "unpolled", "bounced"} & set(c["flags"]):
+            continue
+        same = (c["model_version_id"], tuple(c["settled_before"].values()))
+        latest[same] = max(latest.get(same, ""), c["seen_at"])
+    for c in out:
+        if c["seen_at"] < latest.get(
+                (c["model_version_id"], tuple(c["settled_before"].values())), ""):
+            c["flags"].append("superseded")
+
+    for c in out:
+        held = not {"settling", "unpolled", "bounced", "unstable", "reverted", "superseded"} & set(
+            c["flags"])
+        big = c["settled_largest_pct"] is not None and abs(c["settled_largest_pct"]) >= r[
+            "big_change_pct"]
+        c["newsworthy"] = held and (big or "free" in c["flags"])
 
     out.sort(key=lambda c: c["seen_at"], reverse=True)
     return {
