@@ -7,8 +7,10 @@ reprocesses what was read instead of reading again.
 
 WHAT IS KEPT. What the feed gives: title, link, date, author, categories and
 a summary written by code from the feed's own words (`feed_summary`), and the
-feed's own picture when it gives one. No article page is fetched: an item whose
-feed has no picture gets a card drawn on the page instead (anooj, 2026-10-28).
+feed's own picture when it gives one. The article's PAGE is read only by
+collect/news/preview.py - its <head>, once, for a story whose feed gives no
+picture (CLAUDE.md's second scraping exception); with no picture found there
+either, the page draws a card (anooj, 2026-10-28).
 A news item is never evidence - nothing here writes a claim, a quote or a
 board entry, and no model reads it.
 
@@ -65,9 +67,12 @@ class Contract:
     summary_min_words: int
     keywords: re.Pattern
     sources: tuple[Source, ...]
-    #: collect/news/preview.py's settings: enabled, groups, max_per_run,
-    #: look_back_days, max_head_bytes (contract `link_preview`).
+    #: collect/news/preview.py's settings: enabled, groups, skip, max_per_run,
+    #: max_attempts, look_back_days, max_head_bytes (contract `link_preview`).
     link_preview: dict[str, Any]
+    #: Sources shown exactly as their feed gives them (contract `as_given`):
+    #: the feed's summary whole, never cut or swapped, and no link preview.
+    as_given: frozenset[str]
 
 
 def _positive_int(raw: dict, key: str, problems: list[str]) -> int:
@@ -121,8 +126,15 @@ def load_contract(path: Path = CONTRACT) -> Contract:
         problems.append("link_preview.enabled must be true or false")
     if not isinstance(lp.get("groups"), list) or not set(lp.get("groups") or []) <= set(GROUPS):
         problems.append(f"link_preview.groups must be a list drawn from {GROUPS}")
-    for key in ("max_per_run", "look_back_days", "max_head_bytes"):
+    for key in ("max_per_run", "max_attempts", "look_back_days", "max_head_bytes"):
         _positive_int(lp, key, problems)
+    as_given = raw.get("as_given")
+    keys = {src.key for src in sources}
+    if not isinstance(as_given, dict) or not all(isinstance(v, str) and v
+                                                 for v in as_given.values()):
+        problems.append("as_given must map each source key to why ({} for none)")
+    elif set(as_given) - keys:
+        problems.append(f"as_given names unknown sources: {sorted(set(as_given) - keys)}")
     skip = lp.get("skip")
     if not isinstance(skip, dict) or not all(isinstance(v, str) and v for v in skip.values()):
         problems.append("link_preview.skip must map each skipped source key to why ({} for none)")
@@ -130,7 +142,8 @@ def load_contract(path: Path = CONTRACT) -> Contract:
         raise NewsContractError("contract/news_sources.yaml: " + "; ".join(problems))
     return Contract(max_words, min_words, pattern, tuple(sources),
                     {k: lp[k] for k in ("enabled", "groups", "skip", "max_per_run",
-                                        "look_back_days", "max_head_bytes")})
+                                        "max_attempts", "look_back_days", "max_head_bytes")},
+                    frozenset(as_given))
 
 
 # ── the summary, written by code ─────────────────────────────────────────────
@@ -271,7 +284,7 @@ def matched_keywords(pattern: re.Pattern, *texts: str | None) -> list[str]:
 
 
 def parse_feed(body: bytes, contract: Contract, *, feed_url: str | None = None,
-               content_type: str | None = None) -> list[dict[str, Any]]:
+               content_type: str | None = None, as_given: bool = False) -> list[dict[str, Any]]:
     """RSS or Atom items, through the lane's one feed parser (blog/parse.py), which
     never fetches. An item with no link or title is dropped: it cannot be shown.
 
@@ -284,7 +297,14 @@ def parse_feed(body: bytes, contract: Contract, *, feed_url: str | None = None,
         title = " ".join((e.title or "").split())
         if not e.url or not title:
             continue
-        summary, summary_source = feed_summary(e.summary_html, e.content_html, title, contract)
+        if as_given:
+            # SHOWN AS THE FEED GIVES IT: the summary whole - HTML removed for
+            # display, nothing cut, reworded or swapped (contract `as_given`).
+            whole = flatten(e.summary_html) or None
+            summary, summary_source = whole, ("feed" if whole else None)
+        else:
+            summary, summary_source = feed_summary(e.summary_html, e.content_html, title,
+                                                   contract)
         items.append({
             "url": e.url, "title": title, "published_at": e.published_at, "summary": summary,
             "summary_source": summary_source,
@@ -361,12 +381,12 @@ def fold_daily(items: list[dict[str, Any]], source: Source, *,
 
 _INSERT = """
 INSERT INTO news_item (id, slug, source_key, url, title, published_at, summary, summary_source,
-                       author, categories,
+                       feed_summary, feed_summary_source, author, categories,
                        image_url, image_source, llm_keywords, daily_count, raw_ref,
                        first_seen_at, updated_at,
                        pipeline_version)
 VALUES (%(id)s, %(slug)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s,
-        %(summary_source)s, %(author)s,
+        %(summary_source)s, %(summary)s, %(summary_source)s, %(author)s,
         %(categories)s, %(image_url)s, %(image_source)s, %(llm_keywords)s, %(daily_count)s,
         %(raw_ref)s, %(now)s,
         %(now)s, %(pipeline_version)s)
@@ -378,12 +398,12 @@ RETURNING id
 # fewer of the day's items (the API lists the newest 30) leaves it as it was.
 _UPSERT_DAILY = """
 INSERT INTO news_item (id, slug, source_key, url, title, published_at, summary, summary_source,
-                       author, categories,
+                       feed_summary, feed_summary_source, author, categories,
                        image_url, image_source, llm_keywords, daily_count, raw_ref,
                        first_seen_at, updated_at,
                        pipeline_version)
 VALUES (%(id)s, %(slug)s, %(source_key)s, %(url)s, %(title)s, %(published_at)s, %(summary)s,
-        %(summary_source)s, %(author)s,
+        %(summary_source)s, %(summary)s, %(summary_source)s, %(author)s,
         %(categories)s, %(image_url)s, %(image_source)s, %(llm_keywords)s, %(daily_count)s,
         %(raw_ref)s, %(now)s,
         %(now)s, %(pipeline_version)s)
@@ -486,12 +506,22 @@ def _window_full(url: str, seen: int) -> bool:
 
 
 def _get(client, gate, url: str, headers: dict[str, str]):
-    """GET with every redirect hop asked of robots.txt. Returns (response, refusal)."""
+    """GET with every redirect hop asked of robots.txt. Returns (response, refusal).
+
+    THE CREDENTIAL STAYS ON ITS OWN HOST. Redirects are followed by hand (so
+    each hop meets robots.txt), which bypasses httpx's own stripping of
+    `Authorization` on a cross-host redirect - so it is dropped here the moment
+    a hop leaves the host it was meant for (#583 review)."""
+    from urllib.parse import urlsplit
+
+    home = urlsplit(url).hostname
     for _ in range(MAX_REDIRECTS + 1):
         decision = gate.allows(url)
         if not decision.allowed:
             return None, f"robots.txt: {decision.reason} ({url})"
-        response = client.get(url, headers=headers)
+        hop_headers = (headers if urlsplit(url).hostname == home
+                       else {k: v for k, v in headers.items() if k.lower() != "authorization"})
+        response = client.get(url, headers=hop_headers)
         if not response.is_redirect:
             return response, None
         url = str(response.next_request.url)
@@ -500,7 +530,11 @@ def _get(client, gate, url: str, headers: dict[str, str]):
 
 def harvest(conn, client, *, gate=None, store=None, contract: Contract | None = None,
             only: set[str] | None = None, clock=lambda: datetime.now(UTC)) -> dict[str, Any]:
-    """Read every source once (or only those named), store and record each read."""
+    """Read every source once (or only those named), store and record each read.
+
+    COMMITTED AS IT GOES (#583 review): after each source, and after each link
+    preview. A failure late in a run then costs only what it was doing, and
+    "every read is recorded" stays true for every read before it."""
     from collect.adapters.blog.robots import RobotsGate
     from collect.rawstore import RawStore
 
@@ -532,30 +566,35 @@ def harvest(conn, client, *, gate=None, store=None, contract: Contract | None = 
         except Exception as exc:  # noqa: BLE001 - one source failing never stops the others
             record_fetch(conn, run_id, source, at, "error",
                          detail=f"{type(exc).__name__}: {exc}"[:300])
+            conn.commit()
             counts["failed"] += 1
             counts["by_source"][source.key] = "error"
             continue
         last_at[host] = time.monotonic()
         if refusal:
             record_fetch(conn, run_id, source, at, "robots_refused", detail=refusal[:300])
+            conn.commit()
             counts["refused"] += 1
             counts["by_source"][source.key] = "robots refused"
             continue
         if response.status_code != 200:
             record_fetch(conn, run_id, source, at, "http_error", status=response.status_code,
                          detail=f"HTTP {response.status_code}")
+            conn.commit()
             counts["failed"] += 1
             counts["by_source"][source.key] = f"HTTP {response.status_code}"
             continue
         raw_ref = store.put(response.content).ref
         try:
             items = (parse_feed(response.content, contract, feed_url=str(response.url),
-                                content_type=response.headers.get("content-type"))
+                                content_type=response.headers.get("content-type"),
+                                as_given=source.key in contract.as_given)
                      if source.kind == "feed"
                      else parse_github_releases(response.json(), contract))
         except ValueError as exc:
             record_fetch(conn, run_id, source, at, "error", status=200,
                          detail=f"unreadable response: {exc}"[:300])
+            conn.commit()
             counts["failed"] += 1
             counts["by_source"][source.key] = "unreadable"
             continue
@@ -564,6 +603,7 @@ def harvest(conn, client, *, gate=None, store=None, contract: Contract | None = 
             items = fold_daily(items, source, window_full=_window_full(source.url, seen))
         new = write_items(conn, source, items, raw_ref, at)
         record_fetch(conn, run_id, source, at, "ok", status=200, seen=seen, new=new)
+        conn.commit()
         counts["ok"] += 1
         counts["items_new"] += new
         counts["by_source"][source.key] = f"{seen} seen, {new} new"
@@ -577,6 +617,6 @@ def harvest(conn, client, *, gate=None, store=None, contract: Contract | None = 
         conn, client, gate, store, settings_=contract.link_preview, contract=contract,
         source_keys=[s.key for s in contract.sources
                      if s.group in groups and s.key not in contract.link_preview["skip"]
-                     and (not only or s.key in only)],
+                     and s.key not in contract.as_given and (not only or s.key in only)],
         now=clock())
     return counts

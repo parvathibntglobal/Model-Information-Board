@@ -8,7 +8,7 @@
 # labs, a few writers, two news outlets, and release notes. Nothing here is
 # evidence for the board - no claim, quote or board entry is made from a news
 # item, and no model call reads one. collect/news/harvest.py reads these;
-# judge/news.py serves them to the Admin page.
+# judge/news.py serves them to the News page (/news, signed in).
 #
 # CHOSEN ON 2026-10-22 (fresh, free, terms checked) and probed on 2026-10-28:
 # docs/measurements/news-sources-probe-2026-10-28.json. GDELT was selected and
@@ -33,10 +33,11 @@ summary_max_words: 50
 summary_min_words: 8
 
 # THE PICTURE is the feed's own, when it gives one (Media RSS, an image
-# enclosure, or the first <img> in the item). No article page is ever fetched
-# for one: an item without a picture gets a card drawn on the page naming its
-# source (anooj, 2026-10-28). Measured 2026-10-28: TechCrunch,
-# AIWire, OpenAI, OpenRouter, Mistral, TLDR AI and the release feeds give none.
+# enclosure, or the first <img> in the item). Failing that, the article's own
+# link-preview picture, read from its page's <head> (`link_preview` below, the
+# recorded exception). Failing both, a card drawn on the page naming its source
+# (anooj, 2026-10-28). Measured 2026-10-28: TechCrunch, AIWire, OpenAI,
+# OpenRouter, Mistral, TLDR AI and the release feeds give none in the feed.
 
 # THE LLM BADGE. An item whose title or summary contains one of these words
 # (whole words, any case) carries the words it matched. It is a badge the page
@@ -57,6 +58,9 @@ llm_keywords: [llm, llms, "language model", "language models", gpt, chatgpt, cla
 #   enabled         false stops every article read; the page then draws cards
 #   groups          which source groups (releases have nothing to show)
 #   max_per_run     articles asked per harvest, newest first; the rest wait
+#   max_attempts    asks per story in all: a failure that may pass (a timeout,
+#                   a 5xx, a 429) is asked again until this many, then given up
+#                   and recorded as such (`preview_outcome`)
 #   look_back_days  how far back a picture-less story is still worth asking for
 #   max_head_bytes  the most of a page read while looking for </head>
 #   skip            sources never asked, each with why. A site that answers with
@@ -74,6 +78,7 @@ link_preview:
     aiwire: "the same site banner on every story (47 of 47, 2026-10-28)"
     tldr_ai: "the same logo on every story (4 of 4, 2026-10-28)"
   max_per_run: 80
+  max_attempts: 3
   look_back_days: 7
   max_head_bytes: 262144
   # A picture one source uses on this many stories or more is its generic
@@ -93,6 +98,11 @@ link_preview:
 # whole-name, case-insensitive, longest name first, so "Claude Opus 5" is never
 # found inside "Claude Opus 5.5" (judge/news.py `mentioned_models`).
 #   min_name_chars   a name shorter than this is never matched
+#
+# THE STORY'S ADDRESS (/news/<slug>) is its headline's key words, set when it is
+# first stored and NEVER changed - not when a publisher later edits the
+# headline. A stable link is the point; do not "fix" an old slug to match.
+#
 #   max_models       the most models one story lists
 #   related_days     how far back related stories are looked for
 #   related_max      related stories shown (same model), and as many more from
@@ -102,6 +112,17 @@ story:
   max_models: 6
   related_days: 14
   related_max: 4
+
+# SHOWN AS THE FEED GIVES IT (#583 review, 2026-10-29). A source listed here
+# is displayed exactly as its feed provides it: the feed's summary whole (its
+# HTML removed for display, nothing cut, reworded or swapped for the page's
+# description), and never asked for a link preview - a story without a feed
+# picture gets the drawn card. For a source whose terms allow only what the
+# feed provides, unmodified. TechCrunch's RSS terms read: "you are only
+# permitted to display the content that is provided in the feed ... You may
+# not ... otherwise modify our feed content" (read 2026-10-22). Listing it here
+# is anooj's decision, pending.
+as_given: {}
 
 # What the News page shows by default, and the longest window it may ask for.
 page:

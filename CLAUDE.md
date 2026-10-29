@@ -586,14 +586,20 @@ These are the rules a helpful refactor will otherwise quietly violate.
   `twitter:image`). Its conditions are not settings:
 
   1. Only the article links the feeds in `contract/news_sources.yaml` give,
-     only for a story whose feed gave no picture, at most once per story;
-     nothing is crawled or discovered.
+     only for a story whose feed gave no picture, until it has a final answer:
+     a failure that may pass (a timeout, a 5xx, a 429) is asked again, at most
+     `link_preview.max_attempts` times in all, and every outcome is recorded.
+     Nothing is crawled or discovered.
   2. `robots.txt` is always asked, for every redirect hop too; identifying
      User-Agent, as above.
-  3. Only the page's `<head>` is read - streamed, and closed at `</head>`. The
-     article's text is never read, kept or shown. Only the picture's link is
-     kept; the picture is never downloaded - the reader's browser loads it
-     from the publisher, as a link preview does.
+  3. Only the page's `<head>` is read - streamed, closed at `</head>`, https
+     only for the page and every hop. The article's text is never read, kept
+     or shown. Two things are taken from the `<head>`: the picture's LINK (the
+     picture is never downloaded - the reader's browser loads it from the
+     publisher, as a link preview does), and the page's own DESCRIPTION tag,
+     which becomes the story's brief when it is the fuller complete one
+     (`summary_source = 'page_description'`; the feed's brief is kept beside
+     it, in `feed_summary`).
   4. No logins, paywalls, API keys or language models.
   5. Each `<head>` read is kept in the raw store, content-hash addressed.
 

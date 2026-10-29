@@ -2047,6 +2047,14 @@ columns:
       reviewed: true
       state: read
       why: "how many items a daily entry stands for (llama.cpp builds), shown in its title and badge"
+    feed_summary:
+      reviewed: true
+      state: read
+      why: "the brief as the feed gave it, kept unchanged; collect/news/preview.py better_brief chooses from it, so re-choosing is repeatable"
+    feed_summary_source:
+      reviewed: true
+      state: read
+      why: "which feed text feed_summary came from (feed or feed_content); read with it by preview.py better_brief"
     first_seen_at:
       reviewed: true
       state: read
@@ -2071,10 +2079,18 @@ columns:
       reviewed: true
       state: write_only
       why: "provenance of the write; no page needs it"
+    preview_attempts:
+      reviewed: true
+      state: read
+      why: "read by collect/news/preview.py _CANDIDATES: a transient failure is asked again until max_attempts"
     preview_checked_at:
       reviewed: true
       state: read
-      why: "read by collect/news/preview.py _CANDIDATES so no article is asked twice; no page shows it"
+      why: "read by collect/news/preview.py _CANDIDATES: set when the answer is final, so a final answer is never asked again"
+    preview_outcome:
+      reviewed: true
+      state: write_only
+      why: "what the last link-preview ask did (found, none, refused, failed); kept so a failed read is never mistaken for 'no picture'. Intended reader: the News page's source table, not built yet"
     preview_raw_ref:
       reviewed: true
       state: read

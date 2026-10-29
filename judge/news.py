@@ -58,14 +58,17 @@ def _contract() -> dict[str, Any]:
 # story. A picture used by `generic_min_stories` or more stories of one source
 # is withheld here and the page draws a card, saying why.
 _GENERIC_SQL = """
-SELECT image_url FROM news_item WHERE image_url IS NOT NULL
+SELECT source_key, image_url FROM news_item WHERE image_url IS NOT NULL
 GROUP BY source_key, image_url HAVING count(*) >= %s
 """
 
 
-def _generic_pictures(conn, contract: dict[str, Any]) -> set[str]:
+def _generic_pictures(conn, contract: dict[str, Any]) -> set[tuple[str, str]]:
+    """{(source, picture)}: PER SOURCE (#583 review). A picture one source uses on
+    every story is generic for that source only; another source's story that
+    happens to use it once keeps it."""
     n = contract["link_preview"]["generic_min_stories"]
-    return {u for (u,) in conn.execute(_GENERIC_SQL, (n,)).fetchall()}
+    return {(k, u) for k, u in conn.execute(_GENERIC_SQL, (n,)).fetchall()}
 
 
 ITEMS_SQL = """
@@ -115,8 +118,8 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "llm_keywords": list(r[9] or []), "daily_count": r[10],
             # The story's picture; None means the page draws a card - also for
             # a source's generic site image (`image_generic`).
-            "image_url": None if r[11] in generic else r[11],
-            "image_generic": r[11] in generic,
+            "image_url": None if (r[1], r[11]) in generic else r[11],
+            "image_generic": (r[1], r[11]) in generic,
             # feed | link_preview: where the picture came from (the page says so).
             "image_source": r[12],
             # The story's address on this site, /news/<slug>.
@@ -218,15 +221,23 @@ def model_names(conn, *, min_chars: int) -> tuple[dict[str, str], dict[str, str]
     return names, labels
 
 
-def mentioned_models(text: str, names: dict[str, str], limit: int) -> list[str]:
+def name_pattern(names: dict[str, str]) -> re.Pattern:
+    """One pattern for every name: whole names only, longest first. Built once
+    per request - rebuilt for each of 600 related stories it took 395 ms of a
+    story page (#583 review, timed 2026-10-29 on the shared DB's size)."""
+    alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    return re.compile(rf"(?<![\w.\-])({alternation})(?![\w]|[.\-]\w)", re.I)
+
+
+def mentioned_models(text: str, names: dict[str, str], limit: int,
+                     pattern: re.Pattern | None = None) -> list[str]:
     """Canonical ids the text names, in order of first mention.
 
     Whole names only, longest first: "Claude Opus 5" is never found inside
     "Claude Opus 5.5", nor "GPT-6" inside "GPT-6.1"."""
     if not text or not names:
         return []
-    alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
-    pattern = re.compile(rf"(?<![\w.\-])({alternation})(?![\w]|[.\-]\w)", re.I)
+    pattern = pattern or name_pattern(names)
     out: list[str] = []
     for m in pattern.finditer(text):
         cid = names.get(" ".join(m.group(1).split()).lower())
@@ -255,11 +266,11 @@ LIMIT 600
 """
 
 
-def _card(r, generic: set[str]) -> dict[str, Any]:
+def _card(r, generic: set[tuple[str, str]]) -> dict[str, Any]:
     return {"id": r[0], "source_key": r[1], "title": r[2], "url": r[3],
             "published_at": r[4].isoformat() if r[4] else None,
             "first_seen_at": r[5].isoformat(), "summary": r[6],
-            "image_url": None if r[7] in generic else r[7], "slug": r[8]}
+            "image_url": None if (r[1], r[7]) in generic else r[7], "slug": r[8]}
 
 
 def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, Any]:
@@ -281,7 +292,8 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
     source = sources.get(row[1], {})
 
     names, labels = model_names(conn, min_chars=rules["min_name_chars"])
-    ids = mentioned_models(f"{row[2]}. {row[6] or ''}", names, rules["max_models"])
+    pattern = name_pattern(names)
+    ids = mentioned_models(f"{row[2]}. {row[6] or ''}", names, rules["max_models"], pattern)
     # THE SITE'S OWN COUNTS, from the function the model pages use: distinct
     # voices and distinct reports over the public view (judge/catalog.py).
     voices, reports = catalog._engineer_voices(conn)
@@ -296,7 +308,8 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
     same_source: list[dict[str, Any]] = []
     for r in conn.execute(_RECENT_SQL, (row[0], since)).fetchall():
         if wanted and len(same_model) < rules["related_max"]:
-            shared = set(mentioned_models(f"{r[2]}. {r[6] or ''}", names, rules["max_models"]))
+            shared = set(mentioned_models(f"{r[2]}. {r[6] or ''}", names, rules["max_models"],
+                                          pattern))
             if shared & wanted:
                 shares = [labels.get(c, c) for c in shared & wanted]
                 same_model.append(_card(r, generic) | {"shares": shares})
@@ -309,8 +322,9 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
             "published_at": row[4].isoformat() if row[4] else None,
             "first_seen_at": row[5].isoformat(), "summary": row[6], "author": row[7],
             "categories": list(row[8] or []), "llm_keywords": list(row[9] or []),
-            "daily_count": row[10], "image_url": None if row[11] in generic else row[11],
-            "image_generic": row[11] in generic, "image_source": row[12],
+            "daily_count": row[10],
+            "image_url": None if (row[1], row[11]) in generic else row[11],
+            "image_generic": (row[1], row[11]) in generic, "image_source": row[12],
             "slug": row[13],
             # feed | feed_content | page_description: which of the source's own
             # texts the brief was cut from (the page says so under "In brief").

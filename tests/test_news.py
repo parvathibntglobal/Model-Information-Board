@@ -28,7 +28,8 @@ summary_min_words: 4
 llm_keywords: [llm, claude, tokens, "language model"]
 page: {default_days: 7, max_days: 30, max_items: 600}
 link_preview: {enabled: false, groups: [selected, lab, writer], skip: {}, max_per_run: 10,
-               look_back_days: 7, max_head_bytes: 4096, generic_min_stories: 2}
+               max_attempts: 3, look_back_days: 7, max_head_bytes: 4096, generic_min_stories: 2}
+as_given: {}
 sources:
   - {key: wire, group: selected, label: Wire, kind: feed, url: "https://wire.example/feed.xml",
      terms: "test", daily: false}
@@ -331,7 +332,7 @@ def test_a_story_without_a_feed_picture_is_asked_once(conn, contract):
         asked.append(str(request.url))
         return httpx.Response(200, headers={"content-type": "text/html"}, content=HEAD)
     settings_ = {"enabled": True, "groups": ["selected"], "skip": {}, "max_per_run": 10,
-                 "look_back_days": 30, "max_head_bytes": 100_000}
+                 "max_attempts": 3, "look_back_days": 30, "max_head_bytes": 100_000}
     now = datetime(2026, 10, 28, 12, tzinfo=UTC)
     for _ in range(2):
         with build_client(user_agent=UA, transport=httpx.MockTransport(handler)) as client:
@@ -466,3 +467,130 @@ def test_a_story_opens_by_its_address_and_by_its_old_id(conn, contract, monkeypa
     by_slug = view.story_view(conn, slug, now=now)
     assert by_slug["story"]["id"] == item_id and by_slug["story"]["slug"] == slug
     assert view.story_view(conn, item_id, now=now)["story"]["slug"] == slug
+
+
+
+# ── #583 review: the exception's conditions, each tested ─────────────────────
+
+PREVIEW = {"enabled": True, "groups": ["selected"], "skip": {}, "max_per_run": 10,
+           "max_attempts": 3, "look_back_days": 30, "max_head_bytes": 100_000}
+NOW = datetime(2026, 10, 28, 12, tzinfo=UTC)
+
+
+def _preview(conn, handler, gate=None, contract=None):
+    with build_client(user_agent=UA, transport=httpx.MockTransport(handler)) as client:
+        return preview.fill_pictures(conn, client, gate or _Gate(), _Store(), settings_=PREVIEW,
+                                     source_keys=["wire"], now=NOW, contract=contract)
+
+
+def _row(conn):
+    return conn.execute("SELECT image_url, preview_outcome, preview_attempts, "
+                        "preview_checked_at IS NOT NULL FROM news_item "
+                        "WHERE url = 'https://wire.example/b'").fetchone()
+
+
+def test_a_redirect_hop_robots_refuses_is_never_requested():
+    seen = []
+
+    def handler(request):
+        seen.append(request.url.host)
+        return httpx.Response(301, headers={"location": "https://blocked.example/page"})
+    with build_client(user_agent=UA, transport=httpx.MockTransport(handler)) as client:
+        read = preview.read_head(client, _Gate(refuse={"blocked.example"}),
+                                 "https://wire.example/b", 10_000)
+    assert read.content is None and read.outcome.startswith("robots.txt")
+    assert seen == ["wire.example"]  # the refused hop was never asked
+
+
+def test_a_hop_to_plain_http_is_refused():
+    def handler(request):
+        return httpx.Response(302, headers={"location": "http://wire.example/b"})
+    with build_client(user_agent=UA, transport=httpx.MockTransport(handler)) as client:
+        read = preview.read_head(client, _Gate(), "https://wire.example/b", 10_000)
+    assert read.content is None and read.outcome.startswith("not https")
+
+
+def test_a_failure_that_may_pass_is_retried_then_given_up(conn, contract):
+    _run(conn, contract)
+
+    def busy(request):
+        return httpx.Response(503)
+    _preview(conn, busy)
+    assert _row(conn) == (None, "http_error", 1, False)   # recorded, not final: asked again
+    _preview(conn, busy)
+    _preview(conn, busy)
+    assert _row(conn) == (None, "http_error", 3, True)    # max_attempts reached: given up
+    asked = []
+    _preview(conn, lambda r: asked.append(1) or httpx.Response(200))
+    assert asked == []                                     # and never asked again
+
+
+def test_a_definite_answer_is_final_at_once(conn, contract):
+    _run(conn, contract)
+    _preview(conn, lambda request: httpx.Response(404))
+    assert _row(conn) == (None, "http_error", 1, True)
+
+
+def test_the_feeds_own_brief_is_kept_when_the_page_description_wins(conn, contract):
+    _run(conn, contract)
+    head = (b'<html><head><meta property="og:description" content="The page says more than '
+            b'the feed did here."></head><body>x</body></html>')
+    _preview(conn, lambda r: httpx.Response(200, headers={"content-type": "text/html"},
+                                            content=head), contract=contract)
+    summary, source, feed, feed_source = conn.execute(
+        "SELECT summary, summary_source, feed_summary, feed_summary_source FROM news_item "
+        "WHERE url = 'https://wire.example/b'").fetchone()
+    assert source == "page_description" and summary.startswith("The page says more")
+    assert feed == "Detokenize is not a match" and feed_source == "feed"  # never overwritten
+
+
+def test_the_token_never_leaves_its_own_host():
+    sent = {}
+
+    def handler(request):
+        sent[request.url.host] = request.headers.get("authorization")
+        if request.url.host == "api.github.example":
+            return httpx.Response(302, headers={"location": "https://elsewhere.example/x"})
+        return httpx.Response(200, content=b"[]")
+    with build_client(user_agent=UA, transport=httpx.MockTransport(handler)) as client:
+        news._get(client, _Gate(), "https://api.github.example/repos/o/r/releases",
+                  {"Authorization": "Bearer t0ken"})
+    assert sent == {"api.github.example": "Bearer t0ken", "elsewhere.example": None}
+
+
+def test_a_generic_picture_is_withheld_for_its_own_source_only(conn, contract, monkeypatch,
+                                                                tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML, encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    _run(conn, contract)
+    conn.execute("UPDATE news_item SET image_url = 'https://cdn.example/same.png', "
+                 "image_source = 'link_preview'")  # wire uses it twice, rel once per day
+    out = view.news_view(conn, days=7, now=NOW)
+    by_source = {}
+    for i in out["items"]:
+        by_source.setdefault(i["source_key"], set()).add(i["image_generic"])
+    assert by_source["wire"] == {True}
+    # rel's two daily entries share it too (2 >= generic_min_stories) - so make
+    # one source use it once to see it kept:
+    conn.execute("UPDATE news_item SET image_url = NULL, image_source = NULL "
+                 "WHERE source_key = 'rel' AND published_at < '2026-10-28T00:00:00Z'")
+    out = view.news_view(conn, days=7, now=NOW)
+    rel = [i for i in out["items"] if i["source_key"] == "rel" and i["image_url"]]
+    assert rel and not any(i["image_generic"] for i in rel)
+
+
+def test_a_source_shown_as_given_keeps_its_summary_whole(tmp_path):
+    text = CONTRACT_YAML.replace("as_given: {}", "as_given: {wire: test terms}", 1)
+    p = tmp_path / "c.yaml"
+    p.write_text(text, encoding="utf-8")
+    c = news.load_contract(p)
+    assert c.as_given == frozenset({"wire"})
+    a = news.parse_feed(RSS, c, as_given=True)[0]
+    assert a["summary"].startswith("Fewer tokens per answer & less waste. A second")
+    assert "past the word limit here." in a["summary"]          # nothing cut
+    bad = tmp_path / "bad.yaml"
+    bad.write_text(CONTRACT_YAML.replace("as_given: {}", "as_given: {nope: x}", 1),
+                   encoding="utf-8")
+    with pytest.raises(news.NewsContractError, match="unknown sources"):
+        news.load_contract(bad)

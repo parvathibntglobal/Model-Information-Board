@@ -2277,11 +2277,15 @@ CREATE TABLE IF NOT EXISTS news_item (
   published_at      timestamptz,
   summary           text,
   summary_source    text,
+  feed_summary      text,
+  feed_summary_source text,
   author            text,
   categories        text[] NOT NULL DEFAULT '{}',
   image_url         text,
   image_source      text,
   preview_checked_at timestamptz,
+  preview_outcome   text,
+  preview_attempts  integer NOT NULL DEFAULT 0,
   preview_raw_ref   text,
   llm_keywords      text[] NOT NULL DEFAULT '{}',
   daily_count       integer,
@@ -2295,7 +2299,13 @@ CREATE TABLE IF NOT EXISTS news_item (
   CONSTRAINT news_item_image_has_source_ck CHECK ((image_url IS NULL) = (image_source IS NULL)),
   CONSTRAINT news_item_summary_source_ck
     CHECK (summary_source IN ('feed', 'feed_content', 'page_description')),
-  CONSTRAINT news_item_summary_has_source_ck CHECK ((summary IS NULL) = (summary_source IS NULL))
+  CONSTRAINT news_item_summary_has_source_ck CHECK ((summary IS NULL) = (summary_source IS NULL)),
+  CONSTRAINT news_item_feed_summary_source_ck CHECK (feed_summary_source IN ('feed', 'feed_content')),
+  CONSTRAINT news_item_feed_summary_has_source_ck
+    CHECK ((feed_summary IS NULL) = (feed_summary_source IS NULL)),
+  CONSTRAINT news_item_preview_outcome_ck CHECK (preview_outcome IN
+    ('found', 'none', 'robots_refused', 'not_https', 'not_html', 'http_error', 'error')),
+  CONSTRAINT news_item_preview_attempts_ck CHECK (preview_attempts >= 0)
 );
 
 CREATE INDEX IF NOT EXISTS news_item_published_idx ON news_item (published_at DESC);
