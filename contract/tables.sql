@@ -2330,3 +2330,51 @@ CREATE TABLE IF NOT EXISTS news_fetch (
 );
 
 CREATE INDEX IF NOT EXISTS news_fetch_source_idx ON news_fetch (source_key, fetched_at DESC);
+
+-- THE UPDATES PAGE'S DECISIONS (2026-10-29, PROPOSED,
+-- 20261029T1200_update_review.sql). An update is rebuilt from the registry on
+-- every read and never stored; what a person decides about it is, by its key.
+-- No row: shown, not reviewed yet. declined hides it from News headlines.
+CREATE TABLE IF NOT EXISTS update_review (
+  update_key   text PRIMARY KEY,
+  kind         text NOT NULL,
+  status       text NOT NULL,
+  style        text,
+  headline     text,
+  detail       text,
+  reviewed_by  text NOT NULL,
+  reviewed_at  timestamptz NOT NULL DEFAULT now(),
+  home_headline      text,
+  home_detail        text,
+  home_published_by  text,
+  home_published_at  timestamptz,
+  CONSTRAINT update_review_home_ck CHECK (
+    (home_published_at IS NULL) = (home_headline IS NULL)
+    AND (home_published_at IS NULL) = (home_published_by IS NULL)),
+  CONSTRAINT update_review_status_ck CHECK (status IN ('pending', 'approved', 'declined')),
+  CONSTRAINT update_review_kind_ck CHECK (
+    kind IN ('launch', 'price_cut', 'price_rise', 'price_change', 'retiring', 'benchmark',
+      'roundup'))
+);
+
+-- Every change to a decision, so it can be undone; `before` is the row as it
+-- was (NULL: none). Undo puts it back and marks the change undone.
+CREATE TABLE IF NOT EXISTS update_review_log (
+  id           bigserial PRIMARY KEY,
+  update_key   text NOT NULL,
+  action       text NOT NULL,
+  before       jsonb,
+  after        jsonb,
+  acted_by     text NOT NULL,
+  acted_at     timestamptz NOT NULL DEFAULT now(),
+  undone_by    text,
+  undone_at    timestamptz,
+  CONSTRAINT update_review_log_action_ck CHECK (
+    action IN ('approve', 'decline', 'restore', 'style', 'edit', 'publish', 'unpublish')),
+  CONSTRAINT update_review_log_undone_ck CHECK ((undone_by IS NULL) = (undone_at IS NULL))
+);
+
+CREATE INDEX IF NOT EXISTS update_review_log_key_idx ON update_review_log (update_key, id DESC);
+
+CREATE INDEX IF NOT EXISTS update_review_home_idx ON update_review (home_published_at DESC)
+  WHERE home_published_at IS NOT NULL;

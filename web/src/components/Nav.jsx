@@ -57,7 +57,9 @@ const SIGNED_IN = [
   { to: '/board', label: 'Board', nofollow: true },
   { to: '/benchmarks', label: 'Benchmarks', nofollow: true },
   { to: '/price-changes', label: 'Price changelog', nofollow: true },
-  { to: '/news', label: 'News', nofollow: true },
+  // A line under each, so a reader knows which to open (#585 review).
+  { to: '/news', label: 'News', desc: "Outside AI headlines, from publishers' feeds", nofollow: true },
+  { to: '/updates', label: 'Updates', desc: 'From our own registry, prices and benchmarks', nofollow: true },
   { to: '/admin', label: 'Admin', nofollow: true },
   { to: '/seo-keywords', label: 'SEO keywords', nofollow: true },
 ]
@@ -115,6 +117,7 @@ function Menu({ head, items, loc, lit, end }) {
           <Link key={i.to} to={i.to} role="menuitem" rel={i.nofollow ? 'nofollow' : undefined}
                 className={`nav-menu-item${isHere(i.to, loc) ? ' on' : ''}`}>
             {i.label}
+            {i.desc && <span className="nav-menu-desc">{i.desc}</span>}
           </Link>
         ))}
       </div>

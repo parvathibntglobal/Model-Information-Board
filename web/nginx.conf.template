@@ -11,7 +11,7 @@
 # tests/test_seo_build_files.py fails when App.jsx gains a route missing here.
 map $uri $app_route {
     default 0;
-    ~^/(login|tools|methodology|best-ai-model|ai-model-pricing|discussions|models|compare|token-counter|local-llm-vram-calculator|admin|seo-keywords|evidence|kite-pulse|benchmarks|price-changes|news)$ 1;
+    ~^/(login|tools|methodology|best-ai-model|ai-model-pricing|discussions|models|compare|token-counter|local-llm-vram-calculator|admin|seo-keywords|evidence|kite-pulse|benchmarks|price-changes|news|updates)$ 1;
     ~^/(board|blogs|glossary|best-ai-model|alternatives|reviews|ai-models|compare|models|admin|evidence|kite-pulse|news)/ 1;
 }
 

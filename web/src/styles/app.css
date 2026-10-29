@@ -85,6 +85,8 @@ main{flex:1}
 .nav-menu-pop .nav-menu-item:first-child{margin-top:6px}
 .nav-menu-pop .nav-menu-item:last-child{margin-bottom:6px}
 .nav-menu-item:hover,.nav-menu-item:focus-visible{color:var(--text);background:var(--surface)}
+/* A line under a menu item's name (Nav.jsx `desc`, 2026-10-29). */
+.nav-menu-desc{display:block;margin-top:2px;font-size:var(--fs-xs);color:var(--text-3);white-space:normal;max-width:30ch}
 .nav-menu-item.on{color:var(--text);background:var(--surface-2)}
 
 /* ================================================================ buttons */

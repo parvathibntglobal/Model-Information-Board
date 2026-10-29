@@ -3484,6 +3484,155 @@ def admin_price_changes(days: int | None = None) -> dict:
         return price_changes.changes(conn, days=days)
 
 
+# THE UPDATES PAGE (2026-10-29, Parvathi): signed in. Headlines built from the
+# registry, the price history and the benchmarks changelog, published as they
+# are built; Manage stores what a person decides about each. See
+# judge/updates.py and contract/updates.yaml.
+
+
+@contextmanager
+def _updates_conns():
+    """The board's connection, and the benchmarks one when it is readable."""
+    from judge import benchmarks
+
+    with _conn() as conn, contextlib.ExitStack() as stack:
+        try:
+            bench = stack.enter_context(benchmarks.connection())
+        except benchmarks.BenchmarksUnavailable:
+            bench = None
+        yield conn, bench
+
+
+def _signed_in_email(authorization: str | None) -> str:
+    """Who is acting, from their own token. The shared API_TOKEN carries no
+    identity and is recorded as such."""
+    supplied = (authorization or "").removeprefix("Bearer ").strip()
+    return (login.read(supplied) if supplied else None) or "api-token"
+
+
+def _update(updates, conn, bench, key: str, days: int | None) -> dict:
+    built = updates.build(conn, bench_conn=bench, days=days)["updates"]
+    found = next((u for u in built if u["key"] == key), None)
+    if found is None:
+        # A published update no longer built can still come off the home page.
+        found = updates.stored_update(conn, key)
+    if found is None:
+        raise HTTPException(status_code=404, detail="no update with that key in this window")
+    return found
+
+
+def _updates_errors(write):
+    from judge import updates
+
+    try:
+        return write(updates)
+    except updates.EditNeedsConfirm as e:
+        raise HTTPException(
+            status_code=409, detail={"message": str(e), "numbers": e.numbers}
+        ) from None
+    except updates.ReviewRefused as e:
+        raise HTTPException(status_code=e.status, detail=str(e)) from None
+    except updates.SavingUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+
+
+@app.get("/updates/published")
+def updates_published() -> dict:
+    """The home page's updates strip: the updates a person published, newest
+    first, in their published words. PUBLIC (judge/gate.py) - it sends only
+    those words, the kind and the publish time."""
+    from judge import updates
+
+    with _conn() as conn:
+        return updates.published(conn)
+
+
+@app.get("/updates")
+def updates_list(days: int | None = None) -> dict:
+    """Every update in the window, newest first, with its words, its styles and
+    what people decided about it. `saving` is false when the review tables are
+    not in this database."""
+    from judge import updates
+
+    with _updates_conns() as (conn, bench):
+        return updates.listing(conn, bench_conn=bench, days=days)
+
+
+class UpdateReviewRequest(BaseModel):
+    key: str
+    action: str
+    style: str | None = None
+    headline: str | None = None
+    detail: str | None = None
+    # True once the person has seen the numbers warning and saves anyway.
+    confirm: bool = False
+    days: int | None = None
+
+
+@app.post("/updates/review")
+def updates_review(
+    req: UpdateReviewRequest, authorization: str | None = Header(default=None)
+) -> dict:
+    """Approve, decline, restore, restyle or edit one update. An edit that
+    brings in a number the update's facts do not hold is refused with 409 and
+    the numbers, until it is sent again with `confirm`."""
+    who = _signed_in_email(authorization)
+
+    def write(updates):
+        with _updates_conns() as (conn, bench):
+            return updates.review(
+                conn,
+                _update(updates, conn, bench, req.key, req.days),
+                action=req.action,
+                by=who,
+                style=req.style,
+                headline=req.headline,
+                detail=req.detail,
+                confirm=req.confirm,
+            )
+
+    return _updates_errors(write)
+
+
+class UpdatesApproveAllRequest(BaseModel):
+    keys: list[str]
+    days: int | None = None
+
+
+@app.post("/updates/approve-all")
+def updates_approve_all(
+    req: UpdatesApproveAllRequest, authorization: str | None = Header(default=None)
+) -> dict:
+    """Approve every listed update not reviewed yet (the ones shown in Manage).
+    A declined update stays declined."""
+    who = _signed_in_email(authorization)
+
+    def write(updates):
+        with _updates_conns() as (conn, bench):
+            wanted = set(req.keys)
+            every = updates.build(conn, bench_conn=bench, days=req.days)["updates"]
+            built = [u for u in every if u["key"] in wanted]
+            return updates.approve_all(conn, built, by=who)
+
+    return _updates_errors(write)
+
+
+class UpdateUndoRequest(BaseModel):
+    key: str
+
+
+@app.post("/updates/undo")
+def updates_undo(req: UpdateUndoRequest, authorization: str | None = Header(default=None)) -> dict:
+    """Put an update back as it was before its last change."""
+    who = _signed_in_email(authorization)
+
+    def write(updates):
+        with _conn() as conn:
+            return updates.undo(conn, req.key, by=who)
+
+    return _updates_errors(write)
+
+
 @app.get("/changelog")
 def changelog_page(days: int = 30) -> dict:
     """FR-27. What changed, and whether it was us or the world."""

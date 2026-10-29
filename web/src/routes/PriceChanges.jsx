@@ -44,11 +44,16 @@ const FLAG = {
   settling: ['warn', () => 'Settling', (r) => `Not yet held ${r.hold_hours} hours without another change: it may still revert`],
   unpolled: ['warn', () => 'No longer polled', UNPOLLED],
   bounced: ['mute', () => 'Bounced', (r) => `Back to the previous price within ${r.bounce_days} days: likely a host switch or an ended promotion`],
+  // THE SETTLED PRICE (2026-10-29): newsworthy is judged from the price that
+  // held settle_days before, not the price just before (judge/price_changes.py).
+  unstable: ['warn', () => 'Unstable', (r) => `${r.unstable_changes} or more changes in ${r.unstable_days} days: the listed price is flipping between hosts or promotions, so no single change is news`],
+  reverted: ['mute', () => 'Did not last', (r) => `A later price within ${r.settle_days} days came back near the settled price: the move did not last`],
+  superseded: ['mute', () => 'Continued later', () => 'A later change moved on from the same settled price; that later change tells the move'],
 }
 
 // NEWS-WORTHY KINDS: each is a newsworthy change carrying that flag. The numbers
 // in the hints are the server's (contract/price_changes.yaml), never a copy here.
-const NEWS_RULE = (r) => `Settled, not bounced, still polled, and a cut or rise of at least ${r.big_change_pct}%, or now free`
+const NEWS_RULE = (r) => `Held, still polled, and a move of at least ${r.big_change_pct}% from the settled price (what held ${r.settle_days} days before), or now free. Never when the price is unstable, did not last, or continued in a later change`
 const NEWS = [
   { key: 'news', label: 'All news-worthy', hint: NEWS_RULE },
   { key: 'cut', label: 'Cuts', hint: (r) => `Input or output price down at least ${r.big_change_pct}%` },
@@ -61,6 +66,8 @@ const PILLS = [
   { key: 'settling', label: 'Settling', hint: (r) => `Not yet held ${r.hold_hours} hours without another change: it may still revert` },
   { key: 'unpolled', label: 'No longer polled', hint: UNPOLLED },
   { key: 'bounced', label: 'Bounced', hint: (r) => `Back to the previous price within ${r.bounce_days} days: likely a host switch or an ended promotion` },
+  { key: 'unstable', label: 'Unstable', hint: (r) => `${r.unstable_changes} or more changes in ${r.unstable_days} days: the price is flipping, so no single change is news` },
+  { key: 'reverted', label: 'Did not last', hint: (r) => `Came back near the settled price within ${r.settle_days} days` },
   { key: 'wave', label: 'Provider waves', hint: (r) => `${r.wave_min_models} or more of one provider's models changed the same day (UTC). Context only, never news on its own.` },
 ]
 const PILL_KEYS = new Set(PILLS.map((f) => f.key))
@@ -113,13 +120,40 @@ const fmtSeen = (iso) => new Date(iso).toLocaleString('en-GB', {
 }) + ' UTC'
 const fmtDay = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
-function Move({ label, before, after, pct }) {
+/** Whether the settled price differs from the one just before the change. */
+const settledDiffers = (c) => c.settled_before.price_in !== c.before.price_in
+  || c.settled_before.price_out !== c.before.price_out
+
+
+/**
+ * HOW A MOVE IS WRITTEN (2026-10-29, Parvathi): a figure a reader can take in,
+ * never "+2784.6%". The exact percentage stays in the hover.
+ *   old price under near_zero_price   "from near-zero" (a promotion ending)
+ *   a rise of 100% or more            "3× higher", "2.5× higher"
+ *   anything else                     a whole percent, "+18%", "−35%" (a cut
+ *                                     never passes −100%, so it always reads)
+ */
+function moveText(before, after, pct, nearZero) {
+  if (pct == null || before == null || after == null) return null
+  if (before > 0 && before < nearZero) return 'from near-zero'
+  if (pct >= 100) {
+    const x = after / before
+    return `${x < 10 ? +x.toFixed(1) : Math.round(x)}× higher`
+  }
+  const whole = Math.round(pct)
+  return whole === 0 ? `${pct > 0 ? '+' : '−'}<1%` : `${whole > 0 ? '+' : '−'}${Math.abs(whole)}%`
+}
+
+function Move({ label, before, after, pct, nearZero }) {
   const same = before === after
+  const text = same ? null : moveText(before, after, pct, nearZero)
   return (
     <div className={`pc-move${same ? ' pc-same' : ''}`}>
       <span className="pc-k">{label}</span>
       <span className="tnum">{fmtPrice(before)} → {fmtPrice(after)}</span>
-      {!same && pct != null && <span className={`pc-pct tnum ${pct < 0 ? 'pc-down' : 'pc-up'}`}>{fmtPct(pct)}</span>}
+      {text && (
+        <span className={`pc-pct tnum ${pct < 0 ? 'pc-down' : 'pc-up'}`} title={`Exactly ${fmtPct(pct)}`}>{text}</span>
+      )}
     </div>
   )
 }
@@ -174,17 +208,34 @@ export default function PriceChanges() {
       <header className="stack stack-2">
         <h1>Price changelog</h1>
         <p className="dim">
-          Every change to a tracked model's <strong>OpenRouter list price</strong>, as the registry poll saw it.
-          Prices are per million tokens. A date is the poll that <em>saw</em> the change; it happened some time
-          after the poll before, and the poll can start hours late, so there is no fixed bound. A percentage is the plain change between the two listed prices; a
-          price that was 0 or not stated has none. Hover a pill, a menu option or a badge for its rule.
+          Every change to a tracked model&apos;s <strong>OpenRouter list price</strong>, as the registry poll saw it,
+          per million tokens. Hover a pill, a menu option, a badge or a figure for its rule.
         </p>
+        {/* THE DETAIL, FOLDED (2026-10-29): it was seven lines above the list. */}
+        <details className="pc-howto">
+          <summary>How to read the dates and figures</summary>
+          <ul>
+            <li>
+              A date is the poll that <em>saw</em> the change. It happened some time after the poll before, and a
+              poll can start hours late, so there is no fixed bound.
+            </li>
+            <li>
+              A move is a whole percent (&ldquo;−35%&rdquo;, &ldquo;+18%&rdquo;). A price that doubled or more
+              shows how many times higher (&ldquo;3× higher&rdquo;), and one that started under{' '}
+              {data ? `$${data.rules.near_zero_price}` : 'a cent'} per million reads &ldquo;from near-zero&rdquo;,
+              usually a promotion ending. Hover a figure for the exact percentage. A price that was 0 or not stated has none.
+            </li>
+            <li>
+              Each row shows the step <strong>since the last poll</strong>. A newsworthy row also shows the move{' '}
+              <strong>since the settled price</strong> (what held {data ? data.rules.settle_days : 7} days before),
+              which is what makes it news.
+            </li>
+          </ul>
+        </details>
         <div className="pc-caveat" role="note">
           <strong>One source, not confirmed.</strong> OpenRouter can change its listed price without the provider
-          changing theirs (a different host, a promotion, a re-listing). Check the provider's own pricing page
-          before using a change in anything public. Only input, output and cached-read prices are tracked:
-          long-context tiers, image, audio and per-request prices are not, so a change to only those does not
-          appear here.
+          changing theirs (a different host, a promotion, a re-listing): check the provider&apos;s own pricing page
+          before using a change anywhere public. Only input, output and cached-read prices are tracked.
         </div>
       </header>
 
@@ -250,21 +301,41 @@ export default function PriceChanges() {
                       </span>
                     </div>
                     <div className="pc-flags">
-                      {c.newsworthy && <Badge tone="pass" title={`${NEWS_RULE(data.rules)}. Still unconfirmed.`}>Newsworthy</Badge>}
+                      {c.newsworthy && (
+                        <Badge tone="pass" title={`${NEWS_RULE(data.rules)}. Judged from the settled price, not the last step${settledDiffers(c) ? ': see "Since the settled price" below' : ''}. Still unconfirmed.`}>
+                          Newsworthy
+                        </Badge>
+                      )}
                       {c.flags.map((f) => FLAG[f] && (
                         <Badge key={f} tone={FLAG[f][0]} title={FLAG[f][2](data.rules, c)}>{FLAG[f][1](c)}</Badge>
                       ))}
                       <Badge tone="mute" title="Not checked against the provider's own pricing page.">Unconfirmed</Badge>
                     </div>
                   </div>
+                  {/* TWO BASES, EACH NAMED (2026-10-29). The step since the last
+                      poll is what happened; a newsworthy row also shows the move
+                      from the settled price, which is what the badge is for. */}
+                  <span className="pc-basis">Since the last poll</span>
                   <div className="pc-moves">
-                    <Move label="Input" before={c.before.price_in} after={c.after.price_in} pct={c.change_pct.price_in} />
-                    <Move label="Output" before={c.before.price_out} after={c.after.price_out} pct={c.change_pct.price_out} />
+                    <Move nearZero={data.rules.near_zero_price} label="Input" before={c.before.price_in} after={c.after.price_in} pct={c.change_pct.price_in} />
+                    <Move nearZero={data.rules.near_zero_price} label="Output" before={c.before.price_out} after={c.after.price_out} pct={c.change_pct.price_out} />
                     {(c.before.price_cached_read != null || c.after.price_cached_read != null) && (
-                      <Move label="Cached read" before={c.before.price_cached_read} after={c.after.price_cached_read}
+                      <Move nearZero={data.rules.near_zero_price} label="Cached read" before={c.before.price_cached_read} after={c.after.price_cached_read}
                             pct={c.change_pct.price_cached_read} />
                     )}
                   </div>
+                  {c.newsworthy && settledDiffers(c) && (
+                    <>
+                      <span className="pc-basis pc-basis-news"
+                            title={`What held ${data.rules.settle_days} days before this change. Newsworthy is judged from it, not from the last step.`}>
+                        Since the settled price
+                      </span>
+                      <div className="pc-moves">
+                        <Move nearZero={data.rules.near_zero_price} label="Input" before={c.settled_before.price_in} after={c.after.price_in} pct={c.settled_pct.price_in} />
+                        <Move nearZero={data.rules.near_zero_price} label="Output" before={c.settled_before.price_out} after={c.after.price_out} pct={c.settled_pct.price_out} />
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

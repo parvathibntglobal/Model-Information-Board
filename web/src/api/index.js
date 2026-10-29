@@ -622,6 +622,21 @@ export const newsFeed = (days) => request(`/news${days ? `?days=${days}` : ''}`)
 // One story's page: what its source gave, the models it names, related stories.
 export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
 
+// THE UPDATES PAGE (judge/updates.py, 2026-10-29). Signed in. An edit that
+// brings in a number the update's facts do not hold is a 409 whose
+// `body.detail.numbers` names them; send it again with `confirm` to save.
+export const updatesList = (days) => request(`/updates${days ? `?days=${days}` : ''}`)
+export const reviewUpdate = ({ key, action, style, headline, detail, confirm = false, days }) =>
+  request('/updates/review', {
+    method: 'POST',
+    body: { key, action, style: style ?? null, headline: headline ?? null, detail: detail ?? null, confirm, days: days || null },
+  })
+export const approveAllUpdates = (keys, days) =>
+  request('/updates/approve-all', { method: 'POST', body: { keys, days: days || null } })
+export const undoUpdate = (key) => request('/updates/undo', { method: 'POST', body: { key } })
+// The home page's updates strip: published updates only. A public read.
+export const publishedUpdates = () => cached('updates-published', () => request('/updates/published'), { ttl: BOARD_TTL_MS })
+
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`
 // - there is no credential in this payload and none can be derived from it.
