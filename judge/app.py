@@ -3540,9 +3540,12 @@ def _updates_errors(write):
 def updates_published() -> dict:
     """The home page's updates strip: the updates a person published, newest
     first, in their published words. PUBLIC (judge/gate.py) - it sends only
-    those words, the kind and the publish time."""
+    those words, the kind and the publish time. A kept answer is sent without
+    connecting: the benchmarks connection is not pooled (#586 review)."""
     from judge import updates
 
+    if (kept := updates.cached_published()) is not None:
+        return kept
     with _updates_conns() as (conn, bench):
         return updates.published(conn, bench_conn=bench)
 

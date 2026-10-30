@@ -742,3 +742,50 @@ def test_the_home_page_read_is_kept_and_a_save_clears_it(registry):
     assert updates.published(registry)["updates"] == [], "kept for home_cache_seconds"
     updates.review(registry, u, action="publish", by="p@example.com")
     assert [i["key"] for i in updates.published(registry)["updates"]] == [u["key"]]
+
+
+def test_a_kept_home_page_read_opens_no_connection(registry, monkeypatch):
+    # #586 review: the benchmarks connection is not pooled, so a visitor served
+    # from the cache must not open one (nor a board connection).
+    import judge.app as app_module
+
+    client = TestClient(app)
+    assert client.get("/updates/published").status_code == 200
+    opened = []
+    monkeypatch.setattr(app_module, "_updates_conns", lambda: opened.append(1))
+    assert client.get("/updates/published").status_code == 200
+    assert opened == [], "a cache hit connects to nothing"
+
+
+def test_a_save_during_a_rebuild_is_not_hidden_by_it(registry):
+    # A rebuild that began before a save must not keep the answer from before it.
+    u = built(registry, "launch")
+    updates.review(registry, u, action="approve", by="p@example.com")
+    real = updates.live_keys
+
+    def save_midway(*a, **k):
+        updates.review(registry, u, action="publish", by="p@example.com")
+        return real(*a, **k)
+
+    registry.execute(
+        "UPDATE update_review SET home_headline = 'x', home_detail = 'y', home_published_by = 'p', "
+        "home_published_at = now() WHERE update_key = %s",
+        (u["key"],),
+    )
+    registry.commit()
+    updates.live_keys = save_midway
+    try:
+        updates.published(registry)
+    finally:
+        updates.live_keys = real
+    assert updates.cached_published() is None, "the stale answer was not kept"
+
+
+def test_a_clear_between_reads_cannot_break_the_home_page(registry):
+    # #586 review: the cache is one entry read once, so a clear from another
+    # thread leaves a miss, never a KeyError.
+    updates.published(registry)
+    assert updates.cached_published() is not None
+    updates.clear_published_cache()
+    assert updates.cached_published() is None
+    assert set(updates._published_cache) <= {"v"}

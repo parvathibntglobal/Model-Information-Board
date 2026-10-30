@@ -1519,12 +1519,27 @@ PUBLISHED_SQL = (
 
 #: The home page's read, kept `home_cache_seconds` (#585 follow-up): it
 #: rebuilds the updates, which reads the whole price history. Cleared by every
-#: save in Manage, so a publish shows at once on this process.
-_published_cache: dict[str, Any] = {}
+#: save in Manage, so a publish shows at once on this process. One entry,
+#: (answer, until, generation), read with a single get: requests run on a thread
+#: pool and a save can clear it between two reads (#586 review).
+_published_cache: dict[str, tuple[dict[str, Any], datetime, int]] = {}
+#: Bumped by every clear, so a rebuild that began before a save does not store
+#: the answer from before it.
+_published_generation = [0]
 
 
 def clear_published_cache() -> None:
+    _published_generation[0] += 1
     _published_cache.clear()
+
+
+def cached_published(now: datetime | None = None) -> dict[str, Any] | None:
+    """The home page's kept answer, or None when there is none or it has run
+    out. Needs no database, so the endpoint checks it before connecting."""
+    hit = _published_cache.get("v")
+    if hit is not None and (now or datetime.now(UTC)) < hit[1]:
+        return hit[0]
+    return None
 
 
 def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str, Any]:
@@ -1537,9 +1552,9 @@ def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str
     update that was not published."""
     r = rules()
     clock = now or datetime.now(UTC)
-    kept = _published_cache.get("value")
-    if now is None and kept and clock < _published_cache["until"]:
+    if now is None and (kept := cached_published(clock)) is not None:
         return kept
+    generation = _published_generation[0]
     try:
         rows = conn.execute(PUBLISHED_SQL, (clock - timedelta(days=r["home_days"]),)).fetchall()
     except errors.UndefinedTable:
@@ -1565,6 +1580,10 @@ def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str
             for key, kind, headline, detail, at in rows
         ]
     }
-    if now is None:
-        _published_cache.update(value=out, until=clock + timedelta(seconds=r["home_cache_seconds"]))
+    if now is None and generation == _published_generation[0]:
+        _published_cache["v"] = (
+            out,
+            clock + timedelta(seconds=r["home_cache_seconds"]),
+            generation,
+        )
     return out
