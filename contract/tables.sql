@@ -2378,3 +2378,118 @@ CREATE INDEX IF NOT EXISTS update_review_log_key_idx ON update_review_log (updat
 
 CREATE INDEX IF NOT EXISTS update_review_home_idx ON update_review (home_published_at DESC)
   WHERE home_published_at IS NOT NULL;
+
+-- OFFICIAL DEVELOPER SOURCES AND A VIDEO INDEX, for the Guides (2026-10-30,
+-- PROPOSED; contract/official_sources.yaml; migrations/
+-- 20261030T1500_official_sources.sql says what each column means).
+-- WHO WRITES: collect/official/harvest.py. WHO READS: nothing yet - phase B's
+-- writing packs are the intended reader (contract/column_states.yaml).
+-- Never evidence: no claim, quote or board entry is made from these rows.
+CREATE TABLE IF NOT EXISTS official_doc (
+  id                text PRIMARY KEY,
+  repo_key          text NOT NULL,
+  provider          text NOT NULL,
+  doc_kind          text NOT NULL,
+  path              text NOT NULL,
+  format            text NOT NULL,
+  blob_sha          text NOT NULL,
+  size_bytes        integer NOT NULL,
+  licence           text NOT NULL,
+  html_url          text NOT NULL,
+  title             text NOT NULL,
+  title_source      text NOT NULL,
+  raw_ref           text NOT NULL,
+  text_ref          text,
+  first_seen_at     timestamptz NOT NULL,
+  changed_at        timestamptz NOT NULL,
+  unlisted_at       timestamptz,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT official_doc_path_uq UNIQUE (repo_key, path),
+  CONSTRAINT official_doc_kind_ck CHECK (doc_kind IN ('cookbook', 'changelog', 'spec')),
+  CONSTRAINT official_doc_provider_ck
+    CHECK (provider IN ('openai', 'anthropic', 'google', 'mistral')),
+  CONSTRAINT official_doc_title_source_ck CHECK (title_source IN ('h1', 'file_name')),
+  CONSTRAINT official_doc_size_ck CHECK (size_bytes >= 0),
+  CONSTRAINT official_doc_spec_has_no_text_ck CHECK (doc_kind <> 'spec' OR text_ref IS NULL)
+);
+CREATE INDEX IF NOT EXISTS official_doc_repo_idx ON official_doc (repo_key, doc_kind);
+
+CREATE TABLE IF NOT EXISTS official_release (
+  id                text PRIMARY KEY,
+  repo_key          text NOT NULL,
+  provider          text NOT NULL,
+  tag               text NOT NULL,
+  name              text,
+  published_at      timestamptz,
+  html_url          text NOT NULL,
+  prerelease        boolean NOT NULL,
+  raw_ref           text NOT NULL,
+  first_seen_at     timestamptz NOT NULL,
+  changed_at        timestamptz NOT NULL,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT official_release_tag_uq UNIQUE (repo_key, tag),
+  CONSTRAINT official_release_provider_ck
+    CHECK (provider IN ('openai', 'anthropic', 'google', 'mistral'))
+);
+CREATE INDEX IF NOT EXISTS official_release_published_idx ON official_release (repo_key, published_at DESC);
+
+CREATE TABLE IF NOT EXISTS video_ref (
+  id                text PRIMARY KEY,
+  path              text NOT NULL UNIQUE,
+  blob_sha          text NOT NULL,
+  event             text NOT NULL,
+  event_year        integer NOT NULL,
+  pyvideo_id        bigint,
+  title             text NOT NULL,
+  recorded          date,
+  speakers          text[] NOT NULL DEFAULT '{}',
+  description       text,
+  video_urls        text[] NOT NULL DEFAULT '{}',
+  video_hosts       text[] NOT NULL DEFAULT '{}',
+  thumbnail_url     text,
+  duration_seconds  integer,
+  language          text,
+  copyright_text    text,
+  llm_terms         text[] NOT NULL DEFAULT '{}',
+  raw_ref           text NOT NULL,
+  first_seen_at     timestamptz NOT NULL,
+  changed_at        timestamptz NOT NULL,
+  unlisted_at       timestamptz,
+  pipeline_version  text NOT NULL,
+  CONSTRAINT video_ref_hosts_match_urls_ck
+    CHECK (cardinality(video_urls) = cardinality(video_hosts)),
+  CONSTRAINT video_ref_duration_ck CHECK (duration_seconds IS NULL OR duration_seconds >= 0)
+);
+CREATE INDEX IF NOT EXISTS video_ref_event_idx ON video_ref (event_year DESC, event);
+
+CREATE TABLE IF NOT EXISTS official_fetch (
+  run_id                 text NOT NULL,
+  source_key             text NOT NULL,
+  fetched_at             timestamptz NOT NULL,
+  outcome                text NOT NULL,
+  http_status            integer,
+  detail                 text,
+  files_listed           integer NOT NULL,
+  files_unchanged        integer NOT NULL,
+  files_fetched          integer NOT NULL,
+  files_new              integer NOT NULL,
+  files_changed          integer NOT NULL,
+  files_deferred         integer NOT NULL,
+  files_too_large        integer NOT NULL,
+  files_failed           integer NOT NULL,
+  files_unlisted         integer NOT NULL,
+  talks_no_year          integer,
+  talks_before_min_year  integer,
+  talks_withheld         integer,
+  talks_withdrawn        integer,
+  releases_seen          integer,
+  releases_new           integer,
+  releases_changed       integer,
+  api_calls              integer NOT NULL,
+  rate_remaining         integer,
+  PRIMARY KEY (run_id, source_key),
+  CONSTRAINT official_fetch_outcome_ck CHECK (outcome IN
+    ('ok', 'partial', 'licence_mismatch', 'rate_limited', 'http_error', 'error')),
+  CONSTRAINT official_fetch_detail_ck CHECK ((outcome = 'ok') = (detail IS NULL))
+);
+CREATE INDEX IF NOT EXISTS official_fetch_source_idx ON official_fetch (source_key, fetched_at DESC);

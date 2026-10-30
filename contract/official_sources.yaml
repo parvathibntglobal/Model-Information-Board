@@ -1,0 +1,232 @@
+# Official developer sources and a video index, for the Guides (phase A,
+# 2026-10-30).
+#
+# ⚠ PROPOSED 2026-10-30 by anooj, on branch feat/official-sources - NOT
+#   RATIFIED. Needs the second reviewer like every change under contract/.
+#
+# WHAT THIS IS. The raw material later phases write developer guides and
+# tutorials from: the providers' own cookbooks (tutorial notebooks and
+# markdown), their Python SDKs' releases and changelogs, OpenAI's API spec, and
+# an index of recorded conference talks from PyVideo. collect/official/harvest.py
+# reads these into official_doc, official_release and video_ref, and records
+# every read in official_fetch. NOTHING HERE IS EVIDENCE: no claim, quote or
+# board entry is made from these rows, and no model call reads or writes them in
+# this phase. Their intended reader is phase B's writing packs, not built yet.
+#
+# HOW IT IS READ - THE GITHUB REST API ONLY, never github.com pages and never
+# raw.githubusercontent.com. One tree listing per repository
+# (`git/trees/{branch}?recursive=1`), then each kept file's blob by its sha
+# (`git/blobs/{sha}`). A file whose blob sha has not changed since the last run
+# is not fetched again. YouTube and Vimeo are never called: a talk's video and
+# thumbnail links are stored exactly as PyVideo gives them.
+#
+# TERMS BASIS. Access: ruling `github-api-terms` in contract/sources.yaml
+# (reviewed 2026-08-13, valid 90 days), whose live precondition is
+# `access_path: api` - this harvest re-checks it on every run, through the
+# `github` source row, before the first request (collect/cli.py). The ruling
+# covers ACCESS; it grants no republication. What may be done with the content
+# is each repository's own licence, recorded per repository below and compared
+# with the licence GitHub reports for it on every run: a repository whose
+# licence no longer matches is not read, and the run says so (rule 12).
+#   openai/openai-cookbook          MIT
+#   anthropics/claude-cookbooks     MIT
+#   google-gemini/cookbook          Apache-2.0
+#   mistralai/cookbook              MIT
+#   openai/openai-python            Apache-2.0
+#   anthropics/anthropic-sdk-python Apache-2.0
+#   googleapis/python-genai         Apache-2.0
+#   openai/openai-openapi           MIT
+#   pyvideo/data                    CC0-1.0   (the index; each talk's video
+#                                   carries its own `copyright_text`, stored)
+# Licences verified 2026-10-30 against GitHub's `license.spdx_id` for each.
+#
+# EVERY SETTING HERE IS REQUIRED. collect/official/harvest.py `load_contract`
+# refuses a missing or wrong value rather than defaulting it (rule 12).
+
+version: 1
+status: proposed
+proposed_on: 2026-10-30
+proposed_by: anooj
+
+# The REST API every read goes to. One host, so one politeness budget.
+api: https://api.github.com
+
+# POLITENESS. The token is shared with the evidence harvest (core budget
+# 5,000/hour, observed 2026-08-13, contract/sources.yaml `github-api-terms`).
+#   min_interval_seconds      the gap between two requests. 0.8 is the pace
+#                             collect/adapters/github.py uses for core REST
+#                             (90% of 5,000/hour).
+#   max_blob_fetches_per_run  files fetched in one run, every repository
+#                             together. The rest wait for the next run and are
+#                             counted as deferred on that repository's
+#                             official_fetch row - never silently skipped.
+#   stop_below_remaining      stop the run when GitHub says fewer than this
+#                             many core requests remain this hour, so this
+#                             harvest never drains the evidence harvest's budget.
+#   max_release_pages         pages of 100 releases read per SDK. Measured
+#                             2026-10-30: openai-python 5 pages, anthropic 3,
+#                             python-genai 2. A cap reached is recorded.
+#   max_blob_bytes            a file larger than this (by the tree's own size)
+#                             is not fetched, and counted as too large.
+politeness:
+  min_interval_seconds: 0.8
+  max_blob_fetches_per_run: 2500
+  stop_below_remaining: 1000
+  max_release_pages: 10
+  max_blob_bytes: 20000000
+
+# REPOSITORIES
+#   key       stable id, stored on every row
+#   repo      owner/name on GitHub
+#   branch    the branch whose tree is read (the default branch on 2026-10-30)
+#   provider  openai | anthropic | google | mistral
+#   kind      cookbook  tutorial notebooks and markdown       -> official_doc
+#             sdk       releases (the releases API) and the     -> official_release
+#                       changelog file                          -> official_doc
+#             spec      the API spec file                       -> official_doc
+#   licence   SPDX id; compared with GitHub's on every run
+#   include   globs a file's path must match (`*` stays inside one folder,
+#             `**/` is any number of folders, including none)
+#   exclude   globs that drop a file the include kept: repository boilerplate
+#             (licence, contributing, templates, agent instructions), data
+#             folders, and anything marked deprecated
+repos:
+  # ── cookbooks ──────────────────────────────────────────────────────────────
+  - key: openai_cookbook
+    repo: openai/openai-cookbook
+    branch: main
+    provider: openai
+    kind: cookbook
+    licence: MIT
+    include: ["**/*.ipynb", "**/*.md"]
+    exclude: &boilerplate
+      - ".github/**"
+      - ".codex/**"
+      - ".claude/**"
+      - ".gemini/**"
+      - "**/LICENSE*"
+      - "**/CONTRIBUTING*"
+      - "**/CODE_OF_CONDUCT*"
+      - "**/SECURITY*"
+      - "**/ISSUE_TEMPLATE/**"
+      - "**/pull_request_template.md"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "**/data/**"
+      - "**/deprecated*/**"
+  - key: claude_cookbooks
+    repo: anthropics/claude-cookbooks
+    branch: main
+    provider: anthropic
+    kind: cookbook
+    licence: MIT
+    include: ["**/*.ipynb", "**/*.md"]
+    exclude: *boilerplate
+  - key: gemini_cookbook
+    repo: google-gemini/cookbook
+    branch: main
+    provider: google
+    kind: cookbook
+    licence: Apache-2.0
+    include: ["**/*.ipynb", "**/*.md"]
+    # `tools/` is the repository's own tooling (a link checker, a notebook
+    # tester and their design notes), not a tutorial.
+    exclude: [".github/**", ".gemini/**", "**/LICENSE*", "**/CONTRIBUTING*",
+              "**/CODE_OF_CONDUCT*", "**/SECURITY*", "**/ISSUE_TEMPLATE/**",
+              "**/pull_request_template.md", "AGENTS.md", "CLAUDE.md", "**/data/**",
+              "**/deprecated*/**", "tools/**"]
+  - key: mistral_cookbook
+    repo: mistralai/cookbook
+    branch: main
+    provider: mistral
+    kind: cookbook
+    licence: MIT
+    include: ["**/*.ipynb", "**/*.md"]
+    # mistralai/cookbook calls its guide CONTRIBUTING_GUIDE.md; `**/CONTRIBUTING*`
+    # in the shared list already drops it.
+    exclude: *boilerplate
+
+  # ── SDKs: releases and the changelog ───────────────────────────────────────
+  - key: openai_python
+    repo: openai/openai-python
+    branch: main
+    provider: openai
+    kind: sdk
+    licence: Apache-2.0
+    include: ["CHANGELOG.md"]
+    exclude: []
+  - key: anthropic_python
+    repo: anthropics/anthropic-sdk-python
+    branch: main
+    provider: anthropic
+    kind: sdk
+    licence: Apache-2.0
+    include: ["CHANGELOG.md"]
+    exclude: []
+  - key: google_genai_python
+    repo: googleapis/python-genai
+    branch: main
+    provider: google
+    kind: sdk
+    licence: Apache-2.0
+    include: ["CHANGELOG.md"]
+    exclude: []
+
+  # ── the API spec ───────────────────────────────────────────────────────────
+  # ONE FORMAT, CHOSEN: the tree holds openapi.yaml (4.3 MB) and openapi.json
+  # (5.1 MB) on 2026-10-30, the same spec twice - the JSON is generated from the
+  # YAML by the repository's own workflow (.github/workflows/generated-files.yml).
+  # The raw store never deletes, so every change to both would keep ~9 MB; the
+  # YAML alone is the spec. Add "openapi.json" here to keep both.
+  - key: openai_openapi
+    repo: openai/openai-openapi
+    branch: main
+    provider: openai
+    kind: spec
+    licence: MIT
+    include: ["openapi.yaml"]
+    exclude: []
+
+# THE VIDEO INDEX: PyVideo's talk records (pyvideo/data, CC0-1.0), one JSON file
+# per talk at `<event>/videos/<slug>.json` - 21,750 talks in 542 events on
+# 2026-10-30.
+#   repo, branch, licence   as for the repositories above
+#   talk_glob        which paths are talk records
+#   min_event_year   an event is read when the year in its folder name is at
+#                    least this. 2,386 talks on 2026-10-30. An event whose
+#                    name carries no year (24 of 542 on 2026-10-30, mostly
+#                    meetups: "chipy", "bostonpy") is NOT read - its talks may
+#                    be any age - and is counted as such on the run's row
+#   no_publish_path  PyVideo's list of talk ids that must not be republished.
+#                    HONOURED: a talk whose `id` is on it is never stored, and
+#                    one stored before it was listed is deleted. The file
+#                    missing or unreadable stops the PyVideo read - an absent
+#                    list is never read as an empty one (rule 6)
+#   video_hosts      a video link's host, by the end of its domain; any
+#                    other domain is `other`
+#   llm_terms        LLM and AI words. A talk whose title or description
+#                    contains one (whole words, any case) carries the words it
+#                    matched in `llm_terms`. A WEIGHT for later ranking, never a
+#                    gate: every talk in scope is stored whether it matches or
+#                    not, because nobody has measured what this list misses
+#                    (rule 8)
+pyvideo:
+  key: pyvideo
+  repo: pyvideo/data
+  branch: main
+  licence: CC0-1.0
+  talk_glob: "*/videos/*.json"
+  min_event_year: 2023
+  no_publish_path: NO_PUBLISH.json
+  video_hosts:
+    youtube: [youtube.com, youtu.be, youtube-nocookie.com]
+    vimeo: [vimeo.com]
+  llm_terms: [llm, llms, "large language model", "large language models", "language model",
+              "language models", gpt, chatgpt, openai, anthropic, claude, gemini, llama,
+              mistral, ollama, vllm, "generative ai", genai, "gen ai", rag,
+              "retrieval augmented generation", "retrieval-augmented generation",
+              embedding, embeddings, "vector database", "vector databases", agentic,
+              "ai agent", "ai agents", "prompt engineering", "fine-tuning", "fine tuning",
+              langchain, llamaindex, "hugging face", huggingface, transformers,
+              "foundation model", "foundation models", copilot, "model context protocol",
+              mcp, chatbot, chatbots]

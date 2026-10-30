@@ -2137,6 +2137,225 @@ columns:
       reviewed: true
       state: read
       why: "the headline's link"
+  official_doc:
+    blob_sha:
+      reviewed: true
+      state: read
+      why: "git's sha of the file as last fetched; read back by collect/official/harvest.py _known_docs so an unchanged file is not fetched again. Migration 20261030T1500 (PROPOSED)."
+    changed_at:
+      reviewed: true
+      state: write_only
+      why: "When the stored bytes last changed; lets a writing pack prefer fresh material. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    doc_kind:
+      reviewed: true
+      state: write_only
+      why: "cookbook | changelog | spec: which material a writing pack draws from. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    first_seen_at:
+      reviewed: true
+      state: write_only
+      why: "When the file was first stored. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    format:
+      reviewed: true
+      state: write_only
+      why: "ipynb | md | yaml: how a writing pack reads the file. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    html_url:
+      reviewed: true
+      state: write_only
+      why: "The file on github.com: the attribution link a guide cites. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    id:
+      reviewed: true
+      state: write_only
+      why: "Stable id (repository key + path); the key a writing pack cites a file by. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    licence:
+      reviewed: true
+      state: write_only
+      why: "The repository's SPDX licence, as the contract names it and GitHub confirmed; a guide states it with the attribution. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    path:
+      reviewed: true
+      state: read
+      why: "The file's path in its repository; read back by collect/official/harvest.py _known_docs to match the listing. Migration 20261030T1500 (PROPOSED)."
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "Provenance of the write (CLAUDE.md conventions); no page needs it. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    provider:
+      reviewed: true
+      state: write_only
+      why: "openai | anthropic | google | mistral: whose documentation it is. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    raw_ref:
+      reviewed: true
+      state: write_only
+      why: "Raw store ref of the file's bytes, for reprocessing without re-fetching. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    repo_key:
+      reviewed: true
+      state: read
+      why: "contract/official_sources.yaml repos[].key; collect/official/harvest.py _known_docs selects a repository's stored files by it. Migration 20261030T1500 (PROPOSED)."
+    size_bytes:
+      reviewed: true
+      state: write_only
+      why: "The fetched file's size. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    text_ref:
+      reviewed: true
+      state: write_only
+      why: "The text a writing pack reads: the flattened notebook, or the markdown file itself; NULL for a spec or an unreadable notebook (rule 6). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    title:
+      reviewed: true
+      state: write_only
+      why: "The file's first H1, or its file name (title_source says which). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    title_source:
+      reviewed: true
+      state: write_only
+      why: "h1 | file_name: so a file name is never shown as a title the author wrote (rule 6). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    unlisted_at:
+      reviewed: true
+      state: read
+      why: "Set when a complete listing no longer has the file; read back by collect/official/harvest.py _known_docs to mark it again or clear it. Migration 20261030T1500 (PROPOSED)."
+  official_fetch:
+    api_calls:
+      reviewed: true
+      state: write_only
+      why: "Requests this source's read made. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    detail:
+      reviewed: true
+      state: write_only
+      why: "Every reason the outcome is not ok; NULL for ok. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    fetched_at:
+      reviewed: true
+      state: write_only
+      why: "When the source's read began. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_changed:
+      reviewed: true
+      state: write_only
+      why: "Files stored before, now with different bytes. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_deferred:
+      reviewed: true
+      state: write_only
+      why: "Files left for a later run by the per-run cap or an early stop (rule 6: never silently skipped). Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_failed:
+      reviewed: true
+      state: write_only
+      why: "Files fetched or parsed and refused. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_fetched:
+      reviewed: true
+      state: write_only
+      why: "Files fetched this run. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_listed:
+      reviewed: true
+      state: write_only
+      why: "Files the listing had in scope: the denominator for every other files_ count (rule 7). Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_new:
+      reviewed: true
+      state: write_only
+      why: "Files stored for the first time. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_too_large:
+      reviewed: true
+      state: write_only
+      why: "Files over max_blob_bytes, not fetched. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_unchanged:
+      reviewed: true
+      state: write_only
+      why: "Files whose sha matched the stored row: not fetched. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    files_unlisted:
+      reviewed: true
+      state: write_only
+      why: "Stored files a complete listing no longer has. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    http_status:
+      reviewed: true
+      state: write_only
+      why: "The status that stopped a read; NULL otherwise. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    outcome:
+      reviewed: true
+      state: write_only
+      why: "ok | partial | licence_mismatch | rate_limited | http_error | error. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    rate_remaining:
+      reviewed: true
+      state: write_only
+      why: "GitHub's x-ratelimit-remaining after the read; NULL when none was sent. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    releases_changed:
+      reviewed: true
+      state: write_only
+      why: "SDKs only (NULL otherwise): releases whose GitHub record changed. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    releases_new:
+      reviewed: true
+      state: write_only
+      why: "SDKs only (NULL otherwise): releases stored for the first time. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    releases_seen:
+      reviewed: true
+      state: write_only
+      why: "SDKs only (NULL otherwise): releases read. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    run_id:
+      reviewed: true
+      state: write_only
+      why: "Groups one harvest's reads. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    source_key:
+      reviewed: true
+      state: write_only
+      why: "contract/official_sources.yaml repos[].key or pyvideo.key. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    talks_before_min_year:
+      reviewed: true
+      state: write_only
+      why: "PyVideo only (NULL otherwise): talks in events before min_event_year. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    talks_no_year:
+      reviewed: true
+      state: write_only
+      why: "PyVideo only (NULL otherwise): talks in events whose name carries no year. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    talks_withdrawn:
+      reviewed: true
+      state: write_only
+      why: "PyVideo only (NULL otherwise): stored talks deleted because NO_PUBLISH.json now lists them. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+    talks_withheld:
+      reviewed: true
+      state: write_only
+      why: "PyVideo only (NULL otherwise): talks fetched, listed in NO_PUBLISH.json, not stored. Written by collect/official/harvest.py harvest(). Intended reader: an Admin harvest-status view, not built yet; today the CLI prints the same count from the run's return value (collect/cli.py _cmd_official_harvest). Migration 20261030T1500 (PROPOSED)."
+  official_release:
+    raw_ref:
+      reviewed: true
+      state: write_only
+      why: "Raw store ref of the release record as GitHub gave it; the notes are its body. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    changed_at:
+      reviewed: true
+      state: write_only
+      why: "When GitHub's record of the release last changed. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    first_seen_at:
+      reviewed: true
+      state: write_only
+      why: "When the release was first stored. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    html_url:
+      reviewed: true
+      state: write_only
+      why: "The release page: the attribution link a guide cites. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    id:
+      reviewed: true
+      state: write_only
+      why: "Stable id (repository key + tag). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    name:
+      reviewed: true
+      state: write_only
+      why: "The release's title; NULL when it has none. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "Provenance of the write (CLAUDE.md conventions); no page needs it. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    prerelease:
+      reviewed: true
+      state: write_only
+      why: "As GitHub marks it; a guide names stable releases. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    provider:
+      reviewed: true
+      state: write_only
+      why: "openai | anthropic | google: whose SDK it is. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    published_at:
+      reviewed: true
+      state: write_only
+      why: "GitHub's publish date; NULL when it gives none, never the time we read it (rule 6). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    repo_key:
+      reviewed: true
+      state: write_only
+      why: "contract/official_sources.yaml repos[].key. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    tag:
+      reviewed: true
+      state: write_only
+      why: "The release's tag: the version a guide names. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
   outcome:
     adopted:
       reviewed: false
@@ -2833,6 +3052,95 @@ columns:
       reviewed: false
       state: read
       why: 'Written by updates._write(), read by updates._reviews() and undo(). Migration 20261029T1200 (PROPOSED).'
+  video_ref:
+    blob_sha:
+      reviewed: true
+      state: read
+      why: "As official_doc.blob_sha; read back by collect/official/harvest.py _known_talks. Migration 20261030T1500 (PROPOSED)."
+    changed_at:
+      reviewed: true
+      state: write_only
+      why: "When the stored record last changed. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    copyright_text:
+      reviewed: true
+      state: write_only
+      why: "The video's own licence as PyVideo gives it (\"CC BY\"); NULL when not given. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    description:
+      reviewed: true
+      state: write_only
+      why: "As given (reStructuredText or plain text); NULL when none. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    duration_seconds:
+      reviewed: true
+      state: write_only
+      why: "As given; NULL when not given. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    event:
+      reviewed: true
+      state: write_only
+      why: "The event's folder name (\"pycon-us-2024\"). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    event_year:
+      reviewed: true
+      state: write_only
+      why: "The year in the event's name; the scope rule (min_event_year). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    first_seen_at:
+      reviewed: true
+      state: write_only
+      why: "When the talk was first stored. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    id:
+      reviewed: true
+      state: write_only
+      why: "Stable id (the record's path). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    language:
+      reviewed: true
+      state: write_only
+      why: "ISO 639-3 code as given; NULL when not given. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    llm_terms:
+      reviewed: true
+      state: write_only
+      why: "The contract's llm_terms found in title or description: a WEIGHT for ranking talks, never a gate - every talk in scope is stored whether it matches or not (rule 8). Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    path:
+      reviewed: true
+      state: read
+      why: "<event>/videos/<slug>.json; read back by collect/official/harvest.py _known_talks to match the listing. Migration 20261030T1500 (PROPOSED)."
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: "Provenance of the write (CLAUDE.md conventions); no page needs it. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    pyvideo_id:
+      reviewed: true
+      state: read
+      why: "The record's own id (NULL when not given); read back by collect/official/harvest.py _known_talks to withdraw a talk NO_PUBLISH.json lists after it was stored. Migration 20261030T1500 (PROPOSED)."
+    raw_ref:
+      reviewed: true
+      state: read
+      why: "Raw store ref of the record; read back by collect/official/harvest.py _known_talks to tombstone a withdrawn talk's bytes. Migration 20261030T1500 (PROPOSED)."
+    recorded:
+      reviewed: true
+      state: write_only
+      why: "The date it was recorded; NULL when not given. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    speakers:
+      reviewed: true
+      state: write_only
+      why: "As given; empty when none. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    thumbnail_url:
+      reviewed: true
+      state: write_only
+      why: "As given, never fetched; NULL when not given. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    title:
+      reviewed: true
+      state: write_only
+      why: "As given. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    unlisted_at:
+      reviewed: true
+      state: read
+      why: "As official_doc.unlisted_at; read back by collect/official/harvest.py _known_talks. Migration 20261030T1500 (PROPOSED)."
+    video_hosts:
+      reviewed: true
+      state: write_only
+      why: "youtube | vimeo | other per link, derived from the domain (contract video_hosts); nothing is asked of the host. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
+    video_urls:
+      reviewed: true
+      state: write_only
+      why: "Every video link the record gives, in order; empty when none. Never fetched. Written by collect/official/harvest.py. Intended reader: phase B's writing packs (the Guides), not built yet. Migration 20261030T1500 (PROPOSED)."
   watermark:
     cursor:
       reviewed: false
