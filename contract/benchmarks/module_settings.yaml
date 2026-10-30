@@ -24,5 +24,15 @@ auto_add_settings: true
 page:
   runs_shown: 30            # runs in the Runs history (~3-4 months at two a week)
   changelog_runs_shown: 20  # runs whose changes the Changelog lists
+# THE PUBLIC AI BENCHMARKS PAGE (/ai-benchmarks, Parvathi, 2026-10-30). The
+# page's values are built once and kept until the table changes
+# (judge/benchmarks.py charts). Asking the database whether it changed costs a
+# connection - about 2.5 s from a laptop to the shared database - so it is asked
+# at most once in this many seconds; in between, the kept copy is served with
+# no database call. After that, the kept copy is still served while the check
+# runs in the background, so a run's new values show on the next load once the
+# check has finished. Only the first read after a restart waits for the build.
+charts:
+  recheck_seconds: 60
 log_dir: collect/benchmarks/logs     # one file per run (git-ignored)
 verbosity: normal                    # quiet | normal | verbose

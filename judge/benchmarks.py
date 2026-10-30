@@ -31,14 +31,18 @@ benchmarks.yml) read all of them.
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 import sys
+import threading
+import time
 import uuid
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 from psycopg import errors
@@ -683,6 +687,295 @@ def _news(
             else None
         )
     return None
+
+
+# ── the public charts ────────────────────────────────────────────────────────
+
+# BUILT ONCE PER CHANGE TO THE TABLE (2026-10-30). `table()` took about 7 s a call
+# on the shared data from a laptop, and a public page asks twice on first open.
+# The build is kept until this fingerprint moves: every cell write sets
+# `bench_cell.updated_at` (collect/benchmarks/store.py), a removed cell lowers
+# the count, and a renamed row changes the labels' hash. So the charts still
+# change on the first load after anything changes the signed-in table.
+_CHARTS_FINGERPRINT_SQL = (
+    "SELECT (SELECT count(*) FROM bench_cell), (SELECT max(updated_at) FROM bench_cell), "
+    "(SELECT md5(coalesce(string_agg(row_id || '=' || display_label, ',' ORDER BY row_id), '')) "
+    "FROM bench_row)"
+)
+
+
+class _Kept(NamedTuple):
+    """ONE ENTRY, REPLACED WHOLE (#589 review): the build, the fingerprint it was
+    built at (database first), and when the table was last checked. Readers take
+    the entry once and never see a build paired with another one's key."""
+
+    key: tuple
+    built: dict[str, Any]
+    checked: float
+
+
+_charts_kept: _Kept | None = None
+
+
+@lru_cache(maxsize=1)
+def charts_recheck_seconds() -> int:
+    """module_settings.yaml `charts.recheck_seconds`; refused when absent (rule 12).
+
+    READ ONCE A PROCESS (#589 review): the fresh path serves from memory, and
+    a file parsed on every public hit would undo that. A contract change ships
+    with a deploy, which starts a new process."""
+    value = (_yaml("module_settings.yaml").get("charts") or {}).get("recheck_seconds")
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise ValueError(
+            "contract/benchmarks/module_settings.yaml: charts.recheck_seconds must be a "
+            "positive integer"
+        )
+    return value
+
+
+def charts_if_fresh(
+    model_id: str | None = None, *, now: float | None = None
+) -> dict[str, Any] | None:
+    """The kept charts, with NO database call, when the table was checked less than
+    `charts.recheck_seconds` ago; None when it is time to ask again."""
+    kept = _charts_kept
+    now = time.monotonic() if now is None else now
+    if (
+        kept is None
+        or kept.key[0] != database_url()
+        or now - kept.checked >= charts_recheck_seconds()
+    ):
+        return None
+    return _serve_charts(kept.built, model_id)
+
+
+def charts_kept(model_id: str | None = None) -> dict[str, Any] | None:
+    """The kept charts whatever their age, for this database; None before the first
+    build. Served while `refresh_charts_in_background` asks whether the table
+    changed, so no reader waits on that check."""
+    kept = _charts_kept
+    if kept is None or kept.key[0] != database_url():
+        return None
+    return _serve_charts(kept.built, model_id)
+
+
+_charts_refreshing = threading.Lock()
+
+
+def refresh_charts_in_background() -> None:
+    """Re-check the table on a thread of its own - one at a time; a check already
+    running is not doubled. A failure leaves the kept copy as it was."""
+    if not _charts_refreshing.acquire(blocking=False):
+        return
+
+    def run():
+        try:
+            with connection() as conn:
+                charts(conn)
+        except Exception:  # noqa: BLE001 - the kept copy stays; the next read tries again
+            logging.getLogger(__name__).warning("benchmark charts refresh failed", exc_info=True)
+        finally:
+            _charts_refreshing.release()
+
+    threading.Thread(target=run, name="benchmark-charts-refresh", daemon=True).start()
+
+
+def _serve_charts(built: dict[str, Any], model_id: str | None) -> dict[str, Any]:
+    chosen = next((m for m in built["models"] if m["id"] == model_id), None)
+    return {
+        **built,
+        "models": [{**{k: m[k] for k in ("id", "label", "tracked", "benchmarks_scored")},
+                    "series_count": len(m["series"])} for m in built["models"]],
+        # None when no model was asked for, or the one asked for has no public value.
+        "model": chosen,
+    }
+
+
+def charts(conn, model_id: str | None = None) -> dict[str, Any]:
+    """The public AI benchmarks page (/ai-benchmarks, Parvathi, 2026-10-30).
+
+    THE LIST, THEN ONE MODEL. Every model's values together were 1.27 MB on the
+    shared data (391 models, 2026-10-30), so the list carries names and counts
+    only, and `model_id` asks for one model's values.
+
+    BUILT FROM `table()`, so the charts always show what the signed-in table
+    shows - the same cells, the same source tiers, after the same run - and
+    change when it does. Nothing is computed here: no average, rank or combined
+    score (rule 3).
+
+    WHAT LEAVES THE GATE. Per value: the shown figure, its benchmark, the board's
+    own rank and "out of", the source's name, link and date (CLAUDE.md, the
+    Benchmarks exception, condition 4). Not sent: the source's own spelling of the
+    model, the other sources' values, the badges and tie lists.
+
+    A VALUE WAITING FOR A PERSON IS NOT PUBLISHED. A cell marked `needs_review`
+    stays on the signed-in table only; the page says how many were held back.
+
+    CHART OR CARD is decided by the contract, never by how a number looks: a score
+    whose benchmark is `score_unit: percent` and lies within 0-100 is a bar; a
+    rank, or any other unit, is a card."""
+    # The day is in the key too: a move's arrow leaves after RECENT_DAYS even
+    # when no run has written anything since.
+    global _charts_kept
+    fingerprint = conn.execute(_CHARTS_FINGERPRINT_SQL).fetchone()
+    key = (database_url(), datetime.now(UTC).date(), *fingerprint)
+    kept = _charts_kept
+    built = kept.built if kept is not None and kept.key == key else _build_charts(conn)
+    _charts_kept = _Kept(key, built, time.monotonic())
+    return _serve_charts(built, model_id)
+
+
+# A POSITION THAT MOVED (2026-10-30): the latest same-board change of a rank in
+# the last RECENT_DAYS - the window the signed-in table's badges use. Another
+# source taking a cell over is "source_changed", never a move.
+_RANK_MOVES_SQL = (
+    "SELECT DISTINCT ON (row_id, benchmark_key) row_id, benchmark_key, old_raw, new_raw, "
+    "rank_out_of_old, direction, changed_at, new_source FROM bench_change "
+    "WHERE metric = 'rank' AND change_type = 'updated' AND direction IN ('better', 'worse') "
+    "AND changed_at >= %s ORDER BY row_id, benchmark_key, id DESC"
+)
+
+
+def _rank_moves(conn) -> dict[tuple[str, str], dict[str, Any]]:
+    since = datetime.now(UTC) - timedelta(days=RECENT_DAYS)
+    return {
+        (row_id, bench): {"old": old, "new": new, "old_out_of": out_of, "direction": direction,
+                          "on": _iso(at), "source": source}
+        for row_id, bench, old, new, out_of, direction, at, source
+        in conn.execute(_RANK_MOVES_SQL, (since,)).fetchall()
+    }
+
+
+def _bare_rank(raw: str | None) -> str | None:
+    return raw.strip().lstrip("#").strip() if raw else raw
+
+
+def _moved(moves, row_id: str, meta: dict[str, Any], cell: dict[str, Any]) -> dict[str, Any] | None:
+    if meta["metric"] != "rank":
+        return None
+    move = moves.get((row_id, meta["benchmark"]))
+    if (
+        move is None
+        or move["source"] != cell["source"]
+        or _bare_rank(move["new"]) != _bare_rank(cell["display"])
+    ):
+        return None
+    return {
+        "direction": "up" if move["direction"] == "better" else "down",
+        "was": _bare_rank(move["old"]),
+        "was_out_of": move["old_out_of"],
+        "on": move["on"],
+    }
+
+
+def _build_charts(conn) -> dict[str, Any]:
+    """Every model's public values (charts() serves the list, or one of them)."""
+    t = table(conn)
+    moves = _rank_moves(conn)
+    units = {b["key"]: b.get("score_unit") for b in _yaml("benchmarks.yaml")["benchmarks"]}
+    meta: dict[str, dict[str, Any]] = {}
+    order: dict[str, int] = {}
+    for section in t["sections"]:
+        for col in section["columns"]:
+            order[col["key"]] = len(order)
+            meta[col["key"]] = {
+                "section": section["key"],
+                "section_label": section["label"],
+                "benchmark": col["benchmark"],
+                "label": col["label"],
+                "metric": col["metric"],
+                "better": col["better"],
+                "setup_note": col["setup_note"],
+            }
+
+    withheld = 0
+    models = []
+    # ONE MODEL, ITS SETTING ROWS AS SERIES (Parvathi, 2026-10-30): the page shows
+    # a model's own row and each setting or dated row the table lists under it
+    # ("GPT 6 Astra (max)") side by side in one chart. A series with no public
+    # value is left out; a model with none at all is not listed.
+    for row in t["rows"]:
+        series = []
+        for r in [row, *row["children"]]:
+            values = []
+            for key, cell in sorted(r["cells"].items(), key=lambda kv: order[kv[0]]):
+                if cell["needs_review"]:
+                    withheld += 1
+                    continue
+                m = meta[key]
+                charted = (
+                    m["metric"] == "score"
+                    and units.get(m["benchmark"]) == "percent"
+                    and cell["sort"] is not None
+                    and 0 <= cell["sort"] <= 100
+                )
+                values.append(
+                    {
+                        **m,
+                        "key": key,
+                        # The column's place in the signed-in table, so the page
+                        # lists across a model's rows in the table's own order.
+                        "order": order[key],
+                        "display": cell["display"],
+                        # The bar's height: the stored percent the figure is shown
+                        # from. None for a card.
+                        "percent": cell["sort"] if charted else None,
+                        "chart": charted,
+                        "rank_out_of": cell["rank_out_of"] if m["metric"] == "rank" else None,
+                        "tied": bool(cell["tied"]) if m["metric"] == "rank" else False,
+                        "source_label": cell["source_label"],
+                        "tier_label": cell["tier_label"],
+                        "url": cell["url"],
+                        "source_date": cell["source_date"],
+                        "collected_at": cell["collected_at"],
+                        "variant": cell["variant"],
+                        "setting_not_stated": cell["setting_not_stated"],
+                        # Where the board placed it before, as the board printed it -
+                        # never a difference of ours (rule 3). Only while the board
+                        # still shows the position it moved to.
+                        "moved": _moved(moves, r["row_id"], m, cell),
+                    }
+                )
+            if not values:
+                continue
+            setting, dated = r.get("setting"), r.get("dated")
+            series.append(
+                {
+                    "id": r["row_id"],
+                    "label": r["label"],
+                    # The legend's name: the setting, the dated release, or "Base"
+                    # for the model's own row (no setting named by the board).
+                    "short": " ".join(x for x in (dated, setting) if x) or "Base",
+                    "values": values,
+                }
+            )
+        if series:
+            models.append(
+                {
+                    "id": row["row_id"],
+                    "label": row["label"],
+                    "tracked": row["group"] == "tracked",
+                    "series": series,
+                    # Rule 7: benchmarks with a score in any of its series, out of
+                    # `benchmarks_listed`.
+                    "benchmarks_scored": len(
+                        {v["benchmark"] for s_ in series for v in s_["values"]
+                         if v["metric"] == "score"}
+                    ),
+                }
+            )
+
+    return {
+        "models": models,
+        # Rule 7: what "N of M benchmarks" is counted over.
+        "benchmarks_listed": t["counts"]["benchmarks"],
+        "withheld_for_review": withheld,
+        "last_run": (
+            {"finished_at": t["last_run"]["finished_at"], "status": t["last_run"]["status"]}
+            if t["last_run"]
+            else None
+        ),
+    }
 
 
 def shown(raw: str | None, value: float | None, metric: str | None) -> str | None:

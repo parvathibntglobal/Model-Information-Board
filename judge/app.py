@@ -3178,6 +3178,28 @@ def benchmarks_table() -> dict:
     return _bench(lambda b, conn: b.table(conn))
 
 
+@app.get("/ai-benchmarks")
+def ai_benchmarks(model: str | None = None) -> dict:
+    """The public AI benchmarks page (/ai-benchmarks): the models with public values, and
+    `model`'s values from the signed-in table with source, link and date
+    (judge/benchmarks.py charts). A public read (judge/gate.py).
+
+    Served from the kept copy with no database call when the table was checked
+    within `charts.recheck_seconds` (contract/benchmarks/module_settings.yaml).
+    Older than that, the kept copy is still served and the check runs on a
+    thread of its own; only the first read after a start waits for the build."""
+    from judge import benchmarks
+
+    fresh = benchmarks.charts_if_fresh(model)
+    if fresh is not None:
+        return fresh
+    kept = benchmarks.charts_kept(model)
+    if kept is not None:
+        benchmarks.refresh_charts_in_background()
+        return kept
+    return _bench(lambda b, conn: b.charts(conn, model))
+
+
 @app.get("/benchmarks/changes")
 def benchmarks_changes(
     run_id: int | None = None, kind: str | None = None, before_run: int | None = None

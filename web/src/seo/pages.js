@@ -182,6 +182,27 @@ export function localVram() {
   }
 }
 
+/**
+ * AI BENCHMARKS (2026-10-30, Parvathi): one model's published benchmark scores
+ * and leaderboard positions, from the signed-in Benchmarks table. ONE PAGE: the
+ * address names the model a reader picked (/ai-benchmarks/<id>) so a shared link
+ * opens on it, and the title names it too - there is no page built per model.
+ * Not on contract/indexing.yaml's `always` list, so noindex: the sources' terms
+ * are not yet checked for a page search engines list.
+ */
+export function aiBenchmarks(model) {
+  const path = model ? `/ai-benchmarks/${model.id}` : '/ai-benchmarks'
+  return {
+    title: fullTitle(model ? `${model.label} Benchmarks: Scores & Rankings` : 'AI Model Benchmarks: Scores & Leaderboard Rankings'),
+    description: model
+      ? `${model.label}'s published benchmark scores and leaderboard positions, each with the leaderboard it came from and that board's date.`
+      : "Pick an AI model and see its published benchmark scores and leaderboard positions, each with the leaderboard it came from and that board's date.",
+    canonical: path,
+    // The Insights menu has no page of its own yet, so the trail starts at home.
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'AI benchmarks', path: '/ai-benchmarks' }],
+  }
+}
+
 export function modelFinder() {
   return {
     title: fullTitle('AI Model Pricing & Specs Table'),

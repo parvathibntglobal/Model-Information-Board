@@ -436,6 +436,13 @@ export const deleteDiscussion = (id) => request('/discussions/delete', { method:
 // THE BENCHMARKS PAGE (judge/benchmarks.py, 2026-10-22). Signed in: every call
 // carries the token. Values are the sources' own; the page formats, never computes.
 export const benchmarksTable = () => request('/benchmarks/table')
+// THE PUBLIC AI BENCHMARKS PAGE (/ai-benchmarks, 2026-10-30): built from the same table. Kept two
+// minutes per model like the board's reads, so going back to a model, or
+// reopening the page, is instant; a run's new values show within that window.
+export const aiBenchmarks = (model) =>
+  cached(`ai-benchmarks:${model || ''}`,
+    () => request(`/ai-benchmarks${model ? `?model=${encodeURIComponent(model)}` : ''}`),
+    { ttl: BOARD_TTL_MS })
 export const benchmarksChanges = (runId, kind, beforeRun) => {
   const q = new URLSearchParams()
   if (runId) q.set('run_id', runId)

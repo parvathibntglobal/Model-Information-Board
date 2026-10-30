@@ -39,6 +39,13 @@ const LINKS = [
     ],
     types: MODEL_TYPES.map((t) => ({ to: `/ai-models/${t.key}`, key: t.key, label: `${t.label} models`, note: t.note })),
   } },
+  // INSIGHTS, A HOVER MENU (2026-10-30, Parvathi): what is moving in AI models -
+  // benchmark scores now, the published model updates and price changes next.
+  // Its own menu: Blogs is writing and Models is the catalogue (#589 review).
+  // No page of its own yet, so the label opens its first item.
+  { to: '/ai-benchmarks', label: 'Insights', items: [
+    { to: '/ai-benchmarks', label: 'AI benchmarks' },
+  ] },
   { to: '/discussions', label: 'Discussions' },
   // The FAQ is a SECTION of the landing page, not a route — same as the demo,
   // where the nav links to #faq. Kept as an anchor so the answers are in the
