@@ -3808,72 +3808,16 @@ feeds:
       free part exists for us. Substack's terms are the party speaking, and
       the ruling records how they were weighed.
 
-  - id: blog:epochai.substack.com
-    platform: blog
-    endpoint: https://epochai.substack.com/feed
-    site: https://epochai.substack.com/
-    template_block:
-      status: unverified
-      pages_examined: 0
-      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
-      headings: []
-    base_trust: 0.90
-    provenance: seed
-    terms_ruling: newsletter-substack-feed-only
-    terms_evidence:
-      checked_on: 2026-10-26
-      robots_status: rules
-      robots_http: 200
-      feed_path_allowed: true
-      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
-      # the newest entry's URL, with urllib.robotparser.
-      robots_allows_article_path: true
-      # NOT REQUESTED: the ruling is feed-only, so no article page was
-      # fetched to measure, and none will be.
-      article_http: null
-      feed_carries_full_text: true
-      paywall_observed: false
-      login_required: false
-      terms_document_read: true
-      feed_type: rss20
-    measured:
-      checked_on: 2026-10-26
-      entries: 20
-      malformed: false
-      dated_entries: 20
-      oldest: 2026-06-11
-      newest: 2026-10-23
-      span_days: 134
-      days_since_newest: 2
-      truncated: false
-      full_text_entries: 20
-      paywall_cut_entries: 0
-      median_body_chars: 8003
-      carries_content_element: 20
-      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
-      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
-      # case-sensitive whole word. A collocation count, not `version_rate`,
-      # which was not measured for these rows.
-      names_a_model_family: 17
-      byline_source: entry
-      entry_bylines_present: 20
-      distinct_entry_bylines: 14
-      resolves_to_voices: 14
-    notes: >-
-      Benchmark, economics and capability analysis, written by many
-      staff authors. epoch.ai serves no feed of its own: /gradient-
-      updates/feed, /feed.xml and /rss.xml all returned 404. 20 entries
-      2026-06-11 to 2026-10-23; median body 8,003 characters; 20 of 20
-      full length, 0 cut at the paywall. Bylines: Elliot Stewart 6, JS
-      Denain 2, Mike Mantell 1.
-    tos_notes: >-
-      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
-      Served by Substack (feed generator `Substack`). robots.txt 200,
-      feed path allowed. FEED ONLY: no article page is requested; content
-      is the feed body, and where Substack cut it at the paywall only the
-      free part exists for us. Substack's terms are the party speaking, and
-      the ruling records how they were weighed.
-
+  # REMOVED 2026-10-30 (anooj): blog:epochai.substack.com,
+  # blog:cameronrwolfe.substack.com, blog:chinai.substack.com. From the
+  # scheduled runner their robots.txt read as `refused`, so the terms check
+  # left them out every night and harvest_blogs.py exited 1, marking the whole
+  # scheduled fetch failed (2026-10-28 to 2026-10-30). From a developer machine
+  # on 10-30 the same robots.txt answered 200 with /feed allowed, so the
+  # refusal is of the runner, not a change of the publishers' rules. Their
+  # documents already stored stay; nothing new is read from them. To bring one
+  # back, restore its entry from git history and re-check robots from where
+  # the harvest runs.
   - id: blog:magazine.sebastianraschka.com
     platform: blog
     endpoint: https://magazine.sebastianraschka.com/feed
@@ -3932,134 +3876,6 @@ feeds:
       host is the one with bodies. 20 entries 2025-09-06 to 2026-10-24;
       median body 34,369 characters; 14 of 20 full length, 6 cut at the
       paywall. Bylines: Sebastian Raschka, PhD 20.
-    tos_notes: >-
-      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
-      Served by Substack (feed generator `Substack`). robots.txt 200,
-      feed path allowed. FEED ONLY: no article page is requested; content
-      is the feed body, and where Substack cut it at the paywall only the
-      free part exists for us. Substack's terms are the party speaking, and
-      the ruling records how they were weighed.
-
-  - id: blog:cameronrwolfe.substack.com
-    platform: blog
-    endpoint: https://cameronrwolfe.substack.com/feed
-    site: https://cameronrwolfe.substack.com/
-    template_block:
-      status: unverified
-      pages_examined: 0
-      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
-      headings: []
-    base_trust: 0.90
-    provenance: seed
-    terms_ruling: newsletter-substack-feed-only
-    terms_evidence:
-      checked_on: 2026-10-26
-      robots_status: rules
-      robots_http: 200
-      feed_path_allowed: true
-      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
-      # the newest entry's URL, with urllib.robotparser.
-      robots_allows_article_path: true
-      # NOT REQUESTED: the ruling is feed-only, so no article page was
-      # fetched to measure, and none will be.
-      article_http: null
-      feed_carries_full_text: partial
-      paywall_observed: true
-      login_required: false
-      terms_document_read: true
-      feed_type: rss20
-    measured:
-      checked_on: 2026-10-26
-      entries: 20
-      malformed: false
-      dated_entries: 20
-      oldest: 2025-07-28
-      newest: 2026-10-21
-      span_days: 450
-      days_since_newest: 4
-      truncated: true
-      full_text_entries: 18
-      paywall_cut_entries: 2
-      median_body_chars: 72943
-      carries_content_element: 20
-      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
-      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
-      # case-sensitive whole word. A collocation count, not `version_rate`,
-      # which was not measured for these rows.
-      names_a_model_family: 18
-      byline_source: entry
-      entry_bylines_present: 19
-      distinct_entry_bylines: 1
-      resolves_to_voices: 1
-    notes: >-
-      Long research surveys; the longest bodies of the ten. 20 entries
-      2025-07-28 to 2026-10-21; median body 72,943 characters; 18 of 20
-      full length, 2 cut at the paywall. Bylines: Cameron R. Wolfe,
-      Ph.D. 19.
-    tos_notes: >-
-      Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
-      Served by Substack (feed generator `Substack`). robots.txt 200,
-      feed path allowed. FEED ONLY: no article page is requested; content
-      is the feed body, and where Substack cut it at the paywall only the
-      free part exists for us. Substack's terms are the party speaking, and
-      the ruling records how they were weighed.
-
-  - id: blog:chinai.substack.com
-    platform: blog
-    endpoint: https://chinai.substack.com/feed
-    site: https://chinai.substack.com/
-    template_block:
-      status: unverified
-      pages_examined: 0
-      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
-      headings: []
-    base_trust: 0.90
-    provenance: seed
-    terms_ruling: newsletter-substack-feed-only
-    terms_evidence:
-      checked_on: 2026-10-26
-      robots_status: rules
-      robots_http: 200
-      feed_path_allowed: true
-      # Evaluated offline against the robots.txt fetched on 2026-10-26, for
-      # the newest entry's URL, with urllib.robotparser.
-      robots_allows_article_path: true
-      # NOT REQUESTED: the ruling is feed-only, so no article page was
-      # fetched to measure, and none will be.
-      article_http: null
-      feed_carries_full_text: true
-      paywall_observed: false
-      login_required: false
-      terms_document_read: true
-      feed_type: rss20
-    measured:
-      checked_on: 2026-10-26
-      entries: 20
-      malformed: false
-      dated_entries: 20
-      oldest: 2026-05-18
-      newest: 2026-10-19
-      span_days: 154
-      days_since_newest: 6
-      truncated: false
-      full_text_entries: 20
-      paywall_cut_entries: 0
-      median_body_chars: 8057
-      carries_content_element: 20
-      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
-      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
-      # case-sensitive whole word. A collocation count, not `version_rate`,
-      # which was not measured for these rows.
-      names_a_model_family: 14
-      byline_source: entry
-      entry_bylines_present: 20
-      distinct_entry_bylines: 1
-      resolves_to_voices: 1
-    notes: >-
-      Translations and analysis of China's AI discourse, policy and
-      industry. 20 entries 2026-05-18 to 2026-10-19; median body 8,057
-      characters; 20 of 20 full length, 0 cut at the paywall. Bylines:
-      Jeffrey Ding 20.
     tos_notes: >-
       Ruling newsletter-substack-feed-only, evidence checked 2026-10-26.
       Served by Substack (feed generator `Substack`). robots.txt 200,

@@ -263,7 +263,9 @@ def test_a_recent_check_is_served_with_no_database_call(monkeypatch):
     assert kept["models"][0] == {"id": "m/a", "label": "Model A", "tracked": True,
                                  "benchmarks_scored": 1, "series_count": 1}
     window = benchmarks.charts_recheck_seconds()
-    assert benchmarks.charts_if_fresh("m/a", now=checked + window) is None
+    # Past the window, not on it: `checked + window - checked` can land a hair
+    # under `window` when the clock reads high (it did on CI, #589).
+    assert benchmarks.charts_if_fresh("m/a", now=checked + window + 0.5) is None
 
 
 def test_the_recheck_window_is_the_contracts_and_has_no_default(monkeypatch):

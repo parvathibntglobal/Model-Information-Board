@@ -492,7 +492,7 @@ function Info({ data }) {
           <dt>Undo</dt>
           <dd>Takes back the last change, one step at a time.</dd>
           <dt>Filters</dt>
-          <dd>Not reviewed, Approved, Published (on the home page), Declined, or All.</dd>
+          <dd>Not reviewed, Approved, Published (on the home page now), Removed from home, Declined, or All. News headlines has an <strong>Approved only</strong> switch.</dd>
           <dt>Approve all shown</dt>
           <dd>Approves every not-reviewed update in the list below. Declined ones stay declined.</dd>
         </dl>
@@ -509,7 +509,7 @@ function Info({ data }) {
         <p>
           A headline stays on the home page for <strong>{data.home_days} days</strong> from when it was published,
           then comes off by itself and is listed in Manage under <strong>Removed from home</strong>, where it can be
-          published again. A price headline that is no longer news (a cut that did not last) comes off at once.
+          published again. A headline no longer in the data (a cut that did not last, a retirement date that changed) comes off at once.
         </p>
       </section>
 
@@ -574,6 +574,8 @@ export default function Updates() {
   const days = Number(sp.get('days')) || null
   const kind = KINDS.includes(sp.get('kind')) ? sp.get('kind') : 'all'
   const tracked = sp.get('tracked') === '1'
+  // News headlines only: just the updates a person approved in Manage.
+  const approvedOnly = sp.get('approved') === '1'
   const status = STATUSES.some((s) => s.key === sp.get('status')) ? sp.get('status') : 'pending'
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
@@ -587,7 +589,7 @@ export default function Updates() {
     setErr(null)
     load().catch(setErr)
   }, [load])
-  useEffect(() => { setLimit(PAGE) }, [section, kind, tracked, status, days])
+  useEffect(() => { setLimit(PAGE) }, [section, kind, tracked, approvedOnly, status, days])
 
   const set = (k, v) => {
     const next = new URLSearchParams(sp)
@@ -617,11 +619,14 @@ export default function Updates() {
   const scoped = useMemo(() => (data?.updates || []).filter((u) => (
     (kind === 'all' || u.kind === kind) && (!tracked || u.tracked)
   )), [data, kind, tracked])
-  const live = useMemo(() => scoped.filter((u) => u.published), [scoped])
+  const live = useMemo(
+    () => scoped.filter((u) => u.published && (!approvedOnly || u.status === 'approved')),
+    [scoped, approvedOnly])
   const kindCounts = useMemo(() => {
-    const pool = (data?.updates || []).filter((u) => (!tracked || u.tracked) && (section === 'manage' || u.published))
+    const pool = (data?.updates || []).filter((u) => (!tracked || u.tracked)
+      && (section === 'manage' || (u.published && (!approvedOnly || u.status === 'approved'))))
     return Object.fromEntries([['all', pool.length], ...KINDS.map((k) => [k, pool.filter((u) => u.kind === k).length])])
-  }, [data, tracked, section])
+  }, [data, tracked, section, approvedOnly])
   const statusCounts = useMemo(() => ({
     ...Object.fromEntries(STATUSES.map((s) => [s.key, scoped.filter((u) => inStatus(u, s.key)).length])),
   }), [scoped])
@@ -670,6 +675,12 @@ export default function Updates() {
               <input type="checkbox" checked={tracked} onChange={(e) => set('tracked', e.target.checked)} />
               Tracked models only
             </label>
+            {section === 'news' && (
+              <label className="up-toggle" title="Only the updates a person approved in Manage">
+                <input type="checkbox" checked={approvedOnly} onChange={(e) => set('approved', e.target.checked)} />
+                Approved only
+              </label>
+            )}
             <label className="pc-sel">Window
               <select value={data.window_days} onChange={(e) => set('days', Number(e.target.value))}>
                 {WINDOWS.filter((n) => n <= data.max_window_days).map((n) => <option key={n} value={n}>{n} days</option>)}

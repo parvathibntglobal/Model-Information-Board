@@ -1553,6 +1553,8 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
     harvested anyway because a paper naming a measurement is exactly the figure
     the metric pages want, and it arrives with a citation attached.
     """
+    from collections import Counter
+
     from collect.adapters.arxiv import harvester_for_source
 
     harvester, why = _gated_harvester(
@@ -1570,7 +1572,8 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
     queries = variants[:max_queries]
     prog.stage("E2A", "Harvest · arXiv", "running", queries=len(queries),
                detail=f"arXiv search for {len(queries)} name variant(s)")
-    inserted = papers = errors = found = 0
+    inserted = papers = errors = found = retried = 0
+    failures: list[str] = []
     for variant in queries:
         # ⚠ TWO DEFECTS, FIXED 2026-10-07, that made every arXiv run store 0.
         #   1. The bare name went in as the search_query, which arXiv reads as
@@ -1585,15 +1588,23 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
         found += len(getattr(run, "papers", []) or [])
         papers += len(getattr(run, "stored", []) or [])
         errors += int(getattr(run, "http_errors", 0) or 0)
+        retried += int(getattr(run, "retried", 0) or 0)
+        failures += list(getattr(run, "failures", []) or [])
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
     detail = f"{papers} paper(s) stored, {inserted} document(s) appended"
     if errors:
-        detail += f" — {errors} request(s) failed"
+        # WHICH KIND OF FAILURE (2026-10-30): "HTTP 503 x2" and "HTTP 403 x2"
+        # need different repairs, and the count alone said neither.
+        kinds = ", ".join(f"{k} x{n}" if n > 1 else k
+                          for k, n in Counter(failures).most_common())
+        detail += f" — {errors} request(s) failed" + (f" ({kinds})" if kinds else "")
+    if retried:
+        detail += f"; {retried} retried"
     prog.stage("E2A", "Harvest · arXiv", _harvest_verdict(errors, found),
                papers=papers, documents_inserted=inserted, http_errors=errors,
-               detail=detail)
+               failures=failures, retried=retried, detail=detail)
     return inserted
 
 

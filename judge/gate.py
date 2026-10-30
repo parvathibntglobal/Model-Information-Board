@@ -144,9 +144,15 @@ PUBLIC_READ_PATHS = frozenset({
     # (judge/benchmarks.py charts) - per value the shown figure, its benchmark,
     # the board's rank and "out of", and the source's name, link and date. No
     # value a person has not checked (`needs_review`), no source's spelling of a
-    # model, no other source's value. The sources' terms are not yet checked for
-    # public display: the page stays out of search engines until they are.
+    # model, no other source's value. The sources' terms: one accepted-risk note
+    # in contract/benchmarks/sources.yaml (#589); the page stays out of search
+    # engines. Removing this line takes the page behind the sign-in at once.
     "/ai-benchmarks",
+    # 2026-10-30 (PROPOSED): the verified-facts box inside a migration guide
+    # (judge/migrations.py `guide`) - the registry's published facts for the
+    # guide's two models, a checklist worded by contract/migrations.yaml, and
+    # counts of board entries. No quote, post text or source from any platform.
+    "/guide-facts",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

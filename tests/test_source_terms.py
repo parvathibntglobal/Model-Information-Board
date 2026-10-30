@@ -166,7 +166,7 @@ def test_every_source_and_feed_has_tos_notes():
 # ── the seeded feeds ──────────────────────────────────────────────────────
 
 
-def test_twenty_eight_feeds_are_seeded():
+def test_the_seeded_feeds_are_the_reviewed_list():
     """Twenty-eight. Dropbox is dropped on data quality, not terms.
 
     Was nine until 2026-09-21, when the class A re-review seated three feeds
@@ -178,7 +178,7 @@ def test_twenty_eight_feeds_are_seeded():
     whatever it finds would not notice.
     """
     feeds = _contract()["feeds"]
-    assert len(feeds) == 28
+    assert len(feeds) == 25  # 28 until three *.substack.com feeds left 2026-10-30
     assert not any("dropbox" in f["id"] for f in feeds)
 
 
@@ -301,8 +301,9 @@ def test_the_two_classes_split_self_hosted_from_platform_hosted():
     # 7 until 2026-09-21, 16 after the re-review seated nine more, 17 when
     # Latent Space (self-hosted) was seated with the newsletters, 2026-10-26.
     assert len(by_class["A"]) == 17
-    # Class C: newsletter platforms, feed only. Eight on Substack, one on beehiiv.
-    assert len(by_class["C"]) == 9
+    # Class C: newsletter platforms, feed only. Five on Substack, one on beehiiv
+    # (eight on Substack until three *.substack.com feeds left 2026-10-30).
+    assert len(by_class["C"]) == 6
 
 
 def test_the_medium_ruling_is_feed_only_and_says_why():
@@ -417,7 +418,8 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 38  # ten platforms + twenty-eight feeds. 12 before
+    assert len(rows) == 35  # ten platforms + twenty-five feeds. 38 until
+    #                        three *.substack.com feeds left 2026-10-30. 12 before
     #                        2026-09-08, 14 after arXiv and X, 17 after dev.to
     #                        / HN / Hugging Face, 26 after the 2026-09-21
     #                        class A re-review seated nine blogs, 36 after the

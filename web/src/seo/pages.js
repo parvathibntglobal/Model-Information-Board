@@ -472,6 +472,19 @@ export function aiGlossaryTermHead(t) {
   }
 }
 
+/**
+ * GUIDES (2026-10-30): `/blogs/guides`, the hub of written guides - migration
+ * guides now; developer guides and tutorials once their sources are collected.
+ */
+export function guidesHead() {
+  return {
+    title: fullTitle('AI model migration guides and developer guides'),
+    description: 'Written guides for moving between AI models: what changes in price, context window, output limit and features, verified against published figures, and what engineers hit when they switched.',
+    canonical: '/blogs/guides',
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Blogs', path: '/blogs' }, { name: 'Guides', path: '/blogs/guides' }],
+  }
+}
+
 /** The blog's reference formats (2026-10-15): glossary, known issues, answers. */
 const shortOf = (n) => String(n || '').split(':').slice(-1)[0].trim()
 export function glossaryHead() {

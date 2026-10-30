@@ -1918,8 +1918,9 @@ columns:
       reviewed: false
       state: read
     batch_discount:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: "read by judge/migrations.py since 2026-10-30 - the Batch discount row of a migration guide's verified-facts box (/guide-facts); NULL shown as not published"
     canonical_id:
       reviewed: false
       state: read
@@ -1988,8 +1989,9 @@ columns:
       reviewed: false
       state: write_only
     supports_batch:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: "read by judge/migrations.py since 2026-10-30 - the Batch API row of a migration guide's verified-facts box (/guide-facts); TRUE or NULL on every row (56 / 222, 2026-10-30), so NULL is shown as not published, never no"
     supports_caching:
       reviewed: false
       state: read

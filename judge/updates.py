@@ -154,6 +154,7 @@ def rules() -> dict[str, Any]:
             "max_window_days": int(raw["max_window_days"]),
             "home_days": int(raw["home_days"]),
             "home_limit": int(raw["home_limit"]),
+            "home_cache_seconds": int(raw["home_cache_seconds"]),
             "second_check_pct": float(raw["second_check_pct"]),
             "mixed_move_pct": float(raw["mixed_move_pct"]),
             "retiring_ahead_days": int(raw["retiring_ahead_days"]),
@@ -185,8 +186,10 @@ def rules() -> dict[str, Any]:
         ) from exc
     if not 0 < out["window_days"] <= out["max_window_days"]:
         raise UpdatesContractError("need 0 < window_days <= max_window_days")
-    if out["home_days"] < 1 or out["home_limit"] < 1:
-        raise UpdatesContractError("need home_days >= 1 and home_limit >= 1")
+    if out["home_days"] < 1 or out["home_limit"] < 1 or out["home_cache_seconds"] < 0:
+        raise UpdatesContractError(
+            "need home_days >= 1, home_limit >= 1 and home_cache_seconds >= 0"
+        )
     if out["group_min"] < 2 or out["names_shown"] < 1:
         raise UpdatesContractError("need group_min >= 2 and names_shown >= 1")
     unknown = set(out["why_by_set"]) - set(FACTS)
@@ -1039,18 +1042,34 @@ def _reviews(conn) -> dict[str, dict[str, Any]] | None:
     return out
 
 
-def _live_price_keys(conn, r: dict[str, Any], now: datetime) -> set[str]:
-    """The keys of the price updates still built over the longest window: a
-    published price update not among them is no longer news (a cut that did
-    not last, a move that continued) and comes off the home page."""
-    return {u["key"] for u in _prices(conn, r["max_window_days"], r, now)[0]}
+class Live:
+    """The keys of every update still built over the longest window (#585
+    follow-up: every kind, not only prices). A published update not among them
+    is no longer in the data - a cut that did not last, a retirement whose date
+    changed, a benchmark result that was corrected - and comes off the home
+    page. Benchmark keys are only known when the benchmarks data was readable;
+    when it was not, a benchmark update is given the benefit of the doubt."""
+
+    def __init__(self, keys: set[str], benchmarks_known: bool):
+        self.keys = keys
+        self.benchmarks_known = benchmarks_known
+
+    def __contains__(self, key_and_kind: tuple[str, str]) -> bool:
+        key, kind = key_and_kind
+        return key in self.keys or (kind == "benchmark" and not self.benchmarks_known)
+
+
+def live_keys(conn, *, bench_conn=None, now: datetime | None = None) -> Live:
+    r = rules()
+    built = build(conn, bench_conn=bench_conn, days=r["max_window_days"], now=now)
+    return Live({u["key"] for u in built["updates"]}, bench_conn is not None)
 
 
 def _home(
     rv: dict[str, Any],
     kind: str,
     words: tuple[str, str] | None,
-    live_prices: set[str],
+    live: Live,
     r: dict[str, Any],
     now: datetime,
     *,
@@ -1066,7 +1085,7 @@ def _home(
         removed = "not_approved"
     elif now - at > timedelta(days=r["home_days"]):
         removed = "expired"
-    elif gone or (kind.startswith("price") and rv["update_key"] not in live_prices):
+    elif gone or (rv["update_key"], kind) not in live:
         removed = "not_in_data"
     return {
         "headline": rv["home_headline"],
@@ -1094,7 +1113,7 @@ def listing(
     saving = reviews is not None
     reviews = reviews or {}
     r = built["rules"]
-    live_prices = _live_price_keys(conn, r, now)
+    live = live_keys(conn, bench_conn=bench_conn, now=now)
     examples: dict[str, dict[str, Any]] = {}
     for u in built["updates"]:
         examples.setdefault(u["template"], u)
@@ -1110,7 +1129,7 @@ def listing(
             # published headline. `current` is false when the card's words have
             # changed since (the page offers Republish); `removed` says why it
             # is no longer on the home page.
-            home=_home(rv, u["kind"], (headline, detail), live_prices, r, now),
+            home=_home(rv, u["kind"], (headline, detail), live, r, now),
             style=style,
             headline=headline,
             detail=detail,
@@ -1149,7 +1168,7 @@ def listing(
                 "gone": True,
                 "status": rv["status"],
                 "published": False,
-                "home": _home(rv, rv["kind"], None, live_prices, r, now, gone=True),
+                "home": _home(rv, rv["kind"], None, live, r, now, gone=True),
                 "style": None,
                 "headline": rv["home_headline"],
                 "detail": rv["home_detail"],
@@ -1392,6 +1411,7 @@ def review(
                 raise EditNeedsConfirm(unknown)
         after.update(headline=headline, detail=detail)
     _write(conn, update["key"], update["kind"], action, by, before, after)
+    clear_published_cache()
     return {
         "key": update["key"],
         "status": after["status"],
@@ -1421,11 +1441,22 @@ def approve_all(conn, updates: list[dict[str, Any]], *, by: str) -> dict[str, An
         after = {**_state(before), "status": "approved"}
         _write(conn, u["key"], u["kind"], "approve", by, before, after)
         done += 1
+    clear_published_cache()
     return {"approved": done}
 
 
-def undo(conn, key: str, *, by: str) -> dict[str, Any]:
-    """Put back the update's state before its last change not yet undone."""
+def is_gone(conn, key: str, *, bench_conn=None) -> bool:
+    """Whether a stored update is no longer among the updates built."""
+    row = _current(conn, key) or {}
+    return (key, row.get("kind", "")) not in live_keys(conn, bench_conn=bench_conn)
+
+
+def undo(conn, key: str, *, by: str, gone: bool = False) -> dict[str, Any]:
+    """Put back the update's state before its last change not yet undone.
+
+    NOT ONTO THE HOME PAGE FOR AN UPDATE NO LONGER IN THE DATA (#585
+    follow-up): undoing an Unpublish there would republish its old words, now
+    wrong. `gone` is the caller's: the key is not among the updates built."""
     _refuse_unsafe_write()
     _current(conn, key)  # the tables exist
     row = conn.execute(
@@ -1436,6 +1467,11 @@ def undo(conn, key: str, *, by: str) -> dict[str, Any]:
     if row is None:
         raise ReviewRefused("nothing to undo for this update", status=404)
     log_id, before, action = row
+    if gone and before and before.get("home_published_at"):
+        raise ReviewRefused(
+            "this update is no longer in the data, so undoing this would put its old words "
+            "back on the home page"
+        )
     try:
         if before is None:
             conn.execute("DELETE FROM update_review WHERE update_key = %s", (key,))
@@ -1467,6 +1503,7 @@ def undo(conn, key: str, *, by: str) -> dict[str, Any]:
         raise SavingUnavailable(
             "This backend reads its database read-only, so nothing can be saved here."
         ) from e
+    clear_published_cache()
     return {"key": key, "undid": action}
 
 
@@ -1480,25 +1517,54 @@ PUBLISHED_SQL = (
 )
 
 
-def published(conn, *, now: datetime | None = None) -> dict[str, Any]:
+#: The home page's read, kept `home_cache_seconds` (#585 follow-up): it
+#: rebuilds the updates, which reads the whole price history. Cleared by every
+#: save in Manage, so a publish shows at once on this process. One entry,
+#: (answer, until, generation), read with a single get: requests run on a thread
+#: pool and a save can clear it between two reads (#586 review).
+_published_cache: dict[str, tuple[dict[str, Any], datetime, int]] = {}
+#: Bumped by every clear, so a rebuild that began before a save does not store
+#: the answer from before it.
+_published_generation = [0]
+
+
+def clear_published_cache() -> None:
+    _published_generation[0] += 1
+    _published_cache.clear()
+
+
+def cached_published(now: datetime | None = None) -> dict[str, Any] | None:
+    """The home page's kept answer, or None when there is none or it has run
+    out. Needs no database, so the endpoint checks it before connecting."""
+    hit = _published_cache.get("v")
+    if hit is not None and (now or datetime.now(UTC)) < hit[1]:
+        return hit[0]
+    return None
+
+
+def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str, Any]:
     """What the home page shows: the updates a person published in the last
     `home_days`, newest first, at most `home_limit`, in the words they were
-    published with (contract/updates.yaml). A price update that is no longer
-    news - a cut that did not last - comes off by itself. PUBLIC (judge/gate.py):
-    it sends those words, the kind and the publish time, and nothing from
-    Manage - no reviewer, no style, no draft, no update that was not published."""
+    published with (contract/updates.yaml). One that is no longer in the data -
+    a cut that did not last, a retirement whose date changed - comes off by
+    itself. PUBLIC (judge/gate.py): it sends those words, the kind and the
+    publish time, and nothing from Manage - no reviewer, no style, no draft, no
+    update that was not published."""
     r = rules()
-    now = now or datetime.now(UTC)
+    clock = now or datetime.now(UTC)
+    if now is None and (kept := cached_published(clock)) is not None:
+        return kept
+    generation = _published_generation[0]
     try:
-        rows = conn.execute(PUBLISHED_SQL, (now - timedelta(days=r["home_days"]),)).fetchall()
+        rows = conn.execute(PUBLISHED_SQL, (clock - timedelta(days=r["home_days"]),)).fetchall()
     except errors.UndefinedTable:
         conn.rollback()
         rows = []
-    if any(kind.startswith("price") for _, kind, *_ in rows):
-        live = _live_price_keys(conn, r, now)
-        rows = [row for row in rows if not row[1].startswith("price") or row[0] in live]
+    if rows:
+        live = live_keys(conn, bench_conn=bench_conn, now=clock)
+        rows = [row for row in rows if (row[0], row[1]) in live]
     rows = rows[: r["home_limit"]]
-    return {
+    out = {
         "updates": [
             {
                 "key": key,
@@ -1514,3 +1580,10 @@ def published(conn, *, now: datetime | None = None) -> dict[str, Any]:
             for key, kind, headline, detail, at in rows
         ]
     }
+    if now is None and generation == _published_generation[0]:
+        _published_cache["v"] = (
+            out,
+            clock + timedelta(seconds=r["home_cache_seconds"]),
+            generation,
+        )
+    return out

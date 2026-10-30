@@ -2567,6 +2567,22 @@ def _glossary(fn, *args):
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
+# MIGRATION GUIDES: VERIFIED FACTS (2026-10-30). A migration guide is a written
+# blog post; this is the box inside it - the registry's published facts for the
+# guide's two models and a checklist worded by contract/migrations.yaml. Public:
+# no quote, post text or source (judge/migrations.py `guide`).
+
+
+@app.get("/guide-facts")
+def guide_facts(slug: str) -> dict:
+    """The verified facts for one approved migration guide. 404 when the slug
+    is not an approved migration guide."""
+    from judge import migrations
+
+    with _conn() as conn:
+        return _or_404(migrations.guide(conn, slug), "no approved migration guide has this slug")
+
+
 @app.get("/glossary-terms")
 def glossary_terms() -> dict:
     from judge import glossary
@@ -3562,11 +3578,14 @@ def _updates_errors(write):
 def updates_published() -> dict:
     """The home page's updates strip: the updates a person published, newest
     first, in their published words. PUBLIC (judge/gate.py) - it sends only
-    those words, the kind and the publish time."""
+    those words, the kind and the publish time. A kept answer is sent without
+    connecting: the benchmarks connection is not pooled (#586 review)."""
     from judge import updates
 
-    with _conn() as conn:
-        return updates.published(conn)
+    if (kept := updates.cached_published()) is not None:
+        return kept
+    with _updates_conns() as (conn, bench):
+        return updates.published(conn, bench_conn=bench)
 
 
 @app.get("/updates")
@@ -3649,8 +3668,9 @@ def updates_undo(req: UpdateUndoRequest, authorization: str | None = Header(defa
     who = _signed_in_email(authorization)
 
     def write(updates):
-        with _conn() as conn:
-            return updates.undo(conn, req.key, by=who)
+        with _updates_conns() as (conn, bench):
+            gone = updates.is_gone(conn, req.key, bench_conn=bench)
+            return updates.undo(conn, req.key, by=who, gone=gone)
 
     return _updates_errors(write)
 
