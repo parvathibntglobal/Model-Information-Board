@@ -198,7 +198,8 @@ export function aiBenchmarks(model) {
       ? `${model.label}'s published benchmark scores and leaderboard positions, each with the leaderboard it came from and that board's date.`
       : "Pick an AI model and see its published benchmark scores and leaderboard positions, each with the leaderboard it came from and that board's date.",
     canonical: path,
-    breadcrumbs: [{ name: 'Blogs', path: '/blogs' }, { name: 'AI benchmarks', path: '/ai-benchmarks' }],
+    // The Insights menu has no page of its own yet, so the trail starts at home.
+    breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'AI benchmarks', path: '/ai-benchmarks' }],
   }
 }
 

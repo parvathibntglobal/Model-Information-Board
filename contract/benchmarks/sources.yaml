@@ -27,6 +27,29 @@
 # CHECKED BY HAND ON 2026-10-22 (fetched once each, headers and model names
 # read). Sites change: a header that disappears stops the source with
 # `layout_changed` and keeps its previous values.
+#
+# ACCEPTED RISK, RECORDED RATHER THAN RESOLVED: THE PUBLIC AI BENCHMARKS PAGE
+# (/ai-benchmarks, #589; Parvathi, 2026-10-30). Terms findings inform and never
+# block (contract/sources.yaml, top); this is the record that goes with that rule.
+#   WHAT THE SOURCES SAY: every entry below records `license: "Not stated on the
+#     page."` - the leaderboard page names no licence. Their separate terms pages
+#     were not read for this decision.
+#   WHAT WE SHOW ANYWAY: each value exactly as its board prints it, with the
+#     board's name, a link to it and its date (the Benchmarks exception,
+#     condition 4), on a public page. Nothing is re-ranked or combined; no value a
+#     person has not reviewed is shown (judge/benchmarks.py charts).
+#   WHO DECIDED, WHEN: Parvathi, 2026-10-30 - leaderboards are routinely cited
+#     with a link, and this page credits and links every value. One note for all
+#     sources, not one each (asked for per source on #589; this is her call).
+#   STILL OUT OF SEARCH ENGINES: /ai-benchmarks is not on contract/indexing.yaml's
+#     `always` list; listing it is a separate decision.
+#   THE WAY OUT, for all sources at once: take `/ai-benchmarks` out of
+#     judge/gate.py PUBLIC_READ_PATHS - the page then needs a sign-in, at once.
+#     For ONE source there is no switch yet: `enabled: false` (with
+#     `why_disabled`) stops reading it, but collect/benchmarks/merge.py keeps
+#     using its stored values until they go stale, so taking one source off the
+#     public page needs a change in judge/benchmarks.py charts (checked
+#     2026-10-30).
 
 sources:
   - key: swebench_leaderboard

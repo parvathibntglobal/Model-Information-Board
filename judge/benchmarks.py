@@ -40,8 +40,9 @@ import time
 import uuid
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 from psycopg import errors
@@ -701,11 +702,28 @@ _CHARTS_FINGERPRINT_SQL = (
     "(SELECT md5(coalesce(string_agg(row_id || '=' || display_label, ',' ORDER BY row_id), '')) "
     "FROM bench_row)"
 )
-_charts_cache: dict[str, Any] = {"key": None, "built": None, "checked": None}
 
 
+class _Kept(NamedTuple):
+    """ONE ENTRY, REPLACED WHOLE (#589 review): the build, the fingerprint it was
+    built at (database first), and when the table was last checked. Readers take
+    the entry once and never see a build paired with another one's key."""
+
+    key: tuple
+    built: dict[str, Any]
+    checked: float
+
+
+_charts_kept: _Kept | None = None
+
+
+@lru_cache(maxsize=1)
 def charts_recheck_seconds() -> int:
-    """module_settings.yaml `charts.recheck_seconds`; refused when absent (rule 12)."""
+    """module_settings.yaml `charts.recheck_seconds`; refused when absent (rule 12).
+
+    READ ONCE A PROCESS (#589 review): the fresh path serves from memory, and
+    a file parsed on every public hit would undo that. A contract change ships
+    with a deploy, which starts a new process."""
     value = (_yaml("module_settings.yaml").get("charts") or {}).get("recheck_seconds")
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ValueError(
@@ -720,26 +738,25 @@ def charts_if_fresh(
 ) -> dict[str, Any] | None:
     """The kept charts, with NO database call, when the table was checked less than
     `charts.recheck_seconds` ago; None when it is time to ask again."""
-    checked = _charts_cache["checked"]
+    kept = _charts_kept
     now = time.monotonic() if now is None else now
     if (
-        _charts_cache["built"] is None
-        or checked is None
-        or _charts_cache["key"] is None
-        or _charts_cache["key"][0] != database_url()
-        or now - checked >= charts_recheck_seconds()
+        kept is None
+        or kept.key[0] != database_url()
+        or now - kept.checked >= charts_recheck_seconds()
     ):
         return None
-    return _serve_charts(_charts_cache["built"], model_id)
+    return _serve_charts(kept.built, model_id)
 
 
 def charts_kept(model_id: str | None = None) -> dict[str, Any] | None:
     """The kept charts whatever their age, for this database; None before the first
     build. Served while `refresh_charts_in_background` asks whether the table
     changed, so no reader waits on that check."""
-    if _charts_cache["built"] is None or (_charts_cache["key"] or (None,))[0] != database_url():
+    kept = _charts_kept
+    if kept is None or kept.key[0] != database_url():
         return None
-    return _serve_charts(_charts_cache["built"], model_id)
+    return _serve_charts(kept.built, model_id)
 
 
 _charts_refreshing = threading.Lock()
@@ -799,13 +816,13 @@ def charts(conn, model_id: str | None = None) -> dict[str, Any]:
     rank, or any other unit, is a card."""
     # The day is in the key too: a move's arrow leaves after RECENT_DAYS even
     # when no run has written anything since.
+    global _charts_kept
     fingerprint = conn.execute(_CHARTS_FINGERPRINT_SQL).fetchone()
     key = (database_url(), datetime.now(UTC).date(), *fingerprint)
-    if _charts_cache["key"] != key:
-        _charts_cache["built"] = _build_charts(conn)
-        _charts_cache["key"] = key
-    _charts_cache["checked"] = time.monotonic()
-    return _serve_charts(_charts_cache["built"], model_id)
+    kept = _charts_kept
+    built = kept.built if kept is not None and kept.key == key else _build_charts(conn)
+    _charts_kept = _Kept(key, built, time.monotonic())
+    return _serve_charts(built, model_id)
 
 
 # A POSITION THAT MOVED (2026-10-30): the latest same-board change of a rank in

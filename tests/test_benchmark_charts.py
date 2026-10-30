@@ -83,7 +83,10 @@ class _Conn:
 
 @pytest.fixture(autouse=True)
 def _fresh_cache(monkeypatch):
-    monkeypatch.setattr(benchmarks, "_charts_cache", {"key": None, "built": None, "checked": None})
+    monkeypatch.setattr(benchmarks, "_charts_kept", None)
+    benchmarks.charts_recheck_seconds.cache_clear()
+    yield
+    benchmarks.charts_recheck_seconds.cache_clear()
 
 
 def _charts(monkeypatch, rows):
@@ -254,7 +257,7 @@ def test_a_recent_check_is_served_with_no_database_call(monkeypatch):
         "gpqa_diamond_score": _cell("81", 81.0)})]))
     assert benchmarks.charts_if_fresh("m/a") is None  # nothing kept yet
     benchmarks.charts(_Conn())
-    checked = benchmarks._charts_cache["checked"]
+    checked = benchmarks._charts_kept.checked
     kept = benchmarks.charts_if_fresh("m/a", now=checked + 1)
     assert kept["model"]["series"][0]["values"][0]["display"] == "81"
     assert kept["models"][0] == {"id": "m/a", "label": "Model A", "tracked": True,
@@ -269,6 +272,7 @@ def test_the_recheck_window_is_the_contracts_and_has_no_default(monkeypatch):
     monkeypatch.setattr(benchmarks, "_yaml", lambda name: (
         {k: v for k, v in real(name).items() if k != "charts"} if name == "module_settings.yaml"
         else real(name)))
+    benchmarks.charts_recheck_seconds.cache_clear()
     with pytest.raises(ValueError, match="charts.recheck_seconds"):
         benchmarks.charts_recheck_seconds()
 
@@ -278,7 +282,9 @@ def test_an_old_copy_is_served_while_the_check_runs_behind_it(monkeypatch):
     monkeypatch.setattr(benchmarks, "table", lambda conn: _table([_row("m/a", "Model A", {
         "gpqa_diamond_score": _cell("81", 81.0)})]))
     benchmarks.charts(_Conn())
-    benchmarks._charts_cache["checked"] -= benchmarks.charts_recheck_seconds() + 1
+    kept = benchmarks._charts_kept
+    window = benchmarks.charts_recheck_seconds()
+    benchmarks._charts_kept = kept._replace(checked=kept.checked - window - 1)
     started = []
     monkeypatch.setattr(benchmarks, "refresh_charts_in_background", lambda: started.append(1))
 
@@ -314,7 +320,7 @@ def _move(old="5", new="3", direction="better", source="swebench", out_of=34):
 def _ranked(monkeypatch, moves, display="3"):
     # A fresh build each case: in use, a moved rank rewrites its cell, which moves
     # the fingerprint; here every case shares one, so the kept build is dropped.
-    monkeypatch.setattr(benchmarks, "_charts_cache", {"key": None, "built": None, "checked": None})
+    monkeypatch.setattr(benchmarks, "_charts_kept", None)
     monkeypatch.setattr(benchmarks, "table", lambda conn: _table([_row("m/a", "Model A", {
         "swe_bench_verified_rank": _cell(display, float(display), rank_out_of=35)})]))
     return benchmarks.charts(_Conn(moves=moves), "m/a")["model"]["series"][0]["values"][0]
@@ -339,3 +345,17 @@ def test_a_score_never_carries_an_arrow(monkeypatch):
     out = _charts(monkeypatch, [_row("m/a", "Model A", {
         "swe_bench_verified_score": _cell("60", 60.0)})])
     assert out["models"][0]["values"][0]["moved"] is None
+
+
+def test_the_fresh_path_reads_no_file(monkeypatch):
+    """#589 review: serving from memory must not parse module_settings.yaml per hit."""
+    monkeypatch.setattr(benchmarks, "table", lambda conn: _table([_row("m/a", "Model A", {
+        "gpqa_diamond_score": _cell("81", 81.0)})]))
+    benchmarks.charts(_Conn())
+    benchmarks.charts_recheck_seconds()  # the first read, as the first request makes it
+    reads = []
+    real = benchmarks._yaml
+    monkeypatch.setattr(benchmarks, "_yaml", lambda name: reads.append(name) or real(name))
+    for _ in range(3):
+        assert benchmarks.charts_if_fresh("m/a") is not None
+    assert reads == []
