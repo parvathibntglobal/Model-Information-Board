@@ -8,13 +8,13 @@ down: `generate_sample_blogs.export_post` builds them with the functions below,
 them, and `tests/test_guide_packs.py` renders what these builders produce through
 the real `views.js`, so the page and the writer cannot drift apart.
 
-    ["code", {"label", "lang", "code", "source": SOURCE}]
+    ["official_code", {"label", "lang", "code", "source": SOURCE}]
         One step's code, COPIED from an official source - never written by the
         post's writer (generate_sample_blogs.guide_violations checks it). The
         page draws it with a copy button and the source's name and link.
-        ⚠ The older illustrative form is also `"code"`, as
-        {"label", "language", "source": "<the code text>"} - a STRING source.
-        The two are told apart by `source`: an object here, a string there.
+        ITS OWN TYPE NAME, not `code`: the older illustrative block is `code`
+        with a string `source`, and telling the two apart by the shape of one
+        field would let a malformed official block render as illustrative.
 
     ["code_tabs", {"label", "tabs": [{"lang", "code", "source": SOURCE}, ...]}]
         The same step in more than one language, one tab each; two or more
@@ -49,9 +49,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-#: The block types this module defines. `code` is shared with the older
-#: illustrative form; `problem()` checks only the official form of it.
-GUIDE_BLOCK_TYPES = ("code", "code_tabs", "video", "sources_stamp")
+#: The block types this module defines.
+GUIDE_BLOCK_TYPES = ("official_code", "code_tabs", "video", "sources_stamp")
 
 SOURCE_KEYS = ("label", "repo", "path", "url", "ref")
 VIDEO_KEYS = ("title", "speakers", "event", "date", "url", "thumbnail", "host", "duration")
@@ -101,7 +100,7 @@ def code_block(label: str, lang: str, code: str, source: dict) -> list:
     v = {"label": label, "lang": lang, "code": code, "source": dict(source)}
     if why := _code_problem(v, with_label=True):
         raise BlockError(f"code block {why}")
-    return ["code", v]
+    return ["official_code", v]
 
 
 def code_tabs_block(label: str, tabs: list[dict]) -> list:
@@ -127,26 +126,14 @@ def sources_stamp_block(items: list[dict]) -> list:
     return ["sources_stamp", v]
 
 
-def is_official_code(block: Any) -> bool:
-    """The official form of `code` (an object source), not the illustrative one."""
-    return (
-        isinstance(block, list)
-        and len(block) == 2
-        and block[0] == "code"
-        and isinstance(block[1], dict)
-        and isinstance(block[1].get("source"), dict)
-    )
-
-
 def problem(block: Any) -> str | None:
     """Why `block` is not a well-formed guide block, or None. A block of
-    another type, or the illustrative `code` form, is not this module's to judge."""
+    another type - the illustrative `code` among them - is not this module's
+    to judge."""
     if not (isinstance(block, list) and len(block) == 2):
         return None
     t, v = block
-    if t == "code":
-        if not is_official_code(block):
-            return None
+    if t == "official_code":
         why = _code_problem(v, with_label=True)
         return f"code block {why}" if why else None
     if t == "code_tabs":

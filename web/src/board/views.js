@@ -1331,7 +1331,7 @@ function essayCode(src){
 const httpsUrl = u => /^https:\/\/[^\s"'<>]+$/.test(String(u || '')) ? String(u) : '';
 // OFFICIAL CODE: copied from the source it names, never written by the writer
 // (generate_sample_blogs.guide_violations matched it before export). The
-// older illustrative `code` block has a STRING `source`; this one an object.
+// older illustrative `code` block is a different type (official_code here).
 function codeSource(s){
   if(!s || typeof s !== 'object') return '';
   const url = httpsUrl(s.url), name = esc(s.label || s.path || 'the official source');
@@ -1426,7 +1426,7 @@ function essayBlock([t,v]){
   }
   if(t==='embed') return embedBlock(v);
   // The tag already says "Illustrative"; a label that opens with it would read twice.
-  if(t==='code' && v && v.source && typeof v.source === 'object') return officialCode(v);
+  if(t==='official_code') return officialCode(v);
   if(t==='code_tabs') return codeTabs(v);
   if(t==='video') return videoCard(v);
   if(t==='sources_stamp') return sourcesStamp(v);

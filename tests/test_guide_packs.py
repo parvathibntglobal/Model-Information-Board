@@ -562,7 +562,7 @@ def _export_fixture():
 def test_export_builds_the_three_blocks_from_the_pack():
     post, essay, docs = _export_fixture()
     snippets, videos, stamp = g.guide_export(post, essay, docs)
-    assert [b[0] for b in snippets[0]] == ["code", "code_tabs"]
+    assert [b[0] for b in snippets[0]] == ["official_code", "code_tabs"]
     assert snippets[0][0][1]["source"] == SRC and snippets[0][0][1]["lang"] == "python"
     assert videos[0][0][1]["title"] == TALK["title"] and videos[1][0][1]["thumbnail"] is None
     # The stamp names the official sources the post USES - copied or cited -

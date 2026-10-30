@@ -48,7 +48,7 @@ REQUIRED = ("slug", "title", "dek", "tag", "by", "lead", "meta", "body", "proven
 #: Guides (developer guides, tutorials, error fixes); their shapes, and the
 #: official form of `code`, are judge/guide_blocks.py's - checked below.
 BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree", "visual", "image", "embed",
-               "highlight", "code_tabs", "video", "sources_stamp"}
+               "highlight", "official_code", "code_tabs", "video", "sources_stamp"}
 
 
 def posts_dir() -> Path | None:
