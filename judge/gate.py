@@ -140,6 +140,13 @@ PUBLIC_READ_PATHS = frozenset({
     # published) - the words of updates a person approved AND published, their
     # kind and publish time. Nothing from Manage: no reviewer, draft or style.
     "/updates/published",
+    # 2026-10-30 (PROPOSED, Parvathi): the AI benchmarks page
+    # (judge/benchmarks.py charts) - per value the shown figure, its benchmark,
+    # the board's rank and "out of", and the source's name, link and date. No
+    # value a person has not checked (`needs_review`), no source's spelling of a
+    # model, no other source's value. The sources' terms are not yet checked for
+    # public display: the page stays out of search engines until they are.
+    "/ai-benchmarks",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

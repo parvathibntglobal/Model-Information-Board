@@ -12,6 +12,8 @@ const LINKS = [
   { to: '/blogs', label: 'Blogs', items: [
     { to: '/blogs', label: 'Blog posts' },
     { to: '/glossary', label: 'AI glossary' },
+    // 2026-10-30: one model's benchmark scores, chart and leaderboard (Parvathi).
+    { to: '/ai-benchmarks', label: 'AI benchmarks' },
   ] },
   // HOVER MENUS. The label still opens its own page on click; hovering lists
   // what is inside it, the way the demo's sections are split.

@@ -221,6 +221,10 @@ def test_the_public_list_names_only_reads_that_were_checked():
         # 2026-10-29 (PROPOSED): the home page's updates strip - published words,
         # kind and time only (tests/test_updates.py checks what it sends).
         "/updates/published",
+        # 2026-10-30 (PROPOSED): the AI benchmarks page - shown figures, ranks and
+        # their source, link and date; no unreviewed value
+        # (tests/test_benchmark_charts.py checks what it sends).
+        "/ai-benchmarks",
     } == gate.PUBLIC_READ_PATHS
     assert gate.PUBLIC_READ_PREFIXES == ("/model-catalog/", "/glossary-terms/")
 

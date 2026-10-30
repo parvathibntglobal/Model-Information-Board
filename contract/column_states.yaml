@@ -144,8 +144,8 @@ columns:
       state: read
     updated_at:
       reviewed: true
-      state: write_only
-      why: 'When the cell was last written. Written by collect/benchmarks/store.py publish_cells(); the page shows collected_at instead (when the source was read). Intended reader: the phase-2 cell detail view. Migration 20261022T1200.'
+      state: read
+      why: 'When the cell was last written. Written by collect/benchmarks/store.py publish_cells(); the page shows collected_at instead (when the source was read). READ since 2026-10-30 by judge/benchmarks.py charts(): max(updated_at) is part of the fingerprint that tells the public AI benchmarks page its kept build is stale - every cell write sets it, so a run that changes a value changes the fingerprint. Never shown. Migration 20261022T1200.'
     url:
       reviewed: true
       state: read

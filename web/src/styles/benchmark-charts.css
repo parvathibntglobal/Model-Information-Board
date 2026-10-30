@@ -1,0 +1,183 @@
+/* The Benchmark charts page (routes/BenchmarkCharts.jsx). Tokens from tokens.css,
+   plus the eight series colours.
+
+   THE SERIES COLOURS are the dataviz reference palette's categorical order,
+   checked with its validator on this site's card surfaces (2026-10-30): dark on
+   --surface #18181B passes every check; light on #FFFFFF passes, with a contrast
+   WARN for slots 3-5 (aqua, yellow, magenta) - allowed because every value is
+   also in the tooltip and the table view, and the legend names each row. */
+.bc-page{
+  --bc-s1:#3987e5;--bc-s2:#d95926;--bc-s3:#199e70;--bc-s4:#c98500;
+  --bc-s5:#d55181;--bc-s6:#008300;--bc-s7:#9085e9;--bc-s8:#e66767;
+}
+:root[data-theme="light"] .bc-page{
+  --bc-s1:#2a78d6;--bc-s2:#eb6834;--bc-s3:#1baf7a;--bc-s4:#eda100;
+  --bc-s5:#e87ba4;--bc-s6:#008300;--bc-s7:#6250d6;--bc-s8:#e34948;
+}
+
+.bc-page h1{font-size:var(--fs-display)}
+.bc-page header p{max-width:78ch}
+.bc-h2{font-size:var(--fs-h3)}
+.bc-small{font-size:var(--fs-xs)}
+.bc-error{color:var(--fail);font-size:var(--fs-sm)}
+
+.bc-controls{display:flex;gap:var(--s2) var(--s3);align-items:center;flex-wrap:wrap}
+.bc-select{display:flex;gap:8px;align-items:center;font-size:var(--fs-sm);color:var(--text-2)}
+.bc-select select{height:36px;min-width:260px;max-width:100%;padding:0 10px;border-radius:var(--r-sm);
+  border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:var(--fs-sm)}
+/* The model's counts, as chips beside the picker. */
+.bc-stats{list-style:none;margin:0;padding:0;display:flex;gap:8px;flex-wrap:wrap}
+.bc-stats li{display:inline-flex;align-items:baseline;gap:5px;height:30px;padding:0 12px;align-items:center;
+  border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface);
+  font-size:var(--fs-xs);color:var(--text-2)}
+.bc-stats strong{color:var(--text);font-weight:600}
+
+/* ── the chart card ──────────────────────────────────────────────────────── */
+.bc-chart{margin:0;padding:var(--card-pad);display:flex;flex-direction:column;gap:14px}
+.bc-chart-head{display:flex;flex-direction:column;gap:4px}
+.bc-chart-title{font-size:var(--fs-h3);color:var(--text);font-weight:600}
+
+/* The legend: one chip per row, a toggle. */
+.bc-legend{display:flex;flex-wrap:wrap;gap:6px}
+.bc-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:var(--r-pill);
+  border:1px solid var(--border);background:var(--surface);color:var(--text-3);font-size:var(--fs-xs);cursor:pointer}
+.bc-chip:hover:not(:disabled){border-color:var(--border-strong);color:var(--text)}
+.bc-chip.on{color:var(--text);border-color:var(--border-strong)}
+.bc-chip:disabled{opacity:.5;cursor:default}
+.bc-chip:focus-visible{outline:2px solid var(--text-2);outline-offset:1px}
+.bc-swatch{display:inline-block;width:10px;height:10px;border-radius:3px;border:1px solid var(--border-strong);flex:none}
+.bc-chip.on .bc-swatch{border-color:transparent}
+
+/* The plot: a y-axis, then the categories side by side. */
+.bc-scroll{overflow-x:auto;padding-top:12px}
+.bc-plot{position:relative;display:grid;grid-template-columns:32px 1fr;gap:8px}
+.bc-yaxis{position:relative;height:300px;font-size:10px;color:var(--text-3);font-family:var(--font-mono);
+  font-variant-numeric:tabular-nums}
+.bc-yaxis span{position:absolute;right:0;transform:translateY(50%)}
+.bc-area{position:relative}
+.bc-gridlines{position:absolute;left:0;right:0;top:0;height:300px;pointer-events:none}
+.bc-gridlines i{position:absolute;left:0;right:0;height:1px;background:var(--border-soft)}
+.bc-gridlines i.base{background:var(--border-strong)}
+.bc-sections{display:flex;gap:14px}
+.bc-section{display:flex;flex-direction:column;min-width:0;flex-basis:0}
+.bc-clusters,.bc-xlabels{display:flex;gap:6px}
+.bc-cluster{flex:1 1 0;min-width:0}
+/* One cluster per benchmark: its columns grow from the shared baseline. */
+.bc-cols{height:300px;display:flex;align-items:flex-end;justify-content:center;gap:2px}
+.bc-col{all:unset;position:relative;flex:0 1 22px;min-width:4px;max-width:24px;box-sizing:border-box;
+  border-radius:4px 4px 0 0;cursor:pointer;transition:height .35s var(--ease)}
+.bc-col:hover,.bc-col:focus-visible{filter:brightness(1.12)}
+.bc-col:focus-visible{outline:2px solid var(--text);outline-offset:1px}
+.bc-col-gap{flex:0 1 22px;min-width:4px;max-width:24px}
+.bc-col-value{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);padding-bottom:4px;
+  font-size:10px;font-family:var(--font-mono);color:var(--text);white-space:nowrap}
+.bc-xlabels{margin-top:8px}
+/* Three lines' room for every name, so each category's label lines up with the rest. */
+.bc-xlabels span{flex:1 1 0;min-width:0;min-height:calc(3 * 1.25em);text-align:center;font-size:11px;
+  line-height:1.25;color:var(--text-2);overflow-wrap:break-word;hyphens:auto}
+/* The category under its benchmarks, with a rule that spans them. */
+.bc-section-label{margin-top:10px;padding-top:6px;border-top:1px solid var(--border);text-align:center;
+  font-size:var(--fs-xs);font-weight:600;color:var(--text)}
+
+/* The tooltip: above the hovered column. */
+.bc-tip{position:fixed;z-index:50;transform:translate(-50%,calc(-100% - 10px));pointer-events:none;
+  display:flex;flex-direction:column;gap:2px;min-width:180px;max-width:280px;padding:10px 12px;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);
+  box-shadow:0 10px 28px rgb(0 0 0 / calc(.35 * var(--shadow-k)));font-size:var(--fs-xs);color:var(--text)}
+.bc-tip.below{transform:translate(-50%,0)}
+.bc-tip span{display:flex;align-items:center;gap:6px}
+.bc-tip-value{font-size:var(--fs-sm);font-weight:600}
+
+.bc-sources{font-size:var(--fs-xs);color:var(--text-3)}
+.bc-sources summary{cursor:pointer;width:max-content;color:var(--text-2)}
+.bc-sources ul{margin:8px 0 0;padding-left:18px;columns:2 320px;column-gap:var(--s4);line-height:1.7}
+.bc-sources a{color:var(--text-2)}
+
+/* ── the leaderboard: positions and scores, one line per benchmark and variant ─ */
+.bc-lb{padding:var(--card-pad);display:flex;flex-direction:column;gap:var(--s2)}
+.bc-lb-head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--s2) var(--s3);flex-wrap:wrap}
+.bc-lb-head p{margin:0;max-width:62ch}
+.bc-lb-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bc-lb-field{display:flex;gap:6px;align-items:center;font-size:var(--fs-xs);color:var(--text-3)}
+.bc-lb-field select{height:32px;padding:0 8px;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font-size:var(--fs-xs)}
+.bc-lb-switch{display:inline-flex;gap:8px;align-items:center;height:32px;padding:0 12px;border-radius:var(--r-pill);
+  border:1px solid var(--border);font-size:var(--fs-xs);color:var(--text-2);cursor:pointer}
+.bc-lb-switch input{accent-color:var(--text);margin:0}
+.bc-lb-switch:has(input:checked){color:var(--text);border-color:var(--border-strong)}
+
+/* The category filter: a segmented row. */
+.bc-lb-cats{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.bc-cat{height:30px;padding:0 12px;border-radius:var(--r-pill);border:1px solid var(--border);background:transparent;
+  color:var(--text-2);font-size:var(--fs-xs);cursor:pointer}
+.bc-cat:hover{color:var(--text);border-color:var(--border-strong)}
+.bc-cat.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.bc-cat:focus-visible{outline:2px solid var(--text-2);outline-offset:1px}
+.bc-lb-count{margin-left:auto}
+
+.bc-lb-table{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--fs-sm)}
+.bc-lb-table thead th{position:sticky;top:0;text-align:left;padding:0 12px 10px;font-weight:500;
+  font-size:var(--fs-xs);color:var(--text-3);border-bottom:1px solid var(--border);white-space:nowrap;
+  background:var(--surface)}
+.bc-lb-table th.w-pos{width:190px}
+.bc-lb-table th.w-score{width:190px}
+.bc-lb-sort{all:unset;cursor:pointer;color:inherit}
+.bc-lb-sort:hover,.bc-lb-sort.on{color:var(--text)}
+.bc-lb-sort:focus-visible{outline:2px solid var(--text-2);outline-offset:2px;border-radius:4px}
+.bc-lb-table td{padding:12px;border-bottom:1px solid var(--border-soft);vertical-align:middle}
+.bc-lb-table tbody tr{transition:background .15s var(--ease)}
+.bc-lb-table tbody tr:hover{background:rgb(var(--hi) / .035)}
+.bc-lb-table tbody tr:last-child td{border-bottom:0}
+
+/* Position: the board's rank as a badge, the top three set apart, and where it
+   falls between first and last on that board. */
+.bc-lb-pos{display:flex;align-items:center;gap:12px}
+.bc-lb-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:30px;padding:0 8px;
+  border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface-2);
+  font-weight:600;color:var(--text);font-size:var(--fs-sm)}
+.bc-lb-badge.podium{border-color:var(--border-strong)}
+.bc-lb-badge.p1{background:var(--text);color:var(--bg);border-color:var(--text)}
+/* A move since the last read: the arrow and the earlier position, in the
+   site's pass / fail tokens with an arrow and words, never colour alone. */
+.bc-lb-move{display:inline-flex;align-items:center;gap:3px;margin-left:6px;font-weight:600}
+.bc-lb-move.up{color:var(--pass)}
+.bc-lb-move.down{color:var(--fail)}
+
+/* The podium: three counts and what they are counted over. */
+.bc-podium{list-style:none;margin:0;padding:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bc-podium-place{display:inline-flex;align-items:baseline;gap:8px;padding:8px 14px;border-radius:var(--r-sm);
+  border:1px solid var(--border);background:var(--surface-2)}
+.bc-podium-place.p1{border-color:var(--text)}
+.bc-podium-n{font-size:var(--fs-h2);font-weight:700;color:var(--text);line-height:1}
+.bc-podium-l{font-size:var(--fs-xs);color:var(--text-2)}
+.bc-podium-of{margin-left:4px;max-width:40ch}
+
+.bc-lb-pos-meta{display:flex;flex-direction:column;gap:6px;flex:1;min-width:84px}
+.bc-lb-track{position:relative;display:block;height:4px;border-radius:var(--r-pill);background:var(--surface-3)}
+.bc-lb-track i{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);
+  box-shadow:0 0 0 2px var(--surface)}
+
+.bc-lb-bench{display:block;color:var(--text);font-weight:500}
+.bc-lb-cat{display:block;margin-top:2px;font-size:11px;color:var(--text-3)}
+.bc-lb-variant{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px;border-radius:var(--r-pill);
+  background:var(--surface-2);font-size:var(--fs-xs);color:var(--text);white-space:nowrap}
+
+/* Score: the printed figure, and a meter on the 0-100 axis the chart uses. */
+.bc-lb-score{display:flex;align-items:center;gap:10px}
+.bc-lb-score-n{min-width:46px;font-weight:600;color:var(--text)}
+.bc-lb-meter{position:relative;flex:1;height:6px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden;
+  min-width:72px}
+.bc-lb-meter i{position:absolute;left:0;top:0;bottom:0;border-radius:var(--r-pill)}
+
+.bc-lb-src{font-size:var(--fs-xs);line-height:1.45}
+.bc-lb-src a{display:block;color:var(--text-2)}
+.bc-lb-src .dim{display:block}
+.bc-lb-empty{padding:var(--s2) 12px}
+.bc-lb-more{align-self:center;height:34px;padding:0 18px;border-radius:var(--r-pill);border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font-size:var(--fs-xs);cursor:pointer}
+.bc-lb-more:hover{border-color:var(--border-strong)}
+.bc-lb-more:focus-visible{outline:2px solid var(--text-2);outline-offset:2px}
+
+.bc-table-wrap{overflow-x:auto}
+
+@media (prefers-reduced-motion:reduce){.bc-col{transition:none}}
