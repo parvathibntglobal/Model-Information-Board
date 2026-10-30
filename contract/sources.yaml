@@ -745,11 +745,41 @@ terms_rulings:
     class: null
     party: platform
     platform_host: github.com
-    reviewed_on: 2026-08-13
+    reviewed_on: 2026-10-30
+    reviewed_by: anooj
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: true
     summary: >-
+      RE-REVIEWED 2026-10-30 (anooj; reviewed through the PR that carries it),
+      twelve days before the 2026-11-11 lapse, and CHECKED rather than
+      re-dated. Both documents were read again that day. The Terms of Service
+      show "Effective date: April 27, 2026" - before the first review - and
+      every sentence quoted below is still present word for word. §H adds
+      nothing that touches us: it also says "You may not use the API to
+      download data or Content from GitHub for spamming purposes, including
+      for the purposes of selling GitHub users' personal information", which
+      we do not do. AUP §7 still says "Scraping does not refer to the
+      collection of information through our API". RATE LIMITS observed
+      2026-10-30 via GET /rate_limit on the harvest token: core 5,000/hour,
+      search 30/minute, graphql 5,000/hour - unchanged. The documented
+      secondary limits are "No more than 100 concurrent requests" and "No
+      more than 900 points per minute" for REST; both harvests are
+      sequential and paced (contract/official_sources.yaml: 0.8 s between
+      requests, a stop below 1,000 left).
+      ONE NEW USE SINCE THE FIRST REVIEW, on the same access path: the
+      Guides harvest (contract/official_sources.yaml, #591) reads provider
+      cookbooks, SDK releases, the OpenAI spec and PyVideo's talk index.
+      Those repositories carry their own licences (MIT, Apache-2.0, CC0-1.0),
+      checked against GitHub on every run; this ruling governs how they are
+      READ, and their licences govern what may be done with the content.
+      STILL NO `basis`, deliberately: this ruling rests on a terms reading,
+      not on who can reach us, and must be unaffected by the undertaking
+      (tests/test_source_terms.py pins that). Whether a public board's GitHub
+      quotes need more than the REPUBLICATION reading below is raised in
+      docs/proposals/the-derived-publication-basis.md; this renewal does not
+      reopen or settle it.
+      ---- AS FIRST RULED ----
       Reviewed 2026-08-13. Terms: GitHub Terms of Service §H "API Terms"
       (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
       — "Abuse or excessively frequent requests to GitHub via the API may
@@ -1682,13 +1712,14 @@ sources:
     # issue to report that something worked.
     terms_ruling: github-api-terms
     terms_evidence:
-      checked_on: 2026-08-13
+      checked_on: 2026-10-30
       access_path: api
       republication_claimed: false
     tos_notes: >-
-      Ruling github-api-terms, reviewed 2026-08-13. Access is the REST and
-      GraphQL API, never the HTML. Observed limits 2026-08-13: core
-      5,000/hour, search 30/minute. Republication is not granted by the
+      Ruling github-api-terms, reviewed 2026-08-13 and re-reviewed 2026-10-30.
+      Access is the REST and GraphQL API, never the HTML. Observed limits
+      2026-10-30 (unchanged since 2026-08-13): core 5,000/hour, search
+      30/minute. Republication is not granted by the
       terms; we publish quote + attribution + link only.
 
   - id: blogs
