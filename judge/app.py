@@ -3540,11 +3540,14 @@ def _updates_errors(write):
 def updates_published() -> dict:
     """The home page's updates strip: the updates a person published, newest
     first, in their published words. PUBLIC (judge/gate.py) - it sends only
-    those words, the kind and the publish time."""
+    those words, the kind and the publish time. A kept answer is sent without
+    connecting: the benchmarks connection is not pooled (#586 review)."""
     from judge import updates
 
-    with _conn() as conn:
-        return updates.published(conn)
+    if (kept := updates.cached_published()) is not None:
+        return kept
+    with _updates_conns() as (conn, bench):
+        return updates.published(conn, bench_conn=bench)
 
 
 @app.get("/updates")
@@ -3627,8 +3630,9 @@ def updates_undo(req: UpdateUndoRequest, authorization: str | None = Header(defa
     who = _signed_in_email(authorization)
 
     def write(updates):
-        with _conn() as conn:
-            return updates.undo(conn, req.key, by=who)
+        with _updates_conns() as (conn, bench):
+            gone = updates.is_gone(conn, req.key, bench_conn=bench)
+            return updates.undo(conn, req.key, by=who, gone=gone)
 
     return _updates_errors(write)
 
