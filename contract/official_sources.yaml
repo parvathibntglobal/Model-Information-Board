@@ -11,7 +11,8 @@
 # reads these into official_doc, official_release and video_ref, and records
 # every read in official_fetch. NOTHING HERE IS EVIDENCE: no claim, quote or
 # board entry is made from these rows, and no model call reads or writes them in
-# this phase. Their intended reader is phase B's writing packs, not built yet.
+# this phase. Their reader is phase B's guide packs (generate_sample_blogs.py
+# --guide-pack, 2026-10-30): source material for a writer, never evidence.
 #
 # HOW IT IS READ - THE GITHUB REST API ONLY, never github.com pages and never
 # raw.githubusercontent.com. One tree listing per repository

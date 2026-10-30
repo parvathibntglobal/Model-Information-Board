@@ -30,6 +30,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from judge import guide_blocks
+
 ROOT = Path(__file__).resolve().parents[1]
 
 #: The keys `web/src/board/views.js` `vPost` reads. A file missing one is
@@ -42,8 +44,11 @@ REQUIRED = ("slug", "title", "dek", "tag", "by", "lead", "meta", "body", "proven
 #: joined on 2026-10-13 with the generator that writes them.
 #: `highlight` (one whole sentence from a source, in a reported post) joined on
 #: 2026-10-20 with the reported style (blog_rules.yaml).
+#: `code_tabs`, `video` and `sources_stamp` joined on 2026-10-30 with the
+#: Guides (developer guides, tutorials, error fixes); their shapes, and the
+#: official form of `code`, are judge/guide_blocks.py's - checked below.
 BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree", "visual", "image", "embed",
-               "highlight"}
+               "highlight", "code_tabs", "video", "sources_stamp"}
 
 
 def posts_dir() -> Path | None:
@@ -70,6 +75,8 @@ def _problem(doc: Any) -> str | None:
     for i, block in enumerate(doc["body"]):
         if not (isinstance(block, list) and len(block) == 2 and block[0] in BLOCK_TYPES):
             return f"body[{i}] is not one of {sorted(BLOCK_TYPES)}"
+        if (why := guide_blocks.problem(block)):
+            return f"body[{i}]: {why}"
         if block[0] == "highlight":
             v = block[1]
             if not (isinstance(v, dict) and isinstance(v.get("text"), str) and v["text"].strip()

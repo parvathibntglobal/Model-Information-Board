@@ -627,3 +627,169 @@ formats:
     sections: [5, 8]
     words: [1200, 2400]
     blocks: {matrix: false, tree: false, code: [0, 0], prices: false, visuals: [1, 3], voices: 2, retrace: 1, figures: [2, 3]}
+
+  # ── GUIDES (2026-10-30, Guides phase B) ──────────────────────────────────
+  # Written from the providers' OWN material - cookbooks, SDK release notes -
+  # that collect/official/ harvests (contract/official_sources.yaml), with what
+  # engineers reported on the board kept as reports beside it. Planned by
+  # `--guide-pack`, never by the board planner: a subject is a provider and a
+  # developer task or an error from seo/keyword_plan.yaml's `devtask` and
+  # `error` lists, or one official cookbook notebook. Code in these posts is
+  # COPIED from an official source and checked in code (guide_violations);
+  # the writer never writes code. `blocks.snippets` is how many copied steps a
+  # post carries; `blocks.code` stays [0, 0] because illustrative code is the
+  # thing these formats refuse. Settings shared by the three are under
+  # `guides:` below.
+
+  - key: developer-guide
+    name: Developer guide
+    subject: provider-task
+    layout: runbook
+    derived_from: "seo/keyword_plan.yaml how_to_dev: 'how to {devtask} with {model}' (Setup / Step by step / Full code / Common errors)"
+    shape: >-
+      A developer guide to one task with one provider's API: what you need first, the steps
+      in order with the provider's own code for each, what the provider's release notes say
+      changed, and what engineers reported going wrong - kept as their reports.
+    voice: >-
+      A senior engineer pairing with you: second person and imperative, one step per
+      section, the reason after the action. Plain words; every claim about the API rests on
+      the official source it came from.
+    paragraphs: {per_section: [2, 4], words: [35, 80]}
+    heading_rules: >-
+      Each heading is one step stated as an instruction starting with a verb (for example
+      "Install the SDK and set your key"). Never a question, never starting with "What",
+      "Why" or "How".
+    opening: >-
+      what the task gives you in one sentence, then the one thing you need before the first step
+    closing: >-
+      the errors and limits people hit with this task - official notes first, engineers' reports after, each labelled as what it is
+    special: guide_steps
+    sections: [5, 8]
+    words: [900, 2200]
+    blocks: {matrix: false, tree: false, code: [0, 0], snippets: [2, 6], prices: true, visuals: [0, 2], voices: 1, retrace: 0, figures: [1, 2]}
+
+  - key: tutorial
+    name: Tutorial
+    subject: notebook
+    layout: runbook
+    derived_from: "seo/keyword_plan.yaml how_to_dev '{model} api tutorial'; one official cookbook notebook, built step by step"
+    shape: >-
+      A tutorial that builds what one official cookbook notebook builds, step by step: what
+      you will have at the end, the setup, each step with the notebook's own code, how to
+      check it worked, and where to take it next.
+    voice: >-
+      A patient teacher at your side: short paragraphs, one action each, and a sentence on
+      what you should see before you move on. Talk to "you".
+    paragraphs: {per_section: [2, 4], words: [35, 80]}
+    heading_rules: >-
+      Each heading is one build step stated as an instruction starting with a verb. Never a
+      question, never starting with "What", "Why" or "How".
+    opening: >-
+      what you will have built by the end, in one sentence, and what it is useful for
+    closing: >-
+      where this build stops: what the notebook leaves out, and the next official source to read
+    special: guide_steps
+    sections: [5, 8]
+    words: [900, 2200]
+    blocks: {matrix: false, tree: false, code: [0, 0], snippets: [3, 8], prices: false, visuals: [0, 2], voices: 1, retrace: 0, figures: [1, 2]}
+
+  - key: error-fix
+    name: Error fix
+    subject: provider-error
+    layout: fieldguide
+    derived_from: "seo/keyword_plan.yaml troubleshooting: '{model} {error}: what it means and how to fix it' (What it means / How to fix it / How to prevent it)"
+    shape: >-
+      An error fix for one error from one provider's API: what the error means as the
+      provider's own material describes it, the fixes in order with official code, how to
+      stop it coming back, and what engineers reported about it - kept as their reports.
+    voice: >-
+      Calm and practical, like a colleague on call: name the cause, give the fix, say how to
+      confirm it worked. Short paragraphs; no alarm, no padding.
+    paragraphs: {per_section: [2, 4], words: [35, 80]}
+    heading_rules: >-
+      Each heading names one cause or one fix as a short statement (for example "Retry with
+      backoff when the limit is per minute"). Never a question, never starting with "What",
+      "Why" or "How".
+    opening: >-
+      what the error means in one plain sentence, and the most common reason you are seeing it
+    closing: >-
+      how to keep the error from coming back, and what the official sources do not say about it
+    special: fixes
+    sections: [4, 7]
+    words: [700, 1800]
+    blocks: {matrix: false, tree: false, code: [0, 0], snippets: [1, 4], prices: false, visuals: [0, 2], voices: 1, retrace: 0, figures: [1, 2]}
+
+# ── GUIDES: what a guide pack is built from (2026-10-30, Guides phase B) ─────
+# Read by generate_sample_blogs.guides_cfg. Every key is required; a missing
+# one raises (rule 12). Unmeasured starting values throughout: nobody has
+# measured what these weights or caps miss, so they RANK and CAP and never drop
+# anything for scoring low (rule 8) - the pack records the scores it ranked by.
+guides:
+  # The providers a guide can be about: the official_sources.yaml providers
+  # that are also in seo/keyword_plan.yaml's `vendor` list. `registry` is the
+  # provider as model_version names it (Mistral is `mistralai` there); `api`
+  # is how a searcher names the API, and what the title must carry.
+  vendors:
+    openai: {name: OpenAI, api: OpenAI API, registry: openai}
+    anthropic: {name: Anthropic, api: Claude API, registry: anthropic}
+    google: {name: Google, api: Gemini API, registry: google}
+    mistral: {name: Mistral, api: Mistral API, registry: mistralai}
+  # The search phrases, filled per subject ({api}, {vendor}, {devtask},
+  # {error}, {title}), from keyword_plan.yaml's how_to_dev and troubleshooting
+  # patterns.
+  keywords:
+    developer-guide: {primary: "how to {devtask} with the {api}", secondary: ["{api} python example", "{vendor} api {devtask}"]}
+    tutorial: {primary: "{api} tutorial", secondary: ["{title}"]}
+    error-fix: {primary: "{api} {error}", secondary: ["how to fix {api} {error}", "{vendor} api {error}"]}
+  # TERM MATCHING, plain words, whole words, any case. A document's score is
+  # the sum over terms of: `title` if the term is in its title, `path` if in
+  # its path, and `text` per occurrence in its text up to `text_hits_cap`.
+  # A WEIGHT: it orders the material. A document with no term at all is not
+  # about the subject; a subject with no such official document is passed
+  # over, and the run says so.
+  match_weights: {title: 5, path: 3, text: 1}
+  text_hits_cap: 10
+  # CAPS - what a pack carries. What a cap left out is counted in the pack,
+  # with the scores of the first `scores_recorded` of it.
+  max_official_docs: 4
+  max_official_doc_chars: 24000
+  max_release_notes: 6
+  max_release_note_chars: 3000
+  max_board_threads: 5
+  # Threads read from the store to score, those with the most matching quotes
+  # first: a bound on reading, recorded in the pack when reached.
+  board_candidates: 300
+  max_videos: 3
+  # A talk PyVideo's index tagged with LLM words (video_ref.llm_terms) ranks
+  # this much higher. A weight; an untagged talk can still be chosen.
+  llm_talk_weight: 10
+  scores_recorded: 15
+  # A GUIDE QUOTES ITS SOURCES, IT DOES NOT REPRINT THEM ("published content is
+  # quote + attribution + link, never full text"). At most this share of one
+  # official source's code may be copied into one post. Unmeasured.
+  max_source_code_share: 0.5
+  # TERMS for every phrase in keyword_plan.yaml's `devtask` and `error` lists.
+  # A phrase missing here stops the run rather than matching on nothing.
+  devtask_terms:
+    stream responses: [stream responses, streaming, stream=True, server-sent events, text_stream, stream_options]
+    use function calling: [function calling, function call, tool use, tool_use, tool calling, tool_choice]
+    get json output: [json mode, structured output, structured outputs, response_format, json schema, json_schema, json output]
+    count tokens: [count tokens, count_tokens, token count, token counting, tiktoken, countTokens]
+    use prompt caching: [prompt caching, prompt cache, cache_control, context caching, cached tokens, cached_content]
+    send batch requests: [batch api, message batches, batch requests, batch prediction, batch job, batch mode, batches]
+    set a system prompt: [system prompt, system message, system_instruction, developer message]
+    send images: [vision, image input, image_url, images, multimodal]
+    handle rate limits: [rate limit, rate limits, RateLimitError, too many requests, backoff, max_retries]
+    build an agent: [agent, agents, agentic, agent sdk, tool loop]
+    create embeddings: [embedding, embeddings, embed_content, text-embedding]
+    upload a pdf: [pdf, pdfs, file upload, files api, upload_file, document input]
+  error_terms:
+    429 too many requests: ["429", too many requests, RateLimitError, rate limit]
+    rate limit exceeded: [rate limit exceeded, rate_limit_error, RateLimitError, rate limit, "429"]
+    401 unauthorized: ["401", unauthorized, AuthenticationError, authentication_error]
+    500 internal server error: ["500", internal server error, InternalServerError, api_error]
+    529 overloaded: ["529", overloaded, overloaded_error, OverloadedError]
+    context length exceeded: [context length exceeded, context_length_exceeded, maximum context length, prompt is too long, context window]
+    timeout: [timeout, timed out, APITimeoutError, request timeout]
+    invalid api key: [invalid api key, invalid_api_key, invalid x-api-key, api key, AuthenticationError]
+    quota exceeded: [quota exceeded, insufficient_quota, RESOURCE_EXHAUSTED, quota]
