@@ -6,7 +6,7 @@ could not be told apart. No network, no database: the client is a fake.
 """
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import httpx
@@ -91,3 +91,17 @@ def test_the_stage_says_which_kind_of_failure(monkeypatch):
     final = stages[-1][1]
     assert final["failures"] == ["HTTP 503", "HTTP 503"] and final["retried"] == 2
     assert "2 request(s) failed (HTTP 503 x2); 2 retried" in final["detail"]
+
+
+def test_retry_after_as_an_http_date_is_honoured_or_left_to_another_night():
+    from email.utils import format_datetime
+
+    soon = format_datetime(datetime.now(UTC) + timedelta(seconds=20), usegmt=True)
+    _, run, waits = _get(FakeClient(503, 200, headers={"Retry-After": soon}))
+    assert run.failures == [] and len(waits) == 1 and 0 < waits[0] <= 20
+    later = format_datetime(datetime.now(UTC) + timedelta(hours=1), usegmt=True)
+    client = FakeClient(503, headers={"Retry-After": later})
+    _, run, waits = _get(client)
+    assert client.calls == 1 and waits == [] and run.failures == ["HTTP 503"]
+    _, run, waits = _get(FakeClient(503, 200, headers={"Retry-After": "not a date"}))
+    assert waits == [arxiv.RETRY_WAIT_SECONDS]

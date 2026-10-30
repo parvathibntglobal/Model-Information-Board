@@ -84,6 +84,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 from xml.etree import ElementTree
 
@@ -210,10 +211,22 @@ def _retry_wait(response: httpx.Response) -> float | None:
     if code != 429 and not 500 <= code < 600:
         return None
     raw = (response.headers.get("Retry-After") or "").strip()
+    if not raw:
+        return RETRY_WAIT_SECONDS
+    # BOTH FORMS HTTP ALLOWS (#587 review): seconds, or an HTTP date. A date an
+    # hour away is "another night", not a 15-second retry; one that cannot be
+    # read is treated as no header at all, never as "retry now".
     if raw.isdigit():
         wait = float(raw)
-        return wait if wait <= RETRY_MAX_WAIT_SECONDS else None
-    return RETRY_WAIT_SECONDS
+    else:
+        try:
+            when = parsedate_to_datetime(raw)
+        except (TypeError, ValueError):
+            return RETRY_WAIT_SECONDS
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=UTC)
+        wait = max(0.0, (when - datetime.now(UTC)).total_seconds())
+    return wait if wait <= RETRY_MAX_WAIT_SECONDS else None
 
 
 @dataclass

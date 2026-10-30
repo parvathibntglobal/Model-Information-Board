@@ -166,7 +166,7 @@ def test_every_source_and_feed_has_tos_notes():
 # ── the seeded feeds ──────────────────────────────────────────────────────
 
 
-def test_twenty_eight_feeds_are_seeded():
+def test_the_seeded_feeds_are_the_reviewed_list():
     """Twenty-eight. Dropbox is dropped on data quality, not terms.
 
     Was nine until 2026-09-21, when the class A re-review seated three feeds
