@@ -724,3 +724,10 @@ def test_the_hub_classifies_the_guide_formats(page):
     }
     for other in ("field-report", "topic-synthesis", "(none)"):
         assert k[other] == {"guide": False, "migration": False, "official": False, "tab": None}
+
+
+def test_an_index_in_a_backticked_name_is_not_a_reference_mark():
+    """`choices[0]` refused the streaming guide as a second citation mark."""
+    text = "Read `chunk.choices[0].delta` and `x[1][2]`, then join them [3]."
+    assert [m.group(1) for m in g.REF.finditer(text)] == ["3"]
+    assert g.REF.sub("[9]", "Use `a[0]` here (see [2, 4]).") == "Use `a[0]` here (see [9])."

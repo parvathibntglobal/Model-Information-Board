@@ -1246,8 +1246,12 @@ LEGACY_RULES = {"sections": (5, 7), "matrix": True, "tree": True, "code": (1, 99
 # and their thresholds are blog_rules.yaml; the checks below read them there.
 
 NEWSROOM_FILE = ROOT / "blog_rules.yaml"
-#: A reference marker: [3], or [2, 5] for two sources.
-REF = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+#: A reference marker: [3], or [2, 5] for two sources. NEVER RIGHT AFTER A
+#: WORD, `]` OR `)`: `choices[0]` and `x[1][2]` are indexes in a backticked
+#: name, and reading them as marks refused a guide and would have renumbered
+#: the code at export (2026-10-30). 0 of 249 essays had a prose mark glued to
+#: a word that day.
+REF = re.compile(r"(?<![\w\])])\[(\d+(?:\s*,\s*\d+)*)\]")
 #: What may follow a paragraph's one reference mark: its closing punctuation.
 END_OF_UNIT = re.compile(r"[.!?:;)\"'”’]*\s*$")
 #: The limits blog_rules.yaml must state; none is defaulted (rule 12).
