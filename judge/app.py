@@ -3543,8 +3543,8 @@ def updates_published() -> dict:
     those words, the kind and the publish time."""
     from judge import updates
 
-    with _conn() as conn:
-        return updates.published(conn)
+    with _updates_conns() as (conn, bench):
+        return updates.published(conn, bench_conn=bench)
 
 
 @app.get("/updates")
@@ -3627,8 +3627,9 @@ def updates_undo(req: UpdateUndoRequest, authorization: str | None = Header(defa
     who = _signed_in_email(authorization)
 
     def write(updates):
-        with _conn() as conn:
-            return updates.undo(conn, req.key, by=who)
+        with _updates_conns() as (conn, bench):
+            gone = updates.is_gone(conn, req.key, bench_conn=bench)
+            return updates.undo(conn, req.key, by=who, gone=gone)
 
     return _updates_errors(write)
 

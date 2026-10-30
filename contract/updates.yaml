@@ -41,6 +41,9 @@ max_window_days: 90
 # by itself and is listed in Manage under "Removed". At most this many show.
 home_days: 7
 home_limit: 8
+# The home page's read is kept this many seconds (it rebuilds the updates to
+# drop any no longer in the data); a save in Manage clears it at once.
+home_cache_seconds: 60
 
 # A price move this large (either price, in percent) is marked "Needs a
 # second-source check": big moves on OpenRouter are often a host switch.
