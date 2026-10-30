@@ -50,6 +50,7 @@ import os
 import re
 import sys
 import unicodedata
+import weakref
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -428,8 +429,10 @@ def select_documents(cur, post, reader) -> tuple[list[dict], list[dict]]:
     # took a slot and then stopped the whole run in write_pack ("no public name
     # for source 'bluesky'"); left out here, the next thread takes the slot.
     embed_only_now = set(post.get("embed_only") or ())
-    held = [r for r in ranked if r["source"] in embed_only_now and r["source"] not in EMBEDDABLE]
-    ranked = [r for r in ranked if not (r["source"] in embed_only_now and r["source"] not in EMBEDDABLE)]
+    held, kept = [], []
+    for r in ranked:
+        (held if r["source"] in embed_only_now and r["source"] not in EMBEDDABLE else kept).append(r)
+    ranked = kept
     per_post, need_neg = int(sel["per_post"]), int(sel["disagreement_threads"])
     # PLATFORM DIVERSITY (2026-10-13, team ask: "posts should hold data from
     # every platform if possible"). At most `max_per_source` threads from one
@@ -4001,7 +4004,7 @@ def plan_posts(cur, reader, n: int, only_format: str | None = None,
                 print(f"  passed over {post['plan']['plan_key']}: {share:.0%} of its sources are already in "
                       f"a post on {subj} (max {cap_share:.0%})", flush=True)
                 continue
-            post["rules"]["taken_faq"] = taken_faq(records, subj)
+            post["rules"]["taken_faq"] = taken_faq(records, subj, post["plan"]["plan_key"])
             picked.append((post, docs, skipped, fact_sheet(cur, post, docs)))
             subjects.add(subj)
             break
@@ -4675,46 +4678,74 @@ def faq_questions(body) -> list[str]:
     return out
 
 
-_STORED_RECORDS: dict[int, list[dict]] = {}
+#: The shared table's posts, read once per connection (a run plans many posts on
+#: one). Keyed by the connection object itself, so a freed connection's id can
+#: never hand its records to the next one (#588 review).
+_STORED_RECORDS: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
+
+
+def _stored_posts(c) -> tuple[list[dict], set[str]]:
+    """(records of the table's posts NOT rejected, every plan key the table holds)."""
+    if c not in _STORED_RECORDS:
+        stored: list[dict] = []
+        keys: set[str] = set()
+        try:
+            # THE HEADINGS ONLY, not the bodies: every stored body is ~7.8 MB
+            # (2026-10-30) and took 12.5 s to read from a developer machine.
+            with c.transaction(), c.cursor(row_factory=tuple_row) as cur:
+                cur.execute("SELECT plan_key, state, doc->'provenance'->'documents', "
+                            "jsonb_path_query_array(doc->'body', '$[*] ? (@[0] == \"h2\" || @[0] == \"h3\")') "
+                            "FROM blog_post")
+                for plan_key, state, docs, heads in cur.fetchall():
+                    if plan_key:
+                        keys.add(plan_key)
+                    if state != "rejected":
+                        stored.append({"plan_key": plan_key, "subject": _subject(plan_key),
+                                       "documents": set(docs or []), "faq": faq_questions(heads)})
+        except psycopg.errors.UndefinedTable:
+            pass  # a database without the table has no stored posts (stored_plan_keys' rule)
+        _STORED_RECORDS[c] = (stored, keys)
+    return _STORED_RECORDS[c]
 
 
 def post_records(conn=None) -> list[dict]:
-    """Every post that already exists, as {subject, documents, faq}: the shared
-    `blog_post` table (REJECTED EXCLUDED - a rejected post is not on the page,
-    so its sources and questions are free again), and this machine's exported
-    posts and writing packs. The same post may appear more than once; every use
-    below is a set, so that changes nothing."""
+    """Every post that already exists, as {plan_key, subject, documents, faq}.
+
+    THE SHARED TABLE DECIDES FOR ANY POST IT HOLDS (#588 review). Its posts not
+    rejected are read from it; a rejected post's sources and questions are free
+    again. This machine's exported posts and writing packs add only the posts
+    the table does not hold yet - so a local export of a post the table rejected
+    no longer holds its sources on the machine that wrote it.
+
+    A PACK THE TABLE HAS NEVER SEEN is a post being written, and counts, the same
+    rule existing_plan_keys() applies to its plan key. An abandoned one holds its
+    subject on this machine until its folder is deleted."""
     recs: list[dict] = []
+    table_keys: set[str] = set()
     if conn is not None:
-        c = getattr(conn, "connection", conn)
-        if id(c) not in _STORED_RECORDS:
-            stored: list[dict] = []
-            try:
-                # THE HEADINGS ONLY, not the bodies: every stored body is ~7.8 MB
-                # (2026-10-30) and took 12.5 s to read from a developer machine.
-                with c.transaction(), c.cursor(row_factory=tuple_row) as cur:
-                    cur.execute("SELECT plan_key, doc->'provenance'->'documents', "
-                                "jsonb_path_query_array(doc->'body', '$[*] ? (@[0] == \"h2\" || @[0] == \"h3\")') "
-                                "FROM blog_post WHERE state <> 'rejected'")
-                    for plan_key, docs, heads in cur.fetchall():
-                        stored.append({"subject": _subject(plan_key), "documents": set(docs or []),
-                                       "faq": faq_questions(heads)})
-            except psycopg.errors.UndefinedTable:
-                pass  # a database without the table has no stored posts (stored_plan_keys' rule)
-            _STORED_RECORDS[id(c)] = stored  # once per connection: a run plans many posts on one
-        recs += _STORED_RECORDS[id(c)]
+        stored, table_keys = _stored_posts(getattr(conn, "connection", conn))
+        recs += stored
+
+    def local(plan_key: str | None) -> bool:
+        return not (plan_key and plan_key in table_keys)
+
     for f in POSTS_OUT.glob("*.json"):
         try:
             d = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
         prov = d.get("provenance") or {}
-        recs.append({"subject": _subject(prov.get("plan_key")), "documents": set(prov.get("documents") or []),
-                     "faq": faq_questions(d.get("body"))})
+        if local(prov.get("plan_key")):
+            recs.append({"plan_key": prov.get("plan_key"), "subject": _subject(prov.get("plan_key")),
+                         "documents": set(prov.get("documents") or []),
+                         "faq": faq_questions(d.get("body"))})
     for f in PACKS.glob("*/pack.json"):
         try:
             p = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
+            continue
+        key = ((p.get("post") or {}).get("plan") or {}).get("plan_key")
+        if not local(key):
             continue
         ids = {x.get("topic_item_id") or x.get("thread_context_id") for x in p.get("docs") or []}
         ids.discard(None)
@@ -4725,8 +4756,7 @@ def post_records(conn=None) -> list[dict]:
                 faq = [qa.get("question", "") for qa in json.loads(essay.read_text(encoding="utf-8")).get("faq") or []]
             except (OSError, json.JSONDecodeError, AttributeError):
                 faq = []
-        recs.append({"subject": _subject(((p.get("post") or {}).get("plan") or {}).get("plan_key")),
-                     "documents": ids, "faq": faq})
+        recs.append({"plan_key": key, "subject": _subject(key), "documents": ids, "faq": faq})
     return recs
 
 
@@ -4749,15 +4779,21 @@ def _models_of(subject: str) -> set[str]:
     return set(subject.split("+"))
 
 
-def taken_faq(records: list[dict], subject: str) -> set[str]:
+def taken_faq(records: list[dict], subject: str, own_key: str | None = None) -> set[str]:
     """FAQ questions already answered by a post on this subject, or - for a
     model or a pair - on any subject naming one of the same models. Measured
     2026-10-30: 81 questions were answered in 2 to 5 posts each, across 157 of
-    the 283 posts not rejected; nearly all of them on one topic or model."""
+    the 283 posts not rejected; nearly all of them on one topic or model.
+
+    `own_key` is the post being written: a rewrite (--format/--subject) replaces
+    it, so its own questions are not taken - the rule titles already follow
+    (#588 review)."""
     mine = _models_of(subject)
     out: set[str] = set()
     for r in records:
         s = r["subject"]
+        if own_key and r.get("plan_key") == own_key:
+            continue
         if s and (s == subject or (mine and mine & _models_of(s))):
             out |= {norm_heading(q) for q in r["faq"] if q}
     return out
@@ -4875,7 +4911,7 @@ def run_topic_pack(args, dsn, reader) -> None:
                 print(f"  {key}: {share:.0%} of its sources are already in a post on this topic (max "
                       f"{max_repeat_share(cfg):.0%}); nothing written", flush=True)
                 continue
-            post["rules"]["taken_faq"] = taken_faq(records, subj)
+            post["rules"]["taken_faq"] = taken_faq(records, subj, post["plan"]["plan_key"])
             post["rules"]["n_sources"] = len(docs)
             if any(d["source"] in ("arxiv", "huggingface") for d in docs):
                 post["arxiv_acknowledgement"] = topics.config()["posts"]["arxiv_acknowledgement"]

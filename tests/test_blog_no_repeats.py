@@ -18,8 +18,8 @@ g = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(g)
 
 
-def _rec(subject, docs=(), faq=()):
-    return {"subject": subject, "documents": set(docs), "faq": list(faq)}
+def _rec(subject, docs=(), faq=(), plan_key=None):
+    return {"plan_key": plan_key, "subject": subject, "documents": set(docs), "faq": list(faq)}
 
 
 def test_faq_questions_are_read_from_an_exported_body():
@@ -87,3 +87,64 @@ def test_rejected_posts_free_their_sources(tmp_path, monkeypatch):
     (tmp_path / "packs").mkdir()
     assert g.post_records(None) == []
     assert g.used_topic_items(None) == set()
+
+
+def test_a_rewrite_is_not_refused_for_its_own_questions():
+    """--format/--subject replaces the post, so its own FAQ is not taken; another
+    post on the same subject still is (#588 review)."""
+    recs = [_rec("openai/gpt-6-sol", faq=["Is GPT-6 Sol good for coding?"],
+                 plan_key="field-report:openai/gpt-6-sol"),
+            _rec("openai/gpt-6-sol", faq=["How much does GPT-6 Sol cost?"],
+                 plan_key="cost-teardown:openai/gpt-6-sol")]
+    taken = g.taken_faq(recs, "openai/gpt-6-sol", own_key="field-report:openai/gpt-6-sol")
+    assert taken == {g.norm_heading("How much does GPT-6 Sol cost?")}
+
+
+class _FakeTable:
+    """Stands in for a connection to the shared blog_post table."""
+
+    def __init__(self, rows):
+        self.rows = rows
+
+    def transaction(self):
+        import contextlib
+        return contextlib.nullcontext()
+
+    def cursor(self, row_factory=None):
+        rows = self.rows
+
+        class _Cur:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def execute(self, sql, params=None):
+                pass
+
+            def fetchall(self):
+                return rows
+        return _Cur()
+
+
+def test_the_table_decides_for_any_post_it_holds(tmp_path, monkeypatch):
+    """A local export of a post the table rejected no longer holds its sources on
+    the machine that wrote it; a pack the table has never seen still counts."""
+    import json
+
+    posts, packs = tmp_path / "posts", tmp_path / "packs"
+    posts.mkdir()
+    (packs / "p1").mkdir(parents=True)
+    monkeypatch.setattr(g, "POSTS_OUT", posts)
+    monkeypatch.setattr(g, "PACKS", packs)
+    (posts / "r.json").write_text(json.dumps({
+        "provenance": {"plan_key": "field-report:m/rejected", "documents": ["t-rej"]},
+        "body": []}), encoding="utf-8")
+    (packs / "p1" / "pack.json").write_text(json.dumps({
+        "post": {"plan": {"plan_key": "field-report:m/in-progress"}},
+        "docs": [{"thread_context_id": "t-new"}]}), encoding="utf-8")
+    table = _FakeTable([("field-report:m/rejected", "rejected", ["t-rej"], []),
+                        ("field-report:m/live", "approved", ["t-live"], [])])
+    used, _by = g.used_sources(g.post_records(table))
+    assert used == {"t-live", "t-new"}
