@@ -3567,8 +3567,11 @@ def _updates_errors(write):
 
     try:
         saved = write(updates)
-        # The save cleared the public reads so it shows at once; build them
-        # again now, in the background, so the next visitor does not wait.
+        # CLEARED AGAIN, NOW THAT IT IS COMMITTED (#592 review): the clear inside
+        # the write ran before `_conn()` committed, so a build reading in that gap
+        # could keep the old rows under the new generation. Then build both reads
+        # again in the background, so the next visitor does not wait.
+        updates.clear_published_cache()
         _rebuild_after_save()
         return saved
     except updates.EditNeedsConfirm as e:
@@ -3605,11 +3608,26 @@ def _rebuild_in_background(name: str) -> None:
         _PUBLIC_REBUILDING.add(name)
 
     def run() -> None:
+        from judge import updates
+
+        # A SAVE DURING THE BUILD IS NOT LOST (#592 review): that build read the
+        # old rows, so `_keep` refuses it, and the save's own rebuild was turned
+        # away because this one was running. So build again while the generation
+        # moved under us; the check and the release share the lock, so a save
+        # either lands before it (and is built here) or starts its own rebuild.
         try:
-            with _updates_conns() as (conn, bench):
-                _public_build(name)(conn, bench_conn=bench)
-        except Exception:  # noqa: BLE001 - a failed rebuild leaves the last answer served
-            log.exception("updates: background rebuild of %r failed", name)
+            for _ in range(3):
+                generation = updates._published_generation[0]
+                try:
+                    with _updates_conns() as (conn, bench):
+                        _public_build(name)(conn, bench_conn=bench)
+                except Exception:  # noqa: BLE001 - a failed rebuild leaves the last answer served
+                    log.exception("updates: background rebuild of %r failed", name)
+                    return
+                with _PUBLIC_REBUILD_LOCK:
+                    if updates._published_generation[0] == generation:
+                        _PUBLIC_REBUILDING.discard(name)
+                        return
         finally:
             with _PUBLIC_REBUILD_LOCK:
                 _PUBLIC_REBUILDING.discard(name)

@@ -26,14 +26,16 @@ import '../styles/ai-updates.css'
  * (`?section=pricing`) so a view can be sent to somebody.
  */
 
-/** The page's sections; the three price kinds read as one, "Pricing". */
+/** The page's sections, each `of` the kinds it shows; the three price kinds read
+ *  as one, "Pricing". (`of`, not `kinds`: that is an API field's name, and the
+ *  field audit reads `.kinds` here as its reader.) */
 const SECTIONS = [
-  { key: 'all', label: 'All', kinds: null },
-  { key: 'launches', label: 'Launches', kinds: ['launch'] },
-  { key: 'pricing', label: 'Pricing', kinds: ['price_cut', 'price_rise', 'price_change'] },
-  { key: 'retiring', label: 'Retiring', kinds: ['retiring'] },
-  { key: 'benchmarks', label: 'Benchmarks', kinds: ['benchmark'] },
-  { key: 'roundups', label: 'Weekly round-ups', kinds: ['roundup'] },
+  { key: 'all', label: 'All', of: null },
+  { key: 'launches', label: 'Launches', of: ['launch'] },
+  { key: 'pricing', label: 'Pricing', of: ['price_cut', 'price_rise', 'price_change'] },
+  { key: 'retiring', label: 'Retiring', of: ['retiring'] },
+  { key: 'benchmarks', label: 'Benchmarks', of: ['benchmark'] },
+  { key: 'roundups', label: 'Weekly round-ups', of: ['roundup'] },
 ]
 /** The last 7 days, counted: one figure per section a reader acts on. Not
  *  "This week": the cards below group by calendar week, and a Saturday launch
@@ -92,7 +94,7 @@ function countdown(iso) {
   return `In ${d} days`
 }
 const today = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-const inSection = (u, s) => !s.kinds || s.kinds.includes(u.kind)
+const inSection = (u, s) => !s.of || s.of.includes(u.kind)
 
 /** The Monday that starts a date's week (UTC), as an ISO date. */
 function weekOf(iso) {
@@ -164,24 +166,25 @@ function Card({ u }) {
   )
 }
 
-/** "Last 7 days": four counts, each one a way into its section. */
-function Glance({ items, onPick }) {
+/** "Last 7 days": four counts, each one a way into its section. When the
+ *  benchmarks data could not be read, its count is "—", never 0 (rule 6). */
+function Glance({ items, onPick, unread }) {
   const since = new Date(Date.now() - 6 * DAY).toISOString().slice(0, 10)
   const counts = GLANCE.map((g) => {
     const s = SECTIONS.find((x) => x.key === g.section)
     const n = items.filter((u) => inSection(u, s) && (u.upcoming || u.date >= since)).length
-    return { ...g, n }
+    return { ...g, n, unknown: unread && g.section === 'benchmarks' }
   })
-  if (!counts.some((c) => c.n)) return null
+  if (!counts.some((c) => c.n || c.unknown)) return null
   return (
     <section className="au-glance" aria-label="The last 7 days at a glance">
       <h2 className="au-label">Last 7 days</h2>
       <div className="au-glance-row">
         {counts.map((c) => (
-          <button key={c.section} type="button" className={`au-stat au-tone-${c.tone}`} disabled={!c.n}
+          <button key={c.section} type="button" className={`au-stat au-tone-${c.tone}`} disabled={!c.n && !c.unknown}
                   onClick={() => onPick(c.section)}>
-            <span className="au-stat-n">{c.n}</span>
-            <span className="au-stat-l">{c.n === 1 ? c.one : c.label}</span>
+            <span className="au-stat-n">{c.unknown ? '—' : c.n}</span>
+            <span className="au-stat-l">{c.unknown ? `${c.label}: unavailable` : c.n === 1 ? c.one : c.label}</span>
           </button>
         ))}
       </div>
@@ -235,6 +238,14 @@ export default function AiUpdates() {
     ? all.filter((u) => !u.upcoming)
     : all.filter((u) => inSection(u, section))), [all, section])
   const counts = useMemo(() => Object.fromEntries(SECTIONS.map((s) => [s.key, all.filter((u) => inSection(u, s)).length])), [all])
+  // AN OUTAGE IS SAID (rule 6, #592 review): without the benchmarks data no
+  // benchmark update can be worded, and "nothing in this section" would be false.
+  const unread = !!data?.benchmarks_unread
+  const unreadNote = unread && (
+    <p className="au-notice" role="status">
+      Benchmark results can&apos;t be shown right now: the benchmarks data isn&apos;t reachable. They&apos;ll be back shortly.
+    </p>
+  )
 
   const pick = (key) => {
     const next = new URLSearchParams(params)
@@ -257,10 +268,10 @@ export default function AiUpdates() {
         <div className="au-bar">
           {data && all.length > 0 ? (
             <nav className="au-sections" aria-label="Sections">
-              {SECTIONS.filter((s) => s.key === 'all' || counts[s.key]).map((s) => (
+              {SECTIONS.filter((s) => s.key === 'all' || counts[s.key] || (unread && s.key === 'benchmarks')).map((s) => (
                 <button key={s.key} type="button" className={`au-section${section.key === s.key ? ' on' : ''}`}
                         aria-pressed={section.key === s.key} onClick={() => pick(s.key)}>
-                  {s.label}<span className="au-section-n">{counts[s.key]}</span>
+                  {s.label}<span className="au-section-n">{unread && s.key === 'benchmarks' ? '—' : counts[s.key]}</span>
                 </button>
               ))}
             </nav>
@@ -271,16 +282,18 @@ export default function AiUpdates() {
 
       {error && <p className="au-quiet" role="alert">The updates could not be loaded just now. Please try again in a minute.</p>}
       {!data && !error && <div className="skel au-skel" />}
-      {data && !all.length && <p className="au-quiet">No updates from the last {data.window_days} days yet. Check back soon.</p>}
+      {data && !all.length && (unreadNote || <p className="au-quiet">No updates from the last {data.window_days} days yet. Check back soon.</p>)}
 
       {data && all.length > 0 && (
         <>
           {section.key === 'all' && (
             <div className="au-top">
-              <Glance items={all} onPick={pick} />
+              <Glance items={all} onPick={pick} unread={unread} />
               <ComingUp items={upcoming} />
             </div>
           )}
+
+          {(section.key === 'all' || section.key === 'benchmarks') && unreadNote}
 
           {cards.length ? byWeek(cards.slice(0, shown)).map((g) => (
             <section key={g.week} className="au-week" aria-label={weekLabel(g.week)}>
@@ -289,7 +302,7 @@ export default function AiUpdates() {
                 {g.items.map((u) => <Card key={u.key} u={u} />)}
               </div>
             </section>
-          )) : (
+          )) : !(unread && section.key === 'benchmarks') && (
             <p className="au-quiet">Nothing in this section in the last {data.window_days} days.</p>
           )}
           {cards.length > shown && (

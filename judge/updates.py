@@ -1556,13 +1556,20 @@ def stale(name: str) -> dict[str, Any] | None:
     return hit[0] if hit is not None and hit[2] == _published_generation[0] else None
 
 
-def _keep(name: str, out: dict[str, Any], clock: datetime, generation: int) -> None:
+#: An answer built while the benchmarks data was not readable is kept this
+#: long at most, so the page asks again soon instead of saying "unavailable"
+#: for the whole `home_cache_seconds` (#592 review).
+UNREAD_KEEP_SECONDS = 60
+
+
+def _keep(
+    name: str, out: dict[str, Any], clock: datetime, generation: int, *, short: bool = False
+) -> None:
+    seconds = rules()["home_cache_seconds"]
+    if short:
+        seconds = min(seconds, UNREAD_KEEP_SECONDS)
     if generation == _published_generation[0]:
-        _published_cache[name] = (
-            out,
-            clock + timedelta(seconds=rules()["home_cache_seconds"]),
-            generation,
-        )
+        _published_cache[name] = (out, clock + timedelta(seconds=seconds), generation)
 
 
 def cached_published(now: datetime | None = None) -> dict[str, Any] | None:
@@ -1634,11 +1641,15 @@ def approved(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str,
 
     Not the home page's rule: publishing fixes words for the home page's few
     days; this page is the longer record, so it follows Manage. Only updates
-    still built are listed, so one no longer in the data leaves by itself. When
-    the benchmarks data is not readable, benchmark updates cannot be worded and
-    are left out of that read. PUBLIC (judge/gate.py): words, kind, label, date
-    the verify mark and the models' public ids only - no reviewer, no style, no
-    status, no draft."""
+    still built are listed, so one no longer in the data leaves by itself.
+
+    AN OUTAGE IS SAID, NEVER READ AS "NONE" (rule 6, #592 review): when the
+    benchmarks data is not readable, benchmark updates cannot be worded, so
+    `benchmarks_unread` is true and the page says the results are unavailable
+    rather than "nothing in this section". Such an answer is kept only
+    UNREAD_KEEP_SECONDS. PUBLIC (judge/gate.py): words, kind, label, date, the
+    verify mark, the models' public ids and that flag only - no reviewer, no
+    style, no status, no draft."""
     r = rules()
     clock = now or datetime.now(UTC)
     if now is None and (kept := cached_approved(clock)) is not None:
@@ -1676,7 +1687,8 @@ def approved(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str,
                     "models": list(u["models"]),
                 }
             )
-    out = {"updates": items, "window_days": r["max_window_days"]}
+    unread = bench_conn is None
+    out = {"updates": items, "window_days": r["max_window_days"], "benchmarks_unread": unread}
     if now is None:
-        _keep("approved", out, clock, generation)
+        _keep("approved", out, clock, generation, short=unread)
     return out

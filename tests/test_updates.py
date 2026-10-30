@@ -924,6 +924,50 @@ def test_one_background_rebuild_per_read_at_a_time(monkeypatch):
     assert "approved" not in app_module._PUBLIC_REBUILDING, "a failed rebuild frees the slot"
 
 
+def test_unreadable_benchmarks_are_said_and_kept_only_briefly(registry):
+    # #592 review (rule 6): an outage is not "no benchmark results".
+    u = built(registry, "launch")
+    updates.review(registry, u, action="approve", by="p@example.com")
+    out = updates.approved(registry, bench_conn=None)
+    assert out["benchmarks_unread"] is True
+    until = updates._published_cache["approved"][1]
+    assert until <= datetime.now(UTC) + timedelta(seconds=updates.UNREAD_KEEP_SECONDS + 1)
+
+
+def test_a_save_during_a_background_rebuild_is_built_too(monkeypatch):
+    # #592 review: the running build read the old rows and the save's own
+    # rebuild was turned away, so the running one builds again.
+    import contextlib
+    import threading
+
+    import judge.app as app_module
+
+    builds = []
+
+    def build(conn, bench_conn=None):
+        builds.append(1)
+        if len(builds) == 1:
+            updates.clear_published_cache()  # a save lands mid-build
+            app_module._rebuild_in_background("approved")  # turned away: one is running
+
+    monkeypatch.setattr(app_module, "_public_build", lambda name: build)
+    monkeypatch.setattr(app_module, "_updates_conns", lambda: contextlib.nullcontext((None, None)))
+    app_module._rebuild_in_background("approved")
+    for t in [t for t in threading.enumerate() if t.name == "updates-rebuild-approved"]:
+        t.join(5)
+    assert builds == [1, 1], "built again for the save"
+    assert "approved" not in app_module._PUBLIC_REBUILDING
+
+
+def test_the_cache_is_cleared_again_once_a_save_is_committed():
+    # #592 review: the clear inside the write runs before the commit.
+    import judge.app as app_module
+
+    updates._published_cache["approved"] = ({"updates": []}, NOW + timedelta(days=1), 0)
+    assert app_module._updates_errors(lambda u: "saved") == "saved"
+    assert "approved" not in updates._published_cache
+
+
 def test_a_save_in_manage_starts_a_rebuild_of_both_public_reads(registry, monkeypatch):
     # The save clears both reads so it shows at once; they are built again in
     # the background, so the next visitor does not wait for it.

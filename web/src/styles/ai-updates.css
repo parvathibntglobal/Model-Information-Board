@@ -92,6 +92,9 @@
 .au-link:hover,.au-link:focus-visible{background-size:100% 1px;outline:none}
 
 .au-quiet{margin:0;color:var(--text-3);font-size:var(--fs-sm)}
+/* An outage said in words (#592 review): never a quiet "nothing here". */
+.au-notice{margin:0;padding:12px 16px;border:1px solid color-mix(in srgb,var(--warn) 35%,var(--border));
+  border-radius:var(--r-card);background:var(--warn-dim);color:var(--text);font-size:var(--fs-sm)}
 .au-skel{height:320px}
 
 /* About these updates. */
