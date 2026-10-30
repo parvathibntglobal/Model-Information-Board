@@ -1265,6 +1265,55 @@ def _cmd_news_harvest(args: argparse.Namespace) -> int:
     return 0 if counts["failed"] == 0 else 1
 
 
+def _cmd_official_harvest(args: argparse.Namespace) -> int:
+    """The Guides' raw material: official cookbooks, SDK releases and changelogs,
+    the OpenAI spec and PyVideo's talk index, through the GitHub REST API, into
+    official_doc / official_release / video_ref, each read recorded in
+    official_fetch (collect/official/harvest.py). Never evidence. Gated.
+
+    --dry-run makes every read (within the same caps) and writes nothing: no
+    database is opened, so no gate is needed and every file counts as new - and
+    is fetched, so a dry run costs as many API calls as a first real run."""
+    from collect.http import build_client
+    from collect.official.harvest import check_github_terms, harvest
+
+    # An empty or unknown key reaches harvest(), which refuses it (rule 12).
+    only = {k.strip() for k in args.only.split(",")} if args.only is not None else None
+    if args.dry_run:
+        with build_client() as client:
+            counts = harvest(None, client, terms=check_github_terms, only=only, dry_run=True)
+    else:
+        from collect.db import transaction
+
+        with transaction() as conn:
+            _gate(conn)
+            with build_client() as client:
+                counts = harvest(conn, client, terms=check_github_terms, only=only)
+    label = "DRY RUN, nothing written" if counts["dry_run"] else "written"
+    print(f"official: {len(counts['by_source'])} sources, {counts['api_calls']} API calls, "
+          f"{counts['rate_remaining']} core requests left ({label})")
+    if counts["stopped"]:
+        print(f"  STOPPED EARLY: {counts['stopped']}")
+    for key, t in counts["by_source"].items():
+        line = (f"  {key:22s} {t['outcome']:16s} listed {t['files_listed']}, unchanged "
+                f"{t['files_unchanged']}, fetched {t['files_fetched']} (new {t['files_new']}, "
+                f"changed {t['files_changed']}), deferred {t['files_deferred']}, too large "
+                f"{t['files_too_large']}, failed {t['files_failed']}, unlisted "
+                f"{t['files_unlisted']}")
+        if t["releases_seen"] is not None:
+            line += (f"; releases {t['releases_seen']} (new {t['releases_new']}, changed "
+                     f"{t['releases_changed']})")
+        if t["talks_withheld"] is not None:
+            line += (f"; talks: {t['talks_no_year']} in events with no year, "
+                     f"{t['talks_before_min_year']} before the minimum year, "
+                     f"{t['talks_withheld']} withheld and {t['talks_withdrawn']} withdrawn "
+                     f"under NO_PUBLISH.json")
+        print(line)
+        if t["detail"]:
+            print(f"  {'':22s} {t['detail']}")
+    return 0 if all(t["outcome"] == "ok" for t in counts["by_source"].values()) else 1
+
+
 def _cmd_benchmarks_run(args: argparse.Namespace) -> int:
     """The Benchmarks page's scraper: fetch, parse, match, merge, publish.
 
@@ -1365,6 +1414,21 @@ def build_parser() -> argparse.ArgumentParser:
     news_harvest.add_argument("--only", default=None,
                               help="comma-separated source keys; default every source")
     news_harvest.set_defaults(func=_cmd_news_harvest)
+
+    official = sub.add_parser(
+        "official", help="Guides: official cookbooks, SDK releases, the OpenAI spec, PyVideo")
+    official_sub = official.add_subparsers(dest="command", required=True)
+    official_harvest = official_sub.add_parser(
+        "harvest", help="read every source in contract/official_sources.yaml once")
+    official_harvest.add_argument("--only", default=None,
+                                  help="comma-separated source keys; default every source")
+    official_harvest.add_argument("--dry-run", action="store_true",
+                                  help="read and report; write nothing, open no database. "
+                                       "NOT A QUICK CHECK: nothing stored means every file is "
+                                       "fetched - 2,529 API calls on 2026-10-30 for every "
+                                       "source, on the token the evidence harvest shares. "
+                                       "Use --only to bound it")
+    official_harvest.set_defaults(func=_cmd_official_harvest)
 
     registry = sub.add_parser("registry", help="the model registry")
     reg_sub = registry.add_subparsers(dest="command", required=True)
