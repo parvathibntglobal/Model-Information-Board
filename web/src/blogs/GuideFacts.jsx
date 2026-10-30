@@ -18,10 +18,10 @@ import { comparePath } from '../compare/path'
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
 
 const WORD = {
-  up: { price: 'Dearer', share: 'Larger', tokens: 'Larger', date: 'Later' },
-  down: { price: 'Cheaper', share: 'Smaller', tokens: 'Smaller', date: 'Earlier' },
+  up: { price: 'Higher', share: 'Larger', tokens: 'Larger', date: 'Later' },
+  down: { price: 'Lower', share: 'Smaller', tokens: 'Smaller', date: 'Earlier' },
 }
-const TONE = { Cheaper: 'pass', Larger: 'pass', Gained: 'pass', Dearer: 'warn', Smaller: 'warn', Lost: 'fail' }
+const TONE = { Lower: 'pass', Larger: 'pass', Gained: 'pass', Higher: 'warn', Smaller: 'warn', Lost: 'fail' }
 
 function changeOf(r) {
   if (r.field === 'retirement_date') return r.from || r.to ? 'Dated' : 'None published'
@@ -49,7 +49,7 @@ function table(rows, a, b) {
     + `<tbody>${rowsHtml(rows)}</tbody></table></div>`
 }
 
-export function factsHtml(d, today = new Date().toISOString().slice(0, 10)) {
+export function factsHtml(d) {
   const a = d.from.name
   const b = d.to.name
   // WHAT DIFFERS FIRST: the rows that change, then every fact behind a fold, so
@@ -57,16 +57,16 @@ export function factsHtml(d, today = new Date().toISOString().slice(0, 10)) {
   const moved = d.rows.filter((r) => !['same', 'unknown'].includes(r.change) && r.field !== 'release_date')
   const order = d.order === 'title' ? `in the order this guide names them` : `from the older model to the newer one`
   return `<section class="gf-box" aria-label="Verified facts">
-<div class="gf-head"><span class="gf-tag">Verified facts</span><span class="gf-when">published figures, read ${esc(today)}</span></div>
+<div class="gf-head"><span class="gf-tag">Verified facts</span><span class="gf-when">${d.registry_read ? `model registry, read ${esc(d.registry_read)}` : 'model registry'}</span></div>
 <h3 class="gf-title">What changes from ${esc(a)} to ${esc(b)}</h3>
-<p class="gf-order">Shown ${esc(order)}. Written by code from each provider's published figures, not by the guide's writer.</p>
+<p class="gf-order">Shown ${esc(order)}. Written by code from the prices and specs our model registry lists (OpenRouter's listing), not by the guide's writer.</p>
 ${moved.length ? table(moved, a, b) : '<p class="gf-same">No published figure differs between the two.</p>'}
 <details class="gf-all"><summary>All ${d.rows.length} published facts</summary>${table(d.rows, a, b)}</details>
 <h4 class="gf-sub">Before you switch</h4>
 <ol class="gf-check">${d.checklist.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>
 <p class="gf-meta">On the board: <b>${d.reports.from.toLocaleString('en-US')}</b> reports on ${esc(a)} and <b>${d.reports.to.toLocaleString('en-US')}</b> on ${esc(b)}.
  <a href="${esc(comparePath([d.from.id, d.to.id]))}">See them side by side, job by job</a></p>
-<p class="gf-note">Prices are per million tokens, as each provider lists them. "Not published" is unknown, not zero and not "no". Not covered here: ${esc(d.not_covered.join(', '))} - check ${esc(d.to.provider_name)}'s own documentation.</p>
+<p class="gf-note">Prices are per million tokens, as our registry lists them: confirm prices on the provider's own page before relying on them. "Not published" is unknown, not zero and not "no". Not covered here: ${esc(d.not_covered.join(', '))} - check ${esc(d.to.provider_name)}'s own documentation.</p>
 </section>`
 }
 

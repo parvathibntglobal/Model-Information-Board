@@ -18,6 +18,7 @@ not collect yet.
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -27,13 +28,13 @@ import yaml
 
 CONTRACT = Path(__file__).resolve().parents[1] / "contract" / "migrations.yaml"
 KINDS = ("price", "share", "tokens", "date", "flag")
-CHANGES = ("up", "down", "same", "gained", "lost", "unknown", "from_set", "to_set")
+CHANGES = ("up", "down", "same", "gained", "lost", "unknown", "from_set", "to_set", "both_set")
 
 FACTS_SQL = (
     "SELECT id, canonical_id, provider, display_name, release_date, retirement_date, "
     "       knowledge_cutoff, advertised_context, max_output_tokens, price_in, price_out, "
     "       price_cached_read, batch_discount, supports_tools, supports_structured_output, "
-    "       supports_vision, supports_caching, supports_batch "
+    "       supports_vision, supports_caching, supports_batch, updated_at "
     "FROM model_version"
 )
 COLUMNS = (
@@ -54,7 +55,7 @@ COLUMNS = (
     "supports_structured_output",
     "supports_vision",
     "supports_caching",
-    "supports_batch",
+    "supports_batch", "updated_at"
 )
 
 
@@ -161,12 +162,11 @@ def show(kind: str, v: Any) -> str | None:
     if v is None:
         return None
     if kind == "price":
-        x = float(v)
-        if x >= 1 or x == 0:
-            return f"${x:,.2f}"
-        # Under a dollar: up to four decimals as published, never fewer than two.
-        cents = f"{x:.4f}".rstrip("0")
-        return "$" + (cents + "0" * (2 - len(cents.split(".")[1])))
+        # AS PUBLISHED, up to four decimals and never fewer than two, at every
+        # size: $2.625 stays $2.625 (#590 review), $0.2 reads $0.20.
+        whole, cents = f"{float(v):,.4f}".split(".")
+        cents = cents.rstrip("0")
+        return f"${whole}.{cents + '0' * (2 - len(cents))}"
     if kind == "share":
         return f"{float(v) * 100:g}%"
     if kind == "tokens":
@@ -182,9 +182,12 @@ def change(kind: str, field: str, a: Any, b: Any) -> str:
     """How `field` moves from model a to model b.
 
     Retirement is the one row where each side means something on its own: a
-    date on either side is news (`from_set`, `to_set`), and the two dates are
-    never compared."""
+    date on either side is news (`from_set`, `to_set`, or `both_set` when both
+    retire - the model you move to retiring is the warning that matters most,
+    #590 review), and the two dates are never compared."""
     if field == "retirement_date":
+        if a is not None and b is not None:
+            return "both_set"
         return "from_set" if a is not None else "to_set" if b is not None else "same"
     if a is None or b is None:
         return "unknown"
@@ -222,9 +225,11 @@ def checklist(a: dict, b: dict, rows: list[dict], r: dict) -> list[str]:
     names = {"from_name": _name(a), "to_name": _name(b), "to_provider": provider_name(b)}
     out = []
     for row in rows:
-        line = r["checklist"].get(row["field"], {}).get(row["change"])
-        if line:
-            out.append(line.format(**names, **{"from": row["from"], "to": row["to"]}))
+        lines = r["checklist"].get(row["field"], {})
+        keys = ("from_set", "to_set") if row["change"] == "both_set" else (row["change"],)
+        for key in keys:
+            if lines.get(key):
+                out.append(lines[key].format(**names, **{"from": row["from"], "to": row["to"]}))
     if provider_of(a) != provider_of(b):
         out.append(r["other_provider"].format(**names))
     out.append(r["always"].format(**names))
@@ -252,15 +257,19 @@ def _reports(conn, ids: list[str]) -> dict[str, int]:
     return {mid: n for mid, n in rows}
 
 
-def migration(conn, from_id: str, to_id: str) -> dict[str, Any] | None:
+def migration(conn, from_id: str, to_id: str, *, models: list[dict] | None = None
+              ) -> dict[str, Any] | None:
     """Both models' facts, what changes, and what to check. None when either id
-    is not in the registry; a model moved to itself is no migration."""
+    is not in the registry; a model moved to itself is no migration. `models`
+    lets a caller that has read the registry pass it through (one read, not two)."""
     r = rules()
-    models = _models(conn)
+    models = _models(conn) if models is None else models
     a, b = _resolve(models, from_id), _resolve(models, to_id)
     if a is None or b is None or a["id"] == b["id"]:
         return None
     rows = diff(a, b, r)
+    counts = _reports(conn, [a["id"], b["id"]])
+    polled = [m["updated_at"] for m in (a, b) if m.get("updated_at")]
     return {
         "from": _brief(a),
         "to": _brief(b),
@@ -270,10 +279,11 @@ def migration(conn, from_id: str, to_id: str) -> dict[str, Any] | None:
         # COUNTED, never weighed: how many board entries each model has, so a
         # reader knows how much the linked comparison rests on. Zero is shown as
         # zero - a model nobody has reported on is not a model that failed.
-        "reports": {
-            "from": _reports(conn, [a["id"]]).get(a["id"], 0),
-            "to": _reports(conn, [b["id"]]).get(b["id"], 0),
-        },
+        "reports": {"from": counts.get(a["id"], 0), "to": counts.get(b["id"], 0)},
+        # WHEN THE REGISTRY LAST READ THESE TWO (#590 review): the older of the
+        # two models' polls, so "read on" is a fact about the data, never the
+        # reader's clock. None when neither poll is recorded (rule 6).
+        "registry_read": show("date", min(polled).date()) if polled else None,
         "not_covered": ["API and SDK changes", "parameter names and defaults", "prompt changes"],
     }
 
@@ -284,9 +294,10 @@ def _at(title: str, m: dict) -> int | None:
     low = title.lower()
     name = _name(m).lower()
     for n in (name, name.split(" ", 1)[-1]):
-        i = low.find(n)
-        if n and i >= 0:
-            return i
+        # THE WHOLE NAME (rule 10): "claude opus 5" is not inside "claude opus 5.5".
+        hit = re.search(rf"(?<![\w.]){re.escape(n)}(?![\w]|\.\d)", low) if n else None
+        if hit:
+            return hit.start()
     return None
 
 
@@ -295,7 +306,10 @@ def direction(title: str, a: dict, b: dict) -> tuple[dict, dict, str]:
     otherwise older to newer by release date - never a guess presented as the
     post's own, so `how` travels to the page."""
     ia, ib = _at(title, a), _at(title, b)
-    if " to " in title.lower() and ia is not None and ib is not None and ia != ib:
+    # "TO" BETWEEN THE TWO NAMES (#590 review): "which to pick", "when to
+    # switch" and "How to move" carry a "to" that names no order.
+    if ia is not None and ib is not None and ia != ib \
+            and " to " in title.lower()[min(ia, ib):max(ia, ib)]:
         return (a, b, "title") if ia < ib else (b, a, "title")
     first, second = sorted((a, b), key=lambda m: (m["release_date"] or date.max, m["id"]))
     return first, second, "release"
@@ -321,5 +335,5 @@ def guide(conn, slug: str) -> dict[str, Any] | None:
     if a is None or b is None:
         return None
     first, second, how = direction(title, a, b)
-    out = migration(conn, first["id"], second["id"])
+    out = migration(conn, first["id"], second["id"], models=models)
     return {**out, "order": how} if out else None

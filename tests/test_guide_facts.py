@@ -117,3 +117,38 @@ def test_the_facts_endpoint_is_a_public_read():
     req = Request({"type": "http", "method": "GET", "path": "/guide-facts", "query_string": b"",
                    "headers": []})
     assert gate.is_public_read(req)
+
+
+# ── #590 review ─────────────────────────────────────────────────────────────
+
+
+def test_a_to_outside_the_two_names_names_no_order():
+    old = _m(display_name="Anthropic: Claude Opus 5.5", release_date=date(2026, 9, 22))
+    new = _m(id="mv_b", display_name="OpenAI: GPT-6.1 Sol", release_date=date(2026, 9, 29))
+    for title in ("Claude Opus 5.5 vs GPT-6.1 Sol: which to pick",
+                  "How to move between GPT-6.1 Sol and Claude Opus 5.5"):
+        f, t, how = migrations.direction(title, new, old)
+        assert (f["id"], t["id"], how) == ("mv_a", "mv_b", "release"), title
+
+
+def test_a_name_inside_a_longer_name_is_not_found_there():
+    five = _m(display_name="Anthropic: Claude Opus 5", release_date=date(2026, 7, 24))
+    five5 = _m(id="mv_b", display_name="Anthropic: Claude Opus 5.5", release_date=date(2026, 9, 22))
+    f, t, how = migrations.direction("Claude Opus 5.5 to Claude Opus 5: Pay Less", five, five5)
+    assert (f["id"], t["id"], how) == ("mv_b", "mv_a", "title")
+
+
+def test_both_models_retiring_says_both():
+    a = _m(retirement_date=date(2026, 11, 11))
+    b = _m(id="mv_b", display_name="Anthropic: Claude B", retirement_date=date(2027, 1, 1))
+    rows = migrations.diff(a, b, R)
+    assert {r["field"]: r for r in rows}["retirement_date"]["change"] == "both_set"
+    lines = migrations.checklist(a, b, rows, R)
+    assert any("Claude A is set to retire on 2026-11-11" in x for x in lines)
+    assert any("Claude B itself is set to retire on 2027-01-01" in x for x in lines)
+
+
+def test_a_price_keeps_its_published_decimals_at_every_size():
+    assert migrations.show("price", Decimal("2.625")) == "$2.625"
+    assert migrations.show("price", Decimal("15")) == "$15.00"
+    assert migrations.show("price", Decimal("0")) == "$0.00"

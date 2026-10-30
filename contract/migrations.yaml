@@ -43,12 +43,13 @@ rows:
 
 # "Before you switch": one line per (field, change) the pair actually shows.
 # Changes: up, down, same, gained, lost, unknown (either side unpublished),
-# set (the field is published on that side). Placeholders: {from_name},
+# from_set / to_set (a date published on that side only), both_set (on both:
+# its from_set line, then its to_set line). Placeholders: {from_name},
 # {to_name}, {from}, {to} (the field's two values, formatted as in the table),
 # {to_provider}. A (field, change) with no line here adds nothing.
 checklist:
   advertised_context:
-    down: "{to_name} reads at most {to} tokens per request; {from_name} reads {from}. Find your longest prompts before you switch: anything over {to} tokens will be refused."
+    down: "{to_name} reads at most {to} tokens per request; {from_name} reads {from}. Find your longest prompts before you switch: anything over {to} tokens may be refused or cut."
     unknown: "{to_name}'s context window is not published. Test your longest prompt before you switch."
   max_output_tokens:
     down: "{to_name} writes at most {to} tokens per answer; {from_name} writes up to {from}. Check where you set max tokens, and any job that needs long answers."
@@ -59,6 +60,10 @@ checklist:
   supports_structured_output:
     lost: "{to_name} does not list structured output, which {from_name} does. Plan to validate JSON answers yourself."
     unknown: "Whether {to_name} supports structured output is not published. Test a JSON-schema request before you switch."
+  # NO `unknown` LINE FOR IMAGE INPUT OR PROMPT CACHING, deliberately: both are
+  # NULL on so many registry rows that a line would appear on most guides and
+  # say nothing a reader can act on. Tools, structured output and batch break a
+  # working integration when absent, so their unknown is worth a line.
   supports_vision:
     lost: "{to_name} does not list image input, which {from_name} does. Requests with images need another model."
   supports_caching:

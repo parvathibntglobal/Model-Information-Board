@@ -93,7 +93,7 @@ export default function Guides() {
         <p>
           Written guides for engineers moving between AI models: why teams switch, what changes, what broke for the
           people who did it, and what to check first. Every migration guide carries a box of verified facts - each
-          model&apos;s published price, context window, output limit and features - read from the registry when you
+          model&apos;s listed price, context window, output limit and features - read from our model registry when you
           open it.
         </p>
       </header>
