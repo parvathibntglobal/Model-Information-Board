@@ -52,6 +52,18 @@ one sequential pass, identifying User-Agent through `collect.http.build_client`.
    project keeps recording - a transport answer read as a statement about the
    corpus - so `_get` counts a non-200 as an http error and never as zero hits.
 
+⚠  A FAILED REQUEST SAYS WHY, AND ONE THAT MAY PASS IS ASKED AGAIN (2026-10-30).
+   The scheduled fetch's arXiv stage failed for 29 model runs from 2026-10-25
+   to 2026-10-30 (3 of 24 on 10-25, 8 of 10 on 10-30), every one reading only
+   "2 request(s) failed": the status went to a console log nobody keeps, so
+   throttling (429/503) and refusal (403) could not be told apart. The same
+   two queries answered 200 in under a second from a developer machine on
+   10-30. Each failed request now records its reason on the run (`failures`:
+   "HTTP 503", "ReadTimeout"), and a 429, a 5xx or a transport error is retried
+   ONCE - after `Retry-After` when arXiv sends one no longer than
+   `RETRY_MAX_WAIT_SECONDS`, else after `RETRY_WAIT_SECONDS`. A 403 or another
+   4xx is not retried: asking again cannot change a refusal.
+
 XML, PARSED WITH THE STANDARD LIBRARY
 -------------------------------------
 `xml.etree.ElementTree`, not `feedparser`: `tests/test_lane_boundary.py` allows
@@ -94,6 +106,14 @@ BASE_URL = "https://export.arxiv.org/api/query"
 #: arXiv's published API Terms of Use. Not measured by us - it is a stated
 #: limit, and a stated limit is honoured rather than probed.
 MIN_INTERVAL_SECONDS = 3.0
+
+#: One retry for a failure that may pass (a 429, a 5xx, a transport error).
+#: Unmeasured starting values: arXiv publishes no retry guidance beyond the
+#: 3-second interval above, so the wait is several times that interval.
+RETRY_WAIT_SECONDS = 15.0
+#: A `Retry-After` longer than this is not waited out inside a fetch: the
+#: request is recorded as failed and the scheduler asks again another night.
+RETRY_MAX_WAIT_SECONDS = 60.0
 
 #: Their guidance is to page in slices of 2,000 at most and to prefer small
 #: pages. 50 keeps one response small enough to parse and hash cheaply and is
@@ -182,6 +202,20 @@ class ArxivPaper:
         return {"score": None, "comments": None, "citations": None}
 
 
+def _retry_wait(response: httpx.Response) -> float | None:
+    """How long to wait before asking again, or None when asking again cannot
+    help: a 4xx other than 429 is a refusal, and a `Retry-After` longer than
+    `RETRY_MAX_WAIT_SECONDS` is left to another night."""
+    code = response.status_code
+    if code != 429 and not 500 <= code < 600:
+        return None
+    raw = (response.headers.get("Retry-After") or "").strip()
+    if raw.isdigit():
+        wait = float(raw)
+        return wait if wait <= RETRY_MAX_WAIT_SECONDS else None
+    return RETRY_WAIT_SECONDS
+
+
 @dataclass
 class ArxivRun:
     """One query, what it cost, and what it produced."""
@@ -210,6 +244,13 @@ class ArxivRun:
     #: `total_results == 0`, which is the platform saying nothing matched.
     query_refused: bool = False
     refusal_detail: str | None = None
+
+    #: Why each failed request failed ("HTTP 503", "ReadTimeout"), so a stage
+    #: that reports failures can say which kind (2026-10-30). One entry per
+    #: request that stayed failed; a request that passed on its retry is not
+    #: here, and is counted in `retried`.
+    failures: list[str] = field(default_factory=list)
+    retried: int = 0
 
     exhausted: bool = False
     truncated_by: str | None = None
@@ -324,18 +365,26 @@ class ArxivHarvester:
         body, and reading it as "no papers" is the transport answer becoming a
         statement about the corpus.
         """
-        self._limiter.wait(BASE_URL)
-        try:
-            response = self._client.get(BASE_URL, params=params)
-        except httpx.HTTPError as error:
+        for attempt in (1, 2):
+            self._limiter.wait(BASE_URL)
+            try:
+                response = self._client.get(BASE_URL, params=params)
+            except httpx.HTTPError as error:
+                why, wait = type(error).__name__, RETRY_WAIT_SECONDS
+                log.error("arxiv: request failed for %r: %s", params, error)
+            else:
+                if response.status_code == 200:
+                    return response
+                why, wait = f"HTTP {response.status_code}", _retry_wait(response)
+                log.warning("arxiv: HTTP %s on %r", response.status_code, params)
+            if attempt == 1 and wait is not None:
+                run.retried += 1
+                self._sleep(wait)
+                continue
             run.http_errors += 1
-            log.error("arxiv: request failed for %r: %s", params, error)
+            run.failures.append(why)
             return None
-        if response.status_code != 200:
-            run.http_errors += 1
-            log.warning("arxiv: HTTP %s on %r", response.status_code, params)
-            return None
-        return response
+        return None
 
     # ── search ───────────────────────────────────────────────────────────
 
@@ -375,6 +424,7 @@ class ArxivHarvester:
             feed = _parse_feed(response.content)
             if feed is None:
                 run.http_errors += 1
+                run.failures.append("not parseable Atom")
                 log.error("arxiv: response for %r is not parseable Atom", query)
                 break
 
