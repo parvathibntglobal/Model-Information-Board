@@ -1,0 +1,87 @@
+# Migration guides: the VERIFIED FACTS box inside each one (2026-10-30, PROPOSED, anooj).
+#
+# A migration guide is a written blog post (Blogs -> Guides). This box is the
+# part written by code, from facts the board already holds.
+# Every row and every checklist line is filled from the registry
+# (model_version) with Python's str.format - no model writes anything (rule 2)
+# and no figure is synthesised (rule 3): a price, a context window and a date
+# are shown as published, side by side, never as a ratio or a score.
+#
+# A VALUE NOBODY PUBLISHED STAYS UNPUBLISHED (rule 6). A NULL is "not
+# published", never "no" and never "the same": `supports_batch` is TRUE or NULL
+# on every registry row (2026-10-30: 56 TRUE, 222 NULL), so a NULL there says
+# nothing about batch support, and its checklist line asks the reader to check.
+#
+# WHAT THESE PAGES DO NOT COVER YET, and say so on every page: API, SDK and
+# parameter changes, and prompt changes. Those need the providers' own
+# documentation, which the board does not collect (scoping report, 2026-10-30).
+#
+# Read by judge/migrations.py. Two eyes, like every file here.
+
+# The rows of "What changes", in order. `kind` decides how a value is shown
+# and how a change is named:
+#   price    $ per million tokens; lower is "cheaper"
+#   share    a fraction shown as a percent (batch_discount 0.5 -> 50%)
+#   tokens   a count of tokens; larger is "larger"
+#   date     a calendar date; later is "later"
+#   flag     TRUE / FALSE / NULL; TRUE -> FALSE is "lost"
+rows:
+  - {field: price_in, label: "Input price ($ per 1M tokens)", kind: price}
+  - {field: price_out, label: "Output price ($ per 1M tokens)", kind: price}
+  - {field: price_cached_read, label: "Cached input price ($ per 1M tokens)", kind: price}
+  - {field: batch_discount, label: "Batch discount", kind: share}
+  - {field: advertised_context, label: "Context window (tokens)", kind: tokens}
+  - {field: max_output_tokens, label: "Max output (tokens)", kind: tokens}
+  - {field: knowledge_cutoff, label: "Knowledge cutoff", kind: date}
+  - {field: supports_tools, label: "Tool calling", kind: flag}
+  - {field: supports_structured_output, label: "Structured output", kind: flag}
+  - {field: supports_vision, label: "Image input", kind: flag}
+  - {field: supports_caching, label: "Prompt caching", kind: flag}
+  - {field: supports_batch, label: "Batch API", kind: flag}
+  - {field: release_date, label: "Released", kind: date}
+  - {field: retirement_date, label: "Retires", kind: date}
+
+# "Before you switch": one line per (field, change) the pair actually shows.
+# Changes: up, down, same, gained, lost, unknown (either side unpublished),
+# set (the field is published on that side). Placeholders: {from_name},
+# {to_name}, {from}, {to} (the field's two values, formatted as in the table),
+# {to_provider}. A (field, change) with no line here adds nothing.
+checklist:
+  advertised_context:
+    down: "{to_name} reads at most {to} tokens per request; {from_name} reads {from}. Find your longest prompts before you switch: anything over {to} tokens will be refused."
+    unknown: "{to_name}'s context window is not published. Test your longest prompt before you switch."
+  max_output_tokens:
+    down: "{to_name} writes at most {to} tokens per answer; {from_name} writes up to {from}. Check where you set max tokens, and any job that needs long answers."
+    unknown: "{to_name}'s maximum output is not published. Test your longest expected answer."
+  supports_tools:
+    lost: "{to_name} does not list tool calling, which {from_name} does. An agent that calls tools needs another route."
+    unknown: "Whether {to_name} supports tool calling is not published. Test a tool call before you switch."
+  supports_structured_output:
+    lost: "{to_name} does not list structured output, which {from_name} does. Plan to validate JSON answers yourself."
+    unknown: "Whether {to_name} supports structured output is not published. Test a JSON-schema request before you switch."
+  supports_vision:
+    lost: "{to_name} does not list image input, which {from_name} does. Requests with images need another model."
+  supports_caching:
+    lost: "{to_name} does not list prompt caching, which {from_name} does. The cached-input savings you have now end."
+  supports_batch:
+    lost: "{to_name} does not list a batch API, which {from_name} does."
+    unknown: "Whether {to_name} offers a batch API is not published. Check before you move batch jobs."
+  price_in:
+    up: "Input costs {to} per million tokens on {to_name}, against {from} on {from_name}."
+    down: "Input costs {to} per million tokens on {to_name}, against {from} on {from_name}."
+  price_out:
+    up: "Output costs {to} per million tokens on {to_name}, against {from} on {from_name}. Long answers and reasoning tokens bill at this rate."
+    down: "Output costs {to} per million tokens on {to_name}, against {from} on {from_name}."
+  price_cached_read:
+    up: "Cached input costs {to} per million tokens on {to_name}, against {from} on {from_name}."
+  knowledge_cutoff:
+    down: "{to_name}'s knowledge stops at {to}, earlier than {from_name}'s {from}."
+  retirement_date:
+    from_set: "{from_name} is set to retire on {from}."
+    to_set: "{to_name} itself is set to retire on {to}."
+
+# Always shown when the two models come from different providers.
+other_provider: "These models come from different providers, so the API, the SDK, authentication and parameter names change too. This page compares published facts only: check {to_provider}'s own documentation for the request format."
+
+# Always shown, last.
+always: "Run your own test set on {to_name} before you switch: published figures do not show how a model handles your prompts."

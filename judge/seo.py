@@ -268,7 +268,13 @@ def indexable_pages(conn: Any) -> dict:
 
     # Approved posts only. A store that cannot be read raises
     # (`blog_store.StoreUnreadable`), so a failure is not read as "no posts".
-    for post in blog_store.published(conn):
+    posts = blog_store.published(conn)
+    # THE GUIDES HUB (2026-10-30): /blogs/guides, once an approved migration
+    # guide exists for it to list.
+    if any(((p.get("provenance") or {}).get("plan_key") or "").startswith("migration-guide:")
+           for p in posts):
+        out.append({"path": "/blogs/guides", "kind": "guides_hub", "voices": None})
+    for post in posts:
         if post.get("slug"):
             out.append({"path": f"/blogs/{post['slug']}", "kind": "blog_post", "voices": None,
                         "lastmod": post.get("published_at")})

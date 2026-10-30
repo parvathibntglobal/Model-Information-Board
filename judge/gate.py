@@ -140,6 +140,11 @@ PUBLIC_READ_PATHS = frozenset({
     # published) - the words of updates a person approved AND published, their
     # kind and publish time. Nothing from Manage: no reviewer, draft or style.
     "/updates/published",
+    # 2026-10-30 (PROPOSED): the verified-facts box inside a migration guide
+    # (judge/migrations.py `guide`) - the registry's published facts for the
+    # guide's two models, a checklist worded by contract/migrations.yaml, and
+    # counts of board entries. No quote, post text or source from any platform.
+    "/guide-facts",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

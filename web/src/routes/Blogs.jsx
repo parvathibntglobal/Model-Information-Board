@@ -9,6 +9,10 @@ import NotFound from '../components/NotFound'
 import { useHead } from '../seo/head'
 import { blogIndex, blogPost } from '../seo/pages'
 import Directory from '../blogs/Directory'
+import Guides from '../blogs/Guides'
+import GuideFacts from '../blogs/GuideFacts'
+import { isMigrationGuide } from '../blogs/guideKinds'
+import '../styles/guides.css'
 import '../styles/blog-live.css'
 
 /**
@@ -46,6 +50,8 @@ import '../styles/blog-live.css'
 export default function Blogs() {
   const rest = useParams()['*'] || ''
   if (rest === 'directory') return <Directory />
+  // GUIDES (2026-10-30): the hub of migration guides, developer guides and tutorials.
+  if (rest === 'guides') return <Guides />
   return <BlogPosts rest={rest} />
 }
 
@@ -145,6 +151,9 @@ function BlogPosts({ rest }) {
         </div>
       )}
       <BoardView html={html} key={rest} />
+      {/* A migration guide's verified-facts box, written into its slot (GuideFacts). */}
+      <GuideFacts slug={rest} html={html}
+        active={isMigrationGuide(post)} />
     </>
   )
 }

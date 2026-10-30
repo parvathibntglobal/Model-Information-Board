@@ -493,6 +493,13 @@ export const seoIndexable = () => cached('seo-indexable', () => request('/seo/in
  * blurb) — so the page can say what is missing instead of quietly showing a
  * shorter table.
  */
+/* --------------------------------------------------------------- guides */
+
+// THE VERIFIED-FACTS BOX inside a migration guide (2026-10-30,
+// judge/migrations.py `guide`): the registry's published facts for the guide's
+// two models and a checklist worded by contract/migrations.yaml. Public read.
+export const guideFacts = (slug) => request(`/guide-facts?slug=${encodeURIComponent(slug)}`)
+
 export const comparePage = (ids) =>
   request(`/compare?ids=${encodeURIComponent((ids || []).join(','))}`)
 

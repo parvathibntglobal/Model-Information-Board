@@ -2567,6 +2567,22 @@ def _glossary(fn, *args):
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
+# MIGRATION GUIDES: VERIFIED FACTS (2026-10-30). A migration guide is a written
+# blog post; this is the box inside it - the registry's published facts for the
+# guide's two models and a checklist worded by contract/migrations.yaml. Public:
+# no quote, post text or source (judge/migrations.py `guide`).
+
+
+@app.get("/guide-facts")
+def guide_facts(slug: str) -> dict:
+    """The verified facts for one approved migration guide. 404 when the slug
+    is not an approved migration guide."""
+    from judge import migrations
+
+    with _conn() as conn:
+        return _or_404(migrations.guide(conn, slug), "no approved migration guide has this slug")
+
+
 @app.get("/glossary-terms")
 def glossary_terms() -> dict:
     from judge import glossary

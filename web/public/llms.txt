@@ -24,6 +24,7 @@ The board reads public posts by engineers about AI models, files each report und
 ## Reading
 
 - [Blogs](/blogs): posts on AI models, written from the reports
+- [Guides](/blogs/guides): migration guides between AI models - written guides with each pair's published price, context window, output limit and features verified against our registry
 - [AI glossary](/glossary): one short paragraph on each AI model term, from tokens to retrieval-augmented generation
 - [Discussions](/discussions): readers' own experiences with AI models, shown beside the reports and never added to the counts
 - [Methodology](/methodology): how a report is found, checked against its post and counted, and the fixed rule behind every verdict
