@@ -10,6 +10,7 @@ import { DB } from './db.js'
 import { goAttrs } from './links.js'
 import { nameIndex, nameKey, namePattern, shortName } from './modelnames.js'
 import { sourceName } from '../sourceName.js'
+import { isGuide } from '../blogs/guideKinds.js'
 import { currentTheme } from '../theme.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
@@ -1186,7 +1187,11 @@ function vBlogs(){
     ? `<p class="es-empty">Could not be read: ${
         meta.skipped.map(x=>`${esc(x.file)} (${esc(x.why)})`).join('; ')}</p>` : '';
   const when = p => String(((p.provenance || {}).generated_at) || '');
-  const all = [...DB.posts].sort((a, b) => when(b).localeCompare(when(a)) || String(a.title).localeCompare(String(b.title)));
+  // GUIDES LIVE UNDER BLOGS -> GUIDES ONLY (2026-10-30, anooj): left out of this list,
+  // and pointed to below. Their addresses are unchanged.
+  const posts = DB.posts.filter((x) => !isGuide(x));
+  const guides = DB.posts.length - posts.length;
+  const all = [...posts].sort((a, b) => when(b).localeCompare(when(a)) || String(a.title).localeCompare(String(b.title)));
   const pages = Math.max(1, Math.ceil(all.length / BLOGS_PER_PAGE));
   let page = 1;
   try { page = Math.min(pages, Math.max(1, parseInt(new URLSearchParams(location.search).get('page') || '1', 10) || 1)); } catch { page = 1; }
@@ -1211,15 +1216,16 @@ function vBlogs(){
       <h1>How AI models behave in production</h1>
       <p class="es-dek">Long-form engineering essays on running frontier models in real systems — the failure
       modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>
-    ${DB.posts.length ? `<div class="es-draft">${DB.posts.every(x=>reviewOf(x)==='approved')
+    ${posts.length ? `<div class="es-draft">${posts.every(x=>reviewOf(x)==='approved')
       ? '<b>Approved by the team, not yet published outside it.</b>'
       : '<b>Drafts for team review.</b>'} Written by a language model - since 16 October 2026 by Claude Code -
       from engineers' public reports and published research, and checked in code: every quote is matched against
       its source text, and every figure against the source or the price registry. Pictures are labelled with how
-      they were made.${DB.posts.every(x=>reviewOf(x)==='approved')
+      they were made.${posts.every(x=>reviewOf(x)==='approved')
       ? ' A person on the team read each post and approved it before it appeared here.'
       : ' Posts marked draft have not been approved by a person yet.'}</div>
-      <a class="bl-dir"${goAttrs('live:directory')}>Find a post: all ${DB.posts.length} by model, topic or title &rarr;</a>
+      <a class="bl-dir"${goAttrs('live:directory')}>Find a post: all ${posts.length} by model, topic or title &rarr;</a>
+      ${guides ? `<a class="bl-dir"${goAttrs('live:guides')}>Migration guides are under Guides: ${guides} guide${guides === 1 ? '' : 's'} &rarr;</a>` : ''}
       <div class="bl-list">${cards}</div>${pager}` : empty}
     ${skipped}
     <nav class="lv-explore lv-in-essay" aria-label="Live pages">${LIVE.map(([go, t, d, k]) =>
@@ -1992,7 +1998,12 @@ function vPost(slug){
   } else {
     open = leadBox(conf, p);
   }
-  let main = open + middle + end;
+  // A MIGRATION GUIDE CARRIES ITS VERIFIED FACTS (2026-10-30): the slot is filled
+  // by blogs/GuideFacts.jsx from /guide-facts - the registry's published figures
+  // for the guide's two models, beside the writing.
+  const guideSlot = isGuide(p)
+    ? '<div class="gf-slot" id="guide-facts" aria-live="polite"></div>' : ''
+  let main = open + guideSlot + middle + end;
 
   // READING TIME, COUNTED: the words on the page at 230 a minute. One mode
   // only since 2026-10-13 - the skim/full toggle is gone with the skim lines.

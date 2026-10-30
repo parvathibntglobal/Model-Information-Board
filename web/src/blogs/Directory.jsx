@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { blogPosts } from '../api'
 import { useHead } from '../seo/head'
 import { directoryHead } from '../seo/pages'
+import { isGuide } from './guideKinds'
 
 /**
  * THE POST DIRECTORY (2026-10-18, anooj: "as the posts are increasing the user
@@ -63,7 +64,8 @@ export default function Directory() {
   useHead(directoryHead())
   useEffect(() => { blogPosts().then((d) => setPosts(d.posts || [])).catch((e) => setErr(e.message)) }, [])
 
-  const rows = useMemo(() => (posts || []).map((p) => {
+  // Guides are listed under Blogs -> Guides only (guideKinds.js).
+  const rows = useMemo(() => (posts || []).filter((p) => !isGuide(p)).map((p) => {
     const kind = kindOf(p)
     return { p, kind, subjects: subjectsOf(p, kind), date: dateOf(p) }
   }), [posts])

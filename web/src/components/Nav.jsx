@@ -11,6 +11,7 @@ const LINKS = [
   // short definitions a reader looks up for the basics.
   { to: '/blogs', label: 'Blogs', items: [
     { to: '/blogs', label: 'Blog posts' },
+    { to: '/blogs/guides', label: 'Guides' },
     { to: '/glossary', label: 'AI glossary' },
   ] },
   // HOVER MENUS. The label still opens its own page on click; hovering lists
