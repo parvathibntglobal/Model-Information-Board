@@ -37,7 +37,7 @@ def _script(monkeypatch):
 def test_a_refused_feed_is_named_and_left_out_and_the_rest_still_run(monkeypatch, capsys):
     hb = _script(monkeypatch)
     feeds = [f for f in hb.load_sources().feeds if f["id"] in
-             ("blog:simonwillison.net", "blog:epochai.substack.com", "blog:hamel.dev")]
+             ("blog:simonwillison.net", "blog:latent.space", "blog:hamel.dev")]
     assert len(feeds) == 3
 
     contract = hb.load_sources()
@@ -45,7 +45,7 @@ def test_a_refused_feed_is_named_and_left_out_and_the_rest_still_run(monkeypatch
         "feeds": feeds, "rulings": contract.rulings})())
 
     def observe(feed, robots):
-        refused = feed["id"] == "blog:epochai.substack.com"
+        refused = feed["id"] == "blog:latent.space"
         return {"endpoint_is_null": False, "robots_status": "refused" if refused else "rules",
                 "robots_http": 403 if refused else 200, "feed_path_allowed": not refused,
                 **observe_use_basis()}
@@ -64,7 +64,7 @@ def test_a_refused_feed_is_named_and_left_out_and_the_rest_still_run(monkeypatch
 
     assert code == 1
     assert reached == ["blog:simonwillison.net", "blog:hamel.dev"]
-    assert "blog:epochai.substack.com" in out.out and "REFUSED by its terms check" in out.out
+    assert "blog:latent.space" in out.out and "REFUSED by its terms check" in out.out
     assert "1 feed(s) refused by their terms check" in out.err
 
 
