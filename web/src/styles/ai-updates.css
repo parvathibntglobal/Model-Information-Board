@@ -1,0 +1,125 @@
+/* The public AI updates page, /ai-news-headlines (routes/AiUpdates.jsx). Tokens from tokens.css only.
+   A calm masthead (the same scale as AI benchmarks, its sibling under Insights)
+   whose bottom bar is the section nav; "This week" in four counts beside the
+   countdown cards; then small cards by week. Each kind keeps one tone: its
+   badge, its icon and the card's top edge. */
+
+.au-page{display:flex;flex-direction:column;gap:var(--s5)}
+
+.au-label{margin:0;font-family:var(--font-mono);font-size:var(--fs-label);font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
+
+/* Masthead: title and standfirst side by side, then the section bar. */
+.au-masthead{display:flex;flex-direction:column;gap:var(--s3)}
+.au-mast-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--s2) var(--s5);align-items:end}
+.au-title{margin:6px 0 0;font-size:var(--fs-display);font-weight:600;line-height:1.05;letter-spacing:-.025em;color:var(--text)}
+.au-standfirst{margin:0;max-width:52ch;justify-self:end;text-align:right;font-size:var(--fs-body);
+  line-height:1.55;color:var(--text-2)}
+.au-bar{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);
+  border-top:2px solid var(--text);border-bottom:1px solid var(--border)}
+.au-dateline{margin:0;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.04em;
+  color:var(--text-3);white-space:nowrap}
+.au-sections{display:flex;flex-wrap:wrap;gap:0 var(--s3)}
+.au-section{display:inline-flex;align-items:baseline;gap:6px;height:44px;padding:0;border:0;
+  border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--text-2);
+  font-size:var(--fs-sm);font-weight:500;cursor:pointer;line-height:44px}
+.au-section:hover{color:var(--text)}
+.au-section.on{color:var(--text);border-bottom-color:var(--text)}
+.au-section:focus-visible{outline:2px solid var(--text-2);outline-offset:2px}
+.au-section-n{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-3)}
+
+/* Kind tones: the colour, and a faint wash of it. */
+.au-tone-info{--au-tone:var(--info);--au-wash:var(--info-dim)}
+.au-tone-pass{--au-tone:var(--pass);--au-wash:var(--pass-dim)}
+.au-tone-fail{--au-tone:var(--fail);--au-wash:var(--fail-dim)}
+.au-tone-warn{--au-tone:var(--warn);--au-wash:var(--warn-dim)}
+.au-tone-mute{--au-tone:var(--text-2);--au-wash:var(--surface-3)}
+
+/* "This week" beside "Coming up". */
+.au-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s3)}
+.au-top > :only-child{grid-column:1 / -1}
+.au-glance,.au-coming{display:flex;flex-direction:column;gap:12px}
+.au-glance-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}
+.au-stat{display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  height:100%;max-height:112px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--r-card);
+  background:var(--surface);text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+.au-stat:not(:disabled):hover{border-color:var(--au-tone);background:var(--au-wash)}
+.au-stat:disabled{cursor:default;opacity:.55}
+.au-stat:focus-visible{outline:2px solid var(--text-2);outline-offset:2px}
+.au-stat-n{font-size:2.25rem;font-weight:700;line-height:1;letter-spacing:-.03em;color:var(--au-tone)}
+.au-stat-l{font-size:var(--fs-xs);line-height:1.3;color:var(--text-2)}
+
+.au-coming-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;flex:1}
+.au-coming-item{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;padding:12px 14px;
+  border:1px solid color-mix(in srgb,var(--warn) 30%,var(--border));border-radius:var(--r-card);
+  background:color-mix(in srgb,var(--warn-dim) 55%,var(--surface))}
+.au-count{display:flex;flex-direction:column;gap:2px;padding-right:12px;border-right:1px solid color-mix(in srgb,var(--warn) 30%,var(--border))}
+.au-count-when{font-size:var(--fs-sm);font-weight:700;line-height:1.2;color:var(--warn)}
+.au-count-date{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-3)}
+.au-coming-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.au-coming-head{margin:0;font-size:var(--fs-sm);font-weight:600;line-height:1.35;color:var(--text)}
+.au-coming-dek{margin:0;font-size:var(--fs-xs);line-height:1.45;color:var(--text-2)}
+
+/* The cards, by week. */
+.au-week{display:flex;flex-direction:column;gap:var(--s2)}
+.au-week-h{display:flex;align-items:center;gap:10px;margin:0;font-size:var(--fs-h3);font-weight:600;color:var(--text)}
+.au-week-n{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:500;color:var(--text-3)}
+.au-week-h::after{content:'';flex:1;height:1px;background:var(--border-soft)}
+.au-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--s2);grid-auto-flow:dense}
+.au-card{display:flex;flex-direction:column;gap:10px;padding:18px 18px 20px;background:var(--surface);
+  border:1px solid var(--border);border-top:3px solid var(--au-tone);border-radius:var(--r-card);
+  transition:box-shadow .2s,transform .2s}
+.au-card:hover{box-shadow:var(--shadow-lift);transform:translateY(-2px)}
+.au-card-review{grid-column:span 2;background:linear-gradient(135deg,var(--au-wash),var(--surface) 70%)}
+.au-card-review .au-head{font-size:var(--fs-h2);line-height:1.2;letter-spacing:-.015em}
+.au-card-review .au-dek{font-size:var(--fs-sm)}
+.au-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.au-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 7px;border-radius:var(--r-pill);
+  background:var(--au-wash);color:var(--au-tone);font-size:var(--fs-label);font-weight:600;letter-spacing:.02em}
+.au-icon{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.au-date{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-3);white-space:nowrap}
+.au-head{margin:0;font-size:1.0625rem;font-weight:650;line-height:1.35;letter-spacing:-.005em;color:var(--text);text-wrap:pretty}
+/* Never clipped: there is no page behind a card to read the rest on. */
+.au-dek{margin:0;font-size:var(--fs-xs);line-height:1.6;color:var(--text-2)}
+.au-verify{margin:auto 0 0;padding-top:8px;border-top:1px dashed var(--border-soft);font-size:var(--fs-label);
+  color:var(--text-3);cursor:help}
+.au-verify:hover,.au-verify:focus-visible{color:var(--text);outline:none}
+.au-more{align-self:center}
+
+/* A headline that leads somewhere: underline drawn in on hover. */
+.au-link{color:inherit;text-decoration:none;background-image:linear-gradient(currentColor,currentColor);
+  background-size:0 1px;background-position:0 100%;background-repeat:no-repeat;transition:background-size .2s}
+.au-link:hover,.au-link:focus-visible{background-size:100% 1px;outline:none}
+
+.au-quiet{margin:0;color:var(--text-3);font-size:var(--fs-sm)}
+/* An outage said in words (#592 review): never a quiet "nothing here". */
+.au-notice{margin:0;padding:12px 16px;border:1px solid color-mix(in srgb,var(--warn) 35%,var(--border));
+  border-radius:var(--r-card);background:var(--warn-dim);color:var(--text);font-size:var(--fs-sm)}
+.au-skel{height:320px}
+
+/* About these updates. */
+.au-note{display:flex;flex-direction:column;gap:var(--s1);max-width:78ch;padding-top:var(--s3);
+  border-top:1px solid var(--border);font-size:var(--fs-xs);line-height:1.65;color:var(--text-3)}
+.au-note p{margin:0}
+.au-note strong{color:var(--text-2)}
+.au-note a{color:var(--text-2);text-decoration:underline;text-underline-offset:3px;
+  text-decoration-color:var(--text-3)}
+.au-note a:hover{color:var(--text)}
+
+@media (max-width: 1100px){
+  .au-top{grid-template-columns:1fr}
+}
+@media (max-width: 900px){
+  .au-mast-top{grid-template-columns:1fr}
+  .au-standfirst{justify-self:start;text-align:left}
+  .au-bar{flex-direction:column;align-items:flex-start;gap:0}
+  .au-dateline{padding:8px 0}
+  .au-glance-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width: 620px){
+  .au-card-review{grid-column:auto}
+}
+@media (prefers-reduced-motion: reduce){
+  .au-card,.au-link,.au-stat{transition:none}
+  .au-card:hover{transform:none}
+}

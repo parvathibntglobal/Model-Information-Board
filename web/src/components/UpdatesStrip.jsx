@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { publishedUpdates } from '../api'
 import '../styles/updates-strip.css'
 
@@ -26,6 +27,11 @@ const SEEN_KEY = 'mb-ustrip-seen'
 const KIND_TONE = { launch: 'info', price_cut: 'pass', price_rise: 'fail', price_change: 'warn', retiring: 'warn', benchmark: 'mute', roundup: 'info' }
 
 const fmtDay = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+
+/** The way on from the strip (2026-10-30): every approved update, on /ai-news-headlines. */
+function AllUpdates() {
+  return <Link to="/ai-news-headlines" className="ustrip-all">All updates →</Link>
+}
 
 function lastSeen() {
   try {
@@ -143,6 +149,7 @@ export default function UpdatesStrip() {
               <button type="button" className="ustrip-arrow" onClick={() => go(1)} aria-label="Next headline">›</button>
             </div>
           )}
+          <AllUpdates />
         </div>
         {open && <Detail u={open} />}
       </section>
@@ -168,6 +175,7 @@ export default function UpdatesStrip() {
             ))}
           </div>
         </div>
+        <AllUpdates />
       </div>
       {open && <Detail u={open} />}
     </section>

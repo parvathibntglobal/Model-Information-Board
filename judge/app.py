@@ -157,6 +157,9 @@ async def _lifespan(_app: FastAPI):
     0.139, which is what is installed here.
     """
     _log_database_target()
+    # The public updates reads, built now so the first visitor does not wait
+    # (in the background: startup is not held up, and a failure only logs).
+    _warm_public_updates()
     yield
 
 
@@ -3563,7 +3566,14 @@ def _updates_errors(write):
     from judge import updates
 
     try:
-        return write(updates)
+        saved = write(updates)
+        # CLEARED AGAIN, NOW THAT IT IS COMMITTED (#592 review): the clear inside
+        # the write ran before `_conn()` committed, so a build reading in that gap
+        # could keep the old rows under the new generation. Then build both reads
+        # again in the background, so the next visitor does not wait.
+        updates.clear_published_cache()
+        _rebuild_after_save()
+        return saved
     except updates.EditNeedsConfirm as e:
         raise HTTPException(
             status_code=409, detail={"message": str(e), "numbers": e.numbers}
@@ -3574,18 +3584,103 @@ def _updates_errors(write):
         raise HTTPException(status_code=503, detail=str(e)) from None
 
 
+# THE TWO PUBLIC UPDATES READS, NEVER A WAIT (2026-10-30, Parvathi). Each one
+# rebuilds the updates from the whole price history and the benchmarks data:
+# measured from a developer machine against the shared database, ~12 s. Kept
+# `home_cache_seconds`; when that runs out, the last answer is still sent at
+# once and a fresh one is built in the background (one build per read at a
+# time). Only a save in Manage, which clears the cache so it shows at once,
+# makes the next visitor wait. Both are built at startup too.
+_PUBLIC_REBUILDING: set[str] = set()
+_PUBLIC_REBUILD_LOCK = threading.Lock()
+
+
+def _public_build(name: str):
+    from judge import updates
+
+    return updates.published if name == "v" else updates.approved
+
+
+def _rebuild_in_background(name: str) -> None:
+    with _PUBLIC_REBUILD_LOCK:
+        if name in _PUBLIC_REBUILDING:
+            return
+        _PUBLIC_REBUILDING.add(name)
+
+    def run() -> None:
+        from judge import updates
+
+        # A SAVE DURING THE BUILD IS NOT LOST (#592 review): that build read the
+        # old rows, so `_keep` refuses it, and the save's own rebuild was turned
+        # away because this one was running. So build again while the generation
+        # moved under us; the check and the release share the lock, so a save
+        # either lands before it (and is built here) or starts its own rebuild.
+        try:
+            for _ in range(3):
+                generation = updates._published_generation[0]
+                try:
+                    with _updates_conns() as (conn, bench):
+                        _public_build(name)(conn, bench_conn=bench)
+                except Exception:  # noqa: BLE001 - a failed rebuild leaves the last answer served
+                    log.exception("updates: background rebuild of %r failed", name)
+                    return
+                with _PUBLIC_REBUILD_LOCK:
+                    if updates._published_generation[0] == generation:
+                        _PUBLIC_REBUILDING.discard(name)
+                        return
+        finally:
+            with _PUBLIC_REBUILD_LOCK:
+                _PUBLIC_REBUILDING.discard(name)
+
+    threading.Thread(target=run, name=f"updates-rebuild-{name}", daemon=True).start()
+
+
+def _public_updates(name: str, fresh) -> dict:
+    """A kept answer without connecting (the benchmarks connection is not
+    pooled, #586 review); else the last one while a fresh one is built; else a
+    build now."""
+    from judge import updates
+
+    if (kept := fresh()) is not None:
+        return kept
+    if (old := updates.stale(name)) is not None:
+        _rebuild_in_background(name)
+        return old
+    with _updates_conns() as (conn, bench):
+        return _public_build(name)(conn, bench_conn=bench)
+
+
+def _warm_public_updates() -> None:
+    """Build both public reads at startup, so the first visitor does not wait."""
+    for name in ("v", "approved"):
+        _rebuild_in_background(name)
+
+
+def _rebuild_after_save() -> None:
+    """After a save in Manage (which cleared both reads): build them again in
+    the background. Its own name so tests can switch it off."""
+    _warm_public_updates()
+
+
 @app.get("/updates/published")
 def updates_published() -> dict:
     """The home page's updates strip: the updates a person published, newest
     first, in their published words. PUBLIC (judge/gate.py) - it sends only
-    those words, the kind and the publish time. A kept answer is sent without
-    connecting: the benchmarks connection is not pooled (#586 review)."""
+    those words, the kind and the publish time."""
     from judge import updates
 
-    if (kept := updates.cached_published()) is not None:
-        return kept
-    with _updates_conns() as (conn, bench):
-        return updates.published(conn, bench_conn=bench)
+    return _public_updates("v", updates.cached_published)
+
+
+@app.get("/updates/approved")
+def updates_approved() -> dict:
+    """The public AI updates page (/ai-news-headlines): every update a person
+    approved in Manage, in its words as Manage shows them. PUBLIC
+    (judge/gate.py) - words, kind, label, date, the verify mark and the models'
+    public ids only."""
+    from judge import updates
+
+    return _public_updates("approved", updates.cached_approved)
 
 
 @app.get("/updates")

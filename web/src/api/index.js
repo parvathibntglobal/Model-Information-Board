@@ -650,6 +650,9 @@ export const approveAllUpdates = (keys, days) =>
 export const undoUpdate = (key) => request('/updates/undo', { method: 'POST', body: { key } })
 // The home page's updates strip: published updates only. A public read.
 export const publishedUpdates = () => cached('updates-published', () => request('/updates/published'), { ttl: BOARD_TTL_MS })
+// THE PUBLIC AI UPDATES PAGE (/ai-news-headlines, 2026-10-30): every update a person
+// approved in Manage, in its words as Manage shows them. A public read.
+export const approvedUpdates = () => cached('updates-approved', () => request('/updates/approved'), { ttl: BOARD_TTL_MS })
 
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`

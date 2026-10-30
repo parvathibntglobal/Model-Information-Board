@@ -153,6 +153,11 @@ PUBLIC_READ_PATHS = frozenset({
     # guide's two models, a checklist worded by contract/migrations.yaml, and
     # counts of board entries. No quote, post text or source from any platform.
     "/guide-facts",
+    # 2026-10-30 (PROPOSED, Parvathi): the public AI updates page (judge/updates.py
+    # approved) - the words of every update a person APPROVED in Manage, its
+    # kind, label and date. Nothing else from Manage: no reviewer, style,
+    # status or draft, and no update nobody approved.
+    "/updates/approved",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

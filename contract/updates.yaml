@@ -41,9 +41,13 @@ max_window_days: 90
 # by itself and is listed in Manage under "Removed". At most this many show.
 home_days: 7
 home_limit: 8
-# The home page's read is kept this many seconds (it rebuilds the updates to
-# drop any no longer in the data); a save in Manage clears it at once.
-home_cache_seconds: 60
+# The public reads (the home page's strip and /ai-news-headlines) are kept this many
+# seconds: each rebuilds the updates to drop any no longer in the data, ~12 s
+# against the shared database (2026-10-30). When it runs out, the last answer is
+# still served while a fresh one is built in the background (judge/app.py); a
+# save in Manage clears it at once. 300 from 2026-10-30 (was 60): prices and
+# benchmarks are polled far less often than that.
+home_cache_seconds: 300
 
 # A price move this large (either price, in percent) is marked "Needs a
 # second-source check": big moves on OpenRouter are often a host switch.

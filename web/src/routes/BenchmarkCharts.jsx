@@ -272,6 +272,16 @@ function Score({ v, colour }) {
   )
 }
 
+/** "Leaderboard positions ↓": a smooth scroll to the table (an instant one when
+ *  less motion is asked for). */
+function jumpTo(e) {
+  const el = document.getElementById('leaderboard-positions')
+  if (!el) return
+  e.preventDefault()
+  const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  el.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
+}
+
 function Leaderboard({ series }) {
   const [sort, setSort] = useState('position')
   const [category, setCategory] = useState('all')
@@ -319,10 +329,12 @@ function Leaderboard({ series }) {
   )
 
   return (
-    <section className="bc-lb card" aria-labelledby="bc-lb-h">
+    <section className="bc-lb card" id="leaderboard-positions" aria-labelledby="bc-lb-h">
       <div className="bc-lb-head">
         <div className="stack stack-1">
-          <h2 id="bc-lb-h" className="bc-h2">Leaderboard</h2>
+          {/* LEADERBOARD POSITIONS (2026-10-30, Parvathi; was "Leaderboard"): this
+              model's place on each benchmark's own board, not a ranking of models. */}
+          <h2 id="bc-lb-h" className="bc-h2"><span aria-hidden="true">🏆 </span>Leaderboard positions</h2>
           <p className="dim bc-small">
             Each board&apos;s own position and score for every variant. A position depends on which models a board
             lists, so it is not a score; the line beside it runs from first place to last.
@@ -518,11 +530,8 @@ export default function BenchmarkCharts() {
       <header className="stack stack-2">
         <h1>AI model benchmarks</h1>
         <p className="dim">
-          Pick a model to see its published benchmark scores in one chart, with each of its settings
-          (such as max or high effort) as its own column. Every value comes from a public leaderboard,
-          exactly as that board prints it, with the board&apos;s name and date. Scores are percentages,
-          out of 100. Each benchmark tests something different, so a taller column on one benchmark is
-          not &ldquo;better&rdquo; than a shorter one on another.
+          Pick a model to see its published benchmark scores and its position on each leaderboard. Every
+          value comes from a public leaderboard, exactly as that board prints it, with the board&apos;s name and date.
         </p>
       </header>
 
@@ -553,11 +562,19 @@ export default function BenchmarkCharts() {
               {model.series.length > 1 && <li><strong className="tnum">{model.series.length}</strong> variants</li>}
               {data.last_run?.finished_at && <li>Updated <strong>{fmtDay(data.last_run.finished_at)}</strong></li>}
             </ul>
+            {/* The way down to the positions table, so it is not missed under the chart. */}
+            <a href="#leaderboard-positions" className="bc-jump" onClick={jumpTo}>
+              <span aria-hidden="true">🏆</span> Leaderboard positions <span aria-hidden="true">↓</span>
+            </a>
           </div>
 
           <figure className="bc-chart card">
             <figcaption className="bc-chart-head">
-              <span className="bc-chart-title">{model.label}</span>
+              <span className="bc-chart-title">{model.label}: benchmark scores</span>
+              <span className="dim bc-small">
+                Each column is one benchmark&apos;s score out of 100{series.length > 1 ? ', one per setting' : ''}.
+                Benchmarks test different things, so compare within a benchmark, not across.
+              </span>
               {series.length > 1 && (
                 <span className="dim bc-small">
                   Turn rows on or off below{series.length > MAX_SHOWN ? ` (up to ${MAX_SHOWN} at once)` : ''}. Hover a column for its value and source.
