@@ -56,7 +56,7 @@ from pathlib import Path
 import httpx
 import psycopg
 import yaml
-from psycopg.rows import dict_row
+from psycopg.rows import dict_row, tuple_row
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
@@ -413,6 +413,23 @@ def select_documents(cur, post, reader) -> tuple[list[dict], list[dict]]:
                                       public=_public_thread_sql("tc.id")),
                 {"subject": post.get("subject"), **post.get("params", {})})
     ranked, summary = rank_threads(cur.fetchall(), sel)
+    # FRESH THREADS FIRST (2026-10-30), the board's twin of topic_docs' rule:
+    # a thread an existing post already used goes to the back, so a second post
+    # on a model in another format is not the first one retold. A weight, not a
+    # gate (rule 8): used threads still fill the post when nothing fresh is
+    # left. Set only by the planner, so --reuse and --recheck select exactly
+    # what their saved draws were written from.
+    used = post.get("_used_any")
+    if used:
+        ranked = sorted(ranked, key=lambda r: r["id"] in used)  # stable: rank order kept within each group
+    # AN EMBED-ONLY SOURCE WITH NO EMBED IS NEVER CHOSEN (2026-10-30). Bluesky is
+    # embed-only while it is held (contract/publication.yaml), and there is no
+    # Bluesky embed, so "a post cannot carry Bluesky at all". Chosen anyway, it
+    # took a slot and then stopped the whole run in write_pack ("no public name
+    # for source 'bluesky'"); left out here, the next thread takes the slot.
+    embed_only_now = set(post.get("embed_only") or ())
+    held = [r for r in ranked if r["source"] in embed_only_now and r["source"] not in EMBEDDABLE]
+    ranked = [r for r in ranked if not (r["source"] in embed_only_now and r["source"] not in EMBEDDABLE)]
     per_post, need_neg = int(sel["per_post"]), int(sel["disagreement_threads"])
     # PLATFORM DIVERSITY (2026-10-13, team ask: "posts should hold data from
     # every platform if possible"). At most `max_per_source` threads from one
@@ -487,9 +504,13 @@ def select_documents(cur, post, reader) -> tuple[list[dict], list[dict]]:
     if len(chosen) < 5:
         raise BuildError(f"{post['key']}: only {len(chosen)} documents resolved locally; "
                          f"skipped {len(skipped)}. Refusing to synthesise from so little.")
+    skipped += [{"thread_context_id": r["id"], "outcome": f"{r['source']}: embed-only and no embed exists"}
+                for r in held]
     post["_selection"] = summary | {"chosen": len(chosen), "with_negatives": have}
     return chosen, skipped
 
+#: The platforms embed_url can build an official embed for.
+EMBEDDABLE = frozenset({"reddit", "x"})
 REDDIT_POST = re.compile(r"^https://www\.reddit\.com/r/\w+/comments/\w+")
 X_POST = re.compile(r"^https://(x|twitter)\.com/\w+/status/\d+")
 
@@ -1506,6 +1527,8 @@ def check(essay: dict, context: str, rules: dict | None = None, experiences: str
             v += illustration_violations(essay, len(essay.get("sections") or []))
     if seo:
         v += seo_violations(essay, seo)
+    # FAQ QUESTIONS ALREADY ANSWERED ON THIS SUBJECT (2026-10-30): set by the planner.
+    v += faq_violations(essay.get("faq") or [], set(rules.get("taken_faq") or ()))
     if doc_texts:
         embedded = set()
         if doc_sources:
@@ -3942,6 +3965,12 @@ def plan_posts(cur, reader, n: int, only_format: str | None = None,
         if not order:
             raise BuildError(f"--format {only_format!r} is not a format in blog_formats.yaml")
     forced = bool(only_format or only_subject)
+    # WHAT ALREADY EXISTS (2026-10-30): sources go to the back of a selection
+    # when any post used them, and a subject is passed over when most of its
+    # new post's sources are already in a post on it - see max_repeat_share.
+    records = post_records(cur)
+    used_any, by_subject = used_sources(records)
+    cap_share = max_repeat_share(cfg)
     pools: dict[str, list] = {}
     picked, subjects = [], set()
     for fmt in order:
@@ -3961,11 +3990,18 @@ def plan_posts(cur, reader, n: int, only_format: str | None = None,
                 continue
             if (post["plan"]["plan_key"] in done and not forced) or subj in subjects:
                 continue
+            post["_used_any"] = used_any
             try:
                 docs, skipped = select_documents(cur, post, reader)
                 post["agreement"] = agreement_map(cur, post, docs)
             except BuildError:
                 continue  # not enough of its evidence on this machine - next candidate
+            share = repeat_share([d["thread_context_id"] for d in docs], by_subject.get(subj, set()))
+            if share > cap_share and not forced:
+                print(f"  passed over {post['plan']['plan_key']}: {share:.0%} of its sources are already in "
+                      f"a post on {subj} (max {cap_share:.0%})", flush=True)
+                continue
+            post["rules"]["taken_faq"] = taken_faq(records, subj)
             picked.append((post, docs, skipped, fact_sheet(cur, post, docs)))
             subjects.add(subj)
             break
@@ -4259,6 +4295,9 @@ def run_pack(args, dsn, reader) -> None:
             post["brief"] += "\nTITLES ALREADY USED (yours must not echo their wording or shape): " + "; ".join(others)
         if taken:
             post["brief"] += "\nHEADINGS ALREADY USED (do not reuse any): " + "; ".join(sorted(taken))
+        if post["rules"].get("taken_faq"):
+            post["brief"] += ("\nFAQ QUESTIONS ALREADY ANSWERED ON THIS SUBJECT (ask different ones): "
+                              + "; ".join(sorted(post["rules"]["taken_faq"])))
         d = write_pack(post, docs, facts)
         print(f"  pack {d.relative_to(ROOT)}  ({len(docs)} documents; skipped {len(skipped)})", flush=True)
 
@@ -4277,6 +4316,8 @@ def ingest(key: str, dsn: str) -> None:
     rules = post.get("rules") or {}
     if isinstance(rules.get("taken_headings"), list):
         rules["taken_headings"] = set(rules["taken_headings"])
+    if isinstance(rules.get("taken_faq"), list):
+        rules["taken_faq"] = set(rules["taken_faq"])
     essay_path = d / "essay.json"
     if not essay_path.exists():
         raise BuildError(f"{essay_path.relative_to(ROOT)} does not exist - write the post first")
@@ -4546,7 +4587,7 @@ def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dic
     # from goes to the back, so a second post on a topic - in another style -
     # is not the first one retold. A weight, not a gate: used items still
     # fill a pack when nothing fresh is left.
-    used = used_topic_items()
+    used = used_topic_items(conn)
     # Stable: equal rank keeps sources()' newest-first order.
     ranked = sorted(topics.sources(conn, key), key=lambda it: (it["id"] in used, -relevance(it)))
     # THE BOARD BRIDGE (2026-10-18): board threads whose verified quotes are
@@ -4601,16 +4642,146 @@ def topic_docs(conn, reader, key: str, cap: int | None = None) -> tuple[list[dic
     return docs + bridge, skipped
 
 
-def used_topic_items() -> set[str]:
-    """Every topic item some writing pack on this machine was written from."""
-    used: set[str] = set()
-    for f in PACKS.glob("*/pack.json"):
+def used_topic_items(conn=None) -> set[str]:
+    """Every topic item an existing post or writing pack was written from.
+
+    THE SHARED STORE TOO (2026-10-30). This read this machine's packs only, so
+    on a fresh worktree - or anyone else's machine - nothing was "used" and the
+    fresh-first ordering in topic_docs did nothing: the deception debate and
+    synthesis, and the image-generation guide and build-and-break, were each
+    written from the same six sources (measured over the 283 stored posts not
+    rejected, 2026-10-30)."""
+    used, _by = used_sources(post_records(conn))
+    return used
+
+
+def _subject(plan_key: str | None) -> str | None:
+    """The subject half of a plan key: `anthropic/claude-opus-5`,
+    `a+b` for a pair, `concept/rag` for a topic."""
+    return plan_key.split(":", 1)[1] if plan_key and ":" in plan_key else None
+
+
+def faq_questions(body) -> list[str]:
+    """The FAQ questions of an exported post body: the h3s under the
+    `Questions people ask` h2 (export_post writes them there)."""
+    out, inside = [], False
+    for blk in body or []:
+        if not isinstance(blk, list) or not blk:
+            continue
+        if blk[0] == "h2":
+            inside = isinstance(blk[1], dict) and blk[1].get("id") == "faq"
+        elif inside and blk[0] == "h3" and isinstance(blk[1], str):
+            out.append(blk[1])
+    return out
+
+
+_STORED_RECORDS: dict[int, list[dict]] = {}
+
+
+def post_records(conn=None) -> list[dict]:
+    """Every post that already exists, as {subject, documents, faq}: the shared
+    `blog_post` table (REJECTED EXCLUDED - a rejected post is not on the page,
+    so its sources and questions are free again), and this machine's exported
+    posts and writing packs. The same post may appear more than once; every use
+    below is a set, so that changes nothing."""
+    recs: list[dict] = []
+    if conn is not None:
+        c = getattr(conn, "connection", conn)
+        if id(c) not in _STORED_RECORDS:
+            stored: list[dict] = []
+            try:
+                # THE HEADINGS ONLY, not the bodies: every stored body is ~7.8 MB
+                # (2026-10-30) and took 12.5 s to read from a developer machine.
+                with c.transaction(), c.cursor(row_factory=tuple_row) as cur:
+                    cur.execute("SELECT plan_key, doc->'provenance'->'documents', "
+                                "jsonb_path_query_array(doc->'body', '$[*] ? (@[0] == \"h2\" || @[0] == \"h3\")') "
+                                "FROM blog_post WHERE state <> 'rejected'")
+                    for plan_key, docs, heads in cur.fetchall():
+                        stored.append({"subject": _subject(plan_key), "documents": set(docs or []),
+                                       "faq": faq_questions(heads)})
+            except psycopg.errors.UndefinedTable:
+                pass  # a database without the table has no stored posts (stored_plan_keys' rule)
+            _STORED_RECORDS[id(c)] = stored  # once per connection: a run plans many posts on one
+        recs += _STORED_RECORDS[id(c)]
+    for f in POSTS_OUT.glob("*.json"):
         try:
-            used |= {d.get("topic_item_id") for d in json.loads(f.read_text(encoding="utf-8")).get("docs") or []}
+            d = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-    used.discard(None)
-    return used
+        prov = d.get("provenance") or {}
+        recs.append({"subject": _subject(prov.get("plan_key")), "documents": set(prov.get("documents") or []),
+                     "faq": faq_questions(d.get("body"))})
+    for f in PACKS.glob("*/pack.json"):
+        try:
+            p = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        ids = {x.get("topic_item_id") or x.get("thread_context_id") for x in p.get("docs") or []}
+        ids.discard(None)
+        faq: list[str] = []
+        essay = f.parent / "essay.json"
+        if essay.exists():
+            try:
+                faq = [qa.get("question", "") for qa in json.loads(essay.read_text(encoding="utf-8")).get("faq") or []]
+            except (OSError, json.JSONDecodeError, AttributeError):
+                faq = []
+        recs.append({"subject": _subject(((p.get("post") or {}).get("plan") or {}).get("plan_key")),
+                     "documents": ids, "faq": faq})
+    return recs
+
+
+def used_sources(records: list[dict]) -> tuple[set[str], dict[str, set[str]]]:
+    """(every source id any post used, subject -> the source ids its posts used)."""
+    used: set[str] = set()
+    by_subject: dict[str, set[str]] = {}
+    for r in records:
+        used |= r["documents"]
+        if r["subject"]:
+            by_subject.setdefault(r["subject"], set()).update(r["documents"])
+    return used, by_subject
+
+
+def _models_of(subject: str) -> set[str]:
+    """The models a board subject names (one, or two for a pair); a capability,
+    job or topic subject names none and is related only to itself."""
+    if not subject or subject.startswith(("capability/", "best_for/", "concept/")):
+        return set()
+    return set(subject.split("+"))
+
+
+def taken_faq(records: list[dict], subject: str) -> set[str]:
+    """FAQ questions already answered by a post on this subject, or - for a
+    model or a pair - on any subject naming one of the same models. Measured
+    2026-10-30: 81 questions were answered in 2 to 5 posts each, across 157 of
+    the 283 posts not rejected; nearly all of them on one topic or model."""
+    mine = _models_of(subject)
+    out: set[str] = set()
+    for r in records:
+        s = r["subject"]
+        if s and (s == subject or (mine and mine & _models_of(s))):
+            out |= {norm_heading(q) for q in r["faq"] if q}
+    return out
+
+
+def repeat_share(ids: list[str], same_subject: set[str]) -> float:
+    """The share of a new post's sources already in a post on its subject."""
+    return sum(i in same_subject for i in ids) / len(ids) if ids else 0.0
+
+
+def max_repeat_share(cfg: dict) -> float:
+    """blog_formats.yaml `planner.max_repeat_share`. Required (rule 12)."""
+    v = (cfg.get("planner") or {}).get("max_repeat_share")
+    if not isinstance(v, (int, float)) or not 0 < v <= 1:
+        raise BuildError("blog_formats.yaml: planner.max_repeat_share must be a number in (0, 1]")
+    return float(v)
+
+
+def faq_violations(faq: list, taken: set[str]) -> list[str]:
+    """A question another post on this subject already answers is refused: two
+    of our pages answering one search question compete with each other."""
+    return [f"faq[{i}].question: a post on this subject already answers {(qa or {}).get('question')!r}; "
+            "ask a different question" for i, qa in enumerate(faq or [])
+            if norm_heading((qa or {}).get("question", "")) in taken]
 
 
 def planned_topic_post(fmt: dict, t: dict) -> dict:
@@ -4693,6 +4864,18 @@ def run_topic_pack(args, dsn, reader) -> None:
                 fmt = fmts[TOPIC_FORMAT[shape]]
                 docs = docs[: fmt["sources"][1]]
             post = planned_topic_post(fmt, topics.topic(key))
+            # MOSTLY RETOLD? (2026-10-30) The fresh-first ordering in topic_docs
+            # puts used sources last; a topic with too few fresh ones would
+            # still be written from the same sources as its earlier post.
+            records = post_records(conn)
+            subj = f"concept/{key}"
+            share = repeat_share([x.get("topic_item_id") or x.get("thread_context_id") for x in docs],
+                                 used_sources(records)[1].get(subj, set()))
+            if share > max_repeat_share(cfg):
+                print(f"  {key}: {share:.0%} of its sources are already in a post on this topic (max "
+                      f"{max_repeat_share(cfg):.0%}); nothing written", flush=True)
+                continue
+            post["rules"]["taken_faq"] = taken_faq(records, subj)
             post["rules"]["n_sources"] = len(docs)
             if any(d["source"] in ("arxiv", "huggingface") for d in docs):
                 post["arxiv_acknowledgement"] = topics.config()["posts"]["arxiv_acknowledgement"]
@@ -4718,6 +4901,9 @@ def run_topic_pack(args, dsn, reader) -> None:
             post["brief"] += "\nTITLES ALREADY USED (yours must not echo their wording or shape): " + "; ".join(others)
         if taken:
             post["brief"] += "\nHEADINGS ALREADY USED (do not reuse any): " + "; ".join(sorted(taken))
+        if post["rules"].get("taken_faq"):
+            post["brief"] += ("\nFAQ QUESTIONS ALREADY ANSWERED ON THIS SUBJECT (ask different ones): "
+                              + "; ".join(sorted(post["rules"]["taken_faq"])))
         d = write_pack(post, docs, [])
         print(f"  pack {d.relative_to(ROOT)}  ({post['kicker']}; {len(docs)} source(s), "
               f"{sum(x['text_from'] == 'article' for x in docs)} full post(s); skipped {len(skipped)})", flush=True)

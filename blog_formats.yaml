@@ -130,6 +130,14 @@ planner:
   # 40 from 2026-10-18 (was 25): a repeat-free batch ran out of top-25 subjects;
   # Jev 1.13 and Grok 4.6 had fresh fetch data and sat just outside the window.
   candidates_per_kind: 40
+  # NO RETOLD STORIES (2026-10-30, anooj). A subject is passed over when more
+  # than this share of its new post's sources are already in a post on that
+  # subject (rejected posts excluded); --format/--subject regenerate on purpose
+  # and are not held to it. Measured 2026-10-30 over the 283 stored posts not
+  # rejected: 38 pairs shared half or more of their sources, and the closest
+  # retold one story - Sonnet 5.5's release analysis repeated 28 of its 35
+  # figures from its cost teardown. An unmeasured starting value for the cut.
+  max_repeat_share: 0.5
   # WHICH DISCUSSIONS A POST IS WRITTEN FROM (2026-10-13). Ranked by relevance
   # (generate_sample_blogs.rank_threads): naming more of the subject's models,
   # then more entries about them, then themes, then recency. A thread with
