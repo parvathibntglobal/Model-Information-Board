@@ -21,6 +21,26 @@ import { fmtDate, modelPagePath } from '../catalog/format'
  * "Where do the reports come from?" answer counts, so the two cannot disagree.
  */
 
+// THE COLUMNS FOLLOW THE TOP MENU (2026-10-30, Parvathi): Blogs, Tools, Insights,
+// Models, then Community - so Insights' pages are reachable from here too. The
+// old "Site" column is spread over them; Home is the brand's own link.
+const BLOGS = [
+  { t: 'Blog posts', to: '/blogs' },
+  { t: 'Guides', to: '/blogs/guides' },
+  { t: 'AI glossary', to: '/glossary' },
+]
+
+const INSIGHTS = [
+  { t: 'AI benchmarks', to: '/ai-benchmarks' },
+  { t: 'AI updates', to: '/ai-news-headlines' },
+]
+
+const COMMUNITY = [
+  { t: 'Discussions', to: '/discussions' },
+  { t: 'FAQ', href: '/#faq' },
+  { t: 'How we count reports', to: '/methodology' },
+]
+
 const TOOLS = [
   { t: 'Best AI model picker', to: '/best-ai-model' },
   { t: 'AI model pricing & specs table', to: '/ai-model-pricing' },
@@ -38,15 +58,15 @@ const MODELS = [
   { t: 'By capability', to: '/reviews/capabilities' },
 ]
 
-const SITE = [
-  { t: 'Home', to: '/' },
-  { t: 'Blogs', to: '/blogs' },
-  { t: 'AI glossary', to: '/glossary' },
-  { t: 'Tools', to: '/tools' },
-  { t: 'Discussions', to: '/discussions' },
-  { t: 'Methodology', to: '/methodology' },
-  { t: 'FAQ', href: '/#faq' },
-]
+/** A footer column; an `href` (the FAQ's section anchor) is a plain link. */
+function Col({ title, links }) {
+  return (
+    <nav className="footer-col" aria-label={title}>
+      <span className="footer-h">{title}</span>
+      {links.map((l) => (l.href ? <a key={l.t} href={l.href}>{l.t}</a> : <Link key={l.t} to={l.to}>{l.t}</Link>))}
+    </nav>
+  )
+}
 
 export default function Footer() {
   const [platforms, setPlatforms] = useState(null)
@@ -78,17 +98,15 @@ export default function Footer() {
               working, failing or neither, filed by job, capability and metric.
             </p>
             <p className="footer-promise">No paid placement · free to use</p>
+            {platforms && platforms.length > 0 && (
+              <p className="footer-from"><span className="footer-h">Reports from</span> {platforms.join(' · ')}</p>
+            )}
           </div>
 
-          <nav className="footer-col" aria-label="Tools">
-            <span className="footer-h">Tools</span>
-            {TOOLS.map((l) => <Link key={l.t} to={l.to}>{l.t}</Link>)}
-          </nav>
-
-          <nav className="footer-col" aria-label="Models">
-            <span className="footer-h">Models</span>
-            {MODELS.map((l) => <Link key={l.t} to={l.to}>{l.t}</Link>)}
-          </nav>
+          <Col title="Blogs" links={BLOGS} />
+          <Col title="Tools" links={TOOLS} />
+          <Col title="Insights" links={INSIGHTS} />
+          <Col title="Models" links={MODELS} />
 
           {popular?.top?.length > 0 && (
             <nav className="footer-col" aria-label="Most discussed models">
@@ -97,17 +115,7 @@ export default function Footer() {
             </nav>
           )}
 
-          <nav className="footer-col" aria-label="Site">
-            <span className="footer-h">Site</span>
-            {SITE.map((l) => (l.href ? <a key={l.t} href={l.href}>{l.t}</a> : <Link key={l.t} to={l.to}>{l.t}</Link>))}
-          </nav>
-
-          {platforms && platforms.length > 0 && (
-            <div className="footer-col">
-              <span className="footer-h">Reports from</span>
-              {platforms.map((p) => <span key={p}>{p}</span>)}
-            </div>
-          )}
+          <Col title="Community" links={COMMUNITY} />
         </div>
 
         <div className="footer-in">

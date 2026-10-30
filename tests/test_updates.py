@@ -23,8 +23,13 @@ NOW = datetime.now(UTC).replace(microsecond=0)
 
 
 @pytest.fixture(autouse=True)
-def _a_fresh_home_page_cache():
-    """The home page's read is kept between requests; never between tests."""
+def _a_fresh_home_page_cache(monkeypatch):
+    """The home page's read is kept between requests; never between tests. No
+    background rebuild after a save either: a thread still reading the test
+    database would outlive the test that started it."""
+    import judge.app as app_module
+
+    monkeypatch.setattr(app_module, "_rebuild_after_save", lambda: None)
     updates.clear_published_cache()
     yield
     updates.clear_published_cache()
@@ -789,3 +794,148 @@ def test_a_clear_between_reads_cannot_break_the_home_page(registry):
     updates.clear_published_cache()
     assert updates.cached_published() is None
     assert set(updates._published_cache) <= {"v"}
+
+
+# ── the public AI updates page ────────────────────────────────────────────
+
+
+def test_the_ai_updates_page_lists_approved_updates_in_their_words_now(registry):
+    launch, retiring = built(registry, "launch"), built(registry, "retiring")
+    other = built(registry, "price_cut")
+    assert updates.approved(registry)["updates"] == [], "nothing approved, nothing public"
+    updates.review(registry, launch, action="approve", by="parvathi.b@example.com")
+    updates.review(registry, retiring, action="approve", by="p@example.com")
+    updates.review(registry, other, action="decline", by="p@example.com")
+    style = launch["styles"][1]
+    updates.review(registry, launch, action="style", by="p@example.com", style=style["id"])
+    items = {i["key"]: i for i in updates.approved(registry)["updates"]}
+    assert set(items) == {launch["key"], retiring["key"]}, "approved only, never declined"
+    item = items[launch["key"]]
+    assert set(item) == {
+        "key",
+        "kind",
+        "label",
+        "headline",
+        "detail",
+        "date",
+        "upcoming",
+        "verify",
+        "models",
+    }
+    assert item["headline"] == style["headline"], "the words as Manage shows them now"
+    assert item["models"] == ["acme/solo"], "public model ids, for the headline's link"
+    assert items[retiring["key"]]["upcoming"] is True
+    assert "parvathi" not in str(items), "no reviewer reaches the public page"
+
+
+def test_an_approved_update_no_longer_in_the_data_leaves_the_ai_updates_page(registry):
+    u = built(registry, "launch")
+    updates.review(registry, u, action="approve", by="p@example.com")
+    registry.execute(
+        "UPDATE update_review SET update_key = 'launch:gone' WHERE update_key = %s", (u["key"],)
+    )
+    registry.commit()
+    updates.clear_published_cache()
+    assert updates.approved(registry)["updates"] == []
+
+
+def test_the_ai_updates_page_is_a_public_read_and_a_save_shows_at_once(registry, monkeypatch):
+    from starlette.requests import Request
+
+    import judge.app as app_module
+
+    req = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/updates/approved",
+            "query_string": b"",
+            "headers": [],
+        }
+    )
+    assert gate.is_public_read(req)
+    monkeypatch.setenv("API_TOKEN", "s3cret")
+    client = TestClient(app)
+    assert client.get("/updates/approved").json()["updates"] == []
+    opened = []
+    real_conns = app_module._updates_conns
+    monkeypatch.setattr(app_module, "_updates_conns", lambda: opened.append(1))
+    assert client.get("/updates/approved").json()["updates"] == []
+    assert opened == [], "a cache hit connects to nothing"
+    monkeypatch.setattr(app_module, "_updates_conns", real_conns)
+    u = built(registry, "launch")
+    updates.review(registry, u, action="approve", by="p@example.com")
+    registry.commit()  # the endpoint reads on its own connection
+    assert [i["key"] for i in client.get("/updates/approved").json()["updates"]] == [u["key"]]
+
+
+def test_a_kept_answer_is_not_served_after_a_save():
+    # #586 review: the generation is compared on read too.
+    updates._published_cache["v"] = ({"updates": []}, NOW + timedelta(days=1), -1)
+    assert updates.cached_published() is None
+
+
+def test_an_expired_answer_is_served_at_once_while_a_fresh_one_is_built(monkeypatch):
+    # The rebuild takes ~12 s against the shared data: no visitor waits for it.
+    import judge.app as app_module
+
+    old = {"updates": [{"key": "k"}], "window_days": 90}
+    gen = updates._published_generation[0]
+    updates._published_cache["approved"] = (old, NOW - timedelta(seconds=1), gen)
+    started, opened = [], []
+    monkeypatch.setattr(app_module, "_rebuild_in_background", started.append)
+    monkeypatch.setattr(app_module, "_updates_conns", lambda: opened.append(1))
+    assert TestClient(app).get("/updates/approved").json() == old
+    assert started == ["approved"] and opened == [], "the old answer, and a rebuild behind it"
+
+
+def test_after_a_save_nothing_stale_is_served():
+    # A save clears the cache so it shows at once: the last answer is not kept.
+    updates._published_cache["v"] = ({"updates": []}, NOW - timedelta(seconds=1), 0)
+    updates.clear_published_cache()
+    assert updates.stale("v") is None
+    updates._published_cache["v"] = ({"updates": []}, NOW, updates._published_generation[0] - 1)
+    assert updates.stale("v") is None, "an answer a save overtook is never served"
+
+
+def test_one_background_rebuild_per_read_at_a_time(monkeypatch):
+    import threading
+
+    import judge.app as app_module
+
+    release, calls = threading.Event(), []
+
+    class Conns:
+        def __enter__(self):
+            calls.append(1)
+            release.wait(5)
+            raise RuntimeError("no database needed here")
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(app_module, "_updates_conns", Conns)
+    app_module._rebuild_in_background("approved")
+    app_module._rebuild_in_background("approved")  # already running: not a second
+    release.set()
+    for t in [t for t in threading.enumerate() if t.name == "updates-rebuild-approved"]:
+        t.join(5)
+    assert calls == [1]
+    assert "approved" not in app_module._PUBLIC_REBUILDING, "a failed rebuild frees the slot"
+
+
+def test_a_save_in_manage_starts_a_rebuild_of_both_public_reads(registry, monkeypatch):
+    # The save clears both reads so it shows at once; they are built again in
+    # the background, so the next visitor does not wait for it.
+    import judge.app as app_module
+
+    started = []
+    monkeypatch.setattr(app_module, "_rebuild_after_save", lambda: started.append(1))
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    client = TestClient(app)
+    key = client.get("/updates?days=30").json()["updates"][0]["key"]
+    body = {"key": key, "action": "approve", "days": 30}
+    assert client.post("/updates/review", json=body).status_code == 200
+    assert started == [1]
+    refused = client.post("/updates/review", json=body | {"key": "nope"})
+    assert refused.status_code == 404 and started == [1], "no rebuild when nothing was saved"
