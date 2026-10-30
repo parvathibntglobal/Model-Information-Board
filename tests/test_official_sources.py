@@ -519,3 +519,102 @@ def test_no_token_and_a_refused_terms_check_both_stop_before_any_request(contrac
             official.harvest(None, client, terms=refuse, token="t", contract=contract,
                              dry_run=True)
     assert gh.requests == []
+
+
+# ── #591 review ──────────────────────────────────────────────────────────────
+
+def _failing(gh, broken):
+    """The fake GitHub, except that a request whose path `broken` accepts gets
+    no answer - the transport raises, as a timeout or dropped connection does."""
+    def transport(request):
+        if broken(request.url.path):
+            gh.requests.append(request)
+            raise httpx.ReadTimeout("timed out", request=request)
+        return gh(request)
+    return transport
+
+
+def _run_through(conn, contract, transport, store=None, **kw):
+    with build_client(user_agent=UA, transport=httpx.MockTransport(transport)) as client:
+        return official.harvest(conn, client, terms=lambda: None, token="t0ken",
+                                store=store or _Store(), contract=contract,
+                                clock=lambda: NOW, **kw)
+
+
+def test_a_blob_that_gets_no_answer_is_one_failed_file_and_the_run_goes_on(conn, contract):
+    gh = FakeGitHub()
+    guide = op.git_blob_sha(b"# Guide\n\nText.\n")
+    out = _run_through(conn, contract, _failing(gh, lambda p: p.endswith(guide)))
+    cook = out["by_source"]["cook"]
+    assert (cook["files_failed"], cook["files_new"], cook["outcome"]) == (1, 2, "partial")
+    assert "guide.md: ReadTimeout" in cook["detail"]
+    assert out["by_source"]["sdk"]["outcome"] == "ok"
+    assert out["by_source"]["pyvideo"]["outcome"] == "ok"
+    assert conn.execute("SELECT count(*) FROM official_fetch").fetchone() == (3,)
+
+
+def test_a_tree_that_gets_no_answer_is_an_http_error_for_that_source_only(conn, contract):
+    gh = FakeGitHub()
+    out = _run_through(conn, contract, _failing(gh, lambda p: p == "/repos/o/cook/git/trees/main"))
+    cook = out["by_source"]["cook"]
+    assert cook["outcome"] == "http_error" and cook["detail"].startswith("tree: ReadTimeout")
+    assert cook["http_status"] is None                  # no answer, so no status (rule 6)
+    assert out["by_source"]["sdk"]["outcome"] == "ok" and out["stopped"] is None
+    outcomes = dict(conn.execute("SELECT source_key, outcome FROM official_fetch").fetchall())
+    assert outcomes == {"cook": "http_error", "sdk": "ok", "pyvideo": "ok"}
+
+
+def test_a_record_that_gets_no_answer_is_an_http_error_too(conn, contract):
+    gh = FakeGitHub()
+    out = _run_through(conn, contract, _failing(gh, lambda p: p == "/repos/o/sdk"))
+    sdk = out["by_source"]["sdk"]
+    assert sdk["outcome"] == "http_error" and "repository record: ReadTimeout" in sdk["detail"]
+    assert out["by_source"]["cook"]["outcome"] == "ok"
+
+
+def test_releases_that_get_no_answer_leave_the_source_partial(conn, contract):
+    gh = FakeGitHub()
+    out = _run_through(conn, contract, _failing(gh, lambda p: p == "/repos/o/sdk/releases"))
+    sdk = out["by_source"]["sdk"]
+    assert sdk["outcome"] == "partial" and "releases page 1: ReadTimeout" in sdk["detail"]
+    assert sdk["files_new"] == 1                        # the changelog was still stored
+    assert conn.execute("SELECT count(*) FROM official_doc WHERE repo_key = 'sdk'"
+                        ).fetchone() == (1,)
+
+
+def test_a_talk_stored_without_an_id_is_withdrawn_when_it_gains_a_listed_one(conn, contract):
+    gh = FakeGitHub()
+    _run(conn, contract, gh)                            # plain.json stored, pyvideo_id NULL
+    assert conn.execute("SELECT pyvideo_id FROM video_ref WHERE path LIKE '%plain.json'"
+                        ).fetchone() == (None,)
+    gh.repos["pv/data"]["files"]["conf-2024/videos/plain.json"] = _talk("Packaging", id=99)
+    gh.repos["pv/data"]["files"]["NO_PUBLISH.json"] = b"[7, 99]"
+    store = _Store()
+    out = _run(conn, contract, gh, store=store)
+    pv = out["by_source"]["pyvideo"]
+    assert (pv["talks_withdrawn"], pv["talks_withheld"]) == (1, 1)   # 1 = hidden.json, never stored
+    assert conn.execute("SELECT count(*) FROM video_ref WHERE path LIKE '%plain.json'"
+                        ).fetchone() == (0,)
+    assert len(store.tombstoned) == 1
+
+
+def test_an_unknown_only_key_is_refused_before_any_request(contract):
+    gh = FakeGitHub()
+    with build_client(user_agent=UA, transport=httpx.MockTransport(gh)) as client:
+        for only in ({"cook", "cokk"}, {""}, set()):
+            with pytest.raises(official.OfficialHarvestError, match="not a source"):
+                official.harvest(None, client, terms=lambda: None, token="t", contract=contract,
+                                 only=only, dry_run=True)
+    assert gh.requests == []
+
+
+def test_markdown_in_a_spec_repository_is_stored_without_text(conn, tmp_path):
+    p = tmp_path / "c.yaml"
+    spec = ("  - {key: spec, repo: o/spec, branch: main, provider: openai, kind: spec,\n"
+            '     licence: MIT, include: ["*.md"], exclude: []}\n')
+    p.write_text(CONTRACT_YAML.replace("pyvideo:\n", spec + "pyvideo:\n", 1), encoding="utf-8")
+    gh = FakeGitHub()
+    gh.repos["o/spec"] = {"licence": "MIT", "files": {"README.md": b"# Spec\n"}}
+    out = _run(conn, op.load_contract(p), gh, only={"spec"})
+    assert out["by_source"]["spec"]["files_new"] == 1
+    assert conn.execute("SELECT doc_kind, text_ref FROM official_doc").fetchone() == ("spec", None)

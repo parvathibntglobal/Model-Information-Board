@@ -1272,11 +1272,13 @@ def _cmd_official_harvest(args: argparse.Namespace) -> int:
     official_fetch (collect/official/harvest.py). Never evidence. Gated.
 
     --dry-run makes every read (within the same caps) and writes nothing: no
-    database is opened, so no gate is needed and every file counts as new."""
+    database is opened, so no gate is needed and every file counts as new - and
+    is fetched, so a dry run costs as many API calls as a first real run."""
     from collect.http import build_client
     from collect.official.harvest import check_github_terms, harvest
 
-    only = set(args.only.split(",")) if args.only else None
+    # An empty or unknown key reaches harvest(), which refuses it (rule 12).
+    only = {k.strip() for k in args.only.split(",")} if args.only is not None else None
     if args.dry_run:
         with build_client() as client:
             counts = harvest(None, client, terms=check_github_terms, only=only, dry_run=True)
@@ -1421,7 +1423,11 @@ def build_parser() -> argparse.ArgumentParser:
     official_harvest.add_argument("--only", default=None,
                                   help="comma-separated source keys; default every source")
     official_harvest.add_argument("--dry-run", action="store_true",
-                                  help="read and report; write nothing, open no database")
+                                  help="read and report; write nothing, open no database. "
+                                       "NOT A QUICK CHECK: nothing stored means every file is "
+                                       "fetched - 2,529 API calls on 2026-10-30 for every "
+                                       "source, on the token the evidence harvest shares. "
+                                       "Use --only to bound it")
     official_harvest.set_defaults(func=_cmd_official_harvest)
 
     registry = sub.add_parser("registry", help="the model registry")

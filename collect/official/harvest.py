@@ -16,6 +16,9 @@ EVERYTHING NOT DONE IS COUNTED, on the repository's official_fetch row: files
 deferred by the per-run cap, too large to fetch, failed, no longer listed; talks
 in events with no year or before the minimum year, withheld or withdrawn under
 PyVideo's NO_PUBLISH.json. A run that stopped early says so (rule 4, rule 6).
+A request that gets no answer (a timeout, a dropped connection) is one failed
+file, or an `http_error` for the repository whose record, tree or releases it
+was - never the end of the run (#591 review).
 
 NOTHING HERE IS EVIDENCE and no model reads it. The intended reader is phase B's
 writing packs, which do not exist yet - contract/column_states.yaml says so per
@@ -31,6 +34,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
+
+import httpx
 
 from collect.config import settings
 from collect.ids import content_hash, stable_id
@@ -60,6 +65,12 @@ RELEASES_PER_PAGE = 100
 
 class OfficialHarvestError(RuntimeError):
     """The harvest cannot start: no token, or the terms check refused."""
+
+
+class RequestFailed(ValueError):
+    """A request that got no answer: a timeout, a refused or dropped connection.
+    A ValueError, so a blob that fails this way is counted with the blobs that
+    failed any other way (`files_failed`)."""
 
 
 class _Stop(Exception):
@@ -97,10 +108,15 @@ class GitHub:
                         f"stop_below_remaining ({self._contract.stop_below_remaining})")
         url = self._contract.api + path
         self._limiter.wait(url)
-        response = self._client.get(url, params=params, headers={
-            "Accept": accept, "Authorization": f"Bearer {self._token}",
-            "X-GitHub-Api-Version": API_VERSION})
+        # Counted as a call whether or not it is answered: a request that timed
+        # out may still have reached GitHub and spent the budget.
         self.calls += 1
+        try:
+            response = self._client.get(url, params=params, headers={
+                "Accept": accept, "Authorization": f"Bearer {self._token}",
+                "X-GitHub-Api-Version": API_VERSION})
+        except httpx.HTTPError as exc:
+            raise RequestFailed(f"{type(exc).__name__} {str(exc)[:160]}".strip()) from exc
         left = response.headers.get("x-ratelimit-remaining")
         if left is not None and left.isdigit():
             self.remaining = int(left)
@@ -275,7 +291,12 @@ class _Run:
 def _check_repo(run: _Run, owner_repo: str, licence: str, t: dict[str, Any]) -> bool:
     """The repository's own record: does GitHub still report the licence the
     contract names? A mismatch stops this repository's read (rule 12)."""
-    response = run.gh.get(f"/repos/{owner_repo}")
+    try:
+        response = run.gh.get(f"/repos/{owner_repo}")
+    except RequestFailed as exc:
+        t.update(outcome="http_error")
+        t["problems"].append(f"repository record: {exc}")
+        return False
     if response.status_code != 200:
         t.update(outcome="http_error", http_status=response.status_code)
         t["problems"].append(f"repository record: HTTP {response.status_code}")
@@ -293,8 +314,13 @@ def _tree(run: _Run, owner_repo: str, branch: str, t: dict[str, Any]):
     """(blobs, complete) - complete is False when GitHub truncated the listing,
     and then nothing is marked unlisted, because absence from a cut list is not
     absence from the repository."""
-    response = run.gh.get(f"/repos/{owner_repo}/git/trees/{quote(branch, safe='')}",
-                          params={"recursive": "1"})
+    try:
+        response = run.gh.get(f"/repos/{owner_repo}/git/trees/{quote(branch, safe='')}",
+                              params={"recursive": "1"})
+    except RequestFailed as exc:
+        t.update(outcome="http_error")
+        t["problems"].append(f"tree: {exc}")
+        return None, False
     if response.status_code != 200:
         t.update(outcome="http_error", http_status=response.status_code)
         t["problems"].append(f"tree: HTTP {response.status_code}")
@@ -392,8 +418,11 @@ def _doc_writer(run: _Run, repo: Repo):
             if nb is not None:
                 text_ref = run.store.put(nb.text, namespace=FLATTENED).ref
                 h1 = nb.h1
-        elif fmt == "md":
-            text_ref = raw_ref   # markdown is its own text
+        elif fmt == "md" and repo.kind != "spec":
+            # Markdown is its own text - except in a spec repository, whose rows
+            # carry no text (official_doc_spec_has_no_text_ck), so a `.md` added
+            # to a spec's include list is stored rather than refused.
+            text_ref = raw_ref
             try:
                 h1 = first_h1(payload.decode("utf-8"))
             except UnicodeDecodeError:
@@ -420,8 +449,13 @@ def _read_releases(run: _Run, repo: Repo, t: dict[str, Any]) -> None:
     releases: list[dict] = []
     complete = False
     for page in range(1, run.contract.max_release_pages + 1):
-        response = run.gh.get(f"/repos/{repo.repo}/releases",
-                              params={"per_page": RELEASES_PER_PAGE, "page": page})
+        try:
+            response = run.gh.get(f"/repos/{repo.repo}/releases",
+                                  params={"per_page": RELEASES_PER_PAGE, "page": page})
+        except RequestFailed as exc:
+            t["problems"].append(f"releases page {page}: {exc}")
+            t["outcome"] = "partial"
+            break
         if response.status_code != 200:
             t["problems"].append(f"releases page {page}: HTTP {response.status_code}")
             t["outcome"] = "partial"
@@ -490,7 +524,18 @@ def _read_pyvideo(run: _Run, pv: PyVideo, t: dict[str, Any]) -> None:
 
     A WITHHELD TALK IS READ AGAIN NEXT RUN. Nothing about it is stored - not a
     row, not its bytes - so there is nothing to compare its sha with. That is at
-    most one read per listed id per run (2 ids on 2026-10-30)."""
+    most one read per listed id per run (2 ids on 2026-10-30).
+
+    A STORED TALK THAT IS LISTED IS WITHDRAWN, found either way: by the id
+    stored with it, or - for a talk stored with no id that gained a listed one
+    later - by the id in its newly fetched record (#591 review).
+
+    WHAT A WITHDRAWAL TOMBSTONES IS THE BYTES THE ROW POINTS AT: the talk's
+    latest stored version. An earlier version, stored before the record changed,
+    is not tracked by any row and stays in the raw store untouched. The
+    tombstone is immediate; the row's DELETE commits with the source, so if the
+    source then fails the row survives pointing at tombstoned bytes - the safe
+    direction for a takedown, and the next run deletes it."""
     if not _check_repo(run, pv.repo, pv.licence, t):
         return
     blobs, complete = _tree(run, pv.repo, pv.branch, t)
@@ -525,16 +570,19 @@ def _read_pyvideo(run: _Run, pv: PyVideo, t: dict[str, Any]) -> None:
     t["files_listed"] = len(in_scope)
     known = _known_talks(run.conn)
 
-    # WITHDRAWN: stored before PyVideo listed it. The row goes, and its stored
-    # bytes are tombstoned as a takedown - "never stored" holds from here on.
-    for path, (_sha, _unlisted, pid, raw_ref) in list(known.items()):
+    def withdraw(path: str, pid: int) -> None:
+        """Stored before PyVideo listed it: the row goes, and its stored bytes
+        are tombstoned as a takedown - "never stored" holds from here on."""
+        raw_ref = known.pop(path)[3]
+        t["talks_withdrawn"] += 1
+        if run.conn is not None:
+            run.store.tombstone(raw_ref, reason="takedown-request",
+                                detail=f"PyVideo {pv.no_publish_path} lists talk id {pid}")
+            run.conn.execute("DELETE FROM video_ref WHERE path = %s", (path,))
+
+    for path, (_sha, _unlisted, pid, _ref) in list(known.items()):
         if pid is not None and pid in withheld_ids:
-            t["talks_withdrawn"] += 1
-            if run.conn is not None:
-                run.conn.execute("DELETE FROM video_ref WHERE path = %s", (path,))
-                run.store.tombstone(raw_ref, reason="takedown-request",
-                                    detail=f"PyVideo {pv.no_publish_path} lists talk id {pid}")
-            del known[path]
+            withdraw(path, pid)
 
     to_fetch = _plan(run, in_scope, known, t, lambda path: run.conn.execute(
         "UPDATE video_ref SET unlisted_at = NULL WHERE path = %s", (path,)))
@@ -542,7 +590,10 @@ def _read_pyvideo(run: _Run, pv: PyVideo, t: dict[str, Any]) -> None:
     def write(entry: dict, payload: bytes) -> bool | None:
         rec = parse_talk(payload, entry["path"], pv)
         if rec["pyvideo_id"] is not None and rec["pyvideo_id"] in withheld_ids:
-            t["talks_withheld"] += 1
+            if entry["path"] in known:
+                withdraw(entry["path"], rec["pyvideo_id"])   # stored with no id
+            else:
+                t["talks_withheld"] += 1
             return None
         row = rec | {"id": stable_id("video", entry["path"]), "blob_sha": entry["sha"],
                      "event_year": entry["event_year"], "raw_ref": run.store.put(payload).ref,
@@ -569,9 +620,20 @@ def harvest(conn, client, *, terms: Callable[[], None], token: str | None = None
 
     DRY RUN: every read happens (within the same caps), nothing is written -
     no row, no raw-store payload - and no database is read, so every file
-    counts as new. COMMITTED AS IT GOES otherwise: after each repository, so a
-    failure late in a run costs only the repository it was reading."""
+    counts as new AND IS FETCHED: a dry run spends the shared token's budget
+    like a first real run (2,529 calls on 2026-10-30, every source).
+
+    COMMITTED AS IT GOES otherwise: after each repository, so a failure late in
+    a run costs only the repository it was reading."""
     contract = contract or load_contract()
+    if only is not None:
+        keys = {r.key for r in contract.repos} | {contract.pyvideo.key}
+        unknown = sorted(only - keys)
+        if unknown or not only:
+            raise OfficialHarvestError(
+                f"--only names {', '.join(unknown) or 'no source'}, not a source in "
+                f"contract/official_sources.yaml ({', '.join(sorted(keys))}). Nothing was read: "
+                "a run that matches no source would report success having read nothing.")
     token = token if token is not None else settings().github_token
     if not token:
         raise OfficialHarvestError(
