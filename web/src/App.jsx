@@ -82,6 +82,7 @@ const PriceChanges = page(() => import('./routes/PriceChanges'))
 const News = page(() => import('./routes/News'))
 const NewsStory = page(() => import('./routes/NewsStory'))
 const Updates = page(() => import('./routes/Updates'))
+const AiUpdates = page(() => import('./routes/AiUpdates'))
 const KitePulse = page(() => import('./kitepulse/KitePulseSite'))
 
 /** What a page shows while its chunk downloads: the skeleton the pages use for data. */
@@ -205,6 +206,8 @@ export default function App() {
           <Route path="/news" element={<Require session={session}><News /></Require>} />
           <Route path="/news/:id" element={<Require session={session}><NewsStory /></Require>} />
           <Route path="/updates" element={<Require session={session}><Updates /></Require>} />
+          {/* Public: the updates a person approved on /updates (2026-10-30). */}
+          <Route path="/ai-news-headlines" element={<AiUpdates />} />
           <Route path="/keywords" element={<MovedTo path="/seo-keywords" />} />
           <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
           {/* Signed in only: an internal preview of another product's site. */}

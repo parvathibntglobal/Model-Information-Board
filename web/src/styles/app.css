@@ -80,14 +80,42 @@ main{flex:1}
 .nav-menu-pop::before{content:"";position:absolute;inset:6px 0 0;border-radius:var(--r-control);
   background:var(--bg);border:1px solid var(--border);box-shadow:0 10px 30px rgb(0 0 0 / calc(.25 * var(--shadow-k)));z-index:-1}
 .nav-menu.end .nav-menu-pop{left:auto;right:0}
-.nav-menu:hover .nav-menu-pop,.nav-menu:focus-within .nav-menu-pop{display:flex}
-.nav-menu-item{font-size:var(--fs-sm);color:var(--text-2);padding:9px 14px;margin:2px 4px;border-radius:8px}
+/* ONE MENU AT A TIME (2026-10-30): a menu opens on hover, or on KEYBOARD focus
+   (:focus-visible) - not on the focus a mouse click leaves behind, which kept a
+   clicked menu open beside the hovered one. While the pointer is in the bar,
+   only the hovered menu shows. */
+.nav-menu:hover .nav-menu-pop,.nav-menu:has(:focus-visible) .nav-menu-pop{display:flex}
+.nav-in:hover .nav-menu:not(:hover) .nav-menu-pop{display:none}
+.nav-menu-item{font-size:var(--fs-sm);color:var(--text-2);padding:9px 14px;margin:2px 4px;border-radius:8px;white-space:nowrap}
+/* A menu whose items carry a line under the name is wider, so the line reads in one or two. */
+.nav-menu-pop:has(.nav-menu-desc){min-width:260px}
 .nav-menu-pop .nav-menu-item:first-child{margin-top:6px}
 .nav-menu-pop .nav-menu-item:last-child{margin-bottom:6px}
 .nav-menu-item:hover,.nav-menu-item:focus-visible{color:var(--text);background:var(--surface)}
 /* A line under a menu item's name (Nav.jsx `desc`, 2026-10-29). */
 .nav-menu-desc{display:block;margin-top:2px;font-size:var(--fs-xs);color:var(--text-3);white-space:normal;max-width:30ch}
 .nav-menu-item.on{color:var(--text);background:var(--surface-2)}
+/* The account menu (Nav.jsx AccountMenu, 2026-10-30): a round initial, then who
+   is signed in, the signed-in pages and Sign out. */
+.nav-account-btn{display:inline-flex;align-items:center;gap:6px;padding:3px 8px 3px 3px;border:1px solid var(--border);
+  border-radius:var(--r-pill);background:var(--surface);color:var(--text-2);cursor:pointer;font-family:inherit}
+.nav-account-btn:hover,.nav-account.on .nav-account-btn{color:var(--text);border-color:var(--border-strong)}
+.nav-account-btn:focus-visible{outline:2px solid var(--text-2);outline-offset:2px}
+.nav-avatar{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);
+  color:var(--on-accent);font-size:var(--fs-xs);font-weight:700}
+.nav-account .nav-menu-pop{min-width:240px}
+.nav-account-who{display:flex;flex-direction:column;gap:2px;margin:6px 4px 4px;padding:10px 14px 12px;
+  border-bottom:1px solid var(--border-soft)}
+.nav-account-label{font-size:var(--fs-label);color:var(--text-3)}
+.nav-account-mail{font-size:var(--fs-sm);font-weight:600;color:var(--text);max-width:26ch;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-signout{border:0;border-top:1px solid var(--border-soft);border-radius:0 0 8px 8px;background:none;
+  text-align:left;cursor:pointer;font-family:inherit;margin-top:4px;padding-top:12px}
+.nav-signout:hover{color:var(--fail)}
+/* Signed out: one "Sign in ▾" (Nav.jsx SignInMenu). */
+.nav-signin-btn{display:inline-flex;align-items:center;gap:6px}
+.nav-signin .nav-menu-pop{min-width:240px}
+.nav-signin-go{justify-content:center;width:100%;margin-bottom:6px}
 
 /* ================================================================ buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
@@ -783,10 +811,15 @@ th.r,td.r{text-align:right}
   font-size:var(--fs-xs);color:var(--text-3)}
 /* brand and tagline, then the link columns; the bottom line (.footer-in) sits
    under a rule */
-.footer-grid{display:grid;grid-template-columns:minmax(0,1.7fr) repeat(5,minmax(0,1fr));gap:var(--s4);
+.footer-grid{display:grid;grid-template-columns:minmax(270px,1.8fr) repeat(6,minmax(0,1fr));gap:var(--s3);
   padding-bottom:var(--s4);margin-bottom:var(--s3);border-bottom:1px solid var(--border-soft)}
 .footer-brand p{margin-top:12px;font-size:var(--fs-sm);color:var(--text-2);line-height:1.55;max-width:36ch}
 .footer-brand .footer-promise{margin-top:10px;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;color:var(--pass)}
+/* "Reports from", one line under the brand (2026-10-30): it was a column. */
+.footer-brand .brand{white-space:nowrap}
+.footer-brand .brand-mark{flex:none}
+.footer-brand .footer-from{margin-top:14px;font-size:var(--fs-xs);color:var(--text-3)}
+.footer-from .footer-h{display:block;margin-bottom:4px}
 .footer-col{display:flex;flex-direction:column;gap:8px;font-size:var(--fs-sm)}
 .footer-col a{color:var(--text-2);text-decoration:none}
 .footer-col a:hover{color:var(--text);text-decoration:underline;text-underline-offset:3px}
@@ -965,14 +998,8 @@ th.r,td.r{text-align:right}
   .orbit-pulse{display:none}
 }
 
-/* ---- session chip in the nav */
-.who{display:flex;align-items:center;gap:8px;padding-right:2px}
-.who-role{
-  font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--text-3);
-}
-.who-mail{font-size:var(--fs-xs);color:var(--text-2)}
-@media (max-width:900px){ .who-mail{display:none} }
+/* ---- the session chip in the nav (.who, .who-mail) was replaced by the
+   account menu (Nav.jsx AccountMenu, .nav-account-*) on 2026-10-30. */
 
 /* ================================================================ live-api views */
 .ask-extra{display:flex;gap:var(--s2);margin-top:var(--s3);flex-wrap:wrap}

@@ -229,6 +229,9 @@ def test_the_public_list_names_only_reads_that_were_checked():
         # registry figures, a checklist from contract/migrations.yaml and counts of
         # board entries; no quote or source (tests/test_guide_facts.py).
         "/guide-facts",
+        # 2026-10-30 (PROPOSED): the AI updates page - approved updates' words,
+        # kind, label and date (tests/test_updates.py checks what it sends).
+        "/updates/approved",
     } == gate.PUBLIC_READ_PATHS
     assert gate.PUBLIC_READ_PREFIXES == ("/model-catalog/", "/glossary-terms/")
 

@@ -50,12 +50,14 @@
 
 /* The plot: a y-axis, then the categories side by side. */
 .bc-scroll{overflow-x:auto;padding-top:12px}
-.bc-plot{position:relative;display:grid;grid-template-columns:32px 1fr;gap:8px}
-.bc-yaxis{position:relative;height:300px;font-size:10px;color:var(--text-3);font-family:var(--font-mono);
+/* SIZE (2026-10-30, Parvathi): 220px tall (was 300) and columns up to 40px wide
+   (were 24): the columns read as bars, not thin sticks. */
+.bc-plot{--bc-plot-h:220px;position:relative;display:grid;grid-template-columns:32px 1fr;gap:8px}
+.bc-yaxis{position:relative;height:var(--bc-plot-h);font-size:10px;color:var(--text-3);font-family:var(--font-mono);
   font-variant-numeric:tabular-nums}
 .bc-yaxis span{position:absolute;right:0;transform:translateY(50%)}
 .bc-area{position:relative}
-.bc-gridlines{position:absolute;left:0;right:0;top:0;height:300px;pointer-events:none}
+.bc-gridlines{position:absolute;left:0;right:0;top:0;height:var(--bc-plot-h);pointer-events:none}
 .bc-gridlines i{position:absolute;left:0;right:0;height:1px;background:var(--border-soft)}
 .bc-gridlines i.base{background:var(--border-strong)}
 .bc-sections{display:flex;gap:14px}
@@ -63,12 +65,12 @@
 .bc-clusters,.bc-xlabels{display:flex;gap:6px}
 .bc-cluster{flex:1 1 0;min-width:0}
 /* One cluster per benchmark: its columns grow from the shared baseline. */
-.bc-cols{height:300px;display:flex;align-items:flex-end;justify-content:center;gap:2px}
-.bc-col{all:unset;position:relative;flex:0 1 22px;min-width:4px;max-width:24px;box-sizing:border-box;
+.bc-cols{height:var(--bc-plot-h);display:flex;align-items:flex-end;justify-content:center;gap:3px}
+.bc-col{all:unset;position:relative;flex:0 1 36px;min-width:6px;max-width:40px;box-sizing:border-box;
   border-radius:4px 4px 0 0;cursor:pointer;transition:height .35s var(--ease)}
 .bc-col:hover,.bc-col:focus-visible{filter:brightness(1.12)}
 .bc-col:focus-visible{outline:2px solid var(--text);outline-offset:1px}
-.bc-col-gap{flex:0 1 22px;min-width:4px;max-width:24px}
+.bc-col-gap{flex:0 1 36px;min-width:6px;max-width:40px}
 .bc-col-value{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);padding-bottom:4px;
   font-size:10px;font-family:var(--font-mono);color:var(--text);white-space:nowrap}
 .bc-xlabels{margin-top:8px}
@@ -94,7 +96,16 @@
 .bc-sources a{color:var(--text-2)}
 
 /* ── the leaderboard: positions and scores, one line per benchmark and variant ─ */
-.bc-lb{padding:var(--card-pad);display:flex;flex-direction:column;gap:var(--s2)}
+.bc-lb{padding:var(--card-pad);display:flex;flex-direction:column;gap:var(--s2);scroll-margin-top:84px}
+/* "🏆 Leaderboard positions ↓" at the end of the model line (2026-10-30): the
+   way down to the table, so it is not missed under the chart. */
+.bc-jump{margin-left:auto;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;
+  border:1px solid var(--border-strong);border-radius:var(--r-pill);background:var(--surface);
+  color:var(--text);font-size:var(--fs-sm);font-weight:600;text-decoration:none;white-space:nowrap;
+  box-shadow:var(--shadow-card);transition:transform .15s,box-shadow .15s,background .15s}
+.bc-jump:hover{background:var(--surface-2);box-shadow:var(--shadow-lift);transform:translateY(-1px)}
+.bc-jump:focus-visible{outline:2px solid var(--text-2);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.bc-jump{transition:none}.bc-jump:hover{transform:none}}
 .bc-lb-head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--s2) var(--s3);flex-wrap:wrap}
 .bc-lb-head p{margin:0;max-width:62ch}
 .bc-lb-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}

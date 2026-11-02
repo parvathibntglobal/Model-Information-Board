@@ -1533,13 +1533,49 @@ def clear_published_cache() -> None:
     _published_cache.clear()
 
 
+def _kept(name: str, now: datetime | None) -> dict[str, Any] | None:
+    """A public read's kept answer, or None when there is none, it has run out,
+    or a save came after it was stored (#586 review: the generation is compared
+    on read too, so a clear between check and store cannot leave it served)."""
+    hit = _published_cache.get(name)
+    if (
+        hit is not None
+        and hit[2] == _published_generation[0]
+        and (now or datetime.now(UTC)) < hit[1]
+    ):
+        return hit[0]
+    return None
+
+
+def stale(name: str) -> dict[str, Any] | None:
+    """A public read's last answer even when its time has run out, or None when
+    there is none or a save came after it (a save must show at once, so only an
+    answer no save has overtaken is served while a fresh one is built). `name`
+    is "v" (the home page) or "approved" (the AI updates page)."""
+    hit = _published_cache.get(name)
+    return hit[0] if hit is not None and hit[2] == _published_generation[0] else None
+
+
+#: An answer built while the benchmarks data was not readable is kept this
+#: long at most, so the page asks again soon instead of saying "unavailable"
+#: for the whole `home_cache_seconds` (#592 review).
+UNREAD_KEEP_SECONDS = 60
+
+
+def _keep(
+    name: str, out: dict[str, Any], clock: datetime, generation: int, *, short: bool = False
+) -> None:
+    seconds = rules()["home_cache_seconds"]
+    if short:
+        seconds = min(seconds, UNREAD_KEEP_SECONDS)
+    if generation == _published_generation[0]:
+        _published_cache[name] = (out, clock + timedelta(seconds=seconds), generation)
+
+
 def cached_published(now: datetime | None = None) -> dict[str, Any] | None:
     """The home page's kept answer, or None when there is none or it has run
     out. Needs no database, so the endpoint checks it before connecting."""
-    hit = _published_cache.get("v")
-    if hit is not None and (now or datetime.now(UTC)) < hit[1]:
-        return hit[0]
-    return None
+    return _kept("v", now)
 
 
 def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str, Any]:
@@ -1580,10 +1616,79 @@ def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str
             for key, kind, headline, detail, at in rows
         ]
     }
-    if now is None and generation == _published_generation[0]:
-        _published_cache["v"] = (
-            out,
-            clock + timedelta(seconds=r["home_cache_seconds"]),
-            generation,
-        )
+    if now is None:
+        _keep("v", out, clock, generation)
+    return out
+
+
+# ── the public AI updates page (/ai-news-headlines) ───────────────────────────────
+
+APPROVED_SQL = (
+    "SELECT update_key, status, style, headline, detail FROM update_review "
+    "WHERE status = 'approved'"
+)
+
+
+def cached_approved(now: datetime | None = None) -> dict[str, Any] | None:
+    """The AI updates page's kept answer; as cached_published()."""
+    return _kept("approved", now)
+
+
+def approved(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str, Any]:
+    """What the public AI updates page shows (Parvathi, 2026-10-30): every update
+    a person APPROVED in Manage, over `max_window_days`, newest first, in its
+    words as Manage shows them now - the chosen style, or the person's edit.
+
+    Not the home page's rule: publishing fixes words for the home page's few
+    days; this page is the longer record, so it follows Manage. Only updates
+    still built are listed, so one no longer in the data leaves by itself.
+
+    AN OUTAGE IS SAID, NEVER READ AS "NONE" (rule 6, #592 review): when the
+    benchmarks data is not readable, benchmark updates cannot be worded, so
+    `benchmarks_unread` is true and the page says the results are unavailable
+    rather than "nothing in this section". Such an answer is kept only
+    UNREAD_KEEP_SECONDS. PUBLIC (judge/gate.py): words, kind, label, date, the
+    verify mark, the models' public ids and that flag only - no reviewer, no
+    style, no status, no draft."""
+    r = rules()
+    clock = now or datetime.now(UTC)
+    if now is None and (kept := cached_approved(clock)) is not None:
+        return kept
+    generation = _published_generation[0]
+    try:
+        rows = conn.execute(APPROVED_SQL).fetchall()
+    except errors.UndefinedTable:
+        conn.rollback()
+        rows = []
+    reviews = {
+        key: {"status": status, "style": style, "headline": headline, "detail": detail}
+        for key, status, style, headline, detail in rows
+    }
+    items = []
+    if reviews:
+        built = build(conn, bench_conn=bench_conn, days=r["max_window_days"], now=clock)
+        for u in built["updates"]:
+            rv = reviews.get(u["key"])
+            if rv is None:
+                continue
+            _, headline, detail = _words(u, rv)
+            items.append(
+                {
+                    "key": u["key"],
+                    "kind": u["kind"],
+                    "label": u["label"],
+                    "headline": headline,
+                    "detail": detail,
+                    "date": u["date"],
+                    "upcoming": u["upcoming"],
+                    "verify": u["kind"].startswith("price"),
+                    # The models it is about, by their public ids, so each
+                    # headline can link to the model's own page.
+                    "models": list(u["models"]),
+                }
+            )
+    unread = bench_conn is None
+    out = {"updates": items, "window_days": r["max_window_days"], "benchmarks_unread": unread}
+    if now is None:
+        _keep("approved", out, clock, generation, short=unread)
     return out
