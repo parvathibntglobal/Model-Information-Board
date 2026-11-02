@@ -158,6 +158,11 @@ PUBLIC_READ_PATHS = frozenset({
     # kind, label and date. Nothing else from Manage: no reviewer, style,
     # status or draft, and no update nobody approved.
     "/updates/approved",
+    # 2026-11-02 (PROPOSED, anooj, feat/hooks-prototype): Watch my models -
+    # registry prices and dates, model_event moves, report COUNTS from every
+    # source and quotes only from sources a public page may show
+    # (judge/publication.py), as judge/watch.py documents.
+    "/watch",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

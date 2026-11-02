@@ -3700,6 +3700,23 @@ def updates_approved() -> dict:
     return _public_updates("approved", updates.cached_approved)
 
 
+@app.get("/watch")
+def watch_models(ids: str = "", since: str | None = None) -> dict:
+    """Watch my models (a prototype, feat/hooks-prototype): one card per model a
+    visitor runs - listed prices and price moves, lifecycle dates, reports
+    counted by polarity, the newest quotes and a weekly trend. `ids` is a
+    comma-separated list of canonical ids; `since` the browser's last look.
+    PUBLIC (judge/gate.py, PROPOSED). See judge/watch.py."""
+    from judge import watch
+
+    try:
+        when = watch.parse_since(since)
+        with _conn() as conn:
+            return watch.watch(conn, ids.split(","), since=when)
+    except watch.WatchRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/updates")
 def updates_list(days: int | None = None) -> dict:
     """Every update in the window, newest first, with its words, its styles and

@@ -635,6 +635,9 @@ export const adminPriceChanges = (days) => request(`/admin/price-changes${days ?
 export const newsFeed = (days) => request(`/news${days ? `?days=${days}` : ''}`)
 // One story's page: what its source gave, the models it names, related stories.
 export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
+/** Watch my models (judge/watch.py): ids are canonical ids; since is the last look. */
+export const watchModels = (ids, since) => request(
+  `/watch?ids=${encodeURIComponent(ids.join(','))}${since ? `&since=${encodeURIComponent(since)}` : ''}`)
 
 // THE UPDATES PAGE (judge/updates.py, 2026-10-29). Signed in. An edit that
 // brings in a number the update's facts do not hold is a 409 whose
