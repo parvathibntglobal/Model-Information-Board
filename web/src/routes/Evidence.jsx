@@ -6,6 +6,7 @@ import { PolarityChip, Posted, Report, SourceLine } from '../evidence/parts'
 import { useHead } from '../seo/head'
 import { evidenceHead } from '../seo/pages'
 import '../styles/evidence.css'
+import { useFollowed } from '../follow/follow'
 
 /**
  * THE EVIDENCE FEED (2026-10-21, PROPOSED): every report behind a model's
@@ -50,10 +51,13 @@ function Picker() {
       .catch((e) => alive && setState({ models: null, err: e.message || 'The models could not be read.' }))
     return () => { alive = false }
   }, [])
+  // The models this visitor follows come first, marked (follow/follow.js).
+  const [mine] = useFollowed()
   const ql = q.trim().toLowerCase()
   const shown = useMemo(() => (state.models || [])
     .filter((m) => !ql || `${m.name} ${m.id}`.toLowerCase().includes(ql))
-    .sort((a, b) => b.voices - a.voices || b.reports - a.reports || a.name.localeCompare(b.name)), [state.models, ql])
+    .sort((a, b) => (mine.includes(b.id) - mine.includes(a.id)) || b.voices - a.voices
+      || b.reports - a.reports || a.name.localeCompare(b.name)), [state.models, ql, mine])
   return (
     <section className="stack stack-2">
       <input className="ev-search" type="search" value={q} onChange={(e) => setQ(e.target.value)}
@@ -66,7 +70,7 @@ function Picker() {
             {shown.map((m) => (
               <li key={m.id}>
                 <Link to={evidencePath(m.id)}>
-                  <span className="ev-pick-name">{m.name}</span>
+                  <span className="ev-pick-name">{m.name}{mine.includes(m.id) && <span className="fl-tag">Following</span>}</span>
                   <span className="ev-dim">{plural(m.voices, 'voice')} · {plural(m.reports, 'report')}</span>
                 </Link>
               </li>

@@ -10,6 +10,8 @@ import PersonaPicker from '../tokens/PersonaPicker'
 import { PERSONAS } from '../tokens/personas'
 import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath, reportsPath } from './format'
 import FeedLink from '../components/FeedLink'
+import FollowButton from '../follow/FollowButton'
+import ModelPulse from '../follow/ModelPulse'
 import { typeLabel } from './types'
 
 /**
@@ -275,6 +277,7 @@ export default function ModelPage({ id }) {
         {m.description && <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.description}</p>}
         <Freshness modelIds={[m.id]} style={{ margin: 0 }} />
         <div className="mp2-actions">
+          {m.in_registry && <FollowButton id={m.id} name={m.name} />}
           {m.in_registry
             ? <Link to={`/compare?ids=${encodeURIComponent(m.id)}`} className="btn btn-ghost">Compare with…</Link>
             : <span className="mp2-na" title="Comparisons are of what engineers report, so they cover the models we collect reports for">Not comparable yet</span>}
@@ -312,6 +315,9 @@ export default function ModelPage({ id }) {
       </div>
 
       <Lifecycle m={m} />
+      {/* What no other page shows (2026-11-02, prototype): new since your last
+          look, and reports per week with the launch week marked. */}
+      {m.in_registry && <ModelPulse id={m.id} />}
 
       <Workload m={m} />
       <Voices m={m} />

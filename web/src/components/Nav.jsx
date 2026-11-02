@@ -22,8 +22,6 @@ const LINKS = [
   // HOVER MENUS. The label still opens its own page on click; hovering lists
   // what is inside it, the way the demo's sections are split.
   { to: '/tools', label: 'Tools', items: [
-    // 2026-11-02 (prototype): the models you run, and what changed for them.
-    { to: '/my-models', label: 'My models: what changed' },
     { to: '/best-ai-model', label: 'Best AI model picker' },
     { to: '/ai-model-pricing', label: 'AI model pricing & specs table' },
     { to: '/token-counter', label: 'LLM cost calculator' },

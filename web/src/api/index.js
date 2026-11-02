@@ -635,7 +635,7 @@ export const adminPriceChanges = (days) => request(`/admin/price-changes${days ?
 export const newsFeed = (days) => request(`/news${days ? `?days=${days}` : ''}`)
 // One story's page: what its source gave, the models it names, related stories.
 export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
-/** Watch my models (judge/watch.py): ids are canonical ids; since is the last look. */
+/** One model's pulse for its page (judge/watch.py, GET /watch): new since the last look, weekly trend. */
 export const watchModels = (ids, since) => request(
   `/watch?ids=${encodeURIComponent(ids.join(','))}${since ? `&since=${encodeURIComponent(since)}` : ''}`)
 

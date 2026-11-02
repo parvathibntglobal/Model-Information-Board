@@ -1,0 +1,28 @@
+/* Follow (follow/*.jsx, 2026-11-02, prototype): the button, the tag, and one
+   model's pulse on its page. Tokens only. */
+
+.fl-on{border-color:var(--border-strong);color:var(--text)}
+.fl-tag{margin-left:8px;padding:1px 7px;border-radius:var(--r-pill);background:var(--surface-3);
+  font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-2);vertical-align:middle}
+
+.pl-since{margin:0;font-size:var(--fs-sm);line-height:1.6;color:var(--text-2)}
+.pl-since b{color:var(--text)}
+.pl-since b.pl-neg{color:var(--fail)}
+
+.pl-trend{margin:0}
+.pl-bars{display:flex;align-items:flex-end;gap:8px;height:120px}
+.pl-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;min-width:0}
+.pl-bar-n{font-size:10px;color:var(--text-3);min-height:12px}
+.pl-bar-col{flex:1;width:100%;max-width:56px;display:flex;flex-direction:column;justify-content:flex-end;
+  border-radius:4px;overflow:hidden;background:var(--surface-2)}
+.pl-bar-rest{display:block;background:var(--text-3);opacity:.45}
+.pl-bar-neg{display:block;background:var(--fail)}
+.pl-bar-lab{font-size:10px;color:var(--text-3);white-space:nowrap}
+.pl-trend figcaption{margin-top:8px;font-size:var(--fs-xs);color:var(--text-3);line-height:1.5;max-width:78ch}
+.pl-key-neg{color:var(--fail);font-weight:600}
+.pl-key-rest{color:var(--text-2);font-weight:600}
+
+@media (max-width:600px){
+  .pl-bars{gap:4px}
+  .pl-bar-lab{font-size:9px}
+}
