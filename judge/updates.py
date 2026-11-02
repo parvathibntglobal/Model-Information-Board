@@ -158,6 +158,8 @@ def rules() -> dict[str, Any]:
             "home_days": int(raw["home_days"]),
             "home_limit": int(raw["home_limit"]),
             "home_cache_seconds": int(raw["home_cache_seconds"]),
+            "unread_cache_seconds": int(raw["unread_cache_seconds"]),
+            "cold_wait_seconds": int(raw["cold_wait_seconds"]),
             "second_check_pct": float(raw["second_check_pct"]),
             "mixed_move_pct": float(raw["mixed_move_pct"]),
             "retiring_ahead_days": int(raw["retiring_ahead_days"]),
@@ -193,6 +195,8 @@ def rules() -> dict[str, Any]:
         raise UpdatesContractError(
             "need home_days >= 1, home_limit >= 1 and home_cache_seconds >= 0"
         )
+    if out["unread_cache_seconds"] < 0 or out["cold_wait_seconds"] < 0:
+        raise UpdatesContractError("need unread_cache_seconds >= 0 and cold_wait_seconds >= 0")
     if out["group_min"] < 2 or out["names_shown"] < 1:
         raise UpdatesContractError("need group_min >= 2 and names_shown >= 1")
     unknown = set(out["why_by_set"]) - set(FACTS)
@@ -1559,18 +1563,15 @@ def stale(name: str) -> dict[str, Any] | None:
     return hit[0] if hit is not None and hit[2] == _published_generation[0] else None
 
 
-#: An answer built while the benchmarks data was not readable is kept this
-#: long at most, so the page asks again soon instead of saying "unavailable"
-#: for the whole `home_cache_seconds` (#592 review).
-UNREAD_KEEP_SECONDS = 60
-
-
 def _keep(
     name: str, out: dict[str, Any], clock: datetime, generation: int, *, short: bool = False
 ) -> None:
-    seconds = rules()["home_cache_seconds"]
+    """Keep `out` for `home_cache_seconds`; `short` (part of the data was not
+    readable) keeps it `unread_cache_seconds` at most (contract/updates.yaml)."""
+    r = rules()
+    seconds = r["home_cache_seconds"]
     if short:
-        seconds = min(seconds, UNREAD_KEEP_SECONDS)
+        seconds = min(seconds, r["unread_cache_seconds"])
     if generation == _published_generation[0]:
         _published_cache[name] = (out, clock + timedelta(seconds=seconds), generation)
 
@@ -1657,7 +1658,7 @@ def approved(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str,
     rather than "nothing in this section". The same when the review tables are
     missing (#592 review, point 5): `updates_unread`, and the page says the
     updates cannot be shown rather than "no updates yet". Such an answer is
-    kept only UNREAD_KEEP_SECONDS. PUBLIC (judge/gate.py): words, kind, label,
+    kept only `unread_cache_seconds`. PUBLIC (judge/gate.py): words, kind, label,
     date, the verify mark, the models' public ids and those two flags only - no
     reviewer, no style, no status, no draft."""
     r = rules()

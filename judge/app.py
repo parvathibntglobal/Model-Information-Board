@@ -3596,10 +3596,8 @@ _PUBLIC_REBUILD_LOCK = threading.Lock()
 #: Each read's running build, set when it ends - what a request with nothing
 #: kept waits on, instead of starting a build of its own (#592 review, point 4).
 _PUBLIC_DONE: dict[str, threading.Event] = {}
-#: How long such a request waits before building for itself. A build took ~12 s
-#: from a developer machine against the shared database (2026-10-30); a request
-#: left waiting this long would rather build than hang.
-COLD_WAIT_SECONDS = 45
+# How long such a request waits before building for itself is
+# contract/updates.yaml `cold_wait_seconds`.
 
 
 def _public_build(name: str):
@@ -3653,7 +3651,8 @@ def _public_updates(name: str, fresh) -> dict:
     nothing kept, at startup or straight after a save - the one running build,
     waited on by every request that arrives meanwhile (#592 review, point 4), so
     N visitors cost one build and one benchmarks connection, not N. A request
-    builds for itself only when that build failed or outran COLD_WAIT_SECONDS."""
+    builds for itself only when that build failed or outran `cold_wait_seconds`
+    (contract/updates.yaml)."""
     from judge import updates
 
     if (kept := fresh()) is not None:
@@ -3661,7 +3660,7 @@ def _public_updates(name: str, fresh) -> dict:
     if (old := updates.stale(name)) is not None:
         _rebuild_in_background(name)
         return old
-    _rebuild_in_background(name).wait(COLD_WAIT_SECONDS)
+    _rebuild_in_background(name).wait(updates.rules()["cold_wait_seconds"])
     if (kept := fresh()) is not None:
         return kept
     with _updates_conns() as (conn, bench):

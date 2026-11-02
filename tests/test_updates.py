@@ -939,7 +939,9 @@ def test_unreadable_benchmarks_are_said_and_kept_only_briefly(registry):
     out = updates.approved(registry, bench_conn=None)
     assert out["benchmarks_unread"] is True
     until = updates._published_cache["approved"][1]
-    assert until <= datetime.now(UTC) + timedelta(seconds=updates.UNREAD_KEEP_SECONDS + 1)
+    assert until <= datetime.now(UTC) + timedelta(
+        seconds=updates.rules()["unread_cache_seconds"] + 1
+    )
 
 
 def test_a_save_during_a_background_rebuild_is_built_too(monkeypatch):
@@ -1058,7 +1060,7 @@ def test_missing_review_tables_are_said_not_read_as_no_updates(registry):
     registry.commit()
     out = updates.approved(registry)
     assert out["updates"] == [] and out["updates_unread"] is True
-    soon = datetime.now(UTC) + timedelta(seconds=updates.UNREAD_KEEP_SECONDS + 1)
+    soon = datetime.now(UTC) + timedelta(seconds=updates.rules()["unread_cache_seconds"] + 1)
     assert updates._published_cache["approved"][1] <= soon, "kept only briefly"
     assert updates.published(registry)["updates"] == []
     assert updates._published_cache["v"][1] <= soon
