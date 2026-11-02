@@ -35,7 +35,8 @@ the real `views.js`, so the page and the writer cannot drift apart.
         image. `date` (YYYY-MM-DD) and `duration` (whole seconds) may be null
         and are then left off the card, never shown as zero (rule 6).
 
-    ["sources_stamp", {"items": [{"label", "repo", "ref", "url", "read_at", "licence", "basis"}, ...]}]
+    ["sources_stamp", {"items": [ITEM, ...]}]
+        ITEM = {"label", "repo", "ref", "url", "read_at", "licence", "basis"}
         The official files a guide rests on, near the top. `basis` is "copied"
         (code was copied from it and matched character for character) or
         "cited" (the text refers to it; nothing was copied), and the page words

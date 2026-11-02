@@ -751,7 +751,8 @@ def test_a_snippet_must_be_whole_lines_of_one_code_block(code):
 
 
 def test_whole_lines_from_inside_one_block_pass():
-    assert g.guide_violations(_essay([_snip("import time\nstart_time = time.time()")]), TEXTS, _rules()) == []
+    essay = _essay([_snip("import time\nstart_time = time.time()")])
+    assert g.guide_violations(essay, TEXTS, _rules()) == []
 
 
 def test_code_tabs_stop_at_the_panes_the_page_can_switch():
@@ -781,9 +782,10 @@ def test_a_release_takes_its_licence_from_the_contract_not_its_changelog():
     gr._read_at = {"openai_python": "2026-11-02"}
     release = {"id": "orel_1", "repo_key": "openai_python", "tag": "v2.5.0",
                "html_url": "https://github.com/openai/openai-python/releases/tag/v2.5.0",
-               "published_at": datetime(2026, 10, 1, tzinfo=UTC), "changed_at": datetime(2026, 11, 2, tzinfo=UTC),
-               "raw_ref": "raw/x"}
-    gr.rows = lambda sql, params=(): [release] if sql is g.GUIDE_RELEASES else []   # no changelog row
+               "published_at": datetime(2026, 10, 1, tzinfo=UTC),
+               "changed_at": datetime(2026, 11, 2, tzinfo=UTC), "raw_ref": "raw/x"}
+    # No changelog row at all - the case the review raised.
+    gr.rows = lambda sql, params=(): [release] if sql is g.GUIDE_RELEASES else []
     gr.text = lambda ref, what: json.dumps({"body": "## Fixes\n* streaming"})
     [note] = gr.notes("openai")
     assert note["official"]["licence"] == gr.repos["openai_python"]["licence"] == "Apache-2.0"
