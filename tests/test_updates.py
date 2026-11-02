@@ -803,6 +803,14 @@ def test_the_ai_updates_page_lists_approved_updates_in_their_words_now(registry)
     launch, retiring = built(registry, "launch"), built(registry, "retiring")
     other = built(registry, "price_cut")
     assert updates.approved(registry)["updates"] == [], "nothing approved, nothing public"
+    # The whole public payload, not only each item: a new top-level field
+    # reaches the public page only through this line (#594 review).
+    assert set(updates.approved(registry)) == {
+        "updates",
+        "window_days",
+        "benchmarks_unread",
+        "updates_unread",
+    }
     updates.review(registry, launch, action="approve", by="parvathi.b@example.com")
     updates.review(registry, retiring, action="approve", by="p@example.com")
     updates.review(registry, other, action="decline", by="p@example.com")

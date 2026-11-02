@@ -3661,11 +3661,9 @@ def _public_updates(name: str, fresh) -> dict:
     if (old := updates.stale(name)) is not None:
         _rebuild_in_background(name)
         return old
-    done = _rebuild_in_background(name)
-    if done is not None:
-        done.wait(COLD_WAIT_SECONDS)
-        if (kept := fresh()) is not None:
-            return kept
+    _rebuild_in_background(name).wait(COLD_WAIT_SECONDS)
+    if (kept := fresh()) is not None:
+        return kept
     with _updates_conns() as (conn, bench):
         return _public_build(name)(conn, bench_conn=bench)
 
