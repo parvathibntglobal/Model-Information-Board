@@ -10,7 +10,7 @@ import { DB } from './db.js'
 import { goAttrs } from './links.js'
 import { nameIndex, nameKey, namePattern, shortName } from './modelnames.js'
 import { sourceName } from '../sourceName.js'
-import { isGuide } from '../blogs/guideKinds.js'
+import { isGuide, isMigrationGuide, isOfficialGuide } from '../blogs/guideKinds.js'
 import { currentTheme } from '../theme.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
@@ -1322,6 +1322,85 @@ function essayCode(src){
   }).join('\n');
 }
 
+// ── GUIDE BLOCKS (Guides phase B, 2026-10-30) ──────────────────────────────
+// A developer guide, a tutorial or an error fix carries three blocks the other
+// posts do not. Their shapes are written down once, in judge/guide_blocks.py;
+// the generator builds them there and tests/test_guide_packs.py renders what it
+// builds through this file. Everything is escaped, and a link is drawn only
+// for an https URL - anything else draws the text without a link.
+const httpsUrl = u => /^https:\/\/[^\s"'<>]+$/.test(String(u || '')) ? String(u) : '';
+// OFFICIAL CODE: copied from the source it names, never written by the writer
+// (generate_sample_blogs.guide_violations matched it before export). The
+// older illustrative `code` block is a different type (official_code here).
+function codeSource(s){
+  if(!s || typeof s !== 'object') return '';
+  const url = httpsUrl(s.url), name = esc(s.label || s.path || 'the official source');
+  return `<figcaption class="es-ocode-src">Copied from ${url ? `<a href="${esc(url)}" rel="nofollow noopener" target="_blank">${name}</a>` : name}
+    <span class="es-ocode-repo">${esc(s.repo || '')}${s.path ? ` · ${esc(s.path)}` : ''}${s.ref ? ` @ ${esc(s.ref)}` : ''}</span></figcaption>`;
+}
+function codePre(code, lang){
+  return `<pre class="es-pre es-ocode-pre"><code class="es-ocode-text"${lang ? ` data-lang="${esc(lang)}"` : ''}>${esc(String(code || '').replace(/\s+$/, ''))}</code></pre>`;
+}
+// The copy button is handled by BoardView (data-copy): it copies the code of
+// the pane it sits in.
+const COPY_BTN = '<button type="button" class="es-copy" data-copy aria-label="Copy this code">Copy</button>';
+function officialCode(v){
+  return `<figure class="es-ocode"><div class="es-ocode-head"><span class="es-ocode-tag">Official code</span>
+    <span class="es-ocode-label">${esc(v.label || '')}</span><span class="es-ocode-lang">${esc(v.lang || '')}</span></div>
+    <div class="es-ocode-pane">${COPY_BTN}${codePre(v.code, v.lang)}</div>${codeSource(v.source)}</figure>`;
+}
+// THE SAME STEP IN MORE THAN ONE LANGUAGE: one tab each, CSS-only (a radio per
+// tab), so nothing a reader clicks needs a handler.
+let _ct = 0;
+function codeTabs(v){
+  const tabs = ((v && v.tabs) || []).filter(t => t && t.source && typeof t.source === 'object');
+  if(!tabs.length) return '';
+  const id = `es-ct${++_ct}`;
+  return `<figure class="es-ocode es-ocode-tabs"><div class="es-ocode-head"><span class="es-ocode-tag">Official code</span>
+    <span class="es-ocode-label">${esc(v.label || '')}</span></div><div class="es-tabset">${tabs.map((t, i) =>
+      `<input type="radio" class="es-tab-in" name="${id}" id="${id}-${i}"${i === 0 ? ' checked' : ''}><label class="es-tab-lbl" for="${id}-${i}">${esc(t.lang)}</label>`).join('')}${
+    tabs.map(t => `<div class="es-tab-pane"><div class="es-ocode-pane">${COPY_BTN}${codePre(t.code, t.lang)}</div>${codeSource(t.source)}</div>`).join('')}</div></figure>`;
+}
+// A RECORDED TALK AS A TITLE CARD: PyVideo's own title, speakers, event, date
+// and length, linking to the host's page in a new tab. Metadata only - the card
+// says so. The styled title sits UNDER the picture, so a thumbnail that is
+// missing or fails to load leaves the title card, never a broken image (an
+// empty alt draws nothing for a failed image).
+const VIDEO_HOST = { youtube: 'YouTube', vimeo: 'Vimeo' };
+function talkLength(s){
+  if(!Number.isInteger(s) || s < 0) return '';
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return h ? `${h}:${pad2(m)}:${pad2(x)}` : `${m}:${pad2(x)}`;
+}
+function videoCard(v){
+  const url = httpsUrl(v && v.url);
+  if(!url || !v.title) return '';
+  const thumb = httpsUrl(v.thumbnail);
+  const who = (v.speakers || []).filter(Boolean).map(esc).join(', ');
+  const meta = [v.event ? esc(v.event) : '', /^\d{4}-\d{2}-\d{2}$/.test(v.date || '') ? esc(v.date) : '',
+    talkLength(v.duration)].filter(Boolean).join(' · ');
+  return `<figure class="es-video"><a class="es-video-card" href="${esc(url)}" target="_blank" rel="nofollow noopener">
+    <span class="es-video-pic"><span class="es-video-blank" aria-hidden="true">${esc(v.title)}</span>${
+      thumb ? `<img class="es-video-thumb" src="${esc(thumb)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''}</span>
+    <span class="es-video-body"><span class="es-video-tag">Recorded talk</span><b class="es-video-title">${esc(v.title)}</b>${
+      who ? `<span class="es-video-who">${who}</span>` : ''}${meta ? `<span class="es-video-meta">${meta}</span>` : ''}
+      <span class="es-video-go">Watch on ${esc(VIDEO_HOST[v.host] || "the host's site")} →</span></span></a>
+    <figcaption class="es-video-note">A talk listed in PyVideo's index. Its title and details are the index's own; this post does not summarise what is said in it.</figcaption></figure>`;
+}
+// WHAT THE GUIDE RESTS ON: each official file or release at its version, and
+// when the harvest last read it. COPIED AND CITED ARE WORDED APART (#595
+// review): only a file code was copied from was matched character for
+// character; a cited one is what the text refers to.
+const STAMP_LEAD = { copied: 'Code copied from', cited: 'Cited' };
+function sourcesStamp(v){
+  const items = ((v && v.items) || []).filter(x => x && httpsUrl(x.url) && STAMP_LEAD[x.basis]);
+  if(!items.length) return '';
+  const anyCopied = items.some(x => x.basis === 'copied');
+  return `<aside class="es-stamp"><div class="es-stamp-tag">The official sources behind this guide</div><ul>${items.map(x =>
+    `<li>${STAMP_LEAD[x.basis]} <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.repo)}</a> @ <code>${esc(x.ref)}</code>, read ${esc(x.read_at)}<span class="es-stamp-what"> · ${esc(x.label)}${x.licence ? ` · ${esc(x.licence)} licence` : ''}</span></li>`).join('')}</ul>
+    <p class="es-stamp-note">The code after @ is the file's git version, or the release's tag.${anyCopied ? ' Code copied from a file was matched to it character for character.' : ''}</p></aside>`;
+}
+
 function essayBlock([t,v]){
   if(t==='h2'){
     const h = typeof v === 'string' ? { text: v } : v;
@@ -1350,6 +1429,10 @@ function essayBlock([t,v]){
       : 'Word for word from a source listed below.'}</figcaption></figure>`;
   }
   if(t==='embed') return embedBlock(v);
+  if(t==='official_code') return officialCode(v);
+  if(t==='code_tabs') return codeTabs(v);
+  if(t==='video') return videoCard(v);
+  if(t==='sources_stamp') return sourcesStamp(v);
   // The tag already says "Illustrative"; a label that opens with it would read twice.
   if(t==='code') return `<div class="es-codehead"><span class="es-illus">Illustrative</span>${esc(String(v.label||'').replace(/^\s*illustrative[\s:·-]*/i,'').replace(/^./,c=>c.toUpperCase()))}</div>
     <pre class="es-pre">${essayCode(v.source)}</pre>`;
@@ -1394,7 +1477,7 @@ let CARDED = null;
 const READ_AS = { 'arXiv': 'Read the paper on arXiv', 'dev.to': 'Read the article on dev.to',
   'an engineering blog': 'Read the original post', 'GitHub': 'Read it on GitHub',
   'Hacker News': 'Read the thread on Hacker News', 'Hugging Face': 'Read it on Hugging Face',
-  'Medium': 'Read the article on Medium' };
+  'Medium': 'Read the article on Medium', 'Official source': 'Read the official source' };
 function linkCards(html){
   if(!SRC || !CARDED) return '';
   const fresh = [...html.matchAll(/href="#es-src-(\d+)"/g)].map(m => Number(m[1]))
@@ -1473,7 +1556,7 @@ const LAYOUTS = {
 // Posts written before `layout` was exported carry their format in
 // provenance; the first three carry only a kicker. A post matching none renders
 // the plain page - visibly unstyled, never silently given some other format's.
-const FORMAT_LAYOUT = { 'field-report': 'report', 'head-to-head': 'versus', 'cost-teardown': 'ledger',
+const FORMAT_LAYOUT = { 'developer-guide': 'runbook', 'tutorial': 'runbook', 'error-fix': 'fieldguide', 'field-report': 'report', 'head-to-head': 'versus', 'cost-teardown': 'ledger',
   'migration-guide': 'runbook', 'architecture-pattern': 'blueprint', 'release-analysis': 'brief',
   'evaluation-critique': 'critique', 'topic-synthesis': 'synthesis', 'topic-explainer': 'explainer',
   'under-the-hood': 'mechanism', 'myth-vs-reality': 'myths', 'research-radar': 'radar', 'debate': 'debate',
@@ -1703,6 +1786,13 @@ function checklistBox(sp){
     `<li><label><input type="checkbox"><span><b>${essayText(x.check)}</b> ${essayText(x.why)}</span></label></li>`).join('')}</ul>
     <div class="tally">Checked <span class="ct"></span> of ${sp.items.length}</div></section>`;
 }
+// ERROR FIX (Guides, 2026-10-30): each cause with its fix and how to confirm
+// it, ticked off like the field guide's checklist.
+function fixesBox(sp){
+  return `<section class="es-levers"><div class="lbl">${esc(sp.title || 'Causes and fixes')}</div><ul>${sp.items.map(x =>
+    `<li><label><input type="checkbox"><span><b>${essayText(x.cause)}</b> ${essayText(x.fix)} <i>${essayText(x.check)}</i></span></label></li>`).join('')}</ul>
+    <div class="tally">Checked <span class="ct"></span> of ${sp.items.length}</div></section>`;
+}
 // PAPER WALKTHROUGH: what was measured, under what setup, and by whom.
 function resultsBox(sp){
   return `<section class="es-results"><div class="lbl">${esc(sp.title || 'What was measured')}</div>${sp.items.map(x =>
@@ -1883,7 +1973,7 @@ function vPost(slug){
   const rows = sheetRows(parts.prices);
   const pv = p.provenance || {};
   const asOf = String(pv.generated_at || '').slice(0, 10);
-  _mx = 0; _qz = 0;
+  _mx = 0; _qz = 0; _ct = 0;
   CITE = Object.fromEntries(Object.entries(p.cite || {}).map(([k, n]) => [esc(k), n]));
   SRC = Object.fromEntries((p.sources || []).map(s => [s.n, s]));
   REPORTED = p.style === 'reported';
@@ -1960,7 +2050,7 @@ function vPost(slug){
     end = lv.length ? leverList(lv) : '';
   } else if(L === 'runbook'){
     open = leadBox(conf, p, 'before');
-    const st = sp && sp.type === 'steps' ? sp.items : null;
+    const st = sp && (sp.type === 'steps' || sp.type === 'guide_steps') ? sp.items : null;
     end = st ? `<section class="es-levers"><div class="lbl">${esc(sp.title || 'Checks')}</div><ul>${st.map(x =>
       `<li><label><input type="checkbox"><span><b>${essayText(x.step)}</b> ${essayText(x.check)}</span></label></li>`).join('')}</ul>
       <div class="tally">Checked <span class="ct"></span> of ${st.length}</div></section>` : '';
@@ -1986,6 +2076,7 @@ function vPost(slug){
   } else if(L === 'fieldguide'){
     open = leadBox(conf, p, 'before');
     if(sp && sp.type === 'checklist' && sp.items && sp.items.length) end = checklistBox(sp);
+    if(sp && sp.type === 'fixes' && sp.items && sp.items.length) end = fixesBox(sp);
   } else if(L === 'paper'){
     open = leadBox(conf, p, 'strip') + (sp && sp.type === 'results' && sp.items && sp.items.length ? resultsBox(sp) : '');
   } else if(L === 'synthesis'){
@@ -2001,7 +2092,8 @@ function vPost(slug){
   // A MIGRATION GUIDE CARRIES ITS VERIFIED FACTS (2026-10-30): the slot is filled
   // by blogs/GuideFacts.jsx from /guide-facts - the registry's published figures
   // for the guide's two models, beside the writing.
-  const guideSlot = isGuide(p)
+  // Only a MIGRATION guide has registry facts for two models to show.
+  const guideSlot = isMigrationGuide(p)
     ? '<div class="gf-slot" id="guide-facts" aria-live="polite"></div>' : ''
   let main = open + guideSlot + middle + end;
 
@@ -2056,11 +2148,11 @@ function vPost(slug){
         ${sourcesBlock(p)}
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
-          from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.
+          from ${isOfficialGuide(p) ? "the providers' official sources and engineers' public discussions" : "engineers' public discussions"}, then checked in code: ${esc(pv.checks||'not recorded')}.
           ${reviewOf(p)==='approved'
             ? `Read and approved by a person on the team${p.published_at?` on ${esc(day(p.published_at))}`:''}.`
             : reviewOf(p)==='rejected' ? '<b>Rejected in review.</b>' : '<b>Not yet reviewed by a person.</b>'}
-          Code samples are illustrative patterns. Prices are published list prices. No model is scored or ranked.</p>
+          ${isOfficialGuide(p) ? 'Code is copied from the official source named under it, at the version stamped at the top.' : 'Code samples are illustrative patterns.'} Prices are published list prices. No model is scored or ranked.</p>
           <p>${reviewOf(p)==='approved' ? 'Approved by the team; not yet published outside it.'
             : 'Draft — not for external publication.'}</p>
         </footer>

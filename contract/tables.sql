@@ -2382,8 +2382,9 @@ CREATE INDEX IF NOT EXISTS update_review_home_idx ON update_review (home_publish
 -- OFFICIAL DEVELOPER SOURCES AND A VIDEO INDEX, for the Guides (2026-10-30,
 -- PROPOSED; contract/official_sources.yaml; migrations/
 -- 20261030T1500_official_sources.sql says what each column means).
--- WHO WRITES: collect/official/harvest.py. WHO READS: nothing yet - phase B's
--- writing packs are the intended reader (contract/column_states.yaml).
+-- WHO WRITES: collect/official/harvest.py. WHO READS: generate_sample_blogs.py's
+-- guide packs (--guide-pack, phase B, 2026-10-30); which columns, in
+-- contract/column_states.yaml.
 -- Never evidence: no claim, quote or board entry is made from these rows.
 CREATE TABLE IF NOT EXISTS official_doc (
   id                text PRIMARY KEY,

@@ -104,9 +104,10 @@ def test_length_counts_what_the_reader_reads():
 def test_every_format_is_an_8_to_15_minute_read_with_visuals():
     # BOARD POSTS. Topic posts (subject `concept`, 2026-10-16) are shorter on
     # purpose - an explainer teaches one idea from one source - and are held
-    # to their own lengths below.
+    # to their own lengths below. So are the GUIDES (2026-10-30, phase B): a
+    # developer guide or an error fix is steps to follow, not an essay.
     for f in g.load_formats()["formats"]:
-        if f["subject"] == "concept":
+        if f["subject"] not in g.BOARD_SUBJECTS:
             continue
         assert f["words"] == [1850, 3450], f["key"]
         assert f["blocks"]["visuals"] == [2, 5], f["key"]
@@ -116,6 +117,14 @@ def test_topic_formats_have_their_own_lengths():
     fmts = {f["key"]: f for f in g.load_formats()["formats"] if f["subject"] == "concept"}
     assert fmts["topic-synthesis"]["words"] == [1500, 3000]
     assert fmts["topic-explainer"]["words"] == [900, 1800]
+
+
+def test_guide_formats_have_their_own_lengths():
+    fmts = {f["key"]: f for f in g.load_formats()["formats"] if f["subject"] in g.GUIDE_SUBJECTS}
+    assert sorted(fmts) == ["developer-guide", "error-fix", "tutorial"]
+    assert fmts["developer-guide"]["words"] == fmts["tutorial"]["words"] == [900, 2200]
+    assert fmts["error-fix"]["words"] == [700, 1800]
+    assert all(f["blocks"]["visuals"] == [0, 2] for f in fmts.values())
 
 
 def test_skim_lines_are_gone_from_prompt_tool_and_formats():
