@@ -1,0 +1,43 @@
+====================================================================================================
+1. RADAR. Population: board entries whose document is dated in the last 13 weeks (since 2026-08-03), counted as DISTINCT DOCUMENTS per model, week and polarity.
+   models with any report: 135; with >= 50 documents in 13 weeks: 34; with >= 10 negative in one week ever: 20
+   weeks: 2026-08-03 .. 2026-10-26  (each column below is one week; NEG/ALL documents)
+   Anthropic: Claude Opus 5.5         total  660  median neg/wk  0.0  0/0 0/0 0/0 0/0 0/0 0/0 0/0 17/105 32/148 11/66 18/115 18/99 16/127
+   OpenAI: GPT-6 Astra                total  285  median neg/wk  4.0  0/0 0/0 0/0 0/0 2/15 19/69* 4/22 9/28* 5/31 6/31 3/31 8/29* 7/29
+   Anthropic: Claude Opus 5           total  258  median neg/wk  8.0  6/12 16/31* 10/21 12/20 14/17 3/19 15/32 14/37 2/8 5/21 1/8 2/8 8/24
+   Anthropic: Claude Fable 5.1        total  254  median neg/wk  6.0  0/0 0/0 0/0 0/0 27/62* 8/35 6/20 8/17 7/33 7/31 9/32 3/9 3/15
+   Anthropic: Claude Haiku 5.5        total  237  median neg/wk  0.0  0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 2/16 8/63 12/88 11/70
+   Google: Gemini 3.8 Flash           total  235  median neg/wk  4.0  0/0 0/0 0/0 0/0 13/42* 5/23 7/20 22/44* 4/21 6/31 4/17 0/3 9/34*
+   Anthropic: Claude Sonnet 5.5       total  235  median neg/wk  0.0  0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 3/23 7/35 15/66 5/47 6/64
+   OpenAI: GPT-5.6 Sol                total  206  median neg/wk  4.0  4/10 4/12 1/5 0/1 1/6 6/15 6/14 4/17 9/13* 7/25 8/24* 1/21 12/43*
+   OpenAI: GPT-6.1 Sol                total  203  median neg/wk  0.0  0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 10/38 11/38 12/37 8/26 13/64
+   Z.ai: GLM 5.3                      total  202  median neg/wk  5.0  0/0 0/10 9/14 7/22 12/28* 5/16 1/4 8/20 3/7 6/19 5/17 2/8 11/37*
+   SpaceXAI: Grok 4.7                 total  193  median neg/wk  0.0  0/0 0/0 0/0 0/0 0/0 0/0 0/0 53/110 19/41 10/13 9/13 3/6 4/10
+   Anthropic: Claude Opus 4.6         total  156  median neg/wk  3.0  0/3 0/12 1/5 2/8 0/0 6/24* 4/14 3/27 8/26* 3/10 3/9 1/4 5/14
+   Google: Gemini 4 Argon             total  149  median neg/wk  0.0  0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/3 0/3 18/67 6/41 4/35
+   MoonshotAI: Kimi K3.1 Pro          total  144  median neg/wk  0.0  0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 0/0 17/96 8/48
+   OpenAI: GPT-6 Luna                 total  135  median neg/wk  0.0  0/0 0/0 0/0 0/0 0/0 1/1 0/0 7/31 10/30 3/17 3/22 0/8 5/26
+   * = a week with >= 5 negative documents AND >= 2x that model's median weekly negatives (an illustration of what a flag could look like - an UNMEASURED rule, never a gate). 15 such weeks across the 15 busiest models.
+====================================================================================================
+2. PASTE YOUR ERROR. Population: all 16604 board entries with a model.
+   entries from a document flagged has_error_strings: 788 (4.7%)
+   entries whose QUOTE itself matches an error pattern (the text we would show): 244 (1.5%) - pattern: \b(error|exception|traceback|429|500|502|503|timeout|timed out|rate.?limit|invalid|refus\w...
+   by model (top 10): Anthropic: Claude Opus 5.5 23; Google: Gemini 3.8 Flash 15; Z.ai: GLM 5.3 12; Anthropic: Claude Sonnet 5 11; DeepSeek: DeepSeek V4.1 Flas 10; Anthropic: Claude Sonnet 5.5 9; Mistral: Mistral Large 4 9; OpenAI: GPT-6.1 Terra 9; OpenAI: GPT-5.6 Sol 8; Anthropic: Claude Opus 5 8
+   sample quotes (first 6 by model order):
+     [MiniMax: MiniMax M3] the context length can only reach 128K; anything beyond that causes out-of-memory (OOM) errors
+     [DeepSeek: DeepSeek V4 Pr] the planner refuses to trust conclusions and digs into raw logs, raw GDS, raw SPEF for the proof chain
+     [Anthropic: Claude Fable ] It also refused five of the 28 tasks outright, tripped up by an overly aggressive safety classifier
+     [Z.ai: GLM 5.3] 94,502 tokens
+     [MiniMax: MiniMax M3] With a 200K model I'd get maybe 3 of those 4 right. With M3 I get all 4 in one pass, on a ~500-file vault.
+     [ElevenLabs v3] They are all really bad (more than 1/3 the expressions had an error in them somewhere).
+====================================================================================================
+3. WATCH MY MODELS. Population: the 146 models with at least one board entry; window: the 30 days since 2026-10-03.
+   model_event rows in the window, by type (all models): {'new-model': 28, 'price-change': 232}
+   models with a retirement date: 19 (all models), of which still ahead: 5; of those, with board entries: 1
+   tracked models with SOMETHING to show in 30 days: 125 of 146 (event: 61, new reports: 121, retirement ahead: 1)
+   example feed, the 5 tracked models with the most new reports:
+     Anthropic: Claude Opus 5.5         new report docs  367  events []  retires -
+     Anthropic: Claude Haiku 5.5        new report docs  189  events ['new-model']  retires -
+     Anthropic: Claude Sonnet 5.5       new report docs  180  events ['price-change']  retires -
+     OpenAI: GPT-6.1 Sol                new report docs  146  events []  retires -
+     Google: Gemini 4 Argon             new report docs  119  events ['new-model']  retires -
