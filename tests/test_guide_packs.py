@@ -270,7 +270,7 @@ def test_copied_code_passes_even_reindented():
 def test_altered_code_fails():
     altered = STREAM_CODE.replace("gpt-4o-mini", "gpt-6-sol")
     [v] = g.guide_violations(_essay([_snip(altered)]), TEXTS, _rules())
-    assert "not in source 1's code character for character" in v and "diverges after line 3" in v
+    assert "not whole lines of one of source 1's code blocks" in v and "diverges after line 3" in v
 
 
 def test_code_with_no_source_fails():
@@ -295,7 +295,7 @@ def test_code_from_another_official_source_names_that_source():
     [v] = g.guide_violations(
         _essay([_snip("The rest of this notebook measures the time")]), TEXTS, _rules()
     )
-    assert "not in source 1's code" in v
+    assert "not whole lines of one of source 1's code blocks" in v
 
 
 def test_a_guide_may_not_reprint_most_of_a_sources_code():
@@ -568,9 +568,9 @@ def test_export_builds_the_three_blocks_from_the_pack():
     # The stamp names the official sources the post USES - copied or cited -
     # never the engineer report.
     assert stamp[0] == "sources_stamp"
-    assert [(x["repo"], x["ref"]) for x in stamp[1]["items"]] == [
-        (SRC["repo"], "abc1234"),
-        (SRC["repo"], "def5678"),
+    assert [(x["repo"], x["ref"], x["basis"]) for x in stamp[1]["items"]] == [
+        (SRC["repo"], "abc1234", "copied"),   # code was copied from source 1
+        (SRC["repo"], "def5678", "cited"),    # source 2 is only cited (#595 review)
     ]
     for blocks in (snippets[0], videos[0], videos[1], [stamp]):
         for b in blocks:
@@ -682,11 +682,14 @@ def test_the_page_stamps_what_it_was_checked_against_near_the_top(page):
     stamp = html.index('class="es-stamp"')
     assert stamp < html.index("Stream the reply")
     assert (
-        "Verified against <a "
+        "Code copied from <a "
         'href="https://github.com/openai/openai-cookbook/blob/main/examples/s.ipynb" '
         'rel="nofollow noopener" target="_blank">openai/openai-cookbook</a> '
         "@ <code>abc1234</code>, read 2026-10-30"
     ) in html
+    # A source only cited is worded as cited, never as matched (#595 review).
+    assert "Cited <a " in html and "@ <code>def5678</code>, read 2026-10-29" in html
+    assert "Code copied from a file was matched to it character for character." in html
     assert "MIT licence" in html
     # A guide's footer says its code is copied, not illustrative.
     assert "Code is copied from the official source named under it" in html
@@ -731,3 +734,63 @@ def test_an_index_in_a_backticked_name_is_not_a_reference_mark():
     text = "Read `chunk.choices[0].delta` and `x[1][2]`, then join them [3]."
     assert [m.group(1) for m in g.REF.finditer(text)] == ["3"]
     assert g.REF.sub("[9]", "Use `a[0]` here (see [2, 4]).") == "Use `a[0]` here (see [9])."
+
+
+# ── #595 review ──────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("code", [
+    "print(chunk.choices[0].delta.content",            # starts mid-line: not a copied line
+    "delta.content",                                   # a fragment from inside a line
+    'for chunk in stream:\n    print(chunk.choices[0].delta.content or "", end="")\nimport time',
+])
+def test_a_snippet_must_be_whole_lines_of_one_code_block(code):
+    """The last case runs from the end of one fenced block into the next."""
+    [v] = g.guide_violations(_essay([_snip(code)]), TEXTS, _rules())
+    assert "not whole lines of one of source 1's code blocks" in v
+
+
+def test_whole_lines_from_inside_one_block_pass():
+    assert g.guide_violations(_essay([_snip("import time\nstart_time = time.time()")]), TEXTS, _rules()) == []
+
+
+def test_code_tabs_stop_at_the_panes_the_page_can_switch():
+    tab = {"lang": "python", "code": "a", "source": SRC}
+    langs = ["python", "bash", "js", "ts", "go", "rust", "java"]
+    assert gb.code_tabs_block("x", [{**tab, "lang": x} for x in langs[:gb.MAX_TABS]])
+    with pytest.raises(gb.BlockError, match="2 to 6 tabs"):
+        gb.code_tabs_block("x", [{**tab, "lang": x} for x in langs])
+    css = (Path(g.ROOT) / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
+    assert f"nth-of-type({gb.MAX_TABS})" in css and f"nth-of-type({gb.MAX_TABS + 1})" not in css
+
+
+def test_a_stamp_item_says_whether_it_was_copied_or_cited():
+    item = {"label": "x", "repo": "o/r", "ref": "abc1234", "url": "https://github.com/o/r",
+            "read_at": "2026-11-02", "licence": "MIT"}
+    for basis in ("copied", "cited"):
+        assert gb.sources_stamp_block([{**item, "basis": basis}])
+    with pytest.raises(gb.BlockError, match="neither copied nor cited"):
+        gb.sources_stamp_block([{**item, "basis": "verified"}])
+
+
+def test_a_release_takes_its_licence_from_the_contract_not_its_changelog():
+    """The changelog row may be unlisted or never stored; the release still
+    carries the repository's licence, as contract/official_sources.yaml names it."""
+    gr = g.GuideReader.__new__(g.GuideReader)
+    gr.repos, gr._notes, gr.unreadable = g.official_repos(), {}, []
+    gr._read_at = {"openai_python": "2026-11-02"}
+    release = {"id": "orel_1", "repo_key": "openai_python", "tag": "v2.5.0",
+               "html_url": "https://github.com/openai/openai-python/releases/tag/v2.5.0",
+               "published_at": datetime(2026, 10, 1, tzinfo=UTC), "changed_at": datetime(2026, 11, 2, tzinfo=UTC),
+               "raw_ref": "raw/x"}
+    gr.rows = lambda sql, params=(): [release] if sql is g.GUIDE_RELEASES else []   # no changelog row
+    gr.text = lambda ref, what: json.dumps({"body": "## Fixes\n* streaming"})
+    [note] = gr.notes("openai")
+    assert note["official"]["licence"] == gr.repos["openai_python"]["licence"] == "Apache-2.0"
+    assert all(r["licence"] for r in gr.repos.values())
+
+
+def test_a_snippet_with_no_name_or_value_is_refused():
+    """`)` is a whole line of the stream example, and still copies nothing."""
+    [v] = g.guide_violations(_essay([_snip(")")]), TEXTS, _rules())
+    assert "no name or value" in v

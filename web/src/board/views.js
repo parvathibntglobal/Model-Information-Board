@@ -1387,14 +1387,18 @@ function videoCard(v){
       <span class="es-video-go">Watch on ${esc(VIDEO_HOST[v.host] || "the host's site")} →</span></span></a>
     <figcaption class="es-video-note">A talk listed in PyVideo's index. Its title and details are the index's own; this post does not summarise what is said in it.</figcaption></figure>`;
 }
-// WHAT THE GUIDE WAS CHECKED AGAINST: each official file or release at the
-// version the code was matched to, and when the harvest last read it.
+// WHAT THE GUIDE RESTS ON: each official file or release at its version, and
+// when the harvest last read it. COPIED AND CITED ARE WORDED APART (#595
+// review): only a file code was copied from was matched character for
+// character; a cited one is what the text refers to.
+const STAMP_LEAD = { copied: 'Code copied from', cited: 'Cited' };
 function sourcesStamp(v){
-  const items = ((v && v.items) || []).filter(x => x && httpsUrl(x.url));
+  const items = ((v && v.items) || []).filter(x => x && httpsUrl(x.url) && STAMP_LEAD[x.basis]);
   if(!items.length) return '';
-  return `<aside class="es-stamp"><div class="es-stamp-tag">Checked against the official sources</div><ul>${items.map(x =>
-    `<li>Verified against <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.repo)}</a> @ <code>${esc(x.ref)}</code>, read ${esc(x.read_at)}<span class="es-stamp-what"> · ${esc(x.label)}${x.licence ? ` · ${esc(x.licence)} licence` : ''}</span></li>`).join('')}</ul>
-    <p class="es-stamp-note">The code after @ is the file's git version, or the release's tag. Code in this guide was matched to it character for character.</p></aside>`;
+  const anyCopied = items.some(x => x.basis === 'copied');
+  return `<aside class="es-stamp"><div class="es-stamp-tag">The official sources behind this guide</div><ul>${items.map(x =>
+    `<li>${STAMP_LEAD[x.basis]} <a href="${esc(x.url)}" rel="nofollow noopener" target="_blank">${esc(x.repo)}</a> @ <code>${esc(x.ref)}</code>, read ${esc(x.read_at)}<span class="es-stamp-what"> · ${esc(x.label)}${x.licence ? ` · ${esc(x.licence)} licence` : ''}</span></li>`).join('')}</ul>
+    <p class="es-stamp-note">The code after @ is the file's git version, or the release's tag.${anyCopied ? ' Code copied from a file was matched to it character for character.' : ''}</p></aside>`;
 }
 
 function essayBlock([t,v]){
@@ -1425,11 +1429,11 @@ function essayBlock([t,v]){
       : 'Word for word from a source listed below.'}</figcaption></figure>`;
   }
   if(t==='embed') return embedBlock(v);
-  // The tag already says "Illustrative"; a label that opens with it would read twice.
   if(t==='official_code') return officialCode(v);
   if(t==='code_tabs') return codeTabs(v);
   if(t==='video') return videoCard(v);
   if(t==='sources_stamp') return sourcesStamp(v);
+  // The tag already says "Illustrative"; a label that opens with it would read twice.
   if(t==='code') return `<div class="es-codehead"><span class="es-illus">Illustrative</span>${esc(String(v.label||'').replace(/^\s*illustrative[\s:·-]*/i,'').replace(/^./,c=>c.toUpperCase()))}</div>
     <pre class="es-pre">${essayCode(v.source)}</pre>`;
   if(t==='table'){

@@ -44,9 +44,10 @@ REQUIRED = ("slug", "title", "dek", "tag", "by", "lead", "meta", "body", "proven
 #: joined on 2026-10-13 with the generator that writes them.
 #: `highlight` (one whole sentence from a source, in a reported post) joined on
 #: 2026-10-20 with the reported style (blog_rules.yaml).
-#: `code_tabs`, `video` and `sources_stamp` joined on 2026-10-30 with the
-#: Guides (developer guides, tutorials, error fixes); their shapes, and the
-#: official form of `code`, are judge/guide_blocks.py's - checked below.
+#: `official_code`, `code_tabs`, `video` and `sources_stamp` joined on
+#: 2026-10-30 with the Guides (developer guides, tutorials, error fixes); their
+#: shapes are judge/guide_blocks.py's - checked below. `code` stays the
+#: illustrative block, a different type.
 BLOCK_TYPES = {"h2", "h3", "p", "ul", "quote", "code", "table", "tree", "visual", "image", "embed",
                "highlight", "official_code", "code_tabs", "video", "sources_stamp"}
 

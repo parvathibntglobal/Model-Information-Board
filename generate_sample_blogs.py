@@ -3316,6 +3316,9 @@ def guide_export(post, essay, docs) -> tuple[dict, dict, list | None]:
             thumbnail=t["thumbnail"], host=t["host"], duration=t["duration"]))
     official = set(post["rules"]["guide"]["official"])
     cited = {int(x) for _p, t in prose_fields(essay) for m in REF.finditer(t or "") for x in m.group(1).split(",")}
+    # COPIED OR CITED, SAID APART (#595 review): only a source code was copied
+    # from was matched character for character; one the text only cites is
+    # what the guide refers to, and the stamp says so.
     items, seen = [], set()
     for n in [*used, *sorted(cited)]:
         if n not in official or n in seen:
@@ -3323,7 +3326,8 @@ def guide_export(post, essay, docs) -> tuple[dict, dict, list | None]:
         seen.add(n)
         o = docs[n - 1]["official"]
         items.append({"label": docs[n - 1]["title"], "repo": o["repo"], "ref": o["ref"], "url": o["url"],
-                      "read_at": o["read_at"], "licence": o["licence"]})
+                      "read_at": o["read_at"], "licence": o["licence"],
+                      "basis": "copied" if n in used else "cited"})
     return snippets, videos, (gb.sources_stamp_block(items) if items else None)
 
 
@@ -5234,14 +5238,17 @@ def planner_lists() -> dict[str, list[str]]:
 
 
 def official_repos() -> dict[str, dict]:
-    """repo key -> {repo, provider, kind} from contract/official_sources.yaml:
-    official_doc carries the key, and a guide credits owner/name."""
+    """repo key -> {repo, provider, kind, licence} from contract/official_sources.yaml:
+    official_doc carries the key, and a guide credits owner/name under the
+    licence the harvest checks against GitHub on every run."""
     raw = yaml.safe_load(OFFICIAL_SOURCES_FILE.read_text(encoding="utf-8")) or {}
     out = {}
     for r in raw.get("repos") or []:
-        if not (r.get("key") and r.get("repo") and r.get("provider")):
-            raise BuildError(f"contract/official_sources.yaml: a repository entry lacks key, repo or provider: {r!r}")
-        out[r["key"]] = {"repo": r["repo"], "provider": r["provider"], "kind": r.get("kind")}
+        if not (r.get("key") and r.get("repo") and r.get("provider") and r.get("licence")):
+            raise BuildError("contract/official_sources.yaml: a repository entry lacks key, repo, provider "
+                             f"or licence: {r!r}")
+        out[r["key"]] = {"repo": r["repo"], "provider": r["provider"], "kind": r.get("kind"),
+                         "licence": r["licence"]}
     if not out:
         raise BuildError("contract/official_sources.yaml lists no repositories")
     return out
@@ -5349,6 +5356,19 @@ def code_norm(s: str) -> str:
     return re.sub(r"\s+", " ", str(s or "")).strip()
 
 
+def code_lines(s: str) -> list[str]:
+    """A code text's non-empty lines, each whitespace-collapsed (code_norm)."""
+    return [code_norm(ln) for ln in str(s or "").splitlines() if ln.strip()]
+
+
+def lines_in(snippet: list[str], block: list[str]) -> bool:
+    """`snippet` is a run of WHOLE LINES of `block`, in order (#595 review): a
+    fragment starting mid-token, a lone `)` inside a line, or a run joining the
+    end of one fenced block to the next is not a copy of anything."""
+    m = len(snippet)
+    return m > 0 and any(block[i:i + m] == snippet for i in range(len(block) - m + 1))
+
+
 def changelog_sections(text: str) -> list[tuple[str, str]]:
     """(version heading, body) for each `## ` section of a CHANGELOG.md."""
     parts = re.split(r"(?m)^## ", text or "")
@@ -5385,6 +5405,14 @@ def guide_violations(essay: dict, doc_texts: list[str], rules: dict) -> list[str
         if n not in corpus:
             corpus[n] = code_norm("\n".join(fenced_code(doc_texts[n - 1])))
         return corpus[n]
+
+    blocks: dict[int, list[list[str]]] = {}
+
+    def in_source(lines: list[str], n: int) -> bool:
+        """Whole lines of ONE of source n's fenced blocks - never across two."""
+        if n not in blocks:
+            blocks[n] = [code_lines(f) for f in fenced_code(doc_texts[n - 1])]
+        return any(lines_in(lines, b) for b in blocks[n])
 
     copied: dict[int, set[str]] = {}
     n_snippets = 0
@@ -5428,22 +5456,26 @@ def guide_violations(essay: dict, doc_texts: list[str], rules: dict) -> list[str
                              f"({', '.join(map(str, sorted(official))) or 'none in this pack'}); code is copied "
                              "only from an official source")
                     continue
-                c = code_norm(code)
-                if c in code_of(n):
+                c, cl = code_norm(code), code_lines(code)
+                if not re.search(r"\w", c):
+                    v.append(f"{vp}.code: no name or value in it - a snippet of only punctuation copies nothing")
+                    continue
+                if in_source(cl, n):
                     copied.setdefault(n, set()).add(c)
                     continue
-                elsewhere = [m for m in sorted(official) if m != n and c in code_of(m)]
+                elsewhere = [m for m in sorted(official) if m != n and in_source(cl, m)]
                 if elsewhere:
                     hint = f"it is in source {elsewhere[0]}'s code - name that source"
                 else:
                     lines = [ln for ln in code.splitlines() if ln.strip()]
-                    hint = "copy it character for character from one code block, or drop it"
-                    for m in range(len(lines) - 1, 0, -1):
-                        if code_norm("\n".join(lines[:m])) in code_of(n):
+                    hint = "copy whole lines, character for character, from ONE code block, or drop it"
+                    for m in range(len(cl) - 1, 0, -1):
+                        if in_source(cl[:m], n):
                             hint = (f"the source's code diverges after line {m} ({lines[m - 1].strip()[:60]!r}); "
                                     "end the snippet there or copy what follows exactly")
                             break
-                v.append(f"{vp}.code: not in source {n}'s code character for character - {hint}")
+                v.append(f"{vp}.code: not whole lines of one of source {n}'s code blocks, character for "
+                         f"character - {hint}")
             if len([x for x in langs if x]) != len({x for x in langs if x}):
                 v.append(f"{path}: gives one language twice - a second variant is another language")
     lo, hi = rules.get("snippets") or (0, 0)
@@ -5581,11 +5613,14 @@ class GuideReader:
             return None
         return got.text
 
-    def official(self, row: dict, kind: str) -> dict:
-        repo = self.repos.get(row["repo_key"])
+    def _repo(self, key: str, row_id: str) -> dict:
+        repo = self.repos.get(key)
         if repo is None:
-            raise BuildError(f"official_doc {row['id']}: repository key {row['repo_key']!r} is not in "
-                             "contract/official_sources.yaml")
+            raise BuildError(f"{row_id}: repository key {key!r} is not in contract/official_sources.yaml")
+        return repo
+
+    def official(self, row: dict, kind: str) -> dict:
+        repo = self._repo(row["repo_key"], row["id"])
         return {"repo": repo["repo"], "path": row["path"], "ref": row["blob_sha"][:7], "licence": row["licence"],
                 "read_at": self.read_at(row["repo_key"], row["changed_at"]), "url": row["html_url"], "kind": kind}
 
@@ -5613,13 +5648,13 @@ class GuideReader:
                     body = None
                 if not body:
                     continue
-                repo = self.repos.get(r["repo_key"]) or {}
+                repo = self._repo(r["repo_key"], r["id"])
                 have.add((r["repo_key"], (r["tag"] or "").lstrip("v")))
                 out.append({"id": r["id"], "repo_key": r["repo_key"], "title": f"{repo.get('repo', r['repo_key'])} "
                             f"{r['tag']} release notes", "text": body, "url": r["html_url"], "posted": r["published_at"],
                             "_seen": r["changed_at"],
                             "official": {"repo": repo.get("repo"), "path": f"releases/tag/{r['tag']}", "ref": r["tag"],
-                                         "licence": None, "url": r["html_url"], "kind": "release note",
+                                         "licence": repo["licence"], "url": r["html_url"], "kind": "release note",
                                          "read_at": None, "_repo_key": r["repo_key"]}})
             for c in self.rows(GUIDE_CHANGELOGS, (provider,)):
                 t = self.text(c["text_ref"], c["id"])
@@ -5634,12 +5669,12 @@ class GuideReader:
                                 "official": {"repo": repo.get("repo"), "path": c["path"], "ref": c["blob_sha"][:7],
                                              "licence": c["licence"], "url": c["html_url"], "kind": "changelog",
                                              "read_at": None, "_repo_key": c["repo_key"]}})
-            # A release row carries no licence of its own; it is the repository's,
-            # as its changelog file records it.
-            lic = {c["repo_key"]: c["licence"] for c in self.rows(GUIDE_CHANGELOGS, (provider,))}
+            # A RELEASE ROW CARRIES NO LICENCE OF ITS OWN (#595 review): it is the
+            # repository's, as contract/official_sources.yaml names it - the value
+            # the harvest checks against GitHub. Never looked up from the
+            # changelog row, which may be unlisted or never stored.
             for n in out:
                 o = n["official"]
-                o["licence"] = o["licence"] or lic.get(o["_repo_key"])
                 o["read_at"] = self.read_at(o.pop("_repo_key"), n.pop("_seen"))
             self._notes[provider] = out
         return self._notes[provider]

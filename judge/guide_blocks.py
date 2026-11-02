@@ -17,7 +17,7 @@ the real `views.js`, so the page and the writer cannot drift apart.
         field would let a malformed official block render as illustrative.
 
     ["code_tabs", {"label", "tabs": [{"lang", "code", "source": SOURCE}, ...]}]
-        The same step in more than one language, one tab each; two or more
+        The same step in more than one language, one tab each; 2 to MAX_TABS
         tabs, no language twice.
 
     SOURCE = {"label", "repo", "path", "url", "ref"}
@@ -35,8 +35,11 @@ the real `views.js`, so the page and the writer cannot drift apart.
         image. `date` (YYYY-MM-DD) and `duration` (whole seconds) may be null
         and are then left off the card, never shown as zero (rule 6).
 
-    ["sources_stamp", {"items": [{"label", "repo", "ref", "url", "read_at", "licence"}, ...]}]
-        "Verified against <repo> @ <ref>, read <date>" near the top of a guide.
+    ["sources_stamp", {"items": [{"label", "repo", "ref", "url", "read_at", "licence", "basis"}, ...]}]
+        The official files a guide rests on, near the top. `basis` is "copied"
+        (code was copied from it and matched character for character) or
+        "cited" (the text refers to it; nothing was copied), and the page words
+        the two apart (#595 review).
         `read_at` is the date the harvest last read that repository with the
         file still at that ref (YYYY-MM-DD); `licence` is the repository's SPDX
         id as the harvest recorded it.
@@ -54,7 +57,12 @@ GUIDE_BLOCK_TYPES = ("official_code", "code_tabs", "video", "sources_stamp")
 
 SOURCE_KEYS = ("label", "repo", "path", "url", "ref")
 VIDEO_KEYS = ("title", "speakers", "event", "date", "url", "thumbnail", "host", "duration")
-STAMP_KEYS = ("label", "repo", "ref", "url", "read_at", "licence")
+STAMP_KEYS = ("label", "repo", "ref", "url", "read_at", "licence", "basis")
+STAMP_BASES = ("copied", "cited")
+#: The most tabs one `code_tabs` block may carry: the page's tabs are CSS only,
+#: and web/src/styles/board.css switches exactly this many panes
+#: (`:nth-of-type(1)` to `(6)`). A seventh would show its label and no code.
+MAX_TABS = 6
 
 _HTTPS = re.compile(r"^https://[^\s\"'<>]+$")
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -140,8 +148,8 @@ def problem(block: Any) -> str | None:
         if not isinstance(v, dict) or set(v) != {"label", "tabs"} or not _text(v.get("label")):
             return "code_tabs needs a label and tabs"
         tabs = v["tabs"]
-        if not isinstance(tabs, list) or len(tabs) < 2:
-            return "code_tabs needs two or more tabs"
+        if not isinstance(tabs, list) or not 2 <= len(tabs) <= MAX_TABS:
+            return f"code_tabs needs 2 to {MAX_TABS} tabs"
         for i, tab in enumerate(tabs):
             if why := _code_problem(tab, with_label=False):
                 return f"code_tabs tab {i} {why}"
@@ -183,6 +191,8 @@ def problem(block: Any) -> str | None:
                 return f"sources_stamp item {i} needs exactly {', '.join(STAMP_KEYS)}"
             if not all(_text(it[k]) for k in STAMP_KEYS):
                 return f"sources_stamp item {i} has an empty field"
+            if it["basis"] not in STAMP_BASES:
+                return f"sources_stamp item {i}'s basis is neither copied nor cited"
             if (
                 not _REPO.match(it["repo"])
                 or not _HTTPS.match(it["url"])
