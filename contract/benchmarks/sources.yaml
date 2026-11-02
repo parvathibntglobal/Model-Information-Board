@@ -50,6 +50,11 @@
 #     using its stored values until they go stale, so taking one source off the
 #     public page needs a change in judge/benchmarks.py charts (checked
 #     2026-10-30).
+#   PER-SOURCE SWITCH DEFERRED, 2026-11-02 (#594, agreed with Anooj): a
+#     `public: false` per source is built when it is needed, not before. Its
+#     trigger: a board objects to being shown, or its terms turn out to forbid
+#     display. Until then, the change above in judge/benchmarks.py charts plus a
+#     deploy takes one source off the page.
 
 sources:
   - key: swebench_leaderboard

@@ -48,6 +48,16 @@ home_limit: 8
 # save in Manage clears it at once. 300 from 2026-10-30 (was 60): prices and
 # benchmarks are polled far less often than that.
 home_cache_seconds: 300
+# A public answer built while a part of its data could not be read (the
+# benchmarks data, or the review tables) is kept at most this many seconds, so
+# the page asks again soon instead of saying "can't be shown" for the whole
+# home_cache_seconds (#592 review; moved here from judge/updates.py on #594).
+unread_cache_seconds: 60
+# A request that finds nothing kept (at startup, straight after a save) waits
+# this many seconds on the one build already running before it builds for
+# itself (#592 review, point 4; moved here from judge/app.py on #594). A build
+# took ~12 s from a developer machine against the shared database (2026-10-30).
+cold_wait_seconds: 45
 
 # A price move this large (either price, in percent) is marked "Needs a
 # second-source check": big moves on OpenRouter are often a host switch.

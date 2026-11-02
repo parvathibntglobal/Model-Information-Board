@@ -282,7 +282,11 @@ export default function AiUpdates() {
 
       {error && <p className="au-quiet" role="alert">The updates could not be loaded just now. Please try again in a minute.</p>}
       {!data && !error && <div className="skel au-skel" />}
-      {data && !all.length && (unreadNote || <p className="au-quiet">No updates from the last {data.window_days} days yet. Check back soon.</p>)}
+      {/* The review tables missing (#592 review, point 5): said, never "no updates yet". */}
+      {data?.updates_unread && (
+        <p className="au-notice" role="status">The updates can&apos;t be shown right now. Please check back shortly.</p>
+      )}
+      {data && !all.length && !data.updates_unread && (unreadNote || <p className="au-quiet">No updates from the last {data.window_days} days yet. Check back soon.</p>)}
 
       {data && all.length > 0 && (
         <>

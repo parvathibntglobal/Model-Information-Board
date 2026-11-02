@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import string
@@ -39,6 +40,8 @@ from decimal import Decimal
 from typing import Any
 
 from psycopg import errors
+
+log = logging.getLogger(__name__)
 
 KINDS = ("launch", "price_cut", "price_rise", "price_change", "retiring", "benchmark", "roundup")
 
@@ -155,6 +158,8 @@ def rules() -> dict[str, Any]:
             "home_days": int(raw["home_days"]),
             "home_limit": int(raw["home_limit"]),
             "home_cache_seconds": int(raw["home_cache_seconds"]),
+            "unread_cache_seconds": int(raw["unread_cache_seconds"]),
+            "cold_wait_seconds": int(raw["cold_wait_seconds"]),
             "second_check_pct": float(raw["second_check_pct"]),
             "mixed_move_pct": float(raw["mixed_move_pct"]),
             "retiring_ahead_days": int(raw["retiring_ahead_days"]),
@@ -190,6 +195,8 @@ def rules() -> dict[str, Any]:
         raise UpdatesContractError(
             "need home_days >= 1, home_limit >= 1 and home_cache_seconds >= 0"
         )
+    if out["unread_cache_seconds"] < 0 or out["cold_wait_seconds"] < 0:
+        raise UpdatesContractError("need unread_cache_seconds >= 0 and cold_wait_seconds >= 0")
     if out["group_min"] < 2 or out["names_shown"] < 1:
         raise UpdatesContractError("need group_min >= 2 and names_shown >= 1")
     unknown = set(out["why_by_set"]) - set(FACTS)
@@ -1556,18 +1563,15 @@ def stale(name: str) -> dict[str, Any] | None:
     return hit[0] if hit is not None and hit[2] == _published_generation[0] else None
 
 
-#: An answer built while the benchmarks data was not readable is kept this
-#: long at most, so the page asks again soon instead of saying "unavailable"
-#: for the whole `home_cache_seconds` (#592 review).
-UNREAD_KEEP_SECONDS = 60
-
-
 def _keep(
     name: str, out: dict[str, Any], clock: datetime, generation: int, *, short: bool = False
 ) -> None:
-    seconds = rules()["home_cache_seconds"]
+    """Keep `out` for `home_cache_seconds`; `short` (part of the data was not
+    readable) keeps it `unread_cache_seconds` at most (contract/updates.yaml)."""
+    r = rules()
+    seconds = r["home_cache_seconds"]
     if short:
-        seconds = min(seconds, UNREAD_KEEP_SECONDS)
+        seconds = min(seconds, r["unread_cache_seconds"])
     if generation == _published_generation[0]:
         _published_cache[name] = (out, clock + timedelta(seconds=seconds), generation)
 
@@ -1591,11 +1595,16 @@ def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str
     if now is None and (kept := cached_published(clock)) is not None:
         return kept
     generation = _published_generation[0]
+    missing = False
     try:
         rows = conn.execute(PUBLISHED_SQL, (clock - timedelta(days=r["home_days"]),)).fetchall()
     except errors.UndefinedTable:
+        # NOT "nothing published" (rule 6, #592 review point 5): the review
+        # tables are not in this database. The strip draws nothing either way,
+        # which says nothing; the log says why, and the answer is kept briefly.
         conn.rollback()
-        rows = []
+        rows, missing = [], True
+        log.warning("updates: the update_review table is missing; the home strip is empty")
     if rows:
         live = live_keys(conn, bench_conn=bench_conn, now=clock)
         rows = [row for row in rows if (row[0], row[1]) in live]
@@ -1617,7 +1626,7 @@ def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str
         ]
     }
     if now is None:
-        _keep("v", out, clock, generation)
+        _keep("v", out, clock, generation, short=missing)
     return out
 
 
@@ -1646,20 +1655,24 @@ def approved(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str,
     AN OUTAGE IS SAID, NEVER READ AS "NONE" (rule 6, #592 review): when the
     benchmarks data is not readable, benchmark updates cannot be worded, so
     `benchmarks_unread` is true and the page says the results are unavailable
-    rather than "nothing in this section". Such an answer is kept only
-    UNREAD_KEEP_SECONDS. PUBLIC (judge/gate.py): words, kind, label, date, the
-    verify mark, the models' public ids and that flag only - no reviewer, no
-    style, no status, no draft."""
+    rather than "nothing in this section". The same when the review tables are
+    missing (#592 review, point 5): `updates_unread`, and the page says the
+    updates cannot be shown rather than "no updates yet". Such an answer is
+    kept only `unread_cache_seconds`. PUBLIC (judge/gate.py): words, kind, label,
+    date, the verify mark, the models' public ids and those two flags only - no
+    reviewer, no style, no status, no draft."""
     r = rules()
     clock = now or datetime.now(UTC)
     if now is None and (kept := cached_approved(clock)) is not None:
         return kept
     generation = _published_generation[0]
+    missing = False
     try:
         rows = conn.execute(APPROVED_SQL).fetchall()
     except errors.UndefinedTable:
         conn.rollback()
-        rows = []
+        rows, missing = [], True
+        log.warning("updates: the update_review table is missing; the AI updates page says so")
     reviews = {
         key: {"status": status, "style": style, "headline": headline, "detail": detail}
         for key, status, style, headline, detail in rows
@@ -1688,7 +1701,12 @@ def approved(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str,
                 }
             )
     unread = bench_conn is None
-    out = {"updates": items, "window_days": r["max_window_days"], "benchmarks_unread": unread}
+    out = {
+        "updates": items,
+        "window_days": r["max_window_days"],
+        "benchmarks_unread": unread,
+        "updates_unread": missing,
+    }
     if now is None:
-        _keep("approved", out, clock, generation, short=unread)
+        _keep("approved", out, clock, generation, short=unread or missing)
     return out

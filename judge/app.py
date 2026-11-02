@@ -3589,10 +3589,15 @@ def _updates_errors(write):
 # measured from a developer machine against the shared database, ~12 s. Kept
 # `home_cache_seconds`; when that runs out, the last answer is still sent at
 # once and a fresh one is built in the background (one build per read at a
-# time). Only a save in Manage, which clears the cache so it shows at once,
-# makes the next visitor wait. Both are built at startup too.
+# time). Both are built at startup and after every save in Manage; a request
+# that finds nothing kept waits on that one build rather than starting another.
 _PUBLIC_REBUILDING: set[str] = set()
 _PUBLIC_REBUILD_LOCK = threading.Lock()
+#: Each read's running build, set when it ends - what a request with nothing
+#: kept waits on, instead of starting a build of its own (#592 review, point 4).
+_PUBLIC_DONE: dict[str, threading.Event] = {}
+# How long such a request waits before building for itself is
+# contract/updates.yaml `cold_wait_seconds`.
 
 
 def _public_build(name: str):
@@ -3601,11 +3606,14 @@ def _public_build(name: str):
     return updates.published if name == "v" else updates.approved
 
 
-def _rebuild_in_background(name: str) -> None:
+def _rebuild_in_background(name: str) -> threading.Event:
+    """Start a build of `name` unless one is running; either way, the event
+    that is set when the running build ends."""
     with _PUBLIC_REBUILD_LOCK:
         if name in _PUBLIC_REBUILDING:
-            return
+            return _PUBLIC_DONE[name]
         _PUBLIC_REBUILDING.add(name)
+        done = _PUBLIC_DONE[name] = threading.Event()
 
     def run() -> None:
         from judge import updates
@@ -3631,14 +3639,20 @@ def _rebuild_in_background(name: str) -> None:
         finally:
             with _PUBLIC_REBUILD_LOCK:
                 _PUBLIC_REBUILDING.discard(name)
+            done.set()
 
     threading.Thread(target=run, name=f"updates-rebuild-{name}", daemon=True).start()
+    return done
 
 
 def _public_updates(name: str, fresh) -> dict:
     """A kept answer without connecting (the benchmarks connection is not
-    pooled, #586 review); else the last one while a fresh one is built; else a
-    build now."""
+    pooled, #586 review); else the last one while a fresh one is built; else -
+    nothing kept, at startup or straight after a save - the one running build,
+    waited on by every request that arrives meanwhile (#592 review, point 4), so
+    N visitors cost one build and one benchmarks connection, not N. A request
+    builds for itself only when that build failed or outran `cold_wait_seconds`
+    (contract/updates.yaml)."""
     from judge import updates
 
     if (kept := fresh()) is not None:
@@ -3646,6 +3660,9 @@ def _public_updates(name: str, fresh) -> dict:
     if (old := updates.stale(name)) is not None:
         _rebuild_in_background(name)
         return old
+    _rebuild_in_background(name).wait(updates.rules()["cold_wait_seconds"])
+    if (kept := fresh()) is not None:
+        return kept
     with _updates_conns() as (conn, bench):
         return _public_build(name)(conn, bench_conn=bench)
 
