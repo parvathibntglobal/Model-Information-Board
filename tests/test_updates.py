@@ -983,3 +983,74 @@ def test_a_save_in_manage_starts_a_rebuild_of_both_public_reads(registry, monkey
     assert started == [1]
     refused = client.post("/updates/review", json=body | {"key": "nope"})
     assert refused.status_code == 404 and started == [1], "no rebuild when nothing was saved"
+
+
+def _slow_build(builds, *, fail_first=False):
+    """A stand-in for a public read's build: slow enough that visitors overlap,
+    keeping its answer the way the real one does."""
+    import time
+
+    def build(conn, bench_conn=None):
+        builds.append(1)
+        generation = updates._published_generation[0]
+        time.sleep(0.3)
+        if fail_first and len(builds) == 1:
+            raise RuntimeError("the database went away")
+        out = {"updates": [], "window_days": 90, "build": len(builds)}
+        updates._keep("approved", out, datetime.now(UTC), generation)
+        return out
+
+    return build
+
+
+def test_visitors_with_nothing_kept_wait_on_one_build(monkeypatch):
+    # #592 review, point 4: at startup or straight after a save nothing is kept;
+    # five visitors at once cost one build and one benchmarks connection, not five.
+    import contextlib
+    import threading
+
+    import judge.app as app_module
+
+    builds, answers = [], []
+    monkeypatch.setattr(app_module, "_public_build", lambda name: _slow_build(builds))
+    monkeypatch.setattr(app_module, "_updates_conns", lambda: contextlib.nullcontext((None, None)))
+    visitors = [
+        threading.Thread(
+            target=lambda: answers.append(
+                app_module._public_updates("approved", updates.cached_approved)
+            )
+        )
+        for _ in range(5)
+    ]
+    for v in visitors:
+        v.start()
+    for v in visitors:
+        v.join(10)
+    assert builds == [1], "one build for all five"
+    assert len(answers) == 5 and all(a["build"] == 1 for a in answers)
+
+
+def test_a_failed_shared_build_does_not_leave_a_visitor_without_an_answer(monkeypatch):
+    import contextlib
+
+    import judge.app as app_module
+
+    builds = []
+    monkeypatch.setattr(
+        app_module, "_public_build", lambda name: _slow_build(builds, fail_first=True)
+    )
+    monkeypatch.setattr(app_module, "_updates_conns", lambda: contextlib.nullcontext((None, None)))
+    out = app_module._public_updates("approved", updates.cached_approved)
+    assert out["build"] == 2, "the shared build failed, so the visitor built for itself"
+
+
+def test_missing_review_tables_are_said_not_read_as_no_updates(registry):
+    # #592 review, point 5 (rule 6): an unmigrated database is not "no updates yet".
+    registry.execute("DROP TABLE update_review_log, update_review CASCADE")
+    registry.commit()
+    out = updates.approved(registry)
+    assert out["updates"] == [] and out["updates_unread"] is True
+    soon = datetime.now(UTC) + timedelta(seconds=updates.UNREAD_KEEP_SECONDS + 1)
+    assert updates._published_cache["approved"][1] <= soon, "kept only briefly"
+    assert updates.published(registry)["updates"] == []
+    assert updates._published_cache["v"][1] <= soon

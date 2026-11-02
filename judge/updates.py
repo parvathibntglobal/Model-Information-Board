@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import string
@@ -39,6 +40,8 @@ from decimal import Decimal
 from typing import Any
 
 from psycopg import errors
+
+log = logging.getLogger(__name__)
 
 KINDS = ("launch", "price_cut", "price_rise", "price_change", "retiring", "benchmark", "roundup")
 
@@ -1591,11 +1594,16 @@ def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str
     if now is None and (kept := cached_published(clock)) is not None:
         return kept
     generation = _published_generation[0]
+    missing = False
     try:
         rows = conn.execute(PUBLISHED_SQL, (clock - timedelta(days=r["home_days"]),)).fetchall()
     except errors.UndefinedTable:
+        # NOT "nothing published" (rule 6, #592 review point 5): the review
+        # tables are not in this database. The strip draws nothing either way,
+        # which says nothing; the log says why, and the answer is kept briefly.
         conn.rollback()
-        rows = []
+        rows, missing = [], True
+        log.warning("updates: the update_review table is missing; the home strip is empty")
     if rows:
         live = live_keys(conn, bench_conn=bench_conn, now=clock)
         rows = [row for row in rows if (row[0], row[1]) in live]
@@ -1617,7 +1625,7 @@ def published(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str
         ]
     }
     if now is None:
-        _keep("v", out, clock, generation)
+        _keep("v", out, clock, generation, short=missing)
     return out
 
 
@@ -1646,20 +1654,24 @@ def approved(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str,
     AN OUTAGE IS SAID, NEVER READ AS "NONE" (rule 6, #592 review): when the
     benchmarks data is not readable, benchmark updates cannot be worded, so
     `benchmarks_unread` is true and the page says the results are unavailable
-    rather than "nothing in this section". Such an answer is kept only
-    UNREAD_KEEP_SECONDS. PUBLIC (judge/gate.py): words, kind, label, date, the
-    verify mark, the models' public ids and that flag only - no reviewer, no
-    style, no status, no draft."""
+    rather than "nothing in this section". The same when the review tables are
+    missing (#592 review, point 5): `updates_unread`, and the page says the
+    updates cannot be shown rather than "no updates yet". Such an answer is
+    kept only UNREAD_KEEP_SECONDS. PUBLIC (judge/gate.py): words, kind, label,
+    date, the verify mark, the models' public ids and those two flags only - no
+    reviewer, no style, no status, no draft."""
     r = rules()
     clock = now or datetime.now(UTC)
     if now is None and (kept := cached_approved(clock)) is not None:
         return kept
     generation = _published_generation[0]
+    missing = False
     try:
         rows = conn.execute(APPROVED_SQL).fetchall()
     except errors.UndefinedTable:
         conn.rollback()
-        rows = []
+        rows, missing = [], True
+        log.warning("updates: the update_review table is missing; the AI updates page says so")
     reviews = {
         key: {"status": status, "style": style, "headline": headline, "detail": detail}
         for key, status, style, headline, detail in rows
@@ -1688,7 +1700,12 @@ def approved(conn, *, bench_conn=None, now: datetime | None = None) -> dict[str,
                 }
             )
     unread = bench_conn is None
-    out = {"updates": items, "window_days": r["max_window_days"], "benchmarks_unread": unread}
+    out = {
+        "updates": items,
+        "window_days": r["max_window_days"],
+        "benchmarks_unread": unread,
+        "updates_unread": missing,
+    }
     if now is None:
-        _keep("approved", out, clock, generation, short=unread)
+        _keep("approved", out, clock, generation, short=unread or missing)
     return out
