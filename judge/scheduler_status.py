@@ -209,8 +209,10 @@ def _gh(path: str) -> tuple[int, Any]:
     return out
 
 
-def runs(slug: str, limit: int = 15) -> dict:
-    code, body = _gh(f"/repos/{slug}/actions/workflows/{WORKFLOW_FILE}/runs?per_page={limit}")
+def runs(slug: str, limit: int = 15, *, workflow_file: str = WORKFLOW_FILE) -> dict:
+    """A workflow's recent runs; the nightly fetches' unless another file is
+    named (judge/sections_status.py reads the benchmarks and registry poll)."""
+    code, body = _gh(f"/repos/{slug}/actions/workflows/{workflow_file}/runs?per_page={limit}")
     if code != 200:
         return {"runs": [], "unreadable": f"GitHub answered {code or 'nothing'}"}
     out = []
@@ -231,16 +233,18 @@ def runs(slug: str, limit: int = 15) -> dict:
     return {"runs": out}
 
 
-def switch(slug: str) -> dict:
-    """The repository variable SCHEDULER_ENABLED: what actually turns the
-    nightly run on (the workflow's gate wants exactly `1`).
+def switch(slug: str, *, variable: str = "SCHEDULER_ENABLED") -> dict:
+    """The repository variable `variable` (SCHEDULER_ENABLED by default, or a
+    workflow's own, such as BENCHMARKS_SCHEDULE_ENABLED): what actually turns
+    that workflow's scheduled run on (its gate wants exactly `1`).
 
     SHOWN SINCE 2026-10-21 - it was left out on 2026-10-06 because reading it
     needs a token allowed to read repository variables. Where the backend's
     GITHUB_TOKEN is not, this says so: "unreadable" is never shown as "off"
     (rule 6), because a switch nobody can read is not a switch that is off.
+    `variable` names another workflow's switch (BENCHMARKS_SCHEDULE_ENABLED).
     """
-    code, body = _gh(f"/repos/{slug}/actions/variables/SCHEDULER_ENABLED")
+    code, body = _gh(f"/repos/{slug}/actions/variables/{variable}")
     if code == 200 and isinstance(body, dict):
         value = str(body.get("value") or "")
         return {"state": "on" if value.strip() == "1" else "off", "value": value,

@@ -3459,6 +3459,28 @@ def admin_scheduler() -> dict:
         return scheduler_status.overview(conn)
 
 
+@app.get("/admin/schedules")
+def admin_schedules() -> dict:
+    """Admin -> Scheduler, under the nightly fetches: the GitHub Actions that
+    feed AI benchmarks and AI updates - set-up, switch, next firing and recent
+    runs, plus what the last benchmarks runs did. Read-only; variable NAMES
+    only. See judge/sections_status.py."""
+    from judge import sections_status
+
+    return sections_status.schedules()
+
+
+@app.get("/admin/sections")
+def admin_sections() -> dict:
+    """Admin -> Board & content: what the public AI benchmarks and AI updates
+    pages hold now, and the contract timing values behind them. Read-only; no
+    build is started from here. See judge/sections_status.py."""
+    from judge import sections_status
+
+    with _conn() as conn:
+        return sections_status.sections(conn)
+
+
 @app.get("/admin/seo-keywords")
 def admin_seo_keywords() -> dict:
     """Keywords dashboard: which SEO keywords sit on which public page and where

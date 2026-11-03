@@ -14,7 +14,8 @@ import DatabasePanel from '../components/DatabasePanel'
 import SettingsPanel from '../components/SettingsPanel'
 import FetchPanel from '../components/FetchPanel'
 import ModelProposal from '../components/ModelProposal'
-import SchedulerPanel from '../components/SchedulerPanel'
+import SchedulerTabs from '../components/SchedulerTabs'
+import { AiBenchmarksPanel, AiUpdatesPanel } from '../components/PublicSectionPanels'
 import BlogsPanel from '../components/BlogsPanel'
 import QuizPanel from '../components/QuizPanel'
 import FeedSummaryPanel from '../components/FeedSummaryPanel'
@@ -293,6 +294,21 @@ const SECTIONS = [
   //   the `proposed_capabilities` prompt field and the endpoint behind it.
   //   Both are shared code mid-batch, so they are raised on #434 rather
   //   than deleted from this side.
+  // THE TWO PUBLIC SECTIONS (2026-11-02): what each public page holds now.
+  // Scores are edited on the Benchmarks page and headlines in Manage; these
+  // only say where things stand and link there.
+  {
+    id: 'ai-benchmarks',
+    title: 'AI benchmarks',
+    blurb: 'The public benchmarks page: what it shows, and what is held back',
+    render: () => <AiBenchmarksPanel />,
+  },
+  {
+    id: 'ai-updates',
+    title: 'AI updates',
+    blurb: 'The public updates page: decisions, the home page and the timing',
+    render: () => <AiUpdatesPanel />,
+  },
   {
     id: 'blogs',
     title: 'Blogs',
@@ -327,8 +343,10 @@ const SECTIONS = [
     id: 'scheduler',
     group: 'Operations',
     title: 'Scheduler',
-    blurb: 'Scheduled fetches: schedule, queue, controls and log',
-    render: () => <SchedulerPanel />,
+    blurb: 'Scheduled jobs: model fetches, benchmarks and the AI updates feeds',
+    // ONE TAB PER JOB (2026-11-02): the nightly fetches as before, then
+    // AI benchmarks' own run and the registry poll that feeds AI updates.
+    render: () => <SchedulerTabs />,
   },
   {
     id: 'runs',
