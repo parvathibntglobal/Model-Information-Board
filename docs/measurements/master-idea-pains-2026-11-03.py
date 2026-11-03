@@ -1,3 +1,4 @@
+# ruff: noqa: E501 - long regex patterns are kept whole so they can be read and checked.
 """Read-only: the five pains from the web research, counted in OUR corpus.
 
 Population: documents behind at least one published (not declined) board_entry,

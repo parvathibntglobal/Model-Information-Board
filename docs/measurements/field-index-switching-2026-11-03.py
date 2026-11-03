@@ -1,3 +1,4 @@
+# ruff: noqa: E501 - long regex patterns are kept whole so they can be read and checked.
 """Read-only: is there enough "moved from model A to model B" in our corpus for a
 monthly Field Index? (2026-11-03)
 
@@ -12,7 +13,7 @@ it counts candidates, and a sample is printed to judge how many are real.
 import json
 import re
 import zlib
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 import psycopg
