@@ -163,6 +163,11 @@ PUBLIC_READ_PATHS = frozenset({
     # source and quotes only from sources a public page may show
     # (judge/publication.py), as judge/watch.py documents.
     "/watch",
+    # 2026-11-03 (PROPOSED, anooj, feat/hooks-prototype): the launch verdict -
+    # the listing's own words, report COUNTS from every source and quotes only
+    # from sources a public page may show, as judge/verdict.py documents.
+    "/verdict",
+    "/verdict/week",
 })
 #: /glossary-terms/<slug> (2026-10-20): one glossary paragraph - reviewed copy
 #: from glossary.yaml, no quote, link or handle from any source.

@@ -3717,6 +3717,35 @@ def watch_models(ids: str = "", since: str | None = None) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/verdict")
+def launch_verdict(id: str = "") -> dict:  # noqa: A002 - the query parameter's name
+    """The launch verdict (a prototype, feat/hooks-prototype): one model's
+    listing words beside what engineers reported in each window after release,
+    counted and quoted. PUBLIC (judge/gate.py, PROPOSED). See judge/verdict.py."""
+    from judge import verdict
+
+    try:
+        with _conn() as conn:
+            return verdict.verdict(conn, id)
+    except verdict.VerdictRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/verdict/week")
+def launch_verdict_week(id: str = "", week: str = "") -> dict:  # noqa: A002 - the query name
+    """One week of a model's reports, for the trend on its page: counts by
+    polarity, the most-named topics and the newest quotes. PUBLIC (judge/gate.py,
+    PROPOSED). See judge/verdict.py."""
+    from judge import verdict
+
+    try:
+        start = verdict.parse_week(week)
+        with _conn() as conn:
+            return verdict.week(conn, id, start)
+    except verdict.VerdictRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/updates")
 def updates_list(days: int | None = None) -> dict:
     """Every update in the window, newest first, with its words, its styles and

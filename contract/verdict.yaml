@@ -1,0 +1,49 @@
+# ============================================================================
+#  THE LAUNCH VERDICT (judge/verdict.py, /verdict) - a prototype on
+#  feat/hooks-prototype
+#
+#  Proposed 2026-11-03 by anooj, from the master-idea research: "the launch is
+#  the trailer; this is the review". For one model, what its listing said, then
+#  what engineers reported in the launch week, the weeks after, and once they
+#  had lived with it - counted by person and by report, with their own words.
+#
+#  COUNTS ONLY (rule 3). No window is scored or compared with a number; the
+#  page prints the counts per window and says what they are.
+#
+#  WHEN A REPORT WAS MADE is the post's own date (document.created_at). Counts
+#  follow when we collected as well as when people wrote: collection on this
+#  board began writing entries on 2026-09-14, and it runs per model on a
+#  schedule, not per launch (rule 7 - the page says so).
+#
+#  Every value below is read by judge/verdict.py; none is defaulted (rule 12).
+# ============================================================================
+
+version: 1
+status: proposed
+proposed_on: 2026-11-03
+proposed_by: anooj
+
+# The windows after the release date, in days, inclusive at both ends. They
+# must not overlap and must run in order; the code refuses them otherwise.
+windows:
+  - key: launch
+    label: Launch week
+    from_day: 0
+    to_day: 6
+  - key: settling
+    label: Weeks 2 to 4
+    from_day: 7
+    to_day: 29
+  - key: lived_with
+    label: After a month
+    from_day: 30
+    to_day: 89
+
+# The board sections the verdict reads: what engineers say a model is good or
+# bad at. `metric` is left out, as on the watch page - a figure's quote means
+# nothing without its measurement.
+sections: [capability, best_for]
+# Per window: the most-reported capabilities and jobs (by distinct posts) ...
+top_topics: 4
+# ... and the newest verified quotes for each side (public sources only).
+quotes_per_side: 2

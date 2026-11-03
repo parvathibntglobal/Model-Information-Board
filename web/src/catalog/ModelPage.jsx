@@ -12,6 +12,7 @@ import { SECTION_OF_KIND, evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath, 
 import FeedLink from '../components/FeedLink'
 import FollowButton from '../follow/FollowButton'
 import ModelPulse from '../follow/ModelPulse'
+import LaunchVerdict from '../follow/LaunchVerdict'
 import { typeLabel } from './types'
 
 /**
@@ -274,7 +275,22 @@ export default function ModelPage({ id }) {
           <span className="cat-id">{m.id}</span>
         </div>
         <p className="mp2-answer" style={{ maxWidth: '78ch', margin: 0 }}>{shortAnswer(m)}</p>
-        {m.description && <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.description}</p>}
+        {/* OUR WORDING of the listing (judge/model_about.py, prototype): OpenRouter cuts
+            most descriptions mid-sentence. A draft says so; no entry shows
+            OpenRouter's own words, labelled as theirs. */}
+        {m.about ? (
+          <div className="mp2-about">
+            <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.about.text}</p>
+            <span className="mp2-about-by">
+              Our wording of the <a href={m.source} target="_blank" rel="noopener noreferrer">OpenRouter listing</a>
+              {m.about.approved ? '' : ' · a checked draft, not yet approved by a person'}
+            </span>
+          </div>
+        ) : m.description && (
+          <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>
+            {m.description} <span className="mp2-about-by">(the <a href={m.source} target="_blank" rel="noopener noreferrer">OpenRouter listing</a>, as written)</span>
+          </p>
+        )}
         <Freshness modelIds={[m.id]} style={{ margin: 0 }} />
         <div className="mp2-actions">
           {m.in_registry && <FollowButton id={m.id} name={m.name} />}
@@ -318,6 +334,9 @@ export default function ModelPage({ id }) {
       {/* What no other page shows (2026-11-02, prototype): new since your last
           look, and reports per week with the launch week marked. */}
       {m.in_registry && <ModelPulse id={m.id} />}
+      {/* The launch verdict (2026-11-03, prototype): the listing's words beside
+          what engineers reported in each window after release. */}
+      {m.in_registry && <LaunchVerdict id={m.id} />}
 
       <Workload m={m} />
       <Voices m={m} />

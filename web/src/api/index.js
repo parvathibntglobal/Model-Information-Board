@@ -638,6 +638,10 @@ export const newsStory = (id) => request(`/news/${encodeURIComponent(id)}`)
 /** One model's pulse for its page (judge/watch.py, GET /watch): new since the last look, weekly trend. */
 export const watchModels = (ids, since) => request(
   `/watch?ids=${encodeURIComponent(ids.join(','))}${since ? `&since=${encodeURIComponent(since)}` : ''}`)
+/** The launch verdict for a model's page (judge/verdict.py, GET /verdict): listing words beside reports per window. */
+export const launchVerdict = (id) => request(`/verdict?id=${encodeURIComponent(id)}`)
+/** One week of a model's reports for its "What's new" trend (judge/verdict.py, GET /verdict/week). */
+export const launchVerdictWeek = (id, week) => request(`/verdict/week?${new URLSearchParams({ id, week })}`)
 
 // THE UPDATES PAGE (judge/updates.py, 2026-10-29). Signed in. An edit that
 // brings in a number the update's facts do not hold is a 409 whose

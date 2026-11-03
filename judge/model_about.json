@@ -1,0 +1,180 @@
+{
+ "_about": "Our own wording of each model's OpenRouter description, for the model page header (prototype, feat/hooks-prototype, 2026-11-03). Proposed by a language model (Claude Code, Sonnet), checked in code by judge/feed/checks.paraphrase_problem against `source` (at most 6 words copied in a row, no number the source lacks, at most 320 characters), NOT yet approved by a person. judge/model_about.py reads it; tests/test_model_about.py re-runs the check on every entry.",
+ "checked_on": "2026-11-03",
+ "models": [
+  {
+   "id": "anthropic/claude-fable-5.1",
+   "about": "Claude Fable 5.1 is an upgrade over Claude Fable 5 in every area, with the largest improvements in agentic coding, extended agentic workflows, and knowledge work.",
+   "source": "Claude Fable 5.1 improves on Claude Fable 5 across the board, with the biggest gains in agentic coding, long-running agentic workflows, and knowledge work: long code refactors, front-end and visual...",
+   "approved_by": null
+  },
+  {
+   "id": "anthropic/claude-haiku-5.5",
+   "about": "For cost-sensitive, high-volume tasks like summarization, subagents, and browser use, Anthropic offers Claude Haiku 5.5, a compact and quick model. It follows Claude Haiku 4.5.",
+   "source": "Claude Haiku 5.5 is Anthropic's small, fast model for high-volume, cost-sensitive work such as summarization, subagents, and browser use. It succeeds Claude Haiku 4.5 with stronger coding, computer use, and...",
+   "approved_by": null
+  },
+  {
+   "id": "anthropic/claude-opus-4.6",
+   "about": "Anthropic calls Opus 4.6 its strongest model, aimed at coding and professional tasks that run for a long time. It is meant for agents that work across complete workflows rather than individual prompts.",
+   "source": "Opus 4.6 is Anthropic’s strongest model for coding and long-running professional tasks. It is built for agents that operate across entire workflows rather than single prompts, making it especially effective...",
+   "approved_by": null
+  },
+  {
+   "id": "anthropic/claude-opus-5",
+   "about": "Claude Opus 5 is Anthropic's top model, aimed at hard reasoning, coding, and agentic work over long time spans. It is described as particularly strong at software tasks handled from start to finish, reviewing code, and finding bugs.",
+   "source": "Claude Opus 5 is Anthropic’s flagship model for demanding reasoning, coding, and long-horizon agentic work. It is particularly strong at end-to-end software tasks, code review and bug finding, visual analysis...",
+   "approved_by": null
+  },
+  {
+   "id": "anthropic/claude-opus-5.5",
+   "about": "As the successor to Claude Opus 5, Claude Opus 5.5 is Anthropic's top model for hard reasoning, coding, and agentic work over long time spans. Its particular strength is changes with many steps across big codebases.",
+   "source": "Claude Opus 5.5 is Anthropic's flagship model for demanding reasoning, coding, and long-horizon agentic work, succeeding Claude Opus 5. It is particularly strong at multi-step changes in large codebases, code...",
+   "approved_by": null
+  },
+  {
+   "id": "anthropic/claude-sonnet-5.5",
+   "about": "Claude Sonnet 5.5 is a Sonnet-class model from Anthropic for everyday tasks with a clear scope, and it directly upgrades Claude Sonnet 5. It is especially good at building features and fixing bugs.",
+   "source": "Claude Sonnet 5.5 is Anthropic's Sonnet-class model for well-scoped everyday work, succeeding Claude Sonnet 5 as a direct upgrade. It is especially strong at building features, fixing bugs, and producing...",
+   "approved_by": null
+  },
+  {
+   "id": "deepseek/deepseek-v4.1-flash-1017",
+   "about": "DeepSeek V4.1 Flash 1017 is the snapshot of DeepSeek V4.1 Flash from October 17, 2026, which DeepSeek serves through its API under the model name deepseek-flash. Under the hood, V4.1 Flash follows a sparse mixture-of-experts design.",
+   "source": "DeepSeek V4.1 Flash 1017 is the October 17, 2026 snapshot of DeepSeek V4.1 Flash, served by DeepSeek under the `deepseek-flash` API model name. V4.1 Flash is a sparse mixture-of-experts model...",
+   "approved_by": null
+  },
+  {
+   "id": "deepseek/deepseek-v4-flash",
+   "about": "DeepSeek V4 Flash is an efficiency-focused Mixture-of-Experts model from DeepSeek. It has 284B parameters in total, 13B of them activated, supports a 1M-token context window, and is designed for fast inference.",
+   "source": "DeepSeek V4 Flash is an efficiency-optimized Mixture-of-Experts model from DeepSeek with 284B total parameters and 13B activated parameters, supporting a 1M-token context window. It is designed for fast inference and...",
+   "approved_by": null
+  },
+  {
+   "id": "deepseek/deepseek-v4-pro",
+   "about": "From DeepSeek, V4 Pro is a Mixture-of-Experts model at large scale. It has 1.6T parameters in total, 49B of them activated, and supports a 1M-token context window. Its design targets advanced reasoning and coding.",
+   "source": "DeepSeek V4 Pro is a large-scale Mixture-of-Experts model from DeepSeek with 1.6T total parameters and 49B activated parameters, supporting a 1M-token context window. It is designed for advanced reasoning, coding,...",
+   "approved_by": null
+  },
+  {
+   "id": "elevenlabs/eleven-v3",
+   "about": "Eleven v3 is ElevenLabs' text-to-speech model that produces highly expressive, emotionally rich speech using inline audio tags. It supports 70+ languages and accepts requests of up to 5,000 characters.",
+   "source": "Eleven v3 is a text-to-speech model from ElevenLabs. It produces emotionally rich, highly expressive speech with inline audio tags, supports 70+ languages, and has a 5,000-character request limit.",
+   "approved_by": null
+  },
+  {
+   "id": "google/gemini-3.1-flash-image",
+   "about": "Gemini 3.1 Flash Image, also called Nano Banana 2, is Google's latest state-of-the-art model for generating and editing images. It offers visual quality on a par with Pro at Flash speed.",
+   "source": "Gemini 3.1 Flash Image, a.k.a. \"Nano Banana 2,\" is Google’s latest state of the art image generation and editing model, delivering Pro-level visual quality at Flash speed. It combines advanced...",
+   "approved_by": null
+  },
+  {
+   "id": "google/gemini-3.8-flash",
+   "about": "Google describes Gemini 3.8 Flash as its most intelligent Flash model. Compared with 3.7 Flash, it improves substantially in agentic tasks, multi-step reasoning, and software engineering.",
+   "source": "Gemini 3.8 Flash is Google's most intelligent Flash model with significant gains from 3.7 Flash across software engineering, agentic tasks, and multi-step reasoning.",
+   "approved_by": null
+  },
+  {
+   "id": "google/gemini-4-argon",
+   "about": "Gemini 4 Argon is Google's top reasoning model, made for difficult software engineering, in-depth math and science problem solving, and agents that act on their own across several steps.",
+   "source": "Gemini 4 Argon is Google's flagship reasoning model, built for complex software engineering, deep mathematical and scientific problem solving, and autonomous multi-step agents. Google trained it to keep context across...",
+   "approved_by": null
+  },
+  {
+   "id": "google/gemini-nano-banana-2.1",
+   "about": "Nano Banana 2.1 is a Google model for generating and editing images, in the Flash tier. It replaces both Nano Banana Pro and Nano Banana 2, and it improves product recontextualization.",
+   "source": "Nano Banana 2.1 (Gemini Nano Banana 2.1) is Google's image generation and editing model on the Flash tier, succeeding Nano Banana 2 and Nano Banana Pro. It improves product recontextualization,...",
+   "approved_by": null
+  },
+  {
+   "id": "minimax/minimax-m3",
+   "about": "MiniMax M3 comes from MiniMax and is a foundation model that is multimodal. It is suited to long-horizon agentic work and coding, takes text, image, and video as input, produces text, and offers a 1M-token context window.",
+   "source": "MiniMax-M3 is a multimodal foundation model from MiniMax. It supports text, image, and video inputs with text output, a 1M-token context window, and is suited for long-horizon agentic work, coding,...",
+   "approved_by": null
+  },
+  {
+   "id": "minimax/minimax-m3.1-flash",
+   "about": "This multimodal model, M3.1 Flash, comes from MiniMax. It improves markedly on several benchmarks relative to M3, especially for coding, cybersecurity, and complex agentic tasks.",
+   "source": "MiniMax-M3.1-Flash is a multimodal model from MiniMax. Compared with M3, it delivers significant improvements across multiple benchmarks, particularly in complex agentic tasks, coding, and cybersecurity. It is built for complex,...",
+   "approved_by": null
+  },
+  {
+   "id": "moonshotai/kimi-k3",
+   "about": "Moonshot AI built Kimi K3, a multimodal reasoning model with open weights and 2.8T parameters. It fits demanding coding, knowledge work, and agentic workflows that run over long horizons.",
+   "source": "Kimi K3 is a 2.8T parameter open-weight multimodal reasoning model from Moonshot AI. It is suited for complex coding, knowledge work, and long-horizon agentic workflows, and is particularly strong at...",
+   "approved_by": null
+  },
+  {
+   "id": "moonshotai/kimi-k3.1-pro",
+   "about": "Kimi K3.1 Pro is the lead model from Moonshot AI, a multimodal reasoning model with open weights. It was post-trained as the successor to Kimi K3, offers a 1M-token context window, and targets long-horizon coding.",
+   "source": "Kimi K3.1 Pro is Moonshot AI's flagship open-weight multimodal reasoning model and a post-trained successor to Kimi K3, with a 1M-token context window. It is built for long-horizon coding, 3D...",
+   "approved_by": null
+  },
+  {
+   "id": "openai/gpt-5.5",
+   "about": "GPT-5.5 is OpenAI's frontier model for complex professional workloads. It builds on GPT-5.4, being more reliable, with stronger reasoning and better token efficiency on hard tasks.",
+   "source": "GPT-5.5 is OpenAI’s frontier model designed for complex professional workloads, building on GPT-5.4 with stronger reasoning, higher reliability, and improved token efficiency on hard tasks. It features a 1M+ token...",
+   "approved_by": null
+  },
+  {
+   "id": "openai/gpt-5.6-sol",
+   "about": "In OpenAI's GPT-5.6 series, GPT-5.6 Sol is the top model. It suits agentic workflows, coding, and complex reasoning, and it is especially strong with command-line work and coding tasks that take several steps.",
+   "source": "GPT-5.6 Sol is the flagship model in OpenAI's GPT-5.6 series. It is suited for complex reasoning, coding, and agentic workflows, and is particularly strong at command-line and multi-step coding tasks...",
+   "approved_by": null
+  },
+  {
+   "id": "openai/gpt-6.1-sol",
+   "about": "GPT-6.1 Sol upgrades GPT-6 Sol from OpenAI and ranks under GPT-6 Astra, the series flagship. It is suited to agentic coding and computer use.",
+   "source": "GPT-6.1 Sol is an upgrade to GPT-6 Sol from OpenAI, positioned below the flagship GPT-6 Astra in the GPT-6 series. It is suited for agentic coding, computer use, document-heavy professional...",
+   "approved_by": null
+  },
+  {
+   "id": "openai/gpt-6.1-terra",
+   "about": "GPT-6.1 Terra is the middle model of OpenAI's GPT-6.1 series and costs less than GPT-6.1 Sol. It suits routine agentic, coding, and writing work.",
+   "source": "GPT-6.1 Terra is the mid-tier model in OpenAI's GPT-6.1 series, priced below GPT-6.1 Sol. It is suited for everyday agentic, coding, and writing work, is particularly strong at understanding screenshots...",
+   "approved_by": null
+  },
+  {
+   "id": "openai/gpt-6-astra",
+   "about": "OpenAI's flagship GPT-6 Astra targets demanding work done end to end. It fits document creation, scientific work, deep research, software engineering, and advanced analysis.",
+   "source": "GPT-6 Astra is OpenAI's flagship model for demanding end-to-end work. It is suited for advanced analysis, software engineering, deep research, scientific work, and document creation, with particular strengths in long-horizon...",
+   "approved_by": null
+  },
+  {
+   "id": "openai/gpt-6-luna",
+   "about": "GPT-6 Luna is the quick, economical model of OpenAI's GPT-6 series, placed below GPT-6 Sol. It suits latency-sensitive, high-volume workloads such as chat and classification.",
+   "source": "GPT-6 Luna is the fast, cost-efficient model in OpenAI's GPT-6 series, positioned below GPT-6 Sol. It is suited for high-volume and latency-sensitive workloads such as chat, classification, and lightweight agentic...",
+   "approved_by": null
+  },
+  {
+   "id": "openai/gpt-6-sol",
+   "about": "GPT-6 Sol is the high-end, economical model of OpenAI's GPT-6 series. It sits under the flagship GPT-6 Astra and over the quicker GPT-6 Luna.",
+   "source": "GPT-6 Sol is the cost-efficient high-end model in OpenAI's GPT-6 series, positioned below the flagship GPT-6 Astra and above the fast GPT-6 Luna tier. It is suited for demanding professional...",
+   "approved_by": null
+  },
+  {
+   "id": "typesafe/jev-1.13",
+   "about": "Jev is TypeSafe's structured decision model and the first in its System One line. System One models quickly make structured decisions for software.",
+   "source": "Jev is a structured decision model from TypeSafe, and the first of its System One models. System One models make fast, structured decisions for software, returning a typed choice rather...",
+   "approved_by": null
+  },
+  {
+   "id": "x-ai/grok-4.6",
+   "about": "Grok 4.6 is a SpaceXAI model offering frontier-level results in coding, knowledge work, and STEM. Grok 4.7 has since succeeded it.",
+   "source": "Grok 4.6 is a model from SpaceXAI with frontier performance on coding, knowledge work, and STEM. It is succeeded by [Grok 4.7](/x-ai/grok-4.7).",
+   "approved_by": null
+  },
+  {
+   "id": "x-ai/grok-4.7",
+   "about": "SpaceXAI's Grok 4.7 is its top model for agentic tasks, knowledge work, and coding, and it replaces Grok 4.6. Its particular strength is long software engineering tasks and checking its own work.",
+   "source": "Grok 4.7 is SpaceXAI's flagship model for coding, agentic tasks, and knowledge work, succeeding Grok 4.6. It is particularly strong at long-running software engineering tasks, verifying its own work, and...",
+   "approved_by": null
+  },
+  {
+   "id": "z-ai/glm-5.3",
+   "about": "GLM-5.3 is a large reasoning model made for complex software engineering and agent tasks over long horizons. It takes text in and gives text out, with a 1M-token context window.",
+   "source": "GLM-5.3 is a large-scale reasoning model from Z.ai, built for complex software engineering and long-horizon agent tasks. It supports text input and output with a 1M-token context window, and improves...",
+   "approved_by": null
+  }
+ ]
+}

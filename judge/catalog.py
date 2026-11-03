@@ -24,6 +24,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+from judge import model_about
+
 #: The types the page offers, in its order - OpenRouter's own output modalities
 #: (https://openrouter.ai/models?output_modalities=...). `embeddings` and
 #: `rerank` exist in the feed too and are not offered as types; a model that
@@ -174,6 +176,9 @@ def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
         "provider": provider,
         "provider_name": provider_name,
         "description": desc,
+        # Our wording of `description` (judge/model_about.py, prototype): a
+        # checked draft until a person approves it; None where there is none.
+        "about": model_about.get(cid),
         "listed_at": listed_at.date().isoformat() if listed_at else None,
         "inputs": list(ins or []),
         "outputs": list(outs or []),

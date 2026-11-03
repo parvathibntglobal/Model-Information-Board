@@ -8,19 +8,68 @@
 .pl-since{margin:0;font-size:var(--fs-sm);line-height:1.6;color:var(--text-2)}
 .pl-since b{color:var(--text)}
 .pl-since b.pl-neg{color:var(--fail)}
+.pl-since b.pl-pos{color:var(--pass)}
 
 .pl-trend{margin:0}
 .pl-bars{display:flex;align-items:flex-end;gap:8px;height:120px}
-.pl-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;min-width:0}
+.pl-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;min-width:0;
+  padding:4px 0;border:1px solid transparent;border-radius:var(--r-sm);background:none;font:inherit;cursor:pointer}
+.pl-bar:hover:not(:disabled){border-color:var(--border)}
+.pl-bar:disabled{cursor:default}
+.pl-bar.pl-on{border-color:var(--border-strong);background:var(--surface-2)}
 .pl-bar-n{font-size:10px;color:var(--text-3);min-height:12px}
 .pl-bar-col{flex:1;width:100%;max-width:56px;display:flex;flex-direction:column;justify-content:flex-end;
   border-radius:4px;overflow:hidden;background:var(--surface-2)}
-.pl-bar-rest{display:block;background:var(--text-3);opacity:.45}
+.pl-bar-rest{display:block;background:var(--border-strong)}
 .pl-bar-neg{display:block;background:var(--fail)}
+.pl-bar-pos{display:block;background:var(--pass)}
 .pl-bar-lab{font-size:10px;color:var(--text-3);white-space:nowrap}
+.pl-week{margin-top:16px;padding:14px;border:1px solid var(--border);border-radius:var(--r-card);display:flex;flex-direction:column;gap:8px}
 .pl-trend figcaption{margin-top:8px;font-size:var(--fs-xs);color:var(--text-3);line-height:1.5;max-width:78ch}
+.pl-key{margin:0 0 8px;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:var(--fs-sm);color:var(--text-2)}
 .pl-key-neg{color:var(--fail);font-weight:600}
+.pl-key-pos{color:var(--pass);font-weight:600}
 .pl-key-rest{color:var(--text-2);font-weight:600}
+
+/* The model page header's own wording (ModelPage.jsx, judge/model_about.py). */
+.mp2-about{display:flex;flex-direction:column;gap:4px}
+.mp2-about-by{font-size:var(--fs-xs);color:var(--text-3)}
+.mp2-about-by a{color:var(--text-2)}
+
+/* The launch verdict (follow/LaunchVerdict.jsx, 2026-11-03, prototype): the
+   listing's words, then one column per window after release. */
+.lv-claim{margin:0;padding:14px 16px;border:1px solid var(--border);border-radius:var(--r-card);background:var(--surface-2)}
+.lv-claim figcaption{font-size:var(--fs-xs);color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.lv-claim a{font-size:var(--fs-xs);color:var(--text-2)}
+.lv-voice{margin:8px 0 0;font-size:var(--fs-sm);line-height:1.6;color:var(--text)}
+.lv-voice-by{margin:10px 0 0;font-size:var(--fs-xs);line-height:1.5;color:var(--text-3)}
+.lv-voice-by a{color:var(--text-2)}
+.lv-wins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.lv-win{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--border);border-radius:var(--r-card);min-width:0}
+.lv-win-empty{opacity:.6}
+.lv-win-h{display:flex;flex-direction:column;gap:2px}
+.lv-win-h h3{margin:0;font-size:var(--fs-sm);font-weight:700;color:var(--text)}
+.lv-win-h span{font-size:var(--fs-xs);color:var(--text-3)}
+.lv-people{margin:0;font-size:var(--fs-sm);color:var(--text-2)}
+.lv-people b{color:var(--text);font-size:var(--fs-h3)}
+.lv-split{margin:0;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:var(--fs-xs);color:var(--text-2)}
+.lv-pos{color:var(--pass);font-weight:600}
+.lv-neg{color:var(--fail);font-weight:600}
+.lv-topics{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:var(--fs-xs);color:var(--text-2)}
+.lv-topics li{display:grid;grid-template-columns:1fr auto auto;gap:8px}
+.lv-q{margin:0;padding:8px 10px;border-left:3px solid var(--border-strong);background:var(--surface-2);border-radius:var(--r-sm)}
+.lv-q-neg{border-left-color:var(--fail)}
+.lv-q-pos{border-left-color:var(--pass)}
+.lv-q p{margin:0;font-size:var(--fs-xs);line-height:1.55;color:var(--text)}
+.lv-q footer{margin-top:4px;font-size:11px;color:var(--text-3)}
+.lv-q footer a{color:var(--text-2)}
+.lv-said-note{margin:0;font-size:11px;color:var(--text-3)}
+.lv-none,.lv-first{margin:0;font-size:var(--fs-sm);color:var(--text-2)}
+.lv-note{margin:0;font-size:var(--fs-xs);color:var(--text-3);line-height:1.5;max-width:78ch}
+
+@media (max-width:900px){
+  .lv-wins{grid-template-columns:1fr}
+}
 
 @media (max-width:600px){
   .pl-bars{gap:4px}
