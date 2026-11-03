@@ -453,3 +453,26 @@
 
 /* LIGHT THEME (2026-10-28): the picker's own palette on white. The good / bad / mixed text colours are the site's state colours there. */
 :root[data-theme="light"] .mp{--mp-card:#FFFFFF;--mp-text-1:#18181B;--mp-neutral:#63636B;--mp-good-text:#136B36;--mp-bad-text:#B42318;--mp-mixed-text:#8A5A00;--mp-line:#E4E4E7;--mp-line-hi:#C9C9CF;--mp-line-2:#E4E4E7;--mp-violet-text:#5B45D6}
+
+/* A CARD'S ACTIONS (2026-11-03): at most three, in the page's own type rather
+   than tiny mono - Reports and Model page as quiet links, Compare on the right. */
+.mp-layout .mp-card-foot,.mp-layout .mp-pick-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font:500 .78rem var(--font-sans)}
+.mp-layout .mp-actions{display:flex;gap:14px;align-items:center}
+.mp-layout .mp-act{color:var(--mp-text-1, var(--text));text-decoration:underline;text-decoration-color:var(--border-strong);
+  text-underline-offset:3px}
+.mp-layout .mp-act:hover{text-decoration-color:currentColor}
+.mp-layout .mp-cmp{font:500 .78rem var(--font-sans)}
+
+/* ONCE UNDER THE RESULTS: where to go next for any model shown. */
+.mp-next{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:14px 16px;margin-top:4px;
+  border:1px solid var(--border);border-radius:var(--r-card);font-size:.86rem}
+.mp-next a{color:var(--text);font-weight:500}
+.mp-next a:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* BEFORE A SEARCH, ONE LINE. */
+.mp-start-line{margin:0;padding:4px 2px;color:var(--text-2);font-size:.92rem}
+.mp-start-line b{color:var(--text)}
+
+/* WHAT FIND WILL SEARCH (2026-11-03): the hint beside staged filters. */
+.mp-layout .mp-pending{font-size:.8rem;margin-left:4px}

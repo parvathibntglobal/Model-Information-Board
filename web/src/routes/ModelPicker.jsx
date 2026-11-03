@@ -261,13 +261,38 @@ function ModelCard({ m, refPrice, price, cmp, why, axis }) {
         <div className="mp-why">Also reported working on {why.map((w, i) => <span key={w}>{i ? ', ' : ''}<b>{w}</b></span>)}</div>
       )}
       {saves != null && <div className="mp-save">↓ saves {rate(saves)} per 1M input</div>}
-      <div className="mp-card-foot">
-        <span className="mp-actions">
-          <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
-          <CompareBox id={id} cmp={cmp} />
-        </span>
-      </div>
+      <CardActions m={m} id={id} cmp={cmp} axis={axis} />
     </div>
+  )
+}
+
+/** A CARD'S ACTIONS (2026-11-03): at most three, so a card never crowds - the
+ *  reports behind it (the evidence feed, when the job or capability is known),
+ *  the model's page, and Compare. Links that hold for every model (benchmarks,
+ *  specs, cost) sit once under the results instead (ResultLinks). */
+function CardActions({ m, id, cmp, axis, className = 'mp-card-foot' }) {
+  return (
+    <div className={className}>
+      <span className="mp-actions">
+        {/* A model the feed does not show gets no "Reports" at all (fallback null), never a dead word. */}
+        {axis && <FeedLink to={feedFor(m, axis)} fallback={null} className="mp-act" title={`Open the ${plural(m.reports, 'report')} behind this card`}>Reports</FeedLink>}
+        <Link to={`/reviews/models/${id}`} className="mp-act">Model page</Link>
+      </span>
+      <CompareBox id={id} cmp={cmp} />
+    </div>
+  )
+}
+
+/** ONCE UNDER THE RESULTS (2026-11-03): where to go next for any model shown,
+ *  so no card repeats them. */
+function ResultLinks() {
+  return (
+    <nav className="mp-next" aria-label="More on these models">
+      <span className="mp-dim">For any model here:</span>
+      <Link to="/ai-benchmarks">Benchmark scores →</Link>
+      <Link to="/ai-model-pricing">Full specs and prices →</Link>
+      <Link to="/token-counter">Monthly cost →</Link>
+    </nav>
   )
 }
 
@@ -384,7 +409,7 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
         : text
     })
   add([...working].filter((c) => priceOf(c.m) != null).sort((a, b) => priceOf(a.m) - priceOf(b.m) || b.m.voices - a.m.voices)[0], 'Cheapest reported working',
-    (c) => `${rate(priceOf(c.m))} per 1M input`)
+    () => null) // its price is on the card's price line already
   add([...working].sort((a, b) => b.m.voices - a.m.voices || b.m.reports - a.m.reports)[0], 'Most people reporting', () => null)
   if (!picks.length) return null
   return (
@@ -404,10 +429,7 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
                   ? <FeedLink to={feedFor(c.m, c.axis)} className="ev-open" title={`Open the ${plural(c.m.reports, 'report')} on ${c.on}`}>{peopleText(c.m)}</FeedLink>
                   : peopleText(c.m)}
               </div>
-              <div className="mp-pick-foot">
-                <Link to={`/reviews/models/${id}`} className="mp-link">Model page</Link>
-                <CompareBox id={id} cmp={cmp} />
-              </div>
+              <CardActions m={c.m} id={id} cmp={cmp} axis={c.axis} className="mp-pick-foot" />
             </div>
           )
         })}
@@ -601,15 +623,26 @@ export default function ModelPicker() {
     if (f.model && !keepCmp.includes(f.model.id)) setCmpIds((c) => [f.model.id, ...c.filter((x) => x !== f.model.id)].slice(0, COMPARE_MAX))
     if (scroll) setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
-  /** RESULTS FOLLOW THE FILTERS: picking or dropping one updates at once
-   *  (Find stays, for a keyboard reader who types and presses Enter). */
+  /** A SEARCH RUNS WHEN THE READER ASKS (2026-11-03, Parvathi; was "results
+   *  follow the filters"): picking or dropping an option in the search box
+   *  only stages it, and Find - or Enter - runs it. What runs at once is a
+   *  click that IS a search: an example, a related job in the results, or a
+   *  filter dropped from the results' own heading. */
   const applyFilters = (f) => { setFilters(f); run(f, !ran) }
   const setFilter = (t, opt) => {
     const f = { ...filters }
     if (opt) f[t] = { id: opt.id, label: opt.label }
     else delete f[t]
+    setFilters(f)
+  }
+  /** A filter dropped from the results: the search shown, without it, at once. */
+  const dropFromResults = (t) => {
+    const f = { ...ran }
+    delete f[t]
     applyFilters(f)
   }
+  // Staged in the search box and not yet run.
+  const pending = has(filters) && JSON.stringify(filters) !== JSON.stringify(ran || {})
   const choose = (o) => {
     setQ('')
     setListOpen(false)
@@ -669,7 +702,7 @@ export default function ModelPicker() {
     if (settings.minV > 0) steps.push(['Show any number of voices', () => set({ minV: 0 })])
     if (ran?.model && settings.cheaper) steps.push(['Include pricier models', () => set({ cheaper: false })])
     if (!settings.problems) steps.push(['Show reported not working', () => set({ problems: true })])
-    if (ran?.price) steps.push(['Remove the budget', () => removeFilter('price')])
+    if (ran?.price) steps.push(['Remove the budget', () => dropFromResults('price')])
     return (
       <div className="mp-none">
         {children}
@@ -681,7 +714,7 @@ export default function ModelPicker() {
   /** THE ACTIVE FILTERS, above the results, each removable in one click. */
   function ActiveChips() {
     const chips = []
-    for (const t of ORDER) if (ran[t]) chips.push({ key: t, label: `${TYPE[t].label}: ${ran[t].label}`, drop: () => removeFilter(t) })
+    for (const t of ORDER) if (ran[t]) chips.push({ key: t, label: `${TYPE[t].label}: ${ran[t].label}`, drop: () => dropFromResults(t) })
     if (settings.minV > 0) chips.push({ key: 'minV', label: `${settings.minV}+ voices`, drop: () => set({ minV: 0 }) })
     if (ran.model && settings.cheaper) chips.push({ key: 'cheaper', label: 'Cheaper only', drop: () => set({ cheaper: false }) })
     if (!settings.problems) chips.push({ key: 'problems', label: 'Hiding not working', drop: () => set({ problems: true }) })
@@ -1052,9 +1085,10 @@ export default function ModelPicker() {
             : ran?.provider ? `${ran.provider.label} alternatives: models from other providers that engineers reported working where ${ran.provider.label}'s ${plural(idx?.list.filter((r) => providerIdOf(r) === ran.provider.id).length || 0, 'model')} were used.`
             : 'Find the best AI model for the job, or a cheaper alternative to the one you use.'
         }</p>
+        {/* ONE INTRO LINE (2026-11-03): the paragraph that followed repeated
+            the short answer above it; its method link stays, here. */}
         <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>
-          Pick a job or a model you use to see what engineers reported working, a cheaper alternative, and each
-          model&apos;s price beside its counts. <Link to="/methodology">How we count reports</Link>.
+          <Link to="/methodology">How we count reports</Link>
         </p>
         {!jobOnly && !altOnly && !ran?.provider && <Freshness style={{ margin: 0 }} />}
       </div>
@@ -1108,7 +1142,9 @@ export default function ModelPicker() {
               </button>
             </div>
 
-            {has(filters) ? (
+            {/* WHAT FIND WILL SEARCH, while it differs from what is shown: once
+                it runs, the results' own heading lists the same filters. */}
+            {pending && (
               <div className="mp-tags">
                 <span className="mp-dim">Filters:</span>
                 {ORDER.filter((k) => filters[k]).map((k) => (
@@ -1117,14 +1153,13 @@ export default function ModelPicker() {
                   </span>
                 ))}
                 <button type="button" className="mp-textbtn" onClick={clearAll}>Clear all</button>
+                <span className="mp-dim mp-pending">Press {filters.model ? 'Find alternatives' : 'Find models'} to see the results.</span>
               </div>
-            ) : (
-              <p className="mp-info">{ICON.info}You can combine a task, model, capability and budget in your search.</p>
             )}
             {/* A WORKED EXAMPLE, built from what the board holds: one query with
                 each part highlighted in the colour and icon of the chip it comes
                 from, so a reader sees how the chips combine. Clicking it runs it. */}
-            {exampleQuery && (
+            {exampleQuery && !ran && (
               <button type="button" className="mp-example" onClick={() => tryExample(exampleQuery.f)}
                       title="Run this example">
                 <span className="mp-sentence-lab">Example: how the chips combine</span>
@@ -1136,10 +1171,10 @@ export default function ModelPicker() {
                 </span>
               </button>
             )}
-            <div className="mp-try">
+            {!ran && <div className="mp-try">
               <span className="mp-dim">Try:</span>
               {examples.map((x) => <button type="button" key={x.label} className="mp-chip" onClick={() => tryExample(x.f)}>{x.label}</button>)}
-            </div>
+            </div>}
           </div>
         </section>
       )}
@@ -1214,6 +1249,7 @@ export default function ModelPicker() {
               ? (idx.byId.get(ran.model.id) ? <ModelResults r={idx.byId.get(ran.model.id)} F={ran} /> : <div className="mp-none">That model is not on the board.</div>)
               : (ran.job || ran.capability) ? <AxisResults F={ran} />
                 : <BudgetResults b={bandOf(ran)} />}
+            <ResultLinks />
             <details className="mp-why-box">
               <summary>{ICON.info}<b>Why these results?</b></summary>
               <p>We show models from what engineers publicly reported, narrowed by your job, capability, budget and model. Each model is grouped by what its reports say, counted once per person, and shown only with at least {settings.minV || 1} {settings.minV > 1 ? 'people' : 'person'} reporting. Prices are what providers advertise.</p>
@@ -1222,19 +1258,10 @@ export default function ModelPicker() {
         </div>
       )}
 
+      {/* BEFORE A SEARCH, ONE LINE (2026-11-03): the illustrated empty box
+          took a screen's height to say where results will appear. */}
       {idx && !ran && (
-        <div className="mp-start">
-          <svg className="mp-start-art" width="120" height="76" viewBox="0 0 120 76" fill="none" aria-hidden="true">
-            <g stroke="var(--mp-good)" strokeWidth="2" strokeLinecap="round">
-              <path d="M14 22h8M10 38h10M14 54h8M98 22h8M100 38h10M98 54h8" opacity=".7" />
-              <rect x="34" y="12" width="20" height="20" rx="4" /><rect x="58" y="12" width="20" height="20" rx="4" /><rect x="34" y="36" width="20" height="20" rx="4" />
-              <path d="M40 24l4-4 4 4M64 22c3-3 7-3 9 0" />
-            </g>
-            <g stroke="var(--mp-accent)" strokeWidth="3" strokeLinecap="round"><circle cx="70" cy="48" r="11" /><path d="m78 56 9 9" /></g>
-          </svg>
-          <b>Start with a <span className="mp-accent-text">task</span>, <span className="mp-accent-text">model</span>, <span className="mp-accent-text">capability</span> or <span className="mp-accent-text">budget</span></b>
-          <span>Your matches will appear here as you refine your search.</span>
-        </div>
+        <p className="mp-start-line">Choose a job, model, capability or budget above, then press <b>Find models</b>.</p>
       )}
 
       <section className="mp-features" id="mp-points">

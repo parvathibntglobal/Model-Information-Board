@@ -73,6 +73,10 @@ NOT_ADMIN_PANELS = {
     # The home page's updates strip (2026-10-29): mounted by routes/Landing.jsx
     # under the hero, reading the published updates.
     "UpdatesStrip",
+    # Two Board & content sections in one module (2026-11-02): AiBenchmarksPanel
+    # and AiUpdatesPanel, each mounted by name in routes/Admin.jsx. The file's
+    # own name is no component, so the tag walk cannot see it.
+    "PublicSectionPanels",
     # The landing's three examples from Reports (2026-10-15): mounted by
     # routes/Landing.jsx in the "LLM leaderboard alternative" panel.
     "ReportExamples",
