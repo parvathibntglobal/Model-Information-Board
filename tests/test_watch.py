@@ -1,24 +1,28 @@
-"""Watch my models (judge/watch.py, /watch): a prototype, 2026-11-02.
+"""One model's pulse (judge/watch.py, /watch): a prototype, 2026-11-02.
 
 What is pinned without a database: the contract loads with every key and
-refuses a missing one; a listed price prints as listed, and an unpublished one
-stays None (rule 6); a list longer than the contract allows is refused before
-any query; the last-look date parses or is refused; the page is a public read.
+refuses a missing one; the reads count exactly what the verdict counts (one
+shared clause, UTC weeks), so a week's bar and the week it opens agree (#597
+review); "new since your last look" is new TO THE BOARD, whatever the post's
+date; the response carries only what the page reads - no quote, no price, no
+event (#597 review, rule 9); a list longer than the contract allows is refused
+before any query; the last-look date parses or is refused; the page is a
+public read.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 
-from judge import watch
+from judge import verdict, watch
 
 
 def test_the_contract_loads_with_every_value():
     r = watch.rules()
-    assert r["window_days"] >= 1 and r["max_models"] >= 1 and r["trend_weeks"] >= 1
-    assert "metric" not in r["quote_sections"], "a figure's quote means nothing on its own"
+    assert set(r) == {"window_days", "max_models", "trend_weeks"}
+    assert min(r.values()) >= 1
 
 
 def test_a_missing_contract_value_is_refused(monkeypatch):
@@ -29,12 +33,46 @@ def test_a_missing_contract_value_is_refused(monkeypatch):
         watch.rules()
 
 
-@pytest.mark.parametrize(("raw", "shown"), [
-    ("2", "$2.00"), ("0.075", "$0.075"), ("0.7505999999999999", "$0.7506"), ("15", "$15.00"),
-    ("0", "$0.00"), (None, None), ("", None), ("not a number", None),
-])
-def test_a_listed_price_prints_as_listed_and_none_stays_none(raw, shown):
-    assert watch._price(raw) == shown
+@pytest.mark.parametrize("make", [watch._counts_sql, watch._new_sql, watch._trend_sql])
+def test_every_read_counts_what_the_verdict_counts(make):
+    sql, _ = make()
+    assert verdict.COUNTED in sql, "declined entries and other sections must not count here"
+    assert "::date" not in sql.replace(verdict.POST_WEEK, ""), "a day or week is taken in UTC"
+
+
+def test_the_trend_weeks_are_utc_weeks():
+    sql, _ = watch._trend_sql()
+    assert verdict.POST_WEEK in sql
+
+
+def test_new_since_your_last_look_is_new_to_the_board_whatever_the_post_date():
+    sql, _ = watch._new_sql()
+    assert "be.created_at >= %s" in sql
+    assert "d.created_at" not in sql
+
+
+class FakeConn:
+    def execute(self, sql, params=()):
+        self._sql = sql
+        return self
+
+    def fetchall(self):
+        if "FROM model_version" in self._sql:
+            return [("mv1", "p/m", date(2026, 9, 22))]
+        if "AS wk" in self._sql:
+            return [("mv1", date(2026, 10, 26), "negative", 2)]
+        return [("mv1", "positive", 5), ("mv1", "negative", 2)]
+
+
+def test_the_response_carries_only_what_the_page_reads():
+    out = watch.watch(FakeConn(), ["p/m", "p/unknown"], since=datetime(2026, 10, 30, tzinfo=UTC),
+                      now=datetime(2026, 11, 3, 12, tzinfo=UTC))
+    assert set(out) == {"models", "window_days"}
+    (m,) = out["models"]
+    assert set(m) == {"id", "release_date", "reports", "new_since", "trend"}
+    assert m["reports"] == {"positive": 5, "negative": 2, "neutral": 0}
+    assert len(m["trend"]) == watch.rules()["trend_weeks"]
+    assert m["trend"][-2] == {"week": "2026-10-26", "positive": 0, "negative": 2, "neutral": 0}
 
 
 def test_too_many_models_are_refused_before_any_query():
@@ -52,15 +90,6 @@ def test_the_last_look_parses_or_is_refused():
     assert watch.parse_since("2026-11-01T10:00:00Z") == datetime(2026, 11, 1, 10, tzinfo=UTC)
     with pytest.raises(watch.WatchRequestError):
         watch.parse_since("last tuesday")
-
-
-def test_a_price_event_lists_only_prices_and_keeps_unpublished_as_none():
-    e = watch._event("price-change", datetime(2026, 11, 1, tzinfo=UTC), {
-        "changed": ["price_in", "price_out", "context"],
-        "from": {"price_in": "0.15", "price_out": None},
-        "to": {"price_in": "0.075", "price_out": "0.3"}})
-    assert e["changes"] == [{"field": "price_in", "from": "$0.15", "to": "$0.075"},
-                            {"field": "price_out", "from": None, "to": "$0.30"}]
 
 
 def test_the_page_is_a_public_read():

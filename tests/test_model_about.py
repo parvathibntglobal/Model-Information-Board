@@ -3,8 +3,9 @@ prototype, 2026-11-03.
 
 The check that let each text in is re-run here on every entry, so a hand edit
 to model_about.json that copies the listing or adds a number fails the suite
-(rule 2: the model proposed, code checks, a person approves). An unapproved
-entry says it is a draft; a model with no entry has no wording of ours.
+(rule 2: the model proposed, code checks, a person approves). Nothing is
+shown before a person approves it, and an approved text drops out when
+OpenRouter rewrites the description it was written from (#597 review).
 """
 
 from __future__ import annotations
@@ -28,12 +29,39 @@ def test_every_entry_passes_the_paraphrase_check_against_its_source(entry):
     assert not entry["about"].rstrip().endswith("..."), "our wording is never cut off"
 
 
-def test_an_unapproved_entry_says_it_is_a_draft():
-    first = ENTRIES[0]
-    got = model_about.get(first["id"])
-    assert got["text"] == first["about"]
-    assert got["approved"] is (first["approved_by"] is not None)
+SOURCE = "Acme 2 is a fast model for agents. It is particularly strong at..."
+
+
+def _entry(approved_by, source=SOURCE):
+    return {"id": "acme/two", "about": "Built for agents, Acme 2 is quick.", "source": source,
+            "approved_by": approved_by, "checked_on": "2026-11-03"}
+
+
+def test_nothing_reaches_a_page_until_a_person_approves_it(monkeypatch):
+    """As the evidence feed's summaries: drafted by a model, shown only once
+    approved (#597 review). Until then the page shows OpenRouter's words."""
+    monkeypatch.setattr(model_about, "_all", lambda: {"acme/two": _entry(None)})
+    current = "Acme 2 is a fast model for agents. It is particularly strong at..."
+    assert model_about.get("acme/two", current) is None
+    monkeypatch.setattr(model_about, "_all", lambda: {"acme/two": _entry("parvathi")})
+    assert model_about.get("acme/two", current)["text"] == "Built for agents, Acme 2 is quick."
+
+
+def test_a_text_goes_stale_when_openrouter_rewrites_its_description(monkeypatch):
+    monkeypatch.setattr(model_about, "_all", lambda: {"acme/two": _entry("parvathi")})
+    # The same words, now longer (OpenRouter no longer cuts it): still ours.
+    longer = "Acme 2 is a fast model for agents. It is particularly strong at tool calls."
+    assert model_about.get("acme/two", longer) is not None
+    # Rewritten: ours drops out by itself, and theirs shows again.
+    assert model_about.get("acme/two", "Acme 2 is a slow model for chat.") is None
+    assert model_about.get("acme/two", None) is None
+
+
+def test_no_unapproved_entry_in_the_file_reaches_a_page():
+    for e in ENTRIES:
+        if e["approved_by"] is None:
+            assert model_about.get(e["id"], e["source"]) is None, e["id"]
 
 
 def test_a_model_with_no_entry_has_no_wording_of_ours():
-    assert model_about.get("nobody/no-such-model") is None
+    assert model_about.get("nobody/no-such-model", "anything") is None

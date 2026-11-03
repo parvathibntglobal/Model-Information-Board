@@ -176,9 +176,10 @@ def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
         "provider": provider,
         "provider_name": provider_name,
         "description": desc,
-        # Our wording of `description` (judge/model_about.py, prototype): a
-        # checked draft until a person approves it; None where there is none.
-        "about": model_about.get(cid),
+        # Our wording of `description` (judge/model_about.py, prototype): only
+        # once a person approved it, and only while `description` is still the
+        # text it was written from; None otherwise, and the page shows theirs.
+        "about": model_about.get(cid, desc),
         "listed_at": listed_at.date().isoformat() if listed_at else None,
         "inputs": list(ins or []),
         "outputs": list(outs or []),

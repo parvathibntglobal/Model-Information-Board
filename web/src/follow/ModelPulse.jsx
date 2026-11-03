@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { launchVerdictWeek, watchModels } from '../api'
-import { lastLook, markLook } from './follow'
+import { lastLook, markLook, useFollowed } from './follow'
 import { Period } from './LaunchVerdict'
 
 /**
@@ -96,23 +96,31 @@ function Trend({ id, m }) {
 }
 
 export default function ModelPulse({ id }) {
+  // A last look exists only for a followed model (follow.js); for any other
+  // model the line covers the contract's window.
+  const [, , isFollowed] = useFollowed()
   const [since] = useState(() => lastLook(id))
   const [m, setM] = useState(null)
+  const [windowDays, setWindowDays] = useState(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let alive = true
     watchModels([id], since)
-      .then((d) => alive && setM(d.models?.[0] || false))  // false: not in the registry
+      .then((d) => {
+        if (!alive) return
+        setWindowDays(d.window_days)
+        setM(d.models?.[0] || false)  // false: not in the registry
+      })
       .catch(() => alive && setFailed(true))
     return () => { alive = false }
   }, [id, since])
 
   useEffect(() => {
-    if (!m) return undefined
+    if (!m || !isFollowed(id)) return undefined
     const t = setTimeout(() => markLook(id), 4000)
     return () => clearTimeout(t)
-  }, [m, id])
+  }, [m, id, isFollowed])
 
   if (failed || m === false) return null
   if (!m) return <section className="card"><div className="skel" style={{ height: 150 }} /></section>
@@ -124,7 +132,7 @@ export default function ModelPulse({ id }) {
       <p className="pl-since">
         {ns
           ? <>Since you last looked ({fmtShort(since)}): <b className="pl-neg">{ns.negative}</b> new problem {ns.negative === 1 ? 'report' : 'reports'}, <b className="pl-pos">{ns.positive}</b> working, <b>{ns.neutral}</b> neutral.</>
-          : <>In the last 30 days: <b className="pl-neg">{m.reports.negative}</b> problem {m.reports.negative === 1 ? 'report' : 'reports'}, <b className="pl-pos">{m.reports.positive}</b> working, <b>{m.reports.neutral}</b> neutral{all ? '' : ' - nobody has reported on it in that time'}. Next time you open this page, it shows what is new since now.</>}
+          : <>In the last {windowDays} days: <b className="pl-neg">{m.reports.negative}</b> problem {m.reports.negative === 1 ? 'report' : 'reports'}, <b className="pl-pos">{m.reports.positive}</b> working, <b>{m.reports.neutral}</b> neutral{all ? '' : ' - nobody has reported on it in that time'}.{isFollowed(id) ? ' Next time you open this page, it shows what is new since now.' : ' Follow it, and next time this shows what is new since your last look.'}</>}
       </p>
       <Trend id={id} m={m} />
     </section>

@@ -12,12 +12,17 @@ import '../styles/follow.css'
  * NO ACCOUNT. The list and each model's last look live in this browser only
  * (localStorage); nothing is sent anywhere but the ids a page asks about.
  * Storage that is blocked means no memory, and every page still works.
+ *
+ * A LAST LOOK IS KEPT ONLY FOR A FOLLOWED MODEL (#597 review): opening any
+ * model page used to add an entry, so the store grew with every page seen.
+ * Now it holds one date per followed model, and unfollowing drops it. No
+ * count cap is written here (#597 review, rule 5): the list is the visitor's
+ * own, and the one public read that takes a list bounds it in its contract.
  */
 
 const LIST_KEY = 'mb-follow'
 const SEEN_KEY = 'mb-follow-seen'
 const EVENT = 'mb-follow-change'
-export const MAX_FOLLOWED = 12
 
 function read(key, fallback) {
   try {
@@ -53,8 +58,9 @@ export function useFollowed() {
   }, [])
   const toggle = useCallback((id) => {
     const now = followedIds()
-    const next = now.includes(id) ? now.filter((x) => x !== id) : [...now, id].slice(-MAX_FOLLOWED)
-    write(LIST_KEY, next)
+    const following = now.includes(id)
+    write(LIST_KEY, following ? now.filter((x) => x !== id) : [...now, id])
+    if (following) forgetLook(id)
     window.dispatchEvent(new Event(EVENT))
   }, [])
   const isFollowed = useCallback((id) => ids.includes(id), [ids])
@@ -62,10 +68,21 @@ export function useFollowed() {
 }
 
 /** When this browser last looked at a model's page; null the first time. */
-export const lastLook = (id) => read(SEEN_KEY, {})?.[id] ?? null
+export const lastLook = (id) => seenMap()[id] ?? null
 
-/** Record this look - called once the page has been open a moment. */
-export function markLook(id) {
+const seenMap = () => {
   const seen = read(SEEN_KEY, {})
-  write(SEEN_KEY, { ...(seen && typeof seen === 'object' ? seen : {}), [id]: new Date().toISOString() })
+  return seen && typeof seen === 'object' ? seen : {}
+}
+
+/** Record this look, for a followed model only - called once the page has been
+ *  open a moment. */
+export function markLook(id) {
+  if (!followedIds().includes(id)) return
+  write(SEEN_KEY, { ...seenMap(), [id]: new Date().toISOString() })
+}
+
+function forgetLook(id) {
+  const { [id]: _gone, ...rest } = seenMap()
+  write(SEEN_KEY, rest)
 }

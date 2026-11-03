@@ -1831,9 +1831,8 @@ columns:
       state: read
       why: 'Written by collect/registry/events.py. Read by judge/updates.py LAUNCH_SQL (2026-10-29): the Updates page builds a launch headline from each new-model event. The release day when model_version.release_date is empty.'
     payload:
-      reviewed: true
-      state: read
-      why: 'Written by collect/registry/events.py. Read by judge/watch.py EVENTS_SQL (2026-11-02, PROPOSED, feat/hooks-prototype): a model''s price moves in the window, with the before and after as listed.'
+      reviewed: false
+      state: write_only
     source_url:
       reviewed: false
       state: reserved

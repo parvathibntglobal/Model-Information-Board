@@ -276,14 +276,13 @@ export default function ModelPage({ id }) {
         </div>
         <p className="mp2-answer" style={{ maxWidth: '78ch', margin: 0 }}>{shortAnswer(m)}</p>
         {/* OUR WORDING of the listing (judge/model_about.py, prototype): OpenRouter cuts
-            most descriptions mid-sentence. A draft says so; no entry shows
-            OpenRouter's own words, labelled as theirs. */}
+            most descriptions mid-sentence. Sent only once a person approved it
+            (#597 review); otherwise OpenRouter's own words, labelled as theirs. */}
         {m.about ? (
           <div className="mp2-about">
             <p className="muted" style={{ maxWidth: '78ch', margin: 0 }}>{m.about.text}</p>
             <span className="mp2-about-by">
-              Our wording of the <a href={m.source} target="_blank" rel="noopener noreferrer">OpenRouter listing</a>
-              {m.about.approved ? '' : ' · a checked draft, not yet approved by a person'}
+              Our wording of the <a href={m.source} target="_blank" rel="noopener noreferrer">OpenRouter listing</a>, checked against it and approved by a person
             </span>
           </div>
         ) : m.description && (

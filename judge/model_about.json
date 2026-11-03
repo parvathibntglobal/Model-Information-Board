@@ -1,5 +1,5 @@
 {
- "_about": "Our own wording of each model's OpenRouter description, for the model page header (prototype, feat/hooks-prototype, 2026-11-03). Proposed by a language model (Claude Code, Sonnet), checked in code by judge/feed/checks.paraphrase_problem against `source` (at most 6 words copied in a row, no number the source lacks, at most 320 characters), NOT yet approved by a person. judge/model_about.py reads it; tests/test_model_about.py re-runs the check on every entry.",
+ "_about": "Our own wording of each model's OpenRouter description, for the model page header (prototype, feat/hooks-prototype, 2026-11-03). Proposed by a language model (Claude Code, Sonnet), checked in code by judge/feed/checks.paraphrase_problem against `source` (at most 6 words copied in a row, no number the source lacks, at most 320 characters), NOT yet approved by a person, so none is shown until `approved_by` is set (#597 review). judge/model_about.py reads it; tests/test_model_about.py re-runs the check on every entry.",
  "checked_on": "2026-11-03",
  "models": [
   {

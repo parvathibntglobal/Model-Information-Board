@@ -1,15 +1,17 @@
 # ============================================================================
-#  WATCH MY MODELS (judge/watch.py, /watch) - a prototype on feat/hooks-prototype
+#  ONE MODEL'S PULSE (judge/watch.py, /watch) - a prototype on feat/hooks-prototype
 #
 #  Proposed 2026-11-02 by anooj, after the team review that found no hook to
-#  bring a person back. A visitor picks the models they run; one page shows
-#  what changed for those models: listed prices and price moves, retirement
-#  and deprecation dates, new reports from engineers (counted, with quotes),
-#  and a weekly trend of problem reports.
+#  bring a person back. On a model's page: what is new since the visitor last
+#  looked (for a model they follow), and a weekly trend of reports by side.
+#  Cut to what the page reads in the #597 review: no quotes, prices or events.
 #
 #  Measured before building (docs/measurements/hooks-feasibility-2026-11-02):
 #  125 of the 146 models with board entries had something to show in the 30
-#  days to 2026-11-02 - so a watched model is rarely an empty card.
+#  days to 2026-11-02 - so a model's pulse is rarely empty.
+#
+#  WHAT IS COUNTED is not set here: it is judge/verdict.py's `COUNTED` over
+#  contract/verdict.yaml `sections`, so the trend and the week it opens agree.
 #
 #  Every value below is read by judge/watch.py; none is defaulted (rule 12).
 # ============================================================================
@@ -19,19 +21,13 @@ status: proposed
 proposed_on: 2026-11-02
 proposed_by: anooj
 
-# The window a card covers: price moves, events and reports dated in it.
+# The window the opening line covers ("In the last N days"): reports whose
+# post is dated in it. The page reads it from the response, never types it.
 window_days: 30
-# How many models one page may watch. A browser stores the list; the URL
-# carries it, so a long list is a long URL.
+# How many models one request may name. The page asks for one; this bounds
+# what anyone else may ask a public read for.
 max_models: 12
-# The board sections a card quotes from: what engineers say a model is good or
-# bad at. `metric` is left out - a figure's quote ("6.5 (6 / 5 / 8.5)") means
-# nothing without the measurement it belongs to, and the model's page has it.
-quote_sections: [capability, best_for]
-# The newest verified quotes shown per model (public sources only: the
-# publication contract's withheld sources never show a quote here).
-quotes_per_model: 4
-# The trend under each card: this many weeks of report counts, by polarity.
+# The trend: this many weeks of report counts, by polarity.
 # A WEEK WITH MANY PROBLEM REPORTS IS SHOWN, NEVER FLAGGED: the measurement
 # found the biggest weeks are launch weeks (Grok 4.7: 53 of 110 in its first
 # week), and raw counts follow our own fetch schedule. So the page prints the

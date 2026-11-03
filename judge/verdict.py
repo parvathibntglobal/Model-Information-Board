@@ -40,6 +40,26 @@ class VerdictRequestError(ValueError):
     """A request the page should not have sent (no model id, a bad week)."""
 
 
+#: WHAT A PUBLIC COUNT ON THESE PAGES COUNTS (#597 review): an entry no person
+#: declined, in the sections `contract/verdict.yaml` names - the same rule as
+#: every other public count on main (judge/catalog.py `_engineer_voices`). One
+#: clause, read by this module AND judge/watch.py, so a week's bar and the week
+#: it opens can never count different reports. Takes the sections as its one
+#: parameter.
+COUNTED = "be.ruling IS DISTINCT FROM 'declined' AND be.section = ANY(%s)"
+
+#: A POST'S DAY AND WEEK IN UTC (#597 review): `d.created_at::date` follows the
+#: session's time zone, and the Python side builds UTC dates and Mondays, so a
+#: session that is not UTC would put a post in another week and read 0.
+POST_DAY = "(d.created_at AT TIME ZONE 'UTC')::date"
+POST_WEEK = "date_trunc('week', d.created_at AT TIME ZONE 'UTC')::date"
+
+
+def counted_sections() -> list[str]:
+    """The sections a public count reads (contract/verdict.yaml `sections`)."""
+    return rules()["sections"]
+
+
 def rules() -> dict[str, Any]:
     """contract/verdict.yaml, validated. Every key required; nothing defaulted."""
     from judge.config import _read
@@ -77,8 +97,8 @@ def _counts_sql() -> tuple[str, tuple]:
     sql = f"""
 SELECT be.polarity, count(DISTINCT d.id), count(DISTINCT d.author_id)
 FROM board_entry be JOIN document d ON d.id = be.document_id
-WHERE be.model_version_id = %s AND be.ruling IS DISTINCT FROM 'declined'
-  AND be.section = ANY(%s) AND d.created_at::date BETWEEN %s AND %s {clause}
+WHERE be.model_version_id = %s AND {COUNTED}
+  AND {POST_DAY} BETWEEN %s AND %s {clause}
 GROUP BY 1"""
     return sql, params
 
@@ -88,8 +108,8 @@ def _people_sql() -> tuple[str, tuple]:
     sql = f"""
 SELECT count(DISTINCT d.id), count(DISTINCT d.author_id)
 FROM board_entry be JOIN document d ON d.id = be.document_id
-WHERE be.model_version_id = %s AND be.ruling IS DISTINCT FROM 'declined'
-  AND be.section = ANY(%s) AND d.created_at::date BETWEEN %s AND %s {clause}"""
+WHERE be.model_version_id = %s AND {COUNTED}
+  AND {POST_DAY} BETWEEN %s AND %s {clause}"""
     return sql, params
 
 
@@ -98,8 +118,8 @@ def _topics_sql() -> tuple[str, tuple]:
     sql = f"""
 SELECT be.name, be.section, be.polarity, count(DISTINCT d.id)
 FROM board_entry be JOIN document d ON d.id = be.document_id
-WHERE be.model_version_id = %s AND be.ruling IS DISTINCT FROM 'declined'
-  AND be.section = ANY(%s) AND d.created_at::date BETWEEN %s AND %s {clause}
+WHERE be.model_version_id = %s AND {COUNTED}
+  AND {POST_DAY} BETWEEN %s AND %s {clause}
 GROUP BY 1, 2, 3"""
     return sql, params
 
@@ -108,8 +128,8 @@ def _first_problem_sql() -> tuple[str, tuple]:
     clause, params = publication.sql_counted_document("be.document_id")
     sql = f"""
 SELECT min(d.created_at) FROM board_entry be JOIN document d ON d.id = be.document_id
-WHERE be.model_version_id = %s AND be.ruling IS DISTINCT FROM 'declined'
-  AND be.polarity = 'negative' AND be.section = ANY(%s) AND d.created_at::date >= %s {clause}"""
+WHERE be.model_version_id = %s AND {COUNTED}
+  AND be.polarity = 'negative' AND {POST_DAY} >= %s {clause}"""
     return sql, params
 
 
