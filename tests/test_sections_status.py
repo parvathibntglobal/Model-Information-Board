@@ -180,12 +180,22 @@ def test_benchmarks_page_reports_the_kept_copy(monkeypatch):
 
 
 def test_a_copy_kept_for_another_database_is_not_reported(monkeypatch):
+    # benchmarks' own reader decides (#596 review): Admin no longer reads the key.
     monkeypatch.setattr(
         benchmarks,
         "_charts_kept",
         benchmarks._Kept(("postgresql://elsewhere/x",), {"models": []}, 0.0),
     )
+    assert benchmarks.charts_kept_state() is None
     assert sections_status._benchmarks_page()["kept"] is None
+
+
+def test_the_kept_charts_state_says_how_long_ago_the_table_was_checked(monkeypatch):
+    built = {"models": []}
+    monkeypatch.setattr(
+        benchmarks, "_charts_kept", benchmarks._Kept((benchmarks.database_url(),), built, 100.0)
+    )
+    assert benchmarks.charts_kept_state(now=130.4) == (built, 30)
 
 
 class _Conn:

@@ -111,6 +111,8 @@ function Feed({ f }) {
           {!f.variable && <Cell k="Switch" v="none" sub="runs on every firing" />}
           <Cell k="Schedule" v={(s.crons || []).map((c) => c.words).join(' · ') || 'no schedule'}
                 sub={s.manual_run ? 'can also be started by hand' : null} />
+          <Cell k="Limits" v={s.timeout_minutes != null ? `stops at ${s.timeout_minutes} min` : 'no time limit set'}
+                sub={s.one_at_a_time ? 'one run at a time' : 'runs may overlap'} />
           <Cell k="Next run" v={f.next_run ? at(f.next_run) : '—'}
                 sub={f.next_run ? (f.variable && sw?.state === 'off' ? 'fires, but does nothing while the switch is off' : 'GitHub may start it a little late') : null} />
           <Cell k="Last run" v={last ? at(last.started_at) : 'none yet'}

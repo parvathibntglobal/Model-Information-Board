@@ -144,7 +144,7 @@ export function AiUpdatesPanel() {
   return (
     <Card
       title="AI updates — the public page"
-      intro="Headlines are rebuilt from the data on every read; only what people decide in Manage is stored. The public page shows every approved update. What keeps the data current is under Scheduler: the registry poll and the benchmarks run."
+      intro="Headlines are rebuilt from the data on every read; only what people decide in Manage is stored. The public page shows the approved updates inside its window (Timing, below), so it holds fewer than every approval ever recorded. What keeps the data current is under Scheduler: the registry poll and the benchmarks run."
     >
       {err && <Notice icon={<IconAlert />}>This could not be read: {err}</Notice>}
       {!data && !err && <div className="skel" style={{ height: 120 }} />}
@@ -152,17 +152,17 @@ export function AiUpdatesPanel() {
       {u && !u.unreadable && (
         <>
           <div className="adm-plan-grid">
-            <Cell k="Approved" v={u.decisions ? total('approved') : '—'} sub="shown on the public page" />
+            <Cell k="Approved" v={u.decisions ? total('approved') : '—'} sub="all time, since the review table began" />
             <Cell k="Declined" v={u.decisions ? total('declined') : '—'} />
             <Cell k="On the home page" v={u.decisions ? total('on_home') : '—'} sub="published at some point; old ones drop off by themselves" />
-            <Cell k="Public page now" v={u.public_kept ? u.public_kept.updates : '—'}
-                  sub={u.public_kept ? 'headlines in its kept copy' : 'nothing kept yet on this server'} />
+            <Cell k="Last kept copy" v={u.public_kept ? u.public_kept.updates : '—'}
+                  sub={u.public_kept ? 'headlines the public page last built; it may have run out' : 'nothing kept yet on this server'} />
             <Cell k="Waiting for review"
                   v={waiting.n != null ? waiting.n
                     : <button type="button" className="btn btn-ghost" onClick={countWaiting} disabled={waiting.busy}>
                         {waiting.busy ? 'Counting…' : 'Count'}
                       </button>}
-                  sub={waiting.err ? `could not count: ${waiting.err}` : 'needs the full build Manage runs (about 12 s on the shared database)'} />
+                  sub={waiting.err ? `could not count: ${waiting.err}` : 'needs the full build Manage runs'} />
           </div>
 
           {!u.decisions && (

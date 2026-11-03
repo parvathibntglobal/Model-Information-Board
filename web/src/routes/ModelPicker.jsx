@@ -261,21 +261,19 @@ function ModelCard({ m, refPrice, price, cmp, why, axis }) {
         <div className="mp-why">Also reported working on {why.map((w, i) => <span key={w}>{i ? ', ' : ''}<b>{w}</b></span>)}</div>
       )}
       {saves != null && <div className="mp-save">↓ saves {rate(saves)} per 1M input</div>}
-      <CardActions m={m} id={id} cmp={cmp} axis={axis} />
+      <CardActions id={id} cmp={cmp} />
     </div>
   )
 }
 
-/** A CARD'S ACTIONS (2026-11-03): at most three, so a card never crowds - the
- *  reports behind it (the evidence feed, when the job or capability is known),
- *  the model's page, and Compare. Links that hold for every model (benchmarks,
- *  specs, cost) sit once under the results instead (ResultLinks). */
-function CardActions({ m, id, cmp, axis, className = 'mp-card-foot' }) {
+/** A CARD'S ACTIONS (2026-11-03): the model's page and Compare, so a card never
+ *  crowds. The evidence feed is already reached from the card's donut and people
+ *  line, so no third link to it (#596 review). Links that hold for every model
+ *  (benchmarks, specs, cost) sit once under the results instead (ResultLinks). */
+function CardActions({ id, cmp, className = 'mp-card-foot' }) {
   return (
     <div className={className}>
       <span className="mp-actions">
-        {/* A model the feed does not show gets no "Reports" at all (fallback null), never a dead word. */}
-        {axis && <FeedLink to={feedFor(m, axis)} fallback={null} className="mp-act" title={`Open the ${plural(m.reports, 'report')} behind this card`}>Reports</FeedLink>}
         <Link to={`/reviews/models/${id}`} className="mp-act">Model page</Link>
       </span>
       <CompareBox id={id} cmp={cmp} />
@@ -429,7 +427,7 @@ function TopPicks({ cands, priceOf, cmp, minV }) {
                   ? <FeedLink to={feedFor(c.m, c.axis)} className="ev-open" title={`Open the ${plural(c.m.reports, 'report')} on ${c.on}`}>{peopleText(c.m)}</FeedLink>
                   : peopleText(c.m)}
               </div>
-              <CardActions m={c.m} id={id} cmp={cmp} axis={c.axis} className="mp-pick-foot" />
+              <CardActions id={id} cmp={cmp} className="mp-pick-foot" />
             </div>
           )
         })}
@@ -642,7 +640,8 @@ export default function ModelPicker() {
     applyFilters(f)
   }
   // Staged in the search box and not yet run.
-  const pending = has(filters) && JSON.stringify(filters) !== JSON.stringify(ran || {})
+  // Compared per filter, so the same filters picked in another order are not "pending".
+  const pending = has(filters) && ORDER.some((k) => (filters[k]?.id ?? null) !== (ran?.[k]?.id ?? null))
   const choose = (o) => {
     setQ('')
     setListOpen(false)
@@ -682,8 +681,10 @@ export default function ModelPicker() {
     }
     return out
   }
-  const openAxis = (a) => { setType(a.kind); applyFilters({ ...filters, [a.kind]: { id: a.slug, label: a.name } }) }
-  const openGroup = (kind, pid) => { setType(kind); applyFilters({ ...filters, [kind]: { id: `parent:${pid}`, label: idx.parents[pid] || pid } }) }
+  // Clicked in the results, so built from the search shown (`ran`), never from
+  // what is staged in the search box - the same rule as dropFromResults.
+  const openAxis = (a) => { setType(a.kind); applyFilters({ ...ran, [a.kind]: { id: a.slug, label: a.name } }) }
+  const openGroup = (kind, pid) => { setType(kind); applyFilters({ ...ran, [kind]: { id: `parent:${pid}`, label: idx.parents[pid] || pid } }) }
   /** "Also reported working on": the model's other jobs and capabilities with
    *  enough people reporting it working - the reason to look beyond this one. */
   const whyFor = (skipKind, skipSlug) => (m) => {

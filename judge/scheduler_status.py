@@ -234,8 +234,9 @@ def runs(slug: str, limit: int = 15, *, workflow_file: str = WORKFLOW_FILE) -> d
 
 
 def switch(slug: str, *, variable: str = "SCHEDULER_ENABLED") -> dict:
-    """The repository variable SCHEDULER_ENABLED: what actually turns the
-    nightly run on (the workflow's gate wants exactly `1`).
+    """The repository variable `variable` (SCHEDULER_ENABLED by default, or a
+    workflow's own, such as BENCHMARKS_SCHEDULE_ENABLED): what actually turns
+    that workflow's scheduled run on (its gate wants exactly `1`).
 
     SHOWN SINCE 2026-10-21 - it was left out on 2026-10-06 because reading it
     needs a token allowed to read repository variables. Where the backend's

@@ -25,7 +25,6 @@ Every timing value shown is read from its contract, never restated here.
 
 from __future__ import annotations
 
-import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -117,8 +116,6 @@ def workflow_setup(file: str) -> dict[str, Any]:
     crons = [c.get("cron") for c in (on.get("schedule") or []) if c.get("cron")]
     job = next(iter((wf.get("jobs") or {}).values()), {}) or {}
     return {
-        "workflow": wf.get("name"),
-        "file": f".github/workflows/{file}",
         "crons": [{"expr": c, "words": cron_words(c)} for c in crons],
         "manual_run": "workflow_dispatch" in on,
         "timeout_minutes": job.get("timeout-minutes"),
@@ -144,7 +141,6 @@ def _bench_runs(limit: int) -> dict[str, Any]:
                 "status": r["status"],
                 "dry_run": r["dry_run"],
                 "started_at": r["started_at"],
-                "finished_at": r["finished_at"],
                 "totals": r["totals"],
                 "sources_failed": sorted(
                     # OK | BLOCK | FAIL | SKIP (collect/benchmarks/runner.py); a
@@ -188,7 +184,7 @@ def schedules(now: datetime | None = None) -> dict[str, Any]:
         if feed["key"] == "benchmarks":
             block["bench_runs"] = _bench_runs(5)
         out.append(block)
-    return {"feeds": out, "repo": slug}
+    return {"feeds": out}
 
 
 # ── what the two public pages hold ─────────────────────────────────────────
@@ -202,20 +198,20 @@ def _benchmarks_page() -> dict[str, Any]:
         "recheck_seconds": benchmarks.charts_recheck_seconds(),
         "setting": "contract/benchmarks/module_settings.yaml charts.recheck_seconds",
     }
-    kept = benchmarks._charts_kept
-    if kept is None or kept.key[0] != benchmarks.database_url():
+    kept = benchmarks.charts_kept_state()
+    if kept is None:
         # Not built on this process yet: the first visit builds it. Not built
         # from here - Admin opening must not cost the public page a build.
         out["kept"] = None
         return out
-    b = kept.built
+    b, checked_seconds_ago = kept
     out["kept"] = {
         "models": len(b["models"]),
         "tracked_models": sum(1 for m in b["models"] if m["tracked"]),
         "benchmarks_listed": b["benchmarks_listed"],
         "withheld_for_review": b["withheld_for_review"],
         "last_run": b["last_run"],
-        "checked_seconds_ago": round(time.monotonic() - kept.checked),
+        "checked_seconds_ago": checked_seconds_ago,
     }
     return out
 

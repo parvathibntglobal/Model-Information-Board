@@ -759,6 +759,17 @@ def charts_kept(model_id: str | None = None) -> dict[str, Any] | None:
     return _serve_charts(kept.built, model_id)
 
 
+def charts_kept_state(*, now: float | None = None) -> tuple[dict[str, Any], int] | None:
+    """The kept build for this database and how many seconds ago its table was
+    last checked, or None before the first build. For Admin (judge/sections_status.py),
+    which must not build it; the shape of `_charts_kept` stays in this file."""
+    kept = _charts_kept
+    if kept is None or kept.key[0] != database_url():
+        return None
+    now = time.monotonic() if now is None else now
+    return kept.built, round(now - kept.checked)
+
+
 _charts_refreshing = threading.Lock()
 
 
