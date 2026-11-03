@@ -1,3 +1,4 @@
+# ruff: noqa: E501 - a measurement script: its report lines are kept whole so the printed output reads as one record.
 """Can our data carry the hooks? Three read-only measurements, 2026-11-02.
 
 Run against the shared database with a read-only session:
