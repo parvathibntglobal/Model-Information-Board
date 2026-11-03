@@ -623,6 +623,10 @@ export const adminLostClaims = () => request('/admin/runs/lost-claims')
 
 // Admin -> Scheduler: workflow setup, policy, due queue, switch and GitHub runs. Read-only.
 export const adminScheduler = () => request('/admin/scheduler')
+// Admin -> Scheduler, under the nightly fetches: the Actions that feed AI benchmarks and AI updates.
+export const adminSchedules = () => request('/admin/schedules')
+// Admin -> Board & content: what the public AI benchmarks and AI updates pages hold now.
+export const adminSections = () => request('/admin/sections')
 
 // Keywords dashboard: which SEO keywords sit on which public page, and where. A dated snapshot.
 // (Not `adminKeywords` above - that is the search terms each platform is sent.)

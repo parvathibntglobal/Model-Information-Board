@@ -342,8 +342,9 @@ fields:
   kinds:
     reviewed: false
     routes:
+    - /admin/sections
     - /coverage
-    state: no_consumer
+    state: consumed
   last_fetch:
     reviewed: false
     routes:
