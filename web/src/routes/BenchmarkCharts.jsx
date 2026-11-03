@@ -267,7 +267,9 @@ function Score({ v, colour }) {
   return (
     <span className="bc-lb-score" title={sourceLine(v)}>
       <span className="bc-lb-score-n tnum">{v.display}</span>
-      {v.chart && <span className="bc-lb-meter" aria-hidden="true"><i style={{ width: `${v.percent}%`, background: colour }} /></span>}
+      {/* A word error rate (2026-11-03): the one score where less is better. */}
+      {v.better === 'lower' && v.metric !== 'rank' && <span className="dim bc-small">lower is better</span>}
+      {v.chart &&<span className="bc-lb-meter" aria-hidden="true"><i style={{ width: `${v.percent}%`, background: colour }} /></span>}
     </span>
   )
 }
@@ -521,6 +523,9 @@ export default function BenchmarkCharts() {
   const pick = (id) => goTo(id, false)
 
   const charted = useMemo(() => sections.flatMap((s) => s.benches), [sections])
+  // Whether ANY of the model's rows has a bar - not only the rows turned on, so
+  // turning every charted row off still leaves the toggles to turn them back.
+  const anyBar = series.some((s) => s.values.some((v) => v.chart))
 
   const tracked = models.filter((m) => m.tracked)
   const others = models.filter((m) => !m.tracked)
@@ -571,20 +576,29 @@ export default function BenchmarkCharts() {
           <figure className="bc-chart card">
             <figcaption className="bc-chart-head">
               <span className="bc-chart-title">{model.label}: benchmark scores</span>
-              <span className="dim bc-small">
-                Each column is one benchmark&apos;s score out of 100{series.length > 1 ? ', one per setting' : ''}.
-                Benchmarks test different things, so compare within a benchmark, not across.
-              </span>
-              {series.length > 1 && (
+              {anyBar ? (
+                <span className="dim bc-small">
+                  Each column is one benchmark&apos;s score out of 100{series.length > 1 ? ', one per setting' : ''}.
+                  Benchmarks test different things, so compare within a benchmark, not across.
+                </span>
+              ) : (
+                // Image, video and speech models (2026-11-03): arena ratings and
+                // error rates, none of them a score out of 100 to draw.
+                <span className="dim bc-small">
+                  This model has no score out of 100 to chart: its ratings, error rates and leaderboard
+                  positions are listed below.
+                </span>
+              )}
+              {anyBar && series.length > 1 && (
                 <span className="dim bc-small">
                   Turn rows on or off below{series.length > MAX_SHOWN ? ` (up to ${MAX_SHOWN} at once)` : ''}. Hover a column for its value and source.
                 </span>
               )}
             </figcaption>
-            {series.length > 1 && <Legend series={series} onToggle={toggle} />}
-            {charted.length
+            {anyBar && series.length > 1 && <Legend series={series} onToggle={toggle} />}
+            {anyBar && (charted.length
               ? <ColumnChart sections={sections} shown={shown} />
-              : <p className="dim">No percentage scores for the rows shown; their leaderboard positions are below.</p>}
+              : <p className="dim">No percentage scores for the rows shown; their other scores and leaderboard positions are below.</p>)}
           </figure>
 
           <Leaderboard series={series} />

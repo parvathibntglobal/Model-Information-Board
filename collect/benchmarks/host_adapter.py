@@ -1,10 +1,14 @@
 """The seed models, from the host. The only place this module reads host data.
 
 The seeds are the tracked TEXT models in `contract/tracked_models.yaml`
-(Parvathi, 2026-10-22): image, audio and video models have no rows on the
-Benchmarks page because none of its benchmarks measure them. The module never
-creates, edits or deletes a host model (doc 0.3 rule 1); a model added to that
-file shows up on the next run as a row with empty cells.
+(Parvathi, 2026-10-22). The module never creates, edits or deletes a host
+model (doc 0.3 rule 1); a model added to that file shows up on the next run as
+a row with empty cells.
+
+Image, video and speech models are not seeds: they get rows the way untracked
+registry models do, once a source lists them - from the registry, or from the
+model catalogue when the registry has not seated them (Parvathi, 2026-11-03;
+get_registry_models).
 """
 
 from __future__ import annotations
@@ -58,13 +62,21 @@ def get_registry_aliases(conn, seeds: list[SeedModel]) -> dict[str, list[str]] |
     return out
 
 
-def get_registry_models(conn) -> list[SeedModel] | None:
+def get_registry_models(
+    conn, catalog_outputs: tuple[str, ...] | list[str] = ()
+) -> list[SeedModel] | None:
     """Every registry model that is NOT tracked (Parvathi, 2026-10-22 / 10-23).
 
     They get rows below the tracked models - only when a source lists them, never
     as empty rows - matched exactly like the tracked ones: by canonical id and
     display name, which already name one exact model and version, plus current
     aliases where the registry has them (48 of 247 models on 2026-10-22).
+
+    `catalog_outputs` (module_settings.yaml catalog_models, 2026-11-03): the
+    catalogue's models whose outputs are ALL of these types - image, video,
+    speech - are added the same way when the registry has not seated them (on
+    the shared database: 1 of 52 image models, 0 of 31 video). A catalogue with
+    no such table, as in a test database, adds none.
 
     The display name drops the "Provider: " prefix the router adds
     ("Anthropic: Claude Fable 5" -> "Claude Fable 5"). None when this database
@@ -79,6 +91,19 @@ def get_registry_models(conn) -> list[SeedModel] | None:
     except errors.UndefinedTable:
         conn.rollback() if not conn.autocommit else None
         return None
+    if catalog_outputs:
+        try:
+            rows = [
+                *rows,
+                *conn.execute(
+                    "SELECT canonical_id, name FROM model_catalog "
+                    "WHERE output_modalities <@ %s::text[] AND cardinality(output_modalities) > 0 "
+                    "ORDER BY canonical_id",
+                    (list(catalog_outputs),),
+                ).fetchall(),
+            ]
+        except errors.UndefinedTable:
+            conn.rollback() if not conn.autocommit else None
     out = []
     seen: set[str] = set()
     for canonical_id, display_name in rows:

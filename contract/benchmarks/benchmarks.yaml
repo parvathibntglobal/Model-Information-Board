@@ -26,6 +26,12 @@ categories:
   - { key: math,       label: "Math",                  order: 4 }
   - { key: multimodal, label: "Multimodal",            order: 5 }
   - { key: general,    label: "General",               order: 6 }
+  # Image, video and speech models (Parvathi, 2026-11-03). Their rows come from
+  # the model catalogue, not only the registry (module_settings.yaml
+  # catalog_models).
+  - { key: image,      label: "Image",                 order: 7 }
+  - { key: video,      label: "Video",                 order: 8 }
+  - { key: speech,     label: "Speech",                order: 9 }
 
 benchmarks:
   # ── knowledge & reasoning ────────────────────────────────────────────────
@@ -144,4 +150,53 @@ benchmarks:
   # (its "Accuracy"). Added 2026-10-28.
   - { key: vals_index, label: "Vals Index", category: general, order: 3,
       metrics: [score, rank], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+
+  # ── image, video, speech (Parvathi, 2026-11-03) ──────────────────────────
+  # Each arena column is Artificial Analysis's Elo from blind votes between two
+  # outputs, as printed: a rating, not a percent, so it shows as a number and
+  # never as a bar. rating_range only refuses a value that cannot be an Elo.
+  - { key: aa_text_to_image, label: "Text to Image Arena", category: image, order: 1,
+      metrics: [rating], rating_range: [0, 3000], higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  - { key: aa_image_editing, label: "Image Editing Arena", category: image, order: 2,
+      metrics: [rating], rating_range: [0, 3000], higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # Silent video only: the page's "with audio" boards are separate lists and
+  # are not read.
+  - { key: aa_text_to_video, label: "Text to Video Arena", category: video, order: 1,
+      metrics: [rating], rating_range: [0, 3000], higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  - { key: aa_image_to_video, label: "Image to Video Arena", category: video, order: 2,
+      metrics: [rating], rating_range: [0, 3000], higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # Each provider's own default voice ("provider voice"), not the controlled
+  # same-voice board.
+  - { key: aa_text_to_speech, label: "Text to Speech Arena", category: speech, order: 1,
+      metrics: [rating], rating_range: [0, 3000], higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # Word error rate, LOWER IS BETTER: Artificial Analysis's AA-WER index over
+  # its own speech sets. Each value is from one host's API (recorded as its
+  # setup); a model two hosts serve with different values goes to review.
+  - { key: aa_wer, label: "AA-WER (word error rate)", category: speech, order: 2,
+      metrics: [score], score_unit: percent, higher_is_better: false, volatility: rolling,
+      variant_rule: { accept: ["*", null] }, duplicates: match_variant,
+      setup_note: "Lower is better. Each value is from the host's API it was measured on (shown in its hover)." }
+  # Hugging Face's Open ASR Leaderboard, its English board's "Average WER" over
+  # its own sets (a different set from AA-WER, so its own column). Lower is better.
+  - { key: open_asr_wer, label: "Open ASR (average WER)", category: speech, order: 3,
+      metrics: [score, rank], score_unit: percent, higher_is_better: false, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant,
+      setup_note: "Lower is better." }
+  # TTS Arena V2's rating from blind votes between two voices.
+  - { key: tts_arena, label: "TTS Arena", category: speech, order: 4,
+      metrics: [rating, rank], rating_range: [0, 3000], higher_is_better: true, volatility: live,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  # The VBench team's own boards: VBench (text to video) and VBench-I2V (image
+  # to video), each its "Total Score".
+  - { key: vbench, label: "VBench", category: video, order: 3,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
+      variant_rule: { accept: [null] }, duplicates: match_variant }
+  - { key: vbench_i2v, label: "VBench-I2V", category: video, order: 4,
+      metrics: [score], score_unit: percent, higher_is_better: true, volatility: rolling,
       variant_rule: { accept: [null] }, duplicates: match_variant }

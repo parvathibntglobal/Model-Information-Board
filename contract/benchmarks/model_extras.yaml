@@ -27,6 +27,12 @@
 google/gemini-3-flash-preview:   # Gemini 3 Flash Preview (registry)
   not_names: ["Gemini 3 Flash"]
 
+# The catalogue names AssemblyAI's model "TTS 1"; Artificial Analysis's "TTS-1"
+# is OpenAI's (its maker, checked 2026-11-03). Its own "AssemblyAI-TTS-1" still
+# matches by the id.
+assemblyai/assemblyai-tts-1:     # AssemblyAI TTS 1 (catalogue)
+  not_names: ["TTS 1"]
+
 # ── tracked models ─────────────────────────────────────────────────────────
 anthropic/claude-fable-5-1:   # Claude Fable 5.1
   # Scale's HLE board and Terminal-Bench write it without "Claude" (2026-10-22).

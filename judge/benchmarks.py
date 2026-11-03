@@ -486,6 +486,8 @@ READERS = {
     "html_table": "HTML table (BeautifulSoup + lxml)",
     "embedded_json": "Data block inside the page (<script> JSON)",
     "next_flight": "Data inside the page (Next.js page data)",
+    "gradio_config": "The table in the Gradio app's own config (in the page, or served beside it)",
+    "html_rows": "A list of entries on the page (BeautifulSoup + lxml)",
 }
 
 
@@ -914,8 +916,11 @@ def _build_charts(conn) -> dict[str, Any]:
                     withheld += 1
                     continue
                 m = meta[key]
+                # A bar is "taller is better": a lower-is-better score (a word
+                # error rate, 2026-11-03) is listed with its figure, never drawn.
                 charted = (
                     m["metric"] == "score"
+                    and m["better"] == "higher"
                     and units.get(m["benchmark"]) == "percent"
                     and cell["sort"] is not None
                     and 0 <= cell["sort"] <= 100
@@ -968,10 +973,10 @@ def _build_charts(conn) -> dict[str, Any]:
                     "tracked": row["group"] == "tracked",
                     "series": series,
                     # Rule 7: benchmarks with a score in any of its series, out of
-                    # `benchmarks_listed`.
+                    # `benchmarks_listed`. An arena's rating is its score (2026-11-03).
                     "benchmarks_scored": len(
                         {v["benchmark"] for s_ in series for v in s_["values"]
-                         if v["metric"] == "score"}
+                         if v["metric"] in ("score", "rating")}
                     ),
                 }
             )

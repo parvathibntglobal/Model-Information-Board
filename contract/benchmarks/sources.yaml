@@ -339,6 +339,15 @@ sources:
   #   /benchmarks/mmmu   is MMMU Pro                        -> mmmu_pro
   # The rank column is Vals AI's own position among the models it tested; it is
   # not mapped, because these columns are score-only.
+  # VALS AI'S TABLES NAME NO SETTING (Parvathi, 2026-11-03): "GPT 5.2" is
+  # printed, but the page's own data says the run was at reasoning effort
+  # "xhigh". setting_from_page_data reads that word from the record with the
+  # same model (the name's /models/ link) and the same score, so the value
+  # fills the model's (xhigh) row - where the other boards' xhigh runs are -
+  # instead of its base row. Only the effort words listed are taken; a name
+  # that states its own setting keeps it. Set on every Vals table below; the
+  # pages whose data holds no run records (AIME, MMMU-Pro, IOI, ...) are read
+  # as before.
   - key: vals_gpqa
     label: "Vals AI · GPQA Diamond"
     kind: evaluator
@@ -353,6 +362,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: gpqa_diamond, metric: score, scale: percent }
           "Rank": { benchmark: gpqa_diamond, metric: rank }
@@ -372,6 +382,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: mmlu_pro, metric: score, scale: percent }
           "Rank": { benchmark: mmlu_pro, metric: rank }
@@ -391,6 +402,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: aime_2024_25, metric: score, scale: percent }
           "Rank": { benchmark: aime_2024_25, metric: rank }
@@ -410,6 +422,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: mmmu_pro, metric: score, scale: percent }
           "Rank": { benchmark: mmmu_pro, metric: rank }
@@ -429,6 +442,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: livecodebench, metric: score, scale: percent }
           "Rank": { benchmark: livecodebench, metric: rank }
@@ -448,6 +462,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Score" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         variant_field: "Harness"        # e.g. "Mini-SWE-agent", the official bash-only agent
         benchmark_map:
           "Score": { benchmark: swe_bench_verified, metric: score, scale: percent }
@@ -468,6 +483,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Score" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         variant_field: "Harness"
         benchmark_map:
           "Score": { benchmark: terminal_bench_4, metric: score, scale: percent }
@@ -488,6 +504,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: ioi, metric: score, scale: percent }
           "Rank": { benchmark: ioi, metric: rank }
@@ -507,6 +524,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Score" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         variant_field: "Harness"
         benchmark_map:
           "Score": { benchmark: vibe_code, metric: score, scale: percent }
@@ -527,6 +545,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: proof_bench, metric: score, scale: percent }
           "Rank": { benchmark: proof_bench, metric: rank }
@@ -546,6 +565,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: swe_bench_multimodal, metric: score, scale: percent }
           "Rank": { benchmark: swe_bench_multimodal, metric: rank }
@@ -606,7 +626,213 @@ sources:
       # and is not read). Added 2026-10-28.
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
+        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
         benchmark_map:
           "Accuracy": { benchmark: vals_index, metric: score, scale: percent }
           "Rank": { benchmark: vals_index, metric: rank }
         rank_board: "vals/vals-index"
+
+  # ── image, video and speech models (Parvathi, 2026-11-03) ──────────────────
+  # Every table below has `new_settings: true`: a bracketed word after a name
+  # that settings_vocabulary.yaml does not know ("(fast-gpu-asr)", "(768p)")
+  # becomes its own setting row, named as written. The text boards above keep
+  # the strict vocabulary.
+  # Their rows come from the model catalogue as well as the registry
+  # (module_settings.yaml catalog_models). Each page was fetched once on
+  # 2026-11-03 and its names matched against the shared catalogue: text to
+  # image 35 of 106, image editing 29 of 77, text to video 9 of 36, image to
+  # video 9 of 34, text to speech 11 of 103, speech to text 13 of 61. The
+  # unmatched names go to the page's unmatched list, as every source's do.
+  - key: aa_image_arena
+    label: "Artificial Analysis · Image Arena"
+    kind: evaluator
+    tier: 2
+    tier_note: "Artificial Analysis runs the arena itself: people vote between two models' images."
+    priority: 75
+    enabled: true
+    method: static
+    url: https://artificialanalysis.ai/image/models
+    license: "Not stated on the page."
+    attribution: "Artificial Analysis, artificialanalysis.ai"
+    tables:
+      # The page's own data holds one object with both boards; each table reads
+      # one list. A name carries its setting in brackets ("GPT Image 2 (high)").
+      - locate: { type: next_flight, object_start: '{"textToImage":', required_keys: [textToImage, imageEditing], records: textToImage, unique_key: id }
+        model_field: name
+        new_settings: true
+        benchmark_map:
+          elo: { benchmark: aa_text_to_image, metric: rating }
+      - locate: { type: next_flight, object_start: '{"textToImage":', required_keys: [textToImage, imageEditing], records: imageEditing, unique_key: id }
+        model_field: name
+        new_settings: true
+        benchmark_map:
+          elo: { benchmark: aa_image_editing, metric: rating }
+
+  - key: aa_video_arena
+    label: "Artificial Analysis · Video Arena"
+    kind: evaluator
+    tier: 2
+    tier_note: "Artificial Analysis runs the arena itself: people vote between two models' videos."
+    priority: 75
+    enabled: true
+    method: static
+    url: https://artificialanalysis.ai/video/models
+    license: "Not stated on the page."
+    attribution: "Artificial Analysis, artificialanalysis.ai"
+    tables:
+      - locate: { type: next_flight, object_start: '{"textToVideo":', required_keys: [textToVideo, imageToVideo], records: textToVideo, unique_key: id }
+        model_field: name
+        new_settings: true
+        benchmark_map:
+          elo: { benchmark: aa_text_to_video, metric: rating }
+      - locate: { type: next_flight, object_start: '{"textToVideo":', required_keys: [textToVideo, imageToVideo], records: imageToVideo, unique_key: id }
+        model_field: name
+        new_settings: true
+        benchmark_map:
+          elo: { benchmark: aa_image_to_video, metric: rating }
+
+  - key: aa_speech_arena
+    label: "Artificial Analysis · Speech Arena"
+    kind: evaluator
+    tier: 2
+    tier_note: "Artificial Analysis runs the arena itself: people vote between two models' speech."
+    priority: 75
+    enabled: true
+    method: static
+    url: https://artificialanalysis.ai/text-to-speech/leaderboard/provider-voice
+    license: "Not stated on the page."
+    attribution: "Artificial Analysis, artificialanalysis.ai"
+    tables:
+      # One record per model, each in its provider's own default voice.
+      - locate: { type: next_flight, object_start: '{"id":"', required_keys: [name, elo, appearances, ciLower], unique_key: id }
+        model_field: name
+        new_settings: true
+        benchmark_map:
+          elo: { benchmark: aa_text_to_speech, metric: rating }
+
+  - key: aa_speech_to_text
+    label: "Artificial Analysis · Speech to Text"
+    kind: evaluator
+    tier: 2
+    tier_note: "Artificial Analysis measures the word error rate itself, on its own speech sets."
+    priority: 75
+    enabled: true
+    method: static
+    url: https://artificialanalysis.ai/speech-to-text/non-streaming
+    license: "Not stated on the page."
+    attribution: "Artificial Analysis, artificialanalysis.ai"
+    tables:
+      # One record per model AND host ("Whisper Large v3" on fal.ai and on
+      # Together AI); the host is recorded as the value's setup. When the maker
+      # serves the model itself (Nova-3 on Deepgram, and on Telnyx), only the
+      # maker's own API is read (first_party_field). A model its maker does not
+      # serve here (Whisper: fal.ai, Together AI, Replicate) keeps every host, and
+      # values that differ go to review. Some names end in ", <host>" ("Chirp 3,
+      # Google"), which is not part of the model's name. aaWerIndex is a fraction
+      # (0.0342 = 3.42%).
+      - locate: { type: next_flight, object_start: '{"id":"', required_keys: [name, aaWerIndex, hostApiId], unique_key: id }
+        model_field: name
+        new_settings: true
+        variant_field: "host.name"
+        first_party_field: "model.creator.name"
+        name_pattern: '(?P<model>.+?)(?:, [^,]+)?'
+        benchmark_map:
+          aaWerIndex: { benchmark: aa_wer, metric: score, scale: fraction }
+
+  # ── the benchmarks' own boards on Hugging Face (Parvathi, 2026-11-03) ─────
+  # Kept although few of their models are in the catalogue yet: their names
+  # go to the unmatched list, where a person can say which model each one is.
+  - key: open_asr_leaderboard
+    label: "Open ASR Leaderboard"
+    kind: leaderboard
+    tier: 1
+    tier_note: "Hugging Face's own speech recognition leaderboard; it runs every model on its sets itself."
+    priority: 80
+    enabled: true
+    method: static
+    # The app's own config (Gradio 6): the page is an app shell that draws its
+    # table from it, and the drawn table only holds the rows on screen, so the
+    # page itself never carries the whole board. Same data, no API call, no key.
+    url: https://hf-audio-open-asr-leaderboard.hf.space/config
+    page_url: https://huggingface.co/spaces/hf-audio/open_asr_leaderboard
+    license: "Not stated on the page."
+    attribution: "Open ASR Leaderboard, Hugging Face (hf-audio)"
+    tables:
+      # The English board (its first tab). The multilingual, long-form and
+      # private-data tabs are other tables and are not read.
+      # A bracket after the name is how the model was run ("(fast-gpu-asr)"): a
+      # word the vocabulary does not know becomes its own setting row, named as
+      # written (Parvathi, 2026-11-03), rather than waiting in Review.
+      - locate: { type: gradio_config, must_contain: ["model", "Average WER ⬇️", "RTFx ⬆️️"] }
+        model_column: "model"
+        new_settings: true
+        benchmark_map:
+          "Average WER ⬇️": { benchmark: open_asr_wer, metric: score, scale: percent }
+          "Rank": { benchmark: open_asr_wer, metric: rank }
+        rank_board: "hf-audio/open-asr-leaderboard"
+
+  - key: tts_arena_v2
+    label: "TTS Arena V2"
+    kind: leaderboard
+    tier: 1
+    tier_note: "TTS Arena's own leaderboard, from people's blind votes between two voices."
+    priority: 80
+    enabled: true
+    method: browser
+    url: https://tts-agi-tts-arena-v2.hf.space/leaderboard
+    page_url: https://huggingface.co/spaces/TTS-AGI/TTS-Arena-V2
+    license: "Not stated on the page."
+    attribution: "TTS Arena V2, Hugging Face (TTS-AGI)"
+    tables:
+      # A list of cards, not a table: one per model, with its place ("01"), its
+      # name - a link to the maker's site, or a button where there is none -
+      # and its rating ("1560 ±26"). Models with few votes are hidden by the
+      # board itself and are not read.
+      - locate:
+          type: html_rows
+          container: "div.card.divide-y"
+          row: ":scope > div"
+          model: "Model"
+          wait_for: "votes cast"
+          fields: { "Rank": "span.font-mono", "Model": "div.min-w-0.flex-1 > div > :is(a, button)", "Rating": "p.nums" }
+        model_column: "Model"
+        new_settings: true
+        benchmark_map:
+          "Rating": { benchmark: tts_arena, metric: rating }
+          "Rank": { benchmark: tts_arena, metric: rank }
+        rank_board: "tts-agi/tts-arena-v2"
+
+  - key: vbench_leaderboard
+    label: "VBench Leaderboard"
+    kind: leaderboard
+    tier: 1
+    tier_note: "The VBench team's own leaderboard for VBench, its benchmark."
+    priority: 80
+    enabled: true
+    method: static
+    # Gradio 4 writes the app's config, tables included, into the page itself.
+    url: https://vchitect-vbench-leaderboard.hf.space/
+    page_url: https://huggingface.co/spaces/Vchitect/VBench_Leaderboard
+    license: "Not stated on the page."
+    attribution: "VBench Leaderboard, Vchitect"
+    tables:
+      # VBench (text to video) and VBench-I2V, each its Total Score. A model name
+      # is a link on the page; its words are the name.
+      - locate: { type: gradio_config, must_contain: ["Model Name (clickable)", "Total Score", "Semantic Score"] }
+        model_column: "Model Name (clickable)"
+        new_settings: true
+        benchmark_map:
+          "Total Score": { benchmark: vbench, metric: score, scale: percent }
+      - locate: { type: gradio_config, must_contain: ["Model Name (clickable)", "Total Score", "I2V Score"] }
+        model_column: "Model Name (clickable)"
+        new_settings: true
+        benchmark_map:
+          "Total Score": { benchmark: vbench_i2v, metric: score, scale: percent }
+
+  # ── checked on 2026-11-03 and NOT read (no entry: this file lists only
+  # sources a run reads, 2026-10-26) ───────────────────────────────────────
+  #   Arena (arena.ai, formerly LMArena), image and video boards: robots.txt
+  #     allows /leaderboard/..., but every plain request gets a Cloudflare check
+  #     page (403). Getting past that check with a browser would be getting
+  #     around the site's own block; asking Arena is the way in. Its public
+  #     dataset is a data file, which this module does not download.
