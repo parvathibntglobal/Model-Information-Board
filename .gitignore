@@ -152,3 +152,5 @@ api-fields.json
 #              something we publish.
 blog_posts/
 blog_packs/
+# Instagram trial output: captions, post URLs, owner ids (scripts/_instagram_trial.py)
+_instagram_trial/
