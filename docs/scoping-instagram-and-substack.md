@@ -109,6 +109,40 @@ is one sample of one hashtag (n=41), so it is a first look, not a rate.
 calls a month (2% of the plan) and about 320 posts a day. At the sample's
 first-hand share, that's roughly 30 candidates a day before triage.
 
+## Instagram trial: running (added 2026-11-04)
+
+Step 4 below is under way, aimed at blog ideas, not the board.
+
+- **What runs.** `scripts/_instagram_trial.py` reads one page (about 41
+  posts) from each of 5 hashtags: #claudeai, #chatgpt, #aitools, #aiagents
+  and #promptengineering. That is 5 RapidAPI calls a run, on a plan of 15,000
+  a month.
+- **Where, and when.** A Windows scheduled task on anooj's machine, daily at
+  10:00 from 5 to 17 Nov 2026, so 14 days with the first run on 4 Nov. It
+  catches up if the machine was off.
+- **What it keeps.** Local files only: `_instagram_trial/<date>/` and
+  `summary.csv`. Nothing reaches the database or the board. Feeding the board
+  would need a contract entry like X's.
+- **What it measures, per run.** Captions that name a model, read like
+  first-hand use, carry promotion markers, or look English. The patterns are
+  in the script and are rough; the first-hand one is an upper bound.
+
+**Day 1 (2026-11-04), 167 posts across the 5 hashtags:**
+
+| | Count, of 167 |
+|---|---|
+| Name a model | 91 |
+| In English | 104 |
+| Promotion markers | 54 |
+| **Read like first-hand use** | **2** |
+
+That is lower than the first sample (4 of 41, one hashtag), because this
+pattern is stricter. The most-liked English posts were office humour, a list
+of Chinese AI tools, and a "5 levels of coding with AI" carousel; one useful
+angle was a creator building her own tools with AI. The two weeks give a
+first-hand rate measured on posts the script didn't choose; it will be
+reported with its denominator after 17 Nov.
+
 ## Recommendation
 
 1. **Extract the 37 Substack posts we already hold.** Tried 2026-11-04: their
