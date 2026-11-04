@@ -22,7 +22,8 @@ The patterns are rough and stated here so a reader can check them.
 
 Run from the repo root:  python scripts/_instagram_trial.py
 Costs 5 RapidAPI calls (plan: 15,000 a month). The key is read from .env and
-never printed.
+never printed. The output folder is git-ignored: it holds captions, post URLs
+and owner ids.
 """
 from __future__ import annotations
 
@@ -34,6 +35,7 @@ import sys
 from pathlib import Path
 
 import httpx
+from dotenv import dotenv_values
 
 HASHTAGS = ["claudeai", "chatgpt", "aitools", "aiagents", "promptengineering"]
 OUT = Path("_instagram_trial")
@@ -42,15 +44,6 @@ MODEL = re.compile(r"\b(claude|opus|sonnet|haiku|gpt[- ]?\d|chatgpt|gemini|llama
 FIRST = re.compile(r"\b(i|i've|i'm|we|we've|my|our)\b[^.!?\n]{0,80}\b(used|tried|built|switched|tested|use|using|shipped)\b", re.I)
 PROMO = re.compile(r"(link in (my )?bio|follow (us|me|for)|comment ['\"“]?\w+|dm (me|us)|\bcourse\b|free guide|save this|giveaway|#ad\b|sponsored)", re.I)
 ENGLISH = re.compile(r"\b(the|and|to|of|is|it|for|with|that|you|this)\b", re.I)
-
-
-def env() -> dict[str, str]:
-    vals: dict[str, str] = {}
-    for line in Path(".env").read_text(encoding="utf-8").splitlines():
-        m = re.match(r"^([A-Z0-9_]+)=(.*)$", line.strip())
-        if m:
-            vals[m.group(1)] = m.group(2).strip().strip('"').strip("'")
-    return vals
 
 
 def is_english(text: str) -> bool:
@@ -71,7 +64,8 @@ def posts_of(body: dict) -> list[dict]:
         out.append({
             "url": f"https://www.instagram.com/p/{n['shortcode']}/",
             "owner_id": n.get("owner", {}).get("id"),
-            "taken_at": dt.datetime.fromtimestamp(n.get("taken_at_timestamp", 0), dt.UTC).isoformat(),
+            # A post without a timestamp has no date - never 1970-01-01 (rule 6).
+            "taken_at": dt.datetime.fromtimestamp(n["taken_at_timestamp"], dt.UTC).isoformat() if n.get("taken_at_timestamp") else None,
             "likes": n.get("edge_liked_by", {}).get("count"),
             "comments": n.get("edge_media_to_comment", {}).get("count"),
             "is_video": n.get("is_video"),
@@ -85,10 +79,12 @@ def posts_of(body: dict) -> list[dict]:
 
 
 def main() -> int:
-    vals = env()
+    vals = dotenv_values(".env")  # the last value of a repeated name wins
     key, host = vals.get("RAPIDAPI_KEY"), vals.get("RAPIDAPI_HOST")
-    if not key or not host or "instagram" not in host:
-        sys.exit("RAPIDAPI_KEY / RAPIDAPI_HOST for instagram-looter2 are not the last values in .env")
+    if not key:
+        sys.exit("RAPIDAPI_KEY is not set in .env")
+    if not host or "instagram" not in host:
+        sys.exit(f"RAPIDAPI_HOST in .env is {host!r}, not instagram-looter2.p.rapidapi.com")
     today = dt.date.today().isoformat()
     day = OUT / today
     day.mkdir(parents=True, exist_ok=True)

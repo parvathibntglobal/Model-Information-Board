@@ -9,10 +9,11 @@ change, so nothing is edited until it's agreed.
    `blog:cameronrwolfe.substack.com`, `blog:chinai.substack.com`) and **add 17
    more**, all under the existing ruling `newsletter-substack-feed-only`
    (seated 2026-10-26). Feed only, as that ruling says: no article pages.
-2. **Harvest them from a developer machine, not the scheduled runner,**
-   because Substack's robots.txt answers the runner with a refusal but answers
-   developer machines normally. That is why the three were removed on
-   2026-10-30: the scheduled harvest exited 1 every night from 10-28.
+2. **Find out why Substack's robots.txt refuses the scheduled runner** but
+   answers developer machines normally. That refusal is why the three were
+   removed on 2026-10-30: the scheduled harvest exited 1 every night from
+   10-28. Harvesting from a developer machine instead would route around the
+   refusal, and is a separate team question (see "Where it runs").
 3. **Extract the 37 Substack posts already stored and never extracted,** on
    the machine that holds their text.
 
@@ -45,9 +46,12 @@ which posts actually carry reports.
 ## The 20 proposed
 
 The rule: at least 8 of the latest posts mention a model, and something was
-posted since 1 Sep. Hosts are as the feed now answers. Four have moved to
-their own domains; they are still served by Substack, which is what the
-ruling covers ("from substack.com or from a publisher's custom domain").
+posted since 1 Sep. Hosts are as the feed now answers. Three of the 27
+have moved to their own domains, and two of those are in this list
+(`www.thealgorithmicbridge.com`, `newsletter.maartengrootendorst.com`; the
+third, fabricatedknowledge, is left out). They are still served by Substack,
+which is what the ruling covers ("from substack.com or from a publisher's
+custom domain").
 
 epochai.substack.com · cameronrwolfe.substack.com · chinai.substack.com ·
 garymarcus.substack.com · www.thealgorithmicbridge.com ·
@@ -74,12 +78,19 @@ Two ways to handle it:
 - **(a) A developer machine harvests Substack on a schedule** and writes to
   the shared database like any harvest. The raw blobs then live on that
   machine, so extraction must run there too, which is exactly today's problem
-  with the 37. That needs to be accepted knowingly.
+  with the 37, and that machine's scheduled writes to the shared database
+  would need coordinating.
 - **(b) Find out why the runner is refused** (most likely its data-centre IP
   range) before seating anything. Slower, but keeps one place for harvests.
 
-I'd suggest (a) for a two-week trial, with the one machine named in the entry,
-then decide.
+**(b) first.** `newsletter-substack-feed-only` accepts the terms risk for a
+feed read that passes `live_preconditions`, with robots.txt re-read every
+run. Harvesting from a developer machine *because* the runner is refused goes
+around that refusal; the ruling doesn't cover it, and it widens the risk the
+ruling records (the Acceptable Use Policy's crawl clause). If (b) finds that
+data-centre addresses are blocked, (a) goes to the team as its own question,
+stated as routing around a refusal. (Revised on review, 2026-11-04; the first
+draft suggested (a) for a trial.)
 
 ## Cost
 
@@ -91,9 +102,21 @@ feeds on. The daily budget cap stops anything runaway anyway.
 ## To extract the 37 already stored (whoever holds the blobs)
 
 ```
-scripts/export_contexts_for_extract.py --out <dir> --source blog --skip-extracted
-# keep the 37 Substack threads (thread ids: kept documents at a substack.com URL)
-scripts/run_extraction.py --from-export <dir>/threads
+# 1. export every unextracted blog thread
+python scripts/export_contexts_for_extract.py --out <dir> --source blog --skip-extracted
+
+# 2. list the 37: kept documents at a substack.com address
+psql "$DATABASE_URL" -At -c "SELECT tc.id FROM thread_context tc
+  JOIN document d ON d.id = tc.thread_root_id
+  WHERE d.url ILIKE '%substack.com%' AND d.triage_verdict = 'kept'" > substack_threads.txt
+
+# 3. keep only those files, so nothing else is extracted
+mkdir -p <dir>/substack/threads
+while read t; do cp "<dir>/threads/$t.json" <dir>/substack/threads/; done < substack_threads.txt
+ls <dir>/substack/threads | wc -l      # expect 37; fewer means some text is not on this machine
+
+# 4. extract exactly those
+python scripts/run_extraction.py --from-export <dir>/substack/threads
 ```
 
 This needs `ENVIRONMENT=staging` and `DATABASE_URL` set for the run. Without
