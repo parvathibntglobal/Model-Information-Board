@@ -1,0 +1,442 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Track My Claude Code Usage, for Developers | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Track my Claude Code usage: see whether each project is collected, your Claude plan usage, sessions and work patterns, plus the nine other AI tools.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"Track my Claude Code usage: Kite Pulse for individual developers","url":"/solutions/developers","about":"Tracking your own Claude Code and AI coding tool usage","isPartOf":{"@type":"WebSite","name":"Kite Pulse"}},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Solutions","item":"/solutions"},{"@type":"ListItem","position":3,"name":"Developers","item":"/solutions/developers"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How can I track my Claude Code usage?","acceptedAnswer":{"@type":"Answer","text":"Install the Kite Pulse app and point it at a Kite Pulse server, your team's or one on your own computer; it reads the session history Claude Code already keeps. After you confirm your projects, Workspace shows what is being collected and your Claude plan usage."}},
+{"@type":"Question","name":"How do I monitor my Claude Code usage?","acceptedAnswer":{"@type":"Answer","text":"Check Workspace for your Claude plan usage and each project's collection status, and My Activity for when and with which tools you worked. Plan figures are as fresh as Claude Code's last save unless an admin turns on the background refresh."}},
+{"@type":"Question","name":"How do I check Claude Code usage stats?","acceptedAnswer":{"@type":"Answer","text":"Open My Sessions for every session with a summary and filters, and My Scorecard & Insights for work-pattern facts such as peak hour and longest streak. Token counts per model and day are on Team AI Usage, which managers and admins see by default."}},
+{"@type":"Question","name":"Who can see my Kite Pulse data?","acceptedAnswer":{"@type":"Answer","text":"You see everything about yourself; your manager sees your pages for their reporting line and admins see everyone, but your private prompt statistics are shown only to you. The Privacy page lists what is recorded and who can see it."}},
+{"@type":"Question","name":"Does it cover Cursor and the other AI tools I use?","acceptedAnswer":{"@type":"Answer","text":"Yes, Kite Pulse reads ten AI coding tools: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider. An admin can switch any off. Claude plan usage covers Claude Code only."}},
+{"@type":"Question","name":"Can I use Kite Pulse on my own, without a team?","acceptedAnswer":{"@type":"Answer","text":"Yes. One command sets up the server, background worker, collector and database on one computer, reachable from that computer only."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.08rem}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.head{display:grid;gap:10px}
+.head p{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.note{font-size:.86rem;color:var(--muted)}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{border-radius:12px;padding:12px 14px;background:var(--sunk);display:grid;gap:2px}
+.tile b{font-family:var(--mono);font-size:1.35rem;line-height:1.15;font-variant-numeric:tabular-nums}
+.tile span{font-size:.82rem;color:var(--muted)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.me{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.me .w{background:var(--sunk);border-radius:12px;padding:12px 14px;display:grid;gap:6px}
+.me .w b{font-family:var(--mono);font-size:1.25rem;font-variant-numeric:tabular-nums}
+.me .w span{font-size:.82rem;color:var(--muted)}
+.me .bar{height:8px;border-radius:4px;background:var(--surface);overflow:hidden}
+.me .bar i{display:block;height:100%}
+.chart{width:100%;height:auto;display:block}
+.chart text{font-family:var(--body);fill:var(--ink);font-size:12px}
+.chart .ax{fill:var(--muted);font-size:11px;font-family:var(--mono)}
+.chart .grid{stroke:var(--line);stroke-width:1}
+
+.qs{display:grid;gap:12px}
+.q{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.q:last-child{border-bottom:0;padding-bottom:0}
+.q p{font-weight:600;font-size:.97rem}
+.q .see{grid-column:1/-1;font-size:.85rem;color:var(--muted)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--bg);padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem;white-space:nowrap}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.verdict{display:grid;gap:8px;border-radius:12px;padding:16px;background:var(--sunk)}
+
+.hub{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:10px;align-content:start}
+.card ul{font-size:.95rem}
+.card .more{font-size:.92rem;font-weight:600}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 13px;cursor:pointer;font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:8px}
+.chip .box{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--muted);display:grid;place-items:center;font-size:10px;line-height:1}
+.chip[aria-pressed="true"]{border-color:var(--good);background:var(--good-soft)}
+.chip[aria-pressed="true"] .box{background:var(--good);border-color:var(--good);color:var(--surface)}
+.chip[aria-pressed="true"] .box::after{content:"\2713"}
+.field{display:grid;gap:6px}
+.field > span{font-weight:600;font-size:.95rem}
+.policy{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:20px 22px;display:grid;gap:10px;font-size:.95rem}
+.policy ol{max-width:68ch}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+textarea#listText{width:100%;min-height:180px;border:1.5px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);font-family:var(--mono);font-size:.8rem}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.93rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:14px} .q{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Solutions · Individual developers</div>
+    <h1>Track my Claude Code usage and see where my AI time goes</h1>
+    <p class="lede">Is my work on the record? How close am I to my plan limit? Are my habits improving?</p>
+    <div class="answer">
+      <p>"How do I track my Claude Code usage?" Kite Pulse answers it from the session history Claude Code already keeps on your computer, with no manual logging, and nothing uploads until you confirm your projects.</p>
+      <p>Your own pages show whether each project is being collected, your Claude plan usage, when and with which tools you worked, and a Top 3 to act on. The same view covers the other nine AI coding tools it reads, including Cursor and Codex.</p>
+    </div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#check">Run the self-check</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "track my claude code usage" in the title tag (first word "Track"), meta description, H1 and the first sentence of the answer box (as the reader's own question, which is also the AEO question). Intent: commercial with an informational edge; a developer who wants their own numbers. The page leads with Claude Code, then states that the same pages cover all ten tools (brief "care"). Sources: MSoT "Who it is for" (developers row), 1.1, 1.2 (Your own plan figures, Where plan figures come from), 1.4 (Workspace to Account), 1.7, 1.8.</div>
+  </header>
+
+  <section class="block" id="problem">
+    <div class="head">
+      <h2>Your Claude Code usage stats are spread across sessions and tools</h2>
+      <p>Claude Code keeps a history of every session on your computer, and so does each other AI coding tool. Nothing reads it back to you as a whole: which projects it covered, how close you are to a plan window. Here it is on one page, your Workspace.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Workspace <span class="sample">Sample data</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Project</th><th>Collection status</th></tr></thead>
+        <tbody id="projBody"></tbody>
+      </table></div>
+      <h3>Your Claude plan usage</h3>
+      <div class="me" id="planCards"></div>
+      <p class="note">Example figures for a fictional developer. Plan usage covers Claude Code only.</p>
+    </div>
+  </section>
+
+  <section class="block" id="check">
+    <div class="head">
+      <h2>Can you answer these about your own AI work today?</h2>
+      <p>Five yes or no questions. A "no" points to the section below that covers it. There is no score.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Self-check</div>
+      <div class="qs" id="qs">
+        <div class="q"><p>Can you see, project by project, whether your AI sessions are being collected?</p><div class="seg" role="group" aria-label="Collection status known"><button type="button" data-i="0" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="0" data-v="no" aria-pressed="false">No</button></div><span class="see">Covered in <a href="#captured">Is my work being captured?</a></span></div>
+        <div class="q"><p>Do you know how much of your Claude plan's 5-hour and weekly windows you have used?</p><div class="seg" role="group" aria-label="Plan usage known"><button type="button" data-i="1" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="1" data-v="no" aria-pressed="false">No</button></div><span class="see">Covered in <a href="#plan">How close am I to my Claude plan limit?</a></span></div>
+        <div class="q"><p>Can you say how last week's AI time split between Claude Code, Cursor and your other tools?</p><div class="seg" role="group" aria-label="Tool split known"><button type="button" data-i="2" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="2" data-v="no" aria-pressed="false">No</button></div><span class="see">Covered in <a href="#time">Where does my AI time go?</a></span></div>
+        <div class="q"><p>Do you know your peak hour, your longest streak and how many of your sessions are short bursts?</p><div class="seg" role="group" aria-label="Work patterns known"><button type="button" data-i="3" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="3" data-v="no" aria-pressed="false">No</button></div><span class="see">Covered in <a href="#better">Am I getting better?</a></span></div>
+        <div class="q"><p>Do you know exactly what is recorded about you, and who can see it?</p><div class="seg" role="group" aria-label="Privacy known"><button type="button" data-i="4" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="4" data-v="no" aria-pressed="false">No</button></div><span class="see">Covered in <a href="#privacy-block">Who sees my data?</a></span></div>
+      </div>
+      <div class="verdict" id="verdict" aria-live="polite"><p>Answer the questions to see which sections to read first.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="head">
+      <h2>How Kite Pulse helps developers: your own Claude Code dashboard</h2>
+      <p>Every role, including Developer, has pages about its own work. Each block links to the page that covers it in depth.</p>
+    </div>
+    <div class="hub">
+      <div class="card" id="captured">
+        <h3>Is my work being captured?</h3>
+        <ul>
+          <li>Workspace lists each project as detected, waiting to sync, syncing, processing, processed or failed.</li>
+          <li>Nothing uploads until you confirm your projects in the Onboarding Wizard.</li>
+          <li>My Projects lets you confirm, rename, split or remove a project; Pending Requests follows your change requests.</li>
+        </ul>
+        <a class="more" href="/integrations">What each of the ten tools provides</a>
+      </div>
+      <div class="card" id="plan">
+        <h3>How close am I to my Claude plan limit?</h3>
+        <ul>
+          <li>Workspace shows your Claude plan usage, from the figures Claude Code saves on your computer. No login or password is read.</li>
+          <li>Figures are as fresh as Claude Code's last save, unless an admin turns on the optional background refresh, which uses no tokens.</li>
+          <li>Claude Code only; other tools show "Not reported by this tool".</li>
+        </ul>
+        <a class="more" href="/plan-headroom">Plan headroom for the whole team</a>
+        <a class="more" href="/integrations/claude-code">What Kite Pulse reads from Claude Code</a>
+      </div>
+      <div class="card" id="time">
+        <h3>Where does my AI time go?</h3>
+        <ul>
+          <li>My Activity shows when, for how long and with which tools you worked.</li>
+          <li>My Sessions lists every session with a summary and a detailed view, filtered by tool, model or session type.</li>
+          <li>Cursor AI usage stats sit beside Claude Code's, with input and output tokens.</li>
+        </ul>
+      </div>
+      <div class="card" id="tokens">
+        <h3>Where are my Claude Code token usage stats?</h3>
+        <ul>
+          <li>Kite Pulse counts tokens per tool, model, project and day.</li>
+          <li>They appear on Team AI Usage, a manager and admin page by default.</li>
+          <li>Estimated cost per developer is shown to admins only.</li>
+        </ul>
+        <a class="more" href="/blog/token-usage-per-developer">Token usage per developer, explained</a>
+      </div>
+      <div class="card" id="better">
+        <h3>Am I getting better?</h3>
+        <ul>
+          <li>My Scorecard &amp; Insights leads with "Top 3 to act on": a verdict, what to try and the evidence, or "not enough data".</li>
+          <li>Work-pattern facts, and a working style worked out by fixed rules.</li>
+          <li>Private prompt statistics: most repeated prompt, most cryptic prompt, thank-you count and reply pace.</li>
+        </ul>
+        <a class="more" href="/blog/developer-analytics-without-source-code">Developer analytics without reading source code</a>
+      </div>
+      <div class="card" id="privacy-block">
+        <h3>Who sees my data, and can I run it alone?</h3>
+        <ul>
+          <li>The Privacy page shows everything recorded about you, whether it is on, and who can see it.</li>
+          <li>Your manager sees your pages for their reporting line, without your private prompt statistics, which only you see.</li>
+          <li>Alone, one command sets everything up on one computer, reachable from that computer only.</li>
+        </ul>
+        <a class="more" href="/privacy">What is read and what is sent</a>
+        <a class="more" href="/self-hosted">Running Kite Pulse yourself</a>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-label">My Activity · active hours by tool, one week <span class="sample">Sample data</span></div>
+      <svg class="chart" id="actChart" viewBox="0 0 640 170" role="img" aria-label="Sample week: active hours per AI coding tool"></svg>
+    </div>
+    <div class="panel">
+      <div class="panel-label">My Scorecard &amp; Insights · work-pattern facts <span class="sample">Sample data</span></div>
+      <div class="tiles" id="factTiles"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords: "claude code dashboard" (this H2), "claude code usage stats" (problem H2), "claude code token usage stats" (tokens card H3), "cursor ai usage stats" (time card). Tokens are honest about scope: a Developer's own pages (MSoT 1.4) do not list token counts, so the card says they are on Team AI Usage (1.2), manager and admin by default. My Sessions filters (tool, model, session type) are from Product Overview 5.3, detailing MSoT 1.4 "My Sessions ... filters". "Developers send a request" for project changes is Field Guide "My Projects", detailing 1.4 My Projects / Pending Requests; the page keeps the MSoT wording. Background refresh "developer can turn off" is MSoT 1.1 optional reads.</div>
+  </section>
+
+  <section class="block" id="builder">
+    <div class="head">
+      <h2>Build your first-week checklist</h2>
+      <p>Choose how you will run it and which AI tools you use. The list follows the steps every developer goes through: install, enter your code, confirm projects, check Workspace, then read your own pages after a week of sessions.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Checklist builder</div>
+      <div class="field"><span id="setupLbl">How you will run it</span>
+        <div class="seg" role="group" aria-labelledby="setupLbl"><button type="button" data-s="team" aria-pressed="true">My team's server</button><button type="button" data-s="solo" aria-pressed="false">Just me, one computer</button></div>
+      </div>
+      <div class="field"><span id="toolLbl">AI coding tools you use</span>
+        <div class="chips" id="toolChips" role="group" aria-labelledby="toolLbl"></div>
+      </div>
+      <div class="policy" id="listDoc"></div>
+      <div class="row"><button class="btn" type="button" id="copyList">Copy checklist</button><span id="copyMsg" class="note" aria-live="polite"></span></div>
+      <textarea id="listText" readonly hidden aria-label="Checklist text"></textarea>
+    </div>
+    <div class="seo"><b>SEO</b>Builder steps: MSoT 1.1 (personal client code KP-, Onboarding Wizard, approver sign-off, Windows and macOS), 1.4 (Workspace statuses, My Scorecard, Privacy, My Activity, My Sessions), 1.8 (one computer), plus per-tool notes from the 1.1 "What each tool provides" table. "After a week" is a suggestion, not a product claim.</div>
+  </section>
+
+  <section class="block" id="scope">
+    <h2>What Kite Pulse shows you, and what it does not</h2>
+    <div class="cansee">
+      <div class="yes"><h3>What it shows you</h3><ul>
+        <li>Whether each of your projects is being collected</li>
+        <li>Your own Claude plan usage, for Claude Code</li>
+        <li>When, how long and with which of the ten tools you worked</li>
+        <li>Every session, with a summary and a detailed view</li>
+        <li>Top 3 to act on, work-pattern facts and working style</li>
+        <li>Private prompt statistics, to you alone</li>
+      </ul></div>
+      <div class="no"><h3>What it does not</h3><ul>
+        <li>Your estimated cost: shown to admins only</li>
+        <li>Plan limits for tools other than Claude Code</li>
+        <li>GitHub Copilot outside Copilot Chat in VS Code</li>
+        <li>Your source files, keystrokes, screenshots or websites (session records can include code excerpts the AI read or wrote, secrets masked)</li>
+        <li>Work on a computer without the Kite Pulse app</li>
+      </ul></div>
+    </div>
+    <div class="seo"><b>Prototype</b>Left out (not in MSoT Section 1, or hidden): notices for plan limit reached and stuck agents, "What the agent did", My Day, productivity tiles and verification signal, the 3D Office, Agent API keys and MCP (operator setting only), any feature on hidden pages. Overview 8's "Never lose credit for your work" is kept only as "whether each project is being collected", not a guarantee. Nothing about Anthropic's own usage screens (outside facts).</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions developers ask</h2>
+    <div>
+      <details open><summary>How can I track my Claude Code usage?</summary><p>Install the Kite Pulse app and point it at a Kite Pulse server, your team's or one on your own computer; it reads the session history Claude Code already keeps. After you confirm your projects, Workspace shows what is being collected and your Claude plan usage.</p></details>
+      <details><summary>How do I monitor my Claude Code usage?</summary><p>Check Workspace for your Claude plan usage and each project's collection status, and My Activity for when and with which tools you worked. Plan figures are as fresh as Claude Code's last save unless an admin turns on the background refresh.</p></details>
+      <details><summary>How do I check Claude Code usage stats?</summary><p>Open My Sessions for every session with a summary and filters, and My Scorecard &amp; Insights for work-pattern facts such as peak hour and longest streak. Token counts per model and day are on Team AI Usage, which managers and admins see by default.</p></details>
+      <details><summary>Who can see my Kite Pulse data?</summary><p>You see everything about yourself; your manager sees your pages for their reporting line and admins see everyone, but your private prompt statistics are shown only to you. The Privacy page lists what is recorded and who can see it.</p></details>
+      <details><summary>Does it cover Cursor and the other AI tools I use?</summary><p>Yes, Kite Pulse reads ten AI coding tools: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider. An admin can switch any off. Claude plan usage covers Claude Code only.</p></details>
+      <details><summary>Can I use Kite Pulse on my own, without a team?</summary><p>Yes. One command sets up the server, background worker, collector and database on one computer, reachable from that computer only.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>All three faq_questions and the aeo_question are here: "how can i track my claude code usage" and the AEO "How can I track my Claude Code usage?" are one item; "how to monitor..." and "how to check claude code usage stats" reworded as questions. Three added for the audience's own worries (who sees it, other tools, solo use). Identical text in FAQPage JSON-LD.</div>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See your own AI work on one page</h3>
+      <p>Kite Pulse reads the history your AI coding tools already keep, on a server your team runs or on your own computer.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /solutions/developers page. Project names, collection statuses, plan percentages, active hours and work-pattern figures are sample data for a fictional developer.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE DATA: a fictional developer. Not a customer, not real figures. */
+  const SAMPLE_DEV={
+    projects:[
+      {name:'checkout-service',status:'Processed'},
+      {name:'mobile-app',status:'Syncing'},
+      {name:'infra-scripts',status:'Waiting to sync'},
+      {name:'design-tokens',status:'Failed'}
+    ],
+    plan:[{n:'5-hour window',v:46},{n:'Weekly window',v:83},{n:'Opus weekly',v:71},{n:'Sonnet weekly',v:34}],
+    hours:[{t:'Claude Code',h:21.5},{t:'Cursor',h:8},{t:'Codex',h:3.5},{t:'Aider',h:1}],
+    facts:[{k:'Peak hour',v:'10:00'},{k:'Busiest day',v:'Tuesday'},{k:'Longest streak',v:'9 days'},{k:'Deep sessions (60 min+)',v:'7'},{k:'Longest session',v:'2 h 40 min'},{k:'Most at once',v:'3'},{k:'Short bursts (under 15 min)',v:'38%'},{k:'Working style',v:'Builder'}]
+  };
+  const TOOLS=['Claude Code','Codex','Gemini CLI','Cursor','GitHub Copilot Chat in VS Code','Cline','Roo Code','Kilo Code','OpenCode','Aider'];
+
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* Workspace sample */
+  const pill={Processed:'good',Syncing:'',['Waiting to sync']:'',Failed:'bad'};
+  $('projBody').innerHTML=SAMPLE_DEV.projects.map(p=>`<tr><td><b>${p.name}</b></td><td><span class="pill ${pill[p.status]}">${p.status}</span></td></tr>`).join('');
+  $('planCards').innerHTML=SAMPLE_DEV.plan.map(m=>`<div class="w"><span>${m.n}</span><b>${m.v}%</b><div class="bar"><i style="width:${Math.min(100,m.v)}%;background:${m.v>=100?'var(--bad)':m.v>=80?'var(--cost)':'var(--good)'}"></i></div></div>`).join('');
+
+  /* My Activity chart, drawn to scale */
+  (function(){
+    const max=25,x0=110,w=500,rowH=30,top=10;let s='';
+    for(let t=0;t<=max;t+=5){const x=x0+t/max*w;s+=`<line class="grid" x1="${x}" y1="${top}" x2="${x}" y2="${top+SAMPLE_DEV.hours.length*rowH}"/><text class="ax" x="${x}" y="${top+SAMPLE_DEV.hours.length*rowH+16}" text-anchor="middle">${t}</text>`;}
+    SAMPLE_DEV.hours.forEach((d,i)=>{const y=top+i*rowH+6;s+=`<text x="${x0-8}" y="${y+13}" text-anchor="end">${d.t}</text><rect x="${x0}" y="${y}" width="${d.h/max*w}" height="18" rx="3" style="fill:var(--accent)"/><text class="ax" x="${x0+d.h/max*w+6}" y="${y+13}">${d.h} h</text>`;});
+    s+=`<text class="ax" x="${x0+w/2}" y="${top+SAMPLE_DEV.hours.length*rowH+34}" text-anchor="middle">Active hours</text>`;
+    $('actChart').innerHTML=s;
+  })();
+  $('factTiles').innerHTML=SAMPLE_DEV.facts.map(f=>`<div class="tile"><b>${f.v}</b><span>${f.k}</span></div>`).join('');
+
+  /* Self-check */
+  const ans=[null,null,null,null,null];
+  const SECT=[['#captured','Is my work being captured?'],['#plan','How close am I to my Claude plan limit?'],['#time','Where does my AI time go?'],['#better','Am I getting better?'],['#privacy-block','Who sees my data?']];
+  $('qs').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;ans[b.dataset.i]=b.dataset.v;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderVerdict();});
+  function renderVerdict(){
+    const done=ans.filter(a=>a!==null).length,no=ans.map((a,i)=>a==='no'?i:-1).filter(i=>i>=0);
+    if(!done){return;}
+    let h=`<p><b>${done} of 5 answered.</b> `;
+    h+=no.length?`Start with these sections:</p><ul>${no.map(i=>`<li><a href="${SECT[i][0]}">${SECT[i][1]}</a></li>`).join('')}</ul>`:'No gaps so far. The checklist below still helps when you set up a new computer.</p>';
+    $('verdict').innerHTML=h;
+  }
+
+  /* Checklist builder */
+  let setup='team';const chosen=new Set(['Claude Code','Cursor']);
+  const TOOL_NOTE={
+    'Claude Code':'Claude Code: check your Claude plan usage on Workspace. Figures are as fresh as Claude Code\'s last save unless your admin has turned on the background refresh.',
+    'Cursor':'Cursor: sessions show input and output tokens only, and a model name only when one model served the whole chat.',
+    'GitHub Copilot Chat in VS Code':'GitHub Copilot: only Copilot Chat in VS Code is read. Inline completions, JetBrains and Copilot CLI are not collected.',
+    'Codex':'Codex: conversations, tool calls, tokens and model names are read. Claude plan usage does not apply to it.',
+    'Gemini CLI':'Gemini CLI: conversations, tool calls, tokens and model names are read. Claude plan usage does not apply to it.'
+  };
+  function renderChips(){
+    $('toolChips').innerHTML=TOOLS.map(t=>`<button type="button" class="chip" data-t="${t}" aria-pressed="${chosen.has(t)}"><span class="box"></span>${t}</button>`).join('');
+  }
+  $('toolChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const t=b.dataset.t;
+    chosen.has(t)?chosen.delete(t):chosen.add(t);renderChips();renderList();
+    const nb=$('toolChips').querySelector(`[data-t="${t}"]`);nb&&nb.focus();});
+  document.querySelector('[aria-labelledby="setupLbl"]').addEventListener('click',e=>{const b=e.target.closest('button[data-s]');if(!b)return;setup=b.dataset.s;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderList();});
+  function renderList(){
+    const tools=TOOLS.filter(t=>chosen.has(t));
+    const items=[
+      setup==='solo'?'Run the one-command setup on your computer. It installs the server, background worker, collector and database, reachable from that computer only.':'Install the Kite Pulse app (Windows installer or macOS package) that your team builds for its own server.',
+      'On first run, enter your personal client code (it starts with KP-). It links this computer to your account.',
+      'In the Onboarding Wizard, review the detected project folders, fix or remove any, and confirm. Nothing uploads before this.'+(setup==='team'?' If your team requires it, wait for an approver to sign off.':''),
+      'Open Workspace and check that each project moves to Processed. Look into any marked Failed.',
+      tools.length?`Tools to check: ${tools.join(', ')}. All ten are on in a new install unless an admin switched one off.`:'Pick the AI tools you use above.',
+      ...tools.filter(t=>TOOL_NOTE[t]).map(t=>TOOL_NOTE[t]),
+      'Open Privacy and read what is recorded about you, whether it is on, and who can see it.',
+      'After a week of sessions, open My Scorecard & Insights and read the Top 3 to act on. If it says not enough data, come back later.',
+      'Once a week, open My Activity to see when and with which tools you worked, and My Sessions to review individual sessions.'
+    ];
+    const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    $('listDoc').innerHTML=`<h3>My Kite Pulse first week</h3><ol>${items.map(i=>`<li>${esc(i)}</li>`).join('')}</ol>`;
+    $('listText').value='My Kite Pulse first week\n\n'+items.map((t,i)=>`${i+1}. ${t}`).join('\n');
+  }
+  $('copyList').addEventListener('click',()=>{const t=$('listText').value;
+    const fb=()=>{const ta=$('listText');ta.hidden=false;ta.select();$('copyMsg').textContent='Copy the text below.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fb);}catch(e){fb();}});
+
+  renderChips();renderList();
+})();
+</script>
+
+</body></html>

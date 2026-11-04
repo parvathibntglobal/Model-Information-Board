@@ -23,14 +23,14 @@ const OTHER = 'var(--kpv-other)'
 
 const num = (v) => v.toLocaleString('en-US', { maximumFractionDigits: 1 })
 const usd = (v) => `$${Math.round(v).toLocaleString('en-US')}`
-const FORMATS = { int: num, usd, hours: (v) => `${num(v)} h` }
+const tokens = (v) => (v >= 1e9 ? `${num(v / 1e9)}B` : v >= 1e6 ? `${num(v / 1e6)}M` : v >= 1e3 ? `${num(v / 1e3)}K` : num(v))
+const FORMATS = { int: num, usd, tokens, hours: (v) => `${num(v)} h` }
 function format(v, f) {
   const fn = FORMATS[f]
   if (!fn) throw new Error(`home-dashboard.json: unknown format "${f}"`)
   return fn(v)
 }
 const shortDate = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-const hhmm = (h) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`
 
 /** The smallest 1, 2, 5 or 10 × 10ⁿ at or above `v`, so axis ticks land on round numbers. */
 function niceMax(v) {
@@ -375,6 +375,29 @@ export function KpiTiles({ run = true }) {
   )
 }
 
+/**
+ * Estimated cost per tool, as a list and never a total: Team AI Usage does not
+ * add cost across tools (Master Source of Truth, 1.2). A tool with no price is
+ * a dash, never $0.
+ */
+export function CostPerTool() {
+  return (
+    <div className="kps-console-chart">
+      <span className="kps-console-h">Estimated cost per tool <span className="kpv-muted">· this week</span></span>
+      <ul className="kpv-costs">
+        {data.costPerTool.map((c) => (
+          <li key={c.tool}>
+            <span>{c.tool}</span>
+            <b>{c.usd == null ? '—' : usd(c.usd)}</b>
+            <small>{c.usd == null ? 'no price' : c.basis}</small>
+          </li>
+        ))}
+      </ul>
+      <small className="kpv-note">Not billed spend. Each tool stands alone; costs are never added up across tools.</small>
+    </div>
+  )
+}
+
 export function SessionsByTool({ bare }) {
   const s = data.sessionsByTool
   const series = [...s.tools.map((name, i) => ({ name, color: SERIES[i] })), { name: s.other, color: OTHER }]
@@ -392,48 +415,81 @@ export function SessionsByTool({ bare }) {
   )
 }
 
-export function CostByProject() {
-  const rows = [...data.costByProject].sort((a, b) => b.usd - a.usd)
-  const max = Math.max(...rows.map((r) => r.usd))
+/** A status is always an icon and a word as well as a colour. */
+function budgetStatus(pct) {
+  if (pct >= 100) return { key: 'crit', icon: '●', word: '100% alert' }
+  if (pct >= 80) return { key: 'warn', icon: '▲', word: '80% alert' }
+  return { key: 'good', icon: '✓', word: 'Within budget' }
+}
+const budgetFmt = (r, v) => {
+  if (r.unit === 'usd') return usd(v)
+  if (r.unit === 'tokens') return tokens(v)
+  throw new Error(`home-dashboard.json: aiBudgets "${r.name}" has unknown unit "${r.unit}"`)
+}
+
+/**
+ * AI Budgets: a monthly budget per team or project, in tokens or estimated US
+ * dollars, alerts at 80% and 100% (Master Source of Truth, 1.2). The only place
+ * the console shows cost per team or project, so the home page shows it here.
+ */
+export function AiBudgets() {
+  const rows = data.aiBudgets.map((r) => ({ ...r, pct: Math.round((r.used / r.budget) * 100) }))
   return (
-    <ChartCard title="Estimated AI cost by project" sub="This week"
-               table={{ columns: ['Project', 'Estimated cost'], rows: rows.map((r) => [r.project, usd(r.usd)]) }}>
-      <ul className="kpv-hbars">
-        {rows.map((r, i) => (
-          <li key={r.project}>
-            <span className="kpv-hb-l">{r.project}</span>
-            <span className="kpv-hb-track"><span className="kpv-hb-bar" style={{ width: `${(r.usd / max) * 100}%`, '--d': `${i * 70}ms` }} /></span>
-            <span className="kpv-hb-v">{usd(r.usd)}</span>
-          </li>
-        ))}
+    <ChartCard title="AI Budgets" sub="Month to date · alerts at 80% and 100%"
+               table={{ columns: ['Budget', 'Per', 'Used', 'Budget', 'Share', 'Unpriced tokens', 'Status'],
+                 rows: rows.map((r) => [r.name, r.scope, budgetFmt(r, r.used), budgetFmt(r, r.budget), `${r.pct}%`,
+                   r.unpricedTokens == null ? '—' : tokens(r.unpricedTokens), budgetStatus(r.pct).word]) }}>
+      <ul className="kpv-meters">
+        {rows.map((r, i) => {
+          const s = budgetStatus(r.pct)
+          return (
+            <li key={r.name}>
+              <span className="kpv-m-who">
+                <b>{r.name}</b>
+                <small>{r.scope} · {budgetFmt(r, r.used)} of {budgetFmt(r, r.budget)}</small>
+                {r.unpricedTokens != null && <small>+ {tokens(r.unpricedTokens)} unpriced tokens</small>}
+              </span>
+              <span className="kpv-m-track" role="meter" aria-valuenow={r.pct} aria-valuemin={0} aria-valuemax={100}
+                    aria-label={`${r.name} budget used`}>
+                <span className={`kpv-m-fill kpv-${s.key}`} style={{ width: `${Math.min(100, r.pct)}%`, '--d': `${i * 90}ms` }} />
+              </span>
+              <span className="kpv-m-pct">{r.pct}%</span>
+              <span className={`kpv-status kpv-status-${s.key}`}><span aria-hidden="true">{s.icon}</span>{s.word}</span>
+            </li>
+          )
+        })}
       </ul>
+      <small className="kpv-note">A dollar budget adds up the priced tools only and reports unpriced tokens separately.</small>
     </ChartCard>
   )
 }
 
-/** A status is always an icon and a word as well as a colour. */
+/** "Near" is 80% or more, "at limit" is 100% (Master Source of Truth, 1.2). */
 function headroomStatus(pct) {
-  const { watch, near } = data.headroomBands
-  if (pct >= near) return { key: 'crit', icon: '●', word: 'Near limit' }
-  if (pct >= watch) return { key: 'warn', icon: '▲', word: 'Watch' }
+  const { near, limit } = data.headroomBands
+  if (pct >= limit) return { key: 'crit', icon: '●', word: 'At limit' }
+  if (pct >= near) return { key: 'warn', icon: '▲', word: 'Near' }
   return { key: 'good', icon: '✓', word: 'Room left' }
 }
 
 export function PlanHeadroom() {
   const rows = [...data.planHeadroom].sort((a, b) => b.usedPct - a.usedPct)
   return (
-    <ChartCard title="Plan headroom" sub="Share of each plan's limit used, worst first"
-               table={{ columns: ['Person', 'Plan', 'Window', 'Used', 'Status'],
-                 rows: rows.map((r) => [r.person, r.plan, r.window, `${r.usedPct}%`, headroomStatus(r.usedPct).word]) }}>
+    <ChartCard title="Plan headroom (Claude Code)" sub="5-hour, weekly and per-model weekly windows, worst first"
+               table={{ columns: ['Person', 'Plan', 'Window', 'Used', 'Status', 'Reading'],
+                 rows: rows.map((r) => [r.person, r.plan, r.window, `${r.usedPct}%`, headroomStatus(r.usedPct).word, r.stale ? 'Stale' : 'Current']) }}>
       <ul className="kpv-meters">
         {rows.map((r, i) => {
           const s = headroomStatus(r.usedPct)
           return (
             <li key={r.person}>
-              <span className="kpv-m-who"><b>{r.person}</b><small>{r.plan} · {r.window}</small></span>
+              <span className="kpv-m-who">
+                <b>{r.person}</b>
+                <small>{r.plan} · {r.window}{r.stale && <> · <span className="kpv-stale">stale reading</span></>}</small>
+              </span>
               <span className="kpv-m-track" role="meter" aria-valuenow={r.usedPct} aria-valuemin={0} aria-valuemax={100}
                     aria-label={`${r.person}, ${r.window.toLowerCase()} window`}>
-                <span className={`kpv-m-fill kpv-${s.key}`} style={{ width: `${r.usedPct}%`, '--d': `${i * 90}ms` }} />
+                <span className={`kpv-m-fill kpv-${s.key}`} style={{ width: `${Math.min(100, r.usedPct)}%`, '--d': `${i * 90}ms` }} />
               </span>
               <span className="kpv-m-pct">{r.usedPct}%</span>
               <span className={`kpv-status kpv-status-${s.key}`}><span aria-hidden="true">{s.icon}</span>{s.word}</span>
@@ -445,64 +501,44 @@ export function PlanHeadroom() {
   )
 }
 
-/** Org Overview's "timeline of each person's day": one lane per person, a bar per stretch of activity. */
-export function DayTimeline() {
-  const t = data.dayTimeline
-  const [ref, w] = useWidth()
-  const [hover, setHover] = useState(null)
-  const narrow = w < 520
-  const lab = narrow ? 0 : Math.min(170, w * 0.3)
-  const rowH = narrow ? 52 : 40
-  const top = narrow ? 34 : 22
-  const m = { r: 8, b: 24 }
-  const height = top + t.people.length * rowH + m.b
-  const x = (h) => lab + ((h - t.start) / (t.end - t.start)) * (w - lab - m.r)
-  const ticks = []
-  for (let h = Math.ceil(t.start / 2) * 2; h <= t.end; h += 2) ticks.push(h)
-  const laneY = (i) => top + i * rowH + (narrow ? 22 : 0)
+const PRESENCE = { coding: 'Coding', online: 'Online', offline: 'Offline' }
 
+/**
+ * Team Overview: who is online and who is coding right now, active time and
+ * sessions today against a typical day, who needs attention, and each person's
+ * current project (Master Source of Truth, 1.4).
+ */
+export function TeamToday() {
+  const t = data.teamToday
+  const word = (s) => {
+    if (!PRESENCE[s]) throw new Error(`home-dashboard.json: teamToday status "${s}" is not one of ${Object.keys(PRESENCE).join(', ')}`)
+    return PRESENCE[s]
+  }
   return (
-    <ChartCard title="Each person's day" sub={`Activity from AI sessions · now ${hhmm(t.now)}`}
-               table={{ columns: ['Person', 'Project', 'Status', 'Active stretches'],
-                 rows: t.people.map((p) => [p.person, p.project, p.status, p.blocks.map(([a, b]) => `${hhmm(a)}–${hhmm(b)}`).join(', ')]) }}>
-      <div className="kpv-plot" ref={ref} onMouseLeave={() => setHover(null)}>
-        {w > 0 && (
-          <svg width={w} height={height} role="img" aria-label="Timeline of each person's active stretches today">
-            {ticks.map((h) => (
-              <g key={h}>
-                <line x1={x(h)} x2={x(h)} y1={top - 6} y2={height - m.b} className="kpv-grid" />
-                <text x={x(h)} y={height - 8} textAnchor="middle" className="kpv-tick">{hhmm(h)}</text>
-              </g>
+    <ChartCard title="Team Overview" sub={`Today, as of ${t.now} · refreshes every 30 seconds`}
+               table={{ columns: ['Person', 'Status', 'Current project', 'Needs attention'],
+                 rows: t.people.map((p) => [p.person, word(p.status), p.project, p.attention || '—']) }}>
+      <div className="kpv-facts">
+        <div className="kpv-fact"><span>Active time today</span><b>{num(t.activeHours.today)} h</b><small>typical day {num(t.activeHours.typical)} h</small></div>
+        <div className="kpv-fact"><span>Sessions today</span><b>{num(t.sessions.today)}</b><small>typical day {num(t.sessions.typical)}</small></div>
+        <div className="kpv-fact"><span>Coding now</span><b>{t.people.filter((p) => p.status === 'coding').length}</b><small>of {t.people.length} people</small></div>
+      </div>
+      <div className="kpv-tablewrap">
+        <table className="kpv-table kpv-projects">
+          <thead><tr><th>Person</th><th>Status</th><th>Current project</th><th>Needs attention</th></tr></thead>
+          <tbody>
+            {t.people.map((p) => (
+              <tr key={p.person}>
+                <td>{p.person}</td>
+                <td><span className={`kpv-health kpv-presence-${p.status}`}>{word(p.status)}</span></td>
+                <td><b>{p.project}</b></td>
+                <td>{p.attention
+                  ? <span className="kpv-status kpv-status-warn"><span aria-hidden="true">▲</span>{p.attention}</span>
+                  : <span className="kpv-muted">—</span>}</td>
+              </tr>
             ))}
-            {t.people.map((p, i) => (
-              <g key={p.person}>
-                <text x={0} y={narrow ? laneY(i) - 8 : laneY(i) + 9} className="kpv-lane-name">
-                  {p.person}
-                  <tspan className="kpv-lane-sub" dx="8">{p.project} · {p.status}</tspan>
-                </text>
-                <rect x={lab} y={laneY(i)} width={Math.max(0, w - lab - m.r)} height={16} rx={4} className="kpv-lane" />
-                {p.blocks.map(([a, b], j) => (
-                  <rect key={a} x={x(a)} y={laneY(i)} width={Math.max(2, x(b) - x(a) - 2)} height={16} rx={4}
-                        fill="var(--kpv-1)" className="kpv-block" style={{ '--d': `${i * 120 + j * 60}ms` }} opacity={hover && (hover.i !== i || hover.j !== j) ? 0.5 : 1}
-                        tabIndex={0} aria-label={`${p.person}, ${hhmm(a)} to ${hhmm(b)}`}
-                        onMouseEnter={() => setHover({ i, j })} onFocus={() => setHover({ i, j })} onBlur={() => setHover(null)} />
-                ))}
-              </g>
-            ))}
-            <line x1={x(t.now)} x2={x(t.now)} y1={top - 10} y2={height - m.b} className="kpv-now" />
-            <text x={x(t.now)} y={top - 14} textAnchor="middle" className="kpv-now-l">Now</text>
-          </svg>
-        )}
-        {hover && w > 0 && (() => {
-          const p = t.people[hover.i]
-          const [a, b] = p.blocks[hover.j]
-          return (
-            <div className="kpv-tip" style={{ left: Math.min(Math.max(x((a + b) / 2), 80), w - 80), top: laneY(hover.i) - 8 }}>
-              <b>{p.person}</b>
-              <span>{p.project}<em>{hhmm(a)}–{hhmm(b)}</em></span>
-            </div>
-          )
-        })()}
+          </tbody>
+        </table>
       </div>
     </ChartCard>
   )
@@ -527,7 +563,7 @@ const HEALTH = { active: 'Active', stable: 'Stable', dormant: 'Dormant' }
 export function ProjectHealth() {
   const rows = data.projects
   return (
-    <ChartCard title="Organization Projects" sub="Sessions over the last 8 weeks"
+    <ChartCard title="All Projects" sub="Sessions over the last 8 weeks"
                table={{ columns: ['Project', 'Health', 'Sessions', 'Contributors', 'Last activity', 'Weekly sessions'],
                  rows: rows.map((p) => [p.project, HEALTH[p.health], num(p.sessions), p.contributors, p.lastActivity, p.weekly.join(', ')]) }}>
       <div className="kpv-tablewrap">
@@ -568,20 +604,110 @@ export function PersonalView() {
   )
 }
 
+/* ------------------------------------------------------------ picker */
+
+/**
+ * "WHAT WOULD YOU SEE?" (2026-10-28, the Page Map's plan for the home page).
+ * The visitor picks their tools and a team size; the table shows a sample week
+ * of what Team AI Usage would hold for them.
+ *
+ * `tools` are product facts (KitePulseSite.jsx, from the Master Source of
+ * Truth's "What each tool provides"); the figures are sample data from
+ * home-dashboard.json. The two must agree on which tools have a price, and a
+ * disagreement throws rather than showing a priced tool as "—" or an unpriced
+ * one with a dollar figure.
+ */
+export function TeamPicker({ tools }) {
+  const p = data.picker
+  const [picked, setPicked] = useState(() => new Set(p.defaultTools))
+  const [size, setSize] = useState(p.defaultSize)
+  const toggle = (name) => setPicked((s) => {
+    const n = new Set(s)
+    if (n.has(name)) n.delete(name)
+    else n.add(name)
+    return n
+  })
+
+  const rows = tools.filter((t) => picked.has(t.name)).map((t) => {
+    const d = p.perDeveloperWeek[t.name]
+    if (!d) throw new Error(`home-dashboard.json: picker.perDeveloperWeek has no entry for "${t.name}"`)
+    if (t.priced !== (d.usd != null)) {
+      throw new Error(`"${t.name}": the tool facts say priced=${t.priced}, but its sample usd is ${d.usd}`)
+    }
+    const devs = Math.max(1, Math.round(size * d.share))
+    return { ...t, devs, sessions: devs * d.sessions, tokens: devs * d.tokens, usd: d.usd == null ? null : devs * d.usd,
+      near: t.planLimits ? Math.round(devs * p.claudeNearLimitShare) : null }
+  })
+  const partialTokens = rows.some((r) => r.tokensNote)
+
+  return (
+    <div className="kpv-picker">
+      <div className="kpv-ctl">
+        <span className="kpv-ctl-l" id="kpv-pick-tools">AI tools your team uses</span>
+        <div className="kpv-chips" role="group" aria-labelledby="kpv-pick-tools">
+          {tools.map((t) => (
+            <button key={t.name} type="button" aria-pressed={picked.has(t.name)} onClick={() => toggle(t.name)}>{t.name}</button>
+          ))}
+        </div>
+      </div>
+      <div className="kpv-ctl">
+        <span className="kpv-ctl-l" id="kpv-pick-size">Team size</span>
+        <div className="kpv-chips" role="group" aria-labelledby="kpv-pick-size">
+          {p.teamSizes.map((n) => (
+            <button key={n} type="button" aria-pressed={size === n} onClick={() => setSize(n)}>{n} developers</button>
+          ))}
+        </div>
+      </div>
+
+      <ChartCard title="Team AI Usage" sub={`A sample week for ${size} developers`}>
+        {rows.length === 0 ? <p className="kpv-muted">Pick at least one tool.</p> : (
+          <div className="kpv-tablewrap">
+            <table className="kpv-table kpv-pick">
+              <thead>
+                <tr><th>Tool</th><th className="kpv-r">Developers</th><th className="kpv-r">Sessions</th>
+                  <th className="kpv-r">Tokens</th><th className="kpv-r">Estimated cost</th><th>Plan limits</th></tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.name}>
+                    <td><b>{r.name}</b></td>
+                    <td className="kpv-r">{num(r.devs)}</td>
+                    <td className="kpv-r">{num(r.sessions)}</td>
+                    <td className="kpv-r">{tokens(r.tokens)}{r.tokensNote && <small>{r.tokensNote}</small>}</td>
+                    <td className="kpv-r">{r.usd == null ? '—' : usd(r.usd)}<small>{r.costNote}</small></td>
+                    <td>{r.planLimits
+                      ? <>{r.near} near a limit<small>5-hour and weekly windows</small></>
+                      : <span className="kpv-muted">Not reported by this tool</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <small className="kpv-note">
+          Cost is never added up across tools and is not billed spend.
+          {partialTokens && ' Cursor and Copilot report input and output tokens only.'}
+        </small>
+      </ChartCard>
+    </div>
+  )
+}
+
 /* ------------------------------------------------------------ how it works */
 
 // What the collector does, as log lines, each tied to the part of "How it
-// works" it belongs to. Every line restates the Product Guide: only new
-// activity, secrets removed on the computer, queued when the network drops,
-// encrypted, sent only to the team's own server. An illustration, badged so.
+// works" it belongs to. Every line restates the Master Source of Truth (1.1):
+// only new activity, secrets masked on the computer, picks up where it stopped
+// when the network drops, session uploads encrypted, sent only to the team's
+// own server. An illustration, badged so.
 const DEMO = [
   { step: 0, tone: 'ok', text: 'Claude Code  ·  2 new sessions  ·  payments-api' },
   { step: 0, tone: 'ok', text: 'Cursor  ·  1 new session  ·  web-app' },
-  { step: 0, tone: 'ok', text: 'Secrets removed on this computer: 3' },
-  { step: 1, tone: 'warn', text: 'Network dropped  ·  1 session queued' },
-  { step: 1, tone: 'ok', text: 'Back online  ·  queue uploaded, encrypted' },
+  { step: 0, tone: 'ok', text: 'Secrets masked on this computer: 3' },
+  { step: 1, tone: 'warn', text: 'Network dropped  ·  will resume where it stopped' },
+  { step: 1, tone: 'ok', text: 'Back online  ·  caught up, uploads encrypted' },
   { step: 1, tone: 'ok', text: 'Sent to your Kite Pulse server  ·  no vendor cloud' },
-  { step: 2, tone: 'ok', text: 'Console updated  ·  Org Overview, Team AI Usage' },
+  { step: 2, tone: 'ok', text: 'Console updated  ·  Team Overview, Team AI Usage' },
 ]
 
 /** The three parts beside a terminal that plays through them, lighting each part as its lines run. */

@@ -1,0 +1,241 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Claude Code Session Analysis: Learn From a Loop | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Claude Code session analysis for developers: read back a session that looped, find the failed calls and exit codes, and write a better request next time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Claude Code Session Analysis: Learn From the Session That Went in Circles","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Claude Code session analysis"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Claude Code Session Analysis","item":"/blog/claude-code-session-analysis"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I know when AI is retrying the same failed fix repeatedly?","acceptedAnswer":{"@type":"Answer","text":"Look at the failures in order, not at the edits. If the same command fails after every change and the error text barely moves, the agent is retrying one fix in different forms. In Kite Pulse, failed tool calls are recorded for every supported tool except Aider and command exit codes for Claude Code, Codex and Copilot, so a session's detailed view in My Sessions shows those failures as recorded facts. Across a team, Work Problems uses fixed rules to find repeated retries; it is an admin page by default."}},
+{"@type":"Question","name":"Can my manager see my Claude Code session history?","acceptedAnswer":{"@type":"Answer","text":"In Kite Pulse, a manager sees the same report you see for people in their reporting line, and admins see everyone, but your private prompt statistics are shown only to you. Secrets are masked on your computer before upload and again on the server. Your Privacy page lists every data point collected about you, whether it is on, and who can see it."}},
+{"@type":"Question","name":"Does Claude Code session analysis need an AI service?","acceptedAnswer":{"@type":"Answer","text":"No, not for the review itself. Collection, My Sessions, the recorded failures and exit codes, and Work Problems all run without any AI service, on the server your team runs. AI labelling, which can tag the type of work and whether a session succeeded, is optional and stays off until an admin sets it up."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);padding:1px 5px;border-radius:5px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);border-radius:6px;padding:3px 8px;justify-self:start}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:10px}
+.panel .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.panel pre{margin:0;white-space:pre-wrap;font-family:var(--mono);font-size:.86rem;line-height:1.55;background:var(--sunk);border-radius:10px;padding:12px 14px}
+.before{border-left:3px solid var(--bad)} .after{border-left:3px solid var(--good)}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Benefits for individual developers</div>
+    <h1>Claude Code Session Analysis: Learn From the Session That Went in Circles</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Claude Code session analysis means reading back a finished session to find where it went wrong: which commands failed, what the agent kept retrying, and what your request left out.</b> The evidence is already in the session history Claude Code keeps on your computer. Read it in order, look at the failures before the edits, and you can usually write a request that would have worked the first time.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "claude code session analysis" at the start of the title tag (60 characters), in the H1, the URL and the bolded first sentence of the answer box. Meta description 153 characters. Intent is commercial: the page teaches the review method first, then compares ways to do it (raw history, a personal viewer, a team platform) and says when each fits.</div>
+  </header>
+
+  <section class="block" id="story">
+    <span class="label">Illustrative example, not a customer story</span>
+    <h2>Two hours, one test, the same failure</h2>
+    <p>Imogen asks Claude Code to fix a failing date test before the end of the day. The agent reads the parser, changes how it handles time zones, runs the tests, and the test fails. It changes the parser again. The test fails again. Two hours later the parser has been rewritten three ways and the test still fails with almost the same message.</p>
+    <p>On Monday she fixes it in ten minutes: the test reads a fixture file that was saved with the wrong date, and the agent never opened it. No change to the parser could have made the test pass.</p>
+    <p>The useful part comes after the fix. Imogen goes back to the session that went in circles and asks why it took two hours, so the next one does not. That review is what this article is about. If you want to catch a looping agent while it is still running, read <a href="/blog/stuck-ai-agent">how a team lead spots a stuck AI agent before lunch</a> instead.</p>
+  </section>
+
+  <section class="block" id="history">
+    <h2>Where Claude Code session history lives</h2>
+    <p>Claude Code keeps a record of every session on your computer: your messages, the agent's replies, each tool call it made and what came back. That Claude Code session history is the raw material for any review. Commits show only what came out.</p>
+    <p>The record is long, and most of it is routine reads and edits. Read it with a few questions in hand and skip everything that does not answer them.</p>
+  </section>
+
+  <section class="block" id="loop">
+    <h2>Signs Claude Code was stuck in a loop</h2>
+    <p>When Claude Code is stuck in a loop, the session usually shows one or more of these patterns. None of them proves a loop on its own; together they are hard to miss.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>What you see</th><th>What it usually means</th><th>What to change next time</th></tr></thead>
+        <tbody>
+          <tr><td>The same command failing after each edit</td><td>The agent is treating every failure as a reason to try another edit.</td><td>Ask it to explain the failure before it changes anything.</td></tr>
+          <tr><td>An error message that barely changes</td><td>The edits are not reaching the cause.</td><td>Name what else could be involved: config, data, environment.</td></tr>
+          <tr><td>One file edited back and forth</td><td>The agent has fixed on one place as the culprit.</td><td>Point it at the other files the test depends on.</td></tr>
+          <tr><td>A file or service never looked at</td><td>The cause sits somewhere the agent did not think to check.</td><td>Mention it in the request, even if you are not sure.</td></tr>
+          <tr><td>A failure with a non-zero exit code and no clear message</td><td>The command itself, not the code, may be wrong.</td><td>Give the exact command and how it should be run.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>For the deeper causes, from missing context to tests that depend on something outside the code, see <a href="/blog/ai-retry-loops">why AI agents get caught in retry loops</a>.</p>
+  </section>
+
+  <section class="block" id="method">
+    <h2>A four-question review of a session that looped</h2>
+    <ol>
+      <li><b>What was the first failure, and did it ever change?</b> Find the first failed command and compare its error with the last one. If they match, every edit in between was a guess.</li>
+      <li><b>Was the cause inside what the agent could edit?</b> Read the error and the exit code. A missing file, a stopped service or a wrong setting will not yield to code changes.</li>
+      <li><b>What did the agent never open?</b> List the files and commands it touched. The cause is often in the gap.</li>
+      <li><b>What did my request assume?</b> Reread your first message. Most loops start with something you knew and did not say.</li>
+    </ol>
+    <p>Then rewrite the request as you would send it now. In Imogen's case the difference is one sentence, and it is the sentence that matters:</p>
+    <div class="panel before"><span class="tag">Original request (example)</span><pre>The date parsing test is failing. Please fix it.</pre></div>
+    <div class="panel after"><span class="tag">Rewritten request (example)</span><pre>The date parsing test is failing. Before changing any code, read the test and every fixture it loads, and tell me whether the failure is in the parser or in the test data. If the same error comes back twice, stop and report what you found.</pre></div>
+    <p>Keep the last line as a habit: an agent told to stop after a repeated failure gives you a short session with a clear question.</p>
+  </section>
+
+  <section class="block" id="analyzer">
+    <h2>Choosing a Claude Code session analyzer</h2>
+    <p>There are three practical ways to do this review. Which one fits depends on how often you want to do it, and whether anyone besides you needs the answer.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Approach</th><th>Good for</th><th>Weak at</th></tr></thead>
+        <tbody>
+          <tr><td>Read the raw history yourself</td><td>A one-off look at one session, with nothing to install.</td><td>Long sessions, spotting patterns across weeks, and any tool other than Claude Code.</td></tr>
+          <tr><td>A personal Claude Code session history viewer</td><td>Browsing and searching your own sessions on one computer.</td><td>Sessions from other machines or other AI tools, and anything a team needs to see together.</td></tr>
+          <tr><td>A team platform that reads session history</td><td>Your sessions from every computer and tool in one place, plus team-wide patterns.</td><td>It needs a server and an admin to set it up, which is more than a solo developer may want.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>If you work alone with one tool, a local viewer may be all you need. The team option earns its setup when several people hit the same walls, or when you use more than one AI tool and want one place to look back.</p>
+  </section>
+
+  <section class="block" id="kitepulse">
+    <h2>Reviewing your own sessions in Kite Pulse</h2>
+    <p>Kite Pulse is the team option. A small desktop program reads the session history ten AI coding tools keep on your computer, masks secrets, and sends it to a server your team runs. Here is what that gives you as a developer looking back at your own work.</p>
+    <ul>
+      <li><b>My Sessions</b> lists every session with a summary, filters and a detailed view of what happened in it. That is where Imogen's review starts.</li>
+      <li><b>Failures as recorded facts.</b> Failed tool calls are recorded for every supported tool except Aider, and command exit codes come from Claude Code, Codex and Copilot. See <a href="/integrations/claude-code">what is collected from Claude Code</a>.</li>
+      <li><b>Private prompt statistics</b>, such as your most repeated prompt, are shown only to you. A most repeated prompt of "still failing, try again" is a review in itself.</li>
+      <li><b>My Scorecard &amp; Insights</b> leads with a "Top 3 to act on", each with what to try and the evidence, and says "not enough data" rather than guessing.</li>
+      <li><b>Labels, if your admin turns them on.</b> AI labelling is optional and can tag the type of work and whether a session succeeded.</li>
+    </ul>
+    <p>A looping session also spends your Claude plan window. Your Workspace page shows your own Claude plan usage, and <a href="/claude-code-usage-limits">our guide to Claude Code usage limits</a> explains the 5-hour and weekly windows.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Session review needs no AI service. Collection, My Sessions and the recorded failures run on your team's own server, with secrets masked on your computer and again on the server. Your Privacy page shows every data point collected about you and who can see it. Read more on <a href="/privacy">what is read and who sees it</a>.</p></div>
+    <div class="seo"><b>SEO</b>Facts from MSoT 1.1 (ten tools, secrets masked, failed tool calls except Aider, exit codes from Claude Code, Codex and Copilot), 1.2 (own plan figures on Workspace), 1.4 (My Sessions, private prompt statistics, My Scorecard &amp; Insights, Privacy), 1.5 (AI labelling optional; type of work and whether the session succeeded), 1.7 (masked twice, consent). "Detailed view of what happened in it" is the Product Overview's wording (5.3) for the Section 1 My Sessions detailed view. The one Kite Pulse callout on the page.</div>
+  </section>
+
+  <section class="block" id="team">
+    <h2>When it is not just your session</h2>
+    <p>Imogen's loop came from one bad fixture. If the same test data had tripped three people, the fix belongs to the team, not to three better prompts. Work Problems uses fixed rules, with no AI, to find failed commands, error messages and repeated retries across the team, grouped by severity with suggested actions and the most affected developers.</p>
+    <p>Work Problems is an admin page by default, so as a developer you may not see it. Admins can open it to other roles on Roles &amp; Permissions. If you suspect a shared cause, the quickest route is often to tell whoever can see it. For a wider view of what developers get from the console, see <a href="/solutions/developers">what the console gives developers</a>.</p>
+    <p>Be clear about who sees your sessions, too. A manager sees the same report you see for people in their reporting line, and admins see everyone, without your private prompt statistics. A review of your own loop is something you can do privately; the session itself is not hidden from them.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about Claude Code session analysis</h2>
+    <div>
+      <details open><summary>How do I know when AI is retrying the same failed fix repeatedly?</summary><p>Look at the failures in order, not at the edits. If the same command fails after every change and the error text barely moves, the agent is retrying one fix in different forms. In Kite Pulse, failed tool calls are recorded for every supported tool except Aider and command exit codes for Claude Code, Codex and Copilot, so a session's detailed view in My Sessions shows those failures as recorded facts. Across a team, Work Problems uses fixed rules to find repeated retries; it is an admin page by default.</p></details>
+      <details><summary>Can my manager see my Claude Code session history?</summary><p>In Kite Pulse, a manager sees the same report you see for people in their reporting line, and admins see everyone, but your private prompt statistics are shown only to you. Secrets are masked on your computer before upload and again on the server. Your Privacy page lists every data point collected about you, whether it is on, and who can see it.</p></details>
+      <details><summary>Does Claude Code session analysis need an AI service?</summary><p>No, not for the review itself. Collection, My Sessions, the recorded failures and exit codes, and Work Problems all run without any AI service, on the server your team runs. AI labelling, which can tag the type of work and whether a session succeeded, is optional and stays off until an admin sets it up.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief's one FAQ question word for word, answered from the developer's side (the same question on /blog/stuck-ai-agent is answered from the team lead's). Two added questions cover privacy and the no-AI point, both from MSoT 1.4, 1.5 and 1.7. All three mirrored in FAQPage JSON-LD.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/blog/stuck-ai-agent">The stuck agent caught before lunch<span>Spotting a looping agent while it runs</span></a></li>
+      <li><a href="/blog/ai-retry-loops">AI retry loops<span>Why agents repeat the same failed fix</span></a></li>
+      <li><a href="/integrations/claude-code">Claude Code integration<span>What is read from Claude Code sessions</span></a></li>
+      <li><a href="/privacy">Privacy<span>What is read, and who sees it</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Look back at every session, on your own server</h3>
+      <p>Run Kite Pulse for your team and give each developer a private record of their AI sessions to learn from.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: claude code session analysis. Intent: commercial. Secondary keywords: "claude code session history" (H2 and body), "claude code stuck in loop" (H2 "Signs Claude Code was stuck in a loop" and its first sentence), "claude code session analyzer" (H2), "claude code session history viewer" (comparison table row). Facts from MSoT Section 1 (1.1, 1.2, 1.4, 1.5, 1.7); one wording detail from the Product Overview 5.3 (My Sessions "detailed view of what happened in it"). The story and both requests are illustrative examples. Left out on purpose, per the batch 2 rule: session playback, "What the agent did", the Session Summary's named fields, the Segments and Labels tab names, the "AI agent stuck" notice, My Day, and Session Graph (its role visibility is not stated in Section 1). Claims about Claude Code itself are limited to "keeps a record of every session on your computer", which the MSoT states for all ten tools; no file paths or commands are given, so no outside source is needed. No outside statistics.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/claude-code-session-analysis article. The developer, the two-hour session and both requests are illustrative examples; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

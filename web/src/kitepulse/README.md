@@ -28,7 +28,8 @@ and nothing else). Code outside `web/` would not reach the deployed site.
 | `import_sheet.py` | Regenerates `data/sheet.json` from the sheet |
 | `prototypes/*.html` | Finished page designs, one file per page, copied from Claude artifacts |
 | `docs/Kite Pulse - Keyword Research.xlsx` | The keyword research sheet: keywords, Page Map, AEO questions, competitors. **The place people edit** |
-| `docs/Kite Pulse — Product Guide.md` | What Kite Pulse is and does. The only source for product wording on the site |
+| `docs/Kite Pulse Website Content — Master Source of Truth.md` | What Kite Pulse does, checked against the code on 28 Oct 2026. **Section 1 is the only source for product claims on the site**; Section 2 lists what must not be claimed yet |
+| `docs/Kite Pulse — Product Guide.md` | The earlier product description (13 Oct 2026). Out of date where the Master Source of Truth's "Website corrections" says so; kept for its tone and structure, not its claims |
 | `docs/MASTER-PROMPT.md` | The prompt that generates a page, and the page brief to fill in |
 | `docs/ARCHITECTURE.md` | What is built, why, and the plan to a public site |
 
@@ -74,6 +75,7 @@ no file behind it shows "File not found" on the page, not an empty slot.
   index it. The pages must rank on Kite Pulse's own domain, and an indexed copy
   here would compete with them.
 - **No invented product claims.** Wording about Kite Pulse on the site comes
-  from `docs/Kite Pulse — Product Guide.md` in this folder, word for word. What is not built
-  yet says so.
+  from Section 1 of `docs/Kite Pulse Website Content — Master Source of Truth.md`
+  in this folder. Anything in its Section 2 stays off the site, or appears only
+  as "coming soon". What is not built yet says so.
 - **An empty sheet cell stays empty.** It is shown as a dash, never as 0.

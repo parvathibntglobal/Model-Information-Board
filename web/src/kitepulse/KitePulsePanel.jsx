@@ -169,6 +169,23 @@ function Overview({ model, onOpen }) {
       )}
 
       <div className="stack stack-2">
+        <span className="label">Where the keywords came from <span className="dim">Source column</span></span>
+        <div className="tablewrap"><table>
+          <thead><tr><th>Source</th><th>Rows</th><th>SEO</th><th>AEO</th></tr></thead>
+          <tbody>
+            {bySource(keywords).map(([name, list]) => (
+              <tr key={name}>
+                <td>{name}</td>
+                <td className="tnum">{list.length}</td>
+                <td className="tnum">{list.filter((k) => k.type === 'SEO').length}</td>
+                <td className="tnum">{list.filter((k) => k.type === 'AEO').length}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      </div>
+
+      <div className="stack stack-2">
         <span className="label">Pages by website section</span>
         <div className="tablewrap"><table>
           <thead><tr><th>Section</th><th>Pages</th><th>P1</th><th>Published</th></tr></thead>
@@ -196,6 +213,17 @@ function sectionsInOrder(pages) {
   }
   const names = [...SITE_SECTIONS.filter((s) => by.has(s)), ...[...by.keys()].filter((s) => !SITE_SECTIONS.includes(s))]
   return names.map((n) => [n, by.get(n)])
+}
+
+/** Keyword rows by their Source, most rows first; an empty cell is its own row, never dropped. */
+function bySource(keywords) {
+  const by = new Map()
+  for (const k of keywords) {
+    const s = k.source || 'No source in sheet'
+    if (!by.has(s)) by.set(s, [])
+    by.get(s).push(k)
+  }
+  return [...by.entries()].sort((a, b) => b[1].length - a[1].length)
 }
 
 const priorityTone = (p) => (p === 'P1' ? 'pass' : p === 'P2' ? 'warn' : 'mute')
@@ -351,8 +379,10 @@ function Preview({ page }) {
         </div>
         <span className="row" style={{ gap: 10, alignItems: 'center' }}>
           <Badge tone="warn">prototype</Badge>
-          <a href={page.prototype.artifact} target="_blank" rel="noopener noreferrer"
-             className="btn btn-ghost prompt-btn">Edit in Claude ↗</a>
+          {page.prototype.artifact && (
+            <a href={page.prototype.artifact} target="_blank" rel="noopener noreferrer"
+               className="btn btn-ghost prompt-btn">Edit in Claude ↗</a>
+          )}
         </span>
       </div>
       {err && <Notice icon={<IconAlert />}>The prototype could not be loaded: {err}</Notice>}
@@ -603,11 +633,14 @@ function Keywords({ model, onOpen }) {
   const [q, setQ] = useState('')
   const [type, setType] = useState('all')
   const [group, setGroup] = useState('all')
+  const [source, setSource] = useState('all')
   const groups = useMemo(() => [...new Set(model.keywords.map((k) => k.group).filter(Boolean))].sort(), [model])
+  const sources = useMemo(() => [...new Set(model.keywords.map((k) => k.source).filter(Boolean))].sort(), [model])
   const needle = q.trim().toLowerCase()
   const rows = model.keywords.filter((k) =>
     (type === 'all' || k.type === type)
     && (group === 'all' || k.group === group)
+    && (source === 'all' || k.source === source)
     && (!needle || (k.keyword || '').toLowerCase().includes(needle) || (k.url || '').toLowerCase().includes(needle)))
 
   return (
@@ -624,22 +657,29 @@ function Keywords({ model, onOpen }) {
           <option value="all">All groups</option>
           {groups.map((g) => <option key={g} value={g}>{g}</option>)}
         </select>
+        <select id="kp-kw-source" className="input kp-select" value={source} onChange={(e) => setSource(e.target.value)} aria-label="Source">
+          <option value="all">All sources</option>
+          {sources.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
         <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
           {rows.length > KEYWORD_LIMIT ? `Showing ${KEYWORD_LIMIT} of ${rows.length}` : `${rows.length} rows`}
         </span>
       </div>
       <div className="tablewrap"><table>
         <thead>
-          <tr><th>Keyword / question</th><th>Type</th><th>Group</th><th>Intent</th><th>Role</th>
-            <th>Page</th><th>Volume</th><th>KD</th><th>Status</th></tr>
+          <tr><th>Keyword / question</th><th>Type</th><th>Group</th><th>Source</th><th>Intent</th><th>Role</th>
+            <th>Page</th><th>Volume</th><th>KD</th>
+            <th title="Relevance + Intent Score + Difficulty Score, from the sheet (max 9). Empty until KD is entered.">Priority</th>
+            <th>Status</th></tr>
         </thead>
         <tbody>
-          {rows.length === 0 && <tr><td colSpan={9} className="dim">No keywords match.</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={11} className="dim">No keywords match.</td></tr>}
           {rows.slice(0, KEYWORD_LIMIT).map((k) => (
             <tr key={k.id}>
               <td>{k.keyword}</td>
               <td><Badge tone={k.type === 'AEO' ? 'info' : 'mute'}>{v(k.type)}</Badge></td>
               <td className="dim">{v(k.group)}</td>
+              <td className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{v(k.source)}</td>
               <td className="dim">{v(k.intent)}</td>
               <td className="dim">{v(k.role)}</td>
               <td>{k.url
@@ -647,6 +687,7 @@ function Keywords({ model, onOpen }) {
                 : '—'}</td>
               <td className="tnum dim">{v(k.volume)}</td>
               <td className="tnum dim">{v(k.kd)}</td>
+              <td className="tnum dim">{v(k.priority)}</td>
               <td className="dim">{v(k.status)}</td>
             </tr>
           ))}
@@ -669,7 +710,9 @@ function Aeo({ model }) {
       </p>
       <div className="tablewrap"><table>
         <thead>
-          <tr><th>Question</th><th>Target page</th>{ASSISTANTS.map(([, l]) => <th key={l}>{l}</th>)}<th>Tested</th></tr>
+          <tr><th>Question</th><th>Target page</th>{ASSISTANTS.map(([, l]) => <th key={l}>{l}</th>)}
+            <th title="How many of the five assistants mentioned Kite Pulse">Mentioned (of 5)</th>
+            <th>Competitors cited</th><th>Sources cited</th><th>Tested</th></tr>
         </thead>
         <tbody>
           {model.aeo.map((a) => (
@@ -677,6 +720,9 @@ function Aeo({ model }) {
               <td>{a.question}</td>
               <td className="mono dim">{v(a.page)}</td>
               {ASSISTANTS.map(([k]) => <td key={k} className="dim">{v(a[k])}</td>)}
+              <td className="tnum dim">{v(a.mentioned)}</td>
+              <td className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{v(a.competitors_cited)}</td>
+              <td className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{v(a.sources_cited)}</td>
               <td className="dim">{v(a.tested)}</td>
             </tr>
           ))}

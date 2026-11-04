@@ -1,0 +1,358 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Claude Code Rate Limits Team-Wide, Worst First | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="See Claude Code rate limits team-wide: who is near or at the 5-hour, weekly and per-model limits, worst first, plus a plan usage report in Excel.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"Plan headroom: Claude Code rate limits team-wide, worst first","url":"/plan-headroom","about":"Claude Code rate limits for a team","isPartOf":{"@type":"WebSite","name":"Kite Pulse"}},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Product","item":"/features"},{"@type":"ListItem","position":3,"name":"Plan headroom","item":"/plan-headroom"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I know which developers are close to their Claude limit?","acceptedAnswer":{"@type":"Answer","text":"Use one list of the whole team, sorted by how much of each Claude plan window is used. In Kite Pulse that is the Plan headroom tab of Team AI Usage: the 5-hour, weekly and per-model weekly windows per developer, worst first, with 80% marked near and 100% at limit."}},
+{"@type":"Question","name":"How close am I to my Claude Code limit?","acceptedAnswer":{"@type":"Answer","text":"With Kite Pulse, your own Claude plan usage is on your Workspace page. For how the windows work, see the Claude Code usage limits guide."}},
+{"@type":"Question","name":"How do I plan sprints around AI plan limits?","acceptedAnswer":{"@type":"Answer","text":"Check who is near a weekly limit before handing out the heaviest AI work, and use past weekly peaks to see who runs short most often. The sprint planning article walks through a full routine."}},
+{"@type":"Question","name":"Which Claude plan does my engineering team need?","acceptedAnswer":{"@type":"Answer","text":"Kite Pulse does not recommend a plan. It gives you evidence: the Plan usage report shows how many weeks each developer and Claude account reached 80% or more, and how many hit the limit. Frequent limits argue for a larger plan; low peaks argue against one."}},
+{"@type":"Question","name":"Does Plan headroom cover Codex, Cursor or other AI tools?","acceptedAnswer":{"@type":"Answer","text":"No. Plan headroom covers Claude Code only. The other nine tools Kite Pulse reads show Not reported by this tool."}},
+{"@type":"Question","name":"How fresh are the plan figures?","acceptedAnswer":{"@type":"Answer","text":"By default, as fresh as the last time Claude Code saved them. An optional background refresh, switched on by an admin, keeps them current without using any tokens. Old readings are flagged as stale, never hidden."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.num,td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.08rem}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.feat{display:grid;gap:16px}
+.feat ul{font-size:.98rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.crumb{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.note{font-size:.86rem;color:var(--muted)}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:6px}
+.tabs span{font-size:.82rem;padding:4px 10px;border-radius:8px;color:var(--muted)}
+.tabs span.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--bg);padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem;white-space:nowrap}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{border-radius:12px;padding:12px 14px;background:var(--sunk);display:grid;gap:2px}
+.tile b{font-family:var(--mono);font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{font-size:.82rem;color:var(--muted)}
+.tile.bad b{color:var(--bad)} .tile.warn b{color:var(--cost)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.acct{font-family:var(--mono);font-size:.78rem;color:var(--muted);white-space:nowrap}
+.mtr{display:grid;grid-template-columns:52px 40px;gap:6px;align-items:center;white-space:nowrap}
+.mtr .bar{height:7px;border-radius:4px;background:var(--sunk);overflow:hidden}
+.mtr .bar i{display:block;height:100%;background:var(--good)}
+.mtr.near .bar i{background:var(--cost)} .mtr.at .bar i{background:var(--bad)}
+.mtr span{font-family:var(--mono);font-size:.8rem;font-variant-numeric:tabular-nums;text-align:right}
+.mtr small{grid-column:1/-1;font-size:.72rem;color:var(--muted);margin-top:-4px}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.stale{font-size:.78rem;color:var(--cost);white-space:nowrap}
+.fresh{font-size:.78rem;color:var(--muted);white-space:nowrap}
+
+.me{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.me .w{background:var(--sunk);border-radius:12px;padding:12px 14px;display:grid;gap:6px}
+.me .w b{font-family:var(--mono);font-size:1.3rem;font-variant-numeric:tabular-nums}
+.me .w span{font-size:.82rem;color:var(--muted)}
+.me .bar{height:8px;border-radius:4px;background:var(--surface);overflow:hidden}
+.me .bar i{display:block;height:100%}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;max-width:none}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:14px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Product · Spend &amp; limits</div>
+    <h1>Plan headroom: see Claude Code rate limits team-wide, worst first</h1>
+    <p class="lede">One list of who is close to a Claude plan limit, so heavy work moves before someone loses an afternoon to a reset.</p>
+    <div class="answer">
+      <p>Plan headroom shows Claude Code rate limits team-wide: for each developer, how much of the 5-hour window, the weekly window and each model's weekly window is used, sorted worst first. Anyone at 80% or more is marked near, anyone at 100% is at limit, and old readings are flagged as stale instead of hidden.</p>
+      <p>It covers Claude Code only. For how Anthropic's limits work for one person, read the <a href="/claude-code-usage-limits">Claude Code usage limits guide</a>.</p>
+    </div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#who-is-close">See a sample team</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "claude code rate limits team" in the title tag (as "Rate Limits Team-Wide"), H1, meta description and the first sentence of the answer box; URL is /plan-headroom. Intent is commercial: a buyer who already knows Claude limits exist and wants a team view. The general explanation of limits stays on /claude-code-usage-limits, linked in the answer box, so the two pages do not compete. Sources: MSoT 1.2 (Plan headroom, Where plan figures come from, Your own plan figures, Claude Code version check), 1.3 (Plan usage report, Company report, Scheduled reports), 1.4 (The Office markers, Workspace, roles).</div>
+  </header>
+
+  <!-- 1 -->
+  <section class="block" id="who-is-close">
+    <div class="feat">
+      <h2>Who is close to a Claude limit right now?</h2>
+      <p>Each person sees their own limits; a lead hears about them when someone is already blocked. Plan headroom is the Claude Code limit dashboard for the whole team, on the Plan headroom tab of Team AI Usage.</p>
+      <ul>
+        <li>Three windows per developer: the 5-hour window, the weekly window and each model's weekly window.</li>
+        <li>Worst first, so the people about to run out sit at the top.</li>
+        <li>"Near" means 80% or more; "at limit" means 100%.</li>
+        <li>Each figure names the Claude account it belongs to. Managers see their own reporting line; admins see everyone.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Team AI Usage › Plan headroom <span class="sample">Sample data</span></div>
+      <div class="tabs" aria-hidden="true"><span>Overview</span><span>Consumption</span><span>Models</span><span>Projects</span><span>Tools &amp; accounts</span><span>Agent features</span><span class="on">Plan headroom</span></div>
+      <div class="tiles" id="phTiles"></div>
+      <div class="seg" role="group" aria-label="Which developers to show"><button type="button" data-f="all" aria-pressed="true">Everyone</button><button type="button" data-f="near" aria-pressed="false">Near or at limit</button></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Developer</th><th>Claude account</th><th>5-hour window</th><th>Weekly window</th><th>Model weekly (highest)</th><th>Reading</th></tr></thead>
+        <tbody id="phBody"></tbody>
+      </table></div>
+      <p class="note">Example figures for a fictional team. Accounts show as an anonymised id and email domain, never the address.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords here: "claude code limit dashboard" (intro), "see team claude usage limits" and "claude code team usage limits" (next paragraph). The sample table uses the real tab names of Team AI Usage (MSoT 1.2). Column headers are descriptive; the MSoT does not list the console's column labels. "Names the Claude account" detail is from Product Overview 5.7, detailing 1.2 Plan headroom.</div>
+    <p>To see team Claude usage limits this way, developers log nothing: the figures come from Claude Code itself. That is also why the view stops there. For the other nine tools Kite Pulse reads, plan limits show "Not reported by this tool"; Claude Code team usage limits are the only AI plan limits it tracks.</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="block" id="fresh">
+    <div class="feat">
+      <h2>How fresh is each reading, and where does it come from?</h2>
+      <ul>
+        <li>Figures come from the usage data Claude Code saves on the developer's computer. No login or password is read.</li>
+        <li>By default a reading is as fresh as the last time Claude Code saved it.</li>
+        <li>An optional background refresh keeps figures current without using any tokens. It is off until an admin switches it on, needs Kite Pulse app 0.4.2 or later, runs hourly by default (every 5 minutes to every 6 hours), and each developer can turn it off.</li>
+        <li>Old readings are flagged as stale with the reason, such as the refresh being off, an old app, the developer opting out, or Claude Code sitting idle. They are never hidden.</li>
+      </ul>
+    </div>
+    <div class="seo"><b>SEO</b>Refresh interval range and default, and the four stale reasons, are from Product Overview 5.7, detailing MSoT 1.2 "Where plan figures come from" and "Old readings are flagged as stale". The reading history period ("up to two years" / "30 days to two years") is left out: the MSoT only says admins set how long plan-usage history is kept.</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="block" id="mine">
+    <div class="feat">
+      <h2>How close am I to my own limit?</h2>
+      <p>Every developer sees their own Claude plan usage on their Workspace page, the same figures their lead sees, from the same source. On The Office, a person's desk carries a marker when they are close to a plan limit, and detail only shows for people in the viewer's scope. See <a href="/ai-agent-office">The Office</a>.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Workspace › your Claude plan usage <span class="sample">Sample data</span></div>
+      <div class="me" id="meCards"></div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="block" id="version">
+    <div class="feat">
+      <h2>Who is running an old Claude Code?</h2>
+      <ul>
+        <li>The Claude Code version check compares each developer's version with the latest release.</li>
+        <li>Each person shows as Latest, Recent or Behind on Team AI Usage.</li>
+        <li>A "version behind" filter lists only the people to nudge.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Team AI Usage › Claude Code version <span class="sample">Sample data</span></div>
+      <div class="seg" role="group" aria-label="Version filter"><button type="button" data-v="all" aria-pressed="true">All</button><button type="button" data-v="behind" aria-pressed="false">Version behind</button></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Developer</th><th>Claude Code version</th></tr></thead>
+        <tbody id="verBody"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="block" id="report">
+    <div class="feat">
+      <h2>Who ran out last month, and how often?</h2>
+      <p>The Plan usage report is the history behind the live list: a month or a date range, per developer and per Claude account, as a Claude plan usage report in Excel when you need to export Claude usage data.</p>
+      <ul>
+        <li>Weekly peaks, weeks at 80% or more, weeks at the limit, 5-hour windows at the limit, and per-model peaks.</li>
+        <li>Downloads as Excel, for admins by default.</li>
+        <li>History starts when recording began.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Reports › Plan usage <span class="sample">Sample data</span></div>
+      <div class="crumb">Period: October 2026 (sample)</div>
+      <div class="scroll"><table>
+        <thead><tr><th>Developer</th><th>Claude account</th><th class="r">Weekly peak</th><th class="r">Weeks ≥ 80%</th><th class="r">Weeks at limit</th><th class="r">5-hour at limit</th><th>Highest model peak</th></tr></thead>
+        <tbody id="repBody"></tbody>
+      </table></div>
+      <div><button class="btn" type="button" disabled title="Sample only">Download Excel</button></div>
+    </div>
+    <p>For a weekly engineering report or a monthly engineering report by email, use Scheduled reports. They email the Company report, or one developer's report, daily, weekly or monthly as PDF or CSV. Admins set them up; email must be configured on the server. The Plan usage report is downloaded, not scheduled. For the money side, see <a href="/ai-budgets">AI Budgets</a> and <a href="/ai-cost-tracking">AI coding cost tracking</a>.</p>
+    <div class="seo"><b>SEO</b>Folded in from /reports. Keywords: "claude plan usage report excel", "export claude usage data", "claude usage export" (via "export Claude usage data"), "weekly engineering report", "monthly engineering report", "scheduled engineering reports email" (Scheduled reports, MSoT 1.3). Template keywords are left out: Kite Pulse provides no report template. "Extra usage" and the day-by-day chart appear only in the Product Overview and are left out.</div>
+  </section>
+
+  <!-- who -->
+  <section class="block" id="who">
+    <h2>Who uses it and when</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Who</th><th>What they get</th><th>When they look</th></tr></thead>
+      <tbody>
+        <tr><td><b>Team leads and managers</b></td><td>Plan-limit pressure for their reporting line, worst first.</td><td>Before handing out large AI tasks.</td></tr>
+        <tr><td><b>Individual developers</b></td><td>Their own Claude plan usage on Workspace.</td><td>Before starting a long Claude Code session.</td></tr>
+        <tr><td><b>Administrators and IT</b></td><td>Everyone's headroom, the version check and the Excel report.</td><td>Monthly, and when deciding seats or plans.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="kp"><div class="mark">Kite Pulse</div><p>Planning a sprint around limits is its own routine. The article on <a href="/blog/sprint-planning-claude-plan-limits">sprint planning around Claude plan limits</a> walks through it, and <a href="/blog/token-usage-forecast">how to predict Claude Code usage</a> covers forecasting tokens.</p></div>
+    <div class="seo"><b>SEO</b>Rows adapted from the MSoT "Who it is for" table (team leads: "plan-limit pressure"; developers: own Claude plan usage). Executives and finance row omitted: it is about cost, not plan limits. "how to predict claude code usage" is the anchor to the forecast article rather than a section here, so this page does not compete with /blog/token-usage-forecast or /blog/sprint-planning-claude-plan-limits.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about Claude Code limits for teams</h2>
+    <div>
+      <details open><summary>How do I know which developers are close to their Claude limit?</summary><p>Use one list of the whole team, sorted by how much of each Claude plan window is used. In Kite Pulse that is the Plan headroom tab of Team AI Usage: the 5-hour, weekly and per-model weekly windows per developer, worst first, with 80% marked near and 100% at limit.</p></details>
+      <details><summary>How close am I to my Claude Code limit?</summary><p>With Kite Pulse, your own Claude plan usage is on your Workspace page. For how the windows work, see the <a href="/claude-code-usage-limits">Claude Code usage limits guide</a>.</p></details>
+      <details><summary>How do I plan sprints around AI plan limits?</summary><p>Check who is near a weekly limit before handing out the heaviest AI work, and use past weekly peaks to see who runs short most often. The sprint planning article walks through a full routine.</p></details>
+      <details><summary>Which Claude plan does my engineering team need?</summary><p>Kite Pulse does not recommend a plan. It gives you evidence: the Plan usage report shows how many weeks each developer and Claude account reached 80% or more, and how many hit the limit. Frequent limits argue for a larger plan; low peaks argue against one.</p></details>
+      <details><summary>Does Plan headroom cover Codex, Cursor or other AI tools?</summary><p>No. Plan headroom covers Claude Code only. The other nine tools Kite Pulse reads show Not reported by this tool.</p></details>
+      <details><summary>How fresh are the plan figures?</summary><p>By default, as fresh as the last time Claude Code saved them. An optional background refresh, switched on by an admin, keeps them current without using any tokens. Old readings are flagged as stale, never hidden.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Six FAQ items, identical text in FAQPage JSON-LD. From the brief: "How do I know which developers are close...", "claude code how close am i to the limit" (reworded as a question), "How do I plan sprints around AI plan limits?", "Which Claude plan does my engineering team need?". The two admin/which-developers variants are covered by the first answer. Two written for scope and freshness. "How close am I" makes no claim about Claude Code commands, so no outside fact needs a source.</div>
+  </section>
+
+  <section class="block">
+    <ul class="related">
+      <li><a href="/features">All features</a></li>
+      <li><a href="/integrations">Integrations</a></li>
+      <li><a href="/privacy">Privacy</a></li>
+      <li><a href="/self-hosted">Self-hosted</a></li>
+    </ul>
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See who is close to a Claude limit before it costs a day</h3>
+      <p>Kite Pulse runs on your own server and reads the usage figures Claude Code already saves. We can show it on a sample team.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /plan-headroom page. Developer names, Claude account ids, percentages, version statuses, the reporting period and report figures are sample data for a fictional team.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE DATA: a fictional team. Not a customer, not real figures. */
+  const SAMPLE_TEAM=[
+    {name:'Priya',acct:'acct 7f3a · example.com',h5:100,wk:93,model:{n:'Opus',v:100},read:{stale:false,t:'read 8 min ago'},ver:'Latest',rep:{peak:100,w80:3,wAt:2,h5At:6,model:'Opus 100%'}},
+    {name:'Marco',acct:'acct 21c9 · example.com',h5:64,wk:88,model:{n:'Opus',v:91},read:{stale:false,t:'read 12 min ago'},ver:'Recent',rep:{peak:96,w80:2,wAt:0,h5At:3,model:'Opus 96%'}},
+    {name:'Lena',acct:'acct 9be0 · example.com',h5:82,wk:61,model:{n:'Sonnet',v:58},read:{stale:false,t:'read 5 min ago'},ver:'Latest',rep:{peak:84,w80:1,wAt:0,h5At:1,model:'Sonnet 80%'}},
+    {name:'Sam',acct:'acct 4d17 · example.com',h5:12,wk:79,model:{n:'Opus',v:74},read:{stale:true,t:'stale · refresh off'},ver:'Behind',rep:{peak:81,w80:1,wAt:0,h5At:0,model:'Opus 78%'}},
+    {name:'Aiko',acct:'acct c03e · example.com',h5:35,wk:52,model:{n:'Sonnet',v:47},read:{stale:true,t:'stale · Claude Code idle'},ver:'Latest',rep:{peak:66,w80:0,wAt:0,h5At:0,model:'Sonnet 61%'}},
+    {name:'Tomás',acct:'acct 5a88 · example.com',h5:20,wk:31,model:{n:'Opus',v:22},read:{stale:true,t:'stale · app too old'},ver:'Behind',rep:{peak:44,w80:0,wAt:0,h5At:0,model:'Opus 39%'}},
+    {name:'Ravi',acct:'acct e6f2 · example.com',h5:8,wk:18,model:{n:'Sonnet',v:15},read:{stale:false,t:'read 20 min ago'},ver:'Recent',rep:{peak:29,w80:0,wAt:0,h5At:0,model:'Sonnet 27%'}}
+  ];
+  const SAMPLE_ME={h5:46,wk:71,models:[{n:'Opus',v:64},{n:'Sonnet',v:38}]};
+
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+  const cls=v=>v>=100?'at':v>=80?'near':'';
+  const worst=d=>Math.max(d.h5,d.wk,d.model.v);
+  const mtr=(v,sub)=>`<div class="mtr ${cls(v)}"><div class="bar"><i style="width:${Math.min(100,v)}%"></i></div><span>${v}%</span>${sub?`<small>${sub}</small>`:''}</div>`;
+  const status=v=>v>=100?'<span class="pill bad">At limit</span>':v>=80?'<span class="pill warn">Near</span>':'';
+
+  let filter='all';
+  function renderHeadroom(){
+    const sorted=[...SAMPLE_TEAM].sort((a,b)=>worst(b)-worst(a));
+    const rows=sorted.filter(d=>filter==='all'||worst(d)>=80);
+    $('phBody').innerHTML=rows.map(d=>`<tr><td><b>${d.name}</b> ${status(worst(d))}</td><td class="acct">${d.acct}</td><td>${mtr(d.h5)}</td><td>${mtr(d.wk)}</td><td>${mtr(d.model.v,d.model.n)}</td><td>${d.read.stale?`<span class="stale">${d.read.t}</span>`:`<span class="fresh">${d.read.t}</span>`}</td></tr>`).join('');
+    const at=SAMPLE_TEAM.filter(d=>worst(d)>=100).length, near=SAMPLE_TEAM.filter(d=>worst(d)>=80&&worst(d)<100).length, st=SAMPLE_TEAM.filter(d=>d.read.stale).length;
+    $('phTiles').innerHTML=`<div class="tile bad"><b>${at}</b><span>at limit</span></div><div class="tile warn"><b>${near}</b><span>near (80% or more)</span></div><div class="tile"><b>${st}</b><span>stale readings</span></div><div class="tile"><b>${SAMPLE_TEAM.length}</b><span>developers on Claude Code</span></div>`;
+  }
+  document.querySelector('[aria-label="Which developers to show"]').addEventListener('click',e=>{const b=e.target.closest('button[data-f]');if(!b)return;filter=b.dataset.f;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderHeadroom();});
+
+  function renderMe(){
+    const card=(label,v)=>`<div class="w"><span>${label}</span><b>${v}%</b><div class="bar"><i style="width:${Math.min(100,v)}%;background:${v>=100?'var(--bad)':v>=80?'var(--cost)':'var(--good)'}"></i></div></div>`;
+    $('meCards').innerHTML=card('5-hour window',SAMPLE_ME.h5)+card('Weekly window',SAMPLE_ME.wk)+SAMPLE_ME.models.map(m=>card(m.n+' weekly',m.v)).join('');
+  }
+
+  let vf='all';
+  function renderVersion(){
+    const pill={Latest:'good',Recent:'',Behind:'warn'};
+    $('verBody').innerHTML=SAMPLE_TEAM.filter(d=>vf==='all'||d.ver==='Behind').map(d=>`<tr><td><b>${d.name}</b></td><td><span class="pill ${pill[d.ver]}">${d.ver}</span></td></tr>`).join('');
+  }
+  document.querySelector('[aria-label="Version filter"]').addEventListener('click',e=>{const b=e.target.closest('button[data-v]');if(!b)return;vf=b.dataset.v;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderVersion();});
+
+  function renderReport(){
+    $('repBody').innerHTML=[...SAMPLE_TEAM].sort((a,b)=>b.rep.peak-a.rep.peak).map(d=>`<tr><td><b>${d.name}</b></td><td class="acct">${d.acct}</td><td class="r n">${d.rep.peak}%</td><td class="r n">${d.rep.w80}</td><td class="r n">${d.rep.wAt}</td><td class="r n">${d.rep.h5At}</td><td class="n">${d.rep.model}</td></tr>`).join('');
+  }
+
+  renderHeadroom();renderMe();renderVersion();renderReport();
+})();
+</script>
+
+</body></html>

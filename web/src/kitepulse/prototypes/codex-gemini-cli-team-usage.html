@@ -1,0 +1,247 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>OpenAI Codex Team Usage and Gemini CLI | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="OpenAI Codex team usage and Gemini CLI side by side: tokens, models, Codex accounts and estimated Gemini cost, read from each tool's own history.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"OpenAI Codex Team Usage and Gemini CLI: Seeing Terminal Agents Across a Team","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"OpenAI Codex team usage"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"OpenAI Codex Team Usage and Gemini CLI","item":"/blog/codex-gemini-cli-team-usage"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do Codex usage limits work?","acceptedAnswer":{"@type":"Answer","text":"OpenAI sets Codex usage limits, and its own documentation is the place to read how they are counted for your plan. Kite Pulse does not read Codex limits: its Plan headroom view covers Claude Code only, and Codex shows \"Not reported by this tool\". What Kite Pulse does show for Codex is token use per developer, model and project, and the ChatGPT plan each Codex account runs under on Tool Accounts."}},
+{"@type":"Question","name":"Does Gemini CLI have usage limits?","acceptedAnswer":{"@type":"Answer","text":"Google sets the limits for Gemini CLI, so check Google's own documentation for your setup. Kite Pulse does not read Gemini CLI account or plan details at all, so it cannot tell you how close anyone is to a Gemini limit. It does show Gemini CLI tokens, models and an estimated cost from list prices."}},
+{"@type":"Question","name":"Does Kite Pulse show a cost for Codex?","acceptedAnswer":{"@type":"Answer","text":"No. Kite Pulse has no list price for OpenAI models, so Codex cost shows a dash, never $0. Codex token counts are still shown in full, and a dollar AI budget reports those unpriced tokens separately instead of leaving them out silently."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+code{font-family:var(--mono);font-size:.88em;background:var(--sunk);border-radius:5px;padding:1px 5px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700;white-space:nowrap}
+.caption{font-size:.9rem;color:var(--muted)}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} td:first-child{white-space:normal} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Integrations</div>
+    <h1>OpenAI Codex Team Usage and Gemini CLI: Seeing Terminal Agents Across a Team</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Published 30 Oct 2026</span><span>Updated 30 Oct 2026</span><span>7 min read</span></div>
+    <div class="answer">
+      <p><b>To see OpenAI Codex team usage alongside Gemini CLI, read the session history both terminal agents already keep on each developer's computer.</b> Kite Pulse does this in the background and shows tokens, models and sessions per developer, project and day. Gemini CLI gets an estimated cost from list prices; Codex shows no price, but its accounts and ChatGPT plans appear on Tool Accounts.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "openai codex team usage" in the title tag (51 characters), meta description (145 characters), H1 and the bolded first sentence of the answer box. Intent: Commercial, so the page helps a team decide what this view gives them and where it stops, per tool. Planner note: this is a hub that links to /integrations/codex and /integrations/gemini-cli rather than competing with either; tool detail stays short here.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why terminal agents are hard to see from outside</h2>
+    <p>Codex and Gemini CLI run in a developer's terminal. They read files, run commands, propose edits and loop until the task is done or the developer stops them. The work that matters, the back and forth, the retries and the tokens spent, lives inside those sessions. A pull request shows the result. It does not show which agent did the work, how many tokens it took or whether the same command failed five times on the way.</p>
+    <p>Both tools write that history to the developer's own computer. On its own, each history is one person's record on one machine. For a team lead, the question is what the whole team looks like: who uses which agent, on which projects, with which models, and at what estimated cost.</p>
+  </section>
+
+  <section class="block" id="capture">
+    <h2>Captured without extra steps</h2>
+    <p>Kite Pulse puts a small desktop program on each developer's Windows or macOS computer. It reads the history each tool already keeps, in the Codex and Gemini folders in the developer's home directory, and it follows <code>CODEX_HOME</code> if a developer has moved their Codex history elsewhere. Nobody logs anything by hand, and nobody changes how they start a session.</p>
+    <ul>
+      <li><b>Only new activity is sent.</b> Codex and Gemini CLI histories are files that grow as the session runs, so the program resumes from the last point your server already has.</li>
+      <li><b>Nothing lost offline.</b> If the network drops, the program remembers where it stopped and catches up once the server is reachable.</li>
+      <li><b>Projects found automatically.</b> Each session is linked to its project by folder and repository address, so one repository cloned on several machines counts as one project.</li>
+      <li><b>Consent first.</b> No session content is uploaded until the developer confirms their projects in the Onboarding Wizard and, where required, an approver signs off.</li>
+    </ul>
+    <p>Both tools are on in a new install, alongside the other eight that Kite Pulse reads. An admin can switch either one off on the Tools page, or switch off Session sync and keep Token consumption on. In that counts-only mode the program counts tokens on the computer and sends only the numbers, never the conversation.</p>
+    <div class="seo"><b>SEO</b>Facts from MSoT 1.1 (ten tools, two switches, counts-only, only new activity, offline, projects, consent). The folder detail and CODEX_HOME come from the Field Guide ("Collector"; "AI coding agents it can read"), detailing 1.1's Codex and Gemini CLI readers.</div>
+  </section>
+
+  <section class="block" id="compare">
+    <h2>What each tool gives you, side by side</h2>
+    <p>The two terminal agents do not record the same things, so they do not show the same things. This is the honest split, with Claude Code in the last column for reference, since it is the one tool with plan headroom.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>What you see</th><th>Codex</th><th>Gemini CLI</th><th>Claude Code</th></tr></thead>
+        <tbody>
+          <tr><td>Conversations and tool calls</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Tokens</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Model name</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+          <tr><td>Cost shown</td><td>No price (a dash)</td><td>Estimated from list prices</td><td>Estimated from list prices</td></tr>
+          <tr><td>Tool Accounts</td><td>Account and ChatGPT plan</td><td>None</td><td>Account and seat tier</td></tr>
+          <tr><td>Plan headroom</td><td>Not reported by this tool</td><td>Not reported by this tool</td><td>5-hour, weekly and per-model weekly windows</td></tr>
+          <tr><td>Command exit codes</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption">Failed tool calls are recorded for both Codex and Gemini CLI.</p>
+    <div class="seo"><b>SEO</b>Rows are the MSoT 1.1 "What each tool provides" table, copied exactly for Codex, Gemini CLI and Claude Code. Plan headroom row from MSoT 1.2 and 2.3 ("Not reported by this tool"). Exit codes and failed tool calls from the note under that table.</div>
+  </section>
+
+  <section class="block" id="tokens">
+    <h2>Codex CLI token usage and Gemini CLI token usage on Team AI Usage</h2>
+    <p>Both agents report tokens in full, so Codex CLI token usage and Gemini CLI token usage sit on the same Team AI Usage page as every other tool. You can break token use down per developer, tool, model, project and day, for any period. Managers see their own reporting line; admins see everyone.</p>
+    <p>The Models tab answers the questions a team asks once more than one agent is in play: how many developers use each model, how model adoption changes over time, and which models each project relies on. Because Codex and Gemini CLI both record the model name on every session, their models appear there next to the rest.</p>
+    <p>This is where Gemini CLI team usage and Codex usage become comparable. A lead can see that one project runs mostly on Gemini CLI while another has moved to Codex, without asking anyone to fill in a form.</p>
+  </section>
+
+  <section class="block" id="cost">
+    <h2>Gemini CLI cost, and why Codex shows a dash</h2>
+    <p>Gemini CLI cost is an estimate. Kite Pulse multiplies each session's tokens by the vendor's published list price for that Gemini model. When a price changes, the new price is added as a dated entry, so older sessions keep the price they ran at. The figure is labelled "not billed spend": many developers are on flat subscriptions and do not pay per token, and your invoice is the record of what was charged.</p>
+    <p>Codex is different. Kite Pulse has no list price for OpenAI models, so Codex sessions show a dash in the cost column, never $0. A zero would read as "free", and that would be wrong. The tokens are all there; only the price is missing.</p>
+    <p>On Team AI Usage, cost is shown per tool and never added up across tools, so a Gemini CLI estimate is never mixed with a Codex blank. Cost per developer is shown to admins only.</p>
+    <h3>Budgets with one priced tool and one unpriced</h3>
+    <p>Admins can set a monthly AI budget per team or per project, in tokens or in estimated US dollars, with alerts at 80% and 100%. A dollar budget adds up the priced tools, which includes Gemini CLI, and reports unpriced tokens, such as Codex tokens, separately. If your team uses Codex heavily, a token budget may be the clearer choice, because it counts every Codex token.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "gemini cli cost" in this H2 and first sentence. Cost wording from MSoT 1.2 (estimated, list prices, dated entries, "not billed spend", per tool, never totalled, cost per developer admin-only, AI Budgets 80%/100%, unpriced tokens separate) and 2.3 (no price for OpenAI models). The token-budget suggestion is reasoning from those facts, not a product claim.</div>
+  </section>
+
+  <section class="block" id="accounts">
+    <h2>Codex accounts and ChatGPT plans on Tool Accounts</h2>
+    <p>Tool Accounts counts how many separate signed-in accounts each tool runs under. For Codex it shows each account with its ChatGPT plan, plus the machines it was seen on, when it was last seen and its email domain. An account used by more than one person is marked "Shared", which shows where one login is being passed between people.</p>
+    <p>Accounts are pseudonymised by default. The program sends a keyed hash of the account, the email domain and the plan name, never the email address. Tool Accounts is an admin page by default.</p>
+    <p>Gemini CLI has no entry here. Kite Pulse deliberately does not read Gemini CLI account or plan details, so it cannot tell you which Google account a session ran under or which plan it used.</p>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>Plan limits: what this view does not cover</h2>
+    <p>If your main worry is developers running out of allowance mid-task, be clear about scope. Plan headroom in Kite Pulse covers Claude Code only: the 5-hour window, the weekly window and each model's weekly window, with "near" at 80% or more and "at limit" at 100%. For Codex and Gemini CLI, that view says "Not reported by this tool".</p>
+    <p>For their limits, each vendor's own account pages are the source. What Kite Pulse adds is the usage side: who is spending tokens with which agent, on which project, and how that changes week to week. If you only need one vendor's limits for one tool, that vendor's console fits the job better.</p>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What you get for both agents</h3>
+        <ul>
+          <li>Sessions and tool calls, with failures</li>
+          <li>Tokens per developer, model, project and day</li>
+          <li>Models used, and adoption over time</li>
+          <li>Estimated cost for Gemini CLI</li>
+          <li>Codex accounts and ChatGPT plans</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What you do not get</h3>
+        <ul>
+          <li>A price for Codex sessions</li>
+          <li>Gemini CLI accounts or plans</li>
+          <li>Plan headroom for either tool</li>
+          <li>Billed spend from any vendor</li>
+        </ul>
+      </div>
+    </div>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Codex and Gemini CLI land in the same console as the other eight tools Kite Pulse reads, on a server your team runs itself. Secrets are masked on the computer before upload and again on the server, session uploads are encrypted in transit, and no vendor cloud sits in between.</p></div>
+    <div class="seo"><b>SEO</b>Honest scope (R9). Plan headroom Claude Code only (R7, MSoT 1.2 and 2.3). Gemini CLI account and plan "not built, deliberately not read" (MSoT 2.3). The single product callout carries privacy facts from MSoT 1.7.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about Codex and Gemini CLI usage</h2>
+    <div>
+      <details open><summary>How do Codex usage limits work?</summary><p>OpenAI sets Codex usage limits, and its own documentation is the place to read how they are counted for your plan. Kite Pulse does not read Codex limits: its Plan headroom view covers Claude Code only, and Codex shows "Not reported by this tool". What Kite Pulse does show for Codex is token use per developer, model and project, and the ChatGPT plan each Codex account runs under on Tool Accounts.</p></details>
+      <details><summary>Does Gemini CLI have usage limits?</summary><p>Google sets the limits for Gemini CLI, so check Google's own documentation for your setup. Kite Pulse does not read Gemini CLI account or plan details at all, so it cannot tell you how close anyone is to a Gemini limit. It does show Gemini CLI tokens, models and an estimated cost from list prices.</p></details>
+      <details><summary>Does Kite Pulse show a cost for Codex?</summary><p>No. Kite Pulse has no list price for OpenAI models, so Codex cost shows a dash, never $0. Codex token counts are still shown in full, and a dollar AI budget reports those unpriced tokens separately instead of leaving them out silently.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Both brief questions answered honestly: neither tool's limits are read (MSoT 1.2, 2.3). No vendor limit figures are stated, because none is in the MSoT and R2 forbids unsourced outside facts. Third question added for the Codex cost gap.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/integrations/codex">Codex analytics for your team<span>The full Codex integration page</span></a></li>
+      <li><a href="/integrations/gemini-cli">Gemini CLI analytics for your team<span>The full Gemini CLI integration page</span></a></li>
+      <li><a href="/integrations">All ten AI coding tool integrations<span>What each tool provides</span></a></li>
+      <li><a href="/ai-cost-tracking">AI cost tracking guide<span>Estimate and track AI coding spend</span></a></li>
+      <li><a href="/plan-headroom">Plan headroom<span>Claude plan limits before they bite</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See Codex and Gemini CLI next to the rest of your AI tools</h3>
+      <p>Run Kite Pulse on your own server and install the desktop program on each developer's computer.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/codex-gemini-cli-team-usage article. No example data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

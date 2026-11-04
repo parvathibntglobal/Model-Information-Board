@@ -1,0 +1,392 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Claude Code Skills Generator from Repeated Work | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Skill Candidates is a rule-based claude code skills generator: draft skills from your team's repeated workflows, for a person to approve. No AI model.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"Skill Candidates: a Claude Code skills generator built from your team's repeated work","url":"/skill-candidates","about":"Draft Claude Code skills from repeated workflows","isPartOf":{"@type":"WebSite","name":"Kite Pulse"}},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Product","item":"/features"},{"@type":"ListItem","position":3,"name":"Skill Candidates","item":"/skill-candidates"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Does Skill Candidates use an AI model to write the skills?","acceptedAnswer":{"@type":"Answer","text":"No. Draft skills are built by rules from repeated workflows, on your own server, with no AI model and no AI key. Session Graph and Capability Map use no AI model either."}},
+{"@type":"Question","name":"Does a draft skill reach the team on its own?","acceptedAnswer":{"@type":"Answer","text":"No. Every candidate is a draft for a person to edit, then approve or reject. Kite Pulse proposes the skill; a person decides."}},
+{"@type":"Question","name":"Does Skill Candidates show who repeated the workflow?","acceptedAnswer":{"@type":"Answer","text":"No. It shows how often the work repeated, in how many sessions and by how many developers, never which developers."}},
+{"@type":"Question","name":"What do Knowledge Records need before they appear?","acceptedAnswer":{"@type":"Answer","text":"AI labelling, which is opt-in. An admin adds an OpenRouter key and a monthly budget, switches labelling on, and approves and runs the knowledge label list. Records then appear as proposed. Without that, the page stays empty and everything else on this page still works."}},
+{"@type":"Question","name":"How do I find repeated prompts in Claude Code for myself?","acceptedAnswer":{"@type":"Answer","text":"Your private prompt statistics in My Scorecard and Insights show your most repeated prompt. Only you see them; the server removes them for everyone else."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.num,td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.08rem}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.flags{display:flex;gap:8px;flex-wrap:wrap}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.feat{display:grid;gap:16px}
+.feat ul{font-size:.98rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.note{font-size:.86rem;color:var(--muted)}
+
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--bg);padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem;white-space:nowrap}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+tbody tr.pick{cursor:pointer}
+tbody tr.pick:hover td{background:var(--sunk)}
+tbody tr[aria-selected="true"] td{background:var(--accent-soft)}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+
+.draft{background:var(--sunk);border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:.8rem;line-height:1.55;white-space:pre-wrap;overflow-x:auto;margin:0}
+.draft-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.draft-head .btn{padding:6px 14px;font-size:.88rem}
+
+.graph{width:100%;height:auto;display:block;background:var(--sunk);border-radius:10px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.84rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+.tree{display:grid;gap:6px;font-size:.92rem}
+.tree .mod{font-weight:700}
+.tree .cap{padding-left:18px;border-left:2px solid var(--line);margin-left:6px}
+.tree .scn{padding-left:36px;color:var(--muted);font-size:.86rem}
+.tree .tag{font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-left:6px}
+
+.rec{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:6px}
+.rec q{font-style:italic}
+.rec .meta{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;max-width:none}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:14px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Product · Improve</div>
+    <h1>Skill Candidates: a Claude Code skills generator built from your team's repeated work</h1>
+    <p class="lede">The steps your team types again and again, turned into draft skills a person can edit, approve or reject.</p>
+    <div class="answer">
+      <p>Skill Candidates is a rule-based Claude Code skills generator: it finds workflows that repeat across your team's sessions and turns each one into a draft Claude Code skill, for a person to approve or reject. It uses no AI model and needs no AI key.</p>
+      <p>Session Graph, which groups sessions that look alike, and Capability Map, which describes each project in product terms, use no AI model either. Knowledge Records are the one part here that needs AI labelling, which stays off until an admin sets it up.</p>
+    </div>
+    <div class="flags"><span class="pill good">No AI model: Skill Candidates, Session Graph, Capability Map</span><span class="pill warn">Needs AI labelling: Knowledge Records</span></div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#candidates">See sample candidates</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "claude code skills generator" in the title tag, H1, meta description and the first sentence of the answer box; URL /skill-candidates. Intent: commercial, for DevEx and platform leads who want team skills from real work rather than written from scratch. The answer box states "rule-based" and "no AI model" up front so the page does not read as an AI skill writer. Sources: MSoT 1.5 (Skill Candidates, Session Graph, Capability Map, Knowledge Records, "runs fully without any AI service"), 1.2 (Agent features tab), 1.4 (private prompt statistics). Group "Improve" per the sheet.</div>
+  </header>
+
+  <!-- 1 -->
+  <section class="block" id="candidates">
+    <div class="feat">
+      <h2>Turn repeated workflows into Claude Code skills</h2>
+      <p>When several people walk Claude Code through the same steps in the same project, that is a skill nobody has written yet. Skill Candidates, under Insights › Knowledge, finds that repeated work and drafts the skill for you.</p>
+      <ul>
+        <li>Each candidate shows how often the work repeated, in how many sessions and by how many developers. It never shows who.</li>
+        <li>Each comes with a draft SKILL.md to edit, then approve or reject.</li>
+        <li>Built by rules on your own server. No AI model and no AI key.</li>
+        <li>Admins by default; an admin can grant it to other roles on Roles &amp; Permissions.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Insights › Knowledge › Skill Candidates <span class="sample">Sample data</span></div>
+      <div class="seg" role="group" aria-label="Filter candidates by status"><button type="button" data-s="all" aria-pressed="true">All</button><button type="button" data-s="Draft" aria-pressed="false">Draft</button><button type="button" data-s="Approved" aria-pressed="false">Approved</button><button type="button" data-s="Rejected" aria-pressed="false">Rejected</button></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Repeated workflow</th><th>Project</th><th class="r">Times</th><th class="r">Sessions</th><th class="r">Developers</th><th>Status</th></tr></thead>
+        <tbody id="candBody"></tbody>
+      </table></div>
+      <div class="draft-head"><h3 id="draftTitle">Draft SKILL.md</h3><button class="btn" type="button" disabled title="Sample only">Approve</button><button class="btn ghost" type="button" disabled title="Sample only">Reject</button></div>
+      <pre class="draft" id="draftBody" aria-live="polite"></pre>
+      <p class="note">Select a row to see its draft. Workflows, projects, counts and draft text are illustrative, for a fictional team.</p>
+    </div>
+    <div class="seo"><b>SEO</b>H2 is the secondary keyword "turn repeated workflows into claude code skills". "Generate / create / build claude code skill" are used in the next section's body. Detail from the Field Guide (Insights › Knowledge, Skill Candidates: "how often, in how many sessions, by how many developers (never who), a draft SKILL.md to edit, approve or reject"), detailing MSoT 1.5 Skill Candidates. Admin by default from the Product Overview page table; Roles &amp; Permissions from MSoT 1.4/1.6. Column headers and the Draft/Approved/Rejected filter are descriptive, not confirmed console labels. What approval does next (for example, delivering the skill to machines) is not in the MSoT, so the page does not say.</div>
+  </section>
+
+  <!-- 2 -->
+  <section class="block" id="why">
+    <div class="feat">
+      <h2>Generate a Claude Code skill from evidence, not a blank page</h2>
+      <p>The usual way to create a Claude Code skill is to guess which workflow deserves one and write it from memory. Skill Candidates starts from what sessions actually did, so you build Claude Code skills for work that already repeats, and you can see how much it repeats before you spend time on it.</p>
+      <ul>
+        <li>The draft is a starting point. A person edits it, then approves or rejects it.</li>
+        <li>Rejecting is a normal outcome: not every repeated workflow should be a skill.</li>
+        <li>To see which Claude Code agent features sessions already use, such as sub-agents, background commands, plan mode, worktrees and MCP tools, open the Agent features tab on Team AI Usage, by session and developer.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Team AI Usage › Agent features <span class="sample">Sample data</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Agent feature</th><th class="r">Sessions</th><th class="r">Developers</th></tr></thead>
+        <tbody id="featBody"></tbody>
+      </table></div>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keywords: "generate claude code skill" (H2), "create claude code skill" and "build claude code skills" (body). Agent features tab: MSoT 1.2 (managers and admins). Left out: "claude code skill generator github" and "claude code skills maker". Kite Pulse is not on GitHub and is not a general skill maker that writes a skill from a description, so no truthful sentence uses them. The optional read of installed Claude Code skills (MSoT 1.1) is left out because the page that shows it, Agent Setup, is named only in the Product Overview and Field Guide.</div>
+  </section>
+
+  <!-- 3 -->
+  <section class="block" id="graph">
+    <div class="feat">
+      <h2>Which sessions look alike?</h2>
+      <ul>
+        <li>Session Graph links sessions that look alike and groups them.</li>
+        <li>It looks at the last 90 days and compares the words, the tools used and the shape of each session.</li>
+        <li>Rebuilt once a day, on by default, using plain counting and statistics on your own server. No AI model.</li>
+        <li>A large group of similar sessions is a good place to look for the next skill.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Insights › Knowledge › Session Graph <span class="sample">Sample data</span></div>
+      <svg class="graph" id="graphSvg" viewBox="0 0 600 260" role="img" aria-label="Sample session graph: three groups of linked sessions"></svg>
+      <div class="legend" id="graphLegend"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Facts: MSoT 1.5 Session Graph. "Last 90 days", "words, tools, shape" and "counting and statistics on your own server" from the Field Guide (Insights, Session Graph; Session graph + retention), detailing it. The last bullet is a reading suggestion, not a claim that the two features are linked in the console.</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="block" id="capability">
+    <div class="feat">
+      <h2>Where does each piece of work belong?</h2>
+      <ul>
+        <li>Capability Map describes each project as modules, capabilities and scenarios, in the names people use.</li>
+        <li>A person builds and approves the map: add, rename, move, merge, split, retire.</li>
+        <li>A server operator can run a rule-based suggester that proposes entries from folders, routes, branches and ticket ids.</li>
+        <li>Full change history, and every edit is recorded in the audit log. No AI model.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Capability Map <span class="sample">Sample data</span></div>
+      <div class="tree" id="capTree"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Facts: MSoT 1.5 Capability Map. Edit actions from the Field Guide; change history and audit log from the Product Overview 5.11; both detail MSoT 1.5. Capability ownership (bus factor, owners) is left out, as on /features: it appears only in the Product Overview and Field Guide.</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="block" id="records">
+    <div class="feat">
+      <h2>What has the team already learned?</h2>
+      <p>Knowledge Records keep passages worth keeping, quoted from real messages and linked to the sessions and commits they came from. They are written by AI labelling, so this part is opt-in.</p>
+      <ul>
+        <li>They appear once an admin has approved and run the knowledge label list, and each starts as "proposed".</li>
+        <li>AI labelling needs an OpenRouter key, a monthly budget and an admin's approval. Scrubbed text goes to the AI provider through OpenRouter.</li>
+        <li>A Coherence tab finds duplicates, and records that contradict each other or may be out of date.</li>
+        <li>Admins by default.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Insights › Knowledge › Knowledge Records <span class="sample">Sample data</span><span class="pill warn">Needs AI labelling</span></div>
+      <div id="recList" style="display:grid;gap:10px"></div>
+    </div>
+    <div class="seo"><b>SEO</b>Facts: MSoT 1.5 Knowledge Records and Work classification (key, budget, approval), 1.7 (scrubbed text via OpenRouter). Coherence tab from the Product Overview 5.11 and Field Guide, detailing Knowledge Records. The hidden knowledge page named in R3 is not mentioned. The Brain and Chat are left out (hidden, R3).</div>
+  </section>
+
+  <!-- who -->
+  <section class="block" id="who">
+    <h2>Who uses it and when</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Who</th><th>What they get</th><th>When they look</th></tr></thead>
+      <tbody>
+        <tr><td><b>Administrators and IT</b></td><td>Skill Candidates, Session Graph, Capability Map and Knowledge Records.</td><td>When choosing the next skill to roll out.</td></tr>
+        <tr><td><b>Team leads and managers</b></td><td>The Agent features tab for their reporting line, plus any knowledge page an admin grants them.</td><td>When deciding what to standardise.</td></tr>
+        <tr><td><b>Individual developers</b></td><td>Their own most repeated prompt, in private prompt statistics only they see.</td><td>When a prompt keeps coming back.</td></tr>
+      </tbody>
+    </table></div>
+    <p>To find repeated prompts in Claude Code for yourself, look at the private prompt statistics in My Scorecard &amp; Insights. Skill Candidates works at team level and never names who repeated a workflow.</p>
+    <div class="kp"><div class="mark">Kite Pulse</div><p>For how token use breaks down by person, tool and model, read <a href="/blog/token-usage-per-developer">token usage per developer</a>, and for adoption across the ten tools see <a href="/blog/ai-adoption-tracking">AI adoption tracking</a>. Every other feature is on the <a href="/features">features page</a>.</p></div>
+    <div class="seo"><b>SEO</b>Rows adapted from the MSoT "Who it is for" table; executives and finance omitted (cost, not knowledge). Secondary keyword "find repeated prompts in claude code" in the paragraph, answered truthfully with private prompt statistics (MSoT 1.4). Access levels from the Product Overview page table and MSoT 1.2 (Agent features: managers and admins).</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about Skill Candidates</h2>
+    <div>
+      <details open><summary>Does Skill Candidates use an AI model to write the skills?</summary><p>No. Draft skills are built by rules from repeated workflows, on your own server, with no AI model and no AI key. Session Graph and Capability Map use no AI model either.</p></details>
+      <details><summary>Does a draft skill reach the team on its own?</summary><p>No. Every candidate is a draft for a person to edit, then approve or reject. Kite Pulse proposes the skill; a person decides.</p></details>
+      <details><summary>Does Skill Candidates show who repeated the workflow?</summary><p>No. It shows how often the work repeated, in how many sessions and by how many developers, never which developers.</p></details>
+      <details><summary>What do Knowledge Records need before they appear?</summary><p>AI labelling, which is opt-in. An admin adds an OpenRouter key and a monthly budget, switches labelling on, and approves and runs the knowledge label list. Records then appear as proposed. Without that, the page stays empty and everything else on this page still works.</p></details>
+      <details><summary>How do I find repeated prompts in Claude Code for myself?</summary><p>Your private prompt statistics in My Scorecard and Insights show your most repeated prompt. Only you see them; the server removes them for everyone else.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief has no FAQ questions; these five are written for the questions a buyer asks about this page (AI or not, approval, privacy, opt-in, the prompt keyword). Identical text in FAQPage JSON-LD. Sources: MSoT 1.5, 1.4; "never which developers" from the Field Guide.</div>
+  </section>
+
+  <section class="block">
+    <ul class="related">
+      <li><a href="/features">All features</a></li>
+      <li><a href="/plan-headroom">Plan headroom</a></li>
+      <li><a href="/integrations">Integrations</a></li>
+      <li><a href="/privacy">Privacy</a></li>
+      <li><a href="/self-hosted">Self-hosted</a></li>
+    </ul>
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See which of your team's workflows are already skills waiting to be written</h3>
+      <p>Kite Pulse runs on your own server and builds skill candidates without any AI service. We can show it on a sample team.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /skill-candidates page. Workflow names, projects, counts, statuses, draft SKILL.md text, agent feature counts, the session graph, the capability map and knowledge records are sample data for a fictional team.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE DATA: a fictional team. Not a customer, not real figures. */
+  const SAMPLE_SKILLS=[
+    {wf:'Add a database migration and run its tests',proj:'billing-api',times:23,sess:19,devs:4,status:'Draft',
+     steps:['Create a new migration file in the migrations folder','Run the migration against the local database','Run the test suite for the changed module','Report which tests failed, if any']},
+    {wf:'Bump a dependency and fix the build',proj:'web-app',times:17,sess:15,devs:5,status:'Draft',
+     steps:['Update the version in the package manifest','Install and run the build','Fix type errors the build reports','Run the unit tests']},
+    {wf:'Write release notes from merged changes',proj:'mobile-app',times:12,sess:12,devs:2,status:'Approved',
+     steps:['List the changes merged since the last tag','Group them by area','Write a short note per group']},
+    {wf:'Reproduce a bug from a ticket id',proj:'billing-api',times:9,sess:8,devs:3,status:'Rejected',
+     steps:['Read the ticket description','Find the related code','Write a failing test']}
+  ];
+  const SAMPLE_FEATURES=[['Sub-agents',142,9],['Plan mode',96,11],['MCP tools',71,6],['Background commands',58,7],['Worktrees',23,3]];
+  const SAMPLE_GRAPH=[
+    {name:'Migrations and tests',color:'var(--accent)',cx:140,cy:120,n:9},
+    {name:'Dependency updates',color:'var(--good)',cx:330,cy:90,n:7},
+    {name:'Release notes',color:'var(--cost)',cx:480,cy:170,n:5}
+  ];
+  const SAMPLE_MAP=[
+    {mod:'Billing',caps:[{c:'Invoices',s:['Create an invoice','Send a reminder']},{c:'Payments',s:['Card payment','Refund']}]},
+    {mod:'Accounts',caps:[{c:'Sign-up',s:['Company email sign-up']}]}
+  ];
+  const SAMPLE_RECORDS=[
+    {q:'Run the migration on a copy of the data first; the invoices table locks for minutes on the full set.',kind:'Finding',proj:'billing-api · Billing › Invoices'},
+    {q:'Refunds over the original amount are refused, by design.',kind:'Rule',proj:'billing-api · Billing › Payments'}
+  ];
+
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+  const pill={Draft:'acc',Approved:'good',Rejected:'bad'};
+  const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+
+  let sf='all', sel=SAMPLE_SKILLS[0];
+  function renderDraft(){
+    $('draftTitle').textContent='Draft SKILL.md: '+sel.wf;
+    $('draftBody').textContent='---\nname: '+slug(sel.wf)+'\ndescription: '+sel.wf+' in '+sel.proj+'.\n---\n\n'+
+      'Seen '+sel.times+' times in '+sel.sess+' sessions by '+sel.devs+' developers.\n\nSteps\n'+
+      sel.steps.map((s,i)=>(i+1)+'. '+s).join('\n');
+  }
+  function renderCands(){
+    const rows=SAMPLE_SKILLS.filter(d=>sf==='all'||d.status===sf);
+    $('candBody').innerHTML=rows.map(d=>`<tr class="pick" tabindex="0" data-i="${SAMPLE_SKILLS.indexOf(d)}" aria-selected="${d===sel}"><td><b>${d.wf}</b></td><td>${d.proj}</td><td class="r n">${d.times}</td><td class="r n">${d.sess}</td><td class="r n">${d.devs}</td><td><span class="pill ${pill[d.status]}">${d.status}</span></td></tr>`).join('');
+  }
+  function pick(tr){ if(!tr)return; sel=SAMPLE_SKILLS[+tr.dataset.i]; renderCands(); renderDraft(); }
+  $('candBody').addEventListener('click',e=>pick(e.target.closest('tr[data-i]')));
+  $('candBody').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e.target.closest('tr[data-i]'));}});
+  document.querySelector('[aria-label="Filter candidates by status"]').addEventListener('click',e=>{const b=e.target.closest('button[data-s]');if(!b)return;sf=b.dataset.s;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderCands();});
+
+  function renderFeatures(){
+    $('featBody').innerHTML=SAMPLE_FEATURES.map(f=>`<tr><td>${f[0]}</td><td class="r n">${f[1]}</td><td class="r n">${f[2]}</td></tr>`).join('');
+  }
+
+  function renderGraph(){
+    let seed=7; const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+    let edges='', nodes='';
+    SAMPLE_GRAPH.forEach(g=>{
+      const pts=[];
+      for(let i=0;i<g.n;i++){const a=i/g.n*Math.PI*2+rnd(), r=22+rnd()*38; pts.push([g.cx+Math.cos(a)*r*1.3,g.cy+Math.sin(a)*r]);}
+      pts.forEach((p,i)=>{const q=pts[(i+1)%pts.length], c=pts[(i+3)%pts.length];
+        edges+=`<line x1="${p[0].toFixed(1)}" y1="${p[1].toFixed(1)}" x2="${q[0].toFixed(1)}" y2="${q[1].toFixed(1)}" stroke="var(--line)" stroke-width="1.5"/>`;
+        if(i%2===0) edges+=`<line x1="${p[0].toFixed(1)}" y1="${p[1].toFixed(1)}" x2="${c[0].toFixed(1)}" y2="${c[1].toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`;});
+      pts.forEach(p=>{nodes+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="6" fill="${g.color}"/>`;});
+    });
+    edges+=`<line x1="${SAMPLE_GRAPH[0].cx+50}" y1="${SAMPLE_GRAPH[0].cy-20}" x2="${SAMPLE_GRAPH[1].cx-50}" y2="${SAMPLE_GRAPH[1].cy+10}" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>`;
+    $('graphSvg').innerHTML=edges+nodes;
+    $('graphLegend').innerHTML=SAMPLE_GRAPH.map(g=>`<span><i style="background:${g.color}"></i>${g.name} (${g.n} sessions)</span>`).join('');
+  }
+
+  function renderMap(){
+    $('capTree').innerHTML=SAMPLE_MAP.map(m=>`<div class="mod">${m.mod}<span class="tag">module</span></div>`+
+      m.caps.map(c=>`<div class="cap">${c.c}<span class="tag">capability</span></div>`+c.s.map(s=>`<div class="scn">${s}<span class="tag">scenario</span></div>`).join('')).join('')).join('');
+  }
+
+  function renderRecords(){
+    $('recList').innerHTML=SAMPLE_RECORDS.map(r=>`<div class="rec"><q>${r.q}</q><div class="meta">${r.kind} · ${r.proj} · linked session and commit</div><div><span class="pill">Proposed</span></div></div>`).join('');
+  }
+
+  renderCands();renderDraft();renderFeatures();renderGraph();renderMap();renderRecords();
+})();
+</script>
+
+</body></html>

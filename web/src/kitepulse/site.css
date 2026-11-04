@@ -210,6 +210,16 @@
 .kps-panel h3{font-family:var(--kp-display);font-size:1.1rem;margin:0}
 .kps-panel ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
 .kps-pre{white-space:pre-wrap;color:var(--kp-muted);font-size:.97rem}
+/* An article plan's fields: label column, value column; stacked on a phone. */
+.kps-plan{margin:0;display:grid;gap:0}
+.kps-plan>div{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:4px 18px;
+  padding-block:10px;border-top:1px solid var(--kp-line)}
+.kps-plan>div:first-child{border-top:0}
+.kps-plan dt{font-family:var(--kp-mono);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--kp-muted);padding-top:3px}
+.kps-plan dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.kps-plan dd ul{margin-top:6px}
+@media (max-width:560px){.kps-plan>div{grid-template-columns:1fr}}
 .kps-muted{color:var(--kp-muted)}
 .kps-row{display:flex;gap:12px 18px;flex-wrap:wrap;align-items:center}
 .kps-band-first{border-top:0;padding-top:56px}
@@ -252,7 +262,7 @@
 .kps-tabs{display:flex;gap:6px;flex-wrap:wrap}
 .kps-tabs button{border:1.5px solid var(--kp-line);background:var(--kp-surface);color:var(--kp-ink);cursor:pointer;
   font:inherit;font-weight:600;font-size:.95rem;padding:7px 16px;border-radius:999px}
-.kps-tabs button[aria-selected="true"]{background:var(--kp-ink);color:var(--kp-bg);border-color:var(--kp-ink)}
+.kps-tabs button[aria-selected="true"]{background:var(--kp-accent-soft);color:var(--kp-accent);border-color:var(--kp-accent);font-weight:700}
 .kps-feature{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr);gap:32px;align-items:start}
 .kps-points{margin:0;padding-left:1.2em;display:grid;gap:10px}
 .kps-feature-charts{display:grid;gap:14px;min-width:0}
@@ -265,8 +275,6 @@
 @keyframes kpv-grow-y{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 .kpv-hb-bar,.kpv-m-fill{transform-origin:0 50%;transform:scaleX(0)}
 .is-in .kpv-hb-bar,.is-in .kpv-m-fill{animation:kpv-grow-x .9s cubic-bezier(.2,.8,.2,1) var(--d,0ms) both}
-.kpv-block{transform-box:fill-box;transform-origin:0 50%;transform:scaleX(0)}
-.is-in .kpv-block{animation:kpv-grow-x .7s cubic-bezier(.2,.8,.2,1) var(--d,0ms) both}
 @keyframes kpv-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .kpv-spark path{stroke-dasharray:1;stroke-dashoffset:1}
 .is-in .kpv-spark path{animation:kpv-draw 1.2s ease .2s forwards}
@@ -321,7 +329,7 @@
 .kpv-hb-v{font-weight:700;font-variant-numeric:tabular-nums;min-width:4.5ch;text-align:right}
 
 .kpv-meters{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.kpv-meters li{display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1fr) 3.5ch minmax(96px,auto);gap:10px;
+.kpv-meters li{display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1fr) 4.5ch minmax(96px,auto);gap:10px;
   align-items:center;font-size:.88rem}
 .kpv-m-who{display:grid;line-height:1.25}
 .kpv-m-who small{color:var(--kp-muted);font-size:.75rem}
@@ -336,11 +344,38 @@
 .kpv-status-warn span{color:var(--kpv-warn)}
 .kpv-status-crit span{color:var(--kpv-crit)}
 
-.kpv-lane{fill:var(--kp-sunk)}
-.kpv-lane-name{font-size:13px;font-weight:700;fill:var(--kp-ink);font-family:var(--kp-body)}
-.kpv-lane-sub{font-size:11px;font-weight:400;fill:var(--kp-muted)}
-.kpv-now{stroke:var(--kp-ink);stroke-width:1.5}
-.kpv-now-l{font-size:11px;font-weight:700;fill:var(--kp-ink);font-family:var(--kp-body)}
+.kpv-note{display:block;font-size:.78rem;color:var(--kp-muted);margin-top:10px}
+.kpv-stale{color:var(--kp-warn);font-weight:700}
+
+/* Hero: estimated cost per tool, a list and never a total. */
+.kpv-costs{list-style:none;margin:0;padding:0;display:grid;gap:2px;font-size:.86rem}
+.kpv-costs li{display:grid;grid-template-columns:minmax(0,1fr) auto 12ch;gap:10px;align-items:baseline;
+  padding:3px 0;border-bottom:1px solid var(--kp-line)}
+.kpv-costs li:last-child{border-bottom:0}
+.kpv-costs b{font-variant-numeric:tabular-nums;text-align:right}
+.kpv-costs small{color:var(--kp-muted);font-size:.74rem}
+.kps-console-chart .kpv-note{margin-top:0}
+
+/* Team Overview. */
+.kpv-health.kpv-presence-coding{background:var(--kp-accent-soft);color:var(--kp-accent)}
+.kpv-health.kpv-presence-online{background:color-mix(in srgb,var(--kpv-good) 16%,transparent);color:var(--kp-ink)}
+
+/* "What would you see?" picker. */
+.kpv-picker{display:grid;gap:14px}
+.kpv-ctl{display:grid;gap:6px}
+.kpv-ctl-l{font-family:var(--kp-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--kp-muted);font-weight:600}
+.kpv-chips{display:flex;flex-wrap:wrap;gap:6px}
+.kpv-chips button{border:1.5px solid var(--kp-line);background:var(--kp-surface);color:var(--kp-ink);cursor:pointer;
+  border-radius:999px;padding:5px 12px;font:inherit;font-size:.86rem;transition:background .2s,color .2s,border-color .2s}
+.kpv-chips button[aria-pressed="true"]{background:var(--kp-accent-soft);border-color:var(--kp-accent);color:var(--kp-accent);font-weight:700}
+.kpv-pick td{vertical-align:top}
+.kpv-pick small{display:block;font-size:.72rem;color:var(--kp-muted);font-weight:400}
+
+/* The app's global table rules (styles/app.css) colour every header and hovered
+ * row with the board's dark --surface-2, which reads as black on this light
+ * site. Kite Pulse tables use its own tokens instead. */
+.kps thead th{background:var(--kp-sunk)}
+.kps tbody tr:hover{background:color-mix(in srgb,var(--kp-accent) 8%,transparent)}
 
 .kpv-tablewrap{overflow-x:auto}
 .kpv-table{border-collapse:collapse;width:100%;font-size:.86rem}
@@ -361,6 +396,7 @@
 .kpv-fact{display:grid;gap:2px;padding:10px 12px;border-radius:12px;background:var(--kp-sunk)}
 .kpv-fact span{font-size:.75rem;color:var(--kp-muted);font-weight:600}
 .kpv-fact b{font-size:1.2rem}
+.kpv-fact small{font-size:.72rem;color:var(--kp-muted)}
 
 .kpv-shot{margin:0;display:grid;gap:10px;align-content:start}
 .kpv-shot-frame{border-radius:14px;overflow:hidden;border:1px solid var(--kp-line);background:var(--kp-surface)}
@@ -425,7 +461,7 @@
   .kps-foot-brand{grid-column:auto}
   .kps-grid-2{grid-template-columns:1fr}
   .kps-cta{padding:22px}
-  .kpv-meters li{grid-template-columns:minmax(0,1fr) 3.5ch;row-gap:4px}
+  .kpv-meters li{grid-template-columns:minmax(0,1fr) 4.5ch;row-gap:4px}
   .kpv-m-track{grid-column:1 / -1;grid-row:2}
   .kpv-status{grid-column:1 / -1}
   .kpv-hbars li{grid-template-columns:minmax(70px,96px) minmax(0,1fr) auto}
@@ -435,7 +471,7 @@
   .kps *,.kps *::before,.kps *::after{animation:none!important;transition:none!important}
   .kps-reveal:not(.is-in) > .kps-wrap,
   .kps-reveal:not(.is-in) :is(.kps-problems li,.kps-steps li,.kpv-shot){opacity:1;transform:none}
-  .kpv-grow,.kpv-hb-bar,.kpv-m-fill,.kpv-block{transform:none}
+  .kpv-grow,.kpv-hb-bar,.kpv-m-fill{transform:none}
   .kpv-spark path{stroke-dashoffset:0}
   .kpv-spark circle{opacity:1}
   .kps-mark{background-size:100% .12em}

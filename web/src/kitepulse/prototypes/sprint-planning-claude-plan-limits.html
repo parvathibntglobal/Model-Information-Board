@@ -1,0 +1,254 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Monitor Claude Plan Usage Team-Wide for Sprints | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Monitor Claude plan usage team-wide before sprint planning: check plan headroom, leave and on-call, then decide who takes heavy AI work and when.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Sprint Planning Around Claude Limits: Monitor Claude Plan Usage Team-Wide","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"Monitoring Claude plan usage across a team for sprint planning"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Sprint Planning Around Claude Limits","item":"/blog/sprint-planning-claude-plan-limits"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I plan sprints around AI plan limits?","acceptedAnswer":{"@type":"Answer","text":"Before the planning meeting, check each person's weekly Claude window and the per-model window for the model the big tasks need, then take out anyone on leave or on call. Give the large, AI-heavy tasks to people with room in their weekly window, and schedule them early in that window rather than at its end. Recheck halfway through the sprint, because usage moves faster than a plan."}},
+{"@type":"Question","name":"How do I account for leave and on-call when measuring AI usage?","acceptedAnswer":{"@type":"Answer","text":"Record them, so a quiet week is read as a week off and not as a change in how someone works. In Kite Pulse, Leave & On-Call holds leave, holidays and duty rotas so insights do not misread them; managers edit their own reporting line and company holidays are admin only. When planning, treat someone on call as having less room for long AI sessions, whatever their plan reading says."}},
+{"@type":"Question","name":"How can I tell if a developer is about to hit their Claude usage limit?","acceptedAnswer":{"@type":"Answer","text":"Look at their 5-hour and weekly window readings from Claude Code. In Kite Pulse, the Plan headroom tab on Team AI Usage lists people worst first and marks a window as near at 80% or more and at limit at 100%, with old readings flagged as stale. It covers Claude Code only, and a reading is only as fresh as the last time Claude Code saved it unless an admin switches on the background refresh."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.scroll .label{display:block;font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cost);padding:10px 12px 0}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700;white-space:nowrap}
+.near{color:var(--cost);font-weight:700}
+.at{color:var(--bad);font-weight:700}
+.ok{color:var(--good);font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} td:first-child{white-space:normal} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Workflows and planning</div>
+    <h1>Sprint Planning Around Claude Limits: Monitor Claude Plan Usage Team-Wide</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>To plan a sprint around Claude limits, monitor Claude plan usage team-wide before the planning meeting, not after someone runs out mid-task.</b> Check each person's weekly window and the per-model window for the model the big work needs, take out leave and on-call duty, and look at how much AI work each person has been doing lately. Then give the large AI-heavy tasks to the people with room, early in their window.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "monitor claude plan usage team" (Commercial intent) is in the title tag (60 chars, starts with "Monitor"), the meta description, the H1 and the bolded first sentence, each as "team-wide" so it reads naturally. Angle kept apart from /plan-headroom: that page describes the feature; this post is a planning routine that combines three inputs (plan pressure, leave and on-call, recent activity) into an assignment decision, and links to /plan-headroom for the feature itself.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why Claude Code team usage limits belong in sprint planning</h2>
+    <p>Claude Code reports plan usage per account against a 5-hour window, a weekly window and a weekly window for each model. That makes a team's capacity for AI-heavy work uneven in a way story points never show. Two developers with the same velocity can sit on very different amounts of remaining plan: one has spent the week on a long refactor with an agent, the other on reviews and meetings.</p>
+    <p>The cost of ignoring this is familiar to anyone who has watched it happen. A large migration lands on the person who has already used most of their week. On day three they hit the limit, the agent stops, and the task either waits for the window to reset or moves to someone who has to pick up the context cold. Neither shows up in the sprint plan, because the plan never knew.</p>
+    <p>Treating Claude Code team usage limits as one more planning input, like leave or on-call, fixes most of that. It does not need a forecast. It needs a short check of a few numbers before tasks are handed out.</p>
+  </section>
+
+  <section class="block" id="inputs">
+    <h2>The three inputs to check before you assign heavy AI work</h2>
+    <div class="parts">
+      <div class="part"><span class="tag">Plan pressure</span><h3>How much of each window is used</h3><p>The weekly window decides who can take a multi-day agent task. The 5-hour window decides who can start one this afternoon. The per-model weekly window matters when the task needs a specific model.</p></div>
+      <div class="part"><span class="tag">Availability</span><h3>Leave, holidays and on-call</h3><p>Someone on leave for half the sprint has half the time, whatever their plan reading. Someone on call has interruptions that break long agent sessions.</p></div>
+      <div class="part"><span class="tag">Recent activity</span><h3>What each person has been doing</h3><p>A high reading after a week of heavy agent work tells you something different from a high reading built in one afternoon. Recent token use and active time give the reading its context.</p></div>
+    </div>
+    <p>None of the three is enough alone. A low plan reading on someone who starts leave on Wednesday is not headroom you can use. A high reading on someone whose weekly window resets tomorrow may be fine for a task that starts next week.</p>
+  </section>
+
+  <section class="block" id="routine">
+    <h2>A planning routine, step by step</h2>
+    <p>This takes a few minutes before the planning meeting and a quick look again halfway through the sprint.</p>
+    <ol class="steps">
+      <li><p><b>List the AI-heavy tasks.</b> Mark the tickets you expect to run as long agent sessions: migrations, large refactors, test generation across a codebase, anything where the developer will hand the agent a big brief and let it work.</p></li>
+      <li><p><b>Read each person's weekly window.</b> Sort the team from most used to least. Anyone at 80% or more is near the limit; anyone at 100% is at it.</p></li>
+      <li><p><b>Check the per-model window for the model the task needs.</b> A person can have room in the overall weekly window and still be close to the limit for one model.</p></li>
+      <li><p><b>Take out leave and on-call.</b> Remove days off from each person's capacity, and treat on-call days as unsuitable for starting a long agent run.</p></li>
+      <li><p><b>Look at recent activity.</b> Check token use per day over the last week or two. A steady pattern makes the reading a fair guide to next week; a single spike may not repeat.</p></li>
+      <li><p><b>Assign and time the large tasks.</b> Give them to people with room, and schedule them early in a fresh window rather than at the end of a used one. Move a large task to the start of next week if nobody has room this week.</p></li>
+      <li><p><b>Recheck at mid-sprint.</b> Usage moves faster than a plan. If someone is now near a limit, swap their remaining heavy task for review work or smaller fixes.</p></li>
+    </ol>
+    <div class="scroll">
+      <span class="label">Example team, invented figures</span>
+      <table>
+        <thead><tr><th>Person</th><th>Weekly window</th><th>This sprint</th><th>Decision</th></tr></thead>
+        <tbody>
+          <tr><td>Developer A</td><td class="at">100% at limit</td><td>Full sprint</td><td>Reviews and small fixes until the window resets</td></tr>
+          <tr><td>Developer B</td><td class="near">86% near</td><td>On call Mon to Wed</td><td>No long agent run this week</td></tr>
+          <tr><td>Developer C</td><td class="ok">35%</td><td>Full sprint</td><td>Takes the migration, starting Monday</td></tr>
+          <tr><td>Developer D</td><td class="ok">20%</td><td>Leave Thu and Fri</td><td>Takes test generation, Mon to Wed</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="seo"><b>SEO</b>The example table is visibly labelled "Example team, invented figures" (R2). Thresholds 80% (near) and 100% (at limit) are from MSoT 1.2 Plan headroom.</div>
+  </section>
+
+  <section class="block" id="predict">
+    <h2>How to predict Claude Code usage without a forecast</h2>
+    <p>You rarely need a model of future usage. You need to know whether next week is likely to look like the last few, and that comes from history. Three things help.</p>
+    <ul>
+      <li><b>Weekly peaks over time.</b> If a person's weekly window has peaked above 80% in most recent weeks, assume the next heavy task will push them to the limit.</li>
+      <li><b>Windows at the limit.</b> Count how often a person has hit the 5-hour or weekly limit. Repeated 5-hour limits suggest long single sessions; weekly limits suggest sustained load.</li>
+      <li><b>The shape of the work.</b> Tasks that lean on sub-agents, background commands or plan mode can use far more than quick chat-style help. The tasks you marked in step one are the ones to weigh.</li>
+    </ul>
+    <p>This is judgement on top of counts, and it should stay that way. A plan reading says how much of a window is used. It does not say whether that use was worthwhile, and it should not be read as a measure of how hard anyone works.</p>
+  </section>
+
+  <section class="block" id="availability">
+    <h2>A team availability dashboard from what you already record</h2>
+    <p>Most teams already keep leave in an HR system and on-call in a rota tool. The trouble is that neither sits next to the plan readings, so nobody looks at them together. Putting the three on one screen is what turns a plan reading into a planning input.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Kite Pulse gives managers this in one console for their reporting line. The <a href="/plan-headroom">Plan headroom tab on Team AI Usage</a> lists who is close to a Claude plan limit, worst first, across the 5-hour window, the weekly window and each model's weekly window, and flags old readings as stale instead of hiding them. Leave &amp; On-Call records leave, holidays and duty rotas so insights do not misread a quiet week. Team AI Usage shows token use per developer, model and day for any period, and its Agent features tab shows which sessions used sub-agents, background commands or plan mode. The Plan usage report gives weekly peaks, weeks at 80% or more and windows at the limit per developer, and downloads as Excel for admins by default.</p></div>
+    <p>Plan figures come from the usage numbers Claude Code saves on each developer's computer, so no login or password is read. By default they are as fresh as the last time Claude Code saved them. An admin can switch on a background refresh, on app 0.4.2 or later, that keeps them current without using any tokens; it runs on a schedule the admin picks, and each developer can turn it off on their own machine. Developers see their own plan usage on their Workspace page, so they can check before starting a long task. On The Office, each desk carries a marker when its person is near or at a plan limit, with detail shown only for people in your scope.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "team availability dashboard" in this H2. The single Kite Pulse callout sits here, where combining three sources by hand stops scaling. Facts: MSoT 1.2 (Team AI Usage, Agent features tab, Plan headroom, where plan figures come from, your own plan figures), 1.3 (Plan usage report), 1.4 (Leave &amp; On-Call, Workspace, The Office). Background refresh schedule detail from Product Overview 5.7, about the Section 1 background refresh.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What Claude Code team usage visibility covers, and what it does not</h2>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What you can see</h3>
+        <ul>
+          <li>Claude plan readings from Claude Code: 5-hour, weekly and per-model weekly windows</li>
+          <li>Who is near (80% or more) or at (100%) a limit, worst first</li>
+          <li>Recorded leave, holidays and on-call rotas</li>
+          <li>Token use per person, model and day</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What you cannot</h3>
+        <ul>
+          <li>Plan limits for Codex, Cursor, Gemini CLI or other tools: they show "Not reported by this tool"</li>
+          <li>A forecast of next week's usage</li>
+          <li>Readings fresher than Claude Code's last save, unless the background refresh is on</li>
+          <li>Who should take a task: that is still your call</li>
+        </ul>
+      </div>
+    </div>
+    <p>If your team does most of its agent work in a tool other than Claude Code, plan readings will not help you plan that work, and you will need that vendor's own admin view. For the limits themselves and how the windows behave, see our guide to <a href="/claude-code-usage-limits">Claude Code usage limits</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude code team usage visibility" in this H2. Honest scope per R9 and MSoT 2.3 ("Plan limits for tools other than Claude Code": Partial). No reset times, no plan-limit notices, no pace line and no Headroom board are claimed: those appear only in the Product Overview and Field Guide, outside Section 1.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about planning around Claude limits</h2>
+    <div>
+      <details open><summary>How do I plan sprints around AI plan limits?</summary><p>Before the planning meeting, check each person's weekly Claude window and the per-model window for the model the big tasks need, then take out anyone on leave or on call. Give the large, AI-heavy tasks to people with room in their weekly window, and schedule them early in that window rather than at its end. Recheck halfway through the sprint, because usage moves faster than a plan.</p></details>
+      <details><summary>How do I account for leave and on-call when measuring AI usage?</summary><p>Record them, so a quiet week is read as a week off and not as a change in how someone works. In Kite Pulse, Leave &amp; On-Call holds leave, holidays and duty rotas so insights do not misread them; managers edit their own reporting line and company holidays are admin only. When planning, treat someone on call as having less room for long AI sessions, whatever their plan reading says.</p></details>
+      <details><summary>How can I tell if a developer is about to hit their Claude usage limit?</summary><p>Look at their 5-hour and weekly window readings from Claude Code. In Kite Pulse, the Plan headroom tab on Team AI Usage lists people worst first and marks a window as near at 80% or more and at limit at 100%, with old readings flagged as stale. It covers Claude Code only, and a reading is only as fresh as the last time Claude Code saved it unless an admin switches on the background refresh.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Three FAQ questions from the brief, word for word, marked up as FAQPage JSON-LD in the head. The third avoids any "you will be notified" claim: the plan-limit-reached notice is in the Product Overview only.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/plan-headroom">Plan headroom<span>Who is close to a Claude plan limit, worst first</span></a></li>
+      <li><a href="/claude-code-usage-limits">Claude Code usage limits<span>How the 5-hour and weekly windows work</span></a></li>
+      <li><a href="/features">All Kite Pulse features<span>Every page in the console</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Plan the sprint with plan pressure in view</h3>
+      <p>See Claude plan headroom, leave and recent AI activity for your reporting line, on a server your team runs.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/sprint-planning-claude-plan-limits article. The example team table uses invented figures; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

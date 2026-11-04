@@ -1,0 +1,258 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Track Token Usage Without Collecting Prompts | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How to track token usage without collecting prompts: per-tool switches, counts-only mode, and optional reads that stay off until an admin turns them on.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Track Token Usage Without Collecting Prompts: Tool Switches, Counts-Only Mode and Optional Reads","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Track token usage without collecting prompts"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Track Token Usage Without Collecting Prompts","item":"/blog/track-token-usage-without-prompts"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can I track AI coding usage without reading developers' prompts?","acceptedAnswer":{"@type":"Answer","text":"Yes. Token counts answer how much AI is used, on which tools, without any conversation. In Kite Pulse, an admin turns Session sync off and Token consumption on for a tool; the desktop program then counts tokens on the computer and sends only the numbers. You give up the views that are built from the conversation itself for that tool."}},
+{"@type":"Question","name":"Does the tool collect source code, prompts, or other sensitive developer information?","acceptedAnswer":{"@type":"Answer","text":"It depends on the mode you choose per tool. With full session sync, Kite Pulse uploads the AI tool's conversation, which includes prompts and can include excerpts of code the AI read or wrote, with secrets masked on the computer and again on the server. In counts-only mode only token numbers are sent. It does not open a project's source files, log keystrokes, take screenshots or track websites, and the optional reads of project notes and package manifests stay off until an admin turns them on."}},
+{"@type":"Question","name":"How do I track AI coding usage without monitoring keystrokes?","acceptedAnswer":{"@type":"Answer","text":"Read the session history the AI coding tools already keep on each computer instead of watching the keyboard or screen. Those records hold token counts and, if you choose, the conversation itself. Kite Pulse reads them for ten tools, sends only new activity to a server your team runs, and lets an admin limit any tool to token counts only."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.example{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:8px}
+.example .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.example p{font-size:.97rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Features and capabilities</div>
+    <h1>How to Track Token Usage Without Collecting Prompts: Tool Switches, Counts-Only Mode and Optional Reads</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>7 min read</span></div>
+    <div class="answer">
+      <p><b>You can track token usage without collecting prompts by counting tokens on each developer's computer and sending only the numbers, so the conversation never leaves the machine.</b> Token counts answer the volume questions (how much AI, on which tools) without any of the text.</p>
+      <p>Collection is then a decision an admin makes three times: which tools are read at all, which of those send conversations or counts only, and which extra reads, if any, are switched on.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "track token usage without collecting prompts" in the title tag (57 characters), meta description, H1 and the bolded first sentence of the answer box, which answers the question before the product is named. URL slug is the shorter /blog/track-token-usage-without-prompts as planned. Intent is commercial: the page helps admins, IT and privacy officers compare collection levels and decide what to switch on.</div>
+  </header>
+
+  <section class="block" id="levels">
+    <h2>Three levels of collection, chosen per tool</h2>
+    <p>Before looking at any product screen, it helps to name the options. For each AI coding tool a team uses, there are three sensible settings, and the right one depends on the question you need answered.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Setting</th><th>What leaves the computer</th><th>What it answers</th><th>Fits when</th></tr></thead>
+        <tbody>
+          <tr><td>Off</td><td>Nothing from that tool</td><td>Nothing about that tool</td><td>The tool is not used, or not approved</td></tr>
+          <tr><td>Counts only</td><td>Token numbers</td><td>How much each tool is used, and by whom</td><td>You need volume and adoption figures, and agreed not to hold the text</td></tr>
+          <tr><td>Full session sync</td><td>The tool's conversation, with secrets masked</td><td>Volume plus what the sessions did: commands, failures, projects, work patterns</td><td>Teams want the session views, and developers have agreed to it</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Most privacy disagreements about AI usage data are really disagreements about which row a tool belongs in. Writing the table down per tool, before anything is installed, turns a vague worry into a short list of choices people can sign off.</p>
+  </section>
+
+  <section class="block" id="switches">
+    <h2>Tool switches: which tools are read at all</h2>
+    <p>Kite Pulse reads the session history of ten AI coding tools: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider. All ten are on in a new install. An admin can switch any of them off on the <b>Tools</b> page, and desktop apps pick the change up at their next check-in.</p>
+    <p>Two points are worth checking before you decide. First, what each tool records differs: Cursor and Copilot Chat give input and output tokens only, for example, and the <a href="/integrations">integration pages list what each of the ten tools provides</a>. Second, for Copilot only the Chat in VS Code is read; inline completions, JetBrains and Copilot CLI are not collected, so switching Copilot on does not cover them.</p>
+    <p>Projects have their own switch. Projects an admin switches off are not read at all, which is the right control for a client repository or a confidential piece of work that should stay out entirely.</p>
+  </section>
+
+  <section class="block" id="counts-only">
+    <h2>Counts-only mode in practice</h2>
+    <p>The Tools page has two switches per tool: <b>Session sync</b>, which uploads the conversations, and <b>Token consumption</b>, which counts tokens. With Session sync off and Token consumption on, the desktop program counts tokens on the computer and sends only the numbers, never the conversation. Those small status records travel over HTTPS to the server your team runs.</p>
+    <p>What you give up is everything built from the conversation itself. For a tool in counts-only mode there is no session text to read, so views that depend on what the session did, such as failed commands and repeated retries, have nothing to work from for that tool. That is the trade, and it is a fair one when the question is volume.</p>
+    <div class="example">
+      <span class="tag">Illustrative example, not a customer case</span>
+      <p>A company's works council asks that no prompt text leave developers' laptops during a three-month trial. The admin sets every tool to counts only. Finance gets token use per tool from the start. After the trial, the council agrees full session sync for the two tools most of the team uses, and those two switches change; the others stay on counts only.</p>
+    </div>
+    <p>Starting narrow and widening by agreement tends to go better than the reverse. Our post on <a href="/blog/developer-analytics-without-keystroke-tracking">developer analytics without keystroke tracking</a> covers why developers push back on collection they were not asked about.</p>
+    <div class="seo"><b>SEO</b>Counts-only facts from MSoT 1.1 (two switches per tool, counts-only mode) and 1.1 "Encrypted before it leaves" (status records over HTTPS). "Apps pick the change up at their next check-in" is from the Field Guide, Administrators, Tools. The trade-off paragraph names Work Problems' inputs (MSoT 1.2) without claiming which pages fill in counts-only mode. The example is labelled illustrative and carries no figures (R2).</div>
+  </section>
+
+  <section class="block" id="optional-reads">
+    <h2>Optional reads: off until an admin turns them on</h2>
+    <p>Beyond the session history, the desktop program can read a few extra things. Every one of them ships switched off, and they are all switched on in one place: <b>Settings › Retention › Kite Pulse app reads</b>. Each shows the app version it needs (0.4.2 unless noted), and each appears on every developer's Privacy page, so people can see which are on.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Optional read</th><th>What it reads</th><th>Worth knowing</th></tr></thead>
+        <tbody>
+          <tr><td>Branch name</td><td>The current branch of each project</td><td>Names only</td></tr>
+          <tr><td>Frameworks</td><td>Package manifests</td><td>Opens a file in the project</td></tr>
+          <tr><td>Project notes</td><td>CLAUDE.md, AGENTS.md, READMEs and decision records</td><td>Opens files in the project; the most sensitive read here</td></tr>
+          <tr><td>Machine events</td><td>Sleep, wake and network-loss events</td><td>About the computer, not the work</td></tr>
+          <tr><td>Installed tools</td><td>Versions of installed AI and developer tools</td><td>Per machine</td></tr>
+          <tr><td>Claude Code setup</td><td>Skills, commands, agents, hooks and MCP servers</td><td>Configuration, not conversations</td></tr>
+          <tr><td>Copilot plan</td><td>The Copilot plan name</td><td>Plan name only</td></tr>
+          <tr><td>Plan usage refresh</td><td>Claude Code plan usage, refreshed in the background</td><td>Uses no tokens; the developer can turn it off</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The same tab lists a few more reads that need a newer app or the developer's own opt-in. Leave them out of your plan until they apply to your install.</p>
+    <p>The two reads to discuss before switching on are frameworks and project notes. By default the program does not open a project's source files; these two open specific files in the project, and project notes can describe a lot about how a codebase works. Decide them as deliberately as you decide Session sync.</p>
+    <div class="seo"><b>SEO</b>The list of optional reads, the tab path and the app version are MSoT 1.1 "Optional reads". "The one place" is from the Product Overview 5.14 (Kite Pulse app reads), and "shows on every developer's Privacy page" from the Field Guide (Administrators, Kite Pulse app reads); both detail MSoT 1.1 and 1.4 Privacy. Plugins (app 0.4.3, publication unconfirmed) and the three opt-in or unreleased reads (MSoT 2.3) are not named. No downstream pages for these reads are named, because the pages that show them are outside Section 1.</div>
+  </section>
+
+  <section class="block" id="fixed">
+    <h2>Privacy preserving analytics: what holds whatever you choose</h2>
+    <p>Privacy preserving analytics depends as much on the defaults you cannot switch off as on the switches. These hold at every setting:</p>
+    <div class="cansee">
+      <div class="yes">
+        <h3>Always in place</h3>
+        <ul>
+          <li>No session content uploads until the developer confirms their projects, and an approver signs off where required</li>
+          <li>Secrets masked on the computer and again on the server</li>
+          <li>Session uploads encrypted before they leave the computer</li>
+          <li>Data goes only to the server your team runs</li>
+          <li>Tool accounts pseudonymised by default: a keyed hash, the email domain and the plan name, never the address</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>Never done</h3>
+        <ul>
+          <li>Logging keystrokes</li>
+          <li>Taking screenshots</li>
+          <li>Tracking websites</li>
+          <li>Opening a project's source files (the optional reads above aside)</li>
+        </ul>
+      </div>
+    </div>
+    <p>That last line is why pseudonymised developer analytics and developer analytics without source code access are both possible here, with one caveat to state plainly: full session records can include excerpts of code the AI read or wrote. Counts-only mode removes that caveat for a tool. For the detail of what is read, why and what is sent, see the <a href="/privacy">privacy page</a>; for sign-in, roles and the audit log, see <a href="/security">security</a>. The source-code question has its own post: <a href="/blog/developer-analytics-without-source-code">developer analytics without source code access</a>.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Decide collection once, in two admin pages: Tools for the ten tools and counts-only mode, and the Kite Pulse app reads tab for every extra read. Each developer's Privacy page then shows what is recorded about them, whether it is on, and who can see it. Setup steps are in the <a href="/docs">documentation</a>.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keywords "privacy preserving analytics" (H2), "pseudonymised developer analytics" and "developer analytics without source code access" (body, linked to the existing post), "developer analytics without keystroke tracking" (counts-only section link). Privacy facts kept short and linked to /privacy as asked; wording from MSoT 1.1 and 1.7 (masked, encrypted in transit only, keyed hash). The one Kite Pulse callout.</div>
+  </section>
+
+  <section class="block" id="fit">
+    <h2>When another approach fits better</h2>
+    <ul>
+      <li><b>One tool, totals only.</b> If the team uses a single AI vendor and you only need its usage totals, that vendor's own admin console may be enough.</li>
+      <li><b>Delivery metrics.</b> For lead time and deployment figures from git and tickets, a git or ticket based tool fits better. Session data does not replace it.</li>
+      <li><b>No code excerpt may leave a laptop, ever.</b> Full session sync does not meet that rule. Counts-only mode does, with token figures only.</li>
+      <li><b>Tools outside the ten.</b> Nothing outside the ten supported tools is read.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about collecting less</h2>
+    <div>
+      <details open><summary>Can I track AI coding usage without reading developers' prompts?</summary><p>Yes. Token counts answer how much AI is used, on which tools, without any conversation. In Kite Pulse, an admin turns Session sync off and Token consumption on for a tool; the desktop program then counts tokens on the computer and sends only the numbers. You give up the views that are built from the conversation itself for that tool.</p></details>
+      <details><summary>Does the tool collect source code, prompts, or other sensitive developer information?</summary><p>It depends on the mode you choose per tool. With full session sync, Kite Pulse uploads the AI tool's conversation, which includes prompts and can include excerpts of code the AI read or wrote, with secrets masked on the computer and again on the server. In counts-only mode only token numbers are sent. It does not open a project's source files, log keystrokes, take screenshots or track websites, and the optional reads of project notes and package manifests stay off until an admin turns them on.</p></details>
+      <details><summary>How do I track AI coding usage without monitoring keystrokes?</summary><p>Read the session history the AI coding tools already keep on each computer instead of watching the keyboard or screen. Those records hold token counts and, if you choose, the conversation itself. Kite Pulse reads them for ten tools, sends only new activity to a server your team runs, and lets an admin limit any tool to token counts only.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Three FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD. The second answer says plainly that full sync uploads prompts and can carry code excerpts, rather than a flat "no".</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/privacy">Privacy<span>What is read, why, and what is sent</span></a></li>
+      <li><a href="/security">Security<span>Sign-in, roles, audit log and uploads</span></a></li>
+      <li><a href="/blog/developer-analytics-without-source-code">Developer analytics without source code access<span>What to agree with HR and works councils</span></a></li>
+      <li><a href="/blog/developer-analytics-without-keystroke-tracking">Developer analytics without keystroke tracking<span>Why developers push back, and what they accept</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Collect only what you need</h3>
+      <p>See the Tools page and the optional reads on a demo server, and decide per tool what your team sends.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: track token usage without collecting prompts. Intent: commercial. Facts from MSoT Section 1 (1.1 tool switches, counts-only mode, optional reads, consent, masking, encryption; 1.4 Privacy page; 1.6 Tools; 1.7 privacy safeguards). Product Overview 5.14 ("the one place") and Field Guide, Administrators (Tools: next check-in; app reads: shown on the Privacy page) add detail to MSoT 1.1. Left out on purpose: the Generation rate switch and request timing, the status-line and waiting-signal reads (MSoT 2.3), plugins in the skills read (0.4.3 unconfirmed), the per-project exclusion from the notes read (operator setting only), full tool-account email addresses (operator setting), Agent Setup and the Machines installed-tools view (pages not in Section 1 or barred), and retention windows, which share the Settings page but are a separate topic. No outside statistics.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/track-token-usage-without-prompts article. No example data; the one example is labelled illustrative and every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

@@ -46,6 +46,7 @@ TABS = {
         "ID": "id",
         "Keyword / Question": "keyword",
         "Type": "type",
+        "Source": "source",
         "Keyword Group": "group",
         "Monthly Volume": "volume",
         "Difficulty (KD)": "kd",
@@ -80,6 +81,8 @@ TABS = {
         "Gemini": "gemini",
         "Google AI Overview": "google_ai",
         "Competitors Cited": "competitors_cited",
+        "Times Mentioned (of 5)": "mentioned",
+        "Sources Cited": "sources_cited",
         "Test Date": "tested",
     },
     "Competitors": {
@@ -95,6 +98,11 @@ TABS = {
         "Why Avoid": "why",
     },
 }
+# Columns the sheet has and this import leaves out on purpose. Intent Score and
+# Difficulty Score are the formula parts of Priority, which is imported; the
+# Page Map's two counts are formulas too, and the panel counts keyword rows per
+# page itself. All four are formulas the file was saved without results for,
+# so they would import empty.
 
 
 def _col(ref: str) -> str:

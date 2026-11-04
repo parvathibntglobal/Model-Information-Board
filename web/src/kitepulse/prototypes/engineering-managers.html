@@ -1,0 +1,419 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Engineering Manager AI Tools for Team Leads | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Engineering manager AI tools for your reporting line: what each person works on, where AI work is stuck, Claude plan pressure and repeated failures.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"Engineering manager AI tools for knowing what your team works on and where it is stuck","url":"/solutions/engineering-managers","about":"Engineering manager AI tools","description":"Engineering manager AI tools for your reporting line: what each person works on, where AI work is stuck, Claude plan pressure and repeated failures.","isPartOf":{"@type":"WebSite","name":"Kite Pulse"}},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Solutions","item":"/solutions"},{"@type":"ListItem","position":3,"name":"Engineering managers","item":"/solutions/engineering-managers"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How can an engineering manager see where the team is stuck with AI coding tools?","acceptedAnswer":{"@type":"Answer","text":"Open The Office, where each desk in your reporting line carries a marker when AI work is stuck or a Claude plan limit is near. For repeated failures across the team, Work Problems groups failed commands, error messages and retries by severity with suggested actions; it is admin by default, and admins can grant it to managers."}},
+{"@type":"Question","name":"Which people can a manager see in Kite Pulse?","acceptedAnswer":{"@type":"Answer","text":"A manager sees themselves and their whole reporting line, including indirect reports, and the server enforces this, not just the screen. On The Office, everyone else shows as presence only, with detail only for people in your scope."}},
+{"@type":"Question","name":"Can a manager see Work Problems, Blocker Board and Organisation Overview?","acceptedAnswer":{"@type":"Answer","text":"Not by default. All three are admin pages by default, and an admin can grant each one to managers on Roles & Permissions. Blocker Board shows recurring causes and suggested actions, never a single person."}},
+{"@type":"Question","name":"What will a manager not see about their reports?","acceptedAnswer":{"@type":"Answer","text":"Their private prompt statistics, which only the developer sees, and cost per developer, which is admin-only. Kite Pulse reads the AI tools' session records; it does not log keystrokes, take screenshots, track websites or open a project's source files."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.num,td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.08rem}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.head{display:grid;gap:10px}
+.head p{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.note{font-size:.86rem;color:var(--muted)}
+
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--bg);padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem;white-space:nowrap}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.tile{border-radius:12px;padding:12px 14px;background:var(--sunk);display:grid;gap:2px}
+.tile b{font-family:var(--mono);font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{font-size:.82rem;color:var(--muted)}
+.tile.bad b{color:var(--bad)} .tile.warn b{color:var(--cost)} .tile.good b{color:var(--good)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.vs{font-family:var(--mono);font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vs small{color:var(--muted)}
+
+.qs{display:grid;gap:12px}
+.q{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.q:last-child{border-bottom:0;padding-bottom:0}
+.q p{font-weight:600;font-size:.97rem}
+.q .see{grid-column:1/-1;font-size:.85rem;color:var(--muted)}
+.verdict{display:grid;gap:8px;border-radius:12px;padding:16px;background:var(--sunk)}
+
+.helps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.help{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:10px;align-content:start}
+.help ul{font-size:.95rem}
+.help .more{font-size:.92rem;font-weight:600}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.field{display:grid;gap:6px}
+.field label{font-weight:600;font-size:.95rem}
+select{border:1.5px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--bg);width:100%}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:600;font-size:.95rem}
+.check input{width:18px;height:18px;margin-top:3px;accent-color:var(--accent)}
+.routine{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:grid;gap:10px;font-size:.95rem}
+.routine h3{font-size:1.05rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+textarea#routineText{width:100%;min-height:200px;border:1.5px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);font-family:var(--mono);font-size:.8rem;color:var(--ink)}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee ul{font-size:.93rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:14px} .q{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Solutions · Engineering managers</div>
+    <h1>Engineering manager AI tools for knowing what your team works on and where it is stuck</h1>
+    <p class="lede">Your team codes with AI agents in sessions you never see.</p>
+    <div class="answer">
+      <p>Kite Pulse gives you engineering manager AI tools that answer three questions for your own reporting line: what each person is working on, where AI work is stuck, and who needs support. It reads the session history ten AI coding tools already keep, so nobody fills in a status update.</p>
+      <p>The server limits what you see to your reporting line, including indirect reports.</p>
+    </div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#check">Check what you can answer today</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "engineering manager ai tools": title tag (first words), meta description, H1, first sentence of the answer box; URL /solutions/engineering-managers. Intent: commercial, a team lead looking for tooling. The audience question ("What is my team working on, where are they stuck, and who needs support?") is answered in the answer box. "Engineering manager dashboard" is deliberately not used: it belongs to /engineering-intelligence. Sources: MSoT "Who it is for" (managers row), 1.2, 1.3, 1.4, 1.6 (manager scope), 1.7; Product Overview 4 and 8; Field Guide "Managers".</div>
+  </header>
+
+  <section class="block" id="problem">
+    <div class="head">
+      <h2>The problem: AI work you cannot see until it is late</h2>
+      <p>An agent loops on a failing test while its owner is in a meeting. Someone runs out of Claude plan by Wednesday. A project goes quiet and nobody says so. Each shows up in the AI session long before a stand-up.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Your reporting line today <span class="sample">Sample data</span></div>
+      <div class="tiles" id="teamTiles"></div>
+      <div class="seg" role="group" aria-label="Which people to show"><button type="button" data-f="all" aria-pressed="true">Everyone</button><button type="button" data-f="look" aria-pressed="false">Needs a look</button></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Person</th><th>Status</th><th>Current project</th><th>Active today</th><th>Marker</th></tr></thead>
+        <tbody id="teamBody"></tbody>
+      </table></div>
+      <p class="note">Example figures for a fictional team. In the console, the first four columns are on Team Overview and the markers on The Office.</p>
+    </div>
+  </section>
+
+  <section class="block" id="check">
+    <div class="head">
+      <h2>Can you answer these today?</h2>
+      <p>Answer yes or no; each no points to the section that covers it.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Self-check</div>
+      <div class="qs" id="qs">
+        <div class="q"><p>Who on your team is coding with AI right now, and on which project?</p><div class="seg" role="group" aria-label="Who is coding right now"><button type="button" data-i="0" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="0" data-v="no" aria-pressed="false">No</button></div><span class="see">See <a href="#now">what your team is working on</a></span></div>
+        <div class="q"><p>Whose AI work is stuck, while there is still time to help?</p><div class="seg" role="group" aria-label="Whose work is stuck"><button type="button" data-i="1" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="1" data-v="no" aria-pressed="false">No</button></div><span class="see">See <a href="#stuck">where AI work is stuck</a></span></div>
+        <div class="q"><p>Who is close to a Claude plan limit before you hand out heavy work?</p><div class="seg" role="group" aria-label="Who is close to a plan limit"><button type="button" data-i="2" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="2" data-v="no" aria-pressed="false">No</button></div><span class="see">See <a href="#limits">plan limits</a></span></div>
+        <div class="q"><p>Which projects are active, which are stable and which have gone quiet?</p><div class="seg" role="group" aria-label="Which projects are active"><button type="button" data-i="3" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="3" data-v="no" aria-pressed="false">No</button></div><span class="see">See <a href="#projects">projects and overlap</a></span></div>
+        <div class="q"><p>Which failures keep coming back across the team?</p><div class="seg" role="group" aria-label="Which failures repeat"><button type="button" data-i="4" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="4" data-v="no" aria-pressed="false">No</button></div><span class="see">See <a href="#failures">where the team loses time</a></span></div>
+      </div>
+      <div class="verdict" id="verdict" aria-live="polite"><p>Answer the five questions to see where to start.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="helps">
+    <div class="head">
+      <h2>How Kite Pulse helps engineering managers</h2>
+      <p>If you are choosing an engineering manager AI platform, these are the views you would use each week. Each block links to the page that covers it in depth.</p>
+    </div>
+    <div class="helps">
+      <div class="help" id="now">
+        <h3>What is my team working on right now?</h3>
+        <ul>
+          <li>Team Overview: who is coding now, active time and sessions today against a typical day, and each person's current project.</li>
+          <li>All Developers opens each person's report, without their private prompt fields.</li>
+        </ul>
+        <a class="more" href="/features">The full feature tour</a>
+      </div>
+      <div class="help" id="stuck">
+        <h3>Where is AI work stuck?</h3>
+        <ul>
+          <li>The Office gives each person a desk with their status and a marker for stuck work.</li>
+          <li>Detail shows only for people in your scope.</li>
+        </ul>
+        <a class="more" href="/ai-agent-office">The Office for your team</a>
+        <a class="more" href="/blog/stuck-ai-agent">A stuck agent caught before lunch</a>
+      </div>
+      <div class="help" id="limits">
+        <h3>Who is close to a Claude plan limit?</h3>
+        <ul>
+          <li>For an engineering manager, Claude Code limits shape planning: the Plan headroom tab lists your line worst first, 80% near, 100% at limit.</li>
+          <li>Leave &amp; On-Call records leave and rotas for your line, so a quiet week is not misread.</li>
+        </ul>
+        <a class="more" href="/plan-headroom">Plan headroom</a>
+        <a class="more" href="/blog/sprint-planning-claude-plan-limits">Sprint planning around Claude limits</a>
+      </div>
+      <div class="help" id="projects">
+        <h3>Which projects need attention, and where do people overlap?</h3>
+        <ul>
+          <li>All Projects shows each project's health: active, stable or dormant.</li>
+          <li>Collaboration shows projects several people work on, so they can talk before they collide.</li>
+        </ul>
+        <a class="more" href="/features">Projects in the feature tour</a>
+      </div>
+      <div class="help" id="failures">
+        <h3>Where does the team keep losing time?</h3>
+        <ul>
+          <li>Work Problems uses fixed rules, no AI, to find failed commands, errors and repeated retries, with suggested actions.</li>
+          <li>Blocker Board shows recurring causes, never a single person. It needs AI labelling, which an admin sets up.</li>
+          <li>Both are admin by default; admins can grant them to managers.</li>
+        </ul>
+      </div>
+      <div class="help" id="report">
+        <h3>How do I report upward?</h3>
+        <ul>
+          <li>The Company report compares any period with the one before. CSV or PDF download is for admins by default.</li>
+          <li>Scheduled reports email it daily, weekly or monthly; admins set them up.</li>
+        </ul>
+      </div>
+    </div>
+    <p>For a CTO, AI coding across the whole organisation sits on Organisation Overview, admin by default and grantable to managers. For delivery figures from git and tickets, read <a href="/engineering-intelligence">how session analytics fits beside git and ticket analytics</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords: "engineering manager ai platform" (section intro), "engineering manager claude code" (as "an engineering manager, Claude Code limits", plan block), "cto ai coding" (as "For a CTO, AI coding", closing paragraph), "ai native engineering leadership" (builder intro). Admin-by-default labels per brief care list (Work Problems, Blocker Board, Organisation Overview; MSoT 1.2, 1.4). "Needs AI labelling" on Blocker Board is Product Overview 5.4, detailing MSoT 1.4 Blocker Board. Managers viewing the Company report is Product Overview 5.9, detailing MSoT 1.3. The link to /engineering-intelligence avoids its keyword and the word "intelligence".</div>
+  </section>
+
+  <section class="block" id="routine">
+    <div class="head">
+      <h2>Build your weekly routine</h2>
+      <p>AI native engineering leadership is mostly habit: a look each morning, a planning check each week, a project review each month. Pick your planning day and what applies; the routine updates and copies as plain text.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Routine builder</div>
+      <div class="grid2">
+        <div class="field"><label for="planDay">Planning day</label><select id="planDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select></div>
+      </div>
+      <label class="check" for="optClaude"><input type="checkbox" id="optClaude" checked> My team uses Claude Code</label>
+      <label class="check" for="optGranted"><input type="checkbox" id="optGranted"> An admin has granted me Work Problems or Blocker Board</label>
+      <label class="check" for="optReport"><input type="checkbox" id="optReport" checked> I report to leadership every week</label>
+      <div class="routine" id="routineDoc">
+        <h3>Weekly AI team routine</h3>
+        <b>Every morning</b>
+        <ol>
+          <li>Open The Office and look for stuck or plan-limit markers on your team's desks.</li>
+          <li>On Team Overview, check who is coding now, active time against a typical day, and who needs attention.</li>
+        </ol>
+        <b>Every Monday</b>
+        <ol>
+          <li>Record next week's leave and on-call rotas on Leave &amp; On-Call.</li>
+          <li>On the Plan headroom tab, check who is near or at a Claude plan limit before handing out heavy AI work.</li>
+          <li>On Collaboration, look for projects where several people now work, and connect them.</li>
+          <li>Ask an admin to grant Work Problems or Blocker Board on Roles &amp; Permissions if you need them.</li>
+          <li>If it is not set up yet, ask an admin to schedule the Company report weekly by email (email must be set up on the server).</li>
+        </ol>
+        <b>Once a month</b>
+        <ol>
+          <li>On All Projects, review which projects went dormant and confirm with their owners.</li>
+          <li>Read the Company report for the month against the month before.</li>
+        </ol>
+      </div>
+      <div class="row"><button class="btn" type="button" id="copyRoutine">Copy routine</button><span id="copyMsg" class="note" aria-live="polite"></span></div>
+      <textarea id="routineText" readonly hidden aria-label="Routine as plain text"></textarea>
+    </div>
+  </section>
+
+  <section class="block" id="scope">
+    <div class="head">
+      <h2>What Kite Pulse shows you, and what it does not</h2>
+      <p>Clear limits make rollout easier. See <a href="/blog/developer-analytics-without-keystroke-tracking">developer analytics without keystroke tracking</a> for what developers accept.</p>
+    </div>
+    <div class="cansee">
+      <div class="yes"><h3>What you see, for your reporting line</h3><ul>
+        <li>Who is coding, active time and current projects</li>
+        <li>Stuck work and plan-limit markers on The Office</li>
+        <li>Claude plan headroom, worst first</li>
+        <li>Token use per person, tool, model and project; estimated cost per tool, not billed spend</li>
+        <li>Project health, collaboration, leave and rotas</li>
+      </ul></div>
+      <div class="no"><h3>What you do not see</h3><ul>
+        <li>Detail for people outside your line</li>
+        <li>Private prompt statistics, or cost per developer (admin-only)</li>
+        <li>Plan limits for tools other than Claude Code</li>
+        <li>Agents in parallel for your reports: managers see it for themselves only</li>
+        <li>Keystrokes, screenshots or a project's source files; session records can include code excerpts, secrets masked</li>
+        <li>DORA metrics, which git and ticket based tools cover better</li>
+      </ul></div>
+    </div>
+    <div class="seo"><b>SEO</b>Scope from MSoT 1.4 (Who sees what, The Office, All Developers, Agents in parallel: "managers for themselves"), 1.2 (cost per tool, not billed spend; cost per developer admin only; Plan headroom Claude Code only), 1.7 (private fields, what is read). DORA line follows R9. No ranking language either way (R4): Team Overview's "Most active today" and Organisation Overview's "Top performers" are not described, and no "never ranks" claim is made.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions from engineering managers</h2>
+    <div>
+      <details open><summary>How can an engineering manager see where the team is stuck with AI coding tools?</summary><p>Open The Office, where each desk in your reporting line carries a marker when AI work is stuck or a Claude plan limit is near. For repeated failures across the team, Work Problems groups failed commands, error messages and retries by severity with suggested actions; it is admin by default, and admins can grant it to managers.</p></details>
+      <details><summary>Which people can a manager see in Kite Pulse?</summary><p>A manager sees themselves and their whole reporting line, including indirect reports, and the server enforces this, not just the screen. On The Office, everyone else shows as presence only, with detail only for people in your scope.</p></details>
+      <details><summary>Can a manager see Work Problems, Blocker Board and Organisation Overview?</summary><p>Not by default. All three are admin pages by default, and an admin can grant each one to managers on Roles &amp; Permissions. Blocker Board shows recurring causes and suggested actions, never a single person.</p></details>
+      <details><summary>What will a manager not see about their reports?</summary><p>Their private prompt statistics, which only the developer sees, and cost per developer, which is admin-only. Kite Pulse reads the AI tools' session records; it does not log keystrokes, take screenshots, track websites or open a project's source files.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief's one FAQ question, which is also its AEO question, is the first item; its first sentence answers it directly. Three more cover scope (MSoT 1.4, 1.6), admin-by-default pages (1.2, 1.4) and privacy (1.2, 1.7). Identical text in FAQPage JSON-LD.</div>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See your team's AI work as it happens</h3>
+      <p>Kite Pulse runs on your own server and reads the session history that ten AI coding tools already keep, from Claude Code and Cursor to Aider.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /solutions/engineering-managers page. Names, statuses, projects, active times and markers in the team view are sample data for a fictional team; the routine is generated from the reader's choices.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE DATA: a fictional team. Not a customer, not real figures. */
+  const SAMPLE_TEAM=[
+    {name:'Priya',status:'coding',project:'checkout-api',today:'3h 10m',typical:'3h 40m',marker:'stuck'},
+    {name:'Marco',status:'coding',project:'mobile-app',today:'2h 05m',typical:'2h 30m',marker:'near'},
+    {name:'Lena',status:'online',project:'checkout-api',today:'1h 20m',typical:'2h 50m',marker:''},
+    {name:'Sam',status:'away',project:'data-pipeline',today:'0h 40m',typical:'2h 10m',marker:'at'},
+    {name:'Aiko',status:'coding',project:'design-system',today:'2h 45m',typical:'2h 20m',marker:''},
+    {name:'Ravi',status:'offline',project:'data-pipeline',today:'0h 00m',typical:'1h 50m',marker:''}
+  ];
+
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* 1. sample team view */
+  const MARK={stuck:'<span class="pill bad">Stuck</span>',near:'<span class="pill warn">Near plan limit</span>',at:'<span class="pill bad">At plan limit</span>','':''};
+  const STATUS={coding:'<span class="pill good">Coding now</span>',online:'<span class="pill">Online</span>',away:'<span class="pill">Away</span>',offline:'<span class="pill">Offline</span>'};
+  let filter='all';
+  function renderTeam(){
+    const rows=SAMPLE_TEAM.filter(p=>filter==='all'||['stuck','near','at'].includes(p.marker));
+    $('teamBody').innerHTML=rows.map(p=>`<tr><td><b>${p.name}</b></td><td>${STATUS[p.status]}</td><td>${p.project}</td><td class="vs">${p.today} <small>/ typical ${p.typical}</small></td><td>${MARK[p.marker]}</td></tr>`).join('');
+    const c=s=>SAMPLE_TEAM.filter(p=>p.status===s).length;
+    const stuck=SAMPLE_TEAM.filter(p=>p.marker==='stuck').length, lim=SAMPLE_TEAM.filter(p=>p.marker==='near'||p.marker==='at').length;
+    $('teamTiles').innerHTML=`<div class="tile good"><b>${c('coding')}</b><span>coding now</span></div><div class="tile"><b>${c('coding')+c('online')}</b><span>online</span></div><div class="tile bad"><b>${stuck}</b><span>stuck</span></div><div class="tile warn"><b>${lim}</b><span>near or at a Claude plan limit</span></div>`;
+  }
+  document.querySelector('[aria-label="Which people to show"]').addEventListener('click',e=>{const b=e.target.closest('button[data-f]');if(!b)return;filter=b.dataset.f;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderTeam();});
+
+  /* 2. self-check */
+  const LINKS=[['#now','what your team is working on'],['#stuck','where AI work is stuck'],['#limits','plan limits'],['#projects','projects and overlap'],['#failures','where the team loses time']];
+  const ans=[null,null,null,null,null];
+  $('qs').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;ans[+b.dataset.i]=b.dataset.v;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderVerdict();});
+  function renderVerdict(){
+    const done=ans.filter(a=>a!==null).length, nos=ans.map((a,i)=>a==='no'?i:-1).filter(i=>i>=0);
+    if(!done){$('verdict').innerHTML='<p>Answer the five questions to see where to start.</p>';return;}
+    const yes=ans.filter(a=>a==='yes').length;
+    $('verdict').innerHTML=`<h3><span class="num">${yes}</span> of 5 answered yes${done<5?` <span class="note">(${5-done} not answered yet)</span>`:''}</h3>`+
+      (nos.length?`<p>Start with:</p><ul>${nos.map(i=>`<li><a href="${LINKS[i][0]}">${LINKS[i][1]}</a></li>`).join('')}</ul>`:'<p>No gaps so far. The routine builder below keeps these answers current week to week.</p>')+
+      '<p class="note">A quick self-check, not an assessment.</p>';
+  }
+
+  /* 3. routine builder */
+  const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  function buildRoutine(){
+    const day=$('planDay').value, cc=$('optClaude').checked, gr=$('optGranted').checked, rep=$('optReport').checked;
+    const morning=[
+      cc?'Open The Office and look for stuck or plan-limit markers on your team\'s desks.':'Open The Office and look for stuck markers on your team\'s desks.',
+      'On Team Overview, check who is coding now, active time against a typical day, and who needs attention.'
+    ];
+    const weekly=['Record next week\'s leave and on-call rotas on Leave & On-Call.'];
+    if(cc)weekly.push('On the Plan headroom tab, check who is near or at a Claude plan limit before handing out heavy AI work.');
+    weekly.push('On Collaboration, look for projects where several people now work, and connect them.');
+    weekly.push(gr?'On Work Problems or Blocker Board, pick one recurring cause and agree a fix with the team.':'Ask an admin to grant Work Problems or Blocker Board on Roles & Permissions if you need them.');
+    const monthly=['On All Projects, review which projects went dormant and confirm with their owners.'];
+    monthly.push('Read the Company report for the month against the month before.');
+    if(rep)weekly.push('If it is not set up yet, ask an admin to schedule the Company report weekly by email (email must be set up on the server).');
+    const groups=[['Every morning',morning],['Every '+day,weekly],['Once a month',monthly]];
+    $('routineDoc').innerHTML='<h3>Weekly AI team routine</h3>'+groups.map(g=>`<b>${g[0]}</b><ol>${g[1].map(i=>`<li>${esc(i)}</li>`).join('')}</ol>`).join('');
+    $('routineText').value='Weekly AI team routine\n\n'+groups.map(g=>g[0]+'\n'+g[1].map((t,i)=>`${i+1}. ${t}`).join('\n')).join('\n\n');
+  }
+  ['planDay','optClaude','optGranted','optReport'].forEach(id=>$(id).addEventListener('change',buildRoutine));
+  $('copyRoutine').addEventListener('click',()=>{const t=$('routineText').value;
+    const fb=()=>{const ta=$('routineText');ta.hidden=false;ta.select();$('copyMsg').textContent='Copy the text below.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fb);}catch(e){fb();}});
+
+  renderTeam();buildRoutine();
+})();
+</script>
+
+</body></html>

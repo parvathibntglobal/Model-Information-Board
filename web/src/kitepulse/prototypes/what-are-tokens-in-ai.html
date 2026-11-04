@@ -1,0 +1,253 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>What Are Tokens in AI and What Do They Cost? | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="What are tokens in AI and how much do they cost? A plain guide to tokens, AI coding sessions, per-token prices and Claude plan limits for non-engineers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"What Are Tokens in AI and How Much Do They Cost? A Plain Guide for Non-Engineers","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Tokens in AI and how much they cost"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"What Are Tokens in AI","item":"/blog/what-are-tokens-in-ai"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"how is token usage calculated in ai","acceptedAnswer":{"@type":"Answer","text":"The model splits all text into tokens and counts them in two directions: input tokens for everything it reads, and output tokens for everything it writes. In a coding session the input includes the whole conversation so far, the files the assistant opened and the results of commands it ran, so each new turn usually reads more than the last. Where a tool uses caching, part of that input is counted separately as cache writes and cache reads. The tool records these counts in its session history after every turn."}},
+{"@type":"Question","name":"how do claude code usage limits work","acceptedAnswer":{"@type":"Answer","text":"On a Claude Pro or Max plan, Claude Code draws on the same usage limits as the Claude app, according to Anthropic's help centre. There is a five-hour session limit and a weekly limit, and some plans add a separate weekly limit for a particular model. When a limit is used up, the developer waits for it to reset, turns on paid extra usage, or switches to API access billed per token."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.example{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:10px}
+.example .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cost)}
+.example ol{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Product overview</div>
+    <h1>What Are Tokens in AI and How Much Do They Cost? A Plain Guide for Non-Engineers</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>A token is a small piece of text, often a short word or part of a word, and it is the unit AI models use to count everything they read and everything they write.</b> So when someone asks what are tokens in AI and how much do they cost, the answer has two parts. With pay-as-you-go access, every token has a list price. On a flat plan such as Claude Pro, tokens do not add to the bill; they use up a usage limit that resets over time.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "what are tokens in ai and how much do they cost" in the H1, the meta description (152 characters) and the first paragraph of the answer box, after a plain one-sentence answer (batch 2 rule). Title tag "What Are Tokens in AI and What Do They Cost? | Kite Pulse", 57 characters: the full keyword does not fit in 60 with the brand, so the title uses its closest natural form. Intent is informational: teach first, one product section near the end.</div>
+  </header>
+
+  <section class="block" id="tokens">
+    <h2>What are tokens in AI, in simple terms</h2>
+    <p>AI models do not read words the way people do. Before a model sees any text, the text is cut into tokens: short words stay whole, longer or rarer words are split into pieces, and punctuation, spaces and symbols become tokens of their own. Computer code splits into tokens too, brackets and all.</p>
+    <p>Everything is counted: the developer's question, every file the assistant opens, the instructions the tool adds behind the scenes, and every line the model writes back. Text going into the model is <b>input</b>; text the model produces is <b>output</b>. Those two counts are the basis of every AI price list and every usage limit.</p>
+    <p>A useful mental model is a taxi meter that runs on text rather than distance. It does not care whether the text was a good question or a wasted one.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "what are tokens in ai in simple terms" as this H2. General explanation, no product claims and no outside figures (no "characters per token" rule of thumb, since it would need a vendor source).</div>
+  </section>
+
+  <section class="block" id="sessions">
+    <h2>What an AI coding session is, and why the tools keep its history</h2>
+    <p>A <b>session</b> is one working conversation between a developer and an AI coding assistant. The developer describes a task. The assistant reads the relevant files, may run commands or tests, proposes changes, and replies. The developer reacts, and the loop continues until the task is done or set aside.</p>
+    <p>Modern assistants increasingly take several of those steps on their own, which is what people mean by <a href="/blog/agentic-coding">agentic coding, where the assistant plans and carries out multi-step work</a>. Each step is another round of reading and writing, so each step uses more tokens.</p>
+    <p>AI coding tools save each session as a file on the developer's own computer, so a conversation can be scrolled back or picked up again later. That history also records which model answered and how many tokens each turn used, which is what makes token use measurable after the fact.</p>
+    <div class="seo"><b>SEO</b>"Tools save each session as a file on the computer" is from the Field Guide (session journey, step 1, "The AI tool saves the conversation"); it details MSoT 1.1 "reads the history each tool already keeps". Tokens and model name per session: MSoT 1.1 table. The 30-minute session gap is in the Field Guide only and is left out (batch 2 rule).</div>
+  </section>
+
+  <section class="block" id="drivers">
+    <h2>Why tokens drive the cost of AI coding tools</h2>
+    <p>A model does not remember a conversation between turns. To answer the next message, the tool sends it the conversation so far, plus anything new. So a long session gets more expensive per turn as it goes: the tenth question carries the nine before it.</p>
+    <p>That explains most of the surprises finance teams meet:</p>
+    <ul>
+      <li><b>Long sessions grow.</b> A question costs more late in a long conversation than in a fresh one.</li>
+      <li><b>Reading counts.</b> Files an assistant opens are input, even if the reply is short.</li>
+      <li><b>Agents multiply steps.</b> One request can become many turns, and sub-agents run conversations of their own.</li>
+      <li><b>Models differ.</b> Each model has its own price per token, so the same work costs a different amount on a different model.</li>
+    </ul>
+    <div class="example">
+      <span class="tag">Illustrative example, not a customer case</span>
+      <p>Two developers each spend an afternoon fixing a bug.</p>
+      <ol>
+        <li>The first asks a few short questions in separate, fresh conversations and edits the code by hand.</li>
+        <li>The second hands the whole bug to an agent, which reads a large part of the project, runs the tests repeatedly and revises its fix several times in one long session.</li>
+      </ol>
+      <p>Both fixed one bug, yet the second afternoon can use many times the tokens. The count describes the way of working more than the person.</p>
+    </div>
+    <p>This is why the <b>cost of AI coding tools</b> is rarely just the seat price on the order form. Seats are predictable; token use is not. For how seat prices compare across vendors, see our <a href="/ai-coding-assistant-pricing">AI coding assistant pricing comparison</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "cost of ai coding tools" in the last paragraph. The example carries no numbers and is labelled illustrative (R2).</div>
+  </section>
+
+  <section class="block" id="pricing">
+    <h2>How are AI tokens priced?</h2>
+    <p>Vendors that sell access by the token publish a price per million tokens, per model, and they price different kinds of tokens differently. On Anthropic's published prices for Claude, the kinds are:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Kind of token</th><th>What it is</th><th>Price compared with input</th></tr></thead>
+        <tbody>
+          <tr><td>Input</td><td>Text the model reads: the question, the conversation so far, files</td><td>The base price</td></tr>
+          <tr><td>Output</td><td>Text the model writes</td><td>Higher</td></tr>
+          <tr><td>Cache write</td><td>Input saved so it can be reused on later turns</td><td>Higher than base input</td></tr>
+          <tr><td>Cache read</td><td>Saved input reused instead of being processed again</td><td>Well below base input</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Prices change with the model and over time, so read them on the vendor's own pricing page when you need them.</p>
+    <h3>Claude Code cache tokens</h3>
+    <p>Because every turn resends the conversation so far, Claude Code uses caching: the unchanged start of a conversation is stored once and then read back cheaply on the next turns. That is why a Claude Code usage report shows <b>Claude Code cache tokens</b> beside input and output, often as the largest numbers on it. Adding all kinds together at the input price would overstate the cost.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "how are ai tokens priced" (H2) and "claude code cache tokens" (H3 and body). Outside fact, verified: input, output, cache-write and cache-read tokens are priced separately; output and cache writes cost more than base input; cache reads cost a fraction of it. Source: Anthropic prompt caching documentation, https://platform.claude.com/docs/en/docs/build-with-claude/prompt-caching (pricing section and table), checked 2 Nov 2026. No figures used on the page. "Cache figures are often the largest numbers" is phrased as "often", from how caching works, not a measured statistic. Kite Pulse's "cache efficiency" view appears only in the Field Guide and is left out.</div>
+  </section>
+
+  <section class="block" id="plan-limits">
+    <h2>What is a Claude plan limit?</h2>
+    <p>Many developers do not pay per token at all. They are on a flat monthly subscription such as Claude Pro or Claude Max, which comes with usage limits instead of a meter. Put simply, Claude Pro plan limits cap how much work the plan covers in a window of time.</p>
+    <p>According to Anthropic's help centre, Pro and Max plans have a five-hour session limit and a weekly limit, and some plans add a separate weekly limit for a particular model. The limits are shared across the Claude app and Claude Code, so a developer's chat use and coding use draw on the same allowance. The tokens behind each request are what use it up, which is why a long agent session can reach a <b>Claude usage limit</b> in an afternoon while light use never comes close.</p>
+    <p>When a limit is reached, the developer has three options: wait for the window to reset, turn on paid extra usage, or switch to API access billed per token, which is charged separately from the plan. For the details of each window and how to make the allowance last, read our guide to <a href="/claude-code-usage-limits">Claude Code usage limits</a>.</p>
+    <p>Other vendors set their own <b>AI plan limits</b>, so a Claude window says nothing about a Codex or Cursor plan.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "what is claude pro plan limits" (worded naturally as "what Claude Pro plan limits are", since the search phrase is not grammatical), "claude usage limit" and "ai plan limits". Outside facts, verified: five-hour session limit and weekly limit on Pro and Max, a separate weekly limit for one model on Max, limits shared across Claude and Claude Code, extra usage credits, API usage billed separately. Source: Claude Help Centre, "Using Claude Code with your Pro or Max plan", https://support.claude.com/en/articles/11145838-using-claude-code-with-your-pro-or-max-plan, checked 2 Nov 2026. No limit sizes or plan prices used.</div>
+  </section>
+
+  <section class="block" id="two-ways">
+    <h2>List price or flat plan: two ways to pay for the same tokens</h2>
+    <p>This matters most to finance: the same session can be paid for in two ways, and the tokens mean something different in each.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th></th><th>Pay-as-you-go (API)</th><th>Flat plan with limits</th></tr></thead>
+        <tbody>
+          <tr><td>What a token costs</td><td>Its list price</td><td>Nothing extra, up to the limit</td></tr>
+          <tr><td>What the bill shows</td><td>Usage, so it varies month to month</td><td>The seat price, so it stays flat</td></tr>
+          <tr><td>What runs out</td><td>Budget</td><td>The window, until it resets</td></tr>
+          <tr><td>The risk</td><td>A surprise invoice</td><td>Lost working time at the limit, or extra usage charges</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Two practical consequences follow. First, on a flat plan, multiplying tokens by the list price gives you the value of the work at pay-as-you-go rates, which is useful for comparing plans, and is not money you spent. Second, a team on flat plans can still have a cost problem, but it shows up as people stopped by limits rather than as a larger invoice. Our <a href="/ai-cost-tracking">guide to tracking AI coding costs</a> walks through measuring both.</p>
+  </section>
+
+  <section class="block" id="kite-pulse">
+    <h2>How Kite Pulse shows tokens, cost and plan limits</h2>
+    <p>Kite Pulse reads the session history ten AI coding tools already keep on each developer's computer and brings it to a server your team runs. Its Team AI Usage page shows token use per developer, tool, model, project and day, for any period; managers see their own reporting line and admins see everyone.</p>
+    <ul>
+      <li><b>Estimated cost per tool</b> multiplies tokens by each vendor's published list price, and is labelled "not billed spend" because many developers are on flat subscriptions. Claude and Gemini models are priced; Aider, Cline, Roo Code, Kilo Code and OpenCode report their own cost; Codex, Cursor and Copilot usually show a dash, never $0.</li>
+      <li><b>Plan headroom</b> covers Claude Code: who is close to a Claude plan limit, worst first, across the 5-hour window, the weekly window and each model's weekly window. "Near" is 80% or more and "at limit" is 100%. Other tools show "Not reported by this tool".</li>
+      <li><b>AI Budgets</b> let admins set a monthly budget per team or project, in tokens or estimated US dollars, with alerts at 80% and 100%.</li>
+    </ul>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Plan figures come from the usage figures Claude Code saves on the developer's computer; no login or password is read. Every developer sees their own plan usage on their Workspace page. See <a href="/solutions/finance">AI spend visibility for finance</a>.</p></div>
+    <div class="seo"><b>SEO</b>The one product section and the one .kp callout. Facts: ten tools and server you run (MSoT product summary, 1.1); Team AI Usage and scope (1.2); estimated cost per tool, pricing coverage and dash (1.2); "because many developers are on flat subscriptions" from the Product Overview 5.6, detailing 1.2 Estimated cost per tool; Plan headroom windows and thresholds (1.2, R7); AI Budgets (1.2); where plan figures come from and Workspace (1.2, 1.4). Left out: token pace line, Plan limit reached notice, Headroom view, two-year history (batch 2 rule).</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about tokens and Claude usage limits</h2>
+    <div>
+      <details open><summary>how is token usage calculated in ai</summary><p>The model splits all text into tokens and counts them in two directions: input tokens for everything it reads, and output tokens for everything it writes. In a coding session the input includes the whole conversation so far, the files the assistant opened and the results of commands it ran, so each new turn usually reads more than the last. Where a tool uses caching, part of that input is counted separately as cache writes and cache reads. The tool records these counts in its session history after every turn.</p></details>
+      <details><summary>how do claude code usage limits work</summary><p>On a Claude Pro or Max plan, Claude Code draws on the same usage limits as the Claude app, according to Anthropic's help centre. There is a five-hour session limit and a weekly limit, and some plans add a separate weekly limit for a particular model. When a limit is used up, the developer waits for it to reset, turns on paid extra usage, or switches to API access billed per token.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Both FAQ questions from the brief, word for word (lower case as in the brief), mirrored in FAQPage JSON-LD. Limit facts sourced as in the plan-limit section. "Records these counts in its session history" holds for the tools whose records carry tokens (MSoT 1.1 table: all ten record tokens; Cursor and Copilot input and output only).</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/claude-code-usage-limits">Claude Code usage limits<span>The 5-hour and weekly windows, and how to make them last</span></a></li>
+      <li><a href="/ai-cost-tracking">Tracking AI coding costs<span>A step-by-step method for usage and estimated cost</span></a></li>
+      <li><a href="/ai-coding-assistant-pricing">AI coding assistant pricing<span>Plans and seat prices compared</span></a></li>
+      <li><a href="/blog/token-usage-per-developer">Token usage per developer<span>Tokens by person, tool, model, project and day</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See your team's tokens and Claude limits in one place</h3>
+      <p>Run Kite Pulse on your own server and see token use, estimated cost per tool and Claude plan headroom across your team.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: what are tokens in ai and how much do they cost. Intent: informational. Product facts from MSoT Section 1 (1.1, 1.2, 1.4); one detail each from the Field Guide (sessions saved to a file on disk) and the Product Overview 5.6 (cost labelled not billed spend because of flat subscriptions). Outside facts verified on vendor pages and dated 2 Nov 2026 (see the pricing and plan-limit notes); no prices or limit sizes on the page. Left out on purpose: token pace line, cache efficiency view, Plan limit reached notice, Headroom view, two-year plan history, session-gap rule, "characters per token" rules of thumb. No outside statistics; no "never ranks" claim.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/what-are-tokens-in-ai article. No example data; the bug-fixing story is illustrative and carries no figures.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

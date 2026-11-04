@@ -1,0 +1,238 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>How to Calculate AI Coding Costs per Developer | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="How to calculate AI coding costs per developer: tokens times list price, flat seats and tool-reported cost, and why an honest estimate stays per tool.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"How to Calculate AI Coding Costs per Developer, and How the Estimate Works","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"AI coding cost per developer"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"AI Coding Costs per Developer","item":"/blog/ai-coding-cost-per-developer"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How accurate are AI coding cost estimates?","acceptedAnswer":{"@type":"Answer","text":"The token counts can be exact, because they come from each tool's own records. The dollar figure is only as accurate as the price applied to them: list prices ignore discounts and contract terms, and a developer on a flat subscription pays the same whatever they use. Treat an estimate as a guide to where usage goes and keep the vendor invoice as the record of what was paid."}},
+{"@type":"Question","name":"Are Kite Pulse cost figures exact?","acceptedAnswer":{"@type":"Answer","text":"No, and they are labelled that way. Kite Pulse multiplies tokens by the vendor's published list price for Claude and Gemini models, uses the cost Aider, Cline, Roo Code, Kilo Code and OpenCode report themselves, and shows a dash where no price is known. Every figure is marked \"not billed spend\" and is meant to sit beside your invoices, not replace them."}},
+{"@type":"Question","name":"Which AI coding tools are costing us the most?","acceptedAnswer":{"@type":"Answer","text":"Your invoices answer that for money actually paid. For usage, compare tools side by side rather than as one total: estimated cost for the priced tools, token counts for the rest, and seat prices beside both. Kite Pulse shows cost per tool on Team AI Usage and never adds it up across tools, because a list-price estimate, a tool-reported figure and a tool with no price are not the same kind of number."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+td.num,th.num{text-align:right}
+.caption{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost)}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Features and capabilities</div>
+    <h1>How to Calculate AI Coding Costs per Developer, and How the Estimate Works</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Here is how to calculate AI coding costs per developer: for each tool, multiply each person's tokens by the list price of every model they used, then add the flat subscriptions and seat prices you pay for them.</b> Keep the parts apart rather than adding them into one figure, because a subscription costs the same however much it is used, while a usage estimate only says what the tokens would cost at list price. The result is an estimate that explains your invoices; it does not replace them.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "how to calculate ai coding costs per developer" (intent: Informational) in the title tag (59 characters), the H1, the meta description and the bolded first sentence of the answer box, which answers the question before any product mention. URL slug is /blog/ai-coding-cost-per-developer. Angle kept apart from /ai-cost-tracking: that guide is the hands-on how-to with calculators; this article explains what an estimate is made of and how Kite Pulse arrives at its own, and links to the guide for the method.</div>
+  </header>
+
+  <section class="block" id="parts">
+    <h2>The three parts of an AI coding bill</h2>
+    <p>The cost of AI coding tools reaches a company in three shapes, and each one is calculated differently. Most teams pay in at least two of them at once.</p>
+    <div class="parts">
+      <div class="part"><span class="tag">Usage</span><h3>Tokens times price</h3><p>Usage-billed tools charge per token, the unit of text sent to the model and received back. Cost is tokens multiplied by the price for that model, usually with a different price for input and output.</p></div>
+      <div class="part"><span class="tag">Flat</span><h3>Subscriptions</h3><p>A monthly plan per person. The amount is fixed whether the developer runs one session or a hundred, though heavy use can hit the plan's limits.</p></div>
+      <div class="part"><span class="tag">Seats</span><h3>Seat prices</h3><p>A per-seat licence bought by the company. Like a subscription it is flat, and its cost belongs to whoever holds the seat, used or not.</p></div>
+    </div>
+    <p>So the per-developer calculation has two halves. The usage half is arithmetic on token counts. The flat half is a lookup: which plans and seats does this person hold, and what do they cost. Our <a href="/ai-coding-assistant-pricing">comparison of AI coding assistant prices and plans</a> is a starting point for the second half.</p>
+  </section>
+
+  <section class="block" id="example">
+    <h2>A worked example for one developer</h2>
+    <p>Here is the usage half for one developer in one month, using two models. The token counts and prices below are invented for the example; use the published prices for the models your team actually runs.</p>
+    <div class="caption">Example developer, example prices</div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Model</th><th class="num">Tokens</th><th class="num">Example price per 1M</th><th class="num">Estimate</th></tr></thead>
+        <tbody>
+          <tr><td>Model A, input</td><td class="num">40M</td><td class="num">$3.00</td><td class="num">$120</td></tr>
+          <tr><td>Model A, output</td><td class="num">2M</td><td class="num">$15.00</td><td class="num">$30</td></tr>
+          <tr><td>Model B, input</td><td class="num">10M</td><td class="num">$0.50</td><td class="num">$5</td></tr>
+          <tr><td>Model B, output</td><td class="num">1M</td><td class="num">$2.00</td><td class="num">$2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The usage estimate for this example developer is $157 at list price. If the same person also holds a flat subscription for a second tool, that plan's monthly price goes on its own line beside it. Two things in this example are worth noticing. Model choice moves the figure far more than session count does, so tokens without a model name are hard to price. And the developer's usage tool may itself be paid through a flat plan, in which case the $157 says what the usage is worth, not what anyone paid.</p>
+    <p>The step-by-step <a href="/ai-cost-tracking">AI cost tracking guide</a> turns this into a calculator for a whole team, with seats, usage and a split by project. This article stays with the estimate itself: what it is made of and how far to trust it.</p>
+    <div class="seo"><b>SEO</b>All figures in this table are labelled sample data (R2): invented token counts and example prices, not any vendor's real price list. No outside price is quoted, so no source or checked date is needed.</div>
+  </section>
+
+  <section class="block" id="per-tool">
+    <h2>Why cost per developer should stay per tool</h2>
+    <p>Once you have figures for several tools, the temptation is to add them into one number per person. That number mixes three kinds of figure: a list-price estimate, a cost a tool reported about itself, and a flat fee. It also hides the tools you could not price at all. A gap added in as zero makes a tool look free, and a total built that way looks precise when it is not.</p>
+    <p>Keeping cost per tool avoids both problems. The reader sees which figures are estimates, which are reported, and which tools have no price, and can decide what to add up for their own purpose. When finance needs one company total, the invoice total is the right figure; the per-tool view explains how it splits.</p>
+  </section>
+
+  <section class="block" id="own-cost">
+    <h2>Tools that report their own cost: Aider, Cline and OpenCode</h2>
+    <p>Some AI coding tools work out a cost for each session themselves and store it in their own history. Aider, Cline, Roo Code, Kilo Code and OpenCode all do. That makes their cost easier to collect, and it changes what the number means: it is the tool's own calculation, made with whatever prices the tool knows for the model it called.</p>
+    <p><b>Aider AI cost</b> is recorded in Aider's history alongside its tokens and model, so the per-session figure is already there to read; see the <a href="/integrations/aider">Aider integration</a> for what else is collected. <b>Cline cost</b> works the same way, and Roo Code and Kilo Code match it; the <a href="/integrations/cline">Cline integration page</a> covers setup. <b>OpenCode cost</b> is also the tool's own figure, and OpenCode is the one of these tools that shows an account; details are on the <a href="/integrations/opencode">OpenCode integration page</a>.</p>
+    <p>For a per-developer calculation, treat these figures as reported rather than estimated by you. They are useful and quick, but they sit in their own column next to any list-price estimate you make for other tools. For a wider look at these five, read <a href="/blog/cline-aider-roo-code-analytics">Cline analytics with Roo Code, Kilo Code, OpenCode and Aider</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "aider ai cost", "cline cost" and "opencode cost" in the H2 and in bold at the start of each run of body text; "cost of ai coding tools" in the first section's first sentence. Which tools report their own cost, and OpenCode being the only one of them with an account on Tool Accounts: MSoT 1.1 "What each tool provides" table.</div>
+  </section>
+
+  <section class="block" id="kite-pulse">
+    <h2>How Kite Pulse estimates cost per tool</h2>
+    <p>Kite Pulse reads the session history ten AI coding tools already keep on each developer's computer, so token counts and model names come from the tools' own records with nothing for anyone to log. Its cost figure follows the rules above.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Tools</th><th>How cost is found</th><th>What you see</th></tr></thead>
+        <tbody>
+          <tr><td>Claude Code, Gemini CLI</td><td>Tokens multiplied by the vendor's published list price for Claude and Gemini models</td><td>An estimate, labelled "not billed spend"</td></tr>
+          <tr><td>Aider, Cline, Roo Code, Kilo Code, OpenCode</td><td>The cost the tool reports itself</td><td>The tool's figure, labelled "not billed spend"</td></tr>
+          <tr><td>Codex, Cursor, GitHub Copilot Chat in VS Code</td><td>No price is known for most of these sessions</td><td>Usually a dash, never $0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul>
+      <li><b>Prices are dated.</b> When a vendor changes a list price, the change is added as a new dated entry, so older sessions keep the price they ran at and last quarter's figures do not move.</li>
+      <li><b>Per tool, never totalled.</b> On Team AI Usage, cost is shown per tool and never added up across tools.</li>
+      <li><b>Cost per developer is admin-only.</b> It appears to admins on that developer's AI Usage tab. Managers see token use for their reporting line.</li>
+      <li><b>Seat prices sit beside usage.</b> Admins enter what each tool's seats cost on Hourly Rates &amp; Seat Prices, and those prices then appear on the Team AI Usage Overview for admins.</li>
+      <li><b>Budgets per team or project.</b> In <a href="/ai-budgets">AI Budgets</a>, admins set a monthly budget in tokens or estimated US dollars, with alerts at 80% and 100%. A dollar budget adds up the priced tools only and reports unpriced tokens separately.</li>
+    </ul>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>The estimate is built for the reason given above: many developers are on flat subscriptions, so a list-price figure is a guide to where usage goes, not a bill. Token counts are measured, cost is estimated, and the console says which is which.</p></div>
+    <div class="seo"><b>SEO</b>The one product section and the one callout (S11, informational: teach first, product second). All facts from MSoT 1.2: Estimated cost per tool (list prices, dated entries, Claude and Gemini priced, five tools' own reported cost, others a dash never $0, per tool never totalled, "not billed spend"), Cost per developer (admins only, AI Usage tab), Hourly Rates &amp; Seat Prices (seat prices only; hourly rates not described), AI Budgets. "Many developers are on flat subscriptions" is the Product Overview 5.6 reason for the "not billed spend" label. The table's third row follows MSoT 1.1 and Section 2.3 (no price for OpenAI models; most Cursor and Copilot sessions show a dash).</div>
+  </section>
+
+  <section class="block" id="accuracy">
+    <h2>How far to trust a cost estimate</h2>
+    <p>An estimate built this way is honest about its inputs, and it still differs from the invoice for predictable reasons. Say them up front and the gap stops being a surprise.</p>
+    <ul>
+      <li><b>Flat plans.</b> A developer on a subscription pays the same at any usage. Their list-price estimate shows how heavily they use the tool, which helps when choosing a plan, but it is not money spent.</li>
+      <li><b>Contract terms.</b> List prices leave out discounts, credits and negotiated rates, so a company on a contract usually pays something different.</li>
+      <li><b>Reported figures.</b> A tool's own cost is only as good as that tool's price table for the model it called.</li>
+      <li><b>Unpriced tools.</b> Usage on a tool with no known price shows up as tokens without a dollar figure. Count those tokens when you compare, or the tool will look cheaper than it is.</li>
+    </ul>
+    <p>None of these make the estimate useless. Tokens per developer, tool and model are measured, and they show where usage goes, which is the question an invoice cannot answer. For presenting these figures to finance, see <a href="/blog/engineering-ai-spend-report">the engineering AI spend report</a>, and for the token side on its own, <a href="/blog/token-usage-per-developer">token usage per developer</a>.</p>
+    <p>One last caution. A per-developer cost describes how AI was used; it says nothing on its own about the value of the work. Read it with the model, the project and the kind of task before drawing a conclusion about a person.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about AI coding costs per developer</h2>
+    <div>
+      <details open><summary>How accurate are AI coding cost estimates?</summary><p>The token counts can be exact, because they come from each tool's own records. The dollar figure is only as accurate as the price applied to them: list prices ignore discounts and contract terms, and a developer on a flat subscription pays the same whatever they use. Treat an estimate as a guide to where usage goes and keep the vendor invoice as the record of what was paid.</p></details>
+      <details><summary>Are Kite Pulse cost figures exact?</summary><p>No, and they are labelled that way. Kite Pulse multiplies tokens by the vendor's published list price for Claude and Gemini models, uses the cost Aider, Cline, Roo Code, Kilo Code and OpenCode report themselves, and shows a dash where no price is known. Every figure is marked "not billed spend" and is meant to sit beside your invoices, not replace them.</p></details>
+      <details><summary>Which AI coding tools are costing us the most?</summary><p>Your invoices answer that for money actually paid. For usage, compare tools side by side rather than as one total: estimated cost for the priced tools, token counts for the rest, and seat prices beside both. Kite Pulse shows cost per tool on Team AI Usage and never adds it up across tools, because a list-price estimate, a tool-reported figure and a tool with no price are not the same kind of number.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Three FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD. The third is answered honestly: Kite Pulse does not total or rank tools by cost, so the answer says how to compare instead. Facts from MSoT 1.2; "token counts come straight from each tool's own records" and "a guide, not the invoice" follow the Product Overview FAQ "Are the cost figures exact?".</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-cost-tracking">AI cost tracking guide<span>Step by step, with a calculator for your own team</span></a></li>
+      <li><a href="/ai-coding-assistant-pricing">AI coding assistant pricing<span>Seats and plans compared</span></a></li>
+      <li><a href="/blog/engineering-ai-spend-report">Engineering AI spend report<span>Presenting AI cost to finance</span></a></li>
+      <li><a href="/ai-budgets">AI Budgets<span>Monthly budgets per team or project</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See estimated AI cost per tool for your team</h3>
+      <p>Run Kite Pulse on your own server and see token use and estimated cost per tool, with seat prices and budgets beside them.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: how to calculate ai coding costs per developer. Intent: Informational. Article 2.19 "How Estimated Cost per Tool Works"; reader: finance and budget holders. Facts from MSoT Section 1 (1.1 tool table, 1.2 cost, cost per developer, seat prices, AI Budgets, Team AI Usage). From the Product Overview: the "flat subscriptions" reason for the "not billed spend" label (5.6) and the FAQ framing that token counts are exact while cost is a guide (FAQ "Are the cost figures exact?"), both detailing MSoT 1.2 Estimated cost per tool. Left out on purpose: hourly rates (the page name is used, the rates are not described), the token pace line, any billable or markup view (hidden), any organisation-wide cost total, cost per developer for managers, and AI Budget alerts to Slack. The worked example uses invented, labelled numbers; no outside price or statistic appears.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/ai-coding-cost-per-developer article. The worked example's token counts and prices are invented sample data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

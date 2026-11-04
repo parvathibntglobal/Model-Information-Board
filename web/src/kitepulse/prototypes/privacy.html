@@ -1,0 +1,306 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Privacy-First Developer Analytics | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Privacy-first developer analytics for AI coding: what Kite Pulse reads, what is sent, what it never opens, and what each developer and admin controls.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"Privacy-First Developer Analytics","url":"/privacy","description":"What Kite Pulse reads from AI coding tools, what it sends to your own server, what it never opens, and the controls developers and admins have.","about":"privacy-first developer analytics"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Product","item":"/features"},{"@type":"ListItem","position":3,"name":"Privacy","item":"/privacy"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Does an AI coding analytics tool read or store our source code?","acceptedAnswer":{"@type":"Answer","text":"Kite Pulse does not open a project's source files. It reads the AI tools' session records, folder names and repository addresses. Session records can include excerpts of code the AI read or wrote, so with session sync on those excerpts are stored on your own server, secrets masked."}},
+{"@type":"Question","name":"How do I track AI coding usage without monitoring keystrokes?","acceptedAnswer":{"@type":"Answer","text":"Read the session history the AI coding tools already keep, instead of watching the person. Kite Pulse's desktop program does exactly that: it does not log keystrokes, take screenshots, track websites or open a project's source files. For the least data, collect token counts only."}},
+{"@type":"Question","name":"Can I track AI coding usage without reading developers' prompts?","acceptedAnswer":{"@type":"Answer","text":"Yes. Turn Session sync off and Token consumption on for a tool. The desktop program then counts tokens on the computer and sends only the numbers, never the conversation."}},
+{"@type":"Question","name":"Can managers see developers' AI prompts?","acceptedAnswer":{"@type":"Answer","text":"Yes, within their own reporting line: managers see activity figures and session details, so with session sync on they can read those sessions. They never see a developer's private prompt statistics. Admins can change what each role sees on Roles & Permissions."}},
+{"@type":"Question","name":"How are secrets and credentials handled before upload?","acceptedAnswer":{"@type":"Answer","text":"The desktop program masks 36 credential patterns before upload, such as cloud and AI provider keys, GitHub and GitLab tokens and private keys. If masking fails, that part is not sent. The server masks again before storage. Cursor and OpenCode chat text is masked on the server only."}},
+{"@type":"Question","name":"Where is AI coding usage data stored and who can access it?","acceptedAnswer":{"@type":"Answer","text":"On the Kite Pulse server your team runs, in PostgreSQL and on local disk or Amazon S3, with no vendor cloud in between. Developers see their own pages, managers their reporting line and admins everyone, enforced by the server."}},
+{"@type":"Question","name":"Is AI coding analytics GDPR compliant and can we erase a person's data?","acceptedAnswer":{"@type":"Answer","text":"Kite Pulse holds no certification, and compliance depends on how you run it, so check with your privacy officer. An admin can export or erase one person's data. Erasing anonymises the account, deletes their raw activity records and destroys their encryption keys; plain-text working copies of their sessions stay on the server."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.5rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:68ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.topnav{display:flex;gap:14px;font-size:.9rem;flex-wrap:wrap}
+.topnav a{color:var(--muted);text-decoration:none}
+.topnav a:hover{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.08rem}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.head{display:grid;gap:10px}
+.head p{color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+.pill{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.on{background:var(--good-soft);color:var(--good)}
+.pill.off{background:var(--sunk);color:var(--muted)}
+.pill.opt{background:var(--cost-soft);color:var(--cost)}
+.caveat{background:var(--cost-soft);border-radius:12px;padding:14px 16px;max-width:none}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:16px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.who{display:flex;flex-wrap:wrap;gap:4px}
+.note{font-size:.88rem;color:var(--muted)}
+
+.path{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;counter-reset:s;list-style:none;padding:0;max-width:none}
+.path li{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px;font-size:.92rem;counter-increment:s}
+.path li::before{content:counter(s);font-family:var(--mono);font-size:.72rem;color:var(--accent);font-weight:600}
+.path b{font-family:var(--display)}
+.path span{color:var(--muted)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start}
+.card h3{font-size:1rem}
+.card p{font-size:.95rem;color:var(--muted)}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .no{background:var(--sunk)} .cansee .limit{background:var(--bad-soft)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;max-width:none}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:16px} .topnav{display:none} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Product · Trust</div>
+    <h1>Privacy-first developer analytics for AI coding</h1>
+    <div class="answer">
+      <p><b>Kite Pulse is privacy-first developer analytics: it reads the session records ten AI coding tools already keep, masks secrets, and sends them only to a server your team runs.</b> It does not open a project's source files, log keystrokes, take screenshots or track websites. Session records can include excerpts of code the AI read or wrote, and nothing from a session uploads until the developer confirms their projects.</p>
+    </div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#reads">See what is collected</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "privacy-first developer analytics" in the title tag (46 characters), meta description (150 characters), H1, URL slug's page name and the bolded first sentence of the answer box. Intent: commercial and trust; readers are developers, works councils and privacy officers, so the page is a plain reference and the two blog posts carry the argument.</div>
+  </header>
+
+  <section class="block" id="reads">
+    <div class="head">
+      <h2>Developer analytics without source code access: what it reads, why, and what is sent</h2>
+      <p>A desktop program on each Windows or macOS computer reads the history the AI tools keep. This is the full list.</p>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>What it reads</th><th>Why</th><th>What is sent</th></tr></thead>
+      <tbody>
+        <tr><td>AI tool session records</td><td>Sessions, usage, work problems</td><td>Conversations and tool calls, secrets masked, encrypted before upload.</td></tr>
+        <tr><td>Token counts</td><td>Usage per developer, tool, model and project</td><td>Numbers only, over HTTPS.</td></tr>
+        <tr><td>Project folders and repository addresses</td><td>Link each session to its project</td><td>Paths, names and addresses, sent before consent so the Onboarding Wizard can show them.</td></tr>
+        <tr><td>Tool account</td><td>Shared accounts on Tool Accounts</td><td>By default a keyed hash of the account, the email domain and the plan name, never the address. For GitHub Copilot, a hashed account number.</td></tr>
+        <tr><td>Claude Code plan figures</td><td><a href="/plan-headroom">Plan headroom</a></td><td>The usage figures Claude Code saves. No login or password is read.</td></tr>
+        <tr><td>Optional reads</td><td>Branch name, package manifests, project notes and more</td><td>Nothing until an admin turns each on. Each is listed on every developer's Privacy page.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="caveat"><b>Before you sign off:</b> session records can include excerpts of code the AI read or wrote. With session sync on, those excerpts reach your server, secrets masked. Where that is too much, use counts-only mode.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "developer analytics without source code access" in this H2; the caveat keeps the claim honest (R6). Rows from MSoT 1.1 and 1.7. "Each optional read is listed on every developer's Privacy page" is from the Field Guide (Administrators › Kite Pulse app reads), detailing MSoT 1.4 Privacy page and 1.1 optional reads. The /blog/developer-analytics-without-source-code post covers the rollout argument; this table is the reference.</div>
+  </section>
+
+  <section class="block" id="path">
+    <div class="head">
+      <h2>Privacy preserving analytics, step by step</h2>
+      <p>In privacy preserving analytics the order of events is part of the safeguard. Each step happens before the next can.</p>
+    </div>
+    <ol class="path">
+      <li><b>Folder list</b><span>Detected project folders are sent for the developer to review.</span></li>
+      <li><b>Consent</b><span>The developer confirms projects. An approver signs off where required.</span></li>
+      <li><b>Mask</b><span>36 credential patterns masked on the computer. If masking fails, that part is not sent.</span></li>
+      <li><b>Encrypt</b><span>Session uploads encrypted before they leave; status records over HTTPS.</span></li>
+      <li><b>Your server</b><span>No built-in server address, no vendor cloud.</span></li>
+      <li><b>Mask again</b><span>The server masks secrets again before storage.</span></li>
+    </ol>
+    <p class="note">Cursor and OpenCode chat text is masked on the server only; their login stores are never sent. More in <a href="/blog/ai-secret-scanning">AI secret scanning</a>.</p>
+  </section>
+
+  <section class="block" id="counts">
+    <h2>Track token usage without collecting prompts</h2>
+    <p>Each tool has two switches on <b>Tools</b>: Session sync (the conversations) and Token consumption (counts only). With Session sync off and Token consumption on, the program counts tokens on the computer and sends only the numbers, never the conversation.</p>
+  </section>
+
+  <section class="block" id="developers">
+    <div class="head">
+      <h2>Safeguards for developers</h2>
+      <p>Developer analytics without keystroke tracking works when developers can check it themselves. Each person has a Privacy page showing every data point collected about them, whether it is on, and who can see it.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Privacy page <span class="sample">Sample data</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Data point</th><th>Status</th><th>Who can see it</th></tr></thead>
+        <tbody id="privacyRows"></tbody>
+      </table></div>
+      <p class="note">Illustrative rows for one fictional developer.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><h3>Private prompt statistics</h3><p>Most repeated prompt, thank-you count, reply pace and similar. The server removes them for everyone but you.</p></div>
+      <div class="card"><h3>Your projects</h3><p>Confirm, rename, split or remove your projects on My Projects.</p></div>
+      <div class="card"><h3>Scope enforced by the server</h3><p>Developers see their own pages, managers their reporting line, admins everyone.</p></div>
+    </div>
+    <p>This is not pseudonymised developer analytics: people are named to those allowed to see them. What is pseudonymised by default is the AI tool account. More in <a href="/blog/developer-analytics-without-keystroke-tracking">developer analytics without keystroke tracking</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "developer analytics without keystroke tracking" and "pseudonymised developer analytics" in this section, the second used honestly: people are named, tool accounts are pseudonymised (MSoT 1.7). Sample view uses the console page name Privacy (was Transparency). Facts: MSoT 1.4 and 1.7.</div>
+  </section>
+
+  <section class="block" id="admins">
+    <h2>Controls for admins</h2>
+    <ul>
+      <li><b>Tools.</b> All ten tools are on in a new install; switch any off, or collect counts only.</li>
+      <li><b>Projects</b> an admin switches off are not read at all. Onboarding Approvals is on by default.</li>
+      <li><b>Optional reads</b> stay off until turned on under Settings › Retention › Kite Pulse app reads.</li>
+      <li><b>Roles &amp; Permissions.</b> A view and edit grid per page for each role.</li>
+      <li><b>AI labelling is opt-in.</b> If turned on, scrubbed text goes to the AI provider through OpenRouter (default policy: zero data retention), logged in the AI Call Log.</li>
+      <li><b>Retention.</b> Set how long data is kept; deletion applies once the server operator enables it.</li>
+      <li><b>Export or erase</b> one person's data; both are recorded in the <b>Audit Log</b>. More on the <a href="/security">security page</a>.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="not">
+    <h2>What Kite Pulse does not do</h2>
+    <div class="cansee">
+      <div class="no"><h3>Does not</h3><ul>
+        <li>Open project source files</li>
+        <li>Log keystrokes or take screenshots</li>
+        <li>Track websites</li>
+        <li>Send data to a vendor cloud</li>
+        <li>Send tool account email addresses by default</li>
+        <li>Need an AI service to work</li>
+      </ul></div>
+      <div class="limit"><h3>Limits to know</h3><ul>
+        <li>Erasing a person anonymises the account, deletes raw activity records and destroys their encryption keys. Plain-text working copies of their sessions stay on the server.</li>
+        <li>Stored sessions are scrubbed but not encrypted by the app. Protection of stored data comes from your server's own disk encryption, or S3 on AWS.</li>
+      </ul></div>
+    </div>
+    <div class="seo"><b>SEO</b>Erase wording from MSoT 1.6 and Website corrections (plain-text copies remain). The at-rest limit is stated as a limit from MSoT 2.4 (R9 honesty), never as a feature. Retention wording per R6.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about privacy</h2>
+    <div>
+      <details open><summary>Does an AI coding analytics tool read or store our source code?</summary><p>Kite Pulse does not open a project's source files. It reads the AI tools' session records, folder names and repository addresses. Session records can include excerpts of code the AI read or wrote, so with session sync on those excerpts are stored on your own server, secrets masked.</p></details>
+      <details><summary>How do I track AI coding usage without monitoring keystrokes?</summary><p>Read the session history the AI coding tools already keep, instead of watching the person. Kite Pulse's desktop program does exactly that: it does not log keystrokes, take screenshots, track websites or open a project's source files. For the least data, collect token counts only.</p></details>
+      <details><summary>Can I track AI coding usage without reading developers' prompts?</summary><p>Yes. Turn Session sync off and Token consumption on for a tool. The desktop program then counts tokens on the computer and sends only the numbers, never the conversation.</p></details>
+      <details><summary>Can managers see developers' AI prompts?</summary><p>Yes, within their own reporting line: managers see activity figures and session details, so with session sync on they can read those sessions. They never see a developer's private prompt statistics. Admins can change what each role sees on Roles &amp; Permissions.</p></details>
+      <details><summary>How are secrets and credentials handled before upload?</summary><p>The desktop program masks 36 credential patterns before upload, such as cloud and AI provider keys, GitHub and GitLab tokens and private keys. If masking fails, that part is not sent. The server masks again before storage. Cursor and OpenCode chat text is masked on the server only.</p></details>
+      <details><summary>Where is AI coding usage data stored and who can access it?</summary><p>On the Kite Pulse server your team runs, in PostgreSQL and on local disk or Amazon S3, with no vendor cloud in between. Developers see their own pages, managers their reporting line and admins everyone, enforced by the server.</p></details>
+      <details><summary>Is AI coding analytics GDPR compliant and can we erase a person's data?</summary><p>Kite Pulse holds no certification, and compliance depends on how you run it, so check with your privacy officer. An admin can export or erase one person's data. Erasing anonymises the account, deletes their raw activity records and destroys their encryption keys; plain-text working copies of their sessions stay on the server.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Six of the brief's twelve questions, word for word, mirrored in FAQPage JSON-LD. The rest overlap these or the two blog posts. The GDPR answer makes no compliance claim (no certification exists, MSoT 2.5; privacy policy comes from legal).</div>
+  </section>
+
+  <section class="block">
+    <h2>Related pages</h2>
+    <ul class="related">
+      <li><a href="/self-hosted">Self-hosted deployment<span>Where the server runs</span></a></li>
+      <li><a href="/security">Security<span>Sign-in and audit log</span></a></li>
+      <li><a href="/integrations">Integrations<span>The ten supported tools</span></a></li>
+      <li><a href="/blog/developer-analytics-without-source-code">Developer analytics without source code access<span>For HR and works councils</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Check it against your own privacy rules</h3>
+      <p>Walk your privacy officer through the Privacy page, the Tools switches and an erase on a test account.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: privacy-first developer analytics. Intent: commercial / trust. Facts from MSoT Section 1: 1.1 (ten tools, two switches, counts-only, 36 patterns, encryption, no built-in server address, consent, optional reads), 1.2 (Tool Accounts, plan figures), 1.4 (roles, Privacy page, private prompt statistics, My Projects), 1.5 (AI labelling, AI Call Log), 1.6 (Roles &amp; Permissions, export and erase, Audit Log, Retention), 1.7 (all), 1.8 (where it runs, PostgreSQL, disk or S3). Detail: "managers see activity figures and session details for their own team" from Product Overview section 12, detailing MSoT 1.4 All Developers. Left out: "every table has an erase rule" (Field Guide; conflicts in spirit with plain-text copies remaining), Field Guide retention defaults (deletion needs the operator), full account addresses via a server setting (MSoT 2.1), the Agent API and MCP (operator setup), Leaked Credentials, The Office presence detail. Secondary keyword "privacy preserving product analytics" not used: this is not product analytics, and using it would mislead.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /privacy page. The Privacy page rows are sample data for a fictional developer; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* SAMPLE DATA: illustrative Privacy page rows for one fictional developer. Not a customer. */
+  const SAMPLE_PRIVACY_PAGE=[
+    {item:'Session conversations and tool calls',status:'on',who:['You','Your manager','Admins']},
+    {item:'Token counts',status:'on',who:['You','Your manager','Admins']},
+    {item:'Private prompt statistics',status:'on',who:['Only you']},
+    {item:'Project folder paths',status:'on',who:['You','Project contributors','Admins']},
+    {item:'Tool account (keyed hash, email domain, plan)',status:'on',who:['Admins']},
+    {item:'Current branch name',status:'off',who:['Optional read']},
+    {item:'Project notes (README, CLAUDE.md)',status:'off',who:['Optional read']}
+  ];
+  const label={on:'<span class="pill on">On</span>',off:'<span class="pill off">Off</span>'};
+  $('privacyRows').innerHTML=SAMPLE_PRIVACY_PAGE.map(r=>`<tr><td>${r.item}</td><td>${label[r.status]}</td><td><div class="who">${r.who.map(w=>`<span class="pill${w==='Only you'?' opt':''}">${w}</span>`).join('')}</div></td></tr>`).join('');
+})();
+</script>
+
+</body></html>

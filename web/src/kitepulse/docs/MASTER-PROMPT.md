@@ -1,13 +1,18 @@
 # Kite Pulse — Master prompt for page generation
 
-Written 2026-10-22. This is the prompt that generates one page of the Kite
-Pulse website. The three existing pages (`/ai-cost-tracking`, `/shadow-ai`,
-`/ai-coding-assistant-pricing`) set the standard it describes.
+Written 2026-10-22; product facts updated 2026-10-28 to the Master Source of
+Truth. This is the prompt that generates one page of the Kite Pulse website.
+The three existing pages (`/ai-cost-tracking`, `/shadow-ai`,
+`/ai-coding-assistant-pricing`) set the standard for layout and tone. Their
+product claims were written from the Product Guide and are out of date where
+the Master Source of Truth's "Website corrections" says so.
 
 ## How to use it
 
 1. Copy everything inside the **PROMPT** block below into a new Claude chat.
-2. Attach `Kite Pulse — Product Guide.md` (this folder).
+2. Attach `Kite Pulse Website Content — Master Source of Truth.md` (this
+   folder). It is the only source for product claims. Attaching
+   `Kite Pulse — Product Guide.md` as well is optional, for tone only.
 3. Fill in the **PAGE BRIEF** at the end. Every field comes from the keyword
    sheet: Admin → Kite Pulse SEO → Pages → open the page → **Brief** shows
    them all.
@@ -32,22 +37,29 @@ to book a demo.
 ────────────────────────────────────────────────────────────────────────
 1. WHAT KITE PULSE IS
 ────────────────────────────────────────────────────────────────────────
-Kite Pulse shows a team how its software is really being built, now that much
-of that work happens in conversation with AI coding assistants. A small
-background program on each developer's computer reads the session history the
-AI tools already keep, strips out secrets, and sends it to the team's own Kite
-Pulse server. The web console shows who works on what, how AI tools are used,
-what they cost, and where work gets stuck.
+Kite Pulse shows a team how its software is built with AI coding assistants.
+It reads the session history ten AI coding tools already keep on each
+developer's computer, masks secrets, and sends it to a Kite Pulse server the
+team runs itself. A web console turns those sessions into a picture of who is
+working on what, how AI tools are used, what they are estimated to cost, how
+close people are to their Claude plan limits, and where work gets stuck.
 
-The attached Product Guide is the ONLY source for anything you say about Kite
-Pulse. Read it fully before writing.
+The attached Master Source of Truth (MSoT) is the ONLY source for anything you
+say about Kite Pulse. Read it fully before writing.
+  - Section 1 (Verified features) may be claimed.
+  - Section 2 (Unverified features) stays off the page, or appears only as
+    "coming soon".
+  - "Website corrections" overrides older wording. Use the console page names
+    in its "Page names to update" table.
+  - If a Product Guide is also attached, use it for tone only. Where it and
+    the MSoT differ, the MSoT wins.
 
 ────────────────────────────────────────────────────────────────────────
 2. RULES THAT ARE NEVER BROKEN
 ────────────────────────────────────────────────────────────────────────
 R1  No invented product claims. Every statement about what Kite Pulse does,
-    collects, supports or costs must be traceable to a sentence in the Product
-    Guide. If the guide does not say it, do not say it. Prefer the guide's own
+    collects, supports or costs must be traceable to a sentence in Section 1
+    of the MSoT. If Section 1 does not say it, do not say it. Prefer its own
     wording.
 R2  No invented numbers. Do not make up statistics, customer counts, time
     savings, percentages, benchmark results or testimonials.
@@ -59,22 +71,65 @@ R2  No invented numbers. Do not make up statistics, customer counts, time
       page: pages carry no Sources list or citation markers (decided
       2026-10-23). The page names the source in words ("METR's 2025 study").
       If you cannot verify it, write it as a placeholder and say so on the page.
-R3  Features switched off in the current release must not be promoted: Trends,
-    Activity Rhythm, Coaching & Risk, Cost & ROI, Comparisons, Intelligence,
-    Knowledge Base, Tech-Debt Radar, Ask Kite Pulse.
+R3  Hidden or switched-off features must not be promoted: Activity Rhythm,
+    Coaching & Risk, Cost & ROI (and any "billable view with a markup"),
+    Comparisons, Intelligence, Knowledge Base, Tech-Debt Radar, Ask Kite
+    Pulse / AI Chat, The Brain, Project Details, Events & Policies. Trends is
+    visible again and may be mentioned.
 R4  Never use these terms or framings: employee monitoring, keystroke logging,
     screenshot monitoring, code quality scanner, LLM observability, developer
-    performance ranking. Kite Pulse is "historian, not critic": it describes
-    what happened and never grades a person.
-R5  Supported tools are exactly ten: Claude Code, Codex, Gemini CLI, Cursor,
-    GitHub Copilot, Cline, Roo Code, Kilo Code, OpenCode, Aider. Never imply
-    any other tool is supported.
-R6  Privacy facts to keep exact: it does not read or upload source files;
-    secrets are removed on the developer's computer before upload; data goes
-    only to the team's own server, with no vendor cloud in between; nothing
-    syncs until the developer confirms their projects; cost figures are
-    estimates, not the vendor's invoice.
-R7  Be honest about scope. When a competitor or another approach fits better
+    performance ranking. Kite Pulse describes what happened. Do not write the
+    absolute "never grades or ranks people": Organisation Overview has a "Top
+    performers" panel and Team Overview lists "Most active today", and the
+    owner has not decided yet (MSoT "Owner decisions").
+R5  Supported tools are exactly ten, all collected out of the box (an admin
+    can switch any off, or collect token counts only): Claude Code, Codex,
+    Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo
+    Code, OpenCode, Aider. Say "GitHub Copilot Chat in VS Code": inline
+    completions, JetBrains and Copilot CLI are not collected. Never imply any
+    other tool is supported.
+R6  Privacy facts to keep exact:
+    - It reads the AI tools' session records, folder names and repository
+      addresses. It does not open source files, log keystrokes, take
+      screenshots or track websites. Session records can include excerpts of
+      code the AI read or wrote.
+    - Secrets are MASKED (not "removed"): on the computer before upload, and
+      again on the server. For Cursor and OpenCode chat text, on the server
+      only.
+    - Uploads are encrypted in transit. Never claim encryption at rest.
+    - Data goes only to the team's own server, with no vendor cloud between.
+    - No session content uploads until the developer confirms their projects
+      (and an approver signs off where required). Only the detected folder
+      list is sent first, so the Onboarding Wizard can show it.
+    - Tool accounts: a keyed hash of the account, the email domain and the
+      plan name are sent by default, never the address.
+    - Erasing a person anonymises the account, deletes raw activity records
+      and destroys their keys. Never say all their data is deleted.
+    - Retention: "set how long data is kept", never "data is deleted
+      automatically".
+R7  Cost and plan limits, keep exact:
+    - Cost is an ESTIMATE from list prices, "not billed spend". Priced: Claude
+      and Gemini models, plus the tool's own reported cost for Aider, Cline,
+      Roo Code, Kilo Code and OpenCode. Codex, Cursor and Copilot usually show
+      "—", never $0. Never claim cost for all ten tools.
+    - Team AI Usage shows cost per tool and never adds it up across tools.
+      Per team or project, cost appears only in AI Budgets (monthly, tokens or
+      US dollars, alerts at 80% and 100%; a dollar budget sums priced tools
+      only and reports unpriced tokens separately). Cost per developer is
+      admin-only.
+    - Plan headroom is Claude Code only: 5-hour, weekly and per-model weekly
+      windows; "near" is 80% or more, "at limit" is 100%. Other tools show
+      "Not reported by this tool". Never say "plan limits across tools".
+R8  Never claim (MSoT Section 2): SSO, two-factor sign-in, encryption at rest,
+    a hosted SaaS version, open source, signed releases or updates, a Linux
+    installer, a Windows server installer, certifications (SOC 2, ISO 27001),
+    automatic leaked-credential scanning, or detecting AI tools the
+    organisation has not switched on (shadow AI is limited to Tool Accounts'
+    "Shared" flag and email domains, and the optional installed-tools read).
+    The Agent API and MCP server are "available when enabled", never a
+    default feature. Prices, plans, trials, customers and quotes are business
+    facts the owner supplies: leave a visible placeholder, never invent them.
+R9  Be honest about scope. When a competitor or another approach fits better
     (e.g. git/Jira-based tools for DORA metrics), say so. Honesty about limits
     is a ranking and trust asset, not a weakness.
 
@@ -136,14 +191,16 @@ Interactive tool (e.g. /ai-coding-assistant-pricing)
 
 Integration (/integrations/<tool>)
   H1 "<Tool> analytics for your whole team" -> what Kite Pulse collects from
-  this tool and what it does not -> what you see (usage, cost, plan limits,
-  sessions) -> setup steps from the guide's "Getting started" -> privacy note
-  -> FAQ -> links to the other integrations and /integrations. All ten
-  integration pages share this layout; only the tool's facts change.
+  this tool and what it does not (the tool's row in the MSoT 1.1 "What each
+  tool provides" table) -> what you see (usage, sessions; cost only as that
+  row states it; plan limits for Claude Code only) -> setup steps from the
+  MSoT "How it works" and 1.1 -> privacy note -> FAQ -> links to the other
+  integrations and /integrations. All ten integration pages share this
+  layout; only the tool's facts change.
 
 Feature (/features, /plan-headroom)
   H1 -> short answer -> one section per feature with a sample view -> who uses
-  it and when (the guide's "Day to day, by role" table) -> FAQ -> CTA.
+  it and when (the MSoT "Who it is for" table) -> FAQ -> CTA.
 
 Trust (/privacy, /self-hosted, /security)
   Plain statements, no marketing tone -> "What it reads / why / what is sent"
@@ -164,9 +221,11 @@ Glossary (/glossary/<term>)
   (why it matters, an example, what to do instead) -> related terms -> FAQ.
 
 Home (/)
-  Hero (headline that defines the category, one line from the guide, "Book a
-  demo" + "See the platform") -> the problem -> platform feature tabs ->
-  privacy -> integrations -> guides -> FAQ -> demo CTA.
+  Hero (headline that defines the category, one line from the MSoT product
+  summary, "Book a demo" + "See the platform") -> the problem -> platform
+  feature tabs -> privacy -> integrations -> guides -> FAQ -> demo CTA. KPI
+  figures and charts are placeholders labelled "Sample data" until a named
+  deployment supplies them (MSoT 2.5).
 
 ────────────────────────────────────────────────────────────────────────
 5. WRITING STYLE
@@ -177,11 +236,13 @@ Home (/)
   cutting-edge, leverage, empower.
 - No em-dash asides, no "not X but Y" framing, no rhetorical questions as
   headings except FAQ items.
-- Name things the way the reader does (see the guide's "How people describe
-  this kind of product" table), then Kite Pulse's term.
+- Name things the way the reader does, then Kite Pulse's term. Console pages
+  use their current names (Team Overview, All Projects, Work Problems,
+  Machines, Privacy...), never the old ones (Org Overview, Organization
+  Projects, Fleet, Transparency...).
 - Kite Pulse appears where it genuinely helps, at most once or twice outside
   the CTA. The page must be useful to someone who never buys.
-- British or American spelling: follow the Product Guide (British: organisation).
+- British or American spelling: follow the MSoT (British: organisation).
 
 ────────────────────────────────────────────────────────────────────────
 6. DESIGN SYSTEM (match the existing pages exactly)
@@ -245,7 +306,9 @@ Also:
    - Each secondary keyword -> the heading or paragraph that uses it. List any
      you left out, and why.
    - Each FAQ question -> answered (yes/no).
-   - Every claim about Kite Pulse -> the Product Guide section it comes from.
+   - Every claim about Kite Pulse -> the MSoT Section 1 item it comes from
+     (e.g. "1.2 Plan headroom"). Anything you wanted to say but found only in
+     Section 2, listed separately as left out.
    - Every outside fact -> its source link and checked date (for the data
      file or SEO notes, not the page), or "placeholder, not verified".
    - Anything in the brief you could not do.
@@ -277,8 +340,9 @@ Interactive parts wanted: [from the angle, or "suggest 1–3"]
 | Section | Reason |
 |---|---|
 | R1–R2 | The site's credibility depends on it. A page that promises a feature Kite Pulse does not have, or quotes an invented statistic, costs more trust than it earns traffic. The same rule runs the Model Information Board: a model may propose words, never facts. |
-| R3–R4 | From the sheet's **Keywords to Avoid** tab. |
+| R1, R3, R5–R8 | From the Master Source of Truth (28 Oct 2026), which checked every claim against the code. It replaced the Product Guide (13 Oct) as the source because the guide overstated cost coverage, plan limits, privacy wording and Copilot support, and named switched-off pages. |
+| R4 | From the sheet's **Keywords to Avoid** tab, softened where the MSoT's owner decisions are still open. |
 | S4, S6, S8 | What competitors' ranking pages do, and what AI assistants quote. Mentlio's guides (reviewed 2026-10-22) carry a bolded definition, author, updated date and sources; ours carry the first three. Sources were dropped from pages on 2026-10-23 (product decision) and live in each page's data file instead. |
 | S7 | Interactive pages beat text-only competitors, but only if a crawler can read the method without running the widget. |
 | Section 7 | The site preview (`KitePulseSite.jsx`, `EMBED`) hides the prototype's own logo, SEO switch, SEO notes and footer by these class names. A page that renames them shows a second logo inside the site. |
-| Section 8 | The report is what a reviewer checks before the page is saved into `prototypes/`. Without it, review means re-reading the page against the guide by hand. |
+| Section 8 | The report is what a reviewer checks before the page is saved into `prototypes/`. Without it, review means re-reading the page against the MSoT by hand. |

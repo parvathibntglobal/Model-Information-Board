@@ -1,0 +1,246 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Cursor Shared Account: A Finance Story | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A Cursor shared account and a team at 80% of its AI budget: an illustrative finance story on finding shared logins and acting before the budget runs out.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Cursor Shared Account and the Budget at 80%: A Finance Story","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Cursor shared account"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"The Cursor Shared Account and the Budget at 80%","item":"/blog/cursor-shared-account"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I know if developers are sharing AI tool accounts?","acceptedAnswer":{"@type":"Answer","text":"Compare the accounts each tool runs under with the people who use them. A vendor's admin console shows its own seats; to see one login used by several people, you need the usage side as well. Kite Pulse's Tool Accounts page counts the signed-in accounts each tool runs under and marks any account used by more than one person as \"Shared\", for Claude Code, Codex, Cursor, OpenCode and GitHub Copilot."}},
+{"@type":"Question","name":"How can I find shared or unused AI tool accounts?","acceptedAnswer":{"@type":"Answer","text":"Shared accounts show up as one account with several people behind it; Tool Accounts flags these as \"Shared\" and also shows plan tier, machines, last seen and email domain. Unused seats are the other way round: a seat on the vendor's list whose account never appears in session activity, or whose last-seen date is old. Put the vendor's seat list beside Tool Accounts and the gaps are visible."}},
+{"@type":"Question","name":"can cursor share account","acceptedAnswer":{"@type":"Answer","text":"Whether one Cursor account may be shared is set by Cursor's own terms and your plan, so check those with Cursor directly; this page does not state them. What you can check yourself is whether it happens. Kite Pulse reads the Cursor account and membership type from each developer's computer, and Tool Accounts marks an account used by more than one person as \"Shared\"."}},
+{"@type":"Question","name":"Can I set spending limits and receive alerts when teams exceed their budgets?","acceptedAnswer":{"@type":"Answer","text":"In Kite Pulse, admins set a monthly budget per team or per project, in tokens or estimated US dollars, with alerts at 80% and 100%. The budget is an alert, not a hard limit: Kite Pulse reads usage from session history, so it does not stop anyone using a tool. A dollar budget adds up the priced tools only and reports unpriced tokens, such as most Cursor use, separately."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);border-radius:6px;padding:3px 8px;justify-self:start}
+.story{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:12px}
+.story .time{font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Use cases</div>
+    <h1>The Cursor Shared Account and the Budget at 80%: A Finance Story</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>A Cursor shared account is one Cursor login used by more than one person, and finance usually finds out late, because the seat list shows one account and nothing about the people behind it.</b> The way to catch it is to look at usage, not seats: which accounts each tool actually runs under, and who uses each one. Pair that with a monthly AI budget per team that warns at 80%, and both problems surface while there is still time to act.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "cursor shared account" in the title tag (51 characters), H1, URL and the bolded first sentence of the answer box. Meta description 153 characters. Intent is commercial: the story shows the decision being made, then the page compares ways to find shared accounts and set budget alerts.</div>
+  </header>
+
+  <section class="block" id="story">
+    <h2>One Thursday in finance</h2>
+    <span class="label">Illustrative example, not a customer case</span>
+    <p>The company, people and timings below are invented to show how the pieces fit together. The product behaviour described is real; the situation is a composite.</p>
+    <div class="story">
+      <span class="time">Thursday, late morning</span>
+      <p>Dana handles software spend for the engineering group. The console's Tool Accounts page is admin only by default; Dana's admin has granted it to her on Roles &amp; Permissions. She opens it to prepare the quarter's seat renewals.</p>
+      <p>Most rows are what she expects: one account per person, a plan tier, the machines each account was seen on, and a recent last-seen date. One Cursor account is different. It is marked <b>Shared</b>: two people have used it in the period, on two different machines.</p>
+      <span class="time">Thursday, midday</span>
+      <p>Dana asks the team lead before drawing any conclusion. The answer is ordinary. A developer who joined three weeks earlier was waiting on a Cursor seat, and a colleague let him work under her login to get started. Nobody was hiding anything; the request had stalled in a queue.</p>
+      <p>Dana buys the missing seat that afternoon. The two developers now have their own accounts, so their work shows under their own names, and the renewal count matches the people who actually use the tool.</p>
+      <span class="time">Thursday, early afternoon</span>
+      <p>While she is in the console, an AI Budgets alert is waiting: a different team has passed <b>80%</b> of its monthly AI budget with more than a week of the month left. The budget is in estimated US dollars, so it adds up the priced tools only, and the page reports that team's unpriced tokens separately.</p>
+      <p>Dana does not freeze anything. She talks to that team's manager the same day. Together they look at Team AI Usage to see which tools, models and projects the tokens went to. Most of the increase sits on one project with a deadline. They agree to raise that team's budget for the month and review the project's AI use at month end, rather than meet the 100% alert by surprise.</p>
+    </div>
+    <p>Two small problems, found early, each settled with one conversation.</p>
+    <div class="seo"><b>SEO</b>Story from the Product Overview, section 7 ("Kite Pulse in real life: one week", Thursday midday row), which itself says names and numbers are illustrations. Every feature used is in MSoT Section 1: Tool Accounts (1.2), Roles &amp; Permissions (1.4), AI Budgets (1.2), Team AI Usage (1.2). "Three weeks" and "more than a week" are invented story details, labelled illustrative above.</div>
+  </section>
+
+  <section class="block" id="why-shared">
+    <h2>Why shared AI tool accounts matter to finance</h2>
+    <p>Shared AI tool accounts are rarely a policy decision. They happen when a seat request is slow, a contractor needs access for a week, or a team buys one licence "to try it". Each case is small. Together they cause three problems.</p>
+    <ul>
+      <li><b>The seat count is wrong.</b> You pay for fewer seats than the number of people who depend on the tool, so the next budget is planned on a false base.</li>
+      <li><b>Usage lands on the wrong person.</b> Two people's work appears as one account's work, which muddies any per-person or per-project view of AI use.</li>
+      <li><b>Access outlives the reason for it.</b> When one of the people leaves or moves team, a shared login keeps working for whoever still has it.</li>
+    </ul>
+    <p>Whether a given vendor allows one account to be used by several people is a question for that vendor's terms and your contract with them. This article does not answer it for Cursor or any other tool. The practical question finance can answer is simpler: is it happening, and where?</p>
+  </section>
+
+  <section class="block" id="find">
+    <h2>How to find shared and unused accounts</h2>
+    <p>There are three common ways to check, and they answer different parts of the question.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Method</th><th>What it shows well</th><th>What it misses</th></tr></thead>
+        <tbody>
+          <tr><td>Vendor admin console</td><td>The seats you bought from that vendor, and its billed spend. The source of truth for invoices.</td><td>One tool at a time, and usually not how many people sit behind one login.</td></tr>
+          <tr><td>Spreadsheet audit</td><td>Seats against headcount, once a quarter.</td><td>Anything that changed since the last audit, and any login shared quietly.</td></tr>
+          <tr><td>Session history</td><td>Which accounts each tool actually runs under, and how many people use each one.</td><td>Billed amounts; it reads usage, not invoices.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Kite Pulse takes the third route. Its desktop program reads the session history AI coding tools already keep on each developer's computer, and the <b>Tool Accounts</b> page counts how many separate signed-in accounts each tool runs under. Any account used by more than one person is marked "Shared". Each row also shows plan tier, machines, last seen and email domain. It works for five tools: Claude Code, Codex, Cursor, OpenCode and GitHub Copilot. For Cursor it shows the account and its membership type.</p>
+    <p>Unused seats are the mirror image. A seat on the vendor's list whose account never appears, or whose last-seen date is weeks old, is a candidate to cancel or move. Admins can enter what each tool's seats cost under Hourly Rates &amp; Seat Prices, and those prices then appear on the Team AI Usage Overview beside how much each tool is used.</p>
+    <p>Two privacy points matter here. By default only a keyed hash of each account, the email domain and the plan name are sent, never the email address. And the email domain is itself useful: a personal domain on a work tool shows someone is using a private account for company work. That is one of the signals described on our <a href="/shadow-ai">page on shadow AI and unapproved tool use</a>, along with what it cannot see.</p>
+    <div class="seo"><b>SEO</b>FAQ intent "find shared or unused AI tool accounts" answered in body. Facts: MSoT 1.2 (Tool Accounts, Hourly Rates &amp; Seat Prices), 1.1 table (Cursor: account and membership type), 1.7 (pseudonymised accounts). "Personal email domain reveals personal accounts used for work" is from the Product Overview (section on spend features) and MSoT Website corrections row for /shadow-ai. The method table is general guidance, no product claims about vendors' consoles beyond the obvious.</div>
+  </section>
+
+  <section class="block" id="budgets">
+    <h2>An AI budget per team, with alerts at 80% and 100%</h2>
+    <p>The second half of the story is a budget question. An AI budget per team turns a monthly number into an early warning, and the warning is only useful if it arrives with enough of the month left to talk.</p>
+    <p>In <a href="/ai-budgets">AI Budgets</a>, admins set a monthly budget per team or per project, in tokens or in estimated US dollars. The AI coding budget alerts fire at 80% and at 100%. The 80% alert is the one that matters for planning: at that point you can still raise the budget, move work, or agree to accept the overrun, with a reason written down.</p>
+    <p>Choose the unit with your tools in mind. A dollar budget adds up only the priced tools: Claude and Gemini models from list prices, and the cost Aider, Cline, Roo Code, Kilo Code and OpenCode report themselves. Cursor usually shows no cost, a dash rather than $0, and so do Codex and Copilot. Their tokens appear as unpriced tokens beside the dollar figure. For a team that works mostly in Cursor, read that line as carefully as the dollar bar.</p>
+    <p>All of it is an estimate from list prices, "not billed spend". The vendor invoice remains the record of what you paid. Our guide to <a href="/ai-cost-tracking">tracking AI coding costs</a> explains how to reconcile the two, and the <a href="/integrations/cursor">Cursor integration page</a> lists exactly what is read from Cursor.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Tool Accounts and AI Budgets sit in the same console, fed by the same session history. Finance sees shared seats and budget pressure from usage the tools recorded themselves, on a server the team runs, with nothing for developers to log.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keywords "ai budget per team" (H2 and first paragraph) and "ai coding budget alerts" (second paragraph); "ai spend alerts" in the limits section. Facts: MSoT 1.2 (AI Budgets, Estimated cost per tool) and R7. The one Kite Pulse callout on the page.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What AI spend alerts can and cannot do</h2>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What this view gives finance</h3>
+        <ul>
+          <li>Accounts per tool, with shared ones marked, for five tools</li>
+          <li>Plan tier, machines, last seen and email domain per account</li>
+          <li>Seat prices beside usage, for admins</li>
+          <li>Monthly budgets per team or project, alerting at 80% and 100%</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What it does not do</h3>
+        <ul>
+          <li>Stop anyone using a tool: AI spend alerts warn, they do not block</li>
+          <li>Price most Cursor, Codex or Copilot use</li>
+          <li>Show billed spend, or a cost total across tools</li>
+          <li>Find AI tools the organisation has not switched on</li>
+          <li>Show accounts for Gemini CLI, Cline, Roo Code, Kilo Code or Aider</li>
+        </ul>
+      </div>
+    </div>
+    <p>If what you need is a hard spending cap, set it in the vendor's own billing settings where the vendor offers one. Usage data tells you where to set it and when a team is getting close.</p>
+    <div class="seo"><b>SEO</b>"Does not block" follows from how the product works (it reads session history after the fact, MSoT summary and 1.1); no blocking feature exists in Section 1. Tools without accounts from the MSoT 1.1 table (Gemini CLI: none; Cline, Roo Code, Kilo Code, Aider: no login). Shadow AI limit from MSoT 2.3 and R8.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about shared accounts and AI budgets</h2>
+    <div>
+      <details open><summary>How do I know if developers are sharing AI tool accounts?</summary><p>Compare the accounts each tool runs under with the people who use them. A vendor's admin console shows its own seats; to see one login used by several people, you need the usage side as well. Kite Pulse's Tool Accounts page counts the signed-in accounts each tool runs under and marks any account used by more than one person as "Shared", for Claude Code, Codex, Cursor, OpenCode and GitHub Copilot.</p></details>
+      <details><summary>How can I find shared or unused AI tool accounts?</summary><p>Shared accounts show up as one account with several people behind it; Tool Accounts flags these as "Shared" and also shows plan tier, machines, last seen and email domain. Unused seats are the other way round: a seat on the vendor's list whose account never appears in session activity, or whose last-seen date is old. Put the vendor's seat list beside Tool Accounts and the gaps are visible.</p></details>
+      <details><summary>can cursor share account</summary><p>Whether one Cursor account may be shared is set by Cursor's own terms and your plan, so check those with Cursor directly; this page does not state them. What you can check yourself is whether it happens. Kite Pulse reads the Cursor account and membership type from each developer's computer, and Tool Accounts marks an account used by more than one person as "Shared".</p></details>
+      <details><summary>Can I set spending limits and receive alerts when teams exceed their budgets?</summary><p>In Kite Pulse, admins set a monthly budget per team or per project, in tokens or estimated US dollars, with alerts at 80% and 100%. The budget is an alert, not a hard limit: Kite Pulse reads usage from session history, so it does not stop anyone using a tool. A dollar budget adds up the priced tools only and reports unpriced tokens, such as most Cursor use, separately.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Four FAQ questions from the brief, word for word (including the lower-case search phrasing "can cursor share account"), mirrored in FAQPage JSON-LD. That question is answered honestly without stating Cursor's terms, which are an outside fact not verified for this page.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-budgets">AI Budgets<span>Monthly budgets per team or project, with 80% and 100% alerts</span></a></li>
+      <li><a href="/blog/engineering-ai-spend-report">The engineering AI spend report<span>What finance should see each month, and its limits</span></a></li>
+      <li><a href="/shadow-ai">Shadow AI<span>Shared accounts, personal domains and what stays invisible</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Find shared seats before the renewal</h3>
+      <p>Run Kite Pulse on your own server and see which accounts each AI tool runs under, with budgets per team or project.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: cursor shared account. Intent: commercial. Story labelled illustrative (R2); based on the Product Overview section 7 Thursday midday row. Facts from MSoT Section 1 (1.1 tool table, 1.2 Tool Accounts, AI Budgets, estimated cost, seat prices, Team AI Usage, 1.4 Roles &amp; Permissions, 1.7 pseudonymised accounts). Left out on purpose: Cursor's own account-sharing terms (outside fact, unverified); how AI Budgets alerts are delivered (Slack delivery is Field Guide only; MSoT does not tie budget alerts to a channel); the token pace line; full email addresses (operator setting, MSoT 2.1); the installed-tools read; any cost total across tools.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/cursor-shared-account article. The finance story, its people and timings are illustrative; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

@@ -1,0 +1,261 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Claude Code Agent Features Usage Across a Team | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Claude Code agent features usage by session and developer: sub-agents, plan mode, worktrees, MCP tools and models, so you invest in what is used.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Claude Code Agent Features Usage: Invest in the Tooling Your Team Actually Uses","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-11-02","dateModified":"2026-11-02","about":"Claude Code agent features usage"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Claude Code Agent Features Usage","item":"/blog/claude-code-agent-features-usage"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Which Claude Code features (sub-agents, plan mode, MCP tools) does my team use?","acceptedAnswer":{"@type":"Answer","text":"Read it from the Claude Code session history rather than asking around, because each session records the agent features it used. In Kite Pulse, the Agent features tab of Team AI Usage shows which Claude Code agent features sessions used, including sub-agents, background commands, plan mode, worktrees and MCP tools, by session and by developer. It covers Claude Code only; other tools do not appear on that tab."}},
+{"@type":"Question","name":"How can I track which AI models (Opus, Sonnet, GPT) my team uses?","acceptedAnswer":{"@type":"Answer","text":"Use the model name each AI session records, counted per developer and over time. Kite Pulse's Models tab shows developers per model, model adoption over time and models by project, across the ten supported tools, so Claude models from Claude Code and GPT models from Codex sit in one view. Cursor records a model name only when one model served the whole chat, and GitHub Copilot Chat in VS Code only when it was recorded."}},
+{"@type":"Question","name":"Can I see which AI models are being used and how frequently?","acceptedAnswer":{"@type":"Answer","text":"Yes, for the tools that record a model name. Team AI Usage shows token use per developer, tool, model, project and day for any period, and the Models tab shows how many developers use each model and how that changes over time. For Claude Code it also shows the effort-level and speed settings in use."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.parts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.part{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:6px;align-content:start;min-width:0}
+.part .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.part p{font-size:.95rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.example{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:8px}
+.example .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cost)}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Benefits for development teams and managers</div>
+    <h1>Claude Code Agent Features Usage: Invest in the Tooling Your Team Actually Uses</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 2 Nov 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Claude Code agent features usage is the record of which agent features your developers' sessions really use: sub-agents, background commands, plan mode, worktrees, MCP tools and the rest, counted by session and by developer.</b> It is the most reliable guide to where platform and developer-experience effort will pay off, because it comes from what the tool recorded, not from what people remember or what is installed. Pair it with the models and settings people choose, and you can decide what to standardise, document or build next.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "claude code agent features usage" in the title tag (59 characters), H1, URL and the bolded first sentence of the answer box. Meta description 145 characters. Intent is commercial: the page compares ways to find out what the team uses, then shows where Kite Pulse fits and what it cannot see.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why usage should steer developer-experience spending</h2>
+    <p>Platform and developer-experience leads have more things they could build than time to build them. A shared MCP server for the internal ticket system. A house guide to plan mode. A worktree setup so people can run agents side by side. A set of team skills. Each one is a reasonable bet, and each one costs weeks.</p>
+    <p>The usual way to choose is to ask around, or to look at what is configured. A list of MCP servers installed across the team tells you what is available on people's machines. It does not tell you whether anyone calls those tools in a working session, or whether the one person who set a server up is also the only person using it. Configuration is intent. Sessions are behaviour.</p>
+    <p>Usage data shows who already depends on a feature and which teams do not use it at all. The first group needs reliability and documentation. The second might need training, or might have a good reason to skip it.</p>
+  </section>
+
+  <section class="block" id="features">
+    <h2>What each Claude Code agent feature tells you</h2>
+    <p>Each Claude Code agent feature points to a different kind of investment. The table is general guidance for reading usage, not a scorecard.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Feature in use</th><th>What steady use suggests</th><th>What low use might mean</th></tr></thead>
+        <tbody>
+          <tr><td>Sub-agents</td><td>People split larger jobs into parallel parts. Shared sub-agent definitions and clear guidance on when to use them will be read.</td><td>Work is mostly small, or people do not know when a sub-agent helps.</td></tr>
+          <tr><td>Background commands</td><td>Long builds, test runs or servers run while the agent keeps working. Fast, reliable local tooling matters here.</td><td>Builds are short, or the pattern is unfamiliar.</td></tr>
+          <tr><td>Plan mode</td><td>People agree an approach before the agent edits files. A shared planning checklist may be worth writing.</td><td>Tasks are routine, or people go straight to edits on larger work too.</td></tr>
+          <tr><td>Worktrees</td><td>Several agents work on one repository at once. Setup scripts and clean-up habits for worktrees pay off.</td><td>One agent per repository is the norm.</td></tr>
+          <tr><td>MCP tools</td><td>Agents reach internal systems through MCP. Those servers are now part of how work gets done and need an owner.</td><td>Servers were installed but are not part of daily work, or are hard to set up.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Low use is not a verdict. A team on a small, stable codebase may rarely need worktrees. The useful question is whether the pattern matches the work.</p>
+    <div class="seo"><b>SEO</b>Feature list from MSoT 1.2 (Agent features tab). The table is reading guidance with no product claims and no numbers.</div>
+  </section>
+
+  <section class="block" id="compare">
+    <h2>Four ways to find out what the team uses</h2>
+    <div class="parts">
+      <div class="part"><span class="tag">Quick</span><h3>Ask the team</h3><p>Good for why people use a feature and what gets in the way. Weak for counts: people underestimate habits and overestimate experiments, and the answers cannot be repeated next quarter.</p></div>
+      <div class="part"><span class="tag">Inventory</span><h3>Look at what is configured</h3><p>Shows what is installed or set up. It cannot separate a server used every day from one tried once, and it says nothing about plan mode or sub-agents.</p></div>
+      <div class="part"><span class="tag">Per vendor</span><h3>Vendor dashboards</h3><p>Accurate for that vendor's product as far as each one goes. A team on several assistants gets several partial views, and feature-level detail varies.</p></div>
+      <div class="part"><span class="tag">Sessions</span><h3>Session history</h3><p>Reads what each session recorded on the developer's computer: features, tools and models, linked to a person and a project, with nothing for anyone to log.</p></div>
+    </div>
+    <p>Session history tells you where to look; a short conversation tells you why. For a broader view of how session data fits beside other engineering measures, read our guide to <a href="/ai-coding-analytics">AI coding analytics for teams</a>.</p>
+  </section>
+
+  <section class="block" id="mcp">
+    <h2>MCP tool usage analytics: from installed to relied on</h2>
+    <p>MCP tool usage analytics answers a narrow question that matters a great deal to platform teams: which internal systems do agents actually reach, and who depends on them? Once agents call a server in everyday work, that server has users. It needs someone to keep it running, a place to report problems and documentation for people who join later.</p>
+    <p>Counting MCP tool use by session and by developer shows whether use is spread across teams or concentrated in a few people. Concentrated use is a hint that something works well for one group and has not travelled, often because setup is hard or nobody wrote it down.</p>
+  </section>
+
+  <section class="block" id="models">
+    <h2>Model usage by developer and AI model adoption tracking</h2>
+    <p>Features are half the picture. The other half is which models people choose and how they configure them. Model usage by developer shows whether a team has settled on a default or whether every person picks differently. AI model adoption tracking shows how quickly a new model is picked up, and which projects still rely on an older one.</p>
+    <p>For Claude Code, the effort-level and speed settings people run with are worth reading too. If most sessions on a project use one setting and a few use another, that is a good prompt for a short conversation about what works, and perhaps a team default.</p>
+    <p>Model names come from what each tool records. For Claude Code, Codex, Gemini CLI, Cline, Roo Code, Kilo Code, OpenCode and Aider the model is recorded. Cursor records a model name only when one model served the whole chat, and GitHub Copilot Chat in VS Code only when it was recorded, so read those two as partial.</p>
+    <div class="seo"><b>SEO</b>Secondary keywords "model usage by developer" and "ai model adoption tracking" in this H2. Model-name coverage from the MSoT 1.1 "What each tool provides" table; effort-level and speed settings from MSoT 1.2 Models tab.</div>
+  </section>
+
+  <section class="block" id="kitepulse">
+    <h2>Where Kite Pulse fits</h2>
+    <p>Kite Pulse reads the session history ten AI coding tools already keep on each developer's computer, masks secrets, and sends it to a server your team runs. Claude Code is one of the ten, with conversations, tool calls, tokens and model names; see <a href="/integrations/claude-code">what is collected from Claude Code</a>. Three parts of the console answer the questions above.</p>
+    <ul>
+      <li><b>Agent features</b>, a tab of Team AI Usage, shows which Claude Code agent features sessions used: sub-agents, background commands, plan mode, worktrees, MCP tools and others, by session and by developer.</li>
+      <li><b>Models</b>, another tab, shows developers per model, model adoption over time, models by project, and the Claude Code effort-level and speed settings in use.</li>
+      <li><b>Skill Candidates</b> turns repeated workflows into draft Claude Code skills, built by rules with no AI model, for a person to approve or reject. Each candidate says how often the work repeats, in how many sessions and by how many developers, without naming who. Read more about <a href="/skill-candidates">turning repeated work into Claude Code skills</a>.</li>
+    </ul>
+    <p>Team AI Usage follows the reporting line: managers see their own team, admins see everyone. For a live picture of who is at work, <a href="/ai-agent-office">The Office gives each person a desk with their status</a>, grouped by team.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Feature and model use are counted from what Claude Code and the other tools recorded, with nothing for developers to fill in. No session content uploads until each developer confirms their projects in the Onboarding Wizard, and data goes only to your own server.</p></div>
+    <div class="seo"><b>SEO</b>The one product section and the one callout. Facts: MSoT 1.1 (ten tools, masking, own server, consent, Claude Code row), 1.2 (Team AI Usage scope, Agent features tab, Models tab), 1.5 (Skill Candidates, no AI model). Skill Candidates detail "how often, in how many sessions, by how many developers (never who)" from the Field Guide, Knowledge section.</div>
+  </section>
+
+  <section class="block" id="example">
+    <h2>An illustrative example</h2>
+    <div class="example">
+      <span class="tag">Illustrative example, not a customer case</span>
+      <p>A platform lead is deciding between two projects for the quarter: a second MCP server for the deployment system, or better documentation for the existing one that connects to the ticket system. The Agent features tab shows MCP tools used in sessions on two teams and almost nowhere else. A conversation with a third team reveals they tried the ticket server once and gave up on setup.</p>
+      <p>The lead writes the setup guide first. Separately, Skill Candidates shows the same release-notes workflow repeating across several developers, so a draft skill goes to review. The second server waits for next quarter, when there is evidence the first one travelled.</p>
+    </div>
+  </section>
+
+  <section class="block" id="limits">
+    <h2>What this view does not show</h2>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What it counts</h3>
+        <ul>
+          <li>Claude Code agent features used, by session and developer</li>
+          <li>Models per developer and per project, and adoption over time</li>
+          <li>Claude Code effort-level and speed settings</li>
+          <li>Repeated workflows that could become a skill</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What it does not count</h3>
+        <ul>
+          <li>Agent features in tools other than Claude Code</li>
+          <li>Whether a feature made the work better or faster</li>
+          <li>Activity from developers who have not confirmed their projects</li>
+          <li>AI tools outside the ten supported ones</li>
+        </ul>
+      </div>
+    </div>
+    <p>Usage is not a measure of value, and this is not a code-quality tool. If your question is delivery speed from git and tickets, a git-based analytics tool is the better fit for that part.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about Claude Code agent features usage</h2>
+    <div>
+      <details open><summary>Which Claude Code features (sub-agents, plan mode, MCP tools) does my team use?</summary><p>Read it from the Claude Code session history rather than asking around, because each session records the agent features it used. In Kite Pulse, the Agent features tab of Team AI Usage shows which Claude Code agent features sessions used, including sub-agents, background commands, plan mode, worktrees and MCP tools, by session and by developer. It covers Claude Code only; other tools do not appear on that tab.</p></details>
+      <details><summary>How can I track which AI models (Opus, Sonnet, GPT) my team uses?</summary><p>Use the model name each AI session records, counted per developer and over time. Kite Pulse's Models tab shows developers per model, model adoption over time and models by project, across the ten supported tools, so Claude models from Claude Code and GPT models from Codex sit in one view. Cursor records a model name only when one model served the whole chat, and GitHub Copilot Chat in VS Code only when it was recorded.</p></details>
+      <details><summary>Can I see which AI models are being used and how frequently?</summary><p>Yes, for the tools that record a model name. Team AI Usage shows token use per developer, tool, model, project and day for any period, and the Models tab shows how many developers use each model and how that changes over time. For Claude Code it also shows the effort-level and speed settings in use.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Three FAQ questions from the brief, word for word, mirrored in FAQPage JSON-LD.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/skill-candidates">Skill Candidates<span>Draft Claude Code skills from repeated work</span></a></li>
+      <li><a href="/ai-agent-office">The Office<span>Agents and people at work, live</span></a></li>
+      <li><a href="/blog/ai-adoption-tracking">AI adoption tracking<span>Which tools and models the company uses</span></a></li>
+      <li><a href="/integrations/claude-code">Claude Code integration<span>What is read from Claude Code sessions</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See which agent features your team relies on</h3>
+      <p>Run Kite Pulse on your own server and see Claude Code features, models and settings by developer and project.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Main keyword: claude code agent features usage. Intent: commercial. Facts from MSoT Section 1 (1.1, 1.2, 1.5); Skill Candidates detail from the Field Guide (Knowledge). Secondary keyword "mcp servers installed across team" is used only to contrast inventory with usage: the page that lists installed MCP servers (Agent Setup) is not in Section 1 and is left out, as is the optional installed-skills read. Also left out: the token pace line, sub-agent detail on The Office desk, Agents in parallel, plan headroom, cost. The example is labelled illustrative and carries no numbers.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/claude-code-agent-features-usage article. No example data beyond the labelled illustrative example; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

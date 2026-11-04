@@ -1,0 +1,229 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Token Usage Forecast: Where AI Use Is Heading | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Build a token usage forecast for AI coding tools: a 14-day average, a 30-day outlook, heavy-day checks and a token budget, worked through step by step.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Token Usage Forecast: Where Your Team's AI Use Is Heading","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"token usage forecast"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Token Usage Forecast","item":"/blog/token-usage-forecast"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How accurate is a token usage forecast?","acceptedAnswer":{"@type":"Answer","text":"A straight-line forecast is only as good as the assumption that the next month looks like the last two weeks. It is close enough to spot a budget problem early, and it is wrong whenever the work changes: a launch, a new hire, a holiday or a switch to a different model. Treat it as a pace to check against, recalculate it every week, and look at heavy days before you trust the total."}},
+{"@type":"Question","name":"Should a token usage forecast be in tokens or dollars?","acceptedAnswer":{"@type":"Answer","text":"Start with tokens. Every AI coding tool records them, while a dollar figure is an estimate from list prices that many tools cannot supply and that is not what a team on flat subscriptions is billed. Convert to an estimated dollar figure afterwards, per tool, and only for tools with a known price."}},
+{"@type":"Question","name":"How do I predict Claude Code usage against plan limits?","acceptedAnswer":{"@type":"Answer","text":"Plan limits are measured in windows, so look at how full each window gets rather than at a monthly token total. For Claude Code that means the 5-hour window, the weekly window and each model's weekly window. History helps most: if a person's weekly window reached 80% or more in most recent weeks, expect it again next week unless their work changes."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one worked example, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px;min-width:0}
+.panel .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--cost)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right}
+td.heavy{background:var(--bad-soft);color:var(--bad);font-weight:700}
+.sums{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.sums div{background:var(--sunk);border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.sums b{font-family:var(--mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.sums span{font-size:.85rem;color:var(--muted)}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} th,td{padding:6px 6px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · AI usage and budgets</div>
+    <h1>Token Usage Forecast: Where Your Team's AI Use Is Heading</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>7 min read</span></div>
+    <div class="answer">
+      <p><b>A token usage forecast takes your team's recent daily token use and projects it forward, so you can see where AI use is heading before the month closes.</b> The simplest version that works: average the last 14 days of tokens per day, multiply by the next 30 days, and mark any day that used at least twice the average. Keep it in tokens first, then compare it with a monthly token budget.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "token usage forecast" in the title tag (58 characters), meta description (151 characters), H1, URL and the bolded first sentence of the answer box. Intent: Commercial, so the page teaches a method a reader can use without buying, then shows which inputs Kite Pulse supplies. Planner note followed: the word "Trends" is not used for this subject.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why forecast tokens at all</h2>
+    <p>Most teams find out how much AI they used when the month ends. By then the only decision left is whether to be surprised. A forecast moves that moment forward: on day ten you can already say whether the month is on pace, ahead or behind, and act while there is still time to change something.</p>
+    <p>It also changes the conversation. "We used a lot of tokens" is hard to act on. "At this pace we reach the monthly budget around the 24th, and one heavy day last week accounts for most of the gap" gives a manager and finance something concrete to discuss.</p>
+  </section>
+
+  <section class="block" id="tokens-not-money">
+    <h2>Forecast tokens, not money</h2>
+    <p>Money feels like the natural unit, and it is the wrong one to start with. A dollar figure for AI coding tools is usually an estimate: tokens multiplied by a vendor's published list price. Many developers are on flat subscriptions, so that estimate is not what the company is billed. Some tools do not publish a price for every model at all, and a forecast built on missing prices quietly undercounts.</p>
+    <p>Tokens have neither problem. Every AI coding tool records them, the count does not change when a price list does, and a token forecast can be compared directly with a budget set in tokens. Once the token pace is clear, convert it to an estimated cost per tool where a price is known, and keep the unpriced tokens visible beside it rather than leaving them out. Our guide to <a href="/ai-cost-tracking">tracking AI coding cost from list prices</a> covers that second step.</p>
+    <p>One caution when comparing tools: they do not all count the same tokens. Cursor and GitHub Copilot Chat in VS Code record input and output tokens only, while tools such as Claude Code report the full set. Forecast each tool on its own line rather than as one blended total.</p>
+  </section>
+
+  <section class="block" id="method">
+    <h2>Token usage prediction in five steps</h2>
+    <p>This is a straight-line forecast. It assumes the next month will look like the recent past, which is often true for a stable team and is easy to check.</p>
+    <ol class="steps">
+      <li><p><b>Collect daily token totals for the last 14 days.</b> Two full weeks include two sets of weekends, so quiet days and busy days are weighted the way they really fall. Fewer days and a single unusual afternoon can swing the result.</p></li>
+      <li><p><b>Work out the average per day.</b> Add the 14 totals and divide by 14. Count calendar days, weekends included, because the days you project forward will include weekends too.</p></li>
+      <li><p><b>Project the outlook.</b> Multiply the daily average by 30 for a rolling 30-day outlook, or by the days left in the month if you are checking a monthly budget, then add what is already used this month.</p></li>
+      <li><p><b>Mark heavy days.</b> Flag any day that used at least twice the average. A heavy day is not a problem in itself; it is a question. A large migration, a new agent workflow or a runaway retry loop all look the same in the totals.</p></li>
+      <li><p><b>Compare with the budget and recalculate weekly.</b> Set the outlook against the monthly token budget and its warning line. Repeat each week, because a forecast that is a month old describes a different team.</p></li>
+    </ol>
+  </section>
+
+  <section class="block" id="example">
+    <h2>A worked example</h2>
+    <p>The figures below are invented for illustration. They show one sample team's daily token use, in millions of tokens, over 14 days.</p>
+    <div class="panel">
+      <span class="tag">Sample team · example numbers, not real data</span>
+      <div class="scroll">
+        <table aria-label="Sample team daily tokens in millions over 14 days">
+          <thead><tr><th>Week</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="num">4.1</td><td class="num">3.8</td><td class="num">4.4</td><td class="num">4.0</td><td class="num">3.9</td><td class="num">0.6</td><td class="num">0.4</td></tr>
+            <tr><td>2</td><td class="num">4.2</td><td class="num heavy">9.1</td><td class="num">4.3</td><td class="num">4.0</td><td class="num">4.4</td><td class="num">0.5</td><td class="num">0.3</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="sums">
+        <div><b>48.0M</b><span>Total over 14 days</span></div>
+        <div><b>3.43M</b><span>Average per day</span></div>
+        <div><b>about 103M</b><span>30-day outlook at this pace</span></div>
+        <div><b>6.86M</b><span>Heavy-day line (twice the average)</span></div>
+      </div>
+    </div>
+    <p>Week 2's Tuesday used 9.1 million tokens, above the heavy-day line of 6.86 million. Take it out and the average falls to about 2.99 million a day, a 30-day outlook of about 90 million. That one day moves the forecast by roughly 13 million tokens, which is why heavy days are worth a look before the total is trusted.</p>
+    <p>Now set it against an example budget of 120 million tokens a month, with a warning at 80%, which is 96 million. An outlook of about 103 million passes the warning line but stays under the budget. If Tuesday was a one-off migration, the team is comfortably on pace. If it was a new workflow the team plans to keep, the real pace is higher than the average suggests, and the budget conversation should happen now.</p>
+    <div class="seo"><b>SEO</b>All numbers in this section are sample data, labelled on the panel and in the text (master prompt R2). Arithmetic: 48.0 / 14 = 3.43; × 30 = 102.9; without 9.1: 38.9 / 13 = 2.99, × 30 = 89.8. The 80% warning line mirrors the AI Budgets alert level in MSoT 1.2; the 120M budget is an example.</div>
+  </section>
+
+  <section class="block" id="claude-code">
+    <h2>How to predict Claude Code usage against plan limits</h2>
+    <p>A team on Claude plans has a second question that a monthly token total cannot answer: will someone run out of plan in the middle of a task? Claude plan limits are measured in windows, so the useful prediction is about how full each window gets. There is a 5-hour window, a weekly window and a weekly window for each model.</p>
+    <p>The best predictor is a person's own history. Look at their weekly peaks over the last month or two. If someone's weekly window reached 80% or more in most recent weeks, expect it again unless their work changes, and plan large tasks for the start of a new window rather than the end. A team-wide token forecast can look calm while one heavy user is at 100% of a weekly window, so check both.</p>
+    <p>Our page on <a href="/plan-headroom">Claude plan headroom</a> explains the windows in more detail and how to see who is close to a limit.</p>
+  </section>
+
+  <section class="block" id="monitoring">
+    <h2>Token usage monitoring: what to watch between forecasts</h2>
+    <p>A forecast is a weekly exercise. Token usage monitoring is what keeps it honest between those checks. Three habits cover most of it:</p>
+    <ul>
+      <li><b>Look at daily totals by tool, model and project</b>, so a jump can be traced to a cause instead of argued about.</li>
+      <li><b>Set a monthly budget in tokens with a warning line</b>, so the first signal arrives at 80% rather than at the limit.</li>
+      <li><b>Write down the reason for each heavy day</b> once it is known. After a few months those notes tell you which spikes are planned work and which are worth fixing.</li>
+    </ul>
+    <p>Know the limits of the method too. A straight-line forecast cannot see a launch next week, a new hire on Monday or a move to a larger model. When you know the work is about to change, adjust the forecast by hand and say so beside it.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Kite Pulse reads the session history ten AI coding tools already keep on each developer's computer and shows token use per developer, tool, model, project and day, for any period, on Team AI Usage. Managers see their own reporting line; admins see everyone. Admins can set <a href="/ai-budgets">monthly AI budgets per team or project</a> in tokens, with alerts at 80% and 100%. For Claude Code, Plan headroom lists who is close to a plan limit, worst first, and the Plan usage report shows weekly peaks and weeks at 80% or more per developer.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keyword "token usage monitoring" in this H2; "token usage prediction" in the method H2; "how to predict claude code usage" in the Claude Code H2. The callout's facts are MSoT 1.1 (ten tools), 1.2 (Team AI Usage, AI Budgets, Plan headroom) and 1.3 (Plan usage report). The product's own 14-day pace line is described in the Product Overview (5.6) and Field Guide but is not in MSoT Section 1, so the page teaches the method and does not claim the product draws it.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about token usage forecasts</h2>
+    <div>
+      <details open><summary>How accurate is a token usage forecast?</summary><p>A straight-line forecast is only as good as the assumption that the next month looks like the last two weeks. It is close enough to spot a budget problem early, and it is wrong whenever the work changes: a launch, a new hire, a holiday or a switch to a different model. Treat it as a pace to check against, recalculate it every week, and look at heavy days before you trust the total.</p></details>
+      <details><summary>Should a token usage forecast be in tokens or dollars?</summary><p>Start with tokens. Every AI coding tool records them, while a dollar figure is an estimate from list prices that many tools cannot supply and that is not what a team on flat subscriptions is billed. Convert to an estimated dollar figure afterwards, per tool, and only for tools with a known price.</p></details>
+      <details><summary>How do I predict Claude Code usage against plan limits?</summary><p>Plan limits are measured in windows, so look at how full each window gets rather than at a monthly token total. For Claude Code that means the 5-hour window, the weekly window and each model's weekly window. History helps most: if a person's weekly window reached 80% or more in most recent weeks, expect it again next week unless their work changes.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief listed no FAQ questions; these three were written around the main keyword and are marked up as FAQPage JSON-LD in the head. Answers are general method and make no product claim.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-cost-tracking">AI cost tracking guide<span>Turn tokens into an estimated cost per tool</span></a></li>
+      <li><a href="/ai-budgets">AI budgets<span>Monthly token or dollar budgets with 80% and 100% alerts</span></a></li>
+      <li><a href="/plan-headroom">Plan headroom<span>Claude plan limits before they bite</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See where your team's token use is heading</h3>
+      <p>Daily token use by tool, model and project, with monthly budgets per team or project, on a server you run.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/token-usage-forecast article. The worked example's daily token figures and the 120M budget are sample data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

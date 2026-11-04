@@ -1,0 +1,258 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Developer Analytics Without Source Code Access | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Developer analytics without source code access: what Kite Pulse reads, what it masks, and what to agree with HR and works councils before rollout.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Developer Analytics Without Source Code Access: Privacy Developers Can Check","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"developer analytics without source code access"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Developer Analytics Without Source Code Access","item":"/blog/developer-analytics-without-source-code"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I track AI usage without making developers feel monitored?","acceptedAnswer":{"@type":"Answer","text":"Collect only what the questions you are answering need, and let developers check it. Read the AI tools' own session records instead of screens or keystrokes, ask each developer to confirm their projects before anything uploads, and give every person a page that shows what is recorded about them and who can see it. Where you only need volume, collect token counts without the conversations."}},
+{"@type":"Question","name":"How do I explain AI usage tracking to my team?","acceptedAnswer":{"@type":"Answer","text":"Explain it in four plain statements: what is read, what is not read, who can see which parts, and how each person checks it for themselves. Be exact about the caveat: session records can include excerpts of code the AI read or wrote, with secrets masked. Then show people their own Privacy page before the first upload, so the explanation can be checked."}},
+{"@type":"Question","name":"Will developers see AI usage tracking as surveillance?","acceptedAnswer":{"@type":"Answer","text":"Some may, and a vendor cannot promise otherwise. It depends on what is collected, who sees it and what it is used for, which your organisation decides. Kite Pulse does not log keystrokes, take screenshots or track websites, asks for consent before sync and shows each person their own data, but the agreement on how the figures are used is yours to make with HR and the works council."}},
+{"@type":"Question","name":"How are secrets and credentials handled before upload?","acceptedAnswer":{"@type":"Answer","text":"On the developer's computer, 36 credential patterns are masked before upload, including cloud and AI provider keys, GitHub and GitLab tokens, private keys and passwords in URLs or labelled fields. If masking fails, that part is not sent. For Cursor and OpenCode chat text, masking happens on the server, and those tools' login stores are never sent. Every session is masked a second time on the server before storage, and uploads are encrypted in transit."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+.caveat{border:1.5px solid var(--cost);background:var(--cost-soft);border-radius:12px;padding:14px 18px}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Rollout and privacy</div>
+    <h1>Developer Analytics Without Source Code Access: Privacy Developers Can Check</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>Developer analytics without source code access means measuring AI-assisted work from the session history the AI tools already keep, without opening project files, logging keystrokes or taking screenshots.</b> There is one caveat to state plainly: session records can include excerpts of code the AI read or wrote, with secrets masked.</p>
+      <p>Developers accept a tool like this when they can check what it collects for themselves. That acceptance is what keeps the figures complete, because nothing uploads until each developer has confirmed their projects.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Main keyword "developer analytics without source code access" in the title tag (59 characters), meta description (146 characters), H1 and the bolded first sentence of the answer box. Intent: Commercial, so the page helps HR, works councils and leaders decide what to agree before rollout, with a checklist and an honest "when it does not fit" section. Facts: MSoT Section 1 (1.1, 1.4, 1.6, 1.7, 1.8); two details from the Field Guide and Product Overview, listed in the report. Planner note: overlaps article 7.13, so this one stays aimed at HR and works councils.</div>
+  </header>
+
+  <section class="block" id="buy-in">
+    <h2>Why developer buy-in decides whether the figures are complete</h2>
+    <p>For AI usage data, privacy is a data quality question as much as a legal one. A tool that reads AI coding sessions only sees the projects a developer agrees to share. If people hold back, the figures still arrive, but they describe part of the team and look like all of it.</p>
+    <p>In Kite Pulse this is built into the order of events. No session content uploads until the developer confirms their projects in the Onboarding Wizard and, where your organisation requires it, an approver signs off. Before that, the only thing sent is the list of detected project folders (paths, names and repository addresses), so the wizard can show it. A developer who does not trust the tool can leave a project unconfirmed, and that project stays out of every report.</p>
+    <p>The practical test for HR, a works council or a leadership team: can a developer see, on their own screen, what is collected and who will read it? If not, expect gaps nobody can explain later.</p>
+  </section>
+
+  <section class="block" id="reads">
+    <h2>What "without source code access" means, exactly</h2>
+    <p>The phrase is easy to overstate, so it helps to separate what is read from what is never opened.</p>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What the desktop program reads</h3>
+        <ul>
+          <li>The session history ten AI coding tools already keep on the computer</li>
+          <li>Folder names and repository addresses, so one repository cloned on several machines counts as one project</li>
+          <li>Token counts and plan figures the tools save themselves</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What it does not do</h3>
+        <ul>
+          <li>Open a project's source files</li>
+          <li>Log keystrokes or take screenshots</li>
+          <li>Track websites</li>
+          <li>Send anything to a vendor cloud</li>
+        </ul>
+      </div>
+    </div>
+    <p class="caveat"><b>The caveat to put in writing:</b> session records can include excerpts of code the AI read or wrote, because that is what an AI coding conversation contains. Those excerpts travel with the session, with secrets masked. An agreement that says "no code leaves the developer's computer" is not accurate for full session sync; say so on day one.</p>
+    <p>Some extra reads, such as the branch name, package manifests and project notes like README files, are off until an admin turns them on. List in your agreement which of these, if any, you plan to switch on.</p>
+    <div class="seo"><b>SEO</b>R6 wording kept exact: reads session records, folder names and repository addresses; does not open source files, log keystrokes, take screenshots or track websites; session records can include excerpts of code the AI read or wrote. The caveat sits in its own box because the title promises "without source code access".</div>
+  </section>
+
+  <section class="block" id="safeguards">
+    <h2>Privacy preserving analytics: safeguards a developer can verify</h2>
+    <p>Privacy preserving analytics works best when each safeguard is something a developer can look at in the product, not only a clause in a policy. Kite Pulse provides these:</p>
+    <ol class="steps">
+      <li><p><b>Consent before sync.</b> In the Onboarding Wizard a developer reviews the projects found on their computer, fixes, adds or removes them, and only then starts syncing. An approver confirms the first project list where your organisation keeps approval switched on.</p></li>
+      <li><p><b>A Privacy page for every person.</b> Each person sees every data point recorded about them, whether it is on now, and who can see it: themselves, their manager or admins.</p></li>
+      <li><p><b>Private fields stay private.</b> Prompt statistics, such as a person's most repeated prompt and reply pace, are shown only to that person; the server removes them for everyone else. Managers who do not work on a project see folder labels, not full paths.</p></li>
+      <li><p><b>Scope enforced by the server.</b> A developer sees their own pages, a manager sees their reporting line, and an admin sees everyone. The server enforces this, not just the screen.</p></li>
+      <li><p><b>Pseudonymised tool accounts.</b> For the AI tools' own accounts, only a keyed hash of the account, the email domain and the plan name are sent by default, never the address.</p></li>
+    </ol>
+    <p>For a wider discussion of where the ethical lines sit, see our guide to <a href="/blog/tracking-ai-usage-ethically">tracking AI usage ethically</a>. The full list of what is read, why and what is sent is on the <a href="/privacy">Kite Pulse privacy page</a>.</p>
+  </section>
+
+  <section class="block" id="masking">
+    <h2>Secret masking, on the computer and again on the server</h2>
+    <p>Because session records can contain excerpts of code and pasted text, they can also contain credentials. Secret masking happens twice:</p>
+    <ul>
+      <li><b>On the developer's computer, before upload.</b> 36 credential patterns are masked, including cloud and AI provider keys, GitHub and GitLab tokens, private keys, and passwords in URLs or labelled fields. If masking fails, that part is not sent.</li>
+      <li><b>Cursor and OpenCode.</b> These tools' login stores are never sent. Credentials pasted into their chats are masked on your server only.</li>
+      <li><b>On the server, before storage.</b> Every session is masked a second time.</li>
+    </ul>
+    <p>Session uploads are encrypted on the computer before they leave, and small status records go over HTTPS, only to your team's own server. Protecting stored data on that server's disks is part of running it, so include it in your own <a href="/security">security review</a>.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "secret masking" in this H2. Wording is "masked", never "removed", per the MSoT. Encryption is stated as in transit only; no claim about stored data being encrypted by the app (MSoT 2.4).</div>
+  </section>
+
+  <section class="block" id="counts-only">
+    <h2>Track token usage without collecting prompts</h2>
+    <p>Not every question needs the conversation. Kite Pulse has two switches per tool on the <b>Tools</b> page: Session sync, which uploads the conversations, and Token consumption, which counts tokens. With Session sync off and Token consumption on, the program counts tokens on the computer and sends only the numbers, never the conversation.</p>
+    <p>Put the trade to the works council in those terms. Counts-only mode gives usage figures per tool with no prompt text leaving the computer. Full session sync gives the session views and work patterns, and uploads the conversation, including any code excerpts, with secrets masked. You choose per tool, and can start with counts only and widen it later by agreement.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "track token usage without collecting prompts" as this H2. Counts-only mode from MSoT 1.1. Stated precisely that full sync does upload prompts, so the heading is not read as a promise about every mode.</div>
+  </section>
+
+  <section class="block" id="agree">
+    <h2>What to agree with HR and the works council before rollout</h2>
+    <p>Whichever tool you choose, these are the questions a works council will ask. Settle them in writing first, then show people the product.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Question</th><th>What to decide in Kite Pulse</th></tr></thead>
+        <tbody>
+          <tr><td>Which tools, in which mode</td><td>All ten supported tools are collected out of the box. Switch off any you do not use, and pick full session sync or counts only for each.</td></tr>
+          <tr><td>Who sees what</td><td>Three roles: Admin, Manager and Developer. Admins can fine-tune each page per role on Roles &amp; Permissions. Some team pages show individual activity, so agree who holds those roles and what the figures are used for.</td></tr>
+          <tr><td>How long data is kept</td><td>Admins set how long raw content, derived data and audit history are kept. Deletion applies once the server operator enables it.</td></tr>
+          <tr><td>Leaving the company</td><td>An admin can export one person's data or erase it. Erasing anonymises the account, deletes their raw activity records and destroys their encryption keys. Plain-text working copies of their sessions stay on the server, so do not describe erasing as deleting everything.</td></tr>
+          <tr><td>Where the data lives</td><td>On infrastructure you run: one computer, a local network, an Ubuntu server or your own AWS account. See <a href="/self-hosted">self-hosted deployment</a>.</td></tr>
+          <tr><td>Whether an AI provider sees anything</td><td>Kite Pulse runs fully without any AI service. AI labelling is off until an admin sets it up; if it is turned on, scrubbed text is sent to the AI provider through OpenRouter.</td></tr>
+          <tr><td>A record of admin actions</td><td>The Audit Log records sign-ins and admin changes, including exports and erasures. It is read-only.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Before the first upload, ask each developer to open their Privacy page with you. It lists what is recorded about them, whether each item is on, and who can see it. A rollout explained from that page is one people can check, which is the point of the whole exercise.</p></div>
+    <div class="seo"><b>SEO</b>Retention worded as "set how long data is kept" (R6); erase worded per MSoT 1.6 with the plain-text copies stated. Deliberately no "never ranks people" line (R4): the owner decision on "Top performers" and "Most active today" is open, so the row says some team pages show individual activity.</div>
+  </section>
+
+  <section class="block" id="fit">
+    <h2>When this approach is not the right fit</h2>
+    <ul>
+      <li><b>You need delivery metrics.</b> For DORA metrics from git and tickets, a git or ticket based analytics tool fits better.</li>
+      <li><b>No code excerpt may leave the computer.</b> Full session sync does not meet that rule. Counts-only mode does, with token figures only.</li>
+      <li><b>You need to cover tools outside the ten.</b> Kite Pulse reads Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider, and nothing else.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions from HR, works councils and leaders</h2>
+    <div>
+      <details open><summary>How do I track AI usage without making developers feel monitored?</summary><p>Collect only what the questions you are answering need, and let developers check it. Read the AI tools' own session records instead of screens or keystrokes, ask each developer to confirm their projects before anything uploads, and give every person a page that shows what is recorded about them and who can see it. Where you only need volume, collect token counts without the conversations.</p></details>
+      <details><summary>How do I explain AI usage tracking to my team?</summary><p>Explain it in four plain statements: what is read, what is not read, who can see which parts, and how each person checks it for themselves. Be exact about the caveat: session records can include excerpts of code the AI read or wrote, with secrets masked. Then show people their own Privacy page before the first upload, so the explanation can be checked.</p></details>
+      <details><summary>Will developers see AI usage tracking as surveillance?</summary><p>Some may, and a vendor cannot promise otherwise. It depends on what is collected, who sees it and what it is used for, which your organisation decides. Kite Pulse does not log keystrokes, take screenshots or track websites, asks for consent before sync and shows each person their own data, but the agreement on how the figures are used is yours to make with HR and the works council.</p></details>
+      <details><summary>How are secrets and credentials handled before upload?</summary><p>On the developer's computer, 36 credential patterns are masked before upload, including cloud and AI provider keys, GitHub and GitLab tokens, private keys and passwords in URLs or labelled fields. If masking fails, that part is not sent. For Cursor and OpenCode chat text, masking happens on the server, and those tools' login stores are never sent. Every session is masked a second time on the server before storage, and uploads are encrypted in transit.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>Four FAQ questions from the brief, same text in FAQPage JSON-LD. The surveillance answer is honest that no vendor can promise acceptance (R9), and avoids "never ranks".</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/privacy">Privacy at Kite Pulse<span>What is read, why, and what is sent</span></a></li>
+      <li><a href="/security">Security<span>Sign-in, roles, audit log and uploads</span></a></li>
+      <li><a href="/self-hosted">Self-hosted deployment<span>Run the server on your own infrastructure</span></a></li>
+      <li><a href="/blog/tracking-ai-usage-ethically">Tracking AI usage ethically<span>Where the lines sit, and why</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Walk your works council through it</h3>
+      <p>See what each role sees, and what each developer's Privacy page shows, on a demo server before you agree anything.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/developer-analytics-without-source-code article. No example data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

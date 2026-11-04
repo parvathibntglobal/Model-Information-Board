@@ -1,0 +1,248 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Developer Analytics Without Keystroke Tracking | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Developer analytics without keystroke tracking: why developers resist screen and keystroke tools, and what an AI usage view they accept looks like.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"Developer Analytics Without Keystroke Tracking: Why Developers Push Back, and What They Accept","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"developer analytics without keystroke tracking"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"Developer Analytics Without Keystroke Tracking","item":"/blog/developer-analytics-without-keystroke-tracking"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I track AI coding usage without monitoring keystrokes?","acceptedAnswer":{"@type":"Answer","text":"Read the records the AI coding tools already keep. Each assistant saves its own session history on the developer's computer, with the conversation, tool calls and token counts. Analytics built on those records shows which tools are used, on which projects and at what volume, without anything watching the keyboard or the screen."}},
+{"@type":"Question","name":"Will developers see AI usage tracking as surveillance?","acceptedAnswer":{"@type":"Answer","text":"Some will, whatever tool you choose, if they learn about it after it is installed. Resistance drops when people are told what is collected before anything is sent, can see their own data, and know exactly who else can see it. Collecting less where you can, such as token counts only for some tools, also helps."}},
+{"@type":"Question","name":"Does Kite Pulse read my source code?","acceptedAnswer":{"@type":"Answer","text":"No. It reads the AI tools' own session records, folder names and repository addresses, and it does not open a project's source files. Session records can include excerpts of code the AI read or wrote, with secrets masked. Optional reads of package manifests and project notes are off until an admin turns them on."}},
+{"@type":"Question","name":"Can my manager see everything I type to the AI?","acceptedAnswer":{"@type":"Answer","text":"Kite Pulse does not record keystrokes, so it never sees typing that was not sent to the AI tool. What it reads is the session record the tool saved, which includes your conversation. Managers see the same report you see for people in their own reporting line, without your private prompt statistics, and your Privacy page shows what is collected about you and who can see each part. An admin can also set a tool to token counts only, so no conversation is uploaded for it."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0;gap:12px}
+.steps li{display:grid;grid-template-columns:2rem 1fr;gap:10px;align-items:start}
+.steps li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:700}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.95rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .kp{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Developer trust</div>
+    <h1>Developer Analytics Without Keystroke Tracking: Why Developers Push Back, and What They Accept</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>7 min read</span></div>
+    <div class="answer">
+      <p><b>Developer analytics without keystroke tracking reads the records that AI coding tools already keep, instead of watching the person at the keyboard.</b> Keystroke and screen tools tend to fail because they record people rather than work, and developers route around them. A view built on session records, collected with consent and visible to each developer, shows how AI tools are used without that fight.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Title tag: "Developer Analytics Without Keystroke Tracking | Kite Pulse" (59 characters). Meta description: 147 characters. Main keyword "developer analytics without keystroke tracking" is in the title, H1, URL and the bolded first sentence. Intent is commercial: the page helps a leader who has seen a rollout fail decide what kind of tool to try next. Angle kept apart from /blog/developer-analytics-without-source-code: this post is about the tools developers resist and why; that one is about not reading source files, so source code gets one short section here.</div>
+  </header>
+
+  <section class="block" id="why">
+    <h2>Why developers fight keystroke and screen tools</h2>
+    <p>Most engineering leaders who have tried a keystroke counter, a screen recorder or an activity tracker have a story about how it went. The tool was installed, the dashboards filled up, and within weeks the team was arguing about the tool instead of the work. The objections are usually sharper than "we don't like being watched", and they are worth taking seriously because they predict what happens next.</p>
+    <ul>
+      <li><b>They record the person, not the work.</b> A keystroke count or a stream of screenshots says someone was at a desk. It says nothing about whether a bug was fixed or a design got better.</li>
+      <li><b>They measure the wrong activity now.</b> When an AI assistant writes much of the code, typing volume tells you very little. A developer who spends an hour reviewing and steering an agent may type less than one who pastes the same error ten times.</li>
+      <li><b>They collect far more than anyone needs.</b> Screens show private messages, banking tabs and medical bookings. Nobody asked for that data, and everyone knows it is sitting somewhere.</li>
+      <li><b>Nobody knows who reads it.</b> If the answer to "who can see my screen history?" is vague, people assume the worst.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="failure">
+    <h2>What a failed rollout leaves behind</h2>
+    <p>The visible cost of a resented tool is morale. The less visible cost is the data. People who distrust a collector find ways around it: they move side work to a personal laptop, keep the tracked machine busy, or simply stop doing exploratory work where it is recorded. Each workaround is reasonable from where the developer sits, and each one leaves a gap.</p>
+    <p>The result is a dashboard that looks complete and is not. Busy machines read as productive people, quiet ones read as idle, and the experiments that matter most never appear. A leader making staffing or tooling decisions from that picture is worse off than one with no dashboard, because the gaps are invisible.</p>
+    <p>So the question to ask of any replacement is less "what can it see?" and more "will people leave it running with nothing to hide from?"</p>
+  </section>
+
+  <section class="block" id="accept">
+    <h2>What developers tend to accept instead</h2>
+    <p>The tools that survive contact with an engineering team share a few properties. None of them is about clever technology; they are about who decides and who can check.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Question developers ask</th><th>Keystroke or screen tool</th><th>Session-record analytics</th></tr></thead>
+        <tbody>
+          <tr><td>What is collected?</td><td>Input and screen activity, all day</td><td>The record the AI tool already saves about each session</td></tr>
+          <tr><td>Am I asked first?</td><td>Often installed by IT and announced afterwards</td><td>The developer confirms which projects are collected before anything is sent</td></tr>
+          <tr><td>Can I see my own data?</td><td>Rarely the same view the manager has</td><td>Each person sees what is recorded about them and who can see it</td></tr>
+          <tr><td>Can it collect less?</td><td>Usually on or off</td><td>Per tool, down to token counts only</td></tr>
+          <tr><td>Where does it go?</td><td>Often a vendor's cloud</td><td>Can stay on a server the team runs</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The right column is a description of a design, not of every product that uses session records. Ask each vendor to answer those five questions in writing before a pilot.</p>
+  </section>
+
+  <section class="block" id="counts">
+    <h2>Track token usage without collecting prompts</h2>
+    <p>Many teams start with one narrow question: how much AI are we using, and on which tools? That question does not need anyone's conversation. Token counts answer it on their own.</p>
+    <p>A counts-only setting is the strongest signal you can send a sceptical team. It says the organisation wants volume and adoption, and has chosen not to hold the text. You can widen collection later, project by project, once people have seen what the view is used for. Starting wide and narrowing after complaints rarely recovers the trust.</p>
+  </section>
+
+  <section class="block" id="pseudonymised">
+    <h2>Pseudonymised developer analytics: what it can and cannot mean</h2>
+    <p>"Pseudonymised" is a word worth pinning down before it goes into an announcement. In most team analytics, people are named on their own team's pages, because a lead needs to know who is stuck in order to help. What can be pseudonymised is the material around them: the personal email address an AI tool is signed in with, or the full folder paths on someone's laptop.</p>
+    <p>Be precise in what you promise. If developers are told the data is anonymous and then find their name on a team page, the rollout is over. Tell them which fields are hashed or hidden, and which pages show their name, and to whom.</p>
+  </section>
+
+  <section class="block" id="source">
+    <h2>Developer analytics without source code access</h2>
+    <p>The other worry is code. A tool that reads AI session records does not need to open a repository's files to show usage. The honest caveat is that a session record is a conversation with an assistant that read and wrote code, so excerpts of code can appear in it. Secrets in those excerpts should be masked before they leave the machine.</p>
+    <div class="cansee">
+      <div class="yes">
+        <h3>What Kite Pulse reads</h3>
+        <ul>
+          <li>The session records ten AI coding tools already keep</li>
+          <li>Folder names and repository addresses, to tell projects apart</li>
+          <li>Token counts and Claude plan figures the tools save</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>What it does not do</h3>
+        <ul>
+          <li>Log keystrokes or take screenshots</li>
+          <li>Track websites</li>
+          <li>Open a project's source files</li>
+          <li>Send anything to a vendor cloud</li>
+        </ul>
+      </div>
+    </div>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>No session content uploads until the developer confirms their projects in the Onboarding Wizard and, where required, an approver signs off. Secrets are masked on the computer and again on the server. An admin can set any tool to token counts only, so no conversation is sent for it. Tool accounts are pseudonymised by default: a keyed hash of the account, the email domain and the plan name, never the address. Each person's Privacy page lists every data point recorded about them, whether it is on, and who can see it, and optional extra reads ship switched off. Read the full <a href="/privacy">privacy details</a>.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keywords: "track token usage without collecting prompts" (H2 above), "pseudonymised developer analytics" (H2 above), "developer analytics without source code access" (this H2, kept short so the source-code post owns that topic). Callout facts: MSoT 1.1 (consent, counts-only, masking), 1.7 (pseudonymised tool accounts, Privacy page). "Optional extra reads ship switched off and show on the Privacy page" is detail from the Field Guide (Administrators, Kite Pulse app reads) on MSoT 1.1 optional reads and 1.7 Privacy page.</div>
+  </section>
+
+  <section class="block" id="rollout">
+    <h2>Rolling it out so it is not read as surveillance</h2>
+    <p>No product removes the need to explain yourself. A few steps make the difference between a team that shrugs and a team that searches for an off switch.</p>
+    <ol class="steps">
+      <li><p><b>Say what is collected before installing anything.</b> List what is read, what is not, and where it is stored. Show the privacy page of the tool you picked rather than paraphrasing it.</p></li>
+      <li><p><b>Say what it is for, and what it is not for.</b> If it informs AI budgets and tool choices, say so. If it will not feed performance reviews, write that down and keep to it.</p></li>
+      <li><p><b>Name who can see what.</b> In Kite Pulse a manager sees their own reporting line, enforced by the server, and estimated cost per developer is admin-only. Some admin views list the most active people, so agree in advance how those lists will be used.</p></li>
+      <li><p><b>Start narrow.</b> Counts only, or a few volunteer projects, then widen once people have seen the pages.</p></li>
+      <li><p><b>Give developers something back.</b> Their own sessions, work patterns and plan usage are useful to them, and a private view of their own data is the clearest proof that the tool is not only for managers.</p></li>
+    </ol>
+    <p>Our guide to <a href="/blog/tracking-ai-usage-ethically">tracking AI usage ethically</a> covers the written policy side in more depth, and the <a href="/features">full feature list</a> shows each console page and who sees it.</p>
+    <div class="seo"><b>SEO</b>Step 3 is honest about scope (R4, R9): Organisation Overview has a "Top performers" panel and Team Overview lists "Most active today" (MSoT, owner decisions), so the page does not claim Kite Pulse never ranks people. Manager scope and admin-only cost per developer: MSoT 1.6 and 1.2. Step 5: MSoT 1.4 (Workspace, work-pattern facts, own plan usage).</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about tracking AI use without surveillance</h2>
+    <div>
+      <details open><summary>How do I track AI coding usage without monitoring keystrokes?</summary><p>Read the records the AI coding tools already keep. Each assistant saves its own session history on the developer's computer, with the conversation, tool calls and token counts. Analytics built on those records shows which tools are used, on which projects and at what volume, without anything watching the keyboard or the screen.</p></details>
+      <details><summary>Will developers see AI usage tracking as surveillance?</summary><p>Some will, whatever tool you choose, if they learn about it after it is installed. Resistance drops when people are told what is collected before anything is sent, can see their own data, and know exactly who else can see it. Collecting less where you can, such as token counts only for some tools, also helps.</p></details>
+      <details><summary>Does Kite Pulse read my source code?</summary><p>No. It reads the AI tools' own session records, folder names and repository addresses, and it does not open a project's source files. Session records can include excerpts of code the AI read or wrote, with secrets masked. Optional reads of package manifests and project notes are off until an admin turns them on.</p></details>
+      <details><summary>Can my manager see everything I type to the AI?</summary><p>Kite Pulse does not record keystrokes, so it never sees typing that was not sent to the AI tool. What it reads is the session record the tool saved, which includes your conversation. Managers see the same report you see for people in their own reporting line, without your private prompt statistics, and your Privacy page shows what is collected about you and who can see each part. An admin can also set a tool to token counts only, so no conversation is uploaded for it.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>All four FAQ questions from the brief, marked up as FAQPage JSON-LD with identical text. The last answer is deliberately not "no": session records include the conversation, and managers see their reporting line's reports (MSoT 1.4 All Developers), with only prompt statistics withheld. "Managers see activity figures and session details for their own team" is the Product Overview's wording (section 12) of that same MSoT 1.4 item.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/privacy">Kite Pulse privacy<span>What is read, what is sent and who sees it</span></a></li>
+      <li><a href="/blog/tracking-ai-usage-ethically">Tracking AI usage ethically<span>Policy and communication for a fair rollout</span></a></li>
+      <li><a href="/features">All features<span>Every console page and its audience</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See AI-assisted work without watching anyone's screen</h3>
+      <p>Kite Pulse reads the session history your AI coding tools already keep, on a server your team runs.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+    <div class="seo"><b>SEO</b>Reviewer note. Main keyword: "developer analytics without keystroke tracking". Intent: commercial. Facts: MSoT Section 1 (1.1, 1.2, 1.4, 1.6, 1.7); the "trust is fragile" framing follows the Product Overview's section 2 table, row "Trust is fragile", which details MSoT 1.7. Left out on purpose: "keystroke logging" and "employee monitoring" as targets (avoid list); any "never ranks people" claim (R4); erasure, retention and encryption-at-rest wording; Session Playback (not in Section 1); outside statistics on rollout failure (R2), so the failure section is written as reasoning, not figures.</div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/developer-analytics-without-keystroke-tracking article. No example data; every product claim is from the Master Source of Truth, Section 1.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

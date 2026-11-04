@@ -1,0 +1,325 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Developer Analytics Security | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Developer analytics security in Kite Pulse: sign-in, lockout, roles, the audit log, retention, secret masking, and what is not built yet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"Developer analytics security for AI coding teams","url":"/security","description":"How Kite Pulse handles sign-in, lockout, roles, the audit log, retention, export and erase, secret masking and HTTPS, and what is not built.","about":"developer analytics security"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Product","item":"/features"},{"@type":"ListItem","position":3,"name":"Security","item":"/security"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can people sign in to Kite Pulse through our company identity provider?","acceptedAnswer":{"@type":"Answer","text":"No. Sign-in is email and password only, and there is no second sign-in step such as a one-time code. Passwords are stored as secure hashes and must meet the password rules."}},
+{"@type":"Question","name":"What happens after repeated wrong passwords?","acceptedAnswer":{"@type":"Answer","text":"An account locks after 10 wrong passwords in 15 minutes, and a network address is blocked after 20. Both are recorded in the Audit Log."}},
+{"@type":"Question","name":"Can a manager see developers outside their team?","acceptedAnswer":{"@type":"Answer","text":"No. A manager sees themselves and their whole reporting line, including indirect reports. The server enforces this, not just the screen. Admins can change what each role sees per page on Roles & Permissions."}},
+{"@type":"Question","name":"What does the audit log record, and how long is it kept?","acceptedAnswer":{"@type":"Answer","text":"Sign-ins, failed sign-ins, lockouts and admin changes, over 100 kinds of action, including exports and erasures of a person's data. It is kept indefinitely by default; a retention period, 365 days by default, applies once the server operator enables deletion."}},
+{"@type":"Question","name":"Is stored data encrypted?","acceptedAnswer":{"@type":"Answer","text":"Not by the app. Uploads are encrypted in transit, and stored sessions are scrubbed of secrets. Protection of stored data comes from your server's own disk encryption, or S3 on AWS."}},
+{"@type":"Question","name":"Does Kite Pulse hold a security certification?","acceptedAnswer":{"@type":"Answer","text":"No. Kite Pulse holds no security certification or third-party audit report. The server runs on infrastructure your team chooses, described on the self-hosted page."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.6vw,2.05rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700}
+p{margin:0;max-width:65ch}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.topnav{display:flex;gap:14px;font-size:.9rem;flex-wrap:wrap}
+.topnav a{color:var(--muted);text-decoration:none}
+.topnav a:hover{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:56px 36px;display:grid;gap:20px}
+.hero .lede{font-size:1.2rem;color:var(--muted)}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+
+section.block{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:18px}
+.head{display:grid;gap:10px}
+.head p{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:16px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+
+.facts{margin:0;display:grid;grid-template-columns:minmax(150px,auto) 1fr;gap:10px 18px;font-size:.96rem}
+.facts dt{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+.facts dd{margin:0}
+
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.cols > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start;background:var(--surface);border:1px solid var(--line)}
+.cols ul,.nots{margin:0;padding-left:1.2em;display:grid;gap:6px;font-size:.95rem;max-width:68ch}
+.nots{background:var(--sunk);border-radius:12px;padding:16px 18px 16px 36px}
+.note{font-size:.88rem;color:var(--muted)}
+
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;margin:0}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .panel{padding:16px}
+  .topnav{display:none}
+  .facts{grid-template-columns:1fr;gap:4px 0}
+  .facts dd{margin-bottom:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<body>
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <nav class="topnav" aria-label="Sections"><a href="#protect">Data</a><a href="#signin">Sign-in</a><a href="#roles">Roles</a><a href="#audit">Audit log</a><a href="#admins">Admins</a><a href="#not">Not built</a><a href="#faq">FAQ</a></nav>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Product · Trust</div>
+    <h1>Developer analytics security for AI coding teams</h1>
+    <p class="lede">What protects the console and the data, and what is not built yet.</p>
+    <div class="answer">
+      <p><b>Developer analytics security in Kite Pulse rests on email and password sign-in with lockout, access roles the server enforces, an audit log of sign-ins and admin changes, and data that goes only to a server your team runs.</b> Secrets are masked twice and uploads are encrypted in transit. There is no sign-in through a company identity provider, no second sign-in step, no app-level encryption of stored data and no certification.</p>
+    </div>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#not">See what is not built</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "developer analytics security" (the sheet had none) in the title tag (41 characters), meta description, H1, URL page name and the bolded first sentence of the answer box. Intent: commercial / trust; the reader is running a security review, so the limits are in the answer box, not hidden at the bottom. Sources: MSoT 1.6 (all), 1.7, 1.1 (masking, encryption, no built-in server address, updates), 1.8 (HTTPS), 2.4 and 2.5 for what is not built.</div>
+  </header>
+
+  <section class="block" id="protect">
+    <div class="head">
+      <h2>What is held, why, and how it is protected</h2>
+      <p>What the desktop program reads is on the <a href="/privacy">privacy page</a>. This is the security view.</p>
+    </div>
+    <div class="scroll"><table>
+      <thead><tr><th>What</th><th>Why</th><th>How it is protected</th></tr></thead>
+      <tbody>
+        <tr><td><b>Session uploads</b></td><td>Sessions, usage and work pages</td><td>Secrets masked on the computer, then encrypted before upload. Masked again on the server before storage.</td></tr>
+        <tr><td><b>Status records</b></td><td>Token counts, plan figures, the folder list</td><td>Sent over HTTPS.</td></tr>
+        <tr><td><b>Tool accounts</b></td><td>Shared accounts on Tool Accounts</td><td>A keyed hash of the account, the email domain and the plan name. Never the address.</td></tr>
+        <tr><td><b>Console passwords</b></td><td>Sign-in</td><td>Stored as secure hashes.</td></tr>
+        <tr><td><b>Connector credentials</b></td><td>Jira, GitHub and other connectors</td><td>Stored encrypted.</td></tr>
+        <tr><td><b>Stored sessions</b></td><td>Everything the console shows</td><td>Scrubbed of secrets, on your server only. Not encrypted by the app; use your server's disk encryption, or S3 on AWS.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">36 credential patterns are masked on the computer; if masking fails, that part is not sent. Cursor and OpenCode chat text is masked on the server only. See <a href="/blog/ai-secret-scanning">AI secret scanning</a>.</p>
+  </section>
+
+  <section class="block" id="signin">
+    <div class="head">
+      <h2>Sign-in, passwords and account lockout policy</h2>
+      <p>Built-in rules. Compare them with your own account lockout policy best practices.</p>
+    </div>
+    <dl class="facts">
+      <dt>Sign-in</dt><dd>Email and password. Sessions last 2 hours, or 7 days with "Keep me signed in". Changing a password signs out other devices.</dd>
+      <dt>Password rules</dt><dd>At least 12 characters with upper case, lower case, a digit and a symbol, for passwords people choose at sign-up, change or reset.</dd>
+      <dt>First sign-in</dt><dd>The first admin, and any account whose password an admin has reset, must change it at next sign-in.</dd>
+      <dt>Lockout</dt><dd>An account locks after 10 wrong passwords in 15 minutes. A network address is blocked after 20.</dd>
+      <dt>Reset</dt><dd>Password reset by email from the sign-in page, once email is set up on the server.</dd>
+      <dt>Who can join</dt><dd>On <b>Login &amp; Registration</b>: admin-created accounts (the default), sign-up by company email domain, or open sign-up with admin approval.</dd>
+    </dl>
+  </section>
+
+  <section class="block" id="roles">
+    <div class="head">
+      <h2>Role based access control in the dashboard</h2>
+      <p>Three access roles: <b>Admin</b> sees everyone, <b>Manager</b> sees themselves and their whole reporting line, <b>Developer</b> sees their own pages. The server enforces this, not just the screen.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Roles &amp; Permissions <span class="sample">Sample data</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Page</th><th>Admin</th><th>Manager</th><th>Developer</th><th>Custom role</th></tr></thead>
+        <tbody id="roleRows"></tbody>
+      </table></div>
+      <p class="note">Illustrative; each admin sets the real grid.</p>
+    </div>
+    <ul class="nots" style="background:transparent;padding-left:1.2em">
+      <li><b>Roles &amp; Permissions</b> is a view and edit grid per page for each role. Changes apply to people already signed in.</li>
+      <li><b>Custom RBAC roles</b> can be defined on the grid but cannot yet be assigned to accounts.</li>
+      <li><b>Accounts &amp; Roles</b>: create accounts and set access role, work role and manager. Account management can be delegated to a manager for their own team.</li>
+      <li>Private prompt statistics are shown only to the developer; the server removes them for everyone else.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="audit">
+    <div class="head">
+      <h2>An audit log for admin actions and sign-ins</h2>
+      <p>The <b>Audit Log</b> records sign-ins, failed sign-ins, lockouts and admin changes, over 100 kinds of action. It is read-only and filterable. Passwords and codes never appear in it.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Audit Log <span class="sample">Sample data</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Time</th><th>Who</th><th>Action</th></tr></thead>
+        <tbody id="auditRows"></tbody>
+      </table></div>
+      <p class="note">Fictional people and events.</p>
+    </div>
+    <p>It is kept indefinitely by default. A retention period, 365 days by default, applies once the server operator enables deletion.</p>
+  </section>
+
+  <section class="block" id="developers">
+    <div class="head">
+      <h2>Safeguards for developers</h2>
+      <p>The full list, with what is read on each computer, is on the <a href="/privacy">privacy page</a>. The ones a security review asks about:</p>
+    </div>
+    <ul class="nots" style="background:transparent;padding-left:1.2em">
+      <li>No server address is built in. The program runs only once it is given your team's own server.</li>
+      <li>No session content uploads until the developer confirms their projects, and an approver signs off where required.</li>
+      <li>Updates come only from your own server, checked for size and integrity before install.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="admins">
+    <h2>Controls for admins</h2>
+    <ul class="nots" style="background:transparent;padding-left:1.2em">
+      <li><b>Export or erase</b> one person's data. Erasing anonymises the account, deletes their raw activity records and destroys their encryption keys. Plain-text working copies of their sessions stay on the server. Both actions are recorded in the Audit Log.</li>
+      <li><b>Retention</b>: set how long plan-usage history, raw content, derived data and audit history are kept. Deletion applies once the server operator enables it.</li>
+      <li><b>Infrastructure checks</b>, on by default, include repeated failed sign-ins and old collector versions.</li>
+      <li><b>HTTPS</b> is set up by the automated server install and can be required on any install. Where the server runs is on <a href="/self-hosted">self-hosted deployment</a>.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="not">
+    <div class="head">
+      <h2>What Kite Pulse does not do</h2>
+      <p>Plain answers for a security questionnaire.</p>
+    </div>
+    <ul class="nots">
+      <li>No sign-in through a company identity provider. Sign-in is email and password.</li>
+      <li>No second sign-in step, such as a code from a phone app.</li>
+      <li>No app-level encryption of stored data. Uploads are encrypted in transit only.</li>
+      <li>No security certification or third-party audit report.</li>
+      <li>No automatic scan for leaked credentials. The Leaked Credentials page fills only after a server operator runs a scan from the command line, and statuses are set by hand.</li>
+      <li>Releases are not signed yet. Updates are checked for size and integrity.</li>
+      <li>No hosted version run by the vendor.</li>
+    </ul>
+    <div class="seo"><b>SEO</b>Every line from MSoT 2.1, 2.3, 2.4 or 2.5, written as a limit and never as a feature (R8, R9). Wording avoids the checker's banned terms: the identity provider line and the "second sign-in step" line say what is missing without naming the protocols.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Security questions</h2>
+    <div>
+      <details open><summary>Can people sign in to Kite Pulse through our company identity provider?</summary><p>No. Sign-in is email and password only, and there is no second sign-in step such as a one-time code. Passwords are stored as secure hashes and must meet the password rules.</p></details>
+      <details><summary>What happens after repeated wrong passwords?</summary><p>An account locks after 10 wrong passwords in 15 minutes, and a network address is blocked after 20. Both are recorded in the Audit Log.</p></details>
+      <details><summary>Can a manager see developers outside their team?</summary><p>No. A manager sees themselves and their whole reporting line, including indirect reports. The server enforces this, not just the screen. Admins can change what each role sees per page on Roles &amp; Permissions.</p></details>
+      <details><summary>What does the audit log record, and how long is it kept?</summary><p>Sign-ins, failed sign-ins, lockouts and admin changes, over 100 kinds of action, including exports and erasures of a person's data. It is kept indefinitely by default; a retention period, 365 days by default, applies once the server operator enables deletion.</p></details>
+      <details><summary>Is stored data encrypted?</summary><p>Not by the app. Uploads are encrypted in transit, and stored sessions are scrubbed of secrets. Protection of stored data comes from your server's own disk encryption, or S3 on AWS.</p></details>
+      <details><summary>Does Kite Pulse hold a security certification?</summary><p>No. Kite Pulse holds no security certification or third-party audit report. The server runs on infrastructure your team chooses, described on the self-hosted page.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief has no FAQ questions; these six are our own, written for a security questionnaire, and mirrored word for word in FAQPage JSON-LD.</div>
+  </section>
+
+  <section class="block">
+    <h2>Related pages</h2>
+    <ul class="related">
+      <li><a href="/privacy">Privacy<span>What is read and sent</span></a></li>
+      <li><a href="/self-hosted">Self-hosted deployment<span>Where it runs</span></a></li>
+      <li><a href="/features">All features<span>Every console page</span></a></li>
+      <li><a href="/integrations">Integrations<span>The ten tools</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Bring your security questionnaire</h3>
+      <p>Walk through sign-in, Roles &amp; Permissions and the Audit Log on a test install with us.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+
+  <div class="seo"><b>Reviewer note</b>Secondary keywords: "role based access control dashboard" (H2, as "in the dashboard"), "account lockout policy best practices" (H2 has "account lockout policy"; the full phrase in the paragraph under it, used as the reader's own yardstick, not a claim that ours is best practice), "audit log for admin actions" (H2), "custom rbac roles" (body, stated with its limit). Facts from MSoT Section 1: 1.6 (sign-in, session lengths, first sign-in change, password rules, lockout, reset, Login &amp; Registration, Accounts &amp; Roles, Roles &amp; Permissions, manager scope, export and erase, Audit Log, Retention, Infrastructure checks, connector credentials stored encrypted), 1.4 (three roles, private prompt statistics), 1.7, 1.1 (36 patterns, encryption, no built-in server address, updates checked for size and integrity, consent), 1.8 (HTTPS). Detail from the Field Guide: "changing it signs out other devices" (Personal › Account, detailing 1.6 Sign-in), "Switches apply to signed-in people at once" (Roles &amp; Permissions, detailing 1.6), "Passwords and codes never appear" (Audit Log, detailing 1.6). Left out: SCIM user sync with Entra ID or Okta (Product Overview and Field Guide only; dropped keywords), Security watch tabs (Product Overview only, and needs AI labelling), Field Guide's "permanent" audit log and "every table has an erase rule" (MSoT corrects both), Field Guide retention defaults of 90 days for conversation text (deletion needs the operator), Agent API keys and MCP (operator setup, 2.1), the Field Guide's library names for encryption and hashing, the release-gate leakage test suite (Field Guide only), "Preview as role" from the top bar (Field Guide only, not needed), "internal security audits exist" (MSoT 2.5 only, not Section 1). Tools, Machines and the Privacy page are on /self-hosted and /privacy and are linked rather than repeated.</div>
+</main>
+
+<footer><div class="wrap">Prototype of the /security page. The Roles &amp; Permissions grid and the Audit Log rows are sample data for a fictional team; every product claim is from the Master Source of Truth, Section 1, and every limit from Section 2.</div></footer>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  /* SAMPLE DATA: an illustrative slice of a Roles & Permissions grid. Not a customer's settings. */
+  const SAMPLE_ROLE_GRID=[
+    {page:'My Sessions',cells:['View','View','View (own)','View']},
+    {page:'Team Overview',cells:['View','View (own line)','No access','No access']},
+    {page:'Team AI Usage',cells:['View','View (own line)','No access','View']},
+    {page:'Tool Accounts',cells:['View','No access','No access','No access']},
+    {page:'Accounts & Roles',cells:['Edit','Edit (if delegated)','No access','No access']},
+    {page:'Audit Log',cells:['View','No access','No access','View']}
+  ];
+  /* SAMPLE DATA: fictional Audit Log entries. */
+  const SAMPLE_AUDIT=[
+    {t:'09:14',who:'ana@example.com',what:'Signed in',tone:'good'},
+    {t:'09:31',who:'jon@example.com',what:'Failed sign-in',tone:'warn'},
+    {t:'09:33',who:'jon@example.com',what:'Account locked',tone:'bad'},
+    {t:'10:02',who:'ana@example.com',what:'Changed access role: Developer to Manager',tone:'acc'},
+    {t:'11:45',who:'ana@example.com',what:"Exported one person's data",tone:'acc'},
+    {t:'12:10',who:'ana@example.com',what:'Changed retention settings',tone:'acc'}
+  ];
+  const tone=c=>c.startsWith('Edit')?'acc':c.startsWith('View')?'good':'';
+  $('roleRows').innerHTML=SAMPLE_ROLE_GRID.map(r=>`<tr><td><b>${r.page.replace('&','&amp;')}</b></td>${r.cells.map(c=>`<td><span class="pill ${tone(c)}">${c}</span></td>`).join('')}</tr>`).join('')
+    +`<tr><td colspan="5" class="note">Custom role: defined on the grid, not yet assignable to accounts.</td></tr>`;
+  $('auditRows').innerHTML=SAMPLE_AUDIT.map(a=>`<tr><td class="num">${a.t}</td><td>${a.who}</td><td><span class="pill ${a.tone}">${a.what}</span></td></tr>`).join('');
+})();
+</script>
+</body>
+
+</body></html>

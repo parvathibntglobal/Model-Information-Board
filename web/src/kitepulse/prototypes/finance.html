@@ -1,0 +1,393 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>AI Spend Visibility for Finance and Executives | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="AI spend visibility for AI coding tools: estimated cost per tool, seat prices, shared accounts and monthly budgets per team or project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"WebPage","name":"AI spend visibility for executives and finance","url":"/solutions/finance","about":"AI spend visibility for AI coding tools","isPartOf":{"@type":"WebSite","name":"Kite Pulse"}},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Solutions","item":"/solutions"},{"@type":"ListItem","position":3,"name":"Executives and finance","item":"/solutions/finance"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How do I see what my company spends on AI coding tools?","acceptedAnswer":{"@type":"Answer","text":"Put token use per tool, an estimated cost from list prices and your seat prices side by side. Kite Pulse reads the session history ten AI coding tools keep on developers' computers and shows token use per tool, model, project and day, with an estimated cost per tool labelled not billed spend. Your invoices remain the record of what you paid."}},
+{"@type":"Question","name":"Does Kite Pulse show our total AI spend?","acceptedAnswer":{"@type":"Answer","text":"No. Estimated cost is shown per tool and never added up, because Codex, Cursor and GitHub Copilot usually have no price and many seats are flat subscriptions. Chat assistants, API bills and other company AI spend are outside Kite Pulse altogether."}},
+{"@type":"Question","name":"Can finance see AI cost per developer?","acceptedAnswer":{"@type":"Answer","text":"Only admins can, on that developer's AI Usage tab. Managers see token use for their own reporting line, and budgets are set per team or project, never per person."}},
+{"@type":"Question","name":"Does Kite Pulse find unused AI seats?","acceptedAnswer":{"@type":"Answer","text":"No. It only sees accounts that appear in AI coding sessions, so a seat nobody uses never shows up. Tool Accounts lists the accounts in use, with plan tier, last seen and email domain, and marks shared ones; compare that list with the seats you pay for."}},
+{"@type":"Question","name":"Can finance get a regular AI usage report by email?","acceptedAnswer":{"@type":"Answer","text":"Yes, if email is configured on the server. An admin can schedule the Company report daily, weekly or monthly as PDF or CSV, with a preview and a send history."}}
+]}]}
+</script>
+<style>
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.num,td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.lede{font-size:1.2rem;color:var(--muted)}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.08rem}
+.scope{background:var(--cost-soft);border-radius:12px;padding:12px 16px;font-size:.97rem}
+.scope b{color:var(--cost)}
+.hero-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg);text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+.head{display:grid;gap:10px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:14px;min-width:0}
+.panel-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.panel-label::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--accent)}
+.sample{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--cost);background:var(--cost-soft);padding:2px 8px;border-radius:999px;margin-left:auto}
+.note{font-size:.86rem;color:var(--muted)}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.src{font-size:.78rem;color:var(--muted)}
+.none{color:var(--muted)}
+.notot td{background:var(--sunk);font-size:.85rem;color:var(--muted)}
+.pill{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.warn{background:var(--cost-soft);color:var(--cost)}
+
+.qs{display:grid;gap:12px}
+.q{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.q:last-child{border-bottom:0;padding-bottom:0}
+.q p{font-weight:600;font-size:.97rem}
+.q small{display:block;font-weight:400;font-size:.85rem;color:var(--muted)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--bg);padding:6px 12px;cursor:pointer;font-weight:600;font-size:.85rem;white-space:nowrap}
+.seg button + button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.verdict{display:grid;gap:8px;border-radius:12px;padding:16px;background:var(--sunk)}
+
+.helps{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.help{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:grid;gap:10px;align-content:start}
+.help ul{font-size:.94rem}
+.help .more{font-size:.92rem;font-weight:600}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.field{display:grid;gap:6px}
+.field label{font-weight:600;font-size:.95rem}
+select{border:1.5px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--bg);width:100%}
+.listdoc{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:grid;gap:10px;font-size:.95rem}
+.listdoc h3{font-size:1.1rem}
+.listdoc ol{gap:8px;max-width:70ch}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+textarea{width:100%;min-height:180px;border:1.5px solid var(--line);border-radius:8px;padding:10px;background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:.8rem}
+
+.cansee{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.cansee > div{border-radius:12px;padding:16px 18px;display:grid;gap:8px;align-content:start}
+.cansee .yes{background:var(--good-soft)} .cansee .no{background:var(--sunk)}
+.cansee h3{font-size:1rem}
+.cansee ul{font-size:.93rem}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.cta .btn{background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .panel{padding:14px} .q{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Solutions · Executives and finance</div>
+    <h1>The AI coding bill arrives as one line. Get AI spend visibility tool by tool.</h1>
+    <div class="answer">
+      <p>Kite Pulse gives executives and finance AI spend visibility for AI coding tools: token use and an estimated list-price cost for each tool, the seat prices you enter, accounts shared by several people, and monthly budgets per team or project with alerts.</p>
+      <p>The cost is an estimate labelled "not billed spend", shown per tool and never totalled.</p>
+    </div>
+    <p class="scope"><b>Scope:</b> Kite Pulse covers AI coding tools only, the ten it reads (Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider). It is not an AI spend management platform for the whole company: chat assistant seats, API bills and other AI services do not appear in it.</p>
+    <div class="hero-row"><button class="btn" type="button">Book a demo</button><a class="btn ghost" href="#problem">See a sample month</a></div>
+    <div class="seo"><b>SEO</b>Main keyword "ai spend visibility" in the title tag (first words), meta description, H1 and the first sentence of the answer box; URL /solutions/finance. Intent: commercial, a finance or executive buyer asking "what are we spending on AI, and on what?" (Product Overview 4, executives row). The scope line sits directly under the answer box as the brief's care list requires (R9) and carries the secondary keyword "ai spend management platform" honestly, as what Kite Pulse is not. Sources: MSoT "Who it is for" (executives and finance row), 1.1 (ten tools), 1.2 (Team AI Usage, Estimated cost per tool, Cost per developer, AI Budgets, Hourly Rates &amp; Seat Prices, Models tab, Tool Accounts, Plan headroom), 1.3 (Company report, Plan usage report, Scheduled reports), 1.4 (Roles &amp; Permissions).</div>
+  </header>
+
+  <section class="block" id="problem">
+    <div class="head">
+      <h2>What finance sees today, and what it cannot see</h2>
+      <p>The invoice says what each vendor charged, not which teams used the tools or whether one login serves three people. Without that, AI spend analysis software has nothing to analyse below the vendor line. Below is the per-tool view instead.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Team AI Usage, admin view <span class="sample">Sample data</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Tool</th><th class="r">Tokens this month</th><th class="r">Estimated cost</th><th>Where the cost comes from</th><th class="r">Seat price / month</th></tr></thead>
+        <tbody id="toolBody"></tbody>
+      </table></div>
+      <p class="note">Example figures and seat prices for a fictional team. No total row: three tools have no price.</p>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai spend analysis software" in the intro paragraph. Table rules from MSoT 1.2: cost per tool, never totalled; Claude and Gemini models priced from list prices; Cline, Roo Code, Kilo Code, OpenCode and Aider use the tool's own reported cost; Codex, Cursor and Copilot usually show a dash, never $0; seat prices appear on the Team AI Usage Overview for admins. Column headers are descriptive, not console labels.</div>
+  </section>
+
+  <section class="block" id="check">
+    <div class="head">
+      <h2>Can you answer these today?</h2>
+      <p>Before comparing AI cost visibility tools, check which of these you can already answer.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Self-check</div>
+      <div class="qs" id="qs">
+        <div class="q"><p>Which AI coding tools did developers use last month, and how many tokens in each? <small><a href="#spend">See: spend per tool</a></small></p><div class="seg" role="group" aria-label="Answer question 1"><button type="button" data-i="0" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="0" data-v="no" aria-pressed="false">No</button></div></div>
+        <div class="q"><p>Which of that usage has a known list price, and which has none? <small><a href="#spend">See: spend per tool</a></small></p><div class="seg" role="group" aria-label="Answer question 2"><button type="button" data-i="1" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="1" data-v="no" aria-pressed="false">No</button></div></div>
+        <div class="q"><p>Is any AI tool login shared by several people? <small><a href="#seats">See: seats and shared accounts</a></small></p><div class="seg" role="group" aria-label="Answer question 3"><button type="button" data-i="2" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="2" data-v="no" aria-pressed="false">No</button></div></div>
+        <div class="q"><p>Does each team or project have a monthly AI budget that warns before it runs out? <small><a href="#budgets">See: budgets</a></small></p><div class="seg" role="group" aria-label="Answer question 4"><button type="button" data-i="3" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="3" data-v="no" aria-pressed="false">No</button></div></div>
+        <div class="q"><p>Do you receive a usage report on a schedule, without asking anyone to compile it? <small><a href="#reports">See: reports</a></small></p><div class="seg" role="group" aria-label="Answer question 5"><button type="button" data-i="4" data-v="yes" aria-pressed="false">Yes</button><button type="button" data-i="4" data-v="no" aria-pressed="false">No</button></div></div>
+      </div>
+      <div class="verdict" id="verdict" aria-live="polite"><p>Answer all five to see where to start.</p></div>
+    </div>
+  </section>
+
+  <section class="block" id="helps">
+    <div class="head">
+      <h2>How Kite Pulse helps executives and finance</h2>
+    </div>
+    <div class="helps">
+      <div class="help" id="spend">
+        <h3>What are we spending, per tool?</h3>
+        <ul>
+          <li>Team AI Usage: token use per developer, tool, model, project and day.</li>
+          <li>Estimated cost is tokens times the published list price, dated so older sessions keep their price. Codex, Cursor and Copilot usually show a dash, never $0.</li>
+        </ul>
+        <a class="more" href="/ai-cost-tracking">How AI coding cost tracking works</a>
+      </div>
+      <div class="help" id="seats">
+        <h3>What do seats cost, and which logins are shared?</h3>
+        <ul>
+          <li>Admins enter seat prices on Hourly Rates &amp; Seat Prices, each change dated.</li>
+          <li>Tool Accounts marks accounts used by more than one person "Shared", for Claude Code, Codex, Cursor, OpenCode and GitHub Copilot. Admin by default.</li>
+        </ul>
+        <a class="more" href="/shadow-ai">Shared and personal AI accounts</a>
+      </div>
+      <div class="help" id="budgets">
+        <h3>How do we keep spending on track?</h3>
+        <ul>
+          <li>Admins set a monthly budget per team or project, never per person, in tokens or estimated US dollars, with alerts at 80% and 100%.</li>
+          <li>A dollar budget sums priced tools and reports unpriced tokens separately.</li>
+        </ul>
+        <a class="more" href="/ai-budgets">AI budgets per team or project</a>
+      </div>
+      <div class="help" id="adoption">
+        <h3>Which tools and models are really used?</h3>
+        <ul>
+          <li>The Models tab: developers per model, adoption over time, models by project.</li>
+          <li>Cost per developer is admin-only. Managers see token use for their own reporting line.</li>
+        </ul>
+        <a class="more" href="/blog/ai-cost-per-project-agencies">AI cost per project, for agencies</a>
+      </div>
+      <div class="help" id="reports">
+        <h3>How do the figures reach a monthly report?</h3>
+        <ul>
+          <li>The Company report compares any period with the previous one; CSV or PDF download for admins by default.</li>
+          <li>Scheduled reports email it daily, weekly or monthly, once email is configured on the server.</li>
+        </ul>
+        <a class="more" href="/blog/engineering-ai-spend-report">The engineering AI spend report</a>
+      </div>
+      <div class="help" id="plans">
+        <h3>Are our Claude plans the right size?</h3>
+        <ul>
+          <li>For Claude Code only: who is near or at a plan limit, and a Plan usage report in Excel with weeks at 80% or more and weeks at the limit.</li>
+        </ul>
+        <a class="more" href="/plan-headroom">Plan headroom for Claude Code</a>
+        <a class="more" href="/blog/control-claude-code-spend-small-team">Controlling Claude Code spend on a small team</a>
+      </div>
+    </div>
+    <div class="seo"><b>SEO</b>Hub section: each block summarises and links, no repeated product-page content. Claims: 1.2 Team AI Usage, Estimated cost per tool (dated price entries), Hourly Rates &amp; Seat Prices, Tool Accounts (five tools, admin by default), AI Budgets, Models tab, Cost per developer, Plan headroom; 1.3 Company report, Scheduled reports, Plan usage report. "Never per person" for budgets and "each change a new dated entry" for seat prices are Field Guide details (Settings › AI Budgets; Hourly Rates &amp; Seat Prices) of MSoT 1.2 items. Hourly rates per role level are left out: the only page that uses them (the Waste panel) is on hidden Cost &amp; ROI.</div>
+  </section>
+
+  <section class="block" id="checklist">
+    <div class="head">
+      <h2>An AI spend governance checklist for your first month</h2>
+      <p>AI spend governance starts with three decisions: the budget unit, whether budgets follow teams or projects, and how often someone looks. Pick yours and copy the list.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-label">Checklist builder</div>
+      <div class="grid2">
+        <div class="field"><label for="bUnit">Budget unit</label><select id="bUnit"><option value="usd">Estimated US dollars</option><option value="tokens">Tokens</option></select></div>
+        <div class="field"><label for="bScope">Budget per</label><select id="bScope"><option value="team">Team</option><option value="project">Project</option></select></div>
+        <div class="field"><label for="bCadence">Spend review</label><select id="bCadence"><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option></select></div>
+        <div class="field"><label for="bClaude">Do you pay for Claude plans?</label><select id="bClaude"><option value="yes">Yes</option><option value="no">No</option></select></div>
+      </div>
+      <div class="listdoc" id="listDoc">
+        <h3>AI coding spend: first-month checklist</h3>
+        <ol>
+          <li>List each AI coding tool's seat price; an admin enters them on Hourly Rates &amp; Seat Prices.</li>
+          <li>Decide who in finance needs console access. Tool Accounts is admin by default; admins can grant pages to managers on Roles &amp; Permissions.</li>
+          <li>Set a monthly budget per team in estimated US dollars on AI Budgets, with alerts at 80% and 100%. Unpriced tokens, usually Codex, Cursor and Copilot, are reported separately.</li>
+          <li>Ask an admin to schedule the Company report monthly, as PDF or CSV. Email must be configured on the server.</li>
+          <li>Each month, open Team AI Usage: tokens and estimated cost per tool, and the Models tab for adoption.</li>
+          <li>Each month, check Tool Accounts for Shared accounts and compare accounts in use with your invoiced seats.</li>
+          <li>Reconcile with invoices: the estimate is list price, not billed spend.</li>
+          <li>Before renewing Claude plans, read the Plan usage report: weeks at 80% or more and at the limit.</li>
+        </ol>
+      </div>
+      <div class="row"><button class="btn" type="button" id="copyList">Copy checklist</button><span id="copyMsg" class="note" aria-live="polite"></span></div>
+      <textarea id="listText" readonly hidden aria-label="Checklist text"></textarea>
+    </div>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai spend governance" in this H2 and first sentence. Every step names a Section 1 feature (1.2, 1.3, 1.4 Roles &amp; Permissions). Different from the monthly routine on /blog/engineering-ai-spend-report: this is a setup list with a choice of budget unit and scope.</div>
+  </section>
+
+  <section class="block" id="limits">
+    <div class="head">
+      <h2>What Kite Pulse shows you, and what it does not</h2>
+      <p>Figures come from AI coding tools' own session records, on a server your team runs.</p>
+    </div>
+    <div class="cansee">
+      <div class="yes"><h3>What it shows</h3><ul>
+        <li>Token use per tool, model, project, developer and day</li>
+        <li>Estimated list-price cost per tool, where a price is known</li>
+        <li>Seat prices you enter, beside usage, for admins</li>
+        <li>Accounts per tool, with shared accounts marked</li>
+        <li>Monthly budgets per team or project, with alerts</li>
+        <li>Claude plan usage per developer, for Claude Code</li>
+      </ul></div>
+      <div class="no"><h3>What it does not show</h3><ul>
+        <li>What you were billed: invoices, discounts and credits</li>
+        <li>One total of AI spend across tools</li>
+        <li>Chat assistant seats, API bills or AI tools outside the ten</li>
+        <li>Seats nobody uses: an idle seat never appears in a session</li>
+        <li>A return-on-investment figure</li>
+      </ul></div>
+    </div>
+    <p>For AI spend across every vendor and invoice, your finance or procurement system is the right place.</p>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions from executives and finance</h2>
+    <div>
+      <details open><summary>How do I see what my company spends on AI coding tools?</summary><p>Put token use per tool, an estimated cost from list prices and your seat prices side by side. Kite Pulse reads the session history ten AI coding tools keep on developers' computers and shows token use per tool, model, project and day, with an estimated cost per tool labelled not billed spend. Your invoices remain the record of what you paid.</p></details>
+      <details><summary>Does Kite Pulse show our total AI spend?</summary><p>No. Estimated cost is shown per tool and never added up, because Codex, Cursor and GitHub Copilot usually have no price and many seats are flat subscriptions. Chat assistants, API bills and other company AI spend are outside Kite Pulse altogether.</p></details>
+      <details><summary>Can finance see AI cost per developer?</summary><p>Only admins can, on that developer's AI Usage tab. Managers see token use for their own reporting line, and budgets are set per team or project, never per person.</p></details>
+      <details><summary>Does Kite Pulse find unused AI seats?</summary><p>No. It only sees accounts that appear in AI coding sessions, so a seat nobody uses never shows up. Tool Accounts lists the accounts in use, with plan tier, last seen and email domain, and marks shared ones; compare that list with the seats you pay for.</p></details>
+      <details><summary>Can finance get a regular AI usage report by email?</summary><p>Yes, if email is configured on the server. An admin can schedule the Company report daily, weekly or monthly as PDF or CSV, with a preview and a send history.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The brief's FAQ and AEO question is the same ("How do I see what my company spends on AI coding tools?"), so it is one item, first. Four more cover the care list: no total, cost per developer admin-only, no unused-seat detection (Product Overview 8 says "find wasted or shared seats"; only shared accounts are verified), and scheduled reports. Identical text in FAQPage JSON-LD.</div>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">See your AI coding spend tool by tool</h3>
+      <p>It runs on your own server. We can walk through it on a sample team.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /solutions/finance page. Tool token counts, estimated costs and seat prices are sample data for a fictional team; seat prices are examples, not vendor prices.</div></footer>
+
+<script>
+(function(){
+  /* SAMPLE DATA: a fictional team for one month. Not a customer, not real figures, not vendor prices. */
+  const SAMPLE_MONTH=[
+    {tool:'Claude Code',tokens:48200000,cost:612,src:'Estimated from list prices',seat:'$100'},
+    {tool:'Gemini CLI',tokens:6100000,cost:41,src:'Estimated from list prices',seat:'not entered'},
+    {tool:'Cline',tokens:3900000,cost:58,src:"Tool's own reported cost",seat:'no seat'},
+    {tool:'Codex',tokens:11400000,cost:null,src:'No price known',seat:'$20'},
+    {tool:'Cursor',tokens:9800000,cost:null,src:'Usually none',seat:'$40'},
+    {tool:'GitHub Copilot Chat in VS Code',tokens:5300000,cost:null,src:'Usually none',seat:'$19'}
+  ];
+  const $=id=>document.getElementById(id);
+  $('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+
+  const fmtTok=n=>(n/1e6).toFixed(1)+'M';
+  $('toolBody').innerHTML=SAMPLE_MONTH.map(r=>`<tr><td><b>${r.tool}</b></td><td class="r n">${fmtTok(r.tokens)}</td><td class="r n">${r.cost==null?'<span class="none" title="No price: shown as a dash, never $0">—</span>':'$'+r.cost.toLocaleString('en-US')}</td><td class="src">${r.src}</td><td class="r n">${r.seat}</td></tr>`).join('')
+    +`<tr class="notot"><td colspan="5">Not billed spend. Cost is shown per tool and not added up.</td></tr>`;
+
+  /* self-check */
+  const LINKS=[['#spend','Spend per tool'],['#spend','Which usage has a price'],['#seats','Seats and shared accounts'],['#budgets','Budgets per team or project'],['#reports','Scheduled reports']];
+  const ans=[null,null,null,null,null];
+  $('qs').addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(!b)return;const i=+b.dataset.i;ans[i]=b.dataset.v;
+    b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));render();});
+  function render(){
+    const done=ans.filter(a=>a).length, gaps=ans.map((a,i)=>a==='no'?i:-1).filter(i=>i>=0);
+    if(done<ans.length){$('verdict').innerHTML=`<p>${done} of 5 answered.</p>`;return;}
+    $('verdict').innerHTML=gaps.length
+      ?`<h3>${5-gaps.length} of 5 answered today</h3><p>Start with:</p><ul>${gaps.map(i=>`<li><a href="${LINKS[i][0]}">${LINKS[i][1]}</a></li>`).join('')}</ul><p class="note">A quick self-check, not an audit.</p>`
+      :`<h3>5 of 5 answered today</h3><p>You already have the picture. The <a href="#limits">limits section</a> says where Kite Pulse would add detail and where it would not.</p>`;
+  }
+
+  /* checklist builder */
+  function build(){
+    const unit=$('bUnit').value, scope=$('bScope').value, cad=$('bCadence').value, claude=$('bClaude').value==='yes';
+    const each=cad==='monthly'?'Each month':'Each quarter';
+    const items=[
+      "List each AI coding tool's seat price; an admin enters them on Hourly Rates & Seat Prices.",
+      'Decide who in finance needs console access. Tool Accounts is admin by default; admins can grant pages to managers on Roles & Permissions.',
+      unit==='usd'
+        ?`Set a monthly budget per ${scope} in estimated US dollars on AI Budgets, with alerts at 80% and 100%. Unpriced tokens, usually Codex, Cursor and Copilot, are reported separately.`
+        :`Set a monthly budget per ${scope} in tokens on AI Budgets, with alerts at 80% and 100%.`,
+      `Ask an admin to schedule the Company report ${cad}, as PDF or CSV. Email must be configured on the server.`,
+      `${each}, open Team AI Usage: tokens and estimated cost per tool, and the Models tab for adoption.`,
+      `${each}, check Tool Accounts for Shared accounts and compare accounts in use with your invoiced seats.`,
+      'Reconcile with invoices: the estimate is list price, not billed spend.',
+      claude?'Before renewing Claude plans, read the Plan usage report: weeks at 80% or more and at the limit.':null
+    ].filter(Boolean);
+    const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    $('listDoc').innerHTML=`<h3>AI coding spend: first-month checklist</h3><ol>${items.map(i=>`<li>${esc(i)}</li>`).join('')}</ol>`;
+    $('listText').value='AI coding spend: first-month checklist\n\n'+items.map((t,i)=>`${i+1}. ${t}`).join('\n');
+  }
+  ['bUnit','bScope','bCadence','bClaude'].forEach(id=>$(id).addEventListener('change',build));
+  $('copyList').addEventListener('click',()=>{const t=$('listText').value;
+    const fb=()=>{const ta=$('listText');ta.hidden=false;ta.select();$('copyMsg').textContent='Copy the text below.';};
+    try{navigator.clipboard.writeText(t).then(()=>{$('copyMsg').textContent='Copied.';},fb);}catch(e){fb();}});
+  build();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,246 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>See What AI Agents Are Doing Right Now | Kite Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A story of how a team lead can see what AI agents are doing right now, spot a stuck coding agent in The Office and help before lunch.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+{"@type":"Article","headline":"The Stuck Agent Caught Before Lunch: How to See What AI Agents Are Doing Right Now","author":{"@type":"Organization","name":"Kite Pulse team"},"datePublished":"2026-10-30","dateModified":"2026-10-30","about":"Seeing what AI coding agents are doing right now"},
+{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"/"},{"@type":"ListItem","position":2,"name":"Blog","item":"/blog"},{"@type":"ListItem","position":3,"name":"The Stuck Agent Caught Before Lunch","item":"/blog/stuck-ai-agent"}]},
+{"@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"How can I see what my team's AI agents are doing right now?","acceptedAnswer":{"@type":"Answer","text":"Use a view built from the AI tools' own session history rather than asking for status updates. In Kite Pulse, The Office shows a desk per person, grouped by team, with online, away or offline status and markers for stuck work or plan limits, and Team Overview shows who is online and coding right now, refreshing every 30 seconds. Detail is shown only for people in your scope; colleagues outside it appear with presence only."}},
+{"@type":"Question","name":"How do I spot developers who are stuck in long AI sessions?","acceptedAnswer":{"@type":"Answer","text":"Look for the stuck marker on a person's desk in The Office, then read the session's steps for the same command or file coming back again and again. Each developer's report also lists their deep sessions (60 minutes or more) and longest session, and managers and admins can open it. A long session is not a problem on its own, so treat it as a reason to ask, not a verdict."}},
+{"@type":"Question","name":"How do I know when AI is retrying the same failed fix repeatedly?","acceptedAnswer":{"@type":"Answer","text":"The session's step view shows the same command failing after each edit. Kite Pulse records failed tool calls for every supported tool except Aider, and command exit codes from Claude Code, Codex and Copilot. Across the team, Work Problems uses fixed rules, with no AI, to find failed commands, error messages and repeated retries, grouped by severity with suggested actions; it is an admin page by default."}}
+]}]}
+</script>
+<style>
+/* Layout: one reading column for a blog article; crawlable text first, one product callout, FAQ, related links. Same tokens as the existing Kite Pulse prototypes. */
+:root{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C1120; --surface:#141B2D; --sunk:#1B2338; --ink:#E8ECF4; --muted:#9AA4BB; --line:#283149;
+  --accent:#8299FF; --accent-soft:#1F2A55; --cost:#F0A640; --cost-soft:#3A2A14;
+  --good:#4CC48F; --good-soft:#16352A; --bad:#F27A65; --bad-soft:#3D1D19; color-scheme:dark}
+:root[data-theme="light"]{
+  --bg:#F2F4F8; --surface:#FFFFFF; --sunk:#E8ECF3; --ink:#111A2E; --muted:#56607A; --line:#D6DCE6;
+  --accent:#2747D6; --accent-soft:#E3E8FC; --cost:#C9771A; --cost-soft:#FBEBD6;
+  --good:#1F8A5B; --good-soft:#DDF2E7; --bad:#C2412D; --bad-soft:#F9E1DC; color-scheme:light}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,3.4vw,1.95rem);font-weight:700;letter-spacing:-.01em}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0;max-width:65ch}
+ul,ol{margin:0;padding-left:1.25em;display:grid;gap:6px;max-width:65ch}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.brand span{color:var(--accent)}
+.toggle{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted);cursor:pointer}
+
+.hero{padding-block:52px 32px;display:grid;gap:18px}
+.byline{font-family:var(--mono);font-size:.8rem;color:var(--muted);display:flex;gap:6px 14px;flex-wrap:wrap}
+.answer{border-left:3px solid var(--accent);padding:4px 0 4px 16px;display:grid;gap:8px;font-size:1.12rem}
+.note{background:var(--sunk);border-radius:10px;padding:10px 14px;font-size:.92rem;color:var(--muted)}
+.note b{color:var(--ink)}
+
+section.block{padding-block:40px;border-top:1px solid var(--line);display:grid;gap:16px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px;min-width:0}
+.panel .tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.stepslist{list-style:none;padding:0;margin:0;display:grid;gap:8px;counter-reset:s;max-width:none}
+.stepslist li{display:grid;grid-template-columns:2rem 1fr auto;gap:10px;align-items:center;font-size:.95rem;min-width:0}
+.stepslist li::before{counter-increment:s;content:counter(s);font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;color:var(--muted);background:var(--sunk);border-radius:8px;text-align:center;line-height:2rem;height:2rem}
+.stepslist code{font-family:var(--mono);font-size:.85rem;overflow-wrap:anywhere}
+.pill{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pill.ok{background:var(--good-soft);color:var(--good)}
+.pill.fail{background:var(--bad-soft);color:var(--bad)}
+.pill.stuck{background:var(--cost-soft);color:var(--cost)}
+.panel .caption{font-size:.88rem;color:var(--muted)}
+
+.kp{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--accent-soft);border-radius:12px;padding:16px 18px}
+.kp .mark{font-family:var(--display);font-weight:800;color:var(--accent);font-size:.9rem;white-space:nowrap;padding-top:2px}
+.kp p{font-size:.97rem}
+.seo{display:none;border:1.5px dashed var(--cost);background:var(--cost-soft);border-radius:10px;padding:10px 14px;font-size:.88rem}
+.seo b{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cost);margin-right:6px}
+body.show-seo .seo{display:block}
+
+details{border-bottom:1px solid var(--line);padding-block:14px}
+details summary{cursor:pointer;font-weight:700;font-family:var(--display);font-size:1.05rem}
+details p{margin-top:8px;color:var(--muted)}
+.related{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;list-style:none;padding:0;max-width:none}
+.related a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-decoration:none;font-weight:600}
+.related a span{display:block;font-weight:400;font-size:.88rem;color:var(--muted)}
+.cta{display:grid;gap:12px;background:var(--ink);color:var(--bg);border-radius:14px;padding:26px}
+.cta p{opacity:.8}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--ink);justify-self:start}
+footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+
+@media (max-width:640px){ body{font-size:16px} .stepslist li{grid-template-columns:2rem 1fr} .stepslist .pill{grid-column:2;justify-self:start} .kp{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Kite <span>Pulse</span></div>
+    <label class="toggle" for="seoToggle"><input type="checkbox" id="seoToggle"> Show SEO notes</label>
+  </div>
+</div>
+
+<main class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Article · Use case · Illustrative story</div>
+    <h1>The Stuck Agent Caught Before Lunch: How to See What AI Agents Are Doing Right Now</h1>
+    <div class="byline"><span>Kite Pulse team</span><span>Updated 30 Oct 2026</span><span>8 min read</span></div>
+    <div class="answer">
+      <p><b>The quickest way to see what AI agents are doing right now is a live board built from the session history the AI tools already keep.</b> In Kite Pulse that board is The Office: a desk per person, grouped by team, with online, away or offline status and a marker when work is stuck. This story follows one team lead from that marker to a fix, before the morning is gone.</p>
+    </div>
+    <p class="note"><b>Illustrative example.</b> Priya and Sam are invented people and this is not a customer case. The console pages and behaviours in the story are features the product has today; the people, the project and the bug are made up.</p>
+    <div class="seo"><b>SEO</b>Title tag "See What AI Agents Are Doing Right Now | Kite Pulse" (51 characters). Meta description 133 characters, contains the main keyword. Main keyword "see what ai agents are doing right now" is in the title tag, the H1 and the bolded first sentence of the answer box. Intent is Commercial, so the story ends in a "what to look for" section a reader can apply with or without the product. The story is labelled illustrative (R2): no customer, no outcome figures, no invented counts. Sources: MSoT Section 1 for every product claim; Product Overview 5.2 only for detail of The Office desk panel. Left out on purpose: the 30-minute "AI agent stuck" notice and "five times in 15 minutes" example (Product Overview only, not Section 1), 3D postures and thought clouds (no 3D), Claude Code waiting signals (MSoT 2.3, unreleased), and any person-level ranking language (R4).</div>
+  </header>
+
+  <section class="block" id="wall">
+    <h2>Tuesday morning: a live view of AI coding agents on the meeting-room screen</h2>
+    <p>Priya leads a small product team. Most of her developers spend the day directing an AI coding agent: some use Claude Code, others Cursor or Codex. Commits tell her what came out. They say nothing about an agent going round in circles.</p>
+    <p>So the team keeps <a href="/ai-agent-office">The Office, a live view of every AI coding agent at its person's desk</a>, open on the meeting-room screen. Each desk shows a person and whether they are online, away or offline, and desks are grouped by team.</p>
+    <p>Each desk can carry one marker for what needs a look, such as stuck work or a Claude plan limit. Presence is shared with everyone. Everything past presence, including what a stuck marker is about, is shown only for the viewer themselves, the people they manage and admins. The meeting-room screen is signed in as Priya, who has the Manager role, so it shows detail for her reporting line and presence only for everyone else.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "live view of ai coding agents" in this H2. Facts: The Office, desks grouped by team, online/away/offline, markers for stuck work or plan limits, detail only in scope (MSoT 1.4). Full-screen mode and update speed left out: Product Overview only. No 3D wording, postures or "head down" (3D only, and not in Section 1).</div>
+  </section>
+
+  <section class="block" id="marker">
+    <h2>Mid-morning: one desk is marked stuck</h2>
+    <p>Halfway through the morning, Sam's desk shows the stuck marker. Nothing else looks wrong: Sam is online and his agent is running. In a stand-up this would not have come up until the next day.</p>
+    <p>Priya clicks the desk. Because Sam is in her reporting line, the side panel shows his current task and an "AI stuck" line saying how many times the agent hit the same problem and for how long, with plain reasons. It also shows today's tool calls and failures. It does not show what Sam typed.</p>
+  </section>
+
+  <section class="block" id="steps">
+    <h2>Reading the session step by step</h2>
+    <p>Priya opens Sam's latest session in its detailed view, the same report Sam sees of his own work. She skips the conversation and follows what the agent did: which files it touched, which commands it ran and which of them failed.</p>
+    <div class="panel" aria-label="Illustrative session steps">
+      <span class="tag">Illustrative example · not real data</span>
+      <ol class="stepslist">
+        <li><span>Read <code>checkout/payment_test.py</code></span><span class="pill ok">ok</span></li>
+        <li><span>Edited <code>checkout/payment.py</code></span><span class="pill ok">ok</span></li>
+        <li><span>Ran the test command</span><span class="pill fail">failed</span></li>
+        <li><span>Edited <code>checkout/payment.py</code> again</span><span class="pill ok">ok</span></li>
+        <li><span>Ran the same test command</span><span class="pill fail">failed</span></li>
+        <li><span>Edited <code>checkout/payment.py</code> again</span><span class="pill ok">ok</span></li>
+        <li><span>Ran the same test command</span><span class="pill fail">failed</span></li>
+        <li><span>Stuck stretch on the same error</span><span class="pill stuck">stuck</span></li>
+      </ol>
+      <p class="caption">The pattern Priya reads: the agent keeps changing the code, and the same test keeps failing with the same error. That usually means the problem is not in the code being edited.</p>
+    </div>
+    <p>This is a retry loop. The agent treats each failure as a reason to try another edit, when the failure comes from something the edit cannot reach. Our guide to <a href="/blog/ai-retry-loops">why AI agents get caught in retry loops and how to break them</a> covers the common causes in more depth.</p>
+    <h3>Why a failed command shows up as a failure</h3>
+    <p>Failed tool calls are recorded for every supported tool except Aider, and command exit codes come from Claude Code, Codex and Copilot. That is what lets the step list show "failed" as a fact instead of a guess.</p>
+    <div class="seo"><b>SEO</b>Links to /blog/ai-retry-loops with descriptive anchor text. The step list is static sample markup, labelled as an example. Session view: My Sessions' "detailed view" and All Developers' "same report the person sees" (MSoT 1.4). The Product Overview's "What the agent did" view is not named in Section 1, so it is not named here. Failed tool calls and exit codes: MSoT 1.1.</div>
+  </section>
+
+  <section class="block" id="fix">
+    <h2>Before lunch: a short conversation at Sam's desk</h2>
+    <p>Priya walks over and asks how the payment change is going. Sam had left the agent running while he joined a code review, expecting it to finish on its own. Together they look at the error. The tests need a local service that was not running on Sam's laptop, so no edit to the code could ever make them pass.</p>
+    <p>Sam starts the service, stops the agent's run and restarts it with a clearer request that names the real problem. The tests pass and the stuck marker clears. The whole thing took one short conversation, before the morning was lost to it, and Priya never opened Sam's messages.</p>
+    <p>Then she does the part that pays off later. If one laptop was missing the service, others might be too, so she adds a line to the project's setup notes.</p>
+  </section>
+
+  <section class="block" id="claude-code">
+    <h2>When a Claude Code agent is stuck, the signs are in the steps</h2>
+    <p>A Claude Code agent stuck on a task looks much the same as a stuck Cursor or Codex agent. The signs to look for in any session's steps:</p>
+    <ul>
+      <li><b>The same command failing again and again</b>, with edits in between.</li>
+      <li><b>The same file edited back and forth</b> without the error changing.</li>
+      <li><b>A long session with no new result</b>, especially when the developer has stepped away.</li>
+      <li><b>Errors that point outside the code</b>: a missing service, a credential, a network call, a test setting.</li>
+    </ul>
+    <p>Across a team, the same patterns are worth looking at in bulk. Work Problems uses fixed rules, with no AI, to find failed commands, error messages and repeated retries, grouped by severity with suggested actions and the most affected developers. Thresholds for spotting problems live in Detection Rules. Work Problems is an admin page by default; admins can open it to managers on Roles &amp; Permissions.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "claude code agent stuck" in this H2 and first sentence. Work Problems, Detection Rules, Roles &amp; Permissions: MSoT 1.2, 1.6, 1.4.</div>
+  </section>
+
+  <section class="block" id="notification">
+    <h2>What about an AI agent stuck notification?</h2>
+    <p>Many leads want an AI agent stuck notification that comes to them, so nobody has to watch a screen. Here is what this story relies on.</p>
+    <ul>
+      <li><b>The stuck marker in The Office</b> is the signal Priya used. It is a place you look, which is why her team keeps it on a shared screen.</li>
+      <li><b>Needs attention</b> is an inbox in the top bar, open to every role, for things waiting on that person.</li>
+      <li><b>Alerts and notifications</b> come through an in-app bell, email and a daily digest, and admins choose who is told what on Notifications.</li>
+    </ul>
+    <p>Exact "waiting for you" signals that come from Claude Code itself are in a desktop app release that has not shipped yet, so this article does not describe them. If a push alert for every stuck agent is the one thing you need, check the current feature list before you decide.</p>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai agent stuck notification" in this H2 and body. Honest scope (R9): Section 1 does not list a timed "AI agent stuck" notice, so none is promised. Claude Code waiting signals are MSoT 2.3, not released.</div>
+  </section>
+
+  <section class="block" id="parallel">
+    <h2>When one person runs several agents at once</h2>
+    <p>Sam ran one agent. Some developers run several, plus sub-agents. Agents in parallel, on a developer's page, shows how many AI agents and sub-agents are working now and whether each is working or waiting, with a lane chart for any past day. Admins can open it for anyone; managers see it for themselves.</p>
+    <p>For a quick team-wide check without The Office, Team Overview shows who is online and who is coding right now, active time and sessions today against a typical day, and each person's current project. It refreshes every 30 seconds.</p>
+  </section>
+
+  <section class="block" id="oversight">
+    <h2>AI agent oversight that starts with a question</h2>
+    <p>Good AI agent oversight looks a lot like good management of people: notice early, ask before judging, and fix the system when the same thing happens twice. The order Priya followed works with any tool:</p>
+    <ol>
+      <li>See the marker while there is still time to help.</li>
+      <li>Read the steps to understand what the agent tried.</li>
+      <li>Ask the developer, who knows things the steps do not.</li>
+      <li>Fix the cause for everyone, not just for one laptop.</li>
+    </ol>
+    <p>The data behind this has limits worth knowing. It comes from the AI tools' session records, folder names and repository addresses. It does not open project source files, log keystrokes, take screenshots or track websites, though session records can include excerpts of code the AI read or wrote, with secrets masked. Each person can see everything recorded about them, and who can see it, on their own Privacy page. Our <a href="/privacy">privacy page explains what is read and who sees it</a>.</p>
+    <div class="kp"><span class="mark">Kite Pulse</span><p>Everything in this story works with no AI service at all. The Office, the session steps and Work Problems' fixed rules all run on your own server from the session history the tools already keep. See <a href="/features">every feature in the console</a> for the full list.</p></div>
+    <div class="seo"><b>SEO</b>Secondary keyword "ai agent oversight" in this H2 and first sentence. Privacy facts: MSoT 1.7 wording (masked, not removed). No "never ranks people" claim (R4). Links to /privacy and /features. The only Kite Pulse callout on the page.</div>
+  </section>
+
+  <section class="block" id="faq">
+    <h2>Questions about seeing and helping stuck AI agents</h2>
+    <div>
+      <details open><summary>How can I see what my team's AI agents are doing right now?</summary><p>Use a view built from the AI tools' own session history rather than asking for status updates. In Kite Pulse, The Office shows a desk per person, grouped by team, with online, away or offline status and markers for stuck work or plan limits, and Team Overview shows who is online and coding right now, refreshing every 30 seconds. Detail is shown only for people in your scope; colleagues outside it appear with presence only.</p></details>
+      <details><summary>How do I spot developers who are stuck in long AI sessions?</summary><p>Look for the stuck marker on a person's desk in The Office, then read the session's steps for the same command or file coming back again and again. Each developer's report also lists their deep sessions (60 minutes or more) and longest session, and managers and admins can open it. A long session is not a problem on its own, so treat it as a reason to ask, not a verdict.</p></details>
+      <details><summary>How do I know when AI is retrying the same failed fix repeatedly?</summary><p>The session's step view shows the same command failing after each edit. Kite Pulse records failed tool calls for every supported tool except Aider, and command exit codes from Claude Code, Codex and Copilot. Across the team, Work Problems uses fixed rules, with no AI, to find failed commands, error messages and repeated retries, grouped by severity with suggested actions; it is an admin page by default.</p></details>
+    </div>
+    <div class="seo"><b>SEO</b>The three FAQ questions from the brief, marked up as FAQPage JSON-LD with the same text. Deep sessions and longest session: MSoT 1.4 work-pattern facts; All Developers gives managers the same report. Team Overview 30-second refresh: MSoT 1.4.</div>
+  </section>
+
+  <section class="block" id="related">
+    <h2>Related reading</h2>
+    <ul class="related">
+      <li><a href="/ai-agent-office">The Office<span>Every AI agent at its person's desk, live</span></a></li>
+      <li><a href="/blog/ai-retry-loops">AI retry loops<span>Why agents repeat the same failed fix</span></a></li>
+      <li><a href="/features">All features<span>Every page in the console</span></a></li>
+      <li><a href="/privacy">Privacy<span>What is read, and who sees it</span></a></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="cta">
+      <h3 style="font-size:1.4rem">Catch the stuck agent while there is still time to help</h3>
+      <p>Run Kite Pulse on your own server and see your team's AI agents at work, desk by desk.</p>
+      <button class="btn" type="button">Book a demo</button>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Prototype of the /blog/stuck-ai-agent article. The story, its people and the session steps are an illustrative example, not customer data.</div></footer>
+
+<script>
+document.getElementById('seoToggle').addEventListener('change',e=>document.body.classList.toggle('show-seo',e.target.checked));
+</script>
+
+</body></html>

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { useHead } from '../seo/head'
-import { FOOTER, MENU, SECTIONS, isMissingMain, sitePath, useKitePulse, usePrototype } from './site'
+import { FOOTER, MENU, SECTIONS, isMissingMain, sitePath, useArticlePlan, useKitePulse, usePrototype } from './site'
 import { KITE_PULSE_OPEN } from './status'
 import {
-  CostByProject, DayTimeline, HoneycombRipple, HowItWorks, KpiTiles, PersonalView, PlanHeadroom, ProjectHealth, Reveal, SampleBadge,
-  Screenshot, SessionsByTool, dashboard, useInView,
+  AiBudgets, CostPerTool, HoneycombRipple, HowItWorks, KpiTiles, PersonalView, PlanHeadroom, ProjectHealth, Reveal, SampleBadge,
+  Screenshot, SessionsByTool, TeamPicker, TeamToday, dashboard, useInView,
 } from './HomeCharts'
 import './site.css'
 
@@ -24,9 +24,12 @@ import './site.css'
  * `noindex`: these pages must rank on Kite Pulse's own domain, and the same
  * pages indexed here first would compete with them.
  *
- * ⚠ THE HOME PAGE'S WORDS ARE THE PRODUCT GUIDE'S, VERBATIM. The headline is
- * the one the keyword sheet plans (row 1, Content Gap / Angle). Nothing here
- * describes the product in words the guide does not use; what is not built yet
+ * ⚠ THE HOME PAGE'S PRODUCT CLAIMS COME FROM SECTION 1 OF
+ * `docs/Kite Pulse Website Content — Master Source of Truth.md` (28 Oct 2026),
+ * which replaced the Product Guide as the source. Each constant below names the
+ * MSoT section it restates. Nothing from its Section 2 (not reachable by
+ * default, hidden, partial or not built) appears here. The headline is the one
+ * the keyword sheet plans (row 1, Content Gap / Angle); what is not built yet
  * (demo booking) says so where it would be. The charts are HomeCharts.jsx and
  * their figures `data/home-dashboard.json`, badged "Sample data" until real
  * figures replace the placeholders.
@@ -78,9 +81,10 @@ const LABELS = {
   '/': 'Home', '/faq': 'FAQ', '/legal/privacy-policy': 'Privacy policy', '/legal/terms': 'Terms',
   '/integrations': 'All integrations',
   '/integrations/claude-code': 'Claude Code', '/integrations/codex': 'Codex', '/integrations/gemini-cli': 'Gemini CLI',
-  '/integrations/cursor': 'Cursor', '/integrations/github-copilot': 'GitHub Copilot', '/integrations/cline': 'Cline',
+  '/integrations/cursor': 'Cursor', '/integrations/github-copilot': 'GitHub Copilot Chat', '/integrations/cline': 'Cline',
   '/integrations/roo-code': 'Roo Code', '/integrations/kilo-code': 'Kilo Code', '/integrations/opencode': 'OpenCode',
   '/integrations/aider': 'Aider',
+  '/claude-code-usage-limits': 'Claude Code usage limits',
   '/compare/linearb': 'vs LinearB', '/compare/jellyfish': 'vs Jellyfish', '/compare/dx': 'vs DX',
   '/compare/swarmia': 'vs Swarmia', '/compare/github-copilot-metrics': 'vs GitHub Copilot metrics',
   '/compare/anthropic-console': 'vs Anthropic Console',
@@ -236,86 +240,112 @@ function Header({ model, page, path }) {
 
 /* ------------------------------------------------------------ home */
 
-// From the Product Guide, "Problems it solves": the problem, what it looks
-// like today, and how Kite Pulse helps - verbatim.
+// The problem, what it looks like today, and how Kite Pulse helps. The third
+// column of each is a claim and comes from MSoT 1.2 and 1.4; the first two
+// describe the reader's situation and claim nothing about the product.
 const PROBLEMS = [
   ['Output counts no longer tell the story',
     'More commits and pull requests, yet delivery feels no faster. Nobody can say where the time went.',
-    'Measures active time, sessions, retries and abandoned approaches from the sessions themselves.'],
-  ['AI spend is a black box',
+    'Shows active time, sessions and work patterns from the sessions themselves. Work Problems finds failed commands, error messages and repeated retries, with fixed rules and no AI.'],
+  ['AI spend is hard to see',
     'Several tools, several subscriptions, one monthly bill. No view per person or per project.',
-    'Shows AI cost by person, project, tool and period, plus a billable view with a markup.'],
-  ['Plan limits arrive as a surprise',
-    'A developer hits their AI plan\'s usage limit mid-task and loses half a day.',
-    'Shows how much of each plan\'s limit is used, for each person and across the team.'],
+    'Shows token use by person, project, tool, model and period, an estimated list-price cost per tool, and monthly budgets per team or project.'],
+  ['Claude plan limits arrive as a surprise',
+    'A developer hits their Claude plan\'s usage limit mid-task and has to stop or switch tools.',
+    'Shows who is close to a Claude plan limit, worst first: the 5-hour window, the weekly window and each model\'s weekly window.'],
   ['History is scattered across tools',
-    'Claude Code, Codex, Gemini, Cursor and Copilot each keep their own records, in their own format.',
-    'Brings every supported tool into one consistent view.'],
+    'Claude Code, Codex, Cursor, Copilot and the rest each keep their own records, in their own format.',
+    'Reads the session history ten AI coding tools already keep, into one consistent view.'],
 ]
 
-// From the Product Guide, "Key features": one tab per group, its own words.
-// `Charts` is what the tab shows beside them, drawn from data/home-dashboard.json.
+// One tab per group of features, MSoT 1.2 and 1.4 in their own words. `Charts`
+// is what the tab shows beside them, drawn from data/home-dashboard.json.
 const FEATURE_TABS = [
-  { id: 'usage', label: 'Usage & cost', Charts: () => <><CostByProject /><PlanHeadroom /></>,
-    links: ['/ai-cost-tracking', '/plan-headroom', '/shadow-ai'], points: [
-    'Team AI Usage: tokens used per developer, per tool and per period, with an estimated cost per tool where it can be worked out.',
-    'Plan headroom (a tab on Team AI Usage): who is close to a Claude plan limit (the 5-hour window, the weekly window, or a model\'s weekly window), worst first.',
-    'Tool Accounts: how many separate accounts each AI tool is used under. It reveals shared logins, or one person holding two accounts.',
+  { id: 'usage', label: 'Usage & cost', Charts: () => <><AiBudgets /><PlanHeadroom /></>,
+    links: ['/ai-cost-tracking', '/plan-headroom', '/claude-code-usage-limits', '/ai-coding-assistant-pricing', '/shadow-ai'], points: [
+    'Team AI Usage: token use per developer, tool, model, project and day, for any period, with an estimated list-price cost per tool. Cost is never added up across tools and is labelled "not billed spend".',
+    'Claude and Gemini models are priced; Aider, Cline, Roo Code, Kilo Code and OpenCode use the cost the tool reports itself. Other models show "—", never $0.',
+    'AI Budgets: a monthly budget per team or per project, in tokens or estimated US dollars, with alerts at 80% and 100%.',
+    'Plan headroom (Claude Code): who is close to a Claude plan limit, worst first. "Near" is 80% or more; "at limit" is 100%. Old readings are flagged as stale, not hidden.',
+    'Tool Accounts: how many separate signed-in accounts each tool runs under, with accounts used by more than one person marked "Shared".',
   ] },
-  { id: 'team', label: 'Team', Charts: DayTimeline, links: ['/features', '/engineering-intelligence'], points: [
-    'Org Overview is a live control room: who is online, coding, idle or offline, sessions today, active time, a timeline of each person\'s day, and their current project.',
-    'Collaboration shows who works on what together: each shared project, the people contributing, and how many sessions each spent there.',
+  { id: 'team', label: 'Team', Charts: TeamToday, links: ['/features', '/engineering-intelligence'], points: [
+    'Team Overview: who is online and who is coding right now, active time and sessions today against a typical day, who needs attention, and each person\'s current project. Refreshes every 30 seconds.',
+    'Collaboration: projects several people work on, with contributors, shared sessions and last activity.',
+    'Work Problems: fixed rules, no AI, find failed commands, error messages and repeated retries, grouped by severity with suggested actions.',
   ] },
   { id: 'projects', label: 'Projects', Charts: ProjectHealth, links: ['/features'], points: [
-    'Organization Projects lists every project with its health (active, stable or dormant), sessions, contributors and last activity.',
-    'Duplicate Detection groups folders that look like the same repository on different machines, and offers to merge them.',
+    'All Projects: every project with its health (active, stable or dormant), sessions, contributors and last activity.',
+    'Projects are found automatically: one repository cloned on several machines counts as one project.',
+    'Duplicate Detection groups folders that look like the same repository and offers Merge.',
   ] },
   { id: 'personal', label: 'Personal', Charts: PersonalView, links: ['/features'], points: [
-    'My Scorecard & Insights shows active hours, sessions, messages, lines changed, commits and projects, led by a "Top 3 to act on" list.',
-    'Working style: a label such as builder, explorer, debugger or communicator, worked out from the person\'s own tool mix.',
+    'My Scorecard & Insights: your own report, led by "Top 3 to act on". Each insight gives a verdict, why it matters, what to try and the evidence, or says "not enough data".',
+    'Work-pattern facts: peak hour, busiest day, longest streak, and deep sessions of 60 minutes or more.',
+    'Working style: builder, explorer, debugger, communicator or generalist, worked out by fixed rules from what your sessions mostly did.',
+    'Private prompt statistics that only you see; the server removes them for everyone else.',
   ] },
 ]
 
-// Under the hero buttons. From the Product Guide: "What makes it valuable" and
-// the FAQ on which computers it runs on.
+// Under the hero buttons. MSoT 1.8 (self-hosted), 1.5 (no AI service needed), 1.1 (Windows and macOS).
 const TRUST = [
   'Runs on the team\'s own server',
   'Works fully without any AI service',
   'Windows and macOS',
 ]
 
-// From the Product Guide, "How it works at a glance" and "Getting started".
+// MSoT "How it works" and 1.8.
 const STEPS = [
   ['A desktop program on each developer\'s computer',
-    'Picks up the session history those assistants already keep, strips out secrets, and sends it to the team\'s own Kite Pulse server.'],
+    'Windows or macOS. Reads the AI tools\' own session history, masks secrets, encrypts session uploads and sends only new activity, only after the developer confirms their projects.'],
   ['A server the team runs',
-    'On the team\'s own network, or on a cloud server. Data goes only to the server the team configured; there is no vendor cloud in between.'],
+    'On one computer, a team\'s local network, an Ubuntu server, or the team\'s own AWS account. There is no vendor cloud in between.'],
   ['A web console everyone signs in to',
-    'Turns those sessions into a clear picture: who is working on what, how AI tools are used, what they cost, and where work gets stuck.'],
+    'Turns those sessions into a picture of who is working on what, how AI tools are used, what they are estimated to cost, and where work gets stuck. Each person sees the pages their role allows.'],
 ]
 
-// From the Product Guide, "What the desktop program reads, and why".
+// MSoT 1.1 and 1.7: what the desktop program reads, why, and what it sends.
 const READS = [
-  ['Session history of the AI tools an admin has switched on', 'That is where those tools keep their conversations',
-    'The conversation record, with secrets removed and encrypted'],
-  ['Folder names inside project folders, and each project\'s git settings', 'To tell projects apart',
-    'Folder paths and the repository address (host, organisation, repository) only'],
-  ['The account each AI tool is signed in with', 'To link a tool account to the right person',
-    'The account email and plan details only'],
+  ['Session history of the ten supported AI tools (all on in a new install; an admin can switch any off)',
+    'That is where those tools keep their conversations',
+    'The session record, with secrets masked on the computer and the upload encrypted. In counts-only mode, token counts and nothing else.'],
+  ['Project folders and each repository\'s address', 'To tell projects apart, so one repository on several machines counts as one project',
+    'Folder paths, names and repository addresses'],
+  ['The account each AI tool is signed in with', 'To show how many accounts each tool runs under, and which are shared',
+    'A keyed hash of the account, the email domain and the plan name. Never the address.'],
 ]
 
-// From the Product Guide, "Frequently asked questions".
+// The tools, with what each provides: MSoT 1.1, "What each tool provides".
+// `priced` is whether Kite Pulse shows a cost for it; the picker checks the
+// sample figures against it.
+const TOOL_FACTS = [
+  { name: 'Claude Code', priced: true, costNote: 'list price', planLimits: true },
+  { name: 'Codex', priced: false, costNote: 'no price' },
+  { name: 'Gemini CLI', priced: true, costNote: 'list price' },
+  { name: 'Cursor', priced: false, costNote: 'usually none', tokensNote: 'input and output only' },
+  { name: 'GitHub Copilot Chat', priced: false, costNote: 'usually none', tokensNote: 'input and output only' },
+  { name: 'Cline', priced: true, costNote: 'tool-reported' },
+  { name: 'Roo Code', priced: true, costNote: 'tool-reported' },
+  { name: 'Kilo Code', priced: true, costNote: 'tool-reported' },
+  { name: 'OpenCode', priced: true, costNote: 'tool-reported' },
+  { name: 'Aider', priced: true, costNote: 'tool-reported' },
+]
+
+// The keyword sheet's FAQ row for the home page (row 125) comes first; the
+// rest restate MSoT 1.1, 1.2, 1.5, 1.7 and 1.8.
 const FAQ = [
+  ['What is the best tool to track AI coding assistant usage for a team?',
+    'It depends on what you need to see. Check which AI tools it reads, where your data goes, whether it shows cost per tool, and what each developer can see about themselves. Kite Pulse reads the session history of ten AI coding tools, runs on a server your team controls, shows an estimated list-price cost per tool where one can be worked out, and gives every person a Privacy page listing what is recorded about them. If you mostly need delivery metrics from git and issue trackers, a git-based engineering tool may suit you better.'],
   ['Does Kite Pulse read my source code?',
-    'No. It reads the session records your AI tools already keep, plus folder names and repository addresses to tell projects apart. Secrets in those records are removed on your computer before upload.'],
+    'It does not open your project\'s source files. It reads the session records your AI tools already keep, plus folder names and repository addresses to tell projects apart. Those records can include excerpts of code the AI read or wrote, so secrets are masked on your computer before upload and again on the server.'],
   ['Which AI tools does it support?',
-    'Ten today: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot, Cline, Roo Code, Kilo Code, OpenCode and Aider. An admin picks which ones are collected.'],
+    'Ten: Claude Code, Codex, Gemini CLI, Cursor, GitHub Copilot Chat in VS Code, Cline, Roo Code, Kilo Code, OpenCode and Aider. All ten are collected out of the box; an admin can switch any off, or collect token counts only.'],
   ['Does our data go to a vendor\'s cloud?',
-    'No. Data goes only to the Kite Pulse server your team runs, on your own network or your own cloud account.'],
+    'No. Data goes only to the Kite Pulse server your team runs: on one computer, your local network, an Ubuntu server or your own AWS account.'],
   ['Do we need an AI service or API key to use it?',
-    'No. All the activity, usage, project and admin features work without one. Only the optional AI-assisted features need a key, and an admin turns them on.'],
+    'No. Collection, counts, reports and rule-based labels need no key. AI labelling is optional and stays off until an admin sets it up.'],
   ['Are the cost figures exact?',
-    'Kite Pulse shows exact token counts. Where it can be worked out, it adds an estimated cost per tool. It is a guide for decisions, not a replacement for the AI vendor\'s invoice.'],
+    'No, they are estimates: tokens multiplied by the vendor\'s published list price for Claude and Gemini models, or the cost the tool reports itself for Aider, Cline, Roo Code, Kilo Code and OpenCode. Codex, Cursor and Copilot usually show "—". Cost is not billed spend and is never added up across tools.'],
 ]
 
 function Home({ model }) {
@@ -336,8 +366,8 @@ function Home({ model }) {
             {home?.main && <span className="kps-eyebrow">{home.main}</span>}
             <h1>AI coding analytics: see how your team <span className="kps-mark">really uses</span> AI coding assistants</h1>
             <p className="kps-lede">
-              Kite Pulse shows a team how its software is really being built, now that much of that work
-              happens in conversation with AI coding assistants.
+              Kite Pulse shows a team how its software is built with AI coding assistants. It reads the session
+              history ten AI coding tools already keep, masks secrets, and sends it to a server the team runs itself.
             </p>
             <div className="kps-row">
               <Link to="#book-a-demo" className="kps-btn">Book a demo</Link>
@@ -350,12 +380,13 @@ function Home({ model }) {
           <div ref={consoleRef} className={`kps-console${consoleIn ? ' is-in' : ''}`} aria-label="Sample of the Kite Pulse console">
             <div className="kps-console-bar">
               <span aria-hidden="true"><i /><i /><i /></span>
-              <b>Org Overview</b>
+              <b>Team AI Usage</b>
               <span className="kps-live"><i aria-hidden="true" />Live</span>
               {dashboard.sample && <SampleBadge />}
             </div>
             <div className="kps-console-body">
               <KpiTiles run={consoleIn} />
+              <CostPerTool />
               <div className="kps-console-chart">
                 <span className="kps-console-h">AI sessions per day, by tool</span>
                 <SessionsByTool bare />
@@ -390,7 +421,7 @@ function Home({ model }) {
             <span className="kps-eyebrow">The problem</span>
             <h2>AI coding assistants changed the unit of work: developers now direct an AI that writes much of the code.</h2>
             <p className="kps-lede">
-              Organisations are spending heavily on these tools but have no truthful way to see what they get back.
+              Most teams now use several of these tools at once, and each one keeps its own records in its own format.
             </p>
           </div>
           <ol className="kps-problems">
@@ -402,6 +433,27 @@ function Home({ model }) {
               </li>
             ))}
           </ol>
+        </div>
+      </Reveal>
+
+      {/* The sheet's Secondary keyword (row 2) and the Page Map's "What would you see?" picker. */}
+      <Reveal className="kps-band" id="what-you-would-see">
+        <div className="kps-wrap kps-stack">
+          <div className="kps-stack-s">
+            <span className="kps-eyebrow">What would you see?</span>
+            <h2>AI coding assistant analytics for your whole team</h2>
+            <p className="kps-lede">
+              Benchmarks tell you which AI coding assistant scores best in general. AI coding analytics shows how your
+              own team uses each one: who uses which tool, on which project, how many tokens, and what that is estimated
+              to cost.
+            </p>
+            <p>
+              Pick the tools your team uses and its size. The table shows a sample week of what Team AI Usage would
+              hold, including what each tool does not report: some tools have no price, and plan limits are read for
+              Claude Code only.
+            </p>
+          </div>
+          <TeamPicker tools={TOOL_FACTS} />
         </div>
       </Reveal>
 
@@ -441,9 +493,9 @@ function Home({ model }) {
           </div>
           <HowItWorks steps={STEPS} />
           <p>
-            Only new, secret-free, encrypted activity leaves a computer, and only after the developer confirms their
-            projects. The server turns it into figures that people read in the console, or that an approved AI
-            assistant can query.
+            No session content is sent until the developer confirms their projects in the Onboarding Wizard and, where
+            required, an approver signs off. Before that, only the detected project folders (paths, names and
+            repository addresses) are sent, so the wizard can show them.
           </p>
         </div>
       </Reveal>
@@ -477,8 +529,9 @@ function Home({ model }) {
             <tbody>{READS.map((r) => <tr key={r[0]}>{r.map((c) => <td key={c}>{c}</td>)}</tr>)}</tbody>
           </table></div>
           <p>
-            The program does not open or upload a project&apos;s source files. Data goes only to the server the team
-            configured; there is no vendor cloud in between.
+            The program does not open a project&apos;s source files, log keystrokes, take screenshots or track
+            websites. Session records can include excerpts of code the AI read or wrote, with secrets masked. Data goes
+            only to the server the team runs; there is no vendor cloud in between.
           </p>
           <div className="kps-row">
             {['/privacy', '/self-hosted', '/security'].map((u) => byUrl(u)).filter(Boolean).map((p) => (
@@ -636,6 +689,7 @@ function PrototypePage({ page }) {
 
 /** A page with no content yet: its plan, said as a plan. */
 function NotWritten({ page }) {
+  const { plan, err } = useArticlePlan(page.url)
   return (
     <section className="kps-band kps-band-first">
       <div className="kps-wrap kps-stack">
@@ -653,7 +707,26 @@ function NotWritten({ page }) {
           )}
         </div>
 
-        {page.notes && (
+        {err && <p className="kps-note">The article plans could not be read: {err}</p>}
+
+        {plan && (
+          <div className="kps-panel">
+            <h2>Article plan {plan.article}</h2>
+            <dl className="kps-plan">
+              {plan.fields.map((f) => (
+                <div key={f.label}>
+                  <dt>{f.label}</dt>
+                  <dd>
+                    {f.value}
+                    {f.items.length > 0 && <ul>{f.items.map((x) => <li key={x}>{x}</li>)}</ul>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+
+        {page.notes && !plan && (
           <div className="kps-panel">
             <h2>{page.proposed ? 'Why it is proposed' : 'What this page will cover'}</h2>
             <p className="kps-pre">{page.notes}</p>
