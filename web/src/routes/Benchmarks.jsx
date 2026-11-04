@@ -282,9 +282,10 @@ function sortRows(rows, columns, sort) {
   const name = sort.key === 'model'
   if (!name && !column) return rows
   const sign = sort.dir === 'best' ? 1 : -1
-  const groupOf = (r) => (r.group === 'tracked' ? 0 : 1)
+  // A sort orders EVERY model together (Parvathi, 2026-11-03): tracked models no
+  // longer stay above the others, they carry a "tracked" tag instead. Only the
+  // usual, unsorted order keeps them first, under their own heading.
   return [...rows].sort((a, b) => {
-    if (groupOf(a) !== groupOf(b)) return groupOf(a) - groupOf(b) // tracked stay first
     if (name) return sign * a.label.localeCompare(b.label)
     const va = bestValue(a, column)
     const vb = bestValue(b, column)
@@ -453,7 +454,7 @@ function BenchTable({ data }) {
               <thead>
                 <tr>
                   <SortHeader id="model" label="Model" sort={sort} setSort={setSort} className="bm-model-h" rowSpan={2}
-                              title="Sort by name: A-Z, then Z-A, then the usual order (tracked models stay first)" />
+                              title="Sort by name: A-Z, then Z-A, then the usual order (tracked models first)" />
                   {sections.map((s) => <th key={s.key} colSpan={s.columns.length} className="bm-sec" scope="colgroup">{s.label}</th>)}
                 </tr>
                 <tr>
@@ -462,7 +463,7 @@ function BenchTable({ data }) {
                                 title={`${c.label}${c.benchmark_version ? ` (${c.benchmark_version})` : ''} · ${c.better} is better · updates: ${c.volatility}. `
                                   + (c.setup_note ? `${c.setup_note} ` : '')
                                   + 'Click to sort by value: best first, then worst first, then the usual order. A model sorts '
-                                  + 'by its best value on any of its rows; tracked models stay above the others.'} />
+                                  + 'by its best value on any of its rows; tracked and other models are sorted together.'} />
                   ))}
                 </tr>
               </thead>
@@ -474,7 +475,7 @@ function BenchTable({ data }) {
             <tbody>
               {rows.map((row, i) => {
                 const open = showSettings && !collapsed[row.row_id]
-                const firstRegistry = row.group === 'registry' && rows[i - 1]?.group !== 'registry'
+                const firstRegistry = !sort && row.group === 'registry' && rows[i - 1]?.group !== 'registry'
                 return (
                   <Fragment key={row.row_id}>
                     {firstRegistry && (
@@ -498,6 +499,7 @@ function BenchTable({ data }) {
                         )}
                         <span>{row.label}</span>
                         {row.children.length > 0 && <span className="bm-n">{row.children.length}</span>}
+                        {sort && row.group === 'tracked' && <span className="bm-tracked">tracked</span>}
                       </th>
                       {columns.map((c) => <Cell key={c.key} cell={row.cells[c.key]} column={c}
                         dropped={row.dropped?.[c.key]} scoreCell={row.cells[`${c.benchmark}_score`]} />)}
@@ -520,8 +522,8 @@ function BenchTable({ data }) {
       {hideEmpty && emptyColumns.length > 0 && (
         <p className="muted bm-small">
           {emptyColumns.length} column{emptyColumns.length === 1 ? ' has' : 's have'} no value from any source yet,
-          for any tracked model: {emptyColumns.map((c) => c.label).join(', ')}. An empty column means no source we read
-          lists these models there - not a low result.
+          for any model in this table: {emptyColumns.map((c) => c.label).join(', ')}. An empty column means no source
+          we read lists these models there - not a low result.
         </p>
       )}
     </div>
@@ -993,10 +995,11 @@ export default function Benchmarks() {
         <span className="eyebrow">Signed in</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Benchmarks</h1>
         <p className="muted">
-          Published results for the {table?.counts.models ?? 'tracked'} tracked text models, from public leaderboards.
-          Each cell shows the most trusted source&apos;s value (the benchmark&apos;s own leaderboard first); scores are
-          percentages to two decimals and ranks are the board&apos;s own. Hover a value for its source, the
-          source&apos;s own text and the date.
+          Published results for the {table?.counts.models ?? 'tracked'} tracked text models
+          {table ? ` and ${table.counts.registry_models} other models (text, image, video and speech)` : ''}, from
+          public leaderboards. Each cell shows the most trusted source&apos;s value (the benchmark&apos;s own
+          leaderboard first); scores are percentages to two decimals, and ratings and ranks are as the board prints
+          them. Hover a value for its source, the source&apos;s own text and the date.
         </p>
         {last && (
           <p className="muted bm-small">

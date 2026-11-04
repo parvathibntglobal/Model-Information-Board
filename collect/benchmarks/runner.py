@@ -525,9 +525,12 @@ class Run:
         by_metric: Counter[str] = Counter()
         examples: list[str] = []
         for raw in parsed.observations:
-            mkey = (raw.raw_model_name, raw.raw_setting)
+            new_settings = source.tables[raw.table_index].new_settings
+            mkey = (raw.raw_model_name, raw.raw_setting, new_settings)
             if mkey not in matches:
-                matches[mkey] = resolver.match(raw.raw_model_name, raw.raw_setting)
+                matches[mkey] = resolver.match(
+                    raw.raw_model_name, raw.raw_setting, new_settings=new_settings
+                )
             m = matches[mkey]
             if m.row is None:
                 continue
@@ -602,7 +605,7 @@ class Run:
             f"{sum(m.reason not in ('unmatched', 'similar_to_registry') for _, m in unmatched)} "
             "with a setting or date not read (listed)",
         )
-        for (name, setting), m in unmatched:
+        for (name, setting, _new_settings), m in unmatched:
             shown = name + (f" ({setting})" if setting else "")
             base = m.base_name or name
             if normalize_name(base) in self.ignored:
@@ -728,6 +731,8 @@ def _wait_text(source: Source) -> str | None:
     for table in source.tables:
         if table.locate.get("type") == "html_table":
             return table.locate.get("must_contain")
+        if table.locate.get("type") == "html_rows":
+            return table.locate.get("wait_for")
     return None
 
 
@@ -884,7 +889,16 @@ def _run_body(
     )
     decisions = store.load_name_decisions(conn)
     if registry_models is None:
-        registry_models = get_registry_models(conn)
+        registry_models = get_registry_models(
+            conn,
+            config.settings["catalog_models"]["output_modalities"],
+            on_no_catalog=lambda: c.line(
+                "SETUP",
+                "WARN",
+                "this database has no model catalogue: no image, video or speech model "
+                "outside the registry gets a row",
+            ),
+        )
         if registry_models is None:
             c.line(
                 "SETUP",

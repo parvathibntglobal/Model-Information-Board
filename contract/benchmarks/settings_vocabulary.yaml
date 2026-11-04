@@ -64,6 +64,13 @@ settings:
 # Artificial Analysis) says how it was run, not at which setting.
 not_stated: ["unknown", "unspecified", "with fallback"]
 
+# Words that are NEVER a setting, even on a table with `new_settings: true`
+# (PR #598 review, 2026-11-04). They say which RELEASE a model is - a preview,
+# a beta, a free copy - and a release is a different model (rule 10), not the
+# same model run another way. "Veo 3 (preview)" goes to Review, never to a
+# "(preview)" row under Veo 3.
+never_settings: ["preview", "beta", "experimental", "latest", "free"]
+
 # How a setting is found at the END of a model name. The first group is the
 # setting word, the text before the match is the model name.
 patterns:

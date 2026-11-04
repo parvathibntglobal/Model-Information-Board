@@ -28,7 +28,7 @@ FILES = (
 
 METRICS = {"score", "rank", "rating"}
 METHODS = {"static", "browser"}
-LOCATE_TYPES = {"html_table", "embedded_json", "next_flight"}
+LOCATE_TYPES = {"html_table", "embedded_json", "next_flight", "gradio_config", "html_rows"}
 SCALES = {"percent", "fraction"}
 DUPLICATES = {"match_variant", "latest", "identical"}
 
@@ -96,6 +96,16 @@ class Table:
     #: word read as a setting: it can be part of a model's name ("Qwen3 Max").
     bare_setting_words: tuple[str, ...] = ()
     variant: str | None = None
+    #: The row's field naming the model's MAKER, on a board that lists one model
+    #: per host (parse._by_host): the maker's own API is read, else one row per host.
+    first_party_field: str | None = None
+    #: A bracketed setting word the vocabulary does not know becomes its own
+    #: setting row on this table, named as written (match.Resolver.match).
+    new_settings: bool = False
+    #: The setting each row was run at, from the page's own data (Vals AI's
+    #: `reasoning_effort`; parse._page_settings): link_prefix, field, words,
+    #: score_tolerance.
+    setting_from_page_data: dict[str, Any] | None = None
     rank: dict[str, Any] | None = None
     rank_board: str | None = None
     priority: int | None = None
@@ -136,6 +146,8 @@ class Vocabulary:
     not_stated: frozenset[str]
     patterns: tuple[re.Pattern[str], ...]
     date_patterns: tuple[re.Pattern[str], ...] = ()
+    #: Release words that a `new_settings` table must not turn into a row.
+    never_settings: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -307,6 +319,21 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                     )
                 if rank.get("from") not in ("row_order", "order_by"):
                     problems.append(f"{where}: rank.from must be row_order or order_by")
+            spec = t.get("setting_from_page_data")
+            if spec is not None and not (
+                isinstance(spec, dict)
+                and spec.get("link_prefix")
+                and spec.get("field")
+                and isinstance(spec.get("words"), list)
+                and spec["words"]
+                and isinstance(spec.get("score_tolerance"), (int, float))
+                and not isinstance(spec.get("score_tolerance"), bool)
+                and spec["score_tolerance"] > 0
+            ):
+                problems.append(
+                    f"{where}: setting_from_page_data needs link_prefix, field, a list of "
+                    "words and a positive score_tolerance"
+                )
             if t.get("duplicates") and t["duplicates"] not in DUPLICATES:
                 problems.append(
                     f"{where}: duplicates {t['duplicates']!r} is not one of {sorted(DUPLICATES)}"
@@ -328,6 +355,11 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                     release_selector=t.get("release_selector"),
                     bare_setting_words=tuple(t.get("bare_setting_words") or ()),
                     variant=t.get("variant"),
+                    first_party_field=t.get("first_party_field"),
+                    new_settings=t.get("new_settings") is True,
+                    setting_from_page_data=dict(t["setting_from_page_data"])
+                    if t.get("setting_from_page_data")
+                    else None,
                     rank=dict(rank) if rank else None,
                     rank_board=t.get("rank_board"),
                     priority=t.get("priority"),
@@ -373,7 +405,16 @@ def load(directory: Path = CONFIG_DIR) -> Config:
         not_stated=frozenset(normalise_word(w) for w in vocab_raw.get("not_stated") or []),
         patterns=tuple(re.compile(p) for p in vocab_raw["patterns"]),
         date_patterns=tuple(re.compile(p) for p in vocab_raw.get("date_patterns") or ()),
+        never_settings=frozenset(normalise_word(w) for w in vocab_raw["never_settings"]),
     )
+    # A word in both lists would be read as its setting before never_settings
+    # is asked (match._with_setting), so the release rule would not hold for it
+    # (PR #598 review): refused here rather than decided by the order of a check.
+    for word in sorted(vocabulary.never_settings & set(words)):
+        problems.append(
+            f"settings_vocabulary.yaml: {word!r} is both a setting word ({words[word]!r}) "
+            "and in never_settings"
+        )
 
     extras: dict[str, Extras] = {}
     for model_id, entry in (raw["model_extras.yaml"] or {}).items():
@@ -407,6 +448,17 @@ def load(directory: Path = CONFIG_DIR) -> Config:
     ):
         if required not in settings_raw:
             problems.append(f"module_settings.yaml: missing {required}")
+    outputs = (settings_raw.get("catalog_models") or {}).get("output_modalities")
+    if not isinstance(outputs, list) or not all(isinstance(o, str) and o for o in outputs):
+        problems.append(
+            "module_settings.yaml: catalog_models.output_modalities must be a list of "
+            "output types ([] reads no catalogue model)"
+        )
+    elif "text" in outputs:
+        problems.append(
+            "module_settings.yaml: catalog_models.output_modalities must not name text - "
+            "a text model needs the registry"
+        )
     for whole in ("percent_scale_check_min_values", "board_drop_hold_above"):
         if not isinstance(raw["validation.yaml"].get(whole), int):
             problems.append(f"validation.yaml: {whole} must be a whole number")

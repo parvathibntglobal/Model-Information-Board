@@ -362,7 +362,12 @@ class Resolver:
         split = self._split_date(name)
         return split[0] if split else name
 
-    def match(self, raw_name: str, raw_setting: str | None = None) -> Match:
+    def match(
+        self, raw_name: str, raw_setting: str | None = None, *, new_settings: bool = False
+    ) -> Match:
+        """`new_settings` (a table's own `new_settings: true`, 2026-11-03): a
+        setting word the vocabulary does not know becomes its own setting row,
+        named as the board wrote it, instead of a review item."""
         name = strip_symbols(raw_name)
         known = self._known(name)
         if known and not raw_setting:
@@ -371,7 +376,7 @@ class Resolver:
 
         # A source that gives the setting in its own field ("reasoning_effort").
         if known and raw_setting:
-            return self._with_setting(known[0], raw_setting, raw_name, known[1])
+            return self._with_setting(known[0], raw_setting, raw_name, known[1], new_settings)
 
         for pattern in self.config.vocabulary.patterns:
             found = pattern.search(name)
@@ -380,7 +385,7 @@ class Resolver:
             base = self._known(name[: found.start()].strip())
             if base is None:
                 continue
-            return self._with_setting(base[0], found.group(1), raw_name, base[1])
+            return self._with_setting(base[0], found.group(1), raw_name, base[1], new_settings)
 
         base = self.base_name(name)
         similar = self.similar(base)
@@ -389,14 +394,26 @@ class Resolver:
         return Match(row=None, reason="unmatched", base_name=base)
 
     def _with_setting(
-        self, seed: SeedModel, word: str, raw_name: str, dated: str | None = None
+        self,
+        seed: SeedModel,
+        word: str,
+        raw_name: str,
+        dated: str | None = None,
+        new_settings: bool = False,
     ) -> Match:
         norm = normalise_word(word)
         base = self.base_name(raw_name)
         if norm in self.config.vocabulary.not_stated:
             row = dated_row(seed, dated) if dated else base_row(seed)
             return Match(row=row, setting_not_stated=True, setting_word=word)
-        setting = self.config.vocabulary.words.get(norm)
+        # A word the vocabulary knows is its standard setting; a new one keeps the
+        # board's own spelling ("Together AI", "fast-gpu-asr").
+        # A release word ("preview", "free") is never made a setting: it names a
+        # different model (settings_vocabulary.yaml never_settings).
+        new_ok = new_settings and norm not in self.config.vocabulary.never_settings
+        setting = self.config.vocabulary.words.get(norm) or (
+            " ".join(str(word).split()) if new_ok else None
+        )
         if setting is None:
             return Match(
                 row=None,

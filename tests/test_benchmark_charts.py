@@ -216,6 +216,34 @@ def test_a_score_outside_the_percent_unit_is_a_card(monkeypatch):
     assert not v["chart"] and v["display"] == "1450"
 
 
+def test_a_lower_is_better_score_is_never_a_bar(monkeypatch):
+    """A word error rate is a percent where less is better (2026-11-03): a bar,
+    where taller reads as better, would say the opposite."""
+    sections = [{"key": "speech", "label": "Speech", "columns": [
+        {"key": "aa_wer_score", "benchmark": "aa_wer", "label": "AA-WER (word error rate)",
+         "metric": "score", "better": "lower", "setup_note": None}]}]
+    monkeypatch.setattr(benchmarks, "table", lambda conn: {
+        **_table([_row("m/a", "Model A", {"aa_wer_score": _cell("5.18", 5.18)})]),
+        "sections": sections})
+    v = benchmarks.charts(_Conn(), "m/a")["model"]["series"][0]["values"][0]
+    assert not v["chart"] and v["percent"] is None and v["display"] == "5.18"
+    assert v["better"] == "lower"
+
+
+def test_an_arena_rating_counts_as_a_benchmark_scored(monkeypatch):
+    sections = [{"key": "video", "label": "Video", "columns": [
+        {"key": "aa_text_to_video_rating", "benchmark": "aa_text_to_video",
+         "label": "Text to Video Arena rating", "metric": "rating", "better": "higher",
+         "setup_note": None}]}]
+    monkeypatch.setattr(benchmarks, "table", lambda conn: {
+        **_table([_row("g/veo", "Veo", {"aa_text_to_video_rating": _cell("959.69", 960.0)})]),
+        "sections": sections})
+    listed = benchmarks.charts(_Conn())
+    assert listed["models"][0]["benchmarks_scored"] == 1
+    v = benchmarks.charts(_Conn(), "g/veo")["model"]["series"][0]["values"][0]
+    assert not v["chart"] and v["display"] == "959.69"
+
+
 def test_it_is_served_without_a_token(monkeypatch):
     @contextmanager
     def fake_connection():

@@ -18,6 +18,12 @@ retries: 3
 # allowed_settings). Setting rows are how the table shows effort levels
 # (Parvathi, 2026-10-22). Required: no default in code (PR #573 review).
 auto_add_settings: true
+# CATALOGUE MODELS GET ROWS TOO (Parvathi, 2026-11-03). The registry seats few
+# image, video and speech models, so the catalogue's models whose outputs are
+# ONLY these types (no text) are matched as registry models are. A text model
+# still needs the registry. Required: no default in code.
+catalog_models:
+  output_modalities: [image, video, speech, transcription]
 # How much history the page lists at a time; "Show older" loads the next
 # batch. A display limit only: runs, logs and the changelog are never deleted
 # (Parvathi, 2026-10-27).

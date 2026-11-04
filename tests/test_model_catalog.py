@@ -239,6 +239,11 @@ class TestTheEvidencePipelineNeverReadsIt:
             # models a story names, and whether each has a model page. A page,
             # not the evidence pipeline: nothing there extracts, counts or weights.
             "judge/news.py",
+            # The Benchmarks page's scraper (2026-11-03) gives the catalogue's
+            # image, video and speech models rows, matched by id and name. The
+            # benchmarks module, not the evidence pipeline: nothing there
+            # extracts, counts or weights.
+            "collect/benchmarks/host_adapter.py",
         }
 
     def test_the_nightly_chain_polls_it_without_depending_on_it(self):

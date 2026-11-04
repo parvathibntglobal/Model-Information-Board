@@ -101,6 +101,9 @@
 .bm-twisty:hover{color:var(--text)}
 .bm-n{margin-left:8px;font-family:var(--font-mono);font-size:10px;color:var(--text-3);
   border:1px solid var(--border);border-radius:var(--r-pill);padding:0 6px}
+/* A tracked model in a sorted table, where it no longer sits under its own heading. */
+.bm-tracked{margin-left:8px;font-size:10px;color:var(--text-2);background:var(--surface-2);
+  border-radius:var(--r-pill);padding:0 6px}
 .bm-c{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 .bm-v{color:var(--text)}
 .bm-v:hover{text-decoration:underline;text-underline-offset:3px}
