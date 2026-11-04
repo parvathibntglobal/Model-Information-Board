@@ -321,9 +321,10 @@ templates:
       headline: "{names_short} are retired"
       detail: "{count} {provider} models passed their retirement date {when}."
 
-  # A BOARD, NOT "THE BENCHMARK'S OWN LEADERBOARD" (PR #598, 2026-11-04): these
+  # THE SOURCE, NOT "THE BENCHMARK'S OWN LEADERBOARD" (PR #598, 2026-11-04): these
   # come from every source tier - Vals AI and Artificial Analysis run benchmarks
-  # they did not make - and the facts carry no source name, so no line says whose.
+  # they did not make - and {board} is the benchmark's name, so a line that says
+  # whose value it is names {source}: the label the Sources tab shows.
   bench_debut:
     - id: plain
       label: Plain
@@ -332,7 +333,7 @@ templates:
     - id: board
       label: Board first
       headline: "First {board} score for {name}: {score}"
-      detail: "As the board that published it prints it."
+      detail: "As {source} prints it."
   bench_debut_group:
     - id: plain
       label: Plain
@@ -346,7 +347,7 @@ templates:
     - id: plain
       label: Plain
       headline: "{name} takes the top spot on {board}"
-      detail: "It climbs from {old_rank} to first among {out_of} models on that board."
+      detail: "It climbs from {old_rank} to first among {out_of} models, as {source} ranks them."
     - id: board
       label: Board first
       headline: "New leader on {board}: {name}"
@@ -355,7 +356,7 @@ templates:
     - id: plain
       label: Plain
       headline: "{name} {moves} to {new} on {board}"
-      detail: "A move of {delta} points from {old}, on that board."
+      detail: "A move of {delta} points from {old}, as {source} prints it."
     - id: board
       label: Board first
       headline: "{board}: {name} {moves} to {new}"
@@ -364,11 +365,11 @@ templates:
     - id: plain
       label: Plain
       headline: "{name} scores {score} on {board}"
-      detail: "A new result, dated {source_date} by the board that published it."
+      detail: "A new result, dated {source_date} by {source}."
     - id: board
       label: Board first
       headline: "New {board} result: {name} at {score}"
-      detail: "As the board that published it prints it."
+      detail: "As {source} prints it."
 
   roundup_launch:
     - id: plain

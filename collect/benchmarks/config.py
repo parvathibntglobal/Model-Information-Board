@@ -407,6 +407,14 @@ def load(directory: Path = CONFIG_DIR) -> Config:
         date_patterns=tuple(re.compile(p) for p in vocab_raw.get("date_patterns") or ()),
         never_settings=frozenset(normalise_word(w) for w in vocab_raw["never_settings"]),
     )
+    # A word in both lists would be read as its setting before never_settings
+    # is asked (match._with_setting), so the release rule would not hold for it
+    # (PR #598 review): refused here rather than decided by the order of a check.
+    for word in sorted(vocabulary.never_settings & set(words)):
+        problems.append(
+            f"settings_vocabulary.yaml: {word!r} is both a setting word ({words[word]!r}) "
+            "and in never_settings"
+        )
 
     extras: dict[str, Extras] = {}
     for model_id, entry in (raw["model_extras.yaml"] or {}).items():

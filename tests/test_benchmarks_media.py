@@ -540,3 +540,20 @@ def test_a_page_data_setting_without_a_tolerance_is_refused(tmp_path):
     with pytest.raises(ConfigError) as e:
         load(tmp_path)
     assert any("score_tolerance" in p for p in e.value.problems)
+
+
+def test_a_word_in_both_the_settings_and_never_settings_is_refused(tmp_path):
+    """A setting word is read before never_settings is asked, so a word in both
+    would slip past the release rule (PR #598 review): the load refuses it."""
+    for f in CONFIG_DIR.glob("*.yaml"):
+        shutil.copy(f, tmp_path / f.name)
+    path = tmp_path / "settings_vocabulary.yaml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            'never_settings: ["preview",', 'never_settings: ["high", "preview",'
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError) as e:
+        load(tmp_path)
+    assert any("'high' is both a setting word" in p for p in e.value.problems)

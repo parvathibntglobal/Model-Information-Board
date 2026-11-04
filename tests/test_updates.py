@@ -137,6 +137,7 @@ def entry(
     new_out_of=None,
     run_id=7,
     source_date=None,
+    new_source="vals_gpqa",
 ):
     return {
         "id": i,
@@ -151,6 +152,7 @@ def entry(
         "old_out_of": old_out_of,
         "new_out_of": new_out_of,
         "source_date": source_date,
+        "new_source": new_source,
         "news": news,
     }
 
@@ -213,6 +215,21 @@ def test_a_score_move_is_an_update():
     r = updates.rules()
     (u,) = updates._benchmarks([entry(1, "mover", old="71.2", new="74.0")], {}, {}, r)
     assert updates.render(u, r)[0]["headline"] == "Model A rises to 74.0 on Board"
+
+
+def test_a_benchmark_update_names_the_source_not_the_benchmarks_own_board():
+    """`board` is the benchmark's name, and the value may be a tier-2 source's
+    (Vals AI runs GPQA; it did not make it): the detail names that source, by
+    the label the Sources tab shows (PR #598 review)."""
+    r = updates.rules()
+    (u,) = updates._benchmarks([entry(1, "mover", old="71.2", new="74.0")], {}, {}, r)
+    assert u["facts"]["source"] == "Vals AI · GPQA Diamond"
+    details = [s["detail"] for s in updates.render(u, r)]
+    assert any("as Vals AI · GPQA Diamond prints it" in d for d in details)
+    assert not any("own leaderboard" in d or "that board" in d for d in details)
+    for template in ("bench_debut", "bench_top", "bench_mover", "bench_fresh"):
+        for style in r["templates"][template]:
+            assert "own leaderboard" not in style["detail"], (template, style["id"])
 
 
 def test_a_model_leaving_a_board_is_never_an_update():

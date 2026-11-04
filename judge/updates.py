@@ -86,11 +86,11 @@ FACTS: dict[str, frozenset[str]] = {
     "retiring_group": frozenset(
         {"provider", "count", "names", "names_short", "date", "date_full", "when"}
     ),
-    "bench_debut": frozenset({"name", "board", "score", "date", "timing"}),
+    "bench_debut": frozenset({"name", "board", "score", "date", "timing", "source"}),
     "bench_debut_group": frozenset({"name", "count", "boards", "date", "timing"}),
-    "bench_top": frozenset({"name", "board", "old_rank", "out_of", "date"}),
-    "bench_mover": frozenset({"name", "board", "moves", "old", "new", "delta", "date"}),
-    "bench_fresh": frozenset({"name", "board", "score", "source_date", "date"}),
+    "bench_top": frozenset({"name", "board", "old_rank", "out_of", "date", "source"}),
+    "bench_mover": frozenset({"name", "board", "moves", "old", "new", "delta", "date", "source"}),
+    "bench_fresh": frozenset({"name", "board", "score", "source_date", "date", "source"}),
     "roundup_launch": frozenset({"week", "count", "long_context", "providers", "names"}),
     "roundup_price": frozenset(
         {"week", "count", "cuts", "rises", "cheaper", "pricier", "providers"}
@@ -665,6 +665,11 @@ def _benchmarks(
 
     out = []
     debuts: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    # WHOSE VALUE IT IS (PR #598 review, 2026-11-04). `board` is the benchmark's
+    # name ("GPQA Diamond"), and a value may come from any source tier - Vals AI
+    # runs GPQA, it did not make it - so the source that published the value is
+    # its own fact, by the label the Sources tab shows.
+    labels = {k: s.get("label", k) for k, s in benchmarks._sources().items()}
     for e in entries:
         on = benchmarks._day(e["changed_at"])
         if on is None or not e["column"]:
@@ -686,7 +691,12 @@ def _benchmarks(
                 continue
         e = {**e, "row": _row_name(e, display)}
         model = _model_of(e["row_id"])
-        base = {"name": e["row"], "board": e["column"], "date": day(on)}
+        base = {
+            "name": e["row"],
+            "board": e["column"],
+            "date": day(on),
+            "source": labels.get(e.get("new_source"), e.get("new_source")),
+        }
         if e["news"] == "debut":
             debuts.setdefault((e["row_id"], e["run_id"]), []).append(e)
             continue
@@ -782,6 +792,7 @@ def _benchmarks(
                     "score": e["new"],
                     "date": day(on),
                     "timing": timing,
+                    "source": labels.get(e.get("new_source"), e.get("new_source")),
                 },
                 models=[model],
                 seen_at=e["changed_at"],
