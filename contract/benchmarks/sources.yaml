@@ -56,6 +56,20 @@
 #     display. Until then, the change above in judge/benchmarks.py charts plus a
 #     deploy takes one source off the page.
 
+# SHARED BLOCKS a table names with `*name` (PR #598 review, 2026-11-04): one
+# definition, so a new effort word or a new tolerance is one edit, not one per
+# table. Read by the tables below; nothing else in this file is affected.
+page_data_settings:
+  # Vals AI's run records (parse._page_settings). A row takes the record's
+  # `field` when the record's model is the name's /models/ link and its score
+  # is within `score_tolerance` points of the score the table prints (the
+  # table rounds to 2 decimals: 72.414 is printed 72.41%). Only `words` are taken.
+  vals_effort: &vals_effort
+    link_prefix: "/models/"
+    field: reasoning_effort
+    score_tolerance: 0.006
+    words: [none, minimal, low, medium, high, xhigh, max]
+
 sources:
   - key: swebench_leaderboard
     label: "SWE-bench leaderboard"
@@ -362,7 +376,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: gpqa_diamond, metric: score, scale: percent }
           "Rank": { benchmark: gpqa_diamond, metric: rank }
@@ -382,7 +396,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: mmlu_pro, metric: score, scale: percent }
           "Rank": { benchmark: mmlu_pro, metric: rank }
@@ -402,7 +416,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: aime_2024_25, metric: score, scale: percent }
           "Rank": { benchmark: aime_2024_25, metric: rank }
@@ -422,7 +436,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: mmmu_pro, metric: score, scale: percent }
           "Rank": { benchmark: mmmu_pro, metric: rank }
@@ -442,7 +456,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: livecodebench, metric: score, scale: percent }
           "Rank": { benchmark: livecodebench, metric: rank }
@@ -462,7 +476,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Score" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         variant_field: "Harness"        # e.g. "Mini-SWE-agent", the official bash-only agent
         benchmark_map:
           "Score": { benchmark: swe_bench_verified, metric: score, scale: percent }
@@ -483,7 +497,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Score" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         variant_field: "Harness"
         benchmark_map:
           "Score": { benchmark: terminal_bench_4, metric: score, scale: percent }
@@ -504,7 +518,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: ioi, metric: score, scale: percent }
           "Rank": { benchmark: ioi, metric: rank }
@@ -524,7 +538,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Score" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         variant_field: "Harness"
         benchmark_map:
           "Score": { benchmark: vibe_code, metric: score, scale: percent }
@@ -545,7 +559,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: proof_bench, metric: score, scale: percent }
           "Rank": { benchmark: proof_bench, metric: rank }
@@ -565,7 +579,7 @@ sources:
     tables:
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: swe_bench_multimodal, metric: score, scale: percent }
           "Rank": { benchmark: swe_bench_multimodal, metric: rank }
@@ -626,7 +640,7 @@ sources:
       # and is not read). Added 2026-10-28.
       - locate: { type: html_table, must_contain: "Accuracy" }
         model_column: "Model"
-        setting_from_page_data: { link_prefix: "/models/", field: reasoning_effort, words: [none, minimal, low, medium, high, xhigh, max] }
+        setting_from_page_data: *vals_effort
         benchmark_map:
           "Accuracy": { benchmark: vals_index, metric: score, scale: percent }
           "Rank": { benchmark: vals_index, metric: rank }

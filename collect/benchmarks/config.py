@@ -103,7 +103,8 @@ class Table:
     #: setting row on this table, named as written (match.Resolver.match).
     new_settings: bool = False
     #: The setting each row was run at, from the page's own data (Vals AI's
-    #: `reasoning_effort`; parse._page_settings): link_prefix, field, words.
+    #: `reasoning_effort`; parse._page_settings): link_prefix, field, words,
+    #: score_tolerance.
     setting_from_page_data: dict[str, Any] | None = None
     rank: dict[str, Any] | None = None
     rank_board: str | None = None
@@ -145,6 +146,8 @@ class Vocabulary:
     not_stated: frozenset[str]
     patterns: tuple[re.Pattern[str], ...]
     date_patterns: tuple[re.Pattern[str], ...] = ()
+    #: Release words that a `new_settings` table must not turn into a row.
+    never_settings: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -323,9 +326,13 @@ def load(directory: Path = CONFIG_DIR) -> Config:
                 and spec.get("field")
                 and isinstance(spec.get("words"), list)
                 and spec["words"]
+                and isinstance(spec.get("score_tolerance"), (int, float))
+                and not isinstance(spec.get("score_tolerance"), bool)
+                and spec["score_tolerance"] > 0
             ):
                 problems.append(
-                    f"{where}: setting_from_page_data needs link_prefix, field and a list of words"
+                    f"{where}: setting_from_page_data needs link_prefix, field, a list of "
+                    "words and a positive score_tolerance"
                 )
             if t.get("duplicates") and t["duplicates"] not in DUPLICATES:
                 problems.append(
@@ -398,6 +405,7 @@ def load(directory: Path = CONFIG_DIR) -> Config:
         not_stated=frozenset(normalise_word(w) for w in vocab_raw.get("not_stated") or []),
         patterns=tuple(re.compile(p) for p in vocab_raw["patterns"]),
         date_patterns=tuple(re.compile(p) for p in vocab_raw.get("date_patterns") or ()),
+        never_settings=frozenset(normalise_word(w) for w in vocab_raw["never_settings"]),
     )
 
     extras: dict[str, Extras] = {}

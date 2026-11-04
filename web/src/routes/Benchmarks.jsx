@@ -522,8 +522,8 @@ function BenchTable({ data }) {
       {hideEmpty && emptyColumns.length > 0 && (
         <p className="muted bm-small">
           {emptyColumns.length} column{emptyColumns.length === 1 ? ' has' : 's have'} no value from any source yet,
-          for any tracked model: {emptyColumns.map((c) => c.label).join(', ')}. An empty column means no source we read
-          lists these models there - not a low result.
+          for any model in this table: {emptyColumns.map((c) => c.label).join(', ')}. An empty column means no source
+          we read lists these models there - not a low result.
         </p>
       )}
     </div>

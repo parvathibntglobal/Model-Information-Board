@@ -890,7 +890,14 @@ def _run_body(
     decisions = store.load_name_decisions(conn)
     if registry_models is None:
         registry_models = get_registry_models(
-            conn, config.settings["catalog_models"]["output_modalities"]
+            conn,
+            config.settings["catalog_models"]["output_modalities"],
+            on_no_catalog=lambda: c.line(
+                "SETUP",
+                "WARN",
+                "this database has no model catalogue: no image, video or speech model "
+                "outside the registry gets a row",
+            ),
         )
         if registry_models is None:
             c.line(

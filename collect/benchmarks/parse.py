@@ -403,7 +403,8 @@ def _page_settings(
     record, keyed by the model id its name links to (`/models/openai_gpt-5.2-
     2025-12-11`), with the effort it was run at: `"reasoning_effort": "xhigh"`.
     A row whose name states no setting takes the effort of the record with the
-    same model and the same score - only when exactly one such word is found,
+    same model and the same score (within `score_tolerance`) - only when
+    exactly one such word is found,
     and only a word `setting_from_page_data.words` lists (Inkling's "0.99" is
     not an effort word). Anything else leaves the row as the table prints it.
     """
@@ -413,6 +414,7 @@ def _page_settings(
     text = content.decode("utf-8", "replace") if isinstance(content, bytes) else content
     data = html_module.unescape(text)
     prefix, field, words = spec["link_prefix"], spec["field"], set(spec["words"])
+    tolerance = float(spec["score_tolerance"])
     decoder = json.JSONDecoder()
 
     def unwrap(value: Any) -> Any:
@@ -441,7 +443,7 @@ def _page_settings(
                 word = unwrap(record.get(field))
                 if (
                     isinstance(accuracy, (int, float))
-                    and abs(float(accuracy) - score) < 0.006
+                    and abs(float(accuracy) - score) < tolerance
                     and word is not None
                 ):
                     found.add(str(word))

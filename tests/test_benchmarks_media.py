@@ -390,6 +390,10 @@ def test_catalogue_media_models_are_added_once_each():
     sql, params = conn.asked[1]
     # Only models whose every output is one of these types: a text model never.
     assert "<@" in sql and params == (["image", "video", "speech", "transcription"],)
+    # As judge/catalog.py lists it: what the last poll still listed, no `:free`
+    # copy and no `~` alias (PR #598 review).
+    assert "last_seen_at = (SELECT max(last_seen_at) FROM model_catalog)" in sql
+    assert "NOT LIKE '%%:%%'" in sql and "NOT LIKE '~%%'" in sql
 
 
 def test_no_catalogue_list_asks_no_catalogue():
@@ -400,7 +404,10 @@ def test_no_catalogue_list_asks_no_catalogue():
 
 def test_a_database_without_the_catalogue_still_gives_the_registry():
     conn = _Conn(registry=[("a/b", "A: B")], catalogue_error=errors.UndefinedTable("model_catalog"))
-    assert [m.id for m in get_registry_models(conn, ["image"])] == ["a/b"]
+    said = []
+    got = get_registry_models(conn, ["image"], on_no_catalog=lambda: said.append(1))
+    assert [m.id for m in got] == ["a/b"]
+    assert said == [1]  # said, not silent (rule 6; PR #598 review)
 
 
 def test_openais_tts_1_is_never_assemblyais_tts_1(config):
@@ -500,3 +507,36 @@ def test_every_vals_table_reads_the_effort_and_no_other_does(config):
     for s in config.sources:
         for t in s.tables:
             assert bool(t.setting_from_page_data) == s.key.startswith("vals_"), s.key
+
+
+@pytest.mark.parametrize("word", ["preview", "Preview", "beta", "experimental", "latest", "free"])
+def test_a_release_word_is_never_a_new_setting_row(config, word):
+    """ "Veo 3 (preview)" is a different release, not Veo 3 run another way
+    (rule 10; PR #598 review): it waits in Review even on a media table."""
+    veo = SeedModel("google/veo-3", "Veo 3")
+    m = Resolver(config, [], {}, [veo]).match(f"Veo 3 ({word})", new_settings=True)
+    assert m.row is None and m.reason == "unknown_setting"
+
+
+def test_the_vals_settings_are_one_shared_block_with_its_tolerance(config):
+    specs = [
+        t.setting_from_page_data
+        for s in config.sources
+        for t in s.tables
+        if t.setting_from_page_data
+    ]
+    assert len(specs) == 12 and all(spec == specs[0] for spec in specs)
+    assert specs[0]["score_tolerance"] == 0.006
+
+
+def test_a_page_data_setting_without_a_tolerance_is_refused(tmp_path):
+    for f in CONFIG_DIR.glob("*.yaml"):
+        shutil.copy(f, tmp_path / f.name)
+    path = tmp_path / "sources.yaml"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("    score_tolerance: 0.006\n", ""),
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError) as e:
+        load(tmp_path)
+    assert any("score_tolerance" in p for p in e.value.problems)

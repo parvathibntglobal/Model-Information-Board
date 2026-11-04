@@ -269,7 +269,7 @@ function Score({ v, colour }) {
       <span className="bc-lb-score-n tnum">{v.display}</span>
       {/* A word error rate (2026-11-03): the one score where less is better. */}
       {v.better === 'lower' && v.metric !== 'rank' && <span className="dim bc-small">lower is better</span>}
-      {v.chart &&<span className="bc-lb-meter" aria-hidden="true"><i style={{ width: `${v.percent}%`, background: colour }} /></span>}
+      {v.chart && <span className="bc-lb-meter" aria-hidden="true"><i style={{ width: `${v.percent}%`, background: colour }} /></span>}
     </span>
   )
 }
@@ -447,7 +447,7 @@ function Sources({ values }) {
   // names its own source and date; this list carries the links.
   return (
     <details className="bc-sources">
-      <summary>Sources ({seen.size} leaderboards)</summary>
+      <summary>Sources ({seen.size} {seen.size === 1 ? 'leaderboard' : 'leaderboards'})</summary>
       <ul>
         {[...seen.values()].map((v) => (
           <li key={v.url}>

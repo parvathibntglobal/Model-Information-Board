@@ -13,6 +13,7 @@ get_registry_models).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import yaml
@@ -63,7 +64,9 @@ def get_registry_aliases(conn, seeds: list[SeedModel]) -> dict[str, list[str]] |
 
 
 def get_registry_models(
-    conn, catalog_outputs: tuple[str, ...] | list[str] = ()
+    conn,
+    catalog_outputs: tuple[str, ...] | list[str] = (),
+    on_no_catalog: Callable[[], None] | None = None,
 ) -> list[SeedModel] | None:
     """Every registry model that is NOT tracked (Parvathi, 2026-10-22 / 10-23).
 
@@ -75,8 +78,9 @@ def get_registry_models(
     `catalog_outputs` (module_settings.yaml catalog_models, 2026-11-03): the
     catalogue's models whose outputs are ALL of these types - image, video,
     speech - are added the same way when the registry has not seated them (on
-    the shared database: 1 of 52 image models, 0 of 31 video). A catalogue with
-    no such table, as in a test database, adds none.
+    the shared database: 1 of 52 image models, 0 of 31 video). A database with
+    no catalogue table adds none, and `on_no_catalog` is told so the run can say
+    it (rule 6): otherwise it reads as "no media model matched any board".
 
     The display name drops the "Provider: " prefix the router adds
     ("Anthropic: Claude Fable 5" -> "Claude Fable 5"). None when this database
@@ -96,14 +100,21 @@ def get_registry_models(
             rows = [
                 *rows,
                 *conn.execute(
+                    # As judge/catalog.py lists it (PR #598 review): only what the
+                    # last poll still listed, and no `:free` copy or `~` alias -
+                    # each would be a second seed for one board name.
                     "SELECT canonical_id, name FROM model_catalog "
                     "WHERE output_modalities <@ %s::text[] AND cardinality(output_modalities) > 0 "
+                    "AND last_seen_at = (SELECT max(last_seen_at) FROM model_catalog) "
+                    "AND canonical_id NOT LIKE '%%:%%' AND canonical_id NOT LIKE '~%%' "
                     "ORDER BY canonical_id",
                     (list(catalog_outputs),),
                 ).fetchall(),
             ]
         except errors.UndefinedTable:
             conn.rollback() if not conn.autocommit else None
+            if on_no_catalog:
+                on_no_catalog()
     out = []
     seen: set[str] = set()
     for canonical_id, display_name in rows:

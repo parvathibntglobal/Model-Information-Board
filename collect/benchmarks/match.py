@@ -408,8 +408,11 @@ class Resolver:
             return Match(row=row, setting_not_stated=True, setting_word=word)
         # A word the vocabulary knows is its standard setting; a new one keeps the
         # board's own spelling ("Together AI", "fast-gpu-asr").
+        # A release word ("preview", "free") is never made a setting: it names a
+        # different model (settings_vocabulary.yaml never_settings).
+        new_ok = new_settings and norm not in self.config.vocabulary.never_settings
         setting = self.config.vocabulary.words.get(norm) or (
-            " ".join(str(word).split()) if new_settings else None
+            " ".join(str(word).split()) if new_ok else None
         )
         if setting is None:
             return Match(
