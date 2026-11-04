@@ -1,0 +1,35 @@
+# ============================================================================
+#  ONE MODEL'S PULSE (judge/watch.py, /watch) - a prototype on feat/hooks-prototype
+#
+#  Proposed 2026-11-02 by anooj, after the team review that found no hook to
+#  bring a person back. On a model's page: what is new since the visitor last
+#  looked (for a model they follow), and a weekly trend of reports by side.
+#  Cut to what the page reads in the #597 review: no quotes, prices or events.
+#
+#  Measured before building (docs/measurements/hooks-feasibility-2026-11-02):
+#  125 of the 146 models with board entries had something to show in the 30
+#  days to 2026-11-02 - so a model's pulse is rarely empty.
+#
+#  WHAT IS COUNTED is not set here: it is judge/verdict.py's `COUNTED` over
+#  contract/verdict.yaml `sections`, so the trend and the week it opens agree.
+#
+#  Every value below is read by judge/watch.py; none is defaulted (rule 12).
+# ============================================================================
+
+version: 1
+status: proposed
+proposed_on: 2026-11-02
+proposed_by: anooj
+
+# The window the opening line covers ("In the last N days"): reports whose
+# post is dated in it. The page reads it from the response, never types it.
+window_days: 30
+# How many models one request may name. The page asks for one; this bounds
+# what anyone else may ask a public read for.
+max_models: 12
+# The trend: this many weeks of report counts, by polarity.
+# A WEEK WITH MANY PROBLEM REPORTS IS SHOWN, NEVER FLAGGED: the measurement
+# found the biggest weeks are launch weeks (Grok 4.7: 53 of 110 in its first
+# week), and raw counts follow our own fetch schedule. So the page prints the
+# counts, marks the release week, and claims nothing (rules 3 and 8).
+trend_weeks: 8

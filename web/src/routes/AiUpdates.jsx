@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useFollowed } from '../follow/follow'
 import { approvedUpdates, modelPath } from '../api'
 import { useHead } from '../seo/head'
 import { aiUpdates } from '../seo/pages'
@@ -231,7 +232,15 @@ export default function AiUpdates() {
   }, [])
   useEffect(() => { setShown(PAGE) }, [section.key])
 
-  const all = useMemo(() => data?.updates || [], [data])
+  // ONLY MY MODELS (2026-11-02, prototype): the visitor's Follow list
+  // (follow/follow.js) narrows every section to updates about those models.
+  // Shown only when something is followed; kept in the address as ?mine=1.
+  const [mineIds] = useFollowed()
+  const mine = params.get('mine') === '1' && mineIds.length > 0
+  const everything = useMemo(() => data?.updates || [], [data])
+  const all = useMemo(() => (mine
+    ? everything.filter((u) => (u.models || []).some((id) => mineIds.includes(id)))
+    : everything), [everything, mine, mineIds])
   const upcoming = useMemo(() => all.filter((u) => u.upcoming).sort((a, b) => a.date.localeCompare(b.date)), [all])
   // On "All" the upcoming retirements are the countdown cards, not grid cards too.
   const cards = useMemo(() => (section.key === 'all'
@@ -246,6 +255,12 @@ export default function AiUpdates() {
       Benchmark results can&apos;t be shown right now: the benchmarks data isn&apos;t reachable. They&apos;ll be back shortly.
     </p>
   )
+
+  const toggleMine = () => {
+    const next = new URLSearchParams(params)
+    if (mine) next.delete('mine'); else next.set('mine', '1')
+    setParams(next, { replace: true })
+  }
 
   const pick = (key) => {
     const next = new URLSearchParams(params)
@@ -276,6 +291,12 @@ export default function AiUpdates() {
               ))}
             </nav>
           ) : <span />}
+          {mineIds.length > 0 && (
+            <button type="button" className={`au-section au-mine${mine ? ' on' : ''}`} aria-pressed={mine}
+                    onClick={toggleMine} title="The models you follow (on a model's page)">
+              Only my models<span className="au-section-n">{mineIds.length}</span>
+            </button>
+          )}
           <p className="au-dateline">{today()}</p>
         </div>
       </header>
@@ -286,7 +307,11 @@ export default function AiUpdates() {
       {data?.updates_unread && (
         <p className="au-notice" role="status">The updates can&apos;t be shown right now. Please check back shortly.</p>
       )}
-      {data && !all.length && !data.updates_unread && (unreadNote || <p className="au-quiet">No updates from the last {data.window_days} days yet. Check back soon.</p>)}
+      {data && mine && !all.length && everything.length > 0 && (
+        <p className="au-quiet">None of the updates in the last {data.window_days} days is about a model you follow.{' '}
+          <button type="button" className="au-link" onClick={toggleMine}>Show all updates</button></p>
+      )}
+      {data && !everything.length && !data.updates_unread && (unreadNote || <p className="au-quiet">No updates from the last {data.window_days} days yet. Check back soon.</p>)}
 
       {data && all.length > 0 && (
         <>

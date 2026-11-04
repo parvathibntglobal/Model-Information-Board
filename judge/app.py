@@ -3722,6 +3722,52 @@ def updates_approved() -> dict:
     return _public_updates("approved", updates.cached_approved)
 
 
+@app.get("/watch")
+def watch_models(ids: str = "", since: str | None = None) -> dict:
+    """Watch my models (a prototype, feat/hooks-prototype): one card per model a
+    visitor runs - listed prices and price moves, lifecycle dates, reports
+    counted by polarity, the newest quotes and a weekly trend. `ids` is a
+    comma-separated list of canonical ids; `since` the browser's last look.
+    PUBLIC (judge/gate.py, PROPOSED). See judge/watch.py."""
+    from judge import watch
+
+    try:
+        when = watch.parse_since(since)
+        with _conn() as conn:
+            return watch.watch(conn, ids.split(","), since=when)
+    except watch.WatchRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/verdict")
+def launch_verdict(id: str = "") -> dict:  # noqa: A002 - the query parameter's name
+    """The launch verdict (a prototype, feat/hooks-prototype): one model's
+    listing words beside what engineers reported in each window after release,
+    counted and quoted. PUBLIC (judge/gate.py, PROPOSED). See judge/verdict.py."""
+    from judge import verdict
+
+    try:
+        with _conn() as conn:
+            return verdict.verdict(conn, id)
+    except verdict.VerdictRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/verdict/week")
+def launch_verdict_week(id: str = "", week: str = "") -> dict:  # noqa: A002 - the query name
+    """One week of a model's reports, for the trend on its page: counts by
+    polarity, the most-named topics and the newest quotes. PUBLIC (judge/gate.py,
+    PROPOSED). See judge/verdict.py."""
+    from judge import verdict
+
+    try:
+        start = verdict.parse_week(week)
+        with _conn() as conn:
+            return verdict.week(conn, id, start)
+    except verdict.VerdictRequestError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/updates")
 def updates_list(days: int | None = None) -> dict:
     """Every update in the window, newest first, with its words, its styles and
