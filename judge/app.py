@@ -29,7 +29,7 @@ from typing import NamedTuple
 from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from judge import fetch_reaper, login
 from judge.ask import requirements, spend
@@ -1892,6 +1892,10 @@ def model_page(model_version_id: str) -> dict:
 
 
 class FetchRequest(BaseModel):
+    #: `model_` FIELD NAMES ARE OURS (2026-11-05): pydantic 2 reserves the prefix
+    #: for its own methods and warns at startup; none of ours collides with one.
+    model_config = ConfigDict(protected_namespaces=())
+
     model_version_id: str
 
 
@@ -3075,6 +3079,10 @@ def discussions_page() -> dict:
 
 
 class DiscussionPostRequest(BaseModel):
+    #: `model_` FIELD NAMES ARE OURS (2026-11-05): pydantic 2 reserves the prefix
+    #: for its own methods and warns at startup; none of ours collides with one.
+    model_config = ConfigDict(protected_namespaces=())
+
     topic: str = ""
     title: str = ""
     body: str = ""
