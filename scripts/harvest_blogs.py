@@ -127,11 +127,37 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-new-articles", type=int, default=None,
                         help="request at most N articles per feed, newest first; the "
                              "rest are counted as deferred and asked for next run")
+    parser.add_argument("--scheduled", action="store_true",
+                        help="the nightly run: leave out feeds marked `harvest: manual`, "
+                             "before any request, and say which")
     args = parser.parse_args(argv)
 
     contract = load_sources()
     store = RawStore(Path(settings().raw_store_path))
     feeds = contract.feeds[: args.limit] if args.limit else contract.feeds
+
+    # ── A FEED HARVESTED BY HAND IS NOT THE SCHEDULED RUN'S TO TRY (2026-11-05) ──
+    #
+    # Substack refuses robots.txt to GitHub's runners (`refused`, 401/403, every
+    # night 2026-10-26 to 10-29) and answers a developer machine normally, so its
+    # feeds are seated with `harvest: manual` (#599) and read from a developer
+    # machine. The nightly run passes --scheduled and leaves them out HERE,
+    # before any request - named and counted, never counted as refused, because
+    # the run did not try them. A run started by hand includes them.
+    # Any value other than `manual` is refused rather than read as "scheduled":
+    # a typo would otherwise put a manual feed back on the runner, where it is
+    # refused every night (rule 12).
+    unknown = sorted({str(f["harvest"]) for f in feeds if f.get("harvest") not in (None, "manual")})
+    if unknown:
+        print(f"contract/sources.yaml: unknown `harvest:` value(s) {', '.join(unknown)}; "
+              "the only one is `manual`", file=sys.stderr)
+        return 1
+    if args.scheduled:
+        by_hand = [f["id"] for f in feeds if f.get("harvest") == "manual"]
+        feeds = [f for f in feeds if f.get("harvest") != "manual"]
+        if by_hand:
+            print(f"  {len(by_hand)} feed(s) are harvested by hand and left to a manual run: "
+                  + ", ".join(by_hand))
 
     # ── OBSERVE BEFORE PREFLIGHT, BECAUSE PREFLIGHT ASKS WHAT WAS OBSERVED ──
     #

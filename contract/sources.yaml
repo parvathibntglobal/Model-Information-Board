@@ -3839,16 +3839,1457 @@ feeds:
       free part exists for us. Substack's terms are the party speaking, and
       the ruling records how they were weighed.
 
-  # REMOVED 2026-10-30 (anooj): blog:epochai.substack.com,
-  # blog:cameronrwolfe.substack.com, blog:chinai.substack.com. From the
-  # scheduled runner their robots.txt read as `refused`, so the terms check
-  # left them out every night and harvest_blogs.py exited 1, marking the whole
-  # scheduled fetch failed (2026-10-28 to 2026-10-30). From a developer machine
-  # on 10-30 the same robots.txt answered 200 with /feed allowed, so the
-  # refusal is of the runner, not a change of the publishers' rules. Their
-  # documents already stored stay; nothing new is read from them. To bring one
-  # back, restore its entry from git history and re-check robots from where
-  # the harvest runs.
+  # ── SUBSTACK FEEDS, HARVESTED BY HAND (2026-11-05, #599) ──────────────
+  # Twenty publications under newsletter-substack-feed-only, agreed in #599;
+  # the three removed on 2026-10-30 (epochai, cameronrwolfe, chinai) are back
+  # among them. Substack refuses robots.txt to the scheduled GitHub runner -
+  # `refused`, which harvest_blogs.py records only for HTTP 401 or 403, every
+  # night from 2026-10-26 to 10-29 - while a developer machine gets 200 with
+  # /feed allowed: most likely a block on cloud address ranges, not a change
+  # of the publishers' rules. So every row below carries `harvest: manual`.
+  # The nightly run (`harvest_blogs.py --scheduled`) leaves it out before any
+  # request, named and not counted as refused; a harvest started by hand on a
+  # developer machine reads it. The evidence was measured on 2026-11-05 from a
+  # developer machine, which is where the harvest runs. Reading from a machine
+  # Substack does not block, BECAUSE the runner is blocked, routes around that
+  # refusal: it is the team decision this change asks for (#599 review), not
+  # something the ruling already covered.
+  - id: blog:epochai.substack.com
+    platform: blog
+    endpoint: https://epochai.substack.com/feed
+    site: https://epochai.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-06-17
+      newest: 2026-10-30
+      span_days: 135
+      days_since_newest: 6
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 8075
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 17
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 15
+      resolves_to_voices: 15
+    notes: >-
+      20 entries 2026-06-17 to 2026-10-30; median body 8,075 characters; 20 of
+      20 full length, 0 cut at the paywall. 17 of 20 name one of the 13 model
+      families. Bylines: Elliot Stewart 5, JS Denain 2, David Owen 1. Measured
+      2026-11-05: 1 of the 20 entries were not yet a document, 1 of them dated
+      on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:cameronrwolfe.substack.com
+    platform: blog
+    endpoint: https://cameronrwolfe.substack.com/feed
+    site: https://cameronrwolfe.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2025-07-28
+      newest: 2026-10-21
+      span_days: 450
+      days_since_newest: 15
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 74490
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 18
+      byline_source: entry
+      entry_bylines_present: 19
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2025-07-28 to 2026-10-21; median body 74,490 characters; 20
+      of 20 full length, 0 cut at the paywall. 18 of 20 name one of the 13
+      model families. Bylines: Cameron R. Wolfe, Ph.D. 19. Measured
+      2026-11-05: 0 of the 20 entries were not yet a document, 0 of them dated
+      on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:chinai.substack.com
+    platform: blog
+    endpoint: https://chinai.substack.com/feed
+    site: https://chinai.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-06-01
+      newest: 2026-11-02
+      span_days: 154
+      days_since_newest: 3
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 8320
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 12
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-06-01 to 2026-11-02; median body 8,320 characters; 20 of
+      20 full length, 0 cut at the paywall. 12 of 20 name one of the 13 model
+      families. Bylines: Jeffrey Ding 20. Measured 2026-11-05: 1 of the 20
+      entries were not yet a document, 1 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:garymarcus.substack.com
+    platform: blog
+    endpoint: https://garymarcus.substack.com/feed
+    site: https://garymarcus.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-09-23
+      newest: 2026-10-31
+      span_days: 38
+      days_since_newest: 5
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 2196
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 0
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-09-23 to 2026-10-31; median body 2,196 characters; 20 of
+      20 full length, 0 cut at the paywall. 0 of 20 name one of the 13 model
+      families. Bylines: Gary Marcus 20. Measured 2026-11-05: 20 of the 20
+      entries were not yet a document, 1 of them dated on or after 2026-10-27.
+      0 of 20 on the 13-family measure, but 15 of 20 mention OpenAI,
+      Anthropic, LLMs, ChatGPT, GPT, Claude or Gemini by a broader pattern: he
+      writes about the industry and LLMs in general rather than named models,
+      and the extractor decides which posts carry a report.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:www.thealgorithmicbridge.com
+    platform: blog
+    endpoint: https://www.thealgorithmicbridge.com/feed
+    site: https://www.thealgorithmicbridge.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-08-05
+      newest: 2026-11-03
+      span_days: 90
+      days_since_newest: 2
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 8273
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 12
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-08-05 to 2026-11-03; median body 8,273 characters; 20 of
+      20 full length, 0 cut at the paywall. 12 of 20 name one of the 13 model
+      families. Bylines: Alberto Romero 20. Measured 2026-11-05: 20 of the 20
+      entries were not yet a document, 3 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:plainaiphone.substack.com
+    platform: blog
+    endpoint: https://plainaiphone.substack.com/feed
+    site: https://plainaiphone.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-10-19
+      newest: 2026-11-04
+      span_days: 16
+      days_since_newest: 1
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 2558
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 16
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-10-19 to 2026-11-04; median body 2,558 characters; 20 of
+      20 full length, 0 cut at the paywall. 16 of 20 name one of the 13 model
+      families. Bylines: TL;JP 20. Measured 2026-11-05: 20 of the 20 entries
+      were not yet a document, 11 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:newsletter.maartengrootendorst.com
+    platform: blog
+    endpoint: https://newsletter.maartengrootendorst.com/feed
+    site: https://newsletter.maartengrootendorst.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 18
+      malformed: false
+      dated_entries: 18
+      oldest: 2023-06-18
+      newest: 2026-10-29
+      span_days: 1229
+      days_since_newest: 7
+      truncated: false
+      full_text_entries: 18
+      paywall_cut_entries: 0
+      median_body_chars: 18179
+      carries_content_element: 18
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 13
+      byline_source: entry
+      entry_bylines_present: 17
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      18 entries 2023-06-18 to 2026-10-29; median body 18,179 characters; 18
+      of 18 full length, 0 cut at the paywall. 13 of 18 name one of the 13
+      model families. Bylines: Maarten Grootendorst 17. Measured 2026-11-05:
+      18 of the 18 entries were not yet a document, 1 of them dated on or
+      after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:ileanamarcut.substack.com
+    platform: blog
+    endpoint: https://ileanamarcut.substack.com/feed
+    site: https://ileanamarcut.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-05-09
+      newest: 2026-10-30
+      span_days: 174
+      days_since_newest: 6
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 6271
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 13
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-05-09 to 2026-10-30; median body 6,271 characters; 20 of
+      20 full length, 0 cut at the paywall. 13 of 20 name one of the 13 model
+      families. Bylines: Ileana 20. Measured 2026-11-05: 20 of the 20 entries
+      were not yet a document, 1 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:harryfloyd.substack.com
+    platform: blog
+    endpoint: https://harryfloyd.substack.com/feed
+    site: https://harryfloyd.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-10-02
+      newest: 2026-11-01
+      span_days: 30
+      days_since_newest: 4
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 5764
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 15
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-10-02 to 2026-11-01; median body 5,764 characters; 20 of
+      20 full length, 0 cut at the paywall. 15 of 20 name one of the 13 model
+      families. Bylines: H. Floyd 20. Measured 2026-11-05: 20 of the 20
+      entries were not yet a document, 5 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:benn.substack.com
+    platform: blog
+    endpoint: https://benn.substack.com/feed
+    site: https://benn.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-04-24
+      newest: 2026-09-13
+      span_days: 142
+      days_since_newest: 53
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 12390
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 15
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-04-24 to 2026-09-13; median body 12,390 characters; 20
+      of 20 full length, 0 cut at the paywall. 15 of 20 name one of the 13
+      model families. Bylines: Benn Stancil 20. Measured 2026-11-05: 20 of the
+      20 entries were not yet a document, 0 of them dated on or after
+      2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:allagentsconsidered.substack.com
+    platform: blog
+    endpoint: https://allagentsconsidered.substack.com/feed
+    site: https://allagentsconsidered.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-06-09
+      newest: 2026-11-03
+      span_days: 147
+      days_since_newest: 2
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 14107
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 13
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-06-09 to 2026-11-03; median body 14,107 characters; 20
+      of 20 full length, 0 cut at the paywall. 13 of 20 name one of the 13
+      model families. Bylines: Dan Cucolea 20. Measured 2026-11-05: 20 of the
+      20 entries were not yet a document, 2 of them dated on or after
+      2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:vizuara.substack.com
+    platform: blog
+    endpoint: https://vizuara.substack.com/feed
+    site: https://vizuara.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2025-12-22
+      newest: 2026-10-05
+      span_days: 287
+      days_since_newest: 31
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 39365
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 7
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 3
+      resolves_to_voices: 3
+    notes: >-
+      20 entries 2025-12-22 to 2026-10-05; median body 39,365 characters; 20
+      of 20 full length, 0 cut at the paywall. 7 of 20 name one of the 13
+      model families. Bylines: Siddhant Rai 10, Vizuara AI 7, Mayank Pratap
+      Singh 3. Measured 2026-11-05: 20 of the 20 entries were not yet a
+      document, 0 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:vibecodingweekly.substack.com
+    platform: blog
+    endpoint: https://vibecodingweekly.substack.com/feed
+    site: https://vibecodingweekly.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-06-01
+      newest: 2026-10-19
+      span_days: 140
+      days_since_newest: 17
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 11931
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 20
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-06-01 to 2026-10-19; median body 11,931 characters; 20
+      of 20 full length, 0 cut at the paywall. 20 of 20 name one of the 13
+      model families. Bylines: Angel Llosa 20. Measured 2026-11-05: 20 of the
+      20 entries were not yet a document, 0 of them dated on or after
+      2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:theaiengineer.substack.com
+    platform: blog
+    endpoint: https://theaiengineer.substack.com/feed
+    site: https://theaiengineer.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-08-12
+      newest: 2026-10-31
+      span_days: 80
+      days_since_newest: 5
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 16674
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 10
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-08-12 to 2026-10-31; median body 16,674 characters; 20
+      of 20 full length, 0 cut at the paywall. 10 of 20 name one of the 13
+      model families. Bylines: Paolo Perrone 20. Measured 2026-11-05: 20 of
+      the 20 entries were not yet a document, 2 of them dated on or after
+      2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:swyx.substack.com
+    platform: blog
+    endpoint: https://swyx.substack.com/feed
+    site: https://swyx.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-10-10
+      newest: 2026-10-22
+      span_days: 12
+      days_since_newest: 14
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 17016
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 16
+      byline_source: entry
+      entry_bylines_present: 7
+      distinct_entry_bylines: 5
+      resolves_to_voices: 5
+    notes: >-
+      20 entries 2026-10-10 to 2026-10-22; median body 17,016 characters; 20
+      of 20 full length, 0 cut at the paywall. 16 of 20 name one of the 13
+      model families. Bylines: Richard MacManus 3, Basil Chatha 1,
+      Latent.Space 1. Measured 2026-11-05: 20 of the 20 entries were not yet a
+      document, 0 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:r3dtuxedo.substack.com
+    platform: blog
+    endpoint: https://r3dtuxedo.substack.com/feed
+    site: https://r3dtuxedo.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 10
+      malformed: false
+      dated_entries: 10
+      oldest: 2026-10-23
+      newest: 2026-11-03
+      span_days: 11
+      days_since_newest: 2
+      truncated: false
+      full_text_entries: 10
+      paywall_cut_entries: 0
+      median_body_chars: 13845
+      carries_content_element: 10
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 10
+      byline_source: entry
+      entry_bylines_present: 10
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      10 entries 2026-10-23 to 2026-11-03; median body 13,845 characters; 10
+      of 10 full length, 0 cut at the paywall. 10 of 10 name one of the 13
+      model families. Bylines: Andre Burgstahler 10. Measured 2026-11-05: 10
+      of the 10 entries were not yet a document, 3 of them dated on or after
+      2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:msukhareva.substack.com
+    platform: blog
+    endpoint: https://msukhareva.substack.com/feed
+    site: https://msukhareva.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-09-08
+      newest: 2026-11-03
+      span_days: 56
+      days_since_newest: 2
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 5635
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 13
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-09-08 to 2026-11-03; median body 5,635 characters; 20 of
+      20 full length, 0 cut at the paywall. 13 of 20 name one of the 13 model
+      families. Bylines: Maria Sukhareva 20. Measured 2026-11-05: 20 of the 20
+      entries were not yet a document, 2 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:econlab.substack.com
+    platform: blog
+    endpoint: https://econlab.substack.com/feed
+    site: https://econlab.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-03-11
+      newest: 2026-10-14
+      span_days: 217
+      days_since_newest: 22
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 4201
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 12
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-03-11 to 2026-10-14; median body 4,201 characters; 20 of
+      20 full length, 0 cut at the paywall. 12 of 20 name one of the 13 model
+      families. Bylines: Ara Kharazian 20. Measured 2026-11-05: 20 of the 20
+      entries were not yet a document, 0 of them dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:chinaaidispatch.substack.com
+    platform: blog
+    endpoint: https://chinaaidispatch.substack.com/feed
+    site: https://chinaaidispatch.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-10-19
+      newest: 2026-11-04
+      span_days: 16
+      days_since_newest: 1
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 10253
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 18
+      byline_source: entry
+      entry_bylines_present: 3
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      20 entries 2026-10-19 to 2026-11-04; median body 10,253 characters; 20
+      of 20 full length, 0 cut at the paywall. 18 of 20 name one of the 13
+      model families. Bylines: Yuzu Xu 3. Measured 2026-11-05: 20 of the 20
+      entries were not yet a document, 10 of them dated on or after
+      2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
+  - id: blog:aspiringforintelligence.substack.com
+    platform: blog
+    endpoint: https://aspiringforintelligence.substack.com/feed
+    site: https://aspiringforintelligence.substack.com/
+    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
+    harvest: manual
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: newsletter-substack-feed-only
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
+      # developer machine, for the newest entry's URL, with urllib.robotparser.
+      robots_allows_article_path: true
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched to measure, and none will be.
+      article_http: null
+      feed_carries_full_text: true
+      # Substack's structural paywall marker on the item HTML, not the word:
+      # free posts' subscription pitches say "paywall" too. The marker was
+      # not checked against a known paywalled post.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2026-01-16
+      newest: 2026-10-23
+      span_days: 280
+      days_since_newest: 13
+      truncated: false
+      full_text_entries: 20
+      paywall_cut_entries: 0
+      median_body_chars: 10016
+      carries_content_element: 20
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 15
+      byline_source: entry
+      entry_bylines_present: 20
+      distinct_entry_bylines: 2
+      resolves_to_voices: 2
+    notes: >-
+      20 entries 2026-01-16 to 2026-10-23; median body 10,016 characters; 20
+      of 20 full length, 0 cut at the paywall. 15 of 20 name one of the 13
+      model families. Bylines: Vivek Ramaswami 11, Sabrina Albert 9. Measured
+      2026-11-05: 20 of the 20 entries were not yet a document, 0 of them
+      dated on or after 2026-10-27.
+    tos_notes: >-
+      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
+      developer machine. Served by Substack (feed generator `Substack`).
+      robots.txt 200, feed path allowed. FEED ONLY: no article page is
+      requested; content is the feed body, and where Substack cuts it at the
+      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
+      manual`): Substack refuses robots.txt to the scheduled runner, so the
+      nightly run leaves this feed out and a developer machine reads it
+      (#599). Substack's terms are the party speaking, and the ruling records
+      how they were weighed.
+
   - id: blog:magazine.sebastianraschka.com
     platform: blog
     endpoint: https://magazine.sebastianraschka.com/feed
