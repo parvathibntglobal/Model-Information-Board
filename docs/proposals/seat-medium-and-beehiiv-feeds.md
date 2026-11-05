@@ -3,6 +3,20 @@
 **For review by Parvathi. Proposed 2026-11-05 (anooj).** A `contract/`
 change, so nothing is edited until it's agreed.
 
+**Outcome, 2026-11-05: three feeds seated, two not.**
+
+- **Google Cloud held back** (option (a) from the review on this PR). Many of
+  its Gemini posts are Google's own. The check that catches a maker's own
+  speech matches hosts, and `medium.com` isn't one of them, so it couldn't
+  see these.
+- **Unwind AI dropped on the re-check.** Its newest post is still 29 Sep, on
+  the feed and on the homepage, so the newsletter has stopped, not just its
+  feed.
+- **The other three are seated** in a separate PR: Google Developer Experts,
+  MongoDB and Pinterest Engineering.
+
+The rest of this document is the proposal as reviewed.
+
 ## The ask
 
 Add five feed rows to `contract/sources.yaml`, under rulings that already
