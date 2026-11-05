@@ -29,7 +29,7 @@ ELIGIBLE = """
        AND provider = ANY(%s)
        AND release_date IS NOT NULL
        AND release_date >= %s
-       AND NOT (canonical_id = ANY(%s))
+       AND NOT (canonical_id = ANY(%s) OR id = ANY(%s))
      ORDER BY release_date DESC, canonical_id
 """
 
@@ -60,10 +60,8 @@ def auto_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]
         return ()
     hand = tracked_models()
     cutoff = (today or date.today()) - timedelta(days=rule.released_within_days)
-    rows = conn.execute(
-        ELIGIBLE,
-        (page_providers(hand), cutoff, [m.registry for m in hand if m.registry]),
-    ).fetchall()
+    named = [m.registry for m in hand if m.registry]
+    rows = conn.execute(ELIGIBLE, (page_providers(hand), cutoff, named, named)).fetchall()
     out = []
     for canonical_id, display, _released in rows:
         if not rule.include_pro_tier and canonical_id.endswith("-pro"):
@@ -78,3 +76,34 @@ def auto_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]
 def all_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]:
     """Hand-written entries in file order, then the rule's admissions."""
     return (*tracked_models(), *auto_tracked(conn, today=today))
+
+
+def tracked_keys(conn, *, today: date | None = None) -> set[str]:
+    """Every id of every tracked model, in BOTH shapes: row `id` and `canonical_id`.
+
+    A tracked `registry` value may name either column, as the models page reads
+    it, and the two differ on almost every row. Comparing one shape against the
+    other is a silent miss, not an error. Claude Fable 5.1's entry names its row
+    id `anthropic/claude-fable-5-1`; its canonical id is
+    `anthropic/claude-fable-5.1`. Matching one shape put it on the discussed
+    list as untracked and kept it out of the scheduler's due list, and two
+    callers had already repaired the same miss locally (judge/feed/items.py,
+    scripts/promotion_report.py). Ask this set instead.
+
+    A tracked value with no row is kept as it is, so it still counts as tracked
+    wherever something carries that id.
+    """
+    names = [t.registry for t in all_tracked(conn, today=today) if t.registry]
+    return set(names) | row_keys(conn, names)
+
+
+def row_keys(conn, names: list[str]) -> set[str]:
+    """Both ids of every `model_version` row that `names` matches in either shape.
+
+    Rows only: a name that matches no row contributes nothing here.
+    """
+    rows = conn.execute(
+        "SELECT id, canonical_id FROM model_version WHERE id = ANY(%s) OR canonical_id = ANY(%s)",
+        (names, names),
+    ).fetchall()
+    return {key for row in rows for key in row if key}

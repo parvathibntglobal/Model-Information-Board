@@ -6537,21 +6537,20 @@ def admin_discussed_models() -> dict:
       travel with it. #464 adds three models by hand; this is where that
       decision should be made from rather than from memory of what looked busy.
 
-    `tracked` is matched on `registry`, the `model_version.canonical_id`, not
-    on the display name: two models can share a name and one model's name
-    changes when a provider renames it, so a name match would both over- and
-    under-count and neither would be visible.
+    `tracked` is matched on `registry` in both of its shapes, row id and
+    `canonical_id` (`judge.tracked.tracked_keys`), not on the display name: two
+    models can share a name and one model's name changes when a provider
+    renames it, so a name match would both over- and under-count and neither
+    would be visible. Matching `canonical_id` alone listed Claude Fable 5.1
+    here as untracked, because its entry named the row id.
     """
-    from judge.config import tracked_models
-
-    tracked = {t.registry for t in tracked_models() if t.registry}
-
     try:
         with _conn() as conn:
-            # A model the rule admits is on the page, so it is not "untracked".
-            from judge.tracked import auto_tracked
+            # Hand-written entries and the rule's admissions: a model the rule
+            # admits is on the page, so it is not "untracked".
+            from judge.tracked import tracked_keys
 
-            tracked |= {t.registry for t in auto_tracked(conn)}
+            tracked = tracked_keys(conn)
             rows = conn.execute(
                 "SELECT mv.canonical_id, mv.display_name, mv.provider, "
                 "       count(*) AS entries, "

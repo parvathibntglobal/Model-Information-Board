@@ -93,6 +93,9 @@ def due_rows(conn) -> list[dict]:
     Tracked comes from `contract/tracked_models.yaml`; the last success comes
     from `fetch_log` (an `end` record with status ok). Matching the registry row
     by canonical id OR row id, as the models page does.
+
+    A tracked entry that matches no row comes back as a row carrying
+    `registry_row_missing` instead of being dropped, so `main` can name it.
     """
     from judge.tracked import all_tracked
 
@@ -100,16 +103,28 @@ def due_rows(conn) -> list[dict]:
     # model the poll inserts is due for a first fetch with no PR in between.
     tracked = [m for m in all_tracked(conn) if m.registry]
     ids = [m.registry for m in tracked]
-    reg = {r[0]: r for r in conn.execute(
-        "SELECT canonical_id, id, display_name, in_window FROM model_version "
-        "WHERE canonical_id = ANY(%s) OR id = ANY(%s)", (ids, ids)).fetchall()}
+    # KEYED BY BOTH IDS. The query matched either column, and this was keyed
+    # by `canonical_id` alone, so an entry naming the row id found its row in
+    # SQL and lost it here. Claude Fable 5.1 (`anthropic/claude-fable-5-1`,
+    # canonical `anthropic/claude-fable-5.1`) was dropped that way, without a
+    # word, since this was written (b42fc02, 2026-09-28). Its last fetch of any
+    # kind was 2026-10-18 (fetch_log, read 2026-11-05).
+    reg = {}
+    for r in conn.execute(
+            "SELECT canonical_id, id, display_name, in_window FROM model_version "
+            "WHERE canonical_id = ANY(%s) OR id = ANY(%s)", (ids, ids)).fetchall():
+        reg[r[0]] = reg[r[1]] = r
     # last successful fetch per model_version_id
     last = {r[0]: r[1] for r in conn.execute(LAST_SUCCESS).fetchall()}
     rows = []
     for m in tracked:
         hit = reg.get(m.registry)
         if hit is None:
-            continue  # tracked but not yet a registry row - nothing to fetch
+            # Tracked but no registry row has that id: not polled yet, or the
+            # id moved. Nothing to fetch either way, and the run says so.
+            rows.append({"display_name": m.name, "registry": m.registry,
+                         "registry_row_missing": True})
+            continue
         canonical, mv_id, display, in_window = hit
         rows.append({
             "model_version_id": mv_id,
@@ -252,6 +267,10 @@ def main(argv: list[str] | None = None) -> int:
 
     with psycopg.connect(_read_only_dsn(), connect_timeout=20) as conn:
         rows = due_rows(conn)
+    # A TRACKED MODEL WITH NO REGISTRY ROW IS NAMED, NOT DROPPED (rule 4). It
+    # used to vanish here, so a model stopped being fetched and nothing said so.
+    missing = [r for r in rows if r.get("registry_row_missing")]
+    rows = [r for r in rows if not r.get("registry_row_missing")]
     due = scheduler.rank_due(rows, datetime.now(UTC))
     if args.max_models is not None:
         due = due[: args.max_models]
@@ -259,9 +278,17 @@ def main(argv: list[str] | None = None) -> int:
     print(f"due: {len(due)} model(s)")
     for d in due:
         print(f"  {d.display_name}  [{d.reason}, cap {d.thread_cap}]")
+    for m in missing:
+        print(f"  not due: {m['display_name']} is tracked as {m['registry']}, "
+              "and no registry row has that id")
     if args.dry_run:
         return 0
+    records = [{"model": m["display_name"],
+                "status": f"not run: tracked as `{m['registry']}`, which no registry row has"}
+               for m in missing]
     if not due:
+        if records:
+            post_summary(records)
         return 0
 
     # THE DAILY BUDGET IS ONE TEAM-WIDE FIGURE, so the runner checks it before
@@ -287,7 +314,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         cap = float(raw_cap)
 
-    records = []
+    # `records` already names any tracked model with no registry row.
     started = time.monotonic()
     for i, d in enumerate(due):
         # ONE FETCH PER MODEL AT A TIME (2026-10-06). A manual run of the same
