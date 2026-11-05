@@ -175,14 +175,15 @@ def test_the_seeded_feeds_are_the_reviewed_list():
     platform rulings); twenty-five from 2026-10-30, when three *.substack.com
     feeds left because the runner is refused; forty-three from 2026-11-05, when
     eighteen Substack newsletters (those three among them) were seated, the
-    sixteen on *.substack.com as `harvest: manual` (#599, #601). The count is
+    sixteen on *.substack.com as `harvest: manual` (#599, #601); forty-six from
+    later that day, when three Medium publications were seated (#603). The count is
     asserted rather than derived because a
     feed arriving without a re-reading of the ruling is exactly what the
     `RE-REVIEW REQUIRED BEFORE` clause exists to stop, and a test that counts
     whatever it finds would not notice.
     """
     feeds = _contract()["feeds"]
-    assert len(feeds) == 43
+    assert len(feeds) == 46
     assert sum(1 for f in feeds if f.get("harvest") == "manual") == 16
     assert not any("dropbox" in f["id"] for f in feeds)
 
@@ -299,8 +300,12 @@ def test_the_two_classes_split_self_hosted_from_platform_hosted():
         ruling = contract.rulings[feed["terms_ruling"]]
         by_class.setdefault(ruling.klass, []).append(feed["id"])
 
+    # Two until three Medium publications were seated on 2026-11-05 (#603).
     assert sorted(by_class["B"]) == [
         "blog:medium.com/airbnb-engineering",
+        "blog:medium.com/google-developer-experts",
+        "blog:medium.com/mongodb",
+        "blog:medium.com/pinterest-engineering",
         "blog:netflixtechblog.com",
     ]
     # 7 until 2026-09-21, 16 after the re-review seated nine more, 17 when
@@ -424,7 +429,9 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 53  # ten platforms + forty-three feeds. 35 from
+    assert len(rows) == 56  # ten platforms + forty-six feeds. 53 from
+    #                        2026-11-05 until three Medium publications were
+    #                        seated later that day (#603). 35 from
     #                        2026-10-30 until eighteen Substack newsletters were
     #                        seated on 2026-11-05; 38 until
     #                        three *.substack.com feeds left 2026-10-30. 12 before

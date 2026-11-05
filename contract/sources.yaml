@@ -3571,6 +3571,237 @@ feeds:
       is enough to refuse and would not be enough to permit.
 
 
+  # ── Class B · Medium publications seated 2026-11-05 (#603) ───────────────
+  # Chosen on how often their entries name a model: the two Medium rows
+  # above name none (0 of 10 each, 2026-11-05). 32 Medium feeds were
+  # measured; the reasons for the rest are in
+  # docs/proposals/seat-medium-and-beehiiv-feeds.md.
+  #
+  # HELD BACK in review (#603, option a): medium.com/google-cloud, 6 of 10
+  # naming a model, mostly Gemini. A Google post about Gemini is vendor
+  # speech, and the backstop for a misfiled one (judge/reweight.py's
+  # provider-domain count) matches hosts against _PROVIDER_DOMAINS in
+  # judge/vet/reject.py, where medium.com is not listed. Seat it when that
+  # check can see a publication path.
+  # NOT SEATED: www.theunwindai.com (beehiiv), 19 of 20 naming a model, but
+  # no post since 2026-09-29 on the feed or the homepage (checked 2026-11-05).
+
+  - id: blog:medium.com/google-developer-experts
+    platform: blog
+    endpoint: https://medium.com/feed/google-developer-experts
+    site: https://medium.com/google-developer-experts
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-b-medium
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # medium.com's `Disallow: /*/*source=` reaches /<publication>/<slug>,
+      # and every feed link carries `?source=rss`. Evaluated 2026-11-05 with
+      # collect/adapters/blog/rules.py for all 10 links: all refused.
+      robots_allows_article_path: false
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched. The refusal recorded below is robots', as on Airbnb's row.
+      article_http: null
+      article_fetch_refused: true
+      feed_carries_full_text: true
+      # From the feed bodies only: 10 of 10 full length, no
+      # "Continue reading on Medium" stub. No article page was seen.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 10
+      malformed: false
+      dated_entries: 10
+      oldest: 2026-10-14
+      newest: 2026-11-04
+      span_days: 21
+      days_since_newest: 1
+      truncated: false
+      full_text_entries: 10
+      paywall_cut_entries: 0
+      median_body_chars: 11474
+      carries_content_element: 10
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 6
+      byline_source: entry
+      entry_bylines_present: 10
+      distinct_entry_bylines: 7
+      resolves_to_voices: 7
+    notes: >-
+      10 entries 2026-10-14 to 2026-11-04; median body 11,474 characters; 10
+      of 10 full length, none a members-only stub. 6 of 10 name one of the 13
+      model families. Bylines: Fed Mestrone 3, Geeta Kakrani 2, Cyrus Wong 1.
+      Google's Developer Experts programme: independent developers writing
+      under a Google-run publication, so not vendor speech by default (#603
+      review). Seated; its sibling medium.com/google-cloud was held back, see
+      the note below the Medium rows. Measured 2026-11-05 (#603;
+      docs/proposals/seat-medium-and-beehiiv-feeds.md).
+    tos_notes: >-
+      Class B, ruling blog-class-b-medium, evidence checked 2026-11-05 from a
+      developer machine. medium.com/robots.txt 200, feed path allowed. ARTICLE
+      PATHS NOT PERMITTED: `Disallow: /*/*source=` covers 10 of 10 feed links,
+      evaluated with collect/adapters/blog/rules.py (RFC 9309), not
+      urllib.robotparser. No article page was requested, and none will be:
+      content comes from the feed body. RSS 2.0, generator Medium. MEDIUM'S
+      TERMS PAGE NOT READ.
+
+  - id: blog:medium.com/mongodb
+    platform: blog
+    endpoint: https://medium.com/feed/mongodb
+    site: https://medium.com/mongodb
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-b-medium
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # medium.com's `Disallow: /*/*source=` reaches /<publication>/<slug>,
+      # and every feed link carries `?source=rss`. Evaluated 2026-11-05 with
+      # collect/adapters/blog/rules.py for all 10 links: all refused.
+      robots_allows_article_path: false
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched. The refusal recorded below is robots', as on Airbnb's row.
+      article_http: null
+      article_fetch_refused: true
+      feed_carries_full_text: true
+      # From the feed bodies only: 10 of 10 full length, no
+      # "Continue reading on Medium" stub. No article page was seen.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 10
+      malformed: false
+      dated_entries: 10
+      oldest: 2026-10-08
+      newest: 2026-10-30
+      span_days: 22
+      days_since_newest: 6
+      truncated: false
+      full_text_entries: 10
+      paywall_cut_entries: 0
+      median_body_chars: 16240
+      carries_content_element: 10
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 5
+      byline_source: entry
+      entry_bylines_present: 10
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      10 entries 2026-10-08 to 2026-10-30; median body 16,240 characters; 10
+      of 10 full length, none a members-only stub. 5 of 10 name one of the 13
+      model families. Bylines: MongoDB 10. Every entry is bylined `MongoDB`,
+      so all of it resolves to ONE voice however many posts there are. It is a
+      database vendor writing about its integrations with other makers' models
+      (the newest entry announces a MongoDB adapter for a Claude SDK):
+      promotional, but not a maker describing its own model. Measured
+      2026-11-05 (#603; docs/proposals/seat-medium-and-beehiiv-feeds.md).
+    tos_notes: >-
+      Class B, ruling blog-class-b-medium, evidence checked 2026-11-05 from a
+      developer machine. medium.com/robots.txt 200, feed path allowed. ARTICLE
+      PATHS NOT PERMITTED: `Disallow: /*/*source=` covers 10 of 10 feed links,
+      evaluated with collect/adapters/blog/rules.py (RFC 9309), not
+      urllib.robotparser. No article page was requested, and none will be:
+      content comes from the feed body. RSS 2.0, generator Medium. MEDIUM'S
+      TERMS PAGE NOT READ.
+
+  - id: blog:medium.com/pinterest-engineering
+    platform: blog
+    endpoint: https://medium.com/feed/pinterest-engineering
+    site: https://medium.com/pinterest-engineering
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-b-medium
+    terms_evidence:
+      checked_on: 2026-11-05
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      # medium.com's `Disallow: /*/*source=` reaches /<publication>/<slug>,
+      # and every feed link carries `?source=rss`. Evaluated 2026-11-05 with
+      # collect/adapters/blog/rules.py for all 10 links: all refused.
+      robots_allows_article_path: false
+      # NOT REQUESTED: the ruling is feed-only, so no article page was
+      # fetched. The refusal recorded below is robots', as on Airbnb's row.
+      article_http: null
+      article_fetch_refused: true
+      feed_carries_full_text: true
+      # From the feed bodies only: 10 of 10 full length, no
+      # "Continue reading on Medium" stub. No article page was seen.
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-11-05
+      entries: 10
+      malformed: false
+      dated_entries: 10
+      oldest: 2026-08-26
+      newest: 2026-11-04
+      span_days: 70
+      days_since_newest: 1
+      truncated: false
+      full_text_entries: 10
+      paywall_cut_entries: 0
+      median_body_chars: 16432
+      carries_content_element: 10
+      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
+      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
+      # case-sensitive whole word, title and body. A collocation count.
+      names_a_model_family: 3
+      byline_source: entry
+      entry_bylines_present: 10
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      10 entries 2026-08-26 to 2026-11-04; median body 16,432 characters; 10
+      of 10 full length, none a members-only stub. 3 of 10 name one of the 13
+      model families. Bylines: Pinterest Engineering 10. Every entry is
+      bylined `Pinterest Engineering`, so all of it resolves to ONE voice. One
+      of the five named on 2026-08-14 as the first candidates to add, and on
+      2026-11-05 the only one of them with a post in the last 30 days and an
+      entry that names a model. Measured 2026-11-05 (#603;
+      docs/proposals/seat-medium-and-beehiiv-feeds.md).
+    tos_notes: >-
+      Class B, ruling blog-class-b-medium, evidence checked 2026-11-05 from a
+      developer machine. medium.com/robots.txt 200, feed path allowed. ARTICLE
+      PATHS NOT PERMITTED: `Disallow: /*/*source=` covers 10 of 10 feed links,
+      evaluated with collect/adapters/blog/rules.py (RFC 9309), not
+      urllib.robotparser. No article page was requested, and none will be:
+      content comes from the feed body. RSS 2.0, generator Medium. MEDIUM'S
+      TERMS PAGE NOT READ.
+
   # ── Newsletters (2026-10-26) ──────────────────────────────────────────────
   #
   # Ten of the twenty newsletters probed on 2026-10-26: full text in the feed
@@ -5389,6 +5620,10 @@ feeds:
 #      pinterest-engineering,   they are the first candidates to add, and the
 #      expedia-group-tech,      class B Medium ruling already covers them.
 #    eng.lyft.com, craft.faire.com
+#                               RE-MEASURED 2026-11-05 (#603): Pinterest is
+#                               seated above. Instacart and Lyft named a model
+#                               in 4 of 10 but had not posted since 3 and 10
+#                               Sep; Faire 1 of 10; Expedia 0 of 10.
 # ----------------------------------------------------------------------------
 
 # ============================================================================
