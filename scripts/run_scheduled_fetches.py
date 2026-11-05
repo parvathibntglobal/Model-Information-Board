@@ -107,8 +107,9 @@ def due_rows(conn) -> list[dict]:
     # by `canonical_id` alone, so an entry naming the row id found its row in
     # SQL and lost it here. Claude Fable 5.1 (`anthropic/claude-fable-5-1`,
     # canonical `anthropic/claude-fable-5.1`) was dropped that way, without a
-    # word, since this was written (b42fc02, 2026-09-28). Its last fetch of any
-    # kind was 2026-10-18 (fetch_log, read 2026-11-05).
+    # word, for as long as those two differed; this keying dates from b42fc02
+    # (2026-09-28). Its last fetch of any kind was 2026-10-18 (fetch_log, read
+    # 2026-11-05).
     reg = {}
     for r in conn.execute(
             "SELECT canonical_id, id, display_name, in_window FROM model_version "

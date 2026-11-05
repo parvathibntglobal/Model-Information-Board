@@ -4906,20 +4906,18 @@ def admin_runs(limit: int = 60) -> dict:
     try:
         with _conn() as conn:
             # `fetch_log.model_version_id` holds an `mv_` id on newer runs and a
-            # bare canonical name on older ones, so BOTH spellings of every
-            # tracked model are matched. Resolved by query rather than by
+            # bare canonical name on older ones, and a tracked entry may name
+            # either, so BOTH spellings of every tracked model are matched, in
+            # both directions (`tracked_keys`). Resolved by query rather than by
             # recomputing the id: the hash lives in `collect/ids.py` and the
-            # lane boundary forbids importing it.
+            # lane boundary forbids importing it. Adding row ids by
+            # `canonical_id` alone missed a run filed under the canonical
+            # spelling of an entry that names the row id (#605 review).
             # Auto-admitted models are tracked too (judge/tracked.py).
-            from judge.tracked import auto_tracked
+            from judge.tracked import auto_tracked, tracked_keys
 
             wanted = wanted | {t.registry for t in auto_tracked(conn)}
-            ids = {
-                row[0] for row in conn.execute(
-                    "SELECT id FROM model_version WHERE canonical_id = ANY(%s)",
-                    (list(wanted),),
-                ).fetchall()
-            } | wanted
+            ids = tracked_keys(conn)
             runs_raw = conn.execute(
                 "SELECT run_id, min(at), max(at), count(*), "
                 "       max(model_version_id) "
