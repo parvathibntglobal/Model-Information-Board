@@ -167,22 +167,23 @@ def test_every_source_and_feed_has_tos_notes():
 
 
 def test_the_seeded_feeds_are_the_reviewed_list():
-    """Forty-five. Dropbox is dropped on data quality, not terms.
+    """Forty-three. Dropbox is dropped on data quality, not terms.
 
     Was nine until 2026-09-21, when the class A re-review seated three feeds
     proposed in #372 and six probed the same day; eighteen until 2026-10-26,
     when ten newsletters were seated (one class A, nine on the two newsletter
     platform rulings); twenty-five from 2026-10-30, when three *.substack.com
-    feeds left because the runner is refused; forty-five from 2026-11-05, when
-    twenty Substack newsletters (those three among them) were seated as
-    `harvest: manual` (#599). The count is asserted rather than derived because a
+    feeds left because the runner is refused; forty-three from 2026-11-05, when
+    eighteen Substack newsletters (those three among them) were seated, the
+    sixteen on *.substack.com as `harvest: manual` (#599, #601). The count is
+    asserted rather than derived because a
     feed arriving without a re-reading of the ruling is exactly what the
     `RE-REVIEW REQUIRED BEFORE` clause exists to stop, and a test that counts
     whatever it finds would not notice.
     """
     feeds = _contract()["feeds"]
-    assert len(feeds) == 45
-    assert sum(1 for f in feeds if f.get("harvest") == "manual") == 20
+    assert len(feeds) == 43
+    assert sum(1 for f in feeds if f.get("harvest") == "manual") == 16
     assert not any("dropbox" in f["id"] for f in feeds)
 
 
@@ -305,10 +306,10 @@ def test_the_two_classes_split_self_hosted_from_platform_hosted():
     # 7 until 2026-09-21, 16 after the re-review seated nine more, 17 when
     # Latent Space (self-hosted) was seated with the newsletters, 2026-10-26.
     assert len(by_class["A"]) == 17
-    # Class C: newsletter platforms, feed only. Twenty-five on Substack, one on
+    # Class C: newsletter platforms, feed only. Twenty-three on Substack, one on
     # beehiiv (eight on Substack until three *.substack.com feeds left
-    # 2026-10-30; five until twenty were seated as `harvest: manual`, 2026-11-05).
-    assert len(by_class["C"]) == 26
+    # 2026-10-30; five until eighteen were seated on 2026-11-05, #599 and #601).
+    assert len(by_class["C"]) == 24
 
 
 def test_the_medium_ruling_is_feed_only_and_says_why():
@@ -423,9 +424,9 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 55  # ten platforms + forty-five feeds. 35 from
-    #                        2026-10-30 until twenty Substack newsletters were
-    #                        seated as `harvest: manual` on 2026-11-05; 38 until
+    assert len(rows) == 53  # ten platforms + forty-three feeds. 35 from
+    #                        2026-10-30 until eighteen Substack newsletters were
+    #                        seated on 2026-11-05; 38 until
     #                        three *.substack.com feeds left 2026-10-30. 12 before
     #                        2026-09-08, 14 after arXiv and X, 17 after dev.to
     #                        / HN / Hugging Face, 26 after the 2026-09-21

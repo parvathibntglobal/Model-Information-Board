@@ -3839,21 +3839,33 @@ feeds:
       free part exists for us. Substack's terms are the party speaking, and
       the ruling records how they were weighed.
 
-  # ── SUBSTACK FEEDS, HARVESTED BY HAND (2026-11-05, #599) ──────────────
-  # Twenty publications under newsletter-substack-feed-only, agreed in #599;
+  # ── SUBSTACK FEEDS, HARVESTED BY HAND (2026-11-05, #599, #601) ────────
+  # Eighteen publications under newsletter-substack-feed-only, agreed in #599;
   # the three removed on 2026-10-30 (epochai, cameronrwolfe, chinai) are back
-  # among them. Substack refuses robots.txt to the scheduled GitHub runner -
-  # `refused`, which harvest_blogs.py records only for HTTP 401 or 403, every
-  # night from 2026-10-26 to 10-29 - while a developer machine gets 200 with
-  # /feed allowed: most likely a block on cloud address ranges, not a change
-  # of the publishers' rules. So every row below carries `harvest: manual`.
-  # The nightly run (`harvest_blogs.py --scheduled`) leaves it out before any
-  # request, named and not counted as refused; a harvest started by hand on a
-  # developer machine reads it. The evidence was measured on 2026-11-05 from a
-  # developer machine, which is where the harvest runs. Reading from a machine
-  # Substack does not block, BECAUSE the runner is blocked, routes around that
-  # refusal: it is the team decision this change asks for (#599 review), not
-  # something the ruling already covered.
+  # among them. Twenty were measured; two were left out in review (#601):
+  # swyx.substack.com, whose posts mirror swyx.io and latent.space (13 of its
+  # 20 entries had the URL slug of a document already held, 2026-11-05), and
+  # garymarcus.substack.com, which named no model family in 20 entries.
+  #
+  # THE REFUSAL IS SPECIFIC TO *.substack.com ADDRESSES. Substack refuses
+  # robots.txt to the scheduled GitHub runner there - `refused`, which
+  # harvest_blogs.py records only for HTTP 401 or 403, every night from
+  # 2026-10-26 to 10-29 - while a developer machine gets 200 with /feed
+  # allowed. The same runner reads Substack newsletters on their own domains
+  # every night (latent.space, www.interconnects.ai, www.theneurondaily.com,
+  # www.understandingai.org, www.oneusefulthing.org all stored documents
+  # after 2026-10-25), so the two own-domain rows below are on the scheduled
+  # run, and only the sixteen *.substack.com rows carry `harvest: manual`.
+  # The nightly run (`harvest_blogs.py --scheduled`) leaves those out before
+  # any request, named and not counted as refused; a harvest started by hand
+  # on a developer machine reads them. The evidence was measured on
+  # 2026-11-05 from a developer machine.
+  #
+  # ⚠ READING A *.substack.com FEED FROM A MACHINE SUBSTACK DOES NOT BLOCK,
+  # BECAUSE THE RUNNER IS BLOCKED, ROUTES AROUND THAT REFUSAL. That is the
+  # team decision this change asks for, not something the ruling already
+  # covered; the #601 review would hold these sixteen until Substack is asked
+  # or the MD rules. Open until decided.
   - id: blog:epochai.substack.com
     platform: blog
     endpoint: https://epochai.substack.com/feed
@@ -4069,87 +4081,10 @@ feeds:
       (#599). Substack's terms are the party speaking, and the ruling records
       how they were weighed.
 
-  - id: blog:garymarcus.substack.com
-    platform: blog
-    endpoint: https://garymarcus.substack.com/feed
-    site: https://garymarcus.substack.com/
-    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
-    harvest: manual
-    template_block:
-      status: unverified
-      pages_examined: 0
-      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
-      headings: []
-    base_trust: 0.90
-    provenance: seed
-    terms_ruling: newsletter-substack-feed-only
-    terms_evidence:
-      checked_on: 2026-11-05
-      robots_status: rules
-      robots_http: 200
-      feed_path_allowed: true
-      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
-      # developer machine, for the newest entry's URL, with urllib.robotparser.
-      robots_allows_article_path: true
-      # NOT REQUESTED: the ruling is feed-only, so no article page was
-      # fetched to measure, and none will be.
-      article_http: null
-      feed_carries_full_text: true
-      # Substack's structural paywall marker on the item HTML, not the word:
-      # free posts' subscription pitches say "paywall" too. The marker was
-      # not checked against a known paywalled post.
-      paywall_observed: false
-      login_required: false
-      terms_document_read: true
-      feed_type: rss20
-    measured:
-      checked_on: 2026-11-05
-      entries: 20
-      malformed: false
-      dated_entries: 20
-      oldest: 2026-09-23
-      newest: 2026-10-31
-      span_days: 38
-      days_since_newest: 5
-      truncated: false
-      full_text_entries: 20
-      paywall_cut_entries: 0
-      median_body_chars: 2196
-      carries_content_element: 20
-      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
-      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
-      # case-sensitive whole word, title and body. A collocation count.
-      names_a_model_family: 0
-      byline_source: entry
-      entry_bylines_present: 20
-      distinct_entry_bylines: 1
-      resolves_to_voices: 1
-    notes: >-
-      20 entries 2026-09-23 to 2026-10-31; median body 2,196 characters; 20 of
-      20 full length, 0 cut at the paywall. 0 of 20 name one of the 13 model
-      families. Bylines: Gary Marcus 20. Measured 2026-11-05: 20 of the 20
-      entries were not yet a document, 1 of them dated on or after 2026-10-27.
-      0 of 20 on the 13-family measure, but 15 of 20 mention OpenAI,
-      Anthropic, LLMs, ChatGPT, GPT, Claude or Gemini by a broader pattern: he
-      writes about the industry and LLMs in general rather than named models,
-      and the extractor decides which posts carry a report.
-    tos_notes: >-
-      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
-      developer machine. Served by Substack (feed generator `Substack`).
-      robots.txt 200, feed path allowed. FEED ONLY: no article page is
-      requested; content is the feed body, and where Substack cuts it at the
-      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
-      manual`): Substack refuses robots.txt to the scheduled runner, so the
-      nightly run leaves this feed out and a developer machine reads it
-      (#599). Substack's terms are the party speaking, and the ruling records
-      how they were weighed.
-
   - id: blog:www.thealgorithmicbridge.com
     platform: blog
     endpoint: https://www.thealgorithmicbridge.com/feed
     site: https://www.thealgorithmicbridge.com/
-    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
-    harvest: manual
     template_block:
       status: unverified
       pages_examined: 0
@@ -4209,10 +4144,10 @@ feeds:
       developer machine. Served by Substack (feed generator `Substack`).
       robots.txt 200, feed path allowed. FEED ONLY: no article page is
       requested; content is the feed body, and where Substack cuts it at the
-      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
-      manual`): Substack refuses robots.txt to the scheduled runner, so the
-      nightly run leaves this feed out and a developer machine reads it
-      (#599). Substack's terms are the party speaking, and the ruling records
+      paywall only the free part exists for us. ON THE SCHEDULED RUN: Substack refuses robots.txt to the runner only
+      at *.substack.com addresses, and this newsletter is served on its own
+      domain, as are latent.space and interconnects.ai, which the runner
+      stores nightly (#601 review). Substack's terms are the party speaking, and the ruling records
       how they were weighed.
 
   - id: blog:plainaiphone.substack.com
@@ -4290,8 +4225,6 @@ feeds:
     platform: blog
     endpoint: https://newsletter.maartengrootendorst.com/feed
     site: https://newsletter.maartengrootendorst.com/
-    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
-    harvest: manual
     template_block:
       status: unverified
       pages_examined: 0
@@ -4352,10 +4285,10 @@ feeds:
       developer machine. Served by Substack (feed generator `Substack`).
       robots.txt 200, feed path allowed. FEED ONLY: no article page is
       requested; content is the feed body, and where Substack cuts it at the
-      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
-      manual`): Substack refuses robots.txt to the scheduled runner, so the
-      nightly run leaves this feed out and a developer machine reads it
-      (#599). Substack's terms are the party speaking, and the ruling records
+      paywall only the free part exists for us. ON THE SCHEDULED RUN: Substack refuses robots.txt to the runner only
+      at *.substack.com addresses, and this newsletter is served on its own
+      domain, as are latent.space and interconnects.ai, which the runner
+      stores nightly (#601 review). Substack's terms are the party speaking, and the ruling records
       how they were weighed.
 
   - id: blog:ileanamarcut.substack.com
@@ -4849,78 +4782,6 @@ feeds:
       model families. Bylines: Paolo Perrone 20. Measured 2026-11-05: 20 of
       the 20 entries were not yet a document, 2 of them dated on or after
       2026-10-27.
-    tos_notes: >-
-      Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
-      developer machine. Served by Substack (feed generator `Substack`).
-      robots.txt 200, feed path allowed. FEED ONLY: no article page is
-      requested; content is the feed body, and where Substack cuts it at the
-      paywall only the free part exists for us. HARVESTED BY HAND (`harvest:
-      manual`): Substack refuses robots.txt to the scheduled runner, so the
-      nightly run leaves this feed out and a developer machine reads it
-      (#599). Substack's terms are the party speaking, and the ruling records
-      how they were weighed.
-
-  - id: blog:swyx.substack.com
-    platform: blog
-    endpoint: https://swyx.substack.com/feed
-    site: https://swyx.substack.com/
-    #: HARVESTED BY HAND (#599): `harvest_blogs.py --scheduled` leaves it out.
-    harvest: manual
-    template_block:
-      status: unverified
-      pages_examined: 0
-      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
-      headings: []
-    base_trust: 0.90
-    provenance: seed
-    terms_ruling: newsletter-substack-feed-only
-    terms_evidence:
-      checked_on: 2026-11-05
-      robots_status: rules
-      robots_http: 200
-      feed_path_allowed: true
-      # Evaluated offline against the robots.txt fetched on 2026-11-05 from a
-      # developer machine, for the newest entry's URL, with urllib.robotparser.
-      robots_allows_article_path: true
-      # NOT REQUESTED: the ruling is feed-only, so no article page was
-      # fetched to measure, and none will be.
-      article_http: null
-      feed_carries_full_text: true
-      # Substack's structural paywall marker on the item HTML, not the word:
-      # free posts' subscription pitches say "paywall" too. The marker was
-      # not checked against a known paywalled post.
-      paywall_observed: false
-      login_required: false
-      terms_document_read: true
-      feed_type: rss20
-    measured:
-      checked_on: 2026-11-05
-      entries: 20
-      malformed: false
-      dated_entries: 20
-      oldest: 2026-10-10
-      newest: 2026-10-22
-      span_days: 12
-      days_since_newest: 14
-      truncated: false
-      full_text_entries: 20
-      paywall_cut_entries: 0
-      median_body_chars: 17016
-      carries_content_element: 20
-      # Entries naming at least one of 13 model families (GPT, Claude, Gemini,
-      # Llama, Qwen, DeepSeek, Mistral, Grok, Kimi, GLM, MiniMax, Gemma, Phi),
-      # case-sensitive whole word, title and body. A collocation count.
-      names_a_model_family: 16
-      byline_source: entry
-      entry_bylines_present: 7
-      distinct_entry_bylines: 5
-      resolves_to_voices: 5
-    notes: >-
-      20 entries 2026-10-10 to 2026-10-22; median body 17,016 characters; 20
-      of 20 full length, 0 cut at the paywall. 16 of 20 name one of the 13
-      model families. Bylines: Richard MacManus 3, Basil Chatha 1,
-      Latent.Space 1. Measured 2026-11-05: 20 of the 20 entries were not yet a
-      document, 0 of them dated on or after 2026-10-27.
     tos_notes: >-
       Ruling newsletter-substack-feed-only, evidence checked 2026-11-05 from a
       developer machine. Served by Substack (feed generator `Substack`).

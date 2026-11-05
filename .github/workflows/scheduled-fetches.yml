@@ -161,8 +161,8 @@ jobs:
       # make no article request at all. A failure here turns the job red and
       # the models still run. Skipped when a manual run scopes SOURCES to
       # platforms that are not blogs. --scheduled: feeds marked
-      # `harvest: manual` (the Substack newsletters, which refuse robots.txt to
-      # this runner) are left out before any request and named in the log; a
+      # `harvest: manual` (the *.substack.com newsletters, which refuse
+      # robots.txt to this runner; own-domain ones do not) are left out before any request and named in the log; a
       # developer machine harvests them by hand (#599).
       - name: Harvest the blog and newsletter feeds
         if: >-

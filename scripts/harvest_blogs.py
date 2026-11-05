@@ -134,11 +134,12 @@ def main(argv: list[str] | None = None) -> int:
 
     contract = load_sources()
     store = RawStore(Path(settings().raw_store_path))
-    feeds = contract.feeds[: args.limit] if args.limit else contract.feeds
+    feeds = contract.feeds
 
     # ── A FEED HARVESTED BY HAND IS NOT THE SCHEDULED RUN'S TO TRY (2026-11-05) ──
     #
-    # Substack refuses robots.txt to GitHub's runners (`refused`, 401/403, every
+    # Substack refuses robots.txt to GitHub's runners at *.substack.com addresses,
+    # not on newsletters' own domains (#601 review) (`refused`, 401/403, every
     # night 2026-10-26 to 10-29) and answers a developer machine normally, so its
     # feeds are seated with `harvest: manual` (#599) and read from a developer
     # machine. The nightly run passes --scheduled and leaves them out HERE,
@@ -158,6 +159,10 @@ def main(argv: list[str] | None = None) -> int:
         if by_hand:
             print(f"  {len(by_hand)} feed(s) are harvested by hand and left to a manual run: "
                   + ", ".join(by_hand))
+    # AFTER the filter, so `--scheduled --limit 5` tries five feeds, not five minus
+    # however many manual ones sat among the first five (#601 review).
+    if args.limit:
+        feeds = feeds[: args.limit]
 
     # ── OBSERVE BEFORE PREFLIGHT, BECAUSE PREFLIGHT ASKS WHAT WAS OBSERVED ──
     #

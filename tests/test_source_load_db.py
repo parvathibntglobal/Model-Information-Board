@@ -72,11 +72,11 @@ def test_every_source_row_lands(conn):
     # 17 until the 2026-09-21 class A re-review seated nine more blogs; 26
     # until ten newsletters were seated on 2026-10-26, 36 until the Google AI forum,
     # 37 until Bluesky, 38 until three *.substack.com feeds left 2026-10-30,
-    # 35 until 20 Substack feeds were seated for manual harvest 2026-11-05 (#599).
-    assert (report.inserted, report.updated, report.unchanged) == (55, 0, 0)
+    # 35 until 18 Substack feeds were seated 2026-11-05, 16 manual (#599, #601).
+    assert (report.inserted, report.updated, report.unchanged) == (53, 0, 0)
 
     rows = _rows(conn)
-    assert len(rows) == 55
+    assert len(rows) == 53
     # THE SET, which the docstring says is the assertion that matters. A count
     # passes on a file that lost `reddit` and gained two others; this does not.
     assert {r["platform"] for r in rows.values()} == {
@@ -84,9 +84,9 @@ def test_every_source_row_lands(conn):
         "devto", "hackernews", "huggingface", "forum", "bluesky",
     }
     # 10 until the 2026-09-21 class A re-review, 19 until the 2026-10-26
-    # newsletters; 29 = 28 feeds + umbrella; 26 until 20 Substack feeds were
-    # seated for manual harvest 2026-11-05. 46 = 45 feeds + umbrella.
-    assert sum(1 for r in rows.values() if r["platform"] == "blog") == 46
+    # newsletters; 29 = 28 feeds + umbrella; 26 until 18 Substack feeds were
+    # seated 2026-11-05. 44 = 43 feeds + umbrella.
+    assert sum(1 for r in rows.values() if r["platform"] == "blog") == 44
 
 
 def test_a_second_load_changes_nothing(conn):
@@ -99,7 +99,7 @@ def test_a_second_load_changes_nothing(conn):
     conn.commit()
 
     again = load_source_rows(conn)
-    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 55)
+    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 53)
     assert again.changed_columns == {}
 
 
@@ -112,7 +112,7 @@ def test_a_changed_ruling_shows_up_as_one_updated_row(conn):
     conn.commit()
 
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 54)
+    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 52)
     assert report.changed_columns == {"blog:hamel.dev": ["tos_notes"]}
 
 

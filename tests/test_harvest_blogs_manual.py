@@ -21,6 +21,8 @@ from collect.adapters.blog.fetch import observe_use_basis
 ROOT = Path(__file__).resolve().parents[1]
 SCHEDULED = "blog:simonwillison.net"
 BY_HAND = "blog:epochai.substack.com"
+#: A Substack newsletter on its own domain, which the runner reads (#601 review).
+OWN_DOMAIN = "blog:www.thealgorithmicbridge.com"
 
 
 def _script(monkeypatch, feeds_and_marks):
@@ -76,6 +78,14 @@ def test_a_run_started_by_hand_includes_the_manual_feed(monkeypatch, capsys):
     assert reached == [SCHEDULED, BY_HAND]
 
 
+def test_limit_counts_feeds_tried_so_it_applies_after_the_manual_filter(monkeypatch, capsys):
+    """`--scheduled --limit 2` tries two feeds, not two minus the manual ones among them."""
+    hb, observed, reached = _script(
+        monkeypatch, [(BY_HAND, "manual"), (SCHEDULED, None), (OWN_DOMAIN, None)])
+    assert hb.main(["--dry-run", "--scheduled", "--limit", "2"]) == 0
+    assert observed == [SCHEDULED, OWN_DOMAIN]
+
+
 def test_an_unknown_harvest_value_is_refused_not_read_as_scheduled(monkeypatch, capsys):
     hb, observed, reached = _script(monkeypatch, [(SCHEDULED, None), (BY_HAND, "manaul")])
     code = hb.main(["--dry-run", "--scheduled"])
@@ -98,3 +108,8 @@ def test_every_substack_newsletter_is_harvested_by_hand_and_the_nightly_job_says
     assert substack, "the *.substack.com rows exist"
     assert all(f.get("harvest") == "manual" for f in substack), (
         "a *.substack.com feed on the scheduled run is refused robots.txt every night")
+    # The converse (#601 review): Substack serves its own-domain newsletters to the
+    # runner, so a manual row off *.substack.com would drop a feed the runner reads.
+    manual = [f["id"] for f in feeds if f.get("harvest") == "manual"]
+    assert sorted(manual) == sorted(f["id"] for f in substack)
+    assert OWN_DOMAIN in {f["id"] for f in feeds} and OWN_DOMAIN not in manual
