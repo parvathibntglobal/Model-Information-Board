@@ -585,7 +585,9 @@ def evidence_tier_rules() -> dict[str, str | dict[str, str]]:
 class TrackedModel:
     """One row of the registry page, and where its figures come from.
 
-    `registry` is a `model_version.canonical_id` or None. NONE IS A
+    `registry` names a `model_version` row by `canonical_id` OR by row `id`
+    (Claude Fable 5.1 uses its row id), so compare it with
+    `judge.tracked.tracked_keys`, never with one column. Or it is None. NONE IS A
     MEASUREMENT, not a gap: the OpenRouter poll has run and this model is not in
     it. Six of these are image models, five video, four speech, and
     `model_version.price_in` is USD per 1M TOKENS - so there is no number that

@@ -57,10 +57,13 @@ def test_admits_new_text_models_and_marks_them(setup):
         ("openai/gpt-6.1-sol", "GPT-6.1 Sol", True, "text"),
         ("openai/gpt-6.1-sol-pro", "GPT-6.1 Sol Pro", True, "text"),
     ]
-    providers, cutoff, hand_ids = conn.params
+    # The hand ids go in twice, once against `canonical_id` and once against
+    # row `id`: an entry may name either (tests/test_tracked_ids_match_either_shape.py).
+    providers, cutoff, hand_ids, hand_row_ids = conn.params
     assert providers == ["anthropic", "openai"]
     assert cutoff == date(2026, 9, 6)
     assert "openai/gpt-6-sol" in hand_ids, "a hand-listed model must not be listed twice"
+    assert hand_row_ids == hand_ids
 
 
 def test_non_text_names_stay_manual(setup):

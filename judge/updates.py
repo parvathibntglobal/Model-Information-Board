@@ -944,9 +944,9 @@ def build(
         )
 
     try:
-        from judge.tracked import all_tracked
+        from judge.tracked import tracked_keys
 
-        tracked = {m.registry for m in all_tracked(conn, today=today) if m.registry}
+        tracked = tracked_keys(conn, today=today)
     except Exception:  # noqa: BLE001 - the toggle is a filter; without it, nothing is "tracked"
         conn.rollback()
         tracked = set()

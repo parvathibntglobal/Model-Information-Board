@@ -138,12 +138,9 @@ def _seated_names(conn) -> list[str]:
 
 def seated_keys(conn) -> set[str]:
     """Every id, in both shapes, of a model the models page lists."""
-    names = _seated_names(conn)
-    rows = conn.execute(
-        "SELECT id, canonical_id FROM model_version WHERE id = ANY(%s) OR canonical_id = ANY(%s)",
-        (names, names),
-    ).fetchall()
-    return {key for row in rows for key in row if key}
+    from judge.tracked import row_keys
+
+    return row_keys(conn, _seated_names(conn))
 
 
 def require_seated(conn, model: dict) -> None:
