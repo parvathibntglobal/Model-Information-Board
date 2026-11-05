@@ -3852,20 +3852,26 @@ feeds:
   # harvest_blogs.py records only for HTTP 401 or 403, every night from
   # 2026-10-26 to 10-29 - while a developer machine gets 200 with /feed
   # allowed. The same runner reads Substack newsletters on their own domains
-  # every night (latent.space, www.interconnects.ai, www.theneurondaily.com,
-  # www.understandingai.org, www.oneusefulthing.org all stored documents
-  # after 2026-10-25), so the two own-domain rows below are on the scheduled
-  # run, and only the sixteen *.substack.com rows carry `harvest: manual`.
+  # every night: the scheduled run of 2026-11-05 (GitHub Actions run
+  # 41945038707) logged `robots=rules feed_allowed=True` for
+  # www.interconnects.ai, www.understandingai.org, www.oneusefulthing.org,
+  # www.bensbites.com and magazine.sebastianraschka.com, each of whose feeds
+  # names Substack as its generator (checked 2026-11-05). latent.space and
+  # www.theneurondaily.com were cited here at first and are NOT Substack
+  # (self-hosted, and beehiiv). So the two own-domain rows below are on the
+  # scheduled run, and only the sixteen *.substack.com rows carry
+  # `harvest: manual`.
   # The nightly run (`harvest_blogs.py --scheduled`) leaves those out before
   # any request, named and not counted as refused; a harvest started by hand
   # on a developer machine reads them. The evidence was measured on
   # 2026-11-05 from a developer machine.
   #
   # ⚠ READING A *.substack.com FEED FROM A MACHINE SUBSTACK DOES NOT BLOCK,
-  # BECAUSE THE RUNNER IS BLOCKED, ROUTES AROUND THAT REFUSAL. That is the
-  # team decision this change asks for, not something the ruling already
-  # covered; the #601 review would hold these sixteen until Substack is asked
-  # or the MD rules. Open until decided.
+  # BECAUSE THE RUNNER IS BLOCKED, ROUTES AROUND THAT REFUSAL. That was a
+  # team decision, not something the ruling already covered. DECIDED
+  # 2026-11-05 by anooj: harvest them by hand; terms are recorded and do not
+  # hold a feed back. The #601 review's position is kept on the record: hold
+  # these sixteen until Substack is asked or the MD rules.
   - id: blog:epochai.substack.com
     platform: blog
     endpoint: https://epochai.substack.com/feed
@@ -4146,8 +4152,8 @@ feeds:
       requested; content is the feed body, and where Substack cuts it at the
       paywall only the free part exists for us. ON THE SCHEDULED RUN: Substack refuses robots.txt to the runner only
       at *.substack.com addresses, and this newsletter is served on its own
-      domain, as are latent.space and interconnects.ai, which the runner
-      stores nightly (#601 review). Substack's terms are the party speaking, and the ruling records
+      domain, as are www.interconnects.ai and www.oneusefulthing.org, which
+      the runner reads nightly (#601 review). Substack's terms are the party speaking, and the ruling records
       how they were weighed.
 
   - id: blog:plainaiphone.substack.com
@@ -4287,8 +4293,8 @@ feeds:
       requested; content is the feed body, and where Substack cuts it at the
       paywall only the free part exists for us. ON THE SCHEDULED RUN: Substack refuses robots.txt to the runner only
       at *.substack.com addresses, and this newsletter is served on its own
-      domain, as are latent.space and interconnects.ai, which the runner
-      stores nightly (#601 review). Substack's terms are the party speaking, and the ruling records
+      domain, as are www.interconnects.ai and www.oneusefulthing.org, which
+      the runner reads nightly (#601 review). Substack's terms are the party speaking, and the ruling records
       how they were weighed.
 
   - id: blog:ileanamarcut.substack.com
