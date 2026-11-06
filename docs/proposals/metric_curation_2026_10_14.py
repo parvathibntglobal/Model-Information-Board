@@ -558,3 +558,57 @@ HEADING = {
 
 CLUSTERS = {t: (HEADING[t], MERGES.get(t, [])) for t in HEADING if HEADING[t]}
 UNFILED = {t: "no heading matched" for t, h in HEADING.items() if h is None}
+
+#: NAMES CHOSEN BY A PERSON (#606, 2026-11-06), which `board_curation.py`
+#: writes over whatever the file or the database says. Two grounds, and each
+#: entry names its own:
+#:
+#:   rule 10   the slug carries a benchmark's name and version, and the name
+#:             must carry the same ones - a version the name drops is a
+#:             different identifier, and "Benchmark score" is none at all;
+#:   quote     the rows' own quotes (shared DB, read-only, 2026-11-06).
+#:
+#: Left alone on purpose: `osworld` stays "OSWorld 2.0" (its rows quote 2.0,
+#: CLAUDE.md rule 10), and `humaneval`, `pass-at-1` and `profit-generated` keep
+#: the names they have, which the regenerate would have replaced with
+#: "Coding benchmarks", "Confirmed success" and "Portfolio return".
+NAMES = {
+    # coding-benchmarks
+    "swe-bench-pro": "SWE-bench Pro",  # quote: "62.1% on SWE-bench Pro"; 7 rows
+    "terminal-bench-2-0": "Terminal-Bench 2.0",  # rule 10
+    "terminal-bench-2-1": "Terminal-Bench 2.1",  # quote: "73.0 on Terminal-Bench 2.1"; 8 rows
+    "terminal-bench-2-1-best-harness": "Terminal-Bench 2.1 (best harness)",  # rule 10
+    "terminal-bench-3-0": "Terminal-Bench 3.0",  # rule 10
+    "terminal-bench-science-0-1": "Terminal-Bench-Science 0.1",  # rule 10
+    "deepswe-v1-1": "DeepSWE v1.1",  # rule 10; 10 rows are named so
+    "frontiercode-1-1-main-max": "FrontierCode 1.1 (main, max)",  # rule 10; no quote names it
+    # agent-benchmarks
+    "browsecomp": "BrowseComp",  # 3 rows are named so; was "Benchmark score"
+    "gdpval-aa-v2": "GDPval-AA v2",  # rule 10; quote: "GDPVal-AA v2 score was 1233"
+    "gdpval-aa-v2-1": "GDPval-AA v2.1",  # rule 10; was "Benchmark score"
+    "aa-briefcase-v1-1": "AA-Briefcase v1.1",  # rule 10; was "Benchmark score"
+    "claweval-1-1": "ClawEval 1.1",  # rule 10
+    "finance-agent-v2": "Finance Agent v2",  # rule 10; was "Benchmark score"
+    "online-mind2web": "Online-Mind2Web",  # rule 10; was "Benchmark score"
+    "osworld-2-0-offline": "OSWorld 2.0 (offline)",  # rule 10; a row reads "OSWorld 2.0 offline"
+    "osworld-2-1-partial": "OSWorld 2.1 (partial)",  # rule 10; was "Benchmark score"
+    # reasoning-benchmarks
+    "frontiermath-tier-4": "FrontierMath Tier 4",  # rule 10; 4 rows are named so
+    "aa-lcr-v1-1": "AA-LCR v1.1",  # rule 10
+    "amc-2023": "AMC 2023",  # rule 10; was "Math benchmark"
+    "math500": "MATH-500",  # rule 10; was "Math benchmark"
+    "mrcr-v2": "MRCR v2",  # quote: "on MRCR v2"; was "Context window", another axis
+    "mrcr-v2-at-512k-1m": "MRCR v2 at 512K-1M",  # rule 10; rows read "MRCR v2 at 512k-1M"
+    # An ORDINARY-WORD slug, so rule 10's test does not apply and nothing merges:
+    # "MedXpertQA score" named one benchmark that its quote does not.
+    "medical-benchmark": "Medical benchmark",
+    # The slug's own words. One row reads "Harvey LAB-AA", one "Legal
+    # benchmark"; no quote settles which, so the name asserts neither.
+    "harvey-s-legal-benchmark": "Harvey's legal benchmark",
+    # media-benchmarks
+    "chartography-no-tools": "Chartography (no tools)",  # rule 10; was "Benchmark score"
+    # speed-latency
+    # quote: "Fast mode: roughly 2.5x the speed at 2x the price" - a mode,
+    # priced and timed, not the time to first token it was named.
+    "fast-mode": "Fast mode",
+}
