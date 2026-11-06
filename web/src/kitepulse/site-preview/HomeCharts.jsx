@@ -770,7 +770,7 @@ export function Screenshot({ shot }) {
             <div className="kpv-shot-empty">
               {shot.file
                 ? <><b>File not found</b><small><code>screens/{shot.file}</code> is named in home-dashboard.json but is not in the folder.</small></>
-                : <><b>Screenshot to come</b><small>Save it in <code>web/src/kitepulse/screens/</code> and name it in home-dashboard.json.</small></>}
+                : <><b>Screenshot to come</b><small>Save it in <code>web/src/kitepulse/site-preview/screens/</code> and name it in home-dashboard.json.</small></>}
             </div>
           )}
       </div>

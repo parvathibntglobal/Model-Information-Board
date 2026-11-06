@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
-import { useHead } from '../seo/head'
-import { FOOTER, MENU, SECTIONS, isMissingMain, sitePath, useArticlePlan, useKitePulse, usePrototype } from './site'
-import { KITE_PULSE_OPEN } from './status'
+import { useHead } from '../../seo/head'
+import { FOOTER, MENU, SECTIONS, groupsOf, isMissingMain, sitePath, useArticlePlan, useKitePulse, usePrototype } from '../shared/site'
+import { KITE_PULSE_OPEN } from '../shared/status'
 import {
   AiBudgets, CostPerTool, HoneycombRipple, HowItWorks, KpiTiles, PersonalView, PlanHeadroom, ProjectHealth, Reveal, SampleBadge,
   Screenshot, SessionsByTool, TeamPicker, TeamToday, dashboard, useInView,
@@ -105,6 +105,8 @@ function headline(p) {
 const sectionHref = (s) => (s.hub ? sitePath(s.hub) : s.slug ? `/kite-pulse/${s.slug}` : '/kite-pulse')
 const sectionByName = (name) => SECTIONS.find((s) => s.name === name)
 const manageHref = (url) => `/admin?p=kite-pulse&s=kite-pulse&kp=pages&kpp=${encodeURIComponent(url)}`
+// Links per dropdown column before a group wraps into another column.
+const DD_ROWS = 8
 const pagesOf = (model, names, except = []) =>
   model.site.filter((p) => names.includes(p.section) && !except.includes(p.url)
     && !SECTIONS.some((s) => s.hub === p.url))
@@ -213,17 +215,26 @@ function Header({ model, page, path }) {
               {open === m.label && (
                 <div className="kps-dd-panel">
                   {m.sections.map((name) => {
-                    const list = pagesOf(model, [name], m.except)
                     const s = sectionByName(name)
                     return (
                       <div key={name} className="kps-dd-col">
                         <Link to={sectionHref(s)} className="kps-dd-h">{name}</Link>
-                        {list.map((p) => (
-                          <Link key={p.url} to={sitePath(p.url)} className="kps-dd-a">
-                            {linkName(p)}
-                            {p.proposed && <i className="kps-chip kps-chip-new">Proposed</i>}
-                          </Link>
-                        ))}
+                        <div className="kps-dd-groups">
+                          {groupsOf(name, pagesOf(model, [name], m.except)).map(([label, list]) => (
+                            // A long group flows into columns of DD_ROWS rather than one tall list.
+                            <div key={label || name} className="kps-dd-group">
+                              {label && <span className="kps-dd-sub">{label}</span>}
+                              <div className="kps-dd-list" style={{ columnCount: Math.ceil(list.length / DD_ROWS) }}>
+                                {list.map((p) => (
+                                  <Link key={p.url} to={sitePath(p.url)} className="kps-dd-a">
+                                    {linkName(p)}
+                                    {p.proposed && <i className="kps-chip kps-chip-new">Proposed</i>}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )
                   })}

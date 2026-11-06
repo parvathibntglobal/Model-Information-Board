@@ -8,7 +8,9 @@ Each entry gives the SEO title (main keyword first, at most 60 characters with
 " | Kite Pulse"), H1, URL, meta description (at most 155 characters), where each
 secondary keyword goes, a short description of how the article is built, its 1-3
 interactive elements, optional images or video (only where they add something a
-widget cannot), FAQs, links and watch-outs. Product facts follow the Master Source
+widget cannot), FAQs, links and watch-outs. Entries carry a **Section** line where
+the article belongs outside the Blog (Guides & tools, Glossary, Compare, Help); the
+rest are Blog posts. Section placement agreed 4 November 2026. Product facts follow the Master Source
 of Truth and the rules in `MASTER-PROMPT.md`. Nothing here is written article copy.
 
 ---
@@ -65,11 +67,12 @@ of Truth and the rules in `MASTER-PROMPT.md`. Nothing here is written article co
 
 ### 1.6 · Software Engineering Intelligence Compared
 
-- **Category · intent · page type:** Product Overview · Commercial · Blog post
+- **Category · intent · page type:** Product Overview · Commercial · Compare overview
+- **Section:** Compare (the overview above the nine /compare/<competitor> pages)
 - **Plan title:** How Kite Pulse Is Different from Other Engineering Tools
 - **Title tag:** Software Engineering Intelligence Compared | Kite Pulse
 - **H1:** Software Engineering Intelligence Compared: How Developer Analytics Tools Differ
-- **URL:** /blog/software-engineering-intelligence
+- **URL:** /compare
 - **Meta description:** Software engineering intelligence tools compared by data source, tools covered, privacy and hosting, with a picker for which kind answers your question.
 - **Main keyword:** software engineering intelligence
 - **Secondary keywords:**
@@ -120,11 +123,12 @@ of Truth and the rules in `MASTER-PROMPT.md`. Nothing here is written article co
 
 ### 1.8 · Glossary of Common AI Terms in AI Coding Tools
 
-- **Category · intent · page type:** Product Overview · Informational · Blog post
+- **Category · intent · page type:** Product Overview · Informational · Glossary
+- **Section:** Glossary (this article is the /glossary index page)
 - **Plan title:** Kite Pulse Terms in Plain Words
 - **Title tag:** Glossary of Common AI Terms in AI Coding Tools | Kite Pulse
 - **H1:** Glossary of Common AI Terms for AI Coding Tools: an AI Glossary for Beginners
-- **URL:** /blog/glossary-of-common-ai-terms
+- **URL:** /glossary
 - **Meta description:** A glossary of common AI terms for AI coding tools: session, token, plan headroom, tool account and more, in plain words, with a quick self-check.
 - **Main keyword:** glossary of common ai terms
 - **Secondary keywords:**
@@ -145,11 +149,12 @@ of Truth and the rules in `MASTER-PROMPT.md`. Nothing here is written article co
 
 ### 1.9 · Claude Code Estimated Cost: Where It Comes From
 
-- **Category · intent · page type:** Product Overview · Informational · Interactive guide
+- **Category · intent · page type:** Product Overview · Informational · Docs page
+- **Section:** Help (Docs)
 - **Plan title:** Where the Numbers Come From
 - **Title tag:** Claude Code Estimated Cost: Where It Comes From | Kite Pulse
 - **H1:** Claude Code Estimated Cost: How to Calculate Claude Token Cost and How Far to Trust It
-- **URL:** /blog/claude-code-estimated-cost
+- **URL:** /docs/how-figures-are-calculated
 - **Meta description:** How Claude Code estimated cost is worked out from tokens and list prices, why it is not your bill, and a calculator to check a figure yourself.
 - **Main keyword:** claude code estimated cost
 - **Secondary keywords:**
@@ -197,11 +202,12 @@ of Truth and the rules in `MASTER-PROMPT.md`. Nothing here is written article co
 
 ### 1.12 · AI Usage Dashboard for Developers: Console Map
 
-- **Category · intent · page type:** Product Overview · Commercial · Interactive guide
+- **Category · intent · page type:** Product Overview · Commercial · Docs page
+- **Section:** Help (Docs)
 - **Plan title:** A Map of the Console
 - **Title tag:** AI Usage Dashboard for Developers: Console Map | Kite Pulse
 - **H1:** AI Usage Dashboard for Developers and Managers: a Map of the Kite Pulse Console
-- **URL:** /blog/ai-usage-dashboard-for-developers
+- **URL:** /docs/console-map
 - **Meta description:** A map of the Kite Pulse console as an AI usage dashboard for developers, managers and admins: what each area shows and which role sees it.
 - **Main keyword:** ai usage dashboard for developers
 - **Secondary keywords:**
@@ -616,11 +622,12 @@ of Truth and the rules in `MASTER-PROMPT.md`. Nothing here is written article co
 
 ### 2.24 · Claude Code Tokens per Second: How to Measure
 
-- **Category · intent · page type:** Features and Capabilities · Informational · Blog post
+- **Category · intent · page type:** Features and Capabilities · Informational · Interactive guide
+- **Section:** Guides & tools
 - **Plan title:** Generation Rate: How Fast AI Replies Arrive
 - **Title tag:** Claude Code Tokens per Second: How to Measure | Kite Pulse
 - **H1:** Claude Code Tokens per Second: How Fast Is Claude Code, and How to Measure It
-- **URL:** /blog/claude-code-tokens-per-second
+- **URL:** /claude-code-tokens-per-second
 - **Meta description:** Claude Code tokens per second explained: how generation rate is measured from request timing, what changes it, and a calculator for your own logs.
 - **Main keyword:** claude code tokens per second
 - **Secondary keywords:**

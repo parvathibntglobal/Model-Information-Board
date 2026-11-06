@@ -76,7 +76,7 @@ const ModelFinder = page(() => import('./routes/ModelFinder'))
 const Admin = page(() => import('./routes/Admin'))
 const BlogLogs = page(() => import('./routes/BlogLogs'))
 const Keywords = page(() => import('./routes/Keywords'))
-const KitePulse = page(() => import('./kitepulse/KitePulseSite'))
+const KitePulse = page(() => import('./kitepulse/site-preview/KitePulseSite'))
 
 /** What a page shows while its chunk downloads: the skeleton the pages use for data. */
 const PAGE_LOADING = (
@@ -126,7 +126,7 @@ export default function App() {
   // and a footer under that layout would put the page back into the scroll it
   // left, taking the side nav up with it.
   const onHome = loc.pathname === '/'
-  // KITE PULSE IS ANOTHER PRODUCT'S SITE (kitepulse/KitePulseSite.jsx): it brings its
+  // KITE PULSE IS ANOTHER PRODUCT'S SITE (kitepulse/site-preview/KitePulseSite.jsx): it brings its
   // own header and footer, and the board's nav above it would make it read as
   // a board page.
   const onKitePulse = loc.pathname === '/kite-pulse' || loc.pathname.startsWith('/kite-pulse/')

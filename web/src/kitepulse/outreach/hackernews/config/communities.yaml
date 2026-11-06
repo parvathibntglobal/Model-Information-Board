@@ -1,0 +1,23 @@
+# Communities the Finder may shortlist from, and whether each one welcomes a
+# disclosed reply from someone who works on a product.
+#
+# vendor_replies is one of:
+#   allowed         a person has read the community's rules and they permit it
+#   pending_review  nobody has decided yet. Threads are KEPT and FLAGGED, so a
+#                   reviewer sees them and knows the question is open.
+#   not_allowed     every thread from here is dropped, with that reason
+#
+# Each entry is a person's reading of that community's own rules. Set it only
+# after reading rules_url, and record who decided and when.
+
+communities:
+  hackernews:
+    name: Hacker News
+    vendor_replies: pending_review
+    rules_url: https://news.ycombinator.com/newsguidelines.html
+    decided_by: null
+    decided_on: null
+    note: >-
+      The guidelines discourage using HN primarily for promotion. Read them and
+      decide whether occasional disclosed, helpful replies fit, then set
+      vendor_replies, decided_by and decided_on.

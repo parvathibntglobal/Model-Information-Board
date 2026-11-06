@@ -32,20 +32,26 @@ evidence pipeline (`collect/` → `judge/`).
 
 ```
 web/src/kitepulse/                    everything Kite Pulse
-├── KitePulseSite.jsx                 the site preview, at /kite-pulse
-├── HomeCharts.jsx                    the home page's charts, tiles and team picker
-├── site.css                          its look (the prototypes' design system)
-├── KitePulsePanel.jsx                Admin → Kite Pulse SEO
-├── admin.css                         that panel's styles (MIB tokens)
-├── site.js                           shared: sections, menus, footer, proposed pages,
-│                                     prototype registry, sheet loading
-├── import_sheet.py                   xlsx → data/sheet.json
-├── data/sheet.json                   generated; never edited by hand
-├── data/home-dashboard.json          home page figures ("sample": true until real)
-├── data/*.json                       checked outside facts (Claude plans, research,
-│                                     frameworks), each with its source
-├── screens/                          console screenshots for the home page
-├── prototypes/*.html                 finished pages, one per URL
+├── site-preview/                     the site preview, at /kite-pulse (moved here 2026-11-06)
+│   ├── KitePulseSite.jsx             the site: menus, home, sections, pages, footer
+│   ├── HomeCharts.jsx                the home page's charts, tiles and team picker
+│   ├── site.css                      its look (the prototypes' design system)
+│   ├── prototypes/*.html             finished pages, one per URL
+│   ├── data/home-dashboard.json      home page figures ("sample": true until real)
+│   ├── data/*.json                   checked outside facts (Claude plans, research,
+│   │                                 frameworks), each with its source
+│   └── screens/                      console screenshots for the home page
+├── admin/
+│   ├── KitePulsePanel.jsx            Admin → Kite Pulse SEO
+│   └── admin.css                     that panel's styles (MIB tokens)
+├── shared/                           used by both the preview and the admin
+│   ├── site.js                       sections, menus, footer, proposed pages,
+│   │                                 prototype registry, sheet loading
+│   ├── status.js                     KITE_PULSE_OPEN
+│   ├── import_sheet.py               xlsx → data/sheet.json
+│   └── data/sheet.json               generated; never edited by hand
+├── outreach/                         outward marketing module (plan only,
+│                                     2026-11-04): see outreach/README.md
 └── docs/                             keyword sheet, Master Source of Truth,
                                       Product Guide (structure, tone and
                                       vocabulary; no claims, see 2.4), this plan,
@@ -65,7 +71,7 @@ alone. Code at the repository root would not reach the deployed frontend.
 ```
  docs/Kite Pulse - Keyword Research.xlsx      (people edit this)
               │
-              │  py -3.12 web/src/kitepulse/import_sheet.py
+              │  py -3.12 web/src/kitepulse/shared/import_sheet.py
               ▼
  data/sheet.json  ── keywords, Page Map, AEO, competitors, avoid list,
               │      plus the sheet's sha256 and import date

@@ -413,7 +413,7 @@ footer{padding-block:40px 60px;color:var(--muted);font-size:.85rem;border-top:1p
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const src=()=>''; // citation markers removed 23 Oct 2026; sources live in data/claude-plans.json
 
-  /* PLAN FACTS - copied from web/src/kitepulse/data/claude-plans.json (checked 2026-10-22).
+  /* PLAN FACTS - copied from web/src/kitepulse/site-preview/data/claude-plans.json (checked 2026-10-22).
      Every value is quoted or paraphrased from the numbered source; null means Anthropic does not publish it. */
   const PLANS=[
     {id:'pro',name:'Pro',price:['$20 per month (US)',4],size:['More usage per session than the Free plan',4],

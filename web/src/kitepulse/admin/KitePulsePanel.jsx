@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Badge, Notice, Stat } from '../components/ui'
-import { IconAlert, IconLayers } from '../components/Icons'
-import { SECTIONS, isMissingMain, sitePath, useKitePulse, usePrototype, v } from './site'
+import { Badge, Notice, Stat } from '../../components/ui'
+import { IconAlert, IconLayers } from '../../components/Icons'
+import { SECTIONS, isMissingMain, sitePath, useKitePulse, usePrototype, v } from '../shared/site'
 import './admin.css'
 
 /**
@@ -10,8 +10,8 @@ import './admin.css'
  * The site itself is previewed at /kite-pulse (KitePulseSite.jsx).
  *
  * Read only for now. Everything here comes from the keyword research sheet
- * (`docs/Kite Pulse - Keyword Research.xlsx` in this folder), converted to JSON by
- * `import_sheet.py` in this folder. The sheet stays the place people edit;
+ * (`kitepulse/docs/Kite Pulse - Keyword Research.xlsx`), converted to JSON by
+ * `kitepulse/shared/import_sheet.py`. The sheet stays the place people edit;
  * re-run the script after changing it. Nothing is written back.
  *
  * The sub-screen and the open page live in the URL (`kp`, `kpp`), like the
@@ -71,7 +71,7 @@ export default function KitePulsePanel() {
           The public pages for Kite Pulse: what each page targets, how far it has got, and whether AI
           assistants mention us. Read from the keyword research sheet
           {data && <> (<span className="mono">{data.source.file}</span>, imported {data.source.imported_on})</>}.
-          Edit the sheet, then run <span className="mono">web/src/kitepulse/import_sheet.py</span> to update this.
+          Edit the sheet, then run <span className="mono">web/src/kitepulse/shared/import_sheet.py</span> to update this.
         </p>
       </div>
 

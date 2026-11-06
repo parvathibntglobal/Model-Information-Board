@@ -1,7 +1,7 @@
 """Import the Kite Pulse keyword sheet into the admin's Kite Pulse section.
 
-    py -3.12 web/src/kitepulse/import_sheet.py
-    py -3.12 web/src/kitepulse/import_sheet.py --sheet "path/to/another copy.xlsx"
+    py -3.12 web/src/kitepulse/shared/import_sheet.py
+    py -3.12 web/src/kitepulse/shared/import_sheet.py --sheet "path/to/another copy.xlsx"
 
 Reads the five data tabs of the sheet (Keywords, Page Map, AEO Tracking,
 Competitors, Keywords to Avoid) and writes them to `data/sheet.json` beside
@@ -30,8 +30,8 @@ import zipfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[2]  # web/src/kitepulse -> the repository
-DEFAULT_SHEET = HERE / "docs" / "Kite Pulse - Keyword Research.xlsx"
+ROOT = HERE.parents[3]  # web/src/kitepulse/shared -> the repository
+DEFAULT_SHEET = HERE.parent / "docs" / "Kite Pulse - Keyword Research.xlsx"
 OUT = HERE / "data" / "sheet.json"
 
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"

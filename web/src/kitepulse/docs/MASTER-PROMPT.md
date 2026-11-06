@@ -17,8 +17,8 @@ the Master Source of Truth's "Website corrections" says so.
    sheet: Admin → Kite Pulse SEO → Pages → open the page → **Brief** shows
    them all.
 4. Ask Claude to publish the result as an artifact. Review it, then save its
-   HTML as `web/src/kitepulse/prototypes/<last part of the URL>.html` and add
-   one line to `PROTOTYPES` in `web/src/kitepulse/site.js` (see the README).
+   HTML as `web/src/kitepulse/site-preview/prototypes/<last part of the URL>.html` and add
+   one line to `PROTOTYPES` in `web/src/kitepulse/shared/site.js` (see the README).
 
 One page per chat. Do not ask for several pages at once: each page has its
 own keywords, and mixing them is how two pages end up competing for one search.
@@ -67,7 +67,7 @@ R2  No invented numbers. Do not make up statistics, customer counts, time
       visibly labelled as examples ("Sample team", "example prices").
     - A fact about another company (a vendor's price, a plan limit, a study's
       result) needs its source URL and a "checked <date>", recorded in the
-      page's data file (web/src/kitepulse/data/) or its SEO notes, NOT on the
+      page's data file (web/src/kitepulse/site-preview/data/) or its SEO notes, NOT on the
       page: pages carry no Sources list or citation markers (decided
       2026-10-23). The page names the source in words ("METR's 2025 study").
       If you cannot verify it, write it as a placeholder and say so on the page.

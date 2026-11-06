@@ -242,20 +242,28 @@
 
 /* Dropdown menus in the header. */
 .kps-top-in > .kps-btn{margin-left:auto}
-.kps-dd{position:relative}
+/* The panel hangs from the header row, not its button, so a wide panel never
+   runs off the right edge; it scrolls when taller than the screen. */
+.kps-top-in{position:relative}
+.kps-dd{position:static}
 .kps-nav button{border:0;background:none;cursor:pointer;font:inherit;color:var(--kp-muted);font-weight:600;
   font-size:.95rem;padding:6px 12px;border-radius:999px}
 .kps-nav button:hover,.kps-nav button[aria-expanded="true"]{color:var(--kp-ink);background:var(--kp-sunk)}
 .kps-nav button.on{color:var(--kp-accent);background:var(--kp-accent-soft)}
 .kps-caret{font-size:.7em;margin-left:2px}
-.kps-dd-panel{position:absolute;top:calc(100% + 8px);left:0;z-index:10;display:flex;gap:28px;
-  min-width:260px;max-width:min(640px,calc(100vw - 32px));padding:18px 20px;border-radius:14px;
+.kps-dd-panel{position:absolute;top:calc(100% - 6px);left:16px;right:16px;z-index:10;display:flex;flex-wrap:wrap;
+  gap:24px 40px;padding:20px 24px;border-radius:14px;max-height:calc(100vh - 96px);overflow-y:auto;
+  overscroll-behavior:contain;
   background:var(--kp-surface);border:1px solid var(--kp-line);box-shadow:0 12px 32px rgba(17,26,46,.14)}
-.kps-dd-col{display:grid;gap:4px;align-content:start;min-width:180px}
+.kps-dd-col{display:grid;gap:4px;align-content:start;min-width:0}
 .kps .kps-dd-h{font-family:var(--kp-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
   color:var(--kp-muted);text-decoration:none;margin-bottom:4px}
+.kps-dd-groups{display:flex;flex-wrap:wrap;gap:16px 40px}
+.kps-dd-group{display:grid;gap:4px;align-content:start}
+.kps-dd-sub{font-size:.8rem;font-weight:700;color:var(--kp-accent);margin-bottom:2px}
+.kps-dd-list{column-width:220px;column-gap:32px}
 .kps .kps-dd-a{display:flex;align-items:center;gap:8px;color:var(--kp-ink);text-decoration:none;
-  padding:5px 8px;margin-inline:-8px;border-radius:8px;font-size:.95rem}
+  padding:5px 8px;margin-inline:-8px;border-radius:8px;font-size:.95rem;break-inside:avoid}
 .kps-dd-a:hover{background:var(--kp-sunk)}
 
 /* Home: feature tabs, beside that tab's charts. */
@@ -451,7 +459,8 @@
 }
 @media (max-width:820px){
   .kps-feature,.kps-how{grid-template-columns:1fr}
-  .kps-dd-panel{flex-direction:column;gap:16px}
+  .kps-dd-panel{flex-direction:column;flex-wrap:nowrap;gap:16px;left:0;right:0}
+  .kps-dd-list{column-count:1 !important} /* beats the inline count: one column on a phone */
 }
 @media (max-width:640px){
   .kps{font-size:16px}

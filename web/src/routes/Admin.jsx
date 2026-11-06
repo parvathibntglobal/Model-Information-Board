@@ -19,8 +19,8 @@ import BlogsPanel from '../components/BlogsPanel'
 import QuizPanel from '../components/QuizPanel'
 import FeedSummaryPanel from '../components/FeedSummaryPanel'
 import DiscussionsPanel from '../components/DiscussionsPanel'
-import KitePulsePanel from '../kitepulse/KitePulsePanel'
-import { KITE_PULSE_OPEN } from '../kitepulse/status'
+import KitePulsePanel from '../kitepulse/admin/KitePulsePanel'
+import { KITE_PULSE_OPEN } from '../kitepulse/shared/status'
 import { IconAlert, IconArrow, IconClock, IconFilter, IconGrid, IconHeart, IconSearch } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
@@ -393,7 +393,7 @@ const PROJECTS = [
     name: 'Kite Pulse',
     blurb: 'Kite Pulse SEO: pages, keywords and AI-answer tracking',
     sections: KITE_SECTIONS,
-    // LOCKED while its team works inside it (kitepulse/status.js): the card
+    // LOCKED while its team works inside it (kitepulse/shared/status.js): the card
     // shows and cannot be opened, and no URL reaches its sections.
     locked: !KITE_PULSE_OPEN,
   },
