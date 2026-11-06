@@ -130,6 +130,10 @@ def setup() -> dict:
         "one_at_a_time": bool((wf.get("concurrency") or {}).get("group")),
         "secrets": [s for s in secrets if s != "GITHUB_TOKEN"],
         "variables": variables,
+        # EACH NIGHT'S STEPS, in order, by their names in the workflow file:
+        # the feeds, the forums, the media subreddit sweep, then the models.
+        "steps": [str(s["name"]) for s in (job.get("steps") or [])
+                  if isinstance(s, dict) and s.get("name")],
     }
 
 

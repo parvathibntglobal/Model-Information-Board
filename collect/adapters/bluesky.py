@@ -120,6 +120,10 @@ class BlueskyRun:
     finished_at: datetime | None = None
     search_calls: int = 0
     http_errors: int = 0
+    #: WHICH KIND each failed request was ("HTTP 500", "ConnectError"), so the
+    #: fetch line can tell throttling from timeouts from refusals (#602), as
+    #: the arXiv arm already does. `http_errors` stays the count.
+    failures: list = field(default_factory=list)
     #: `hitsTotal` as the platform reported it; None when it did not answer.
     total_count: int | None = None
     hits: list[BlueskyHit] = field(default_factory=list)
@@ -201,10 +205,12 @@ class BlueskyHarvester:
                                                      "limit": PER_PAGE})
         except httpx.HTTPError as error:
             run.http_errors += 1
+            run.failures.append(type(error).__name__)
             log.error("bluesky: search failed for %r: %s", run.query, error)
             return None
         if response.status_code != 200:
             run.http_errors += 1
+            run.failures.append(f"HTTP {response.status_code}")
             log.error("bluesky: HTTP %s for %r - NOT an empty result set",
                       response.status_code, run.query)
             return None

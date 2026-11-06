@@ -224,6 +224,32 @@ CREATE TABLE model_catalog (
 
 CREATE INDEX model_catalog_seen_idx ON model_catalog (last_seen_at);
 
+-- ── unit_price - a price in its own unit, for models not priced per token ──
+-- (2026-11-05, #602). NEVER compared with price_in / price_out, which are USD
+-- per 1M tokens: nothing that ranks or sorts token prices reads this table.
+-- Append-only snapshots; the reader takes the newest per model and source.
+-- Writer: scripts/load_litellm_prices.py. Reader: judge/catalog.py. Column
+-- meanings in migrations/20261105T1200_unit_price.sql.
+CREATE TABLE unit_price (
+  canonical_id  text NOT NULL,                    -- as model_catalog lists it
+  unit          text NOT NULL,                    -- second_of_video | image
+  direction     text NOT NULL,                    -- input | output
+  variant       text NOT NULL DEFAULT 'default',  -- the source's tier (720p, 4k ...) or default
+  usd           numeric(14,8) NOT NULL,           -- US dollars per one unit
+  source        text NOT NULL,                    -- litellm
+  source_key    text NOT NULL,                    -- the source's id, host-prefixed
+  source_url    text NOT NULL,
+  retrieved_at  timestamptz NOT NULL,
+  PRIMARY KEY (canonical_id, unit, direction, variant, source, retrieved_at),
+  CONSTRAINT unit_price_unit_ck CHECK (unit IN ('second_of_video', 'image')),
+  CONSTRAINT unit_price_direction_ck CHECK (direction IN ('input', 'output')),
+  CONSTRAINT unit_price_source_ck CHECK (source IN ('litellm')),
+  CONSTRAINT unit_price_usd_ck CHECK (usd >= 0)
+);
+
+CREATE INDEX unit_price_latest_idx ON unit_price (canonical_id, source, retrieved_at DESC);
+
+
 -- The measured GGUF files behind the local VRAM tool (2026-10-23,
 -- migrations/20261023T1000_local_model_file.sql says what each column means).
 -- WHO WRITES: collect/local_models/poll.py. WHO READS: judge/local_models.py.
@@ -2494,3 +2520,41 @@ CREATE TABLE IF NOT EXISTS official_fetch (
   CONSTRAINT official_fetch_detail_ck CHECK ((outcome = 'ok') = (detail IS NULL))
 );
 CREATE INDEX IF NOT EXISTS official_fetch_source_idx ON official_fetch (source_key, fetched_at DESC);
+
+-- ── unresolved_entry - board entries whose model is not in the registry yet ──
+-- (2026-11-05, #602). Held, never shown: no page reads it. Filed onto the board
+-- by scripts/attribute_unresolved_entries.py once the model is seated, with no
+-- second model call. Writer: judge/pipeline.py. Column meanings in
+-- migrations/20261105T1300_unresolved_entry.sql.
+CREATE TABLE unresolved_entry (
+  id                 text PRIMARY KEY,
+  surface            text NOT NULL,
+  document_id        text NOT NULL REFERENCES document(id),
+  thread_context_id  text,
+  section            text NOT NULL,
+  slug               text NOT NULL,
+  name               text NOT NULL,
+  definition         text NOT NULL,
+  unit               text,
+  value_verbatim     text,
+  basis              text,
+  parent_proposed    text,
+  axis_verbatim      text,
+  subject_verbatim   text,
+  polarity           text NOT NULL,
+  quote              text NOT NULL,
+  proposer_model     text NOT NULL,
+  pipeline_version   text NOT NULL,
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  attributed_at      timestamptz,
+  attributed_to      text REFERENCES model_version(id),
+  attributed_entry   text,
+  CONSTRAINT unresolved_entry_section_ck
+    CHECK (section IN ('best_for', 'capability', 'metric')),
+  CONSTRAINT unresolved_entry_polarity_ck
+    CHECK (polarity IN ('positive', 'negative', 'neutral')),
+  CONSTRAINT unresolved_entry_attributed_ck
+    CHECK ((attributed_at IS NULL) = (attributed_to IS NULL))
+);
+
+CREATE INDEX unresolved_entry_held_idx ON unresolved_entry (surface) WHERE attributed_at IS NULL;

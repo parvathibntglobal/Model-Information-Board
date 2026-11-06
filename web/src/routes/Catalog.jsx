@@ -59,6 +59,12 @@ function ModelCard({ m, providerName, showProvider = true }) {
         {m.type_price && (
           <div className="cat-fact-wide"><span>{m.type_price.label} / 1M</span><b>{fmtUsd(m.type_price.usd_per_million)}</b></div>
         )}
+        {!m.type_price && m.unit_price && (
+          // ONE figure on the card - the base one - and its source; the page lists the tiers.
+          <div className="cat-fact-wide" title={`LiteLLM's community list, host ${m.unit_price.source_key}, read ${m.unit_price.retrieved_at}`}>
+            <span>{m.unit_price.figures[0].label} (LiteLLM)</span><b>{fmtUsd(m.unit_price.figures[0].usd)}</b>
+          </div>
+        )}
       </div>
       <div className="cat-badges">
         {m.types.map((t) => <span key={t} className={`cat-type t-${t}`}>{typeLabel(t)}</span>)}

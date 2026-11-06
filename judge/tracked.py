@@ -16,22 +16,89 @@ it got there.
 """
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date, timedelta
 
+from judge.catalog import TYPES as CATALOG_TYPES
 from judge.config import TrackedModel, auto_track_rule, tracked_models
 
+log = logging.getLogger(__name__)
+
+# `output_modalities` comes from `model_catalog` (OpenRouter's all-modalities
+# list, collect/registry/catalog.py) and decides `kind`. LEFT JOIN, so a model
+# the catalogue has not listed yet comes back with NULL rather than vanishing in
+# the join - `auto_tracked` then leaves it off and says so (rule 6).
 ELIGIBLE = """
-    SELECT canonical_id, display_name, release_date
-      FROM model_version
-     WHERE provenance = 'polled'
-       AND in_window
-       AND provider = ANY(%s)
-       AND release_date IS NOT NULL
-       AND release_date >= %s
-       AND NOT (canonical_id = ANY(%s) OR id = ANY(%s))
-     ORDER BY release_date DESC, canonical_id
+    SELECT mv.canonical_id, mv.display_name, mv.release_date, mc.output_modalities
+      FROM model_version mv
+      LEFT JOIN model_catalog mc ON mc.canonical_id = mv.canonical_id
+     WHERE mv.provenance = 'polled'
+       AND mv.in_window
+       AND mv.provider = ANY(%s)
+       AND mv.release_date IS NOT NULL
+       AND mv.release_date >= %s
+       AND NOT (mv.canonical_id = ANY(%s) OR mv.id = ANY(%s))
+     ORDER BY mv.release_date DESC, mv.canonical_id
 """
+
+#: Every output modality OpenRouter publishes: the page's types plus the two it
+#: does not offer as types (judge/catalog.py). A value outside this set is a
+#: modality nobody has decided a kind for, and it raises rather than reading as
+#: text (rule 12).
+KNOWN_MODALITIES = frozenset(CATALOG_TYPES) | {"embeddings", "rerank"}
+
+#: THE KIND EACH OUTPUT IS TRACKED AS, decided rather than fallen into (#602,
+#: Anooj's review). The tracked list's kinds are text, image, video, speech
+#: (text to voice), transcription (voice to text) and decision.
+#:   transcription is ITS OWN KIND, not speech: the two read different
+#:   evidence and search different repos (#602 review - whisper repos cannot
+#:   mention a text-to-speech model), so folding them would mix both.
+#: Kept off, so an auto-admitted model with one of these is left off and logged:
+#:   audio       mixes music (Lyria) and voice chat (gpt-audio) under one word,
+#:               so either kind would be a guess for half of them
+#:   embeddings, rerank, decisions   not a kind the board reports on
+KIND_OF_OUTPUT = {
+    "text": "text",
+    "image": "image",
+    "video": "video",
+    "speech": "speech",
+    "transcription": "transcription",
+}
+KEPT_OFF_OUTPUTS = frozenset({"audio", "embeddings", "rerank", "decisions"})
+
+
+class UnknownOutputModality(ValueError):
+    """The catalogue lists an output modality this module has no kind for."""
+
+
+def kind_from_modalities(canonical_id: str, modalities) -> str:
+    """The `kind` an auto-admitted model gets, from what it OUTPUTS.
+
+    Any non-text output decides it: `google/gemini-nano-banana-2.1` outputs
+    `['image', 'text']` and is an image model, which "is text in the list?"
+    got wrong. Only an all-text output is `text`.
+
+    Raises on a modality outside `KNOWN_MODALITIES`, and on more than one
+    non-text output - two candidate kinds is a choice, not a lookup.
+    """
+    mods = [str(m) for m in modalities]
+    unknown = sorted(set(mods) - KNOWN_MODALITIES)
+    if unknown:
+        raise UnknownOutputModality(
+            f"{canonical_id}: output modality {unknown} has no kind; add it to "
+            "judge/tracked.py KNOWN_MODALITIES once someone decides what it is")
+    other = sorted(set(mods) - {"text"})
+    if len(other) > 1:
+        raise UnknownOutputModality(
+            f"{canonical_id}: outputs {other}, more than one non-text kind")
+    if not other and "text" not in mods:
+        raise UnknownOutputModality(f"{canonical_id}: lists no output modality")
+    output = other[0] if other else "text"
+    if output in KEPT_OFF_OUTPUTS:
+        raise UnknownOutputModality(
+            f"{canonical_id}: outputs {output!r}, which is kept off the tracked list")
+    return KIND_OF_OUTPUT[output]
 
 
 def page_providers(hand: tuple[TrackedModel, ...]) -> list[str]:
@@ -63,13 +130,30 @@ def auto_tracked(conn, *, today: date | None = None) -> tuple[TrackedModel, ...]
     named = [m.registry for m in hand if m.registry]
     rows = conn.execute(ELIGIBLE, (page_providers(hand), cutoff, named, named)).fetchall()
     out = []
-    for canonical_id, display, _released in rows:
+    for canonical_id, display, _released, modalities in rows:
         if not rule.include_pro_tier and canonical_id.endswith("-pro"):
             continue
         if _excluded(canonical_id, display, rule.exclude_name_terms):
             continue
+        if modalities is None:
+            # NOT IN THE CATALOGUE YET, so what it outputs is unknown. Leaving
+            # it off until the catalogue lists it is the NULL-release-date
+            # treatment; calling it text would be the guess this replaced.
+            log.warning("auto_track: %s left off - no model_catalog row, so its "
+                        "output kind is unknown", canonical_id)
+            continue
+        # ONE MODEL'S ODD OUTPUT MUST NOT STOP THE LIST. `all_tracked` feeds
+        # the Models page and the scheduler's due rows, so a raise here would
+        # take both down for one row. Refused per model and logged with its
+        # outputs instead - still loud (rule 12), never defaulted to text.
+        try:
+            kind = kind_from_modalities(canonical_id, modalities)
+        except UnknownOutputModality as exc:
+            log.warning("auto_track: %s left off - %s (outputs %s)",
+                        canonical_id, exc, list(modalities))
+            continue
         out.append(TrackedModel(name=_label(display, canonical_id),
-                                registry=canonical_id, kind="text", auto=True))
+                                registry=canonical_id, kind=kind, auto=True))
     return tuple(out)
 
 

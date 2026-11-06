@@ -328,6 +328,11 @@ class QueryRun:
     #: platform answering "nothing matches".
     rate_limited: bool = False
     backoff_waits: list[float] = field(default_factory=list)
+    #: The HTTP status of a search that failed and was not a throttle - 422 is
+    #: GitHub refusing the query itself, which for a `repo:` query means the
+    #: repo was renamed or removed (search does not follow a rename, #602).
+    #: None when the search answered, or was throttled.
+    search_failed_status: int | None = None
     started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     finished_at: datetime | None = None
 
@@ -486,6 +491,7 @@ class GitHubHarvester:
                 return None
 
             run.http_errors += 1
+            run.search_failed_status = response.status_code
             log.error("search failed %s: %s", response.status_code, response.text[:200])
             return None
         return None  # pragma: no cover - loop always returns

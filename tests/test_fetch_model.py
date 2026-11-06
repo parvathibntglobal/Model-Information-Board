@@ -112,8 +112,12 @@ class _Conn:
     fake that matched on that substring alone would answer the wrong one.
     """
 
-    def __init__(self, thread_rows, doc_text_refs, gated_out=0, doc_sources=None):
+    def __init__(self, thread_rows, doc_text_refs, gated_out=0, doc_sources=None,
+                 models=None):
         self._threads = thread_rows
+        #: (canonical_id, name) rows for the E4b weight's two name queries
+        #: (registry, then catalogue). None = the board knows no model names.
+        self._models = models or []
         self._docs = doc_text_refs  # document_id -> text_ref
         self._gated_out = gated_out
         #: document_id -> source. The document query started selecting it on
@@ -126,6 +130,11 @@ class _Conn:
         # it is distinguished by counting rather than by selecting columns.
         if "count(*)" in sql and "NOT EXISTS" in sql:
             return _Cursor([(self._gated_out,)])
+        # The E4b weight's names (#602): registry first, then the catalogue.
+        if "FROM model_version" in sql:
+            return _Cursor(list(self._models))
+        if "FROM model_catalog" in sql:
+            return _Cursor([])
         if "FROM thread_context" in sql:
             assert "status = 'kept'" in sql, (
                 "the thread query must require a surviving member, or a filtered "
@@ -667,3 +676,46 @@ def test_payload_links_reach_the_facts(monkeypatch):
     facts, _ = fetch_model._vet_facts(
         _FactsConn([_doc_row("d1", "hackernews")]), [thread], {"d1"})
     assert facts["d1"].links == ("https://openrouter.ai/?ref=x",)
+
+
+def test_a_thread_naming_no_known_model_is_ordered_last_not_dropped(monkeypatch):
+    """The E4b weight (#602, agreed as a weight): two "Sunburst chart" tutorials
+    were extracted on 2026-11-05 although they name no model. They now wait
+    behind every thread that names one, and are still read when the cap has
+    room - nothing is skipped."""
+    payload = json.dumps({"title": "t", "selftext": "b"})
+    monkeypatch.setattr(fetch_model, "RawStore", _fake_store({
+        "flatChart": "Sunburst chart: drilling into merchant industry mix",
+        "flatModel": "Hailuo 3 Max held the camera steady on every shot",
+        "rawC": payload, "rawM": payload}))
+    monkeypatch.setattr(fetch_model, "settings", lambda: SimpleNamespace(raw_store_path="unused"))
+
+    def conn():
+        return _Conn([("tcChart", "flatChart", None, ["dC"]),
+                      ("tcModel", "flatModel", None, ["dM"])],
+                     {"dC": "rawC", "dM": "rawM"},
+                     models=[("minimax/hailuo-3-max", "MiniMax: Hailuo 3 Max")])
+
+    report: dict = {}
+    inputs, *_ = fetch_model.build_thread_inputs(conn(), seen=set(), limit=1, report=report)
+    assert [t.thread_context_id for t in inputs] == ["tcModel"]
+    assert report == {"no_known_model": 1, "no_known_model_read": 0, "known_model_scope": None}
+
+    report = {}
+    inputs, *_ = fetch_model.build_thread_inputs(conn(), seen=set(), limit=5, report=report)
+    assert [t.thread_context_id for t in inputs] == ["tcModel", "tcChart"]
+    assert report["no_known_model_read"] == 1
+
+
+@pytest.mark.parametrize("title, named", [
+    ("Choose Mai2 or Mo Xu?", False),                                   # a voicebank
+    ("The best value Cloud TTS has dropped guys (MAI Voice-2)", False),  # the previous model
+    ("MAI - anyone tried it yet?", False),                            # the bare family
+    ("Tried MAI-Voice-2.1 for audiobooks", True),
+    ("mai voice 2.1 vs eleven v3", True),
+])
+def test_a_reddit_hit_is_fetched_only_when_its_post_names_the_model(title, named):
+    """#602: every thread fetched for "mai voice 2.1" on 2026-11-06 was one of
+    the first three shapes, and each cost a metered comment request."""
+    variants = ["mai voice 2.1", "microsoft mai voice 2.1", "mai-voice-2.1", "maivoice21"]
+    assert fetch_model._names_a_variant(title, variants) is named

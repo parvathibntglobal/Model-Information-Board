@@ -273,6 +273,10 @@ HEADING = {
     "attack-success-rate": "security-benchmarks",  # rule
     "audio-generation-time": "speed-latency",  # rule
     "audio-mc": "media-benchmarks",  # rule
+    # Added by hand 2026-11-05 (#602, item 5): word error rate, the figure a
+    # transcription report states. No rows carry it yet. A percentage, and
+    # lower is better - unlike every other score under this heading.
+    "word-error-rate": "media-benchmarks",
     "average-test-balanced-accuracy-bacc": "reliability-rate",  # rule
     "believed-shipped-rate": "reliability-rate",  # rule
     "benches": None,  # unfiled

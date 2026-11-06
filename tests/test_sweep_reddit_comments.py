@@ -46,6 +46,8 @@ class Run:
     quota_limit: int | None = None
     exhausted: bool = True
     truncated_by: str | None = None
+    #: As `RedditRun` carries it since the over_18 skip (#602 item 9).
+    adult_skipped: int = 0
 
     def harvest_run_fields(self) -> dict:
         return {}
@@ -217,3 +219,71 @@ class TestTheReviewOf503:
         monkeypatch.setattr(harvester, "list_subreddit", listing)
         report = mod.sweep_reddit(Conn(), harvester, contract=Contract())
         assert report.quota_remaining == 900
+
+
+
+class _NoRows:
+    def fetchall(self):
+        return []
+
+
+class _Rows:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def fetchall(self):
+        return self._rows
+
+
+class MediaConn(Conn):
+    """Answers the media sweep's three reads: the model names the registry and
+    the catalogue know, and earlier deferrals (none here)."""
+
+    def execute(self, sql, params=()):
+        if "FROM model_version" in sql:
+            return _Rows([("Kwaivgi: Kling 3.0",)])
+        if "FROM model_catalog" in sql:
+            return _Rows([("Google: Veo 3.1",)])
+        assert "engagement->>'comments'" in sql
+        return _NoRows()
+
+
+class MediaContract:
+    sweep_media_subreddits = {
+        "members": ["aivideo"],
+        "pages_per_subreddit": 1,
+        "posts_per_page": 25,
+        "sort": "new",
+        "max_requests": 2,
+        "subject_only": True,
+    }
+
+
+def test_media_cap_counts_comments_and_defers_what_it_stops(writes):
+    """#602: one page + one comment request reaches the cap of 2, so the other
+    two survivors' comments are DEFERRED - counted, and their posts stored -
+    rather than fetched over budget or silently dropped."""
+    posts = [Post("t3_a", "made this with Kling-3.0"), Post("t3_b", "Veo 3.1 test clip"),
+             Post("t3_c", "Kling 3.0 again"), Post("t3_d", "weekend render, no model named")]
+    harvester = Harvester(posts, {p.external_id: _fetch(comments=(Comment("t1_" + p.external_id),))
+                                  for p in posts})
+    report = mod.sweep_reddit(MediaConn(), harvester, contract=MediaContract,
+                              block_key="sweep_media_subreddits")
+    assert report.cap == 2 and report.comments_counted_in_cap
+    assert harvester.asked == ["t3_a"]
+    assert report.comments_deferred == 2
+    # Anooj's A on #602: EVERY post is stored; comments only for the three that
+    # name a model the registry or the catalogue knows (Veo 3.1 is catalogue-only).
+    assert report.kept == 4
+    assert report.posts_stored_without_comments == 1
+    assert "2 deferred to the next run" in report.summary()
+    assert "1 stored without comments" in report.summary()
+
+
+def test_text_block_is_unchanged_by_the_media_options(writes):
+    posts = [Post("t3_a"), Post("t3_b")]
+    harvester = Harvester(posts, {p.external_id: _fetch(comments=(Comment("t1_x"),))
+                                  for p in posts})
+    report = mod.sweep_reddit(Conn(), harvester, contract=Contract)
+    assert not report.comments_counted_in_cap and report.comments_deferred == 0
+    assert harvester.asked == ["t3_a", "t3_b"]

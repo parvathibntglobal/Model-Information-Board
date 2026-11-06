@@ -235,6 +235,30 @@ export default function SettingsPanel() {
           </div>
         )}
 
+        {/* ── contract limits (#602) ─────────────────────────────────── */}
+        {data?.contract_limits?.length > 0 && (
+          <div className="stack stack-2">
+            <span className="label">Contract limits</span>
+            <p className="dim" style={{ fontSize: 11, margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
+              Set in contract files rather than environment variables, so a change
+              is a reviewed commit. A dash means the file could not be read.
+            </p>
+            <div className="stack stack-1">
+              {data.contract_limits.map((c) => (
+                <div key={c.name} className="row-between" style={{ gap: 12, alignItems: 'baseline' }}>
+                  <span className="stack stack-1" style={{ gap: 0 }}>
+                    <span style={{ fontSize: 11 }}>{c.name}</span>
+                    <span className="dim" style={{ fontSize: 10 }}>{c.why} · <span className="mono">{c.file}</span></span>
+                  </span>
+                  <span className="mono" style={{ fontSize: 'var(--fs-sm)', flexShrink: 0 }}>
+                    {c.value ?? '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* ── credentials, as booleans ───────────────────────────────── */}
         {data?.credentials && (
           <div className="stack stack-2">

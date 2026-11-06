@@ -93,6 +93,10 @@ class SourcesContract:
     #: raises on None rather than sweeping zero subreddits.
     sweep_subreddits: dict[str, Any] | None = None
 
+    #: The MEDIA listing sweep's population (#602 item 1): its own block, so its
+    #: rates are never mixed with the text set's. Same absent-is-not-empty rule.
+    sweep_media_subreddits: dict[str, Any] | None = None
+
     #: The person's assertion that this deployment is internal, read by
     #: `collect/adapters/basis.py:observe_use_basis` INSTEAD of `ENVIRONMENT`.
     #:
@@ -237,6 +241,7 @@ def parse_sources(document: Mapping[str, Any]) -> SourcesContract:
         # `or None`, not `or {}`: see the field comment. An empty mapping would
         # let a caller iterate zero subreddits and call that a sweep.
         sweep_subreddits=dict(document.get("sweep_subreddits") or {}) or None,
+        sweep_media_subreddits=dict(document.get("sweep_media_subreddits") or {}) or None,
         use_basis_undertaking=dict(document.get("use_basis_undertaking") or {}) or None,
     )
 

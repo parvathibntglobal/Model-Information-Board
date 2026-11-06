@@ -38,6 +38,7 @@ Used two ways, and the second one matters more:
 
 from __future__ import annotations
 
+import functools
 import re
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -836,3 +837,65 @@ def count_phrase_present(phrase: str, texts) -> int:
     is what makes the figure comparable to `kept`.
     """
     return sum(1 for text in texts if matches(phrase, normalize(text)))
+
+
+
+#: The separators a model name is written with: "MAI-Voice-2.1", "mai voice
+#: 2.1", "mai_voice_2.1", "maivoice2.1". Folded by `names_folded`.
+_SEPARATORS = r"[\s\-_.]*"
+
+
+_PAREN_NAME = re.compile(r"^(?P<outer>[^()]+?)\s*\((?P<inner>[^()]+)\)\s*$")
+
+
+def name_forms(name: str) -> tuple[str, ...]:
+    """The spellings a post could use for one catalogue or registry name.
+
+    "Provider: " is dropped, and a name carrying a second name in parentheses
+    is split: "Google: Nano Banana 2 (Gemini 3.1 Flash Image)" is written in a
+    post as "Nano Banana 2" or as "Gemini 3.1 Flash Image", never with the
+    brackets, so as one string it matched nothing (2026-11-06). For "is this
+    post about SOME known model" tests only - it attributes nothing.
+    """
+    bare = str(name or "").split(": ", 1)[-1].strip()
+    if not bare:
+        return ()
+    m = _PAREN_NAME.match(bare)
+    if not m:
+        return (bare,)
+    return tuple(dict.fromkeys(f for f in (bare, m["outer"].strip(), m["inner"].strip()) if f))
+
+
+def names_folded(name: str, text: str) -> bool:
+    """Does `text` name `name`, whatever separators either is written with?
+
+    For the NAME-ONLY tests (#602): the Reddit search hit check, the media
+    sweep's subject-only filter and the media GitHub mention check. `matches`
+    keeps the separators, so "mai voice 2.1" missed "MAI-Voice-2.1" and "kling
+    3 pro" missed "Kling-3-Pro" - the commonest spelling of each was invisible.
+
+    THE WHOLE NAME, NOT A PART OF ONE: the tokens must sit next to each other
+    with only separators between, and the match may not continue into another
+    letter or digit. So "mai voice 2.1" does not match "mai voice 2.10", and
+    "kling 3 pro" does not match "Kling 3.0 Pro" - the ".0" is not a separator.
+    """
+    pattern = folded_pattern(name)
+    return pattern is not None and pattern.search((text or "").casefold()) is not None
+
+
+@functools.lru_cache(maxsize=4096)
+def folded_pattern(name: str):
+    """`names_folded`'s compiled pattern for `name`, or None for an empty name.
+
+    Cached: the media sweep tests every post against every known model name,
+    some 700 of them, and compiling per call was the cost, not the matching.
+    """
+    import re
+
+    tokens = [t for t in re.split(r"[^0-9a-z]+", (name or "").casefold()) if t]
+    if not tokens:
+        return None
+    # NOR INTO A LONGER VERSION: "seedance 2" must not match "Seedance 2.5",
+    # so a match may not be followed by a separator and a digit either.
+    return re.compile(r"(?<![0-9a-z])" + _SEPARATORS.join(re.escape(t) for t in tokens)
+                      + r"(?![0-9a-z]|[._-][0-9])")

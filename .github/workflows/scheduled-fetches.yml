@@ -184,16 +184,36 @@ jobs:
         timeout-minutes: 15
         run: python scripts/harvest_forums.py --max-new-topics 150
 
+      # THE MEDIA SUBREDDITS, ONCE A NIGHT, BEFORE THE MODELS (#602, 2026-11-06).
+      # A listing, not a search: the newest posts of each subreddit in
+      # contract/sources.yaml `sweep_media_subreddits` (r/StableDiffusion,
+      # r/aivideo, r/ElevenLabs, r/TextToSpeech). Every post is stored; comments
+      # are read only for posts naming a model the registry or the catalogue
+      # knows. At most `max_requests` (100) Reddit requests a night, pages and
+      # comments together, on the Reddit RapidAPI key. Each media model's fetch
+      # below then reads the threads that name it. No key: skipped, said so.
+      - name: Sweep the media subreddits
+        if: >-
+          !cancelled() && steps.gate.outputs.enabled == 'true'
+          && (inputs.sources == '' || inputs.sources == null || contains(inputs.sources, 'reddit'))
+        timeout-minutes: 10
+        run: |
+          if [ -z "$RAPIDAPI_KEY" ]; then
+            echo "::notice::RAPIDAPI_KEY is not set - the media subreddit sweep is skipped."
+            exit 0
+          fi
+          python -m collect.cli ops sweep-reddit --media --store raw_store
+
       - name: Fetch the due models
         if: ${{ !cancelled() && steps.gate.outputs.enabled == 'true' }}
-        # --job-limit-minutes 320 is timeout-minutes (355) less the feed step's
-        # 20 and the forum step's 15: a fetch still running at 310 min of THIS
-        # step is stopped by the runner, which then posts the summary. Each
-        # thread commits as it finishes, so that loses one thread at most and
-        # the model stays due. That makes a late launch cheap, so
-        # --deadline-minutes 300 starts models until minute 300.
+        # --job-limit-minutes 310 is timeout-minutes (355) less the feed step's
+        # 20, the forum step's 15 and the media sweep's 10: a fetch still
+        # running at 310 min of THIS step is stopped by the runner, which then
+        # posts the summary. Each thread commits as it finishes, so that loses
+        # one thread at most and the model stays due. That makes a late launch
+        # cheap, so --deadline-minutes 290 starts models until minute 290.
         run: |
-          args="--job-limit-minutes 320 --deadline-minutes 300"
+          args="--job-limit-minutes 310 --deadline-minutes 290"
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

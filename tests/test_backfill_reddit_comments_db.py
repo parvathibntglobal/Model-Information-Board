@@ -165,3 +165,33 @@ def test_no_comments_and_a_failed_fetch_touch_nothing(conn, store, body_only):
     assert failed["outcome"] == "FETCH FAILED"
     assert limited["outcome"] == "FETCH FAILED", "a 429 read as an absence (review of #503)"
     assert _context(conn) == before
+
+
+
+def test_a_prose_comment_costs_one_comment_not_every_thread(conn, store):
+    """1,870 Reddit rows from 2026-08-27 were stored as prose, not JSON. One of
+    them under a thread used to raise out of `assemble_reddit_documents` and
+    leave EVERY Reddit thread unassembled (local fetch, 2026-11-05)."""
+    post = _post_of(POST)
+    good = _comment("t1_good", "Same here, the tool call drops its second argument.")
+    bad = _comment("t1_bad", "stored as prose")
+    refs = {}
+    for item, blob in (
+        (post, json.dumps(post.raw, ensure_ascii=False, sort_keys=True)),
+        (good, json.dumps(good.raw, ensure_ascii=False, sort_keys=True)),
+        (bad, "this comment was stored as flattened prose, not as a payload"),
+    ):
+        stored = store.put(blob.encode("utf-8"), namespace=RAW)
+        refs[item.external_id] = (stored.ref, stored.content_hash)
+    write_documents(conn, [post, good, bad], retrieval_provenance="not_recorded", refs=refs)
+    conn.commit()
+
+    report = assemble_reddit_documents(conn, store=store)
+    conn.commit()
+
+    assert report.assembled == 1
+    assert any("t1_bad" in r and "not a Reddit payload" in r for r in report.refusals)
+    child_count = conn.execute(
+        "SELECT child_count FROM thread_context WHERE thread_root_id = %s", (ROOT_ID,),
+    ).fetchone()[0]
+    assert child_count == 1, "the good comment is still read"

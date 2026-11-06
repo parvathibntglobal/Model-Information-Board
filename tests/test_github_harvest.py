@@ -249,6 +249,25 @@ def test_a_403_that_is_not_a_rate_limit_is_an_error_not_a_throttle(tmp_path):
     assert run.search_calls == 1, "not retried"
 
 
+def test_a_422_records_its_status_so_a_moved_repo_can_be_named(tmp_path):
+    """#602: `comfyanonymous/ComfyUI` moved to `Comfy-Org/ComfyUI`, and GitHub
+    search answers a `repo:` qualifier on the old name with 422 rather than
+    following the rename. The status is kept so the fetch can NAME the repo."""
+    refused = httpx.Response(422, json={"message": "Validation Failed"})
+    h, _slept = harvester(Recorder([refused]), tmp_path)
+    run = QueryRun(request=request())
+    h.search(run.request, run)
+    assert run.search_failed_status == 422 and run.http_errors == 1
+    assert run.rate_limited is False
+
+
+def test_a_search_that_answers_leaves_no_failed_status(tmp_path):
+    h, _slept = harvester(Recorder([ok([])]), tmp_path)
+    run = QueryRun(request=request())
+    h.search(run.request, run)
+    assert run.search_failed_status is None
+
+
 # ── the instrument must not lie about the instrument ─────────────────────
 
 

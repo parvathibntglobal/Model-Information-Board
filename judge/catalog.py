@@ -69,6 +69,83 @@ def _type_price(pricing: dict) -> dict | None:
     return None
 
 
+#: What each `unit_price` row is priced per, as the page names it.
+UNIT_LABELS = {
+    ("second_of_video", "output"): "per second of video",
+    ("image", "input"): "per input image",
+}
+
+#: The source's own name, as the page shows it. Never "the price": a
+#: community list of what hosts charge (contract/litellm_prices.yaml).
+UNIT_SOURCE_LABELS = {"litellm": "LiteLLM's community list"}
+
+_UNIT_PRICES = """
+    SELECT up.canonical_id, up.source, up.unit, up.direction, up.variant, up.usd,
+           up.source_key, up.source_url, up.retrieved_at
+      FROM unit_price up
+      JOIN (SELECT canonical_id, source, max(retrieved_at) AS latest
+              FROM unit_price GROUP BY canonical_id, source) l
+        ON l.canonical_id = up.canonical_id AND l.source = up.source
+       AND l.latest = up.retrieved_at
+"""
+
+
+def _variant_order(variant: str) -> tuple:
+    """`default` first, then tiers by size: 480p, 720p, 1080p, 2k, 4k."""
+    if variant == "default":
+        return (0, 0)
+    num = int("".join(c for c in variant if c.isdigit()) or 0)
+    return (1, num * 1000 if variant.endswith("k") else num)
+
+
+def _fallback(fallback: dict, cid: str, p_in, p_out, pricing) -> dict[str, Any] | None:
+    """The stored LiteLLM snapshot, only where OpenRouter's price is not published."""
+    if _price_state(cid, p_in, p_out, pricing) != "not_published":
+        return None
+    return fallback.get(cid)
+
+
+def unit_prices(conn) -> tuple[dict[str, dict[str, Any]], str | None]:
+    """{canonical id: its newest unit-price snapshot}, and why none could be read.
+
+    A FALLBACK FOR "PRICE NOT PUBLISHED" ONLY (#602). Kept apart from
+    `price_in` / `price_out`, which are per 1M tokens: nothing that sorts or
+    compares token prices reads this, so a per-second figure cannot be ranked
+    against a per-token one. The second value is None when the table read; a
+    sentence when it could not, so an unmigrated database says so rather than
+    reading as "no fallback prices exist" (rule 6).
+    """
+    try:
+        rows = conn.execute(_UNIT_PRICES).fetchall()
+    except Exception as e:  # noqa: BLE001 - an unmigrated database is a state
+        conn.rollback()
+        return {}, f"unit prices could not be read ({type(e).__name__})"
+    out: dict[str, dict[str, Any]] = {}
+    for cid, source, unit, direction, variant, usd, key, url, at in rows:
+        entry = out.setdefault(cid, {
+            "source": source,
+            "source_label": UNIT_SOURCE_LABELS.get(source, source),
+            "host": key.split("/", 1)[0],
+            "source_key": key,
+            "source_url": url,
+            "retrieved_at": at.date().isoformat(),
+            "figures": [],
+        })
+        entry["figures"].append({
+            "unit": unit,
+            "direction": direction,
+            "label": UNIT_LABELS.get((unit, direction), f"per {unit} ({direction})"),
+            "variant": variant,
+            "usd": float(usd),
+        })
+    for entry in out.values():
+        # The OUTPUT figure first - what the model is bought for, and what the
+        # card shows alone - then inputs; tiers smallest first within each.
+        entry["figures"].sort(key=lambda f: (
+            f["direction"] != "output", f["unit"], _variant_order(f["variant"])))
+    return out, None
+
+
 def _provider_names(rows) -> dict[str, str]:
     """`openai` -> `OpenAI`: the commonest prefix of the feed's own names
     ("OpenAI: GPT-6 Sol"), so a provider is spelled the way OpenRouter spells
@@ -167,6 +244,7 @@ def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
         (cid,),
     ).fetchone()
     voices, reports = _engineer_voices(conn)
+    fallback, fallback_reason = unit_prices(conn)
     params = list(params or [])
     num = lambda v: float(v) if v is not None else None  # noqa: E731
     provider_name = name.split(":", 1)[0].strip() if ":" in name else provider
@@ -191,6 +269,12 @@ def catalog_model(conn, model_id: str) -> dict[str, Any] | None:
         "price_cached_read": num(p_cache),
         "price_state": _price_state(cid, p_in, p_out, pricing),
         "type_price": _type_price(pricing),
+        # LiteLLM's figure ONLY WHILE OpenRouter publishes none, in its own
+        # unit. OpenRouter is the primary source: a LiteLLM row stored before
+        # OpenRouter priced the model is history, never shown beside its price.
+        # `unit_price_reason` says if the table could not be read at all.
+        "unit_price": _fallback(fallback, cid, p_in, p_out, pricing),
+        "unit_price_reason": fallback_reason,
         # THREE STATES EACH: true, false, or None for "not stated" (rule 6).
         "features": _features(params, ins, p_cache),
         "in_registry": registry is not None,
@@ -307,6 +391,7 @@ def catalog_view(conn) -> dict[str, Any]:
     registry = {r[0] for r in conn.execute("SELECT canonical_id FROM model_version")}
     voices, reports = _engineer_voices(conn)
     reported = set(reports)
+    fallback, fallback_reason = unit_prices(conn)
 
     keep = [r for r in rows if not r[0].startswith("~")]
     aliases = len(rows) - len(keep)
@@ -343,6 +428,7 @@ def catalog_view(conn) -> dict[str, Any]:
                 "price_out": float(p_out) if p_out is not None else None,
                 "price_state": _price_state(cid, p_in, p_out, pricing),
                 "type_price": _type_price(pricing),
+                "unit_price": _fallback(fallback, cid, p_in, p_out, pricing),
                 # FOR THE SPEC FINDER (2026-10-15): the same three-state features
                 # a model's page shows - None is "not stated", never "no".
                 "price_cached_read": float(p_cache) if p_cache is not None else None,
@@ -407,4 +493,5 @@ def catalog_view(conn) -> dict[str, Any]:
             r[0] for r in conn.execute("SELECT max(last_seen_at) FROM model_catalog")
         ).isoformat(),
         "source": "https://openrouter.ai/api/v1/models?output_modalities=all",
+        "unit_price_reason": fallback_reason,
     }

@@ -343,6 +343,10 @@ class HnRun:
     search_calls: int = 0
     item_calls: int = 0
     http_errors: int = 0
+    #: WHICH KIND each failed request was ("HTTP 500", "ConnectError"), so the
+    #: fetch line can tell throttling from timeouts from refusals (#602), as
+    #: the arXiv arm already does. `http_errors` stays the count.
+    failures: list = field(default_factory=list)
 
     discovery_refs: list[str] = field(default_factory=list)
     comments: list[HnComment] = field(default_factory=list)
@@ -434,10 +438,12 @@ class HackerNewsHarvester:
             response = self._client.get(url, params=params)
         except httpx.HTTPError as error:
             run.http_errors += 1
+            run.failures.append(type(error).__name__)
             log.error("hackernews: request failed on %s %r: %s", path, params, error)
             return None
         if response.status_code != 200:
             run.http_errors += 1
+            run.failures.append(f"HTTP {response.status_code}")
             log.warning("hackernews: HTTP %s on %s %r", response.status_code, path, params)
             return None
         return response

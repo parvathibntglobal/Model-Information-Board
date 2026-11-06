@@ -697,6 +697,8 @@ class Progress:
             "harvest_arms": sorted(self._arms),
             "harvest_arms_errored": arms_that("error"),
             "harvest_arms_skipped": arms_that("skipped"),
+            # The platform refused us (#602); never folded into `skipped`.
+            "harvest_arms_throttled": arms_that("throttled"),
         }
         if counted:
             out["documents_appended"] = sum(counted)
@@ -1139,7 +1141,30 @@ def _ensure_github_source(conn) -> None:
     conn.commit()
 
 
-def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int) -> int:
+#: The tracked kinds that are MEDIA (#602): searched and filtered by name, not by
+#: text-model capability phrases. `decision` (Jev 1.13) is not one - it is
+#: priced and discussed like a text model, so it keeps the text arms.
+MEDIA_KINDS = frozenset({"image", "video", "speech", "transcription"})
+
+
+def _tracked_hf_repos(conn, model_version_id: str, canonical_id: str) -> tuple[str, ...]:
+    """The model's curated Hugging Face repos; empty when none are listed."""
+    from judge.config import tracked_models
+
+    ids = {model_version_id, canonical_id}
+    return next((t.hf_repos for t in tracked_models() if t.registry in ids), ())
+
+
+def _tracked_kind(conn, model_version_id: str, canonical_id: str) -> str:
+    """The tracked kind of the model being fetched; `text` when it is not tracked."""
+    from judge.tracked import all_tracked
+
+    ids = {model_version_id, canonical_id}
+    return next((t.kind for t in all_tracked(conn) if t.registry in ids), "text")
+
+
+def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int,
+                   kind: str = "text") -> int:
     """E2 harvest — live GitHub search for this model, appended to `document`.
 
     The terms gate runs first (the same one the nightly path runs), then the
@@ -1155,12 +1180,26 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
                           observations={"github": {"access_path": "api"}},
                           today=datetime.now(UTC).date())
 
-    entries = [e for cap in CAPABILITIES for e in load_queries().for_capability(cap)]
-    plan = plan_searches(entries, variants, scope=SCOPE)
-    prog.stage("E2", "Harvest", "running",
-               variants=len(variants), planned_requests=plan.request_count,
-               detail=f"GitHub search for {len(variants)} name variants "
-                      f"× {len(entries)} capability queries")
+    # A MEDIA MODEL IS SEARCHED BY NAME IN ITS KIND'S REPOS (#602). The text
+    # arm - name x capability phrase in five text-agent repos - spent 30 calls
+    # on GPT Image 2.5 Sunburst on 2026-11-05 and found nothing.
+    from collect.adapters.queries.github import load_media_repos, plan_mention_searches
+
+    media_repos, media_cap = load_media_repos()
+    if kind in media_repos:
+        plan = plan_mention_searches(variants, media_repos[kind], max_requests=media_cap)
+        prog.stage("E2", "Harvest", "running",
+                   variants=len(variants), planned_requests=plan.request_count,
+                   detail=f"GitHub issue search for a {kind} model: each name on its own "
+                          f"in {len(media_repos[kind])} {kind} repo(s) "
+                          f"(contract/media_github_repos.yaml), capped at {media_cap}")
+    else:
+        entries = [e for cap in CAPABILITIES for e in load_queries().for_capability(cap)]
+        plan = plan_searches(entries, variants, scope=SCOPE)
+        prog.stage("E2", "Harvest", "running",
+                   variants=len(variants), planned_requests=plan.request_count,
+                   detail=f"GitHub search for {len(variants)} name variants "
+                          f"× {len(entries)} capability queries")
 
     client = build_client(timeout=30.0, headers={
         "Accept": "application/vnd.github+json",
@@ -1174,6 +1213,7 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
     _ensure_github_source(conn)
 
     fetched = inserted = kept = candidates = 0
+    refused_repos: list[str] = []
     for req in plan.requests:
         if fetched >= fetch_cap:
             prog.stage("E2", "Harvest", "running",
@@ -1194,6 +1234,10 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
                               f"throttles and the platform reads as empty")
             break
         run = harvester.harvest(req)
+        if getattr(run, "search_failed_status", None) == 422 and req.scope:
+            # NAMED, NOT COUNTED (#602): a 422 on a `repo:` query is a renamed
+            # or removed repo, and the fetch says so the first night it happens.
+            refused_repos.extend(s.removeprefix("repo:") for s in req.scope)
         wrote = harvester.write_documents(conn, run)
         conn.commit()
         fetched += run.rest_calls
@@ -1216,12 +1260,17 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
              f"{searches} search + {fetched} fetch call(s)"]
     if errors:
         parts.append(f"{errors} HTTP error(s)")
+    for repo in sorted(set(refused_repos)):
+        parts.append(f"`{repo}`: 422, renamed or removed? "
+                     f"(contract/media_github_repos.yaml)")
     if throttled:
         parts.append(f"{throttled} query(ies) throttled")
     # NOTHING CAME BACK AND REQUESTS FAILED: that is not a quiet platform, and
     # the two must not render alike. An empty result set with no errors stays
     # `ok` - GitHub genuinely may hold nothing about a model released last week.
-    status = "error" if errors and not candidates else "ok"
+    status = _harvest_verdict(errors, candidates, throttled=throttled)
+    if status == "throttled":
+        parts.append(THROTTLED_NOTE)
     prog.stage("E2", "Harvest", status,
                requests_spent=fetched, search_calls=searches, http_errors=errors,
                rate_limited_queries=throttled,
@@ -1328,6 +1377,17 @@ def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str,
     )
 
 
+def _names_a_variant(text: str, variants: list[str]) -> bool:
+    """Does `text` contain one of the model's spellings, as the sieve matches them?
+
+    Separators folded (`names_folded`), as Anooj asked on #602: `mai voice 2.1`
+    matches "MAI-Voice-2.1", and nothing matches a voicebank called "Mai".
+    """
+    from collect.adapters.queries.sieve import names_folded
+
+    return any(names_folded(v, text) for v in variants if v)
+
+
 def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: int,
                    max_threads: int) -> int:
     """E2 harvest — live Reddit search (RapidAPI) for this model, WITH comments.
@@ -1347,11 +1407,18 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
 
     store = RawStore(Path(settings().raw_store_path))
     queries = variants[:max_searches]
+    # SUBREDDITS THE SEARCH NEVER STORES (#602 fix 3), from contract/sources.yaml
+    # `sweep_subreddits.search_excluded`, each with its reason. Lower-cased,
+    # because Reddit's subreddit names are case-insensitive.
+    excluded_subs = {
+        str(e.get("id", "")).casefold()
+        for e in (load_sources().sweep_subreddits or {}).get("search_excluded") or []
+    }
     prog.stage("E2R", "Harvest · Reddit", "running", queries=len(queries),
                detail=f"RapidAPI search for {len(queries)} variant(s), then comments "
                       f"for up to {max_threads} thread(s)")
 
-    inserted = hits = threads = errors = 0
+    inserted = hits = threads = errors = adult = unnamed = excluded = 0
     failures: list[str] = []
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     # NOT RUN IS NOT AN ERROR, which is what X already does (#327). A missing
@@ -1396,9 +1463,34 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
             if run.quota_limit is not None:
                 q_limit = run.quota_limit
             hits += len(run.posts)
+            adult += run.adult_skipped
             for post in run.posts:
                 if threads >= max_threads:
                     break
+                # THE POST MUST NAME THE MODEL (#602). Reddit's search is loose:
+                # all 5 threads fetched for "mai voice 2.1" on 2026-11-06 were
+                # about a singing voicebank called "Mai", a generic "MAI", the
+                # previous MAI-Voice-2 and a crack subreddit - and each still
+                # cost a metered comment request. X has always sieved its hits;
+                # this is the same test, on the post's own title and body.
+                if str(getattr(post, "subreddit", "")).casefold() in excluded_subs:
+                    excluded += 1
+                    continue
+                if not _names_a_variant(post.sieve_text, variants):
+                    # THE POST IS KEPT, ITS COMMENTS ARE NOT FETCHED (Anooj's
+                    # condition on #602): a recorded skip of a cost, never a
+                    # drop of evidence (rule 8). One payload, no request.
+                    unnamed += 1
+                    blob = json.dumps(getattr(post, "raw", None) or {},
+                                      ensure_ascii=False, sort_keys=True)
+                    wrote = reddit_write(
+                        conn, [post],
+                        refs={post.external_id: (store.put(blob).ref, content_hash(blob))},
+                        retrieval_provenance="not_recorded",
+                    )
+                    conn.commit()
+                    inserted += int(wrote.get("documents_inserted", 0) or 0)
+                    continue
                 try:
                     fetch = searcher.fetch_comments(post)
                 except httpx.HTTPError as exc:
@@ -1477,11 +1569,21 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     _write_rapidapi_quota(q_remaining, q_limit, prog.run_id, read_on="reddit")
     detail = (f"{threads} thread(s) with comments fetched, "
               f"{inserted} document(s) appended")
+    if adult:
+        detail += f" — {adult} adult-flagged post(s) skipped"
+    if unnamed:
+        detail += (f" — {unnamed} post(s) kept without their comments: the post does "
+                   f"not name the model in any of its spellings")
+    if excluded:
+        detail += (f" — {excluded} hit(s) from excluded subreddits not stored "
+                   f"(contract/sources.yaml search_excluded)")
     if errors:
         detail += f" — {errors} request(s) failed: " + "; ".join(failures[:3])
     prog.stage("E2R", "Harvest · Reddit", _harvest_verdict(errors, hits),
-               search_hits=hits, threads_fetched=threads, documents_inserted=inserted,
-               http_errors=errors,
+               search_hits=hits, search_hits_unnamed=unnamed,
+               search_hits_excluded=excluded,
+               threads_fetched=threads, documents_inserted=inserted,
+               http_errors=errors, adult_skipped=adult,
                quota_remaining=q_remaining, quota_limit=q_limit,
                detail=detail)
     return inserted
@@ -1520,7 +1622,13 @@ def _gated_harvester(platform_id: str, factory, **kwargs):
         return None, str(exc).splitlines()[0][:180]
 
 
-def _harvest_verdict(errors: int, produced: int) -> str:
+#: Said on a stage the platform rate-limited. One string, so it reads the same
+#: wherever it appears.
+THROTTLED_NOTE = ("rate-limited by the platform (HTTP 429): not run this time, "
+                  "not a failure - the next fetch asks again")
+
+
+def _harvest_verdict(errors: int, produced: int, *, throttled: int = 0) -> str:
     """`error` when requests failed and nothing came back. Otherwise `ok`.
 
     EVERY ADAPTER HERE SWALLOWS `httpx.HTTPError` INTO A COUNTER and returns an
@@ -1534,8 +1642,23 @@ def _harvest_verdict(errors: int, produced: int) -> str:
     An empty result set with no errors stays `ok`, and that is not leniency: a
     model released last week genuinely has nothing written about it yet, and
     calling that a failure would make the log cry wolf on the normal case.
+
+    A RATE LIMIT IS `throttled`, NOT `error` (#602, 2026-11-06). When every failed
+    request was the platform throttling us (`throttled >= errors`) and nothing
+    came back, the platform said "later", not "broken". arXiv answering 429 twice
+    turned a MAI-Voice-2.1 run whose every stage ran into `error ... the run did
+    not complete`, and an `error` run is not a success, so the scheduler would
+    have made the model due again the next night.
+
+    ITS OWN WORD, NOT `skipped` (Anooj, #602): `skipped` means WE chose not to
+    run an arm (a `--sources` scope, a lapsed ruling); a throttle is the
+    platform's refusal. Kept apart, they are counted apart -
+    `harvest_arms_throttled` beside `harvest_arms_skipped` on the end record.
+    A failure of any other kind still makes the stage `error`.
     """
-    return "error" if errors and not produced else "ok"
+    if errors and not produced:
+        return "throttled" if throttled and throttled >= errors else "error"
+    return "ok"
 
 
 #: Papers fetched per arXiv query, newest first - five, as before 2026-10-07.
@@ -1573,6 +1696,9 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
     prog.stage("E2A", "Harvest · arXiv", "running", queries=len(queries),
                detail=f"arXiv search for {len(queries)} name variant(s)")
     inserted = papers = errors = found = retried = 0
+    #: Queries arXiv never answered because it throttled them (#602): said by
+    #: count, so a `skipped` arm still states what it missed (rule 4).
+    unanswered = 0
     failures: list[str] = []
     for variant in queries:
         # ⚠ TWO DEFECTS, FIXED 2026-10-07, that made every arXiv run store 0.
@@ -1589,7 +1715,10 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
         papers += len(getattr(run, "stored", []) or [])
         errors += int(getattr(run, "http_errors", 0) or 0)
         retried += int(getattr(run, "retried", 0) or 0)
-        failures += list(getattr(run, "failures", []) or [])
+        run_failures = list(getattr(run, "failures", []) or [])
+        failures += run_failures
+        if any("429" in str(f) for f in run_failures) and not getattr(run, "papers", None):
+            unanswered += 1
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
@@ -1602,13 +1731,22 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
         detail += f" — {errors} request(s) failed" + (f" ({kinds})" if kinds else "")
     if retried:
         detail += f"; {retried} retried"
-    prog.stage("E2A", "Harvest · arXiv", _harvest_verdict(errors, found),
+    throttled = sum(1 for f in failures if "429" in str(f))
+    verdict = _harvest_verdict(errors, found, throttled=throttled)
+    if unanswered:
+        detail += f" — arXiv throttled: {unanswered} of {len(queries)} query(ies) not run"
+        # ON THE RUN'S RECORD, so the nightly summary can say it in counts.
+        prog.record_summary(arxiv_queries_throttled=unanswered)
+    if verdict == "throttled":
+        detail += f" — {THROTTLED_NOTE}"
+    prog.stage("E2A", "Harvest · arXiv", verdict,
                papers=papers, documents_inserted=inserted, http_errors=errors,
                failures=failures, retried=retried, detail=detail)
     return inserted
 
 
-def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
+def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int,
+              kind: str = "text") -> int:
     """E2 harvest — X search for this model, appended to `document`.
 
     ONE REQUEST, ALL SURFACES, SINCE 2026-09-11. This issued one search PER
@@ -1746,6 +1884,16 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         survivors = []
         for post in run.posts:
             text = post.sieve_text
+            if kind in MEDIA_KINDS:
+                # A MEDIA MODEL'S POST IS KEPT FOR NAMING THE MODEL (#602). The
+                # capability sieve below asks for a text-model topic or signal
+                # phrase ("tool call", "didn't follow") beside the name, which a
+                # media post almost never has: X kept 1 of 71 posts for Seedance
+                # 2.0, 5 of 65 for Kling and 17 of 74 for MAI-Voice-2.1. The
+                # same name-only test the media sweep and the Reddit check use.
+                if _names_a_variant(text, variants):
+                    survivors.append(post)
+                continue
             if any(sieve_post(entry.terms.substitute(surface), text).passed
                    for surface in clubbed.used for entry in entries):
                 survivors.append(post)
@@ -1761,7 +1909,9 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
     # render identically.
     dropped = posts - survived
     detail = (f"{posts} post(s) seen over {pages} page(s); sieve kept {survived}, "
-              f"dropped {dropped}; {inserted} document(s) appended")
+              f"dropped {dropped}; {inserted} document(s) appended"
+              + (f" — a {kind} model: kept for naming the model, no capability "
+                 f"phrase required" if kind in MEDIA_KINDS else ""))
     if survived and not inserted:
         detail += " — every survivor was already stored (append-only)"
     if undated:
@@ -1851,8 +2001,12 @@ def _harvester_factory(platform_id: str):
 
 def harvest_uniform(conn, prog: Progress, variants: list[str], *,
                     platform_id: str, stage_id: str, stage_name: str,
-                    max_queries: int) -> int:
+                    max_queries: int, hf_repos: tuple[str, ...] = ()) -> int:
     """E2 harvest for one of the uniform platforms, appended to `document`.
+
+    `hf_repos` (Hugging Face only, #602): the model's curated repos from
+    `contract/tracked_models.yaml`. When given, one walk over exactly those
+    replaces the name searches; empty means not curated, and the search runs.
 
     The terms gate is the ADAPTER'S, never this script's. Each ruling names its
     own live preconditions and only the adapter observes them; a guessed
@@ -1873,12 +2027,21 @@ def harvest_uniform(conn, prog: Progress, variants: list[str], *,
         return 0
 
     queries = variants[:max_queries]
+    curated = platform_id == "huggingface" and bool(hf_repos)
+    if curated:
+        queries = queries[:1]
     prog.stage(stage_id, stage_name, "running", queries=len(queries),
-               detail=f"{platform_id} search for {len(queries)} name variant(s)")
+               detail=(f"{platform_id}: the model's curated repo(s) "
+                       f"{', '.join(hf_repos)} (contract/tracked_models.yaml hf_repos)"
+                       if curated else
+                       f"{platform_id} search for {len(queries)} name variant(s)"))
     inserted = errors = items = 0
+    failures: list[str] = []
     for variant in queries:
-        run = harvester.harvest(variant)
+        run = (harvester.harvest(variant, repo_ids=list(hf_repos)) if curated
+               else harvester.harvest(variant))
         errors += int(getattr(run, "http_errors", 0) or 0)
+        failures += [str(f) for f in getattr(run, "failures", []) or []]
         # `items_fetched` where the adapter has it — what the platform actually
         # returned, which is the figure that separates "asked and empty" from
         # "never got through".
@@ -1888,7 +2051,13 @@ def harvest_uniform(conn, prog: Progress, variants: list[str], *,
         inserted += int(getattr(wrote, "inserted", 0) or 0)
     detail = f"{inserted} document(s) appended from {len(queries)} query(ies)"
     if errors:
-        detail += f" — {errors} request(s) failed"
+        from collections import Counter
+
+        # WHICH KIND (#602): "7 request(s) failed" could not tell a throttle
+        # from a timeout. Named like the arXiv line: "HTTP 500 x4, ReadTimeout".
+        kinds = ", ".join(f"{k} x{n}" if n > 1 else k
+                          for k, n in Counter(failures).most_common())
+        detail += f" — {errors} request(s) failed" + (f" ({kinds})" if kinds else "")
     # `items or inserted`: all three adapters expose `items_fetched` today, but
     # a fourth that does not must not be reported as failed for a harvest that
     # demonstrably wrote rows.
@@ -1927,6 +2096,7 @@ def assemble_stage(conn, prog: Progress) -> None:
     from collect.assemble.ranking import ranking_config
 
     ran = failed = 0
+    failed_names: list[str] = []
     selection_blocks: list[tuple[str, list]] = []
     for name, fn in stages:
         try:
@@ -1942,6 +2112,7 @@ def assemble_stage(conn, prog: Progress) -> None:
             # being TRIED, and a bare rollback on a dead socket raises.
             _safe_rollback(conn)
             failed += 1
+            failed_names.append(name)
             notes.append(f"{name}: FAILED ({str(exc).splitlines()[0][:80]})")
 
     # SEVEN FAILURES USED TO RENDER AS `ok`. Each assembler's exception became a
@@ -1967,7 +2138,11 @@ def assemble_stage(conn, prog: Progress) -> None:
         notes.append(f"{unjudged} document(s) still carry no triage verdict")
     prog.stage("E3", "Assemble", "ok", unjudged_documents=unjudged,
                assemblers_ran=ran, assemblers_failed=failed,
-               detail=(f"{failed} of {ran + failed} assembler(s) failed · " if failed else "")
+               # THE FAILED ONES BY NAME. "1 of 9 assembler(s) failed" was
+               # followed by the first note, so a Reddit failure read as GitHub
+               # failing whenever GitHub's summary happened to come first.
+               detail=(f"{failed} of {ran + failed} assembler(s) failed "
+                       f"({', '.join(failed_names)}) · " if failed else "")
                       + " · ".join(notes))
     _say_selections(selection_blocks, ranking_config())
 
@@ -2242,8 +2417,40 @@ def threads_naming_the_model(
     return naming, len(rows)
 
 
+def _known_model_finder(conn):
+    """Every model the board knows by name: the registry AND the catalogue.
+
+    For the E4b weight (#602). Built fresh per run - never read from a stored
+    `triage_verdict`, which goes stale when a model is seated later. The
+    catalogue is included so a thread about a model OpenRouter lists but nobody
+    has seated yet is NOT ordered last: its claims are held in
+    `unresolved_entry`. Returns (finder, None), or (registry-only finder, why)
+    when the catalogue cannot be read - said, never silently narrowed (rule 6).
+    """
+    from collect.surface_resolver import RegistrySurfaceFinder
+    from collect.triage.entity import build_population
+
+    rows = conn.execute("SELECT canonical_id, display_name FROM model_version").fetchall()
+    why = None
+    try:
+        rows += conn.execute(
+            "SELECT canonical_id, name FROM model_catalog "
+            "WHERE canonical_id NOT LIKE '~%%' AND canonical_id NOT LIKE '%%:%%'"
+        ).fetchall()
+    except Exception as exc:  # noqa: BLE001 - an unmigrated database is a state
+        _safe_rollback(conn)
+        why = f"model_catalog unreadable ({type(exc).__name__}); registry names only"
+    # "Nano Banana 2 (Gemini 3.1 Flash Image)" is written as either half, never
+    # with the brackets: each half is a known name too (2026-11-06). Ordering
+    # only - the finder decides which threads are read last, not where a claim files.
+    from collect.adapters.queries.sieve import name_forms
+
+    named = [(r[0], form) for r in rows if r[1] for form in name_forms(r[1])]
+    return RegistrySurfaceFinder(build_population(named)), why
+
+
 def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
-                        include_backlog: bool = True):
+                        include_backlog: bool = True, report: dict | None = None):
     """ThreadInputs for threads this fetch can actually read — the E5 input.
 
     This is the composition-root stand-in for the deferred RawTextResolver (#6):
@@ -2255,6 +2462,15 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
     `include_backlog=False` keeps only threads that name the model (`naming`) or
     hold a document this run harvested (`since`); the rest of the unread pool
     is left for a later reader, not marked. See `FETCH_BACKLOG`.
+
+    THE E4b WEIGHT (#602, agreed as a weight, not a gate). A thread whose text
+    names no model the registry or the catalogue knows - computed fresh, here -
+    is ORDERED LAST: read only once every naming thread has had its place
+    under `limit`. Nothing is skipped. `report`, when given, receives
+    `no_known_model` (set aside), `no_known_model_read` (still read, the cap had
+    room), and `known_model_scope` (None, or why the catalogue was not used).
+    Promoting this to a gate needs a measurement first: the fresh check run
+    over threads that DID produce claims, with zero false skips.
     """
     from judge.extract.runner import ThreadInput
     from judge.extract.verify import OffsetMapping
@@ -2433,6 +2649,9 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
     #: threads are waiting, and nothing scheduled reads them (#304).
     oversized: list[str] = []
     naming_set = set(naming)
+    known_model, known_scope = _known_model_finder(conn)
+    #: Threads naming no known model, held until every naming thread is placed.
+    last: list[tuple] = []
     #: Threads whose flattened payload this machine could not read (#303).
     #:
     #: ⚠ COUNTED, BECAUSE SKIPPING THEM SILENTLY NARROWS THE RUN'S OWN INPUT.
@@ -2588,13 +2807,28 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
         if len(flattened) > MAX_FETCH_THREAD_CHARS:
             oversized.append(tc_id)
             continue
-        inputs.append(ThreadInput(
+        thread = ThreadInput(
             thread_context_id=tc_id, flattened_text=flattened,
             offset_map=offset_map, raw_text_of=raw_text_of,
-        ))
+        )
+        if not known_model(flattened):
+            last.append((thread, members))
+            continue
+        inputs.append(thread)
         doc_ids.update(members)
         if len(inputs) >= limit:
             break
+    # ORDERED LAST, NOT DROPPED: the remaining room under `limit` goes to them.
+    read_last = 0
+    for thread, members in last:
+        if len(inputs) >= limit:
+            break
+        inputs.append(thread)
+        doc_ids.update(members)
+        read_last += 1
+    if report is not None:
+        report.update(no_known_model=len(last), no_known_model_read=read_last,
+                      known_model_scope=known_scope)
     named = sum(1 for t in inputs if t.thread_context_id in naming_set)
     from_own_harvest = sum(
         1 for t in inputs
@@ -2940,9 +3174,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                       f"{scan.get('outside_window', 0):,} older and "
                       f"{scan.get('undated', 0):,} undated unread thread(s) are left, "
                       f"stored and unread (contract/scheduler.yaml)")
+    weight: dict = {}
     threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming,
-        include_backlog=FETCH_BACKLOG)
+        include_backlog=FETCH_BACKLOG, report=weight)
     # SAID, NOT IMPLIED. A run that reads 50 threads of which 2 name the model
     # whose page was clicked has done almost nothing for it, and "50 thread(s)
     # to read" is the same sentence either way. Three tiers because they are
@@ -3072,6 +3307,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         threads = kept
         dropped.extend((tc, "predates_model") for tc in predates)
 
+    # THE E4b WEIGHT, SAID ON ITS OWN LINE (#602): ordered last, never skipped.
+    if weight.get("no_known_model"):
+        n, got = weight["no_known_model"], weight["no_known_model_read"]
+        prog.stage("E4b", "Vet · pre-LLM (same rules, thread level)", "running",
+                   no_known_model=n, no_known_model_read=got,
+                   detail=f"{n} thread(s) named no known model; ordered last - "
+                          f"{got} still read (the cap had room), {n - got} not reached"
+                          + (f" ({weight['known_model_scope']})"
+                             if weight.get("known_model_scope") else ""))
     if dropped:
         by_trigger = Counter(trig for _, trig in dropped)
         summary = ", ".join(f"{n} {trig}" for trig, n in by_trigger.most_common())
@@ -3458,6 +3702,18 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                  f" same threads" + (f", {unlabelled} unlabelled" if unlabelled else "")
                  + ")" if board_stored else "")
               + (f", {stored} legacy claim row(s)" if legacy_on else ""))
+    # CLAIMS ABOUT A MODEL THE REGISTRY DOES NOT HOLD, NAMED ON THIS LINE (#602).
+    # They were dropped with nothing in the log: a 2026-11-05 run read "50
+    # claim(s) verified, 3 board entr(ies) stored" and the other 47 were simply
+    # gone. Their entries are now held in `unresolved_entry`, and this says how
+    # many and under which names, so "nobody discussed it" and "we could not
+    # name the model" read differently (rule 4).
+    unresolved = Counter(s for r in results for s in r.unresolved_surfaces)
+    held = sum(r.unresolved_held for r in results)
+    if unresolved:
+        detail += (f"; {sum(unresolved.values())} verified claim(s) name a model the "
+                   f"registry does not hold - {held} entr(ies) held for when it is "
+                   f"seated: " + ", ".join(f"{s!r} x{n}" for s, n in unresolved.most_common(8)))
     # THE DIFFERENCE BETWEEN WRITES AND ROWS, ON THE LINE THAT REPORTS THE
     # ROWS (#444). Said only when it happened.
     if merged:
@@ -3550,6 +3806,11 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         entries_stored=board_stored,
         entries_about_model=about,
         entries_about_others=others,
+        claims_unresolved=sum(unresolved.values()),
+        # PER NAME (#602): an unseated model's held count is what tells us when
+        # to seat it - against `seating_bar` in contract/tracked_models.yaml.
+        held_by_surface=dict(unresolved.most_common(20)) or None,
+        entries_held_unresolved=held,
         cells_written=cells,
         **({
             "tokens_in": budget.input_tokens,
@@ -3927,6 +4188,11 @@ def main(argv: list[str] | None = None) -> int:
             prog.done("error", "unknown model")
             return 1
         canonical_id, display_name, release_date, provenance = row
+        # THE MODEL'S KIND, ON THE RUN'S RECORD (#602 item 8). The nightly cap
+        # is shared, so media's share of a night is summed from these records:
+        # `model_kind` beside the run's own `cost_usd` and `threads_read`.
+        model_kind = _tracked_kind(conn, args.model_version_id, canonical_id)
+        prog.record_summary(model_kind=model_kind)
 
         # ── THE FIXTURE-EXPOSURE CHECK, on any shared target or under the flag ─
         # BEFORE E2, because a harvest already run is a harvest already paid
@@ -3979,7 +4245,8 @@ def main(argv: list[str] | None = None) -> int:
 
         if "github" in sources:
             try:
-                harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap)
+                harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap,
+                               kind=model_kind)
             except Exception as exc:
                 prog.stage("E2", "Harvest", "error", detail=str(exc).splitlines()[0][:200])
             # Discussions ride the `github` scope: same terms, same API, same
@@ -4016,7 +4283,7 @@ def main(argv: list[str] | None = None) -> int:
                 # ALL the surfaces, in ONE request - `max_queries` bounds how many
                 # are clubbed, not how many requests are spent. 6 is the adapter's
                 # MAX_CLUBBED_SURFACES and covers every alias set in seed_models.
-                harvest_x(db.live(prog), prog, variants, max_queries=6)
+                harvest_x(db.live(prog), prog, variants, max_queries=6, kind=model_kind)
             except Exception as exc:
                 prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
         else:
@@ -4043,7 +4310,9 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             try:
                 harvest_uniform(db.live(prog), prog, variants, platform_id=_pid,
-                                stage_id=_sid, stage_name=_sname, max_queries=_cap)
+                                stage_id=_sid, stage_name=_sname, max_queries=_cap,
+                                hf_repos=_tracked_hf_repos(
+                                    conn, args.model_version_id, canonical_id))
             except Exception as exc:
                 prog.stage(_sid, _sname, "error", detail=str(exc).splitlines()[0][:200])
 

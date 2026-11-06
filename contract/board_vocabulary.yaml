@@ -166,6 +166,8 @@ best_for:
     name: Pictures
   - slug: voice-pipeline
     name: Voice pipeline
+  - slug: transcription
+    name: Transcription
   cost-volume-local:
   - slug: local-inference
     name: Local inference
@@ -1030,6 +1032,8 @@ metric:
     name: MMMU-Pro
   - slug: audio-mc
     name: Audio MC
+  - slug: word-error-rate
+    name: Word error rate
   - slug: chartography-no-tools
     name: Chartography (no tools)
   - slug: charxiv-rq

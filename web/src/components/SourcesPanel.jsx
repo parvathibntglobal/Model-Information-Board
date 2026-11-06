@@ -234,6 +234,10 @@ export default function SourcesPanel() {
             act on. */}
         <Corpus data={data} />
 
+        {/* #602: the media additions - listing sweeps, excluded subreddits,
+            the repos a media model is searched in, the price fallback. */}
+        {data?.media && <MediaSources media={data.media} />}
+
         {/* DRIFT IN THE OTHER DIRECTION. A platform described here but absent
             from the contract would otherwise look live. */}
         {data?.described_but_not_in_contract?.length > 0 && (
@@ -272,6 +276,83 @@ export default function SourcesPanel() {
  * flattened root plus its selected children and carries no platform of its
  * own, because its members can span several.
  */
+function MediaSources({ media }) {
+  const sweeps = media.listing_sweeps || []
+  const repos = media.media_github_repos
+  const price = media.price_fallback
+  return (
+    <div className="stack stack-3">
+      <span className="label">Subreddit sweeps — listings, not part of any model&apos;s fetch</span>
+      {sweeps.length > 0 && (
+        <div className="stack stack-1">
+          <span className="dim" style={{ fontSize: 11 }}>
+            Each lists the newest posts of its subreddits; no per-model fetch runs it.
+          </span>
+          <table className="table">
+            <thead>
+              <tr><th>Sweep</th><th>Subreddits</th><th>Posts / sub</th><th>Request cap</th><th>Kept when</th><th>Runs</th></tr>
+            </thead>
+            <tbody>
+              {sweeps.map((s) => (
+                <tr key={s.block}>
+                  <td>{s.label}</td>
+                  <td className="mono" style={{ fontSize: 11 }}>{s.subreddits.map((m) => `r/${m}`).join(', ')}</td>
+                  <td className="tnum">{s.posts_per_subreddit ?? '—'}</td>
+                  <td className="tnum">{s.max_requests ?? '—'}</td>
+                  <td className="dim" style={{ fontSize: 11 }}>{s.filter}</td>
+                  <td className="dim" style={{ fontSize: 11 }}>{s.runs}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <span className="label">Per-model fetch — media models (image · video · speech · transcription)</span>
+      {media.search_excluded?.length > 0 && (
+        <div className="stack stack-1">
+          <span className="dim" style={{ fontSize: 11 }}>
+            Subreddits the fetch&apos;s Reddit search (stage E2R) never stores
+          </span>
+          {media.search_excluded.map((e) => (
+            <span key={e.id} style={{ fontSize: 11 }}>
+              <span className="mono">r/{e.id}</span> <span className="dim">— {e.reason}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {repos && (
+        <div className="stack stack-1">
+          <span className="dim" style={{ fontSize: 11 }}>
+            GitHub repos a media model&apos;s name is searched in · at most {repos.max_requests_per_fetch ?? '—'} searches per fetch
+          </span>
+          {Object.entries(repos.kinds).map(([kind, list]) => (
+            <span key={kind} style={{ fontSize: 11 }}>
+              <Badge tone="mute">{kind}</Badge>{' '}
+              <span className="mono">{list.join(', ')}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {price && (
+        <div className="stack stack-1">
+          <span className="dim" style={{ fontSize: 11 }}>Price fallback</span>
+          <span style={{ fontSize: 11 }}>
+            {price.source} · {price.models_mapped} model(s) mapped · {price.rule}
+          </span>
+          {Object.entries(price.excluded || {}).map(([id, why]) => (
+            <span key={id} className="dim" style={{ fontSize: 11 }}>
+              not mapped: <span className="mono">{id}</span> — {why}
+            </span>
+          ))}
+        </div>
+      )}
+      {media.unreadable?.length > 0 && (
+        <Notice icon={<IconAlert />}>Could not be read: {media.unreadable.join('; ')}</Notice>
+      )}
+    </div>
+  )
+}
+
 function Corpus({ data }) {
   const rows = data?.corpus || []
   if (!data) return null

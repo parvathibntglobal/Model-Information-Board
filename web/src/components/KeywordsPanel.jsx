@@ -110,7 +110,7 @@ export default function KeywordsPanel() {
         {data?.capability_queries?.length > 0 && (
           <details className="disc">
             <summary>
-              GitHub also crosses every name with a topic vocabulary
+              GitHub also crosses every text model&rsquo;s name with a topic vocabulary
               <span className="n">{data.capability_queries.length} queries · {data.scope.length} repos</span>
             </summary>
             <div className="disc-body stack stack-2">
@@ -137,6 +137,33 @@ export default function KeywordsPanel() {
             </div>
           </details>
         )}
+
+        {/* THE SUBREDDIT SWEEPS: listings, not part of any model's fetch. */}
+        {data?.subreddit_sweeps?.map((s) => (
+          <details key={s.block} className="disc">
+            <summary>
+              {s.label} sweep · {s.schedule}
+              <span className="n">{s.subreddits.length} subreddits · {s.posts_per_subreddit ?? '—'} posts each · cap {s.max_requests ?? '—'} requests</span>
+            </summary>
+            <div className="disc-body stack stack-2">
+              <span className="dim mono" style={chip}>{s.subreddits.map((m) => `r/${m}`).join('  ')}</span>
+              <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{s.rule}</span>
+              {s.names.map((n) => (
+                <div key={n.model} className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <span style={chip}>{n.model}</span>
+                  {n.kind && <Badge tone="mute">{n.kind}</Badge>}
+                  <span className="dim mono" style={chip}>{n.spellings.join(' · ') || 'no spellings seated'}</span>
+                </div>
+              ))}
+              {s.known_names_count != null && (
+                <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+                  The tracked media models above, out of {s.known_names_count} known names
+                  in all (registry, aliases, catalogue). A post naming any of them has its comments read.
+                </span>
+              )}
+            </div>
+          </details>
+        ))}
 
         <div className="stack stack-2">
           <div className="row-between">
@@ -167,6 +194,10 @@ export default function KeywordsPanel() {
                   <IconCaret width={13} height={13}
                              className={`caret${open === m.name ? ' on' : ''}`} />
                   <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.name}</strong>
+                  {/* THE KIND, because a media model is searched and filtered
+                      differently (#602) - its row would otherwise read like a
+                      text model's with odd queries. */}
+                  {m.kind && m.kind !== 'text' && <Badge tone="mute">{m.kind}</Badge>}
                   {/* A NUMBER COLUMN ON THE RIGHT, so eighteen rows that look
                       alike can be compared down one edge. */}
                   <span className="kw-n tnum" title="search variants">{m.variants.length}</span>
@@ -196,6 +227,17 @@ export default function KeywordsPanel() {
                               <span className="label">{m.github_request_count} request(s)</span>
                             )}
                           </div>
+                          {/* WHAT HAPPENS TO THE RESULTS, per kind (#602). */}
+                          {m.filters?.[a.id] && (
+                            <span className="dim" style={chip}>results: {m.filters[a.id]}</span>
+                          )}
+                          {a.id === 'github' && m.github_repos?.length > 0 && (
+                            <span className="dim" style={chip}>
+                              a {m.kind} model: its name alone, in {m.github_repos.length} {m.kind} repo(s)
+                              {' '}(contract/media_github_repos.yaml), capped at {data.media_request_cap}
+                              {' '}- not the capability vocabulary below
+                            </span>
+                          )}
 
                           {/* GITHUB SHOWS THE COMPOSED QUERIES, not the name
                               list. Every other arm searches a bare name, so its

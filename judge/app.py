@@ -5131,6 +5131,8 @@ def admin_database() -> dict:
         "claim", "board_entry", "cell", "capability_candidate",
         "harvest_run", "job_run", "fetch_log", "spend_ledger", "rapidapi_quota",
         "blog_generation_run", "blog_post_review",
+        # #602: media prices in their own unit, and entries held for unseated models.
+        "unit_price", "unresolved_entry",
     )
     counts: dict[str, object] = dict.fromkeys(tables)
     # DOCUMENTS THAT REACHED THE BOARD, beside the table counts rather than in
@@ -5405,6 +5407,50 @@ def _the_rules() -> list[dict]:
             for n, headline in _RULE_LINE.findall(body)]
 
 
+def _contract_limits() -> list[dict]:
+    """The #602 limits that live in contract files, not environment variables.
+
+    Shown beside the caps so Admin -> Settings answers "how much can one run
+    spend" for the media arms too. Read from the same files the harvest reads;
+    a file that cannot be read says so instead of showing a number.
+    """
+    import yaml
+
+    def load(rel: str) -> dict | None:
+        try:
+            return yaml.safe_load((_REPO_ROOT / rel).read_text(encoding="utf-8")) or {}
+        except (OSError, ValueError):
+            return None
+
+    out: list[dict] = []
+    sweep = (load("contract/sources.yaml") or {}).get("sweep_media_subreddits") or {}
+    pages, per = sweep.get("pages_per_subreddit"), sweep.get("posts_per_page")
+    out.append({"name": "media subreddit sweep: requests per run",
+                "value": sweep.get("max_requests"),
+                "file": "contract/sources.yaml (sweep_media_subreddits.max_requests)",
+                "why": "pages and comment reads together; the rest wait for the next run"})
+    out.append({"name": "media subreddit sweep: posts per subreddit",
+                "value": (pages * per) if pages and per else None,
+                "file": "contract/sources.yaml (pages_per_subreddit x posts_per_page)",
+                "why": "newest posts listed per subreddit per run"})
+    media = load("contract/media_github_repos.yaml") or {}
+    out.append({"name": "media GitHub searches per fetch",
+                "value": media.get("max_requests_per_fetch"),
+                "file": "contract/media_github_repos.yaml (max_requests_per_fetch)",
+                "why": "a media model's name searched in its kind's repos, at most this many"})
+    bar = (load("contract/tracked_models.yaml") or {}).get("seating_bar") or {}
+    out.append({"name": "seating bar for a held model",
+                "value": (f"{bar['held_entries']} entries, {bar['distinct_authors']} authors"
+                          if bar.get("held_entries") and bar.get("distinct_authors") else None),
+                "file": "contract/tracked_models.yaml (seating_bar)",
+                "why": "when a held, unseated model is put to a person to seat"})
+    out.append({"name": "price fallback",
+                "value": "LiteLLM, only where OpenRouter publishes no price",
+                "file": "contract/litellm_prices.yaml",
+                "why": "shown labelled as LiteLLM's community list, never as the maker's price"})
+    return out
+
+
 @app.get("/admin/settings")
 def admin_settings(authorization: str | None = Header(default=None)) -> dict:
     """Who is signed in, what this is built on, and every operational cap.
@@ -5627,6 +5673,8 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
             "askable — not that there is no commit."
         ),
         "caps": caps,
+        # #602: the media limits, which are contract values, not env vars.
+        "contract_limits": _contract_limits(),
         "models_in_use": models_in_use,
         "credentials": credentials,
         "credentials_note": (
@@ -5643,6 +5691,74 @@ def _public_shown(source_id: str) -> bool | None:
         return not publication.withheld(source_id)
     except Exception:  # noqa: BLE001
         return None
+
+
+def _media_sources(doc: dict) -> dict:
+    """The media additions of #602, from the same contract files the harvest reads.
+
+    Returned beside `sources` so Admin -> Sources shows them: the two listing
+    sweeps (text and media), the subreddits the per-model search never stores,
+    the GitHub repos a media model is searched in, and LiteLLM as the price
+    fallback. Each file that cannot be read is said by name, never left blank.
+    """
+    import yaml
+
+    out: dict = {"unreadable": []}
+
+    def block(key: str, label: str, runs: str) -> dict | None:
+        b = doc.get(key) or {}
+        if not b:
+            return None
+        pages, per = b.get("pages_per_subreddit"), b.get("posts_per_page")
+        return {
+            "block": key, "label": label, "runs": runs,
+            "subreddits": [str(m) for m in b.get("members") or []],
+            "posts_per_subreddit": (pages * per) if pages and per else None,
+            "sort": b.get("sort"),
+            "max_requests": b.get("max_requests"),
+            "filter": ("names a model the registry or the catalogue knows; every post "
+                       "is stored, comments read only for those"
+                       if b.get("subject_only") else
+                       "names a seated model AND matches a topic or signal phrase "
+                       "from contract/queries.yaml"),
+            "terms_ruling": b.get("terms_ruling"),
+        }
+
+    out["listing_sweeps"] = [s for s in (
+        block("sweep_media_subreddits", "Media subreddits",
+              "nightly, before the model fetches (step `Sweep the media subreddits` "
+              "in scheduled-fetches.yml)"),
+        block("sweep_subreddits", "Text subreddits",
+              "not scheduled: no workflow runs it; by hand with `collect ops sweep-reddit`"),
+    ) if s]
+    out["search_excluded"] = [
+        {"id": str(e.get("id")), "reason": str(e.get("reason") or "").strip()}
+        for e in ((doc.get("sweep_subreddits") or {}).get("search_excluded") or [])
+    ]
+    try:
+        media = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "media_github_repos.yaml").read_text(encoding="utf-8"))
+        out["media_github_repos"] = {
+            "kinds": {str(k): list(v or []) for k, v in (media.get("kinds") or {}).items()},
+            "max_requests_per_fetch": media.get("max_requests_per_fetch"),
+        }
+    except (OSError, ValueError) as exc:
+        out["media_github_repos"] = None
+        out["unreadable"].append(f"contract/media_github_repos.yaml: {exc}")
+    try:
+        lite = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "litellm_prices.yaml").read_text(encoding="utf-8"))
+        out["price_fallback"] = {
+            "source": "LiteLLM's community price list",
+            "source_url": lite.get("source_url"),
+            "models_mapped": len(lite.get("models") or {}),
+            "excluded": {str(k): str(v) for k, v in (lite.get("excluded") or {}).items()},
+            "rule": "used only where OpenRouter publishes no price; never the maker's price",
+        }
+    except (OSError, ValueError) as exc:
+        out["price_fallback"] = None
+        out["unreadable"].append(f"contract/litellm_prices.yaml: {exc}")
+    return out
 
 
 @app.get("/admin/sources")
@@ -5842,6 +5958,8 @@ def admin_sources() -> dict:
     return {
         "sources": rows,
         "count": len(rows),
+        # THE MEDIA ADDITIONS (#602): sweeps, exclusions, media repos, price fallback.
+        "media": _media_sources(doc),
         # UNDER THEIR OWN KEY, not appended to `sources`. A feed is not a
         # platform: it has no access method, no credential and no quota, and
         # eighteen of them in a list of eight platforms would make the
@@ -5869,6 +5987,55 @@ def admin_sources() -> dict:
             "fingerprint or prefix is returned by this endpoint."
         ),
     }
+
+
+
+@app.get("/admin/held-models")
+def admin_held_models() -> dict:
+    """Models the board holds evidence about but has not seated (#602).
+
+    Verified claims whose model resolves to no registry row are HELD in
+    `unresolved_entry`, by the name as written, instead of lost. This lists each
+    held name with its entries and distinct authors against `seating_bar` in
+    contract/tracked_models.yaml - the count at which it is put to a person to
+    seat. A LOWER BOUND: a model nobody has seated is not searched for, so its
+    held count is only what threads found for other models said about it.
+    `scripts/attribute_unresolved_entries.py` files held rows once a model is seated.
+    """
+    import yaml
+
+    bar = {}
+    try:
+        raw = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "tracked_models.yaml").read_text(encoding="utf-8"))
+        bar = raw.get("seating_bar") or {}
+    except (OSError, ValueError):
+        bar = {}
+    need_entries, need_authors = bar.get("held_entries"), bar.get("distinct_authors")
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                "SELECT u.surface, count(*), count(DISTINCT d.author_id), "
+                "       count(DISTINCT u.document_id), min(u.created_at), max(u.created_at) "
+                "FROM unresolved_entry u JOIN document d ON d.id = u.document_id "
+                "WHERE u.attributed_at IS NULL "
+                "GROUP BY u.surface ORDER BY count(*) DESC, u.surface LIMIT 200"
+            ).fetchall()
+            filed = conn.execute(
+                "SELECT count(*) FROM unresolved_entry WHERE attributed_at IS NOT NULL"
+            ).fetchone()[0]
+    except Exception as exc:  # noqa: BLE001 - an unmigrated database is a state
+        return {"held": [], "filed": None, "seating_bar": bar,
+                "reason": f"held entries could not be read ({_safe_detail(exc)})"}
+    held = []
+    for surface, n, authors, docs, first, last in rows:
+        meets = (isinstance(need_entries, int) and isinstance(need_authors, int)
+                 and n >= need_entries and authors >= need_authors)
+        held.append({"surface": surface, "entries": int(n), "authors": int(authors),
+                     "documents": int(docs), "meets_bar": bool(meets),
+                     "first_held": first.date().isoformat() if first else None,
+                     "last_held": last.date().isoformat() if last else None})
+    return {"held": held, "filed": int(filed), "seating_bar": bar, "reason": None}
 
 
 @app.get("/admin/keywords")

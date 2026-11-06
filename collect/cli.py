@@ -955,10 +955,12 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
         print("contract/sources.yaml has no `reddit` source row", file=sys.stderr)
         return 2
 
-    block = contract.sweep_subreddits
+    # `--media` picks the MEDIA block (#602): its own population and budget.
+    block_key = "sweep_media_subreddits" if args.media else "sweep_subreddits"
+    block = getattr(contract, block_key)
     if not block:
         print(
-            "contract/sources.yaml has no `sweep_subreddits:` block, so there is "
+            f"contract/sources.yaml has no `{block_key}:` block, so there is "
             "nothing to list. Refusing rather than sweeping zero subreddits, which "
             "would report as nobody discussing anything.",
             file=sys.stderr,
@@ -1000,6 +1002,7 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
             client=client,
             store=RawStore(Path(args.store)),
             max_pages=pages,
+            read_by="sweep",
         )
         print("gate     : reddit terms reviewed and re-verified, harvest permitted")
         report = sweep_reddit(
@@ -1011,6 +1014,7 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
             subreddits=args.subreddits,
             limit_subreddits=limit,
             provenance=LISTING,
+            block_key=block_key,
         )
     print(report.summary())
     return 0
@@ -1519,6 +1523,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="restrict to these contracted subreddits",
     )
     ops_sweep_reddit.add_argument("--cap", type=int, default=None)
+    ops_sweep_reddit.add_argument(
+        "--media", action="store_true",
+        help="sweep `sweep_media_subreddits` (image, video and speech venues) "
+             "instead of the text block; by hand until two or three runs give "
+             "numbers (#602)")
     ops_sweep_reddit.add_argument("--dry-run", action="store_true")
     ops_sweep_reddit.set_defaults(func=_cmd_ops_sweep_reddit)
 

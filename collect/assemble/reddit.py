@@ -60,7 +60,7 @@ from dataclasses import dataclass, field
 
 from collect.adapters.reddit import reddit_document_id
 from collect.assemble.flatten import flatten
-from collect.assemble.prose import reddit_prose
+from collect.assemble.prose import NotAPayload, reddit_prose
 from collect.assemble.ranking import select_children, version_surfaces
 from collect.assemble.thread import MAX_CHILDREN, SELECTION_METHOD, AssembledThread
 from collect.config import settings
@@ -422,6 +422,23 @@ def assemble_reddit_documents(
                     f"from flattening."
                 )
                 continue
+            # ONE BAD COMMENT COSTS ONE COMMENT, NOT THE PLATFORM. This call sat
+            # outside every `try`, so a single stored comment that is prose
+            # rather than JSON - 1,870 such Reddit rows from the 2026-08-27
+            # harvest, before the payload fix, are in this machine's store -
+            # raised out of the whole loop and NO Reddit thread was assembled:
+            # a 2026-11-05 local fetch kept 36 comments across 5 threads and
+            # extracted none of them. Refused by name and excluded, the same as
+            # a missing body above.
+            try:
+                comment_body = reddit_prose(body_outcome.require())
+            except NotAPayload as refusal:
+                report.refusals.append(
+                    f"{root_document_id}: comment {external_id} body {text_ref} "
+                    f"is not a Reddit payload ({refusal}); it was excluded from "
+                    f"flattening."
+                )
+                continue
             comments.append(
                 StoredComment(
                     # PROSE AT THE RESOLUTION BOUNDARY. `text_ref` points at the
@@ -435,7 +452,7 @@ def assemble_reddit_documents(
                     # The rule is the signature: raw str is bytes, a typed field
                     # is a value.
                     external_id=external_id,
-                    body=reddit_prose(body_outcome.require()),
+                    body=comment_body,
                     score=_score_of(engagement),
                 )
             )

@@ -108,9 +108,11 @@ def main() -> int:
 
     _listed = [m["canonical_id"] for m in _yaml_ids.safe_load(
         contract.read_text(encoding="utf-8"))["models"]]
-    new_here = len(_listed) - conn.execute(
-        "SELECT count(*) FROM model_version WHERE canonical_id = ANY(%s)", (_listed,),
-    ).fetchone()[0]
+    _present = {r[0] for r in conn.execute(
+        "SELECT canonical_id FROM model_version WHERE canonical_id = ANY(%s)", (_listed,),
+    ).fetchall()}
+    new_here = len(_listed) - len(_present)
+    newly_seated = [c for c in _listed if c not in _present]
 
     # `unpolled`, NOT `seed`. Both files here hold REAL models - a person typed
     # the row because no poll carries it, not because the build needed a stand-in.
@@ -177,6 +179,12 @@ def main() -> int:
     conn.commit()
     conn.close()
     print("\nCOMMITTED. Every check passed.")
+    if newly_seated:
+        # STALE VERDICTS (#602, option b). Documents dropped as naming no model
+        # before these were seated keep that verdict until re-triaged.
+        print("\nNext, for documents triaged before these were seated:\n"
+              "  python scripts/retriage_seated_models.py --dry-run --models "
+              + ",".join(newly_seated))
     return 0
 
 

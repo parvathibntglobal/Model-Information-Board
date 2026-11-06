@@ -226,6 +226,34 @@ function Lifecycle({ m }) {
  * and context as listed, and how many engineers reported on it - each part
  * only where the catalogue has it (rule 6: nothing guessed).
  */
+/**
+ * A FALLBACK PRICE IN ITS OWN UNIT (#602): LiteLLM's community list, for a
+ * model OpenRouter does not price. Never shown as "per 1M tokens" and never
+ * as the maker's price - the source, the host and the date read beside it.
+ * No entry says so rather than leaving a blank (rule 6).
+ */
+function UnitPrice({ up, reason }) {
+  if (reason) return <p className="mp2-note">Fallback prices could not be read: {reason}.</p>
+  if (!up) return <p className="mp2-note">LiteLLM's community price list has no entry mapped to this model either.</p>
+  return (
+    <>
+      <dl className="mp2-dl">
+        {up.figures.map((f) => (
+          <div key={`${f.unit}-${f.direction}-${f.variant}`}>
+            <dt>{f.label[0].toUpperCase() + f.label.slice(1)}{f.variant === 'default' ? '' : `, ${f.variant}`}</dt>
+            <dd>{fmtUsd(f.usd)}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mp2-note">
+        From <a href={up.source_url} target="_blank" rel="noreferrer">{up.source_label}</a>, for
+        the host <code>{up.source_key}</code>, read {fmtDate(up.retrieved_at)}. Community-maintained,
+        not the maker's price list; the figure without a resolution is LiteLLM's own base figure.
+      </p>
+    </>
+  )
+}
+
 function shortAnswer(m) {
   const price = m.price_state === 'free' ? 'free, as OpenRouter lists it'
     : m.price_state === 'priced' && m.price_in != null && m.price_out != null
@@ -304,7 +332,10 @@ export default function ModelPage({ id }) {
         <section className="card stack stack-2">
           <h2 className="mp2-h">Price</h2>
           {m.price_state === 'not_published' ? (
-            <p className="mp2-na">OpenRouter publishes no per-token price for this model{m.type_price ? '' : ', and none we can show'}.</p>
+            <>
+              <p className="mp2-na">OpenRouter publishes no per-token price for this model{m.type_price || m.unit_price ? '' : ', and none we can show'}.</p>
+              <UnitPrice up={m.unit_price} reason={m.unit_price_reason} />
+            </>
           ) : (
             <dl className="mp2-dl">
               <div><dt>Input / 1M tokens</dt><dd>{m.price_state === 'free' ? 'Free' : m.price_in == null ? '—' : fmtUsd(m.price_in)}</dd></div>

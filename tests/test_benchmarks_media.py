@@ -557,3 +557,17 @@ def test_a_word_in_both_the_settings_and_never_settings_is_refused(tmp_path):
     with pytest.raises(ConfigError) as e:
         load(tmp_path)
     assert any("'high' is both a setting word" in p for p in e.value.problems)
+
+
+def test_tracked_media_models_get_rows_and_tracked_text_models_do_not():
+    """Seeds are the tracked TEXT models, so only those are left out here. The
+    tracked image and speech models used to be left out too, and were then in
+    neither list (2026-11-05, #602)."""
+    conn = _Conn(registry=[
+        ("elevenlabs/eleven-v3", "ElevenLabs v3"),
+        ("google/gemini-3.1-flash-image", "Google: Nano Banana 2"),
+        ("anthropic/claude-opus-5.5", "Anthropic: Claude Opus 5.5"),
+    ])
+    got = [m.id for m in get_registry_models(conn, [])]
+    assert "elevenlabs/eleven-v3" in got and "google/gemini-3.1-flash-image" in got
+    assert "anthropic/claude-opus-5.5" not in got

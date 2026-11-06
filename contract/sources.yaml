@@ -5716,3 +5716,68 @@ sweep_subreddits:
         avoids spending the sample on a population we already know we would
         discard, which would depress the survival figure for a reason unrelated
         to what it measures.
+  #: SUBREDDITS THE PER-MODEL REDDIT SEARCH NEVER STORES (#602 fix 3,
+  #: 2026-11-06). The search reaches all of Reddit, so this list is the search's,
+  #: not the sweep's: a hit from one of these is counted on the Reddit line and
+  #: not written. One reason per entry, as `excluded` above.
+  search_excluded:
+    - id: AIcrack
+      reason: >-
+        cracked-software distribution. Reached by the search for MAI-Voice-2.1
+        on 2026-11-06 (a list of voicebanks for a cracked synthesiser) and read
+        by the paid extractor. Not evidence about any model, and not material a
+        public board should draw on.
+
+# ============================================================================
+#  THE MEDIA LISTING SWEEP (#602 item 1, 2026-11-05)
+#
+#  Image, video and speech venues, swept on their own so their rates are never
+#  mixed with `sweep_subreddits` (Anooj's condition on #602). Run by hand -
+#  `python -m collect.cli ops sweep-reddit --media` - until two or three runs
+#  have given numbers; moving it to nightly is a later PR that carries them.
+#
+#  THE POPULATION, stated as the text block states its own: the newest 100
+#  posts per subreddit (4 pages x 25, sort new) ON THE DAY IT RAN. A RECENCY
+#  CUT, not a ranking cut. The bias is the CHOICE OF SUBREDDITS below - one
+#  image, one video and two speech venues, picked 2026-11-05 because a
+#  read-only check found 694 documents already stored from exactly these four
+#  - so a rate over them describes these communities, not media discussion in
+#  general.
+#
+#  THE FILTER IS THE MODEL NAME ALONE (`subject_only`). Every post in these
+#  venues is on topic, so a post passes when it names a tracked model; the
+#  text block's topic and signal phrases ("tool call", ...) would keep almost
+#  nothing from "made with Hailuo 3 Max". Comments under a kept post are read
+#  through the triage thread rule (`SUBJECT_FROM_UNAMBIGUOUS_ROOT`).
+#
+#  ITS OWN BUDGET (item 7): `max_requests` covers the listing pages AND the
+#  comment requests. A comment request the cap stops is DEFERRED - counted in
+#  the sweep summary and taken first by the next run - never dropped. The
+#  `over_18` skip applies and is counted (item 9).
+#
+#  TERMS (item 13). Every member is a Reddit community, so the platform ruling
+#  `reddit-via-rapidapi` governs it exactly as it governs the text block; a
+#  subreddit's own posting rules are not terms of service and grant nothing
+#  further. Recorded per block, not per member, for that reason.
+# ============================================================================
+sweep_media_subreddits:
+  version: "1.0"
+  chosen_on: 2026-11-05
+  draw: equal
+  sort: new
+  pages_per_subreddit: 4
+  posts_per_page: 25
+  #: 4 x 25 x 4 = 400 posts offered. The DENOMINATOR of every rate.
+  population_per_subreddit: 100
+  max_requests: 100
+  subject_only: true
+  terms_ruling: reddit-via-rapidapi
+  terms_evidence:
+    checked_on: 2026-11-05
+    governed_by_platform_ruling: true
+    full_text_republished: false
+  members:
+    - StableDiffusion    # image
+    - aivideo            # video
+    - ElevenLabs         # speech
+    - TextToSpeech       # speech

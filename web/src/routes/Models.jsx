@@ -147,6 +147,14 @@ function matches(models, query) {
   })
 }
 
+/** Which kind of model a tracked row is (`tracked_kind`, contract/tracked_models.yaml).
+ *  Text rows carry no label - most of the list - so only the image, video and
+ *  speech rows say what they are, which is also why they show no token price. */
+const KIND_LABEL = { image: 'Image model', video: 'Video model', speech: 'Speech model', transcription: 'Transcription model', decision: 'Decision model' }
+
+/** The Type filter's chips, in this order; a kind with no tracked model gets no chip. */
+const KIND_CHIPS = [['text', 'Text'], ['image', 'Image'], ['video', 'Video'], ['speech', 'Speech'], ['transcription', 'Transcription'], ['decision', 'Decision']]
+
 export default function Models() {
   useHead(modelsIndex())
   const [roster, setRoster] = useState(null)
@@ -169,6 +177,7 @@ export default function Models() {
   const [unreadable, setUnreadable] = useState(null)
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('reported')
+  const [kind, setKind] = useState('all')
 
   // ── COMPARE SELECTION ────────────────────────────────────────────────────
   // Held here rather than in a URL param: it is a transient choice being made,
@@ -222,9 +231,17 @@ export default function Models() {
 
   const shown = useMemo(() => {
     if (!roster) return []
-    const out = matches(roster, query)
+    const out = matches(roster, query).filter((m) => kind === 'all' || m.tracked_kind === kind)
     return [...out].sort(SORT_FN[sort] || SORT_FN.reported)
-  }, [roster, query, sort])
+  }, [roster, query, sort, kind])
+
+  // COUNTS OVER THE WHOLE LIST, not the filtered one, so a chip says how many
+  // models of that kind are tracked whatever else is typed.
+  const kindCounts = useMemo(() => {
+    const c = {}
+    for (const m of roster || []) c[m.tracked_kind] = (c[m.tracked_kind] || 0) + 1
+    return c
+  }, [roster])
 
 
   return (
@@ -359,6 +376,21 @@ export default function Models() {
               ))}
             </div>
 
+            {/* THE TYPE, from each row's `tracked_kind` (contract/tracked_models.yaml). */}
+            <div className="row" role="group" aria-label="Filter by type" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span className="label">Type</span>
+              <button type="button" className={`chip${kind === 'all' ? ' chip-on' : ''}`}
+                      aria-pressed={kind === 'all'} onClick={() => setKind('all')}>
+                All {roster.length}
+              </button>
+              {KIND_CHIPS.filter(([k]) => kindCounts[k]).map(([k, label]) => (
+                <button key={k} type="button" className={`chip${kind === k ? ' chip-on' : ''}`}
+                        aria-pressed={kind === k} onClick={() => setKind(k)}>
+                  {label} {kindCounts[k]}
+                </button>
+              ))}
+            </div>
+
             <span className="label">
               {shown.length === roster.length
                 ? `${roster.length} models`
@@ -463,6 +495,7 @@ function ModelRow({ m, picked, onPick, atCap }) {
           <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
             {m.provider}
+            {KIND_LABEL[m.tracked_kind] ? ` · ${KIND_LABEL[m.tracked_kind]}` : ''}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
           {/* ⚠ THE CAPABILITY CHIPS ARE GONE, AND THEY NEVER RENDERED. They
@@ -520,6 +553,7 @@ function ModelRow({ m, picked, onPick, atCap }) {
           <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
             {m.provider}
+            {KIND_LABEL[m.tracked_kind] ? ` · ${KIND_LABEL[m.tracked_kind]}` : ''}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
         </span>
