@@ -582,3 +582,19 @@ def test_the_window_is_contract_and_scopes_both_selections():
     src = inspect.getsource(fetch_model.build_thread_inputs)
     assert "+ FRESH_THREAD_SQL +" in src
     assert "extraction_window_days()" in src
+
+
+def test_the_fetch_path_gives_e6_the_document_text():
+    """`_document_facts(conn, doc_ids)` was called without `text_of`, so E6's
+    hard rejection found no text for ANY document and recorded every one
+    `unvetted` - promotional, affiliate and pre-release claims reached the board
+    unchecked while the E6 line said it had run. The other two extraction paths
+    (judge/cli.py, scripts/run_extraction_batched.py) always passed the text."""
+    import ast
+
+    src = inspect.getsource(fetch_model.extract_and_curate)
+    calls = [n for n in ast.walk(ast.parse(src.lstrip()))
+             if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "_document_facts"]
+    assert calls, "extract_and_curate no longer builds document facts here"
+    assert all(len(c.args) >= 3 or any(k.arg == "text_of" for k in c.keywords) for c in calls), (
+        "every _document_facts call must pass the document text, or E6 cannot run")
