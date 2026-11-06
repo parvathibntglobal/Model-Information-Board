@@ -3050,7 +3050,20 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # 2026-10-08 (X's date format was never parsed), so X produced 0 board
     # entries from 233 threads read while this stage said nothing. Kept now and
     # counted on the E5 line below (rule 4: an absence this run caused).
-    facts, undatable = _document_facts(conn, doc_ids)
+    # E6 NEEDS THE TEXT, AND THIS PATH NEVER PASSED IT (2026-11-06, #602).
+    # `_document_facts` takes the document text as `text_of` - the substrate
+    # every quote was verified against, which the database cannot supply - and
+    # `run_extraction_batched.py` and `judge/cli.py` pass it. The Fetch path did
+    # not, so `pipeline._vet` found `text is None` for EVERY document and
+    # recorded them all `unvetted`: promotional, affiliate and pre-release
+    # claims reached the board unchecked while the E6 line said "hard rejection
+    # ran over every document". The threads already hold the text.
+    doc_text = {
+        doc_id: text
+        for thread in threads
+        for doc_id, text in thread.raw_text_of.items()
+    }
+    facts, undatable = _document_facts(conn, doc_ids, doc_text)
     mvo = _model_version_map(conn)
     resolver = RegistrySurfaceResolver.from_connection(conn)
 
@@ -3646,10 +3659,23 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         # The capability-card stages (E5b proposals, E7 cells) print nothing
         # with the legacy path off: they did not run, and `judge/legacy.py` is
         # where that is said. E6's hard rejection still runs for the board.
+        # WHAT E6 ACTUALLY DID, COUNTED. This line was a fixed sentence, "hard
+        # rejection ran over every document", printed whether or not a single
+        # document had reached the check - which it had not, on this path.
+        _rejected = {d: v for r in results for d, v in r.rejected_documents.items()}
+        _unvetted = sorted({d for r in results for d in r.unvetted_documents})
+        _vetted = {q.document_id for r in results for _c, q in r.extraction.verified}
+        _by = Counter(trigger for trigger, _detail in _rejected.values())
         prog.stage("E6", "Vet", "ok",
-                   detail="hard rejection ran over every document: promotional, affiliate "
-                          "and pre-release claims dropped, and their board entries with "
-                          "them")
+                   rejected=len(_rejected), unvetted=len(_unvetted),
+                   rejected_by=dict(_by) or None,
+                   detail=(f"hard rejection ran over {len(_vetted) - len(_unvetted)} of "
+                           f"{len(_vetted)} document(s) with verified claims: "
+                           f"{len(_rejected)} rejected"
+                           + (f" ({', '.join(f'{k} x{n}' for k, n in _by.most_common())})"
+                              if _by else "")
+                           + (f"; {len(_unvetted)} UNVETTED - no text reached the check, "
+                              f"so those claims were not vetted" if _unvetted else "")))
         return
     # ⚠ NOTHING IS STORED HERE ANY MORE (#434). `capability_candidate` was the
     #   queue behind the Capability candidates admin panel, and that panel was
