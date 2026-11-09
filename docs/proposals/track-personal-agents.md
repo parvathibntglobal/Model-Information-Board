@@ -170,6 +170,89 @@ ruling is pending, and not to touch `FAMILY_WORDS` until it exists. If the
 agent version measures well, it's evidence for that ruling. It is not a way
 around it.
 
+## The search probe: what the names actually find (2026-11-09, #610)
+
+`docs/measurements/agent-search-probe-2026-11-09.py`, read-only: public search
+APIs, no database, no model call. It asked each platform once per query, for 18
+queries over the 9 agents agreed on #610, and sorted each result. 90 queries
+cost 18 Reddit and 18 X requests.
+
+**The sort:** names the agent by a compound alias; or the bare name with a
+giveaway word within 200 characters (Muse and Dots only); or a Muse **model**;
+or unclear.
+
+**Compound aliases.** The cells are results naming the agent by a compound
+alias, out of results sampled; "+N ctx" is the bare name beside a giveaway:
+
+| Agent | Hacker News (since 1 Aug) | Reddit | X | Bluesky |
+|---|---|---|---|---|
+| Grok Bot | 78 / 78 | 63 / 83 | 28 / 42 | 82 / 98 |
+| OpenClaw | 40 / 40 | 37 / 41 | 11 / 22 | 44 / 50 |
+| Hermes Agent | 40 / 40 | 33 / 44 | 23 / 26 | 35 / 49 |
+| Claude Cowork | 71 / 72 | 37 / 81 | 24 / 41 | 89 / 100 |
+| Claude Duet | 25 / 27 | 29 / 37 | 29 / 49 | 46 / 54 |
+| ChatGPT Work | 32 / 38 | 20 / 39 | 6 / 21 | 30 / 50 |
+| Gemini Spark | 7 / 7 | 27 / 39 | 14 / 21 | 41 / 50 |
+| Muse | 27 / 46 +18 ctx | 34 / 73 +17 ctx | 19 / 48 +8 ctx | 50 / 88 +14 ctx |
+| Dots | 18 / 29 +8 ctx | 26 / 80 | 27 / 43 | 53 / 100 +6 ctx |
+
+**How to read it.** One page per query, so these are shares of a first page,
+not population rates. Each cell is **summed over the agent's alias queries,
+with overlap not removed**: a post returned by both `grok bot` and `grokbot`
+is counted twice. The Claude Cowork Reddit cell, 37 / 81, includes the stemmed
+`cowork` query, which is dropped below. Reddit and X count a post's title and
+body as separate texts. dev.to is left out of the table: its search returns titles and
+descriptions only, which isn't enough to sort, and of its 30 results a query
+matched the compound form in 0 to 15. The board reads dev.to bodies, so it gets
+measured on the hand run.
+
+**What it changes for the seating PR:**
+
+- **Drop `cowork` as a search query.** Reddit's search stems it: 2 of 41
+  results contain "cowork", and the rest are about coworkers. Keep it only as
+  an alias for matching, where the word boundary already refuses "coworker".
+  Search with `claude cowork`.
+- **Drop `anthropic duet`:** 0 on Hacker News, 3 on Reddit. `claude duet`
+  carries the agent.
+- **Add plurals and spacing as aliases,** for example "Grok Bots". A Reddit
+  post about someone's Grok Bots setup missed `grok bot` because of the
+  plural.
+- **Keep `muse whatsapp` as a search pair. It finds first-hand reports the
+  compound form misses:** 35 of 50 Bluesky results, 19 of 38 Reddit and 16 of
+  22 X are the bare "Muse" beside a giveaway. For example, posts about
+  removing Muse from WhatsApp, and about there being no WhatsApp connector.
+  `muse meta` adds less, and on Hacker News it matches 3,236 items, so it is
+  broad.
+
+  **A pair hit that names only "Muse" is an in-thread short name** (#610,
+  decision 4). On the first hand runs it is **counted, not filed**: it's held
+  in `unresolved_entry` like any other short-name quote, and read before the
+  rule files anything. The seating PR must not file pair hits directly.
+- **The Dots pairs are noisy.** `dots chatgpt` sorted only 3 of 40 Hacker News
+  results as compound and 13 as context, and `dots openai` 14 and 8 of 40.
+  Start Dots with its compound aliases only (`openai dots`; `chatgpt dots` was
+  weak on Reddit at 6 of 40), and add a pair only if the hand run shows
+  missed reports.
+- **Muse models barely contaminate:** 0 to 6 per sample, so the longest-match
+  rule is enough.
+- **Treat the subreddit as a giveaway.** Many "unclear" Reddit results are the
+  agent named bare in its home subreddit. For example: a post in an OpenAI
+  subreddit asking what Dots is, without naming OpenAI; and a post in the Grok
+  subreddit weighing Grok against Dots and Muse by their bare names. The
+  in-context rule should count the thread's subreddit as naming the owner
+  (r/grok for Grok Bot, the Meta subreddits for Muse, r/OpenAI and r/ChatGPT
+  for Dots). **Its error rate is reported per subreddit,** not as one figure,
+  because r/OpenAI and r/ChatGPT are general enough that "dots" can mean other
+  things there.
+- **Expect referral spam.** Posts sharing a Muse invite code for a reward came
+  back on X. That is E6's discount-code trigger, which runs on every fetch
+  since #608.
+
+**No Reddit or X text is quoted in this section.** Each case above is described
+in our own words, because the repo is public and `contract/publication.yaml`
+withholds Reddit and X text. An earlier commit on this branch quoted four
+snippets; #611's review caught it.
+
 ## How it would collect
 
 Nothing new to build for collection. A tracked row's aliases already drive
@@ -217,6 +300,121 @@ and counting apply unchanged. The changes are:
 - **Later, if the first runs justify it:** a listing sweep of agent-specific
   subreddits, shaped like #602's media sweep (store every post, fetch comments
   only where a known name appears).
+
+## How a report is shown (added 2026-11-09, #610)
+
+assistantbenchmark's Muse page reads better than a board row, and it's worth
+being exact about why. Of the 20 items visible on 2026-11-09:
+
+- **18 are from news and review outlets and 2 from a blog.** None is from
+  Reddit, X or a forum, and every one is dated 23–24 September, the launch
+  coverage.
+- **Each item is a long excerpt, 80 to 800 characters,** with no quotation
+  marks, written by a journalist. That's why it reads as polished.
+- **No method is stated** beyond "175 quotes, linked to source", and some
+  tags don't fit their text.
+
+So the gap isn't that their claims are crafted and ours are quotes. A
+one-sentence verbatim quote from a user often lacks the context that makes it
+mean something. The agent page should close that gap without giving up the
+verbatim proof (rule 1), and without crossing the publication terms each source
+carries. Reviewed on #611, which corrected the first draft of this section.
+
+### What a report shows depends on its source
+
+The first draft said Reddit and X context "comes through the official embed".
+That's the **evidence feed's** term, not the board's. Under
+`contract/publication.yaml` today:
+
+- **The board** withholds Reddit, X, arXiv and Bluesky entirely (`withheld_from_public`): no quote, no
+  link, no handle, no platform name, and no embed.
+- **The feed** follows the derived-post terms: a paraphrase for every report,
+  Reddit and X cited only by their official embed, and no verbatim quote from
+  any source.
+
+Most agent reports will come from Reddit and X (that's where the nightly
+searches sized on #610 look), so the page needs a rule per source:
+
+| Source | What the agent page shows |
+|---|---|
+| A source the board shows (blogs, Hacker News, GitHub, dev.to, Hugging Face, the forum) | The paraphrase, then the verbatim quote with its context and a link |
+| Reddit, X | The paraphrase and the official embed, never their text |
+| arXiv | The paraphrase and a link, with the arXiv acknowledgement |
+| Bluesky | Listed and counted only, until its hold is lifted |
+
+**Which terms the agent page follows is a `contract/` change.** It's either an
+agent-page line in `publication.yaml` or a statement that it follows the
+feed's terms. It gets proposed with the page, for review.
+
+### 1. Context around the quote: verbatim, and capped
+
+- **Only for sources the board shows.** The page shows the sentence before and
+  after the quote, taken from the source text.
+- **Found by exact substring match.** `board_entry` keeps the quote and its
+  `document_id`, but not the quote's position: that lived on `claim` rows,
+  which stopped being stored in #502. So the context is found by exact
+  substring match of the stored quote in the document's text, the same match
+  rule 1 uses, or by storing the offset on the row.
+- **When the match fails, the page says no context could be found** (rule 4),
+  rather than showing the quote alone as if it had none.
+- **The context stays a short quotation.** Every quote rests on the use-basis
+  undertaking in `contract/sources.yaml`: "a short quotation, attributed and
+  linked, for commentary and comparison, never the full text". The sentences
+  around a quote could turn a short post into the whole post. A
+  three-sentence comment whose middle sentence is the quote would be shown in
+  full. So there are two limits:
+  - a cap on the characters shown in total, quote plus context;
+  - a cap on the share of the document's text shown, with no context at all
+    when that share would be crossed.
+- **Past either limit, the page says "context not shown"**, not nothing (rule
+  4). The numbers are the team's call, and they belong in `publication.yaml`
+  beside the per-source rule above, proposed with the page.
+
+### 2. A plain-language line above the report's quotes
+
+- **The evidence feed already writes the line.** `judge/feed/paraphrase.py`
+  writes **one paraphrase per report** (one document about one model), from
+  all of that report's excerpts, worded as "The author found…". It stores it
+  only after code checks its shape: no long run copied from the excerpts,
+  every number present in the source, no handle, URL or embed-only platform
+  name.
+- **So the agent page shows it above that report's group of quotes, not
+  above each quote.** The first draft's example ("Users report Muse can't
+  message sellers directly") was a per-quote claim spoken for many users, and
+  the stored paraphrase is neither. A per-quote headline would need a new
+  prompt, and so a new model call, which is a separate decision.
+- **Agents get paraphrases with no new wiring.** They are stored for every
+  model with reports and shown for the seated ones, so a seated agent gets
+  them, at the feed stage's spend, outside the extraction cap.
+  `paraphrase_problem` exempts the model's own label, and none of the nine
+  agent names carries a number or a domain, so the number and identity checks
+  behave as they do for models.
+- **The per-model summary stays pending until a person approves it,** as now.
+- **The rule-2 record in `CLAUDE.md` names the feed** (#558) as the surface
+  where model text reaches a page with no person reading each item. Showing
+  the same stored text on agent pages makes no new model call, but it is a
+  second such surface. So the change that ships the agent page also adds one
+  line to that record naming it.
+
+### 3. Hands-on reviews as one more source, labelled as press
+
+- **Journalists' first-hand testing is real evidence** ("I then booked the
+  flights myself…"), and the blog harvest can take review feeds.
+- **Open question: does press count towards "voices"?** The board's totals
+  count people reporting their own use. If reviews count, then at launch,
+  when press dominates (18 of 20 items on assistantbenchmark's Muse page), an
+  agent's count could be mostly press with nothing on the page saying so.
+  The source proposal must answer it either way:
+  - press is listed and labelled, but **not** counted in voices or reports;
+    this is #611's recommendation, so that "voices" means one thing on every
+    page;
+  - or press is counted, and the total shows how many of the voices are
+    press.
+
+**The order:** 1 and 2, the per-source rule, the context limits and the
+rule-2 line all come with the agent page (step 4 of the order below), not the
+seating PR. 3 is a separate source proposal, after the first hand runs show
+how much users alone produce.
 
 ## What this enables
 
