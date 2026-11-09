@@ -1935,8 +1935,9 @@ columns:
       reviewed: false
       state: read
     first_seen_at:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(): when the row was first written, i.e. when the model was seated. Read by collect/triage/retriage.py seated_since() (#613): a document fetched after it was triaged with the model already in the registry, so it cannot hold a stale verdict for it.'
     id:
       reviewed: false
       state: read
