@@ -131,10 +131,29 @@ so the middle column is an estimate, not a count.** Even so:
    post, so this finds "Meta launched Muse… Muse booked my flight". Later, if
    the first runs justify it, a sweep of agent-specific subreddits, where the
    short name is the natural one.
+
+   **These pairs are query terms, never aliases (#609 review).** On #602's
+   branch, the Reddit arm fetches comments only for a post that names a
+   variant (`_names_a_variant`: separators folded, the whole phrase in order),
+   and the same test decides what X keeps for media kinds. "Meta launched
+   Muse… Muse booked my flight" doesn't contain the phrase `muse meta`. So if
+   the pairs were aliases, the threads this stage exists to find would be
+   stored without their comments. They go in their own field on the seat
+   (say `search_terms:`), read by the search arms.
+
+   **Holding them apart isn't enough on its own.** That post contains neither
+   alias as a whole phrase either ("meta muse", "muse by meta"), so the
+   comment check would still skip it. For an agent, the check has to accept a
+   post that names an alias, **or** contains every word of one search pair
+   anywhere, separators folded as `names_folded` does. That's the in-context
+   rule from stage 2, applied one step earlier. It decides only whether
+   comments are fetched, never attribution. The seating PR should count both
+   ways a post qualified, so the first runs show what the pair rule adds.
 2. **Filing a quote.** A quote that says only "Muse" files under the agent
    only when **its thread** names the agent unambiguously ("Meta Muse", "Muse
    by Meta", or Meta together with agent wording), **and** the quote doesn't
-   name a Muse model. Otherwise it is held in `unresolved_entry` (#602), never
+   name a Muse model. Otherwise it is held in `unresolved_entry` (#602, the
+   `held_entries` path: held by the name as written), never
    guessed. A missed mention costs a count; a wrong one files an agent's
    complaint under Meta's model (rules 6 and 10).
 
@@ -158,10 +177,33 @@ the per-model search on every source we harvest: Reddit, Hacker News, X,
 Bluesky, dev.to, GitHub and arXiv. Triage, verbatim-quote extraction (rule 1)
 and counting apply unchanged. The changes are:
 
-- **`kind: agent`.** Non-text kinds are already on the tracked list
-  (ElevenLabs v3 as speech, Jev 1.13 as `decision`), and #602 adds the "no
-  price published" state. An agent has no token price, so it shows plan
-  prices, if any, from a cited source. That needs #602's `unit_price` table.
+- **`kind: agent`, with a decision per search arm (#609 review).**
+  `judge/config.py` accepts any `kind` string. But #602 branches the harvest
+  on `MEDIA_KINDS`, and every other kind takes the text-model path, which
+  would cut agents off:
+  - **X** keeps a text-model post only if it names the model **and** a
+    capability phrase from `contract/queries.yaml` ("tool call", "didn't
+    follow"). "Muse booked my flight but couldn't message the seller" has
+    neither. Media lost almost everything the same way (X kept 1 of 71
+    Seedance 2.0 posts) before the fix.
+  - **GitHub** crosses the name with the same text vocabulary, in LLM-tooling
+    repos, where agents are rarely discussed.
+
+  **So for the first runs, `agent` takes the media path: name-only.** The
+  "agent tasks" headings below can become its own query vocabulary once
+  they're built from real quotes. The seating PR also adds `agent` to
+  `KIND_LABEL` and the Models page's Type chips. Without that, an agent row
+  shows no label and no chip.
+- **No price column at first.** #602's `unit_price` holds per-unit rates (per
+  second, per image, per million characters), and its fallback source,
+  LiteLLM's list, has no agents. A subscription ("$20 a month, includes Muse")
+  isn't a per-unit rate. So an agent shows "no price published" until there's
+  a cited plan-price source and somewhere to keep it. That's the honest state,
+  and it's a later decision.
+- **Non-text kinds on the tracked list today** are image, video and speech
+  (Nano Banana 2, GPT Image 2.5 Sunburst, Seedance 2.0, ElevenLabs v3). Jev
+  1.13 went back to `kind: text` on #602's branch, because the SEO keyword
+  plan pairs it with text models.
 - **An "agent tasks" heading set** in the vocabulary, proposed through the
   curation proposals and regenerated through `choose_name` (#607). It would be
   built from the first run's real quotes, using assistantbenchmark's 15
@@ -198,9 +240,19 @@ a later proposal.
 
 A fetch costs about $0.01 a night per model: the three nights to 2026-11-09
 averaged $0.0103 over 38 fetches. Ten agents is about $0.10 a night, plus about
-$0.03 for each first fetch at the 100-thread cap. Search quota is the larger
-cost, on Reddit and X through RapidAPI. It would be read from the first hand
+$0.03 for each first fetch at the 100-thread cap.
+
+**Search requests are the larger cost.** #602's media runs used about 9 Reddit
+requests per model fetch (3 searches plus comment threads) and 1 to 3 X
+requests. Ten agents nightly is roughly 90 Reddit and 10 to 30 X requests a
+night. That's well inside the quotas: the latest readings, 2026-11-09 01:03
+UTC, were Reddit 999,021 of 1,000,000 a month left and X 99,747 of 100,000.
+But it's the number to watch, and it would be read again from the first hand
 runs before anything goes nightly.
+
+**Scope:** the tracked list was set at 25 entries on 2026-11-06. The first
+batch would add 8 to 10 rows, which is Parvathi's call alongside the open
+questions.
 
 ## Open questions
 
