@@ -115,6 +115,24 @@ log = logging.getLogger(__name__)
 #: absent despite being the same shape.
 SUBJECT_FROM_THREAD_ROOT = frozenset({"hackernews"})
 
+#: Platforms whose comments read the thread root ONLY WHERE THE ROOT NAMES
+#: EXACTLY ONE MODEL - the third option in
+#: `docs/proposals/for-the-team-github-thread-subject-widening.md`, as a
+#: predicate here and not an entry in the set above. Reddit, agreed on #602
+#: (item 2) as a KEEP signal only: 680 of 681 dropped comments in four media
+#: subreddits carried `no-resolvable-entity` because a reply under a thread
+#: about one model rarely names it again.
+#:
+#: Unchanged by this, and the reason it is only a keep signal: the subject gate
+#: still reads the document's own text first, an inherited subject still never
+#: drops a document (`out_of_window` sees own matches only), and resolution
+#: still refuses inheritance (`judge/pipeline.py:subject_was_inherited`), so a
+#: comment that names no model never has the thread's model written onto a
+#: claim. A root naming two or more models gives its comments nothing - the
+#: comment could be about either - and is counted in `root_names_several`; a
+#: root naming no known model is counted apart, in `root_names_none`.
+SUBJECT_FROM_UNAMBIGUOUS_ROOT = frozenset({"reddit"})
+
 
 def _prose_by_source() -> dict[str, tuple[object, bool]]:
     """source -> (the function that turns its payload into prose, wants_bytes).
@@ -251,6 +269,7 @@ LEFT JOIN document r
       AND d.source = ANY(%(subject_sources)s)
 WHERE d.triage_verdict IS NULL
   AND (%(sources)s::text[] IS NULL OR d.source = ANY(%(sources)s))
+  AND (%(ids)s::text[] IS NULL OR d.id = ANY(%(ids)s))
 ORDER BY d.source, d.id
 """
 
@@ -323,6 +342,13 @@ class TriageStoreRun:
     root_unresolvable: int = 0
     #: Root text_ref resolved to a row and the PAYLOAD would not read.
     root_unreadable: int = 0
+    #: Documents on a `SUBJECT_FROM_UNAMBIGUOUS_ROOT` platform whose root was
+    #: read and gave them nothing to inherit, SPLIT BY WHY (#602). They were one
+    #: counter, `root_ambiguous`, and a 2026-11-06 run's 48 were all the first
+    #: kind - roots naming no known model, a search problem - while the name said
+    #: the second, an attribution problem. Different findings, different fixes.
+    root_names_none: int = 0
+    root_names_several: int = 0
 
     population_fingerprint: str | None = None
 
@@ -399,6 +425,12 @@ class TriageStoreRun:
                 "DIFFERENT READING UNIT, so this survival figure is over a "
                 "mixed population."
             )
+        if self.root_names_none or self.root_names_several:
+            lines.append(
+                f"  root read, nothing inherited: {self.root_names_none} under a root "
+                f"naming no known model, {self.root_names_several} under a root "
+                f"naming several"
+            )
         if self.root_unresolvable or self.root_unreadable:
             lines.append(
                 # NO `⚠` IN A PRINTED STRING. `scripts/triage_stored_corpus.py`
@@ -449,7 +481,9 @@ def triage_stored(
     batch: int = 200,
     dry_run: bool = True,
     sources: tuple[str, ...] | None = None,
+    document_ids: list[str] | None = None,
     subject_sources: frozenset[str] | None = None,
+    unambiguous_root_sources: frozenset[str] | None = None,
     in_window: dict[str, bool] | None = None,
     allowed_languages: frozenset[str] | None = None,
 ) -> TriageStoreRun:
@@ -470,6 +504,10 @@ def triage_stored(
             convention is that a staging write session is announced first. A
             caller that wants the write says so.
         sources: restrict to these, or None for every source.
+        document_ids: restrict to these documents, or None for all. NARROWS
+            only - a listed id that already has a verdict is still skipped.
+            Used by the scoped re-triage (`collect/triage/retriage.py`), which
+            clears exactly the verdicts it means to recompute first.
         subject_sources: platforms whose subject gate reads the thread root.
             Defaults to `SUBJECT_FROM_THREAD_ROOT`, which the 2026-09-08 ruling
             scopes to Hacker News. **A PARAMETER SO A COUNTERFACTUAL IS
@@ -478,6 +516,10 @@ def triage_stored(
             with a different value here, recorded beside the ruling's own run.
             Passing something wider does NOT widen the ruling - it measures
             what widening would do.
+        unambiguous_root_sources: platforms whose comments read the root only
+            where it names exactly one model. Defaults to
+            `SUBJECT_FROM_UNAMBIGUOUS_ROOT`; a parameter for the same
+            counterfactual reason as `subject_sources`.
         in_window: `model_version.in_window`, per canonical id. Absent means
             UNKNOWN, never out (`out_of_window`).
         allowed_languages: None leaves `wrong_language` UNAVAILABLE, which is
@@ -508,11 +550,15 @@ def triage_stored(
 
     if subject_sources is None:
         subject_sources = SUBJECT_FROM_THREAD_ROOT
+    if unambiguous_root_sources is None:
+        unambiguous_root_sources = SUBJECT_FROM_UNAMBIGUOUS_ROOT
+    unambiguous_only = frozenset(unambiguous_root_sources) - frozenset(subject_sources)
     pending = conn.execute(
         _SELECT,
         {
-            "subject_sources": list(subject_sources),
+            "subject_sources": list(frozenset(subject_sources) | unambiguous_only),
             "sources": list(sources) if sources else None,
+            "ids": list(document_ids) if document_ids is not None else None,
         },
     ).fetchall()
 
@@ -542,6 +588,24 @@ def triage_stored(
             run._bump(source, "root_unreadable")
         root_cache[root_id] = text
         return text
+
+    #: root document id -> how many models its text names. Cached like the text.
+    root_models: dict[str, int] = {}
+
+    def _models_named(root_id: str, text: str) -> int:
+        if root_id not in root_models:
+            # WITH NEAR-MISSES REFUSED, as the document's own text is read:
+            # `opus 5` inside `opus 5.5` is not a second model. A matched
+            # surface with no owner (declared, never derived) adds none, so a
+            # root named only that way inherits nothing - an unknown owner is
+            # not read as "one model" (rule 6).
+            from collect.triage.entity import resolve_with_near_misses
+
+            owners: set[str] = set()
+            for surface in resolve_with_near_misses(text, population).hits:
+                owners |= set(population.owners.get(surface, ()))
+            root_models[root_id] = len(owners)
+        return root_models[root_id]
 
     def _flush(rows: list[dict]) -> None:
         """`conn.commit()`, not `conn.transaction()`.
@@ -599,7 +663,8 @@ def triage_stored(
             continue
 
         subject_text: str | None = None
-        if source in subject_sources and parent_id is not None:
+        reads_root = source in subject_sources or source in unambiguous_only
+        if reads_root and parent_id is not None:
             if root_text_ref is None:
                 # The id is set and points at nothing stored. NAMED.
                 if thread_root_id is not None:
@@ -607,6 +672,14 @@ def triage_stored(
                     run._bump(source, "root_unresolvable")
             else:
                 subject_text = _root_text(thread_root_id, root_text_ref, source)
+                named = (_models_named(thread_root_id, subject_text)
+                         if subject_text is not None and source in unambiguous_only
+                         else 1)
+                if named != 1:
+                    subject_text = None
+                    counter = "root_names_none" if named == 0 else "root_names_several"
+                    setattr(run, counter, getattr(run, counter) + 1)
+                    run._bump(source, counter)
 
         result = triage(
             Document(

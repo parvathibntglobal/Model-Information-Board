@@ -566,6 +566,10 @@ export const boardEntries = () => request('/admin/board-entries')
 //: the gap between them.
 export const discussedModels = () => request('/admin/discussed-models')
 
+// Models the board holds entries about but has not seated (#602), against the
+// seating bar. NOT cached: a run adds held entries and a seat files them.
+export const adminHeldModels = () => request('/admin/held-models')
+
 // Every prompt this project sends to a model, COMPOSED by the backend from the
 // real builders rather than transcribed. A copy in the frontend would drift the
 // first time somebody edits a prompt and not this file, and then the page would

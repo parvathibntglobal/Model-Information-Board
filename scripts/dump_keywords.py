@@ -58,7 +58,11 @@ def build() -> dict:
 
     import scripts.fetch_model as fm
     from collect.adapters.queries.contract import load_queries
-    from collect.adapters.queries.github import plan_searches
+    from collect.adapters.queries.github import (
+        load_media_repos,
+        plan_mention_searches,
+        plan_searches,
+    )
     from collect.adapters.x import club_surfaces
     from judge.config import tracked_models
 
@@ -97,6 +101,27 @@ def build() -> dict:
 
     queries = load_queries()
     entries = [e for cap in fm.CAPABILITIES for e in queries.for_capability(cap)]
+    # A MEDIA MODEL IS SEARCHED DIFFERENTLY (#602), so the page shows what a
+    # fetch of THAT kind sends, read from the same planner and contract.
+    media_repos, media_cap = load_media_repos()
+
+    def filters_for(kind: str) -> dict[str, str]:
+        """How each arm decides which RESULTS it keeps, for this kind of model."""
+        media = kind in fm.MEDIA_KINDS
+        name = "kept if it names the model in any spelling (separators folded)"
+        return {
+            "github": (name if media else
+                       "kept if it names the model AND matches the query's topic or "
+                       "signal phrase"),
+            "reddit": ("comments fetched only for posts that name the model; other "
+                       "hits kept without comments; excluded subreddits not stored"),
+            "x": (name + " - no capability phrase required" if media else
+                  "kept if it names the model AND a capability topic or signal phrase"),
+            "arxiv": "no result filter: every paper found is stored, triage judges later",
+            "blogs": "not searched per model",
+            **{pid: "no result filter: every hit is stored, triage judges later"
+               for pid, _sid, _name, _cap in fm.UNIFORM_PLATFORMS},
+        }
     capability_queries = [
         {
             "capability": cap,
@@ -119,7 +144,8 @@ def build() -> dict:
                     "searches_nothing": True,
                     "why": "no registry row, so no aliases to search",
                     "per_platform": {}, "github_queries": [],
-                    "github_request_count": 0,
+                    "github_request_count": 0, "kind": want.kind,
+                    "github_repos": [], "filters": {},
                 })
                 continue
             row = conn.execute(
@@ -142,9 +168,12 @@ def build() -> dict:
                     per[arm["id"]] = variants[:b]
 
             github_queries = []
+            media = want.kind in media_repos
             if variants:
                 try:
-                    plan = plan_searches(entries, variants, scope=fm.SCOPE)
+                    plan = (plan_mention_searches(variants, media_repos[want.kind],
+                                                  max_requests=media_cap)
+                            if media else plan_searches(entries, variants, scope=fm.SCOPE))
                     github_queries = [
                         {
                             "query": r.query,
@@ -172,7 +201,14 @@ def build() -> dict:
                 # SAID, because "6 requests from 3 variants" reads as a bug until
                 # you know two spellings can share one request.
                 "github_request_count": len(github_queries),
+                # WHICH KIND, AND WHAT THAT CHANGES (#602): a media model's GitHub
+                # queries are its name alone in its kind's repos, and two arms
+                # filter its results on the name instead of a capability phrase.
+                "kind": want.kind,
+                "github_repos": list(media_repos[want.kind]) if media else [],
+                "filters": filters_for(want.kind),
             })
+        sweeps = _subreddit_sweeps(conn, models)
     finally:
         conn.close()
 
@@ -180,6 +216,10 @@ def build() -> dict:
         "arms": arms,
         "capability_queries": capability_queries,
         "scope": list(fm.SCOPE),
+        "media_request_cap": media_cap,
+        # THE SUBREDDIT SWEEPS (#602): listings, not per-model searches, so their
+        # keywords are the names a post must carry, not a query.
+        "subreddit_sweeps": sweeps,
         "models": models,
         "count": len(models),
         "ordering_note": (
@@ -189,6 +229,54 @@ def build() -> dict:
             "four ways spends every slot on the same phrase."
         ),
     }
+
+
+def _subreddit_sweeps(conn, models: list[dict]) -> list[dict]:
+    """What each subreddit sweep keeps, with the names it looks for.
+
+    A sweep lists a subreddit's newest posts; no model's fetch runs it. The
+    media sweep reads comments for posts that name ANY model the registry, its
+    aliases or the catalogue knows, so its keywords are those names - shown
+    here for the tracked media models, with the full count beside them.
+    """
+    import scripts.fetch_model as fm
+    from collect.ops.sweep_reddit import _known_model_names
+    from collect.registry.sources import load_sources
+
+    src = load_sources()
+    known = _known_model_names(conn)
+    out = []
+    for key, label, schedule in (
+        # Only the media sweep: no workflow runs the text block's listing.
+        ("sweep_media_subreddits", "Media search",
+         "weekly, Mondays UTC, before the model fetches (scheduled-fetches.yml)"),
+    ):
+        block = getattr(src, key, None) or {}
+        if not block:
+            continue
+        media = bool(block.get("subject_only"))
+        queries = [{"query": str(q.get("query")), "kind": q.get("kind")}
+                   for q in block.get("queries") or [] if isinstance(q, dict)]
+        pages = block.get("pages_per_query" if queries else "pages_per_subreddit")
+        per = block.get("posts_per_page")
+        out.append({
+            "block": key, "label": label, "schedule": schedule,
+            # The media block searches (2026-11-09); the text block lists.
+            "queries": queries,
+            "subreddits": [] if queries else [str(m) for m in block.get("members") or []],
+            "posts_per_subreddit": (pages * per) if pages and per else None,
+            "max_requests": block.get("max_requests"),
+            "rule": ("every post stored; comments read only for posts naming a "
+                     "known model (any spelling, separators folded)" if media else
+                     "a post is kept when it names a seated model AND a topic or "
+                     "signal phrase from the GitHub vocabulary above"),
+            "names": [{"model": m["name"], "kind": m.get("kind"),
+                       "spellings": list(m.get("variants") or [])}
+                      for m in models
+                      if (m.get("kind") in fm.MEDIA_KINDS) == media],
+            "known_names_count": len(known) if media else None,
+        })
+    return out
 
 
 def main() -> int:

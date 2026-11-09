@@ -1,0 +1,81 @@
+# LiteLLM's community price list, as a FALLBACK for media models OpenRouter
+# publishes no price for. Added 2026-11-05, agreed on #602 (items 3 and 4).
+#
+# WHAT IT IS. `model_prices_and_context_window.json` in BerriAI/litellm, a
+# community-maintained file of what each host charges. It is NOT the maker's
+# price list and the page never calls it one: every figure is shown as
+# "LiteLLM's community list", with the host it lists and the date we read it.
+#
+# WHY ONLY A FALLBACK. On 2026-11-05 all 31 video models in `model_catalog`
+# carried no OpenRouter price, while image, speech and transcription were all
+# priced. The loader writes a row ONLY for a model whose OpenRouter price is
+# "not published" (judge/catalog.py `_price_state`), so the two sources never
+# disagree about one model.
+#
+# THE RULES, from #602:
+#   1. ids are mapped BY HAND below. No fuzzy or nearest-name matching: a
+#      fallback that can succeed on a wrong input is not one (rule 12).
+#   2. a model with no entry here has NO price, and the page says so.
+#   3. ONE HOST PER MODEL, the maker's own where LiteLLM lists it (the
+#      host-duplicate rule from #598): Volcengine for ByteDance, the Gemini API
+#      for Google, MiniMax's API for MiniMax, DashScope for Alibaba.
+#   4. every row carries the fetch date, so a stale price is visible.
+#   5. a price is stored in ITS OWN UNIT (`unit_price.unit`) and never in
+#      `price_in` / `price_out`, which are USD per 1M tokens. Nothing compares a
+#      per-second price with a per-token one, because nothing reads them
+#      together.
+#
+# Read by collect/registry/litellm.py. Two eyes, like every file here.
+
+version: 1
+
+source_url: "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
+
+# LiteLLM's field -> (unit, direction). A resolution suffix on a per-second
+# video field (`_720p`, `_1080p`, `_4k` ...) becomes `variant`; the bare field
+# is `default` - LiteLLM's own base figure, whose resolution it does not state.
+# A cost field not listed here is NOT stored, and the load report names it.
+fields:
+  output_cost_per_second:            {unit: second_of_video, direction: output}
+  output_cost_per_video_per_second:  {unit: second_of_video, direction: output}
+  input_cost_per_image:              {unit: image, direction: input}
+
+# LiteLLM's `mode` an entry must carry to be read. Anything else is refused
+# for that model and named in the report: a price filed under the wrong kind
+# of model is how Lyria came to be priced per image (see `excluded`).
+modes: [video_generation]
+
+# canonical id (model_catalog) -> LiteLLM key. Text-to-video where LiteLLM
+# lists t2v, i2v and r2v separately at one price.
+models:
+  alibaba/happyhorse-1.0:      dashscope/happyhorse-1.0-t2v
+  alibaba/happyhorse-1.1:      dashscope/happyhorse-1.1-t2v
+  alibaba/wan-2.7:             dashscope/wan2.7-t2v
+  alibaba/wan-3.0:             dashscope/wan3.0-video
+  alibaba/wan-3.0-prime:       dashscope/wan3.0-video-prime
+  bytedance/seedance-2.0:      volcengine/doubao-seedance-2-0-260128
+  bytedance/seedance-2.0-fast: volcengine/doubao-seedance-2-0-fast-260128
+  bytedance/seedance-2.0-mini: volcengine/doubao-seedance-2-0-mini-260615
+  bytedance/seedance-2.5:      volcengine/doubao-seedance-2-5-260628
+  google/veo-3.1:              gemini/veo-3.1-generate-001
+  google/veo-3.1-fast:         gemini/veo-3.1-fast-generate-001
+  # The Gemini API lists Lite as a preview only; Vertex AI (also Google's)
+  # lists the released model.
+  google/veo-3.1-lite:         vertex_ai/veo-3.1-lite-generate-001
+  minimax/hailuo-3:            minimax/MiniMax-H3
+  minimax/hailuo-3-max:        minimax/MiniMax-H3-Max
+  runway/aleph-2:              runwayml/aleph2
+  runway/gen-4.5:              runwayml/gen4.5
+  x-ai/grok-imagine-video:     xai/grok-imagine-video
+  x-ai/grok-imagine-video-1.5: xai/grok-imagine-video-1.5
+  x-ai/grok-imagine-video-1.5-lite: xai/grok-imagine-video-1.5-lite
+
+# Listed in LiteLLM and deliberately NOT mapped, with the reason. A model
+# absent from both lists simply has no LiteLLM entry (checked 2026-11-05):
+# alibaba/wan-2.6, black-forest-labs/flux-3-video, flux-video-edit,
+# flux-video-upscale, bytedance/seedance-1-5-pro, heygen/avatar-iv,
+# heygen/heygen-video-1, kwaivgi/kling-video-o1, kling-v3.0-pro, kling-v3.0-std,
+# minimax/hailuo-2.3, tbc/mischief-1.
+excluded:
+  google/lyria-3-clip-preview: "a music model whose LiteLLM entry prices it per IMAGE (output_cost_per_image 0.04) - the wrong unit, so not a price"
+  google/lyria-3-pro-preview: "a music model whose LiteLLM entry prices it per IMAGE (output_cost_per_image 0.08) - the wrong unit, so not a price"

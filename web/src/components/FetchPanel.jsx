@@ -13,8 +13,10 @@ import { IconAlert } from './Icons'
 // observed; calling it 'stopped' would credit a decision nobody made. It is
 // muted rather than warned because an abandoned run is a gap in the record, not
 // a problem with the board — the thing to look at is the run, not this row.
+// `throttled` (#602): the platform rate-limited the arm - not our choice, so not
+// the grey of `skipped`, and not a failure either.
 const FETCH_TONE = { ok: 'pass', running: 'mute', skipped: 'mute', error: 'fail',
-                     stopped: 'warn', abandoned: 'mute' }
+                     stopped: 'warn', abandoned: 'mute', throttled: 'warn' }
 
 function runTone(r) {
   if (!r.done) return 'mute'

@@ -654,6 +654,7 @@ def _sweep_reddit_stage(context) -> StageResult:
             rulings=contract.rulings,
             client=client,
             store=RawStore(settings().raw_store_path),
+            read_by="sweep",
         )
         report = sweep_reddit(conn, harvester, contract=contract, provenance=LISTING)
 

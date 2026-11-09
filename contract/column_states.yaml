@@ -2966,6 +2966,132 @@ columns:
     url:
       reviewed: true
       state: read
+  unit_price:
+    canonical_id:
+      reviewed: true
+      state: read
+      why: "joins the price to its model on the Models pages (judge/catalog.py)"
+    unit:
+      reviewed: true
+      state: read
+      why: "shown beside the figure - per second of video, per image"
+    direction:
+      reviewed: true
+      state: read
+      why: "shown beside the figure - input or output"
+    variant:
+      reviewed: true
+      state: read
+      why: "shown beside the figure - the resolution tier, or the source's base figure"
+    usd:
+      reviewed: true
+      state: read
+      why: "the figure the Models pages show"
+    source:
+      reviewed: true
+      state: read
+      why: "picks the newest snapshot per source, and labels the figure as LiteLLM's community list"
+    source_key:
+      reviewed: true
+      state: read
+      why: "shown as the host the price is for"
+    source_url:
+      reviewed: true
+      state: read
+      why: "linked from the figure so a reader can check it"
+    retrieved_at:
+      reviewed: true
+      state: read
+      why: "picks the newest snapshot, and shown so a stale price is visible"
+  unresolved_entry:
+    id:
+      reviewed: true
+      state: read
+      why: "the key a re-run conflicts on, and what attribution marks"
+    surface:
+      reviewed: true
+      state: read
+      why: "resolved again by scripts/attribute_unresolved_entries.py (its reader); counted per run in the fetch log"
+    document_id:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes"
+    thread_context_id:
+      reviewed: true
+      state: read
+      why: "which thread the quote was read in; read back by judge/store/unresolved_entries.py attribute_held (scripts/attribute_unresolved_entries.py) with the rest of the held row"
+    section:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    slug:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    name:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    definition:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    unit:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    value_verbatim:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    basis:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    parent_proposed:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    axis_verbatim:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    subject_verbatim:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    polarity:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    quote:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    proposer_model:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    pipeline_version:
+      reviewed: true
+      state: read
+      why: "carried onto the board_entry the row becomes when its model is seated, by scripts/attribute_unresolved_entries.py"
+    created_at:
+      reviewed: true
+      state: defaulted
+      why: "DEFAULT now(), never written by us - the INSERT does not name it - and read by scripts/attribute_unresolved_entries.py (through judge/store/unresolved_entries.py attribute_held) to file held rows oldest first"
+    attributed_at:
+      reviewed: true
+      state: read
+      why: "NULL selects the rows still held"
+    attributed_to:
+      reviewed: true
+      state: write_only
+      why: "the model the surface resolved to at attribution; recorded for audit"
+    attributed_entry:
+      reviewed: true
+      state: write_only
+      why: "the board_entry id the row became; recorded for audit"
   update_review:
     detail:
       reviewed: false

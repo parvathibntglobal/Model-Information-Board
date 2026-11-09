@@ -654,6 +654,14 @@ class PipelineResult:
     #: a count says only that something went missing. Every one is a deliberate
     #: refusal to invent specificity; this is the record of what was refused.
     unresolved_surfaces: list[str] = field(default_factory=list)
+    #: Board entries of those claims HELD in `unresolved_entry` rather than lost
+    #: (#602): new rows this extraction wrote. Filed onto the board later by
+    #: `scripts/attribute_unresolved_entries.py` once the model is seated.
+    unresolved_held: int = 0
+    #: Why held entries could not be written this extraction, or None. An
+    #: unmigrated database (no `unresolved_entry` yet) is a state, not a crash:
+    #: the board rows are written first and stand (#612 review, point 1).
+    unresolved_held_unavailable: str | None = None
 
     #: document_id -> (trigger, detail) for documents E6 hard-rejected. Their
     #: claims are dropped rather than weighted; kept here so a rejection is
@@ -833,6 +841,8 @@ class Pipeline:
         rejected = self._vet(result, facts, release_dates or {})
 
         board_rows: list[dict] = []
+        #: Entries of verified claims whose model resolved to nothing (#602).
+        held_rows: list[dict] = []
         #: id -> what that write said, for THIS extraction only. A re-run over
         #: rows an earlier run wrote is still an upsert, as `claim_id_for`
         #: intends; only two claims from one read colliding is refused.
@@ -884,6 +894,31 @@ class Pipeline:
                     "claim references %r which resolves to no tracked model",
                     claim.model_ref.surface,
                 )
+                # HELD, NOT LOST (#602). The refusal above is unchanged - this
+                # claim is filed against no model - but the entries it proposed
+                # are kept with the name as written, so a model seated later can
+                # claim them without a second model call. A 2026-11-05 run lost
+                # 47 of 50 verified claims here, most about a model released the
+                # day before and not yet in the registry.
+                if claim.model_ref.surface:
+                    for _held in claim.board_entries:
+                        held_rows.append({
+                            "surface": claim.model_ref.surface,
+                            "document_id": quote.document_id,
+                            "thread_context_id": thread.thread_context_id,
+                            "section": _held.section,
+                            "slug": _held.slug,
+                            "name": _held.name,
+                            "definition": _held.definition,
+                            "unit": _held.unit,
+                            "value_verbatim": _held.value_verbatim,
+                            "basis": _held.basis,
+                            "parent_proposed": _held.parent,
+                            "axis_verbatim": _held.axis_verbatim,
+                            "subject_verbatim": _held.subject_verbatim,
+                            "polarity": claim.polarity,
+                            "quote": quote.display_text,
+                        })
                 continue
 
             if claim.has_numbers != document.has_numbers:
@@ -1169,6 +1204,26 @@ class Pipeline:
                     t["subject_quoted"], t["subject_absent"],
                     t["subject_unsupported"],
                 )
+
+        # HELD ROWS AFTER THE BOARD ROWS, IN THEIR OWN SAVEPOINT (#612 review,
+        # point 1). Written first and unguarded, an unmigrated database raised
+        # `UndefinedTable` and took the night's board rows with it, after the
+        # extraction had been paid for. Now a failure here rolls back only the
+        # held rows and is named on the E5 line; the board rows stand.
+        if held_rows:
+            import psycopg
+
+            from judge.store.unresolved_entries import hold_entries
+
+            try:
+                with self._conn.transaction():
+                    result.unresolved_held = hold_entries(
+                        self._conn, held_rows, proposer_model=self._extractor_model)
+            except psycopg.errors.UndefinedTable:
+                result.unresolved_held_unavailable = (
+                    "unresolved_entry does not exist on this database yet "
+                    "(migration 20261105T1300 not run)")
+                log.warning("held entries not written: %s", result.unresolved_held_unavailable)
 
         if result.stored_claim_ids and rebuild_cells:
             # Whole-table, for the reason in cells.py: a cell is a view of the

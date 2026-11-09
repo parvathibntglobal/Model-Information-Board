@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { modelCatalog } from '../api'
 import ModelPage from '../catalog/ModelPage'
-import { evidencePath, fmtCtx, fmtDate, fmtUsd, modelPagePath } from '../catalog/format'
+import { evidencePath, fmtCtx, fmtDate, fmtUnitUsd, fmtUsd, modelPagePath } from '../catalog/format'
 import FeedLink from '../components/FeedLink'
 import { MODEL_TYPES, typeLabel } from '../catalog/types'
 import { useHead } from '../seo/head'
@@ -58,6 +58,12 @@ function ModelCard({ m, providerName, showProvider = true }) {
         <div><span>Context</span>{m.context ? <b>{fmtCtx(m.context)}</b> : <span className="cat-na">Not stated</span>}</div>
         {m.type_price && (
           <div className="cat-fact-wide"><span>{m.type_price.label} / 1M</span><b>{fmtUsd(m.type_price.usd_per_million)}</b></div>
+        )}
+        {!m.type_price && m.unit_price && (
+          // ONE figure on the card - the base one - and its source; the page lists the tiers.
+          <div className="cat-fact-wide" title={`LiteLLM's community list, host ${m.unit_price.source_key}, read ${m.unit_price.retrieved_at}`}>
+            <span>{m.unit_price.figures[0].label} (LiteLLM)</span><b>{fmtUnitUsd(m.unit_price.figures[0].usd)}</b>
+          </div>
         )}
       </div>
       <div className="cat-badges">

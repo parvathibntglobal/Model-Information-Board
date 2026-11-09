@@ -5716,3 +5716,101 @@ sweep_subreddits:
         avoids spending the sample on a population we already know we would
         discard, which would depress the survival figure for a reason unrelated
         to what it measures.
+  #: SUBREDDITS THE PER-MODEL REDDIT SEARCH NEVER STORES (#602 fix 3,
+  #: 2026-11-06). The search reaches all of Reddit, so this list is the search's,
+  #: not the sweep's: a hit from one of these is counted on the Reddit line and
+  #: not written. One reason per entry, as `excluded` above.
+  search_excluded:
+    - id: AIcrack
+      reason: >-
+        cracked-software distribution. Reached by the search for MAI-Voice-2.1
+        on 2026-11-06 (a list of voicebanks for a cracked synthesiser) and read
+        by the paid extractor. Not evidence about any model, and not material a
+        public board should draw on.
+
+# ============================================================================
+#  THE MEDIA SEARCH SWEEP (#602; queries chosen 2026-11-09, Parvathi)
+#
+#  Six Reddit searches, newest first, ONCE A WEEK. The block keeps its
+#  first key, `sweep_media_subreddits`, but it no longer lists subreddits: from
+#  2026-11-05 to 2026-11-09 it listed r/StableDiffusion, r/aivideo, r/ElevenLabs
+#  and r/TextToSpeech, and a listing returns each post's TITLE only, never its
+#  body - 0 of 403 listed posts carried one - and 1 of the 403 named a tracked
+#  model. A search result carries the body, and finds a post in whichever
+#  subreddit it was written (Seedance 2.0's posts were in r/generativeAI,
+#  r/KlingAI_Videos, r/Seedance_AI and r/HiggsfieldAI, none of the four).
+#
+#  THE QUERIES ARE BRAND FAMILIES, not versions and not topics. Every post
+#  found is stored; its comments are read only when it names a model the
+#  registry, its aliases or the catalogue knows (`subject_only`), so a version
+#  nobody has seated yet is held, not lost.
+#
+#  MEASURED, NOT ASSUMED: one run of twelve broader queries, 2026-11-09, one
+#  page each (22 posts), counting - over the posts each run newly stored -
+#  how many name a known media model:
+#      seedance 15 of 22, nano banana 13 of 14, kling 6 of 19
+#                                             <- kept: all 8 tracked-model posts
+#      veo 0        Spanish "veo" ("I see")     sora 0   Kingdom Hearts' Sora
+#      gpt image 0, text to video 0, image to video 0, upscale 0
+#      elevenlabs 3 (text models only), text to speech 3, ai voice 1 (false matches)
+#  A second run, 2026-11-09, of forms that name the product: google veo 3 of
+#  18, eleven v3 7 of 21, openai sora 1 of 22 (on topic, but no Sora model is
+#  seated), veo 3 0 of 13 (still Spanish), sora 2 0 of 15 (games), gpt image 2
+#  0 of 21. Over that whole nine-query run, 57 of 198 posts (29%) named a known
+#  model. The subreddit listing it replaced named one in 41 of 400 by the
+#  filter then in use, and in 8 of 403 once that filter's false matches
+#  ("free", "H3") were fixed.
+#
+#  THE SIX KEPT (Parvathi, 2026-11-09): seedance, kling, nano banana, google
+#  veo, gpt image and elevenlabs. The last two measured weakly - gpt image 0,
+#  elevenlabs 3 (text models only, against 7 for "eleven v3") - and stay on
+#  her call. RULE FOR THEM (Anooj on #612, 2026-11-09): kept for the first four
+#  Monday runs after merge; a query whose posts named no known model across
+#  those four is dropped, and its line then records the four runs' counts.
+#
+#  `measured` on each query: its own run, the posts it newly stored, and how
+#  many of those named a model the registry or the catalogue knows.
+#
+#  THE POPULATION: the newest `pages_per_query` x 25 posts matching each query,
+#  on the day it ran - a recency cut within each query's matches. Subreddits in
+#  `sweep_subreddits.search_excluded` are skipped and counted, as in the
+#  per-model search.
+#
+#  ITS OWN BUDGET: `max_requests` covers the search pages AND the comment
+#  requests. A comment request the cap stops is DEFERRED and taken first by the
+#  next run, never dropped. The `over_18` skip applies and is counted.
+#
+#  TERMS: Reddit search under the platform ruling `reddit-via-rapidapi`, the
+#  same endpoint and ruling as the per-model search.
+# ============================================================================
+sweep_media_subreddits:
+  version: "2.0"
+  chosen_on: 2026-11-09
+  #: READ BY NOTHING; it records the schedule, it does not set it. The step
+  #: "Search Reddit for media models (weekly)" in
+  #: .github/workflows/scheduled-fetches.yml runs on Mondays (UTC).
+  schedule: weekly
+  sort: NEW
+  pages_per_query: 1
+  #: MEASURED: a search page returns 22 posts (21 of 21 searches, 2026-11-09).
+  posts_per_page: 22
+  max_requests: 100
+  subject_only: true
+  terms_ruling: reddit-via-rapidapi
+  terms_evidence:
+    checked_on: 2026-11-09
+    governed_by_platform_ruling: true
+    full_text_republished: false
+  queries:
+    - {query: "seedance", kind: video,
+       measured: {date: 2026-11-09, posts: 22, named_known: 15}}
+    - {query: "kling", kind: video,
+       measured: {date: 2026-11-09, posts: 19, named_known: 6}}
+    - {query: "google veo", kind: video,
+       measured: {date: 2026-11-09, posts: 18, named_known: 3}}
+    - {query: "nano banana", kind: image,
+       measured: {date: 2026-11-09, posts: 14, named_known: 13}}
+    - {query: "gpt image", kind: image,
+       measured: {date: 2026-11-09, posts: 17, named_known: 0}}
+    - {query: "elevenlabs", kind: speech,
+       measured: {date: 2026-11-09, posts: 17, named_known: 3}}

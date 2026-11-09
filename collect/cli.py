@@ -955,20 +955,26 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
         print("contract/sources.yaml has no `reddit` source row", file=sys.stderr)
         return 2
 
-    block = contract.sweep_subreddits
+    # `--media` picks the MEDIA block (#602): its own population and budget.
+    block_key = "sweep_media_subreddits" if args.media else "sweep_subreddits"
+    block = getattr(contract, block_key)
     if not block:
         print(
-            "contract/sources.yaml has no `sweep_subreddits:` block, so there is "
+            f"contract/sources.yaml has no `{block_key}:` block, so there is "
             "nothing to list. Refusing rather than sweeping zero subreddits, which "
             "would report as nobody discussing anything.",
             file=sys.stderr,
         )
         return 2
 
-    members = list(block.get("members") or [])
+    # THE MEDIA BLOCK SEARCHES (2026-11-09): `queries` in place of `members`.
+    queries = [str(q["query"] if isinstance(q, dict) else q) for q in block.get("queries") or []]
+    unit = "query" if queries else "subreddit"
+    members = queries or list(block.get("members") or [])
     if args.subreddits:
         members = [m for m in members if m in set(args.subreddits)]
-    pages = args.pages if args.pages is not None else int(block["pages_per_subreddit"])
+    pages = args.pages if args.pages is not None else int(
+        block["pages_per_query" if queries else "pages_per_subreddit"])
     per_page = int(block["posts_per_page"])
     limit = args.limit_subreddits
 
@@ -976,11 +982,13 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
     population = pages * per_page
     print(
         f"plan     : {len(members) if limit is None else min(limit, len(members))} "
-        f"subreddit(s) x {pages} page(s) = {planned} request(s)"
+        f"{unit}(s) x {pages} page(s) = {planned} request(s)"
     )
     print(
-        f"           DENOMINATOR: the newest {population} posts per subreddit "
-        f"(sort {block.get('sort') or 'NEW'}). A RECENCY cut, not a ranking cut."
+        f"           DENOMINATOR: the newest {population} posts per {unit} "
+        f"(sort {block.get('sort') or 'NEW'}). "
+        + ("A recency cut within each query's matches." if queries
+           else "A RECENCY cut, not a ranking cut.")
     )
 
     if args.dry_run:
@@ -1000,6 +1008,7 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
             client=client,
             store=RawStore(Path(args.store)),
             max_pages=pages,
+            read_by="sweep",
         )
         print("gate     : reddit terms reviewed and re-verified, harvest permitted")
         report = sweep_reddit(
@@ -1011,6 +1020,7 @@ def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
             subreddits=args.subreddits,
             limit_subreddits=limit,
             provenance=LISTING,
+            block_key=block_key,
         )
     print(report.summary())
     return 0
@@ -1519,6 +1529,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="restrict to these contracted subreddits",
     )
     ops_sweep_reddit.add_argument("--cap", type=int, default=None)
+    ops_sweep_reddit.add_argument(
+        "--media", action="store_true",
+        help="run the media search sweep, `sweep_media_subreddits` (the brand "
+             "searches listed there), instead of the text block (#602). "
+             "Runs weekly in scheduled-fetches.yml; by hand for a local run")
     ops_sweep_reddit.add_argument("--dry-run", action="store_true")
     ops_sweep_reddit.set_defaults(func=_cmd_ops_sweep_reddit)
 

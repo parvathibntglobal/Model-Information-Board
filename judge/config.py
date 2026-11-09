@@ -601,6 +601,11 @@ class TrackedModel:
     #: True when the row came from `auto_track` (judge/tracked.py) rather than
     #: from a hand-written entry in `contract/tracked_models.yaml`.
     auto: bool = False
+    #: The model's official Hugging Face repo(s), `owner/repo` (#602). Read by
+    #: the Hugging Face arm of `scripts/fetch_model.py`, which walks exactly
+    #: these instead of searching by name. EMPTY MEANS NOT CURATED, never "has
+    #: no repo": the name search then runs as it always has.
+    hf_repos: tuple[str, ...] = ()
 
 
 @lru_cache(maxsize=1)
@@ -622,6 +627,7 @@ def tracked_models() -> tuple[TrackedModel, ...]:
             registry=e.get("registry") or None,
             kind=e.get("kind", "text"),
             absent_because=e.get("absent_because"),
+            hf_repos=tuple(str(r) for r in e.get("hf_repos") or ()),
         )
         for e in raw["models"]
     )

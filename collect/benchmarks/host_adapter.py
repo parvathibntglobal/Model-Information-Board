@@ -87,7 +87,13 @@ def get_registry_models(
     has no registry tables; any other failure raises (rule 6).
     """
     raw = yaml.safe_load(TRACKED_MODELS.read_text(encoding="utf-8"))
-    tracked = {entry["registry"] for entry in raw["models"] if entry.get("registry")}
+    # THE TRACKED TEXT MODELS ONLY - the ones `get_seed_models` already gives a
+    # row. Leaving out every tracked id dropped the tracked IMAGE, VIDEO and
+    # SPEECH models from both lists: not seeds (seeds are text) and not
+    # registry models (they are tracked), so Nano Banana 2 and ElevenLabs v3
+    # could never get a benchmark row (found 2026-11-05, #602).
+    tracked = {entry["registry"] for entry in raw["models"]
+               if entry.get("registry") and entry.get("kind", "text") == "text"}
     try:
         rows = conn.execute(
             "SELECT DISTINCT canonical_id, display_name FROM model_version ORDER BY canonical_id"

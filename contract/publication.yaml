@@ -168,3 +168,29 @@ credits:
   # it was written. The undertaking's `arxiv_acknowledged: true` rests on this.
   # Required: absent or empty raises (rule 12).
   arxiv_acknowledgement: "Thank you to arXiv for use of its open access interoperability."
+
+# ── VOICE CLONING: NO REAL PERSON NAMED IN A BLOG POST ──────────────────────
+# AGREED 2026-11-06 by parvathi and anooj on #602, between the two of us: it
+# only narrows what a blog post publishes, so it did not need the MD.
+#
+# WHY HERE. The board is behind login and the Reports pages are counts only,
+# so a voice-cloning report is kept and COUNTED (positive / negative / neutral)
+# like any other. The blog generator is the one public path that quotes or
+# embeds evidence (`derived_posts` above), so this is where the rule lives.
+#
+# THE RULE: a blog post never names a real person whose voice was cloned, and
+# never quotes or embeds a post that does. Our own words are fine ("users report
+# it clones a voice from a short sample"). It is not a blog topic on its own.
+#
+# NOT ENFORCED IN CODE YET, AND THAT IS STATED: the generator check follows
+# when speech evidence arrives in volume (on 2026-11-06 the shared DB held no
+# quote about voice cloning at all). Until then this record is the rule the
+# check will point at. Nothing reads this block yet.
+voice_cloning_in_blog_posts:
+  agreed_on: 2026-11-06
+  agreed_by: [parvathi, anooj]
+  rule: >-
+    A blog post never names a real person whose voice was cloned, and never
+    quotes or embeds a post that does. Our own words are allowed; it is not a
+    blog topic on its own.
+  enforced_by: null    # the generator check, when speech evidence arrives in volume

@@ -1425,8 +1425,17 @@ th.r,td.r{text-align:right}
 .adm-nav button[aria-current="page"]{background:var(--surface);color:var(--text);
   border-color:var(--border);box-shadow:inset 3px 0 0 0 var(--text)}
 .adm-nav button[aria-current="page"] .d{color:var(--text-2)}
+/* ONE DESCRIPTION AT A TIME (2026-11-09). Eighteen two-line descriptions made
+   the menu taller than the screen; the selected item keeps its line, the rest
+   show their title only. */
+.adm-nav button .d{display:none}
+.adm-nav button[aria-current="page"] .d{display:block}
 
 .adm-body{min-width:0}
+/* THE FULL SCREEN WIDTH, as the Benchmarks page has (2026-11-06). Inside the
+   default `--maxw` column the 232px nav and the panel's tables shared what was
+   left between two wide margins, and every panel read congested. */
+.shell.adm-page{max-width:none}
 /* Admin -> Projects (2026-10-23): one card per project, each opening its own admin. */
 .adm-projects{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--s3)}
 .adm-project{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;cursor:pointer;

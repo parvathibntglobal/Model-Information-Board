@@ -5,6 +5,7 @@ import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
 import BoardReview from '../components/BoardReview'
 import DiscussedModels from '../components/DiscussedModels'
+import HeldModelsPanel from '../components/HeldModelsPanel'
 import KeywordsPanel from '../components/KeywordsPanel'
 import PromptsPanel from '../components/PromptsPanel'
 import SourcesPanel from '../components/SourcesPanel'
@@ -25,6 +26,7 @@ import { KITE_PULSE_OPEN } from '../kitepulse/status'
 import { IconAlert, IconArrow, IconClock, IconFilter, IconGrid, IconHeart, IconSearch } from '../components/Icons'
 import { useHead } from '../seo/head'
 import { PRIVATE } from '../seo/pages'
+import { kindChips } from '../kinds'
 
 /**
  * Operations. `/health` needs nothing; the database-backed surfaces are each
@@ -65,9 +67,13 @@ function agoShort(iso) {
   return days <= 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`
 }
 
+/* The Type filter's chips come from `web/src/kinds.js`, as on the Models page:
+ * built from the kinds present, so a new kind gets a chip (#612 review). */
+
 function CollectEvidence() {
   const [models, setModels] = useState(null)
   const [err, setErr] = useState(null)
+  const [kind, setKind] = useState('all')
 
   useEffect(() => {
     let alive = true
@@ -132,6 +138,27 @@ function CollectEvidence() {
       {models && models.length === 0 && (
         <p className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No models tracked yet.</p>
       )}
+      {models && models.length > 0 && (() => {
+        // COUNTS OVER THE WHOLE TRACKED LIST, so a chip says how many of that
+        // kind are tracked, whichever chip is on.
+        const counts = {}
+        for (const m of models) counts[m.tracked_kind] = (counts[m.tracked_kind] || 0) + 1
+        return (
+          <div className="row" role="group" aria-label="Filter by type" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span className="label">Type</span>
+            <button type="button" className={`chip${kind === 'all' ? ' chip-on' : ''}`}
+                    aria-pressed={kind === 'all'} onClick={() => setKind('all')}>
+              All {models.length}
+            </button>
+            {kindChips(counts).map(([k, label]) => (
+              <button key={k} type="button" className={`chip${kind === k ? ' chip-on' : ''}`}
+                      aria-pressed={kind === k} onClick={() => setKind(k)}>
+                {label} {counts[k]}
+              </button>
+            ))}
+          </div>
+        )
+      })()}
       {/* ONE FOLD PER MODEL. Each row carries a whole FetchPanel - the button,
           the live stage list and the run history - so with more than a couple
           of models the page becomes a column of panels and the one you came to
@@ -143,7 +170,7 @@ function CollectEvidence() {
 
           Native <details>, same as the FAQ and the other folds: the panels
           stay in the DOM whether or not they are open. */}
-      {models && models.map((m) => (
+      {models && models.filter((m) => kind === 'all' || m.tracked_kind === kind).map((m) => (
         <details key={m.model_version_id} className="disc disc-row">
           <summary>
             {/* ⚠ THE PROVIDER'S ID ON THE LINE, NOT OURS. This printed
@@ -252,6 +279,8 @@ const SECTIONS = [
             who has just scrolled thirteen folds is exactly the reader who
             should see that 66 more have evidence. */}
         <DiscussedModels />
+        {/* #602: claims about models with no registry row, held by name. */}
+        <HeldModelsPanel />
       </div>
     ),
   },

@@ -24,7 +24,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from collect.triage.run import SUBJECT_FROM_THREAD_ROOT, triage_stored
+from collect.triage.run import (
+    SUBJECT_FROM_THREAD_ROOT,
+    SUBJECT_FROM_UNAMBIGUOUS_ROOT,
+    triage_stored,
+)
 from tests.conftest import assert_disposable, assert_safe_target
 
 
@@ -502,3 +506,78 @@ def test_a_dropped_root_still_supplies_its_subject(conn):
     # ...and its subject still reached the child that named nothing.
     assert run.subject_inherited == 1
     assert run.kept == 2
+
+
+# ── Reddit: the root is read only where it names exactly one model (#602) ──
+
+REDDIT_COMMENT = {
+    "body": (
+        "we switched the router over last week and our monthly bill for the "
+        "same traffic fell by roughly a third, which nobody on the team had "
+        "expected going in"
+    )
+}
+
+
+def _model(conn, canonical_id, display_name):
+    conn.execute(
+        "INSERT INTO model_version (id, canonical_id, provider, display_name, "
+        "sources, provenance) VALUES (%s, %s, %s, %s, '{}'::jsonb, 'polled')",
+        (f"mv_{canonical_id.replace('/', '_')}", canonical_id,
+         canonical_id.split("/")[0], display_name),
+    )
+
+
+def _reddit_thread(conn, title):
+    _model(conn, "anthropic/claude-opus-5", "Anthropic: Claude Opus 5")
+    _model(conn, "openai/gpt-5.5", "OpenAI: GPT-5.5")
+    payloads = {
+        "raw/sha256/r1/r1/post": json.dumps({
+            "title": title,
+            "selftext": ("the pricing we measured over a fortnight and the two "
+                         "places it fell over on long tool chains"),
+        }),
+        "raw/sha256/r2/r2/comment": json.dumps(REDDIT_COMMENT),
+    }
+    _insert(conn, "reddit:t3_root", "reddit", ref="raw/sha256/r1/r1/post",
+            root="reddit:t3_root", external="t3_root")
+    _insert(conn, "reddit:t1_child", "reddit", ref="raw/sha256/r2/r2/comment",
+            root="reddit:t3_root", parent="reddit:t3_root", external="t1_child")
+    conn.commit()
+    return _Store(payloads)
+
+
+def _reddit_run(conn, store):
+    return triage_stored(conn, store, dry_run=True, sources=("reddit",))
+
+
+def test_reddit_is_read_only_through_the_unambiguous_root_predicate():
+    assert "reddit" in SUBJECT_FROM_UNAMBIGUOUS_ROOT
+    assert "reddit" not in SUBJECT_FROM_THREAD_ROOT
+
+
+def test_a_reddit_comment_under_a_one_model_root_is_kept_on_it(conn):
+    store = _reddit_thread(conn, "Claude Opus 5 agent loop, and what it costs")
+    run = _reddit_run(conn, store)
+    assert run.subject_inherited == 1
+    assert run.root_names_none == 0 and run.root_names_several == 0
+    assert run.dropped == 0
+
+
+def test_a_reddit_root_naming_two_models_gives_its_comments_nothing(conn):
+    """The comment could be about either, so it faces the gate alone."""
+    store = _reddit_thread(conn, "Claude Opus 5 against GPT-5.5 on an agent loop")
+    run = _reddit_run(conn, store)
+    assert run.subject_inherited == 0
+    assert run.root_names_several == 1 and run.root_names_none == 0
+    assert run.by_reason["no-resolvable-entity"] == 1
+    run.describe().encode("cp1252")
+
+
+
+def test_a_reddit_root_naming_no_model_is_counted_apart_from_one_naming_several(conn):
+    """#602: 48 comments under roots that named nothing read as "ambiguous"."""
+    store = _reddit_thread(conn, "Weekend render thread, post your clips")
+    run = _reddit_run(conn, store)
+    assert run.root_names_none == 1 and run.root_names_several == 0
+    assert "1 under a root naming no known model" in run.describe()

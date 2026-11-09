@@ -50,6 +50,18 @@ class TestAStageThatOnlyFailedIsNotOk:
         # and the count of failures still travels in the stage row.
         assert fm._harvest_verdict(1, 12) == "ok"
 
+    def test_only_rate_limited_and_nothing_came_back_is_throttled_not_error(self):
+        # #602: arXiv's two 429s turned a run whose every stage ran into
+        # "error ... did not complete". A throttle is "later", not "broken" -
+        # and its own word, not `skipped`, which means we chose not to run it.
+        assert fm._harvest_verdict(2, 0, throttled=2) == "throttled"
+
+    def test_a_throttle_beside_a_real_failure_is_still_an_error(self):
+        assert fm._harvest_verdict(3, 0, throttled=2) == "error"
+
+    def test_a_throttled_platform_that_still_answered_is_ok(self):
+        assert fm._harvest_verdict(1, 5, throttled=1) == "ok"
+
 
 class TestCleanupThatCannotFail:
     """`_safe_rollback` — the line that ended the run."""

@@ -48,7 +48,10 @@ stages:
   E2:
     what: >-
       Searches GitHub issues and pull requests for each name variant, across
-      the capability queries.
+      the capability queries. A media model (image, video, speech,
+      transcription) is searched by its name alone, in the repos listed for
+      its kind in contract/media_github_repos.yaml, and a hit is kept for
+      naming the model in any spelling.
     why: >-
       Engineers report model behaviour in the issue tracker of the tool they
       were using, usually with a repro. GitHub's API is free and the search is
@@ -57,7 +60,8 @@ stages:
   E2R:
     what: >-
       Searches Reddit for each variant, then fetches the comment tree of the
-      posts it finds.
+      posts that name the model. A post that does not name it is kept without
+      its comments, and subreddits on the excluded list are never stored.
     why: >-
       The comments are where the evidence is - a post asks "how is Opus 5" and
       the answer is forty replies down. This is a metered, paid arm, so the
@@ -72,7 +76,9 @@ stages:
 
   E2X:
     what: >-
-      One search on X, clubbing every name variant into a single query.
+      One search on X, clubbing every name variant into a single query. A
+      text model's post is kept when it names the model and a capability
+      phrase; a media model's post is kept for naming the model alone.
     why: >-
       One query rather than one per variant because this arm's quota is a tenth
       of Reddit's. Bought access to a reseller's scrape, which the ruling says
@@ -143,7 +149,8 @@ stages:
   E4b:
     what: >-
       Applies the same vetting rules a second time, at thread level, before
-      anything is sent to the model.
+      anything is sent to the model, and orders last the threads that name no
+      model the registry or the catalogue knows.
     why: >-
       A thread whose every member survived E4 can still be promotional or
       placeholder as a whole. This is the last check that costs no tokens - a
@@ -198,7 +205,8 @@ stages:
   E6:
     what: >-
       Drops claims that are promotional, affiliate-driven, sarcastic, or about
-      a model before it was released.
+      a model before it was released, and reports how many it rejected and how
+      many it could not vet for lack of the document's text.
     why: >-
       A verbatim quote can still be worthless evidence. This runs after the
       model rather than before it, because deciding a quote is sarcastic needs

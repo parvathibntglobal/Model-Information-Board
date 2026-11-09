@@ -137,7 +137,7 @@ def rank_due(
 _SAFE_FIELDS = (
     "status", "documents_appended", "harvest_arms_errored", "harvest_http_errors",
     "threads_read", "claims_verified", "claims_stored", "threads_unreadable_here",
-    "extract_skipped",
+    "extract_skipped", "model_kind", "arxiv_queries_throttled",
     # E6, counted (#608 review): counts only, no host. Without them a run that
     # sent every document back to `unvetted` looks like any other night.
     "e6_rejected", "e6_unvetted",
@@ -191,6 +191,22 @@ def summarise_runs(records: list[dict]) -> str:
     lines += ["", f"{ok} of {len(records)} ended ok. "
               "A model absent from this list was not due; a count shown as `-` was "
               "not reported by that run, which is not the same as zero."]
+    # MEDIA'S SHARE OF THE NIGHT (#602 item 8), in counts only - no spend on a
+    # public issue; each run's `cost_usd` stays in its own fetch log.
+    # "unknown" is an untracked model fetched by hand, searched as text (#612).
+    media = [r for r in records if r.get("model_kind") not in (None, "text", "unknown")]
+    if media:
+        read = sum(int(r.get("threads_read") or 0) for r in media)
+        total = sum(int(r.get("threads_read") or 0) for r in records)
+        lines += ["", f"Media models: {len(media)} of {len(records)} run(s), "
+                  f"{read} of {total} thread(s) read."]
+    # THROTTLED, NOT FAILED (#602): a rate-limited arm is `skipped`, so the run
+    # stays green - and this line is what keeps the gap from going quiet.
+    throttled = [r for r in records if r.get("arxiv_queries_throttled")]
+    if throttled:
+        lines += ["", f"arXiv throttled (HTTP 429) on {len(throttled)} of {len(records)} "
+                  f"run(s): {sum(int(r['arxiv_queries_throttled']) for r in throttled)} "
+                  "query(ies) not run. Not a failure; the next fetch asks again."]
     collect_only = sum(1 for r in records if r.get("extract_skipped"))
     if collect_only:
         lines += ["", f"{collect_only} of {len(records)} ran collect-only "

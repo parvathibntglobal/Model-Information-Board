@@ -168,6 +168,15 @@ export default function SchedulerPanel() {
                     <tr><th scope="row">What it does</th>
                       <td>Picks the due models (never fetched first, then the oldest), runs a fetch for each, and posts a
                         summary to the issue named by <span className="mono">SCHEDULER_ISSUE</span>.</td></tr>
+                    {setup.steps?.length > 0 && (
+                      <tr><th scope="row">Each night, in order</th>
+                        <td>
+                          <ol style={{ margin: 0, paddingLeft: 18 }}>
+                            {setup.steps.map((s) => <li key={s}>{s}</li>)}
+                          </ol>
+                          <span className="dim" style={{ fontSize: 11 }}>Step names as written in the workflow file.</span>
+                        </td></tr>
+                    )}
                     <tr><th scope="row">Needs</th>
                       <td>
                         <span className="dim" style={{ fontSize: 11 }}>secrets</span>{' '}

@@ -45,7 +45,7 @@ from collect.adapters.github import (
     StoredIssue,
 )
 from collect.adapters.queries.github import github_alias_form
-from collect.adapters.queries.sieve import matches, normalize
+from collect.adapters.queries.sieve import matches, names_folded, normalize
 from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
 
@@ -193,8 +193,11 @@ class DiscussionHarvester:
         hits = [h for h in (_hit_of(n) for n in search.get("nodes") or []) if h is not None]
         run.retrieved = len(hits)
         for hit in hits:
-            text = normalize(f"{hit.title}\n{hit.body}")
-            if not any(matches(v, text) for v in variants):
+            raw_text = f"{hit.title}\n{hit.body}"
+            text = normalize(raw_text)
+            # SEPARATORS FOLDED TOO (#602): `matches` keeps them, so "kling 3
+            # pro" missed "Kling-3-Pro". Either test naming the model keeps it.
+            if not any(matches(v, text) or names_folded(v, raw_text) for v in variants):
                 run.rejected += 1
                 continue
             if len(run.stored) >= self._max_keep:
