@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import httpx
 import psycopg
 import pytest
+import yaml
 
 from collect.http import build_client
 from collect.news import harvest as news
@@ -29,6 +31,7 @@ llm_keywords: [llm, claude, tokens, "language model"]
 page: {default_days: 7, max_days: 30, max_items: 600}
 link_preview: {enabled: false, groups: [selected, lab, writer], skip: {}, max_per_run: 10,
                max_attempts: 3, look_back_days: 7, max_head_bytes: 4096, generic_min_stories: 2}
+sponsored_labels: {categories: [Sponsored, Type-sponsored], authors: ["Acme Insights"]}
 as_given: {}
 sources:
   - {key: wire, group: selected, label: Wire, kind: feed, url: "https://wire.example/feed.xml",
@@ -625,3 +628,61 @@ def test_a_robots_txt_that_gave_no_answer_is_retried_and_a_disallow_is_not(conn,
     assert asked == []                                           # and the page was not read
     _preview(conn, page, gate=_Gate(refuse={"wire.example"}))
     assert _row(conn) == (None, "robots_refused", 2, True)      # an actual Disallow is final
+
+
+# ── the sponsored badge (#614): the publisher's printed label, matched whole ───
+
+def _labels(text=CONTRACT_YAML):
+    return yaml.safe_load(text)
+
+
+def test_a_sponsored_label_is_a_whole_category_or_author_any_case():
+    c = _labels()
+    assert view.sponsored_labels(c, None, ["AI", "sponsored"]) == ["sponsored"]
+    assert view.sponsored_labels(c, None, ["type-SPONSORED"]) == ["type-SPONSORED"]
+    assert view.sponsored_labels(c, "Acme Insights", []) == ["Acme Insights"]
+    # Inside a longer value, or in prose, is not a label the publisher printed.
+    assert view.sponsored_labels(c, "Acme Insights team", ["sponsored-ish", "Sponsor"]) == []
+    assert view.sponsored_labels(c, None, None) == []
+
+
+@pytest.mark.parametrize("block", [
+    "",                                                             # absent
+    "sponsored_labels: {categories: [Sponsored]}\n",                # authors missing
+    "sponsored_labels: {categories: [Sponsored], authors: [''], extra: []}\n",
+])
+def test_the_sponsored_block_is_required_and_never_defaulted(tmp_path, monkeypatch, block):
+    text = re.sub(r"sponsored_labels:.*\n", block, CONTRACT_YAML)
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(text, encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    with pytest.raises(ValueError, match="sponsored_labels"):
+        view._contract()
+
+
+def test_the_real_contract_carries_the_sponsored_labels_and_the_new_press_rows():
+    c = _labels(view.CONTRACT.read_text(encoding="utf-8"))
+    assert {"Sponsored", "Type-sponsored"} <= set(c["sponsored_labels"]["categories"])
+    keys = {s["key"] for s in c["sources"]}
+    assert {"thenewstack", "infoq_ai", "ieee_spectrum_ai", "zdnet_ai", "mit_tr_ai", "verge_ai",
+            "ars_ai", "every_vibe_check"} <= keys
+    # Refused on #614: never news sources here.
+    assert not keys & {"hackernoon", "infoworld", "vellum"}
+    # Ars Technica's pages answer 405 and Every's terms forbid automatic copying:
+    # neither is asked for a link-preview picture, and each says why.
+    assert c["link_preview"]["skip"]["ars_ai"] and c["link_preview"]["skip"]["every_vibe_check"]
+
+
+def test_the_view_badges_sponsored_items_and_hides_none(conn, contract, monkeypatch, tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML, encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    _run(conn, contract)
+    conn.execute("UPDATE news_item SET categories = ARRAY['AI', 'Sponsored'] "
+                 "WHERE title = 'Claude gets cheaper'")
+    conn.commit()
+    out = view.news_view(conn, days=7, now=datetime(2026, 10, 28, 12, tzinfo=UTC))
+    by_title = {i["title"]: i for i in out["items"]}
+    assert by_title["Claude gets cheaper"]["sponsored"] == ["Sponsored"]
+    assert all(i["sponsored"] == [] for t, i in by_title.items() if t != "Claude gets cheaper")
+    assert out["population"]["items_in_window"] == len(out["items"]) == 4  # nothing filtered

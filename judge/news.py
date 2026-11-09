@@ -18,7 +18,9 @@ looks right is the wrong kind of fallback).
 
 NOTHING IS FILTERED HERE. The LLM badge (`llm_keywords`) travels on every item
 and the page lets a reader filter on it; the server never does, because nobody
-has measured what the keyword list misses (rule 8).
+has measured what the keyword list misses (rule 8). The sponsored badge
+(`sponsored`, the publisher's own printed labels) is the same: shown, and
+hidden only when a reader asks (#614).
 
 The judge does not import collect/, so the contract is read here directly.
 """
@@ -49,7 +51,35 @@ def _contract() -> dict[str, Any]:
     if not isinstance(generic, int) or generic < 2:
         raise ValueError("contract/news_sources.yaml: link_preview.generic_min_stories must be "
                          "an integer of 2 or more")
+    labels = raw.get("sponsored_labels")
+    if not isinstance(labels, dict) or set(labels) != {"categories", "authors"} or not all(
+            isinstance(v, list) and all(isinstance(w, str) and w.strip() for w in v)
+            for v in labels.values()):
+        raise ValueError("contract/news_sources.yaml: sponsored_labels must have exactly "
+                         "`categories` and `authors`, each a list of labels ([] for none)")
     return raw
+
+
+def sponsored_labels(contract: dict[str, Any], author: str | None,
+                     categories: list[str] | None) -> list[str]:
+    """The publisher's own sponsored labels this item carries, or [] (#614).
+
+    A PRINTED LABEL ONLY, MATCHED WHOLE. A category or author is compared as a
+    complete value, case-insensitively, against `sponsored_labels`; nothing is
+    searched for inside a title or summary, so "insights" in a headline is not
+    MIT Technology Review Insights. A badge the page shows and a filter a reader
+    may turn on, never applied here (rule 8).
+
+    [] MEANS "NO LABEL PRINTED", NOT "EDITORIAL". A publisher that sponsors
+    without labelling it in the feed is not caught, and the page says so (rule 6).
+    """
+    want = contract["sponsored_labels"]
+    cats = {c.strip().casefold() for c in want["categories"]}
+    authors = {a.strip().casefold() for a in want["authors"]}
+    hits = [c for c in (categories or []) if c.strip().casefold() in cats]
+    if author and author.strip().casefold() in authors:
+        hits.append(author.strip())
+    return hits
 
 
 # A SOURCE'S ONE-PICTURE-FOR-EVERYTHING IS NOT A STORY'S PICTURE. AIWire's
@@ -116,6 +146,7 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "first_seen_at": r[5].isoformat(),
             "summary": r[6], "author": r[7], "categories": list(r[8] or []),
             "llm_keywords": list(r[9] or []), "daily_count": r[10],
+            "sponsored": sponsored_labels(contract, r[7], r[8]),
             # The story's picture; None means the page draws a card - also for
             # a source's generic site image (`image_generic`).
             "image_url": None if (r[1], r[11]) in generic else r[11],
@@ -324,6 +355,7 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
             "published_at": row[4].isoformat() if row[4] else None,
             "first_seen_at": row[5].isoformat(), "summary": row[6], "author": row[7],
             "categories": list(row[8] or []), "llm_keywords": list(row[9] or []),
+            "sponsored": sponsored_labels(contract, row[7], row[8]),
             "daily_count": row[10],
             "image_url": None if (row[1], row[11]) in generic else row[11],
             "image_generic": (row[1], row[11]) in generic, "image_source": row[12],

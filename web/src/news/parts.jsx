@@ -85,6 +85,7 @@ export function Meta({ it, source }) {
         ? <time dateTime={it.published_at} title={full(it.published_at)}>{ago(it.published_at)}</time>
         : <span title={`First seen ${full(it.first_seen_at)}`}>date not given</span>}
       {(it.llm_keywords || []).length > 0 && <Badge tone="pass" title={`Matched: ${it.llm_keywords.join(', ')}`}>LLM</Badge>}
+      {(it.sponsored || []).length > 0 && <Badge tone="warn" title={`The publisher labels this: ${it.sponsored.join(', ')}`}>Sponsored</Badge>}
       <SourceLink it={it} className="nw-out" title={`Open on ${siteOf(it.url)}`}>↗</SourceLink>
     </div>
   )
