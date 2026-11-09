@@ -840,6 +840,12 @@ def _take_deferred(conn, harvester, store, members, report, spent, *, fallback,
     candidate from the last 30 days is looked at, the deliberate ones are passed
     over BEFORE the cap is consulted, and the cap stops only real reads.
 
+    THE TRADE, SAID (#612 review): a genuinely deferred thread older than the
+    30-day window is no longer reached at all - it stays stored, with no
+    comments. The window lives in the two SQL constants above (`DEFERRED`,
+    `DEFERRED_BY_QUERY`), not in contract/ (rule 5); moving it there is a
+    follow-up, not part of this change.
+
     COUNTED LIKE THE MAIN LOOP (point 5): a failed or rate-limited read is a
     failure, the quota reading is kept, and one post's error is that post's -
     rolled back and named, never the end of the sweep.
