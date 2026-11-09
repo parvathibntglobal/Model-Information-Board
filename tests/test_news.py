@@ -32,6 +32,7 @@ page: {default_days: 7, max_days: 30, max_items: 600}
 link_preview: {enabled: false, groups: [selected, lab, writer], skip: {}, max_per_run: 10,
                max_attempts: 3, look_back_days: 7, max_head_bytes: 4096, generic_min_stories: 2}
 sponsored_labels: {categories: [Sponsored, Type-sponsored], authors: ["Acme Insights"]}
+headline_only: {}
 as_given: {}
 sources:
   - {key: wire, group: selected, label: Wire, kind: feed, url: "https://wire.example/feed.xml",
@@ -686,3 +687,64 @@ def test_the_view_badges_sponsored_items_and_hides_none(conn, contract, monkeypa
     assert by_title["Claude gets cheaper"]["sponsored"] == ["Sponsored"]
     assert all(i["sponsored"] == [] for t, i in by_title.items() if t != "Claude gets cheaper")
     assert out["population"]["items_in_window"] == len(out["items"]) == 4  # nothing filtered
+
+
+# ── #615 review: headline only, the badge on related cards, unlisted labels ────
+
+def test_a_headline_only_source_stores_no_summary(contract):
+    items = news.parse_feed(RSS, contract, headline_only=True)
+    assert items and all(i["summary"] is None and i["summary_source"] is None for i in items)
+    assert items[0]["title"] == "Claude gets cheaper"  # headline, date and link stay
+    assert items[0]["url"] == "https://wire.example/a" and items[0]["published_at"]
+
+
+@pytest.mark.parametrize("block, says", [
+    ("", "headline_only must map"),                                   # absent: refused
+    ("headline_only: {nobody: why}\n", "unknown sources"),
+    ("headline_only: {wire: why}\nas_given: {wire: why}\n", "both as_given and headline_only"),
+])
+def test_the_headline_only_block_is_required_and_checked(tmp_path, block, says):
+    text = CONTRACT_YAML.replace("headline_only: {}\n", "").replace("as_given: {}\n", "")
+    text += block if "as_given" in block else block + "as_given: {}\n"
+    p = tmp_path / "c.yaml"
+    p.write_text(text, encoding="utf-8")
+    with pytest.raises(news.NewsContractError, match=says):
+        news.load_contract(p)
+
+
+def test_the_real_contract_keeps_every_and_mit_to_headlines():
+    c = news.load_contract()
+    assert {"every_vibe_check", "mit_tr_ai"} <= c.headline_only
+    assert not c.headline_only & c.as_given
+
+
+def test_a_related_card_carries_the_badge(conn, contract, monkeypatch, tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML + "story: {min_name_chars: 4, max_models: 6, related_days: 14, "
+                 "related_max: 4}\n", encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    _run(conn, contract)
+    conn.execute("UPDATE news_item SET categories = ARRAY['Sponsored'] "
+                 "WHERE title = 'Undated note'")
+    conn.commit()
+    sid = conn.execute("SELECT id FROM news_item WHERE title = 'Claude gets cheaper'").fetchone()[0]
+    out = view.story_view(conn, sid, now=datetime(2026, 10, 28, 12, tzinfo=UTC))
+    cards = {c["title"]: c for c in out["related"]["same_source"]}
+    assert cards["Undated note"]["sponsored"] == ["Sponsored"]
+
+
+def test_an_unlisted_sponsor_label_is_counted_never_badged(conn, contract, monkeypatch, tmp_path):
+    p = tmp_path / "news_sources.yaml"
+    p.write_text(CONTRACT_YAML, encoding="utf-8")
+    monkeypatch.setattr(view, "CONTRACT", p)
+    _run(conn, contract)
+    conn.execute("UPDATE news_item SET categories = ARRAY['AI', 'sponsored-ebook'] "
+                 "WHERE title = 'Claude gets cheaper'")
+    # Badged items are skipped: their sponsor-<company> tag is noise beside a listed label.
+    conn.execute("UPDATE news_item SET categories = ARRAY['sponsor-acme', 'Sponsored'] "
+                 "WHERE title = 'Undated note'")
+    conn.commit()
+    out = view.news_view(conn, days=7, now=datetime(2026, 10, 28, 12, tzinfo=UTC))
+    assert out["population"]["sponsor_like_unlisted"] == {"sponsored-ebook": 1}
+    cheaper = next(i for i in out["items"] if i["title"] == "Claude gets cheaper")
+    assert cheaper["sponsored"] == []  # reported, not badged

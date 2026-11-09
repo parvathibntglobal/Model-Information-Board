@@ -169,6 +169,15 @@ export default function News() {
             {undated.length ? `; ${undated.length} undated, listed last` : ''}
             {sponsoredInWindow ? `; ${sponsoredInWindow} labelled sponsored by their publisher${hideSponsored ? ', hidden' : ''}` : ''}.
           </p>
+          {/* #615 review: a label that looks sponsored but is not on the contract's list is
+              reported here, never badged, so a new publisher label is seen rather than missed. */}
+          {Object.keys(data.population.sponsor_like_unlisted || {}).length > 0 && (
+            <p className="dim nw-count">
+              Not badged, but labelled like sponsorship:{' '}
+              {Object.entries(data.population.sponsor_like_unlisted).map(([label, n]) => `"${label}" (${n})`).join(', ')}.
+              Candidates for <code>sponsored_labels</code> in contract/news_sources.yaml.
+            </p>
+          )}
 
           {shown.length === 0 && <p className="lv-empty">No stories match{llmOnly || hideSponsored ? ` (${[llmOnly && 'LLM only', hideSponsored && 'Hide sponsored'].filter(Boolean).join(' and ')} is on)` : ''}.</p>}
 

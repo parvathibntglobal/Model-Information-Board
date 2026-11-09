@@ -85,6 +85,9 @@ link_preview:
     # The feed is published by Every for reading; its article pages are not
     # asked, so its stories get cards.
     every_vibe_check: "terms forbid automatic copying; feed only (2026-11-09)"
+    # Listed in headline_only below, which also stops previews; named here too so
+    # the skip list says why on its own.
+    mit_tr_ai: "terms bar robots and scrapers; headline only (2026-11-09)"
   max_per_run: 80
   max_attempts: 3
   look_back_days: 7
@@ -157,6 +160,20 @@ sponsored_labels:
   categories: [Sponsored, sponsored-post, sponsored-post-contributed, sponsored-podcast,
                sponsored-webinar, Type-sponsored]
   authors: ["MIT Technology Review Insights"]
+
+# HEADLINE, DATE AND LINK ONLY (#615 review, Parvathi 2026-11-09). A source listed
+# here has no summary stored: its story shows the headline, the date and a link to
+# the publisher, and its article pages are never asked for a link preview. For a
+# source whose terms speak to automated copying directly, until someone reads a
+# feed or syndication clause that allows more - then the line comes out.
+#
+# What is still kept: the feed response itself, in the raw store, as for every
+# source (immutable payloads, CLAUDE.md conventions). It is never shown.
+#
+#   key -> why (terms as read; the source's own `terms` field has the quote)
+headline_only:
+  every_vibe_check: "terms forbid automatic copying ('no scraping'), read 2026-11-09"
+  mit_tr_ai: "terms bar robots and scrapers and grant use 'case-by-case', read 2026-11-09"
 
 # What the News page shows by default, and the longest window it may ask for.
 page:
@@ -253,7 +270,7 @@ sources:
     label: MIT Technology Review AI
     kind: feed
     url: https://www.technologyreview.com/topic/artificial-intelligence/feed/
-    terms: "Terms of service (read 2026-11-09) name RSS feeds among the Services and say 'Permission to use Content is granted on a case-by-case basis'; no headline or excerpt clause. Bars robots and scrapers, and AI training without consent."
+    terms: "Terms of service (read 2026-11-09) name RSS feeds among the Services and say 'Permission to use Content is granted on a case-by-case basis'; no headline or excerpt clause. Bars robots and scrapers, and AI training without consent. So HEADLINE, DATE AND LINK ONLY (headline_only, #615 review) until a clause allowing more is read."
     daily: false
   - key: verge_ai
     group: selected
@@ -277,7 +294,7 @@ sources:
     # 404; this one answers 200 with RSS (2026-11-09). Headlines only here - as
     # evidence, Every waits for the press decision and its own ruling (#614).
     url: https://every.to/vibe-check/feed
-    terms: "Terms (read 2026-11-09) forbid to 'extensively or automatically copy any content from the Services (in other words, no scraping)'; no feed clause. Every publishes the feed itself; headline, short summary and link only. Paywalled articles: 8 of 10 pages (2026-11-09)."
+    terms: "Terms (read 2026-11-09) forbid to 'extensively or automatically copy any content from the Services (in other words, no scraping)'; no feed clause. Every publishes the feed itself. So HEADLINE, DATE AND LINK ONLY (headline_only, #615 review): no summary stored, no article page asked. Paywalled articles: 8 of 10 pages (2026-11-09)."
     daily: false
 
   # ── AI labs: official feeds, no rule against headline plus link ───────────

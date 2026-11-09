@@ -28,6 +28,7 @@ The judge does not import collect/, so the contract is read here directly.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,27 @@ def sponsored_labels(contract: dict[str, Any], author: str | None,
     if author and author.strip().casefold() in authors:
         hits.append(author.strip())
     return hits
+
+
+_SPONSOR_LIKE = re.compile(r"sponsor|partner content|paid post|presented by|advertorial", re.I)
+
+
+def unlisted_sponsor_like(contract: dict[str, Any], author: str | None,
+                          categories: list[str] | None) -> list[str]:
+    """Sponsor-looking categories or author on an item that carries NO badge (#615 review).
+
+    A MEASUREMENT, NOT A MATCH. The badge stays a whole-value match on the listed
+    labels; this only reports what the list may be missing - a publisher adding
+    `sponsored-ebook` tomorrow - so it is seen rather than silently unbadged.
+    Items already badged are skipped: The New Stack's `sponsor-<company>` tags
+    always sit beside a listed label and would only be noise (rule 7).
+    """
+    if sponsored_labels(contract, author, categories):
+        return []
+    found = [c for c in (categories or []) if _SPONSOR_LIKE.search(c)]
+    if author and _SPONSOR_LIKE.search(author):
+        found.append(author.strip())
+    return found
 
 
 # A SOURCE'S ONE-PICTURE-FOR-EVERYTHING IS NOT A STORY'S PICTURE. AIWire's
@@ -176,6 +198,8 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "items_total": total, "items_in_window": in_window, "undated_in_window": undated,
         })
     in_window = sum(s["items_in_window"] for s in sources)
+    unlisted = Counter(label for r in rows[: page["max_items"]]
+                       for label in unlisted_sponsor_like(contract, r[7], r[8]))
     return {
         "days": days,
         "max_days": page["max_days"],
@@ -189,6 +213,10 @@ def news_view(conn, *, days: int | None = None, now: datetime | None = None) -> 
             "capped_at": page["max_items"] if capped else None,
             "items_stored": sum(s["items_total"] for s in sources),
             "sources_listed": len(sources),
+            # Labels that look sponsored on unbadged stories among those listed,
+            # with how many stories carry each: candidates for sponsored_labels,
+            # never a badge. Read by web/src/routes/News.jsx's count line.
+            "sponsor_like_unlisted": dict(unlisted.most_common()),
         },
     }
 
@@ -291,7 +319,8 @@ ORDER BY (slug = %s) DESC LIMIT 1
 """
 
 _RECENT_SQL = """
-SELECT id, source_key, title, url, published_at, first_seen_at, summary, image_url, slug
+SELECT id, source_key, title, url, published_at, first_seen_at, summary, image_url, slug,
+       author, categories
 FROM news_item
 WHERE id <> %s AND coalesce(published_at, first_seen_at) >= %s
 ORDER BY coalesce(published_at, first_seen_at) DESC
@@ -299,11 +328,14 @@ LIMIT 600
 """
 
 
-def _card(r, generic: set[tuple[str, str]]) -> dict[str, Any]:
+def _card(r, generic: set[tuple[str, str]], contract: dict[str, Any]) -> dict[str, Any]:
+    # THE BADGE TRAVELS WITH THE STORY (#615 review): a sponsored story listed
+    # under another one is badged as it is on the News page.
     return {"id": r[0], "source_key": r[1], "title": r[2], "url": r[3],
             "published_at": r[4].isoformat() if r[4] else None,
             "first_seen_at": r[5].isoformat(), "summary": r[6],
-            "image_url": None if (r[1], r[7]) in generic else r[7], "slug": r[8]}
+            "image_url": None if (r[1], r[7]) in generic else r[7], "slug": r[8],
+            "sponsored": sponsored_labels(contract, r[9], r[10])}
 
 
 def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, Any]:
@@ -345,10 +377,10 @@ def story_view(conn, item_id: str, *, now: datetime | None = None) -> dict[str, 
                                           pattern))
             if shared & wanted:
                 shares = [labels.get(c, c) for c in shared & wanted]
-                same_model.append(_card(r, generic) | {"shares": shares})
+                same_model.append(_card(r, generic, contract) | {"shares": shares})
                 continue
         if r[1] == row[1] and len(same_source) < rules["related_max"]:
-            same_source.append(_card(r, generic))
+            same_source.append(_card(r, generic, contract))
     return {
         "story": {
             "id": row[0], "source_key": row[1], "title": row[2], "url": row[3],

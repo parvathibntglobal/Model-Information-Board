@@ -73,6 +73,10 @@ class Contract:
     #: Sources shown exactly as their feed gives them (contract `as_given`):
     #: the feed's summary whole, never cut or swapped, and no link preview.
     as_given: frozenset[str]
+    #: Sources whose stories keep headline, date and link only (contract
+    #: `headline_only`, #615 review): no summary is stored and no link preview
+    #: is asked, until a feed clause allowing more is read.
+    headline_only: frozenset[str]
 
 
 def _positive_int(raw: dict, key: str, problems: list[str]) -> int:
@@ -135,6 +139,17 @@ def load_contract(path: Path = CONTRACT) -> Contract:
         problems.append("as_given must map each source key to why ({} for none)")
     elif set(as_given) - keys:
         problems.append(f"as_given names unknown sources: {sorted(set(as_given) - keys)}")
+    headline_only = raw.get("headline_only")
+    if not isinstance(headline_only, dict) or not all(isinstance(v, str) and v
+                                                      for v in headline_only.values()):
+        problems.append("headline_only must map each source key to why ({} for none)")
+    elif set(headline_only) - keys:
+        problems.append(f"headline_only names unknown sources: {sorted(set(headline_only) - keys)}")
+    elif isinstance(as_given, dict) and set(headline_only) & set(as_given):
+        # One says "show the feed's summary whole", the other "show none": a
+        # source in both has no defined display, so it is refused, not resolved.
+        problems.append("a source cannot be both as_given and headline_only: "
+                        f"{sorted(set(headline_only) & set(as_given))}")
     skip = lp.get("skip")
     if not isinstance(skip, dict) or not all(isinstance(v, str) and v for v in skip.values()):
         problems.append("link_preview.skip must map each skipped source key to why ({} for none)")
@@ -143,7 +158,7 @@ def load_contract(path: Path = CONTRACT) -> Contract:
     return Contract(max_words, min_words, pattern, tuple(sources),
                     {k: lp[k] for k in ("enabled", "groups", "skip", "max_per_run",
                                         "max_attempts", "look_back_days", "max_head_bytes")},
-                    frozenset(as_given))
+                    frozenset(as_given), frozenset(headline_only))
 
 
 # ── the summary, written by code ─────────────────────────────────────────────
@@ -284,7 +299,8 @@ def matched_keywords(pattern: re.Pattern, *texts: str | None) -> list[str]:
 
 
 def parse_feed(body: bytes, contract: Contract, *, feed_url: str | None = None,
-               content_type: str | None = None, as_given: bool = False) -> list[dict[str, Any]]:
+               content_type: str | None = None, as_given: bool = False,
+               headline_only: bool = False) -> list[dict[str, Any]]:
     """RSS or Atom items, through the lane's one feed parser (blog/parse.py), which
     never fetches. An item with no link or title is dropped: it cannot be shown.
 
@@ -297,7 +313,12 @@ def parse_feed(body: bytes, contract: Contract, *, feed_url: str | None = None,
         title = " ".join((e.title or "").split())
         if not e.url or not title:
             continue
-        if as_given:
+        if headline_only:
+            # HEADLINE, DATE AND LINK ONLY (contract `headline_only`, #615
+            # review): the source's terms speak to automated copying, so no
+            # summary is stored until a clause allowing more is read.
+            summary, summary_source = None, None
+        elif as_given:
             # SHOWN AS THE FEED GIVES IT: the summary whole - HTML removed for
             # display, nothing cut, reworded or swapped (contract `as_given`).
             whole = flatten(e.summary_html) or None
@@ -588,7 +609,8 @@ def harvest(conn, client, *, gate=None, store=None, contract: Contract | None = 
         try:
             items = (parse_feed(response.content, contract, feed_url=str(response.url),
                                 content_type=response.headers.get("content-type"),
-                                as_given=source.key in contract.as_given)
+                                as_given=source.key in contract.as_given,
+                                headline_only=source.key in contract.headline_only)
                      if source.kind == "feed"
                      else parse_github_releases(response.json(), contract))
         except ValueError as exc:
@@ -617,6 +639,7 @@ def harvest(conn, client, *, gate=None, store=None, contract: Contract | None = 
         conn, client, gate, store, settings_=contract.link_preview, contract=contract,
         source_keys=[s.key for s in contract.sources
                      if s.group in groups and s.key not in contract.link_preview["skip"]
-                     and s.key not in contract.as_given and (not only or s.key in only)],
+                     and s.key not in contract.as_given
+                     and s.key not in contract.headline_only and (not only or s.key in only)],
         now=clock())
     return counts
